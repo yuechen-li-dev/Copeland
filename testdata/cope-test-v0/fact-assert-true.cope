@@ -1,0 +1,4 @@
+fact "boolean guard stays true" {
+  let isReady = 3 > 1;
+  assert.true(isReady);
+}

@@ -1,0 +1,4 @@
+fact "custom message example" {
+  let actual = 2 + 2;
+  assert.equal(actual, 4, "Expected arithmetic result to remain stable.");
+}
