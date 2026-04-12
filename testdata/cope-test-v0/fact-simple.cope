@@ -1,0 +1,5 @@
+fact "simple arithmetic" {
+  let x = 2;
+  let y = 3;
+  assert.equal(x + y, 5);
+}
