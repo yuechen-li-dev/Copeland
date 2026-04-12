@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Copeland.Script/Copeland.Script.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Copeland.Script.Tests/Copeland.Script.Tests.csproj" />
+  </Folder>
+</Solution>
