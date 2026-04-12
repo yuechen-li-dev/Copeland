@@ -1,0 +1,2 @@
+NumberToken|123abc|null
+EndOfFileToken||null
