@@ -1,0 +1,14 @@
+VarKeyword|var|null
+IdentifierToken|s|null
+EqualsToken|=|null
+StringToken|'abc'|abc
+SemicolonToken|;|null
+WithKeyword|with|null
+OpenParenToken|(|null
+IdentifierToken|s|null
+CloseParenToken|)|null
+OpenBraceToken|{|null
+NullKeyword|null|null
+SemicolonToken|;|null
+CloseBraceToken|}|null
+EndOfFileToken||null

@@ -1,0 +1,5 @@
+LetKeyword|let|null
+IdentifierToken|s|null
+EqualsToken|=|null
+StringToken|"oops|oops
+EndOfFileToken||null

@@ -1,0 +1,1 @@
+COPE-LEX-0001|8|5|Unterminated string literal.
