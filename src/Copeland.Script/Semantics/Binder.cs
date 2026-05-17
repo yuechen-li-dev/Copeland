@@ -210,6 +210,7 @@ public static class Binder
             ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
             ObjectLiteralExpressionSyntax o => BindObject(o),
             MemberAccessExpressionSyntax m => BindMember(m),
+            MatchExpressionSyntax m => BindMatch(m),
             _ => new BoundErrorExpression()
             };
 
@@ -336,6 +337,82 @@ public static class Binder
         }
 
         private BoundExpression BindObject(ObjectLiteralExpressionSyntax o) { Report("COPE-TYPE-0011", "Object literals are not supported in M0e.", o.OpenBraceToken); return new BoundErrorExpression(); }
+        private BoundExpression BindMatch(MatchExpressionSyntax match)
+        {
+            var scrutinee = BindExpression(match.Expression);
+            if (scrutinee.Type is not EnumTypeSymbol enumType)
+            {
+                Report("COPE-MATCH-0001", "Match expression requires an enum value.", match.MatchKeyword);
+                return new BoundErrorExpression();
+            }
+
+            var boundArms = new List<BoundMatchArm>();
+            var seenCases = new HashSet<string>(StringComparer.Ordinal);
+            TypeSymbol? expectedArmType = null;
+
+            foreach (var arm in match.Arms)
+            {
+                var caseName = arm.Pattern.CaseIdentifier.Text;
+                var enumCase = enumType.Cases.FirstOrDefault(c => c.Name == caseName);
+                if (enumCase is null)
+                {
+                    Report("COPE-MATCH-0002", $"Enum '{enumType.Name}' has no case '{caseName}'.", arm.Pattern.CaseIdentifier);
+                    continue;
+                }
+
+                if (!seenCases.Add(caseName))
+                {
+                    Report("COPE-MATCH-0003", $"Duplicate match arm for case '{caseName}'.", arm.Pattern.CaseIdentifier);
+                }
+
+                var payloadCount = arm.Pattern.PayloadIdentifiers.Count;
+                if (payloadCount != enumCase.PayloadFields.Count)
+                {
+                    Report("COPE-MATCH-0005", $"Match arm for case '{caseName}' expects {enumCase.PayloadFields.Count} payload values, got {payloadCount}.", arm.Pattern.CaseIdentifier);
+                }
+
+                var prevScope = _scope;
+                _scope = new Scope(prevScope);
+                var payloadVars = new List<VariableSymbol>();
+                var seenPayload = new HashSet<string>(StringComparer.Ordinal);
+                for (var i = 0; i < Math.Min(payloadCount, enumCase.PayloadFields.Count); i++)
+                {
+                    var payloadIdentifier = arm.Pattern.PayloadIdentifiers[i];
+                    if (!seenPayload.Add(payloadIdentifier.Text))
+                    {
+                        Report("COPE-MATCH-0006", $"Duplicate payload variable '{payloadIdentifier.Text}' in match arm for case '{caseName}'.", payloadIdentifier);
+                        continue;
+                    }
+
+                    var symbol = new VariableSymbol(payloadIdentifier.Text, enumCase.PayloadFields[i].Type, true);
+                    _scope.TryDeclare(symbol);
+                    payloadVars.Add(symbol);
+                }
+
+                var armExpression = BindExpression(arm.Expression);
+                _scope = prevScope;
+
+                if (expectedArmType is null && armExpression.Type != PrimitiveTypeSymbol.Error)
+                {
+                    expectedArmType = armExpression.Type;
+                }
+                else if (expectedArmType is not null && armExpression.Type != PrimitiveTypeSymbol.Error && !IsAssignable(expectedArmType, armExpression.Type))
+                {
+                    Report("COPE-MATCH-0007", $"Match arm type mismatch: expected '{expectedArmType.Name}', got '{armExpression.Type.Name}'.", arm.ArrowToken);
+                }
+
+                boundArms.Add(new BoundMatchArm(enumCase, payloadVars, armExpression));
+            }
+
+            var missingCases = enumType.Cases.Where(c => !seenCases.Contains(c.Name)).Select(c => c.Name).ToArray();
+            if (missingCases.Length > 0)
+            {
+                Report("COPE-MATCH-0004", $"Match expression for enum '{enumType.Name}' is missing cases: {string.Join(", ", missingCases)}.", match.MatchKeyword);
+            }
+
+            return new BoundMatchExpression(scrutinee, enumType, boundArms, expectedArmType ?? PrimitiveTypeSymbol.Error);
+        }
+
         private BoundExpression BindMember(MemberAccessExpressionSyntax m)
         {
             if (m.Target is NameExpressionSyntax n && _enumTypes.TryGetValue(n.IdentifierToken.Text, out var enumType))
@@ -487,6 +564,7 @@ public static class Binder
             NameExpressionSyntax n => n.IdentifierToken,
             LiteralExpressionSyntax l => l.LiteralToken,
             ArrayLiteralExpressionSyntax a => a.OpenBracketToken,
+            MatchExpressionSyntax m => m.MatchKeyword,
             _ => throw new InvalidOperationException("No anchor token for expression kind.")
         };
 

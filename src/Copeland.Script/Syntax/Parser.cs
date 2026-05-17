@@ -501,6 +501,7 @@ public sealed class Parser
             SyntaxKind.IdentifierToken => new NameExpressionSyntax(NextToken()),
             SyntaxKind.OpenBracketToken => ParseArrayLiteralExpression(),
             SyntaxKind.OpenBraceToken => ParseObjectLiteralExpression(),
+            SyntaxKind.MatchKeyword => ParseMatchExpression(),
             _ => ParseMissingExpression(),
         };
 
@@ -558,6 +559,69 @@ public sealed class Parser
 
         var closeBrace = Match(SyntaxKind.CloseBraceToken);
         return new ObjectLiteralExpressionSyntax(openBrace, properties, commas, closeBrace);
+    }
+
+    private MatchExpressionSyntax ParseMatchExpression()
+    {
+        var matchKeyword = Match(SyntaxKind.MatchKeyword);
+        var scrutinee = ParseExpression();
+        var openBraceToken = Match(SyntaxKind.OpenBraceToken);
+        var arms = new List<MatchArmSyntax>();
+
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            var startToken = Current;
+            arms.Add(ParseMatchArm());
+            if (Current == startToken)
+            {
+                ReportUnexpectedToken(Current);
+                NextToken();
+            }
+        }
+
+        var closeBraceToken = Match(SyntaxKind.CloseBraceToken);
+        return new MatchExpressionSyntax(matchKeyword, scrutinee, openBraceToken, arms, closeBraceToken);
+    }
+
+    private MatchArmSyntax ParseMatchArm()
+    {
+        var pattern = ParseMatchPattern();
+        var arrow = Match(SyntaxKind.ArrowToken);
+        var expression = ParseExpression();
+        SyntaxToken? comma = null;
+        if (Current.Kind == SyntaxKind.CommaToken)
+        {
+            comma = Match(SyntaxKind.CommaToken);
+        }
+
+        return new MatchArmSyntax(pattern, arrow, expression, comma);
+    }
+
+    private MatchPatternSyntax ParseMatchPattern()
+    {
+        var caseIdentifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? openParen = null;
+        var payloadIdentifiers = new List<SyntaxToken>();
+        var commas = new List<SyntaxToken>();
+        SyntaxToken? closeParen = null;
+
+        if (Current.Kind == SyntaxKind.OpenParenToken)
+        {
+            openParen = Match(SyntaxKind.OpenParenToken);
+            while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+            {
+                payloadIdentifiers.Add(Match(SyntaxKind.IdentifierToken));
+                if (Current.Kind != SyntaxKind.CommaToken)
+                {
+                    break;
+                }
+
+                commas.Add(Match(SyntaxKind.CommaToken));
+            }
+            closeParen = Match(SyntaxKind.CloseParenToken);
+        }
+
+        return new MatchPatternSyntax(caseIdentifier, openParen, payloadIdentifiers, commas, closeParen);
     }
 
     private MissingExpressionSyntax ParseMissingExpression()

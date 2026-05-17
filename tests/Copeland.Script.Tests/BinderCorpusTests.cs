@@ -35,7 +35,7 @@ public sealed class BinderCorpusTests
     public static IEnumerable<object[]> GetCases()
     {
         var repoRoot = GetRepoRoot();
-        foreach (var dir in new[] { "m0-bind-valid", "m0-bind-invalid", "m1-enum-bind-valid", "m1-enum-bind-invalid" })
+        foreach (var dir in new[] { "m0-bind-valid", "m0-bind-invalid", "m1-enum-bind-valid", "m1-enum-bind-invalid", "m1-match-bind-valid", "m1-match-bind-invalid" })
         {
             var fullDir = Path.Combine(repoRoot, "testdata", dir);
             if (!Directory.Exists(fullDir)) continue;

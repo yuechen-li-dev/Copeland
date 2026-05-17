@@ -114,6 +114,28 @@ public static class BoundTreeDumper
                 sb.Append("PropagateExpression ? : ").Append(p.Type.Name).AppendLine();
                 AppendExpression(sb, p.Operand, i + 1); break;
             case BoundArrayExpression a: sb.Append("ArrayExpression : ").Append(a.Type.Name).AppendLine(); foreach (var x in a.Elements) AppendExpression(sb, x, i + 1); break;
+            case BoundMatchExpression m:
+                sb.Append("MatchExpression : ").Append(m.Type.Name).AppendLine();
+                I(sb, i + 1); sb.AppendLine("Scrutinee");
+                AppendExpression(sb, m.Scrutinee, i + 2);
+                foreach (var arm in m.Arms)
+                {
+                    I(sb, i + 1);
+                    sb.Append("Arm ").Append(arm.Case.Name);
+                    if (arm.PayloadVariables.Count > 0)
+                    {
+                        sb.Append('(');
+                        for (var p = 0; p < arm.PayloadVariables.Count; p++)
+                        {
+                            if (p > 0) sb.Append(", ");
+                            sb.Append(arm.PayloadVariables[p].Name).Append(": ").Append(arm.PayloadVariables[p].Type.Name);
+                        }
+                        sb.Append(')');
+                    }
+                    sb.AppendLine();
+                    AppendExpression(sb, arm.Expression, i + 2);
+                }
+                break;
             default: sb.Append("ErrorExpression : error").AppendLine(); break;
         }
     }
