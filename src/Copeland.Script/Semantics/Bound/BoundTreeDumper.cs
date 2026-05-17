@@ -12,11 +12,37 @@ public static class BoundTreeDumper
         {
             AppendFunction(sb, fn, 0);
         }
+        foreach (var en in program.Enums)
+        {
+            AppendEnum(sb, en, 0);
+        }
         foreach (var stmt in program.GlobalStatements)
         {
             AppendStatement(sb, stmt, 0);
         }
         return sb.ToString();
+    }
+    private static void AppendEnum(StringBuilder sb, BoundEnumDeclaration en, int i)
+    {
+        I(sb, i);
+        sb.Append("EnumDeclaration ").Append(en.EnumType.Name).AppendLine();
+        foreach (var @case in en.EnumType.Cases)
+        {
+            I(sb, i + 1);
+            sb.Append("Case ").Append(@case.Name);
+            if (@case.HasPayload)
+            {
+                sb.Append('(');
+                for (var p = 0; p < @case.PayloadFields.Count; p++)
+                {
+                    if (p > 0) sb.Append(", ");
+                    var field = @case.PayloadFields[p];
+                    sb.Append(field.Name).Append(": ").Append(field.Type.Name);
+                }
+                sb.Append(')');
+            }
+            sb.AppendLine();
+        }
     }
 
     private static void I(StringBuilder sb, int n) => sb.Append(' ', n * 2);
@@ -79,6 +105,11 @@ public static class BoundTreeDumper
                 if (c.IsFallible) sb.Append(" ! ").Append(c.ErrorType!.Name);
                 sb.AppendLine();
                 foreach (var a in c.Arguments) AppendExpression(sb, a, i + 1); break;
+            case BoundEnumValueExpression eev:
+                sb.Append(eev.IsConstructor ? "EnumConstructor " : "EnumCase ")
+                    .Append(eev.Case.EnumType.Name).Append('.').Append(eev.Case.Name)
+                    .Append(" : ").Append(eev.Type.Name).AppendLine();
+                foreach (var a in eev.Arguments) AppendExpression(sb, a, i + 1); break;
             case BoundPropagateExpression p:
                 sb.Append("PropagateExpression ? : ").Append(p.Type.Name).AppendLine();
                 AppendExpression(sb, p.Operand, i + 1); break;

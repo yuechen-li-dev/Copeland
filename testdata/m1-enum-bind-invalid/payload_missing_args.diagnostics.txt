@@ -1,0 +1,1 @@
+COPE-ENUM-0007|82|6|Enum case 'Shape.Circle' requires arguments.

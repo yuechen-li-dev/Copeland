@@ -31,3 +31,12 @@ public sealed class ErrorNominalTypeSymbol(string name) : TypeSymbol
 {
     public override string Name { get; } = name;
 }
+
+public sealed class EnumTypeSymbol(string name) : TypeSymbol
+{
+    private readonly List<EnumCaseSymbol> _cases = [];
+    public override string Name { get; } = name;
+    public IReadOnlyList<EnumCaseSymbol> Cases => _cases;
+
+    public void AddCase(EnumCaseSymbol @case) => _cases.Add(@case);
+}

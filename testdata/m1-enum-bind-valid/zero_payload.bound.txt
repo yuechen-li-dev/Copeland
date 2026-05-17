@@ -1,0 +1,6 @@
+FunctionDeclaration make() -> Shape
+  BlockStatement
+    ReturnStatement
+      EnumCase Shape.Point : Shape
+EnumDeclaration Shape
+  Case Point
