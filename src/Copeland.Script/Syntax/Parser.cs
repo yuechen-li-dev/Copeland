@@ -78,7 +78,16 @@ public sealed class Parser
         var commas = new List<SyntaxToken>();
         while (Current.Kind != SyntaxKind.CloseParenToken && Current.Kind != SyntaxKind.EndOfFileToken)
         {
-            parameters.Add(new ParameterSyntax(Match(SyntaxKind.IdentifierToken)));
+            var parameterIdentifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? parameterColon = null;
+            TypeSyntax? parameterType = null;
+            if (Current.Kind == SyntaxKind.ColonToken)
+            {
+                parameterColon = Match(SyntaxKind.ColonToken);
+                parameterType = ParseTypeSyntax();
+            }
+
+            parameters.Add(new ParameterSyntax(parameterIdentifier, parameterColon, parameterType));
 
             if (Current.Kind != SyntaxKind.CommaToken)
             {
@@ -89,8 +98,16 @@ public sealed class Parser
         }
 
         var closeParenToken = Match(SyntaxKind.CloseParenToken);
+        SyntaxToken? returnTypeColonToken = null;
+        TypeSyntax? returnType = null;
+        if (Current.Kind == SyntaxKind.ColonToken)
+        {
+            returnTypeColonToken = Match(SyntaxKind.ColonToken);
+            returnType = ParseTypeSyntax();
+        }
+
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(functionKeyword, identifier, openParenToken, parameters, commas, closeParenToken, body);
+        return new FunctionDeclarationSyntax(functionKeyword, identifier, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
     }
 
     private StatementSyntax ParseStatement()
@@ -143,10 +160,55 @@ public sealed class Parser
             ? Match(SyntaxKind.ConstKeyword)
             : Match(SyntaxKind.LetKeyword);
         var identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? typeColonToken = null;
+        TypeSyntax? type = null;
+        if (Current.Kind == SyntaxKind.ColonToken)
+        {
+            typeColonToken = Match(SyntaxKind.ColonToken);
+            type = ParseTypeSyntax();
+        }
+
         var equalsToken = Match(SyntaxKind.EqualsToken);
         var initializer = ParseExpression();
         var semicolonToken = requireSemicolon ? Match(SyntaxKind.SemicolonToken) : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
-        return new VariableDeclarationStatementSyntax(keyword, identifier, equalsToken, initializer, semicolonToken);
+        return new VariableDeclarationStatementSyntax(keyword, identifier, typeColonToken, type, equalsToken, initializer, semicolonToken);
+    }
+
+    private TypeSyntax ParseTypeSyntax()
+    {
+        TypeSyntax type = Current.Kind switch
+        {
+            SyntaxKind.NumberKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
+                => new PredefinedTypeSyntax(NextToken()),
+            SyntaxKind.IdentifierToken
+                => new IdentifierTypeSyntax(NextToken()),
+            _ => ParseMissingTypeSyntax(),
+        };
+
+        while (Current.Kind == SyntaxKind.OpenBracketToken)
+        {
+            var openBracketToken = Match(SyntaxKind.OpenBracketToken);
+            SyntaxToken closeBracketToken;
+            if (Current.Kind == SyntaxKind.CloseBracketToken)
+            {
+                closeBracketToken = Match(SyntaxKind.CloseBracketToken);
+            }
+            else
+            {
+                _diagnostics.Report("COPE-PARSE-0008", "Expected ']' in array type.", Current.Position, 0);
+                closeBracketToken = MissingToken(SyntaxKind.CloseBracketToken, Current.Position);
+            }
+
+            type = new ArrayTypeSyntax(type, openBracketToken, closeBracketToken);
+        }
+
+        return type;
+    }
+
+    private TypeSyntax ParseMissingTypeSyntax()
+    {
+        _diagnostics.Report("COPE-PARSE-0006", "Expected type.", Current.Position, 0);
+        return new IdentifierTypeSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position));
     }
 
     private IfStatementSyntax ParseIfStatement()

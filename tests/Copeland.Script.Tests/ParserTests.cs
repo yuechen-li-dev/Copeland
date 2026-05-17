@@ -46,4 +46,31 @@ x = foo.bar(1, { y: 2 }, [3]);
         var tree = SyntaxTree.Parse(source);
         Assert.Contains(tree.Diagnostics, d => d.Id == expectedId);
     }
+
+    [Fact]
+    public void Parses_Type_Annotations()
+    {
+        const string source = """
+function add(a: number, b: number): number { return a + b; }
+let flags: boolean[] = [true, false];
+let names: string[][] = [["a"]];
+""";
+        var tree = SyntaxTree.Parse(source);
+        var dump = SyntaxTreeDumper.Dump(tree.Root);
+
+        Assert.Contains("PredefinedType", dump, StringComparison.Ordinal);
+        Assert.Contains("ArrayType", dump, StringComparison.Ordinal);
+        Assert.DoesNotContain(tree.Diagnostics, d => d.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("const x: = 1;", "COPE-PARSE-0006")]
+    [InlineData("function f(a:): number { return 1; }", "COPE-PARSE-0006")]
+    [InlineData("function f(a: number): { return 1; }", "COPE-PARSE-0006")]
+    [InlineData("let xs: number[ = [1];", "COPE-PARSE-0008")]
+    public void Reports_Type_Annotation_Diagnostics(string source, string expectedId)
+    {
+        var tree = SyntaxTree.Parse(source);
+        Assert.Contains(tree.Diagnostics, d => d.Id == expectedId);
+    }
 }
