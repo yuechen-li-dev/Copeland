@@ -1,5 +1,6 @@
 using System.Reflection;
 using Copeland.Script.Codegen.CSharp;
+using Copeland.Script.Compiler;
 using Copeland.Script.Mir;
 using CopelandSyntaxTree = Copeland.Script.Syntax.SyntaxTree;
 using Microsoft.CodeAnalysis;
@@ -155,6 +156,200 @@ public sealed class M0hRuntimeTests
         CopeResultAssertions.AssertCopeResultOkUnit(result);
     }
 
+    [Fact]
+    public void Executes_Enum_ZeroPayload_Return()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Choice {
+              A,
+            }
+
+            function make(): Choice {
+              return Choice.A;
+            }
+            """);
+
+        var result = GeneratedModuleInvoker.Invoke(assembly, "make");
+        RuntimeEnumAssertions.AssertEnumCase(result, "A");
+    }
+
+    [Fact]
+    public void Executes_Enum_Payload_Return()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Shape {
+              Circle(radius: number),
+            }
+
+            function make(): Shape {
+              return Shape.Circle(10);
+            }
+            """);
+
+        var result = GeneratedModuleInvoker.Invoke(assembly, "make");
+        RuntimeEnumAssertions.AssertEnumCase(result, "Circle");
+        RuntimeEnumAssertions.AssertEnumPayload(result!, "radius", 10.0);
+    }
+
+    [Fact]
+    public void Executes_Enum_MultiPayload_Return()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Shape {
+              Rect(width: number, height: number),
+            }
+
+            function make(): Shape {
+              return Shape.Rect(3, 4);
+            }
+            """);
+
+        var result = GeneratedModuleInvoker.Invoke(assembly, "make");
+        RuntimeEnumAssertions.AssertEnumCase(result, "Rect");
+        RuntimeEnumAssertions.AssertEnumPayload(result!, "width", 3.0);
+        RuntimeEnumAssertions.AssertEnumPayload(result!, "height", 4.0);
+    }
+
+    [Fact]
+    public void Executes_Enum_Local_RoundTrip()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Choice {
+              A,
+              B,
+            }
+
+            function make(): Choice {
+              const c: Choice = Choice.B;
+              return c;
+            }
+            """);
+
+        var result = GeneratedModuleInvoker.Invoke(assembly, "make");
+        RuntimeEnumAssertions.AssertEnumCase(result, "B");
+    }
+
+    [Fact]
+    public void Executes_Enum_Array_Return()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Choice {
+              A,
+              B,
+            }
+
+            function choices(): Choice[] {
+              const xs: Choice[] = [Choice.A, Choice.B];
+              return xs;
+            }
+            """);
+
+        var result = GeneratedModuleInvoker.Invoke(assembly, "choices");
+        var values = Assert.IsAssignableFrom<Array>(result);
+        Assert.Equal(2, values.Length);
+        RuntimeEnumAssertions.AssertEnumCase(values.GetValue(0), "A");
+        RuntimeEnumAssertions.AssertEnumCase(values.GetValue(1), "B");
+    }
+
+    [Fact]
+    public void Executes_Match_Over_ZeroPayload_Enum()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Choice {
+              A,
+              B,
+            }
+
+            function value(choice: Choice): number {
+              return match choice {
+                A => 1,
+                B => 2,
+              };
+            }
+
+            function valueA(): number {
+              return value(Choice.A);
+            }
+
+            function valueB(): number {
+              return value(Choice.B);
+            }
+            """);
+
+        Assert.Equal(1.0, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(assembly, "valueA")));
+        Assert.Equal(2.0, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(assembly, "valueB")));
+    }
+
+    [Fact]
+    public void Executes_Match_Over_Single_Payload_Enum()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Shape {
+              Point,
+              Circle(radius: number),
+            }
+
+            function value(shape: Shape): number {
+              return match shape {
+                Point => 0,
+                Circle(radius) => radius,
+              };
+            }
+
+            function circleValue(): number {
+              return value(Shape.Circle(7));
+            }
+            """);
+
+        Assert.Equal(7.0, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(assembly, "circleValue")));
+    }
+
+    [Fact]
+    public void Executes_Match_Over_Multi_Payload_Enum()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Shape {
+              Rect(width: number, height: number),
+            }
+
+            function area(shape: Shape): number {
+              return match shape {
+                Rect(width, height) => width * height,
+              };
+            }
+
+            function rectArea(): number {
+              return area(Shape.Rect(3, 4));
+            }
+            """);
+
+        Assert.Equal(12.0, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(assembly, "rectArea")));
+    }
+
+    [Fact]
+    public void Executes_Match_Over_String_Payload_Enum()
+    {
+        var assembly = CompileCopelandSource("""
+            enum Status {
+              Idle,
+              Loaded(name: string),
+            }
+
+            function label(status: Status): string {
+              return match status {
+                Idle => "idle",
+                Loaded(name) => name,
+              };
+            }
+
+            function loadedLabel(): string {
+              return label(Status.Loaded("Ada"));
+            }
+            """);
+
+        Assert.Equal("Ada", Assert.IsType<string>(GeneratedModuleInvoker.Invoke(assembly, "loadedLabel")));
+    }
+
     [Theory]
     [InlineData("function f(): number { return \"x\"; }")]
     [InlineData("function f(): number { return null; }")]
@@ -169,16 +364,29 @@ public sealed class M0hRuntimeTests
 
     private static Assembly CompileCopelandSource(string source)
     {
-        var mir = MirLowerer.Lower(CopelandSyntaxTree.Parse(source));
-        Assert.Empty(mir.Diagnostics);
-        Assert.NotNull(mir.Program);
+        var compilation = CopelandCompiler.CompileToCSharp(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.NotNull(compilation.CSharpText);
 
-        var csharp = CSharpBackend.Emit(mir.Program!);
-        Assert.Empty(csharp.Diagnostics);
-
-        var compile = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        var compile = RoslynCompileHelper.CompileGeneratedSource(compilation.CSharpText!);
         Assert.True(compile.Success, string.Join(Environment.NewLine, compile.Diagnostics));
         return compile.Assembly!;
+    }
+}
+
+internal static class RuntimeEnumAssertions
+{
+    public static void AssertEnumCase(object? value, string caseName)
+    {
+        Assert.NotNull(value);
+        Assert.Equal(caseName, value!.GetType().Name);
+    }
+
+    public static void AssertEnumPayload(object value, string propertyName, object? expected)
+    {
+        var property = value.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance);
+        Assert.NotNull(property);
+        Assert.Equal(expected, property!.GetValue(value));
     }
 }
 
