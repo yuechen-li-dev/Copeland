@@ -14,8 +14,8 @@ public readonly struct CopeResult<TValue, TError>
     private readonly TError _error;
     public bool IsOk { get; }
 
-    public TValue Value => IsOk ? _value : throw new InvalidOperationException("Result has no value.");
-    public TError Error => !IsOk ? _error : throw new InvalidOperationException("Result has no error.");
+    public TValue Value => IsOk ? _value : throw new global::System.InvalidOperationException("Result has no value.");
+    public TError Error => !IsOk ? _error : throw new global::System.InvalidOperationException("Result has no error.");
 
     private CopeResult(bool isOk, TValue value, TError error)
     {

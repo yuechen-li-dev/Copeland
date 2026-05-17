@@ -30,8 +30,8 @@ public static class CSharpBackend
         {
             writer.WriteLine("public readonly struct CopeResult<TValue, TError>"); writer.WriteLine("{"); writer.Indent();
             writer.WriteLine("private readonly TValue _value;"); writer.WriteLine("private readonly TError _error;"); writer.WriteLine("public bool IsOk { get; }"); writer.WriteLine();
-            writer.WriteLine("public TValue Value => IsOk ? _value : throw new InvalidOperationException(\"Result has no value.\");");
-            writer.WriteLine("public TError Error => !IsOk ? _error : throw new InvalidOperationException(\"Result has no error.\");"); writer.WriteLine();
+            writer.WriteLine("public TValue Value => IsOk ? _value : throw new global::System.InvalidOperationException(\"Result has no value.\");");
+            writer.WriteLine("public TError Error => !IsOk ? _error : throw new global::System.InvalidOperationException(\"Result has no error.\");"); writer.WriteLine();
             writer.WriteLine("private CopeResult(bool isOk, TValue value, TError error)"); writer.WriteLine("{"); writer.Indent();
             writer.WriteLine("IsOk = isOk;"); writer.WriteLine("_value = value;"); writer.WriteLine("_error = error;"); writer.Unindent(); writer.WriteLine("}"); writer.WriteLine();
             writer.WriteLine("public static CopeResult<TValue, TError> Ok(TValue value) => new(true, value, default!);");
