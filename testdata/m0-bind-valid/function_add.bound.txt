@@ -1,0 +1,10 @@
+FunctionDeclaration add(a: number, b: number) -> number
+  BlockStatement
+    ReturnStatement
+      BinaryExpression PlusToken : number
+        VariableExpression a : number
+        VariableExpression b : number
+VariableDeclaration let r: number
+  CallExpression add : number
+    LiteralExpression 1 : number
+    LiteralExpression 2 : number

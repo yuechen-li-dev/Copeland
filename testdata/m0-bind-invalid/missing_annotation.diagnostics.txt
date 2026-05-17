@@ -1,0 +1,1 @@
+COPE-TYPE-0002|4|1|Missing type annotation for variable 'x'.

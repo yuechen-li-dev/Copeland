@@ -1,0 +1,9 @@
+VariableDeclaration const x: number
+  LiteralExpression 1 : number
+VariableDeclaration let y: string
+  LiteralExpression ok : string
+VariableDeclaration let b: boolean
+  LiteralExpression True : boolean
+ExpressionStatement
+  AssignmentExpression y : string
+    LiteralExpression next : string
