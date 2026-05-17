@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Layout</AssemblyName>
+    <RootNamespace>Machina.Layout</RootNamespace>
+  </PropertyGroup>
+</Project>
