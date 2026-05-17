@@ -1,0 +1,12 @@
+module
+
+func parseNumber(text: string) -> number ! ParseError
+entry:
+  return 1
+
+func caller(text: string) -> number ! ParseError
+locals:
+  const x: number
+entry:
+  store x, call? parseNumber(text) propagate ParseError
+  return x

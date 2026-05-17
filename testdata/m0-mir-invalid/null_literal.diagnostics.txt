@@ -1,0 +1,1 @@
+COPE-PROFILE-0005|46|4|Null is not supported in Browser TypeScript Profile v1. Use fallible functions or an explicit option type when available.

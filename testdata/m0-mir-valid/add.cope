@@ -1,0 +1,5 @@
+module
+
+func add(a: number, b: number) -> number
+entry:
+  return (a + b)

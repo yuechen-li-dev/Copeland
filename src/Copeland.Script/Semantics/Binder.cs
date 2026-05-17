@@ -106,7 +106,6 @@ public static class Binder
             if (v.Keyword.Kind == SyntaxKind.VarKeyword) Report("COPE-PROFILE-0001", "'var' is not supported by Browser TypeScript Profile v1.", v.Keyword);
             var type = BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
             var init = BindExpression(v.Initializer, type);
-            if (init is BoundCallExpression initCall && initCall.IsFallible && v.Initializer is not PropagateExpressionSyntax) Report("COPE-TYPE-0013", $"Fallible call to '{initCall.Function.Name}' must be handled or propagated with '?'.", v.Identifier);
             if (!IsAssignable(type, init.Type)) Report("COPE-TYPE-0001", $"Type mismatch: expected '{type.Name}', got '{init.Type.Name}'.", v.Identifier);
             var varSym = new VariableSymbol(v.Identifier.Text, type, v.Keyword.Kind == SyntaxKind.ConstKeyword);
             if (!_scope.TryDeclare(varSym)) Report("COPE-BIND-0002", $"Duplicate declaration '{varSym.Name}'.", v.Identifier);
@@ -138,13 +137,14 @@ public static class Binder
                 return new BoundReturnStatement(null);
             }
             var expr = BindExpression(r.Expression);
-            if (expr is BoundCallExpression callExpr && callExpr.IsFallible && r.Expression is not PropagateExpressionSyntax) Report("COPE-TYPE-0013", $"Fallible call to '{callExpr.Function.Name}' must be handled or propagated with '?'.", r.ReturnKeyword);
             if (expected == PrimitiveTypeSymbol.Void) Report("COPE-TYPE-0003", "Invalid return expression for void function.", r.ReturnKeyword);
             else if (!IsAssignable(expected, expr.Type)) Report("COPE-TYPE-0003", $"Type mismatch: expected '{expected.Name}', got '{expr.Type.Name}'.", r.ReturnKeyword);
             return new BoundReturnStatement(expr);
         }
 
-        private BoundExpression BindExpression(ExpressionSyntax s, TypeSymbol? contextualType = null) => s switch
+        private BoundExpression BindExpression(ExpressionSyntax s, TypeSymbol? contextualType = null, bool allowUnhandledFallible = false)
+        {
+            var expression = s switch
         {
             LiteralExpressionSyntax l => BindLiteral(l),
             NameExpressionSyntax n => BindName(n),
@@ -158,7 +158,13 @@ public static class Binder
             ObjectLiteralExpressionSyntax o => BindObject(o),
             MemberAccessExpressionSyntax m => BindMember(m),
             _ => new BoundErrorExpression()
-        };
+            };
+
+            if (!allowUnhandledFallible && expression is BoundCallExpression call && call.IsFallible && s is not PropagateExpressionSyntax)
+                Report("COPE-TYPE-0013", $"Fallible call to '{call.Function.Name}' must be handled or propagated with '?'.", AnchorToken(s));
+
+            return expression;
+        }
 
         private BoundExpression BindName(NameExpressionSyntax n)
         {
@@ -297,7 +303,7 @@ public static class Binder
 
         private BoundExpression BindPropagate(PropagateExpressionSyntax p)
         {
-            var operand = BindExpression(p.Operand);
+            var operand = BindExpression(p.Operand, allowUnhandledFallible: true);
             if (!operand.IsFallible)
             {
                 Report("COPE-TYPE-0016", "'?' can only be applied to a fallible expression.", p.QuestionToken);
@@ -362,6 +368,20 @@ public static class Binder
                 Report("COPE-TYPE-0001", $"Type mismatch: expected 'boolean', got '{e.Type.Name}'.", at);
             return e;
         }
+
+        private static SyntaxToken AnchorToken(ExpressionSyntax s) => s switch
+        {
+            CallExpressionSyntax c => c.OpenParenToken,
+            BinaryExpressionSyntax b => b.OperatorToken,
+            UnaryExpressionSyntax u => u.OperatorToken,
+            AssignmentExpressionSyntax a => a.EqualsToken,
+            ParenthesizedExpressionSyntax p => p.OpenParenToken,
+            PropagateExpressionSyntax p => p.QuestionToken,
+            NameExpressionSyntax n => n.IdentifierToken,
+            LiteralExpressionSyntax l => l.LiteralToken,
+            ArrayLiteralExpressionSyntax a => a.OpenBracketToken,
+            _ => throw new InvalidOperationException("No anchor token for expression kind.")
+        };
 
         private void Report(string id, string msg, SyntaxToken at) => _diagnostics.Report(id, msg, at.Position, at.Text.Length);
     }
