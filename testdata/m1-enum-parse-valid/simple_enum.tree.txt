@@ -1,0 +1,19 @@
+└──CompilationUnit
+   ├──EnumDeclaration
+   │  ├──EnumKeyword 'enum'
+   │  ├──IdentifierToken 'Direction'
+   │  ├──OpenBraceToken '{'
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'Up'
+   │  │  └──CommaToken ','
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'Down'
+   │  │  └──CommaToken ','
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'Left'
+   │  │  └──CommaToken ','
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'Right'
+   │  │  └──CommaToken ','
+   │  └──CloseBraceToken '}'
+   └──EndOfFileToken

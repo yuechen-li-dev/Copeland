@@ -64,6 +64,10 @@ public sealed class Parser
         {
             return ParseFunctionDeclaration();
         }
+        if (Current.Kind == SyntaxKind.EnumKeyword)
+        {
+            return ParseEnumDeclaration();
+        }
 
         return new GlobalStatementMemberSyntax(ParseStatement());
     }
@@ -115,6 +119,80 @@ public sealed class Parser
 
         var body = ParseBlockStatement();
         return new FunctionDeclarationSyntax(functionKeyword, identifier, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, errorTypeBangToken, errorType, body);
+    }
+
+    private EnumDeclarationSyntax ParseEnumDeclaration()
+    {
+        var enumKeyword = Match(SyntaxKind.EnumKeyword);
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        var openBraceToken = Match(SyntaxKind.OpenBraceToken);
+        var cases = new List<EnumCaseSyntax>();
+
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            var startToken = Current;
+            cases.Add(ParseEnumCase());
+            if (Current == startToken)
+            {
+                ReportUnexpectedToken(Current);
+                NextToken();
+            }
+        }
+
+        var closeBraceToken = Match(SyntaxKind.CloseBraceToken);
+        return new EnumDeclarationSyntax(enumKeyword, identifier, openBraceToken, cases, closeBraceToken);
+    }
+
+    private EnumCaseSyntax ParseEnumCase()
+    {
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? openParenToken = null;
+        var payloadFields = new List<EnumPayloadFieldSyntax>();
+        SyntaxToken? closeParenToken = null;
+
+        if (Current.Kind == SyntaxKind.OpenParenToken)
+        {
+            openParenToken = Match(SyntaxKind.OpenParenToken);
+            while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+            {
+                var startToken = Current;
+                payloadFields.Add(ParseEnumPayloadField());
+                if (Current == startToken)
+                {
+                    ReportUnexpectedToken(Current);
+                    NextToken();
+                }
+
+                if (Current.Kind == SyntaxKind.CloseParenToken)
+                {
+                    break;
+                }
+            }
+
+            closeParenToken = Match(SyntaxKind.CloseParenToken);
+        }
+
+        SyntaxToken? commaToken = null;
+        if (Current.Kind == SyntaxKind.CommaToken)
+        {
+            commaToken = Match(SyntaxKind.CommaToken);
+        }
+
+        return new EnumCaseSyntax(identifier, openParenToken, payloadFields, closeParenToken, commaToken);
+    }
+
+    private EnumPayloadFieldSyntax ParseEnumPayloadField()
+    {
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        var colonToken = Match(SyntaxKind.ColonToken);
+        var type = ParseTypeSyntax();
+        SyntaxToken? commaToken = null;
+        if (Current.Kind == SyntaxKind.CommaToken)
+        {
+            commaToken = Match(SyntaxKind.CommaToken);
+        }
+
+        return new EnumPayloadFieldSyntax(identifier, colonToken, type, commaToken);
     }
 
     private StatementSyntax ParseStatement()

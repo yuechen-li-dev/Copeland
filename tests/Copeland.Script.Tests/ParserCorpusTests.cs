@@ -35,7 +35,7 @@ public sealed class ParserCorpusTests
     {
         var root = GetRepoRoot();
         var corpusRoot = Path.Combine(root, "testdata");
-        foreach (var dir in new[] { "m0-parse-valid", "m0-parse-invalid" })
+        foreach (var dir in new[] { "m0-parse-valid", "m0-parse-invalid", "m1-enum-parse-valid", "m1-enum-parse-invalid" })
         {
             var fullDir = Path.Combine(corpusRoot, dir);
             if (!Directory.Exists(fullDir))

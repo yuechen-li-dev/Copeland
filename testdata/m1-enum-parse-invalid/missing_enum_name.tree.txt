@@ -1,0 +1,10 @@
+└──CompilationUnit
+   ├──EnumDeclaration
+   │  ├──EnumKeyword 'enum'
+   │  ├──IdentifierToken
+   │  ├──OpenBraceToken '{'
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'A'
+   │  │  └──CommaToken ','
+   │  └──CloseBraceToken '}'
+   └──EndOfFileToken
