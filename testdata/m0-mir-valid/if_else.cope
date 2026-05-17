@@ -1,0 +1,8 @@
+module
+
+func choose(flag: boolean) -> number
+entry:
+  if flag
+    return 1
+  else
+    return 2

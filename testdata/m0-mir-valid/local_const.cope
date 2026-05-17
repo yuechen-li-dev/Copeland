@@ -1,0 +1,8 @@
+module
+
+func main() -> number
+locals:
+  const x: number
+entry:
+  store x, 1
+  return x

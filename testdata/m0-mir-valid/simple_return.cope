@@ -1,0 +1,5 @@
+module
+
+func one() -> number
+entry:
+  return 1
