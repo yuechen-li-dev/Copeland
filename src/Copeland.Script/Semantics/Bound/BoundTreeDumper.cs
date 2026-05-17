@@ -114,6 +114,12 @@ public static class BoundTreeDumper
                 sb.Append("PropagateExpression ? : ").Append(p.Type.Name).AppendLine();
                 AppendExpression(sb, p.Operand, i + 1); break;
             case BoundArrayExpression a: sb.Append("ArrayExpression : ").Append(a.Type.Name).AppendLine(); foreach (var x in a.Elements) AppendExpression(sb, x, i + 1); break;
+            case BoundIfExpression ie:
+                sb.Append("IfExpression : ").Append(ie.Type.Name).AppendLine();
+                AppendExpression(sb, ie.Condition, i + 1);
+                AppendExpression(sb, ie.ThenExpression, i + 1);
+                AppendExpression(sb, ie.ElseExpression, i + 1);
+                break;
             case BoundMatchExpression m:
                 sb.Append("MatchExpression : ").Append(m.Type.Name).AppendLine();
                 I(sb, i + 1); sb.AppendLine("Scrutinee");

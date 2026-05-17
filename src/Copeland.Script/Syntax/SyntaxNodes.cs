@@ -583,6 +583,34 @@ public sealed record ObjectLiteralExpressionSyntax(
     }
 }
 
+
+public sealed record IfExpressionSyntax(
+    SyntaxToken IfKeyword,
+    ExpressionSyntax Condition,
+    SyntaxToken ThenOpenBraceToken,
+    ExpressionSyntax ThenExpression,
+    SyntaxToken ThenCloseBraceToken,
+    SyntaxToken ElseKeyword,
+    SyntaxToken ElseOpenBraceToken,
+    ExpressionSyntax ElseExpression,
+    SyntaxToken ElseCloseBraceToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.IfExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return IfKeyword;
+        yield return Condition;
+        yield return ThenOpenBraceToken;
+        yield return ThenExpression;
+        yield return ThenCloseBraceToken;
+        yield return ElseKeyword;
+        yield return ElseOpenBraceToken;
+        yield return ElseExpression;
+        yield return ElseCloseBraceToken;
+    }
+}
+
 public sealed record MatchPatternSyntax(
     SyntaxToken CaseIdentifier,
     SyntaxToken? OpenParenToken,

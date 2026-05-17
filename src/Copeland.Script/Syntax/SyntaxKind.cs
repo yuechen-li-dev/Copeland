@@ -102,6 +102,7 @@ public enum SyntaxKind
     ObjectLiteralExpression,
     ObjectProperty,
     MatchExpression,
+    IfExpression,
     MatchArm,
     MatchPattern,
     MissingExpression,
