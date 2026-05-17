@@ -1,0 +1,36 @@
+└──CompilationUnit
+   ├──EnumDeclaration
+   │  ├──EnumKeyword 'enum'
+   │  ├──IdentifierToken 'Shape'
+   │  ├──OpenBraceToken '{'
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'Point'
+   │  │  └──CommaToken ','
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'Circle'
+   │  │  ├──OpenParenToken '('
+   │  │  ├──EnumPayloadField
+   │  │  │  ├──IdentifierToken 'radius'
+   │  │  │  ├──ColonToken ':'
+   │  │  │  └──PredefinedType
+   │  │  │     └──NumberKeyword 'number'
+   │  │  ├──CloseParenToken ')'
+   │  │  └──CommaToken ','
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'Rect'
+   │  │  ├──OpenParenToken '('
+   │  │  ├──EnumPayloadField
+   │  │  │  ├──IdentifierToken 'width'
+   │  │  │  ├──ColonToken ':'
+   │  │  │  ├──PredefinedType
+   │  │  │  │  └──NumberKeyword 'number'
+   │  │  │  └──CommaToken ','
+   │  │  ├──EnumPayloadField
+   │  │  │  ├──IdentifierToken 'height'
+   │  │  │  ├──ColonToken ':'
+   │  │  │  └──PredefinedType
+   │  │  │     └──NumberKeyword 'number'
+   │  │  ├──CloseParenToken ')'
+   │  │  └──CommaToken ','
+   │  └──CloseBraceToken '}'
+   └──EndOfFileToken

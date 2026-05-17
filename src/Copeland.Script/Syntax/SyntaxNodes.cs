@@ -144,6 +144,83 @@ public sealed record FunctionDeclarationSyntax(
     }
 }
 
+public sealed record EnumDeclarationSyntax(
+    SyntaxToken EnumKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<EnumCaseSyntax> Cases,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.EnumDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return EnumKeyword;
+        yield return Identifier;
+        yield return OpenBraceToken;
+        foreach (var @case in Cases)
+        {
+            yield return @case;
+        }
+
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record EnumCaseSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken? OpenParenToken,
+    IReadOnlyList<EnumPayloadFieldSyntax> PayloadFields,
+    SyntaxToken? CloseParenToken,
+    SyntaxToken? CommaToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.EnumCase;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        if (OpenParenToken is not null)
+        {
+            yield return OpenParenToken;
+        }
+
+        foreach (var field in PayloadFields)
+        {
+            yield return field;
+        }
+
+        if (CloseParenToken is not null)
+        {
+            yield return CloseParenToken;
+        }
+
+        if (CommaToken is not null)
+        {
+            yield return CommaToken;
+        }
+    }
+}
+
+public sealed record EnumPayloadFieldSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken ColonToken,
+    TypeSyntax Type,
+    SyntaxToken? CommaToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.EnumPayloadField;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        yield return ColonToken;
+        yield return Type;
+        if (CommaToken is not null)
+        {
+            yield return CommaToken;
+        }
+    }
+}
+
 public sealed record BlockStatementSyntax(
     SyntaxToken OpenBraceToken,
     IReadOnlyList<StatementSyntax> Statements,

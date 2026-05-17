@@ -1,0 +1,17 @@
+└──CompilationUnit
+   ├──EnumDeclaration
+   │  ├──EnumKeyword 'enum'
+   │  ├──IdentifierToken 'Choice'
+   │  ├──OpenBraceToken '{'
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'A'
+   │  │  ├──OpenParenToken '('
+   │  │  ├──EnumPayloadField
+   │  │  │  ├──IdentifierToken 'value'
+   │  │  │  ├──ColonToken ':'
+   │  │  │  └──PredefinedType
+   │  │  │     └──NumberKeyword 'number'
+   │  │  ├──CloseParenToken ')'
+   │  │  └──CommaToken ','
+   │  └──CloseBraceToken '}'
+   └──EndOfFileToken

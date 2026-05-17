@@ -73,4 +73,23 @@ let names: string[][] = [["a"]];
         var tree = SyntaxTree.Parse(source);
         Assert.Contains(tree.Diagnostics, d => d.Id == expectedId);
     }
+
+    [Fact]
+    public void Parses_Enum_Declarations_With_Payloads()
+    {
+        const string source = """
+enum Shape {
+  Point,
+  Circle(radius: number),
+  Rect(width: number, height: number),
+}
+""";
+        var tree = SyntaxTree.Parse(source);
+        var dump = SyntaxTreeDumper.Dump(tree.Root);
+
+        Assert.Contains("EnumDeclaration", dump, StringComparison.Ordinal);
+        Assert.Contains("EnumCase", dump, StringComparison.Ordinal);
+        Assert.Contains("EnumPayloadField", dump, StringComparison.Ordinal);
+        Assert.DoesNotContain(tree.Diagnostics, d => d.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+    }
 }

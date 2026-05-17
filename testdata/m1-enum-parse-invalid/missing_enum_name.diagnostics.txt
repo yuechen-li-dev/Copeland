@@ -1,0 +1,1 @@
+COPE-PARSE-0004|5|0|Expected token 'IdentifierToken'.

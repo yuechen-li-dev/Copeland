@@ -1,0 +1,36 @@
+└──CompilationUnit
+   ├──EnumDeclaration
+   │  ├──EnumKeyword 'enum'
+   │  ├──IdentifierToken 'Choice'
+   │  ├──OpenBraceToken '{'
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'A'
+   │  │  └──CommaToken ','
+   │  ├──EnumCase
+   │  │  ├──IdentifierToken 'B'
+   │  │  ├──OpenParenToken '('
+   │  │  ├──EnumPayloadField
+   │  │  │  ├──IdentifierToken 'value'
+   │  │  │  ├──ColonToken ':'
+   │  │  │  └──PredefinedType
+   │  │  │     └──NumberKeyword 'number'
+   │  │  ├──CloseParenToken ')'
+   │  │  └──CommaToken ','
+   │  └──CloseBraceToken '}'
+   ├──FunctionDeclaration
+   │  ├──FunctionKeyword 'function'
+   │  ├──IdentifierToken 'pick'
+   │  ├──OpenParenToken '('
+   │  ├──CloseParenToken ')'
+   │  ├──ColonToken ':'
+   │  ├──PredefinedType
+   │  │  └──NumberKeyword 'number'
+   │  └──BlockStatement
+   │     ├──OpenBraceToken '{'
+   │     ├──ReturnStatement
+   │     │  ├──ReturnKeyword 'return'
+   │     │  ├──LiteralExpression
+   │     │  │  └──NumberToken '1'
+   │     │  └──SemicolonToken ';'
+   │     └──CloseBraceToken '}'
+   └──EndOfFileToken
