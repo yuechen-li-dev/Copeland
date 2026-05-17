@@ -8,11 +8,6 @@ public static class CSharpBackend
     public static CSharpCompilation Emit(MirProgram program)
     {
         var diagnostics = new List<Diagnostic>();
-        if (program.Enums.Count > 0)
-        {
-            diagnostics.Add(new Diagnostic("COPE-CS-0001", "Unsupported MIR feature: enum declarations.", 0, 0));
-            return new CSharpCompilation(string.Empty, diagnostics);
-        }
 
         var writer = new CSharpTextWriter();
 
@@ -49,12 +44,49 @@ public static class CSharpBackend
             writer.WriteLine($"public readonly record struct {CSharpNameMangler.Mangle(e)};");
         if (errorTypes.Length > 0) writer.WriteLine();
 
+        foreach (var mirEnum in program.Enums)
+            EmitEnum(writer, mirEnum);
+
+        if (program.Enums.Count > 0)
+            writer.WriteLine();
+
         writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
         foreach (var function in program.Functions)
             EmitFunction(writer, function, diagnostics);
         writer.Unindent(); writer.WriteLine("}");
 
         return new CSharpCompilation(writer.ToString(), diagnostics);
+    }
+
+    private static void EmitEnum(CSharpTextWriter writer, MirEnum mirEnum)
+    {
+        var enumName = CSharpNameMangler.Mangle(mirEnum.Name);
+        writer.WriteLine($"public abstract record {enumName}");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"protected {enumName}()");
+        writer.WriteLine("{");
+        writer.WriteLine("}");
+        writer.WriteLine();
+
+        foreach (var enumCase in mirEnum.Cases)
+        {
+            var caseName = CSharpNameMangler.Mangle(enumCase.Name);
+            if (enumCase.PayloadFields.Count == 0)
+            {
+                writer.WriteLine($"public sealed record {caseName} : {enumName};");
+            }
+            else
+            {
+                var payload = string.Join(", ", enumCase.PayloadFields.Select(f => $"{MapType(f.Type)} {CSharpNameMangler.Mangle(f.Name)}"));
+                writer.WriteLine($"public sealed record {caseName}({payload}) : {enumName};");
+            }
+
+            writer.WriteLine();
+        }
+
+        writer.Unindent();
+        writer.WriteLine("}");
     }
 
     private static void EmitFunction(CSharpTextWriter writer, MirFunction function, List<Diagnostic> diagnostics)
@@ -112,10 +144,38 @@ public static class CSharpBackend
             MirCallExpression c when c.IsFallible && c.IsPropagated && c.ErrorType is not null => EmitPropagation(writer, c, fn, ref tempIndex, diagnostics),
             MirCallExpression c => $"{CSharpNameMangler.Mangle(c.FunctionName)}({string.Join(", ", EmitArguments(c.Arguments, writer, fn, ref tempIndex, diagnostics))})",
             MirArrayExpression a => $"new {MapType(a.Type)} {{ {string.Join(", ", EmitArguments(a.Elements, writer, fn, ref tempIndex, diagnostics))} }}",
-                        MirEnumValueExpression => AddUnsupportedExpression("enum value", diagnostics),
-            MirMatchExpression => AddUnsupportedExpression("match expression", diagnostics),
+            MirEnumValueExpression e => EmitEnumValueExpression(e, writer, fn, ref tempIndex, diagnostics),
+            MirMatchExpression m => EmitMatchExpression(m, writer, fn, ref tempIndex, diagnostics),
             _ => AddUnsupportedExpression(expr.GetType().Name, diagnostics)
         };
+    }
+
+    private static string EmitEnumValueExpression(MirEnumValueExpression e, CSharpTextWriter writer, MirFunction fn, ref int tempIndex, List<Diagnostic> diagnostics)
+        => $"new {CSharpNameMangler.Mangle(e.EnumName)}.{CSharpNameMangler.Mangle(e.CaseName)}({string.Join(", ", EmitArguments(e.Arguments, writer, fn, ref tempIndex, diagnostics))})";
+
+    private static string EmitMatchExpression(MirMatchExpression m, CSharpTextWriter writer, MirFunction fn, ref int tempIndex, List<Diagnostic> diagnostics)
+    {
+        if (!TryGetEnumName(m.Scrutinee.Type, out var enumName))
+            return AddUnsupportedExpression("match expression with non-enum scrutinee type", diagnostics);
+
+        var scrutinee = EmitExpression(writer, m.Scrutinee, fn, ref tempIndex, diagnostics);
+        var armValues = new List<string>(m.Arms.Count + 1);
+        foreach (var arm in m.Arms)
+        {
+            var casePattern = arm.PayloadBindings.Count == 0
+                ? $"{enumName}.{CSharpNameMangler.Mangle(arm.CaseName)} _"
+                : $"{enumName}.{CSharpNameMangler.Mangle(arm.CaseName)}({string.Join(", ", arm.PayloadBindings.Select(b => $"var {CSharpNameMangler.Mangle(b.Name)}"))})";
+            armValues.Add($"{casePattern} => {EmitExpression(writer, arm.Expression, fn, ref tempIndex, diagnostics)}");
+        }
+
+        armValues.Add("_ => throw new global::System.InvalidOperationException(\"Non-exhaustive match.\")");
+        return $"{scrutinee} switch {{ {string.Join(", ", armValues)} }}";
+    }
+
+    private static bool TryGetEnumName(MirType type, out string enumName)
+    {
+        enumName = type.Name.EndsWith("[]", StringComparison.Ordinal) ? string.Empty : CSharpNameMangler.Mangle(type.Name);
+        return enumName is not "double" and not "string" and not "bool" and not "void" && enumName.Length > 0;
     }
 
 
