@@ -43,7 +43,9 @@ public sealed class LexerCorpusTests
                 continue;
             }
 
-            foreach (var sourcePath in Directory.EnumerateFiles(fullDir, "*.cope", SearchOption.TopDirectoryOnly).OrderBy(p => p, StringComparer.Ordinal))
+            foreach (var sourcePath in Directory.EnumerateFiles(fullDir, "*.*", SearchOption.TopDirectoryOnly)
+                         .Where(p => Path.GetExtension(p) is ".cope" or ".ts")
+                         .OrderBy(p => p, StringComparer.Ordinal))
             {
                 yield return new object[] { sourcePath };
             }

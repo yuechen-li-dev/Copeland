@@ -12,6 +12,7 @@ public abstract record MemberSyntax : SyntaxNode;
 public abstract record StatementSyntax : SyntaxNode;
 
 public abstract record ExpressionSyntax : SyntaxNode;
+public abstract record TypeSyntax : SyntaxNode;
 
 public sealed record CompilationUnitSyntax(IReadOnlyList<MemberSyntax> Members, SyntaxToken EndOfFileToken) : SyntaxNode
 {
@@ -38,13 +39,54 @@ public sealed record GlobalStatementMemberSyntax(StatementSyntax Statement) : Me
     }
 }
 
-public sealed record ParameterSyntax(SyntaxToken Identifier) : SyntaxNode
+public sealed record PredefinedTypeSyntax(SyntaxToken Keyword) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.PredefinedType;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Keyword;
+    }
+}
+
+public sealed record IdentifierTypeSyntax(SyntaxToken Identifier) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.IdentifierType;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+    }
+}
+
+public sealed record ArrayTypeSyntax(TypeSyntax ElementType, SyntaxToken OpenBracketToken, SyntaxToken CloseBracketToken) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ArrayType;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return ElementType;
+        yield return OpenBracketToken;
+        yield return CloseBracketToken;
+    }
+}
+
+public sealed record ParameterSyntax(SyntaxToken Identifier, SyntaxToken? ColonToken, TypeSyntax? Type) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.Parameter;
 
     public override IEnumerable<object> GetChildren()
     {
         yield return Identifier;
+        if (ColonToken is not null)
+        {
+            yield return ColonToken;
+        }
+
+        if (Type is not null)
+        {
+            yield return Type;
+        }
     }
 }
 
@@ -55,6 +97,8 @@ public sealed record FunctionDeclarationSyntax(
     IReadOnlyList<ParameterSyntax> Parameters,
     IReadOnlyList<SyntaxToken> CommaTokens,
     SyntaxToken CloseParenToken,
+    SyntaxToken? ReturnTypeColonToken,
+    TypeSyntax? ReturnType,
     BlockStatementSyntax Body) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.FunctionDeclaration;
@@ -76,6 +120,16 @@ public sealed record FunctionDeclarationSyntax(
         }
 
         yield return CloseParenToken;
+        if (ReturnTypeColonToken is not null)
+        {
+            yield return ReturnTypeColonToken;
+        }
+
+        if (ReturnType is not null)
+        {
+            yield return ReturnType;
+        }
+
         yield return Body;
     }
 }
@@ -102,6 +156,8 @@ public sealed record BlockStatementSyntax(
 public sealed record VariableDeclarationStatementSyntax(
     SyntaxToken Keyword,
     SyntaxToken Identifier,
+    SyntaxToken? TypeColonToken,
+    TypeSyntax? Type,
     SyntaxToken EqualsToken,
     ExpressionSyntax Initializer,
     SyntaxToken SemicolonToken) : StatementSyntax
@@ -112,6 +168,16 @@ public sealed record VariableDeclarationStatementSyntax(
     {
         yield return Keyword;
         yield return Identifier;
+        if (TypeColonToken is not null)
+        {
+            yield return TypeColonToken;
+        }
+
+        if (Type is not null)
+        {
+            yield return Type;
+        }
+
         yield return EqualsToken;
         yield return Initializer;
         yield return SemicolonToken;
