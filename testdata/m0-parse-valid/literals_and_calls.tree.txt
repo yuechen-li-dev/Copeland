@@ -1,0 +1,71 @@
+└──CompilationUnit
+   ├──FunctionDeclaration
+   │  ├──FunctionKeyword 'function'
+   │  ├──IdentifierToken 'make'
+   │  ├──OpenParenToken '('
+   │  ├──Parameter
+   │  │  └──IdentifierToken 'a'
+   │  ├──CommaToken ','
+   │  ├──Parameter
+   │  │  └──IdentifierToken 'b'
+   │  ├──CloseParenToken ')'
+   │  └──BlockStatement
+   │     ├──OpenBraceToken '{'
+   │     ├──ReturnStatement
+   │     │  ├──ReturnKeyword 'return'
+   │     │  ├──ObjectLiteralExpression
+   │     │  │  ├──OpenBraceToken '{'
+   │     │  │  ├──ObjectProperty
+   │     │  │  │  ├──IdentifierToken 'x'
+   │     │  │  │  ├──ColonToken ':'
+   │     │  │  │  └──NameExpression
+   │     │  │  │     └──IdentifierToken 'a'
+   │     │  │  ├──CommaToken ','
+   │     │  │  ├──ObjectProperty
+   │     │  │  │  ├──IdentifierToken 'y'
+   │     │  │  │  ├──ColonToken ':'
+   │     │  │  │  └──ArrayLiteralExpression
+   │     │  │  │     ├──OpenBracketToken '['
+   │     │  │  │     ├──NameExpression
+   │     │  │  │     │  └──IdentifierToken 'b'
+   │     │  │  │     ├──CommaToken ','
+   │     │  │  │     ├──LiteralExpression
+   │     │  │  │     │  └──NullKeyword 'null'
+   │     │  │  │     ├──CommaToken ','
+   │     │  │  │     ├──LiteralExpression
+   │     │  │  │     │  └──TrueKeyword 'true'
+   │     │  │  │     └──CloseBracketToken ']'
+   │     │  │  └──CloseBraceToken '}'
+   │     │  └──SemicolonToken ';'
+   │     └──CloseBraceToken '}'
+   ├──GlobalStatementMember
+   │  └──VariableDeclarationStatement
+   │     ├──LetKeyword 'let'
+   │     ├──IdentifierToken 'z'
+   │     ├──EqualsToken '='
+   │     ├──CallExpression
+   │     │  ├──MemberAccessExpression
+   │     │  │  ├──NameExpression
+   │     │  │  │  └──IdentifierToken 'foo'
+   │     │  │  ├──DotToken '.'
+   │     │  │  └──IdentifierToken 'bar'
+   │     │  ├──OpenParenToken '('
+   │     │  ├──LiteralExpression
+   │     │  │  └──NumberToken '1'
+   │     │  ├──CommaToken ','
+   │     │  ├──LiteralExpression
+   │     │  │  └──StringToken '"s"'
+   │     │  ├──CommaToken ','
+   │     │  ├──CallExpression
+   │     │  │  ├──NameExpression
+   │     │  │  │  └──IdentifierToken 'make'
+   │     │  │  ├──OpenParenToken '('
+   │     │  │  ├──LiteralExpression
+   │     │  │  │  └──NumberToken '2'
+   │     │  │  ├──CommaToken ','
+   │     │  │  ├──LiteralExpression
+   │     │  │  │  └──NumberToken '3'
+   │     │  │  └──CloseParenToken ')'
+   │     │  └──CloseParenToken ')'
+   │     └──SemicolonToken ';'
+   └──EndOfFileToken
