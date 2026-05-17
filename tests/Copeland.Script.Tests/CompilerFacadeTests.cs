@@ -179,6 +179,31 @@ function make(): Choice {
         Assert.NotNull(csharpCompilation.CSharpText);
         Assert.Contains("public abstract record Choice", csharpCompilation.CSharpText, StringComparison.Ordinal);
     }
+
+
+    [Fact]
+    public void Fallible_Propagation_Works_Inside_If_Expression()
+    {
+        const string source = """
+function parse(text: string): number ! ParseError {
+  return 1;
+}
+
+function value(flag: boolean, text: string): number ! ParseError {
+  return if flag {
+    parse(text)?
+  } else {
+    0
+  };
+}
+""";
+
+        var compilation = CopelandCompiler.CompileToCSharp(source);
+        Assert.True(compilation.Success);
+        Assert.NotNull(compilation.MirText);
+        Assert.NotNull(compilation.CSharpText);
+    }
+
     [Fact]
     public void Compilation_Is_Deterministic()
     {

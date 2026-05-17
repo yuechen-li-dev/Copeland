@@ -2,35 +2,45 @@
 
 Copeland is a Browser TypeScript-to-CLR compiler experiment.
 
-It is not a JavaScript engine.
+It is **not** a JavaScript engine, does **not** run arbitrary JavaScript, and does not provide DOM/TSX support yet.
 
 ## Pipeline
 
-`.ts` / future `.tsx` source
--> typed bound tree
--> `.cope` MIR
--> generated `.g.cs`
--> CIL / CLR later
+```text
+.ts source
+  -> typed bound tree
+  -> .cope MIR
+  -> generated .g.cs
+  -> CLR proof in tests
+```
 
-M0 proved generated C# can compile and run on the CLR through tests.
+Artifact meanings:
 
-## Current source profile
+- `.ts` is source input.
+- `.cope` is a textual MIR artifact.
+- `.g.cs` is generated C# for Roslyn/.NET compilation.
+
+The runtime proof path (Roslyn compile + invoke on CLR) exists in test coverage.
+
+## Current M1 language profile (high level)
 
 - explicit type annotations
-- no `null`
-- no implicit `any`
-- no `eval`
-- fallible functions with `! ErrorType`
-- propagation with `?`
+- `number`, `string`, `boolean`, `void`
+- arrays `T[]`
+- fallible signatures `function f(): T ! ErrorType`
+- propagation `expr?`
+- `if` expressions
+- nominal tagged enums
+- exhaustive `match`
 
-## CLI probe
+Profile bans include `null`, `undefined`, implicit `any`, `eval`, `var`, ternary `?:`, optional chaining `?.`, truthy/falsy conditions, and implicit globals.
 
-Current CLI artifact probe:
+See `docs/language-profile.md` and `docs/diagnostics.md` for the full M1 checkpoint profile.
 
-- `copeland compile input.ts --emit mir --out input.cope`
-- `copeland compile input.ts --emit csharp --out input.g.cs`
+## CLI status (M1b artifact probe)
 
-The CLI emits artifacts only.
-It does not execute code yet.
-It does not compile generated C# with Roslyn.
-It does not provide browser APIs.
+Current CLI command:
+
+- `copeland compile <source-file> --emit mir|csharp [--out <path>]`
+
+The CLI currently emits artifacts only. It does not execute compiled programs or expose host/browser APIs.
