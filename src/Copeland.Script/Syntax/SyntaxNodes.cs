@@ -99,6 +99,8 @@ public sealed record FunctionDeclarationSyntax(
     SyntaxToken CloseParenToken,
     SyntaxToken? ReturnTypeColonToken,
     TypeSyntax? ReturnType,
+    SyntaxToken? ErrorTypeBangToken,
+    TypeSyntax? ErrorType,
     BlockStatementSyntax Body) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.FunctionDeclaration;
@@ -128,6 +130,14 @@ public sealed record FunctionDeclarationSyntax(
         if (ReturnType is not null)
         {
             yield return ReturnType;
+        }
+        if (ErrorTypeBangToken is not null)
+        {
+            yield return ErrorTypeBangToken;
+        }
+        if (ErrorType is not null)
+        {
+            yield return ErrorType;
         }
 
         yield return Body;
@@ -441,6 +451,17 @@ public sealed record ArrayLiteralExpressionSyntax(
         }
 
         yield return CloseBracketToken;
+    }
+}
+
+public sealed record PropagateExpressionSyntax(ExpressionSyntax Operand, SyntaxToken QuestionToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.PropagateExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Operand;
+        yield return QuestionToken;
     }
 }
 

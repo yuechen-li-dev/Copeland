@@ -105,9 +105,16 @@ public sealed class Parser
             returnTypeColonToken = Match(SyntaxKind.ColonToken);
             returnType = ParseTypeSyntax();
         }
+        SyntaxToken? errorTypeBangToken = null;
+        TypeSyntax? errorType = null;
+        if (Current.Kind == SyntaxKind.BangToken)
+        {
+            errorTypeBangToken = Match(SyntaxKind.BangToken);
+            errorType = ParseTypeSyntax();
+        }
 
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(functionKeyword, identifier, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
+        return new FunctionDeclarationSyntax(functionKeyword, identifier, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, errorTypeBangToken, errorType, body);
     }
 
     private StatementSyntax ParseStatement()
@@ -372,6 +379,12 @@ public sealed class Parser
                 var dot = Match(SyntaxKind.DotToken);
                 var name = Match(SyntaxKind.IdentifierToken);
                 expression = new MemberAccessExpressionSyntax(expression, dot, name);
+                continue;
+            }
+            if (Current.Kind == SyntaxKind.QuestionToken)
+            {
+                var questionToken = Match(SyntaxKind.QuestionToken);
+                expression = new PropagateExpressionSyntax(expression, questionToken);
                 continue;
             }
 

@@ -15,7 +15,6 @@ public sealed class PrimitiveTypeSymbol : TypeSymbol
     public static readonly PrimitiveTypeSymbol String = new("string");
     public static readonly PrimitiveTypeSymbol Boolean = new("boolean");
     public static readonly PrimitiveTypeSymbol Void = new("void");
-    public static readonly PrimitiveTypeSymbol Null = new("null");
     public static readonly PrimitiveTypeSymbol Error = new("error");
 
     public override string Name { get; }
@@ -26,4 +25,9 @@ public sealed class ArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
     public TypeSymbol ElementType { get; } = elementType;
 
     public override string Name => $"{ElementType.Name}[]";
+}
+
+public sealed class ErrorNominalTypeSymbol(string name) : TypeSymbol
+{
+    public override string Name { get; } = name;
 }
