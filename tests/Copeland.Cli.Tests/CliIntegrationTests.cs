@@ -91,6 +91,23 @@ function main(): number {
         Assert.DoesNotContain("namespace Copeland.Generated", result.StdOut);
     }
 
+
+    [Fact]
+    public void Ternary_Profile_Ban_ExitsOne_With_Diagnostic()
+    {
+        using var temp = new TempDir();
+        var inputPath = temp.WriteFile("input.ts", """
+function value(flag: boolean): number {
+  return flag ? 1 : 2;
+}
+""");
+
+        var result = RunCli(temp.Path, "compile", inputPath, "--emit", "csharp");
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("COPE-PROFILE-0007", result.StdErr);
+    }
+
     [Fact]
     public void MissingEmitExitsTwo()
     {
