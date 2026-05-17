@@ -100,3 +100,8 @@ var danger = baseButton with
 - No Dominatus dependency.
 - No WPF/MAUI/Avalonia binding.
 - No WebView2/Chrome compatibility actuator yet.
+
+## M0b implemented scope
+
+M0b implements `Rect`, `UiLength`, `RootFrame`, `AbsoluteFrame`, `AnchorFrame`, and direct frame resolution for absolute/anchor frames.
+Rows/documents/stack/grid/rendering remain out of scope.
