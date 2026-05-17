@@ -1,0 +1,8 @@
+module
+
+enum Shape
+  case Circle(radius: number)
+
+func make() -> Shape
+entry:
+  return enum Shape.Circle(10)

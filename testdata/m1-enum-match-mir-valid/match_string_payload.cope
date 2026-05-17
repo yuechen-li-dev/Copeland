@@ -1,0 +1,9 @@
+module
+
+enum Status
+  case Idle
+  case Loaded(name: string)
+
+func label(status: Status) -> string
+entry:
+  return match status : string { Idle => "idle" | Loaded(name: string) => name }

@@ -9,12 +9,32 @@ public static class MirLowerer
     public static MirCompilation Lower(SyntaxTree tree)
     {
         var bound = Binder.Bind(tree);
+        return Lower(bound);
+    }
+
+    public static MirCompilation Lower(BoundCompilation bound)
+    {
         if (bound.Diagnostics.Any(d => d.Id.StartsWith("COPE-", StringComparison.Ordinal)))
             return new MirCompilation(null, bound.Diagnostics);
 
-        var functions = bound.Program.Functions.Select(LowerFunction).ToArray();
-        return new MirCompilation(new MirProgram(functions), bound.Diagnostics);
+        return new MirCompilation(LowerProgram(bound.Program), bound.Diagnostics);
     }
+
+    public static MirProgram LowerProgram(BoundProgram program)
+    {
+        var enums = program.Enums.Select(LowerEnum).ToArray();
+        var functions = program.Functions.Select(LowerFunction).ToArray();
+        return new MirProgram(enums, functions);
+    }
+
+    private static MirEnum LowerEnum(BoundEnumDeclaration declaration)
+        => new(
+            declaration.EnumType.Name,
+            declaration.EnumType.Cases.Select(@case =>
+                new MirEnumCase(
+                    @case.Name,
+                    @case.PayloadFields.Select(field => new MirEnumPayloadField(field.Name, MirType.From(field.Type))).ToArray()))
+                .ToArray());
 
     private static MirFunction LowerFunction(BoundFunctionDeclaration function)
     {
@@ -63,6 +83,8 @@ public static class MirLowerer
             BoundUnaryExpression u => new MirUnaryExpression(OperatorName(u.OperatorKind), LowerExpression(u.Operand), MirType.From(u.Type)),
             BoundBinaryExpression b => new MirBinaryExpression(OperatorName(b.OperatorKind), LowerExpression(b.Left), LowerExpression(b.Right), MirType.From(b.Type)),
             BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), MirType.From(c.Type), c.IsFallible, c.ErrorType is null ? null : MirType.From(c.ErrorType), false),
+            BoundEnumValueExpression e => new MirEnumValueExpression(e.Case.EnumType.Name, e.Case.Name, e.Arguments.Select(LowerExpression).ToArray(), MirType.From(e.Type)),
+            BoundMatchExpression m => new MirMatchExpression(LowerExpression(m.Scrutinee), m.Arms.Select(arm => new MirMatchArm(arm.Case.Name, arm.PayloadVariables.Select(v => new MirMatchPayloadBinding(v.Name, MirType.From(v.Type))).ToArray(), LowerExpression(arm.Expression))).ToArray(), MirType.From(m.Type)),
             BoundPropagateExpression p when p.Operand is BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), MirType.From(c.Type), c.IsFallible, c.ErrorType is null ? null : MirType.From(c.ErrorType), true),
             BoundPropagateExpression p => LowerExpression(p.Operand),
             BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), MirType.From(a.Type)),

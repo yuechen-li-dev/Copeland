@@ -1,0 +1,12 @@
+module
+
+enum Choice
+  case A
+  case B
+
+func make() -> Choice
+locals:
+  const c: Choice
+entry:
+  store c, enum Choice.B
+  return c

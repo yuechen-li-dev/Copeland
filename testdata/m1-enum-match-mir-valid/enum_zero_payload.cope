@@ -1,0 +1,8 @@
+module
+
+enum Choice
+  case A
+
+func make() -> Choice
+entry:
+  return enum Choice.A

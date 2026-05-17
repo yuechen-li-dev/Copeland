@@ -1,0 +1,10 @@
+module
+
+enum Shape
+  case Point
+  case Circle(radius: number)
+  case Rect(width: number, height: number)
+
+func area(shape: Shape) -> number
+entry:
+  return match shape : number { Point => 0 | Circle(radius: number) => (radius * radius) | Rect(width: number, height: number) => (width * height) }
