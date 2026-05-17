@@ -90,6 +90,8 @@ public sealed class Lexer
                     return SingleCharToken(SyntaxKind.ColonToken);
                 case ';':
                     return SingleCharToken(SyntaxKind.SemicolonToken);
+                case '?':
+                    return SingleCharToken(SyntaxKind.QuestionToken);
                 case '+':
                     return SingleCharToken(SyntaxKind.PlusToken);
                 case '-':

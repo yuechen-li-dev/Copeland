@@ -30,7 +30,12 @@ public static class BoundTreeDumper
             var param = fn.Symbol.Parameters[p];
             sb.Append(param.Name).Append(": ").Append(param.Type.Name);
         }
-        sb.Append(") -> ").Append(fn.Symbol.ReturnType.Name).AppendLine();
+        sb.Append(") -> ").Append(fn.Symbol.ReturnType.Name);
+        if (fn.Symbol.IsFallible)
+        {
+            sb.Append(" ! ").Append(fn.Symbol.ErrorType!.Name);
+        }
+        sb.AppendLine();
         AppendStatement(sb, fn.Body, i + 1);
     }
 
@@ -70,8 +75,13 @@ public static class BoundTreeDumper
             case BoundUnaryExpression u: sb.Append("UnaryExpression ").Append(u.OperatorKind).Append(" : ").Append(u.Type.Name).AppendLine(); AppendExpression(sb, u.Operand, i + 1); break;
             case BoundBinaryExpression b: sb.Append("BinaryExpression ").Append(b.OperatorKind).Append(" : ").Append(b.Type.Name).AppendLine(); AppendExpression(sb, b.Left, i + 1); AppendExpression(sb, b.Right, i + 1); break;
             case BoundCallExpression c:
-                sb.Append("CallExpression ").Append(c.Function.Name).Append(" : ").Append(c.Type.Name).AppendLine();
+                sb.Append("CallExpression ").Append(c.Function.Name).Append(" : ").Append(c.Type.Name);
+                if (c.IsFallible) sb.Append(" ! ").Append(c.ErrorType!.Name);
+                sb.AppendLine();
                 foreach (var a in c.Arguments) AppendExpression(sb, a, i + 1); break;
+            case BoundPropagateExpression p:
+                sb.Append("PropagateExpression ? : ").Append(p.Type.Name).AppendLine();
+                AppendExpression(sb, p.Operand, i + 1); break;
             case BoundArrayExpression a: sb.Append("ArrayExpression : ").Append(a.Type.Name).AppendLine(); foreach (var x in a.Elements) AppendExpression(sb, x, i + 1); break;
             default: sb.Append("ErrorExpression : error").AppendLine(); break;
         }

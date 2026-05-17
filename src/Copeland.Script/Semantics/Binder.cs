@@ -60,7 +60,8 @@ public static class Binder
                     ps.Add(new ParameterSymbol(p.Identifier.Text, pt));
                 }
                 var rt = BindType(m.ReturnType, m.Identifier, missingId:"COPE-TYPE-0002", missingPrefix:"function return");
-                var fn = new FunctionSymbol(m.Identifier.Text, ps, rt);
+                var et = BindErrorType(m.ErrorType);
+                var fn = new FunctionSymbol(m.Identifier.Text, ps, rt, et);
                 if (!_global.TryDeclare(fn)) Report("COPE-BIND-0002", $"Duplicate declaration '{fn.Name}'.", m.Identifier);
             }
         }
@@ -68,7 +69,7 @@ public static class Binder
         private BoundFunctionDeclaration BindFunction(FunctionDeclarationSyntax s)
         {
             _global.TryLookup(s.Identifier.Text, out var sym);
-            var fn = (FunctionSymbol?)sym ?? new FunctionSymbol(s.Identifier.Text, [], PrimitiveTypeSymbol.Error);
+            var fn = (FunctionSymbol?)sym ?? new FunctionSymbol(s.Identifier.Text, [], PrimitiveTypeSymbol.Error, null);
             var prevFn = _currentFunction; _currentFunction = fn;
             var prev = _scope; _scope = new Scope(_global);
             foreach (var p in fn.Parameters)
@@ -105,6 +106,7 @@ public static class Binder
             if (v.Keyword.Kind == SyntaxKind.VarKeyword) Report("COPE-PROFILE-0001", "'var' is not supported by Browser TypeScript Profile v1.", v.Keyword);
             var type = BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
             var init = BindExpression(v.Initializer, type);
+            if (init is BoundCallExpression initCall && initCall.IsFallible && v.Initializer is not PropagateExpressionSyntax) Report("COPE-TYPE-0013", $"Fallible call to '{initCall.Function.Name}' must be handled or propagated with '?'.", v.Identifier);
             if (!IsAssignable(type, init.Type)) Report("COPE-TYPE-0001", $"Type mismatch: expected '{type.Name}', got '{init.Type.Name}'.", v.Identifier);
             var varSym = new VariableSymbol(v.Identifier.Text, type, v.Keyword.Kind == SyntaxKind.ConstKeyword);
             if (!_scope.TryDeclare(varSym)) Report("COPE-BIND-0002", $"Duplicate declaration '{varSym.Name}'.", v.Identifier);
@@ -136,6 +138,7 @@ public static class Binder
                 return new BoundReturnStatement(null);
             }
             var expr = BindExpression(r.Expression);
+            if (expr is BoundCallExpression callExpr && callExpr.IsFallible && r.Expression is not PropagateExpressionSyntax) Report("COPE-TYPE-0013", $"Fallible call to '{callExpr.Function.Name}' must be handled or propagated with '?'.", r.ReturnKeyword);
             if (expected == PrimitiveTypeSymbol.Void) Report("COPE-TYPE-0003", "Invalid return expression for void function.", r.ReturnKeyword);
             else if (!IsAssignable(expected, expr.Type)) Report("COPE-TYPE-0003", $"Type mismatch: expected '{expected.Name}', got '{expr.Type.Name}'.", r.ReturnKeyword);
             return new BoundReturnStatement(expr);
@@ -146,6 +149,7 @@ public static class Binder
             LiteralExpressionSyntax l => BindLiteral(l),
             NameExpressionSyntax n => BindName(n),
             ParenthesizedExpressionSyntax p => BindExpression(p.Expression, contextualType),
+            PropagateExpressionSyntax p => BindPropagate(p),
             UnaryExpressionSyntax u => BindUnary(u),
             BinaryExpressionSyntax b => BindBinary(b),
             AssignmentExpressionSyntax a => BindAssignment(a),
@@ -180,7 +184,7 @@ public static class Binder
                 SyntaxKind.StringToken => new BoundLiteralExpression(l.LiteralToken.Value, PrimitiveTypeSymbol.String),
                 SyntaxKind.TrueKeyword => new BoundLiteralExpression(true, PrimitiveTypeSymbol.Boolean),
                 SyntaxKind.FalseKeyword => new BoundLiteralExpression(false, PrimitiveTypeSymbol.Boolean),
-                SyntaxKind.NullKeyword => new BoundLiteralExpression(null, PrimitiveTypeSymbol.Null),
+                SyntaxKind.NullKeyword => BindNullLiteral(l),
                 _ => new BoundErrorExpression()
             };
         }
@@ -281,13 +285,66 @@ public static class Binder
                     SyntaxKind.StringKeyword => PrimitiveTypeSymbol.String,
                     SyntaxKind.BooleanKeyword => PrimitiveTypeSymbol.Boolean,
                     SyntaxKind.VoidKeyword => PrimitiveTypeSymbol.Void,
-                    SyntaxKind.NullKeyword => PrimitiveTypeSymbol.Null,
+                    SyntaxKind.NullKeyword => ReportedNullType(p.Keyword),
                     _ => PrimitiveTypeSymbol.Error
                 },
                 ArrayTypeSyntax a => new ArrayTypeSymbol(BindType(a.ElementType, anchor, missingId, missingPrefix)),
                 IdentifierTypeSyntax i => ResolveIdentifierType(i),
                 _ => PrimitiveTypeSymbol.Error
             };
+        }
+
+
+        private BoundExpression BindPropagate(PropagateExpressionSyntax p)
+        {
+            var operand = BindExpression(p.Operand);
+            if (!operand.IsFallible)
+            {
+                Report("COPE-TYPE-0016", "'?' can only be applied to a fallible expression.", p.QuestionToken);
+                return new BoundErrorExpression();
+            }
+
+            if (_currentFunction is null || !_currentFunction.IsFallible || _currentFunction.ErrorType is null)
+            {
+                Report("COPE-TYPE-0014", "'?' can only be used inside a fallible function with a compatible error type.", p.QuestionToken);
+                return new BoundErrorExpression();
+            }
+
+            if (_currentFunction.ErrorType.Name != operand.ErrorType!.Name)
+            {
+                Report("COPE-TYPE-0015", $"Cannot propagate error type '{operand.ErrorType.Name}' from function returning error type '{_currentFunction.ErrorType.Name}'.", p.QuestionToken);
+                return new BoundErrorExpression();
+            }
+
+            return new BoundPropagateExpression(operand);
+        }
+
+        private BoundExpression BindNullLiteral(LiteralExpressionSyntax l)
+        {
+            Report("COPE-PROFILE-0005", "Null is not supported in Browser TypeScript Profile v1. Use fallible functions or an explicit option type when available.", l.LiteralToken);
+            return new BoundErrorExpression();
+        }
+
+        private TypeSymbol? BindErrorType(TypeSyntax? type)
+        {
+            if (type is null)
+            {
+                return null;
+            }
+
+            return type switch
+            {
+                IdentifierTypeSyntax i => new ErrorNominalTypeSymbol(i.Identifier.Text),
+                PredefinedTypeSyntax p => p.Keyword.Kind == SyntaxKind.NullKeyword ? ReportedNullType(p.Keyword) : new ErrorNominalTypeSymbol(p.Keyword.Text),
+                ArrayTypeSyntax a => new ErrorNominalTypeSymbol(BindType(a, a.OpenBracketToken, "COPE-TYPE-0002", "error type").Name),
+                _ => PrimitiveTypeSymbol.Error
+            };
+        }
+
+        private TypeSymbol ReportedNullType(SyntaxToken token)
+        {
+            Report("COPE-PROFILE-0005", "Null is not supported in Browser TypeScript Profile v1. Use fallible functions or an explicit option type when available.", token);
+            return PrimitiveTypeSymbol.Error;
         }
 
         private TypeSymbol ResolveIdentifierType(IdentifierTypeSyntax i)

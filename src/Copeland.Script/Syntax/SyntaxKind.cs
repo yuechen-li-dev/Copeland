@@ -28,6 +28,7 @@ public enum SyntaxKind
     DotToken,
     ColonToken,
     SemicolonToken,
+    QuestionToken,
 
     // Operators
     PlusToken,
@@ -92,6 +93,7 @@ public enum SyntaxKind
     CallExpression,
     MemberAccessExpression,
     ArrayLiteralExpression,
+    PropagateExpression,
     ObjectLiteralExpression,
     ObjectProperty,
     MissingExpression,
