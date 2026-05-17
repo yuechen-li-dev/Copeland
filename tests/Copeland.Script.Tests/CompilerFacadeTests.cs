@@ -131,6 +131,53 @@ function caller(text: string): number ! ParseError {
         Assert.Contains("CopeResult<double, ParseError>", csharpCompilation.CSharpText, StringComparison.Ordinal);
     }
 
+
+    [Fact]
+    public void Enum_Match_Invalid_Does_Not_Emit_Mir_Or_CSharp()
+    {
+        const string source = """
+enum Choice {
+  A,
+  B,
+}
+
+function value(choice: Choice): number {
+  return match choice {
+    A => 1,
+  };
+}
+""";
+
+        var compilation = CopelandCompiler.CompileToMir(source);
+        Assert.False(compilation.Success);
+        Assert.NotEmpty(compilation.Diagnostics);
+        Assert.Null(compilation.MirCompilation?.Program);
+        Assert.Null(compilation.MirText);
+        Assert.Null(compilation.CSharpText);
+    }
+
+    [Fact]
+    public void CompileToCSharp_Reports_Unsupported_For_Enum_Mir()
+    {
+        const string source = """
+enum Choice {
+  A,
+}
+
+function make(): Choice {
+  return Choice.A;
+}
+""";
+
+        var mirCompilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(mirCompilation.Success);
+        Assert.NotNull(mirCompilation.MirText);
+
+        var csharpCompilation = CopelandCompiler.CompileToCSharp(source);
+        Assert.False(csharpCompilation.Success);
+        Assert.Contains(csharpCompilation.Diagnostics, d => d.Id == "COPE-CS-0001");
+        Assert.Null(csharpCompilation.CSharpText);
+    }
     [Fact]
     public void Compilation_Is_Deterministic()
     {

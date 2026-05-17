@@ -1,0 +1,9 @@
+module
+
+enum Choice
+  case A
+  case B
+
+func value(choice: Choice) -> number
+entry:
+  return match choice : number { A => 1 | B => 2 }

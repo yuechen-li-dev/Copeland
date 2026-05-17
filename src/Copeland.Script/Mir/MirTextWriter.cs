@@ -8,6 +8,21 @@ public static class MirTextWriter
     {
         var sb = new StringBuilder();
         sb.AppendLine("module");
+
+        foreach (var @enum in program.Enums)
+        {
+            sb.AppendLine();
+            sb.Append("enum ").AppendLine(@enum.Name);
+            foreach (var @case in @enum.Cases)
+            {
+                sb.Append("  case ").Append(@case.Name);
+                if (@case.PayloadFields.Count > 0)
+                    sb.Append('(').Append(string.Join(", ", @case.PayloadFields.Select(f => $"{f.Name}: {f.Type.Name}"))).Append(')');
+
+                sb.AppendLine();
+            }
+        }
+
         foreach (var function in program.Functions)
         {
             sb.AppendLine();
@@ -90,6 +105,16 @@ public static class MirTextWriter
             ? $"call? {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))}) propagate {c.ErrorType.Name}"
             : $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
         MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
+        MirEnumValueExpression e => $"enum {e.EnumName}.{e.CaseName}{(e.Arguments.Count == 0 ? string.Empty : $"({string.Join(", ", e.Arguments.Select(FormatExpression))})")}",
+        MirMatchExpression m => $"match {FormatExpression(m.Scrutinee)} : {m.Type.Name} {{ {string.Join(" | ", m.Arms.Select(FormatArm))} }}",
         _ => expr.ToString() ?? "<expr>"
     };
+
+    private static string FormatArm(MirMatchArm arm)
+    {
+        var payload = arm.PayloadBindings.Count == 0
+            ? string.Empty
+            : $"({string.Join(", ", arm.PayloadBindings.Select(p => $"{p.Name}: {p.Type.Name}"))})";
+        return $"{arm.CaseName}{payload} => {FormatExpression(arm.Expression)}";
+    }
 }

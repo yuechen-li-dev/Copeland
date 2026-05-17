@@ -1,0 +1,12 @@
+module
+
+enum Choice
+  case A
+  case B
+
+func choices() -> Choice[]
+locals:
+  const xs: Choice[]
+entry:
+  store xs, [enum Choice.A, enum Choice.B]
+  return xs

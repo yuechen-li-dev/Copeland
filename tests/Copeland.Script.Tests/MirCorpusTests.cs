@@ -36,7 +36,7 @@ public sealed class MirCorpusTests
     public static IEnumerable<object[]> GetCases()
     {
         var repoRoot = GetRepoRoot();
-        foreach (var dir in new[] { "m0-mir-valid", "m0-mir-invalid" })
+        foreach (var dir in new[] { "m0-mir-valid", "m0-mir-invalid", "m1-enum-match-mir-valid" })
         {
             var fullDir = Path.Combine(repoRoot, "testdata", dir);
             if (!Directory.Exists(fullDir)) continue;

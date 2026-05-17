@@ -8,6 +8,12 @@ public static class CSharpBackend
     public static CSharpCompilation Emit(MirProgram program)
     {
         var diagnostics = new List<Diagnostic>();
+        if (program.Enums.Count > 0)
+        {
+            diagnostics.Add(new Diagnostic("COPE-CS-0001", "Unsupported MIR feature: enum declarations.", 0, 0));
+            return new CSharpCompilation(string.Empty, diagnostics);
+        }
+
         var writer = new CSharpTextWriter();
 
         var fallible = program.Functions.Any(f => f.IsFallible);
@@ -106,8 +112,17 @@ public static class CSharpBackend
             MirCallExpression c when c.IsFallible && c.IsPropagated && c.ErrorType is not null => EmitPropagation(writer, c, fn, ref tempIndex, diagnostics),
             MirCallExpression c => $"{CSharpNameMangler.Mangle(c.FunctionName)}({string.Join(", ", EmitArguments(c.Arguments, writer, fn, ref tempIndex, diagnostics))})",
             MirArrayExpression a => $"new {MapType(a.Type)} {{ {string.Join(", ", EmitArguments(a.Elements, writer, fn, ref tempIndex, diagnostics))} }}",
-            _ => "default!"
+                        MirEnumValueExpression => AddUnsupportedExpression("enum value", diagnostics),
+            MirMatchExpression => AddUnsupportedExpression("match expression", diagnostics),
+            _ => AddUnsupportedExpression(expr.GetType().Name, diagnostics)
         };
+    }
+
+
+    private static string AddUnsupportedExpression(string feature, List<Diagnostic> diagnostics)
+    {
+        diagnostics.Add(new Diagnostic("COPE-CS-0001", $"Unsupported MIR expression: {feature}", 0, 0));
+        return "default!";
     }
 
     private static string EmitPropagation(CSharpTextWriter writer, MirCallExpression c, MirFunction fn, ref int tempIndex, List<Diagnostic> diagnostics)
