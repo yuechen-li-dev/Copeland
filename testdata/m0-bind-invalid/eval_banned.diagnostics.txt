@@ -1,0 +1,2 @@
+COPE-PROFILE-0003|60|4|Dynamic evaluation is not supported by Browser TypeScript Profile v1.
+COPE-BIND-0001|64|1|Undefined function name.
