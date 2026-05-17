@@ -113,3 +113,11 @@ M0c adds `LayoutRow`, `LayoutNode`, `LayoutDocument`, and `CompileLayoutRows`.
 The compiler validates root count, ids, duplicate ids, unknown parents, cycles, RootFrame placement, and deterministic child ordering by `Order` then source index.
 
 It does not resolve document rectangles yet.
+
+## M0d implemented scope
+
+M0d adds `ResolvedLayoutNode`, `ResolvedLayoutDocument`, and `ResolveLayoutDocument`.
+
+The resolver uses caller-provided root geometry for the root node, resolves children in parent coordinate space through `FrameResolver`, preserves metadata and children order, and emits flat resolved geometry.
+
+Stack/grid arrangement, derived tree output, styles, and renderer adapters remain out of scope.
