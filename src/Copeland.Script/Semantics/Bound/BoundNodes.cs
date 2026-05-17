@@ -8,8 +8,9 @@ public abstract class BoundExpression : BoundNode { public abstract TypeSymbol T
 
 public sealed class BoundProgram
 {
-    public BoundProgram(IReadOnlyList<BoundFunctionDeclaration> functions, IReadOnlyList<BoundStatement> globalStatements) { Functions = functions; GlobalStatements = globalStatements; }
+    public BoundProgram(IReadOnlyList<BoundFunctionDeclaration> functions, IReadOnlyList<BoundEnumDeclaration> enums, IReadOnlyList<BoundStatement> globalStatements) { Functions = functions; Enums = enums; GlobalStatements = globalStatements; }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
+    public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
     public IReadOnlyList<BoundStatement> GlobalStatements { get; }
 }
 public sealed class BoundCompilation
@@ -21,6 +22,7 @@ public sealed class BoundCompilation
 }
 
 public sealed class BoundFunctionDeclaration : BoundNode { public BoundFunctionDeclaration(FunctionSymbol symbol, BoundBlockStatement body) { Symbol = symbol; Body = body; } public FunctionSymbol Symbol { get; } public BoundBlockStatement Body { get; } }
+public sealed class BoundEnumDeclaration : BoundNode { public BoundEnumDeclaration(EnumTypeSymbol enumType) => EnumType = enumType; public EnumTypeSymbol EnumType { get; } }
 public sealed class BoundBlockStatement : BoundStatement { public BoundBlockStatement(IReadOnlyList<BoundStatement> statements) => Statements = statements; public IReadOnlyList<BoundStatement> Statements { get; } }
 public sealed class BoundVariableDeclaration : BoundStatement { public BoundVariableDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
 public sealed class BoundExpressionStatement : BoundStatement { public BoundExpressionStatement(BoundExpression expression) => Expression = expression; public BoundExpression Expression { get; } }
@@ -35,6 +37,18 @@ public sealed class BoundAssignmentExpression : BoundExpression { public BoundAs
 public sealed class BoundUnaryExpression : BoundExpression { public BoundUnaryExpression(SyntaxKind op, BoundExpression operand, TypeSymbol type) { OperatorKind = op; Operand = operand; TypeImpl = type; } public SyntaxKind OperatorKind { get; } public BoundExpression Operand { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundBinaryExpression : BoundExpression { public BoundBinaryExpression(BoundExpression left, SyntaxKind op, BoundExpression right, TypeSymbol type) { Left = left; OperatorKind = op; Right = right; TypeImpl = type; } public BoundExpression Left { get; } public SyntaxKind OperatorKind { get; } public BoundExpression Right { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundCallExpression : BoundExpression { public BoundCallExpression(FunctionSymbol function, IReadOnlyList<BoundExpression> arguments) { Function = function; Arguments = arguments; } public FunctionSymbol Function { get; } public IReadOnlyList<BoundExpression> Arguments { get; } public override TypeSymbol Type => Function.ReturnType; public override TypeSymbol? ErrorType => Function.ErrorType; }
+public sealed class BoundEnumValueExpression : BoundExpression
+{
+    public BoundEnumValueExpression(EnumCaseSymbol @case, IReadOnlyList<BoundExpression> arguments)
+    {
+        Case = @case;
+        Arguments = arguments;
+    }
+    public EnumCaseSymbol Case { get; }
+    public IReadOnlyList<BoundExpression> Arguments { get; }
+    public bool IsConstructor => Arguments.Count > 0;
+    public override TypeSymbol Type => Case.EnumType;
+}
 public sealed class BoundPropagateExpression : BoundExpression { public BoundPropagateExpression(BoundExpression operand) => Operand = operand; public BoundExpression Operand { get; } public override TypeSymbol Type => Operand.Type; }
 public sealed class BoundArrayExpression : BoundExpression { public BoundArrayExpression(IReadOnlyList<BoundExpression> elements, TypeSymbol type) { Elements = elements; TypeImpl = type; } public IReadOnlyList<BoundExpression> Elements { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundErrorExpression : BoundExpression { public override TypeSymbol Type => PrimitiveTypeSymbol.Error; }

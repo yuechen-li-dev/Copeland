@@ -1,0 +1,12 @@
+FunctionDeclaration make() -> Shape
+  BlockStatement
+    VariableDeclaration const c: Shape
+      EnumConstructor Shape.Circle : Shape
+        LiteralExpression 10 : number
+    ReturnStatement
+      EnumConstructor Shape.Rect : Shape
+        LiteralExpression 3 : number
+        LiteralExpression 4 : number
+EnumDeclaration Shape
+  Case Circle(radius: number)
+  Case Rect(width: number, height: number)

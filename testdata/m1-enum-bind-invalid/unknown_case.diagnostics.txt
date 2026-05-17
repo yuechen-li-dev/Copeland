@@ -1,0 +1,1 @@
+COPE-ENUM-0004|65|6|Enum 'Shape' has no case 'Circle'.

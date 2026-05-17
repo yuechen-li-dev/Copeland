@@ -27,7 +27,7 @@ public sealed class BinderCorpusTests
         var diagPath = Path.ChangeExtension(sourcePath, ".diagnostics.txt");
         if (File.Exists(diagPath))
         {
-            var actual = DumpDiagnostics(compilation.Diagnostics.Where(d => d.Id.StartsWith("COPE-BIND") || d.Id.StartsWith("COPE-TYPE") || d.Id.StartsWith("COPE-PROFILE")).ToArray());
+            var actual = DumpDiagnostics(compilation.Diagnostics.Where(d => d.Id.StartsWith("COPE-BIND") || d.Id.StartsWith("COPE-TYPE") || d.Id.StartsWith("COPE-PROFILE") || d.Id.StartsWith("COPE-ENUM")).ToArray());
             Assert.Equal(Normalize(File.ReadAllText(diagPath)), Normalize(actual));
         }
     }
@@ -35,7 +35,7 @@ public sealed class BinderCorpusTests
     public static IEnumerable<object[]> GetCases()
     {
         var repoRoot = GetRepoRoot();
-        foreach (var dir in new[] { "m0-bind-valid", "m0-bind-invalid" })
+        foreach (var dir in new[] { "m0-bind-valid", "m0-bind-invalid", "m1-enum-bind-valid", "m1-enum-bind-invalid" })
         {
             var fullDir = Path.Combine(repoRoot, "testdata", dir);
             if (!Directory.Exists(fullDir)) continue;

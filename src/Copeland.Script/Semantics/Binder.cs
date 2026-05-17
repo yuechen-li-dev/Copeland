@@ -33,18 +33,23 @@ public static class Binder
         private Scope _scope = null!;
         private FunctionSymbol? _currentFunction;
         private readonly List<BoundFunctionDeclaration> _functions = [];
+        private readonly List<BoundEnumDeclaration> _enums = [];
         private readonly List<BoundStatement> _globals = [];
+        private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
 
         public BoundCompilation Bind()
         {
             _scope = _global;
+            PredeclareEnums(_tree.Root);
             PredeclareFunctions(_tree.Root);
+            BindEnumBodies(_tree.Root);
             foreach (var m in _tree.Root.Members)
             {
                 if (m is FunctionDeclarationSyntax f) _functions.Add(BindFunction(f));
+                else if (m is EnumDeclarationSyntax e) _enums.Add(new BoundEnumDeclaration(_enumTypes[e.Identifier.Text]));
                 else if (m is GlobalStatementMemberSyntax g) _globals.Add(BindStatement(g.Statement));
             }
-            return new BoundCompilation(_tree, new BoundProgram(_functions, _globals), _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
+            return new BoundCompilation(_tree, new BoundProgram(_functions, _enums, _globals), _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
         }
 
         private void PredeclareFunctions(CompilationUnitSyntax root)
@@ -62,7 +67,55 @@ public static class Binder
                 var rt = BindType(m.ReturnType, m.Identifier, missingId:"COPE-TYPE-0002", missingPrefix:"function return");
                 var et = BindErrorType(m.ErrorType);
                 var fn = new FunctionSymbol(m.Identifier.Text, ps, rt, et);
+                if (_enumTypes.ContainsKey(fn.Name))
+                {
+                    Report("COPE-ENUM-0009", $"Name '{fn.Name}' is already used by an enum.", m.Identifier);
+                    continue;
+                }
                 if (!_global.TryDeclare(fn)) Report("COPE-BIND-0002", $"Duplicate declaration '{fn.Name}'.", m.Identifier);
+            }
+        }
+        private void PredeclareEnums(CompilationUnitSyntax root)
+        {
+            foreach (var m in root.Members.OfType<EnumDeclarationSyntax>())
+            {
+                var enumType = new EnumTypeSymbol(m.Identifier.Text);
+                if (!_global.TryDeclare(new VariableSymbol(m.Identifier.Text, enumType, true)) || _enumTypes.ContainsKey(m.Identifier.Text))
+                {
+                    Report("COPE-ENUM-0001", $"Duplicate enum declaration '{m.Identifier.Text}'.", m.Identifier);
+                    continue;
+                }
+                _enumTypes[m.Identifier.Text] = enumType;
+            }
+        }
+
+        private void BindEnumBodies(CompilationUnitSyntax root)
+        {
+            foreach (var decl in root.Members.OfType<EnumDeclarationSyntax>())
+            {
+                if (!_enumTypes.TryGetValue(decl.Identifier.Text, out var enumType))
+                    continue;
+                var seenCases = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var @case in decl.Cases)
+                {
+                    if (!seenCases.Add(@case.Identifier.Text))
+                    {
+                        Report("COPE-ENUM-0002", $"Duplicate enum case '{@case.Identifier.Text}' in enum '{enumType.Name}'.", @case.Identifier);
+                        continue;
+                    }
+                    var seenPayload = new HashSet<string>(StringComparer.Ordinal);
+                    var payloadFields = new List<EnumPayloadFieldSymbol>();
+                    foreach (var field in @case.PayloadFields)
+                    {
+                        if (!seenPayload.Add(field.Identifier.Text))
+                        {
+                            Report("COPE-ENUM-0003", $"Duplicate payload field '{field.Identifier.Text}' in enum case '{@case.Identifier.Text}'.", field.Identifier);
+                            continue;
+                        }
+                        payloadFields.Add(new EnumPayloadFieldSymbol(field.Identifier.Text, BindType(field.Type, field.Identifier, "COPE-TYPE-0002", "enum payload")));
+                    }
+                    enumType.AddCase(new EnumCaseSymbol(@case.Identifier.Text, enumType, payloadFields));
+                }
             }
         }
 
@@ -253,6 +306,11 @@ public static class Binder
             if (c.Target is NameExpressionSyntax n && n.IdentifierToken.Text == "eval")
                 Report("COPE-PROFILE-0003", "Dynamic evaluation is not supported by Browser TypeScript Profile v1.", n.IdentifierToken);
 
+            if (c.Target is MemberAccessExpressionSyntax m && m.Target is NameExpressionSyntax enumName)
+            {
+                return BindEnumConstructorCall(c, m, enumName);
+            }
+
             if (c.Target is not NameExpressionSyntax name || !_scope.TryLookup(name.IdentifierToken.Text, out var s) || s is null)
             { Report("COPE-BIND-0001", "Undefined function name.", c.OpenParenToken); return new BoundErrorExpression(); }
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
@@ -278,7 +336,25 @@ public static class Binder
         }
 
         private BoundExpression BindObject(ObjectLiteralExpressionSyntax o) { Report("COPE-TYPE-0011", "Object literals are not supported in M0e.", o.OpenBraceToken); return new BoundErrorExpression(); }
-        private BoundExpression BindMember(MemberAccessExpressionSyntax m) { Report("COPE-TYPE-0012", "Member access is not supported in M0e.", m.DotToken); return new BoundErrorExpression(); }
+        private BoundExpression BindMember(MemberAccessExpressionSyntax m)
+        {
+            if (m.Target is NameExpressionSyntax n && _enumTypes.TryGetValue(n.IdentifierToken.Text, out var enumType))
+            {
+                var @case = enumType.Cases.FirstOrDefault(c => c.Name == m.NameToken.Text);
+                if (@case is null)
+                {
+                    Report("COPE-ENUM-0004", $"Enum '{enumType.Name}' has no case '{m.NameToken.Text}'.", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                if (@case.HasPayload)
+                {
+                    Report("COPE-ENUM-0007", $"Enum case '{enumType.Name}.{@case.Name}' requires arguments.", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                return new BoundEnumValueExpression(@case, []);
+            }
+            Report("COPE-TYPE-0012", "Member access is not supported in M0e.", m.DotToken); return new BoundErrorExpression();
+        }
 
         private TypeSymbol BindType(TypeSyntax? type, SyntaxToken anchor, string missingId, string missingPrefix)
         {
@@ -355,8 +431,39 @@ public static class Binder
 
         private TypeSymbol ResolveIdentifierType(IdentifierTypeSyntax i)
         {
+            if (_enumTypes.TryGetValue(i.Identifier.Text, out var enumType))
+                return enumType;
             Report("COPE-BIND-0004", $"Unknown type '{i.Identifier.Text}'.", i.Identifier);
             return PrimitiveTypeSymbol.Error;
+        }
+
+        private BoundExpression BindEnumConstructorCall(CallExpressionSyntax call, MemberAccessExpressionSyntax member, NameExpressionSyntax enumName)
+        {
+            if (!_enumTypes.TryGetValue(enumName.IdentifierToken.Text, out var enumType))
+            {
+                Report("COPE-ENUM-0010", "Expected enum type name.", enumName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+            var @case = enumType.Cases.FirstOrDefault(c => c.Name == member.NameToken.Text);
+            if (@case is null)
+            {
+                Report("COPE-ENUM-0004", $"Enum '{enumType.Name}' has no case '{member.NameToken.Text}'.", member.NameToken);
+                return new BoundErrorExpression();
+            }
+            if (!@case.HasPayload)
+            {
+                Report("COPE-ENUM-0008", $"Enum case '{enumType.Name}.{@case.Name}' does not take arguments.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+            if (call.Arguments.Count != @case.PayloadFields.Count)
+                Report("COPE-ENUM-0005", $"Enum case '{enumType.Name}.{@case.Name}' expects {@case.PayloadFields.Count} argument{(@case.PayloadFields.Count == 1 ? "" : "s")}, got {call.Arguments.Count}.", call.OpenParenToken);
+            var args = call.Arguments.Select(a => BindExpression(a)).ToArray();
+            for (var i = 0; i < Math.Min(args.Length, @case.PayloadFields.Count); i++)
+            {
+                if (!IsAssignable(@case.PayloadFields[i].Type, args[i].Type))
+                    Report("COPE-ENUM-0006", $"Argument {i + 1} for enum case '{enumType.Name}.{@case.Name}' expected '{@case.PayloadFields[i].Type.Name}', got '{args[i].Type.Name}'.", call.OpenParenToken);
+            }
+            return new BoundEnumValueExpression(@case, args);
         }
 
         private static bool IsAssignable(TypeSymbol target, TypeSymbol actual)
