@@ -22,3 +22,15 @@ M0 proved generated C# can compile and run on the CLR through tests.
 - no `eval`
 - fallible functions with `! ErrorType`
 - propagation with `?`
+
+## CLI probe
+
+Current CLI artifact probe:
+
+- `copeland compile input.ts --emit mir --out input.cope`
+- `copeland compile input.ts --emit csharp --out input.g.cs`
+
+The CLI emits artifacts only.
+It does not execute code yet.
+It does not compile generated C# with Roslyn.
+It does not provide browser APIs.

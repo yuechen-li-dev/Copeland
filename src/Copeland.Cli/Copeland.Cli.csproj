@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.Cli</AssemblyName>
+    <RootNamespace>Copeland.Cli</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Copeland.Script/Copeland.Script.csproj" />
+  </ItemGroup>
+</Project>
