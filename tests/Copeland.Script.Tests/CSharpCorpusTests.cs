@@ -23,9 +23,13 @@ public sealed class CSharpCorpusTests
 
     public static IEnumerable<object[]> GetCases()
     {
-        var dir = Path.Combine(GetRepoRoot(), "testdata", "m0-csharp-valid");
-        foreach (var sourcePath in Directory.EnumerateFiles(dir, "*.ts", SearchOption.TopDirectoryOnly).OrderBy(p => p, StringComparer.Ordinal))
-            yield return new object[] { sourcePath };
+        var root = GetRepoRoot();
+        foreach (var corpus in new[] { "m0-csharp-valid", "m1-enum-match-csharp-valid" })
+        {
+            var dir = Path.Combine(root, "testdata", corpus);
+            foreach (var sourcePath in Directory.EnumerateFiles(dir, "*.ts", SearchOption.TopDirectoryOnly).OrderBy(p => p, StringComparer.Ordinal))
+                yield return new object[] { sourcePath };
+        }
     }
 
     private static string Normalize(string v) => v.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd();

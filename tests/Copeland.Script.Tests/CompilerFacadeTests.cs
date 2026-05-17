@@ -157,7 +157,7 @@ function value(choice: Choice): number {
     }
 
     [Fact]
-    public void CompileToCSharp_Reports_Unsupported_For_Enum_Mir()
+    public void CompileToCSharp_Succeeds_For_Enum_Match_Programs()
     {
         const string source = """
 enum Choice {
@@ -174,9 +174,10 @@ function make(): Choice {
         Assert.NotNull(mirCompilation.MirText);
 
         var csharpCompilation = CopelandCompiler.CompileToCSharp(source);
-        Assert.False(csharpCompilation.Success);
-        Assert.Contains(csharpCompilation.Diagnostics, d => d.Id == "COPE-CS-0001");
-        Assert.Null(csharpCompilation.CSharpText);
+        Assert.True(csharpCompilation.Success);
+        Assert.Empty(csharpCompilation.Diagnostics);
+        Assert.NotNull(csharpCompilation.CSharpText);
+        Assert.Contains("public abstract record Choice", csharpCompilation.CSharpText, StringComparison.Ordinal);
     }
     [Fact]
     public void Compilation_Is_Deterministic()
