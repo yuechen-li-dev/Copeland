@@ -105,3 +105,11 @@ var danger = baseButton with
 
 M0b implements `Rect`, `UiLength`, `RootFrame`, `AbsoluteFrame`, `AnchorFrame`, and direct frame resolution for absolute/anchor frames.
 Rows/documents/stack/grid/rendering remain out of scope.
+
+## M0c implemented scope
+
+M0c adds `LayoutRow`, `LayoutNode`, `LayoutDocument`, and `CompileLayoutRows`.
+
+The compiler validates root count, ids, duplicate ids, unknown parents, cycles, RootFrame placement, and deterministic child ordering by `Order` then source index.
+
+It does not resolve document rectangles yet.
