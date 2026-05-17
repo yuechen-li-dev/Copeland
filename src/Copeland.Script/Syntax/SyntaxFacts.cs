@@ -25,6 +25,25 @@ public static class SyntaxFacts
     public static SyntaxKind GetKeywordKind(string text)
         => KeywordKinds.GetValueOrDefault(text, SyntaxKind.IdentifierToken);
 
+    public static int GetUnaryOperatorPrecedence(SyntaxKind kind)
+        => kind switch
+        {
+            SyntaxKind.BangToken or SyntaxKind.MinusToken => 8,
+            _ => 0,
+        };
+
+    public static int GetBinaryOperatorPrecedence(SyntaxKind kind)
+        => kind switch
+        {
+            SyntaxKind.StarToken or SyntaxKind.SlashToken or SyntaxKind.PercentToken => 7,
+            SyntaxKind.PlusToken or SyntaxKind.MinusToken => 6,
+            SyntaxKind.LessToken or SyntaxKind.LessOrEqualsToken or SyntaxKind.GreaterToken or SyntaxKind.GreaterOrEqualsToken => 5,
+            SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken => 4,
+            SyntaxKind.AmpersandAmpersandToken => 3,
+            SyntaxKind.PipePipeToken => 2,
+            _ => 0,
+        };
+
     public static string? GetText(SyntaxKind kind)
         => kind switch
         {

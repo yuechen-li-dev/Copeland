@@ -1,0 +1,116 @@
+└──CompilationUnit
+   ├──GlobalStatementMember
+   │  └──VariableDeclarationStatement
+   │     ├──LetKeyword 'let'
+   │     ├──IdentifierToken 'x'
+   │     ├──EqualsToken '='
+   │     ├──LiteralExpression
+   │     │  └──NumberToken '1'
+   │     └──SemicolonToken ';'
+   ├──GlobalStatementMember
+   │  └──IfStatement
+   │     ├──IfKeyword 'if'
+   │     ├──OpenParenToken '('
+   │     ├──BinaryExpression
+   │     │  ├──NameExpression
+   │     │  │  └──IdentifierToken 'x'
+   │     │  ├──LessToken '<'
+   │     │  └──LiteralExpression
+   │     │     └──NumberToken '2'
+   │     ├──CloseParenToken ')'
+   │     ├──BlockStatement
+   │     │  ├──OpenBraceToken '{'
+   │     │  ├──ExpressionStatement
+   │     │  │  ├──AssignmentExpression
+   │     │  │  │  ├──NameExpression
+   │     │  │  │  │  └──IdentifierToken 'x'
+   │     │  │  │  ├──EqualsToken '='
+   │     │  │  │  └──BinaryExpression
+   │     │  │  │     ├──NameExpression
+   │     │  │  │     │  └──IdentifierToken 'x'
+   │     │  │  │     ├──PlusToken '+'
+   │     │  │  │     └──LiteralExpression
+   │     │  │  │        └──NumberToken '1'
+   │     │  │  └──SemicolonToken ';'
+   │     │  └──CloseBraceToken '}'
+   │     ├──ElseKeyword 'else'
+   │     └──BlockStatement
+   │        ├──OpenBraceToken '{'
+   │        ├──ExpressionStatement
+   │        │  ├──AssignmentExpression
+   │        │  │  ├──NameExpression
+   │        │  │  │  └──IdentifierToken 'x'
+   │        │  │  ├──EqualsToken '='
+   │        │  │  └──LiteralExpression
+   │        │  │     └──NumberToken '0'
+   │        │  └──SemicolonToken ';'
+   │        └──CloseBraceToken '}'
+   ├──GlobalStatementMember
+   │  └──WhileStatement
+   │     ├──WhileKeyword 'while'
+   │     ├──OpenParenToken '('
+   │     ├──BinaryExpression
+   │     │  ├──NameExpression
+   │     │  │  └──IdentifierToken 'x'
+   │     │  ├──GreaterToken '>'
+   │     │  └──LiteralExpression
+   │     │     └──NumberToken '0'
+   │     ├──CloseParenToken ')'
+   │     └──ExpressionStatement
+   │        ├──AssignmentExpression
+   │        │  ├──NameExpression
+   │        │  │  └──IdentifierToken 'x'
+   │        │  ├──EqualsToken '='
+   │        │  └──BinaryExpression
+   │        │     ├──NameExpression
+   │        │     │  └──IdentifierToken 'x'
+   │        │     ├──MinusToken '-'
+   │        │     └──LiteralExpression
+   │        │        └──NumberToken '1'
+   │        └──SemicolonToken ';'
+   ├──GlobalStatementMember
+   │  └──ForStatement
+   │     ├──ForKeyword 'for'
+   │     ├──OpenParenToken '('
+   │     ├──VariableDeclarationStatement
+   │     │  ├──LetKeyword 'let'
+   │     │  ├──IdentifierToken 'i'
+   │     │  ├──EqualsToken '='
+   │     │  ├──LiteralExpression
+   │     │  │  └──NumberToken '0'
+   │     │  └──SemicolonToken ';'
+   │     ├──SemicolonToken ';'
+   │     ├──BinaryExpression
+   │     │  ├──NameExpression
+   │     │  │  └──IdentifierToken 'i'
+   │     │  ├──LessToken '<'
+   │     │  └──LiteralExpression
+   │     │     └──NumberToken '2'
+   │     ├──SemicolonToken ';'
+   │     ├──AssignmentExpression
+   │     │  ├──NameExpression
+   │     │  │  └──IdentifierToken 'i'
+   │     │  ├──EqualsToken '='
+   │     │  └──BinaryExpression
+   │     │     ├──NameExpression
+   │     │     │  └──IdentifierToken 'i'
+   │     │     ├──PlusToken '+'
+   │     │     └──LiteralExpression
+   │     │        └──NumberToken '1'
+   │     ├──CloseParenToken ')'
+   │     └──BlockStatement
+   │        ├──OpenBraceToken '{'
+   │        ├──ExpressionStatement
+   │        │  ├──AssignmentExpression
+   │        │  │  ├──NameExpression
+   │        │  │  │  └──IdentifierToken 'x'
+   │        │  │  ├──EqualsToken '='
+   │        │  │  └──BinaryExpression
+   │        │  │     ├──NameExpression
+   │        │  │     │  └──IdentifierToken 'x'
+   │        │  │     ├──PlusToken '+'
+   │        │  │     └──NameExpression
+   │        │  │        └──IdentifierToken 'i'
+   │        │  └──SemicolonToken ';'
+   │        └──CloseBraceToken '}'
+   └──EndOfFileToken

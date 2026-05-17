@@ -1,0 +1,20 @@
+└──CompilationUnit
+   ├──GlobalStatementMember
+   │  └──IfStatement
+   │     ├──IfKeyword 'if'
+   │     ├──OpenParenToken '('
+   │     ├──NameExpression
+   │     │  └──IdentifierToken 'x'
+   │     ├──CloseParenToken ')'
+   │     └──BlockStatement
+   │        ├──OpenBraceToken '{'
+   │        ├──ExpressionStatement
+   │        │  ├──AssignmentExpression
+   │        │  │  ├──NameExpression
+   │        │  │  │  └──IdentifierToken 'x'
+   │        │  │  ├──EqualsToken '='
+   │        │  │  └──LiteralExpression
+   │        │  │     └──NumberToken '1'
+   │        │  └──SemicolonToken ';'
+   │        └──CloseBraceToken '}'
+   └──EndOfFileToken

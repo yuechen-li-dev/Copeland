@@ -1,0 +1,11 @@
+└──CompilationUnit
+   ├──GlobalStatementMember
+   │  └──ExpressionStatement
+   │     ├──AssignmentExpression
+   │     │  ├──LiteralExpression
+   │     │  │  └──NumberToken '1'
+   │     │  ├──EqualsToken '='
+   │     │  └──LiteralExpression
+   │     │     └──NumberToken '2'
+   │     └──SemicolonToken ';'
+   └──EndOfFileToken

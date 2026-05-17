@@ -1,0 +1,15 @@
+└──CompilationUnit
+   ├──GlobalStatementMember
+   │  └──ExpressionStatement
+   │     ├──BinaryExpression
+   │     │  ├──LiteralExpression
+   │     │  │  └──NumberToken '1'
+   │     │  ├──PlusToken '+'
+   │     │  └──BinaryExpression
+   │     │     ├──LiteralExpression
+   │     │     │  └──NumberToken '2'
+   │     │     ├──StarToken '*'
+   │     │     └──LiteralExpression
+   │     │        └──NumberToken '3'
+   │     └──SemicolonToken ';'
+   └──EndOfFileToken

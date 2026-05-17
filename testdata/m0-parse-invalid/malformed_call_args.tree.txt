@@ -1,0 +1,15 @@
+└──CompilationUnit
+   ├──GlobalStatementMember
+   │  └──ExpressionStatement
+   │     ├──CallExpression
+   │     │  ├──NameExpression
+   │     │  │  └──IdentifierToken 'foo'
+   │     │  ├──OpenParenToken '('
+   │     │  ├──LiteralExpression
+   │     │  │  └──NumberToken '1'
+   │     │  ├──CommaToken ','
+   │     │  ├──MissingExpression
+   │     │  │  └──IdentifierToken
+   │     │  └──CloseParenToken ')'
+   │     └──SemicolonToken ';'
+   └──EndOfFileToken

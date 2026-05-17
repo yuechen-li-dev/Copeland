@@ -1,0 +1,2 @@
+COPE-PARSE-0002|7|0|Expected expression.
+COPE-PARSE-0004|7|0|Expected token ')'.
