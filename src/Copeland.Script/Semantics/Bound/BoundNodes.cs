@@ -50,5 +50,32 @@ public sealed class BoundEnumValueExpression : BoundExpression
     public override TypeSymbol Type => Case.EnumType;
 }
 public sealed class BoundPropagateExpression : BoundExpression { public BoundPropagateExpression(BoundExpression operand) => Operand = operand; public BoundExpression Operand { get; } public override TypeSymbol Type => Operand.Type; }
+public sealed class BoundMatchArm
+{
+    public BoundMatchArm(EnumCaseSymbol @case, IReadOnlyList<VariableSymbol> payloadVariables, BoundExpression expression)
+    {
+        Case = @case;
+        PayloadVariables = payloadVariables;
+        Expression = expression;
+    }
+    public EnumCaseSymbol Case { get; }
+    public IReadOnlyList<VariableSymbol> PayloadVariables { get; }
+    public BoundExpression Expression { get; }
+}
+public sealed class BoundMatchExpression : BoundExpression
+{
+    public BoundMatchExpression(BoundExpression scrutinee, EnumTypeSymbol enumType, IReadOnlyList<BoundMatchArm> arms, TypeSymbol type)
+    {
+        Scrutinee = scrutinee;
+        EnumType = enumType;
+        Arms = arms;
+        TypeImpl = type;
+    }
+    public BoundExpression Scrutinee { get; }
+    public EnumTypeSymbol EnumType { get; }
+    public IReadOnlyList<BoundMatchArm> Arms { get; }
+    private TypeSymbol TypeImpl { get; }
+    public override TypeSymbol Type => TypeImpl;
+}
 public sealed class BoundArrayExpression : BoundExpression { public BoundArrayExpression(IReadOnlyList<BoundExpression> elements, TypeSymbol type) { Elements = elements; TypeImpl = type; } public IReadOnlyList<BoundExpression> Elements { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundErrorExpression : BoundExpression { public override TypeSymbol Type => PrimitiveTypeSymbol.Error; }

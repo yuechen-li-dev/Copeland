@@ -55,6 +55,7 @@ public enum SyntaxKind
     LetKeyword,
     FunctionKeyword,
     EnumKeyword,
+    MatchKeyword,
     ReturnKeyword,
     IfKeyword,
     ElseKeyword,
@@ -100,5 +101,8 @@ public enum SyntaxKind
     PropagateExpression,
     ObjectLiteralExpression,
     ObjectProperty,
+    MatchExpression,
+    MatchArm,
+    MatchPattern,
     MissingExpression,
 }

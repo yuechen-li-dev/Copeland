@@ -583,6 +583,82 @@ public sealed record ObjectLiteralExpressionSyntax(
     }
 }
 
+public sealed record MatchPatternSyntax(
+    SyntaxToken CaseIdentifier,
+    SyntaxToken? OpenParenToken,
+    IReadOnlyList<SyntaxToken> PayloadIdentifiers,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken? CloseParenToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.MatchPattern;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return CaseIdentifier;
+        if (OpenParenToken is not null)
+        {
+            yield return OpenParenToken;
+        }
+
+        for (var i = 0; i < PayloadIdentifiers.Count; i++)
+        {
+            if (i > 0)
+            {
+                yield return CommaTokens[i - 1];
+            }
+
+            yield return PayloadIdentifiers[i];
+        }
+
+        if (CloseParenToken is not null)
+        {
+            yield return CloseParenToken;
+        }
+    }
+}
+
+public sealed record MatchArmSyntax(
+    MatchPatternSyntax Pattern,
+    SyntaxToken ArrowToken,
+    ExpressionSyntax Expression,
+    SyntaxToken? CommaToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.MatchArm;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Pattern;
+        yield return ArrowToken;
+        yield return Expression;
+        if (CommaToken is not null)
+        {
+            yield return CommaToken;
+        }
+    }
+}
+
+public sealed record MatchExpressionSyntax(
+    SyntaxToken MatchKeyword,
+    ExpressionSyntax Expression,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<MatchArmSyntax> Arms,
+    SyntaxToken CloseBraceToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.MatchExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return MatchKeyword;
+        yield return Expression;
+        yield return OpenBraceToken;
+        foreach (var arm in Arms)
+        {
+            yield return arm;
+        }
+        yield return CloseBraceToken;
+    }
+}
+
 public sealed record MissingExpressionSyntax(SyntaxToken Token) : ExpressionSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.MissingExpression;
