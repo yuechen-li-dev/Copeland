@@ -107,6 +107,7 @@ public static class MirTextWriter
         MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
         MirEnumValueExpression e => $"enum {e.EnumName}.{e.CaseName}{(e.Arguments.Count == 0 ? string.Empty : $"({string.Join(", ", e.Arguments.Select(FormatExpression))})")}",
         MirMatchExpression m => $"match {FormatExpression(m.Scrutinee)} : {m.Type.Name} {{ {string.Join(" | ", m.Arms.Select(FormatArm))} }}",
+        MirIfExpression i => $"if {FormatExpression(i.Condition)} : {i.Type.Name} {{ then {FormatExpression(i.ThenExpression)} else {FormatExpression(i.ElseExpression)} }}",
         _ => expr.ToString() ?? "<expr>"
     };
 

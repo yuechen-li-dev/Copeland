@@ -210,6 +210,7 @@ public static class Binder
             ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
             ObjectLiteralExpressionSyntax o => BindObject(o),
             MemberAccessExpressionSyntax m => BindMember(m),
+            IfExpressionSyntax i => BindIfExpression(i),
             MatchExpressionSyntax m => BindMatch(m),
             _ => new BoundErrorExpression()
             };
@@ -218,6 +219,25 @@ public static class Binder
                 Report("COPE-TYPE-0013", $"Fallible call to '{call.Function.Name}' must be handled or propagated with '?'.", AnchorToken(s));
 
             return expression;
+        }
+
+
+        private BoundExpression BindIfExpression(IfExpressionSyntax ifExpression)
+        {
+            var condition = BindExpression(ifExpression.Condition);
+            if (condition.Type != PrimitiveTypeSymbol.Boolean)
+                Report("COPE-TYPE-0017", $"If expression condition must be 'boolean', got '{condition.Type.Name}'.", ifExpression.IfKeyword);
+
+            var thenExpression = BindExpression(ifExpression.ThenExpression, allowUnhandledFallible: true);
+            var elseExpression = BindExpression(ifExpression.ElseExpression, allowUnhandledFallible: true);
+
+            if (thenExpression.Type.Name != elseExpression.Type.Name)
+            {
+                Report("COPE-TYPE-0018", $"If expression branch type mismatch: expected '{thenExpression.Type.Name}', got '{elseExpression.Type.Name}'.", ifExpression.ElseKeyword);
+                return new BoundErrorExpression();
+            }
+
+            return new BoundIfExpression(condition, thenExpression, elseExpression, thenExpression.Type);
         }
 
         private BoundExpression BindName(NameExpressionSyntax n)

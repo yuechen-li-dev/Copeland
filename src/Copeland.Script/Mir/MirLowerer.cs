@@ -85,6 +85,7 @@ public static class MirLowerer
             BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), MirType.From(c.Type), c.IsFallible, c.ErrorType is null ? null : MirType.From(c.ErrorType), false),
             BoundEnumValueExpression e => new MirEnumValueExpression(e.Case.EnumType.Name, e.Case.Name, e.Arguments.Select(LowerExpression).ToArray(), MirType.From(e.Type)),
             BoundMatchExpression m => new MirMatchExpression(LowerExpression(m.Scrutinee), m.Arms.Select(arm => new MirMatchArm(arm.Case.Name, arm.PayloadVariables.Select(v => new MirMatchPayloadBinding(v.Name, MirType.From(v.Type))).ToArray(), LowerExpression(arm.Expression))).ToArray(), MirType.From(m.Type)),
+            BoundIfExpression i => new MirIfExpression(LowerExpression(i.Condition), LowerExpression(i.ThenExpression), LowerExpression(i.ElseExpression), MirType.From(i.Type)),
             BoundPropagateExpression p when p.Operand is BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), MirType.From(c.Type), c.IsFallible, c.ErrorType is null ? null : MirType.From(c.ErrorType), true),
             BoundPropagateExpression p => LowerExpression(p.Operand),
             BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), MirType.From(a.Type)),

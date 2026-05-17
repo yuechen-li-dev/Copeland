@@ -62,6 +62,7 @@ public sealed class BoundMatchArm
     public IReadOnlyList<VariableSymbol> PayloadVariables { get; }
     public BoundExpression Expression { get; }
 }
+public sealed class BoundIfExpression : BoundExpression { public BoundIfExpression(BoundExpression condition, BoundExpression thenExpression, BoundExpression elseExpression, TypeSymbol type) { Condition = condition; ThenExpression = thenExpression; ElseExpression = elseExpression; TypeImpl = type; } public BoundExpression Condition { get; } public BoundExpression ThenExpression { get; } public BoundExpression ElseExpression { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundMatchExpression : BoundExpression
 {
     public BoundMatchExpression(BoundExpression scrutinee, EnumTypeSymbol enumType, IReadOnlyList<BoundMatchArm> arms, TypeSymbol type)

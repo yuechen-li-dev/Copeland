@@ -146,6 +146,7 @@ public static class CSharpBackend
             MirArrayExpression a => $"new {MapType(a.Type)} {{ {string.Join(", ", EmitArguments(a.Elements, writer, fn, ref tempIndex, diagnostics))} }}",
             MirEnumValueExpression e => EmitEnumValueExpression(e, writer, fn, ref tempIndex, diagnostics),
             MirMatchExpression m => EmitMatchExpression(m, writer, fn, ref tempIndex, diagnostics),
+            MirIfExpression i => $"({EmitExpression(writer, i.Condition, fn, ref tempIndex, diagnostics)} ? {EmitExpression(writer, i.ThenExpression, fn, ref tempIndex, diagnostics)} : {EmitExpression(writer, i.ElseExpression, fn, ref tempIndex, diagnostics)})",
             _ => AddUnsupportedExpression(expr.GetType().Name, diagnostics)
         };
     }

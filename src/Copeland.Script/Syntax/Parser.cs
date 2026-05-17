@@ -462,6 +462,20 @@ public sealed class Parser
             if (Current.Kind == SyntaxKind.QuestionToken)
             {
                 var questionToken = Match(SyntaxKind.QuestionToken);
+                if (Current.Kind == SyntaxKind.DotToken)
+                {
+                    _diagnostics.Report("COPE-PROFILE-0008", "Optional chaining is not supported. Use explicit fallible APIs or enum/option modeling.", questionToken.Position, 2);
+                    var dot = Match(SyntaxKind.DotToken);
+                    var _ = Match(SyntaxKind.IdentifierToken);
+                    expression = new MissingExpressionSyntax(dot);
+                    continue;
+                }
+
+                if (Current.Kind != SyntaxKind.SemicolonToken && Current.Kind != SyntaxKind.CloseParenToken && Current.Kind != SyntaxKind.CommaToken && Current.Kind != SyntaxKind.CloseBraceToken)
+                {
+                    _diagnostics.Report("COPE-PROFILE-0007", "The ternary operator is not supported. Use if/else expressions.", questionToken.Position, 1);
+                }
+
                 expression = new PropagateExpressionSyntax(expression, questionToken);
                 continue;
             }
@@ -502,8 +516,24 @@ public sealed class Parser
             SyntaxKind.OpenBracketToken => ParseArrayLiteralExpression(),
             SyntaxKind.OpenBraceToken => ParseObjectLiteralExpression(),
             SyntaxKind.MatchKeyword => ParseMatchExpression(),
+            SyntaxKind.IfKeyword => ParseIfExpression(),
             _ => ParseMissingExpression(),
         };
+
+
+    private IfExpressionSyntax ParseIfExpression()
+    {
+        var ifKeyword = Match(SyntaxKind.IfKeyword);
+        var condition = ParseExpression();
+        var thenOpen = Match(SyntaxKind.OpenBraceToken);
+        var thenExpression = ParseExpression();
+        var thenClose = Match(SyntaxKind.CloseBraceToken);
+        var elseKeyword = Match(SyntaxKind.ElseKeyword);
+        var elseOpen = Match(SyntaxKind.OpenBraceToken);
+        var elseExpression = ParseExpression();
+        var elseClose = Match(SyntaxKind.CloseBraceToken);
+        return new IfExpressionSyntax(ifKeyword, condition, thenOpen, thenExpression, thenClose, elseKeyword, elseOpen, elseExpression, elseClose);
+    }
 
     private ParenthesizedExpressionSyntax ParseParenthesizedExpression()
     {
