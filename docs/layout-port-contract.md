@@ -121,3 +121,9 @@ M0d adds `ResolvedLayoutNode`, `ResolvedLayoutDocument`, and `ResolveLayoutDocum
 The resolver uses caller-provided root geometry for the root node, resolves children in parent coordinate space through `FrameResolver`, preserves metadata and children order, and emits flat resolved geometry.
 
 Stack/grid arrangement, derived tree output, styles, and renderer adapters remain out of scope.
+
+## M0e implemented scope
+
+M0e adds `ResolvedLayoutTree`, `ToResolvedTree`, and flattening helpers.
+
+The tree is a derived projection from `ResolvedLayoutDocument` for renderer/debug convenience. Flat rows remain canonical authoring input, and flat resolved documents remain canonical geometry output.
