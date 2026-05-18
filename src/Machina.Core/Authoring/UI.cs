@@ -2,6 +2,7 @@ using Machina.Core.Actions;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Layout.Frames;
+using Machina.Layout.Rows;
 
 namespace Machina.Core.Authoring;
 
@@ -9,75 +10,157 @@ public static class UI
 {
     public static UiNode Text(
         string text,
+        NodeId? id = null,
         ColorToken? color = null,
         TextSize size = TextSize.Md,
         TextStyle? style = null)
     {
-        var effectiveStyle = style ?? new TextStyle(color, size);
-        return new TextNode(text, effectiveStyle);
+        var effectiveStyle = MergeTextStyle(style, color, size);
+        return new TextNode(text, effectiveStyle) with
+        {
+            Id = id,
+        };
     }
 
     public static UiNode Rect(
         UiNode? child = null,
+        NodeId? id = null,
         double? width = null,
         double? height = null,
         ColorToken? color = null,
-        double padding = 0,
+        double? padding = null,
         UiStyle? style = null)
     {
-        return new RectNode(child, width, height, color, padding, style);
+        var effectiveStyle = MergeBoxStyle(style, color, padding, foreground: null);
+
+        return new RectNode(
+            child,
+            width,
+            height,
+            Color: null,
+            effectiveStyle.Padding,
+            effectiveStyle) with
+        {
+            Id = id,
+        };
     }
 
     public static UiNode Row(
         IReadOnlyList<UiNode> children,
+        NodeId? id = null,
         double gap = 0,
         double padding = 0)
     {
-        return new StackNode(StackAxis.Horizontal, children, gap, padding);
+        return new StackNode(StackAxis.Horizontal, children, gap, padding) with
+        {
+            Id = id,
+        };
     }
 
     public static UiNode Column(
         IReadOnlyList<UiNode> children,
+        NodeId? id = null,
         double gap = 0,
         double padding = 0)
     {
-        return new StackNode(StackAxis.Vertical, children, gap, padding);
+        return new StackNode(StackAxis.Vertical, children, gap, padding) with
+        {
+            Id = id,
+        };
     }
 
     public static UiNode Container(
         UiNode child,
+        NodeId? id = null,
         Align alignX = Align.Start,
         Align alignY = Align.Start)
     {
-        return new ContainerNode(child, alignX, alignY);
+        return new ContainerNode(child, alignX, alignY) with
+        {
+            Id = id,
+        };
     }
 
     public static UiNode Button(
         string text,
+        NodeId? id = null,
         UiAction? action = null,
         bool disabled = false,
         ColorToken? color = null,
         UiStyle? style = null)
     {
-        var effectiveStyle = style;
-        if (color is not null)
+        var effectiveStyle = MergeButtonStyle(style, color);
+
+        return new ButtonNode(text, action, disabled, effectiveStyle) with
         {
-            effectiveStyle = (effectiveStyle ?? new UiStyle()) with
-            {
-                Foreground = color,
-            };
+            Id = id,
+        };
+    }
+
+    public static UiNode HSpace(
+        double width,
+        NodeId? id = null)
+    {
+        return new SpacerNode(StackAxis.Horizontal, width) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiNode VSpace(
+        double height,
+        NodeId? id = null)
+    {
+        return new SpacerNode(StackAxis.Vertical, height) with
+        {
+            Id = id,
+        };
+    }
+
+    private static TextStyle MergeTextStyle(
+        TextStyle? style,
+        ColorToken? color,
+        TextSize size)
+    {
+        var effectiveStyle = style ?? new TextStyle();
+
+        return effectiveStyle with
+        {
+            Color = color ?? effectiveStyle.Color,
+            Size = size,
+        };
+    }
+
+    private static UiStyle MergeBoxStyle(
+        UiStyle? style,
+        ColorToken? background,
+        double? padding,
+        ColorToken? foreground)
+    {
+        var effectiveStyle = style ?? new UiStyle();
+
+        return effectiveStyle with
+        {
+            Background = background ?? effectiveStyle.Background,
+            Foreground = foreground ?? effectiveStyle.Foreground,
+            Padding = padding ?? effectiveStyle.Padding,
+        };
+    }
+
+    private static UiStyle? MergeButtonStyle(
+        UiStyle? style,
+        ColorToken? color)
+    {
+        if (style is null && color is null)
+        {
+            return null;
         }
 
-        return new ButtonNode(text, action, disabled, effectiveStyle);
-    }
+        var effectiveStyle = style ?? new UiStyle();
 
-    public static UiNode HSpace(double width)
-    {
-        return new SpacerNode(StackAxis.Horizontal, width);
-    }
-
-    public static UiNode VSpace(double height)
-    {
-        return new SpacerNode(StackAxis.Vertical, height);
+        return effectiveStyle with
+        {
+            Foreground = color ?? effectiveStyle.Foreground,
+        };
     }
 }
