@@ -1,6 +1,7 @@
 using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Lowering;
+using Machina.Core.Measurement;
 using Machina.Core.Nodes;
 using Machina.Core.Semantics;
 using Machina.Core.Styling;
@@ -31,6 +32,65 @@ public sealed class UiLowererTests
         Assert.Equal("Hello", semantics.Value.Label);
         Assert.Equal(ColorToken.White, result.TextStyles[textId].Color);
         Assert.Equal(TextSize.Md, result.TextStyles[textId].Size);
+    }
+
+
+    [Fact]
+    public void LowerTextInStackUsesDeterministicTextMeasurer()
+    {
+        var root = UI.Column(
+            children:
+            [
+                UI.Text("Hello", size: TextSize.Md),
+            ]);
+
+        var result = UiLowerer.Lower(root);
+
+        var textRow = result.Rows.Single(row => row.DebugLabel == "Text: Hello");
+        var frame = Assert.IsType<FixedFrame>(textRow.Frame);
+        Assert.Equal(40, frame.Width);
+        Assert.Equal(20, frame.Height);
+    }
+
+    [Fact]
+    public void LowerTextUsesConfiguredTextMeasurer()
+    {
+        var root = UI.Column(
+            children:
+            [
+                UI.Text("Hello", size: TextSize.Md),
+            ]);
+        var options = new UiLoweringOptions(new ConstantTextMeasurer(123, 45));
+
+        var result = UiLowerer.Lower(root, options);
+
+        var textRow = result.Rows.Single(row => row.DebugLabel == "Text: Hello");
+        var frame = Assert.IsType<FixedFrame>(textRow.Frame);
+        Assert.Equal(123, frame.Width);
+        Assert.Equal(45, frame.Height);
+    }
+
+    [Fact]
+    public void LowerButtonUsesMeasuredTextWithPaddingAndMinimumSize()
+    {
+        var root = UI.Row(
+            children:
+            [
+                UI.Button("Save", action: UiAction.Named("save")),
+                UI.Button("Longer Button", action: UiAction.Named("long")),
+            ]);
+
+        var result = UiLowerer.Lower(root);
+
+        var shortButtonFrame = Assert.IsType<FixedFrame>(
+            result.Rows.Single(row => row.DebugLabel == "Button: Save").Frame);
+        Assert.Equal(80, shortButtonFrame.Width);
+        Assert.Equal(32, shortButtonFrame.Height);
+
+        var longButtonFrame = Assert.IsType<FixedFrame>(
+            result.Rows.Single(row => row.DebugLabel == "Button: Longer Button").Frame);
+        Assert.Equal(128, longButtonFrame.Width);
+        Assert.Equal(32, longButtonFrame.Height);
     }
 
     [Fact]
@@ -172,6 +232,14 @@ public sealed class UiLowererTests
         var document = LayoutCompiler.CompileLayoutRows(result.Rows);
 
         Assert.Equal(new NodeId("ui_0"), document.RootId);
+    }
+
+    private sealed class ConstantTextMeasurer(double width, double height) : ITextMeasurer
+    {
+        public IntrinsicSize MeasureText(string text, TextStyle style)
+        {
+            return new IntrinsicSize(width, height);
+        }
     }
 
     private static UiNode CreatePausedSample(bool paused)

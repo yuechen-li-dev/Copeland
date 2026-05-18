@@ -1,10 +1,10 @@
-# Machina.Core UI Declaration Contract (M0a)
+# Machina.Core UI Declaration Contract (M0b)
 
 Machina.Core is the declaration layer above Machina.Layout. It provides readable C# data objects for UI authoring, then lowers those declarations to the flat `LayoutRow[]` model consumed by Machina.Layout.
 
 ## Layer boundary
 
-Machina.Core M0a depends on Machina.Layout only. It does not depend on Copeland, Dominatus, DOM, CSS, renderer adapters, browser engines, or platform UI frameworks.
+Machina.Core M0b depends on Machina.Layout only. It does not depend on Copeland, Dominatus, DOM, CSS, renderer adapters, browser engines, or platform UI frameworks.
 
 The pipeline for this milestone is:
 
@@ -34,7 +34,7 @@ var ui = UI.Rect(
 var lowered = UiLowerer.Lower(ui);
 ```
 
-Supported M0a declarations are:
+Supported declarations are:
 
 - `Text`
 - `Rect`
@@ -49,22 +49,25 @@ Supported M0a declarations are:
 
 Lowering emits deterministic flat `LayoutRow` values. If a declaration has an explicit `NodeId`, that id is preserved. Missing ids are generated deterministically as `ui_0`, `ui_1`, `ui_2`, and so on in traversal order. Duplicate explicit ids fail with `DuplicateUiNodeId`; empty or whitespace explicit ids fail with `InvalidUiNodeId`.
 
-M0a uses simple placeholder sizing because it does not implement intrinsic text measurement or adaptive layout measurement:
+M0b replaces M0a placeholder text and button sizing with a deterministic measurement seam:
 
-- text lowers to a fixed placeholder based on `text.Length * 8` by `20` when arranged in a stack;
-- buttons lower to `max(80, text.Length * 8 + 24)` by `32` when arranged in a stack;
+- `UiLoweringOptions` can provide an `ITextMeasurer`;
+- if no measurer is supplied, `DeterministicTextMeasurer` is used;
+- text lowers to the measured intrinsic size when arranged in a stack;
+- direct wrapper text children use anchor frames with the measured intrinsic width and height;
+- buttons measure their label text and add deterministic padding before applying minimum dimensions;
 - `HSpace(width)` lowers to `FixedFrame(width, 0)`;
 - `VSpace(height)` lowers to `FixedFrame(0, height)`;
 - stack roots carry `StackArrange`; stack children are emitted as direct flat child rows;
 - direct wrapper children use anchor frames so they can compile through the layout document model.
 
-Container alignment values are declaration data in M0a. True alignment behavior is deferred to a later arranger/lowering milestone.
+Container alignment values are declaration data in M0b. True alignment behavior is deferred to a later arranger/lowering milestone.
 
 ## Style model
 
-Styles are immutable C# records. Updates use `with` expressions. There is no CSS cascade and no ambient inheritance in M0a.
+Styles are immutable C# records. Updates use `with` expressions. There is no CSS cascade and no ambient inheritance in M0b.
 
-M0a includes:
+Machina.Core includes:
 
 - `ColorToken`
 - `TextSize`
@@ -76,15 +79,33 @@ Style metadata is emitted separately from layout rows so future renderers can co
 
 ## Semantics and actions
 
-Semantics are data for future render, accessibility, and runtime adapters. M0a emits text semantics for `Text` and button semantics for `Button`.
+Semantics are data for future render, accessibility, and runtime adapters. M0b emits text semantics for `Text` and button semantics for `Button`.
 
 Actions are metadata/intents, not executable callbacks. `UiAction.Named("save")` records the intent name. Actual dispatch, event handling, runtime integration, and Dominatus coordination are intentionally outside M0a.
 
 Disabled buttons are marked disabled and non-focusable in semantics. Their action metadata is omitted.
 
-## Non-goals for M0a
+## M0b implemented scope
 
-M0a does not implement:
+M0b adds deterministic text measurement and lowering snapshots.
+
+The default text measurer is fake and deterministic. It is not real font measurement and exists to make layout lowering stable and testable. The default rules are intentionally simple:
+
+- `TextSize.Sm`: character width `7`, height `16`;
+- `TextSize.Md`: character width `8`, height `20`;
+- `TextSize.H1`: character width `14`, height `36`;
+- width is `text.Length * characterWidth`;
+- empty text has width `0`.
+
+Button sizing uses the same deterministic text measurer with default medium text. It adds `24` horizontal padding and `12` vertical padding, then applies a minimum size of `80` by `32`.
+
+Measurement is a seam, not a renderer. Future renderer or platform adapters can provide real platform-aware measurement later without changing the declaration model.
+
+`UiLoweringSnapshotWriter` provides a stable text artifact for rows, styles, text styles, semantics, and actions. Snapshots are diagnostics and test artifacts. They are not renderer output, and they contain no DOM, CSS, platform font metrics, absolute paths, or object hash codes.
+
+## Non-goals for M0b
+
+M0b does not implement:
 
 - rendering;
 - drawing;

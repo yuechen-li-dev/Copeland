@@ -1,3 +1,4 @@
+using Machina.Core.Measurement;
 using Machina.Core.Nodes;
 using Machina.Core.Semantics;
 using Machina.Core.Styling;
@@ -9,11 +10,14 @@ namespace Machina.Core.Lowering;
 
 public static class UiLowerer
 {
-    public static UiLoweringResult Lower(UiNode root)
+    public static UiLoweringResult Lower(
+        UiNode root,
+        UiLoweringOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(root);
 
-        var context = new UiLoweringContext();
+        var effectiveOptions = options ?? new UiLoweringOptions();
+        var context = new UiLoweringContext(effectiveOptions.EffectiveTextMeasurer);
         LowerNode(root, context, parent: null, order: 0, isRoot: true, parentIsStack: false);
 
         return new UiLoweringResult(
@@ -33,7 +37,7 @@ public static class UiLowerer
         bool parentIsStack)
     {
         var id = context.AllocateId(node.Id);
-        var frame = CreateFrame(node, isRoot, parentIsStack);
+        var frame = CreateFrame(node, context, isRoot, parentIsStack);
         var arrange = CreateArrange(node);
         var debugLabel = CreateDebugLabel(node);
 
@@ -55,7 +59,11 @@ public static class UiLowerer
         return id;
     }
 
-    private static FrameSpec CreateFrame(UiNode node, bool isRoot, bool parentIsStack)
+    private static FrameSpec CreateFrame(
+        UiNode node,
+        UiLoweringContext context,
+        bool isRoot,
+        bool parentIsStack)
     {
         if (isRoot)
         {
@@ -64,18 +72,18 @@ public static class UiLowerer
 
         if (parentIsStack)
         {
-            return CreateStackChildFrame(node);
+            return CreateStackChildFrame(node, context);
         }
 
-        return CreateDirectChildFrame(node);
+        return CreateDirectChildFrame(node, context);
     }
 
-    private static FrameSpec CreateStackChildFrame(UiNode node)
+    private static FrameSpec CreateStackChildFrame(UiNode node, UiLoweringContext context)
     {
         return node switch
         {
-            TextNode text => CreateTextFrame(text),
-            ButtonNode button => CreateButtonFrame(button),
+            TextNode text => CreateTextFrame(text, context),
+            ButtonNode button => CreateButtonFrame(button, context),
             SpacerNode spacer => CreateSpacerFrame(spacer),
             RectNode rect => CreateRectFrame(rect),
             StackNode stack => CreateStackPlaceholderFrame(stack),
@@ -84,12 +92,12 @@ public static class UiLowerer
         };
     }
 
-    private static FrameSpec CreateDirectChildFrame(UiNode node)
+    private static FrameSpec CreateDirectChildFrame(UiNode node, UiLoweringContext context)
     {
         return node switch
         {
-            TextNode text => new AnchorFrame(Left: 0, Width: EstimateTextWidth(text), Top: 0, Height: 20),
-            ButtonNode button => new AnchorFrame(Left: 0, Width: EstimateButtonWidth(button), Top: 0, Height: 32),
+            TextNode text => CreateDirectTextFrame(text, context),
+            ButtonNode button => CreateDirectButtonFrame(button, context),
             SpacerNode spacer => new AnchorFrame(Left: 0, Width: SpacerWidth(spacer), Top: 0, Height: SpacerHeight(spacer)),
             RectNode rect => CreateDirectRectFrame(rect),
             StackNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
@@ -145,14 +153,28 @@ public static class UiLowerer
         return new FixedFrame(width, height);
     }
 
-    private static FixedFrame CreateTextFrame(TextNode text)
+    private static FixedFrame CreateTextFrame(TextNode text, UiLoweringContext context)
     {
-        return new FixedFrame(EstimateTextWidth(text), 20);
+        var size = MeasureText(text, context);
+        return new FixedFrame(size.Width, size.Height);
     }
 
-    private static FixedFrame CreateButtonFrame(ButtonNode button)
+    private static FixedFrame CreateButtonFrame(ButtonNode button, UiLoweringContext context)
     {
-        return new FixedFrame(EstimateButtonWidth(button), 32);
+        var size = MeasureButton(button, context);
+        return new FixedFrame(size.Width, size.Height);
+    }
+
+    private static AnchorFrame CreateDirectTextFrame(TextNode text, UiLoweringContext context)
+    {
+        var size = MeasureText(text, context);
+        return new AnchorFrame(Left: 0, Width: size.Width, Top: 0, Height: size.Height);
+    }
+
+    private static AnchorFrame CreateDirectButtonFrame(ButtonNode button, UiLoweringContext context)
+    {
+        var size = MeasureButton(button, context);
+        return new AnchorFrame(Left: 0, Width: size.Width, Top: 0, Height: size.Height);
     }
 
     private static FixedFrame CreateSpacerFrame(SpacerNode spacer)
@@ -268,14 +290,39 @@ public static class UiLowerer
         };
     }
 
-    private static int EstimateTextWidth(TextNode text)
+    private static IntrinsicSize MeasureText(TextNode text, UiLoweringContext context)
     {
-        return Math.Max(1, text.Text.Length * 8);
+        var style = text.Style ?? new TextStyle();
+        var measured = context.TextMeasurer.MeasureText(text.Text, style);
+        ValidateMeasuredSize(measured, text);
+        return measured;
     }
 
-    private static int EstimateButtonWidth(ButtonNode button)
+    private static IntrinsicSize MeasureButton(ButtonNode button, UiLoweringContext context)
     {
-        return Math.Max(80, button.Text.Length * 8 + 24);
+        var measuredText = context.TextMeasurer.MeasureText(button.Text, new TextStyle(Size: TextSize.Md));
+        ValidateMeasuredSize(measuredText, button);
+
+        var width = Math.Max(80, measuredText.Width + 24);
+        var height = Math.Max(32, measuredText.Height + 12);
+        return new IntrinsicSize(width, height);
+    }
+
+    private static void ValidateMeasuredSize(IntrinsicSize size, UiNode node)
+    {
+        if (!double.IsFinite(size.Width) || !double.IsFinite(size.Height))
+        {
+            throw new UiLoweringError(
+                "InvalidMeasuredSize",
+                $"Measured size for UI node type '{node.GetType().Name}' must be finite.");
+        }
+
+        if (size.Width < 0 || size.Height < 0)
+        {
+            throw new UiLoweringError(
+                "InvalidMeasuredSize",
+                $"Measured size for UI node type '{node.GetType().Name}' must be non-negative.");
+        }
     }
 
     private static double EstimateFallbackWidth(RectNode rect)
