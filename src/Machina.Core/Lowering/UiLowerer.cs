@@ -203,6 +203,9 @@ public static class UiLowerer
                 LowerNode(child, context, id, order: 0, isRoot: false, parentIsStack: false);
                 return;
 
+            case RectNode:
+                return;
+
             case ContainerNode container:
                 LowerNode(container.Child, context, id, order: 0, isRoot: false, parentIsStack: false);
                 return;

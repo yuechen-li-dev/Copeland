@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Standard</AssemblyName>
+    <RootNamespace>Machina.Standard</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../Machina.Layout/Machina.Layout.csproj" />
+  </ItemGroup>
+</Project>
