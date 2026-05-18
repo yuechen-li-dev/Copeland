@@ -13,4 +13,5 @@ public sealed record ResolvedLayoutNode(
     string? View,
     string? Slot,
     string? DebugLabel,
-    string? Layer);
+    string? Layer,
+    ArrangeSpec? Arrange = null);

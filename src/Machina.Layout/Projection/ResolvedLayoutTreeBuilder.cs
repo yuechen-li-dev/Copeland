@@ -50,7 +50,8 @@ public static class ResolvedLayoutTreeBuilder
             node.Slot,
             node.DebugLabel,
             node.Layer,
-            childTrees);
+            childTrees,
+            node.Arrange);
     }
 
     private static void ValidateResolvedDocument(ResolvedLayoutDocument document)

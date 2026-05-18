@@ -14,4 +14,5 @@ public sealed record ResolvedLayoutTree(
     string? Slot,
     string? DebugLabel,
     string? Layer,
-    IReadOnlyList<ResolvedLayoutTree> Children);
+    IReadOnlyList<ResolvedLayoutTree> Children,
+    ArrangeSpec? Arrange = null);
