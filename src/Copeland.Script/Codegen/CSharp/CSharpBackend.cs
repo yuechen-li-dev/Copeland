@@ -124,7 +124,7 @@ public static class CSharpBackend
                 writer.WriteLine($"if ({EmitExpression(writer, i.Condition, fn, ref tempIndex, diagnostics)})"); writer.WriteLine("{"); writer.Indent();
                 foreach (var s in i.ThenStatements) EmitStatement(writer, s, fn, ref tempIndex, diagnostics);
                 writer.Unindent(); writer.WriteLine("}");
-                if (i.ElseStatements is not null){ writer.WriteLine("else"); writer.WriteLine("{"); writer.Indent(); foreach(var s in i.ElseStatements) EmitStatement(writer,s,fn,ref tempIndex,diagnostics); writer.Unindent(); writer.WriteLine("}");}
+                if (i.ElseStatements is not null) { writer.WriteLine("else"); writer.WriteLine("{"); writer.Indent(); foreach (var s in i.ElseStatements) EmitStatement(writer, s, fn, ref tempIndex, diagnostics); writer.Unindent(); writer.WriteLine("}"); }
                 break;
             default:
                 diagnostics.Add(new Diagnostic("COPE-CS-0001", $"Unsupported MIR statement: {stmt.GetType().Name}", 0, 0));

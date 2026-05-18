@@ -60,11 +60,11 @@ public static class Binder
                 var seen = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var p in m.Parameters)
                 {
-                    var pt = BindType(p.Type, p.Identifier, missingId:"COPE-TYPE-0002", missingPrefix:"parameter");
+                    var pt = BindType(p.Type, p.Identifier, missingId: "COPE-TYPE-0002", missingPrefix: "parameter");
                     if (!seen.Add(p.Identifier.Text)) Report("COPE-BIND-0005", $"Duplicate parameter '{p.Identifier.Text}'.", p.Identifier);
                     ps.Add(new ParameterSymbol(p.Identifier.Text, pt));
                 }
-                var rt = BindType(m.ReturnType, m.Identifier, missingId:"COPE-TYPE-0002", missingPrefix:"function return");
+                var rt = BindType(m.ReturnType, m.Identifier, missingId: "COPE-TYPE-0002", missingPrefix: "function return");
                 var et = BindErrorType(m.ErrorType);
                 var fn = new FunctionSymbol(m.Identifier.Text, ps, rt, et);
                 if (_enumTypes.ContainsKey(fn.Name))
@@ -198,21 +198,21 @@ public static class Binder
         private BoundExpression BindExpression(ExpressionSyntax s, TypeSymbol? contextualType = null, bool allowUnhandledFallible = false)
         {
             var expression = s switch
-        {
-            LiteralExpressionSyntax l => BindLiteral(l),
-            NameExpressionSyntax n => BindName(n),
-            ParenthesizedExpressionSyntax p => BindExpression(p.Expression, contextualType),
-            PropagateExpressionSyntax p => BindPropagate(p),
-            UnaryExpressionSyntax u => BindUnary(u),
-            BinaryExpressionSyntax b => BindBinary(b),
-            AssignmentExpressionSyntax a => BindAssignment(a),
-            CallExpressionSyntax c => BindCall(c),
-            ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
-            ObjectLiteralExpressionSyntax o => BindObject(o),
-            MemberAccessExpressionSyntax m => BindMember(m),
-            IfExpressionSyntax i => BindIfExpression(i),
-            MatchExpressionSyntax m => BindMatch(m),
-            _ => new BoundErrorExpression()
+            {
+                LiteralExpressionSyntax l => BindLiteral(l),
+                NameExpressionSyntax n => BindName(n),
+                ParenthesizedExpressionSyntax p => BindExpression(p.Expression, contextualType),
+                PropagateExpressionSyntax p => BindPropagate(p),
+                UnaryExpressionSyntax u => BindUnary(u),
+                BinaryExpressionSyntax b => BindBinary(b),
+                AssignmentExpressionSyntax a => BindAssignment(a),
+                CallExpressionSyntax c => BindCall(c),
+                ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
+                ObjectLiteralExpressionSyntax o => BindObject(o),
+                MemberAccessExpressionSyntax m => BindMember(m),
+                IfExpressionSyntax i => BindIfExpression(i),
+                MatchExpressionSyntax m => BindMatch(m),
+                _ => new BoundErrorExpression()
             };
 
             if (!allowUnhandledFallible && expression is BoundCallExpression call && call.IsFallible && s is not PropagateExpressionSyntax)

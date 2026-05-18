@@ -456,14 +456,14 @@ internal static class CopeResultAssertions
 {
     public static void AssertCopeResultOk(object result, object expectedValue)
     {
-        Assert.True((bool) GetRequiredProperty(result, "IsOk").GetValue(result)!);
+        Assert.True((bool)GetRequiredProperty(result, "IsOk").GetValue(result)!);
         var value = GetRequiredProperty(result, "Value").GetValue(result);
         Assert.Equal(expectedValue, value);
     }
 
     public static void AssertCopeResultOkUnit(object result)
     {
-        Assert.True((bool) GetRequiredProperty(result, "IsOk").GetValue(result)!);
+        Assert.True((bool)GetRequiredProperty(result, "IsOk").GetValue(result)!);
         var value = GetRequiredProperty(result, "Value").GetValue(result);
         Assert.NotNull(value);
         Assert.Equal("CopeUnit", value.GetType().Name);
