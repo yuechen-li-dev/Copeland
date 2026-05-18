@@ -192,6 +192,22 @@ public sealed class UiLowererTests
     }
 
     [Fact]
+    public void LowerLeafRectCapturesStyleWithoutChildren()
+    {
+        var root = UI.Rect(
+            id: "rule",
+            width: 100,
+            height: 1,
+            color: ColorToken.Gray);
+
+        var result = UiLowerer.Lower(root);
+
+        var rectId = new NodeId("rule");
+        Assert.Single(result.Rows);
+        Assert.Equal(ColorToken.Gray, result.Styles[rectId].Background);
+    }
+
+    [Fact]
     public void IrizaStylePausedSampleLowersDeterministically()
     {
         var first = UiLowerer.Lower(CreatePausedSample(paused: true));
