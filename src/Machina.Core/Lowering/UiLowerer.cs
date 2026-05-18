@@ -1,0 +1,307 @@
+using Machina.Core.Nodes;
+using Machina.Core.Semantics;
+using Machina.Core.Styling;
+using Machina.Layout.Frames;
+using Machina.Layout.Geometry;
+using Machina.Layout.Rows;
+
+namespace Machina.Core.Lowering;
+
+public static class UiLowerer
+{
+    public static UiLoweringResult Lower(UiNode root)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+
+        var context = new UiLoweringContext();
+        LowerNode(root, context, parent: null, order: 0, isRoot: true, parentIsStack: false);
+
+        return new UiLoweringResult(
+            context.Rows,
+            context.Styles,
+            context.TextStyles,
+            context.Semantics,
+            context.Actions);
+    }
+
+    private static NodeId LowerNode(
+        UiNode node,
+        UiLoweringContext context,
+        NodeId? parent,
+        int order,
+        bool isRoot,
+        bool parentIsStack)
+    {
+        var id = context.AllocateId(node.Id);
+        var frame = CreateFrame(node, isRoot, parentIsStack);
+        var arrange = CreateArrange(node);
+        var debugLabel = CreateDebugLabel(node);
+
+        context.Rows.Add(new LayoutRow(
+            id,
+            frame,
+            parent,
+            order,
+            Z: 0,
+            View: null,
+            Slot: null,
+            DebugLabel: debugLabel,
+            Layer: null,
+            Arrange: arrange));
+
+        AddMetadata(node, id, context);
+        LowerChildren(node, context, id);
+
+        return id;
+    }
+
+    private static FrameSpec CreateFrame(UiNode node, bool isRoot, bool parentIsStack)
+    {
+        if (isRoot)
+        {
+            return new RootFrame();
+        }
+
+        if (parentIsStack)
+        {
+            return CreateStackChildFrame(node);
+        }
+
+        return CreateDirectChildFrame(node);
+    }
+
+    private static FrameSpec CreateStackChildFrame(UiNode node)
+    {
+        return node switch
+        {
+            TextNode text => CreateTextFrame(text),
+            ButtonNode button => CreateButtonFrame(button),
+            SpacerNode spacer => CreateSpacerFrame(spacer),
+            RectNode rect => CreateRectFrame(rect),
+            StackNode stack => CreateStackPlaceholderFrame(stack),
+            ContainerNode => new FillFrame(),
+            _ => throw Unsupported(node),
+        };
+    }
+
+    private static FrameSpec CreateDirectChildFrame(UiNode node)
+    {
+        return node switch
+        {
+            TextNode text => new AnchorFrame(Left: 0, Width: EstimateTextWidth(text), Top: 0, Height: 20),
+            ButtonNode button => new AnchorFrame(Left: 0, Width: EstimateButtonWidth(button), Top: 0, Height: 32),
+            SpacerNode spacer => new AnchorFrame(Left: 0, Width: SpacerWidth(spacer), Top: 0, Height: SpacerHeight(spacer)),
+            RectNode rect => CreateDirectRectFrame(rect),
+            StackNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
+            ContainerNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
+            _ => throw Unsupported(node),
+        };
+    }
+
+    private static FrameSpec CreateRectFrame(RectNode rect)
+    {
+        if (rect.Width is { } width && rect.Height is { } height)
+        {
+            return new FixedFrame(width, height);
+        }
+
+        if (rect.Height is { } explicitHeight)
+        {
+            return new FixedFrame(EstimateFallbackWidth(rect), explicitHeight);
+        }
+
+        if (rect.Width is { } explicitWidth)
+        {
+            return new FixedFrame(explicitWidth, EstimateFallbackHeight(rect));
+        }
+
+        return new FillFrame();
+    }
+
+    private static FrameSpec CreateDirectRectFrame(RectNode rect)
+    {
+        if (rect.Width is { } width && rect.Height is { } height)
+        {
+            return new AnchorFrame(Left: 0, Width: width, Top: 0, Height: height);
+        }
+
+        if (rect.Height is { } explicitHeight)
+        {
+            return new AnchorFrame(Left: 0, Right: 0, Top: 0, Height: explicitHeight);
+        }
+
+        if (rect.Width is { } explicitWidth)
+        {
+            return new AnchorFrame(Left: 0, Width: explicitWidth, Top: 0, Bottom: 0);
+        }
+
+        return new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0);
+    }
+
+    private static FrameSpec CreateStackPlaceholderFrame(StackNode stack)
+    {
+        var width = stack.Axis == StackAxis.Horizontal ? 240 : 160;
+        var height = stack.Axis == StackAxis.Horizontal ? 48 : 160;
+        return new FixedFrame(width, height);
+    }
+
+    private static FixedFrame CreateTextFrame(TextNode text)
+    {
+        return new FixedFrame(EstimateTextWidth(text), 20);
+    }
+
+    private static FixedFrame CreateButtonFrame(ButtonNode button)
+    {
+        return new FixedFrame(EstimateButtonWidth(button), 32);
+    }
+
+    private static FixedFrame CreateSpacerFrame(SpacerNode spacer)
+    {
+        return new FixedFrame(SpacerWidth(spacer), SpacerHeight(spacer));
+    }
+
+    private static ArrangeSpec? CreateArrange(UiNode node)
+    {
+        if (node is StackNode stack)
+        {
+            return new StackArrange(
+                stack.Axis,
+                stack.Gap,
+                Padding: EdgeInsets.All(stack.Padding));
+        }
+
+        return null;
+    }
+
+    private static void LowerChildren(UiNode node, UiLoweringContext context, NodeId id)
+    {
+        switch (node)
+        {
+            case RectNode { Child: { } child }:
+                LowerNode(child, context, id, order: 0, isRoot: false, parentIsStack: false);
+                return;
+
+            case ContainerNode container:
+                LowerNode(container.Child, context, id, order: 0, isRoot: false, parentIsStack: false);
+                return;
+
+            case StackNode stack:
+                for (var index = 0; index < stack.Children.Count; index++)
+                {
+                    LowerNode(stack.Children[index], context, id, index, isRoot: false, parentIsStack: true);
+                }
+
+                return;
+
+            case TextNode:
+            case ButtonNode:
+            case SpacerNode:
+                return;
+
+            default:
+                throw Unsupported(node);
+        }
+    }
+
+    private static void AddMetadata(UiNode node, NodeId id, UiLoweringContext context)
+    {
+        switch (node)
+        {
+            case TextNode text:
+                context.TextStyles[id] = text.Style ?? new TextStyle();
+                context.Semantics[id] = new UiSemantics(UiRole.Text, text.Text);
+                return;
+
+            case ButtonNode button:
+                if (button.Style is not null)
+                {
+                    context.Styles[id] = button.Style;
+                }
+
+                context.Semantics[id] = new UiSemantics(
+                    UiRole.Button,
+                    button.Text,
+                    Disabled: button.Disabled,
+                    Focusable: !button.Disabled);
+
+                if (!button.Disabled && button.Action is not null)
+                {
+                    context.Actions[id] = button.Action;
+                }
+
+                return;
+
+            case RectNode rect:
+                var style = rect.Style ?? new UiStyle();
+                style = style with
+                {
+                    Background = rect.Color ?? style.Background,
+                    Padding = rect.Padding,
+                };
+                context.Styles[id] = style;
+                return;
+
+            case ContainerNode:
+                context.Semantics[id] = new UiSemantics(UiRole.Container);
+                return;
+
+            case StackNode:
+            case SpacerNode:
+                return;
+
+            default:
+                throw Unsupported(node);
+        }
+    }
+
+    private static string CreateDebugLabel(UiNode node)
+    {
+        return node switch
+        {
+            TextNode text => $"Text: {text.Text}",
+            ButtonNode button => $"Button: {button.Text}",
+            RectNode => "Rect",
+            StackNode stack => stack.Axis == StackAxis.Horizontal ? "Row" : "Column",
+            ContainerNode container => $"Container: {container.AlignX}/{container.AlignY}",
+            SpacerNode spacer => spacer.Axis == StackAxis.Horizontal ? "HSpace" : "VSpace",
+            _ => throw Unsupported(node),
+        };
+    }
+
+    private static int EstimateTextWidth(TextNode text)
+    {
+        return Math.Max(1, text.Text.Length * 8);
+    }
+
+    private static int EstimateButtonWidth(ButtonNode button)
+    {
+        return Math.Max(80, button.Text.Length * 8 + 24);
+    }
+
+    private static double EstimateFallbackWidth(RectNode rect)
+    {
+        return rect.Child is null ? 100 : 200;
+    }
+
+    private static double EstimateFallbackHeight(RectNode rect)
+    {
+        return rect.Child is null ? 100 : 120;
+    }
+
+    private static double SpacerWidth(SpacerNode spacer)
+    {
+        return spacer.Axis == StackAxis.Horizontal ? spacer.Size : 0;
+    }
+
+    private static double SpacerHeight(SpacerNode spacer)
+    {
+        return spacer.Axis == StackAxis.Vertical ? spacer.Size : 0;
+    }
+
+    private static UiLoweringError Unsupported(UiNode node)
+    {
+        return new UiLoweringError(
+            "UnsupportedUiNode",
+            $"Unsupported UI node type '{node.GetType().Name}'.");
+    }
+}

@@ -3,10 +3,12 @@
     <Project Path="src/Copeland.Script/Copeland.Script.csproj" />
     <Project Path="src/Copeland.Cli/Copeland.Cli.csproj" />
     <Project Path="src/Machina.Layout/Machina.Layout.csproj" />
+    <Project Path="src/Machina.Core/Machina.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Copeland.Script.Tests/Copeland.Script.Tests.csproj" />
     <Project Path="tests/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
     <Project Path="tests/Machina.Layout.Tests/Machina.Layout.Tests.csproj" />
+    <Project Path="tests/Machina.Core.Tests/Machina.Core.Tests.csproj" />
   </Folder>
 </Solution>
