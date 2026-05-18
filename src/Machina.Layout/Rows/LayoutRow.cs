@@ -11,4 +11,5 @@ public sealed record LayoutRow(
     string? View = null,
     string? Slot = null,
     string? DebugLabel = null,
-    string? Layer = null);
+    string? Layer = null,
+    ArrangeSpec? Arrange = null);

@@ -61,7 +61,8 @@ public static class LayoutCompiler
                 x.Row.View,
                 x.Row.Slot,
                 x.Row.DebugLabel,
-                x.Row.Layer));
+                x.Row.Layer,
+                x.Row.Arrange));
 
         var children = new Dictionary<NodeId, IReadOnlyList<NodeId>>(nodes.Count);
         foreach (var id in nodes.Keys)
