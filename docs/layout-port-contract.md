@@ -135,3 +135,11 @@ M1a adds `FixedFrame`, `FillFrame`, and `StackArrange`.
 Stack arrangement is ordered arithmetic over direct children, not Flexbox. Direct stack children must use `FixedFrame` or `FillFrame`. `AbsoluteFrame` and `AnchorFrame` remain direct frame-resolution primitives for non-arranged parents.
 
 Stack supports axis, gap, padding, justify, align, and weighted fill distribution. It deliberately excludes shrink, wrap, margins, and min/max/basis negotiation.
+
+## M1b implemented scope
+
+M1b adds `CellFrame`, `GridTrack`, and `GridArrange`.
+
+Grid arrangement is explicit deterministic arithmetic over declared columns and rows, not CSS Grid. Direct grid children must use `CellFrame`.
+
+Grid supports fixed/fill tracks, row/column gaps, padding, and row/column spans. It deliberately excludes auto-placement, implicit tracks, minmax, named areas, subgrid, margins, and item alignment.
