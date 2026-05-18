@@ -1,4 +1,5 @@
 using Machina.Core.Actions;
+using Machina.Core.Measurement;
 using Machina.Core.Semantics;
 using Machina.Core.Styling;
 using Machina.Layout.Rows;
@@ -9,6 +10,13 @@ internal sealed class UiLoweringContext
 {
     private int nextGeneratedId;
     private readonly HashSet<NodeId> seenIds = [];
+
+    public UiLoweringContext(ITextMeasurer textMeasurer)
+    {
+        TextMeasurer = textMeasurer;
+    }
+
+    public ITextMeasurer TextMeasurer { get; }
 
     public List<LayoutRow> Rows { get; } = [];
 
