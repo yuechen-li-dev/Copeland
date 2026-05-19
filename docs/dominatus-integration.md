@@ -77,3 +77,16 @@ If future dependency friction appears, it can be vendored-only without affecting
 - Implemented `Machina.Dominatus` snapshot render-actuation adapter.
 - Rendering commands are modeled as typed Dominatus actuations and registered on `ActuatorHost`.
 - M0a validates deterministic command ordering and immediate completion semantics without pixel rendering.
+
+## Vendor hotfix: target framework alignment
+
+Dominatus Vendor Hotfix M0 adjusted vendored project target frameworks so the integrated Copeland/Machina solution can build consistently.
+
+Changed:
+- `vendor/Dominatus/src/Dominatus.UtilityLite/Dominatus.UtilityLite.csproj`: `TargetFramework` `net8.0` -> `TargetFrameworks` `net8.0;net10.0`
+
+Reason:
+- `dotnet build Copeland.slnx --no-restore` exposed an integrated-solution TFM mismatch where `Dominatus.UtilityLite` remained single-target `net8.0` while its referenced vendored Dominatus projects were built for `net10.0` in this solution context.
+
+Upstream recommendation:
+- Yes. This is generic Dominatus multi-target consistency for project-reference consumers, not specific to Copeland behavior.
