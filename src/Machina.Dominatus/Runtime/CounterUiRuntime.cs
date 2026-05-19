@@ -20,6 +20,7 @@ public sealed class CounterUiRuntime
 
     private readonly AiWorld _world;
     private readonly AiAgent _agent;
+    private int _nextActionSequence;
 
     public CounterUiRuntime()
     {
@@ -57,7 +58,8 @@ public sealed class CounterUiRuntime
 
     public void SendAction(UiAction action)
     {
-        _agent.Events.Publish(new UiActionEvent(action.Name));
+        _nextActionSequence++;
+        _agent.Events.Publish(new UiActionEvent(action.Name, _nextActionSequence));
     }
 
     public void TickUntilIdle(int maxTicks = 1)
@@ -70,11 +72,16 @@ public sealed class CounterUiRuntime
 
     private static IEnumerator<AiStep> CounterNode(AiCtx ctx)
     {
+        var lastProcessedSequence = 0;
+
         while (true)
         {
             yield return Ai.Event<UiActionEvent>(
-                onConsumed: static (agent, evt) =>
+                filter: evt => evt.Sequence > lastProcessedSequence,
+                onConsumed: (agent, evt) =>
                 {
+                    lastProcessedSequence = evt.Sequence;
+
                     if (!string.Equals(evt.Name, "increment", StringComparison.Ordinal))
                     {
                         return;
