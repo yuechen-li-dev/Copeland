@@ -55,3 +55,9 @@ PPM output ignores alpha and writes stored RGB channels directly.
 - strokes, borders, rounded rectangles, transforms
 - hit testing, input, animation
 - GPU backends
+
+
+## M0e artifact harness
+
+- Deterministic render artifact tests consume `PpmWriter.WriteP6` output and assert SHA256 goldens for tiny stable samples.
+- PPM-based artifacts are intentionally simple and auditable for regression review.
