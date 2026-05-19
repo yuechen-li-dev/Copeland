@@ -54,6 +54,7 @@ public static class UiLowerer
             Arrange: arrange));
 
         AddMetadata(node, id, context);
+        AddDeclaredMetadata(node, id, context);
         LowerChildren(node, context, id);
 
         return id;
@@ -276,6 +277,27 @@ public static class UiLowerer
 
             default:
                 throw Unsupported(node);
+        }
+    }
+
+    private static void AddDeclaredMetadata(
+        UiNode node,
+        NodeId id,
+        UiLoweringContext context)
+    {
+        if (node.Semantics is { } semantics)
+        {
+            context.Semantics[id] = semantics;
+        }
+
+        if (node.Semantics is { Disabled: true })
+        {
+            return;
+        }
+
+        if (node.DeclaredAction is { } action)
+        {
+            context.Actions[id] = action;
         }
     }
 

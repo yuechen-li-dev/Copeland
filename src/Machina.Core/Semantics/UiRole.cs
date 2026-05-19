@@ -6,4 +6,8 @@ public enum UiRole
     Text,
     Button,
     Container,
+    Label,
+    Input,
+    Checkbox,
+    Switch,
 }

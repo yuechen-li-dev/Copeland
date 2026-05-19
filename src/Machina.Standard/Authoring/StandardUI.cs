@@ -73,6 +73,85 @@ public static class StandardUI
             variant);
     }
 
+    public static UiNode Label(
+        string text,
+        NodeId? id = null,
+        StandardTheme? theme = null)
+    {
+        return Components.Label.Create(
+            text,
+            id,
+            theme);
+    }
+
+    public static UiNode Field(
+        UiNode control,
+        NodeId? id = null,
+        string? label = null,
+        string? description = null,
+        string? error = null,
+        StandardTheme? theme = null)
+    {
+        return Components.Field.Create(
+            control,
+            id,
+            label,
+            description,
+            error,
+            theme);
+    }
+
+    public static UiNode Input(
+        NodeId? id = null,
+        string? value = null,
+        string? placeholder = null,
+        bool disabled = false,
+        UiAction? changed = null,
+        StandardTheme? theme = null)
+    {
+        return Components.Input.Create(
+            id,
+            value,
+            placeholder,
+            disabled,
+            changed,
+            theme);
+    }
+
+    public static UiNode Checkbox(
+        NodeId? id = null,
+        string? label = null,
+        bool isChecked = false,
+        bool disabled = false,
+        UiAction? changed = null,
+        StandardTheme? theme = null)
+    {
+        return Components.Checkbox.Create(
+            id,
+            label,
+            isChecked,
+            disabled,
+            changed,
+            theme);
+    }
+
+    public static UiNode Switch(
+        NodeId? id = null,
+        string? label = null,
+        bool isOn = false,
+        bool disabled = false,
+        UiAction? changed = null,
+        StandardTheme? theme = null)
+    {
+        return Components.Switch.Create(
+            id,
+            label,
+            isOn,
+            disabled,
+            changed,
+            theme);
+    }
+
     public static UiNode Separator(
         NodeId? id = null,
         StackAxis axis = StackAxis.Horizontal,
