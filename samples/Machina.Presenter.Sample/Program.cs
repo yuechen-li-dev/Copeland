@@ -12,10 +12,8 @@ using Dominatus.Core.Nodes.Steps;
 using Dominatus.Core.Runtime;
 using Dominatus.OptFlow;
 using Machina.Core.Actions;
-using Machina.Core.Authoring;
 using Machina.Core.Lowering;
 using Machina.Core.Nodes;
-using Machina.Core.Styling;
 using Machina.Dominatus.Rendering.Bridge;
 using Machina.Layout.Compilation;
 using Machina.Layout.Documents;
@@ -26,8 +24,7 @@ using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Renderer.Raster.Text;
 using Machina.Runtime.Input;
 using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
-using Machina.Standard.Authoring;
-using Machina.Standard.Components;
+using Machina.Dominatus.Runtime;
 
 namespace Machina.Presenter.Sample;
 
@@ -68,7 +65,7 @@ internal sealed class Program
         private ResolvedLayoutDocument _resolved;
         private UiHitTestIndex _hitTestIndex;
         private RasterFrame _frame;
-        private int _count;
+        private readonly CounterUiRuntime _runtime;
 
         public PresenterWindow()
         {
@@ -81,14 +78,14 @@ internal sealed class Program
 
             _image.PointerPressed += HandlePointerPressed;
 
-            _count = 0;
+            _runtime = new CounterUiRuntime();
             _lowering = default!;
             _resolved = default!;
             _hitTestIndex = default!;
             _frame = default!;
 
             RenderCurrentState();
-            Title = $"{BaseTitle} - count: {_count}";
+            Title = $"{BaseTitle} - count: {_runtime.Count}";
 
             CanResize = false;
             Content = _image;
@@ -99,7 +96,7 @@ internal sealed class Program
             const int width = 640;
             const int height = 360;
 
-            var ui = BuildUi(_count);
+            var ui = _runtime.BuildUi();
             (_lowering, _resolved, _frame) = RenderUiArtifacts(ui, width, height);
             _hitTestIndex = UiHitTestIndex.Build(_resolved, _lowering.Actions);
 
@@ -118,34 +115,16 @@ internal sealed class Program
             var action = hit?.Action;
             var actionName = action?.Name ?? "<none>";
 
-            if (actionName == "increment")
+            if (action is not null)
             {
-                _count++;
+                _runtime.SendAction(action);
+                _runtime.TickUntilIdle();
                 RenderCurrentState();
             }
 
-            Title = $"{BaseTitle} - action: {actionName}, count: {_count}";
-            Console.WriteLine($"Pointer ({point.X}, {point.Y}) -> action: {actionName}, count: {_count}");
+            Title = $"{BaseTitle} - action: {actionName}, count: {_runtime.Count}";
+            Console.WriteLine($"Pointer ({point.X}, {point.Y}) -> action: {actionName}, count: {_runtime.Count}");
         }
-    }
-
-    private static UiNode BuildUi(int count)
-    {
-        return UI.Container(
-            id: "root",
-            child: StandardUI.Card(
-                id: "counter-card",
-                width: 320,
-                height: 180,
-                child: UI.Column(
-                    id: "content",
-                    gap: 12,
-                    children:
-                    [
-                        UI.Text("Machina UI", id: "title", color: ColorToken.White, size: TextSize.H1),
-                        UI.Text($"Count: {count}", id: "count", color: ColorToken.Gray, size: TextSize.Md),
-                        StandardUI.Button("Increment", id: "increment", action: UiAction.Named("increment"))
-                    ])));
     }
 
     private static (UiLoweringResult Lowering, ResolvedLayoutDocument Resolved, RasterFrame Frame) RenderUiArtifacts(UiNode ui, int width, int height)
