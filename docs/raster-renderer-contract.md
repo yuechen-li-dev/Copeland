@@ -63,3 +63,7 @@ PPM output ignores alpha and writes stored RGB channels directly.
 - GPU/Vulkan/Skia/MonoGame/Avalonia/Stride backends
 - hit testing, input, animation
 - Machina UI/layout tree walking
+
+## M0b update
+
+A Dominatus raster adapter now exists in `Machina.Renderer.Raster.Dominatus` for `BeginFrame`/`FillRect`/`EndFrame` command actuation and PPM output through completed raster frames.

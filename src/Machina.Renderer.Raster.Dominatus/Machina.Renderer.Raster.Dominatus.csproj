@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Renderer.Raster.Dominatus</AssemblyName>
+    <RootNamespace>Machina.Renderer.Raster.Dominatus</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../Machina.Dominatus/Machina.Dominatus.csproj" />
+    <ProjectReference Include="../Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
+    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
+  </ItemGroup>
+</Project>
