@@ -33,3 +33,9 @@ Behavior:
 - `Machina.Renderer.Raster` remains a pure CPU raster package.
 - Dominatus dependency is isolated in `Machina.Renderer.Raster.Dominatus`.
 - No presenter, windowing, input, or hit testing in M0d.
+
+
+## M0e artifact harness
+
+- Raster Dominatus integration is now exercised by golden artifact tests that render real `UiNode` samples through lowering, layout resolve, bridge command generation, and raster actuation.
+- Optional `.ppm` artifact emission is opt-in via `MACHINA_WRITE_RENDER_ARTIFACTS=1`.
