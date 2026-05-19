@@ -90,3 +90,10 @@ Reason:
 
 Upstream recommendation:
 - Yes. This is generic Dominatus multi-target consistency for project-reference consumers, not specific to Copeland behavior.
+
+
+## Runtime input seam note (M0a)
+
+`Machina.Runtime` M0a adds a Dominatus-free hit-test/action index that maps root-local pointer coordinates to `UiAction` values using `ResolvedLayoutDocument` and `UiLoweringResult.Actions`.
+
+Dominatus mailbox/event ingress remains deferred to a later adapter milestone so input indexing stays separable from rendering actuation.
