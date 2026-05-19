@@ -10,6 +10,9 @@
     <Project Path="src/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
     <Project Path="src/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Copeland.Script.Tests/Copeland.Script.Tests.csproj" />
     <Project Path="tests/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
