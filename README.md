@@ -44,3 +44,9 @@ Current CLI command:
 - `copeland compile <source-file> --emit mir|csharp [--out <path>]`
 
 The CLI currently emits artifacts only. It does not execute compiled programs or expose host/browser APIs.
+
+
+## Support matrices
+
+- [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
+- [Machina Support Roadmap](docs/machina-support-roadmap.md)
