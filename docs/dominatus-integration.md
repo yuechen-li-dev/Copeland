@@ -71,3 +71,9 @@ If future dependency friction appears, it can be vendored-only without affecting
 
 - No logical behavior changes were made to Dominatus source in M0.
 - Source was copied as vendored code and solution wiring was done from `Copeland.slnx`.
+
+## M0a status (2026-05-19)
+
+- Implemented `Machina.Dominatus` snapshot render-actuation adapter.
+- Rendering commands are modeled as typed Dominatus actuations and registered on `ActuatorHost`.
+- M0a validates deterministic command ordering and immediate completion semantics without pixel rendering.
