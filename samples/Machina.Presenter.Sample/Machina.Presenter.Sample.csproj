@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../src/Machina.Standard/Machina.Standard.csproj" />
+    <ProjectReference Include="../../src/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../src/Machina.Dominatus/Machina.Dominatus.csproj" />
+    <ProjectReference Include="../../src/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
+    <ProjectReference Include="../../src/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
+    <ProjectReference Include="../../src/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+  </ItemGroup>
+</Project>
