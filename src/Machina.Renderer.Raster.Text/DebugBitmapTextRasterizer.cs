@@ -10,7 +10,7 @@ public sealed class DebugBitmapTextRasterizer : ITextRasterizer
 {
     private const int GlyphGap = 1;
 
-    public void DrawText(RasterSurface surface, Rect rect, string text, TextStyle style, Rgba32 color)
+    public void DrawText(RasterSurface surface, Rect rect, string text, TextStyle style, Rgba32 color, Rect? clip = null)
     {
         ArgumentNullException.ThrowIfNull(surface);
         ArgumentNullException.ThrowIfNull(text);
@@ -35,7 +35,7 @@ public sealed class DebugBitmapTextRasterizer : ITextRasterizer
 
             if (!char.IsWhiteSpace(ch))
             {
-                Rasterizer.FillRect(surface, new Rect(drawX, drawY, glyphWidth, glyphHeight), color);
+                Rasterizer.FillRect(surface, new Rect(drawX, drawY, glyphWidth, glyphHeight), color, clip);
             }
 
             drawX += glyphWidth + GlyphGap;

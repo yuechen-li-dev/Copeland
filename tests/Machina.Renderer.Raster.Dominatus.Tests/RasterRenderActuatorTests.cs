@@ -60,6 +60,7 @@ public sealed class RasterRenderActuatorTests
         var recorder = new RasterRenderRecorder();
         var host = new ActuatorHost().AddRasterRenderer(recorder, new RasterRenderOptions(new DebugBitmapTextRasterizer()));
         var ctx = CreateContext(host);
+        var red = ColorToken.Hex(0xFF0000FF);
 
         host.Dispatch(ctx, new BeginFrameCommand(40, 20));
         host.Dispatch(ctx, new DrawTextCommand("title", new Rect(0, 0, 40, 20), "Hi", new TextStyle(ColorToken.White, TextSize.Md)));
@@ -134,18 +135,91 @@ public sealed class RasterRenderActuatorTests
     }
 
     [Fact]
-    public void PushClipAndPopClip_RemainUnsupported()
+    public void FillRect_RespectsPushedClip()
     {
         var recorder = new RasterRenderRecorder();
-        var handler = new RasterRenderActuationHandler(recorder, new RasterRenderOptions(new DebugBitmapTextRasterizer()));
+        var host = new ActuatorHost().AddRasterRenderer(recorder, new RasterRenderOptions(new DebugBitmapTextRasterizer()));
+        var ctx = CreateContext(host);
+        var red = ColorToken.Hex(0xFF0000FF);
 
-        var pushEx = Assert.Throws<NotSupportedException>(() =>
-            handler.Handle(new ActuatorHost(), CreateContext(new ActuatorHost()), default, new PushClipCommand("clip", new Rect(0, 0, 1, 1))));
-        var popEx = Assert.Throws<NotSupportedException>(() =>
-            handler.Handle(new ActuatorHost(), CreateContext(new ActuatorHost()), default, new PopClipCommand()));
+        host.Dispatch(ctx, new BeginFrameCommand(5, 5));
+        host.Dispatch(ctx, new PushClipCommand("clip", new Rect(1, 1, 2, 2)));
+        host.Dispatch(ctx, new FillRectCommand("fill", new Rect(0, 0, 5, 5), red));
+        host.Dispatch(ctx, new PopClipCommand());
+        host.Dispatch(ctx, new EndFrameCommand());
 
-        Assert.Equal("PushClipCommand is not supported by Raster M0b.", pushEx.Message);
-        Assert.Equal("PopClipCommand is not supported by Raster M0b.", popEx.Message);
+        var frame = Assert.Single(recorder.CompletedFrames);
+        AssertOnlyRegionHasColor(frame.Surface, 1, 1, 3, 3, Rgba32.FromRgba(red.Rgba));
+    }
+
+    [Fact]
+    public void PopClipWithoutPush_FailsDeterministically()
+    {
+        var recorder = new RasterRenderRecorder();
+        var host = new ActuatorHost().AddRasterRenderer(recorder);
+        var ctx = CreateContext(host);
+
+        host.Dispatch(ctx, new BeginFrameCommand(5, 5));
+        var ex = Assert.Throws<InvalidOperationException>(() => host.Dispatch(ctx, new PopClipCommand()));
+        Assert.Equal("Cannot pop clip because the clip stack is empty.", ex.Message);
+    }
+
+    [Fact]
+    public void PushClipBeforeBeginFrame_FailsDeterministically()
+    {
+        var recorder = new RasterRenderRecorder();
+        var host = new ActuatorHost().AddRasterRenderer(recorder);
+        var ctx = CreateContext(host);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => host.Dispatch(ctx, new PushClipCommand("clip", new Rect(0, 0, 1, 1))));
+        Assert.Equal("Cannot push clip without an active frame.", ex.Message);
+    }
+
+    [Fact]
+    public void EndFrameWithUnbalancedClip_FailsDeterministically()
+    {
+        var recorder = new RasterRenderRecorder();
+        var host = new ActuatorHost().AddRasterRenderer(recorder);
+        var ctx = CreateContext(host);
+
+        host.Dispatch(ctx, new BeginFrameCommand(5, 5));
+        host.Dispatch(ctx, new PushClipCommand("clip", new Rect(0, 0, 1, 1)));
+
+        var ex = Assert.Throws<InvalidOperationException>(() => host.Dispatch(ctx, new EndFrameCommand()));
+        Assert.Equal("Cannot end frame while clip stack is not balanced.", ex.Message);
+        Assert.Empty(recorder.CompletedFrames);
+    }
+
+    [Fact]
+    public void PushClipWithNaN_FailsDeterministically()
+    {
+        var recorder = new RasterRenderRecorder();
+        var host = new ActuatorHost().AddRasterRenderer(recorder);
+        var ctx = CreateContext(host);
+
+        host.Dispatch(ctx, new BeginFrameCommand(5, 5));
+        var ex = Assert.Throws<ArgumentException>(() => host.Dispatch(ctx, new PushClipCommand("clip", new Rect(double.NaN, 0, 1, 1))));
+        Assert.Equal("Clip rectangle must contain finite values. (Parameter 'rect')", ex.Message);
+    }
+
+    [Fact]
+    public void NestedClips_IntersectDeterministically()
+    {
+        var recorder = new RasterRenderRecorder();
+        var host = new ActuatorHost().AddRasterRenderer(recorder);
+        var ctx = CreateContext(host);
+        var red = ColorToken.Hex(0xFF0000FF);
+
+        host.Dispatch(ctx, new BeginFrameCommand(6, 6));
+        host.Dispatch(ctx, new PushClipCommand("c1", new Rect(1, 1, 4, 4)));
+        host.Dispatch(ctx, new PushClipCommand("c2", new Rect(3, 0, 4, 4)));
+        host.Dispatch(ctx, new FillRectCommand("f", new Rect(0, 0, 6, 6), red));
+        host.Dispatch(ctx, new PopClipCommand());
+        host.Dispatch(ctx, new PopClipCommand());
+        host.Dispatch(ctx, new EndFrameCommand());
+
+        var frame = Assert.Single(recorder.CompletedFrames);
+        AssertOnlyRegionHasColor(frame.Surface, 3, 1, 5, 4, Rgba32.FromRgba(red.Rgba));
     }
 
     private static IReadOnlyList<IActuationCommand> BuildCommands(UiNode ui, int width, int height)
@@ -176,6 +250,26 @@ public sealed class RasterRenderActuatorTests
         }
 
         return count;
+    }
+
+    private static void AssertOnlyRegionHasColor(
+        Machina.Renderer.Raster.Surface.RasterSurface surface,
+        int left,
+        int top,
+        int rightExclusive,
+        int bottomExclusive,
+        Rgba32 color)
+    {
+        for (var y = 0; y < surface.Height; y++)
+        {
+            for (var x = 0; x < surface.Width; x++)
+            {
+                var expected = x >= left && x < rightExclusive && y >= top && y < bottomExclusive
+                    ? color
+                    : Rgba32.Transparent;
+                Assert.Equal(expected, surface.GetPixel(x, y));
+            }
+        }
     }
 
     private static AiCtx CreateContext(ActuatorHost host)
