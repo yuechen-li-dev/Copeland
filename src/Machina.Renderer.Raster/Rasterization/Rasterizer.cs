@@ -1,0 +1,115 @@
+using Machina.Layout.Geometry;
+using Machina.Renderer.Raster.Colors;
+using Machina.Renderer.Raster.Surface;
+
+namespace Machina.Renderer.Raster.Rasterization;
+
+public static class Rasterizer
+{
+    public static void Clear(RasterSurface surface, Rgba32 color)
+    {
+        ArgumentNullException.ThrowIfNull(surface);
+
+        for (var i = 0; i < surface.Pixels.Length; i++)
+        {
+            surface.Pixels[i] = color;
+        }
+    }
+
+    public static void FillRect(RasterSurface surface, Rect rect, Rgba32 color)
+    {
+        ArgumentNullException.ThrowIfNull(surface);
+
+        if (!IsFinite(rect.X) || !IsFinite(rect.Y) || !IsFinite(rect.Width) || !IsFinite(rect.Height))
+        {
+            throw new ArgumentException("Rect coordinates must be finite numbers.", nameof(rect));
+        }
+
+        if (rect.Width <= 0 || rect.Height <= 0)
+        {
+            return;
+        }
+
+        var left = (int)Math.Floor(rect.X);
+        var top = (int)Math.Floor(rect.Y);
+        var right = (int)Math.Ceiling(rect.X + rect.Width);
+        var bottom = (int)Math.Ceiling(rect.Y + rect.Height);
+
+        var clippedLeft = Math.Max(0, left);
+        var clippedTop = Math.Max(0, top);
+        var clippedRight = Math.Min(surface.Width, right);
+        var clippedBottom = Math.Min(surface.Height, bottom);
+
+        if (clippedLeft >= clippedRight || clippedTop >= clippedBottom)
+        {
+            return;
+        }
+
+        for (var y = clippedTop; y < clippedBottom; y++)
+        {
+            for (var x = clippedLeft; x < clippedRight; x++)
+            {
+                var destination = surface.GetPixel(x, y);
+                var blended = BlendSourceOver(color, destination);
+                surface.SetPixel(x, y, blended);
+            }
+        }
+    }
+
+    private static bool IsFinite(double value)
+    {
+        return !double.IsNaN(value) && !double.IsInfinity(value);
+    }
+
+    private static Rgba32 BlendSourceOver(Rgba32 source, Rgba32 destination)
+    {
+        if (source.A == 255)
+        {
+            return source;
+        }
+
+        if (source.A == 0)
+        {
+            return destination;
+        }
+
+        var sourceAlpha = source.A;
+        var destinationAlpha = destination.A;
+        var inverseSourceAlpha = 255 - sourceAlpha;
+
+        var outputAlpha = sourceAlpha + DivideBy255(destinationAlpha * inverseSourceAlpha);
+
+        if (outputAlpha == 0)
+        {
+            return Rgba32.Transparent;
+        }
+
+        var sourcePremultipliedRed = source.R * sourceAlpha;
+        var sourcePremultipliedGreen = source.G * sourceAlpha;
+        var sourcePremultipliedBlue = source.B * sourceAlpha;
+
+        var destinationPremultipliedRed = destination.R * destinationAlpha;
+        var destinationPremultipliedGreen = destination.G * destinationAlpha;
+        var destinationPremultipliedBlue = destination.B * destinationAlpha;
+
+        var outputPremultipliedRed = sourcePremultipliedRed + DivideBy255(destinationPremultipliedRed * inverseSourceAlpha);
+        var outputPremultipliedGreen = sourcePremultipliedGreen + DivideBy255(destinationPremultipliedGreen * inverseSourceAlpha);
+        var outputPremultipliedBlue = sourcePremultipliedBlue + DivideBy255(destinationPremultipliedBlue * inverseSourceAlpha);
+
+        var outputRed = DivideByOutputAlpha(outputPremultipliedRed, outputAlpha);
+        var outputGreen = DivideByOutputAlpha(outputPremultipliedGreen, outputAlpha);
+        var outputBlue = DivideByOutputAlpha(outputPremultipliedBlue, outputAlpha);
+
+        return new Rgba32((byte)outputRed, (byte)outputGreen, (byte)outputBlue, (byte)outputAlpha);
+    }
+
+    private static int DivideBy255(int value)
+    {
+        return (value + 127) / 255;
+    }
+
+    private static int DivideByOutputAlpha(int value, int alpha)
+    {
+        return (value + (alpha / 2)) / alpha;
+    }
+}
