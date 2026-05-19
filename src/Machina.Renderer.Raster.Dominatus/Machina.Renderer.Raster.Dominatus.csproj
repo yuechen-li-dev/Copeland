@@ -9,6 +9,7 @@
     <ProjectReference Include="../Machina.Layout/Machina.Layout.csproj" />
     <ProjectReference Include="../Machina.Dominatus/Machina.Dominatus.csproj" />
     <ProjectReference Include="../Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
+    <ProjectReference Include="../Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
     <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
   </ItemGroup>
 </Project>

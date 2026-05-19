@@ -67,3 +67,10 @@ PPM output ignores alpha and writes stored RGB channels directly.
 ## M0b update
 
 A Dominatus raster adapter now exists in `Machina.Renderer.Raster.Dominatus` for `BeginFrame`/`FillRect`/`EndFrame` command actuation and PPM output through completed raster frames.
+
+
+## M0c text package boundary
+
+`Machina.Renderer.Raster` remains Dominatus-free and focused on pixel operations.
+Text rasterization lives in `Machina.Renderer.Raster.Text` behind `ITextRasterizer`.
+This preserves backend modularity while letting Dominatus adapters plug in text behavior.

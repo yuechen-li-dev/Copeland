@@ -26,3 +26,11 @@ Behavior:
 - `Machina.Renderer.Raster` remains a pure CPU raster package.
 - Dominatus dependency is isolated in `Machina.Renderer.Raster.Dominatus`.
 - No text rendering, presenter, windowing, input, or hit testing in M0b.
+
+
+## M0c text seam update
+
+M0c adds optional DrawText support through `Machina.Renderer.Raster.Text`.
+`Machina.Renderer.Raster.Dominatus` accepts `RasterRenderOptions` with an optional `ITextRasterizer`.
+When absent, DrawText remains explicitly unsupported.
+PushClip/PopClip remain unsupported.
