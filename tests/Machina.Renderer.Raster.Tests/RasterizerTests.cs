@@ -84,6 +84,18 @@ public sealed class RasterizerTests
     }
 
     [Fact]
+    public void FillRect_WithClip_IntersectsDrawArea()
+    {
+        var surface = new RasterSurface(5, 5);
+        var fill = new Rgba32(7, 8, 9, 255);
+
+        Rasterizer.FillRect(surface, new Rect(0, 0, 5, 5), fill, new Rect(1, 1, 2, 2));
+
+        AssertPixelRegion(surface, 1, 1, 3, 3, fill);
+        AssertOutsideRegionIs(surface, 1, 1, 3, 3, Rgba32.Transparent);
+    }
+
+    [Fact]
     public void FillRect_ZeroOrNegativeSize_DoesNothing()
     {
         var surface = new RasterSurface(3, 3);

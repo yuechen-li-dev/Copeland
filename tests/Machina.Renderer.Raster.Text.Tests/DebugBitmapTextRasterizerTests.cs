@@ -94,6 +94,23 @@ public sealed class DebugBitmapTextRasterizerTests
         Assert.Equal(new Rgba32(128, 0, 0, 255), surface.GetPixel(0, 0));
     }
 
+    [Fact]
+    public void DrawText_RespectsClip()
+    {
+        var surface = new RasterSurface(20, 20);
+        var rasterizer = new DebugBitmapTextRasterizer();
+
+        rasterizer.DrawText(surface, new Rect(0, 0, 20, 20), "AB", new TextStyle(), Rgba32.White, new Rect(0, 0, 3, 20));
+
+        for (var y = 0; y < surface.Height; y++)
+        {
+            for (var x = 3; x < surface.Width; x++)
+            {
+                Assert.Equal(Rgba32.Transparent, surface.GetPixel(x, y));
+            }
+        }
+    }
+
     private static int DrawAndCount(DebugBitmapTextRasterizer rasterizer, TextSize size)
     {
         var surface = new RasterSurface(32, 32);

@@ -1,10 +1,8 @@
-# Machina.Renderer.Raster M0a Contract
+# Machina.Renderer.Raster Contract
 
-`Machina.Renderer.Raster` is a dependency-free CPU raster pixel backend for Machina M0a.
+`Machina.Renderer.Raster` is a dependency-free CPU raster pixel backend.
 
 ## Supported operations
-
-M0a supports only:
 
 - `RasterSurface` pixel buffer allocation and indexed access
 - `Rgba32` non-premultiplied RGBA color representation
@@ -22,21 +20,20 @@ Rectangles are converted to integer pixel bounds with deterministic rounding:
 - `right = ceil(X + Width)`
 - `bottom = ceil(Y + Height)`
 
-Filled pixels are all `(x, y)` where:
+## Clipping behavior
 
-- `x` is in `[left, right)`
-- `y` is in `[top, bottom)`
+`FillRect` always clips to surface bounds.
 
-Bounds are clipped to the surface rectangle:
+M0d also supports optional rectangular clip input for `FillRect`; when provided, the draw region is intersected with:
 
-- `x` in `[0, surface.Width)`
-- `y` in `[0, surface.Height)`
+1. rect pixel bounds
+2. clip pixel bounds
+3. surface bounds
 
-Zero or negative rect sizes are no-op. Non-finite rect numbers are rejected.
+Zero/negative rect size or clip size are no-op.
+Non-finite rect or clip numbers are rejected deterministically.
 
 ## Alpha model
-
-M0a stores non-premultiplied RGBA in `Rgba32`.
 
 `FillRect` blends source-over destination with deterministic integer math using premultiplied intermediates, then writes non-premultiplied output channels.
 
@@ -51,26 +48,10 @@ M0a stores non-premultiplied RGBA in `Rgba32`.
 
 PPM output ignores alpha and writes stored RGB channels directly.
 
-## Explicitly out of scope in M0a
+## Out of scope
 
 - Dominatus integration
-- render-command consumption (`FillRectCommand`, `RenderSnapshot`)
-- text rendering and font systems
-- PNG/image loading
+- text shaping/wrapping/font loading
 - strokes, borders, rounded rectangles, transforms
-- clipping stacks beyond surface-bound clipping
-- windows/presenters/live presentation
-- GPU/Vulkan/Skia/MonoGame/Avalonia/Stride backends
 - hit testing, input, animation
-- Machina UI/layout tree walking
-
-## M0b update
-
-A Dominatus raster adapter now exists in `Machina.Renderer.Raster.Dominatus` for `BeginFrame`/`FillRect`/`EndFrame` command actuation and PPM output through completed raster frames.
-
-
-## M0c text package boundary
-
-`Machina.Renderer.Raster` remains Dominatus-free and focused on pixel operations.
-Text rasterization lives in `Machina.Renderer.Raster.Text` behind `ITextRasterizer`.
-This preserves backend modularity while letting Dominatus adapters plug in text behavior.
+- GPU backends

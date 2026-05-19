@@ -10,8 +10,15 @@ namespace Machina.Renderer.Raster.Dominatus;
 
 public sealed class RasterRenderRecorder
 {
+    private readonly record struct PixelClip(int Left, int Top, int Right, int Bottom)
+    {
+        public bool IsEmpty => Left >= Right || Top >= Bottom;
+    }
+
     private readonly List<RasterFrame> _completedFrames = new();
+    private readonly Stack<PixelClip> _clipStack = new();
     private RasterSurface? _activeSurface;
+    private PixelClip _currentClip;
 
     public bool HasActiveFrame => _activeSurface is not null;
 
@@ -38,6 +45,8 @@ public sealed class RasterRenderRecorder
 
         _activeSurface = new RasterSurface(width, height);
         Rasterizer.Clear(_activeSurface, Rgba32.Transparent);
+        _clipStack.Clear();
+        _currentClip = new PixelClip(0, 0, width, height);
     }
 
     public void FillRect(string id, Rect rect, ColorToken color)
@@ -50,7 +59,12 @@ public sealed class RasterRenderRecorder
         }
 
         var rgba = Rgba32.FromRgba(color.Rgba);
-        Rasterizer.FillRect(_activeSurface, rect, rgba);
+        if (_currentClip.IsEmpty)
+        {
+            return;
+        }
+
+        Rasterizer.FillRect(_activeSurface, rect, rgba, ToRect(_currentClip));
     }
 
 
@@ -70,7 +84,47 @@ public sealed class RasterRenderRecorder
             ? Rgba32.White
             : Rgba32.FromRgba(style.Color.Value.Rgba);
 
-        textRasterizer.DrawText(_activeSurface, rect, text, style, rgba);
+        if (_currentClip.IsEmpty)
+        {
+            return;
+        }
+
+        textRasterizer.DrawText(_activeSurface, rect, text, style, rgba, ToRect(_currentClip));
+    }
+
+    public void PushClip(string id, Rect rect)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+
+        if (_activeSurface is null)
+        {
+            throw new InvalidOperationException("Cannot push clip without an active frame.");
+        }
+
+        if (!IsFinite(rect.X) || !IsFinite(rect.Y) || !IsFinite(rect.Width) || !IsFinite(rect.Height))
+        {
+            throw new ArgumentException("Clip rectangle must contain finite values.", nameof(rect));
+        }
+
+        _clipStack.Push(_currentClip);
+
+        var pushedClip = ToPixelClip(rect);
+        _currentClip = Intersect(_currentClip, pushedClip);
+    }
+
+    public void PopClip()
+    {
+        if (_activeSurface is null)
+        {
+            throw new InvalidOperationException("Cannot pop clip without an active frame.");
+        }
+
+        if (_clipStack.Count == 0)
+        {
+            throw new InvalidOperationException("Cannot pop clip because the clip stack is empty.");
+        }
+
+        _currentClip = _clipStack.Pop();
     }
 
     public void EndFrame()
@@ -79,9 +133,53 @@ public sealed class RasterRenderRecorder
         {
             throw new InvalidOperationException("Cannot end frame when no frame is active.");
         }
+        if (_clipStack.Count > 0)
+        {
+            throw new InvalidOperationException("Cannot end frame while clip stack is not balanced.");
+        }
 
         var frame = new RasterFrame(_activeSurface.Width, _activeSurface.Height, _activeSurface);
         _completedFrames.Add(frame);
         _activeSurface = null;
+        _clipStack.Clear();
+    }
+
+    private static Rect ToRect(PixelClip clip)
+    {
+        return new Rect(clip.Left, clip.Top, clip.Right - clip.Left, clip.Bottom - clip.Top);
+    }
+
+    private static PixelClip ToPixelClip(Rect rect)
+    {
+        if (rect.Width <= 0 || rect.Height <= 0)
+        {
+            return new PixelClip(0, 0, 0, 0);
+        }
+
+        var left = (int)Math.Floor(rect.X);
+        var top = (int)Math.Floor(rect.Y);
+        var right = (int)Math.Ceiling(rect.X + rect.Width);
+        var bottom = (int)Math.Ceiling(rect.Y + rect.Height);
+        return new PixelClip(left, top, right, bottom);
+    }
+
+    private static PixelClip Intersect(PixelClip a, PixelClip b)
+    {
+        var left = Math.Max(a.Left, b.Left);
+        var top = Math.Max(a.Top, b.Top);
+        var right = Math.Min(a.Right, b.Right);
+        var bottom = Math.Min(a.Bottom, b.Bottom);
+
+        if (left >= right || top >= bottom)
+        {
+            return new PixelClip(0, 0, 0, 0);
+        }
+
+        return new PixelClip(left, top, right, bottom);
+    }
+
+    private static bool IsFinite(double value)
+    {
+        return !double.IsNaN(value) && !double.IsInfinity(value);
     }
 }

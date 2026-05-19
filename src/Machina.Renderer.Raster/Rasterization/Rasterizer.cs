@@ -18,6 +18,11 @@ public static class Rasterizer
 
     public static void FillRect(RasterSurface surface, Rect rect, Rgba32 color)
     {
+        FillRect(surface, rect, color, clip: null);
+    }
+
+    public static void FillRect(RasterSurface surface, Rect rect, Rgba32 color, Rect? clip)
+    {
         ArgumentNullException.ThrowIfNull(surface);
 
         if (!IsFinite(rect.X) || !IsFinite(rect.Y) || !IsFinite(rect.Width) || !IsFinite(rect.Height))
@@ -40,6 +45,27 @@ public static class Rasterizer
         var clippedRight = Math.Min(surface.Width, right);
         var clippedBottom = Math.Min(surface.Height, bottom);
 
+        if (clip is not null)
+        {
+            ValidateFiniteRect(clip.Value, "Clip coordinates must be finite numbers.", nameof(clip));
+
+            var clipRect = clip.Value;
+            if (clipRect.Width <= 0 || clipRect.Height <= 0)
+            {
+                return;
+            }
+
+            var clipLeft = (int)Math.Floor(clipRect.X);
+            var clipTop = (int)Math.Floor(clipRect.Y);
+            var clipRight = (int)Math.Ceiling(clipRect.X + clipRect.Width);
+            var clipBottom = (int)Math.Ceiling(clipRect.Y + clipRect.Height);
+
+            clippedLeft = Math.Max(clippedLeft, clipLeft);
+            clippedTop = Math.Max(clippedTop, clipTop);
+            clippedRight = Math.Min(clippedRight, clipRight);
+            clippedBottom = Math.Min(clippedBottom, clipBottom);
+        }
+
         if (clippedLeft >= clippedRight || clippedTop >= clippedBottom)
         {
             return;
@@ -53,6 +79,14 @@ public static class Rasterizer
                 var blended = BlendSourceOver(color, destination);
                 surface.SetPixel(x, y, blended);
             }
+        }
+    }
+
+    private static void ValidateFiniteRect(Rect rect, string message, string paramName)
+    {
+        if (!IsFinite(rect.X) || !IsFinite(rect.Y) || !IsFinite(rect.Width) || !IsFinite(rect.Height))
+        {
+            throw new ArgumentException(message, paramName);
         }
     }
 

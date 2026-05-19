@@ -12,5 +12,6 @@ public interface ITextRasterizer
         Rect rect,
         string text,
         TextStyle style,
-        Rgba32 color);
+        Rgba32 color,
+        Rect? clip = null);
 }

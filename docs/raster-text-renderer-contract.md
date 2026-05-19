@@ -1,6 +1,6 @@
-# Raster Text Renderer Contract (M0c)
+# Raster Text Renderer Contract (M0d)
 
-M0c adds a pluggable text seam for the raster backend.
+M0d keeps the pluggable text seam for the raster backend and adds clip propagation.
 
 ## Packages
 
@@ -14,21 +14,21 @@ M0c adds a pluggable text seam for the raster backend.
 
 - deterministic and synchronous
 - no-op for empty text
-- clips naturally to surface bounds through raster fill behavior
+- accepts optional rectangular clip (`Rect? clip = null`)
+- surface bounds clipping always still applies
 - receives resolved `Rgba32` color (style color or default white)
 
 ## `DebugBitmapTextRasterizer`
 
-M0c uses deterministic debug glyph cells instead of real fonts:
+M0d debug glyph behavior remains deterministic:
 
 - `Sm`: 5x8
 - `Md`: 6x10
 - `H1`: 10x16
 - 1px gap between glyphs
 - whitespace advances without drawing
+- optional clip is applied per glyph fill
 - no wrapping, shaping, kerning, alignment, or font loading
-
-This is intentionally not real typography.
 
 ## Dominatus behavior
 
@@ -36,4 +36,4 @@ This is intentionally not real typography.
 
 - if no text rasterizer is registered: throw `NotSupportedException`
 - if a text rasterizer is registered: draw text into active frame
-- `PushClipCommand` and `PopClipCommand` remain unsupported in M0c
+- current active clip (from `PushClip` / `PopClip`) is applied to text pixels

@@ -12,8 +12,6 @@ public sealed class RasterRenderActuationHandler :
     IActuationHandler<PopClipCommand>
 {
     private const string DrawTextMessage = "DrawTextCommand is not supported because no text rasterizer is registered.";
-    private const string PushClipMessage = "PushClipCommand is not supported by Raster M0b.";
-    private const string PopClipMessage = "PopClipCommand is not supported by Raster M0b.";
 
     private readonly RasterRenderRecorder _recorder;
     private readonly RasterRenderOptions _options;
@@ -55,11 +53,13 @@ public sealed class RasterRenderActuationHandler :
 
     public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, PushClipCommand cmd)
     {
-        throw new NotSupportedException(PushClipMessage);
+        _recorder.PushClip(cmd.Id, cmd.Rect);
+        return ActuatorHost.HandlerResult.CompletedOk();
     }
 
     public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, PopClipCommand cmd)
     {
-        throw new NotSupportedException(PopClipMessage);
+        _recorder.PopClip();
+        return ActuatorHost.HandlerResult.CompletedOk();
     }
 }
