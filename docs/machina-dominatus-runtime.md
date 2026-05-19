@@ -46,3 +46,9 @@ Presenter remains intentionally small and dumb:
 - send action
 - tick runtime
 - redraw
+
+## Default vs advanced usage note
+
+The Dominatus counter runtime proof remains valuable for demonstrating event ingress, blackboard-backed state, and runtime orchestration.
+
+For the default presenter sample counter interaction, M0d now uses `Machina.Runtime.Dispatch` because the transition is a simple deterministic field update and does not require orchestration machinery.

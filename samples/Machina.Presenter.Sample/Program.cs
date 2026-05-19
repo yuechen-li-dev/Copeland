@@ -14,6 +14,8 @@ using Dominatus.OptFlow;
 using Machina.Core.Actions;
 using Machina.Core.Lowering;
 using Machina.Core.Nodes;
+using Machina.Core.Authoring;
+using Machina.Core.Styling;
 using Machina.Dominatus.Rendering.Bridge;
 using Machina.Layout.Compilation;
 using Machina.Layout.Documents;
@@ -22,9 +24,10 @@ using Machina.Renderer.Raster.Dominatus;
 using Machina.Renderer.Raster.Dominatus.Actuation;
 using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Renderer.Raster.Text;
+using Machina.Runtime.Dispatch;
 using Machina.Runtime.Input;
+using Machina.Standard.Authoring;
 using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
-using Machina.Dominatus.Runtime;
 
 namespace Machina.Presenter.Sample;
 
@@ -57,15 +60,22 @@ internal sealed class Program
 
     private sealed class PresenterWindow : Window
     {
-        private const string BaseTitle = "Machina Presenter M0c";
+        private const string BaseTitle = "Machina Presenter M0d";
+
+        private static readonly DispatchTable<CounterState> CounterDispatch =
+            DispatchTable.For<CounterState>()
+                .Increment(
+                    eventName: "increment",
+                    get: state => state.Count,
+                    set: (state, value) => state with { Count = value });
 
         private readonly Image _image;
 
+        private CounterState _state;
         private UiLoweringResult _lowering;
         private ResolvedLayoutDocument _resolved;
         private UiHitTestIndex _hitTestIndex;
         private RasterFrame _frame;
-        private readonly CounterUiRuntime _runtime;
 
         public PresenterWindow()
         {
@@ -78,14 +88,14 @@ internal sealed class Program
 
             _image.PointerPressed += HandlePointerPressed;
 
-            _runtime = new CounterUiRuntime();
+            _state = new CounterState(0);
             _lowering = default!;
             _resolved = default!;
             _hitTestIndex = default!;
             _frame = default!;
 
             RenderCurrentState();
-            Title = $"{BaseTitle} - count: {_runtime.Count}";
+            Title = BuildTitle("startup");
 
             CanResize = false;
             Content = _image;
@@ -96,7 +106,7 @@ internal sealed class Program
             const int width = 640;
             const int height = 360;
 
-            var ui = _runtime.BuildUi();
+            var ui = BuildUi(_state);
             (_lowering, _resolved, _frame) = RenderUiArtifacts(ui, width, height);
             _hitTestIndex = UiHitTestIndex.Build(_resolved, _lowering.Actions);
 
@@ -105,6 +115,36 @@ internal sealed class Program
             _image.Height = _frame.Height;
             Width = _frame.Width;
             Height = _frame.Height;
+        }
+
+        private static UiNode BuildUi(CounterState state)
+        {
+            return StandardUI.Card(
+                id: "counter-card",
+                width: 320,
+                height: 180,
+                child: UI.Column(
+                    id: "content",
+                    gap: 12,
+                    children:
+                    [
+                        UI.Text(
+                            "Machina UI",
+                            id: "title",
+                            color: ColorToken.White,
+                            size: TextSize.H1),
+
+                        UI.Text(
+                            $"Count: {state.Count}",
+                            id: "count",
+                            color: ColorToken.Gray,
+                            size: TextSize.Md),
+
+                        StandardUI.Button(
+                            "Increment",
+                            id: "increment",
+                            action: UiAction.Named("increment")),
+                    ]));
         }
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
@@ -117,15 +157,30 @@ internal sealed class Program
 
             if (action is not null)
             {
-                _runtime.SendAction(action);
-                _runtime.TickUntilIdle();
-                RenderCurrentState();
+                ApplyAction(action);
             }
 
-            Title = $"{BaseTitle} - action: {actionName}, count: {_runtime.Count}";
-            Console.WriteLine($"Pointer ({point.X}, {point.Y}) -> action: {actionName}, count: {_runtime.Count}");
+            Title = BuildTitle(actionName);
+            Console.WriteLine($"Pointer ({point.X}, {point.Y}) -> action: {actionName}, count: {_state.Count}");
+        }
+
+        private void ApplyAction(UiAction action)
+        {
+            var next = CounterDispatch.Dispatch(_state, action.Name);
+            if (!ReferenceEquals(next, _state))
+            {
+                _state = next;
+                RenderCurrentState();
+            }
+        }
+
+        private string BuildTitle(string actionName)
+        {
+            return $"{BaseTitle} - action: {actionName}, count: {_state.Count}";
         }
     }
+
+    private sealed record CounterState(int Count);
 
     private static (UiLoweringResult Lowering, ResolvedLayoutDocument Resolved, RasterFrame Frame) RenderUiArtifacts(UiNode ui, int width, int height)
     {

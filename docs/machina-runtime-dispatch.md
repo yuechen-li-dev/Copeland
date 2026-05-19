@@ -117,3 +117,10 @@ Machina.Runtime.Dispatch M0a is pure state transition logic.
 - no Dominatus dependency
 - no presenter/window dependency
 - no renderer dependency
+
+## Presenter sample default (M0d)
+
+As of M0d, `samples/Machina.Presenter.Sample` uses `DispatchTable<CounterState>` for the live counter state loop.
+
+This demonstrates the intended default for simple deterministic field transitions in real UI interaction paths.
+
