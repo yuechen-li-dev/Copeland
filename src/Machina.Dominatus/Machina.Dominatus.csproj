@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Dominatus</AssemblyName>
+    <RootNamespace>Machina.Dominatus</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
+    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+  </ItemGroup>
+</Project>
