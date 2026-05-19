@@ -1,19 +1,20 @@
-# Machina Dominatus Rendering (M0a)
+# Machina Dominatus Rendering (M0a + M0b)
 
 ## Purpose
 
-M0a establishes the render-actuation seam by treating rendering as typed Dominatus actuation commands.
+Machina.Dominatus models rendering as typed Dominatus actuation so Machina UI artifacts can drive deterministic render command streams through a real `ActuatorHost` seam.
 
 ## Implemented scope
 
 - `Machina.Dominatus` defines a minimal typed render command surface using `IActuationCommand`.
-- `ActuatorHost` is used as the renderer backend seam through command handler registration.
+- `ActuatorHost` is the render backend seam through command handler registration.
 - `RenderSnapshotRecorder` provides deterministic, ordered frame snapshots for tests.
-- `Machina.Dominatus.Tests` drives a minimal Dominatus node that emits one frame through `Ai.Act`.
+- M0a proves manual command emission via `Ai.Act`.
+- M0b proves real Machina UI declaration output can be bridged to deterministic render commands and actuated through Dominatus.
 
 ## Command model
 
-The M0a command surface is intentionally small:
+The command surface is intentionally small:
 
 - `BeginFrameCommand`
 - `EndFrameCommand`
@@ -32,21 +33,30 @@ Snapshot rendering is implemented as an actuator backend:
 - handlers complete immediately via `ActuatorHost.HandlerResult.CompletedOk()`;
 - recorder validates frame lifecycle and clip-stack balance.
 
-No pixel rendering or rasterization is performed in M0a.
+No pixel rendering or rasterization is performed.
 
-## Explicit non-goals in M0a
+## M0b UI-to-command bridge
 
-- no CPU rasterizer;
-- no windowing or graphics framework integration;
-- no hit testing or input routing;
-- no UI runtime host behavior;
-- no traversal of Machina UI lowered/resolved output yet.
+M0b adds a deterministic bridge from Machina UI artifacts to Dominatus render actuations:
+
+- `MachinaRenderBridge.BuildCommands(lowering, resolved, options)` consumes `UiLoweringResult` and `ResolvedLayoutDocument`;
+- output command order follows deterministic document traversal order;
+- command stream always includes frame boundaries (`BeginFrame`, `EndFrame`);
+- node background styles become `FillRectCommand`;
+- textual semantics become `DrawTextCommand`;
+- actions remain runtime/input metadata and are not emitted as render commands.
+
+M0b still does not rasterize pixels, does not perform hit testing, and does not route actions/events.
 
 ## Dependency boundary
 
 `Machina.Layout`, `Machina.Core`, and `Machina.Standard` remain Dominatus-free.
 `Machina.Dominatus` is the dedicated integration adapter layer for Dominatus-backed runtime behavior.
 
-## Next direction
+## Explicit non-goals
 
-Future rendering backends (including CPU raster) should implement the same typed command surface and register through `ActuatorHost` similarly.
+- no CPU rasterizer;
+- no windowing or graphics framework integration;
+- no hit testing or input routing;
+- no UI runtime host behavior;
+- no browser/runtime/Copeland host integration.
