@@ -6,6 +6,7 @@
     <Project Path="src/Machina.Core/Machina.Core.csproj" />
     <Project Path="src/Machina.Standard/Machina.Standard.csproj" />
     <Project Path="src/Machina.Dominatus/Machina.Dominatus.csproj" />
+    <Project Path="src/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Copeland.Script.Tests/Copeland.Script.Tests.csproj" />
@@ -14,6 +15,7 @@
     <Project Path="tests/Machina.Core.Tests/Machina.Core.Tests.csproj" />
     <Project Path="tests/Machina.Standard.Tests/Machina.Standard.Tests.csproj" />
     <Project Path="tests/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj" />
+    <Project Path="tests/Machina.Renderer.Raster.Tests/Machina.Renderer.Raster.Tests.csproj" />
   </Folder>
   <Folder Name="/vendor/Dominatus/src/">
     <Project Path="vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
