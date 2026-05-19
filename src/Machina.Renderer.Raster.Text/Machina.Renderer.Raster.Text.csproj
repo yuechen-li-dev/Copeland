@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Renderer.Raster.Text</AssemblyName>
+    <RootNamespace>Machina.Renderer.Raster.Text</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
+    <ProjectReference Include="../Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
+  </ItemGroup>
+</Project>

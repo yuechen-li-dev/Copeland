@@ -11,15 +11,17 @@ public sealed class RasterRenderActuationHandler :
     IActuationHandler<PushClipCommand>,
     IActuationHandler<PopClipCommand>
 {
-    private const string DrawTextMessage = "DrawTextCommand is not supported by Raster M0b. Text rendering is deferred to M0c.";
+    private const string DrawTextMessage = "DrawTextCommand is not supported because no text rasterizer is registered.";
     private const string PushClipMessage = "PushClipCommand is not supported by Raster M0b.";
     private const string PopClipMessage = "PopClipCommand is not supported by Raster M0b.";
 
     private readonly RasterRenderRecorder _recorder;
+    private readonly RasterRenderOptions _options;
 
-    public RasterRenderActuationHandler(RasterRenderRecorder recorder)
+    public RasterRenderActuationHandler(RasterRenderRecorder recorder, RasterRenderOptions options)
     {
         _recorder = recorder ?? throw new ArgumentNullException(nameof(recorder));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
     public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, BeginFrameCommand cmd)
@@ -42,7 +44,13 @@ public sealed class RasterRenderActuationHandler :
 
     public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, DrawTextCommand cmd)
     {
-        throw new NotSupportedException(DrawTextMessage);
+        if (_options.TextRasterizer is null)
+        {
+            throw new NotSupportedException(DrawTextMessage);
+        }
+
+        _recorder.DrawText(cmd.Id, cmd.Rect, cmd.Text, cmd.Style, _options.TextRasterizer);
+        return ActuatorHost.HandlerResult.CompletedOk();
     }
 
     public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, PushClipCommand cmd)

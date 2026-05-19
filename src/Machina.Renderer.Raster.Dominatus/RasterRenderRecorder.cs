@@ -4,6 +4,7 @@ using Machina.Renderer.Raster.Colors;
 using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Renderer.Raster.Rasterization;
 using Machina.Renderer.Raster.Surface;
+using Machina.Renderer.Raster.Text;
 
 namespace Machina.Renderer.Raster.Dominatus;
 
@@ -50,6 +51,26 @@ public sealed class RasterRenderRecorder
 
         var rgba = Rgba32.FromRgba(color.Rgba);
         Rasterizer.FillRect(_activeSurface, rect, rgba);
+    }
+
+
+    public void DrawText(string id, Rect rect, string text, TextStyle style, ITextRasterizer textRasterizer)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(style);
+        ArgumentNullException.ThrowIfNull(textRasterizer);
+
+        if (_activeSurface is null)
+        {
+            throw new InvalidOperationException("Cannot draw text without an active frame.");
+        }
+
+        var rgba = style.Color is null
+            ? Rgba32.White
+            : Rgba32.FromRgba(style.Color.Value.Rgba);
+
+        textRasterizer.DrawText(_activeSurface, rect, text, style, rgba);
     }
 
     public void EndFrame()
