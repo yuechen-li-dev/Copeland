@@ -60,3 +60,9 @@ M0b still does not rasterize pixels, does not perform hit testing, and does not 
 - no hit testing or input routing;
 - no UI runtime host behavior;
 - no browser/runtime/Copeland host integration.
+
+## M0b status
+
+- Implemented: Dominatus -> Raster adapter for BeginFrame/FillRect/EndFrame.
+- Explicitly unsupported until M0c: DrawText.
+- Explicitly unsupported in M0b: PushClip/PopClip.
