@@ -60,58 +60,76 @@ internal sealed class Program
 
     private sealed class PresenterWindow : Window
     {
-        private const string BaseTitle = "Machina Presenter M0b";
+        private const string BaseTitle = "Machina Presenter M0c";
+
+        private readonly Image _image;
 
         private UiLoweringResult _lowering;
         private ResolvedLayoutDocument _resolved;
         private UiHitTestIndex _hitTestIndex;
         private RasterFrame _frame;
+        private int _count;
 
         public PresenterWindow()
         {
-            const int width = 640;
-            const int height = 360;
-
-            (_lowering, _resolved, _frame) = RenderUiArtifacts(BuildUi(), width, height);
-            _hitTestIndex = UiHitTestIndex.Build(_resolved, _lowering.Actions);
-
-            var image = new Image
+            _image = new Image
             {
-                Source = ToBitmap(_frame),
                 Stretch = Stretch.None,
-                Width = _frame.Width,
-                Height = _frame.Height,
                 HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
                 VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
             };
 
-            image.PointerPressed += HandlePointerPressed;
+            _image.PointerPressed += HandlePointerPressed;
 
-            Title = BaseTitle;
+            _count = 0;
+            _lowering = default!;
+            _resolved = default!;
+            _hitTestIndex = default!;
+            _frame = default!;
+
+            RenderCurrentState();
+            Title = $"{BaseTitle} - count: {_count}";
+
+            CanResize = false;
+            Content = _image;
+        }
+
+        private void RenderCurrentState()
+        {
+            const int width = 640;
+            const int height = 360;
+
+            var ui = BuildUi(_count);
+            (_lowering, _resolved, _frame) = RenderUiArtifacts(ui, width, height);
+            _hitTestIndex = UiHitTestIndex.Build(_resolved, _lowering.Actions);
+
+            _image.Source = ToBitmap(_frame);
+            _image.Width = _frame.Width;
+            _image.Height = _frame.Height;
             Width = _frame.Width;
             Height = _frame.Height;
-            CanResize = false;
-            Content = image;
         }
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
-            if (sender is not Image image)
-            {
-                return;
-            }
-
-            var position = args.GetPosition(image);
+            var position = args.GetPosition(_image);
             var point = new RuntimePointerPoint((float)position.X, (float)position.Y);
             var hit = _hitTestIndex.HitTest(point);
+            var action = hit?.Action;
+            var actionName = action?.Name ?? "<none>";
 
-            var actionName = hit?.Action.Name ?? "<none>";
-            Title = $"{BaseTitle} - action: {actionName}";
-            Console.WriteLine($"Pointer ({point.X}, {point.Y}) -> action: {actionName}");
+            if (actionName == "increment")
+            {
+                _count++;
+                RenderCurrentState();
+            }
+
+            Title = $"{BaseTitle} - action: {actionName}, count: {_count}";
+            Console.WriteLine($"Pointer ({point.X}, {point.Y}) -> action: {actionName}, count: {_count}");
         }
     }
 
-    private static UiNode BuildUi()
+    private static UiNode BuildUi(int count)
     {
         return UI.Container(
             id: "root",
@@ -125,7 +143,7 @@ internal sealed class Program
                     children:
                     [
                         UI.Text("Machina UI", id: "title", color: ColorToken.White, size: TextSize.H1),
-                        UI.Text("Count: 0", id: "count", color: ColorToken.Gray, size: TextSize.Md),
+                        UI.Text($"Count: {count}", id: "count", color: ColorToken.Gray, size: TextSize.Md),
                         StandardUI.Button("Increment", id: "increment", action: UiAction.Named("increment"))
                     ])));
     }
