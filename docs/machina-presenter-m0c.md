@@ -64,3 +64,11 @@ dotnet run --project samples/Machina.Presenter.Sample
 ```
 
 In headless environments, rely on build/test validation and treat interactive click validation as manual.
+
+
+## M0d follow-up: Dominatus-backed counter runtime
+
+The sample now routes button actions through `CounterUiRuntime` in `Machina.Dominatus.Runtime` instead of mutating presenter-local state.
+Count state is stored in a Dominatus blackboard key (`counter.count`), and presenter redraw is driven by runtime-generated UI declarations.
+
+This keeps presenter responsibilities narrow (pointer capture, hit-test, action forwarding, redraw) while state/action handling sits in the Dominatus runtime loop.
