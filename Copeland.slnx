@@ -13,4 +13,12 @@
     <Project Path="tests/Machina.Core.Tests/Machina.Core.Tests.csproj" />
     <Project Path="tests/Machina.Standard.Tests/Machina.Standard.Tests.csproj" />
   </Folder>
+  <Folder Name="/vendor/Dominatus/src/">
+    <Project Path="vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
+    <Project Path="vendor/Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <Project Path="vendor/Dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
+    <Project Path="vendor/Dominatus/src/Dominatus.UtilityLite/Dominatus.UtilityLite.csproj" />
+    <Project Path="vendor/Dominatus/src/Dominatus.Actuators.Standard/Dominatus.Actuators.Standard.csproj" />
+    <Project Path="vendor/Dominatus/src/Dominatus.Server/Dominatus.Server.csproj" />
+  </Folder>
 </Solution>
