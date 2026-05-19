@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -17,12 +18,14 @@ using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Dominatus.Rendering.Bridge;
 using Machina.Layout.Compilation;
-using Machina.Layout.Geometry;
+using Machina.Layout.Documents;
 using Machina.Layout.Resolving;
 using Machina.Renderer.Raster.Dominatus;
 using Machina.Renderer.Raster.Dominatus.Actuation;
 using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Renderer.Raster.Text;
+using Machina.Runtime.Input;
+using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
 using Machina.Standard.Authoring;
 using Machina.Standard.Components;
 
@@ -48,33 +51,64 @@ internal sealed class Program
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = BuildWindow();
+                desktop.MainWindow = new PresenterWindow();
             }
 
             base.OnFrameworkInitializationCompleted();
         }
     }
 
-    private static Window BuildWindow()
+    private sealed class PresenterWindow : Window
     {
-        const int width = 640;
-        const int height = 360;
+        private const string BaseTitle = "Machina Presenter M0b";
 
-        var frame = RenderUi(BuildUi(), width, height);
-        var image = new Image
-        {
-            Source = ToBitmap(frame),
-            Stretch = Stretch.None
-        };
+        private UiLoweringResult _lowering;
+        private ResolvedLayoutDocument _resolved;
+        private UiHitTestIndex _hitTestIndex;
+        private RasterFrame _frame;
 
-        return new Window
+        public PresenterWindow()
         {
-            Title = "Machina Presenter M0a",
-            Width = width,
-            Height = height,
-            CanResize = false,
-            Content = image
-        };
+            const int width = 640;
+            const int height = 360;
+
+            (_lowering, _resolved, _frame) = RenderUiArtifacts(BuildUi(), width, height);
+            _hitTestIndex = UiHitTestIndex.Build(_resolved, _lowering.Actions);
+
+            var image = new Image
+            {
+                Source = ToBitmap(_frame),
+                Stretch = Stretch.None,
+                Width = _frame.Width,
+                Height = _frame.Height,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+            };
+
+            image.PointerPressed += HandlePointerPressed;
+
+            Title = BaseTitle;
+            Width = _frame.Width;
+            Height = _frame.Height;
+            CanResize = false;
+            Content = image;
+        }
+
+        private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
+        {
+            if (sender is not Image image)
+            {
+                return;
+            }
+
+            var position = args.GetPosition(image);
+            var point = new RuntimePointerPoint((float)position.X, (float)position.Y);
+            var hit = _hitTestIndex.HitTest(point);
+
+            var actionName = hit?.Action.Name ?? "<none>";
+            Title = $"{BaseTitle} - action: {actionName}";
+            Console.WriteLine($"Pointer ({point.X}, {point.Y}) -> action: {actionName}");
+        }
     }
 
     private static UiNode BuildUi()
@@ -96,7 +130,7 @@ internal sealed class Program
                     ])));
     }
 
-    private static RasterFrame RenderUi(UiNode ui, int width, int height)
+    private static (UiLoweringResult Lowering, ResolvedLayoutDocument Resolved, RasterFrame Frame) RenderUiArtifacts(UiNode ui, int width, int height)
     {
         var lowering = UiLowerer.Lower(ui);
         var document = LayoutCompiler.CompileLayoutRows(lowering.Rows);
@@ -117,7 +151,8 @@ internal sealed class Program
             }
         }
 
-        return recorder.CompletedFrames.Single();
+        var frame = recorder.CompletedFrames.Single();
+        return (lowering, resolved, frame);
     }
 
     private static AiCtx CreateContext(ActuatorHost host)

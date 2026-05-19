@@ -9,6 +9,7 @@
     <ProjectReference Include="../../src/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../src/Machina.Layout/Machina.Layout.csproj" />
     <ProjectReference Include="../../src/Machina.Dominatus/Machina.Dominatus.csproj" />
+    <ProjectReference Include="../../src/Machina.Runtime/Machina.Runtime.csproj" />
     <ProjectReference Include="../../src/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
     <ProjectReference Include="../../src/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
     <ProjectReference Include="../../src/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
