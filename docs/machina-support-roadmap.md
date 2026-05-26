@@ -38,6 +38,9 @@ This roadmap tracks support status across Machina packages so implementation bra
 - **Machina.Renderer.Raster.Dominatus**  
   Dominatus actuator adapter targeting raster backend and artifact flows.
 
+- **Machina.Pipeline**  
+  reusable `UiNode`-to-`MachinaFrame` service (lowering/layout/hit-test/render/raster).
+
 - **samples/Machina.Presenter.Sample**  
   Avalonia bitmap presenter sample and interactive proof slice.
 
@@ -49,6 +52,7 @@ Current proven path (with some steps still partial depending on scenario breadth
 -> `UiLoweringResult`  
 -> `LayoutDocument`  
 -> `ResolvedLayoutDocument`  
+-> `UiHitTestIndex`  
 -> render commands  
 -> Dominatus `ActuatorHost`  
 -> `RasterFrame`  

@@ -10,6 +10,7 @@
     <Project Path="src/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
     <Project Path="src/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
     <Project Path="src/Machina.Runtime/Machina.Runtime.csproj" />
+    <Project Path="src/Machina.Pipeline/Machina.Pipeline.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
@@ -25,6 +26,7 @@
     <Project Path="tests/Machina.Renderer.Raster.Text.Tests/Machina.Renderer.Raster.Text.Tests.csproj" />
     <Project Path="tests/Machina.Renderer.Raster.Dominatus.Tests/Machina.Renderer.Raster.Dominatus.Tests.csproj" />
     <Project Path="tests/Machina.Runtime.Tests/Machina.Runtime.Tests.csproj" />
+    <Project Path="tests/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj" />
   </Folder>
   <Folder Name="/vendor/Dominatus/src/">
     <Project Path="vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
