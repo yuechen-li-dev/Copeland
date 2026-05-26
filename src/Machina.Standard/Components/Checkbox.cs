@@ -63,7 +63,9 @@ public static class Checkbox
             style: new UiStyle(
                 Background: background,
                 Foreground: foreground,
-                Padding: 0));
+                Padding: 0,
+                BorderColor: foreground,
+                BorderThickness: 1));
     }
 
     private static UiNode CreateRoot(

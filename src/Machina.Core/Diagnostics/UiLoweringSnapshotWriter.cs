@@ -73,6 +73,10 @@ public static class UiLoweringSnapshotWriter
             writer.Append(FormatColor(pair.Value.Foreground));
             writer.Append(" padding=");
             writer.Append(FormatNumber(pair.Value.Padding));
+            writer.Append(" borderColor=");
+            writer.Append(FormatColor(pair.Value.BorderColor));
+            writer.Append(" borderThickness=");
+            writer.Append(FormatNumber(pair.Value.BorderThickness));
             writer.AppendLine();
         }
 

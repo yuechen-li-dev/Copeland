@@ -6,6 +6,7 @@ namespace Machina.Renderer.Raster.Dominatus.Actuation;
 public sealed class RasterRenderActuationHandler :
     IActuationHandler<BeginFrameCommand>,
     IActuationHandler<FillRectCommand>,
+    IActuationHandler<StrokeRectCommand>,
     IActuationHandler<EndFrameCommand>,
     IActuationHandler<DrawTextCommand>,
     IActuationHandler<PushClipCommand>,
@@ -31,6 +32,12 @@ public sealed class RasterRenderActuationHandler :
     public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, FillRectCommand cmd)
     {
         _recorder.FillRect(cmd.Id, cmd.Rect, cmd.Color);
+        return ActuatorHost.HandlerResult.CompletedOk();
+    }
+
+    public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, StrokeRectCommand cmd)
+    {
+        _recorder.StrokeRect(cmd.Id, cmd.Rect, cmd.Color, cmd.Thickness);
         return ActuatorHost.HandlerResult.CompletedOk();
     }
 

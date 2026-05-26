@@ -17,6 +17,7 @@ public static class RasterRenderActuatorRegistration
 
         host.Register<BeginFrameCommand>(handler);
         host.Register<FillRectCommand>(handler);
+        host.Register<StrokeRectCommand>(handler);
         host.Register<EndFrameCommand>(handler);
         host.Register<DrawTextCommand>(handler);
         host.Register<PushClipCommand>(handler);

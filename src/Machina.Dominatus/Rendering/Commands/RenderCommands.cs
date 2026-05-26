@@ -15,6 +15,12 @@ public sealed record FillRectCommand(
     Rect Rect,
     ColorToken Color) : IActuationCommand;
 
+public sealed record StrokeRectCommand(
+    string Id,
+    Rect Rect,
+    ColorToken Color,
+    double Thickness) : IActuationCommand;
+
 public sealed record DrawTextCommand(
     string Id,
     Rect Rect,
