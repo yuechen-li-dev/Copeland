@@ -209,3 +209,20 @@ M1e applies a deterministic visual tuning pass using existing Core style fields 
 
 M1e does not add renderer primitives, rounded corners, shadows, gradients, anti-aliasing, or dynamic interaction states.
 \n\n## M3a flat authoring note\nRow-first UiDocument/UiRow authoring is canonical for top-level screens; nested UiNode trees remain optional sugar.
+
+## M3b StandardView flat metadata coverage
+
+`StandardView` is a row-metadata helper surface that returns `UiView` objects for flat row authoring.
+
+Coverage includes:
+- `StandardView.Card`
+- `StandardView.Button`
+- `StandardView.Checkbox`
+- `StandardView.Switch`
+- `StandardView.Text`
+- `StandardView.Label`
+- `StandardView.Badge`
+- `StandardView.Separator`
+- `StandardView.Input`
+
+For field-like UI, prefer explicit rows (label row + input row) instead of a single synthetic `Field` mega-view.

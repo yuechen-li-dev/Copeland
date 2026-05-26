@@ -252,3 +252,7 @@ Deferred visual features remain deferred: border radius, per-side border styling
 - Added placement-first authoring primitives in Machina.Core: `UI.Surface`, `UI.Layer`, `UI.At`, `UI.Anchor`.
 - Presenter sample moved from spacer-based panel placement to explicit placement-frame composition.
 \n\n## M3a flat authoring note\nRow-first UiDocument/UiRow authoring is canonical for top-level screens; nested UiNode trees remain optional sugar.
+
+## M3b status update
+
+M3b hardens row-first authoring with deterministic `UiDocument` snapshots, flat-path validation tests, broader `StandardView` metadata helpers, and canonical row-first documentation.

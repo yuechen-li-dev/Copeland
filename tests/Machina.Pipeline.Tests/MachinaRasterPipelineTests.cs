@@ -143,6 +143,27 @@ public sealed class MachinaRasterPipelineTests
         Assert.Equal("go", hit!.Action.Name);
         Assert.Equal(document.Rows.Count, frame.Lowering.Rows.Count);
     }
+
+    [Fact]
+    public void Pipeline_FlatDocumentSnapshot_IsUsefulForPresenterLikeDoc()
+    {
+        var document = UiDocument.Create(
+            [
+                Row.Root("root", view: View.Rect(background: ColorToken.Hex(0xEDEFF0FF))),
+                Row.Anchor("settings-card", "root", left: 72, top: 24, width: 500, height: 292, view: StandardView.Card()),
+                Row.Anchor("increment", "settings-card", left: 20, top: 72, width: 120, height: 36, view: StandardView.Button("Increment", UiAction.Named("counter.increment"))),
+                Row.Anchor("email-updates", "settings-card", left: 20, top: 120, width: 220, height: 24, view: StandardView.Checkbox("Email updates", isChecked: true, action: UiAction.Named("settings.emailUpdates.toggle"))),
+                Row.Anchor("notifications", "settings-card", left: 20, top: 152, width: 220, height: 24, view: StandardView.Switch("Notifications", isOn: true, action: UiAction.Named("settings.notifications.toggle")))
+            ]);
+
+        var snapshot = UiDocumentSnapshotWriter.Write(document);
+
+        Assert.Contains("root parent=<none>", snapshot, StringComparison.Ordinal);
+        Assert.Contains("settings-card parent=root", snapshot, StringComparison.Ordinal);
+        Assert.Contains("increment parent=settings-card", snapshot, StringComparison.Ordinal);
+        Assert.Contains("email-updates parent=settings-card", snapshot, StringComparison.Ordinal);
+        Assert.Contains("notifications parent=settings-card", snapshot, StringComparison.Ordinal);
+    }
     private static int CountNonTransparentPixels(Machina.Renderer.Raster.Dominatus.Models.RasterFrame frame)
     {
         var count = 0;

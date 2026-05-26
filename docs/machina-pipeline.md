@@ -43,3 +43,9 @@ When styles include border metadata (`BorderColor` + `BorderThickness`), the pip
 
 When no border metadata is present, there is no pipeline API change in behavior or command shape for existing nodes.
 \n\n## M3a flat authoring note\nRow-first UiDocument/UiRow authoring is canonical for top-level screens; nested UiNode trees remain optional sugar.
+
+## M3b flat inspection surface
+
+The pipeline keeps compatibility for both `UiNode` and flat `UiDocument` inputs.
+
+For flat documents, use `UiDocumentSnapshotWriter` in tests/docs/diagnostics to inspect deterministic row metadata without changing renderer behavior.

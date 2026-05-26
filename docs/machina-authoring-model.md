@@ -50,3 +50,11 @@ UI.Surface(children:
 ])
 ```
 \n\n## M3a flat authoring note\nRow-first UiDocument/UiRow authoring is canonical for top-level screens; nested UiNode trees remain optional sugar.
+
+## M3b row-first guidance
+
+For app and screen layout, `UiDocument` + `UiRow` is now the canonical authoring model. Use nested `UiNode` trees as optional sugar for local composition only.
+
+Top-level screens should read as a flat table/blueprint of rows with explicit frames and parents.
+
+`StandardView` helpers provide `UiView` metadata for rows. They are not node-tree constructors.
