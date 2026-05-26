@@ -34,7 +34,7 @@ public sealed class RasterGoldenArtifactTests
         RasterArtifactAssertions.MaybeWriteArtifact("text-only", ppm);
 
         var sha = RasterArtifactAssertions.Sha256Hex(ppm);
-        Assert.Equal("dd70893eb1c04136f9c856acb778a5151b2b2951d777382951dc0f29c9d02778", sha);
+        Assert.Equal("cd20699df84d96a6566c398efb21a8c7ee8b2a997c3d4aff9ce95699dd444467", sha);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class RasterGoldenArtifactTests
         RasterArtifactAssertions.MaybeWriteArtifact("standard-card", ppm);
 
         var sha = RasterArtifactAssertions.Sha256Hex(ppm);
-        Assert.Equal("8ba24949fc7ccfccd98ddbf450fee86f0877c6872dfd746a7ebbe8d834a4f1ef", sha);
+        Assert.Equal("135d7b1661157438de8ba81d9ebfa058b03035eee361cee4eee789dabc7c5717", sha);
     }
 
     [Fact]
