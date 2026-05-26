@@ -191,3 +191,13 @@ Machina.Core M0c does not implement:
 - Copeland integration;
 - DOM, CSS, WebView2, Chrome, or platform adapters;
 - Standard/shadcn or HMI component packages.
+
+## M1b rectangular border metadata
+
+`UiStyle` now includes declarative rectangular border metadata: `BorderColor` and `BorderThickness`.
+
+`UI.Rect` supports border style shortcuts through `borderColor` and `borderThickness` arguments when authoring nodes.
+
+This metadata remains declarative in Core; whether and how a backend renders borders is renderer-dependent.
+
+Current border semantics are intentionally limited to plain rectangular strokes. Border radius, per-side borders, dashed/dotted lines, and other advanced border models are not part of M1b.

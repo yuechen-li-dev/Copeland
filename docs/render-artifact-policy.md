@@ -28,3 +28,11 @@ M0e introduces deterministic raster render artifacts for inspection and regressi
 - M1a golden text uses `ReadableBitmapTextRasterizer` (pipeline default).
 - This is deterministic readable bitmap text, still not real typography.
 - Golden changes from text behavior should be treated as renderer-contract changes.
+
+## M1b border/stroke artifact coverage
+
+Golden artifacts now cover rectangular stroke output in addition to fill/text behavior where applicable.
+
+The `standard-card` golden includes border-enabled output in M1b and protects against regressions in stroke command rendering.
+
+Rect-only and text-only goldens remain unchanged unless their command output is genuinely affected by stroke metadata.

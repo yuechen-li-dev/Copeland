@@ -47,6 +47,31 @@ public sealed class MachinaRenderBridgeTests
         Assert.Equal(ColorToken.White, draw.Style.Color);
     }
 
+
+    [Fact]
+    public void Bridge_EmitsFillStrokeThenText_ForStyledTextNode()
+    {
+        var ui = UI.Rect(
+            id: "panel",
+            width: 120,
+            height: 60,
+            color: ColorToken.Hex(0x101820FF),
+            borderColor: ColorToken.White,
+            borderThickness: 1,
+            child: UI.Text("Hello", id: "text", color: ColorToken.White));
+
+        var commands = BuildCommands(ui, new MachinaRenderOptions(200, 100));
+
+        Assert.IsType<BeginFrameCommand>(commands[0]);
+        var fillIndex = commands.ToList().FindIndex(c => c is FillRectCommand fill && fill.Id == "panel");
+        var strokeIndex = commands.ToList().FindIndex(c => c is StrokeRectCommand stroke && stroke.Id == "panel");
+        var textIndex = commands.ToList().FindIndex(c => c is DrawTextCommand draw && draw.Id == "text");
+        Assert.True(fillIndex > 0);
+        Assert.True(strokeIndex > fillIndex);
+        Assert.True(textIndex > strokeIndex);
+        Assert.IsType<EndFrameCommand>(commands[^1]);
+    }
+
     [Fact]
     public void StandardCardButton_EmitsDeterministicCommands()
     {
@@ -224,6 +249,9 @@ public sealed class MachinaRenderBridgeTests
                     break;
                 case FillRectCommand fill:
                     recorder.Record(fill);
+                    break;
+                case StrokeRectCommand stroke:
+                    recorder.Record(stroke);
                     break;
                 case DrawTextCommand draw:
                     recorder.Record(draw);

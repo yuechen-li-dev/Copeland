@@ -152,6 +152,64 @@ public sealed class RasterRenderActuatorTests
         AssertOnlyRegionHasColor(frame.Surface, 1, 1, 3, 3, Rgba32.FromRgba(red.Rgba));
     }
 
+
+    [Fact]
+    public void StrokeRectCommand_RendersPixels()
+    {
+        var recorder = new RasterRenderRecorder();
+        var host = new ActuatorHost().AddRasterRenderer(recorder);
+        var ctx = CreateContext(host);
+        var red = ColorToken.Hex(0xFF0000FF);
+
+        host.Dispatch(ctx, new BeginFrameCommand(6, 6));
+        host.Dispatch(ctx, new StrokeRectCommand("border", new Rect(1, 1, 4, 4), red, 1));
+        host.Dispatch(ctx, new EndFrameCommand());
+
+        var frame = Assert.Single(recorder.CompletedFrames);
+        var color = Rgba32.FromRgba(red.Rgba);
+        Assert.Equal(color, frame.Surface.GetPixel(1, 1));
+        Assert.Equal(color, frame.Surface.GetPixel(4, 1));
+        Assert.Equal(color, frame.Surface.GetPixel(1, 4));
+        Assert.Equal(Rgba32.Transparent, frame.Surface.GetPixel(3, 3));
+    }
+
+    [Fact]
+    public void StrokeRectCommand_RespectsClip()
+    {
+        var recorder = new RasterRenderRecorder();
+        var host = new ActuatorHost().AddRasterRenderer(recorder);
+        var ctx = CreateContext(host);
+        var red = ColorToken.Hex(0xFF0000FF);
+
+        host.Dispatch(ctx, new BeginFrameCommand(6, 6));
+        host.Dispatch(ctx, new PushClipCommand("clip", new Rect(0, 0, 3, 6)));
+        host.Dispatch(ctx, new StrokeRectCommand("border", new Rect(0, 0, 6, 6), red, 1));
+        host.Dispatch(ctx, new PopClipCommand());
+        host.Dispatch(ctx, new EndFrameCommand());
+
+        var frame = Assert.Single(recorder.CompletedFrames);
+        for (var y = 0; y < 6; y++)
+        {
+            for (var x = 3; x < 6; x++)
+            {
+                Assert.Equal(Rgba32.Transparent, frame.Surface.GetPixel(x, y));
+            }
+        }
+    }
+
+    [Fact]
+    public void StrokeRectCommand_BeforeBeginFrameFails()
+    {
+        var recorder = new RasterRenderRecorder();
+        var host = new ActuatorHost().AddRasterRenderer(recorder);
+        var ctx = CreateContext(host);
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            host.Dispatch(ctx, new StrokeRectCommand("id", new Rect(0, 0, 2, 2), ColorToken.White, 1)));
+
+        Assert.Equal("Cannot stroke rectangle without an active frame.", ex.Message);
+    }
+
     [Fact]
     public void PopClipWithoutPush_FailsDeterministically()
     {

@@ -238,3 +238,9 @@ React mapping guide:
 - `docs/machina-presenter-m0c.md`
 - `docs/machina-presenter-m0d.md`
 - `docs/dominatus-authoring-footguns.md`
+
+## M1b support matrix update
+
+Rectangular border/stroke support is implemented for the current M1b scope.
+
+Deferred visual features remain deferred: border radius, per-side border styling, dashed/dotted styles, and shadow effects.

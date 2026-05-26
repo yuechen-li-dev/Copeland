@@ -184,3 +184,16 @@ M0b does not add:
 - accessibility tree export beyond existing semantics metadata
 - dialog, popover, dropdown, select, combobox, command, or data table components
 - Copeland, Dominatus, or HMI dependencies
+
+## M1b border styling in standard components
+
+Standard components now use simple rectangular borders where appropriate:
+
+- `StandardUI.Card`
+- `StandardUI.Input`
+- `StandardUI.Checkbox` box shell
+- `StandardUI.Button` outline variant
+
+These borders use standard theme border color tokens and thickness metadata.
+
+This is foundational styling, not a polished final design system guarantee. Borders are currently plain rectangular strokes only.

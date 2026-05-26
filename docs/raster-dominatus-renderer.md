@@ -39,3 +39,11 @@ Behavior:
 
 - Raster Dominatus integration is now exercised by golden artifact tests that render real `UiNode` samples through lowering, layout resolve, bridge command generation, and raster actuation.
 - Optional `.ppm` artifact emission is opt-in via `MACHINA_WRITE_RENDER_ARTIFACTS=1`.
+
+## M1b stroke support in raster Dominatus adapter
+
+The raster Dominatus adapter now handles `StrokeRectCommand` and routes it to rasterization.
+
+Clip stack behavior applies equally to fill and stroke commands; stroke output is clipped by active clip rectangles and surface bounds.
+
+Unsupported advanced features remain unchanged: rounded corners, general path strokes, dashed/dotted lines, shadows, and gradients.
