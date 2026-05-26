@@ -242,3 +242,6 @@ For field-like UI, prefer explicit rows (label row + input row) instead of a sin
 ## M4c layout-padding hardening note
 
 M4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (`AnchorFrame`), rather than relying on `UiStyle.Padding` to move children. Stack behavior remains ordered arithmetic (`StackArrange`) and is not Flexbox.
+
+## M4d component-geometry note
+Button/Checkbox/Switch internals are explicit local rows/frames. Geometry and clickable surfaces are validated via headless resolved-rect + hit-test tests; GUI screenshots are confirmation only.

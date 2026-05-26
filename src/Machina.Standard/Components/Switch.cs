@@ -3,7 +3,6 @@ using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Semantics;
 using Machina.Core.Styling;
-using Machina.Layout.Frames;
 using Machina.Layout.Rows;
 using Machina.Standard.Theme;
 
@@ -40,39 +39,28 @@ public static class Switch
         bool disabled,
         StandardTheme theme)
     {
-        var thumb = UI.Rect(
-            id: CreateChildId(id, "thumb"),
-            width: 14,
-            height: 14,
-            style: new UiStyle(
-                Background: theme.Colors.Background,
-                Foreground: null,
-                BorderColor: theme.Colors.Border,
-                BorderThickness: 1,
-                Padding: 0));
-
-        var spacerWidth = isOn ? 20 : 0;
-        var trackChildren = new List<UiNode>();
-
-        if (spacerWidth > 0)
-        {
-            trackChildren.Add(UI.HSpace(
-                spacerWidth,
-                id: CreateChildId(id, "thumb-offset")));
-        }
-
-        trackChildren.Add(thumb);
-
-        var trackContent = UI.Row(
-            trackChildren,
-            id: CreateChildId(id, "track-content"),
-            gap: 0,
-            padding: 3);
+        var thumbLeft = isOn ? 22 : 2;
+        var thumb = UI.Anchor(
+            child: UI.Rect(
+                id: CreateChildId(id, "thumb"),
+                width: 16,
+                height: 16,
+                style: new UiStyle(
+                    Background: theme.Colors.Background,
+                    Foreground: null,
+                    BorderColor: theme.Colors.Border,
+                    BorderThickness: 1,
+                    Padding: 0)),
+            id: CreateChildId(id, "thumb-slot"),
+            left: thumbLeft,
+            top: 2,
+            width: 16,
+            height: 16);
 
         return UI.Rect(
-            child: trackContent,
+            child: thumb,
             id: CreateChildId(id, "track"),
-            width: 40,
+            width: 42,
             height: 20,
             style: new UiStyle(
                 Background: ResolveTrackBackground(isOn, disabled, theme),
@@ -94,7 +82,7 @@ public static class Switch
             return UI.Rect(
                 child: switchShell,
                 id: id,
-                width: 40,
+                width: 42,
                 height: 20,
                 style: new UiStyle(
                     Background: null,
