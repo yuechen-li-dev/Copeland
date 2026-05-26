@@ -143,7 +143,7 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 | Avalonia static bitmap window | Presenter sample | Implemented | Presenter docs/proofs | M0 presenter baseline.
 | Avalonia click-to-action | Presenter sample | Partial | Presenter/runtime docs | Expand robust input loops.
 | Avalonia redraw loop | Presenter sample | Partial | Presenter docs | Harden for multi-event scenarios.
-| Scaling/DPI conversion | Presenter sample | Planned | None | Roadmap M1e candidate.
+| Scaling/DPI conversion | Presenter sample | Partial | Presenter M1d mapper/tests | Explicit image-to-root mapping landed for None/Fill/Uniform math; broader DPI policy still pending.
 | Window resize handling | Presenter sample | Planned | None | Needed for practical desktop UX.
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
@@ -209,7 +209,7 @@ React mapping guide:
 - **M1a**: pipeline extraction / reusable `UiNode`-to-frame helper.
 - **M1b**: presenter sample cleanup using pipeline helper.
 - **M1c**: settings/counter presenter sample using dispatch-table transitions (implemented).
-- **M1d**: follow-on presenter interaction hardening/documentation sweep (planned).
+- **M1d**: image-to-root coordinate mapping for presenter clicks (implemented).
 - **M1e**: scaling/DPI pointer conversion.
 - **M1f**: border/radius style support.
 - **M1g**: real text backend adapter.
@@ -238,6 +238,7 @@ React mapping guide:
 - `docs/machina-presenter-m0c.md`
 - `docs/machina-presenter-m0d.md`
 - `docs/machina-presenter-m1c.md`
+- `docs/machina-presenter-m1d.md`
 - `docs/dominatus-authoring-footguns.md`
 
 ## M1b support matrix update
