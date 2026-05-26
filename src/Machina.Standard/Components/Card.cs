@@ -18,15 +18,24 @@ public static class Card
         ArgumentNullException.ThrowIfNull(child);
 
         var effectiveTheme = theme ?? StandardTheme.Default;
+        var inset = effectiveTheme.Spacing.Sm;
+        var content = UI.Anchor(
+            child,
+            id: CreateChildId(id, "content"),
+            left: inset,
+            right: inset,
+            top: inset,
+            bottom: inset);
+
         var style = new UiStyle(
             Background: effectiveTheme.Colors.Background,
             Foreground: effectiveTheme.Colors.Foreground,
-            Padding: effectiveTheme.Spacing.Lg,
+            Padding: 0,
             BorderColor: effectiveTheme.Colors.Border,
             BorderThickness: 1);
 
         return UI.Rect(
-            child,
+            content,
             id,
             width,
             height,
@@ -56,5 +65,17 @@ public static class Card
             effectiveTheme,
             width,
             height);
+    }
+
+    private static NodeId? CreateChildId(
+        NodeId? id,
+        string suffix)
+    {
+        if (id is not { } value)
+        {
+            return null;
+        }
+
+        return new NodeId($"{value.Value}.{suffix}");
     }
 }

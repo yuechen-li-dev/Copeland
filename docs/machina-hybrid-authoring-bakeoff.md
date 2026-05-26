@@ -23,3 +23,8 @@ Based on M4a sample and tests, hybrid appears preferred for app authoring: it ke
 
 ## M4b note (2026-05-26)
 Reference audit aligns this document with imported MachinaLayout.JS frame/stack semantics in \.
+\n## M4c layout-padding hardening note\n\nM4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (AnchorFrame), rather than relying on  to move children. Stack behavior remains ordered arithmetic () and is not Flexbox.\n
+
+## M4c layout-padding hardening note
+
+M4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (`AnchorFrame`), rather than relying on `UiStyle.Padding` to move children. Stack behavior remains ordered arithmetic (`StackArrange`) and is not Flexbox.

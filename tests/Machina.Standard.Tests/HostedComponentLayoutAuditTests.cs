@@ -28,7 +28,7 @@ public sealed class HostedComponentLayoutAuditTests
         Assert.Equal(new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0), componentRoot.Frame);
 
         var column = Assert.Single(lowered.Rows, x => x.Id.Value == "settings-card/settings-card-column");
-        Assert.Equal("settings-card/settings-card-content", column.Parent!.Value);
+        Assert.Equal("settings-card/settings-card-content.content", column.Parent!.Value);
         var arrange = Assert.IsType<StackArrange>(column.Arrange);
         Assert.Equal(StackAxis.Vertical, arrange.Axis);
 

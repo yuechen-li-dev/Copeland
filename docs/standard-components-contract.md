@@ -237,3 +237,8 @@ For field-like UI, prefer explicit rows (label row + input row) instead of a sin
 
 `CheckboxBox`, `SwitchTrack`, and `SwitchThumb` remain metadata-only helpers. They now emit stronger rectangular control chrome styling (background/border/fill contrast) so flat row composition reads as real controls without adding new primitives.
 \n## M4a hybrid note\nRow-hosted components are now supported: top-level placement stays flat rows, while local component internals use nested UiNode/StandardUI under a host row boundary.
+\n## M4c layout-padding hardening note\n\nM4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (AnchorFrame), rather than relying on  to move children. Stack behavior remains ordered arithmetic () and is not Flexbox.\n
+
+## M4c layout-padding hardening note
+
+M4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (`AnchorFrame`), rather than relying on `UiStyle.Padding` to move children. Stack behavior remains ordered arithmetic (`StackArrange`) and is not Flexbox.
