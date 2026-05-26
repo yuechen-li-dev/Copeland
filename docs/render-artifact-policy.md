@@ -25,6 +25,6 @@ M0e introduces deterministic raster render artifacts for inspection and regressi
 
 ## Text rendering note
 
-- M0e golden text uses `DebugBitmapTextRasterizer`.
-- This is deterministic debug text, not real typography.
+- M1a golden text uses `ReadableBitmapTextRasterizer` (pipeline default).
+- This is deterministic readable bitmap text, still not real typography.
 - Golden changes from text behavior should be treated as renderer-contract changes.

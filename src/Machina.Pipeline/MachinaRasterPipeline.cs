@@ -54,7 +54,7 @@ public sealed class MachinaRasterPipeline
     private static RasterFrame DispatchToRasterFrame(IReadOnlyList<IActuationCommand> commands, ITextRasterizer? textRasterizer)
     {
         var recorder = new RasterRenderRecorder();
-        var renderOptions = new RasterRenderOptions(TextRasterizer: textRasterizer ?? new DebugBitmapTextRasterizer());
+        var renderOptions = new RasterRenderOptions(TextRasterizer: textRasterizer ?? new ReadableBitmapTextRasterizer());
         var host = new ActuatorHost().AddRasterRenderer(recorder, renderOptions);
         AiCtx context = CreateContext(host);
 

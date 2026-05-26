@@ -19,7 +19,7 @@ It converts a UiNode into a complete frame artifact:
 - `MachinaRasterPipelineOptions`: width, height, optional text rasterizer.
 - `MachinaRasterPipeline.Render(...)`: executes the full deterministic path and returns a `MachinaFrame`.
 
-If `TextRasterizer` is null, the pipeline uses `DebugBitmapTextRasterizer` by default.
+If `TextRasterizer` is null, the pipeline uses `ReadableBitmapTextRasterizer` by default.
 
 ## Dependency shape
 
