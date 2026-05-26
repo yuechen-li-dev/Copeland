@@ -47,7 +47,7 @@ internal sealed class Program
 
     private sealed class PresenterWindow : Window
     {
-        private const string BaseTitle = "Machina Presenter M1c";
+        private const string BaseTitle = "Machina Presenter M1d";
 
         private static readonly DispatchTable<DemoState> DemoDispatch =
             DispatchTable.For<DemoState>()
@@ -163,8 +163,17 @@ internal sealed class Program
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
             var position = args.GetPosition(_image);
-            var point = new RuntimePointerPoint((float)position.X, (float)position.Y);
-            var hit = _hitTestIndex.HitTest(point);
+            var presentedPoint = new RuntimePointerPoint(position.X, position.Y);
+            var destination = new PresentedImageRect(0, 0, _image.Bounds.Width, _image.Bounds.Height);
+            RuntimePointerPoint? rootPoint = PresentedImageMapper.ToRootPoint(
+                presentedPoint,
+                _currentFrame.RasterFrame.Width,
+                _currentFrame.RasterFrame.Height,
+                destination,
+                ImageStretchMode.None);
+
+            var point = rootPoint;
+            var hit = point is null ? null : _hitTestIndex.HitTest(point.Value);
             var action = hit?.Action;
             var actionName = action?.Name ?? "<none>";
 
@@ -175,7 +184,7 @@ internal sealed class Program
 
             Title = BuildTitle(actionName);
             Console.WriteLine(
-                $"Pointer ({point.X}, {point.Y}) -> action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}");
+                $"Pointer ({position.X}, {position.Y}) -> root: {(point is null ? "<outside>" : $"{point.Value.X}, {point.Value.Y}")} -> action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}");
         }
 
         private void ApplyAction(UiAction action)
