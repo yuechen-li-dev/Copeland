@@ -58,8 +58,8 @@ public static class Checkbox
         return UI.Rect(
             child: marker,
             id: CreateChildId(id, "box"),
-            width: 16,
-            height: 16,
+            width: 18,
+            height: 18,
             style: new UiStyle(
                 Background: background,
                 Foreground: foreground,
@@ -80,8 +80,8 @@ public static class Checkbox
             return UI.Rect(
                 child: box,
                 id: id,
-                width: 16,
-                height: 16,
+                width: 18,
+                height: 18,
                 style: new UiStyle(
                     Background: null,
                     Foreground: ResolveLabelColor(disabled, theme),
@@ -93,7 +93,7 @@ public static class Checkbox
             id: CreateChildId(id, "label"),
             style: new TextStyle(
                 Color: ResolveLabelColor(disabled, theme),
-                Size: TextSize.Md));
+                Size: TextSize.Sm));
 
         return UI.Row(
             id: id,

@@ -210,9 +210,9 @@ React mapping guide:
 - **M1b**: presenter sample cleanup using pipeline helper.
 - **M1c**: settings/counter presenter sample using dispatch-table transitions (implemented).
 - **M1d**: image-to-root coordinate mapping for presenter clicks (implemented).
-- **M1e**: scaling/DPI pointer conversion.
-- **M1f**: border/radius style support.
-- **M1g**: real text backend adapter.
+- **M1e**: Standard component + presenter visual tuning pass (flat deterministic polish, no new renderer primitives).
+- **M1f**: scaling/DPI pointer conversion follow-through and resize behavior hardening.
+- **M1g**: border/radius style support.
 
 ## Open Questions
 

@@ -197,3 +197,14 @@ Standard components now use simple rectangular borders where appropriate:
 These borders use standard theme border color tokens and thickness metadata.
 
 This is foundational styling, not a polished final design system guarantee. Borders are currently plain rectangular strokes only.
+
+## M1e visual tuning pass
+
+M1e applies a deterministic visual tuning pass using existing Core style fields only:
+
+- button padding tokens were tuned to better fit current bitmap text proportions
+- checkbox box dimensions and label text sizing were tuned for readability
+- switch track/thumb sizing and border styling were tuned for clearer on/off states
+- card usage in the presenter sample moved to a more intentional panel layout with explicit surface spacing
+
+M1e does not add renderer primitives, rounded corners, shadows, gradients, anti-aliasing, or dynamic interaction states.

@@ -88,10 +88,10 @@ public static class StandardButton
     {
         return size switch
         {
-            ButtonSize.Small => theme.Spacing.Sm,
-            ButtonSize.Medium => theme.Spacing.Md,
-            ButtonSize.Large => theme.Spacing.Lg,
-            ButtonSize.Icon => theme.Spacing.Sm,
+            ButtonSize.Small => theme.Spacing.Xs + 2,
+            ButtonSize.Medium => theme.Spacing.Sm,
+            ButtonSize.Large => theme.Spacing.Md,
+            ButtonSize.Icon => theme.Spacing.Xs + 2,
             _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
         };
     }

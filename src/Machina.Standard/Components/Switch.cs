@@ -42,14 +42,16 @@ public static class Switch
     {
         var thumb = UI.Rect(
             id: CreateChildId(id, "thumb"),
-            width: 18,
-            height: 18,
+            width: 14,
+            height: 14,
             style: new UiStyle(
                 Background: theme.Colors.Background,
                 Foreground: null,
+                BorderColor: theme.Colors.Border,
+                BorderThickness: 1,
                 Padding: 0));
 
-        var spacerWidth = isOn ? 18 : 0;
+        var spacerWidth = isOn ? 20 : 0;
         var trackChildren = new List<UiNode>();
 
         if (spacerWidth > 0)
@@ -70,10 +72,12 @@ public static class Switch
         return UI.Rect(
             child: trackContent,
             id: CreateChildId(id, "track"),
-            width: 42,
-            height: 24,
+            width: 40,
+            height: 20,
             style: new UiStyle(
                 Background: ResolveTrackBackground(isOn, disabled, theme),
+                BorderColor: ResolveTrackBorder(disabled, theme),
+                BorderThickness: 1,
                 Foreground: null,
                 Padding: 0));
     }
@@ -90,8 +94,8 @@ public static class Switch
             return UI.Rect(
                 child: switchShell,
                 id: id,
-                width: 42,
-                height: 24,
+                width: 40,
+                height: 20,
                 style: new UiStyle(
                     Background: null,
                     Foreground: ResolveLabelColor(disabled, theme),
@@ -103,7 +107,7 @@ public static class Switch
             id: CreateChildId(id, "label"),
             style: new TextStyle(
                 Color: ResolveLabelColor(disabled, theme),
-                Size: TextSize.Md));
+                Size: TextSize.Sm));
 
         return UI.Row(
             id: id,
@@ -131,6 +135,18 @@ public static class Switch
         }
 
         return theme.Colors.Muted;
+    }
+
+    private static ColorToken ResolveTrackBorder(
+        bool disabled,
+        StandardTheme theme)
+    {
+        if (disabled)
+        {
+            return theme.Colors.MutedForeground;
+        }
+
+        return theme.Colors.Border;
     }
 
     private static ColorToken ResolveLabelColor(
