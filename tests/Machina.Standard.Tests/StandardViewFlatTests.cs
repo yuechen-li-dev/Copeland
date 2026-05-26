@@ -60,4 +60,27 @@ public sealed class StandardViewFlatTests
         Assert.Equal(UiRole.Input, lowered.Semantics["input"].Role);
         Assert.Equal("name.edit", lowered.Actions["input"].Name);
     }
+
+    [Fact]
+    public void StandardView_SubPartHelpers_EmitExpectedMetadata()
+    {
+        var document = UiDocument.Create(
+            [
+                Row.Root("root", StandardView.Card()),
+                Row.Anchor("checkbox-box", "root", left: 0, top: 0, width: 18, height: 18, view: StandardView.CheckboxBox(true, UiAction.Named("email.toggle"))),
+                Row.Anchor("switch-track", "root", left: 0, top: 24, width: 42, height: 20, view: StandardView.SwitchTrack(false, UiAction.Named("notifications.toggle"))),
+                Row.Anchor("switch-thumb", "switch-track", left: 2, top: 2, width: 16, height: 16, view: StandardView.SwitchThumb(false))
+            ]);
+
+        var lowered = UiDocumentLowerer.Lower(document);
+
+        Assert.Equal(UiRole.Checkbox, lowered.Semantics["checkbox-box"].Role);
+        Assert.Equal("email.toggle", lowered.Actions["checkbox-box"].Name);
+
+        Assert.Equal(UiRole.Switch, lowered.Semantics["switch-track"].Role);
+        Assert.Equal("notifications.toggle", lowered.Actions["switch-track"].Name);
+
+        Assert.Equal(UiRole.Container, lowered.Semantics["switch-thumb"].Role);
+        Assert.False(lowered.Actions.ContainsKey("switch-thumb"));
+    }
 }

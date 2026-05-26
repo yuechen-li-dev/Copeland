@@ -54,3 +54,7 @@ M1e moves the presenter sample from prototype-like debug composition toward a si
 ## M2a follow-up
 
 The presenter sample now uses placement-first composition (`UI.Surface` + `UI.At`) for screen-level panel placement and keeps `UI.Column` for in-card flow content only.
+
+## M3e follow-up
+
+After M1e visual polish, M3e restores checkbox/switch visibility with canonical flat `UiDocument` row composition (including explicit switch track/thumb rows) and preserves the existing renderer/runtime architecture.

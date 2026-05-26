@@ -65,3 +65,7 @@ var document = UiDocument.Create(
     ]);
 ```
 \n\n### M3d text alignment\nTextStyle now includes horizontal (TextAlignX) and vertical (TextAlignY) alignment metadata. Defaults remain Left/Top for backward compatibility. Alignment only changes glyph paint origin inside the resolved text rectangle; layout geometry is unchanged. M3d does not add wrapping, ellipsis, multiline layout, baseline typography, kerning, anti-aliasing, or external font dependencies.
+
+## M3e form-row composition
+
+M3e hardens the presenter sample around explicit form-row composition in the flat model. Checkbox and switch controls are now authored as multiple rows (row region + control sub-row + label row content), with action metadata attached to actionable sub-parts.
