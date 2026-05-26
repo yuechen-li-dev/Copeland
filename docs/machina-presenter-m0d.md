@@ -57,3 +57,8 @@ dotnet run --project samples/Machina.Presenter.Sample
 ```
 
 In headless environments, validate via build/test commands and run the UI manually in a desktop-capable environment.
+
+
+## Pipeline extraction note
+
+As of Machina.Pipeline M0a, presenter rendering glue is extracted into `MachinaRasterPipeline` so this sample focuses on presenter concerns (window, bitmap conversion, pointer handling, and dispatch-table state).
