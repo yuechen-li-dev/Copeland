@@ -89,6 +89,8 @@ public static class UiLowerer
             RectNode rect => CreateRectFrame(rect),
             StackNode stack => CreateStackPlaceholderFrame(stack),
             ContainerNode => new FillFrame(),
+            PlacementNode placement => placement.Frame,
+            LayerNode layer => layer.Frame ?? new FillFrame(),
             _ => throw Unsupported(node),
         };
     }
@@ -103,6 +105,8 @@ public static class UiLowerer
             RectNode rect => CreateDirectRectFrame(rect),
             StackNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
             ContainerNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
+            PlacementNode placement => placement.Frame,
+            LayerNode layer => layer.Frame ?? new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
             _ => throw Unsupported(node),
         };
     }
@@ -219,6 +223,18 @@ public static class UiLowerer
 
                 return;
 
+            case PlacementNode placement:
+                LowerNode(placement.Child, context, id, order: 0, isRoot: false, parentIsStack: false);
+                return;
+
+            case LayerNode layer:
+                for (var index = 0; index < layer.Children.Count; index++)
+                {
+                    LowerNode(layer.Children[index], context, id, index, isRoot: false, parentIsStack: false);
+                }
+
+                return;
+
             case TextNode:
             case ButtonNode:
             case SpacerNode:
@@ -275,6 +291,18 @@ public static class UiLowerer
             case SpacerNode:
                 return;
 
+            case PlacementNode:
+                return;
+
+            case LayerNode layer:
+                if (layer.Style is not null)
+                {
+                    context.Styles[id] = layer.Style;
+                }
+
+                context.Semantics[id] = new UiSemantics(UiRole.Container);
+                return;
+
             default:
                 throw Unsupported(node);
         }
@@ -311,6 +339,8 @@ public static class UiLowerer
             StackNode stack => stack.Axis == StackAxis.Horizontal ? "Row" : "Column",
             ContainerNode container => $"Container: {container.AlignX}/{container.AlignY}",
             SpacerNode spacer => spacer.Axis == StackAxis.Horizontal ? "HSpace" : "VSpace",
+            PlacementNode => "Placement",
+            LayerNode => "Layer",
             _ => throw Unsupported(node),
         };
     }

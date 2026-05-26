@@ -7,6 +7,7 @@ using Machina.Core.Semantics;
 using Machina.Core.Styling;
 using Machina.Layout.Compilation;
 using Machina.Layout.Frames;
+using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
 using Xunit;
 
@@ -205,6 +206,71 @@ public sealed class UiLowererTests
         var rectId = new NodeId("rule");
         Assert.Single(result.Rows);
         Assert.Equal(ColorToken.Gray, result.Styles[rectId].Background);
+    }
+
+    [Fact]
+    public void Surface_LowersToRootWithoutStackArrange()
+    {
+        var ui = UI.Surface(id: "surface", width: 640, height: 360, children: []);
+
+        var result = UiLowerer.Lower(ui);
+
+        var rootRow = Assert.Single(result.Rows);
+        Assert.Equal(new NodeId("surface"), rootRow.Id);
+        Assert.IsType<RootFrame>(rootRow.Frame);
+        Assert.Null(rootRow.Arrange);
+    }
+
+    [Fact]
+    public void At_LowersToAbsoluteFrame()
+    {
+        var ui = UI.Surface(
+            id: "surface",
+            children:
+            [
+                UI.At(
+                    id: "panel-slot",
+                    x: 72,
+                    y: 24,
+                    width: 500,
+                    height: 292,
+                    child: UI.Rect(id: "panel")),
+            ]);
+
+        var result = UiLowerer.Lower(ui);
+        var slotRow = result.Rows.Single(row => row.Id == new NodeId("panel-slot"));
+        var slotFrame = Assert.IsType<AbsoluteFrame>(slotRow.Frame);
+        Assert.Equal(72, slotFrame.X);
+        Assert.Equal(24, slotFrame.Y);
+        Assert.Equal(500, slotFrame.Width);
+        Assert.Equal(292, slotFrame.Height);
+
+        var panelRow = result.Rows.Single(row => row.Id == new NodeId("panel"));
+        Assert.Equal(slotRow.Id, panelRow.Parent);
+    }
+
+    [Fact]
+    public void Anchor_LowersToAnchorFrame()
+    {
+        var ui = UI.Surface(
+            children:
+            [
+                UI.Anchor(
+                    id: "panel-anchor",
+                    left: 72,
+                    top: 24,
+                    width: 500,
+                    height: 292,
+                    child: UI.Rect(id: "panel")),
+            ]);
+
+        var result = UiLowerer.Lower(ui);
+        var slotRow = result.Rows.Single(row => row.Id == new NodeId("panel-anchor"));
+        var frame = Assert.IsType<AnchorFrame>(slotRow.Frame);
+        Assert.Equal(UiLength.Px(72), frame.Left);
+        Assert.Equal(UiLength.Px(24), frame.Top);
+        Assert.Equal(UiLength.Px(500), frame.Width);
+        Assert.Equal(UiLength.Px(292), frame.Height);
     }
 
     [Fact]

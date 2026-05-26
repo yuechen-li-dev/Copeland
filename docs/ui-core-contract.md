@@ -201,3 +201,14 @@ Machina.Core M0c does not implement:
 This metadata remains declarative in Core; whether and how a backend renders borders is renderer-dependent.
 
 Current border semantics are intentionally limited to plain rectangular strokes. Border radius, per-side borders, dashed/dotted lines, and other advanced border models are not part of M1b.
+
+## M2a authoring reset
+
+M2a adds placement-first primitives so major panel placement is explicit and readable:
+
+- `UI.Surface` for root independent-position composition
+- `UI.Layer` for non-root independent-position composition
+- `UI.At` lowering to `AbsoluteFrame`
+- `UI.Anchor` lowering to `AnchorFrame`
+
+`UI.Row`/`UI.Column` remain supported and are now documented as flow primitives, not primary screen-placement primitives.
