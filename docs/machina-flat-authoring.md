@@ -27,3 +27,38 @@ Nested `UiNode` authoring remains supported, but it is optional sugar and is not
 - `Render(UiDocument document, MachinaRasterPipelineOptions options)`
 
 The flat path lowers directly to the existing canonical `LayoutRow` model and does not generate wrapper rows.
+
+## M3b hardening updates
+
+- `UiDocumentSnapshotWriter.Write(UiDocument)` provides deterministic row-table snapshots for human and LLM inspection.
+- Snapshot output includes row id, parent, order, frame details, optional arrange details, and view metadata (style/text/semantics/action).
+- `StandardView` helpers are metadata builders that return `UiView`; they are not tree constructors.
+- For field-style composition, use multiple rows (for example, a label row plus an input row) instead of a single mega-view.
+
+## Canonical row-first example
+
+```csharp
+var document = UiDocument.Create(
+    rows:
+    [
+        Row.Root("root", view: View.Rect(background: C.Surface)),
+
+        Row.Anchor(
+            id: "settings-card",
+            parent: "root",
+            left: 72,
+            top: 24,
+            width: 500,
+            height: 292,
+            view: StandardView.Card()),
+
+        Row.Anchor(
+            id: "title",
+            parent: "settings-card",
+            left: 20,
+            right: 20,
+            top: 20,
+            height: 30,
+            view: StandardView.Text("Machina Presenter", size: TextSize.Md)),
+    ]);
+```
