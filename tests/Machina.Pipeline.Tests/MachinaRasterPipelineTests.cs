@@ -165,25 +165,41 @@ public sealed class MachinaRasterPipelineTests
     }
 
     [Fact]
-    public void Pipeline_RendersFlatFormDocument_AndHitTestsCheckboxAndSwitch()
+    public void Pipeline_RendersHybridDocument_AndHitTestsCheckboxAndSwitch()
     {
         var pipeline = new MachinaRasterPipeline();
-        var document = CreatePresenterLikeFormDocument(emailUpdates: true, notifications: false);
+        var document = CreateHybridPresenterDocument(emailUpdates: true, notifications: false);
         var frame = pipeline.Render(document, width: 640, height: 360);
 
-        var emailRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("email-box")].Rect;
+        var emailNodeId = frame.Lowering.Actions.Keys.Single(key => key.Value.Contains("email-updates", StringComparison.Ordinal));
+        var emailRect = frame.Resolved.Nodes[emailNodeId].Rect;
         var emailPoint = new PointerPoint((float)(emailRect.X + 2), (float)(emailRect.Y + 2));
         var emailHit = frame.HitTest.HitTest(emailPoint);
 
         Assert.NotNull(emailHit);
         Assert.Equal("settings.emailUpdates.toggle", emailHit!.Action.Name);
 
-        var switchRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("notifications-track")].Rect;
+        var switchNodeId = frame.Lowering.Actions.Keys.Single(key => key.Value.Contains("notifications", StringComparison.Ordinal));
+        var switchRect = frame.Resolved.Nodes[switchNodeId].Rect;
         var switchPoint = new PointerPoint((float)(switchRect.X + 2), (float)(switchRect.Y + 2));
         var switchHit = frame.HitTest.HitTest(switchPoint);
 
         Assert.NotNull(switchHit);
         Assert.Equal("settings.notifications.toggle", switchHit!.Action.Name);
+    }
+
+    [Fact]
+    public void Pipeline_RendersHybridDocument_AndHitTestsComponentButton()
+    {
+        var pipeline = new MachinaRasterPipeline();
+        var document = CreateHybridPresenterDocument(emailUpdates: true, notifications: false);
+        var frame = pipeline.Render(document, width: 640, height: 360);
+        var buttonRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("settings-card/increment")].Rect;
+        var point = new PointerPoint((float)(buttonRect.X + 4), (float)(buttonRect.Y + 4));
+        var hit = frame.HitTest.HitTest(point);
+
+        Assert.NotNull(hit);
+        Assert.Equal("counter.increment", hit!.Action.Name);
     }
 
     private static UiDocument CreatePresenterLikeFormDocument(bool emailUpdates, bool notifications)
@@ -204,6 +220,32 @@ public sealed class MachinaRasterPipelineTests
                 Row.Fixed("notifications-track", "notifications-row", width: 42, height: 20, view: StandardView.SwitchTrack(notifications, UiAction.Named("settings.notifications.toggle"))),
                 Row.Anchor("notifications-thumb", "notifications-track", left: notifications ? 22 : 2, top: 2, width: 16, height: 16, view: StandardView.SwitchThumb(notifications)),
                 Row.Fill("notifications-label", "notifications-row", view: StandardView.Text($"Notifications: {notificationsStateText}"))
+            ]);
+    }
+
+    private static UiDocument CreateHybridPresenterDocument(bool emailUpdates, bool notifications)
+    {
+        return UiDocument.Create(
+            [
+                Row.Root("root", view: View.Rect(background: ColorToken.Hex(0xEDEFF0FF))),
+                Row.Anchor(
+                    "settings-card",
+                    "root",
+                    left: 72,
+                    top: 24,
+                    width: 500,
+                    height: 292,
+                    component: StandardUI.Card(
+                        id: "settings-card-content",
+                        child: UI.Column(
+                            id: "settings-card-column",
+                            gap: 10,
+                            children:
+                            [
+                                StandardUI.Button("Increment", id: "increment", action: UiAction.Named("counter.increment")),
+                                StandardUI.Checkbox(id: "email-updates", label: "Email updates", isChecked: emailUpdates, changed: UiAction.Named("settings.emailUpdates.toggle")),
+                                StandardUI.Switch(id: "notifications", label: "Notifications", isOn: notifications, changed: UiAction.Named("settings.notifications.toggle"))
+                            ])))
             ]);
     }
     private static int CountNonTransparentPixels(Machina.Renderer.Raster.Dominatus.Models.RasterFrame frame)

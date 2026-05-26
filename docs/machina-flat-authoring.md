@@ -74,3 +74,4 @@ M3e hardens the presenter sample around explicit form-row composition in the fla
 ## M3f control composition note
 
 Checkbox and switch controls remain canonical flat compositions (`email-box`, `notifications-track`, `notifications-thumb`) with state expressed through rectangular fills, borders, and thumb position. No rounded corners are introduced in M3f.
+\n## M4a hybrid note\nRow-hosted components are now supported: top-level placement stays flat rows, while local component internals use nested UiNode/StandardUI under a host row boundary.

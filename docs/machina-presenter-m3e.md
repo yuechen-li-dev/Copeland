@@ -45,3 +45,4 @@ These helpers only emit existing style/semantics/action metadata.
 ```bash
 dotnet run --project samples/Machina.Presenter.Sample
 ```
+\n## M4a hybrid note\nRow-hosted components are now supported: top-level placement stays flat rows, while local component internals use nested UiNode/StandardUI under a host row boundary.

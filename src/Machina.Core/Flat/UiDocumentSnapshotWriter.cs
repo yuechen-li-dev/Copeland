@@ -36,6 +36,11 @@ public static class UiDocumentSnapshotWriter
                 parts.Add($"view={FormatView(row.View)}");
             }
 
+            if (row.Component is not null)
+            {
+                parts.Add($"component={FormatComponent(row.Component)}");
+            }
+
             builder.Append("    ");
             builder.AppendLine(string.Join(' ', parts));
         }
@@ -189,5 +194,12 @@ public static class UiDocumentSnapshotWriter
     private static string Escape(string value)
     {
         return value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+    }
+
+    private static string FormatComponent(Machina.Core.Nodes.UiNode component)
+    {
+        var kind = component.GetType().Name.Replace("Node", string.Empty, StringComparison.Ordinal);
+        var id = component.Id?.Value ?? "<generated>";
+        return $"{kind}(id={id})";
     }
 }

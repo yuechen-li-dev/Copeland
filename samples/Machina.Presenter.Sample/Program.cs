@@ -6,7 +6,9 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Machina.Core.Actions;
+using Machina.Core.Authoring;
 using Machina.Core.Flat;
+using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Renderer.Raster.Dominatus.Models;
@@ -124,9 +126,6 @@ internal sealed class Program
 
         private static UiDocument BuildUi(DemoState state)
         {
-            var emailStateText = state.EmailUpdates ? "on" : "off";
-            var notificationsStateText = state.Notifications ? "on" : "off";
-
             return UiDocument.Create(
                 rows:
                 [
@@ -140,104 +139,35 @@ internal sealed class Program
                         top: 24,
                         width: 500,
                         height: 292,
-                        view: StandardView.Card()),
-                    Row.Anchor(
-                        id: "title",
-                        parent: "settings-card",
-                        left: 20,
-                        right: 20,
-                        top: 20,
-                        height: 30,
-                        view: StandardView.Text("Machina Presenter", size: TextSize.Md, color: ColorToken.Hex(0x18181BFF))),
-                    Row.Anchor(
-                        id: "count",
-                        parent: "settings-card",
-                        left: 20,
-                        right: 20,
-                        top: 58,
-                        height: 20,
-                        view: StandardView.Text($"Count: {state.Count}", size: TextSize.Sm, color: ColorToken.Hex(0x52525BFF))),
-                    Row.Anchor(
-                        id: "increment",
-                        parent: "settings-card",
-                        left: 20,
-                        top: 88,
-                        width: 180,
-                        height: 30,
-                        view: StandardView.Button("Increment", action: Actions.Increment.ToAction())),
-                    Row.Anchor(
-                        id: "settings-flow",
-                        parent: "settings-card",
-                        left: 20,
-                        right: 20,
-                        top: 128,
-                        height: 84,
-                        view: StandardView.Separator()),
-                    Row.Anchor(
-                        id: "email-row",
-                        parent: "settings-card",
-                        left: 20,
-                        right: 20,
-                        top: 150,
-                        height: 24,
-                        arrange: new StackArrange(StackAxis.Horizontal, Gap: 8)),
-                    Row.Fixed(
-                        id: "email-box",
-                        parent: "email-row",
-                        width: 18,
-                        height: 18,
-                        view: StandardView.CheckboxBox(
-                            isChecked: state.EmailUpdates,
-                            action: Actions.ToggleEmailUpdates.ToAction())),
-                    Row.Fill(
-                        id: "email-label",
-                        parent: "email-row",
-                        view: StandardView.Text(
-                            $"Email updates: {emailStateText}",
-                            size: TextSize.Sm,
-                            alignY: TextAlignY.Center,
-                            color: ColorToken.Hex(0x3F3F46FF))),
-                    Row.Anchor(
-                        id: "notifications-row",
-                        parent: "settings-card",
-                        left: 20,
-                        right: 20,
-                        top: 184,
-                        height: 24,
-                        arrange: new StackArrange(StackAxis.Horizontal, Gap: 8)),
-                    Row.Fixed(
-                        id: "notifications-track",
-                        parent: "notifications-row",
-                        width: 42,
-                        height: 20,
-                        view: StandardView.SwitchTrack(
-                            isOn: state.Notifications,
-                            action: Actions.ToggleNotifications.ToAction())),
-                    Row.Anchor(
-                        id: "notifications-thumb",
-                        parent: "notifications-track",
-                        left: state.Notifications ? 22 : 2,
-                        top: 2,
-                        width: 16,
-                        height: 16,
-                        view: StandardView.SwitchThumb(isOn: state.Notifications)),
-                    Row.Fill(
-                        id: "notifications-label",
-                        parent: "notifications-row",
-                        view: StandardView.Text(
-                            $"Notifications: {notificationsStateText}",
-                            size: TextSize.Sm,
-                            alignY: TextAlignY.Center,
-                            color: ColorToken.Hex(0x3F3F46FF))),
-                    Row.Anchor(
-                        id: "footnote",
-                        parent: "settings-card",
-                        left: 20,
-                        right: 20,
-                        bottom: 20,
-                        height: 16,
-                        view: StandardView.Text("Deterministic sample UI", size: TextSize.Sm, color: ColorToken.Hex(0x71717AFF)))
+                        component: SettingsCard(state))
                 ]);
+        }
+
+        private static UiNode SettingsCard(DemoState state)
+        {
+            return StandardUI.Card(
+                id: "settings-card-content",
+                child: UI.Column(
+                    id: "settings-card-column",
+                    gap: 10,
+                    children:
+                    [
+                        UI.Text("Machina Presenter", id: "title", size: TextSize.Md),
+                        UI.Text($"Count: {state.Count}", id: "count", size: TextSize.Sm),
+                        StandardUI.Button("Increment", id: "increment", action: Actions.Increment.ToAction()),
+                        StandardUI.Separator(id: "rule"),
+                        StandardUI.Checkbox(
+                            id: "email-updates",
+                            label: $"Email updates: {OnOff(state.EmailUpdates)}",
+                            isChecked: state.EmailUpdates,
+                            changed: Actions.ToggleEmailUpdates.ToAction()),
+                        StandardUI.Switch(
+                            id: "notifications",
+                            label: $"Notifications: {OnOff(state.Notifications)}",
+                            isOn: state.Notifications,
+                            changed: Actions.ToggleNotifications.ToAction()),
+                        UI.Text("Deterministic sample UI", id: "footnote", size: TextSize.Sm)
+                    ]));
         }
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
