@@ -1,5 +1,6 @@
 using Machina.Core.Actions;
 using Machina.Core.Authoring;
+using Machina.Core.Flat;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Dominatus.Rendering.Commands;
@@ -121,6 +122,27 @@ public sealed class MachinaRasterPipelineTests
         Assert.Null(hit);
     }
 
+
+    [Fact]
+    public void Pipeline_RendersFlatUiDocument()
+    {
+        var pipeline = new MachinaRasterPipeline();
+        var document = UiDocument.Create(
+            [
+                Row.Root("root", View.Rect(background: ColorToken.Hex(0x202020FF))),
+                Row.Anchor("button", "root", left: 20, top: 20, width: 120, height: 32, view: Machina.Standard.Authoring.StandardView.Button("Go", UiAction.Named("go")))
+            ]);
+
+        var frame = pipeline.Render(document, width: 220, height: 120);
+        Assert.True(CountNonTransparentPixels(frame.RasterFrame) > 0);
+
+        var rect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("button")].Rect;
+        var point = new PointerPoint((float)(rect.X + rect.Width / 2.0), (float)(rect.Y + rect.Height / 2.0));
+        var hit = frame.HitTest.HitTest(point);
+        Assert.NotNull(hit);
+        Assert.Equal("go", hit!.Action.Name);
+        Assert.Equal(document.Rows.Count, frame.Lowering.Rows.Count);
+    }
     private static int CountNonTransparentPixels(Machina.Renderer.Raster.Dominatus.Models.RasterFrame frame)
     {
         var count = 0;

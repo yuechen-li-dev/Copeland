@@ -49,3 +49,4 @@ UI.Surface(children:
         child: StandardUI.Card(...))
 ])
 ```
+\n\n## M3a flat authoring note\nRow-first UiDocument/UiRow authoring is canonical for top-level screens; nested UiNode trees remain optional sugar.

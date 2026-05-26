@@ -6,8 +6,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Machina.Core.Actions;
-using Machina.Core.Authoring;
-using Machina.Core.Nodes;
+using Machina.Core.Flat;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Renderer.Raster.Dominatus.Models;
@@ -113,65 +112,81 @@ internal sealed class Program
             Height = _currentFrame.RasterFrame.Height;
         }
 
-        private static UiNode BuildUi(DemoState state)
+        private static UiDocument BuildUi(DemoState state)
         {
             var emailStateText = state.EmailUpdates ? "on" : "off";
             var notificationsStateText = state.Notifications ? "on" : "off";
 
-            return UI.Surface(
-                id: "surface",
-                width: 640,
-                height: 360,
-                color: ColorToken.Hex(0xEDEDF0FF),
-                style: new UiStyle(Foreground: ColorToken.Hex(0x09090BFF), Padding: 0),
-                children:
+            return UiDocument.Create(
+                rows:
                 [
-                    UI.At(
-                        id: "settings-card-slot",
-                        x: 72,
-                        y: 24,
+                    Row.Root(
+                        id: "root",
+                        view: View.Rect(background: ColorToken.Hex(0xEDEDF0FF), foreground: ColorToken.Hex(0x09090BFF))),
+                    Row.Anchor(
+                        id: "settings-card",
+                        parent: "root",
+                        left: 72,
+                        top: 24,
                         width: 500,
                         height: 292,
-                        child: StandardUI.Card(
-                            id: "settings-card",
-                            width: 500,
-                            height: 292,
-                            child: UI.Column(
-                                id: "content",
-                                gap: 10,
-                                children:
-                                [
-                                    UI.Text(
-                                        "Machina Presenter",
-                                        id: "title",
-                                        color: ColorToken.Hex(0x18181BFF),
-                                        size: TextSize.Md),
-                                    UI.Text(
-                                        $"Count: {state.Count}",
-                                        id: "count",
-                                        color: ColorToken.Hex(0x52525BFF),
-                                        size: TextSize.Sm),
-                                    StandardUI.Button(
-                                        "Increment",
-                                        id: "increment",
-                                        action: UiAction.Named("counter.increment")),
-                                    StandardUI.Separator(id: "rule"),
-                                    StandardUI.Checkbox(
-                                        id: "email-updates",
-                                        label: $"Email updates: {emailStateText}",
-                                        isChecked: state.EmailUpdates,
-                                        changed: UiAction.Named("settings.emailUpdates.toggle")),
-                                    StandardUI.Switch(
-                                        id: "notifications",
-                                        label: $"Notifications: {notificationsStateText}",
-                                        isOn: state.Notifications,
-                                        changed: UiAction.Named("settings.notifications.toggle")),
-                                    UI.Text(
-                                        "Deterministic sample UI",
-                                        id: "footnote",
-                                        color: ColorToken.Hex(0x71717AFF),
-                                        size: TextSize.Sm),
-                                ])))
+                        view: StandardView.Card()),
+                    Row.Anchor(
+                        id: "title",
+                        parent: "settings-card",
+                        left: 20,
+                        right: 20,
+                        top: 20,
+                        height: 30,
+                        view: StandardView.Text("Machina Presenter", size: TextSize.Md, color: ColorToken.Hex(0x18181BFF))),
+                    Row.Anchor(
+                        id: "count",
+                        parent: "settings-card",
+                        left: 20,
+                        right: 20,
+                        top: 58,
+                        height: 20,
+                        view: StandardView.Text($"Count: {state.Count}", size: TextSize.Sm, color: ColorToken.Hex(0x52525BFF))),
+                    Row.Anchor(
+                        id: "increment",
+                        parent: "settings-card",
+                        left: 20,
+                        top: 88,
+                        width: 180,
+                        height: 30,
+                        view: StandardView.Button("Increment", action: UiAction.Named("counter.increment"))),
+                    Row.Anchor(
+                        id: "settings-flow",
+                        parent: "settings-card",
+                        left: 20,
+                        right: 20,
+                        top: 128,
+                        height: 80,
+                        arrange: new Machina.Layout.Frames.StackArrange(Machina.Layout.Frames.StackAxis.Vertical, Gap: 8)),
+                    Row.Fixed(
+                        id: "email-updates",
+                        parent: "settings-flow",
+                        height: 24,
+                        view: StandardView.Checkbox(
+                            label: $"Email updates: {emailStateText}",
+                            isChecked: state.EmailUpdates,
+                            action: UiAction.Named("settings.emailUpdates.toggle"))),
+                    Row.Fixed(
+                        id: "notifications",
+                        parent: "settings-flow",
+                        height: 24,
+                        view: StandardView.Switch(
+                            label: $"Notifications: {notificationsStateText}",
+                            isOn: state.Notifications,
+                            action: UiAction.Named("settings.notifications.toggle"))),
+                    Row.Anchor(
+                        id: "footnote",
+                        parent: "settings-card",
+                        left: 20,
+                        right: 20,
+                        top: 224,
+                        height: 20,
+                        view: StandardView.Text("Deterministic sample UI", size: TextSize.Sm, color: ColorToken.Hex(0x71717AFF)))
                 ]);
         }
 
