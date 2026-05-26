@@ -147,3 +147,6 @@ Grid supports fixed/fill tracks, row/column gaps, padding, and row/column spans.
 ## M2a note
 
 Machina.Core now exposes placement-first helpers (`UI.At` / `UI.Anchor`) that lower directly to this port's existing `AbsoluteFrame` and `AnchorFrame` frame model.
+
+## M4b note (2026-05-26)
+Reference audit aligns this document with imported MachinaLayout.JS frame/stack semantics in \.
