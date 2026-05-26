@@ -44,24 +44,24 @@ public static class Checkbox
             ? theme.Colors.PrimaryForeground
             : theme.Colors.Foreground;
 
-        UiNode? marker = null;
-        if (isChecked)
-        {
-            marker = UI.Anchor(
-                id: CreateChildId(id, "mark-slot"),
-                left: 4,
-                top: 4,
+        var markerBackground = isChecked
+            ? foreground
+            : ColorToken.Hex(0x00000000);
+
+        var marker = UI.Anchor(
+            id: CreateChildId(id, "mark-slot"),
+            left: 4,
+            top: 4,
+            width: 10,
+            height: 10,
+            child: UI.Rect(
+                id: CreateChildId(id, "mark"),
                 width: 10,
                 height: 10,
-                child: UI.Rect(
-                    id: CreateChildId(id, "mark"),
-                    width: 10,
-                    height: 10,
-                    style: new UiStyle(
-                        Background: foreground,
-                        Foreground: null,
-                        Padding: 0)));
-        }
+                style: new UiStyle(
+                    Background: markerBackground,
+                    Foreground: null,
+                    Padding: 0)));
 
         return UI.Rect(
             child: marker,

@@ -9,6 +9,7 @@ using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Lowering;
 using Machina.Core.Nodes;
+using Machina.Core.Semantics;
 using Machina.Core.Styling;
 using Machina.Dominatus.Rendering.Bridge;
 using Machina.Dominatus.Rendering.Commands;
@@ -93,7 +94,40 @@ public sealed class MachinaRenderBridgeTests
         Assert.Contains(commands, cmd => cmd is FillRectCommand fill && fill.Id == "card");
         Assert.Contains(commands, cmd => cmd is FillRectCommand fill && fill.Id == "save");
         Assert.Contains(commands, cmd => cmd is DrawTextCommand draw && draw.Id == "title" && draw.Text == "Profile");
-        Assert.Contains(commands, cmd => cmd is DrawTextCommand draw && draw.Id == "save" && draw.Text == "Save");
+        Assert.Contains(commands, cmd => cmd is DrawTextCommand draw && draw.Id == "save.label" && draw.Text == "Save");
+        Assert.DoesNotContain(commands, cmd => cmd is DrawTextCommand draw && draw.Id == "save");
+    }
+
+    [Fact]
+    public void ButtonSemanticLabel_DoesNotEmitDrawTextWithoutTextVisual()
+    {
+        var ui = UI.Rect(
+            id: "button-shell",
+            width: 80,
+            height: 30) with
+        {
+            Semantics = new UiSemantics(UiRole.Button, "Increment", Focusable: true),
+        };
+
+        var commands = BuildCommands(ui, new MachinaRenderOptions(200, 100));
+
+        Assert.DoesNotContain(commands, command => command is DrawTextCommand);
+    }
+
+    [Fact]
+    public void StandardButton_EmitsExactlyOneDrawTextCommand()
+    {
+        var ui = StandardUI.Button("Increment", id: "increment", action: UiAction.Named("increment"));
+        var commands = BuildCommands(ui, new MachinaRenderOptions(240, 120));
+
+        var incrementTextCommands = commands
+            .OfType<DrawTextCommand>()
+            .Where(command => command.Text == "Increment")
+            .ToList();
+
+        Assert.Single(incrementTextCommands);
+        Assert.Equal("increment.label", incrementTextCommands[0].Id);
+        Assert.DoesNotContain(commands, command => command is DrawTextCommand draw && draw.Id == "increment");
     }
 
     [Fact]

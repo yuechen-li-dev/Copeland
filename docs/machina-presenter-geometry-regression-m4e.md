@@ -15,3 +15,7 @@ Manual GUI screenshots are secondary confirmation only.
 Primary proof is deterministic headless assertions on lowered rows, resolved rectangles, metadata, and hit-test targets.
 
 If a control looks wrong, add a resolved-geometry assertion first, then patch the control.
+
+
+## M4f note
+M4f adds semantic-text separation and state-stable control geometry. Semantic labels are not paint; explicit text visuals emit draw text. Checkbox/switch state changes should preserve row identity/shape and adjust stable style/geometry values instead of adding/removing rows.

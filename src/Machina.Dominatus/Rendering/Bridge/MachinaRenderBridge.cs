@@ -132,11 +132,7 @@ public static class MachinaRenderBridge
     private static bool ShouldDrawText(UiSemantics semantic)
     {
         return semantic.Role == UiRole.Text
-            || semantic.Role == UiRole.Label
-            || semantic.Role == UiRole.Button
-            || semantic.Role == UiRole.Input
-            || semantic.Role == UiRole.Checkbox
-            || semantic.Role == UiRole.Switch;
+            || semantic.Role == UiRole.Label;
     }
 
     private static MachinaRenderOptions ResolveOptions(ResolvedLayoutDocument resolved, MachinaRenderOptions? options)

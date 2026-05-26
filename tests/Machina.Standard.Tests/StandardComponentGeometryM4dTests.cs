@@ -59,8 +59,52 @@ public sealed class StandardComponentGeometryM4dTests
         Assert.Equal(18, GetRect(checkedResolved, "host/email.box").Height);
         Assert.True(GetRect(checkedResolved, "host/email.label").X > (GetRect(checkedResolved, "host/email.box").X + GetRect(checkedResolved, "host/email.box").Width));
         Assert.Contains(checkedLowered.Rows, row => row.Id.Value == "host/email.mark");
-        Assert.DoesNotContain(uncheckedLowered.Rows, row => row.Id.Value == "host/email.mark");
+        Assert.Contains(uncheckedLowered.Rows, row => row.Id.Value == "host/email.mark");
         Assert.Contains(checkedLowered.Actions, pair => pair.Value.Name == "toggle" && pair.Key.Value == "host/email");
+    }
+
+    [Fact]
+    public void StandardCheckbox_CheckedAndUnchecked_LabelRectIsStable()
+    {
+        var uncheckedLowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: false, changed: UiAction.Named("toggle")), 240, 40);
+        var checkedLowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: true, changed: UiAction.Named("toggle")), 240, 40);
+        var uncheckedResolved = Resolve(uncheckedLowered, 320, 120);
+        var checkedResolved = Resolve(checkedLowered, 320, 120);
+
+        var uncheckedLabel = GetRect(uncheckedResolved, "host/email.label");
+        var checkedLabel = GetRect(checkedResolved, "host/email.label");
+
+        Assert.Equal(uncheckedLabel, checkedLabel);
+    }
+
+    [Fact]
+    public void StandardCheckbox_CheckedAndUnchecked_RowShapeIsStable()
+    {
+        var uncheckedLowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: false, changed: UiAction.Named("toggle")), 240, 40);
+        var checkedLowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: true, changed: UiAction.Named("toggle")), 240, 40);
+
+        var uncheckedIds = uncheckedLowered.Rows.Select(row => row.Id.Value).OrderBy(value => value).ToArray();
+        var checkedIds = checkedLowered.Rows.Select(row => row.Id.Value).OrderBy(value => value).ToArray();
+
+        Assert.Equal(uncheckedIds, checkedIds);
+        Assert.Contains(uncheckedIds, id => id == "host/email.mark");
+    }
+
+    [Fact]
+    public void StandardCheckbox_CheckedMark_IsCenteredGeometry()
+    {
+        var checkedLowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email", isChecked: true, changed: UiAction.Named("toggle")), 220, 40);
+        var checkedResolved = Resolve(checkedLowered, 300, 120);
+
+        var box = GetRect(checkedResolved, "host/email.box");
+        var mark = GetRect(checkedResolved, "host/email.mark");
+
+        Assert.Equal(18, box.Width);
+        Assert.Equal(18, box.Height);
+        Assert.Equal(10, mark.Width);
+        Assert.Equal(10, mark.Height);
+        Assert.Equal(box.X + (box.Width / 2), mark.X + (mark.Width / 2));
+        Assert.Equal(box.Y + (box.Height / 2), mark.Y + (mark.Height / 2));
     }
 
     [Fact]
@@ -81,6 +125,29 @@ public sealed class StandardComponentGeometryM4dTests
         Assert.True(onThumb.X >= track.X && (onThumb.X + onThumb.Width) <= (track.X + track.Width));
         Assert.True(GetRect(onResolved, "host/notifications.label").X > (track.X + track.Width));
         Assert.Contains(onLowered.Actions, pair => pair.Value.Name == "toggle" && pair.Key.Value == "host/notifications");
+    }
+
+    [Fact]
+    public void StandardSwitch_OnAndOff_LabelRectStable_ThumbMovesOnly()
+    {
+        var offLowered = LowerHostedComponent(StandardUI.Switch(id: "notifications", label: "Notifications", isOn: false, changed: UiAction.Named("toggle")), 260, 40);
+        var onLowered = LowerHostedComponent(StandardUI.Switch(id: "notifications", label: "Notifications", isOn: true, changed: UiAction.Named("toggle")), 260, 40);
+        var offResolved = Resolve(offLowered, 360, 120);
+        var onResolved = Resolve(onLowered, 360, 120);
+
+        Assert.Equal(GetRect(offResolved, "host/notifications.label"), GetRect(onResolved, "host/notifications.label"));
+        Assert.Equal(GetRect(offResolved, "host/notifications.track"), GetRect(onResolved, "host/notifications.track"));
+
+        var offThumb = GetRect(offResolved, "host/notifications.thumb");
+        var onThumb = GetRect(onResolved, "host/notifications.thumb");
+        Assert.Equal(offThumb.Y, onThumb.Y);
+        Assert.Equal(offThumb.Width, onThumb.Width);
+        Assert.Equal(offThumb.Height, onThumb.Height);
+        Assert.True(onThumb.X > offThumb.X);
+
+        var offIds = offLowered.Rows.Select(row => row.Id.Value).OrderBy(value => value).ToArray();
+        var onIds = onLowered.Rows.Select(row => row.Id.Value).OrderBy(value => value).ToArray();
+        Assert.Equal(offIds, onIds);
     }
 
     [Fact]
