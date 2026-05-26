@@ -47,14 +47,20 @@ public static class Checkbox
         UiNode? marker = null;
         if (isChecked)
         {
-            marker = UI.Text(
-                "✓",
-                id: CreateChildId(id, "marker"),
-                style: new TextStyle(
-                    Color: foreground,
-                    Size: TextSize.Sm,
-                    AlignX: TextAlignX.Center,
-                    AlignY: TextAlignY.Center));
+            marker = UI.Anchor(
+                id: CreateChildId(id, "mark-slot"),
+                left: 4,
+                top: 4,
+                width: 10,
+                height: 10,
+                child: UI.Rect(
+                    id: CreateChildId(id, "mark"),
+                    width: 10,
+                    height: 10,
+                    style: new UiStyle(
+                        Background: foreground,
+                        Foreground: null,
+                        Padding: 0)));
         }
 
         return UI.Rect(

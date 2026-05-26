@@ -21,3 +21,4 @@ Manual GUI runs remain a confirmation pass and are not used to discover layout c
 ## North star
 
 Layout and component correctness should be unit-testable without browser, Avalonia window, or screenshot-based debugging.
+\n- M4e note: presenter sample geometry is now validated with headless resolved-rectangle assertions; manual GUI checks are secondary.

@@ -40,9 +40,14 @@ public static class StandardButton
             top: 0,
             bottom: 0);
 
+        var buttonWidth = ResolveButtonWidth(text, size);
+        var buttonHeight = ResolveButtonHeight(size);
+
         return UI.Rect(
             child: labelNode,
             id: id,
+            width: buttonWidth,
+            height: buttonHeight,
             style: style) with
         {
             Semantics = new UiSemantics(
@@ -94,6 +99,38 @@ public static class StandardButton
             ButtonSize.Medium => TextSize.Md,
             ButtonSize.Large => TextSize.Md,
             ButtonSize.Icon => TextSize.Sm,
+            _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
+        };
+    }
+
+    private static double ResolveButtonWidth(string text, ButtonSize size)
+    {
+        var horizontalPadding = size switch
+        {
+            ButtonSize.Small => 20,
+            ButtonSize.Medium => 24,
+            ButtonSize.Large => 32,
+            ButtonSize.Icon => 0,
+            _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
+        };
+
+        if (size == ButtonSize.Icon)
+        {
+            return ResolveButtonHeight(size);
+        }
+
+        var estimatedTextWidth = Math.Max(1, text.Length) * 8;
+        return estimatedTextWidth + horizontalPadding;
+    }
+
+    private static double ResolveButtonHeight(ButtonSize size)
+    {
+        return size switch
+        {
+            ButtonSize.Small => 28,
+            ButtonSize.Medium => 32,
+            ButtonSize.Large => 36,
+            ButtonSize.Icon => 32,
             _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
         };
     }

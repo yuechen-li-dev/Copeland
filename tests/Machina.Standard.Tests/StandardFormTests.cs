@@ -125,7 +125,7 @@ public sealed class StandardFormTests
 
         Assert.Contains("accept", snapshot);
         Assert.Contains("Accept terms", snapshot);
-        Assert.Contains("✓", snapshot);
+        Assert.Contains("accept.mark", snapshot, StringComparison.Ordinal);
         Assert.Equal(UiRole.Checkbox, lowered.Semantics[checkboxId].Role);
         Assert.Equal("Accept terms", lowered.Semantics[checkboxId].Label);
         Assert.Equal("accept.changed", lowered.Actions[checkboxId].Name);

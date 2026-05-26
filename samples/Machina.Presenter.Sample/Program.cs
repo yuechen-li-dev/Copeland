@@ -51,26 +51,19 @@ internal sealed class Program
     {
         private const string BaseTitle = "Machina Presenter M1e";
 
-        private static class Actions
-        {
-            public static readonly UiActionId Increment = new("counter.increment");
-            public static readonly UiActionId ToggleEmailUpdates = new("settings.emailUpdates.toggle");
-            public static readonly UiActionId ToggleNotifications = new("settings.notifications.toggle");
-        }
-
         private static readonly DispatchTable<DemoState> DemoDispatch =
             DispatchTable.Create<DemoState>(
                 [
                     DispatchTransitions.Increment<DemoState>(
-                    Actions.Increment,
+                    DemoDocumentFactory.Actions.Increment,
                     get: state => state.Count,
                     set: (state, value) => state with { Count = value }),
                     DispatchTransitions.Toggle<DemoState>(
-                    Actions.ToggleEmailUpdates,
+                    DemoDocumentFactory.Actions.ToggleEmailUpdates,
                     get: state => state.EmailUpdates,
                     set: (state, value) => state with { EmailUpdates = value }),
                     DispatchTransitions.Toggle<DemoState>(
-                    Actions.ToggleNotifications,
+                    DemoDocumentFactory.Actions.ToggleNotifications,
                     get: state => state.Notifications,
                     set: (state, value) => state with { Notifications = value }),
                 ]);
@@ -110,11 +103,8 @@ internal sealed class Program
 
         private void RenderCurrentState()
         {
-            const int width = 640;
-            const int height = 360;
-
-            var ui = BuildUi(_state);
-            _currentFrame = _pipeline.Render(ui, width, height);
+            var ui = DemoDocumentFactory.Build(_state);
+            _currentFrame = _pipeline.Render(ui, DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
             _hitTestIndex = _currentFrame.HitTest;
 
             _image.Source = ToBitmap(_currentFrame.RasterFrame);
@@ -122,52 +112,6 @@ internal sealed class Program
             _image.Height = _currentFrame.RasterFrame.Height;
             Width = _currentFrame.RasterFrame.Width;
             Height = _currentFrame.RasterFrame.Height;
-        }
-
-        private static UiDocument BuildUi(DemoState state)
-        {
-            return UiDocument.Create(
-                rows:
-                [
-                    Row.Root(
-                        id: "root",
-                        view: View.Rect(background: ColorToken.Hex(0xEDEDF0FF), foreground: ColorToken.Hex(0x09090BFF))),
-                    Row.Anchor(
-                        id: "settings-card",
-                        parent: "root",
-                        left: 72,
-                        top: 24,
-                        width: 500,
-                        height: 292,
-                        component: SettingsCard(state))
-                ]);
-        }
-
-        private static UiNode SettingsCard(DemoState state)
-        {
-            return StandardUI.Card(
-                id: "settings-card-content",
-                child: UI.Column(
-                    id: "settings-card-column",
-                    gap: 10,
-                    children:
-                    [
-                        UI.Text("Machina Presenter", id: "title", size: TextSize.Md),
-                        UI.Text($"Count: {state.Count}", id: "count", size: TextSize.Sm),
-                        StandardUI.Button("Increment", id: "increment", action: Actions.Increment.ToAction()),
-                        StandardUI.Separator(id: "rule"),
-                        StandardUI.Checkbox(
-                            id: "email-updates",
-                            label: $"Email updates: {OnOff(state.EmailUpdates)}",
-                            isChecked: state.EmailUpdates,
-                            changed: Actions.ToggleEmailUpdates.ToAction()),
-                        StandardUI.Switch(
-                            id: "notifications",
-                            label: $"Notifications: {OnOff(state.Notifications)}",
-                            isOn: state.Notifications,
-                            changed: Actions.ToggleNotifications.ToAction()),
-                        UI.Text("Deterministic sample UI", id: "footnote", size: TextSize.Sm)
-                    ]));
         }
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
@@ -218,10 +162,6 @@ internal sealed class Program
         }
     }
 
-    private sealed record DemoState(
-        int Count,
-        bool EmailUpdates,
-        bool Notifications);
 
     private static WriteableBitmap ToBitmap(RasterFrame frame)
     {
