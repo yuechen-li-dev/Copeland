@@ -41,11 +41,15 @@ public static class StandardButton
 
         var colors = ResolveVariantColors(variant, theme);
         var padding = ResolvePadding(size, theme);
+        ColorToken? borderColor = variant == ButtonVariant.Outline ? theme.Colors.Border : null;
+        var borderThickness = variant == ButtonVariant.Outline ? 1 : 0;
 
         return new UiStyle(
             Background: colors.Background,
             Foreground: colors.Foreground,
-            Padding: padding);
+            Padding: padding,
+            BorderColor: borderColor,
+            BorderThickness: borderThickness);
     }
 
     private static ButtonColors ResolveVariantColors(

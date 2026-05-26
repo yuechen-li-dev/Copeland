@@ -67,6 +67,13 @@ public sealed class RenderSnapshotRecorder
         _activeCommands!.Add($"fillRect id={command.Id} {FormatRect(command.Rect)} color={FormatColor(command.Color)}");
     }
 
+    public void Record(StrokeRectCommand command)
+    {
+        EnsureFrameActive();
+        _activeCommands!.Add(
+            $"strokeRect id={command.Id} {FormatRect(command.Rect)} color={FormatColor(command.Color)} thickness={command.Thickness:0.################}");
+    }
+
     public void Record(DrawTextCommand command)
     {
         EnsureFrameActive();

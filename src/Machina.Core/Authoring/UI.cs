@@ -29,9 +29,11 @@ public static class UI
         double? height = null,
         ColorToken? color = null,
         double? padding = null,
+        ColorToken? borderColor = null,
+        double? borderThickness = null,
         UiStyle? style = null)
     {
-        var effectiveStyle = MergeBoxStyle(style, color, padding, foreground: null);
+        var effectiveStyle = MergeBoxStyle(style, color, padding, foreground: null, borderColor, borderThickness);
 
         return new RectNode(
             child,
@@ -135,7 +137,9 @@ public static class UI
         UiStyle? style,
         ColorToken? background,
         double? padding,
-        ColorToken? foreground)
+        ColorToken? foreground,
+        ColorToken? borderColor,
+        double? borderThickness)
     {
         var effectiveStyle = style ?? new UiStyle();
 
@@ -144,6 +148,8 @@ public static class UI
             Background = background ?? effectiveStyle.Background,
             Foreground = foreground ?? effectiveStyle.Foreground,
             Padding = padding ?? effectiveStyle.Padding,
+            BorderColor = borderColor ?? effectiveStyle.BorderColor,
+            BorderThickness = borderThickness ?? effectiveStyle.BorderThickness,
         };
     }
 

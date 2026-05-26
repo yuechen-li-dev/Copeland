@@ -82,6 +82,39 @@ public static class Rasterizer
         }
     }
 
+    public static void StrokeRect(RasterSurface surface, Rect rect, Rgba32 color, double thickness, Rect? clip = null)
+    {
+        ArgumentNullException.ThrowIfNull(surface);
+        ValidateFiniteRect(rect, "Rect coordinates must be finite numbers.", nameof(rect));
+        if (!IsFinite(thickness))
+        {
+            throw new ArgumentException("Thickness must be a finite number.", nameof(thickness));
+        }
+
+        if (thickness < 0)
+        {
+            throw new ArgumentException("Thickness must be non-negative.", nameof(thickness));
+        }
+
+        if (rect.Width <= 0 || rect.Height <= 0 || thickness <= 0)
+        {
+            return;
+        }
+
+        var pixelThickness = Math.Max(1, (int)Math.Ceiling(thickness));
+        FillRect(surface, new Rect(rect.X, rect.Y, rect.Width, pixelThickness), color, clip);
+        FillRect(surface, new Rect(rect.X, rect.Y + rect.Height - pixelThickness, rect.Width, pixelThickness), color, clip);
+
+        var sideHeight = rect.Height - (2 * pixelThickness);
+        if (sideHeight <= 0)
+        {
+            return;
+        }
+
+        FillRect(surface, new Rect(rect.X, rect.Y + pixelThickness, pixelThickness, sideHeight), color, clip);
+        FillRect(surface, new Rect(rect.X + rect.Width - pixelThickness, rect.Y + pixelThickness, pixelThickness, sideHeight), color, clip);
+    }
+
     private static void ValidateFiniteRect(Rect rect, string message, string paramName)
     {
         if (!IsFinite(rect.X) || !IsFinite(rect.Y) || !IsFinite(rect.Width) || !IsFinite(rect.Height))

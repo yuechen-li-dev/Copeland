@@ -67,6 +67,24 @@ public sealed class RasterRenderRecorder
         Rasterizer.FillRect(_activeSurface, rect, rgba, ToRect(_currentClip));
     }
 
+    public void StrokeRect(string id, Rect rect, ColorToken color, double thickness)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+
+        if (_activeSurface is null)
+        {
+            throw new InvalidOperationException("Cannot stroke rectangle without an active frame.");
+        }
+
+        var rgba = Rgba32.FromRgba(color.Rgba);
+        if (_currentClip.IsEmpty)
+        {
+            return;
+        }
+
+        Rasterizer.StrokeRect(_activeSurface, rect, rgba, thickness, ToRect(_currentClip));
+    }
+
 
     public void DrawText(string id, Rect rect, string text, TextStyle style, ITextRasterizer textRasterizer)
     {

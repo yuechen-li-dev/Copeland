@@ -36,7 +36,9 @@ public static class Input
         var style = new UiStyle(
             Background: background,
             Foreground: textColor,
-            Padding: effectiveTheme.Spacing.Sm);
+            Padding: effectiveTheme.Spacing.Sm,
+            BorderColor: effectiveTheme.Colors.Border,
+            BorderThickness: 1);
 
         return UI.Rect(
             child: textNode,

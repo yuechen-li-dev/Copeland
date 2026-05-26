@@ -167,6 +167,24 @@ public sealed class RasterizerTests
     }
 
     [Fact]
+    public void StrokeRect_DrawsEdges()
+    {
+        var surface = new RasterSurface(5, 5);
+        var color = new Rgba32(255, 0, 0, 255);
+        Rasterizer.StrokeRect(surface, new Rect(1, 1, 3, 3), color, 1);
+
+        Assert.Equal(color, surface.GetPixel(1, 1));
+        Assert.Equal(color, surface.GetPixel(2, 1));
+        Assert.Equal(color, surface.GetPixel(3, 1));
+        Assert.Equal(color, surface.GetPixel(1, 3));
+        Assert.Equal(color, surface.GetPixel(2, 3));
+        Assert.Equal(color, surface.GetPixel(3, 3));
+        Assert.Equal(color, surface.GetPixel(1, 2));
+        Assert.Equal(color, surface.GetPixel(3, 2));
+        Assert.Equal(Rgba32.Transparent, surface.GetPixel(2, 2));
+    }
+
+    [Fact]
     public void PpmWriter_EmitsValidHeaderAndPayload()
     {
         var surface = new RasterSurface(2, 1);

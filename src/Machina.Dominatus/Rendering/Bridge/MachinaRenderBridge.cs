@@ -29,7 +29,7 @@ public static class MachinaRenderBridge
 
         foreach (var node in EnumeratePreOrder(resolved))
         {
-            EmitFillCommand(node, lowering.Styles, commands);
+            EmitFillAndStrokeCommands(node, lowering.Styles, commands);
             EmitTextCommand(node, lowering.TextStyles, lowering.Semantics, commands);
         }
 
@@ -65,7 +65,7 @@ public static class MachinaRenderBridge
         }
     }
 
-    private static void EmitFillCommand(
+    private static void EmitFillAndStrokeCommands(
         ResolvedLayoutNode node,
         IReadOnlyDictionary<NodeId, UiStyle> styles,
         ICollection<IActuationCommand> commands)
@@ -75,12 +75,30 @@ public static class MachinaRenderBridge
             return;
         }
 
-        if (style.Background is null)
+        if (style.Background is not null)
         {
-            return;
+            commands.Add(new FillRectCommand(node.Id.Value, node.Rect, style.Background.Value));
         }
 
-        commands.Add(new FillRectCommand(node.Id.Value, node.Rect, style.Background.Value));
+        ValidateBorderThickness(style.BorderThickness, node.Id);
+
+        if (style.BorderColor is not null && style.BorderThickness > 0)
+        {
+            commands.Add(new StrokeRectCommand(node.Id.Value, node.Rect, style.BorderColor.Value, style.BorderThickness));
+        }
+    }
+
+    private static void ValidateBorderThickness(double thickness, NodeId nodeId)
+    {
+        if (double.IsNaN(thickness) || double.IsInfinity(thickness))
+        {
+            throw new InvalidOperationException($"BorderThickness for node '{nodeId.Value}' must be finite.");
+        }
+
+        if (thickness < 0)
+        {
+            throw new InvalidOperationException($"BorderThickness for node '{nodeId.Value}' must be non-negative.");
+        }
     }
 
     private static void EmitTextCommand(

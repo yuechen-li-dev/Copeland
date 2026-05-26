@@ -7,6 +7,7 @@ public sealed class SnapshotRenderActuationHandler :
     IActuationHandler<BeginFrameCommand>,
     IActuationHandler<EndFrameCommand>,
     IActuationHandler<FillRectCommand>,
+    IActuationHandler<StrokeRectCommand>,
     IActuationHandler<DrawTextCommand>,
     IActuationHandler<PushClipCommand>,
     IActuationHandler<PopClipCommand>
@@ -31,6 +32,12 @@ public sealed class SnapshotRenderActuationHandler :
     }
 
     public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, FillRectCommand cmd)
+    {
+        _recorder.Record(cmd);
+        return ActuatorHost.HandlerResult.CompletedOk();
+    }
+
+    public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, StrokeRectCommand cmd)
     {
         _recorder.Record(cmd);
         return ActuatorHost.HandlerResult.CompletedOk();

@@ -21,7 +21,9 @@ public static class Card
         var style = new UiStyle(
             Background: effectiveTheme.Colors.Background,
             Foreground: effectiveTheme.Colors.Foreground,
-            Padding: effectiveTheme.Spacing.Lg);
+            Padding: effectiveTheme.Spacing.Lg,
+            BorderColor: effectiveTheme.Colors.Border,
+            BorderThickness: 1);
 
         return UI.Rect(
             child,
@@ -30,7 +32,7 @@ public static class Card
             height,
             color: null,
             padding: null,
-            style);
+            style: style);
     }
 
     public static UiNode Create(
