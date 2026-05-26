@@ -261,3 +261,8 @@ M3b hardens row-first authoring with deterministic `UiDocument` snapshots, flat-
 ## Recent milestone note (M3e)
 
 Presenter sample form controls are now re-proven with flat row-first composition, including checkbox box and switch track/thumb sub-rows, with pipeline hit-testing coverage for composed control parts.
+
+
+## M3f status update
+
+M3f hardens standard control chrome for composed checkbox/switch controls using only existing rectangular primitives, while preserving flat row-first authoring and pipeline hit-test structure.

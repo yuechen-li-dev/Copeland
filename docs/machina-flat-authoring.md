@@ -69,3 +69,8 @@ var document = UiDocument.Create(
 ## M3e form-row composition
 
 M3e hardens the presenter sample around explicit form-row composition in the flat model. Checkbox and switch controls are now authored as multiple rows (row region + control sub-row + label row content), with action metadata attached to actionable sub-parts.
+
+
+## M3f control composition note
+
+Checkbox and switch controls remain canonical flat compositions (`email-box`, `notifications-track`, `notifications-thumb`) with state expressed through rectangular fills, borders, and thumb position. No rounded corners are introduced in M3f.
