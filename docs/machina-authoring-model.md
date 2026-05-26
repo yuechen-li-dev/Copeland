@@ -58,3 +58,7 @@ For app and screen layout, `UiDocument` + `UiRow` is now the canonical authoring
 Top-level screens should read as a flat table/blueprint of rows with explicit frames and parents.
 
 `StandardView` helpers provide `UiView` metadata for rows. They are not node-tree constructors.
+
+## M3e field-style guidance
+
+For canonical samples, prefer explicit row composition for form fields (`email-row`, `email-box`, `email-label`) over single mega-view controls. Nested `UiNode` trees remain optional sugar and are not required for normal form composition.

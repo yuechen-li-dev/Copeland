@@ -73,3 +73,7 @@ M1c intentionally keeps this path as a direct hit-test + `DispatchTable` sample 
 ```bash
 dotnet run --project samples/Machina.Presenter.Sample
 ```
+
+## M3e follow-up
+
+M3e keeps the same dispatch-table state model but composes checkbox/switch controls from explicit flat rows (`email-row` and `notifications-row` sub-parts) to improve inspectability and hit-test targeting.

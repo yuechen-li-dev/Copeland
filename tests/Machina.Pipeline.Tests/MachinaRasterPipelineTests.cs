@@ -4,6 +4,7 @@ using Machina.Core.Flat;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Dominatus.Rendering.Commands;
+using Machina.Layout.Frames;
 using Machina.Pipeline;
 using Machina.Runtime.Input;
 using Machina.Standard.Authoring;
@@ -147,22 +148,63 @@ public sealed class MachinaRasterPipelineTests
     [Fact]
     public void Pipeline_FlatDocumentSnapshot_IsUsefulForPresenterLikeDoc()
     {
-        var document = UiDocument.Create(
-            [
-                Row.Root("root", view: View.Rect(background: ColorToken.Hex(0xEDEFF0FF))),
-                Row.Anchor("settings-card", "root", left: 72, top: 24, width: 500, height: 292, view: StandardView.Card()),
-                Row.Anchor("increment", "settings-card", left: 20, top: 72, width: 120, height: 36, view: StandardView.Button("Increment", UiAction.Named("counter.increment"))),
-                Row.Anchor("email-updates", "settings-card", left: 20, top: 120, width: 220, height: 24, view: StandardView.Checkbox("Email updates", isChecked: true, action: UiAction.Named("settings.emailUpdates.toggle"))),
-                Row.Anchor("notifications", "settings-card", left: 20, top: 152, width: 220, height: 24, view: StandardView.Switch("Notifications", isOn: true, action: UiAction.Named("settings.notifications.toggle")))
-            ]);
+        var document = CreatePresenterLikeFormDocument(emailUpdates: true, notifications: true);
 
         var snapshot = UiDocumentSnapshotWriter.Write(document);
 
         Assert.Contains("root parent=<none>", snapshot, StringComparison.Ordinal);
         Assert.Contains("settings-card parent=root", snapshot, StringComparison.Ordinal);
         Assert.Contains("increment parent=settings-card", snapshot, StringComparison.Ordinal);
-        Assert.Contains("email-updates parent=settings-card", snapshot, StringComparison.Ordinal);
-        Assert.Contains("notifications parent=settings-card", snapshot, StringComparison.Ordinal);
+        Assert.Contains("email-row parent=settings-card", snapshot, StringComparison.Ordinal);
+        Assert.Contains("email-box parent=email-row", snapshot, StringComparison.Ordinal);
+        Assert.Contains("email-label parent=email-row", snapshot, StringComparison.Ordinal);
+        Assert.Contains("notifications-row parent=settings-card", snapshot, StringComparison.Ordinal);
+        Assert.Contains("notifications-track parent=notifications-row", snapshot, StringComparison.Ordinal);
+        Assert.Contains("notifications-thumb parent=notifications-track", snapshot, StringComparison.Ordinal);
+        Assert.Contains("notifications-label parent=notifications-row", snapshot, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pipeline_RendersFlatFormDocument_AndHitTestsCheckboxAndSwitch()
+    {
+        var pipeline = new MachinaRasterPipeline();
+        var document = CreatePresenterLikeFormDocument(emailUpdates: true, notifications: false);
+        var frame = pipeline.Render(document, width: 640, height: 360);
+
+        var emailRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("email-box")].Rect;
+        var emailPoint = new PointerPoint((float)(emailRect.X + 2), (float)(emailRect.Y + 2));
+        var emailHit = frame.HitTest.HitTest(emailPoint);
+
+        Assert.NotNull(emailHit);
+        Assert.Equal("settings.emailUpdates.toggle", emailHit!.Action.Name);
+
+        var switchRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("notifications-track")].Rect;
+        var switchPoint = new PointerPoint((float)(switchRect.X + 2), (float)(switchRect.Y + 2));
+        var switchHit = frame.HitTest.HitTest(switchPoint);
+
+        Assert.NotNull(switchHit);
+        Assert.Equal("settings.notifications.toggle", switchHit!.Action.Name);
+    }
+
+    private static UiDocument CreatePresenterLikeFormDocument(bool emailUpdates, bool notifications)
+    {
+        var emailStateText = emailUpdates ? "on" : "off";
+        var notificationsStateText = notifications ? "on" : "off";
+
+        return UiDocument.Create(
+            [
+                Row.Root("root", view: View.Rect(background: ColorToken.Hex(0xEDEFF0FF))),
+                Row.Anchor("settings-card", "root", left: 72, top: 24, width: 500, height: 292, view: StandardView.Card()),
+                Row.Anchor("increment", "settings-card", left: 20, top: 88, width: 180, height: 30, view: StandardView.Button("Increment", UiAction.Named("counter.increment"))),
+                Row.Anchor("separator", "settings-card", left: 20, right: 20, top: 128, height: 1, view: StandardView.Separator()),
+                Row.Anchor("email-row", "settings-card", left: 20, right: 20, top: 150, height: 24, arrange: new StackArrange(StackAxis.Horizontal, Gap: 8)),
+                Row.Fixed("email-box", "email-row", width: 18, height: 18, view: StandardView.CheckboxBox(emailUpdates, UiAction.Named("settings.emailUpdates.toggle"))),
+                Row.Fill("email-label", "email-row", view: StandardView.Text($"Email updates: {emailStateText}")),
+                Row.Anchor("notifications-row", "settings-card", left: 20, right: 20, top: 184, height: 24, arrange: new StackArrange(StackAxis.Horizontal, Gap: 8)),
+                Row.Fixed("notifications-track", "notifications-row", width: 42, height: 20, view: StandardView.SwitchTrack(notifications, UiAction.Named("settings.notifications.toggle"))),
+                Row.Anchor("notifications-thumb", "notifications-track", left: notifications ? 22 : 2, top: 2, width: 16, height: 16, view: StandardView.SwitchThumb(notifications)),
+                Row.Fill("notifications-label", "notifications-row", view: StandardView.Text($"Notifications: {notificationsStateText}"))
+            ]);
     }
     private static int CountNonTransparentPixels(Machina.Renderer.Raster.Dominatus.Models.RasterFrame frame)
     {

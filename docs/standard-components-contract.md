@@ -227,3 +227,7 @@ Coverage includes:
 
 For field-like UI, prefer explicit rows (label row + input row) instead of a single synthetic `Field` mega-view.
 \n\n### M3d text alignment\nTextStyle now includes horizontal (TextAlignX) and vertical (TextAlignY) alignment metadata. Defaults remain Left/Top for backward compatibility. Alignment only changes glyph paint origin inside the resolved text rectangle; layout geometry is unchanged. M3d does not add wrapping, ellipsis, multiline layout, baseline typography, kerning, anti-aliasing, or external font dependencies.
+
+## M3e flat-view composition note
+
+`StandardView` includes optional sub-part view helpers (`CheckboxBox`, `SwitchTrack`, `SwitchThumb`) so field controls can be composed with explicit flat rows while preserving deterministic semantics/action metadata.

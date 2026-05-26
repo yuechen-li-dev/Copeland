@@ -13,6 +13,7 @@ using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Runtime.Dispatch;
 using Machina.Runtime.Input;
 using Machina.Standard.Authoring;
+using Machina.Layout.Frames;
 using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
 
 namespace Machina.Presenter.Sample;
@@ -170,31 +171,71 @@ internal sealed class Program
                         left: 20,
                         right: 20,
                         top: 128,
-                        height: 80,
-                        arrange: new Machina.Layout.Frames.StackArrange(Machina.Layout.Frames.StackAxis.Vertical, Gap: 8)),
-                    Row.Fixed(
-                        id: "email-updates",
-                        parent: "settings-flow",
+                        height: 84,
+                        view: StandardView.Separator()),
+                    Row.Anchor(
+                        id: "email-row",
+                        parent: "settings-card",
+                        left: 20,
+                        right: 20,
+                        top: 150,
                         height: 24,
-                        view: StandardView.Checkbox(
-                            label: $"Email updates: {emailStateText}",
+                        arrange: new StackArrange(StackAxis.Horizontal, Gap: 8)),
+                    Row.Fixed(
+                        id: "email-box",
+                        parent: "email-row",
+                        width: 18,
+                        height: 18,
+                        view: StandardView.CheckboxBox(
                             isChecked: state.EmailUpdates,
                             action: Actions.ToggleEmailUpdates.ToAction())),
-                    Row.Fixed(
-                        id: "notifications",
-                        parent: "settings-flow",
+                    Row.Fill(
+                        id: "email-label",
+                        parent: "email-row",
+                        view: StandardView.Text(
+                            $"Email updates: {emailStateText}",
+                            size: TextSize.Sm,
+                            alignY: TextAlignY.Center,
+                            color: ColorToken.Hex(0x3F3F46FF))),
+                    Row.Anchor(
+                        id: "notifications-row",
+                        parent: "settings-card",
+                        left: 20,
+                        right: 20,
+                        top: 184,
                         height: 24,
-                        view: StandardView.Switch(
-                            label: $"Notifications: {notificationsStateText}",
+                        arrange: new StackArrange(StackAxis.Horizontal, Gap: 8)),
+                    Row.Fixed(
+                        id: "notifications-track",
+                        parent: "notifications-row",
+                        width: 42,
+                        height: 20,
+                        view: StandardView.SwitchTrack(
                             isOn: state.Notifications,
                             action: Actions.ToggleNotifications.ToAction())),
+                    Row.Anchor(
+                        id: "notifications-thumb",
+                        parent: "notifications-track",
+                        left: state.Notifications ? 22 : 2,
+                        top: 2,
+                        width: 16,
+                        height: 16,
+                        view: StandardView.SwitchThumb(isOn: state.Notifications)),
+                    Row.Fill(
+                        id: "notifications-label",
+                        parent: "notifications-row",
+                        view: StandardView.Text(
+                            $"Notifications: {notificationsStateText}",
+                            size: TextSize.Sm,
+                            alignY: TextAlignY.Center,
+                            color: ColorToken.Hex(0x3F3F46FF))),
                     Row.Anchor(
                         id: "footnote",
                         parent: "settings-card",
                         left: 20,
                         right: 20,
-                        top: 224,
-                        height: 20,
+                        bottom: 20,
+                        height: 16,
                         view: StandardView.Text("Deterministic sample UI", size: TextSize.Sm, color: ColorToken.Hex(0x71717AFF)))
                 ]);
         }

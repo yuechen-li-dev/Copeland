@@ -59,6 +59,56 @@ public static class StandardView
             Action: action);
     }
 
+    public static UiView CheckboxBox(bool isChecked, UiAction? action = null, bool disabled = false)
+    {
+        var colors = StandardTheme.Default.Colors;
+        var background = disabled ? colors.Muted : colors.Background;
+        var marker = isChecked ? "x" : " ";
+
+        return new UiView(
+            Style: new UiStyle(
+                Background: background,
+                Foreground: colors.Foreground,
+                BorderColor: colors.Border,
+                BorderThickness: 1,
+                Padding: 3),
+            TextStyle: new TextStyle(Color: colors.Foreground, Size: TextSize.Sm, AlignX: TextAlignX.Center, AlignY: TextAlignY.Center),
+            Semantics: new UiSemantics(UiRole.Checkbox, $"Checkbox [{marker}]", Focusable: !disabled, Disabled: disabled),
+            Action: disabled ? null : action);
+    }
+
+    public static UiView SwitchTrack(bool isOn, UiAction? action = null, bool disabled = false)
+    {
+        var colors = StandardTheme.Default.Colors;
+        var background = isOn ? colors.Primary : colors.Muted;
+        var foreground = isOn ? colors.PrimaryForeground : colors.Foreground;
+
+        return new UiView(
+            Style: new UiStyle(
+                Background: disabled ? colors.Muted : background,
+                Foreground: foreground,
+                BorderColor: colors.Border,
+                BorderThickness: 1,
+                Padding: 0),
+            Semantics: new UiSemantics(UiRole.Switch, isOn ? "Switch on" : "Switch off", Focusable: !disabled, Disabled: disabled),
+            Action: disabled ? null : action);
+    }
+
+    public static UiView SwitchThumb(bool isOn, bool disabled = false)
+    {
+        var colors = StandardTheme.Default.Colors;
+        var background = isOn ? colors.PrimaryForeground : colors.Background;
+
+        return new UiView(
+            Style: new UiStyle(
+                Background: disabled ? colors.Muted : background,
+                Foreground: colors.Foreground,
+                BorderColor: colors.Border,
+                BorderThickness: 1,
+                Padding: 0),
+            Semantics: new UiSemantics(UiRole.Container));
+    }
+
     public static UiView Text(
         string text,
         TextSize size = TextSize.Md,
