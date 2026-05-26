@@ -89,7 +89,8 @@ public sealed class CounterUiRuntime
 
                     var currentCount = agent.Bb.GetOrDefault(CountKey, 0);
                     agent.Bb.Set(CountKey, currentCount + 1);
-                });
+                },
+                cursorStart: EventCursorStart.IncludeExisting);
         }
     }
 }
