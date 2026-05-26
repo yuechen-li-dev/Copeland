@@ -14,9 +14,11 @@ public static class UI
         NodeId? id = null,
         ColorToken? color = null,
         TextSize size = TextSize.Md,
+        TextAlignX alignX = TextAlignX.Left,
+        TextAlignY alignY = TextAlignY.Top,
         TextStyle? style = null)
     {
-        var effectiveStyle = MergeTextStyle(style, color, size);
+        var effectiveStyle = MergeTextStyle(style, color, size, alignX, alignY);
         return new TextNode(text, effectiveStyle) with
         {
             Id = id,
@@ -193,7 +195,9 @@ public static class UI
     private static TextStyle MergeTextStyle(
         TextStyle? style,
         ColorToken? color,
-        TextSize size)
+        TextSize size,
+        TextAlignX alignX,
+        TextAlignY alignY)
     {
         var effectiveStyle = style ?? new TextStyle();
 
@@ -201,6 +205,8 @@ public static class UI
         {
             Color = color ?? effectiveStyle.Color,
             Size = size,
+            AlignX = alignX,
+            AlignY = alignY,
         };
     }
 

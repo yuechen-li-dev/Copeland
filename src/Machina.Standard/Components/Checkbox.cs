@@ -52,7 +52,9 @@ public static class Checkbox
                 id: CreateChildId(id, "marker"),
                 style: new TextStyle(
                     Color: foreground,
-                    Size: TextSize.Sm));
+                    Size: TextSize.Sm,
+                    AlignX: TextAlignX.Center,
+                    AlignY: TextAlignY.Center));
         }
 
         return UI.Rect(
@@ -93,7 +95,9 @@ public static class Checkbox
             id: CreateChildId(id, "label"),
             style: new TextStyle(
                 Color: ResolveLabelColor(disabled, theme),
-                Size: TextSize.Sm));
+                Size: TextSize.Sm,
+                AlignX: TextAlignX.Left,
+                AlignY: TextAlignY.Center));
 
         return UI.Row(
             id: id,

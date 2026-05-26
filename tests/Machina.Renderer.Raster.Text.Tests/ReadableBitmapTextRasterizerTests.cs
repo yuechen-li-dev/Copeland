@@ -109,6 +109,76 @@ public sealed class ReadableBitmapTextRasterizerTests
         Assert.True(CountNonTransparentPixels(surface) > 0);
     }
 
+    [Fact]
+    public void DrawText_DefaultAlignsTopLeft()
+    {
+        var surface = new RasterSurface(60, 40);
+        var rasterizer = new ReadableBitmapTextRasterizer();
+
+        rasterizer.DrawText(surface, new Rect(2, 3, 40, 20), "A", new TextStyle(Size: TextSize.Sm), Rgba32.White);
+
+        Assert.Equal(Rgba32.White, surface.GetPixel(4, 3));
+    }
+
+    [Fact]
+    public void DrawText_CenterAlignsWithinRect()
+    {
+        var surface = new RasterSurface(30, 30);
+        var rasterizer = new ReadableBitmapTextRasterizer();
+        var style = new TextStyle(Size: TextSize.Sm, AlignX: TextAlignX.Center, AlignY: TextAlignY.Center);
+
+        rasterizer.DrawText(surface, new Rect(0, 0, 25, 21), "A", style, Rgba32.White);
+
+        Assert.Equal(Rgba32.White, surface.GetPixel(12, 7));
+    }
+
+    [Fact]
+    public void DrawText_RightBottomAlignsWithinRect()
+    {
+        var surface = new RasterSurface(30, 30);
+        var rasterizer = new ReadableBitmapTextRasterizer();
+        var style = new TextStyle(Size: TextSize.Sm, AlignX: TextAlignX.Right, AlignY: TextAlignY.Bottom);
+
+        rasterizer.DrawText(surface, new Rect(0, 0, 25, 21), "A", style, Rgba32.White);
+
+        Assert.Equal(Rgba32.White, surface.GetPixel(22, 14));
+    }
+
+    [Fact]
+    public void DrawText_CenterAlignmentClipsWhenTextLargerThanRect()
+    {
+        var surface = new RasterSurface(20, 20);
+        var rasterizer = new ReadableBitmapTextRasterizer();
+        var style = new TextStyle(Size: TextSize.Sm, AlignX: TextAlignX.Center, AlignY: TextAlignY.Center);
+        var rect = new Rect(5, 5, 4, 4);
+
+        rasterizer.DrawText(surface, rect, "HELLO", style, Rgba32.White);
+
+        for (var y = 0; y < surface.Height; y++)
+        {
+            for (var x = 0; x < surface.Width; x++)
+            {
+                if (surface.GetPixel(x, y).A == 0)
+                {
+                    continue;
+                }
+
+                Assert.InRange(x, 5, 8);
+                Assert.InRange(y, 5, 8);
+            }
+        }
+    }
+
+    [Fact]
+    public void MeasureText_MatchesDrawnBounds()
+    {
+        var style = new TextStyle(Size: TextSize.Sm);
+
+        Assert.Equal((5, 7), ReadableBitmapTextRasterizer.MeasureText("A", style));
+        Assert.Equal((11, 7), ReadableBitmapTextRasterizer.MeasureText("AB", style));
+        Assert.Equal((17, 7), ReadableBitmapTextRasterizer.MeasureText("A A", style));
+    }
+
     private static RasterSurface RenderToSurface(string text)
     {
         var surface = new RasterSurface(30, 20);
