@@ -947,3 +947,21 @@ world.Tick(dt)
 For engine integration, use connector packages rather than adding engine dependencies to `Dominatus.Core`.
 
 - Stride runtime bridge docs: `docs/STRIDECONN_M0.md`
+
+
+- Semantic Kernel actuator M0: `docs/ACTUATORS_SEMANTICKERNEL_M0.md` (SK as capability/plugin invocation only; Dominatus remains orchestrator).
+
+- See `docs/SAMPLE_SEMANTICKERNEL_ORCHESTRATION.md` for Microsoft-style ledger-loop mapping with Dominatus orchestration.
+
+
+For explicit LLM context-store doctrine and packet generation, see `docs/LLM_CONTEXT_M0.md`.
+
+For orchestration sizing guidance (direct code vs dispatch vs HFSM/LLM/human approval), see `docs/ORCHESTRATION_LADDER.md`.
+
+
+## Dominatus.Server stream inspection (M1)
+
+`Dominatus.Server` now includes an optional durable LLM stream read model (`DominatusLlmStreamRegistry`) and read-only reconnect endpoints (`/dominatus/streams...`). See `docs/DOMINATUS_SERVER_M1_STREAMS.md`.
+
+
+- Dominatus.Server M2 adds a read-only SSE endpoint (`/dominatus/streams/{streamId}/events`) as a live tail over `DominatusLlmStreamRegistry`; see `docs/DOMINATUS_SERVER_M2_STREAM_SSE.md`.

@@ -97,3 +97,50 @@ Upstream recommendation:
 `Machina.Runtime` M0a adds a Dominatus-free hit-test/action index that maps root-local pointer coordinates to `UiAction` values using `ResolvedLayoutDocument` and `UiLoweringResult.Actions`.
 
 Dominatus mailbox/event ingress remains deferred to a later adapter milestone so input indexing stays separable from rendering actuation.
+
+
+## Re-vendor: 2026-05-26
+
+Source:
+- repo: https://github.com/yuechen-li-dev/Dominatus
+- branch: master
+- commit: `608c0432c9f60ff07918ad83e34fe03f7420e908`
+- vendoring date (UTC): 2026-05-26
+
+Reason:
+- refresh vendored source after upstream bug fix/version alignment
+- address local Visual Studio target-framework project-reference errors
+
+Vendored project target-framework audit:
+
+| Project | TargetFramework(s) | Notes |
+| --- | --- | --- |
+| Dominatus.Core | `net8.0;net10.0` | No project references. |
+| Dominatus.OptFlow | `net8.0;net10.0` | References `Dominatus.Core` which also multi-targets `net8.0;net10.0`. |
+| Ariadne.OptFlow | `net8.0;net10.0` | References `Dominatus.Core` and `Dominatus.OptFlow`; both are multi-targeted. |
+| Dominatus.UtilityLite | `net8.0;net10.0` | References `Dominatus.Core` and `Dominatus.OptFlow`; both are multi-targeted. |
+| Dominatus.Actuators.Standard | `net8.0;net10.0` | References `Dominatus.Core`; both are multi-targeted. |
+| Dominatus.Server | `net8.0;net10.0` | References `Dominatus.Core` and `Dominatus.Llm.OptFlow`; both are multi-targeted. |
+
+Visual Studio compatibility conclusion:
+- Yes, with evidence. The vendored Dominatus projects now all multi-target `net8.0;net10.0`, so the previously reported `net8.0` project referencing a `net10.0`-only Dominatus project mismatch should be resolved by framework selection in project references.
+
+Validation:
+- `dotnet restore Copeland.slnx` passed.
+- `dotnet build Copeland.slnx --no-restore` passed.
+- `dotnet test Copeland.slnx` ran and failed in `Machina.Dominatus.Tests` (`CounterUiRuntimeTests` expectations), while other test projects passed.
+
+Local Visual Studio cleanup guidance after pulling this re-vendor:
+
+```powershell
+dotnet clean Copeland.slnx
+Get-ChildItem -Recurse -Directory bin,obj | Remove-Item -Recurse -Force
+dotnet restore Copeland.slnx
+dotnet build Copeland.slnx
+```
+
+Also close and reopen Visual Studio, then reload the solution to clear stale design-time build state if needed.
+
+Vendor patch status:
+- The previous local `Dominatus.UtilityLite` target-framework hotfix is now upstreamed in this vendored commit (`net8.0;net10.0`), so no local TFM patch is retained.
+- To keep Copeland vendoring focused and merge-safe, non-required upstream projects/tests were intentionally pruned after sync (for example `vendor/Dominatus/tests`, `src/Dominatus.StrideConn`, and non-required samples). Required libraries and the two reference samples remain vendored.

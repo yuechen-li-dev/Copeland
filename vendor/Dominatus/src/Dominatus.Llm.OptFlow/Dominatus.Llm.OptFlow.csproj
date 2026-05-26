@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <PackageId>Dominatus.Llm.OptFlow</PackageId>
+    <Version>0.2.1-preview</Version>
+    <Authors>Dominatus Contributors</Authors>
+    <Description>LLM-oriented authoring and integration helpers for Dominatus workflows with deterministic runtime boundaries and auditable decisions.</Description>
+    <PackageTags>ai;agents;llm;hfsm;utility-ai;tool-use;simulation</PackageTags>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/yuechen-li-dev/Dominatus</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/yuechen-li-dev/Dominatus</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dominatus.Core\Dominatus.Core.csproj" />
+    <ProjectReference Include="..\Dominatus.Llm.Context\Dominatus.Llm.Context.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Link="README.md" />
+  </ItemGroup>
+
+</Project>
