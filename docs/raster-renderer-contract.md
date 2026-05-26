@@ -61,3 +61,14 @@ PPM output ignores alpha and writes stored RGB channels directly.
 
 - Deterministic render artifact tests consume `PpmWriter.WriteP6` output and assert SHA256 goldens for tiny stable samples.
 - PPM-based artifacts are intentionally simple and auditable for regression review.
+
+## M1b `Rasterizer.StrokeRect` contract
+
+`Rasterizer.StrokeRect` renders an inside-rectangular stroke.
+
+- thickness is normalized with deterministic ceiling behavior
+- rendering is clip-aware and intersects surface bounds
+- alpha uses the same deterministic source-over blend model as `FillRect`
+- output is hard-edged pixel rasterization with no anti-aliasing
+
+Unsupported stroke features remain out of scope: border radius, path stroking, and dashed/dotted line styles.

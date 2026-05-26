@@ -91,11 +91,6 @@ public static class Rasterizer
             throw new ArgumentException("Thickness must be a finite number.", nameof(thickness));
         }
 
-        if (thickness < 0)
-        {
-            throw new ArgumentException("Thickness must be non-negative.", nameof(thickness));
-        }
-
         if (rect.Width <= 0 || rect.Height <= 0 || thickness <= 0)
         {
             return;

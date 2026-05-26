@@ -64,6 +64,25 @@ public sealed class RenderSnapshotActuatorTests
         Assert.Empty(agent.InFlightActuations);
     }
 
+
+    [Fact]
+    public void SnapshotRecorder_RecordsStrokeRect()
+    {
+        var recorder = new RenderSnapshotRecorder();
+
+        recorder.Record(new BeginFrameCommand(10, 10));
+        recorder.Record(new StrokeRectCommand("border", new Rect(1, 1, 8, 8), ColorToken.White, 2));
+        recorder.Record(new EndFrameCommand());
+
+        var snapshot = recorder.LastSnapshot;
+        Assert.NotNull(snapshot);
+        Assert.Contains(snapshot!.Commands, line => line.Contains("strokeRect", StringComparison.Ordinal));
+        Assert.Contains(snapshot.Commands, line => line.Contains("id=border", StringComparison.Ordinal));
+        Assert.Contains(snapshot.Commands, line => line.Contains("x=1 y=1 w=8 h=8", StringComparison.Ordinal));
+        Assert.Contains(snapshot.Commands, line => line.Contains("color=#FFFFFFFF", StringComparison.Ordinal));
+        Assert.Contains(snapshot.Commands, line => line.Contains("thickness=2", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void ClipPushPop_IsRecordedAndBalanced()
     {

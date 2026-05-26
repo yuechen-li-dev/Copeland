@@ -66,3 +66,11 @@ M0b still does not rasterize pixels, does not perform hit testing, and does not 
 - Implemented: Dominatus -> Raster adapter for BeginFrame/FillRect/EndFrame.
 - Explicitly unsupported until M0c: DrawText.
 - Explicitly unsupported in M0b: PushClip/PopClip.
+
+## M1b stroke command path
+
+M1b adds `StrokeRectCommand` to typed render commands.
+
+When a node has background, border, and text, the render bridge emits commands in deterministic order: fill, then stroke, then text.
+
+Stroke operations flow as typed render actuations through the same bridge/actuator path as fill and text commands.

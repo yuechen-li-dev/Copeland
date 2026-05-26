@@ -184,6 +184,100 @@ public sealed class RasterizerTests
         Assert.Equal(Rgba32.Transparent, surface.GetPixel(2, 2));
     }
 
+
+    [Fact]
+    public void StrokeRect_ThicknessTwo_DrawsTwoPixelEdges()
+    {
+        var surface = new RasterSurface(6, 6);
+        var color = new Rgba32(255, 0, 0, 255);
+
+        Rasterizer.StrokeRect(surface, new Rect(1, 1, 4, 4), color, 2);
+
+        AssertPixelRegion(surface, 1, 1, 5, 3, color);
+        AssertPixelRegion(surface, 1, 3, 5, 5, color);
+        Assert.Equal(color, surface.GetPixel(1, 1));
+        Assert.Equal(color, surface.GetPixel(4, 4));
+        Assert.Equal(Rgba32.Transparent, surface.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void StrokeRect_ClipsToClipRect()
+    {
+        var surface = new RasterSurface(6, 6);
+        var color = new Rgba32(255, 0, 0, 255);
+
+        Rasterizer.StrokeRect(surface, new Rect(0, 0, 6, 6), color, 1, new Rect(0, 0, 3, 6));
+
+        for (var y = 0; y < 6; y++)
+        {
+            for (var x = 3; x < 6; x++)
+            {
+                Assert.Equal(Rgba32.Transparent, surface.GetPixel(x, y));
+            }
+        }
+
+        Assert.Equal(color, surface.GetPixel(0, 0));
+        Assert.Equal(color, surface.GetPixel(1, 0));
+        Assert.Equal(color, surface.GetPixel(2, 0));
+        Assert.Equal(color, surface.GetPixel(0, 5));
+        Assert.Equal(color, surface.GetPixel(2, 5));
+    }
+
+    [Fact]
+    public void StrokeRect_AlphaBlends()
+    {
+        var surface = new RasterSurface(6, 6);
+        Rasterizer.Clear(surface, Rgba32.Black);
+
+        Rasterizer.StrokeRect(surface, new Rect(1, 1, 4, 4), new Rgba32(255, 0, 0, 128), 1);
+
+        Assert.Equal(new Rgba32(128, 0, 0, 255), surface.GetPixel(1, 1));
+    }
+
+    [Theory]
+    [InlineData(double.NaN, 0, 1, 1, 1)]
+    [InlineData(0, 0, double.PositiveInfinity, 1, 1)]
+    [InlineData(0, 0, 1, 1, double.NaN)]
+    [InlineData(0, 0, 1, 1, double.PositiveInfinity)]
+    public void StrokeRect_InvalidNumbersRejected(double x, double y, double width, double height, double thickness)
+    {
+        var surface = new RasterSurface(2, 2);
+
+        Assert.Throws<ArgumentException>(() => Rasterizer.StrokeRect(surface, new Rect(x, y, width, height), Rgba32.White, thickness));
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(-1, 1)]
+    [InlineData(1, 0)]
+    [InlineData(1, -1)]
+    public void StrokeRect_ZeroOrNegativeSizeNoOps(double width, double height)
+    {
+        var surface = new RasterSurface(3, 3);
+
+        Rasterizer.StrokeRect(surface, new Rect(0, 0, width, height), new Rgba32(255, 0, 0, 255), 1);
+
+        foreach (var pixel in surface.Pixels)
+        {
+            Assert.Equal(Rgba32.Transparent, pixel);
+        }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void StrokeRect_ZeroOrNegativeThicknessNoOps(double thickness)
+    {
+        var surface = new RasterSurface(3, 3);
+
+        Rasterizer.StrokeRect(surface, new Rect(0, 0, 3, 3), new Rgba32(255, 0, 0, 255), thickness);
+
+        foreach (var pixel in surface.Pixels)
+        {
+            Assert.Equal(Rgba32.Transparent, pixel);
+        }
+    }
+
     [Fact]
     public void PpmWriter_EmitsValidHeaderAndPayload()
     {

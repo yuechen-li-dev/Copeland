@@ -36,3 +36,9 @@ If `TextRasterizer` is null, the pipeline uses `ReadableBitmapTextRasterizer` by
 - No input routing changes
 - No new rendering features
 - No new UI components
+
+## M1b pipeline note for border metadata
+
+When styles include border metadata (`BorderColor` + `BorderThickness`), the pipeline emits stroke commands in addition to existing fill/text commands.
+
+When no border metadata is present, there is no pipeline API change in behavior or command shape for existing nodes.
