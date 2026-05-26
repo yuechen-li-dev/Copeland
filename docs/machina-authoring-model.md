@@ -80,3 +80,7 @@ M4c clarifies that style padding is paint metadata only. Components that host ch
 ## M4d note
 Hosted components can expose deterministic internal ids for geometry assertions (for example button label-region, checkbox box/label, switch track/thumb).
 \n- M4e note: presenter sample geometry is now validated with headless resolved-rectangle assertions; manual GUI checks are secondary.
+
+
+## M4f note
+M4f adds semantic-text separation and state-stable control geometry. Semantic labels are not paint; explicit text visuals emit draw text. Checkbox/switch state changes should preserve row identity/shape and adjust stable style/geometry values instead of adding/removing rows.
