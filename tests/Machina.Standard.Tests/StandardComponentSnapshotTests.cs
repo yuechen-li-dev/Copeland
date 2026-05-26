@@ -32,7 +32,8 @@ public sealed class StandardComponentSnapshotTests
         Assert.Contains("title", snapshot);
         Assert.Equal(theme.Colors.Background, lowered.Styles[cardId].Background);
         Assert.Equal(theme.Colors.Foreground, lowered.Styles[cardId].Foreground);
-        Assert.Equal(theme.Spacing.Lg, lowered.Styles[cardId].Padding);
+        Assert.Equal(0, lowered.Styles[cardId].Padding);
+        Assert.Contains(lowered.Rows, row => row.Id.Value == "card.content");
         Assert.Equal(UiRole.Text, lowered.Semantics[new NodeId("title")].Role);
     }
 

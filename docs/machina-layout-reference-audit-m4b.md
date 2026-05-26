@@ -32,3 +32,8 @@ This keeps frame/stack semantics and avoids renderer/layout-model rewrites.
 - Top-level placement remains `UiDocument` rows (`AbsoluteFrame`/`AnchorFrame`).
 - Local sequential component layout should remain stack-based (`UI.Column`/`UI.Row`) with direct fixed/fill children.
 - Component-local `UiDocument` is not required now; defer unless a future milestone needs row-level local authoring ergonomics.
+\n## M4c layout-padding hardening note\n\nM4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (AnchorFrame), rather than relying on  to move children. Stack behavior remains ordered arithmetic () and is not Flexbox.\n
+
+## M4c layout-padding hardening note
+
+M4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (`AnchorFrame`), rather than relying on `UiStyle.Padding` to move children. Stack behavior remains ordered arithmetic (`StackArrange`) and is not Flexbox.

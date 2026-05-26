@@ -31,17 +31,27 @@ public static class Input
             id: CreateChildId(id, "text"),
             style: new TextStyle(
                 Color: textColor,
-                Size: TextSize.Md));
+                Size: TextSize.Md,
+                AlignY: TextAlignY.Center));
+
+        var contentInset = effectiveTheme.Spacing.Sm;
+        var content = UI.Anchor(
+            textNode,
+            id: CreateChildId(id, "content"),
+            left: contentInset,
+            right: contentInset,
+            top: contentInset,
+            bottom: contentInset);
 
         var style = new UiStyle(
             Background: background,
             Foreground: textColor,
-            Padding: effectiveTheme.Spacing.Sm,
+            Padding: 0,
             BorderColor: effectiveTheme.Colors.Border,
             BorderThickness: 1);
 
         return UI.Rect(
-            child: textNode,
+            child: content,
             id: id,
             height: 36,
             style: style) with

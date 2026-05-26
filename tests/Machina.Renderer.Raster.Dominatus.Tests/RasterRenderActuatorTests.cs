@@ -102,7 +102,7 @@ public sealed class RasterRenderActuatorTests
                     StandardUI.Button("Save", id: "save", action: UiAction.Named("save")),
                 ]));
 
-        var commands = BuildCommands(ui, 160, 80);
+        var commands = BuildCommands(ui, 220, 140);
 
         var recorder = new RasterRenderRecorder();
         var host = new ActuatorHost().AddRasterRenderer(recorder, new RasterRenderOptions(new DebugBitmapTextRasterizer()));
@@ -117,7 +117,7 @@ public sealed class RasterRenderActuatorTests
         var ppm = frame.ToPpm();
 
         Assert.True(CountNonTransparent(frame.Surface) > 0);
-        Assert.StartsWith("P6\n160 80\n255\n", System.Text.Encoding.ASCII.GetString(ppm[..15]));
+        Assert.StartsWith("P6\n220 140\n255\n", System.Text.Encoding.ASCII.GetString(ppm[..16]));
         Assert.True(ppm.Length > 15);
     }
 

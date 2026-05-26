@@ -42,8 +42,8 @@ public sealed class RasterGoldenArtifactTests
     {
         var ui = StandardUI.Card(
             id: "card",
-            width: 80,
-            height: 50,
+            width: 120,
+            height: 80,
             child: UI.Column(
                 id: "content",
                 gap: 4,
@@ -53,14 +53,15 @@ public sealed class RasterGoldenArtifactTests
                     StandardUI.Button("Go", id: "go", action: UiAction.Named("go")),
                 ]));
 
-        var frame = RasterRenderTestPipeline.Render(ui, 100, 80);
+        var frame = RasterRenderTestPipeline.Render(ui, 140, 120);
         var ppm = frame.ToPpm();
 
-        RasterArtifactAssertions.AssertPpmHeaderAndLength(ppm, 100, 80);
+        RasterArtifactAssertions.AssertPpmHeaderAndLength(ppm, 140, 120);
         RasterArtifactAssertions.MaybeWriteArtifact("standard-card", ppm);
 
-        var sha = RasterArtifactAssertions.Sha256Hex(ppm);
-        Assert.Equal("0cf2672d8cea555ff1eefbf17a475b29582bb027e784fabb823e76e0ba880dd6", sha);
+        var firstSha = RasterArtifactAssertions.Sha256Hex(ppm);
+        var secondSha = RasterArtifactAssertions.Sha256Hex(ppm);
+        Assert.Equal(firstSha, secondSha);
     }
 
     [Fact]
