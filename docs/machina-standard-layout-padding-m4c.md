@@ -23,3 +23,6 @@
 - Sequential flow remains `StackArrange`.
 - Direct stack children remain `FixedFrame` / `FillFrame`.
 - StandardUI components remain local components; app documents place component hosts, not component internals.
+
+## M4d follow-up
+Button is now hardened to explicit shell + label-region layout (no layout padding behavior). Checkbox and Switch continue explicit internal rows and now have stronger headless geometry/hit-test assertions.

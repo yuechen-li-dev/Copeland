@@ -1,6 +1,7 @@
 using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
+using Machina.Core.Semantics;
 using Machina.Core.Styling;
 using Machina.Layout.Rows;
 using Machina.Standard.Theme;
@@ -21,35 +22,80 @@ public static class StandardButton
         ArgumentNullException.ThrowIfNull(text);
 
         var effectiveTheme = theme ?? StandardTheme.Default;
-        var style = CreateStyle(variant, size, effectiveTheme);
+        var style = CreateStyle(variant, effectiveTheme);
+        var labelColor = style.Foreground ?? effectiveTheme.Colors.Foreground;
+        var labelStyle = CreateLabelStyle(size, labelColor);
 
-        return UI.Button(
-            text,
-            id,
-            action,
-            disabled,
-            color: null,
-            style);
+        var labelNode = UI.Anchor(
+            child: UI.Text(
+                text,
+                id: CreateChildId(id, "label"),
+                color: labelStyle.Color,
+                size: labelStyle.Size,
+                alignX: TextAlignX.Center,
+                alignY: TextAlignY.Center),
+            id: CreateChildId(id, "label-region"),
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0);
+
+        return UI.Rect(
+            child: labelNode,
+            id: id,
+            style: style) with
+        {
+            Semantics = new UiSemantics(
+                UiRole.Button,
+                text,
+                Disabled: disabled,
+                Focusable: !disabled),
+            DeclaredAction = disabled ? null : action,
+        };
     }
 
     public static UiStyle CreateStyle(
         ButtonVariant variant,
-        ButtonSize size,
         StandardTheme theme)
     {
         ArgumentNullException.ThrowIfNull(theme);
 
         var colors = ResolveVariantColors(variant, theme);
-        var padding = ResolvePadding(size, theme);
         ColorToken? borderColor = variant == ButtonVariant.Outline ? theme.Colors.Border : null;
         var borderThickness = variant == ButtonVariant.Outline ? 1 : 0;
 
         return new UiStyle(
             Background: colors.Background,
             Foreground: colors.Foreground,
-            Padding: padding,
+            Padding: 0,
             BorderColor: borderColor,
             BorderThickness: borderThickness);
+    }
+
+    private static TextStyle CreateLabelStyle(
+        ButtonSize size,
+        ColorToken foreground)
+    {
+        var textColor = foreground;
+        var textSize = ResolveTextSize(size);
+
+        return new TextStyle(
+            Color: textColor,
+            Size: textSize,
+            AlignX: TextAlignX.Center,
+            AlignY: TextAlignY.Center);
+    }
+
+    private static TextSize ResolveTextSize(ButtonSize size)
+    {
+        return size switch
+        {
+            ButtonSize.Small => TextSize.Sm,
+            ButtonSize.Medium => TextSize.Md,
+            ButtonSize.Large => TextSize.Md,
+            ButtonSize.Icon => TextSize.Sm,
+            _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
+        };
     }
 
     private static ButtonColors ResolveVariantColors(
@@ -60,43 +106,25 @@ public static class StandardButton
 
         return variant switch
         {
-            ButtonVariant.Default => new ButtonColors(
-                Background: colors.Primary,
-                Foreground: colors.PrimaryForeground),
-            ButtonVariant.Destructive => new ButtonColors(
-                Background: colors.Destructive,
-                Foreground: colors.DestructiveForeground),
-            ButtonVariant.Outline => new ButtonColors(
-                Background: colors.Background,
-                Foreground: colors.Foreground),
-            ButtonVariant.Secondary => new ButtonColors(
-                Background: colors.Secondary,
-                Foreground: colors.SecondaryForeground),
-            ButtonVariant.Ghost => new ButtonColors(
-                Background: null,
-                Foreground: colors.Foreground),
-            ButtonVariant.Link => new ButtonColors(
-                Background: null,
-                Foreground: colors.Primary),
+            ButtonVariant.Default => new ButtonColors(colors.Primary, colors.PrimaryForeground),
+            ButtonVariant.Destructive => new ButtonColors(colors.Destructive, colors.DestructiveForeground),
+            ButtonVariant.Outline => new ButtonColors(colors.Background, colors.Foreground),
+            ButtonVariant.Secondary => new ButtonColors(colors.Secondary, colors.SecondaryForeground),
+            ButtonVariant.Ghost => new ButtonColors(null, colors.Foreground),
+            ButtonVariant.Link => new ButtonColors(null, colors.Primary),
             _ => throw new ArgumentOutOfRangeException(nameof(variant), variant, null),
         };
     }
 
-    private static double ResolvePadding(
-        ButtonSize size,
-        StandardTheme theme)
+    private static NodeId? CreateChildId(NodeId? id, string suffix)
     {
-        return size switch
+        if (id is not { } value)
         {
-            ButtonSize.Small => theme.Spacing.Xs + 2,
-            ButtonSize.Medium => theme.Spacing.Sm,
-            ButtonSize.Large => theme.Spacing.Md,
-            ButtonSize.Icon => theme.Spacing.Xs + 2,
-            _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
-        };
+            return null;
+        }
+
+        return new NodeId($"{value.Value}.{suffix}");
     }
 
-    private sealed record ButtonColors(
-        ColorToken? Background,
-        ColorToken Foreground);
+    private sealed record ButtonColors(ColorToken? Background, ColorToken Foreground);
 }

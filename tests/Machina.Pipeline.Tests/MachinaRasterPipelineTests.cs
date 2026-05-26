@@ -202,6 +202,37 @@ public sealed class MachinaRasterPipelineTests
         Assert.Equal("counter.increment", hit!.Action.Name);
     }
 
+
+    [Fact]
+    public void Pipeline_HitTesting_ComponentClickableAreas_AreDeterministic()
+    {
+        var pipeline = new MachinaRasterPipeline();
+        var document = CreateHybridPresenterDocument(emailUpdates: true, notifications: false);
+        var frame = pipeline.Render(document, width: 640, height: 360);
+
+        var buttonRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("settings-card/increment")].Rect;
+        foreach (var x in new[] { buttonRect.X + 2, buttonRect.X + buttonRect.Width / 2.0, (buttonRect.X + buttonRect.Width) - 2 })
+        {
+            var hit = frame.HitTest.HitTest(new PointerPoint((float)x, (float)(buttonRect.Y + buttonRect.Height / 2.0)));
+            Assert.NotNull(hit);
+            Assert.Equal("counter.increment", hit!.Action.Name);
+        }
+
+        var checkboxLabelRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("settings-card/email-updates.label")].Rect;
+        var checkboxLabelHit = frame.HitTest.HitTest(new PointerPoint((float)(checkboxLabelRect.X + 2), (float)(checkboxLabelRect.Y + 2)));
+        Assert.NotNull(checkboxLabelHit);
+        Assert.Equal("settings.emailUpdates.toggle", checkboxLabelHit!.Action.Name);
+
+        var switchTrackRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("settings-card/notifications.track")].Rect;
+        var switchTrackHit = frame.HitTest.HitTest(new PointerPoint((float)(switchTrackRect.X + 2), (float)(switchTrackRect.Y + 2)));
+        Assert.NotNull(switchTrackHit);
+        Assert.Equal("settings.notifications.toggle", switchTrackHit!.Action.Name);
+
+        var switchLabelRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("settings-card/notifications.label")].Rect;
+        var switchLabelHit = frame.HitTest.HitTest(new PointerPoint((float)(switchLabelRect.X + 2), (float)(switchLabelRect.Y + 2)));
+        Assert.NotNull(switchLabelHit);
+        Assert.Equal("settings.notifications.toggle", switchLabelHit!.Action.Name);
+    }
     private static UiDocument CreatePresenterLikeFormDocument(bool emailUpdates, bool notifications)
     {
         var emailStateText = emailUpdates ? "on" : "off";
