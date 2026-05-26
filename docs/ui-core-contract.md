@@ -213,3 +213,4 @@ M2a adds placement-first primitives so major panel placement is explicit and rea
 
 `UI.Row`/`UI.Column` remain supported and are now documented as flow primitives, not primary screen-placement primitives.
 \n\n## M3a flat authoring note\nRow-first UiDocument/UiRow authoring is canonical for top-level screens; nested UiNode trees remain optional sugar.
+\n\n### M3d text alignment\nTextStyle now includes horizontal (TextAlignX) and vertical (TextAlignY) alignment metadata. Defaults remain Left/Top for backward compatibility. Alignment only changes glyph paint origin inside the resolved text rectangle; layout geometry is unchanged. M3d does not add wrapping, ellipsis, multiline layout, baseline typography, kerning, anti-aliasing, or external font dependencies.

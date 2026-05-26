@@ -107,7 +107,9 @@ public static class Switch
             id: CreateChildId(id, "label"),
             style: new TextStyle(
                 Color: ResolveLabelColor(disabled, theme),
-                Size: TextSize.Sm));
+                Size: TextSize.Sm,
+                AlignX: TextAlignX.Left,
+                AlignY: TextAlignY.Center));
 
         return UI.Row(
             id: id,

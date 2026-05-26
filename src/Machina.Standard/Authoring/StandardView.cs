@@ -30,7 +30,7 @@ public static class StandardView
                 BorderColor: colors.Border,
                 BorderThickness: 1,
                 Padding: 12),
-            TextStyle: new TextStyle(Color: colors.PrimaryForeground, Size: TextSize.Md),
+            TextStyle: new TextStyle(Color: colors.PrimaryForeground, Size: TextSize.Md, AlignX: TextAlignX.Center, AlignY: TextAlignY.Center),
             Semantics: new UiSemantics(UiRole.Button, label, Focusable: true),
             Action: action);
     }
@@ -59,16 +59,21 @@ public static class StandardView
             Action: action);
     }
 
-    public static UiView Text(string text, TextSize size = TextSize.Md, ColorToken? color = null)
+    public static UiView Text(
+        string text,
+        TextSize size = TextSize.Md,
+        ColorToken? color = null,
+        TextAlignX alignX = TextAlignX.Left,
+        TextAlignY alignY = TextAlignY.Top)
     {
         var colors = StandardTheme.Default.Colors;
-        return View.Text(text, color ?? colors.Foreground, size);
+        return View.Text(text, color ?? colors.Foreground, size, alignX, alignY);
     }
 
     public static UiView Label(string text, TextSize size = TextSize.Sm, ColorToken? color = null)
     {
         var colors = StandardTheme.Default.Colors;
-        return View.Text(text, color ?? colors.Foreground, size, UiRole.Label);
+        return View.Text(text, color ?? colors.Foreground, size, TextAlignX.Left, TextAlignY.Top, UiRole.Label);
     }
 
     public static UiView Badge(string text)
@@ -81,7 +86,7 @@ public static class StandardView
                 BorderColor: colors.Border,
                 BorderThickness: 1,
                 Padding: 6),
-            TextStyle: new TextStyle(Color: colors.Foreground, Size: TextSize.Sm),
+            TextStyle: new TextStyle(Color: colors.Foreground, Size: TextSize.Sm, AlignX: TextAlignX.Center, AlignY: TextAlignY.Center),
             Semantics: new UiSemantics(UiRole.Label, text));
     }
 

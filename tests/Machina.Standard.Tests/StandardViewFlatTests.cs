@@ -1,6 +1,7 @@
 using Machina.Core.Actions;
 using Machina.Core.Flat;
 using Machina.Core.Semantics;
+using Machina.Core.Styling;
 using Machina.Standard.Authoring;
 using Xunit;
 
@@ -15,6 +16,21 @@ public sealed class StandardViewFlatTests
 
         Assert.Equal("save", lowered.Actions["button"].Name);
         Assert.Equal(UiRole.Button, lowered.Semantics["button"].Role);
+    }
+
+    [Fact]
+    public void StandardView_ButtonAndBadge_TextIsCenterAligned()
+    {
+        var button = StandardView.Button("Save");
+        var badge = StandardView.Badge("Beta");
+
+        Assert.NotNull(button.TextStyle);
+        Assert.Equal(TextAlignX.Center, button.TextStyle!.AlignX);
+        Assert.Equal(TextAlignY.Center, button.TextStyle.AlignY);
+
+        Assert.NotNull(badge.TextStyle);
+        Assert.Equal(TextAlignX.Center, badge.TextStyle!.AlignX);
+        Assert.Equal(TextAlignY.Center, badge.TextStyle.AlignY);
     }
 
     [Fact]

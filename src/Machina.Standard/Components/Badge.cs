@@ -21,7 +21,9 @@ public static class Badge
         var textNode = UI.Text(
             text,
             color: colors.Foreground,
-            size: TextSize.Sm);
+            size: TextSize.Sm,
+            alignX: TextAlignX.Center,
+            alignY: TextAlignY.Center);
         var style = new UiStyle(
             Background: colors.Background,
             Foreground: colors.Foreground,

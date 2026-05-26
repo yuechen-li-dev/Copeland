@@ -60,7 +60,7 @@ public sealed class RasterGoldenArtifactTests
         RasterArtifactAssertions.MaybeWriteArtifact("standard-card", ppm);
 
         var sha = RasterArtifactAssertions.Sha256Hex(ppm);
-        Assert.Equal("4c3033a8bceda169a46f98f208577951d10bb1312fdd3d930a9f77c9d9b9dfd4", sha);
+        Assert.Equal("0cf2672d8cea555ff1eefbf17a475b29582bb027e784fabb823e76e0ba880dd6", sha);
     }
 
     [Fact]

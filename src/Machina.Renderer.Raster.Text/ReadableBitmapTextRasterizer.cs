@@ -22,16 +22,13 @@ public sealed class ReadableBitmapTextRasterizer : ITextRasterizer
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);
 
-        if (text.Length == 0)
-        {
-            return;
-        }
-
         var scale = GetScale(style.Size);
         var advance = (GlyphWidth + GlyphGap) * scale;
-        var drawX = (int)Math.Floor(rect.X);
-        var drawY = (int)Math.Floor(rect.Y);
+        var (textWidth, textHeight) = Measure(text, style.Size);
+        var drawX = ResolveAlignedX(rect, textWidth, style.AlignX);
+        var drawY = ResolveAlignedY(rect, textHeight, style.AlignY);
         var rectRight = rect.X + rect.Width;
+        var effectiveClip = ResolveEffectiveClip(rect, clip);
 
         foreach (var rawCharacter in text)
         {
@@ -43,11 +40,74 @@ public sealed class ReadableBitmapTextRasterizer : ITextRasterizer
             var character = NormalizeCharacter(rawCharacter);
             if (character != ' ')
             {
-                DrawGlyph(surface, drawX, drawY, character, scale, color, clip);
+                DrawGlyph(surface, drawX, drawY, character, scale, color, effectiveClip);
             }
 
             drawX += advance;
         }
+    }
+
+    private static Rect ResolveEffectiveClip(Rect rect, Rect? clip)
+    {
+        if (clip is not { } clipValue)
+        {
+            return rect;
+        }
+
+        var left = Math.Max(rect.X, clipValue.X);
+        var top = Math.Max(rect.Y, clipValue.Y);
+        var right = Math.Min(rect.X + rect.Width, clipValue.X + clipValue.Width);
+        var bottom = Math.Min(rect.Y + rect.Height, clipValue.Y + clipValue.Height);
+        var width = Math.Max(0, right - left);
+        var height = Math.Max(0, bottom - top);
+        return new Rect(left, top, width, height);
+    }
+
+    public static (int Width, int Height) MeasureText(string text, TextStyle style)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(style);
+        return Measure(text, style.Size);
+    }
+
+    private static (int Width, int Height) Measure(string text, TextSize size)
+    {
+        if (text.Length == 0)
+        {
+            return (0, 0);
+        }
+
+        var scale = GetScale(size);
+        var advance = (GlyphWidth + GlyphGap) * scale;
+        var width = (advance * text.Length) - (GlyphGap * scale);
+        var height = GlyphHeight * scale;
+        return (width, height);
+    }
+
+    private static int ResolveAlignedX(Rect rect, int textWidth, TextAlignX alignX)
+    {
+        var left = (int)Math.Floor(rect.X);
+        var width = (int)Math.Floor(rect.Width);
+        return alignX switch
+        {
+            TextAlignX.Left => left,
+            TextAlignX.Center => left + ((width - textWidth) / 2),
+            TextAlignX.Right => left + width - textWidth,
+            _ => left,
+        };
+    }
+
+    private static int ResolveAlignedY(Rect rect, int textHeight, TextAlignY alignY)
+    {
+        var top = (int)Math.Floor(rect.Y);
+        var height = (int)Math.Floor(rect.Height);
+        return alignY switch
+        {
+            TextAlignY.Top => top,
+            TextAlignY.Center => top + ((height - textHeight) / 2),
+            TextAlignY.Bottom => top + height - textHeight,
+            _ => top,
+        };
     }
 
     private static void DrawGlyph(RasterSurface surface, int originX, int originY, char character, int scale, Rgba32 color, Rect? clip)

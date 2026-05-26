@@ -29,9 +29,11 @@ public static class View
         string text,
         ColorToken? color = null,
         TextSize size = TextSize.Md,
+        TextAlignX alignX = TextAlignX.Left,
+        TextAlignY alignY = TextAlignY.Top,
         UiRole role = UiRole.Text)
     {
-        var textStyle = new TextStyle(Color: color, Size: size);
+        var textStyle = new TextStyle(Color: color, Size: size, AlignX: alignX, AlignY: alignY);
         var semantics = new UiSemantics(role, text);
         return new UiView(TextStyle: textStyle, Semantics: semantics);
     }
