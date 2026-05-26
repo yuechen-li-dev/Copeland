@@ -47,7 +47,7 @@ internal sealed class Program
 
     private sealed class PresenterWindow : Window
     {
-        private const string BaseTitle = "Machina Presenter M1d";
+        private const string BaseTitle = "Machina Presenter M1e";
 
         private static readonly DispatchTable<DemoState> DemoDispatch =
             DispatchTable.For<DemoState>()
@@ -99,8 +99,8 @@ internal sealed class Program
 
         private void RenderCurrentState()
         {
-            const int width = 760;
-            const int height = 440;
+            const int width = 640;
+            const int height = 360;
 
             var ui = BuildUi(_state);
             _currentFrame = _pipeline.Render(ui, width, height);
@@ -118,45 +118,65 @@ internal sealed class Program
             var emailStateText = state.EmailUpdates ? "on" : "off";
             var notificationsStateText = state.Notifications ? "on" : "off";
 
-            return StandardUI.Card(
-                id: "settings-card",
-                width: 460,
-                height: 310,
+            return UI.Rect(
+                id: "surface",
+                width: 640,
+                height: 360,
+                style: new UiStyle(
+                    Background: ColorToken.Hex(0xEDEDF0FF),
+                    Foreground: ColorToken.Hex(0x09090BFF),
+                    Padding: 0),
                 child: UI.Column(
-                    id: "content",
-                    gap: 12,
+                    id: "surface-layout",
                     children:
                     [
-                        UI.Text(
-                            "Machina UI",
-                            id: "title",
-                            color: ColorToken.White,
-                            size: TextSize.H1),
-
-                        UI.Text(
-                            $"Count: {state.Count}",
-                            id: "count",
-                            color: ColorToken.Gray,
-                            size: TextSize.Md),
-
-                        StandardUI.Button(
-                            "Increment",
-                            id: "increment",
-                            action: UiAction.Named("counter.increment")),
-
-                        StandardUI.Separator(id: "rule"),
-
-                        StandardUI.Checkbox(
-                            id: "email-updates",
-                            label: $"Email updates: {emailStateText}",
-                            isChecked: state.EmailUpdates,
-                            changed: UiAction.Named("settings.emailUpdates.toggle")),
-
-                        StandardUI.Switch(
-                            id: "notifications",
-                            label: $"Notifications: {notificationsStateText}",
-                            isOn: state.Notifications,
-                            changed: UiAction.Named("settings.notifications.toggle")),
+                        UI.VSpace(24, id: "surface-top-gap"),
+                        UI.Row(
+                            id: "surface-left-offset",
+                            children:
+                            [
+                                UI.HSpace(72, id: "surface-left-gap"),
+                                StandardUI.Card(
+                                    id: "settings-card",
+                                    width: 500,
+                                    height: 292,
+                                    child: UI.Column(
+                                        id: "content",
+                                        gap: 10,
+                                        children:
+                                        [
+                                            UI.Text(
+                                                "Machina Presenter",
+                                                id: "title",
+                                                color: ColorToken.Hex(0x18181BFF),
+                                                size: TextSize.Md),
+                                            UI.Text(
+                                                $"Count: {state.Count}",
+                                                id: "count",
+                                                color: ColorToken.Hex(0x52525BFF),
+                                                size: TextSize.Sm),
+                                            StandardUI.Button(
+                                                "Increment",
+                                                id: "increment",
+                                                action: UiAction.Named("counter.increment")),
+                                            StandardUI.Separator(id: "rule"),
+                                            StandardUI.Checkbox(
+                                                id: "email-updates",
+                                                label: $"Email updates: {emailStateText}",
+                                                isChecked: state.EmailUpdates,
+                                                changed: UiAction.Named("settings.emailUpdates.toggle")),
+                                            StandardUI.Switch(
+                                                id: "notifications",
+                                                label: $"Notifications: {notificationsStateText}",
+                                                isOn: state.Notifications,
+                                                changed: UiAction.Named("settings.notifications.toggle")),
+                                            UI.Text(
+                                                "Deterministic sample UI",
+                                                id: "footnote",
+                                                color: ColorToken.Hex(0x71717AFF),
+                                                size: TextSize.Sm),
+                                        ])),
+                            ]),
                     ]));
         }
 

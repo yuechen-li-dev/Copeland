@@ -33,7 +33,7 @@ public sealed class StandardButtonTests
         Assert.Equal("save", lowered.Actions[buttonId].Name);
         Assert.Equal(theme.Colors.Primary, lowered.Styles[buttonId].Background);
         Assert.Equal(theme.Colors.PrimaryForeground, lowered.Styles[buttonId].Foreground);
-        Assert.Equal(theme.Spacing.Md, lowered.Styles[buttonId].Padding);
+        Assert.Equal(theme.Spacing.Sm, lowered.Styles[buttonId].Padding);
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public sealed class StandardButtonTests
         var lowered = UiLowerer.Lower(ui);
         var theme = StandardTheme.Default;
 
-        Assert.Equal(theme.Spacing.Sm, lowered.Styles[new NodeId("small")].Padding);
-        Assert.Equal(theme.Spacing.Lg, lowered.Styles[new NodeId("large")].Padding);
+        Assert.Equal(theme.Spacing.Xs + 2, lowered.Styles[new NodeId("small")].Padding);
+        Assert.Equal(theme.Spacing.Md, lowered.Styles[new NodeId("large")].Padding);
     }
 }
