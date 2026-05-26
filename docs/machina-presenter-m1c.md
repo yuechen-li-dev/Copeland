@@ -10,7 +10,7 @@ The sample now demonstrates:
 - Checkbox toggle (`settings.emailUpdates.toggle`)
 - Switch toggle (`settings.notifications.toggle`)
 
-All simple state transitions route through `DispatchTable<DemoState>`.
+All simple state transitions route through `DispatchTable<DemoState>` created with a collection expression.
 
 ## State shape
 
@@ -31,11 +31,13 @@ Initial state:
 
 ## Dispatch model
 
+The sample defines action IDs once in a static `Actions` class and reuses them in both view metadata and dispatch transitions.
+
 The sample-local dispatch table is the single transition path:
 
-- `counter.increment` -> increment `Count`
-- `settings.emailUpdates.toggle` -> toggle `EmailUpdates`
-- `settings.notifications.toggle` -> toggle `Notifications`
+- `Actions.Increment` (`counter.increment`) -> increment `Count`
+- `Actions.ToggleEmailUpdates` (`settings.emailUpdates.toggle`) -> toggle `EmailUpdates`
+- `Actions.ToggleNotifications` (`settings.notifications.toggle`) -> toggle `Notifications`
 
 Unknown event names no-op and preserve reference identity.
 

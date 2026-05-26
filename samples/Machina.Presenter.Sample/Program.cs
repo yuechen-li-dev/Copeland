@@ -48,20 +48,29 @@ internal sealed class Program
     {
         private const string BaseTitle = "Machina Presenter M1e";
 
+        private static class Actions
+        {
+            public static readonly UiActionId Increment = new("counter.increment");
+            public static readonly UiActionId ToggleEmailUpdates = new("settings.emailUpdates.toggle");
+            public static readonly UiActionId ToggleNotifications = new("settings.notifications.toggle");
+        }
+
         private static readonly DispatchTable<DemoState> DemoDispatch =
-            DispatchTable.For<DemoState>()
-                .Increment(
-                    eventName: "counter.increment",
+            DispatchTable.Create<DemoState>(
+                [
+                    DispatchTransitions.Increment<DemoState>(
+                    Actions.Increment,
                     get: state => state.Count,
-                    set: (state, value) => state with { Count = value })
-                .Toggle(
-                    eventName: "settings.emailUpdates.toggle",
+                    set: (state, value) => state with { Count = value }),
+                    DispatchTransitions.Toggle<DemoState>(
+                    Actions.ToggleEmailUpdates,
                     get: state => state.EmailUpdates,
-                    set: (state, value) => state with { EmailUpdates = value })
-                .Toggle(
-                    eventName: "settings.notifications.toggle",
+                    set: (state, value) => state with { EmailUpdates = value }),
+                    DispatchTransitions.Toggle<DemoState>(
+                    Actions.ToggleNotifications,
                     get: state => state.Notifications,
-                    set: (state, value) => state with { Notifications = value });
+                    set: (state, value) => state with { Notifications = value }),
+                ]);
 
         private readonly Image _image;
 
@@ -154,7 +163,7 @@ internal sealed class Program
                         top: 88,
                         width: 180,
                         height: 30,
-                        view: StandardView.Button("Increment", action: UiAction.Named("counter.increment"))),
+                        view: StandardView.Button("Increment", action: Actions.Increment.ToAction())),
                     Row.Anchor(
                         id: "settings-flow",
                         parent: "settings-card",
@@ -170,7 +179,7 @@ internal sealed class Program
                         view: StandardView.Checkbox(
                             label: $"Email updates: {emailStateText}",
                             isChecked: state.EmailUpdates,
-                            action: UiAction.Named("settings.emailUpdates.toggle"))),
+                            action: Actions.ToggleEmailUpdates.ToAction())),
                     Row.Fixed(
                         id: "notifications",
                         parent: "settings-flow",
@@ -178,7 +187,7 @@ internal sealed class Program
                         view: StandardView.Switch(
                             label: $"Notifications: {notificationsStateText}",
                             isOn: state.Notifications,
-                            action: UiAction.Named("settings.notifications.toggle"))),
+                            action: Actions.ToggleNotifications.ToAction())),
                     Row.Anchor(
                         id: "footnote",
                         parent: "settings-card",
@@ -219,7 +228,7 @@ internal sealed class Program
 
         private void ApplyAction(UiAction action)
         {
-            var next = DemoDispatch.Dispatch(_state, action.Name);
+            var next = DemoDispatch.Dispatch(_state, action.Id);
             if (!ReferenceEquals(next, _state))
             {
                 _state = next;

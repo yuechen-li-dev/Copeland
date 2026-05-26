@@ -1,4 +1,4 @@
-# Machina.Runtime.Dispatch (M0a)
+# Machina.Runtime.Dispatch (M3c)
 
 ## Purpose
 
@@ -12,31 +12,38 @@ This is the C# port of the original MachinaDispatch intent from Oct research and
 
 ## C# design
 
-M0a uses typed getter/setter lambdas instead of string field keys.
+M3c uses typed getter/setter lambdas and typed `UiActionId` values instead of stringly app-code action identifiers.
 
 ```csharp
 private sealed record CounterState(int Count);
 
-private static readonly DispatchTable<CounterState> CounterDispatch =
-    DispatchTable.For<CounterState>()
-        .Increment(
-            eventName: "counter.increment",
-            get: state => state.Count,
-            set: (state, value) => state with { Count = value });
+private static class Actions
+{
+    public static readonly UiActionId Increment = new("counter.increment");
+}
 
-var next = CounterDispatch.Dispatch(new CounterState(0), "counter.increment");
+private static readonly DispatchTable<CounterState> CounterDispatch =
+    DispatchTable.Create<CounterState>(
+    [
+        DispatchTransitions.Increment(
+            Actions.Increment,
+            get: state => state.Count,
+            set: (state, value) => state with { Count = value }),
+    ]);
+
+var next = CounterDispatch.Dispatch(new CounterState(0), Actions.Increment);
 // Count = 1
 ```
 
 This keeps transitions explicit, compile-time typed, and immutable-friendly.
 
-## Supported transitions in M0a
+## Supported transitions in M3c
 
 - `Set`
 - `Toggle`
 - `Increment` (int)
 
-Prefix/suffix transitions are deferred to M0b.
+Compatibility string overloads remain available. New code should define `UiActionId` once and reuse it in views and dispatch tables.
 
 ## Ordered semantics
 
@@ -123,4 +130,3 @@ Machina.Runtime.Dispatch M0a is pure state transition logic.
 As of M0d, `samples/Machina.Presenter.Sample` uses `DispatchTable<CounterState>` for the live counter state loop.
 
 This demonstrates the intended default for simple deterministic field transitions in real UI interaction paths.
-

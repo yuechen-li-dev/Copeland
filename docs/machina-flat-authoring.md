@@ -12,6 +12,8 @@ Use `UiDocument` with a flat `UiRow` table.
 
 Nested `UiNode` authoring remains supported, but it is optional sugar and is not the canonical top-level authoring shape.
 
+For interactive rows, define `UiActionId` values once and reuse them across view metadata (`UiAction.Named(actionId)`) and runtime dispatch tables.
+
 ## Core APIs
 
 - `UiDocument.Create(rows: [...])`
