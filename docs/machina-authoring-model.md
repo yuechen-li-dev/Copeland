@@ -62,3 +62,8 @@ Top-level screens should read as a flat table/blueprint of rows with explicit fr
 ## M3e field-style guidance
 
 For canonical samples, prefer explicit row composition for form fields (`email-row`, `email-box`, `email-label`) over single mega-view controls. Nested `UiNode` trees remain optional sugar and are not required for normal form composition.
+
+
+## M3f control skin guidance
+
+For checkbox/switch controls, keep flat row composition explicit and treat `StandardView.CheckboxBox`, `StandardView.SwitchTrack`, and `StandardView.SwitchThumb` as style metadata helpers only. In M3f, state is communicated by rectangular fill/border contrast and thumb position (no rounded corners yet).

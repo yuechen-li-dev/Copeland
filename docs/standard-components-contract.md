@@ -231,3 +231,8 @@ For field-like UI, prefer explicit rows (label row + input row) instead of a sin
 ## M3e flat-view composition note
 
 `StandardView` includes optional sub-part view helpers (`CheckboxBox`, `SwitchTrack`, `SwitchThumb`) so field controls can be composed with explicit flat rows while preserving deterministic semantics/action metadata.
+
+
+## M3f rectangular control skin hardening
+
+`CheckboxBox`, `SwitchTrack`, and `SwitchThumb` remain metadata-only helpers. They now emit stronger rectangular control chrome styling (background/border/fill contrast) so flat row composition reads as real controls without adding new primitives.

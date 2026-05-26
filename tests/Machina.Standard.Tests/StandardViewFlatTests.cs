@@ -83,4 +83,40 @@ public sealed class StandardViewFlatTests
         Assert.Equal(UiRole.Container, lowered.Semantics["switch-thumb"].Role);
         Assert.False(lowered.Actions.ContainsKey("switch-thumb"));
     }
+
+    [Fact]
+    public void StandardView_CheckboxBox_CheckedAndUnchecked_UseDistinctFillMetadata()
+    {
+        var checkedBox = StandardView.CheckboxBox(isChecked: true);
+        var uncheckedBox = StandardView.CheckboxBox(isChecked: false);
+
+        Assert.Equal(ColorToken.Hex(0x27272AFF), checkedBox.Style?.Foreground);
+        Assert.Equal(ColorToken.Hex(0x00000000), uncheckedBox.Style?.Foreground);
+        Assert.Equal(ColorToken.Hex(0xFFFFFFFF), checkedBox.Style?.Background);
+        Assert.Equal(4, checkedBox.Style?.Padding);
+    }
+
+    [Fact]
+    public void StandardView_SwitchTrack_OnAndOff_UseDistinctTrackBackgroundMetadata()
+    {
+        var onTrack = StandardView.SwitchTrack(isOn: true);
+        var offTrack = StandardView.SwitchTrack(isOn: false);
+
+        Assert.Equal(ColorToken.Hex(0x3F3F46FF), onTrack.Style?.Background);
+        Assert.Equal(ColorToken.Hex(0xE4E4E7FF), offTrack.Style?.Background);
+        Assert.Equal(ColorToken.Hex(0x71717AFF), onTrack.Style?.BorderColor);
+    }
+
+    [Fact]
+    public void StandardView_SwitchThumb_MetadataIsStableAcrossState()
+    {
+        var onThumb = StandardView.SwitchThumb(isOn: true);
+        var offThumb = StandardView.SwitchThumb(isOn: false);
+
+        Assert.Equal(ColorToken.Hex(0xFFFFFFFF), onThumb.Style?.Background);
+        Assert.Equal(ColorToken.Hex(0xFFFFFFFF), offThumb.Style?.Background);
+        Assert.Equal(ColorToken.Hex(0x71717AFF), onThumb.Style?.BorderColor);
+        Assert.Equal(onThumb.Style, offThumb.Style);
+    }
+
 }
