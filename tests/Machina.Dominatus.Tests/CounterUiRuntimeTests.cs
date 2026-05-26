@@ -67,6 +67,19 @@ public sealed class CounterUiRuntimeTests
         Assert.Equal(3, runtime.Count);
     }
 
+
+    [Fact]
+    public void RepeatedTicks_DoNotReprocessHistoricalIncrement()
+    {
+        var runtime = new CounterUiRuntime();
+
+        runtime.SendAction(UiAction.Named("increment"));
+        runtime.TickUntilIdle();
+        runtime.TickUntilIdle(maxTicks: 8);
+
+        Assert.Equal(1, runtime.Count);
+    }
+
     [Fact]
     public void BuildUi_ReflectsUpdatedCount()
     {

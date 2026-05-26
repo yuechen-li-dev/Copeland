@@ -11,8 +11,9 @@ This note captures operational patterns found during real Copeland/Machina integ
 - Root nodes that hand off should usually park with `Ai.Steady`.
 - `Succeed`/`Fail` complete/pop; they do not park.
 - Persistent event listeners must avoid re-consuming historical events.
-- Reinstalling `Ai.Event<T>()` in a loop can start from a fresh cursor.
-- Use monotonic sequence IDs, correlation IDs, or persisted cursor discipline for retained event streams.
+- `Ai.Event<T>()` now defaults to `FutureOnly` cursor start in refreshed Dominatus.
+- Use `EventCursorStart.IncludeExisting` when a listener must consume events published before wait installation.
+- Keep monotonic sequence IDs or correlation IDs when duplicate protection is still required by your flow.
 - `TickUntilIdle`-style helpers must be bounded or predicate-driven.
 - Iterator locals are not persistence state.
 - Blackboard keys should be stable and explicit.
@@ -70,7 +71,15 @@ while (true)
 }
 ```
 
-## Pattern: Monotonic event sequence / correlation guard
+## Pattern: Cursor start + optional sequence/correlation guard
+
+Refreshed Dominatus now defaults `Ai.Event<T>()` to `EventCursorStart.FutureOnly`, which starts a newly installed wait from the current event-bus tail.
+
+That default prevents historical replay, but it also means events published before wait installation are intentionally skipped.
+
+For ingress flows that publish before the first wait is installed, set `cursorStart: EventCursorStart.IncludeExisting`.
+
+Sequence/correlation guards remain useful when you need stronger exactly-once guarantees across reinstalls, replay, or multi-step coordination.
 
 Local mitigation pattern:
 

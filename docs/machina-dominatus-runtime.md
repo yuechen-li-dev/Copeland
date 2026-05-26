@@ -52,3 +52,12 @@ Presenter remains intentionally small and dumb:
 The Dominatus counter runtime proof remains valuable for demonstrating event ingress, blackboard-backed state, and runtime orchestration.
 
 For the default presenter sample counter interaction, M0d now uses `Machina.Runtime.Dispatch` because the transition is a simple deterministic field update and does not require orchestration machinery.
+
+
+## Counter event cursor adaptation after Dominatus re-vendor
+
+The refreshed vendored Dominatus event wait API now defaults `Ai.Event<T>()` to `EventCursorStart.FutureOnly`.
+
+For `CounterUiRuntime`, actions are often published before the first runtime tick installs the wait step. The counter listener therefore uses `cursorStart: EventCursorStart.IncludeExisting` so first actions are not dropped.
+
+The runtime keeps a monotonic `UiActionEvent.Sequence` guard to avoid stale reprocessing if the event wait is reinstalled while retained events still exist.
