@@ -236,3 +236,4 @@ For field-like UI, prefer explicit rows (label row + input row) instead of a sin
 ## M3f rectangular control skin hardening
 
 `CheckboxBox`, `SwitchTrack`, and `SwitchThumb` remain metadata-only helpers. They now emit stronger rectangular control chrome styling (background/border/fill contrast) so flat row composition reads as real controls without adding new primitives.
+\n## M4a hybrid note\nRow-hosted components are now supported: top-level placement stays flat rows, while local component internals use nested UiNode/StandardUI under a host row boundary.

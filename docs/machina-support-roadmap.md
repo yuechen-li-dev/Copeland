@@ -266,3 +266,4 @@ Presenter sample form controls are now re-proven with flat row-first composition
 ## M3f status update
 
 M3f hardens standard control chrome for composed checkbox/switch controls using only existing rectangular primitives, while preserving flat row-first authoring and pipeline hit-test structure.
+\n## M4a hybrid note\nRow-hosted components are now supported: top-level placement stays flat rows, while local component internals use nested UiNode/StandardUI under a host row boundary.

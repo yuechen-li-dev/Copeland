@@ -49,3 +49,4 @@ When no border metadata is present, there is no pipeline API change in behavior 
 The pipeline keeps compatibility for both `UiNode` and flat `UiDocument` inputs.
 
 For flat documents, use `UiDocumentSnapshotWriter` in tests/docs/diagnostics to inspect deterministic row metadata without changing renderer behavior.
+\n## M4a hybrid note\nRow-hosted components are now supported: top-level placement stays flat rows, while local component internals use nested UiNode/StandardUI under a host row boundary.

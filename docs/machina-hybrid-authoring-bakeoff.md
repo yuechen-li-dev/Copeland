@@ -1,0 +1,22 @@
+# Machina Hybrid Authoring Bake-off (M4a)
+
+## A. Tree-only model
+Pros: strong component locality and quick prototyping.
+Cons: top-level placement drifts into layout soup with hidden geometry.
+
+## B. Row-only model
+Pros: explicit inspectable table layout and deterministic placement.
+Cons: component internals get scattered; checkbox/switch decomposition leaks low-level rows into app layout.
+
+## C. Hybrid model (row-hosted components)
+Pros: top-level layout remains explicit via flat rows; component internals regain locality via nested `UiNode` + `StandardUI`; row host is a clear boundary.
+Cons/risks: lowering adds scoped-id complexity and hit-test ids are generated/scoped.
+
+## M4a evidence
+- `UiRow` can host `Component` and row helpers accept `component:`.
+- `UiDocumentLowerer` emits host row unchanged and lowers component rows under scoped ids (`host/child`).
+- Presenter sample now places only root + card host at top level, and defines card internals in one local component function.
+- Pipeline hit-testing validates increment, checkbox, and switch actions through hosted component rows.
+
+## Conclusion
+Based on M4a sample and tests, hybrid appears preferred for app authoring: it keeps explicit screen placement while restoring component-local structure. Row-only and tree-only remain valid for special cases.

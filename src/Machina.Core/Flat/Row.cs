@@ -1,14 +1,15 @@
 using Machina.Layout.Frames;
 using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
+using Machina.Core.Nodes;
 
 namespace Machina.Core.Flat;
 
 public static class Row
 {
-    public static UiRow Root(NodeId id, UiView? view = null, int order = 0)
+    public static UiRow Root(NodeId id, UiView? view = null, UiNode? component = null, int order = 0)
     {
-        return new UiRow(id, Parent: null, Frame: new RootFrame(), Arrange: null, Order: order, View: view);
+        return new UiRow(id, Parent: null, Frame: new RootFrame(), Arrange: null, Order: order, View: view, Component: component);
     }
 
     public static UiRow Absolute(
@@ -35,10 +36,11 @@ public static class Row
         UiLength? width = null,
         UiLength? height = null,
         UiView? view = null,
+        UiNode? component = null,
         ArrangeSpec? arrange = null,
         int order = 0)
     {
-        return new UiRow(id, parent, new AnchorFrame(left, right, top, bottom, width, height), arrange, order, view);
+        return new UiRow(id, parent, new AnchorFrame(left, right, top, bottom, width, height), arrange, order, view, component);
     }
 
     public static UiRow Fixed(

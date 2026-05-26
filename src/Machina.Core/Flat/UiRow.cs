@@ -9,4 +9,5 @@ public sealed record UiRow(
     FrameSpec Frame,
     ArrangeSpec? Arrange = null,
     int Order = 0,
-    UiView? View = null);
+    UiView? View = null,
+    Machina.Core.Nodes.UiNode? Component = null);

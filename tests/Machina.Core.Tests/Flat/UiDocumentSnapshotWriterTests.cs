@@ -77,6 +77,20 @@ public sealed class UiDocumentSnapshotWriterTests
     }
 
     [Fact]
+    public void UiDocumentSnapshotWriter_ShowsHostedComponentSummary()
+    {
+        var document = UiDocument.Create(
+            [
+                Row.Root("root"),
+                Row.Anchor("host", "root", left: 0, top: 0, width: 100, height: 80, component: Machina.Core.Authoring.UI.Text("Hello", id: "title"))
+            ]);
+
+        var snapshot = UiDocumentSnapshotWriter.Write(document);
+        Assert.Contains("host parent=root", snapshot, StringComparison.Ordinal);
+        Assert.Contains("component=Text(id=title)", snapshot, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FlatDocument_DuplicateIds_FailsThroughLayoutCompiler()
     {
         var document = UiDocument.Create(
