@@ -102,8 +102,8 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 | Label | Machina.Standard | Partial | Snapshot-level evidence | Formalize semantic behavior.
 | Field | Machina.Standard | Partial | Standard form tests | Expand interaction states.
 | Input shell | Machina.Standard | Partial | Standard form tests | Text editing not yet complete runtime path.
-| Checkbox | Machina.Standard | Planned | None | Roadmap item for dispatch-driven settings slice.
-| Switch | Machina.Standard | Planned | None | Same as checkbox.
+| Checkbox | Machina.Standard | Implemented | Standard form tests | Dispatch-friendly selection control available.
+| Switch | Machina.Standard | Implemented | Standard form tests | Dispatch-friendly selection control available.
 | Tabs | Machina.Standard | Deferred | None | Post-core interaction milestone.
 | Dialog | Machina.Standard | Deferred | None | Depends on modal/runtime stack.
 | Popover | Machina.Standard | Deferred | None | Depends on layering/focus model.
@@ -192,7 +192,7 @@ React mapping guide:
 |---|---|---|
 | Core baseline (`Button`, primitive text/layout wrappers) | Implemented | Current tested center.
 | Form shell (`Field`, input wrapper pieces) | Partial | Needs full text edit/focus runtime.
-| Selection controls (`Checkbox`, `Switch`) | Planned | Good near-term dispatch-table targets.
+| Selection controls (`Checkbox`, `Switch`) | Implemented | Used in presenter settings sample with dispatch-table transitions.
 | Overlay/navigation/data controls | Deferred | Needs focus/modal/routing foundations first.
 
 ## Presenter / Platform Matrix
@@ -208,8 +208,8 @@ React mapping guide:
 
 - **M1a**: pipeline extraction / reusable `UiNode`-to-frame helper.
 - **M1b**: presenter sample cleanup using pipeline helper.
-- **M1c**: dispatch-table presenter default validation.
-- **M1d**: settings sample with checkbox/switch dispatch.
+- **M1c**: settings/counter presenter sample using dispatch-table transitions (implemented).
+- **M1d**: follow-on presenter interaction hardening/documentation sweep (planned).
 - **M1e**: scaling/DPI pointer conversion.
 - **M1f**: border/radius style support.
 - **M1g**: real text backend adapter.
@@ -237,6 +237,7 @@ React mapping guide:
 - `docs/machina-presenter-m0b.md`
 - `docs/machina-presenter-m0c.md`
 - `docs/machina-presenter-m0d.md`
+- `docs/machina-presenter-m1c.md`
 - `docs/dominatus-authoring-footguns.md`
 
 ## M1b support matrix update

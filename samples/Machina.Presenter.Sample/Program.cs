@@ -6,8 +6,8 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Machina.Core.Actions;
-using Machina.Core.Nodes;
 using Machina.Core.Authoring;
+using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Renderer.Raster.Dominatus.Models;
@@ -47,18 +47,26 @@ internal sealed class Program
 
     private sealed class PresenterWindow : Window
     {
-        private const string BaseTitle = "Machina Presenter M0d";
+        private const string BaseTitle = "Machina Presenter M1c";
 
-        private static readonly DispatchTable<CounterState> CounterDispatch =
-            DispatchTable.For<CounterState>()
+        private static readonly DispatchTable<DemoState> DemoDispatch =
+            DispatchTable.For<DemoState>()
                 .Increment(
-                    eventName: "increment",
+                    eventName: "counter.increment",
                     get: state => state.Count,
-                    set: (state, value) => state with { Count = value });
+                    set: (state, value) => state with { Count = value })
+                .Toggle(
+                    eventName: "settings.emailUpdates.toggle",
+                    get: state => state.EmailUpdates,
+                    set: (state, value) => state with { EmailUpdates = value })
+                .Toggle(
+                    eventName: "settings.notifications.toggle",
+                    get: state => state.Notifications,
+                    set: (state, value) => state with { Notifications = value });
 
         private readonly Image _image;
 
-        private CounterState _state;
+        private DemoState _state;
         private readonly MachinaRasterPipeline _pipeline;
         private UiHitTestIndex _hitTestIndex;
         private MachinaFrame _currentFrame;
@@ -74,7 +82,10 @@ internal sealed class Program
 
             _image.PointerPressed += HandlePointerPressed;
 
-            _state = new CounterState(0);
+            _state = new DemoState(
+                Count: 0,
+                EmailUpdates: true,
+                Notifications: false);
             _pipeline = new MachinaRasterPipeline();
             _hitTestIndex = default!;
             _currentFrame = default!;
@@ -88,8 +99,8 @@ internal sealed class Program
 
         private void RenderCurrentState()
         {
-            const int width = 640;
-            const int height = 360;
+            const int width = 760;
+            const int height = 440;
 
             var ui = BuildUi(_state);
             _currentFrame = _pipeline.Render(ui, width, height);
@@ -102,12 +113,15 @@ internal sealed class Program
             Height = _currentFrame.RasterFrame.Height;
         }
 
-        private static UiNode BuildUi(CounterState state)
+        private static UiNode BuildUi(DemoState state)
         {
+            var emailStateText = state.EmailUpdates ? "on" : "off";
+            var notificationsStateText = state.Notifications ? "on" : "off";
+
             return StandardUI.Card(
-                id: "counter-card",
-                width: 320,
-                height: 180,
+                id: "settings-card",
+                width: 460,
+                height: 310,
                 child: UI.Column(
                     id: "content",
                     gap: 12,
@@ -128,7 +142,21 @@ internal sealed class Program
                         StandardUI.Button(
                             "Increment",
                             id: "increment",
-                            action: UiAction.Named("increment")),
+                            action: UiAction.Named("counter.increment")),
+
+                        StandardUI.Separator(id: "rule"),
+
+                        StandardUI.Checkbox(
+                            id: "email-updates",
+                            label: $"Email updates: {emailStateText}",
+                            isChecked: state.EmailUpdates,
+                            changed: UiAction.Named("settings.emailUpdates.toggle")),
+
+                        StandardUI.Switch(
+                            id: "notifications",
+                            label: $"Notifications: {notificationsStateText}",
+                            isOn: state.Notifications,
+                            changed: UiAction.Named("settings.notifications.toggle")),
                     ]));
         }
 
@@ -146,12 +174,13 @@ internal sealed class Program
             }
 
             Title = BuildTitle(actionName);
-            Console.WriteLine($"Pointer ({point.X}, {point.Y}) -> action: {actionName}, count: {_state.Count}");
+            Console.WriteLine(
+                $"Pointer ({point.X}, {point.Y}) -> action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}");
         }
 
         private void ApplyAction(UiAction action)
         {
-            var next = CounterDispatch.Dispatch(_state, action.Name);
+            var next = DemoDispatch.Dispatch(_state, action.Name);
             if (!ReferenceEquals(next, _state))
             {
                 _state = next;
@@ -161,11 +190,19 @@ internal sealed class Program
 
         private string BuildTitle(string actionName)
         {
-            return $"{BaseTitle} - action: {actionName}, count: {_state.Count}";
+            return $"{BaseTitle} - action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}";
+        }
+
+        private static string OnOff(bool value)
+        {
+            return value ? "on" : "off";
         }
     }
 
-    private sealed record CounterState(int Count);
+    private sealed record DemoState(
+        int Count,
+        bool EmailUpdates,
+        bool Notifications);
 
     private static WriteableBitmap ToBitmap(RasterFrame frame)
     {
