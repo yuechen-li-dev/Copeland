@@ -58,8 +58,8 @@ public sealed class StandardComponentGeometryM4dTests
         Assert.Equal(18, GetRect(checkedResolved, "host/email.box").Width);
         Assert.Equal(18, GetRect(checkedResolved, "host/email.box").Height);
         Assert.True(GetRect(checkedResolved, "host/email.label").X > (GetRect(checkedResolved, "host/email.box").X + GetRect(checkedResolved, "host/email.box").Width));
-        Assert.Contains(checkedLowered.Rows, row => row.Id.Value == "host/email.marker");
-        Assert.DoesNotContain(uncheckedLowered.Rows, row => row.Id.Value == "host/email.marker");
+        Assert.Contains(checkedLowered.Rows, row => row.Id.Value == "host/email.mark");
+        Assert.DoesNotContain(uncheckedLowered.Rows, row => row.Id.Value == "host/email.mark");
         Assert.Contains(checkedLowered.Actions, pair => pair.Value.Name == "toggle" && pair.Key.Value == "host/email");
     }
 

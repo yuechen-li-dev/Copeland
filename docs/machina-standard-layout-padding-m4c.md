@@ -26,3 +26,4 @@
 
 ## M4d follow-up
 Button is now hardened to explicit shell + label-region layout (no layout padding behavior). Checkbox and Switch continue explicit internal rows and now have stronger headless geometry/hit-test assertions.
+\n- M4e note: presenter sample geometry is now validated with headless resolved-rectangle assertions; manual GUI checks are secondary.

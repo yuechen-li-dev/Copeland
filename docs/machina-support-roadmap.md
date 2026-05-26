@@ -277,3 +277,4 @@ Reference audit aligns this document with imported MachinaLayout.JS frame/stack 
 M4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (`AnchorFrame`), rather than relying on `UiStyle.Padding` to move children. Stack behavior remains ordered arithmetic (`StackArrange`) and is not Flexbox.
 
 | Standard component explicit internals (Button/Checkbox/Switch) | Machina.Standard + tests | Implemented | Standard/Pipeline headless geometry tests | M4d: shell/content rows and deterministic action hit regions. |
+\n- M4e note: presenter sample geometry is now validated with headless resolved-rectangle assertions; manual GUI checks are secondary.

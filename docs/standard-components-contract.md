@@ -245,3 +245,4 @@ M4c clarifies that style padding is paint metadata only. Components that host ch
 
 ## M4d component-geometry note
 Button/Checkbox/Switch internals are explicit local rows/frames. Geometry and clickable surfaces are validated via headless resolved-rect + hit-test tests; GUI screenshots are confirmation only.
+\n- M4e note: presenter sample geometry is now validated with headless resolved-rectangle assertions; manual GUI checks are secondary.

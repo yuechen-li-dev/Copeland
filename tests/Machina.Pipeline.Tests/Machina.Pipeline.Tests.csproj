@@ -21,5 +21,6 @@
     <ProjectReference Include="../../src/Machina.Runtime/Machina.Runtime.csproj" />
     <ProjectReference Include="../../src/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
     <ProjectReference Include="../../src/Machina.Dominatus/Machina.Dominatus.csproj" />
+    <ProjectReference Include="../../samples/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
   </ItemGroup>
 </Project>
