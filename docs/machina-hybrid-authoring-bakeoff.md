@@ -20,3 +20,6 @@ Cons/risks: lowering adds scoped-id complexity and hit-test ids are generated/sc
 
 ## Conclusion
 Based on M4a sample and tests, hybrid appears preferred for app authoring: it keeps explicit screen placement while restoring component-local structure. Row-only and tree-only remain valid for special cases.
+
+## M4b note (2026-05-26)
+Reference audit aligns this document with imported MachinaLayout.JS frame/stack semantics in \.

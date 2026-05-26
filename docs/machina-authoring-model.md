@@ -68,3 +68,6 @@ For canonical samples, prefer explicit row composition for form fields (`email-r
 
 For checkbox/switch controls, keep flat row composition explicit and treat `StandardView.CheckboxBox`, `StandardView.SwitchTrack`, and `StandardView.SwitchThumb` as style metadata helpers only. In M3f, state is communicated by rectangular fill/border contrast and thumb position (no rounded corners yet).
 \n## M4a hybrid note\nRow-hosted components are now supported: top-level placement stays flat rows, while local component internals use nested UiNode/StandardUI under a host row boundary.
+
+## M4b note (2026-05-26)
+Reference audit aligns this document with imported MachinaLayout.JS frame/stack semantics in \.
