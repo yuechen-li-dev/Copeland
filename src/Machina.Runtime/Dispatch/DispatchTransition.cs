@@ -1,35 +1,32 @@
 namespace Machina.Runtime.Dispatch;
+using Machina.Core.Actions;
 
-internal interface IDispatchTransition<TState>
+public interface IDispatchTransition<TState>
 {
-    bool Matches(string eventName);
+    UiActionId Action { get; }
 
     TState Apply(TState state);
 }
 
 internal sealed class SetTransition<TState, TValue> : IDispatchTransition<TState>
 {
-    private readonly string eventName;
     private readonly Func<TState, TValue> get;
     private readonly Func<TState, TValue, TState> set;
     private readonly TValue value;
 
     public SetTransition(
-        string eventName,
+        UiActionId action,
         Func<TState, TValue> get,
         Func<TState, TValue, TState> set,
         TValue value)
     {
-        this.eventName = eventName;
+        Action = action;
         this.get = get;
         this.set = set;
         this.value = value;
     }
 
-    public bool Matches(string candidateEventName)
-    {
-        return string.Equals(eventName, candidateEventName, StringComparison.Ordinal);
-    }
+    public UiActionId Action { get; }
 
     public TState Apply(TState state)
     {
@@ -45,24 +42,20 @@ internal sealed class SetTransition<TState, TValue> : IDispatchTransition<TState
 
 internal sealed class ToggleTransition<TState> : IDispatchTransition<TState>
 {
-    private readonly string eventName;
     private readonly Func<TState, bool> get;
     private readonly Func<TState, bool, TState> set;
 
     public ToggleTransition(
-        string eventName,
+        UiActionId action,
         Func<TState, bool> get,
         Func<TState, bool, TState> set)
     {
-        this.eventName = eventName;
+        Action = action;
         this.get = get;
         this.set = set;
     }
 
-    public bool Matches(string candidateEventName)
-    {
-        return string.Equals(eventName, candidateEventName, StringComparison.Ordinal);
-    }
+    public UiActionId Action { get; }
 
     public TState Apply(TState state)
     {
@@ -73,27 +66,23 @@ internal sealed class ToggleTransition<TState> : IDispatchTransition<TState>
 
 internal sealed class IncrementTransition<TState> : IDispatchTransition<TState>
 {
-    private readonly string eventName;
     private readonly Func<TState, int> get;
     private readonly Func<TState, int, TState> set;
     private readonly int by;
 
     public IncrementTransition(
-        string eventName,
+        UiActionId action,
         Func<TState, int> get,
         Func<TState, int, TState> set,
         int by)
     {
-        this.eventName = eventName;
+        Action = action;
         this.get = get;
         this.set = set;
         this.by = by;
     }
 
-    public bool Matches(string candidateEventName)
-    {
-        return string.Equals(eventName, candidateEventName, StringComparison.Ordinal);
-    }
+    public UiActionId Action { get; }
 
     public TState Apply(TState state)
     {
@@ -110,9 +99,9 @@ internal sealed class IncrementTransition<TState> : IDispatchTransition<TState>
         }
         catch (OverflowException)
         {
-            throw new MachinaDispatchError(
+                throw new MachinaDispatchError(
                 code: "InvalidDispatchValue",
-                message: $"Increment overflow for event '{eventName}' with value {current} and step {by}.");
+                message: $"Increment overflow for event '{Action.Value}' with value {current} and step {by}.");
         }
     }
 }

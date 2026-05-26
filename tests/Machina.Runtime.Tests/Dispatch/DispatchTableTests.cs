@@ -1,4 +1,5 @@
 using Machina.Runtime.Dispatch;
+using Machina.Core.Actions;
 using Xunit;
 
 namespace Machina.Runtime.Tests.Dispatch;
@@ -207,6 +208,68 @@ public sealed class DispatchTableTests
         Assert.Equal("settings", state.Route);
         Assert.True(state.NewOnly);
         Assert.Equal(1, state.CartCount);
+    }
+
+    [Fact]
+    public void Dispatch_WithTypedActionId_UpdatesState()
+    {
+        var action = new UiActionId("counter.increment");
+        var table = DispatchTable.For<CounterState>()
+            .Increment(action, s => s.Count, (s, value) => s with { Count = value });
+
+        var next = table.Dispatch(new CounterState(3), action);
+
+        Assert.Equal(4, next.Count);
+    }
+
+    [Fact]
+    public void Create_WithCollectionExpression_UpdatesState()
+    {
+        var increment = new UiActionId("counter.increment");
+        var table = DispatchTable.Create<CounterState>(
+            [
+                DispatchTransitions.Increment<CounterState>(
+                    increment,
+                    get: state => state.Count,
+                    set: (state, value) => state with { Count = value }),
+            ]);
+
+        var next = table.Dispatch(new CounterState(1), increment);
+
+        Assert.Equal(2, next.Count);
+    }
+
+    [Fact]
+    public void Create_FirstMatchWins_WhenEventsDuplicate()
+    {
+        var increment = new UiActionId("counter.increment");
+        var table = DispatchTable.Create<CounterState>(
+            [
+                DispatchTransitions.Increment<CounterState>(increment, s => s.Count, (s, value) => s with { Count = value }, by: 1),
+                DispatchTransitions.Increment<CounterState>(increment, s => s.Count, (s, value) => s with { Count = value }, by: 10),
+            ]);
+
+        var next = table.Dispatch(new CounterState(0), increment);
+
+        Assert.Equal(1, next.Count);
+    }
+
+    [Fact]
+    public void Create_NullTransitionList_IsRejected()
+    {
+        var error = Assert.Throws<MachinaDispatchError>(() => DispatchTable.Create<CounterState>(null!));
+
+        Assert.Equal("InvalidDispatchTransition", error.Code);
+    }
+
+    [Fact]
+    public void Create_NullTransitionEntry_IsRejected()
+    {
+        IDispatchTransition<CounterState>? row = null;
+
+        var error = Assert.Throws<MachinaDispatchError>(() => DispatchTable.Create<CounterState>([row!]));
+
+        Assert.Equal("InvalidDispatchTransition", error.Code);
     }
 
     private sealed record CounterState(int Count);

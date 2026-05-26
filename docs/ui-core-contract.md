@@ -81,7 +81,7 @@ Style metadata is emitted separately from layout rows so future renderers can co
 
 Semantics are data for future render, accessibility, and runtime adapters. Machina.Core M0c emits text semantics for `Text` and button semantics for `Button`.
 
-Actions are metadata/intents, not executable callbacks. `UiAction.Named("save")` records the intent name. Actual dispatch, event handling, runtime integration, and Dominatus coordination are intentionally outside Machina.Core M0c.
+Actions are metadata/intents, not executable callbacks. Prefer typed `UiActionId` values in app code and pass them via `UiAction.Named(actionId)` (or `actionId.ToAction()`). `UiAction.Named("save")` remains as a compatibility path. Actual dispatch, event handling, runtime integration, and Dominatus coordination are intentionally outside Machina.Core M0c.
 
 Disabled buttons are marked disabled and non-focusable in semantics. Their action metadata is omitted.
 

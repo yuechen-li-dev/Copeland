@@ -91,7 +91,7 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 | Styles | Machina.Core | Implemented | Style record tests | Immutable records, no CSS cascade.
 | Text styles | Machina.Core | Implemented | Style/measurement tests | Deterministic size tokens.
 | Semantics | Machina.Core | Implemented | Core tests | Text/button semantics emitted.
-| Actions | Machina.Core | Implemented | Core/runtime tests | Metadata intent; runtime handles dispatch.
+| Actions | Machina.Core | Implemented | Core/runtime tests | Metadata intent with typed `UiActionId`; runtime handles dispatch.
 | Measurement seam | Machina.Core | Implemented | Measurement tests | Deterministic fake measurer default.
 | Lowering snapshots | Machina.Core | Implemented | Snapshot tests | Stable artifact surface.
 | Explicit ids | Machina.Core | Implemented | Core tests | Deterministic generation + validation.
