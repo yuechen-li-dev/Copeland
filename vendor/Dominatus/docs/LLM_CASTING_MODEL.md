@@ -264,3 +264,18 @@ A bounded-choice LLM decision system must allow the model to reject the frame.
 - `proposedAlternative` is non-executable advisory text only.
 - Refusal never executes or commits a new authored option.
 - Re-entry restores recorded refusal outputs without redispatching provider.
+
+## Prompt-call doctrine (M8a)
+
+- Use `Llm.Call` for simple semantic transforms where the output is text and no bounded option decision is required.
+- Use `Llm.Decide` when runtime must choose among authored options with mandatory refusal.
+- Use `Llm.MagiDecide` for high-stakes multi-perspective judgment.
+
+- Context packets now feed directly into `Llm.Call` in M8b; keep `Call` for transform-only usage, and use `Decide`/`MagiDecide` for decisions.
+
+For ladder guidance on when to choose `Llm.Call`, `Llm.Decide`, `Llm.MagiDecide`, or non-LLM orchestration primitives, see `docs/ORCHESTRATION_LADDER.md`.
+
+- M9a note: streaming follows the same casting model split—provider async deltas are transient, Dominatus snapshots/chunks are durable state.
+
+
+- M9b adds authored stream helper (`Llm.Stream`) over M9a durable streaming.

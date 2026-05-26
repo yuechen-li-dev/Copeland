@@ -113,3 +113,26 @@ This layer is not:
 - a provider router
 - a tool registry
 - an async policy subsystem
+
+
+## Semantic Kernel capability-profile integration pattern
+
+Use existing Core policy primitives; do not create a SemanticKernel-specific policy engine.
+
+1. Build a capability profile and classify risk.
+2. Convert the reviewed subset into `SemanticKernelActuatorOptions.AllowedFunctions`.
+3. Register `SemanticKernelFunctionCommand` handler.
+4. Add runtime policy gates with `ForCommand<SemanticKernelFunctionCommand>`, `When`, `Score`, and `AllOf`.
+
+This keeps concerns separate:
+
+- profile = classification
+- allowlist = hard permission surface
+- actuation policy = runtime allow/deny gate
+- workflow = approval/accountability boundary
+
+- Standard HTTP safety policy (`HttpWebSafetyActuationPolicy`) is an example concrete `IActuationPolicy` over HTTP commands; see `ACTUATORS_STANDARD_M5_HTTP_WEB_SAFETY.md`.
+
+
+## M4 pointer
+For approval-gating examples on Graph send/update/cancel operations, see `ACTUATORS_SEMANTICKERNEL_M4_GRAPH_PROFILE.md`.
