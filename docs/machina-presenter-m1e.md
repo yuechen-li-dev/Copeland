@@ -50,3 +50,7 @@ Still not included:
 ## Outcome
 
 M1e moves the presenter sample from prototype-like debug composition toward a simple, intentional desktop panel look while preserving current package boundaries and deterministic output expectations.
+
+## M2a follow-up
+
+The presenter sample now uses placement-first composition (`UI.Surface` + `UI.At`) for screen-level panel placement and keeps `UI.Column` for in-card flow content only.

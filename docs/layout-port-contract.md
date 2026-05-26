@@ -143,3 +143,7 @@ M1b adds `CellFrame`, `GridTrack`, and `GridArrange`.
 Grid arrangement is explicit deterministic arithmetic over declared columns and rows, not CSS Grid. Direct grid children must use `CellFrame`.
 
 Grid supports fixed/fill tracks, row/column gaps, padding, and row/column spans. It deliberately excludes auto-placement, implicit tracks, minmax, named areas, subgrid, margins, and item alignment.
+
+## M2a note
+
+Machina.Core now exposes placement-first helpers (`UI.At` / `UI.Anchor`) that lower directly to this port's existing `AbsoluteFrame` and `AnchorFrame` frame model.

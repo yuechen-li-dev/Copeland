@@ -2,6 +2,7 @@ using Machina.Core.Actions;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Layout.Frames;
+using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
 
 namespace Machina.Core.Authoring;
@@ -114,6 +115,76 @@ public static class UI
         NodeId? id = null)
     {
         return new SpacerNode(StackAxis.Vertical, height) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiNode Surface(
+        NodeId? id = null,
+        double width = 0,
+        double height = 0,
+        ColorToken? color = null,
+        UiStyle? style = null,
+        IReadOnlyList<UiNode>? children = null)
+    {
+        var effectiveStyle = MergeBoxStyle(style, color, padding: null, foreground: null, borderColor: null, borderThickness: null);
+
+        return new LayerNode(
+            Frame: new RootFrame(),
+            Style: effectiveStyle,
+            Children: children ?? [],
+            Width: width > 0 ? width : null,
+            Height: height > 0 ? height : null) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiNode Layer(
+        NodeId? id = null,
+        FrameSpec? frame = null,
+        UiStyle? style = null,
+        IReadOnlyList<UiNode>? children = null)
+    {
+        return new LayerNode(
+            Frame: frame,
+            Style: style,
+            Children: children ?? []) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiNode At(
+        UiNode child,
+        NodeId? id = null,
+        double x = 0,
+        double y = 0,
+        double width = 0,
+        double height = 0)
+    {
+        return new PlacementNode(
+            new AbsoluteFrame(x, y, width, height),
+            child) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiNode Anchor(
+        UiNode child,
+        NodeId? id = null,
+        UiLength? left = null,
+        UiLength? right = null,
+        UiLength? top = null,
+        UiLength? bottom = null,
+        UiLength? width = null,
+        UiLength? height = null)
+    {
+        return new PlacementNode(
+            new AnchorFrame(left, right, top, bottom, width, height),
+            child) with
         {
             Id = id,
         };

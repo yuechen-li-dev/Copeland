@@ -118,66 +118,61 @@ internal sealed class Program
             var emailStateText = state.EmailUpdates ? "on" : "off";
             var notificationsStateText = state.Notifications ? "on" : "off";
 
-            return UI.Rect(
+            return UI.Surface(
                 id: "surface",
                 width: 640,
                 height: 360,
-                style: new UiStyle(
-                    Background: ColorToken.Hex(0xEDEDF0FF),
-                    Foreground: ColorToken.Hex(0x09090BFF),
-                    Padding: 0),
-                child: UI.Column(
-                    id: "surface-layout",
-                    children:
-                    [
-                        UI.VSpace(24, id: "surface-top-gap"),
-                        UI.Row(
-                            id: "surface-left-offset",
-                            children:
-                            [
-                                UI.HSpace(72, id: "surface-left-gap"),
-                                StandardUI.Card(
-                                    id: "settings-card",
-                                    width: 500,
-                                    height: 292,
-                                    child: UI.Column(
-                                        id: "content",
-                                        gap: 10,
-                                        children:
-                                        [
-                                            UI.Text(
-                                                "Machina Presenter",
-                                                id: "title",
-                                                color: ColorToken.Hex(0x18181BFF),
-                                                size: TextSize.Md),
-                                            UI.Text(
-                                                $"Count: {state.Count}",
-                                                id: "count",
-                                                color: ColorToken.Hex(0x52525BFF),
-                                                size: TextSize.Sm),
-                                            StandardUI.Button(
-                                                "Increment",
-                                                id: "increment",
-                                                action: UiAction.Named("counter.increment")),
-                                            StandardUI.Separator(id: "rule"),
-                                            StandardUI.Checkbox(
-                                                id: "email-updates",
-                                                label: $"Email updates: {emailStateText}",
-                                                isChecked: state.EmailUpdates,
-                                                changed: UiAction.Named("settings.emailUpdates.toggle")),
-                                            StandardUI.Switch(
-                                                id: "notifications",
-                                                label: $"Notifications: {notificationsStateText}",
-                                                isOn: state.Notifications,
-                                                changed: UiAction.Named("settings.notifications.toggle")),
-                                            UI.Text(
-                                                "Deterministic sample UI",
-                                                id: "footnote",
-                                                color: ColorToken.Hex(0x71717AFF),
-                                                size: TextSize.Sm),
-                                        ])),
-                            ]),
-                    ]));
+                color: ColorToken.Hex(0xEDEDF0FF),
+                style: new UiStyle(Foreground: ColorToken.Hex(0x09090BFF), Padding: 0),
+                children:
+                [
+                    UI.At(
+                        id: "settings-card-slot",
+                        x: 72,
+                        y: 24,
+                        width: 500,
+                        height: 292,
+                        child: StandardUI.Card(
+                            id: "settings-card",
+                            width: 500,
+                            height: 292,
+                            child: UI.Column(
+                                id: "content",
+                                gap: 10,
+                                children:
+                                [
+                                    UI.Text(
+                                        "Machina Presenter",
+                                        id: "title",
+                                        color: ColorToken.Hex(0x18181BFF),
+                                        size: TextSize.Md),
+                                    UI.Text(
+                                        $"Count: {state.Count}",
+                                        id: "count",
+                                        color: ColorToken.Hex(0x52525BFF),
+                                        size: TextSize.Sm),
+                                    StandardUI.Button(
+                                        "Increment",
+                                        id: "increment",
+                                        action: UiAction.Named("counter.increment")),
+                                    StandardUI.Separator(id: "rule"),
+                                    StandardUI.Checkbox(
+                                        id: "email-updates",
+                                        label: $"Email updates: {emailStateText}",
+                                        isChecked: state.EmailUpdates,
+                                        changed: UiAction.Named("settings.emailUpdates.toggle")),
+                                    StandardUI.Switch(
+                                        id: "notifications",
+                                        label: $"Notifications: {notificationsStateText}",
+                                        isOn: state.Notifications,
+                                        changed: UiAction.Named("settings.notifications.toggle")),
+                                    UI.Text(
+                                        "Deterministic sample UI",
+                                        id: "footnote",
+                                        color: ColorToken.Hex(0x71717AFF),
+                                        size: TextSize.Sm),
+                                ])))
+                ]);
         }
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
