@@ -208,3 +208,4 @@ M1e applies a deterministic visual tuning pass using existing Core style fields 
 - card usage in the presenter sample moved to a more intentional panel layout with explicit surface spacing
 
 M1e does not add renderer primitives, rounded corners, shadows, gradients, anti-aliasing, or dynamic interaction states.
+\n\n## M3a flat authoring note\nRow-first UiDocument/UiRow authoring is canonical for top-level screens; nested UiNode trees remain optional sugar.

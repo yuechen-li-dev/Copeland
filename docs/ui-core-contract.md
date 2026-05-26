@@ -212,3 +212,4 @@ M2a adds placement-first primitives so major panel placement is explicit and rea
 - `UI.Anchor` lowering to `AnchorFrame`
 
 `UI.Row`/`UI.Column` remain supported and are now documented as flow primitives, not primary screen-placement primitives.
+\n\n## M3a flat authoring note\nRow-first UiDocument/UiRow authoring is canonical for top-level screens; nested UiNode trees remain optional sugar.

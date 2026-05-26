@@ -4,6 +4,7 @@ using Dominatus.Core.Nodes;
 using Dominatus.Core.Nodes.Steps;
 using Dominatus.Core.Runtime;
 using Dominatus.OptFlow;
+using Machina.Core.Flat;
 using Machina.Core.Lowering;
 using Machina.Core.Nodes;
 using Machina.Dominatus.Rendering.Bridge;
@@ -21,6 +22,36 @@ namespace Machina.Pipeline;
 
 public sealed class MachinaRasterPipeline
 {
+    public MachinaFrame Render(UiDocument document, int width, int height)
+    {
+        return Render(document, new MachinaRasterPipelineOptions(width, height));
+    }
+
+    public MachinaFrame Render(UiDocument document, MachinaRasterPipelineOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(options);
+
+        ValidateDimensions(options.Width, options.Height);
+
+        UiLoweringResult lowering = UiDocumentLowerer.Lower(document);
+        LayoutDocument layoutDocument = LayoutCompiler.CompileLayoutRows(lowering.Rows);
+
+        var rootRect = new Rect(0, 0, options.Width, options.Height);
+        ResolvedLayoutDocument resolved = LayoutDocumentResolver.ResolveLayoutDocument(layoutDocument, rootRect);
+
+        UiHitTestIndex hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics);
+
+        IReadOnlyList<IActuationCommand> commands = MachinaRenderBridge.BuildCommands(
+            lowering,
+            resolved,
+            new MachinaRenderOptions(options.Width, options.Height));
+
+        RasterFrame frame = DispatchToRasterFrame(commands, options.TextRasterizer);
+
+        return new MachinaFrame(lowering, layoutDocument, resolved, hitTest, commands, frame);
+    }
+
     public MachinaFrame Render(UiNode ui, int width, int height)
     {
         return Render(ui, new MachinaRasterPipelineOptions(width, height));
