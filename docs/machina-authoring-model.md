@@ -112,3 +112,8 @@ StandardUI.Card(id: "settings", style: cardStyle, child: UI.Text("Body"));
 ## M5c2 note
 
 Input style records are now fully wired. Input content positioning remains explicit (`AnchorFrame` via `*.content`) and does not rely on style padding.
+
+
+## M5c3 Checkbox and Switch style wiring
+
+M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `StandardUI.Checkbox` and `StandardUI.Switch`. Checkbox and switch geometry, visual style, gap spacing, and label text style now resolve deterministically from the selected style record (`style:` if supplied, otherwise theme default). Checked/on state changes values (for example mark fill and thumb X) without changing row identity.

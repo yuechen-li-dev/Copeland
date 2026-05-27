@@ -291,3 +291,8 @@ M5b landed the recommended presenter simplification: `DemoState` transitions now
 - M5a recommendation on explicit style/theme records is now concretely applied for Button and Card.
 - Button style record now owns shell geometry + text style under explicit `style:` calls.
 - Card style record now owns shell metadata + explicit content inset region.
+
+
+## M5c3 Checkbox and Switch style wiring
+
+M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `StandardUI.Checkbox` and `StandardUI.Switch`. Checkbox and switch geometry, visual style, gap spacing, and label text style now resolve deterministically from the selected style record (`style:` if supplied, otherwise theme default). Checked/on state changes values (for example mark fill and thumb X) without changing row identity.

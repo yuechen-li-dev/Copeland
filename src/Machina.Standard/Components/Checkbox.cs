@@ -14,13 +14,13 @@ public static class Checkbox
     {
         var effectiveTheme = theme ?? StandardTheme.Default;
         var effectiveStyle = style ?? effectiveTheme.Checkbox.Default;
-        var boxColor = disabled ? effectiveStyle.DisabledBackground : (isChecked ? effectiveStyle.MarkColor : effectiveStyle.BoxBackground);
+        var boxColor = disabled ? effectiveStyle.DisabledBackground : effectiveStyle.BoxBackground;
         var borderColor = disabled ? effectiveStyle.DisabledBorderColor : effectiveStyle.BoxBorderColor;
         var markColor = disabled ? effectiveStyle.DisabledMarkColor : effectiveStyle.MarkColor;
 
         var markInset = (effectiveStyle.BoxSize - effectiveStyle.MarkSize) / 2;
         var mark = UI.Anchor(UI.Rect(id: CreateChildId(id, "mark"), width: effectiveStyle.MarkSize, height: effectiveStyle.MarkSize, style: new UiStyle(isChecked ? markColor : ColorToken.Hex(0x00000000), null, 0)), id: CreateChildId(id, "mark-slot"), left: markInset, top: markInset, width: effectiveStyle.MarkSize, height: effectiveStyle.MarkSize);
-        var box = UI.Rect(mark, id: CreateChildId(id, "box"), width: effectiveStyle.BoxSize, height: effectiveStyle.BoxSize, style: new UiStyle(boxColor, null, 0, borderColor, 1));
+        var box = UI.Rect(mark, id: CreateChildId(id, "box"), width: effectiveStyle.BoxSize, height: effectiveStyle.BoxSize, style: new UiStyle(boxColor, null, 0, borderColor, effectiveStyle.BoxBorderThickness));
 
         UiNode root;
         if (string.IsNullOrEmpty(label))
@@ -30,7 +30,7 @@ public static class Checkbox
         else
         {
             var labelStyle = effectiveStyle.LabelTextStyle with { Color = disabled ? effectiveStyle.DisabledLabelColor : effectiveStyle.LabelColor, AlignY = TextAlignY.Center };
-            root = UI.Row(id: id, gap: effectiveStyle.Gap, children: [box, UI.Text(label, id: CreateChildId(id, "label"), style: labelStyle)]);
+            root = UI.Row(id: id, gap: effectiveStyle.Gap, children: [box, UI.Text(label, id: CreateChildId(id, "label"), size: labelStyle.Size, alignX: labelStyle.AlignX, alignY: labelStyle.AlignY, style: labelStyle)]);
         }
 
         return root with

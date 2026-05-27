@@ -273,3 +273,8 @@ M4f adds semantic-text separation and state-stable control geometry. Semantic la
 - placeholder text style: `PlaceholderTextStyle`
 
 No CSS cascade is added. Style precedence remains explicit parameter first, then theme default.
+
+
+## M5c3 Checkbox and Switch style wiring
+
+M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `StandardUI.Checkbox` and `StandardUI.Switch`. Checkbox and switch geometry, visual style, gap spacing, and label text style now resolve deterministically from the selected style record (`style:` if supplied, otherwise theme default). Checked/on state changes values (for example mark fill and thumb X) without changing row identity.

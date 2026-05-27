@@ -24,14 +24,14 @@ public static class Switch
         var thumbLeft = isOn ? maxThumbLeft : effectiveStyle.ThumbInset;
 
         var thumb = UI.Anchor(
-            UI.Rect(id: CreateChildId(id, "thumb"), width: effectiveStyle.ThumbSize, height: effectiveStyle.ThumbSize, style: new UiStyle(thumbBackground, null, 0, thumbBorder, 1)),
+            UI.Rect(id: CreateChildId(id, "thumb"), width: effectiveStyle.ThumbSize, height: effectiveStyle.ThumbSize, style: new UiStyle(thumbBackground, null, 0, thumbBorder, effectiveStyle.ThumbBorderThickness)),
             id: CreateChildId(id, "thumb-slot"),
             left: thumbLeft,
             top: effectiveStyle.ThumbInset,
             width: effectiveStyle.ThumbSize,
             height: effectiveStyle.ThumbSize);
 
-        var shell = UI.Rect(thumb, id: CreateChildId(id, "track"), width: effectiveStyle.TrackWidth, height: effectiveStyle.TrackHeight, style: new UiStyle(trackBackground, null, 0, trackBorder, 1));
+        var shell = UI.Rect(thumb, id: CreateChildId(id, "track"), width: effectiveStyle.TrackWidth, height: effectiveStyle.TrackHeight, style: new UiStyle(trackBackground, null, 0, trackBorder, effectiveStyle.TrackBorderThickness));
 
         UiNode root;
         if (string.IsNullOrEmpty(label))
@@ -41,7 +41,7 @@ public static class Switch
         else
         {
             var labelStyle = effectiveStyle.LabelTextStyle with { Color = disabled ? effectiveStyle.DisabledLabelColor : effectiveStyle.LabelColor, AlignY = TextAlignY.Center };
-            root = UI.Row(id: id, gap: effectiveStyle.Gap, children: [shell, UI.Text(label, id: CreateChildId(id, "label"), style: labelStyle)]);
+            root = UI.Row(id: id, gap: effectiveStyle.Gap, children: [shell, UI.Text(label, id: CreateChildId(id, "label"), size: labelStyle.Size, alignX: labelStyle.AlignX, alignY: labelStyle.AlignY, style: labelStyle)]);
         }
 
         return root with

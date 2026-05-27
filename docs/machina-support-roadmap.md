@@ -293,3 +293,8 @@ M4f adds semantic-text separation and state-stable control geometry. Semantic la
 - Completed: Card style record fully wired into `StandardUI.Card`.
 - Completed: Presenter root theme handoff demonstrates immutable `with` customization for Button + Card.
 - Deferred intentionally: Input/Checkbox/Switch full style wiring (outside M5c1 scope).
+
+
+## M5c3 Checkbox and Switch style wiring
+
+M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `StandardUI.Checkbox` and `StandardUI.Switch`. Checkbox and switch geometry, visual style, gap spacing, and label text style now resolve deterministically from the selected style record (`style:` if supplied, otherwise theme default). Checked/on state changes values (for example mark fill and thumb X) without changing row identity.

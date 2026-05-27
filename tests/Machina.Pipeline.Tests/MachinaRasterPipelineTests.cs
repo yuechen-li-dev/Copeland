@@ -164,6 +164,64 @@ public sealed class MachinaRasterPipelineTests
 
 
     [Fact]
+    public void PresenterOrPipeline_CustomThemeCheckboxSwitchStyle_Propagates()
+    {
+        var pipeline = new MachinaRasterPipeline();
+        var theme = StandardTheme.Default with
+        {
+            Checkbox = new StandardCheckboxStyles(
+                StandardTheme.Default.Checkbox.Default with
+                {
+                    BoxSize = 22,
+                    MarkSize = 10,
+                    Gap = 9,
+                    BoxBackground = ColorToken.Hex(0x112233FF),
+                    MarkColor = ColorToken.Hex(0x22CC55FF),
+                }),
+            Switch = new StandardSwitchStyles(
+                StandardTheme.Default.Switch.Default with
+                {
+                    TrackWidth = 50,
+                    TrackHeight = 22,
+                    ThumbSize = 18,
+                    ThumbInset = 2,
+                    Gap = 12,
+                    TrackOnBackground = ColorToken.Hex(0x2255CCFF),
+                }),
+        };
+
+        var ui = UI.Column(id: "root", gap: 6, children:
+        [
+            StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: true, changed: UiAction.Named("email.toggle"), theme: theme),
+            StandardUI.Switch(id: "notifications", label: "Notifications", isOn: true, changed: UiAction.Named("notifications.toggle"), theme: theme),
+        ]);
+
+        var frame = pipeline.Render(ui, width: 320, height: 160);
+
+        var boxRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("email.box")].Rect;
+        var markRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("email.mark")].Rect;
+        var trackRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("notifications.track")].Rect;
+        var thumbRect = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("notifications.thumb")].Rect;
+        var checkboxStyle = frame.Lowering.Styles[new Machina.Layout.Rows.NodeId("email.box")];
+        var switchStyle = frame.Lowering.Styles[new Machina.Layout.Rows.NodeId("notifications.track")];
+
+        Assert.Equal(22, boxRect.Width);
+        Assert.Equal(10, markRect.Width);
+        Assert.Equal(theme.Checkbox.Default.BoxBackground, checkboxStyle.Background);
+        Assert.Equal(50, trackRect.Width);
+        Assert.Equal(18, thumbRect.Width);
+        Assert.Equal(theme.Switch.Default.TrackOnBackground, switchStyle.Background);
+
+        var checkboxHit = frame.HitTest.HitTest(new PointerPoint((float)(boxRect.X + 1), (float)(boxRect.Y + 1)));
+        var switchHit = frame.HitTest.HitTest(new PointerPoint((float)(trackRect.X + 1), (float)(trackRect.Y + 1)));
+        Assert.NotNull(checkboxHit);
+        Assert.NotNull(switchHit);
+        Assert.Equal("email.toggle", checkboxHit!.Action.Name);
+        Assert.Equal("notifications.toggle", switchHit!.Action.Name);
+    }
+
+
+    [Fact]
     public void Pipeline_RendersFlatUiDocument()
     {
         var pipeline = new MachinaRasterPipeline();
