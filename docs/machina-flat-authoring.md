@@ -86,3 +86,5 @@ M4c clarifies that style padding is paint metadata only. Components that host ch
 
 ## M4d testing guidance
 For StandardUI controls, assert resolved row geometry and actions headlessly; do not rely on screenshots as primary proof.
+
+- M5c update: StandardTheme now carries typed component style records and supports explicit root theme handoff with `with` customization.

@@ -10,150 +10,48 @@ namespace Machina.Standard.Components;
 
 public static class Switch
 {
-    public static UiNode Create(
-        NodeId? id = null,
-        string? label = null,
-        bool isOn = false,
-        bool disabled = false,
-        UiAction? changed = null,
-        StandardTheme? theme = null)
+    public static UiNode Create(NodeId? id = null, string? label = null, bool isOn = false, bool disabled = false, UiAction? changed = null, StandardTheme? theme = null, StandardSwitchStyle? style = null)
     {
         var effectiveTheme = theme ?? StandardTheme.Default;
-        var switchShell = CreateSwitchShell(id, isOn, disabled, effectiveTheme);
-        var root = CreateRoot(switchShell, id, label, disabled, effectiveTheme);
+        var effectiveStyle = style ?? effectiveTheme.Switch.Default;
+
+        var trackBackground = disabled ? effectiveStyle.DisabledTrackBackground : (isOn ? effectiveStyle.TrackOnBackground : effectiveStyle.TrackOffBackground);
+        var trackBorder = disabled ? effectiveStyle.DisabledTrackBorderColor : effectiveStyle.TrackBorderColor;
+        var thumbBackground = disabled ? effectiveStyle.DisabledThumbBackground : effectiveStyle.ThumbBackground;
+        var thumbBorder = disabled ? effectiveStyle.DisabledThumbBorderColor : effectiveStyle.ThumbBorderColor;
+
+        var maxThumbLeft = effectiveStyle.TrackWidth - effectiveStyle.ThumbInset - effectiveStyle.ThumbSize;
+        var thumbLeft = isOn ? maxThumbLeft : effectiveStyle.ThumbInset;
+
+        var thumb = UI.Anchor(
+            UI.Rect(id: CreateChildId(id, "thumb"), width: effectiveStyle.ThumbSize, height: effectiveStyle.ThumbSize, style: new UiStyle(thumbBackground, null, 0, thumbBorder, 1)),
+            id: CreateChildId(id, "thumb-slot"),
+            left: thumbLeft,
+            top: effectiveStyle.ThumbInset,
+            width: effectiveStyle.ThumbSize,
+            height: effectiveStyle.ThumbSize);
+
+        var shell = UI.Rect(thumb, id: CreateChildId(id, "track"), width: effectiveStyle.TrackWidth, height: effectiveStyle.TrackHeight, style: new UiStyle(trackBackground, null, 0, trackBorder, 1));
+
+        UiNode root;
+        if (string.IsNullOrEmpty(label))
+        {
+            root = UI.Rect(shell, id: id, width: effectiveStyle.TrackWidth, height: effectiveStyle.TrackHeight, style: new UiStyle(null, null, 0));
+        }
+        else
+        {
+            var labelStyle = effectiveStyle.LabelTextStyle with { Color = disabled ? effectiveStyle.DisabledLabelColor : effectiveStyle.LabelColor, AlignY = TextAlignY.Center };
+            root = UI.Row(id: id, gap: effectiveStyle.Gap, children: [shell, UI.Text(label, id: CreateChildId(id, "label"), style: labelStyle)]);
+        }
 
         return root with
         {
-            Semantics = new UiSemantics(
-                UiRole.Switch,
-                label,
-                Disabled: disabled,
-                Focusable: !disabled),
+            Semantics = new UiSemantics(UiRole.Switch, label, Disabled: disabled, Focusable: !disabled),
             DeclaredAction = disabled ? null : changed,
         };
     }
 
-    private static UiNode CreateSwitchShell(
-        NodeId? id,
-        bool isOn,
-        bool disabled,
-        StandardTheme theme)
-    {
-        var thumbLeft = isOn ? 22 : 2;
-        var thumb = UI.Anchor(
-            child: UI.Rect(
-                id: CreateChildId(id, "thumb"),
-                width: 16,
-                height: 16,
-                style: new UiStyle(
-                    Background: theme.Colors.Background,
-                    Foreground: null,
-                    BorderColor: theme.Colors.Border,
-                    BorderThickness: 1,
-                    Padding: 0)),
-            id: CreateChildId(id, "thumb-slot"),
-            left: thumbLeft,
-            top: 2,
-            width: 16,
-            height: 16);
-
-        return UI.Rect(
-            child: thumb,
-            id: CreateChildId(id, "track"),
-            width: 42,
-            height: 20,
-            style: new UiStyle(
-                Background: ResolveTrackBackground(isOn, disabled, theme),
-                BorderColor: ResolveTrackBorder(disabled, theme),
-                BorderThickness: 1,
-                Foreground: null,
-                Padding: 0));
-    }
-
-    private static UiNode CreateRoot(
-        UiNode switchShell,
-        NodeId? id,
-        string? label,
-        bool disabled,
-        StandardTheme theme)
-    {
-        if (string.IsNullOrEmpty(label))
-        {
-            return UI.Rect(
-                child: switchShell,
-                id: id,
-                width: 42,
-                height: 20,
-                style: new UiStyle(
-                    Background: null,
-                    Foreground: ResolveLabelColor(disabled, theme),
-                    Padding: 0));
-        }
-
-        var labelNode = UI.Text(
-            label,
-            id: CreateChildId(id, "label"),
-            style: new TextStyle(
-                Color: ResolveLabelColor(disabled, theme),
-                Size: TextSize.Sm,
-                AlignX: TextAlignX.Left,
-                AlignY: TextAlignY.Center));
-
-        return UI.Row(
-            id: id,
-            gap: theme.Spacing.Sm,
-            children:
-            [
-                switchShell,
-                labelNode,
-            ]);
-    }
-
-    private static ColorToken ResolveTrackBackground(
-        bool isOn,
-        bool disabled,
-        StandardTheme theme)
-    {
-        if (disabled)
-        {
-            return theme.Colors.Muted;
-        }
-
-        if (isOn)
-        {
-            return theme.Colors.Primary;
-        }
-
-        return theme.Colors.Muted;
-    }
-
-    private static ColorToken ResolveTrackBorder(
-        bool disabled,
-        StandardTheme theme)
-    {
-        if (disabled)
-        {
-            return theme.Colors.MutedForeground;
-        }
-
-        return theme.Colors.Border;
-    }
-
-    private static ColorToken ResolveLabelColor(
-        bool disabled,
-        StandardTheme theme)
-    {
-        if (disabled)
-        {
-            return theme.Colors.MutedForeground;
-        }
-
-        return theme.Colors.Foreground;
-    }
-
-    private static NodeId? CreateChildId(
-        NodeId? id,
-        string suffix)
+    private static NodeId? CreateChildId(NodeId? id, string suffix)
     {
         if (id is not { } value)
         {

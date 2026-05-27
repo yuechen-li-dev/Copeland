@@ -8,68 +8,25 @@ namespace Machina.Standard.Components;
 
 public static class Card
 {
-    public static UiNode Create(
-        UiNode child,
-        NodeId? id = null,
-        StandardTheme? theme = null,
-        double? width = null,
-        double? height = null)
+    public static UiNode Create(UiNode child, NodeId? id = null, StandardTheme? theme = null, double? width = null, double? height = null, StandardCardStyle? style = null)
     {
-        ArgumentNullException.ThrowIfNull(child);
-
         var effectiveTheme = theme ?? StandardTheme.Default;
-        var inset = effectiveTheme.Spacing.Sm;
-        var content = UI.Anchor(
-            child,
-            id: CreateChildId(id, "content"),
-            left: inset,
-            right: inset,
-            top: inset,
-            bottom: inset);
+        var effectiveStyle = style ?? effectiveTheme.Card.Default;
 
-        var style = new UiStyle(
-            Background: effectiveTheme.Colors.Background,
-            Foreground: effectiveTheme.Colors.Foreground,
-            Padding: 0,
-            BorderColor: effectiveTheme.Colors.Border,
-            BorderThickness: 1);
+        var content = UI.Anchor(child, id: CreateChildId(id, "content"), left: effectiveStyle.ContentInset, right: effectiveStyle.ContentInset, top: effectiveStyle.ContentInset, bottom: effectiveStyle.ContentInset);
+        var shellStyle = new UiStyle(effectiveStyle.Background, effectiveStyle.Foreground, 0, effectiveStyle.BorderColor, effectiveStyle.BorderThickness);
 
-        return UI.Rect(
-            content,
-            id,
-            width,
-            height,
-            color: null,
-            padding: null,
-            style: style);
+        return UI.Rect(content, id, width, height, color: null, padding: null, style: shellStyle);
     }
 
-    public static UiNode Create(
-        IReadOnlyList<UiNode> children,
-        NodeId? id = null,
-        StandardTheme? theme = null,
-        double? width = null,
-        double? height = null,
-        double? gap = null)
+    public static UiNode Create(IReadOnlyList<UiNode> children, NodeId? id = null, StandardTheme? theme = null, double? width = null, double? height = null, double? gap = null, StandardCardStyle? style = null)
     {
-        ArgumentNullException.ThrowIfNull(children);
-
         var effectiveTheme = theme ?? StandardTheme.Default;
-        var child = UI.Column(
-            children,
-            gap: gap ?? effectiveTheme.Spacing.Sm);
-
-        return Create(
-            child,
-            id,
-            effectiveTheme,
-            width,
-            height);
+        var child = UI.Column(children, gap: gap ?? effectiveTheme.Spacing.Sm);
+        return Create(child, id, effectiveTheme, width, height, style);
     }
 
-    private static NodeId? CreateChildId(
-        NodeId? id,
-        string suffix)
+    private static NodeId? CreateChildId(NodeId? id, string suffix)
     {
         if (id is not { } value)
         {

@@ -14,6 +14,7 @@ using Machina.Pipeline;
 using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Runtime.Input;
 using Machina.Standard.Authoring;
+using Machina.Standard.Theme;
 using Machina.Layout.Frames;
 using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
 
@@ -52,6 +53,19 @@ internal sealed class Program
 
         private readonly Image _image;
 
+        private static readonly StandardTheme AppTheme =
+            StandardTheme.Default with
+            {
+                Button = StandardTheme.Default.Button with
+                {
+                    Default = StandardTheme.Default.Button.Default with
+                    {
+                        Background = ColorToken.Hex(0x111827FF),
+                        Foreground = ColorToken.Hex(0xF9FAFBFF),
+                    },
+                },
+            };
+
         private DemoState _state;
         private readonly MachinaRasterPipeline _pipeline;
         private UiHitTestIndex _hitTestIndex;
@@ -85,7 +99,7 @@ internal sealed class Program
 
         private void RenderCurrentState()
         {
-            var ui = DemoDocumentFactory.Build(_state);
+            var ui = DemoDocumentFactory.Build(_state, AppTheme);
             _currentFrame = _pipeline.Render(ui, DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
             _hitTestIndex = _currentFrame.HitTest;
 
