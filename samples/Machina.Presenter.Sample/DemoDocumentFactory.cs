@@ -74,5 +74,3 @@ public static class DemoDocumentFactory
         return value ? "on" : "off";
     }
 }
-
-public sealed record DemoState(int Count, bool EmailUpdates, bool Notifications);

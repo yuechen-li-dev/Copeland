@@ -31,3 +31,5 @@ Future components should include:
 - state-stability row-shape tests for stateful controls.
 
 Headless geometry + metadata is primary validation. Manual GUI or screenshots are optional secondary confirmation.
+
+- M5f update: presenter sample is the canonical reference app and is contract-tested in tests/Machina.Presenter.Sample.Tests (document shape, hosted component boundary, localized StandardUI internals, plain C# dispatch, theme propagation, and geometry/hit-target stability).

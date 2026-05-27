@@ -35,3 +35,5 @@ M5c4 consolidates the M5c style model as one coherent system: consistent `Standa
 
 ## M5d follow-up note
 M5c style records remain unchanged. M5d clarifies authoring contract only: `StandardUI` is the primary component surface; `StandardView` is metadata-oriented with advanced sub-part helpers for manual composition. See `docs/standard-ui-vs-standard-view-m5d.md`.
+
+- M5f update: presenter sample is the canonical reference app and is contract-tested in tests/Machina.Presenter.Sample.Tests (document shape, hosted component boundary, localized StandardUI internals, plain C# dispatch, theme propagation, and geometry/hit-target stability).
