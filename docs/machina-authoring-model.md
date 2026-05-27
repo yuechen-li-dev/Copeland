@@ -86,3 +86,24 @@ Hosted components can expose deterministic internal ids for geometry assertions 
 M4f adds semantic-text separation and state-stable control geometry. Semantic labels are not paint; explicit text visuals emit draw text. Checkbox/switch state changes should preserve row identity/shape and adjust stable style/geometry values instead of adding/removing rows.
 
 - M5c update: StandardTheme now carries typed component style records and supports explicit root theme handoff with `with` customization.
+
+
+## M5c1 authoring pattern
+
+```csharp
+var buttonStyle = theme.Button.Default with
+{
+    Background = ColorToken.Hex(0x18181BFF),
+    Foreground = ColorToken.White,
+};
+
+var cardStyle = theme.Card.Default with
+{
+    ContentInset = 18,
+};
+```
+
+```csharp
+StandardUI.Button("Save", action: Actions.Save.ToAction(), style: buttonStyle);
+StandardUI.Card(id: "settings", style: cardStyle, child: UI.Text("Body"));
+```

@@ -15,16 +15,7 @@ public static class StandardButton
         var effectiveTheme = theme ?? StandardTheme.Default;
         var variantStyle = effectiveTheme.Button.ForVariant(variant);
         var effectiveStyle = style ?? variantStyle;
-
-        var resolvedTextSize = ResolveTextSize(size);
-        var labelColor = effectiveStyle.TextStyle.Color ?? effectiveStyle.Foreground;
-        var labelTextStyle = effectiveStyle.TextStyle with
-        {
-            Color = labelColor,
-            Size = resolvedTextSize,
-            AlignX = TextAlignX.Center,
-            AlignY = TextAlignY.Center,
-        };
+        var labelTextStyle = ResolveLabelTextStyle(effectiveStyle, size, style is not null);
 
         var labelNode = UI.Anchor(
             child: UI.Text(
@@ -54,6 +45,26 @@ public static class StandardButton
         {
             Semantics = new UiSemantics(UiRole.Button, text, Disabled: disabled, Focusable: !disabled),
             DeclaredAction = disabled ? null : action,
+        };
+    }
+
+    private static TextStyle ResolveLabelTextStyle(StandardButtonStyle style, ButtonSize size, bool explicitStyleProvided)
+    {
+        var labelColor = style.TextStyle.Color ?? style.Foreground;
+        if (explicitStyleProvided)
+        {
+            return style.TextStyle with
+            {
+                Color = labelColor,
+            };
+        }
+
+        return style.TextStyle with
+        {
+            Color = labelColor,
+            Size = ResolveTextSize(size),
+            AlignX = TextAlignX.Center,
+            AlignY = TextAlignY.Center,
         };
     }
 

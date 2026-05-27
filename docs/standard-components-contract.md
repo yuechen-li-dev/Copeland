@@ -252,3 +252,11 @@ Button/Checkbox/Switch internals are explicit local rows/frames. Geometry and cl
 M4f adds semantic-text separation and state-stable control geometry. Semantic labels are not paint; explicit text visuals emit draw text. Checkbox/switch state changes should preserve row identity/shape and adjust stable style/geometry values instead of adding/removing rows.
 
 - M5c update: StandardTheme now carries typed component style records and supports explicit root theme handoff with `with` customization.
+
+
+## M5c1 Button/Card style record contract
+
+- `StandardUI.Button` supports explicit `style:` overrides; explicit style wins over variant + size defaults.
+- Without `style:`, button style resolves from `theme.Button` and variant mapping.
+- `StandardUI.Card` supports explicit `style:` overrides; explicit style wins over `theme.Card.Default`.
+- Card content inset is structural (anchored content region), not implicit style padding.
