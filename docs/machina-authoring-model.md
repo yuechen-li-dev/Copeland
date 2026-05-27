@@ -117,3 +117,6 @@ Input style records are now fully wired. Input content positioning remains expli
 ## M5c3 Checkbox and Switch style wiring
 
 M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `StandardUI.Checkbox` and `StandardUI.Switch`. Checkbox and switch geometry, visual style, gap spacing, and label text style now resolve deterministically from the selected style record (`style:` if supplied, otherwise theme default). Checked/on state changes values (for example mark fill and thumb X) without changing row identity.
+
+
+- M5c4 clarification: use StandardUI as the default component surface and pass an explicit root theme; use StandardView for lightweight flat-row metadata when that authoring style is preferred.
