@@ -9,6 +9,7 @@ using Machina.Layout.Geometry;
 using Machina.Layout.Resolving;
 using Machina.Layout.Rows;
 using Machina.Standard.Authoring;
+using Machina.Standard.Theme;
 using Xunit;
 
 namespace Machina.Standard.Tests;
@@ -107,6 +108,53 @@ public sealed class StandardComponentGeometryM4dTests
         Assert.Equal(box.Y + (box.Height / 2), mark.Y + (mark.Height / 2));
     }
 
+
+
+    [Fact]
+    public void StandardCheckbox_ExplicitStyleControlsBoxMarkGapAndLabel()
+    {
+        var style = StandardTheme.Default.Checkbox.Default with
+        {
+            BoxBackground = ColorToken.Hex(0x111111FF),
+            BoxBorderColor = ColorToken.Hex(0x222222FF),
+            BoxBorderThickness = 2,
+            MarkColor = ColorToken.Hex(0x33AA55FF),
+            BoxSize = 22,
+            MarkSize = 10,
+            Gap = 9,
+            LabelTextStyle = StandardTheme.Default.Checkbox.Default.LabelTextStyle with
+            {
+                Size = TextSize.Sm,
+                AlignX = TextAlignX.Left,
+                AlignY = TextAlignY.Center,
+            },
+        };
+
+        var lowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: true, changed: UiAction.Named("toggle"), style: style), 240, 40);
+        var resolved = Resolve(lowered, 320, 120);
+
+        var boxRect = GetRect(resolved, "host/email.box");
+        var markRect = GetRect(resolved, "host/email.mark");
+        var labelRect = GetRect(resolved, "host/email.label");
+        var boxStyle = lowered.Styles[new NodeId("host/email.box")];
+        var markStyle = lowered.Styles[new NodeId("host/email.mark")];
+        var labelStyle = lowered.TextStyles[new NodeId("host/email.label")];
+
+        Assert.Equal(style.BoxSize, boxRect.Width);
+        Assert.Equal(style.BoxSize, boxRect.Height);
+        Assert.Equal(style.MarkSize, markRect.Width);
+        Assert.Equal(style.MarkSize, markRect.Height);
+        Assert.Equal(boxRect.X + (boxRect.Width / 2), markRect.X + (markRect.Width / 2));
+        Assert.Equal(boxRect.Y + (boxRect.Height / 2), markRect.Y + (markRect.Height / 2));
+        Assert.Equal(style.BoxBackground, boxStyle.Background);
+        Assert.Equal(style.BoxBorderColor, boxStyle.BorderColor);
+        Assert.Equal(style.BoxBorderThickness, boxStyle.BorderThickness);
+        Assert.Equal(style.MarkColor, markStyle.Background);
+        Assert.Equal(boxRect.X + boxRect.Width + style.Gap, labelRect.X);
+        Assert.Equal(style.LabelTextStyle, labelStyle);
+        Assert.Contains(lowered.Actions, pair => pair.Value.Name == "toggle" && pair.Key.Value == "host/email");
+    }
+
     [Fact]
     public void StandardSwitch_ResolvesTrackThumbAndLabelInsideHost()
     {
@@ -125,6 +173,62 @@ public sealed class StandardComponentGeometryM4dTests
         Assert.True(onThumb.X >= track.X && (onThumb.X + onThumb.Width) <= (track.X + track.Width));
         Assert.True(GetRect(onResolved, "host/notifications.label").X > (track.X + track.Width));
         Assert.Contains(onLowered.Actions, pair => pair.Value.Name == "toggle" && pair.Key.Value == "host/notifications");
+    }
+
+
+
+    [Fact]
+    public void StandardSwitch_ExplicitStyleControlsTrackThumbGapAndLabel()
+    {
+        var style = StandardTheme.Default.Switch.Default with
+        {
+            TrackOffBackground = ColorToken.Hex(0x445566FF),
+            TrackOnBackground = ColorToken.Hex(0x1166DDFF),
+            TrackBorderColor = ColorToken.Hex(0x778899FF),
+            TrackBorderThickness = 2,
+            ThumbBorderThickness = 3,
+            TrackWidth = 50,
+            TrackHeight = 22,
+            ThumbSize = 18,
+            ThumbInset = 2,
+            Gap = 12,
+            LabelTextStyle = StandardTheme.Default.Switch.Default.LabelTextStyle with
+            {
+                Size = TextSize.Sm,
+                AlignX = TextAlignX.Left,
+                AlignY = TextAlignY.Center,
+            },
+        };
+
+        var offLowered = LowerHostedComponent(StandardUI.Switch(id: "notifications", label: "Notifications", isOn: false, changed: UiAction.Named("toggle"), style: style), 260, 40);
+        var onLowered = LowerHostedComponent(StandardUI.Switch(id: "notifications", label: "Notifications", isOn: true, changed: UiAction.Named("toggle"), style: style), 260, 40);
+        var offResolved = Resolve(offLowered, 360, 120);
+        var onResolved = Resolve(onLowered, 360, 120);
+
+        var offTrack = GetRect(offResolved, "host/notifications.track");
+        var onTrack = GetRect(onResolved, "host/notifications.track");
+        var offThumb = GetRect(offResolved, "host/notifications.thumb");
+        var onThumb = GetRect(onResolved, "host/notifications.thumb");
+        var offLabel = GetRect(offResolved, "host/notifications.label");
+        var offTrackStyle = offLowered.Styles[new NodeId("host/notifications.track")];
+        var onTrackStyle = onLowered.Styles[new NodeId("host/notifications.track")];
+        var thumbStyle = offLowered.Styles[new NodeId("host/notifications.thumb")];
+        var labelStyle = offLowered.TextStyles[new NodeId("host/notifications.label")];
+
+        Assert.Equal(style.TrackWidth, offTrack.Width);
+        Assert.Equal(style.TrackHeight, offTrack.Height);
+        Assert.Equal(style.TrackOffBackground, offTrackStyle.Background);
+        Assert.Equal(style.TrackOnBackground, onTrackStyle.Background);
+        Assert.Equal(style.TrackBorderColor, offTrackStyle.BorderColor);
+        Assert.Equal(style.TrackBorderThickness, offTrackStyle.BorderThickness);
+        Assert.Equal(style.ThumbSize, offThumb.Width);
+        Assert.Equal(style.ThumbSize, offThumb.Height);
+        Assert.Equal(style.ThumbBorderThickness, thumbStyle.BorderThickness);
+        Assert.Equal(offTrack.X + style.ThumbInset, offThumb.X);
+        Assert.Equal(onTrack.X + style.TrackWidth - style.ThumbInset - style.ThumbSize, onThumb.X);
+        Assert.Equal(offTrack.X + offTrack.Width + style.Gap, offLabel.X);
+        Assert.Equal(style.LabelTextStyle, labelStyle);
+        Assert.Contains(offLowered.Actions, pair => pair.Value.Name == "toggle" && pair.Key.Value == "host/notifications");
     }
 
     [Fact]
@@ -148,6 +252,35 @@ public sealed class StandardComponentGeometryM4dTests
         var offIds = offLowered.Rows.Select(row => row.Id.Value).OrderBy(value => value).ToArray();
         var onIds = onLowered.Rows.Select(row => row.Id.Value).OrderBy(value => value).ToArray();
         Assert.Equal(offIds, onIds);
+    }
+
+
+
+    [Fact]
+    public void StandardCheckbox_DefaultStyleMatchesThemeDefault()
+    {
+        var lowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email", isChecked: true, changed: UiAction.Named("toggle")), 220, 40);
+        var resolved = Resolve(lowered, 320, 120);
+        var style = StandardTheme.Default.Checkbox.Default;
+
+        Assert.Equal(style.BoxSize, GetRect(resolved, "host/email.box").Width);
+        Assert.Equal(style.MarkSize, GetRect(resolved, "host/email.mark").Width);
+        Assert.Equal(style.Gap, GetRect(resolved, "host/email.label").X - (GetRect(resolved, "host/email.box").X + GetRect(resolved, "host/email.box").Width));
+        Assert.Equal(style.LabelTextStyle, lowered.TextStyles[new NodeId("host/email.label")]);
+    }
+
+    [Fact]
+    public void StandardSwitch_DefaultStyleMatchesThemeDefault()
+    {
+        var lowered = LowerHostedComponent(StandardUI.Switch(id: "notifications", label: "Notifications", isOn: false, changed: UiAction.Named("toggle")), 260, 40);
+        var resolved = Resolve(lowered, 360, 120);
+        var style = StandardTheme.Default.Switch.Default;
+
+        Assert.Equal(style.TrackWidth, GetRect(resolved, "host/notifications.track").Width);
+        Assert.Equal(style.TrackHeight, GetRect(resolved, "host/notifications.track").Height);
+        Assert.Equal(style.ThumbSize, GetRect(resolved, "host/notifications.thumb").Width);
+        Assert.Equal(style.ThumbInset, GetRect(resolved, "host/notifications.thumb").X - GetRect(resolved, "host/notifications.track").X);
+        Assert.Equal(style.LabelTextStyle, lowered.TextStyles[new NodeId("host/notifications.label")]);
     }
 
     [Fact]

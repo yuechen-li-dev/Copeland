@@ -62,6 +62,7 @@ public sealed record StandardInputStyles(StandardInputStyle Default);
 public sealed record StandardCheckboxStyle(
     ColorToken BoxBackground,
     ColorToken BoxBorderColor,
+    double BoxBorderThickness,
     ColorToken MarkColor,
     ColorToken LabelColor,
     ColorToken DisabledBackground,
@@ -79,8 +80,10 @@ public sealed record StandardSwitchStyle(
     ColorToken TrackOffBackground,
     ColorToken TrackOnBackground,
     ColorToken TrackBorderColor,
+    double TrackBorderThickness,
     ColorToken ThumbBackground,
     ColorToken ThumbBorderColor,
+    double ThumbBorderThickness,
     ColorToken LabelColor,
     ColorToken DisabledTrackBackground,
     ColorToken DisabledTrackBorderColor,
