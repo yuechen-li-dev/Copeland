@@ -4,6 +4,7 @@ using Machina.Pipeline;
 using Machina.Presenter.Sample;
 using Machina.Dominatus.Rendering.Commands;
 using Machina.Runtime.Input;
+using Machina.Standard.Theme;
 using Xunit;
 
 namespace Machina.Pipeline.Tests;
@@ -114,6 +115,48 @@ public sealed class PresenterSampleGeometryRegressionM4eTests
         Assert.Equal(offThumb.Width, onThumb.Width);
         Assert.Equal(offThumb.Height, onThumb.Height);
         Assert.True(onThumb.X > offThumb.X);
+    }
+
+    [Fact]
+    public void PresenterSample_CustomThemeAffectsButtonAndCard()
+    {
+        var customTheme = StandardTheme.Default with
+        {
+            Button = StandardTheme.Default.Button with
+            {
+                Default = StandardTheme.Default.Button.Default with
+                {
+                    Background = Machina.Core.Styling.ColorToken.Hex(0x111827FF),
+                    Foreground = Machina.Core.Styling.ColorToken.Hex(0xF9FAFBFF),
+                    Width = 144,
+                    Height = 36,
+                },
+            },
+            Card = StandardTheme.Default.Card with
+            {
+                Default = StandardTheme.Default.Card.Default with
+                {
+                    ContentInset = 18,
+                },
+            },
+        };
+
+        var pipeline = new MachinaRasterPipeline();
+        var frame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, false, false), customTheme), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+
+        var cardRect = frame.Resolved.Nodes[new NodeId("settings-card/settings-card-content")].Rect;
+        var contentRect = frame.Resolved.Nodes[new NodeId("settings-card/settings-card-content.content")].Rect;
+        Assert.Equal(cardRect.X + 18, contentRect.X);
+        Assert.Equal(cardRect.Y + 18, contentRect.Y);
+
+        var buttonRect = frame.Resolved.Nodes[new NodeId("settings-card/increment")].Rect;
+        Assert.Equal(144, buttonRect.Width);
+        Assert.Equal(36, buttonRect.Height);
+        Assert.Equal(customTheme.Button.Default.Background, frame.Lowering.Styles[new NodeId("settings-card/increment")].Background);
+
+        var hit = frame.HitTest.HitTest(new PointerPoint((float)(buttonRect.X + 4), (float)(buttonRect.Y + 4)));
+        Assert.NotNull(hit);
+        Assert.Equal("counter.increment", hit!.Action.Name);
     }
 
     private static Rect GetRect(MachinaFrame frame, string id)

@@ -284,3 +284,10 @@ Proceeding with M5b+ is recommended with small, reversible milestones.
 M5b landed the recommended presenter simplification: `DemoState` transitions now use plain C# dispatch over typed `UiActionId` constants in the presenter sample. `DispatchTable` remains intact in runtime APIs, tests, and docs as the advanced data-shaped option.
 
 - M5c update: StandardTheme now carries typed component style records and supports explicit root theme handoff with `with` customization.
+
+
+## M5c1 execution note
+
+- M5a recommendation on explicit style/theme records is now concretely applied for Button and Card.
+- Button style record now owns shell geometry + text style under explicit `style:` calls.
+- Card style record now owns shell metadata + explicit content inset region.

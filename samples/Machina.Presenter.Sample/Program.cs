@@ -64,6 +64,13 @@ internal sealed class Program
                         Foreground = ColorToken.Hex(0xF9FAFBFF),
                     },
                 },
+                Card = StandardTheme.Default.Card with
+                {
+                    Default = StandardTheme.Default.Card.Default with
+                    {
+                        ContentInset = 18,
+                    },
+                },
             };
 
         private DemoState _state;
