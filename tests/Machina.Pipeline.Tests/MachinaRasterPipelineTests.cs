@@ -8,6 +8,7 @@ using Machina.Layout.Frames;
 using Machina.Pipeline;
 using Machina.Runtime.Input;
 using Machina.Standard.Authoring;
+using Machina.Standard.Theme;
 using Xunit;
 
 namespace Machina.Pipeline.Tests;
@@ -121,6 +122,44 @@ public sealed class MachinaRasterPipelineTests
         var hit = frame.HitTest.HitTest(point);
 
         Assert.Null(hit);
+    }
+
+    [Fact]
+    public void PresenterOrPipeline_CustomThemeInputStyle_Propagates()
+    {
+        var pipeline = new MachinaRasterPipeline();
+        var theme = StandardTheme.Default with
+        {
+            Input = new StandardInputStyles(
+                StandardTheme.Default.Input.Default with
+                {
+                    Width = 210,
+                    Height = 32,
+                    ContentInset = 11,
+                    Background = ColorToken.Hex(0x0A0B0CFF),
+                    BorderColor = ColorToken.Hex(0x303132FF),
+                    TextStyle = StandardTheme.Default.Input.Default.TextStyle with
+                    {
+                        Size = TextSize.Sm,
+                    },
+                }),
+        };
+
+        var frame = pipeline.Render(
+            StandardUI.Input(id: "email", value: "ada@example.com", theme: theme),
+            width: 280,
+            height: 80);
+
+        var shell = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("email")].Rect;
+        var content = frame.Resolved.Nodes[new Machina.Layout.Rows.NodeId("email.content")].Rect;
+        var shellStyle = frame.Lowering.Styles[new Machina.Layout.Rows.NodeId("email")];
+        var textStyle = frame.Lowering.TextStyles[new Machina.Layout.Rows.NodeId("email.text")];
+
+        Assert.Equal(theme.Input.Default.Background, shellStyle.Background);
+        Assert.Equal(theme.Input.Default.BorderColor, shellStyle.BorderColor);
+        Assert.Equal(shell.X + 11, content.X);
+        Assert.Equal(shell.Y + 11, content.Y);
+        Assert.Equal(TextSize.Sm, textStyle.Size);
     }
 
 

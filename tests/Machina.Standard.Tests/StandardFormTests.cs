@@ -1,12 +1,16 @@
 using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Diagnostics;
+using Machina.Core.Flat;
 using Machina.Core.Lowering;
 using Machina.Core.Semantics;
 using Machina.Core.Styling;
+using Machina.Layout.Geometry;
 using Machina.Layout.Compilation;
+using Machina.Layout.Resolving;
 using Machina.Layout.Rows;
 using Machina.Standard.Authoring;
+using Machina.Standard.Theme;
 using Xunit;
 
 namespace Machina.Standard.Tests;
@@ -63,6 +67,102 @@ public sealed class StandardFormTests
 
         Assert.Contains("Enter username", snapshot);
         Assert.Contains("#71717AFF", snapshot);
+    }
+
+    [Fact]
+    public void StandardInput_ExplicitStyleOverridesShellContentAndText()
+    {
+        var style = StandardTheme.Default.Input.Default with
+        {
+            Background = ColorToken.Hex(0x102030FF),
+            Foreground = ColorToken.Hex(0xF0E0D0FF),
+            BorderColor = ColorToken.Hex(0x556677FF),
+            BorderThickness = 2,
+            Width = 220,
+            Height = 34,
+            ContentInset = 12,
+            TextStyle = StandardTheme.Default.Input.Default.TextStyle with
+            {
+                Size = TextSize.Sm,
+                AlignX = TextAlignX.Left,
+                AlignY = TextAlignY.Center,
+            },
+        };
+
+        var lowered = UiLowerer.Lower(StandardUI.Input(id: "username", value: "Ada", style: style));
+        var resolved = LayoutDocumentResolver.ResolveLayoutDocument(
+            LayoutCompiler.CompileLayoutRows(lowered.Rows),
+            new Rect(0, 0, 420, 120));
+        var snapshot = UiLoweringSnapshotWriter.Write(lowered);
+
+        var shellRect = resolved.Nodes[new NodeId("username")].Rect;
+        var contentRect = resolved.Nodes[new NodeId("username.content")].Rect;
+        var textRect = resolved.Nodes[new NodeId("username.text")].Rect;
+        var shellStyle = lowered.Styles[new NodeId("username")];
+        var textStyle = lowered.TextStyles[new NodeId("username.text")];
+
+        Assert.Equal(style.Background, shellStyle.Background);
+        Assert.Equal(style.Foreground, shellStyle.Foreground);
+        Assert.Equal(style.BorderColor, shellStyle.BorderColor);
+        Assert.Equal(style.BorderThickness, shellStyle.BorderThickness);
+        Assert.Equal(shellRect.X + style.ContentInset, contentRect.X);
+        Assert.Equal(shellRect.Y + style.ContentInset, contentRect.Y);
+        Assert.Equal(shellRect.Width - (style.ContentInset * 2), contentRect.Width);
+        Assert.Equal(shellRect.Height - (style.ContentInset * 2), contentRect.Height);
+        Assert.True(textRect.X >= contentRect.X);
+        Assert.True(textRect.Y >= contentRect.Y);
+        Assert.Equal(style.TextStyle.Size, textStyle.Size);
+        Assert.Equal(style.TextStyle.AlignX, textStyle.AlignX);
+        Assert.Equal(style.TextStyle.AlignY, textStyle.AlignY);
+        Assert.Equal(0, shellStyle.Padding);
+        Assert.Contains("Ada", snapshot);
+    }
+
+    [Fact]
+    public void StandardInput_PlaceholderUsesPlaceholderTextStyle()
+    {
+        var style = StandardTheme.Default.Input.Default with
+        {
+            ContentInset = 10,
+            PlaceholderTextStyle = StandardTheme.Default.Input.Default.PlaceholderTextStyle with
+            {
+                Color = ColorToken.Hex(0xA1B2C3FF),
+                Size = TextSize.Sm,
+            },
+        };
+
+        var lowered = UiLowerer.Lower(StandardUI.Input(id: "email", value: "", placeholder: "Email", style: style));
+        var resolved = LayoutDocumentResolver.ResolveLayoutDocument(
+            LayoutCompiler.CompileLayoutRows(lowered.Rows),
+            new Rect(0, 0, 320, 120));
+
+        var contentRect = resolved.Nodes[new NodeId("email.content")].Rect;
+        var textRect = resolved.Nodes[new NodeId("email.text")].Rect;
+        var textStyle = lowered.TextStyles[new NodeId("email.text")];
+
+        Assert.Contains("Email", UiLoweringSnapshotWriter.Write(lowered));
+        Assert.Equal(style.PlaceholderTextStyle.Color, textStyle.Color);
+        Assert.Equal(style.PlaceholderTextStyle.Size, textStyle.Size);
+        Assert.True(textRect.X >= contentRect.X);
+        Assert.True(textRect.Y >= contentRect.Y);
+        Assert.Equal(resolved.Nodes[new NodeId("email")].Rect.X + style.ContentInset, contentRect.X);
+    }
+
+    [Fact]
+    public void StandardInput_DefaultStyleMatchesThemeDefault()
+    {
+        var lowered = UiLowerer.Lower(StandardUI.Input(id: "username", value: "Ada"));
+        var defaultStyle = StandardTheme.Default.Input.Default;
+        var shellStyle = lowered.Styles[new NodeId("username")];
+        var textStyle = lowered.TextStyles[new NodeId("username.text")];
+
+        Assert.Equal(defaultStyle.Background, shellStyle.Background);
+        Assert.Equal(defaultStyle.Foreground, shellStyle.Foreground);
+        Assert.Equal(defaultStyle.BorderColor, shellStyle.BorderColor);
+        Assert.Equal(defaultStyle.BorderThickness, shellStyle.BorderThickness);
+        Assert.Equal(defaultStyle.TextStyle.Size, textStyle.Size);
+        Assert.Equal(defaultStyle.TextStyle.AlignX, textStyle.AlignX);
+        Assert.Equal(defaultStyle.TextStyle.AlignY, textStyle.AlignY);
     }
 
 

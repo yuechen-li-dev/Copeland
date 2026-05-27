@@ -144,7 +144,7 @@ Gaps:
 | Card | `StandardUI.Card` hosts content with explicit inset region post-M4c | Keep as localized component function | Good as-is | Already aligned with explicit layout-padding invariant. |
 | Checkbox | `StandardUI.Checkbox` component plus `StandardView.CheckboxBox` sub-part metadata helper | Keep component function for app use; retain sub-part helper for flat specialized cases | Needs minor cleanup | App docs should prefer hosted component use; sub-parts should be documented as advanced/manual skin helpers. |
 | Switch | `StandardUI.Switch` component plus `StandardView.SwitchTrack`/`SwitchThumb` sub-parts | Keep component function for app use; retain sub-parts for advanced flat authors | Needs minor cleanup | Same as checkbox; avoid app-level decomposition by default guidance. |
-| Input | `StandardUI.Input` shell component with explicit content region hardening | Keep as localized component function | Needs minor cleanup | Good base; style-record contract should become explicit. |
+| Input | `StandardUI.Input` shell component with explicit content region hardening | Keep as localized component function | Good as-is after M5c2 | Input style record is fully explicit and headless-tested for shell/content/text behavior. |
 | Field | `StandardUI.Field` composition helper | Keep as localized component function | Good as-is | Fits locality and declarative composition intent. |
 | Label | `StandardUI.Label` simple text helper | Should stay leaf/metadata helper | Good as-is | Minimal and clear. |
 | Badge | `StandardUI.Badge` simple styled helper | Should stay leaf/metadata helper | Good as-is | Minimal and clear. |

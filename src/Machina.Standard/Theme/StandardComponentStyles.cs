@@ -49,10 +49,11 @@ public sealed record StandardInputStyle(
     ColorToken Foreground,
     ColorToken BorderColor,
     double BorderThickness,
-    double ContentInset,
+    double Width,
     double Height,
+    double ContentInset,
     TextStyle TextStyle,
-    ColorToken PlaceholderForeground,
+    TextStyle PlaceholderTextStyle,
     ColorToken DisabledBackground,
     ColorToken DisabledForeground);
 

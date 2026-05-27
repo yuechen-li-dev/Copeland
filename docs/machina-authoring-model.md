@@ -107,3 +107,8 @@ var cardStyle = theme.Card.Default with
 StandardUI.Button("Save", action: Actions.Save.ToAction(), style: buttonStyle);
 StandardUI.Card(id: "settings", style: cardStyle, child: UI.Text("Body"));
 ```
+
+
+## M5c2 note
+
+Input style records are now fully wired. Input content positioning remains explicit (`AnchorFrame` via `*.content`) and does not rely on style padding.

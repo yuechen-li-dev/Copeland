@@ -101,7 +101,7 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 | Separator | Machina.Standard | Partial | Snapshot-level evidence | Confirm layout/render conventions.
 | Label | Machina.Standard | Partial | Snapshot-level evidence | Formalize semantic behavior.
 | Field | Machina.Standard | Partial | Standard form tests | Expand interaction states.
-| Input shell | Machina.Standard | Partial | Standard form tests | Text editing not yet complete runtime path.
+| Input shell | Machina.Standard | Implemented | Standard + pipeline style contract tests | M5c2 fully wires Input style record; full text editing runtime remains planned.
 | Checkbox | Machina.Standard | Implemented | Standard form tests | Dispatch-friendly selection control available.
 | Switch | Machina.Standard | Implemented | Standard form tests | Dispatch-friendly selection control available.
 | Tabs | Machina.Standard | Deferred | None | Post-core interaction milestone.

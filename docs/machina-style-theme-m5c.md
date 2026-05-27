@@ -14,3 +14,12 @@
 - `StandardButtonStyle` now drives shell dimensions (`Width`/`Height`) and label `TextStyle` when explicitly passed.
 - `StandardCardStyle.ContentInset` is layout-affecting and defines an explicit anchored content row.
 - Typical calls stay simple; advanced overrides are immutable C# `with` customizations.
+
+
+## M5c2 Input style record contract
+
+- `StandardInputStyle` is now fully wired in `StandardUI.Input`.
+- Input shell metadata (background/foreground/border), shell size (`Width`/`Height`), content inset (`ContentInset`), and text styles are all explicit style-record fields.
+- Input builds an explicit `*.content` anchored row for text geometry; `UiStyle.Padding` stays non-layout paint metadata (`0` for input shells).
+- Placeholder rendering is deterministic and uses `PlaceholderTextStyle`; value rendering uses `TextStyle`.
+- Style resolution precedence is simple and explicit: `style:` parameter > `theme.Input.Default` > `StandardTheme.Default.Input.Default`.

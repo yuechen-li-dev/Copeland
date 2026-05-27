@@ -16,14 +16,24 @@ public static class Input
         var effectiveStyle = style ?? effectiveTheme.Input.Default;
         var text = string.IsNullOrEmpty(value) ? placeholder ?? string.Empty : value;
         var placeholderMode = string.IsNullOrEmpty(value) && !string.IsNullOrEmpty(placeholder);
-        var foreground = disabled ? effectiveStyle.DisabledForeground : (placeholderMode ? effectiveStyle.PlaceholderForeground : effectiveStyle.TextStyle.Color ?? effectiveStyle.Foreground);
+        var textStyle = placeholderMode ? effectiveStyle.PlaceholderTextStyle : effectiveStyle.TextStyle;
+        var foreground = disabled
+            ? effectiveStyle.DisabledForeground
+            : textStyle.Color ?? effectiveStyle.Foreground;
 
-        var textNode = UI.Text(text, id: CreateChildId(id, "text"), style: effectiveStyle.TextStyle with { Color = foreground, AlignY = TextAlignY.Center });
+        var textNode = UI.Text(
+            text,
+            id: CreateChildId(id, "text"),
+            size: textStyle.Size,
+            alignX: textStyle.AlignX,
+            alignY: textStyle.AlignY,
+            style: textStyle with { Color = foreground, AlignY = TextAlignY.Center });
         var content = UI.Anchor(textNode, id: CreateChildId(id, "content"), left: effectiveStyle.ContentInset, right: effectiveStyle.ContentInset, top: effectiveStyle.ContentInset, bottom: effectiveStyle.ContentInset);
 
-        var shellStyle = new UiStyle(disabled ? effectiveStyle.DisabledBackground : effectiveStyle.Background, foreground, 0, effectiveStyle.BorderColor, effectiveStyle.BorderThickness);
+        var shellForeground = disabled ? effectiveStyle.DisabledForeground : effectiveStyle.Foreground;
+        var shellStyle = new UiStyle(disabled ? effectiveStyle.DisabledBackground : effectiveStyle.Background, shellForeground, 0, effectiveStyle.BorderColor, effectiveStyle.BorderThickness);
 
-        return UI.Rect(content, id: id, height: effectiveStyle.Height, style: shellStyle) with
+        return UI.Rect(content, id: id, width: effectiveStyle.Width, height: effectiveStyle.Height, style: shellStyle) with
         {
             Semantics = new UiSemantics(UiRole.Input, text, Disabled: disabled, Focusable: !disabled),
             DeclaredAction = disabled ? null : changed,
