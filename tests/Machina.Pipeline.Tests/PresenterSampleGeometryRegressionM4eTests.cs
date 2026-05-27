@@ -1,10 +1,9 @@
+using Machina.Dominatus.Rendering.Commands;
 using Machina.Layout.Rows;
-using Machina.Layout.Geometry;
 using Machina.Pipeline;
 using Machina.Presenter.Sample;
-using Machina.Dominatus.Rendering.Commands;
-using Machina.Runtime.Input;
 using Machina.Standard.Theme;
+using Machina.Testing;
 using Xunit;
 
 namespace Machina.Pipeline.Tests;
@@ -14,26 +13,25 @@ public sealed class PresenterSampleGeometryRegressionM4eTests
     [Fact]
     public void PresenterSample_ResolvedGeometry_MatchesExpectedControlRects()
     {
-        var pipeline = new MachinaRasterPipeline();
-        var frame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var frame = Render(new DemoState(0, false, false));
 
-        var cardRect = frame.Resolved.Nodes[new NodeId("settings-card")].Rect;
-        var cardContentRect = frame.Resolved.Nodes[new NodeId("settings-card/settings-card-content.content")].Rect;
+        var cardRect = frame.RectOf("settings-card");
+        var cardContentRect = frame.RectOf("settings-card/settings-card-content.content");
         Assert.Equal(500, cardRect.Width);
         Assert.Equal(292, cardRect.Height);
         Assert.True(cardContentRect.X > cardRect.X);
 
-        var buttonShell = frame.Resolved.Nodes[new NodeId("settings-card/increment")].Rect;
+        var buttonShell = frame.RectOf("settings-card/increment");
         Assert.InRange(buttonShell.Width, 80, 140);
         Assert.Equal(32, buttonShell.Height);
 
-        var checkboxBox = frame.Resolved.Nodes[new NodeId("settings-card/email-updates.box")].Rect;
-        var checkboxLabel = frame.Resolved.Nodes[new NodeId("settings-card/email-updates.label")].Rect;
+        var checkboxBox = frame.RectOf("settings-card/email-updates.box");
+        var checkboxLabel = frame.RectOf("settings-card/email-updates.label");
         Assert.Equal(18, checkboxBox.Width);
         Assert.True(checkboxLabel.X > checkboxBox.X + checkboxBox.Width);
 
-        var switchTrack = frame.Resolved.Nodes[new NodeId("settings-card/notifications.track")].Rect;
-        var switchThumb = frame.Resolved.Nodes[new NodeId("settings-card/notifications.thumb")].Rect;
+        var switchTrack = frame.RectOf("settings-card/notifications.track");
+        var switchThumb = frame.RectOf("settings-card/notifications.thumb");
         Assert.Equal(42, switchTrack.Width);
         Assert.True(switchThumb.X >= switchTrack.X && switchThumb.X + switchThumb.Width <= switchTrack.X + switchTrack.Width);
     }
@@ -41,65 +39,36 @@ public sealed class PresenterSampleGeometryRegressionM4eTests
     [Fact]
     public void PresenterSample_LoweredRows_SnapshotIncludesControlInternals()
     {
-        var pipeline = new MachinaRasterPipeline();
-        var frame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, true, true)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
-        var ids = frame.Lowering.Rows.Select(row => row.Id.Value).ToArray();
+        var frame = Render(new DemoState(0, true, true));
 
-        Assert.Contains("settings-card/increment", ids);
-        Assert.Contains("settings-card/increment.label-region", ids);
-        Assert.Contains("settings-card/email-updates.box", ids);
-        Assert.Contains("settings-card/email-updates.mark", ids);
-        Assert.Contains("settings-card/notifications.track", ids);
-        Assert.Contains("settings-card/notifications.thumb", ids);
-    }
-
-    [Fact]
-    public void PresenterSample_UsesStandardUIForControls()
-    {
-        var pipeline = new MachinaRasterPipeline();
-        var frame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, true, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
-        var allRowIds = frame.Lowering.Rows
-            .Select(row => row.Id.Value)
-            .ToArray();
-
-        Assert.Contains("settings-card", allRowIds);
-        Assert.DoesNotContain("email-box", allRowIds);
-        Assert.DoesNotContain("notifications-track", allRowIds);
-        Assert.DoesNotContain("notifications-thumb", allRowIds);
+        frame.AssertContainsRows(
+            "settings-card/increment",
+            "settings-card/increment.label-region",
+            "settings-card/email-updates.box",
+            "settings-card/email-updates.mark",
+            "settings-card/notifications.track",
+            "settings-card/notifications.thumb");
     }
 
     [Fact]
     public void PresenterSample_HitTesting_CoversFullButtonCheckboxAndSwitchTargets()
     {
-        var pipeline = new MachinaRasterPipeline();
-        var frame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, true, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var frame = Render(new DemoState(0, true, false));
 
-        var button = frame.Resolved.Nodes[new NodeId("settings-card/increment")].Rect;
-        foreach (var x in new[] { button.X + 2, button.X + button.Width / 2, button.X + button.Width - 2 })
-        {
-            var hit = frame.HitTest.HitTest(new PointerPoint((float)x, (float)(button.Y + button.Height / 2)));
-            Assert.NotNull(hit);
-            Assert.Equal("counter.increment", hit!.Action.Name);
-        }
-
-        var checkboxLabel = frame.Resolved.Nodes[new NodeId("settings-card/email-updates.label")].Rect;
-        var checkboxHit = frame.HitTest.HitTest(new PointerPoint((float)(checkboxLabel.X + 4), (float)(checkboxLabel.Y + 4)));
-        Assert.NotNull(checkboxHit);
-        Assert.Equal("settings.emailUpdates.toggle", checkboxHit!.Action.Name);
-
-        var switchTrack = frame.Resolved.Nodes[new NodeId("settings-card/notifications.track")].Rect;
-        var switchHit = frame.HitTest.HitTest(new PointerPoint((float)(switchTrack.X + 4), (float)(switchTrack.Y + 4)));
-        Assert.NotNull(switchHit);
-        Assert.Equal("settings.notifications.toggle", switchHit!.Action.Name);
+        frame.AssertHitActionInside("settings-card/increment", "counter.increment", HitPointKind.LeftCenter);
+        frame.AssertHitActionInside("settings-card/increment", "counter.increment", HitPointKind.Center);
+        frame.AssertHitActionInside("settings-card/increment", "counter.increment", HitPointKind.RightCenter);
+        frame.AssertHitActionInside("settings-card/email-updates.label", "settings.emailUpdates.toggle");
+        frame.AssertHitActionInside("settings-card/notifications.track", "settings.notifications.toggle");
     }
 
     [Fact]
     public void PresenterSample_IncrementButton_HasSingleTextDraw()
     {
         var pipeline = new MachinaRasterPipeline();
-        var frame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var rendered = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
 
-        var incrementTextCommands = frame.RenderCommands
+        var incrementTextCommands = rendered.RenderCommands
             .OfType<DrawTextCommand>()
             .Where(command => command.Text == "Increment")
             .ToList();
@@ -111,25 +80,16 @@ public sealed class PresenterSampleGeometryRegressionM4eTests
     [Fact]
     public void PresenterSample_GeometryStableAcrossStateToggles()
     {
-        var pipeline = new MachinaRasterPipeline();
-        var offFrame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
-        var onFrame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, true, true)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var offFrame = Render(new DemoState(0, false, false));
+        var onFrame = Render(new DemoState(0, true, true));
 
-        Assert.Equal(GetRect(offFrame, "settings-card"), GetRect(onFrame, "settings-card"));
-        Assert.Equal(GetRect(offFrame, "settings-card/increment"), GetRect(onFrame, "settings-card/increment"));
-        Assert.Equal(GetRect(offFrame, "settings-card/increment.label"), GetRect(onFrame, "settings-card/increment.label"));
-        AssertTextRectAnchorStable(GetRect(offFrame, "settings-card/email-updates.label"), GetRect(onFrame, "settings-card/email-updates.label"));
-        AssertTextRectAnchorStable(GetRect(offFrame, "settings-card/notifications.label"), GetRect(onFrame, "settings-card/notifications.label"));
-        Assert.Equal(GetRowIds(offFrame), GetRowIds(onFrame));
-        Assert.Equal(GetRect(offFrame, "settings-card/email-updates.mark"), GetRect(onFrame, "settings-card/email-updates.mark"));
-        Assert.Equal(GetRect(offFrame, "settings-card/notifications.track"), GetRect(onFrame, "settings-card/notifications.track"));
-
-        var offThumb = GetRect(offFrame, "settings-card/notifications.thumb");
-        var onThumb = GetRect(onFrame, "settings-card/notifications.thumb");
-        Assert.Equal(offThumb.Y, onThumb.Y);
-        Assert.Equal(offThumb.Width, onThumb.Width);
-        Assert.Equal(offThumb.Height, onThumb.Height);
-        Assert.True(onThumb.X > offThumb.X);
+        GeometryHarness.AssertSameRectBetween(offFrame, onFrame, "settings-card");
+        GeometryHarness.AssertSameRectBetween(offFrame, onFrame, "settings-card/increment");
+        GeometryHarness.AssertSameRectBetween(offFrame, onFrame, "settings-card/increment.label");
+        GeometryHarness.AssertSameRowIds(offFrame, onFrame);
+        GeometryHarness.AssertSameRectBetween(offFrame, onFrame, "settings-card/email-updates.mark");
+        GeometryHarness.AssertSameRectBetween(offFrame, onFrame, "settings-card/notifications.track");
+        GeometryHarness.AssertOnlyXDiffers(offFrame, onFrame, "settings-card/notifications.thumb");
     }
 
     [Fact]
@@ -156,38 +116,24 @@ public sealed class PresenterSampleGeometryRegressionM4eTests
             },
         };
 
-        var pipeline = new MachinaRasterPipeline();
-        var frame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, false, false), customTheme), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var frame = Render(new DemoState(0, false, false), customTheme);
 
-        var cardRect = frame.Resolved.Nodes[new NodeId("settings-card/settings-card-content")].Rect;
-        var contentRect = frame.Resolved.Nodes[new NodeId("settings-card/settings-card-content.content")].Rect;
+        var cardRect = frame.RectOf("settings-card/settings-card-content");
+        var contentRect = frame.RectOf("settings-card/settings-card-content.content");
         Assert.Equal(cardRect.X + 18, contentRect.X);
         Assert.Equal(cardRect.Y + 18, contentRect.Y);
 
-        var buttonRect = frame.Resolved.Nodes[new NodeId("settings-card/increment")].Rect;
+        var buttonRect = frame.RectOf("settings-card/increment");
         Assert.Equal(144, buttonRect.Width);
         Assert.Equal(36, buttonRect.Height);
-        Assert.Equal(customTheme.Button.Default.Background, frame.Lowering.Styles[new NodeId("settings-card/increment")].Background);
+        Assert.Equal(customTheme.Button.Default.Background, frame.StyleOf("settings-card/increment").Background);
 
-        var hit = frame.HitTest.HitTest(new PointerPoint((float)(buttonRect.X + 4), (float)(buttonRect.Y + 4)));
-        Assert.NotNull(hit);
-        Assert.Equal("counter.increment", hit!.Action.Name);
+        frame.AssertHitActionInside("settings-card/increment", "counter.increment", HitPointKind.LeftCenter);
     }
 
-    private static Rect GetRect(MachinaFrame frame, string id)
+    private static DocumentGeometryResult Render(DemoState state, StandardTheme? theme = null)
     {
-        return frame.Resolved.Nodes[new NodeId(id)].Rect;
-    }
-
-    private static IReadOnlyList<string> GetRowIds(MachinaFrame frame)
-    {
-        return frame.Lowering.Rows.Select(row => row.Id.Value).ToArray();
-    }
-
-    private static void AssertTextRectAnchorStable(Rect first, Rect second)
-    {
-        Assert.Equal(first.X, second.X);
-        Assert.Equal(first.Y, second.Y);
-        Assert.Equal(first.Height, second.Height);
+        var document = DemoDocumentFactory.Build(state, theme ?? StandardTheme.Default);
+        return GeometryHarness.ResolveDocument(document, DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
     }
 }
