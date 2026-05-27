@@ -28,3 +28,7 @@
 ## M5c3 Checkbox and Switch style wiring
 
 M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `StandardUI.Checkbox` and `StandardUI.Switch`. Checkbox and switch geometry, visual style, gap spacing, and label text style now resolve deterministically from the selected style record (`style:` if supplied, otherwise theme default). Checked/on state changes values (for example mark fill and thumb X) without changing row identity.
+
+## M5c4 consolidation note
+
+M5c4 consolidates the M5c style model as one coherent system: consistent `StandardTheme.<Family>.Default` naming, explicit layout-vs-paint guidance, clarified StandardUI vs StandardView roles, and canonical presenter sample positioning. See `docs/machina-style-theme-m5c4.md`.
