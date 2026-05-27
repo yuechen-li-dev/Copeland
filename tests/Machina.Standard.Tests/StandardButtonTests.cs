@@ -1,7 +1,9 @@
 using Machina.Core.Actions;
 using Machina.Core.Diagnostics;
 using Machina.Core.Lowering;
+using Machina.Core.Measurement;
 using Machina.Core.Semantics;
+using Machina.Core.Styling;
 using Machina.Layout.Rows;
 using Machina.Standard.Authoring;
 using Machina.Standard.Components;
@@ -96,5 +98,19 @@ public sealed class StandardButtonTests
 
         Assert.Equal(Machina.Core.Styling.TextSize.Sm, lowered.TextStyles[new NodeId("small.label")].Size);
         Assert.Equal(Machina.Core.Styling.TextSize.Md, lowered.TextStyles[new NodeId("large.label")].Size);
+    }
+
+    [Fact]
+    public void StandardButton_DefaultStyle_TextFitsDefaultShell()
+    {
+        var lowered = UiLowerer.Lower(StandardUI.Button("Increment", id: "increment", size: ButtonSize.Medium));
+        var themeStyle = StandardTheme.Default.Button.Default;
+        var labelStyle = lowered.TextStyles[new NodeId("increment.label")];
+        var measured = DeterministicTextMeasurer.Instance.MeasureText("Increment", labelStyle);
+
+        Assert.Equal(TextSize.Md, labelStyle.Size);
+        Assert.Equal(themeStyle.TextStyle.Size, labelStyle.Size);
+        Assert.True(measured.Width <= themeStyle.Width, $"Text width {measured.Width} exceeds button width {themeStyle.Width}.");
+        Assert.True(measured.Height <= themeStyle.Height, $"Text height {measured.Height} exceeds button height {themeStyle.Height}.");
     }
 }

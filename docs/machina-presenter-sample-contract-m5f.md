@@ -37,3 +37,7 @@ This project validates:
 7. theme propagation for card/button and checkbox/switch styles.
 
 Headless tests are the source of truth; manual GUI checks are secondary.
+
+
+## M5g presenter visual regression audit
+M5g requires converting presenter screenshot regressions into headless geometry/render-command tests. Verify UI.Text visibility by DrawTextCommand presence + visible text color + in-card rect; verify default button text-style size fits default shell; verify checkbox checked mark via explicit mark geometry and visible fill when checked (transparent when unchecked). Dynamic text fitting remains deferred.
