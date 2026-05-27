@@ -302,3 +302,8 @@ M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `Standar
 
 ## M5d resolution note
 The M5a dual-surface confusion risk is now addressed by explicit contract guidance in `docs/standard-ui-vs-standard-view-m5d.md`: default app authoring uses `StandardUI`, while `StandardView` sub-part helpers are advanced/manual composition helpers.
+
+
+
+## M5e headless harness
+M5e standardizes component/document headless assertions through tests/Machina.Testing/GeometryHarness.cs so component tests can assert resolved rectangles, row presence, metadata, and hit targets without repeating lowering/resolve plumbing.

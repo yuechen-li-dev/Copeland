@@ -303,3 +303,8 @@ M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `Standar
 
 ## M5d contract cleanup note
 Historical row-only checkbox/switch decomposition guidance is superseded for canonical app authoring. Prefer `StandardUI` controls/components in app documents; keep `StandardView` for leaf metadata and advanced custom sub-part composition. See `docs/standard-ui-vs-standard-view-m5d.md`.
+
+
+
+## M5e headless harness
+M5e standardizes component/document headless assertions through tests/Machina.Testing/GeometryHarness.cs so component tests can assert resolved rectangles, row presence, metadata, and hit targets without repeating lowering/resolve plumbing.

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Testing</AssemblyName>
+    <RootNamespace>Machina.Testing</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../src/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../src/Machina.Runtime/Machina.Runtime.csproj" />
+  </ItemGroup>
+</Project>

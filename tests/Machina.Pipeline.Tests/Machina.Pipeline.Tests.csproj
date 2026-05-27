@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Machina.Testing/Machina.Testing.csproj" />
     <ProjectReference Include="../../src/Machina.Pipeline/Machina.Pipeline.csproj" />
     <ProjectReference Include="../../src/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../src/Machina.Core/Machina.Core.csproj" />

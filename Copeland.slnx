@@ -27,6 +27,7 @@
     <Project Path="tests/Machina.Renderer.Raster.Dominatus.Tests/Machina.Renderer.Raster.Dominatus.Tests.csproj" />
     <Project Path="tests/Machina.Runtime.Tests/Machina.Runtime.Tests.csproj" />
     <Project Path="tests/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj" />
+    <Project Path="tests/Machina.Testing/Machina.Testing.csproj" />
   </Folder>
   <Folder Name="/vendor/Dominatus/src/">
     <Project Path="vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />

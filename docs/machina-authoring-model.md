@@ -123,3 +123,8 @@ M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `Standar
 
 ## M5d contract cleanup note
 Superseded guidance: app-level manual decomposition of standard checkbox/switch internals is no longer canonical. Prefer `StandardUI.Checkbox`/`StandardUI.Switch` in app/component code; use `StandardView` sub-parts only for advanced custom composition. See `docs/standard-ui-vs-standard-view-m5d.md`.
+
+
+
+## M5e headless harness
+M5e standardizes component/document headless assertions through tests/Machina.Testing/GeometryHarness.cs so component tests can assert resolved rectangles, row presence, metadata, and hit targets without repeating lowering/resolve plumbing.
