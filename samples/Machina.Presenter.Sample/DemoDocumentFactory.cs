@@ -4,6 +4,7 @@ using Machina.Core.Flat;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Standard.Authoring;
+using Machina.Standard.Theme;
 
 namespace Machina.Presenter.Sample;
 
@@ -19,8 +20,10 @@ public static class DemoDocumentFactory
         public static readonly UiActionId ToggleNotifications = new("settings.notifications.toggle");
     }
 
-    public static UiDocument Build(DemoState state)
+    public static UiDocument Build(DemoState state, StandardTheme? theme = null)
     {
+        var effectiveTheme = theme ?? StandardTheme.Default;
+
         return UiDocument.Create(
             rows:
             [
@@ -34,11 +37,11 @@ public static class DemoDocumentFactory
                     top: 24,
                     width: 500,
                     height: 292,
-                    component: SettingsCard(state))
+                    component: SettingsCard(state, effectiveTheme))
             ]);
     }
 
-    private static UiNode SettingsCard(DemoState state)
+    private static UiNode SettingsCard(DemoState state, StandardTheme theme)
     {
         return StandardUI.Card(
             id: "settings-card-content",
@@ -49,7 +52,7 @@ public static class DemoDocumentFactory
                 [
                     UI.Text("Machina Presenter", id: "title", size: TextSize.Md),
                     UI.Text($"Count: {state.Count}", id: "count", size: TextSize.Sm),
-                    StandardUI.Button("Increment", id: "increment", action: Actions.Increment.ToAction()),
+                    StandardUI.Button("Increment", id: "increment", action: Actions.Increment.ToAction(), style: theme.Button.Default),
                     StandardUI.Separator(id: "rule"),
                     StandardUI.Checkbox(
                         id: "email-updates",
@@ -62,7 +65,8 @@ public static class DemoDocumentFactory
                         isOn: state.Notifications,
                         changed: Actions.ToggleNotifications.ToAction()),
                     UI.Text("Deterministic sample UI", id: "footnote", size: TextSize.Sm)
-                ]));
+                ]),
+            style: theme.Card.Default);
     }
 
     private static string OnOff(bool value)

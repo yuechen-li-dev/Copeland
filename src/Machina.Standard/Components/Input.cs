@@ -10,89 +10,27 @@ namespace Machina.Standard.Components;
 
 public static class Input
 {
-    public static UiNode Create(
-        NodeId? id = null,
-        string? value = null,
-        string? placeholder = null,
-        bool disabled = false,
-        UiAction? changed = null,
-        StandardTheme? theme = null)
+    public static UiNode Create(NodeId? id = null, string? value = null, string? placeholder = null, bool disabled = false, UiAction? changed = null, StandardTheme? theme = null, StandardInputStyle? style = null)
     {
         var effectiveTheme = theme ?? StandardTheme.Default;
-        var text = ResolveDisplayText(value, placeholder);
-        var isPlaceholder = string.IsNullOrEmpty(value) && !string.IsNullOrEmpty(placeholder);
-        var textColor = ResolveTextColor(effectiveTheme, disabled, isPlaceholder);
-        var background = disabled
-            ? effectiveTheme.Colors.Muted
-            : effectiveTheme.Colors.Background;
+        var effectiveStyle = style ?? effectiveTheme.Input.Default;
+        var text = string.IsNullOrEmpty(value) ? placeholder ?? string.Empty : value;
+        var placeholderMode = string.IsNullOrEmpty(value) && !string.IsNullOrEmpty(placeholder);
+        var foreground = disabled ? effectiveStyle.DisabledForeground : (placeholderMode ? effectiveStyle.PlaceholderForeground : effectiveStyle.TextStyle.Color ?? effectiveStyle.Foreground);
 
-        var textNode = UI.Text(
-            text,
-            id: CreateChildId(id, "text"),
-            style: new TextStyle(
-                Color: textColor,
-                Size: TextSize.Md,
-                AlignY: TextAlignY.Center));
+        var textNode = UI.Text(text, id: CreateChildId(id, "text"), style: effectiveStyle.TextStyle with { Color = foreground, AlignY = TextAlignY.Center });
+        var content = UI.Anchor(textNode, id: CreateChildId(id, "content"), left: effectiveStyle.ContentInset, right: effectiveStyle.ContentInset, top: effectiveStyle.ContentInset, bottom: effectiveStyle.ContentInset);
 
-        var contentInset = effectiveTheme.Spacing.Sm;
-        var content = UI.Anchor(
-            textNode,
-            id: CreateChildId(id, "content"),
-            left: contentInset,
-            right: contentInset,
-            top: contentInset,
-            bottom: contentInset);
+        var shellStyle = new UiStyle(disabled ? effectiveStyle.DisabledBackground : effectiveStyle.Background, foreground, 0, effectiveStyle.BorderColor, effectiveStyle.BorderThickness);
 
-        var style = new UiStyle(
-            Background: background,
-            Foreground: textColor,
-            Padding: 0,
-            BorderColor: effectiveTheme.Colors.Border,
-            BorderThickness: 1);
-
-        return UI.Rect(
-            child: content,
-            id: id,
-            height: 36,
-            style: style) with
+        return UI.Rect(content, id: id, height: effectiveStyle.Height, style: shellStyle) with
         {
-            Semantics = new UiSemantics(
-                UiRole.Input,
-                text,
-                Disabled: disabled,
-                Focusable: !disabled),
+            Semantics = new UiSemantics(UiRole.Input, text, Disabled: disabled, Focusable: !disabled),
             DeclaredAction = disabled ? null : changed,
         };
     }
 
-    private static string ResolveDisplayText(
-        string? value,
-        string? placeholder)
-    {
-        if (!string.IsNullOrEmpty(value))
-        {
-            return value;
-        }
-
-        return placeholder ?? string.Empty;
-    }
-
-    private static ColorToken ResolveTextColor(
-        StandardTheme theme,
-        bool disabled,
-        bool isPlaceholder)
-    {
-        if (disabled || isPlaceholder)
-        {
-            return theme.Colors.MutedForeground;
-        }
-
-        return theme.Colors.Foreground;
-    }
-
-    private static NodeId? CreateChildId(
-        NodeId? id,
-        string suffix)
+    private static NodeId? CreateChildId(NodeId? id, string suffix)
     {
         if (id is not { } value)
         {

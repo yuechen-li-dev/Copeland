@@ -283,3 +283,5 @@ M4c clarifies that style padding is paint metadata only. Components that host ch
 
 ## M4f note
 M4f adds semantic-text separation and state-stable control geometry. Semantic labels are not paint; explicit text visuals emit draw text. Checkbox/switch state changes should preserve row identity/shape and adjust stable style/geometry values instead of adding/removing rows.
+
+- M5c update: StandardTheme now carries typed component style records and supports explicit root theme handoff with `with` customization.

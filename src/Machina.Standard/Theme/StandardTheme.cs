@@ -5,10 +5,18 @@ namespace Machina.Standard.Theme;
 public sealed record StandardTheme(
     StandardColors Colors,
     StandardSpacing Spacing,
-    StandardRadius Radius)
+    StandardRadius Radius,
+    StandardButtonStyles Button,
+    StandardCardStyles Card,
+    StandardInputStyles Input,
+    StandardCheckboxStyles Checkbox,
+    StandardSwitchStyles Switch)
 {
-    public static StandardTheme Default { get; } = new(
-        Colors: new StandardColors(
+    public static StandardTheme Default { get; } = CreateDefault();
+
+    private static StandardTheme CreateDefault()
+    {
+        var colors = new StandardColors(
             Background: ColorToken.Hex(0xFFFFFFFF),
             Foreground: ColorToken.Hex(0x09090BFF),
             Primary: ColorToken.Hex(0x18181BFF),
@@ -21,15 +29,25 @@ public sealed record StandardTheme(
             MutedForeground: ColorToken.Hex(0x71717AFF),
             Border: ColorToken.Hex(0xE4E4E7FF),
             Accent: ColorToken.Hex(0xF4F4F5FF),
-            AccentForeground: ColorToken.Hex(0x18181BFF)),
-        Spacing: new StandardSpacing(
-            Xs: 4,
-            Sm: 8,
-            Md: 12,
-            Lg: 16,
-            Xl: 24),
-        Radius: new StandardRadius(
-            Sm: 4,
-            Md: 6,
-            Lg: 8));
+            AccentForeground: ColorToken.Hex(0x18181BFF));
+
+        var spacing = new StandardSpacing(Xs: 4, Sm: 8, Md: 12, Lg: 16, Xl: 24);
+        var radius = new StandardRadius(Sm: 4, Md: 6, Lg: 8);
+
+        return new StandardTheme(
+            Colors: colors,
+            Spacing: spacing,
+            Radius: radius,
+            Button: new StandardButtonStyles(
+                Default: new StandardButtonStyle(colors.Primary, colors.PrimaryForeground, null, 0, new TextStyle(colors.PrimaryForeground, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 88, 32),
+                Destructive: new StandardButtonStyle(colors.Destructive, colors.DestructiveForeground, null, 0, new TextStyle(colors.DestructiveForeground, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 88, 32),
+                Outline: new StandardButtonStyle(colors.Background, colors.Foreground, colors.Border, 1, new TextStyle(colors.Foreground, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 88, 32),
+                Secondary: new StandardButtonStyle(colors.Secondary, colors.SecondaryForeground, null, 0, new TextStyle(colors.SecondaryForeground, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 88, 32),
+                Ghost: new StandardButtonStyle(null, colors.Foreground, null, 0, new TextStyle(colors.Foreground, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 88, 32),
+                Link: new StandardButtonStyle(null, colors.Primary, null, 0, new TextStyle(colors.Primary, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 88, 32)),
+            Card: new StandardCardStyles(new StandardCardStyle(colors.Background, colors.Foreground, colors.Border, 1, spacing.Sm)),
+            Input: new StandardInputStyles(new StandardInputStyle(colors.Background, colors.Foreground, colors.Border, 1, spacing.Sm, 36, new TextStyle(colors.Foreground, TextSize.Md, TextAlignX.Left, TextAlignY.Center), colors.MutedForeground, colors.Muted, colors.MutedForeground)),
+            Checkbox: new StandardCheckboxStyles(new StandardCheckboxStyle(colors.Background, colors.Foreground, colors.PrimaryForeground, colors.Foreground, colors.Muted, colors.MutedForeground, colors.MutedForeground, colors.MutedForeground, 18, 10, spacing.Sm, new TextStyle(colors.Foreground, TextSize.Sm, TextAlignX.Left, TextAlignY.Center))),
+            Switch: new StandardSwitchStyles(new StandardSwitchStyle(colors.Muted, colors.Primary, colors.Border, colors.Background, colors.Border, colors.Foreground, colors.Muted, colors.MutedForeground, colors.Muted, colors.MutedForeground, colors.MutedForeground, 42, 20, 16, 2, spacing.Sm, new TextStyle(colors.Foreground, TextSize.Sm, TextAlignX.Left, TextAlignY.Center))));
+    }
 }

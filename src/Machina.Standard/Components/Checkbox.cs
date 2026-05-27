@@ -10,144 +10,37 @@ namespace Machina.Standard.Components;
 
 public static class Checkbox
 {
-    public static UiNode Create(
-        NodeId? id = null,
-        string? label = null,
-        bool isChecked = false,
-        bool disabled = false,
-        UiAction? changed = null,
-        StandardTheme? theme = null)
+    public static UiNode Create(NodeId? id = null, string? label = null, bool isChecked = false, bool disabled = false, UiAction? changed = null, StandardTheme? theme = null, StandardCheckboxStyle? style = null)
     {
         var effectiveTheme = theme ?? StandardTheme.Default;
-        var box = CreateBox(id, isChecked, disabled, effectiveTheme);
-        var root = CreateRoot(box, id, label, disabled, effectiveTheme);
+        var effectiveStyle = style ?? effectiveTheme.Checkbox.Default;
+        var boxColor = disabled ? effectiveStyle.DisabledBackground : (isChecked ? effectiveStyle.MarkColor : effectiveStyle.BoxBackground);
+        var borderColor = disabled ? effectiveStyle.DisabledBorderColor : effectiveStyle.BoxBorderColor;
+        var markColor = disabled ? effectiveStyle.DisabledMarkColor : effectiveStyle.MarkColor;
+
+        var markInset = (effectiveStyle.BoxSize - effectiveStyle.MarkSize) / 2;
+        var mark = UI.Anchor(UI.Rect(id: CreateChildId(id, "mark"), width: effectiveStyle.MarkSize, height: effectiveStyle.MarkSize, style: new UiStyle(isChecked ? markColor : ColorToken.Hex(0x00000000), null, 0)), id: CreateChildId(id, "mark-slot"), left: markInset, top: markInset, width: effectiveStyle.MarkSize, height: effectiveStyle.MarkSize);
+        var box = UI.Rect(mark, id: CreateChildId(id, "box"), width: effectiveStyle.BoxSize, height: effectiveStyle.BoxSize, style: new UiStyle(boxColor, null, 0, borderColor, 1));
+
+        UiNode root;
+        if (string.IsNullOrEmpty(label))
+        {
+            root = UI.Rect(box, id: id, width: effectiveStyle.BoxSize, height: effectiveStyle.BoxSize, style: new UiStyle(null, null, 0));
+        }
+        else
+        {
+            var labelStyle = effectiveStyle.LabelTextStyle with { Color = disabled ? effectiveStyle.DisabledLabelColor : effectiveStyle.LabelColor, AlignY = TextAlignY.Center };
+            root = UI.Row(id: id, gap: effectiveStyle.Gap, children: [box, UI.Text(label, id: CreateChildId(id, "label"), style: labelStyle)]);
+        }
 
         return root with
         {
-            Semantics = new UiSemantics(
-                UiRole.Checkbox,
-                label,
-                Disabled: disabled,
-                Focusable: !disabled),
+            Semantics = new UiSemantics(UiRole.Checkbox, label, Disabled: disabled, Focusable: !disabled),
             DeclaredAction = disabled ? null : changed,
         };
     }
 
-    private static UiNode CreateBox(
-        NodeId? id,
-        bool isChecked,
-        bool disabled,
-        StandardTheme theme)
-    {
-        var background = ResolveBoxBackground(isChecked, disabled, theme);
-        var foreground = isChecked
-            ? theme.Colors.PrimaryForeground
-            : theme.Colors.Foreground;
-
-        var markerBackground = isChecked
-            ? foreground
-            : ColorToken.Hex(0x00000000);
-
-        var marker = UI.Anchor(
-            id: CreateChildId(id, "mark-slot"),
-            left: 4,
-            top: 4,
-            width: 10,
-            height: 10,
-            child: UI.Rect(
-                id: CreateChildId(id, "mark"),
-                width: 10,
-                height: 10,
-                style: new UiStyle(
-                    Background: markerBackground,
-                    Foreground: null,
-                    Padding: 0)));
-
-        return UI.Rect(
-            child: marker,
-            id: CreateChildId(id, "box"),
-            width: 18,
-            height: 18,
-            style: new UiStyle(
-                Background: background,
-                Foreground: foreground,
-                Padding: 0,
-                BorderColor: foreground,
-                BorderThickness: 1));
-    }
-
-    private static UiNode CreateRoot(
-        UiNode box,
-        NodeId? id,
-        string? label,
-        bool disabled,
-        StandardTheme theme)
-    {
-        if (string.IsNullOrEmpty(label))
-        {
-            return UI.Rect(
-                child: box,
-                id: id,
-                width: 18,
-                height: 18,
-                style: new UiStyle(
-                    Background: null,
-                    Foreground: ResolveLabelColor(disabled, theme),
-                    Padding: 0));
-        }
-
-        var labelNode = UI.Text(
-            label,
-            id: CreateChildId(id, "label"),
-            style: new TextStyle(
-                Color: ResolveLabelColor(disabled, theme),
-                Size: TextSize.Sm,
-                AlignX: TextAlignX.Left,
-                AlignY: TextAlignY.Center));
-
-        return UI.Row(
-            id: id,
-            gap: theme.Spacing.Sm,
-            children:
-            [
-                box,
-                labelNode,
-            ]);
-    }
-
-    private static ColorToken ResolveBoxBackground(
-        bool isChecked,
-        bool disabled,
-        StandardTheme theme)
-    {
-        if (disabled)
-        {
-            return theme.Colors.Muted;
-        }
-
-        if (isChecked)
-        {
-            return theme.Colors.Primary;
-        }
-
-        return theme.Colors.Background;
-    }
-
-    private static ColorToken ResolveLabelColor(
-        bool disabled,
-        StandardTheme theme)
-    {
-        if (disabled)
-        {
-            return theme.Colors.MutedForeground;
-        }
-
-        return theme.Colors.Foreground;
-    }
-
-    private static NodeId? CreateChildId(
-        NodeId? id,
-        string suffix)
+    private static NodeId? CreateChildId(NodeId? id, string suffix)
     {
         if (id is not { } value)
         {
