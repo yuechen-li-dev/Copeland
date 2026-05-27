@@ -10,7 +10,7 @@ The sample now demonstrates:
 - Checkbox toggle (`settings.emailUpdates.toggle`)
 - Switch toggle (`settings.notifications.toggle`)
 
-All simple state transitions route through `DispatchTable<DemoState>` created with a collection expression.
+All simple state transitions now route through a plain C# dispatch method over typed `UiActionId` values.
 
 ## State shape
 
@@ -31,9 +31,9 @@ Initial state:
 
 ## Dispatch model
 
-The sample defines action IDs once in a static `Actions` class and reuses them in both view metadata and dispatch transitions.
+The sample defines action IDs once in a static `Actions` class and reuses them in both view metadata and dispatch branches.
 
-The sample-local dispatch table is the single transition path:
+The sample-local plain C# dispatcher is the single transition path:
 
 - `Actions.Increment` (`counter.increment`) -> increment `Count`
 - `Actions.ToggleEmailUpdates` (`settings.emailUpdates.toggle`) -> toggle `EmailUpdates`
@@ -49,7 +49,7 @@ Pointer interactions follow this sequence:
 2. Convert to runtime `PointerPoint`.
 3. Hit-test against current `UiHitTestIndex`.
 4. Resolve action name, or `<none>`.
-5. Dispatch action through `DispatchTable`.
+5. Dispatch action through `DemoStateDispatch.Dispatch`.
 6. Redraw only when dispatch returns a different state reference.
 7. Update window title/status text.
 
@@ -59,7 +59,7 @@ This keeps redraws gated by meaningful state changes.
 
 Dominatus is not used for these simple transitions.
 
-M1c intentionally keeps this path as a direct hit-test + `DispatchTable` sample to prove the lightweight default for deterministic, local state updates.
+M5b keeps this path as a direct hit-test + plain C# dispatch sample to prove the lightweight default for deterministic, local state updates.
 
 ## Expected manual behavior
 
@@ -74,6 +74,8 @@ M1c intentionally keeps this path as a direct hit-test + `DispatchTable` sample 
 dotnet run --project samples/Machina.Presenter.Sample
 ```
 
-## M3e follow-up
+## Dispatch tier guidance
 
-M3e keeps the same dispatch-table state model but composes checkbox/switch controls from explicit flat rows (`email-row` and `notifications-row` sub-parts) to improve inspectability and hit-test targeting.
+- Plain C# `if`/`switch`: default for hand-authored simple app state.
+- `DispatchTable`: use when transitions are data-shaped (tooling/generation/serialization/inspection/shared rows).
+- Dominatus: use for lifecycle/effects/async/scopes/persistence/orchestration.

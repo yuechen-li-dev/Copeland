@@ -277,3 +277,8 @@ The audit indicates Machina is already close to the target architecture. The cri
 - headless-first test contracts.
 
 Proceeding with M5b+ is recommended with small, reversible milestones.
+
+
+## M5b follow-through status
+
+M5b landed the recommended presenter simplification: `DemoState` transitions now use plain C# dispatch over typed `UiActionId` constants in the presenter sample. `DispatchTable` remains intact in runtime APIs, tests, and docs as the advanced data-shaped option.

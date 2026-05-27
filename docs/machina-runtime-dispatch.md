@@ -91,7 +91,7 @@ Examples:
 
 ## When to use dispatch tables
 
-Use dispatch tables for simple, deterministic field transitions driven by named events.
+Use dispatch tables when transitions need to be represented as data rows (generated, serialized, inspected by tooling, or shared across boundaries).
 
 Do not use dispatch tables as a full runtime orchestration system.
 
@@ -110,8 +110,8 @@ Use Dominatus or application-specific runtime logic for those concerns.
 Imperative local state:
   fine for tiny one-off code.
 
-Dispatch table:
-  best default for simple deterministic field transitions.
+DispatchTable:
+  use when transitions are data-shaped (generated/serialized/inspected/shared).
 
 Dominatus:
   use for orchestration, side effects, scopes, async, persistence/replay, runtime control.
@@ -125,8 +125,8 @@ Machina.Runtime.Dispatch M0a is pure state transition logic.
 - no presenter/window dependency
 - no renderer dependency
 
-## Presenter sample default (M0d)
+## Presenter sample default (M5b)
 
-As of M0d, `samples/Machina.Presenter.Sample` uses `DispatchTable<CounterState>` for the live counter state loop.
+As of M5b, `samples/Machina.Presenter.Sample` uses plain C# dispatch (`if` branches over typed `UiActionId`) for local hand-authored `DemoState` transitions.
 
-This demonstrates the intended default for simple deterministic field transitions in real UI interaction paths.
+`DispatchTable` remains supported and tested, but is now documented as the advanced option when transition rows need to be data-shaped.

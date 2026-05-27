@@ -192,7 +192,7 @@ React mapping guide:
 |---|---|---|
 | Core baseline (`Button`, primitive text/layout wrappers) | Implemented | Current tested center.
 | Form shell (`Field`, input wrapper pieces) | Partial | Needs full text edit/focus runtime.
-| Selection controls (`Checkbox`, `Switch`) | Implemented | Used in presenter settings sample with dispatch-table transitions.
+| Selection controls (`Checkbox`, `Switch`) | Implemented | Used in presenter settings sample with plain C# dispatch over typed action IDs (M5b).
 | Overlay/navigation/data controls | Deferred | Needs focus/modal/routing foundations first.
 
 ## Presenter / Platform Matrix
@@ -208,7 +208,8 @@ React mapping guide:
 
 - **M1a**: pipeline extraction / reusable `UiNode`-to-frame helper.
 - **M1b**: presenter sample cleanup using pipeline helper.
-- **M1c**: settings/counter presenter sample using dispatch-table transitions (implemented).
+- **M1c**: settings/counter presenter sample baseline (implemented).
+- **M5b**: presenter sample dispatch simplified to plain C#; DispatchTable retained as advanced option (implemented).
 - **M1d**: image-to-root coordinate mapping for presenter clicks (implemented).
 - **M1e**: Standard component + presenter visual tuning pass (flat deterministic polish, no new renderer primitives).
 - **M1f**: scaling/DPI pointer conversion follow-through and resize behavior hardening.
