@@ -74,7 +74,7 @@ M0b input behavior is intentionally limited:
 
 - if `value` is non-empty, the shell displays `value`
 - otherwise, it displays `placeholder` when present
-- placeholder and disabled text use muted foreground tokens
+- placeholder text uses `PlaceholderTextStyle` and disabled text uses `DisabledForeground`
 - disabled input uses muted background tokens
 - enabled input emits semantic role `Input` and is focusable in metadata
 - an enabled input preserves the supplied `changed` action as declaration metadata
@@ -260,3 +260,16 @@ M4f adds semantic-text separation and state-stable control geometry. Semantic la
 - Without `style:`, button style resolves from `theme.Button` and variant mapping.
 - `StandardUI.Card` supports explicit `style:` overrides; explicit style wins over `theme.Card.Default`.
 - Card content inset is structural (anchored content region), not implicit style padding.
+
+
+## M5c2 input style wiring
+
+`StandardInputStyle` fully defines current Input shell/content behavior:
+
+- shell metadata: `Background`, `Foreground`, `BorderColor`, `BorderThickness`
+- shell dimensions: `Width`, `Height`
+- explicit content geometry: `ContentInset` mapped to anchored `*.content` region
+- value text style: `TextStyle`
+- placeholder text style: `PlaceholderTextStyle`
+
+No CSS cascade is added. Style precedence remains explicit parameter first, then theme default.
