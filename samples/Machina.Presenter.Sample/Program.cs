@@ -12,7 +12,6 @@ using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Renderer.Raster.Dominatus.Models;
-using Machina.Runtime.Dispatch;
 using Machina.Runtime.Input;
 using Machina.Standard.Authoring;
 using Machina.Layout.Frames;
@@ -50,23 +49,6 @@ internal sealed class Program
     private sealed class PresenterWindow : Window
     {
         private const string BaseTitle = "Machina Presenter M1e";
-
-        private static readonly DispatchTable<DemoState> DemoDispatch =
-            DispatchTable.Create<DemoState>(
-                [
-                    DispatchTransitions.Increment<DemoState>(
-                    DemoDocumentFactory.Actions.Increment,
-                    get: state => state.Count,
-                    set: (state, value) => state with { Count = value }),
-                    DispatchTransitions.Toggle<DemoState>(
-                    DemoDocumentFactory.Actions.ToggleEmailUpdates,
-                    get: state => state.EmailUpdates,
-                    set: (state, value) => state with { EmailUpdates = value }),
-                    DispatchTransitions.Toggle<DemoState>(
-                    DemoDocumentFactory.Actions.ToggleNotifications,
-                    get: state => state.Notifications,
-                    set: (state, value) => state with { Notifications = value }),
-                ]);
 
         private readonly Image _image;
 
@@ -143,7 +125,7 @@ internal sealed class Program
 
         private void ApplyAction(UiAction action)
         {
-            var next = DemoDispatch.Dispatch(_state, action.Id);
+            var next = DemoStateDispatch.Dispatch(_state, action.Id);
             if (!ReferenceEquals(next, _state))
             {
                 _state = next;
