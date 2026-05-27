@@ -50,8 +50,8 @@ public static class DemoDocumentFactory
                 gap: 10,
                 children:
                 [
-                    UI.Text("Machina Presenter", id: "title", size: TextSize.Md),
-                    UI.Text($"Count: {state.Count}", id: "count", size: TextSize.Sm),
+                    UI.Text("Machina Presenter", id: "title", size: TextSize.Md, color: theme.Colors.Foreground),
+                    UI.Text($"Count: {state.Count}", id: "count", size: TextSize.Sm, color: theme.Colors.Foreground),
                     StandardUI.Button("Increment", id: "increment", action: Actions.Increment.ToAction(), style: theme.Button.Default),
                     StandardUI.Separator(id: "rule"),
                     StandardUI.Checkbox(
@@ -64,7 +64,7 @@ public static class DemoDocumentFactory
                         label: $"Notifications: {OnOff(state.Notifications)}",
                         isOn: state.Notifications,
                         changed: Actions.ToggleNotifications.ToAction()),
-                    UI.Text("Deterministic sample UI", id: "footnote", size: TextSize.Sm)
+                    UI.Text("Deterministic sample UI", id: "footnote", size: TextSize.Sm, color: theme.Colors.Foreground)
                 ]),
             style: theme.Card.Default);
     }

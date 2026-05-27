@@ -1,8 +1,10 @@
 using Machina.Dominatus.Rendering.Commands;
+using Machina.Core.Styling;
 using Machina.Layout.Frames;
 using Machina.Layout.Rows;
 using Machina.Pipeline;
 using Machina.Presenter.Sample;
+using Machina.Renderer.Raster.Text;
 using Machina.Standard.Theme;
 using Machina.Testing;
 using Xunit;
@@ -175,6 +177,80 @@ public sealed class PresenterSampleContractM5fTests
 
         Assert.Single(incrementTextCommands);
         Assert.Equal("settings-card/increment.label", incrementTextCommands[0].Id);
+    }
+
+    [Fact]
+    public void PresenterSample_TextNodes_HaveVisibleTextStyles()
+    {
+        var frame = new MachinaRasterPipeline().Render(DemoDocumentFactory.Build(new DemoState(2, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var textCommands = frame.RenderCommands.OfType<DrawTextCommand>().ToList();
+        AssertVisibleText(textCommands, "Machina Presenter", "settings-card/title", TextSize.Md);
+        AssertVisibleText(textCommands, "Count: 2", "settings-card/count", TextSize.Sm);
+        AssertVisibleText(textCommands, "Deterministic sample UI", "settings-card/footnote", TextSize.Sm);
+
+        var cardContent = frame.Resolved.Nodes["settings-card/settings-card-content.content"].Rect;
+        foreach (var command in textCommands.Where(x => x.Id is "settings-card/title" or "settings-card/count" or "settings-card/footnote"))
+        {
+            AssertRectInside(command.Rect, cardContent, command.Id);
+        }
+    }
+
+    [Fact]
+    public void PresenterSample_IncrementButton_TextFitsShell()
+    {
+        var frame = new MachinaRasterPipeline().Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var incrementTextCommands = frame.RenderCommands.OfType<DrawTextCommand>().Where(command => command.Text == "Increment").ToList();
+        var incrementText = Assert.Single(incrementTextCommands);
+        Assert.Equal("settings-card/increment.label", incrementText.Id);
+
+        var labelRegion = frame.Resolved.Nodes["settings-card/increment.label-region"].Rect;
+        var measured = ReadableBitmapTextRasterizer.MeasureText("Increment", incrementText.Style);
+
+        Assert.Equal(StandardTheme.Default.Button.Default.TextStyle.Size, incrementText.Style.Size);
+        Assert.True(measured.Width <= labelRegion.Width, $"Text width {measured.Width} exceeds label region width {labelRegion.Width}.");
+        Assert.True(measured.Height <= labelRegion.Height, $"Text height {measured.Height} exceeds label region height {labelRegion.Height}.");
+    }
+
+    [Fact]
+    public void PresenterSample_CheckedCheckbox_MarkIsVisible()
+    {
+        var checkedFrame = new MachinaRasterPipeline().Render(DemoDocumentFactory.Build(new DemoState(0, true, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var uncheckedFrame = new MachinaRasterPipeline().Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+
+        var markRect = checkedFrame.Resolved.Nodes["settings-card/email-updates.mark"].Rect;
+        var boxRect = checkedFrame.Resolved.Nodes["settings-card/email-updates.box"].Rect;
+        Assert.True(markRect.Width > 0 && markRect.Height > 0);
+        Assert.True(markRect.X >= boxRect.X && markRect.Y >= boxRect.Y);
+        Assert.True(markRect.X + markRect.Width <= boxRect.X + boxRect.Width);
+        Assert.True(markRect.Y + markRect.Height <= boxRect.Y + boxRect.Height);
+
+        var checkedMarkFill = Assert.Single(checkedFrame.RenderCommands.OfType<FillRectCommand>(), x => x.Id == "settings-card/email-updates.mark");
+        var uncheckedMarkFill = Assert.Single(uncheckedFrame.RenderCommands.OfType<FillRectCommand>(), x => x.Id == "settings-card/email-updates.mark");
+        Assert.NotEqual(ColorToken.Hex(0x00000000), checkedMarkFill.Color);
+        Assert.Equal(ColorToken.Hex(0x00000000), uncheckedMarkFill.Color);
+        Assert.Equal(StandardTheme.Default.Checkbox.Default.MarkColor, checkedMarkFill.Color);
+
+        var uncheckedGeometry = Render(new DemoState(0, false, false));
+        var checkedGeometry = Render(new DemoState(0, true, false));
+        GeometryHarness.AssertSameRowIds(uncheckedGeometry, checkedGeometry);
+    }
+
+    private static void AssertVisibleText(IReadOnlyList<DrawTextCommand> commands, string text, string expectedId, TextSize expectedSize)
+    {
+        var command = Assert.Single(commands, x => x.Text == text);
+        Assert.Equal(expectedId, command.Id);
+        Assert.Equal(expectedSize, command.Style.Size);
+        Assert.NotNull(command.Style.Color);
+        Assert.NotEqual(ColorToken.Hex(0x00000000), command.Style.Color!.Value);
+        Assert.NotEqual(ColorToken.Hex(0xFFFFFFFF), command.Style.Color!.Value);
+    }
+
+    private static void AssertRectInside(Machina.Layout.Geometry.Rect inner, Machina.Layout.Geometry.Rect outer, string id)
+    {
+        Assert.True(inner.X >= outer.X, $"{id} left outside");
+        Assert.True(inner.Y >= outer.Y, $"{id} top outside");
+        Assert.True(inner.X + inner.Width <= outer.X + outer.Width, $"{id} right outside");
+        Assert.True(inner.Y + inner.Height <= outer.Y + outer.Height, $"{id} bottom outside");
     }
 
     private static DocumentGeometryResult Render(DemoState state, StandardTheme? theme = null)
