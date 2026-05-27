@@ -88,3 +88,6 @@ M4c clarifies that style padding is paint metadata only. Components that host ch
 For StandardUI controls, assert resolved row geometry and actions headlessly; do not rely on screenshots as primary proof.
 
 - M5c update: StandardTheme now carries typed component style records and supports explicit root theme handoff with `with` customization.
+
+## M5d contract cleanup note
+Flat row authoring remains valid. For normal control usage, prefer hosted `StandardUI` controls at app level, and reserve `StandardView.CheckboxBox`/`SwitchTrack`/`SwitchThumb` for advanced custom component work. See `docs/standard-ui-vs-standard-view-m5d.md`.

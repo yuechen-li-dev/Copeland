@@ -54,6 +54,21 @@ public sealed class PresenterSampleGeometryRegressionM4eTests
     }
 
     [Fact]
+    public void PresenterSample_UsesStandardUIForControls()
+    {
+        var pipeline = new MachinaRasterPipeline();
+        var frame = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, true, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var allRowIds = frame.Lowering.Rows
+            .Select(row => row.Id.Value)
+            .ToArray();
+
+        Assert.Contains("settings-card", allRowIds);
+        Assert.DoesNotContain("email-box", allRowIds);
+        Assert.DoesNotContain("notifications-track", allRowIds);
+        Assert.DoesNotContain("notifications-thumb", allRowIds);
+    }
+
+    [Fact]
     public void PresenterSample_HitTesting_CoversFullButtonCheckboxAndSwitchTargets()
     {
         var pipeline = new MachinaRasterPipeline();

@@ -120,3 +120,6 @@ M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `Standar
 
 
 - M5c4 clarification: use StandardUI as the default component surface and pass an explicit root theme; use StandardView for lightweight flat-row metadata when that authoring style is preferred.
+
+## M5d contract cleanup note
+Superseded guidance: app-level manual decomposition of standard checkbox/switch internals is no longer canonical. Prefer `StandardUI.Checkbox`/`StandardUI.Switch` in app/component code; use `StandardView` sub-parts only for advanced custom composition. See `docs/standard-ui-vs-standard-view-m5d.md`.

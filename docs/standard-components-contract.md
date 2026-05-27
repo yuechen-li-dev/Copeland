@@ -282,3 +282,6 @@ M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `Standar
 ## M5c4 consolidation note
 
 StandardUI remains the primary localized component authoring surface. StandardView remains a lightweight row-metadata helper surface; sub-part helpers are advanced/manual composition helpers rather than the default path.
+
+## M5d contract cleanup note
+Canonical app authoring now defaults to `StandardUI` component helpers for controls/components. `StandardView` remains for lightweight row metadata, and sub-part helpers (`CheckboxBox`, `SwitchTrack`, `SwitchThumb`) are advanced/manual composition helpers only. See `docs/standard-ui-vs-standard-view-m5d.md`.

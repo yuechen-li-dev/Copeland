@@ -300,3 +300,6 @@ M4f adds semantic-text separation and state-stable control geometry. Semantic la
 M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `StandardUI.Checkbox` and `StandardUI.Switch`. Checkbox and switch geometry, visual style, gap spacing, and label text style now resolve deterministically from the selected style record (`style:` if supplied, otherwise theme default). Checked/on state changes values (for example mark fill and thumb X) without changing row identity.
 
 - **M5c4**: style model consolidation/docs/test cleanup pass; canonical StandardUI vs StandardView guidance and presenter sample positioning (implemented).
+
+## M5d contract cleanup note
+Historical row-only checkbox/switch decomposition guidance is superseded for canonical app authoring. Prefer `StandardUI` controls/components in app documents; keep `StandardView` for leaf metadata and advanced custom sub-part composition. See `docs/standard-ui-vs-standard-view-m5d.md`.

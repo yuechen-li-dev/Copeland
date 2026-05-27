@@ -28,3 +28,6 @@ Reference audit aligns this document with imported MachinaLayout.JS frame/stack 
 ## M4c layout-padding hardening note
 
 M4c clarifies that style padding is paint metadata only. Components that host child layout (for example Card, Input text content) must create an explicit inset content region with placement rows (`AnchorFrame`), rather than relying on `UiStyle.Padding` to move children. Stack behavior remains ordered arithmetic (`StackArrange`) and is not Flexbox.
+
+## M5d contract cleanup note
+Hybrid authoring remains preferred for app screens: flat top-level placement + hosted `StandardUI` components. Manual row decomposition of checkbox/switch internals is now considered advanced customization only and is no longer default guidance. See `docs/standard-ui-vs-standard-view-m5d.md`.

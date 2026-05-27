@@ -8,6 +8,8 @@ namespace Machina.Standard.Authoring;
 
 public static class StandardView
 {
+    // StandardView is a lightweight UiView metadata surface for flat-row authoring.
+    // Prefer StandardUI component helpers for ordinary app/component controls.
     public static UiView Card()
     {
         var colors = StandardTheme.Default.Colors;
@@ -59,6 +61,8 @@ public static class StandardView
             Action: action);
     }
 
+    // Advanced helper for custom component authors composing checkbox internals manually.
+    // Prefer StandardUI.Checkbox for ordinary app/component code.
     public static UiView CheckboxBox(bool isChecked, UiAction? action = null, bool disabled = false)
     {
         var background = disabled
@@ -82,6 +86,8 @@ public static class StandardView
             Action: disabled ? null : action);
     }
 
+    // Advanced helper for custom component authors composing switch internals manually.
+    // Prefer StandardUI.Switch for ordinary app/component code.
     public static UiView SwitchTrack(bool isOn, UiAction? action = null, bool disabled = false)
     {
         var background = disabled
@@ -102,6 +108,8 @@ public static class StandardView
             Action: disabled ? null : action);
     }
 
+    // Advanced helper for custom component authors composing switch internals manually.
+    // Prefer StandardUI.Switch for ordinary app/component code.
     public static UiView SwitchThumb(bool isOn, bool disabled = false)
     {
         var background = disabled
