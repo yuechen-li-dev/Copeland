@@ -299,3 +299,6 @@ M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `Standar
 
 
 - M5c4 follow-up: the recommended M5a style direction is now consolidated in `docs/machina-style-theme-m5c4.md` with explicit StandardUI/StandardView guidance and leaf-helper positioning.
+
+## M5d resolution note
+The M5a dual-surface confusion risk is now addressed by explicit contract guidance in `docs/standard-ui-vs-standard-view-m5d.md`: default app authoring uses `StandardUI`, while `StandardView` sub-part helpers are advanced/manual composition helpers.

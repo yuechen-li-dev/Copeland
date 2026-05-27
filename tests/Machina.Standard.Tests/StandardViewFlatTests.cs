@@ -10,6 +10,26 @@ namespace Machina.Standard.Tests;
 public sealed class StandardViewFlatTests
 {
     [Fact]
+    public void StandardView_SubPartHelpers_RemainMetadataOnly()
+    {
+        var checkboxBox = StandardView.CheckboxBox(isChecked: true, action: UiAction.Named("checkbox.toggle"));
+        var switchTrack = StandardView.SwitchTrack(isOn: false, action: UiAction.Named("switch.toggle"));
+        var switchThumb = StandardView.SwitchThumb(isOn: true);
+
+        Assert.NotNull(checkboxBox.Style);
+        Assert.NotNull(checkboxBox.Semantics);
+        Assert.Equal("checkbox.toggle", checkboxBox.Action?.Name);
+
+        Assert.NotNull(switchTrack.Style);
+        Assert.NotNull(switchTrack.Semantics);
+        Assert.Equal("switch.toggle", switchTrack.Action?.Name);
+
+        Assert.NotNull(switchThumb.Style);
+        Assert.NotNull(switchThumb.Semantics);
+        Assert.Null(switchThumb.Action);
+    }
+
+    [Fact]
     public void StandardViewButton_LowersActionAndSemantics()
     {
         var lowered = UiDocumentLowerer.Lower(UiDocument.Create([Row.Root("button", StandardView.Button("Save", UiAction.Named("save")))]));

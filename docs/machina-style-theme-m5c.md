@@ -32,3 +32,6 @@ M5c3 fully wires `StandardCheckboxStyle` and `StandardSwitchStyle` into `Standar
 ## M5c4 consolidation note
 
 M5c4 consolidates the M5c style model as one coherent system: consistent `StandardTheme.<Family>.Default` naming, explicit layout-vs-paint guidance, clarified StandardUI vs StandardView roles, and canonical presenter sample positioning. See `docs/machina-style-theme-m5c4.md`.
+
+## M5d follow-up note
+M5c style records remain unchanged. M5d clarifies authoring contract only: `StandardUI` is the primary component surface; `StandardView` is metadata-oriented with advanced sub-part helpers for manual composition. See `docs/standard-ui-vs-standard-view-m5d.md`.
