@@ -195,3 +195,9 @@ Deferred beyond M6a (and mostly beyond M6b):
 ## Conclusion
 
 M6a concludes that text must be a dedicated subsystem contract, not a retrofit of frame/layout semantics. Upstream JS reference confirms a viable restricted text model (source/spec/document/block/inline/diagnostics + policy dimensions) that can be ported to C# incrementally while preserving Machina’s headless-first, deterministic architecture.
+
+## M6b update — Standard-owned implementation
+
+M6b intentionally changed the integration target from a standalone production `Machina.Text` package to `Machina.Standard.Text`. The M6a doctrine still holds: frames place text boxes, and text layout belongs inside those boxes. The production model/parser now lives in Standard because typography variants, labels, titles, captions, theme policy, and rich text authoring are Standard concerns.
+
+The standalone package remains deferred. `Machina.Core.Authoring.UI.Text(string)` remains the primitive transitional text path, and M6b does not integrate rich text with the renderer or layout resolver. See `docs/machina-standard-text-m6b.md` for the landed Standard-owned model/parser surface.

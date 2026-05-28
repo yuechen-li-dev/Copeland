@@ -324,3 +324,16 @@ Wrap, overflow, leading, block/list spacing, and text alignment are text-domain 
 Headings remain a component/layout responsibility (for example title variant selection in `StandardUI.Card`), not a supported inline markup mechanism inside restricted Machina text source.
 
 The current simple `UI.Text` path is transitional until `Machina.Text` parser/model/layout integration milestones (M6b+) are complete.
+
+## Machina.Standard.Text M6b status
+
+M6b lands the rich text model and restricted parser under `Machina.Standard.Text`. This replaces the earlier near-term plan to create a standalone production `Machina.Text` project. The standalone package is deferred until Standard typography policy and integration needs are better proven.
+
+Current status:
+
+- Model, policy enums, diagnostics, parser, and helper constructors exist in Standard.
+- Core `UI.Text(string)` remains unchanged.
+- StandardUI controls and raster text rendering are not migrated.
+- Renderer/layout integration is deferred to M6c+.
+
+Next work remains measurement, text layout inside assigned boxes, renderer bridging, and StandardUI adoption.
