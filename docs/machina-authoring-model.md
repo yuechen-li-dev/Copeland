@@ -140,3 +140,11 @@ Wrap, overflow, leading, block/list spacing, and text alignment are text-domain 
 Headings remain a component/layout responsibility (for example title variant selection in `StandardUI.Card`), not a supported inline markup mechanism inside restricted Machina text source.
 
 The current simple `UI.Text` path is transitional until `Machina.Text` parser/model/layout integration milestones (M6b+) are complete.
+
+## Standard rich text authoring (M6b)
+
+Rich text authoring is now modeled under `Machina.Standard.Text` rather than as a Core primitive or standalone production package. Standard owns this surface because typography variants and label/title/caption policies are tied to Standard components and themes.
+
+The existing `Machina.Core.Authoring.UI.Text(string)` remains a simple primitive/transitional path. M6b adds typed Standard helpers such as `Text.Plain(...)`, `Text.Markup(...)`, `Text.Paragraph(...)`, `Text.BulletList(...)`, `Text.Strong(...)`, `Text.Emphasis(...)`, `Text.Code(...)`, and `Text.Link(...)`, but does not add a rendered rich text container yet.
+
+Restricted markup supports paragraphs, bullet lists, strong/emphasis/code/link inline runs, and explicit diagnostics. Markdown headings remain forbidden; component authors should use Standard typography variants for titles instead of source-level heading syntax.
