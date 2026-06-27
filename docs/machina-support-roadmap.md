@@ -337,3 +337,10 @@ Current status:
 - Renderer/layout integration is deferred to M6c+.
 
 Next work remains measurement, text layout inside assigned boxes, renderer bridging, and StandardUI adoption.
+
+## M5g status
+
+- Completed: presenter sample ergonomics cleanup into `SettingsScreen`, `SettingsCard`, `SettingsActions`, `DemoState`, and `DemoStateDispatch`.
+- Completed: canonical sample uses `StandardUI.Card` multi-children/gap authoring instead of manually wrapping `UI.Column` inside Card.
+- Completed: sample demonstrates explicit theme handoff from screen to component to child `StandardUI` controls with no hidden theme cascade.
+- Completed: dedicated presenter sample tests cover canonical document shape, localized component ids, action ownership, theme propagation, geometry, hit targets, and render-command regressions.

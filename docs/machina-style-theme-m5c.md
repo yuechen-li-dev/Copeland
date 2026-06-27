@@ -41,3 +41,7 @@ M5c style records remain unchanged. M5d clarifies authoring contract only: `Stan
 
 ## M5g presenter visual regression audit
 M5g requires converting presenter screenshot regressions into headless geometry/render-command tests. Verify UI.Text visibility by DrawTextCommand presence + visible text color + in-card rect; verify default button text-style size fits default shell; verify checkbox checked mark via explicit mark geometry and visible fill when checked (transparent when unchecked). Dynamic text fitting remains deferred.
+
+## M5g explicit theme propagation note
+
+The presenter sample now demonstrates explicit theme propagation as the preferred authoring pattern: `SettingsScreen.Build(state, theme)` defaults the theme, passes it to `SettingsCard.Build(state, theme)`, and the component passes `theme:` to child `StandardUI` controls. `StandardUI.Card(theme: theme, children: [...])` uses the theme card default unless an explicit `style:` is supplied. This is not a global cascade.

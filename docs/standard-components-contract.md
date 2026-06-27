@@ -312,3 +312,21 @@ Standard now owns the rich text model/parser namespace: `Machina.Standard.Text`.
 M6b is not a component migration. Buttons, checkboxes, switches, labels, raster rendering, and layout resolver behavior continue to use the existing paths. Future Standard components may consume `MachinaTextSpec` and Standard text helpers after measurement/layout/rendering integration lands.
 
 Restricted markup headings remain forbidden; Standard component composition and typography variants should express title hierarchy.
+
+## M5g card authoring guidance
+
+When a card owns several local children, prefer the multi-child surface:
+
+```csharp
+StandardUI.Card(
+    id: "settings-card-content",
+    theme: theme,
+    gap: 10,
+    children:
+    [
+        UI.Text("Title", id: "title", color: theme.Colors.Foreground),
+        StandardUI.Button("Save", id: "save", action: Actions.Save.ToAction(), theme: theme),
+    ]);
+```
+
+This avoids a manual `UI.Column` wrapper at call sites while preserving explicit local composition. Theme handling remains explicit: explicit `style:` wins, explicit `theme:` supplies defaults, and omitted theme falls back to `StandardTheme.Default`.

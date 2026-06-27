@@ -309,3 +309,7 @@ The M5a dual-surface confusion risk is now addressed by explicit contract guidan
 M5e standardizes component/document headless assertions through tests/Machina.Testing/GeometryHarness.cs so component tests can assert resolved rectangles, row presence, metadata, and hit targets without repeating lowering/resolve plumbing.
 
 - M5f update: presenter sample is the canonical reference app and is contract-tested in tests/Machina.Presenter.Sample.Tests (document shape, hosted component boundary, localized StandardUI internals, plain C# dispatch, theme propagation, and geometry/hit-target stability).
+
+## M5g presenter ergonomics follow-up
+
+The M5a probe architecture remains valid. The presenter sample now names the top-level document builder as `SettingsScreen`, keeps `SettingsCard` as a component-oriented builder, moves action ids to `SettingsActions`, and passes `StandardTheme` explicitly through the screen/component boundary. No hidden theme cascade or renderer/layout/runtime change is introduced.
