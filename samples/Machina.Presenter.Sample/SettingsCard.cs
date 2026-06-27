@@ -2,6 +2,7 @@ using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Standard.Authoring;
+using Machina.Standard.Text;
 using Machina.Standard.Theme;
 
 namespace Machina.Presenter.Sample;
@@ -55,11 +56,19 @@ public static class SettingsCard
                     changed: SettingsActions.ToggleNotifications.ToAction(),
                     theme: theme),
 
-                UI.Text(
-                    "Deterministic sample UI",
-                    id: "footnote",
-                    size: TextSize.Sm,
-                    color: theme.Colors.MutedForeground),
+                StandardUI.TextBlock(
+                    id: "rich-text-probe",
+                    text: Text.Markup(
+                        """
+                        This card now renders **Standard.Text** through the layout bridge.
+
+                        - wrapped text
+                        - bullet list
+                        - deterministic geometry
+                        """,
+                        variant: MachinaTextVariant.Caption),
+                    theme: theme,
+                    foreground: theme.Colors.MutedForeground),
             ]);
     }
 

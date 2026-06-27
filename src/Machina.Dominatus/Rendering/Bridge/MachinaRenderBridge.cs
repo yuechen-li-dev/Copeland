@@ -6,6 +6,8 @@ using Machina.Dominatus.Rendering.Commands;
 using Machina.Layout.Documents;
 using Machina.Layout.Projection;
 using Machina.Layout.Rows;
+using Machina.Standard.Components;
+using Machina.Standard.Text;
 
 namespace Machina.Dominatus.Rendering.Bridge;
 
@@ -30,6 +32,11 @@ public static class MachinaRenderBridge
         foreach (var node in EnumeratePreOrder(resolved))
         {
             EmitFillAndStrokeCommands(node, lowering.Styles, commands);
+            if (EmitRichTextCommands(node, lowering.NodePayloads, commands))
+            {
+                continue;
+            }
+
             EmitTextCommand(node, resolved, lowering.TextStyles, lowering.Semantics, commands);
         }
 
@@ -99,6 +106,42 @@ public static class MachinaRenderBridge
         {
             throw new InvalidOperationException($"BorderThickness for node '{nodeId.Value}' must be non-negative.");
         }
+    }
+
+    private static bool EmitRichTextCommands(
+        ResolvedLayoutNode node,
+        IReadOnlyDictionary<NodeId, object> nodePayloads,
+        ICollection<IActuationCommand> commands)
+    {
+        if (!nodePayloads.TryGetValue(node.Id, out var payload))
+        {
+            return false;
+        }
+
+        if (payload is not StandardTextBlockMetadata metadata)
+        {
+            return false;
+        }
+
+        var layout = MachinaTextLayoutEngine.Layout(
+            metadata.Text,
+            new MachinaTextBox(node.Rect.X, node.Rect.Y, node.Rect.Width, node.Rect.Height),
+            MachinaTextMeasurers.Deterministic);
+
+        var renderStyle = new MachinaTextRenderStyle(
+            BaseStyle: new TextStyle(
+                Color: metadata.Foreground,
+                Size: TextSize.Md,
+                AlignX: TextAlignX.Left,
+                AlignY: TextAlignY.Top),
+            LinkColor: metadata.LinkForeground);
+
+        foreach (var command in MachinaTextRenderBridge.ToDrawTextCommands(node.Id.Value, layout, renderStyle))
+        {
+            commands.Add(command);
+        }
+
+        return true;
     }
 
     private static void EmitTextCommand(

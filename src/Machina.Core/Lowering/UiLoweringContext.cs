@@ -28,6 +28,8 @@ internal sealed class UiLoweringContext
 
     public Dictionary<NodeId, UiAction> Actions { get; } = [];
 
+    public Dictionary<NodeId, object> NodePayloads { get; } = [];
+
     public NodeId AllocateId(NodeId? explicitId)
     {
         if (explicitId is { } id)

@@ -181,3 +181,14 @@ Recommended next steps:
 4. Revisit richer visual styling only after renderer command and backend requirements are explicit.
 
 M6d therefore proves the seam without silently changing primitive `UI.Text` or existing StandardUI controls.
+
+## M6e follow-through
+
+M6e is now the first real consumer of this bridge.
+
+- `StandardUI.TextBlock(...)` is the first Standard-owned rich text component.
+- Dominatus now consumes Standard rich text metadata, lays it out in assigned bounds, and emits existing `DrawTextCommand` output.
+- Primitive `UI.Text` remains intact.
+- Broad Standard control migration is still deferred.
+
+See `docs/machina-standard-textblock-m6e.md` and `docs/machina-standard-textblock-local-visual-audit-m6e.md`.

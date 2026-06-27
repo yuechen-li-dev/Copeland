@@ -350,6 +350,26 @@ What M6d still does not do:
 
 StandardUI components should therefore continue to use the existing primitive text path until a later controlled migration milestone.
 
+## StandardUI TextBlock (M6e)
+
+M6e adds the first controlled Standard rich text component:
+
+- `StandardUI.TextBlock`
+
+Contract:
+
+- accepts `MachinaTextSpec`
+- consumes an assigned box from existing layout
+- lays out through `MachinaTextLayoutEngine`
+- bridges through `MachinaTextRenderBridge`
+- emits existing `DrawTextCommand` output
+
+Important scope boundary:
+
+- `UI.Text` remains the primitive text path
+- `StandardUI.Button`, `StandardUI.Checkbox`, `StandardUI.Switch`, `StandardUI.Input`, and `StandardUI.Card` labels are not broadly migrated in M6e
+- inline style fidelity remains limited by current renderer support
+
 ## M5g card authoring guidance
 
 When a card owns several local children, prefer the multi-child surface:

@@ -104,6 +104,7 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 | Input shell | Machina.Standard | Implemented | Standard + pipeline style contract tests | M5c2 fully wires Input style record; full text editing runtime remains planned.
 | Checkbox | Machina.Standard | Implemented | Standard form tests | Dispatch-friendly selection control available.
 | Switch | Machina.Standard | Implemented | Standard form tests | Dispatch-friendly selection control available.
+| Standard TextBlock | Machina.Standard | Implemented | Standard + Dominatus + presenter tests + local Windows visual audit | First visible Standard rich text surface; broad control migration deferred.
 | Tabs | Machina.Standard | Deferred | None | Post-core interaction milestone.
 | Dialog | Machina.Standard | Deferred | None | Depends on modal/runtime stack.
 | Popover | Machina.Standard | Deferred | None | Depends on layering/focus model.
@@ -367,6 +368,25 @@ Current status:
 - Rich inline style metadata is preserved in layout, but renderer styling remains limited to current command/style support.
 
 Next work is M6e: adopt this bridge in one controlled authored rich text surface before any broader StandardUI migration.
+
+## Machina.Standard.Text M6e status
+
+M6e lands that controlled authored surface.
+
+Current status:
+
+- `StandardUI.TextBlock(...)` exists as the first Standard-owned rich text component.
+- It accepts `MachinaTextSpec` from `Machina.Standard.Text.Text.*` helpers.
+- Dominatus lays it out in assigned bounds and emits existing `DrawTextCommand` output.
+- Presenter sample now includes one rich text probe with local Windows visual validation.
+- Primitive `UI.Text` remains unchanged.
+- Existing Standard controls are not broadly migrated.
+
+Deferred:
+
+- rich inline style fidelity in the current raster renderer
+- ellipsis/scroll/clip fidelity improvements
+- broad Standard control migration
 
 ## M5g status
 

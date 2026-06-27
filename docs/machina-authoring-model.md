@@ -175,6 +175,18 @@ This keeps authoring ownership clear:
 
 No broad StandardUI migration is implied by M6d.
 
+## M6e authoring note
+
+M6e adds `StandardUI.TextBlock(...)` as the first visible Standard rich text component.
+
+Authoring rule stays the same:
+
+- general layout assigns the text box
+- `TextBlock` consumes that box
+- `Machina.Standard.Text` lays out content only inside the box
+
+`TextBlock` is therefore a component-level rich text surface, not a new general layout primitive.
+
 ## M5g screen/component/action convention
 
 Presenter-style samples should keep top-level screen placement separate from component composition:

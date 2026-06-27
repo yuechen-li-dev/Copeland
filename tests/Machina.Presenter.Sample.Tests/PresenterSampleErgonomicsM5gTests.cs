@@ -87,6 +87,8 @@ public sealed class PresenterSampleErgonomicsM5gTests
         AssertRectInside(frame, "settings-card/notifications.track", "settings-card/settings-card-content.content");
         AssertRectInside(frame, "settings-card/notifications.thumb", "settings-card/settings-card-content.content");
         AssertRectInside(frame, "settings-card/notifications.label", "settings-card/settings-card-content.content");
+        AssertRectInside(frame, "settings-card/rich-text-probe", "settings-card/settings-card-content.content");
+        AssertRectInside(frame, "settings-card/rich-text-probe.content", "settings-card/settings-card-content.content");
     }
 
     [Fact]
@@ -197,16 +199,29 @@ public sealed class PresenterSampleErgonomicsM5gTests
     }
 
     [Fact]
+    public void PresenterSample_RichTextProbe_ExistsAndRendersThroughTextBlock()
+    {
+        var frame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(0, false, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
+
+        Assert.Contains("settings-card/rich-text-probe", frame.Resolved.Nodes.Keys);
+        Assert.Contains("settings-card/rich-text-probe.content", frame.Resolved.Nodes.Keys);
+
+        var drawCommands = frame.RenderCommands.OfType<DrawTextCommand>().ToList();
+        Assert.Contains(drawCommands, command => command.Id.StartsWith("settings-card/rich-text-probe.content.", StringComparison.Ordinal));
+        Assert.Contains(drawCommands, command => command.Text == "Standard.Text");
+        Assert.Contains(drawCommands, command => command.Text == "\u2022");
+    }
+
+    [Fact]
     public void PresenterSample_TextNodes_HaveVisibleTextStyles()
     {
         var frame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(2, false, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
         var textCommands = frame.RenderCommands.OfType<DrawTextCommand>().ToList();
         AssertVisibleText(textCommands, "Machina Presenter", "settings-card/title", TextSize.Md);
         AssertVisibleText(textCommands, "Count: 2", "settings-card/count", TextSize.Sm);
-        AssertVisibleText(textCommands, "Deterministic sample UI", "settings-card/footnote", TextSize.Sm);
 
         var cardContent = frame.Resolved.Nodes["settings-card/settings-card-content.content"].Rect;
-        foreach (var command in textCommands.Where(x => x.Id is "settings-card/title" or "settings-card/count" or "settings-card/footnote"))
+        foreach (var command in textCommands.Where(x => x.Id is "settings-card/title" or "settings-card/count"))
         {
             AssertRectInside(command.Rect, cardContent, command.Id);
         }
@@ -235,7 +250,7 @@ public sealed class PresenterSampleErgonomicsM5gTests
         var frame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(2, true, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
         var textCommands = frame.RenderCommands
             .OfType<DrawTextCommand>()
-            .Where(command => command.Id is "settings-card/title" or "settings-card/count" or "settings-card/footnote")
+            .Where(command => command.Id is "settings-card/title" or "settings-card/count")
             .ToList();
 
         Assert.NotEmpty(textCommands);

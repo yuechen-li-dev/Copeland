@@ -59,3 +59,12 @@ The current simple `UI.Text` path is transitional until `Machina.Text` parser/mo
 `SettingsCard` owns the localized component subtree and uses `StandardUI.Card(..., children: [...], gap: ...)` instead of manually nesting a `UI.Column` inside the card. Child `StandardUI` controls receive the same explicit theme.
 
 `SettingsActions` is the single action contract for component authoring and `DemoStateDispatch`. `DemoDocumentFactory.Build(...)` remains only as a compatibility shim.
+
+## M6e sample note
+
+The presenter sample now includes one controlled `StandardUI.TextBlock` probe inside `SettingsCard`.
+
+- it is the first visible Standard rich text integration
+- it does not replace the existing primitive title/count text
+- it does not migrate button, checkbox, or switch labels
+- local Windows visual validation is part of the sample contract for this milestone

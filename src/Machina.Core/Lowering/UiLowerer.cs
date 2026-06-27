@@ -25,7 +25,8 @@ public static class UiLowerer
             context.Styles,
             context.TextStyles,
             context.Semantics,
-            context.Actions);
+            context.Actions,
+            context.NodePayloads);
     }
 
     private static NodeId LowerNode(
@@ -91,6 +92,7 @@ public static class UiLowerer
             ContainerNode => new FillFrame(),
             PlacementNode placement => placement.Frame,
             LayerNode layer => layer.Frame ?? new FillFrame(),
+            RichTextNode => new FillFrame(),
             _ => throw Unsupported(node),
         };
     }
@@ -107,6 +109,7 @@ public static class UiLowerer
             ContainerNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
             PlacementNode placement => placement.Frame,
             LayerNode layer => layer.Frame ?? new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
+            RichTextNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
             _ => throw Unsupported(node),
         };
     }
@@ -238,6 +241,7 @@ public static class UiLowerer
             case TextNode:
             case ButtonNode:
             case SpacerNode:
+            case RichTextNode:
                 return;
 
             default:
@@ -303,6 +307,11 @@ public static class UiLowerer
                 context.Semantics[id] = new UiSemantics(UiRole.Container);
                 return;
 
+            case RichTextNode richText:
+                context.Semantics[id] = new UiSemantics(UiRole.Text);
+                context.NodePayloads[id] = richText.Payload;
+                return;
+
             default:
                 throw Unsupported(node);
         }
@@ -341,6 +350,7 @@ public static class UiLowerer
             SpacerNode spacer => spacer.Axis == StackAxis.Horizontal ? "HSpace" : "VSpace",
             PlacementNode => "Placement",
             LayerNode => "Layer",
+            RichTextNode => "RichText",
             _ => throw Unsupported(node),
         };
     }

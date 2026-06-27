@@ -171,3 +171,12 @@ M6d adds a proof bridge from `MachinaTextLayoutResult` to existing `DrawTextComm
 - Primitive `UI.Text` and existing StandardUI controls remain on their current paths.
 
 The full measurement audit and bridge details live in `docs/machina-standard-text-render-bridge-m6d.md`.
+
+## M6e update
+
+M6e is the first visible StandardUI adoption of this M6b model/parser surface.
+
+- `StandardUI.TextBlock` accepts `MachinaTextSpec`.
+- The presenter sample now includes one controlled rich text probe.
+- Primitive `UI.Text` remains unchanged.
+- Existing Standard controls are not broadly migrated.

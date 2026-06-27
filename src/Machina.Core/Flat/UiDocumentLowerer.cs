@@ -15,6 +15,7 @@ public static class UiDocumentLowerer
         var textStyles = new Dictionary<NodeId, Machina.Core.Styling.TextStyle>();
         var semantics = new Dictionary<NodeId, Machina.Core.Semantics.UiSemantics>();
         var actions = new Dictionary<NodeId, Machina.Core.Actions.UiAction>();
+        var nodePayloads = new Dictionary<NodeId, object>();
 
         foreach (var row in document.Rows)
         {
@@ -49,11 +50,11 @@ public static class UiDocumentLowerer
 
             if (row.Component is not null)
             {
-                LowerHostedComponent(row, rows, styles, textStyles, semantics, actions);
+                LowerHostedComponent(row, rows, styles, textStyles, semantics, actions, nodePayloads);
             }
         }
 
-        return new UiLoweringResult(rows, styles, textStyles, semantics, actions);
+        return new UiLoweringResult(rows, styles, textStyles, semantics, actions, nodePayloads);
     }
 
     private static void LowerHostedComponent(
@@ -62,7 +63,8 @@ public static class UiDocumentLowerer
         Dictionary<NodeId, Machina.Core.Styling.UiStyle> styles,
         Dictionary<NodeId, Machina.Core.Styling.TextStyle> textStyles,
         Dictionary<NodeId, Machina.Core.Semantics.UiSemantics> semantics,
-        Dictionary<NodeId, Machina.Core.Actions.UiAction> actions)
+        Dictionary<NodeId, Machina.Core.Actions.UiAction> actions,
+        Dictionary<NodeId, object> nodePayloads)
     {
         var componentResult = UiLowerer.Lower(host.Component!);
         var scopedIds = BuildScopedIdMap(host.Id, componentResult.Rows);
@@ -80,6 +82,7 @@ public static class UiDocumentLowerer
         CopyMetadata(componentResult.TextStyles, scopedIds, textStyles);
         CopyMetadata(componentResult.Semantics, scopedIds, semantics);
         CopyMetadata(componentResult.Actions, scopedIds, actions);
+        CopyMetadata(componentResult.NodePayloads, scopedIds, nodePayloads);
     }
 
     private static Dictionary<NodeId, NodeId> BuildScopedIdMap(NodeId hostId, IReadOnlyList<LayoutRow> componentRows)

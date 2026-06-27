@@ -186,3 +186,13 @@ M6d now lands that bridge proof in `Machina.Dominatus.Rendering.Bridge.MachinaTe
 - `UI.Text` and existing StandardUI controls are still not migrated.
 
 See `docs/machina-standard-text-render-bridge-m6d.md` for the measurement audit and bridge contract.
+
+## M6e update
+
+M6e now proves that the M6c layout engine can drive a real Standard component.
+
+- `StandardUI.TextBlock` receives an assigned box from normal layout.
+- `MachinaTextLayoutEngine` lays out text inside that box.
+- The presenter sample includes one controlled visible probe.
+
+General layout semantics remain unchanged.

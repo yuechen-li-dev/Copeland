@@ -1,8 +1,10 @@
 using Machina.Core.Actions;
 using Machina.Core.Nodes;
+using Machina.Core.Styling;
 using Machina.Layout.Frames;
 using Machina.Layout.Rows;
 using Machina.Standard.Components;
+using Machina.Standard.Text;
 using Machina.Standard.Theme;
 
 namespace Machina.Standard.Authoring;
@@ -53,6 +55,18 @@ public static class StandardUI
     public static UiNode Label(string text, NodeId? id = null, StandardTheme? theme = null)
     {
         return Components.Label.Create(text, id, theme);
+    }
+
+    public static UiNode TextBlock(
+        MachinaTextSpec text,
+        NodeId? id = null,
+        StandardTheme? theme = null,
+        ColorToken? foreground = null,
+        ColorToken? linkForeground = null,
+        double? width = null,
+        double? height = null)
+    {
+        return Components.TextBlock.Create(text, id, theme, foreground, linkForeground, width, height);
     }
 
     public static UiNode Field(UiNode control, NodeId? id = null, string? label = null, string? description = null, string? error = null, StandardTheme? theme = null)

@@ -10,4 +10,5 @@ public sealed record UiLoweringResult(
     IReadOnlyDictionary<NodeId, UiStyle> Styles,
     IReadOnlyDictionary<NodeId, TextStyle> TextStyles,
     IReadOnlyDictionary<NodeId, UiSemantics> Semantics,
-    IReadOnlyDictionary<NodeId, UiAction> Actions);
+    IReadOnlyDictionary<NodeId, UiAction> Actions,
+    IReadOnlyDictionary<NodeId, object> NodePayloads);

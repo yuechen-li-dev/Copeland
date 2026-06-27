@@ -20,6 +20,8 @@ using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
 using Machina.Layout.Resolving;
 using Machina.Standard.Authoring;
+using Machina.Standard.Text;
+using StandardText = Machina.Standard.Text.Text;
 
 namespace Machina.Dominatus.Tests;
 
@@ -262,6 +264,129 @@ public sealed class MachinaRenderBridgeTests
         Assert.Contains("greater than zero", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void TextBlock_RenderBridge_EmitsDrawTextCommands()
+    {
+        var commands = BuildCommands(
+            StandardUI.TextBlock(
+                text: StandardText.Markup("Hello **Standard.Text**"),
+                id: "rich-text"),
+            new MachinaRenderOptions(320, 180));
+
+        var drawCommands = commands.OfType<DrawTextCommand>().ToList();
+
+        Assert.NotEmpty(drawCommands);
+        Assert.Contains(drawCommands, command => command.Id.StartsWith("rich-text.content.", StringComparison.Ordinal));
+        Assert.Contains(drawCommands, command => command.Text == "Hello");
+        Assert.Contains(drawCommands, command => command.Text == "Standard.Text");
+    }
+
+    [Fact]
+    public void TextBlock_RenderBridge_UsesAssignedBoundsForLayout()
+    {
+        var ui = UI.Rect(
+            id: "panel",
+            width: 260,
+            height: 140,
+            child: StandardUI.TextBlock(
+                id: "rich-text",
+                text: StandardText.Plain("Hello from Standard.Text")));
+
+        var lowering = UiLowerer.Lower(ui);
+        var resolved = ResolveLayout(lowering, 260, 140);
+        var commands = MachinaRenderBridge.BuildCommands(lowering, resolved, new MachinaRenderOptions(260, 140));
+        var richTextRect = resolved.Nodes[new NodeId("rich-text.content")].Rect;
+
+        Assert.All(
+            commands.OfType<DrawTextCommand>().Where(command => command.Id.StartsWith("rich-text.content.", StringComparison.Ordinal)),
+            command => AssertRectInside(command.Rect, richTextRect, command.Id));
+    }
+
+    [Fact]
+    public void TextBlock_RenderBridge_WrapsParagraphText()
+    {
+        var commands = BuildCommands(
+            UI.Rect(
+                id: "panel",
+                width: 180,
+                height: 140,
+                child: StandardUI.TextBlock(
+                    id: "rich-text",
+                    text: StandardText.Plain("This paragraph should wrap inside the assigned text box."))),
+            new MachinaRenderOptions(180, 140));
+
+        var lineIds = commands
+            .OfType<DrawTextCommand>()
+            .Where(command => command.Id.StartsWith("rich-text.content.", StringComparison.Ordinal))
+            .Select(command => command.Id.Split(".r")[0])
+            .Distinct()
+            .ToList();
+
+        Assert.True(lineIds.Count > 1, "Expected wrapped paragraph to produce more than one laid out line.");
+    }
+
+    [Fact]
+    public void TextBlock_RenderBridge_EmitsBulletText()
+    {
+        var commands = BuildCommands(
+            UI.Rect(
+                id: "panel",
+                width: 220,
+                height: 160,
+                child: StandardUI.TextBlock(
+                    id: "rich-text",
+                    text: StandardText.Markup("- One\n- Two"))),
+            new MachinaRenderOptions(220, 160));
+
+        var drawCommands = commands.OfType<DrawTextCommand>().ToList();
+
+        Assert.Equal(2, drawCommands.Count(command => command.Text == "\u2022"));
+        Assert.Contains(drawCommands, command => command.Text == "One");
+        Assert.Contains(drawCommands, command => command.Text == "Two");
+    }
+
+    [Fact]
+    public void TextBlock_RenderBridge_DoesNotAffectPrimitiveUIText()
+    {
+        var commands = BuildCommands(
+            UI.Column(
+                id: "root",
+                children:
+                [
+                    UI.Text("Primitive", id: "primitive", color: ColorToken.White),
+                    UI.Rect(
+                        id: "panel",
+                        width: 220,
+                        height: 120,
+                        child: StandardUI.TextBlock(
+                            id: "rich-text",
+                            text: StandardText.Plain("Rich text"))),
+                ]),
+            new MachinaRenderOptions(260, 220));
+
+        Assert.Contains(commands, command => command is DrawTextCommand draw && draw.Id == "primitive" && draw.Text == "Primitive");
+    }
+
+    [Fact]
+    public void TextBlock_RenderBridge_IsDeterministic()
+    {
+        var ui = UI.Rect(
+            id: "panel",
+            width: 220,
+            height: 160,
+            child: StandardUI.TextBlock(
+                id: "rich-text",
+                text: StandardText.Markup("- One\n- Two\n\nTail")));
+
+        var lowering = UiLowerer.Lower(ui);
+        var resolved = ResolveLayout(lowering, 220, 160);
+
+        var first = MachinaRenderBridge.BuildCommands(lowering, resolved, new MachinaRenderOptions(220, 160));
+        var second = MachinaRenderBridge.BuildCommands(lowering, resolved, new MachinaRenderOptions(220, 160));
+
+        Assert.Equal(SnapshotCommands(first), SnapshotCommands(second));
+    }
+
     private static IReadOnlyList<IActuationCommand> BuildCommands(UiNode ui, MachinaRenderOptions options)
     {
         var lowering = UiLowerer.Lower(ui);
@@ -301,6 +426,14 @@ public sealed class MachinaRenderBridgeTests
         }
 
         return string.Join("\n", recorder.LastSnapshot!.Commands);
+    }
+
+    private static void AssertRectInside(Rect inner, Rect outer, string id)
+    {
+        Assert.True(inner.X >= outer.X, $"{id} left outside");
+        Assert.True(inner.Y >= outer.Y, $"{id} top outside");
+        Assert.True(inner.X + inner.Width <= outer.X + outer.Width, $"{id} right outside");
+        Assert.True(inner.Y + inner.Height <= outer.Y + outer.Height, $"{id} bottom outside");
     }
 
     private static void RunTicksUntil(AiWorld world, Func<bool> done, int maxTicks)

@@ -73,3 +73,14 @@ public static class SettingsCard
 ## Compatibility
 
 `DemoDocumentFactory.Build(...)` remains as a thin compatibility shim that delegates to `SettingsScreen.Build(...)`. Canonical tests and docs should prefer `SettingsScreen`.
+
+## M6e note
+
+The sample now carries one controlled `StandardUI.TextBlock` probe at the bottom of `SettingsCard`.
+
+This keeps the M5g screen/component/action/theme split intact while providing one visible Standard rich text proof:
+
+- screen still owns the flat top-level document
+- component still owns localized composition
+- primitive `UI.Text` still owns the existing title/count text
+- rich text is isolated to one Standard component surface
