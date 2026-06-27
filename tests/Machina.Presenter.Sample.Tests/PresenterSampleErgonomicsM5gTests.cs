@@ -11,12 +11,12 @@ using Xunit;
 
 namespace Machina.Presenter.Sample.Tests;
 
-public sealed class PresenterSampleContractM5fTests
+public sealed class PresenterSampleErgonomicsM5gTests
 {
     [Fact]
-    public void PresenterDocument_BuildsDefaultState()
+    public void SettingsScreen_BuildsCanonicalDocument()
     {
-        var document = DemoDocumentFactory.Build(DemoState.Default, StandardTheme.Default);
+        var document = SettingsScreen.Build(DemoState.Default, StandardTheme.Default);
 
         Assert.Contains(document.Rows, row => row.Id == "root");
 
@@ -28,9 +28,9 @@ public sealed class PresenterSampleContractM5fTests
     }
 
     [Fact]
-    public void PresenterDocument_TopLevelLayoutIsFlatHostedComponent()
+    public void SettingsScreen_TopLevelLayoutIsFlatHostedComponent()
     {
-        var document = DemoDocumentFactory.Build(DemoState.Default, StandardTheme.Default);
+        var document = SettingsScreen.Build(DemoState.Default, StandardTheme.Default);
 
         Assert.Equal(2, document.Rows.Count);
 
@@ -44,6 +44,23 @@ public sealed class PresenterSampleContractM5fTests
         Assert.Equal(500, frame.Width);
         Assert.Equal(292, frame.Height);
         Assert.NotNull(settingsCard.Component);
+    }
+
+
+    [Fact]
+    public void SettingsCard_UsesStandardUIComponentsLocally()
+    {
+        var document = SettingsScreen.Build(DemoState.Default, StandardTheme.Default);
+
+        Assert.Equal(2, document.Rows.Count);
+        Assert.DoesNotContain(document.Rows, row => row.Id.Value.Contains("increment", StringComparison.Ordinal));
+        Assert.DoesNotContain(document.Rows, row => row.Id.Value.Contains("email-updates", StringComparison.Ordinal));
+        Assert.DoesNotContain(document.Rows, row => row.Id.Value.Contains("notifications", StringComparison.Ordinal));
+
+        var frame = Render(DemoState.Default);
+        Assert.Contains("settings-card/increment", frame.Resolved.Nodes.Keys);
+        Assert.Contains("settings-card/email-updates", frame.Resolved.Nodes.Keys);
+        Assert.Contains("settings-card/notifications", frame.Resolved.Nodes.Keys);
     }
 
     [Fact]
@@ -73,19 +90,19 @@ public sealed class PresenterSampleContractM5fTests
     }
 
     [Fact]
-    public void PresenterDocument_HitTargets_ReturnExpectedActions()
+    public void SettingsActions_AreSingleSourceForDispatchAndComponents()
     {
         var frame = Render(new DemoState(0, true, false));
 
-        frame.AssertHitActionInside("settings-card/increment", DemoDocumentFactory.Actions.Increment.Value, HitPointKind.LeftCenter);
-        frame.AssertHitActionInside("settings-card/increment", DemoDocumentFactory.Actions.Increment.Value, HitPointKind.Center);
-        frame.AssertHitActionInside("settings-card/increment", DemoDocumentFactory.Actions.Increment.Value, HitPointKind.RightCenter);
+        frame.AssertHitActionInside("settings-card/increment", SettingsActions.Increment.Value, HitPointKind.LeftCenter);
+        frame.AssertHitActionInside("settings-card/increment", SettingsActions.Increment.Value, HitPointKind.Center);
+        frame.AssertHitActionInside("settings-card/increment", SettingsActions.Increment.Value, HitPointKind.RightCenter);
 
-        frame.AssertHitActionInside("settings-card/email-updates.box", DemoDocumentFactory.Actions.ToggleEmailUpdates.Value, HitPointKind.Center);
-        frame.AssertHitActionInside("settings-card/email-updates.label", DemoDocumentFactory.Actions.ToggleEmailUpdates.Value, HitPointKind.Center);
+        frame.AssertHitActionInside("settings-card/email-updates.box", SettingsActions.ToggleEmailUpdates.Value, HitPointKind.Center);
+        frame.AssertHitActionInside("settings-card/email-updates.label", SettingsActions.ToggleEmailUpdates.Value, HitPointKind.Center);
 
-        frame.AssertHitActionInside("settings-card/notifications.track", DemoDocumentFactory.Actions.ToggleNotifications.Value, HitPointKind.Center);
-        frame.AssertHitActionInside("settings-card/notifications.label", DemoDocumentFactory.Actions.ToggleNotifications.Value, HitPointKind.Center);
+        frame.AssertHitActionInside("settings-card/notifications.track", SettingsActions.ToggleNotifications.Value, HitPointKind.Center);
+        frame.AssertHitActionInside("settings-card/notifications.label", SettingsActions.ToggleNotifications.Value, HitPointKind.Center);
     }
 
     [Fact]
@@ -104,19 +121,19 @@ public sealed class PresenterSampleContractM5fTests
     }
 
     [Fact]
-    public void PresenterDispatch_IncrementAndToggles_Work()
+    public void DemoStateDispatch_IncrementAndToggles_Work()
     {
-        var incremented = DemoStateDispatch.Dispatch(new DemoState(0, true, false), DemoDocumentFactory.Actions.Increment);
+        var incremented = DemoStateDispatch.Dispatch(new DemoState(0, true, false), SettingsActions.Increment);
         Assert.Equal(1, incremented.Count);
         Assert.True(incremented.EmailUpdates);
         Assert.False(incremented.Notifications);
 
-        var emailToggled = DemoStateDispatch.Dispatch(new DemoState(3, true, false), DemoDocumentFactory.Actions.ToggleEmailUpdates);
+        var emailToggled = DemoStateDispatch.Dispatch(new DemoState(3, true, false), SettingsActions.ToggleEmailUpdates);
         Assert.Equal(3, emailToggled.Count);
         Assert.False(emailToggled.EmailUpdates);
         Assert.False(emailToggled.Notifications);
 
-        var notificationsToggled = DemoStateDispatch.Dispatch(new DemoState(4, true, false), DemoDocumentFactory.Actions.ToggleNotifications);
+        var notificationsToggled = DemoStateDispatch.Dispatch(new DemoState(4, true, false), SettingsActions.ToggleNotifications);
         Assert.Equal(4, notificationsToggled.Count);
         Assert.True(notificationsToggled.EmailUpdates);
         Assert.True(notificationsToggled.Notifications);
@@ -127,7 +144,7 @@ public sealed class PresenterSampleContractM5fTests
     }
 
     [Fact]
-    public void PresenterDocument_CustomTheme_PropagatesButtonAndCard()
+    public void SettingsScreen_CustomTheme_PropagatesToCardAndChildren()
     {
         var customTheme = StandardTheme.Default with
         {
@@ -161,14 +178,14 @@ public sealed class PresenterSampleContractM5fTests
         Assert.Equal(36, buttonRect.Height);
         Assert.Equal(customTheme.Button.Default.Background, frame.StyleOf("settings-card/increment").Background);
 
-        frame.AssertHitActionInside("settings-card/increment", DemoDocumentFactory.Actions.Increment.Value, HitPointKind.LeftCenter);
+        frame.AssertHitActionInside("settings-card/increment", SettingsActions.Increment.Value, HitPointKind.LeftCenter);
     }
 
     [Fact]
     public void PresenterDocument_IncrementButton_HasSingleTextDraw()
     {
         var pipeline = new MachinaRasterPipeline();
-        var rendered = pipeline.Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var rendered = pipeline.Render(SettingsScreen.Build(new DemoState(0, false, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
 
         var incrementTextCommands = rendered.RenderCommands
             .OfType<DrawTextCommand>()
@@ -182,7 +199,7 @@ public sealed class PresenterSampleContractM5fTests
     [Fact]
     public void PresenterSample_TextNodes_HaveVisibleTextStyles()
     {
-        var frame = new MachinaRasterPipeline().Render(DemoDocumentFactory.Build(new DemoState(2, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var frame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(2, false, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
         var textCommands = frame.RenderCommands.OfType<DrawTextCommand>().ToList();
         AssertVisibleText(textCommands, "Machina Presenter", "settings-card/title", TextSize.Md);
         AssertVisibleText(textCommands, "Count: 2", "settings-card/count", TextSize.Sm);
@@ -198,7 +215,7 @@ public sealed class PresenterSampleContractM5fTests
     [Fact]
     public void PresenterSample_IncrementButton_TextFitsShell()
     {
-        var frame = new MachinaRasterPipeline().Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var frame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(0, false, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
         var incrementTextCommands = frame.RenderCommands.OfType<DrawTextCommand>().Where(command => command.Text == "Increment").ToList();
         var incrementText = Assert.Single(incrementTextCommands);
         Assert.Equal("settings-card/increment.label", incrementText.Id);
@@ -214,8 +231,8 @@ public sealed class PresenterSampleContractM5fTests
     [Fact]
     public void PresenterSample_CheckedCheckbox_MarkIsVisible()
     {
-        var checkedFrame = new MachinaRasterPipeline().Render(DemoDocumentFactory.Build(new DemoState(0, true, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
-        var uncheckedFrame = new MachinaRasterPipeline().Render(DemoDocumentFactory.Build(new DemoState(0, false, false)), DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var checkedFrame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(0, true, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
+        var uncheckedFrame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(0, false, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
 
         var markRect = checkedFrame.Resolved.Nodes["settings-card/email-updates.mark"].Rect;
         var boxRect = checkedFrame.Resolved.Nodes["settings-card/email-updates.box"].Rect;
@@ -255,8 +272,8 @@ public sealed class PresenterSampleContractM5fTests
 
     private static DocumentGeometryResult Render(DemoState state, StandardTheme? theme = null)
     {
-        var document = DemoDocumentFactory.Build(state, theme ?? StandardTheme.Default);
-        return GeometryHarness.ResolveDocument(document, DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+        var document = SettingsScreen.Build(state, theme ?? StandardTheme.Default);
+        return GeometryHarness.ResolveDocument(document, SettingsScreen.RootWidth, SettingsScreen.RootHeight);
     }
 
     private static void AssertRectInside(DocumentGeometryResult frame, string innerId, string outerId)

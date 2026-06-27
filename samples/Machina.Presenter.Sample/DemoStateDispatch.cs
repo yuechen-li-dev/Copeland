@@ -6,17 +6,17 @@ public static class DemoStateDispatch
 {
     public static DemoState Dispatch(DemoState state, UiActionId action)
     {
-        if (action == DemoDocumentFactory.Actions.Increment)
+        if (action == SettingsActions.Increment)
         {
             return state with { Count = state.Count + 1 };
         }
 
-        if (action == DemoDocumentFactory.Actions.ToggleEmailUpdates)
+        if (action == SettingsActions.ToggleEmailUpdates)
         {
             return state with { EmailUpdates = !state.EmailUpdates };
         }
 
-        if (action == DemoDocumentFactory.Actions.ToggleNotifications)
+        if (action == SettingsActions.ToggleNotifications)
         {
             return state with { Notifications = !state.Notifications };
         }

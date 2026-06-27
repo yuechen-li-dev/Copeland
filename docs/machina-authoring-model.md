@@ -148,3 +148,14 @@ Rich text authoring is now modeled under `Machina.Standard.Text` rather than as 
 The existing `Machina.Core.Authoring.UI.Text(string)` remains a simple primitive/transitional path. M6b adds typed Standard helpers such as `Text.Plain(...)`, `Text.Markup(...)`, `Text.Paragraph(...)`, `Text.BulletList(...)`, `Text.Strong(...)`, `Text.Emphasis(...)`, `Text.Code(...)`, and `Text.Link(...)`, but does not add a rendered rich text container yet.
 
 Restricted markup supports paragraphs, bullet lists, strong/emphasis/code/link inline runs, and explicit diagnostics. Markdown headings remain forbidden; component authors should use Standard typography variants for titles instead of source-level heading syntax.
+
+## M5g screen/component/action convention
+
+Presenter-style samples should keep top-level screen placement separate from component composition:
+
+- screens build `UiDocument` row tables and own explicit placement frames;
+- components build localized `UiNode` subtrees with `StandardUI`/`UI`;
+- actions live in a screen/domain contract and dispatch references that contract;
+- theme is an explicit argument handed from screen to component to child `StandardUI` controls.
+
+For card content, prefer `StandardUI.Card(theme: theme, gap: 10, children: [...])` over `StandardUI.Card(child: UI.Column(...))`. This preserves the hosted component boundary while keeping local composition boring and reviewable.

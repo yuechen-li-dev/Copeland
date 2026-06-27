@@ -106,8 +106,8 @@ internal sealed class Program
 
         private void RenderCurrentState()
         {
-            var ui = DemoDocumentFactory.Build(_state, AppTheme);
-            _currentFrame = _pipeline.Render(ui, DemoDocumentFactory.RootWidth, DemoDocumentFactory.RootHeight);
+            var ui = SettingsScreen.Build(_state, AppTheme);
+            _currentFrame = _pipeline.Render(ui, SettingsScreen.RootWidth, SettingsScreen.RootHeight);
             _hitTestIndex = _currentFrame.HitTest;
 
             _image.Source = ToBitmap(_currentFrame.RasterFrame);

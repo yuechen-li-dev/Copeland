@@ -60,7 +60,7 @@ Buttons additionally expose variant families (`Destructive`, `Outline`, `Seconda
 
 Presenter sample remains the canonical boring C# pattern:
 
-- explicit root theme handoff (`DemoDocumentFactory.Build(state, theme)`),
+- explicit root theme handoff (`SettingsScreen.Build(state, theme)`),
 - plain C# dispatch,
 - localized hosted component function (`SettingsCard`),
 - explicit `with` customization in root `AppTheme`,
