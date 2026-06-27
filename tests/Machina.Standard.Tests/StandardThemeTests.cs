@@ -49,6 +49,16 @@ public sealed class StandardThemeTests
     }
 
     [Fact]
+    public void DefaultTheme_CheckboxMarkContrast_IsDeterministic()
+    {
+        var checkbox = StandardTheme.Default.Checkbox.Default;
+
+        Assert.NotEqual(checkbox.BoxBackground, checkbox.MarkColor);
+        Assert.NotEqual(ColorToken.Hex(0x00000000), checkbox.MarkColor);
+        Assert.NotEqual(checkbox.DisabledBackground, checkbox.DisabledMarkColor);
+    }
+
+    [Fact]
     public void LeafTextHelpers_PropagateTextStyle()
     {
         var textStyle = new TextStyle(

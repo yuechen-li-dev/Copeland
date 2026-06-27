@@ -108,6 +108,64 @@ public sealed class StandardComponentGeometryM4dTests
         Assert.Equal(box.Y + (box.Height / 2), mark.Y + (mark.Height / 2));
     }
 
+    [Fact]
+    public void Checkbox_CheckedState_EmitsVisibleMark()
+    {
+        var lowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: true, changed: UiAction.Named("toggle")), 240, 40);
+        var resolved = Resolve(lowered, 320, 120);
+
+        var boxRect = GetRect(resolved, "host/email.box");
+        var markRect = GetRect(resolved, "host/email.mark");
+        var boxStyle = lowered.Styles[new NodeId("host/email.box")];
+        var markStyle = lowered.Styles[new NodeId("host/email.mark")];
+
+        Assert.True(markRect.Width > 0);
+        Assert.True(markRect.Height > 0);
+        Assert.True(markRect.X >= boxRect.X);
+        Assert.True(markRect.Y >= boxRect.Y);
+        Assert.True(markRect.X + markRect.Width <= boxRect.X + boxRect.Width);
+        Assert.True(markRect.Y + markRect.Height <= boxRect.Y + boxRect.Height);
+        Assert.NotNull(markStyle.Background);
+        Assert.NotEqual(ColorToken.Hex(0x00000000), markStyle.Background!.Value);
+        Assert.NotEqual(boxStyle.Background, markStyle.Background);
+    }
+
+    [Fact]
+    public void Checkbox_UncheckedState_DoesNotEmitVisibleMarkOrUsesTransparentMark()
+    {
+        var lowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: false, changed: UiAction.Named("toggle")), 240, 40);
+        var resolved = Resolve(lowered, 320, 120);
+
+        var boxRect = GetRect(resolved, "host/email.box");
+        var markRect = GetRect(resolved, "host/email.mark");
+        var markStyle = lowered.Styles[new NodeId("host/email.mark")];
+
+        Assert.True(markRect.Width > 0);
+        Assert.True(markRect.Height > 0);
+        Assert.True(markRect.X >= boxRect.X);
+        Assert.True(markRect.Y >= boxRect.Y);
+        Assert.True(markRect.X + markRect.Width <= boxRect.X + boxRect.Width);
+        Assert.True(markRect.Y + markRect.Height <= boxRect.Y + boxRect.Height);
+        Assert.Equal(ColorToken.Hex(0x00000000), markStyle.Background);
+    }
+
+    [Fact]
+    public void Checkbox_CheckedAndUnchecked_RowShapeStable()
+    {
+        var uncheckedLowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: false, changed: UiAction.Named("toggle")), 240, 40);
+        var checkedLowered = LowerHostedComponent(StandardUI.Checkbox(id: "email", label: "Email updates", isChecked: true, changed: UiAction.Named("toggle")), 240, 40);
+        var uncheckedResolved = Resolve(uncheckedLowered, 320, 120);
+        var checkedResolved = Resolve(checkedLowered, 320, 120);
+
+        var uncheckedIds = uncheckedLowered.Rows.Select(row => row.Id.Value).OrderBy(value => value).ToArray();
+        var checkedIds = checkedLowered.Rows.Select(row => row.Id.Value).OrderBy(value => value).ToArray();
+
+        Assert.Equal(uncheckedIds, checkedIds);
+        Assert.Equal(GetRect(uncheckedResolved, "host/email.box"), GetRect(checkedResolved, "host/email.box"));
+        Assert.Equal(GetRect(uncheckedResolved, "host/email.mark"), GetRect(checkedResolved, "host/email.mark"));
+        Assert.Equal(GetRect(uncheckedResolved, "host/email.label"), GetRect(checkedResolved, "host/email.label"));
+    }
+
 
 
     [Fact]

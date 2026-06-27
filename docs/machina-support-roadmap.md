@@ -105,6 +105,7 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 | Checkbox | Machina.Standard | Implemented | Standard form tests | Dispatch-friendly selection control available.
 | Switch | Machina.Standard | Implemented | Standard form tests | Dispatch-friendly selection control available.
 | Standard TextBlock | Machina.Standard | Implemented | Standard + Dominatus + presenter tests + local Windows visual audit | First visible Standard rich text surface; broad control migration deferred.
+| Checkbox checked-state visual fix | Machina.Standard | Implemented | Standard + presenter tests + local Windows visual audit | M6e.1 hardens checked mark contrast for the current raster renderer before M7a gallery work. |
 | Tabs | Machina.Standard | Deferred | None | Post-core interaction milestone.
 | Dialog | Machina.Standard | Deferred | None | Depends on modal/runtime stack.
 | Popover | Machina.Standard | Deferred | None | Depends on layering/focus model.

@@ -281,10 +281,44 @@ public sealed class PresenterSampleErgonomicsM5gTests
         Assert.NotEqual(ColorToken.Hex(0x00000000), checkedMarkFill.Color);
         Assert.Equal(ColorToken.Hex(0x00000000), uncheckedMarkFill.Color);
         Assert.Equal(StandardTheme.Default.Checkbox.Default.MarkColor, checkedMarkFill.Color);
+        Assert.NotEqual(StandardTheme.Default.Checkbox.Default.BoxBackground, checkedMarkFill.Color);
 
         var uncheckedGeometry = Render(new DemoState(0, false, false));
         var checkedGeometry = Render(new DemoState(0, true, false));
         GeometryHarness.AssertSameRowIds(uncheckedGeometry, checkedGeometry);
+    }
+
+    [Fact]
+    public void PresenterSample_EmailUpdatesChecked_HasVisibleCheckboxMark()
+    {
+        var frame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(0, true, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
+
+        var boxRect = frame.Resolved.Nodes["settings-card/email-updates.box"].Rect;
+        var markRect = frame.Resolved.Nodes["settings-card/email-updates.mark"].Rect;
+        var boxFill = Assert.Single(frame.RenderCommands.OfType<FillRectCommand>(), command => command.Id == "settings-card/email-updates.box");
+        var markFill = Assert.Single(frame.RenderCommands.OfType<FillRectCommand>(), command => command.Id == "settings-card/email-updates.mark");
+
+        Assert.True(markRect.Width > 0);
+        Assert.True(markRect.Height > 0);
+        Assert.True(markRect.X >= boxRect.X);
+        Assert.True(markRect.Y >= boxRect.Y);
+        Assert.True(markRect.X + markRect.Width <= boxRect.X + boxRect.Width);
+        Assert.True(markRect.Y + markRect.Height <= boxRect.Y + boxRect.Height);
+        Assert.NotEqual(ColorToken.Hex(0x00000000), markFill.Color);
+        Assert.NotEqual(boxFill.Color, markFill.Color);
+    }
+
+    [Fact]
+    public void PresenterSample_EmailUpdatesUnchecked_HidesCheckboxMark()
+    {
+        var frame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(0, false, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
+
+        var markRect = frame.Resolved.Nodes["settings-card/email-updates.mark"].Rect;
+        var markFill = Assert.Single(frame.RenderCommands.OfType<FillRectCommand>(), command => command.Id == "settings-card/email-updates.mark");
+
+        Assert.True(markRect.Width > 0);
+        Assert.True(markRect.Height > 0);
+        Assert.Equal(ColorToken.Hex(0x00000000), markFill.Color);
     }
 
     private static void AssertVisibleText(IReadOnlyList<DrawTextCommand> commands, string text, string expectedId, TextSize expectedSize)

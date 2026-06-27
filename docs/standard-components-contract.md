@@ -84,11 +84,11 @@ There is no real text editing, caret, selection, keyboard handling, focus engine
 
 ### Checkbox
 
-`StandardUI.Checkbox` is a boolean declaration shell. It renders a small box, an optional deterministic checked marker (`✓`), and an optional label row.
+`StandardUI.Checkbox` is a boolean declaration shell. It renders a small box, a deterministic inner mark region, and an optional label row.
 
 M0b checkbox behavior is intentionally limited:
 
-- `isChecked` changes the visible marker and active styling
+- `isChecked` changes the visible marker fill and active styling
 - `disabled` changes styling and disabled semantics
 - enabled checkboxes emit semantic role `Checkbox` and focusable metadata
 - enabled checkboxes preserve supplied `changed` action metadata
@@ -294,6 +294,16 @@ M5e standardizes component/document headless assertions through tests/Machina.Te
 
 ## M5g presenter visual regression audit
 M5g requires converting presenter screenshot regressions into headless geometry/render-command tests. Verify UI.Text visibility by DrawTextCommand presence + visible text color + in-card rect; verify default button text-style size fits default shell; verify checkbox checked mark via explicit mark geometry and visible fill when checked (transparent when unchecked). Dynamic text fitting remains deferred.
+
+## Checkbox checked-state visual fix (M6e.1)
+
+M6e.1 hardens the default checkbox checked-state contract for the current raster renderer:
+
+- the checkbox always keeps a stable inner `mark` row for geometry stability
+- unchecked state uses a transparent mark fill
+- checked state uses a centered filled inner square with visible contrast against the box background
+
+This is a Standard theme/component contract fix, not a presenter-only workaround.
 
 ## M6a Machina.Text boundary note
 
