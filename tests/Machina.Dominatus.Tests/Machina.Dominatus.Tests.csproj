@@ -16,7 +16,7 @@
     <ProjectReference Include="../../src/Machina.Dominatus/Machina.Dominatus.csproj" />
     <ProjectReference Include="../../src/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../src/Machina.Runtime/Machina.Runtime.csproj" />
-    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
-    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <PackageReference Include="Dominatus.Core" />
+    <PackageReference Include="Dominatus.OptFlow" />
   </ItemGroup>
 </Project>

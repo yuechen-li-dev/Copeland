@@ -224,8 +224,28 @@ public sealed class PresenterSampleErgonomicsM5gTests
         var measured = ReadableBitmapTextRasterizer.MeasureText("Increment", incrementText.Style);
 
         Assert.Equal(StandardTheme.Default.Button.Default.TextStyle.Size, incrementText.Style.Size);
+        Assert.Equal(labelRegion, incrementText.Rect);
         Assert.True(measured.Width <= labelRegion.Width, $"Text width {measured.Width} exceeds label region width {labelRegion.Width}.");
         Assert.True(measured.Height <= labelRegion.Height, $"Text height {measured.Height} exceeds label region height {labelRegion.Height}.");
+    }
+
+    [Fact]
+    public void PresenterSample_RawTextCommands_FitTheirResolvedTextRects()
+    {
+        var frame = new MachinaRasterPipeline().Render(SettingsScreen.Build(new DemoState(2, true, false)), SettingsScreen.RootWidth, SettingsScreen.RootHeight);
+        var textCommands = frame.RenderCommands
+            .OfType<DrawTextCommand>()
+            .Where(command => command.Id is "settings-card/title" or "settings-card/count" or "settings-card/footnote")
+            .ToList();
+
+        Assert.NotEmpty(textCommands);
+
+        foreach (var command in textCommands)
+        {
+            var measured = ReadableBitmapTextRasterizer.MeasureText(command.Text, command.Style);
+            Assert.True(measured.Width <= command.Rect.Width, $"{command.Id} text width {measured.Width} exceeds rect width {command.Rect.Width}.");
+            Assert.True(measured.Height <= command.Rect.Height, $"{command.Id} text height {measured.Height} exceeds rect height {command.Rect.Height}.");
+        }
     }
 
     [Fact]

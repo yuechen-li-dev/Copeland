@@ -8,7 +8,7 @@
     <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
     <ProjectReference Include="../Machina.Layout/Machina.Layout.csproj" />
     <ProjectReference Include="../Machina.Standard/Machina.Standard.csproj" />
-    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
-    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <PackageReference Include="Dominatus.Core" />
+    <PackageReference Include="Dominatus.OptFlow" />
   </ItemGroup>
 </Project>

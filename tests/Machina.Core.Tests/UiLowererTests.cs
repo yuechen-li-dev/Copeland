@@ -49,8 +49,8 @@ public sealed class UiLowererTests
 
         var textRow = result.Rows.Single(row => row.DebugLabel == "Text: Hello");
         var frame = Assert.IsType<FixedFrame>(textRow.Frame);
-        Assert.Equal(40, frame.Width);
-        Assert.Equal(20, frame.Height);
+        Assert.Equal(58, frame.Width);
+        Assert.Equal(14, frame.Height);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class UiLowererTests
 
         var longButtonFrame = Assert.IsType<FixedFrame>(
             result.Rows.Single(row => row.DebugLabel == "Button: Longer Button").Frame);
-        Assert.Equal(128, longButtonFrame.Width);
+        Assert.Equal(178, longButtonFrame.Width);
         Assert.Equal(32, longButtonFrame.Height);
     }
 

@@ -19,7 +19,7 @@
     <ProjectReference Include="../../src/Machina.Dominatus/Machina.Dominatus.csproj" />
     <ProjectReference Include="../../src/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
     <ProjectReference Include="../../src/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
-    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
-    <ProjectReference Include="../../vendor/Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
+    <PackageReference Include="Dominatus.Core" />
+    <PackageReference Include="Dominatus.OptFlow" />
   </ItemGroup>
 </Project>

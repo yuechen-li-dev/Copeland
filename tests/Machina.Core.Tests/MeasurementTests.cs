@@ -12,15 +12,15 @@ public sealed class MeasurementTests
         var measurer = new DeterministicTextMeasurer();
 
         Assert.Equal(
-            new IntrinsicSize(35, 16),
+            new IntrinsicSize(29, 7),
             measurer.MeasureText("Hello", new TextStyle(Size: TextSize.Sm)));
 
         Assert.Equal(
-            new IntrinsicSize(40, 20),
+            new IntrinsicSize(58, 14),
             measurer.MeasureText("Hello", new TextStyle(Size: TextSize.Md)));
 
         Assert.Equal(
-            new IntrinsicSize(70, 36),
+            new IntrinsicSize(87, 21),
             measurer.MeasureText("Hello", new TextStyle(Size: TextSize.H1)));
     }
 
@@ -31,6 +31,15 @@ public sealed class MeasurementTests
 
         var size = measurer.MeasureText(string.Empty, new TextStyle(Size: TextSize.Md));
 
-        Assert.Equal(new IntrinsicSize(0, 20), size);
+        Assert.Equal(new IntrinsicSize(0, 0), size);
+    }
+
+    [Fact]
+    public void DeterministicTextMeasurerMatchesBitmapAdvanceFormula()
+    {
+        var measurer = new DeterministicTextMeasurer();
+        var size = measurer.MeasureText("Increment", new TextStyle(Size: TextSize.Md));
+
+        Assert.Equal(new IntrinsicSize(106, 14), size);
     }
 }

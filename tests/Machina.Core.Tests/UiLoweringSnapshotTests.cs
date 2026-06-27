@@ -68,25 +68,24 @@ public sealed class UiLoweringSnapshotTests
 
         var snapshot = UiLoweringSnapshotWriter.Write(UiLowerer.Lower(root));
 
-        const string expected = """
-rows:
-  ui_0 parent=<none> order=0 z=0 frame=Root arrange=Stack(axis=Vertical,gap=4,padding=0,0,0,0,justify=Start,align=Start) slot=<none> view=<none> layer=<none> debug="Column"
-  ui_1 parent=ui_0 order=0 z=0 frame=Fixed(width=70,height=36) arrange=<none> slot=<none> view=<none> layer=<none> debug="Text: Hello"
-  ui_2 parent=ui_0 order=1 z=0 frame=Fixed(width=80,height=32) arrange=<none> slot=<none> view=<none> layer=<none> debug="Button: Save"
-
-styles:
-
-textStyles:
-  ui_1 color=#FFFFFFFF size=H1
-
-semantics:
-  ui_1 role=Text label="Hello" disabled=false focusable=false
-  ui_2 role=Button label="Save" disabled=false focusable=true
-
-actions:
-  ui_2 => save
-
-""";
+        var newline = Environment.NewLine;
+        var expected =
+            "rows:" + newline +
+            "  ui_0 parent=<none> order=0 z=0 frame=Root arrange=Stack(axis=Vertical,gap=4,padding=0,0,0,0,justify=Start,align=Start) slot=<none> view=<none> layer=<none> debug=\"Column\"" + newline +
+            "  ui_1 parent=ui_0 order=0 z=0 frame=Fixed(width=87,height=21) arrange=<none> slot=<none> view=<none> layer=<none> debug=\"Text: Hello\"" + newline +
+            "  ui_2 parent=ui_0 order=1 z=0 frame=Fixed(width=80,height=32) arrange=<none> slot=<none> view=<none> layer=<none> debug=\"Button: Save\"" + newline +
+            newline +
+            "styles:" + newline +
+            newline +
+            "textStyles:" + newline +
+            "  ui_1 color=#FFFFFFFF size=H1" + newline +
+            newline +
+            "semantics:" + newline +
+            "  ui_1 role=Text label=\"Hello\" disabled=false focusable=false" + newline +
+            "  ui_2 role=Button label=\"Save\" disabled=false focusable=true" + newline +
+            newline +
+            "actions:" + newline +
+            "  ui_2 => save" + newline;
 
         Assert.Equal(expected, snapshot);
     }

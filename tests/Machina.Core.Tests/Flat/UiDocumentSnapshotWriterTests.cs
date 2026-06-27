@@ -25,14 +25,15 @@ public sealed class UiDocumentSnapshotWriterTests
 
         var snapshot = UiDocumentSnapshotWriter.Write(document);
 
-        const string expected =
-            "document:\n" +
-            "  rows:\n" +
-            "    root parent=<none> order=0 frame=Root view=Rect bg=#EDEFF0FF role=Container\n" +
-            "    settings-card parent=root order=0 frame=Anchor left=72Px top=24Px width=500Px height=292Px view=Rect bg=#F8FAFCFF border=#D4D4D8FF borderThickness=1 role=Container\n" +
-            "    title parent=settings-card order=0 frame=Anchor left=20Px right=20Px top=20Px height=30Px view=Text textColor=#18181BFF size=Md role=Text label=\"Machina Presenter\"\n" +
-            "    actions parent=settings-card order=0 frame=Anchor left=20Px right=20Px bottom=20Px height=36Px arrange=Stack axis=Horizontal gap=8 justify=Start align=Start\n" +
-            "    save parent=actions order=0 frame=Fixed width=0 height=36 view=Rect bg=#18181BFF fg=#FFFFFFFF border=#D4D4D8FF borderThickness=1 padding=12 textColor=#FFFFFFFF size=Md role=Button label=\"Save\" focusable=true action=save\n";
+        var newline = Environment.NewLine;
+        var expected =
+            "document:" + newline +
+            "  rows:" + newline +
+            "    root parent=<none> order=0 frame=Root view=Rect bg=#EDEFF0FF role=Container" + newline +
+            "    settings-card parent=root order=0 frame=Anchor left=72Px top=24Px width=500Px height=292Px view=Rect bg=#F8FAFCFF border=#D4D4D8FF borderThickness=1 role=Container" + newline +
+            "    title parent=settings-card order=0 frame=Anchor left=20Px right=20Px top=20Px height=30Px view=Text textColor=#18181BFF size=Md role=Text label=\"Machina Presenter\"" + newline +
+            "    actions parent=settings-card order=0 frame=Anchor left=20Px right=20Px bottom=20Px height=36Px arrange=Stack axis=Horizontal gap=8 justify=Start align=Start" + newline +
+            "    save parent=actions order=0 frame=Fixed width=0 height=36 view=Rect bg=#18181BFF fg=#FFFFFFFF border=#D4D4D8FF borderThickness=1 padding=12 textColor=#FFFFFFFF size=Md role=Button label=\"Save\" focusable=true action=save" + newline;
 
         Assert.Equal(expected, snapshot);
     }

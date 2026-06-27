@@ -30,7 +30,7 @@ public static class MachinaRenderBridge
         foreach (var node in EnumeratePreOrder(resolved))
         {
             EmitFillAndStrokeCommands(node, lowering.Styles, commands);
-            EmitTextCommand(node, lowering.TextStyles, lowering.Semantics, commands);
+            EmitTextCommand(node, resolved, lowering.TextStyles, lowering.Semantics, commands);
         }
 
         commands.Add(new EndFrameCommand());
@@ -103,6 +103,7 @@ public static class MachinaRenderBridge
 
     private static void EmitTextCommand(
         ResolvedLayoutNode node,
+        ResolvedLayoutDocument resolved,
         IReadOnlyDictionary<NodeId, TextStyle> textStyles,
         IReadOnlyDictionary<NodeId, UiSemantics> semantics,
         ICollection<IActuationCommand> commands)
@@ -126,13 +127,38 @@ public static class MachinaRenderBridge
             ? textStyle
             : new TextStyle();
 
-        commands.Add(new DrawTextCommand(node.Id.Value, node.Rect, semantic.Label, style));
+        var rect = ResolveTextRect(node, resolved, style);
+        commands.Add(new DrawTextCommand(node.Id.Value, rect, semantic.Label, style));
     }
 
     private static bool ShouldDrawText(UiSemantics semantic)
     {
         return semantic.Role == UiRole.Text
             || semantic.Role == UiRole.Label;
+    }
+
+    private static Machina.Layout.Geometry.Rect ResolveTextRect(
+        ResolvedLayoutNode node,
+        ResolvedLayoutDocument resolved,
+        TextStyle style)
+    {
+        if (!node.Id.Value.EndsWith(".label", StringComparison.Ordinal))
+        {
+            return node.Rect;
+        }
+
+        if (style.AlignX != TextAlignX.Center && style.AlignY != TextAlignY.Center)
+        {
+            return node.Rect;
+        }
+
+        var labelRegionId = new NodeId($"{node.Id.Value}-region");
+        if (resolved.Nodes.TryGetValue(labelRegionId, out var labelRegion))
+        {
+            return labelRegion.Rect;
+        }
+
+        return node.Rect;
     }
 
     private static MachinaRenderOptions ResolveOptions(ResolvedLayoutDocument resolved, MachinaRenderOptions? options)

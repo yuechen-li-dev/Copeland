@@ -17,6 +17,7 @@ using Machina.Dominatus.Rendering.Snapshot;
 using Machina.Layout.Compilation;
 using Machina.Layout.Documents;
 using Machina.Layout.Geometry;
+using Machina.Layout.Rows;
 using Machina.Layout.Resolving;
 using Machina.Standard.Authoring;
 
@@ -118,15 +119,18 @@ public sealed class MachinaRenderBridgeTests
     public void StandardButton_EmitsExactlyOneDrawTextCommand()
     {
         var ui = StandardUI.Button("Increment", id: "increment", action: UiAction.Named("increment"));
-        var commands = BuildCommands(ui, new MachinaRenderOptions(240, 120));
+        var lowering = UiLowerer.Lower(ui);
+        var resolved = ResolveLayout(lowering, 240, 120);
+        var commands = MachinaRenderBridge.BuildCommands(lowering, resolved, new MachinaRenderOptions(240, 120));
 
         var incrementTextCommands = commands
             .OfType<DrawTextCommand>()
             .Where(command => command.Text == "Increment")
             .ToList();
 
-        Assert.Single(incrementTextCommands);
-        Assert.Equal("increment.label", incrementTextCommands[0].Id);
+        var incrementText = Assert.Single(incrementTextCommands);
+        Assert.Equal("increment.label", incrementText.Id);
+        Assert.Equal(resolved.Nodes[new NodeId("increment.label-region")].Rect, incrementText.Rect);
         Assert.DoesNotContain(commands, command => command is DrawTextCommand draw && draw.Id == "increment");
     }
 

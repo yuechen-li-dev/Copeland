@@ -1,0 +1,97 @@
+# Machina Presenter Local Visual Audit M5h
+
+## Environment
+- OS: Windows 11 (10.0.26200) x64
+- .NET SDK: 10.0.301 (`dotnet --info`), with 8.0.422 and 9.0.315 also installed
+- Dominatus package/source: `Dominatus.Core` 0.4.0 and `Dominatus.OptFlow` 0.4.0 from NuGet; vendored `vendor/Dominatus` remains in-repo for historical/reference use but is no longer part of the active Copeland solution build path
+- Command run: `dotnet run --project samples/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj`
+
+## Screenshot / observation method
+
+- Launched the Avalonia presenter sample locally on Windows with `dotnet run`.
+- Activated the native window by title (`Machina Presenter M1e - action: startup, count: 0, email: on, notifications: off`).
+- Captured the visible window area with a PowerShell `System.Drawing.Graphics.CopyFromScreen(...)` script after foregrounding the sample window.
+- Saved screenshots to:
+  - `artifacts/m5h/presenter-window-initial.png`
+  - `artifacts/m5h/presenter-window-final.png`
+
+## Initial observations
+
+- Root background filled the window correctly.
+- Card placement and card inset looked correct.
+- Theme contrast was legible overall: dark button, dark title text, muted secondary text, visible checkbox and switch geometry.
+- The title text and button label were both visibly using the current bitmap text renderer, which made clipping defects easy to confirm.
+
+## Text defects found
+
+1. Title clipping:
+   `Machina Presenter` rendered as truncated text in the initial screenshot because layout measured the text much smaller than the bitmap rasterizer actually drew it.
+2. Button label clipping:
+   `Increment` was visibly clipped in the initial screenshot for the same reason.
+3. Button label alignment:
+   After fixing measurement, `Increment` fit but still rendered flush-left inside the button shell because the draw command used the intrinsic text rect instead of the full button label region.
+4. Small but acceptable deferred text quality:
+   Count text, checkbox/switch labels, and footnote remained readable but are still limited by the current simple bitmap font. This is a renderer capability limitation, not a new geometry bug.
+
+## Fixes applied
+
+1. Replaced vendored Dominatus project references with NuGet package references:
+   - `Dominatus.Core` 0.4.0
+   - `Dominatus.OptFlow` 0.4.0
+2. Removed vendored Dominatus projects from `Copeland.slnx` so the active solution build path is NuGet-based.
+3. Updated `DeterministicTextMeasurer` to use the same glyph advance/scale math as the current `ReadableBitmapTextRasterizer`.
+   - This fixed title and button-label clipping without introducing full M6c measurement/layout work.
+4. Updated `MachinaRenderBridge` so centered button labels draw into their `.label-region` rect when present.
+   - This fixed the `Increment` horizontal centering defect in the live sample.
+5. Refreshed and extended regression tests around:
+   - deterministic measurement sizing,
+   - button text placement,
+   - presenter raw text fit,
+   - bridge draw-command rect selection,
+   - snapshot/geometry expectations affected by corrected measurement.
+
+## Deferred issues
+
+- No full text measurement/layout engine was introduced.
+- No multiline wrapping, ellipsis, paragraph layout, glyph shaping, or dynamic text fitting was added.
+- The current bitmap font still produces small, blocky text for secondary labels and footnotes.
+- Switch off-state thumb/track contrast remains simple but legible; improving polish there belongs to later visual refinement rather than this milestone.
+
+## Validation results
+
+- Dominatus package discovery:
+  - Verified via `dotnet package search Dominatus --source https://api.nuget.org/v3/index.json`
+  - Confirmed `Dominatus.Core` 0.4.0 and `Dominatus.OptFlow` 0.4.0 exist on NuGet.
+- Machina-focused validation passed:
+  - `dotnet restore Copeland.slnx`
+  - `dotnet build Copeland.slnx --no-restore`
+  - `dotnet test tests/Machina.Core.Tests/Machina.Core.Tests.csproj`
+  - `dotnet test tests/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj`
+  - `dotnet test tests/Machina.Standard.Tests/Machina.Standard.Tests.csproj`
+  - `dotnet test tests/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj`
+  - `dotnet test tests/Machina.Presenter.Sample.Tests/Machina.Presenter.Sample.Tests.csproj`
+- Boundary checks:
+  - `rg -n "Avalonia|Window|Presenter" src/Machina.Layout src/Machina.Core src/Machina.Standard src/Machina.Runtime src/Machina.Dominatus src/Machina.Renderer.Raster src/Machina.Renderer.Raster.Text src/Machina.Renderer.Raster.Dominatus src/Machina.Pipeline`
+  - Result: no matches in source packages; presenter/window references remain confined to the sample host.
+  - `rg -n "ProjectReference.*Dominatus|vendored|Vendor|Vended|third_party|submodule|Dominatus" . -g "*.csproj" -g "*.props" -g "*.targets" -g "*.sln" -g "*.slnx" -g "*.md"`
+  - Result: Machina project files now use NuGet package references for Dominatus; docs still mention vendored history as expected.
+- `git diff --check`
+  - Passed.
+- Full solution test status:
+  - `dotnet test Copeland.slnx` still fails, but the remaining failures are outside M5h and outside the Machina/Dominatus changes.
+  - Observed unrelated Windows-sensitive failures:
+    - `Copeland.Script.Tests` corpus line/column expectations differ under current Windows line endings.
+    - `Copeland.Cli.Tests` expect Unix-style file-path behavior and currently report missing-path failures on Windows.
+
+## Conclusion
+
+M5h achieved the Machina-side goal set:
+
+- Upstream NuGet Dominatus 0.4 works for the Machina integration projects.
+- Vendored Dominatus project references were removed from the active Machina build path.
+- The presenter sample was run locally on Windows and audited from real screenshots.
+- The two screenshot-backed text defects were fixed:
+  - title truncation,
+  - `Increment` clipping/alignment.
+
+The remaining blocker to full acceptance is unrelated repository-wide Windows test debt in `Copeland.Script.Tests` and `Copeland.Cli.Tests`, not the Machina M5h changes themselves.
