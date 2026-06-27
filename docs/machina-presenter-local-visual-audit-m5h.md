@@ -94,3 +94,13 @@ M5h achieved the Machina-side goal set:
   - `Increment` clipping/alignment.
 
 That historical full-solution blocker was unrelated repository-wide Windows test debt, not the Machina M5h changes themselves, and is now resolved by M5i.
+
+## M6d follow-up note
+
+M6d explicitly audits and preserves the M5h text-measurement fix by centralizing deterministic bitmap text measurement across:
+
+- `MachinaTextMeasurers.Deterministic`
+- `DeterministicTextMeasurer`
+- `ReadableBitmapTextRasterizer.MeasureText(...)`
+
+The rich-text bridge proof in M6d is therefore built on the same measurement reality that fixed the M5h clipping bug, rather than introducing a parallel measurement algorithm.

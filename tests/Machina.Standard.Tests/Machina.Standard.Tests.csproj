@@ -17,5 +17,6 @@
     <ProjectReference Include="../../src/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../src/Machina.Core/Machina.Core.csproj" />
     <ProjectReference Include="../../src/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../src/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
   </ItemGroup>
 </Project>

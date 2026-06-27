@@ -159,6 +159,22 @@ M6c adds a headless layout layer for that Standard text model.
 
 This does not replace current primitive `UI.Text` rendering yet. It establishes the data contract that future M6d renderer integration will consume.
 
+## Standard text render bridge proof (M6d)
+
+M6d now adds that renderer bridge proof, but only as a narrow seam:
+
+- authored Standard rich text can be laid out headlessly
+- a render-layer adapter can emit `DrawTextCommand` values from the layout result
+- primitive `UI.Text` remains the active default authoring/rendering path for existing controls
+
+This keeps authoring ownership clear:
+
+- frames place text boxes
+- `Machina.Standard.Text` lays out text inside those boxes
+- bridge/render layers emit commands
+
+No broad StandardUI migration is implied by M6d.
+
 ## M5g screen/component/action convention
 
 Presenter-style samples should keep top-level screen placement separate from component composition:

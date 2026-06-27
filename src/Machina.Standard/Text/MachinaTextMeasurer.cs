@@ -29,7 +29,7 @@ public static class MachinaTextMeasurers
             return new MachinaTextSize(measured.Width, measured.Height);
         }
 
-        private static TextSize MapTextSize(MachinaTextVariant variant, MachinaTextRunStyle style)
+        internal static TextSize MapTextSize(MachinaTextVariant variant, MachinaTextRunStyle style)
         {
             var effectiveVariant = style.Code ? MachinaTextVariant.Mono : variant;
 
@@ -48,28 +48,9 @@ public static class MachinaTextMeasurers
         {
             ArgumentNullException.ThrowIfNull(text);
             ArgumentNullException.ThrowIfNull(style);
-
-            if (text.Length == 0)
-            {
-                return new MachinaTextSize(0, 0);
-            }
-
-            var fontSize = ResolveFontSize(style.Code ? MachinaTextVariant.Mono : variant);
-            var width = (fontSize * ((6d * text.Length) - 1d)) / 7d;
-            return new MachinaTextSize(width, fontSize);
-        }
-
-        private static double ResolveFontSize(MachinaTextVariant variant)
-        {
-            return variant switch
-            {
-                MachinaTextVariant.Body => 14,
-                MachinaTextVariant.Label => 12,
-                MachinaTextVariant.Caption => 11,
-                MachinaTextVariant.Title => 18,
-                MachinaTextVariant.Mono => 12,
-                _ => throw new ArgumentOutOfRangeException(nameof(variant), variant, "Unsupported Machina text variant."),
-            };
+            var mappedSize = CoreMachinaTextMeasurerAdapter.MapTextSize(variant, style);
+            var measured = DeterministicBitmapTextMetrics.Measure(text, mappedSize);
+            return new MachinaTextSize(measured.Width, measured.Height);
         }
     }
 }

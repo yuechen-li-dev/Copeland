@@ -332,6 +332,24 @@ What M6c does not do:
 
 Standard components should continue to treat current primitive text visuals as the active rendering path until M6d renderer integration lands.
 
+## Standard text render bridge proof (M6d)
+
+M6d lands the first renderer bridge proof for `Machina.Standard.Text`, but it does not migrate Standard components broadly.
+
+What M6d does:
+
+- proves `MachinaTextLayoutResult` can bridge to `DrawTextCommand`
+- proves measurement agreement with the existing deterministic bitmap renderer
+- keeps Standard text renderer-independent
+
+What M6d still does not do:
+
+- replace primitive `UI.Text`
+- migrate `StandardUI.Button`, `StandardUI.Card`, `StandardUI.Checkbox`, `StandardUI.Switch`, or `StandardUI.Label`
+- add rich inline visual styling beyond current renderer support
+
+StandardUI components should therefore continue to use the existing primitive text path until a later controlled migration milestone.
+
 ## M5g card authoring guidance
 
 When a card owns several local children, prefer the multi-child surface:

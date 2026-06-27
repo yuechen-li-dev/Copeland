@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Machina.Core.Measurement;
 using Machina.Core.Styling;
 using Machina.Layout.Geometry;
 using Machina.Renderer.Raster.Colors;
@@ -22,7 +23,7 @@ public sealed class ReadableBitmapTextRasterizer : ITextRasterizer
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(style);
 
-        var scale = GetScale(style.Size);
+        var scale = DeterministicBitmapTextMetrics.GetScale(style.Size);
         var advance = (GlyphWidth + GlyphGap) * scale;
         var (textWidth, textHeight) = Measure(text, style.Size);
         var drawX = ResolveAlignedX(rect, textWidth, style.AlignX);
@@ -77,11 +78,8 @@ public sealed class ReadableBitmapTextRasterizer : ITextRasterizer
             return (0, 0);
         }
 
-        var scale = GetScale(size);
-        var advance = (GlyphWidth + GlyphGap) * scale;
-        var width = (advance * text.Length) - (GlyphGap * scale);
-        var height = GlyphHeight * scale;
-        return (width, height);
+        var measured = DeterministicBitmapTextMetrics.Measure(text, size);
+        return ((int)measured.Width, (int)measured.Height);
     }
 
     private static int ResolveAlignedX(Rect rect, int textWidth, TextAlignX alignX)
@@ -150,17 +148,6 @@ public sealed class ReadableBitmapTextRasterizer : ITextRasterizer
         }
 
         return char.ToUpperInvariant(character);
-    }
-
-    private static int GetScale(TextSize size)
-    {
-        return size switch
-        {
-            TextSize.Sm => 1,
-            TextSize.Md => 2,
-            TextSize.H1 => 3,
-            _ => 2,
-        };
     }
 
     private static Dictionary<char, byte[]> CreateGlyphs()

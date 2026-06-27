@@ -353,6 +353,21 @@ Current status:
 
 Next work is M6d: consume layout results from a renderer bridge without changing general layout ownership of text boxes.
 
+## Machina.Standard.Text M6d status
+
+M6d lands the bridge proof and measurement audit.
+
+Current status:
+
+- `MachinaTextLayoutResult` can now be converted into deterministic `DrawTextCommand` output through `MachinaTextRenderBridge`.
+- Standard/Core/raster deterministic measurement paths now share one bitmap measurement seam.
+- Representative strings are audited in tests for title/body/label/mono-style cases, spaces, and punctuation.
+- Primitive `UI.Text` remains unchanged.
+- StandardUI controls are not broadly migrated.
+- Rich inline style metadata is preserved in layout, but renderer styling remains limited to current command/style support.
+
+Next work is M6e: adopt this bridge in one controlled authored rich text surface before any broader StandardUI migration.
+
 ## M5g status
 
 - Completed: presenter sample ergonomics cleanup into `SettingsScreen`, `SettingsCard`, `SettingsActions`, `DemoState`, and `DemoStateDispatch`.

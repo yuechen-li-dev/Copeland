@@ -43,7 +43,7 @@ Line and run geometry is expressed with stable `MachinaTextBox` values and conta
 
 ## Measurement policy
 
-M6c uses deterministic numeric variant metrics:
+M6c still uses deterministic Standard variant metrics for line-height policy:
 
 - `Body`: font size `14`, default leading `1.4`
 - `Label`: font size `12`, default leading `1.3`
@@ -51,7 +51,20 @@ M6c uses deterministic numeric variant metrics:
 - `Title`: font size `18`, default leading `1.25`
 - `Mono`: font size `12`, default leading `1.35`
 
-The default `MachinaTextMeasurers.Deterministic` implementation uses the same readable bitmap glyph advance shape as the existing deterministic/Core path, but applies it against the Standard text variant font sizes instead of only coarse `TextSize` buckets.
+From M6d onward, the default `MachinaTextMeasurers.Deterministic` implementation shares the same deterministic bitmap measurement seam as:
+
+- `DeterministicTextMeasurer`
+- `ReadableBitmapTextRasterizer.MeasureText(...)`
+
+That means Standard text width/height measurement now follows current renderer bucket reality:
+
+- `Title` -> `TextSize.H1`
+- `Body` -> `TextSize.Md`
+- `Label` -> `TextSize.Sm`
+- `Caption` -> `TextSize.Sm`
+- `Mono` -> `TextSize.Sm`
+
+Line height remains Standard-owned policy (`fontSize * leading`) and is intentionally separate from glyph pixel height for now.
 
 Leading resolves as:
 
@@ -164,13 +177,12 @@ Headless tests now cover:
 
 These tests live in `tests/Machina.Standard.Tests/Text/MachinaTextLayoutTests.cs`.
 
-## M6d integration plan
+## M6d update
 
-M6d should consume `MachinaTextLayoutResult` and translate it into renderer-facing draw operations without giving rendering authority back to layout.
+M6d now lands that bridge proof in `Machina.Dominatus.Rendering.Bridge.MachinaTextRenderBridge`.
 
-That next step should:
+- `Machina.Standard.Text` still owns layout only.
+- The bridge consumes `MachinaTextLayoutResult` and emits renderer-facing `DrawTextCommand` values.
+- `UI.Text` and existing StandardUI controls are still not migrated.
 
-- keep general layout responsible for assigning text boxes
-- keep text layout responsible for lines/runs inside those boxes
-- bridge line/run boxes into draw commands
-- leave `UI.Text` and StandardUI migration as explicit follow-up work instead of hidden side effects
+See `docs/machina-standard-text-render-bridge-m6d.md` for the measurement audit and bridge contract.

@@ -161,3 +161,13 @@ That work adds:
 - deterministic paragraph/list/inline layout inside an assigned rectangle
 
 M6c still does not render and still does not migrate `UI.Text`, `StandardUI.Button`, `StandardUI.Card`, `StandardUI.Checkbox`, or `StandardUI.Switch`. Those integrations remain future work for M6d+.
+
+## M6d update
+
+M6d adds a proof bridge from `MachinaTextLayoutResult` to existing `DrawTextCommand` output, but keeps ownership split:
+
+- Standard text owns model/parser/layout only.
+- Dominatus/render bridge code owns draw-command emission.
+- Primitive `UI.Text` and existing StandardUI controls remain on their current paths.
+
+The full measurement audit and bridge details live in `docs/machina-standard-text-render-bridge-m6d.md`.
