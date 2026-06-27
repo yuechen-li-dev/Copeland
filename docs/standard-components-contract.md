@@ -313,6 +313,25 @@ M6b is not a component migration. Buttons, checkboxes, switches, labels, raster 
 
 Restricted markup headings remain forbidden; Standard component composition and typography variants should express title hierarchy.
 
+## Standard text layout result layer (M6c)
+
+M6c adds deterministic text measurement/layout under `Machina.Standard.Text`, but it is still not a StandardUI component migration.
+
+What M6c does:
+
+- lays out paragraphs, lists, lines, and inline runs inside an assigned text box
+- returns renderer-independent `MachinaTextLayoutResult`
+- preserves parse diagnostics and layout diagnostics for headless testing
+
+What M6c does not do:
+
+- replace `UI.Text`
+- migrate Button/Card/Checkbox/Switch/Label to rich text
+- change draw commands or raster rendering
+- change general component layout semantics
+
+Standard components should continue to treat current primitive text visuals as the active rendering path until M6d renderer integration lands.
+
 ## M5g card authoring guidance
 
 When a card owns several local children, prefer the multi-child surface:

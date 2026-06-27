@@ -146,3 +146,18 @@ Future milestones remain focused on integration after the model is stable:
 4. StandardUI adoption for labels, titles, captions, and control text policies
 
 The layout boundary remains unchanged: frames place text boxes; Standard text lays out text inside those boxes.
+
+## M6c update
+
+M6c now lands the next layer: deterministic measurement and layout under `Machina.Standard.Text`.
+
+That work adds:
+
+- `MachinaTextPolicy`
+- `MachinaTextBox` / `MachinaTextSize`
+- `MachinaTextLayoutResult`
+- line/run box records
+- renderer-independent layout diagnostics
+- deterministic paragraph/list/inline layout inside an assigned rectangle
+
+M6c still does not render and still does not migrate `UI.Text`, `StandardUI.Button`, `StandardUI.Card`, `StandardUI.Checkbox`, or `StandardUI.Switch`. Those integrations remain future work for M6d+.

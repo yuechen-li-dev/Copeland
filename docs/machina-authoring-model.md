@@ -149,6 +149,16 @@ The existing `Machina.Core.Authoring.UI.Text(string)` remains a simple primitive
 
 Restricted markup supports paragraphs, bullet lists, strong/emphasis/code/link inline runs, and explicit diagnostics. Markdown headings remain forbidden; component authors should use Standard typography variants for titles instead of source-level heading syntax.
 
+## Standard text layout contract (M6c)
+
+M6c adds a headless layout layer for that Standard text model.
+
+- `MachinaTextLayoutEngine` consumes a parsed document or a `MachinaTextSpec`.
+- The caller must still supply the assigned text box from general layout.
+- The result is `MachinaTextLayoutResult`, which contains deterministic content bounds, line boxes, run boxes, overflow flags, and diagnostics.
+
+This does not replace current primitive `UI.Text` rendering yet. It establishes the data contract that future M6d renderer integration will consume.
+
 ## M5g screen/component/action convention
 
 Presenter-style samples should keep top-level screen placement separate from component composition:

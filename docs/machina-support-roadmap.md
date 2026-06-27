@@ -338,6 +338,21 @@ Current status:
 
 Next work remains measurement, text layout inside assigned boxes, renderer bridging, and StandardUI adoption.
 
+## Machina.Standard.Text M6c status
+
+M6c now lands deterministic text measurement/layout inside assigned text boxes.
+
+Current status:
+
+- `MachinaTextLayoutResult` exposes renderer-independent box/line/run geometry.
+- `MachinaTextLayoutEngine` consumes `MachinaTextSpec` or `MachinaTextDocument` plus assigned box and measurer.
+- Paragraphs, bullet lists, wrap `none|word`, overflow reporting, align/valign, leading, block gap, and list gap are implemented.
+- Parse diagnostics are preserved on layout results.
+- Renderer integration is still deferred.
+- `UI.Text` and StandardUI control migration are still deferred.
+
+Next work is M6d: consume layout results from a renderer bridge without changing general layout ownership of text boxes.
+
 ## M5g status
 
 - Completed: presenter sample ergonomics cleanup into `SettingsScreen`, `SettingsCard`, `SettingsActions`, `DemoState`, and `DemoStateDispatch`.
