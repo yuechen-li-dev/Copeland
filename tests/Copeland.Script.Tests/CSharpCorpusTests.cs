@@ -1,6 +1,7 @@
 using Copeland.Script.Codegen.CSharp;
 using Copeland.Script.Mir;
 using Copeland.Script.Syntax;
+using Copeland.Script.Tests.Corpus;
 using Xunit;
 
 namespace Copeland.Script.Tests;
@@ -11,19 +12,19 @@ public sealed class CSharpCorpusTests
     [MemberData(nameof(GetCases))]
     public void CSharp_Corpus_Matches_Expected(string sourcePath)
     {
-        var source = File.ReadAllText(sourcePath);
+        var source = CorpusFile.ReadSourceText(sourcePath);
         var mir = MirLowerer.Lower(SyntaxTree.Parse(source));
         Assert.NotNull(mir.Program);
         Assert.DoesNotContain(mir.Diagnostics, d => d.Id.StartsWith("COPE-", StringComparison.Ordinal));
 
         var expectedPath = Path.ChangeExtension(sourcePath, ".g.cs");
         var actual = CSharpBackend.Emit(mir.Program!).SourceText;
-        Assert.Equal(Normalize(File.ReadAllText(expectedPath)), Normalize(actual));
+        Assert.Equal(CorpusFile.Normalize(File.ReadAllText(expectedPath)), CorpusFile.Normalize(actual));
     }
 
     public static IEnumerable<object[]> GetCases()
     {
-        var root = GetRepoRoot();
+        var root = CorpusFile.GetRepoRoot();
         foreach (var corpus in new[] { "m0-csharp-valid", "m1-enum-match-csharp-valid" })
         {
             var dir = Path.Combine(root, "testdata", corpus);
@@ -32,21 +33,4 @@ public sealed class CSharpCorpusTests
         }
     }
 
-    private static string Normalize(string v) => v.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd();
-
-    private static string GetRepoRoot()
-    {
-        var current = AppContext.BaseDirectory;
-        var directory = new DirectoryInfo(current);
-
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "Copeland.slnx")))
-                return directory.FullName;
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Could not locate repository root.");
-    }
 }

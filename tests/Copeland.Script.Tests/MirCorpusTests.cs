@@ -2,6 +2,7 @@ using System.Text;
 using Copeland.Script.Diagnostics;
 using Copeland.Script.Mir;
 using Copeland.Script.Syntax;
+using Copeland.Script.Tests.Corpus;
 using Xunit;
 
 namespace Copeland.Script.Tests;
@@ -12,7 +13,7 @@ public sealed class MirCorpusTests
     [MemberData(nameof(GetCases))]
     public void Mir_Corpus_Matches_Expected(string sourcePath)
     {
-        var source = File.ReadAllText(sourcePath);
+        var source = CorpusFile.ReadSourceText(sourcePath);
         var tree = SyntaxTree.Parse(source);
         var mir = MirLowerer.Lower(tree);
 
@@ -21,21 +22,21 @@ public sealed class MirCorpusTests
         {
             Assert.NotNull(mir.Program);
             var actual = MirTextWriter.Write(mir.Program!);
-            Assert.Equal(Normalize(File.ReadAllText(copePath)), Normalize(actual));
+            Assert.Equal(CorpusFile.Normalize(File.ReadAllText(copePath)), CorpusFile.Normalize(actual));
         }
 
         var diagPath = Path.ChangeExtension(sourcePath, ".diagnostics.txt");
         if (File.Exists(diagPath))
         {
             var actual = DumpDiagnostics(mir.Diagnostics.Where(d => d.Id.StartsWith("COPE-BIND") || d.Id.StartsWith("COPE-TYPE") || d.Id.StartsWith("COPE-PROFILE")).ToArray());
-            Assert.Equal(Normalize(File.ReadAllText(diagPath)), Normalize(actual));
+            Assert.Equal(CorpusFile.Normalize(File.ReadAllText(diagPath)), CorpusFile.Normalize(actual));
             Assert.Null(mir.Program);
         }
     }
 
     public static IEnumerable<object[]> GetCases()
     {
-        var repoRoot = GetRepoRoot();
+        var repoRoot = CorpusFile.GetRepoRoot();
         foreach (var dir in new[] { "m0-mir-valid", "m0-mir-invalid", "m1-enum-match-mir-valid" })
         {
             var fullDir = Path.Combine(repoRoot, "testdata", dir);
@@ -52,23 +53,4 @@ public sealed class MirCorpusTests
         return sb.ToString();
     }
 
-    private static string Normalize(string v) => v.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd();
-
-    private static string GetRepoRoot()
-    {
-        var current = AppContext.BaseDirectory;
-        var directory = new DirectoryInfo(current);
-
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "Copeland.slnx")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Could not locate repository root.");
-    }
 }

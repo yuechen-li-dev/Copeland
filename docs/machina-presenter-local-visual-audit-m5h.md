@@ -78,10 +78,9 @@
 - `git diff --check`
   - Passed.
 - Full solution test status:
-  - `dotnet test Copeland.slnx` still fails, but the remaining failures are outside M5h and outside the Machina/Dominatus changes.
-  - Observed unrelated Windows-sensitive failures:
-    - `Copeland.Script.Tests` corpus line/column expectations differ under current Windows line endings.
-    - `Copeland.Cli.Tests` expect Unix-style file-path behavior and currently report missing-path failures on Windows.
+  - Historical note: during M5h, `dotnet test Copeland.slnx` was still blocked by unrelated Windows-sensitive failures in `Copeland.Script.Tests` and `Copeland.Cli.Tests`.
+  - Follow-up M5i fixed those repo-wide Windows test issues and restored full solution validation.
+  - See [copeland-windows-test-triage-m5i.md](./copeland-windows-test-triage-m5i.md).
 
 ## Conclusion
 
@@ -94,4 +93,4 @@ M5h achieved the Machina-side goal set:
   - title truncation,
   - `Increment` clipping/alignment.
 
-The remaining blocker to full acceptance is unrelated repository-wide Windows test debt in `Copeland.Script.Tests` and `Copeland.Cli.Tests`, not the Machina M5h changes themselves.
+That historical full-solution blocker was unrelated repository-wide Windows test debt, not the Machina M5h changes themselves, and is now resolved by M5i.

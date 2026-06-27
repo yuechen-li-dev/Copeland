@@ -1,6 +1,7 @@
 using System.Text;
 using Copeland.Script.Diagnostics;
 using Copeland.Script.Syntax;
+using Copeland.Script.Tests.Corpus;
 using Xunit;
 
 namespace Copeland.Script.Tests;
@@ -11,29 +12,29 @@ public sealed class LexerCorpusTests
     [MemberData(nameof(GetCases))]
     public void Lexer_Corpus_Matches_Expected(string sourcePath)
     {
-        var source = File.ReadAllText(sourcePath);
+        var source = CorpusFile.ReadSourceText(sourcePath);
         var tree = SyntaxTree.ParseTokens(source);
 
         var tokenPath = Path.ChangeExtension(sourcePath, ".tokens.txt");
         if (File.Exists(tokenPath))
         {
             var actualTokens = DumpTokens(tree.Tokens);
-            var expectedTokens = Normalize(File.ReadAllText(tokenPath));
-            Assert.Equal(expectedTokens, Normalize(actualTokens));
+            var expectedTokens = CorpusFile.Normalize(File.ReadAllText(tokenPath));
+            Assert.Equal(expectedTokens, CorpusFile.Normalize(actualTokens));
         }
 
         var diagnosticsPath = Path.ChangeExtension(sourcePath, ".diagnostics.txt");
         if (File.Exists(diagnosticsPath))
         {
             var actualDiagnostics = DumpDiagnostics(tree.Diagnostics);
-            var expectedDiagnostics = Normalize(File.ReadAllText(diagnosticsPath));
-            Assert.Equal(expectedDiagnostics, Normalize(actualDiagnostics));
+            var expectedDiagnostics = CorpusFile.Normalize(File.ReadAllText(diagnosticsPath));
+            Assert.Equal(expectedDiagnostics, CorpusFile.Normalize(actualDiagnostics));
         }
     }
 
     public static IEnumerable<object[]> GetCases()
     {
-        var root = GetRepoRoot();
+        var root = CorpusFile.GetRepoRoot();
         var corpusRoot = Path.Combine(root, "testdata");
         foreach (var dir in new[] { "m0-lex-valid", "m0-lex-invalid" })
         {
@@ -91,24 +92,4 @@ public sealed class LexerCorpusTests
             .Replace("\r", "\\r", StringComparison.Ordinal)
             .Replace("\n", "\\n", StringComparison.Ordinal);
 
-    private static string Normalize(string value)
-        => value.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd();
-
-    private static string GetRepoRoot()
-    {
-        var current = AppContext.BaseDirectory;
-        var directory = new DirectoryInfo(current);
-
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "Copeland.slnx")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Could not locate repository root.");
-    }
 }

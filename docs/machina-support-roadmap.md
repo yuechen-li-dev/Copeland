@@ -344,3 +344,7 @@ Next work remains measurement, text layout inside assigned boxes, renderer bridg
 - Completed: canonical sample uses `StandardUI.Card` multi-children/gap authoring instead of manually wrapping `UI.Column` inside Card.
 - Completed: sample demonstrates explicit theme handoff from screen to component to child `StandardUI` controls with no hidden theme cascade.
 - Completed: dedicated presenter sample tests cover canonical document shape, localized component ids, action ownership, theme propagation, geometry, hit targets, and render-command regressions.
+
+## M5i validation note
+
+M5i fixed the unrelated Windows blockers in `Copeland.Script.Tests` and `Copeland.Cli.Tests`, so `dotnet test Copeland.slnx` is green again on Windows. See `docs/copeland-windows-test-triage-m5i.md`.

@@ -158,7 +158,7 @@ function value(flag: boolean): number {
 
         psi.ArgumentList.Add("run");
         psi.ArgumentList.Add("--project");
-        psi.ArgumentList.Add("/workspace/Copeland/src/Copeland.Cli/Copeland.Cli.csproj");
+        psi.ArgumentList.Add(GetCliProjectPath());
         psi.ArgumentList.Add("--");
         foreach (var arg in args)
         {
@@ -174,6 +174,29 @@ function value(flag: boolean): number {
     }
 
     private static string Normalize(string text) => text.Replace("\r\n", "\n");
+
+    private static string GetCliProjectPath()
+    {
+        var repoRoot = GetRepoRoot();
+        return System.IO.Path.Combine(repoRoot, "src", "Copeland.Cli", "Copeland.Cli.csproj");
+    }
+
+    private static string GetRepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            if (File.Exists(System.IO.Path.Combine(directory.FullName, "Copeland.slnx")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException("Could not locate repository root.");
+    }
 
     private sealed record CliResult(int ExitCode, string StdOut, string StdErr);
 
