@@ -17,6 +17,9 @@ public sealed class FontDiagnosticExportTests
     private const string AxisStepEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_AXIS_STEP";
     private const string ShowBoundsEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_SHOW_BOUNDS";
     private const string ShowWireframeEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_SHOW_WIREFRAME";
+    private const string CleanEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_CLEAN";
+    private const string AllowPartialEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_ALLOW_PARTIAL";
+    private const string RepositoryRootEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_REPO_ROOT";
 
     [Fact]
     public async Task FontDiagnosticsExport_UsesLayerPreset()
@@ -35,6 +38,7 @@ public sealed class FontDiagnosticExportTests
             artifact =>
             {
                 Assert.Equal("cad-debug", artifact.PresetName);
+                Assert.True(artifact.PresetAvailability.Complete);
                 Assert.Contains(artifact.Layers, layer => layer.Id == "grid");
                 Assert.Contains(artifact.Layers, layer => layer.Id == "axes");
                 Assert.Contains(artifact.Layers, layer => layer.Id == "baseline");
@@ -52,6 +56,8 @@ public sealed class FontDiagnosticExportTests
         Assert.True(File.Exists(result.ShapeDiffReportTextPath));
         Assert.True(File.Exists(result.LayerCompositionReportJsonPath));
         Assert.True(File.Exists(result.LayerCompositionReportTextPath));
+        Assert.True(File.Exists(result.ManifestJsonPath));
+        Assert.True(File.Exists(result.ManifestTextPath));
         Assert.True(File.Exists(Path.Combine(directory, "32", "m9b-direct-vs-msdf-machina.png")));
         Assert.True(File.Exists(Path.Combine(directory, "32", "m9b-cad-debug-machina.png")));
         Assert.True(File.Exists(Path.Combine(directory, "64", "m9b-direct-vs-msdf-hello-machina.png")));
@@ -79,6 +85,12 @@ public sealed class FontDiagnosticExportTests
         Assert.Equal(
             NormalizeReport(File.ReadAllText(first.LayerCompositionReportTextPath), firstDirectory),
             NormalizeReport(File.ReadAllText(second.LayerCompositionReportTextPath), secondDirectory));
+        Assert.Equal(
+            NormalizeReport(File.ReadAllText(first.ManifestJsonPath), firstDirectory),
+            NormalizeReport(File.ReadAllText(second.ManifestJsonPath), secondDirectory));
+        Assert.Equal(
+            NormalizeReport(File.ReadAllText(first.ManifestTextPath), firstDirectory),
+            NormalizeReport(File.ReadAllText(second.ManifestTextPath), secondDirectory));
 
         foreach (string relativePath in EnumerateRelativeArtifacts(firstDirectory))
         {
@@ -98,11 +110,247 @@ public sealed class FontDiagnosticExportTests
         Assert.True(File.Exists(result.ShapeDiffReportTextPath));
         Assert.True(File.Exists(result.LayerCompositionReportJsonPath));
         Assert.True(File.Exists(result.LayerCompositionReportTextPath));
+        Assert.True(File.Exists(result.ManifestJsonPath));
+        Assert.True(File.Exists(result.ManifestTextPath));
 
         foreach (string presetName in result.LayerCompositionReport.PresetsGenerated)
         {
             Assert.True(File.Exists(Path.Combine(directory, "32", $"m9b-{presetName}-machina.png")));
         }
+    }
+
+    [Fact]
+    public async Task ExportOptions_CleanRejectsRepoRoot()
+    {
+        string repoRoot = FindRepoRoot();
+        FontDiagnosticExportOptions options = CreateOptions(repoRoot) with
+        {
+            CleanOutputDirectory = true,
+            RepositoryRootDirectory = repoRoot,
+        };
+
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => CreateExporter().ExportAsync(options));
+
+        Assert.Contains("repository root", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ExportOptions_CleanDeletesExistingOutputDirectory()
+    {
+        string directory = CreateDirectory();
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "stale.txt"), "stale");
+
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(
+            CreateOptions(directory) with
+            {
+                CleanOutputDirectory = true,
+                RepositoryRootDirectory = FindRepoRoot(),
+            });
+
+        Assert.False(File.Exists(Path.Combine(directory, "stale.txt")));
+        Assert.True(File.Exists(result.ManifestJsonPath));
+    }
+
+    [Fact]
+    public async Task ExportOptions_CleanCreatesOutputDirectory()
+    {
+        string directory = CreateDirectory();
+
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(
+            CreateOptions(directory) with
+            {
+                CleanOutputDirectory = true,
+                RepositoryRootDirectory = FindRepoRoot(),
+            });
+
+        Assert.True(Directory.Exists(directory));
+        Assert.True(File.Exists(result.ManifestTextPath));
+    }
+
+    [Fact]
+    public async Task ExportOptions_WithoutCleanPreservesUnrelatedFiles()
+    {
+        string directory = CreateDirectory();
+        Directory.CreateDirectory(directory);
+        string unrelatedFile = Path.Combine(directory, "keep-me.txt");
+        File.WriteAllText(unrelatedFile, "keep");
+
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(CreateOptions(directory));
+
+        Assert.True(File.Exists(unrelatedFile));
+        Assert.Contains(result.Manifest.Warnings, warning => warning.Contains("already contains files", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ExportOptions_ReportsLockedFileOrFailsClearly()
+    {
+        string directory = CreateDirectory();
+        Directory.CreateDirectory(directory);
+        string lockedPath = Path.Combine(directory, "locked.dfpage");
+        File.WriteAllText(lockedPath, "locked");
+
+        using FileStream stream = File.Open(lockedPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+
+        FontDiagnosticExportOptions options = CreateOptions(directory) with
+        {
+            CleanOutputDirectory = true,
+            RepositoryRootDirectory = FindRepoRoot(),
+        };
+
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => CreateExporter().ExportAsync(options));
+
+        Assert.Contains("locked", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("locked.dfpage", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SourceAvailability_ReportsBrowserUnavailable()
+    {
+        string directory = CreateDirectory();
+
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(CreateOptions(directory));
+
+        Assert.False(result.Manifest.Sources.BrowserReferenceAvailable);
+        Assert.False(result.Manifest.Sources.BrowserMaskAvailable);
+    }
+
+    [Fact]
+    public async Task SourceAvailability_ReportsDirectAndMsdfAvailable()
+    {
+        string directory = CreateDirectory();
+
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(CreateOptions(directory));
+
+        Assert.True(result.Manifest.Sources.DirectOutlineAvailable);
+        Assert.True(result.Manifest.Sources.MsdfAvailable);
+        Assert.True(result.Manifest.Sources.DirectMaskAvailable);
+        Assert.True(result.Manifest.Sources.MsdfMaskAvailable);
+        Assert.True(result.Manifest.Sources.PlacementReportAvailable);
+        Assert.True(result.Manifest.Sources.ShapeDiffReportAvailable);
+    }
+
+    [Fact]
+    public async Task Export_StrictPresetFailsWhenBrowserMissing()
+    {
+        string directory = CreateDirectory();
+        FontDiagnosticExportOptions options = CreateOptions(directory) with
+        {
+            PresetNames = ["browser-vs-direct"],
+        };
+
+        InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => CreateExporter().ExportAsync(options));
+
+        Assert.Contains("requires sources that are unavailable", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(File.Exists(Path.Combine(directory, "font-diagnostic-export-manifest.json")));
+        Assert.Contains(
+            "browser-reference",
+            File.ReadAllText(Path.Combine(directory, "font-diagnostic-export-manifest.txt")),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Export_AllowPartialWritesWarningWhenBrowserMissing()
+    {
+        string directory = CreateDirectory();
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(
+            CreateOptions(directory) with
+            {
+                PresetNames = ["browser-vs-direct"],
+                AllowPartial = true,
+            });
+
+        Assert.False(result.Manifest.Complete);
+        Assert.Contains(result.Manifest.Warnings, warning => warning.Contains("degraded", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(result.Manifest.Errors);
+        Assert.True(File.Exists(Path.Combine(directory, "32", "m9b-browser-vs-direct-machina.png")));
+    }
+
+    [Fact]
+    public async Task Export_DirectVsMsdfSucceedsWithoutBrowser()
+    {
+        string directory = CreateDirectory();
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(
+            CreateOptions(directory) with
+            {
+                PresetNames = ["direct-vs-msdf"],
+            });
+
+        Assert.True(result.Manifest.Complete);
+        Assert.Empty(result.Manifest.Errors);
+        Assert.Contains(result.Manifest.PresetReports, report => report.PresetName == "direct-vs-msdf" && report.Complete);
+    }
+
+    [Fact]
+    public async Task Export_WritesManifestJson()
+    {
+        string directory = CreateDirectory();
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(CreateOptions(directory));
+
+        Assert.True(File.Exists(result.ManifestJsonPath));
+        Assert.Contains("\"Kind\": \"machina-font-diagnostic-export\"", File.ReadAllText(result.ManifestJsonPath), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Export_WritesManifestText()
+    {
+        string directory = CreateDirectory();
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(CreateOptions(directory));
+
+        Assert.True(File.Exists(result.ManifestTextPath));
+        Assert.Contains("Machina Font Toolkit M9c export manifest", File.ReadAllText(result.ManifestTextPath), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Manifest_UsesStableOrdering()
+    {
+        string directory = CreateDirectory();
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(CreateOptions(directory));
+
+        Assert.Equal(
+            result.Manifest.Presets.OrderBy(static item => item, StringComparer.OrdinalIgnoreCase).ToArray(),
+            result.Manifest.Presets.ToArray());
+        Assert.Equal(
+            result.Manifest.Artifacts.OrderBy(static item => item, StringComparer.Ordinal).ToArray(),
+            result.Manifest.Artifacts.ToArray());
+    }
+
+    [Fact]
+    public async Task Manifest_RecordsWarningsAndErrors()
+    {
+        string partialDirectory = CreateDirectory();
+        FontDiagnosticExportResult partialResult = await CreateExporter().ExportAsync(
+            CreateOptions(partialDirectory) with
+            {
+                PresetNames = ["browser-vs-direct"],
+                AllowPartial = true,
+            });
+
+        Assert.NotEmpty(partialResult.Manifest.Warnings);
+        Assert.Empty(partialResult.Manifest.Errors);
+
+        string strictDirectory = CreateDirectory();
+        FontDiagnosticExportOptions strictOptions = CreateOptions(strictDirectory) with
+        {
+            PresetNames = ["browser-vs-direct"],
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateExporter().ExportAsync(strictOptions));
+        string strictManifestJson = File.ReadAllText(Path.Combine(strictDirectory, "font-diagnostic-export-manifest.json"));
+        Assert.Contains("\"Errors\": [", strictManifestJson, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Manifest_DoesNotIncludeTimestampByDefault()
+    {
+        string directory = CreateDirectory();
+        FontDiagnosticExportResult result = await CreateExporter().ExportAsync(CreateOptions(directory));
+
+        Assert.Null(result.Manifest.GeneratedAtUtc);
+        Assert.DoesNotContain("GeneratedAtUtc", File.ReadAllText(result.ManifestJsonPath), StringComparison.Ordinal);
     }
 
     private static FontDiagnosticArtifactExporter CreateExporter()
@@ -117,6 +365,7 @@ public sealed class FontDiagnosticExportTests
         return new FontDiagnosticExportOptions
         {
             OutputDirectory = outputDirectory,
+            RepositoryRootDirectory = FindRepoRoot(),
             AtlasName = "crimson-text-m9b-diagnostics",
             FontPath = CrimsonTextFixtureFont.FontPath,
             FontFamilyName = "Crimson Text",
@@ -172,9 +421,12 @@ public sealed class FontDiagnosticExportTests
         string[] presets = ReadPresets(baseOptions.PresetNames);
         return baseOptions with
         {
+            RepositoryRootDirectory = ReadString(RepositoryRootEnvironmentVariable, baseOptions.RepositoryRootDirectory),
             PresetNames = presets,
             GridOptions = gridOptions,
             BoundsOptions = boundsOptions,
+            CleanOutputDirectory = ReadBoolean(CleanEnvironmentVariable, baseOptions.CleanOutputDirectory),
+            AllowPartial = ReadBoolean(AllowPartialEnvironmentVariable, baseOptions.AllowPartial),
         };
     }
 
@@ -185,7 +437,9 @@ public sealed class FontDiagnosticExportTests
                 !string.Equals(Path.GetFileName(path), "shape-diff-report.json", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(Path.GetFileName(path), "shape-diff-report.txt", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(Path.GetFileName(path), "layer-composition-report.json", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(Path.GetFileName(path), "layer-composition-report.txt", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(Path.GetFileName(path), "layer-composition-report.txt", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(Path.GetFileName(path), "font-diagnostic-export-manifest.json", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(Path.GetFileName(path), "font-diagnostic-export-manifest.txt", StringComparison.OrdinalIgnoreCase))
             .Select(path => Path.GetRelativePath(outputDirectory, path))
             .OrderBy(static path => path, StringComparer.Ordinal)
             .ToArray();
@@ -223,6 +477,14 @@ public sealed class FontDiagnosticExportTests
             : defaultValue;
     }
 
+    private static string? ReadString(string variableName, string? defaultValue)
+    {
+        string? value = Environment.GetEnvironmentVariable(variableName);
+        return string.IsNullOrWhiteSpace(value)
+            ? defaultValue
+            : value;
+    }
+
     private static string[] ReadPresets(IReadOnlyList<string> defaultPresets)
     {
         string? value = Environment.GetEnvironmentVariable(PresetEnvironmentVariable);
@@ -250,6 +512,22 @@ public sealed class FontDiagnosticExportTests
 
     private static string CreateDirectory()
     {
-        return Path.Combine(Path.GetTempPath(), "machina-font-tooling-m9b-tests", Guid.NewGuid().ToString("N"));
+        return Path.Combine(Path.GetTempPath(), "machina-font-tooling-m9c-tests", Guid.NewGuid().ToString("N"));
+    }
+
+    private static string FindRepoRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Copeland.slnx")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException("Could not locate repository root for tooling tests.");
     }
 }

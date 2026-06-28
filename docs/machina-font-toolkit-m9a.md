@@ -194,3 +194,13 @@ M9b keeps the M9a boundary and overlay work, but moves the export surface from m
 - preset-driven exports now live under `artifacts/m9b`
 
 See `docs/machina-font-toolkit-layers-m9b.md`.
+
+## M9c follow-up
+
+M9c keeps the same tooling-only boundary and focuses on export hygiene instead of another rendering change.
+
+- repeated exports now have an explicit clean mode
+- source availability is now reported structurally instead of being implied by placeholder labels
+- export folders now include deterministic manifest files so full and partial runs are harder to misread
+
+See `docs/machina-font-toolkit-export-hygiene-m9c.md`.

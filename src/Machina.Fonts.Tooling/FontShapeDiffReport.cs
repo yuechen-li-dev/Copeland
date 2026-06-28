@@ -50,6 +50,7 @@ public sealed record LayerCompositionArtifactReport(
     string TextId,
     string Text,
     string ArtifactPath,
+    FontDiagnosticPresetAvailabilityReport PresetAvailability,
     IReadOnlyList<LayerCompositionLayerReport> Layers,
     IReadOnlyDictionary<string, string?> SourceImagePaths,
     LayerCompositionGridReport? Grid,
@@ -86,4 +87,7 @@ public sealed record FontDiagnosticExportResult(
     FontShapeDiffReport ShapeDiffReport,
     string LayerCompositionReportJsonPath,
     string LayerCompositionReportTextPath,
-    LayerCompositionReport LayerCompositionReport);
+    LayerCompositionReport LayerCompositionReport,
+    string ManifestJsonPath,
+    string ManifestTextPath,
+    FontDiagnosticExportManifest Manifest);

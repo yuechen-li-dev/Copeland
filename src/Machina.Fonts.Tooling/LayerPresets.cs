@@ -30,6 +30,7 @@ public sealed record FontDiagnosticScene(
 public sealed record DiagnosticPresetDefinition(
     string Name,
     string Description,
+    FontDiagnosticPresetRequirements Requirements,
     Func<FontDiagnosticScene, FontDiagnosticExportOptions, DiagnosticLayerComposition> CreateComposition);
 
 public static class LayerPresets
@@ -55,34 +56,70 @@ public static class LayerPresets
             ["browser-vs-direct"] = new(
                 "browser-vs-direct",
                 "Browser image, direct outline image, bounds, baseline, and optional grid.",
+                new FontDiagnosticPresetRequirements(
+                [
+                    FontDiagnosticSourceKind.BrowserReference,
+                    FontDiagnosticSourceKind.DirectOutline,
+                ]),
                 static (scene, options) => CreateBrowserVsDirect(scene, options)),
             ["direct-vs-msdf"] = new(
                 "direct-vs-msdf",
                 "Direct outline and MSDF image comparison with bounds and baseline.",
+                new FontDiagnosticPresetRequirements(
+                [
+                    FontDiagnosticSourceKind.DirectOutline,
+                    FontDiagnosticSourceKind.Msdf,
+                ]),
                 static (scene, options) => CreateDirectVsMsdf(scene, options)),
             ["browser-vs-msdf"] = new(
                 "browser-vs-msdf",
                 "Browser image and MSDF image comparison with bounds and baseline.",
+                new FontDiagnosticPresetRequirements(
+                [
+                    FontDiagnosticSourceKind.BrowserReference,
+                    FontDiagnosticSourceKind.Msdf,
+                ]),
                 static (scene, options) => CreateBrowserVsMsdf(scene, options)),
             ["three-way"] = new(
                 "three-way",
                 "Three-way mask overlay for browser, direct outline, and MSDF where available.",
+                new FontDiagnosticPresetRequirements(
+                [
+                    FontDiagnosticSourceKind.BrowserReference,
+                    FontDiagnosticSourceKind.DirectOutline,
+                    FontDiagnosticSourceKind.Msdf,
+                ]),
                 static (scene, options) => CreateThreeWay(scene, options)),
             ["grid-only"] = new(
                 "grid-only",
                 "Grid and baseline measurement surface.",
+                new FontDiagnosticPresetRequirements(Array.Empty<FontDiagnosticSourceKind>()),
                 static (scene, options) => CreateGridOnly(scene, options)),
             ["bounds-only"] = new(
                 "bounds-only",
                 "Bounds and wireframe overlay without image comparison.",
+                new FontDiagnosticPresetRequirements(
+                [
+                    FontDiagnosticSourceKind.DirectOutline,
+                    FontDiagnosticSourceKind.Msdf,
+                ]),
                 static (scene, options) => CreateBoundsOnly(scene, options)),
             ["cad-debug"] = new(
                 "cad-debug",
                 "CAD-style debug view with grid, axes, baseline, bounds, labels, and wireframes.",
+                new FontDiagnosticPresetRequirements(
+                [
+                    FontDiagnosticSourceKind.DirectOutline,
+                    FontDiagnosticSourceKind.Msdf,
+                ]),
                 static (scene, options) => CreateCadDebug(scene, options)),
             ["msdf-debug"] = new(
                 "msdf-debug",
                 "MSDF-focused debug view with MSDF image, mask, bounds, and wireframes.",
+                new FontDiagnosticPresetRequirements(
+                [
+                    FontDiagnosticSourceKind.Msdf,
+                ]),
                 static (scene, options) => CreateMsdfDebug(scene, options)),
         };
 

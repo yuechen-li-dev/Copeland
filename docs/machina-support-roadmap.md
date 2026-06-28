@@ -153,7 +153,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Images | Renderer/Core | Deferred | None | Later asset pipeline milestone.
 | Real text backend | Raster.Text adapter | Planned | Debug text tests only | Roadmap M1g candidate.
 | PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement; M7e keeps the default local audit path on `artifacts/m7e/`. |
-| Font diagnostics toolkit | Machina.Fonts.Tooling | Implemented | Toolkit tests + local export script | M9a establishes the toolkit boundary and CAD overlays; M9b adds configurable layers, named presets, and preset-driven export without introducing production dependencies. |
+| Font diagnostics toolkit | Machina.Fonts.Tooling | Implemented | Toolkit tests + local export script | M9a establishes the toolkit boundary and CAD overlays; M9b adds configurable layers and named presets; M9c adds clean export hygiene, source-availability contracts, and deterministic manifests without introducing production dependencies. |
 | Gallery-driven visual defect sweep | Machina.Standard + ComponentGallery sample | Implemented | Local PNG inspection + docs | M7c formalizes gallery-based visual triage and explicit deferral documentation; small safe fixes remain opportunistic. |
 | Gallery baseline and limitation register | ComponentGallery sample + docs | Implemented | Local PNG inspection + docs + export-contract tests | M7e marks the current gallery baseline stable enough for routine audits and records intentional renderer/sample limitations. |
 | Dirty rects | Renderer/runtime | Deferred | None | Performance milestone later.
@@ -241,6 +241,7 @@ React mapping guide:
 - **M7e**: gallery stabilization ledger, known-limitation register, current audit workflow cleanup, and small export-contract hardening (implemented).
 - **M9a**: `Machina.Fonts.Tooling` consolidation, CAD-style diagnostic grid, unified artifact export, and production-vs-tooling boundary documentation (implemented).
 - **M9b**: configurable diagnostic layers, named compositions/presets, preset-driven export workflow, and LLM/human inspection ergonomics (implemented).
+- **M9c**: export hygiene, clean-mode guardrails, source-availability contract, strict-vs-partial preset policy, and deterministic export manifests (implemented).
 
 ## Open Questions
 
@@ -772,3 +773,24 @@ This remains tooling-only:
 - no new native or forbidden dependency
 
 See `docs/machina-font-toolkit-layers-m9b.md`.
+
+## M9c update
+
+M9c keeps the M9a/M9b diagnostic-only boundary and focuses on export workflow hygiene.
+
+- `FontDiagnosticArtifactExporter` now supports clean output mode with safety guardrails for repository root, drive root, and user-profile root.
+- `.\tools\Export-MachinaFontDiagnostics.ps1` now accepts `-Clean` and `-AllowPartial`.
+- source availability is now recorded structurally for browser, direct-outline, MSDF, masks, placement reports, and shape-diff reports.
+- required-source presets now fail clearly by default when required inputs are missing, while `-AllowPartial` records explicit degradation warnings instead of relying on ambiguous placeholders.
+- each export folder now writes `font-diagnostic-export-manifest.json` and `.txt`.
+
+This remains tooling-only:
+
+- no production renderer change
+- no MSDF sampling change
+- no direct-outline rasterization change
+- no atlas packing change
+- no `TextBlock` or production UI integration change
+- no new native or forbidden dependency
+
+See `docs/machina-font-toolkit-export-hygiene-m9c.md`.

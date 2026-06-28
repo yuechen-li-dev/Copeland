@@ -63,6 +63,41 @@ public sealed class LayerPresetTests
         Assert.Contains(boundsLayer.Items, item => item.Id == "msdf-bounds");
     }
 
+    [Fact]
+    public void PresetRequirements_DirectVsMsdfRequiresDirectAndMsdf()
+    {
+        DiagnosticPresetDefinition preset = LayerPresets.GetPreset("direct-vs-msdf");
+
+        Assert.Equal(
+        [
+            FontDiagnosticSourceKind.DirectOutline,
+            FontDiagnosticSourceKind.Msdf,
+        ],
+            preset.Requirements.RequiredSources);
+    }
+
+    [Fact]
+    public void PresetRequirements_ThreeWayRequiresBrowserDirectMsdf()
+    {
+        DiagnosticPresetDefinition preset = LayerPresets.GetPreset("three-way");
+
+        Assert.Equal(
+        [
+            FontDiagnosticSourceKind.BrowserReference,
+            FontDiagnosticSourceKind.DirectOutline,
+            FontDiagnosticSourceKind.Msdf,
+        ],
+            preset.Requirements.RequiredSources);
+    }
+
+    [Fact]
+    public void PresetRequirements_GridOnlyRequiresNoSources()
+    {
+        DiagnosticPresetDefinition preset = LayerPresets.GetPreset("grid-only");
+
+        Assert.Empty(preset.Requirements.RequiredSources);
+    }
+
     private static FontDiagnosticScene CreateScene()
     {
         RgbaImage directImage = CreateFilledImage(32, 16, new Rgba32(10, 10, 10, 255));

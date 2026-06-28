@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$OutputDir = "artifacts\\m9b",
+    [string]$OutputDir = "artifacts\\m9c",
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug",
     [string[]]$Preset = @("direct-vs-msdf", "cad-debug"),
@@ -10,7 +10,9 @@ param(
     [switch]$ShowAxes,
     [int]$AxisStep = 32,
     [switch]$ShowBounds,
-    [switch]$ShowWireframe
+    [switch]$ShowWireframe,
+    [switch]$Clean,
+    [switch]$AllowPartial
 )
 
 $ErrorActionPreference = "Stop"
@@ -27,8 +29,6 @@ else
 {
     $resolvedOutputDir = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutputDir))
 }
-
-New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
 
 Push-Location $repoRoot
 
@@ -49,6 +49,18 @@ try
     $env:MACHINA_FONT_DIAGNOSTICS_AXIS_STEP = $AxisStep.ToString()
     $env:MACHINA_FONT_DIAGNOSTICS_SHOW_BOUNDS = $effectiveShowBounds.ToString().ToLowerInvariant()
     $env:MACHINA_FONT_DIAGNOSTICS_SHOW_WIREFRAME = $effectiveShowWireframe.ToString().ToLowerInvariant()
+    $env:MACHINA_FONT_DIAGNOSTICS_CLEAN = $Clean.IsPresent.ToString().ToLowerInvariant()
+    $env:MACHINA_FONT_DIAGNOSTICS_ALLOW_PARTIAL = $AllowPartial.IsPresent.ToString().ToLowerInvariant()
+    $env:MACHINA_FONT_DIAGNOSTICS_REPO_ROOT = $repoRoot.Path
+
+    if (-not $Clean.IsPresent -and (Test-Path -LiteralPath $resolvedOutputDir))
+    {
+        $existingEntries = Get-ChildItem -LiteralPath $resolvedOutputDir -Force -ErrorAction SilentlyContinue
+        if ($null -ne $existingEntries -and $existingEntries.Count -gt 0)
+        {
+            Write-Warning "Output directory '$resolvedOutputDir' already contains files. Existing artifacts may be overwritten and stale files may remain. Use -Clean for repeated local/Codex runs."
+        }
+    }
 
     $arguments = @(
         "test",
@@ -77,10 +89,13 @@ finally
     Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_AXIS_STEP -ErrorAction SilentlyContinue
     Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_SHOW_BOUNDS -ErrorAction SilentlyContinue
     Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_SHOW_WIREFRAME -ErrorAction SilentlyContinue
+    Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_CLEAN -ErrorAction SilentlyContinue
+    Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_ALLOW_PARTIAL -ErrorAction SilentlyContinue
+    Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_REPO_ROOT -ErrorAction SilentlyContinue
     Pop-Location
 }
 
-Write-Host "Created Machina M9b font diagnostics artifacts:"
+Write-Host "Created Machina M9c font diagnostics artifacts:"
 Get-ChildItem -LiteralPath $resolvedOutputDir -Recurse | Sort-Object FullName | ForEach-Object {
     Write-Host $_.FullName
 }

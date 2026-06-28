@@ -175,3 +175,15 @@ The layer model is intentionally generic enough to support lightweight vector or
 
 That future is still deferred.
 M9b stays focused on font diagnostics and export ergonomics first.
+
+## M9c follow-up
+
+M9c keeps the M9b layer model and preset set, but hardens the export contract around it.
+
+- `-Clean` now supports repeated runs into the same output directory with safety guardrails
+- required-source presets now fail clearly by default when their inputs are unavailable
+- `-AllowPartial` keeps graceful degradation available when that is the intentional workflow
+- `font-diagnostic-export-manifest.json/txt` now record source availability, preset outcomes, artifacts, warnings, errors, and complete versus partial state
+
+M9c is still tooling hygiene only.
+It does not change direct-outline rasterization, MSDF sampling, atlas packing, or production renderer behavior.

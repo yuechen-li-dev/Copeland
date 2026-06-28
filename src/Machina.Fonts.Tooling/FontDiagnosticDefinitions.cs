@@ -63,6 +63,8 @@ public sealed record FontDiagnosticExportOptions
 {
     public required string OutputDirectory { get; init; }
 
+    public string? RepositoryRootDirectory { get; init; }
+
     public required string AtlasName { get; init; }
 
     public required string FontPath { get; init; }
@@ -117,6 +119,12 @@ public sealed record FontDiagnosticExportOptions
         "cad-debug",
     ];
 
+    public bool CleanOutputDirectory { get; init; }
+
+    public bool AllowPartial { get; init; }
+
+    public bool IncludeTimestamp { get; init; }
+
     public FontDiagnosticExportOptions Validate()
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(OutputDirectory);
@@ -125,6 +133,11 @@ public sealed record FontDiagnosticExportOptions
         ArgumentException.ThrowIfNullOrWhiteSpace(FontFamilyName);
         ArgumentException.ThrowIfNullOrWhiteSpace(FontStyleName);
         ArgumentException.ThrowIfNullOrWhiteSpace(LicenseIdentifier);
+
+        if (RepositoryRootDirectory is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(RepositoryRootDirectory);
+        }
 
         if (!File.Exists(FontPath))
         {
