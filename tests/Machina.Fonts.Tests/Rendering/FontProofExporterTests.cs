@@ -72,7 +72,7 @@ public sealed class FontProofExporterTests
         int maxX = FindNonBackgroundPixels(artifact.Image).Max(static point => point.X);
 
         Assert.Equal(' ', artifact.MetricsOnlyGlyphs[0].Codepoint);
-        Assert.InRange(minX, 8, 9);
+        Assert.Equal(8, minX);
         Assert.True(maxX >= 56);
     }
 

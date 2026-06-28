@@ -50,8 +50,7 @@ public static class DistanceFieldSampling
         float distance,
         double pxRange,
         double threshold,
-        double scale,
-        double smoothingMultiplier = 1d)
+        double scale)
     {
         if (!double.IsFinite(pxRange) || pxRange <= 0)
         {
@@ -68,31 +67,8 @@ public static class DistanceFieldSampling
             throw new ArgumentOutOfRangeException(nameof(scale));
         }
 
-        double smoothing = ComputeSmoothingWidth(pxRange, scale, smoothingMultiplier);
+        double smoothing = 0.5 / Math.Max(1d, pxRange * scale);
         return SmoothStep(threshold - smoothing, threshold + smoothing, distance);
-    }
-
-    public static double ComputeSmoothingWidth(
-        double pxRange,
-        double scale,
-        double smoothingMultiplier = 1d)
-    {
-        if (!double.IsFinite(pxRange) || pxRange <= 0d)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pxRange));
-        }
-
-        if (!double.IsFinite(scale) || scale <= 0d)
-        {
-            throw new ArgumentOutOfRangeException(nameof(scale));
-        }
-
-        if (!double.IsFinite(smoothingMultiplier) || smoothingMultiplier <= 0d)
-        {
-            throw new ArgumentOutOfRangeException(nameof(smoothingMultiplier));
-        }
-
-        return (0.5d / Math.Max(1d, pxRange * scale)) * smoothingMultiplier;
     }
 
     internal static float DecodeDistanceAt(

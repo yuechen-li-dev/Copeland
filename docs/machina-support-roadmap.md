@@ -682,23 +682,3 @@ This remains proof-path only:
 - no arbitrary vertical-offset fix
 
 See `docs/machina-msdf-baseline-guide-overlay-m8q2.md`.
-
-## M8r update
-
-M8r audits and tunes proof-path MSDF coverage without re-opening baseline or placement conventions.
-
-- browser oracle metrics now include actual image coverage bounds and coverage counts
-- Machina proof reports now include matching coverage metrics and browser-side coverage comparison
-- `coverage-experiment.json` now captures threshold/smoothing sweeps for the proof strings
-- proof defaults now use `threshold = 0.54` and `smoothingMultiplier = 0.5`
-- this improves lower-edge descent parity for `Machina` and `Hello Machina`, improves the proportional kerning fixture, and leaves already-good `Aa0` / `A A` cases aligned
-
-This remains proof-path only:
-
-- no baseline placement change
-- no `GlyphFieldPlacement` semantic change
-- no kerning change
-- no `TextBlock` integration
-- no production renderer integration
-
-See `docs/machina-msdf-coverage-threshold-m8r.md`.

@@ -153,12 +153,3 @@ M8q.2 keeps the gallery proof opt-in and sample-only, but aligns it with the ref
 - this makes the sample proof card easier to compare visually with the browser-oracle artifacts
 
 This is still a tooling overlay for visual diagnosis, not a production text change or rendering fix.
-
-## M8r follow-up
-
-M8r keeps the gallery proof opt-in and sample-only.
-
-- the gallery proof now uses the same proof-path coverage defaults as the standalone oracle: `threshold = 0.54`, `smoothingMultiplier = 0.5`
-- the goal is only to keep the sample proof visually aligned with the standalone audit artifacts
-- no default gallery behavior changed
-- no `UI.Text`, `StandardUI.TextBlock`, or production renderer integration was introduced

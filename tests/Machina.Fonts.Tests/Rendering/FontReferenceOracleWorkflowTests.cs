@@ -77,76 +77,11 @@ public sealed class FontReferenceOracleWorkflowTests
         Assert.Contains("computedTextBottom", report);
         Assert.Contains("minPlaneTop", report);
         Assert.Contains("maxPlaneBottom", report);
-        Assert.Contains("inkTop", report);
-        Assert.Contains("inkBottom", report);
-        Assert.Contains("descentBelowBaseline", report);
-        Assert.Contains("browserInkBottom", report);
+        Assert.Contains("minInkTop", report);
+        Assert.Contains("maxInkBottom", report);
         Assert.Contains("penX", report);
         Assert.Contains("drawWidth", report);
         Assert.Contains("drawHeight", report);
-    }
-
-    [Fact]
-    public async Task ReferenceOracle_ReportIncludesCoverageMetrics()
-    {
-        string directory = CreateDirectory();
-
-        FontReferenceOracleExportResult result = await FontReferenceOracleWorkflow.ExportAsync(directory);
-        string report = File.ReadAllText(result.PlacementReportTextPath);
-        string json = File.ReadAllText(result.PlacementReportJsonPath);
-
-        Assert.Contains("alphaCoverageCount_above_001", report);
-        Assert.Contains("alphaCoverageCount_above_010", report);
-        Assert.Contains("alphaCoverageCount_above_050", report);
-        Assert.Contains("averageAlphaNonZero", report);
-        Assert.Contains("\"AlphaCoverageCountAbove001\"", json);
-        Assert.Contains("\"DescentBelowBaseline\"", json);
-    }
-
-    [Fact]
-    public void ReferenceOracle_CoverageScanIgnoresBaselineGuideColor()
-    {
-        RgbaImage image = new(4, 3);
-        Rgba32 background = new(16, 16, 24, 255);
-        Rgba32 foreground = new(240, 240, 240, 255);
-        Rgba32 baselineGuide = new(255, 0, 0, 255);
-
-        for (int y = 0; y < image.Height; y++)
-        {
-            for (int x = 0; x < image.Width; x++)
-            {
-                image.SetPixel(x, y, background);
-            }
-        }
-
-        for (int x = 0; x < image.Width; x++)
-        {
-            image.SetPixel(x, 1, baselineGuide);
-        }
-
-        image.SetPixel(2, 0, foreground);
-
-        CoverageScanResult coverage = FontReferenceOracleWorkflow.ScanCoverageForTest(image, baselineY: 1d, ignoredColor: baselineGuide);
-
-        Assert.Equal(0, coverage.InkTop);
-        Assert.Equal(0, coverage.InkBottom);
-        Assert.Equal(2, coverage.InkLeft);
-        Assert.Equal(2, coverage.InkRight);
-        Assert.Equal(-1d, coverage.DescentBelowBaseline);
-    }
-
-    [Fact]
-    public async Task MachinaCoverageMetrics_ReportsDescentBelowBaseline()
-    {
-        string directory = CreateDirectory();
-
-        await FontReferenceOracleWorkflow.ExportAsync(directory);
-        FontReferenceOraclePlacementReport report = FontReferenceOracleWorkflow.ReadPlacementReportForTest(directory);
-
-        FontReferenceOracleFixtureReport fixture = Assert.Single(report.Fixtures, static item => item.Id == "machina");
-
-        Assert.Equal(-1d, fixture.DescentBelowBaseline);
-        Assert.True(fixture.AlphaCoverageCountAbove001 > fixture.AlphaCoverageCountAbove050);
     }
 
     [Fact]
@@ -170,9 +105,7 @@ public sealed class FontReferenceOracleWorkflowTests
             Assert.Equal(metricsPath, result.BrowserMetricsJsonPath);
             Assert.Contains("browserActualTop", report);
             Assert.Contains("browserFontBottom", report);
-            Assert.Contains("browserInkBottom", report);
             Assert.Contains("\"BrowserVerticalMetrics\"", json);
-            Assert.Contains("\"BrowserInkBottom\"", json);
             Assert.Contains("\"ComputedTextTop\"", json);
             Assert.Contains("\"CoordinateConvention\"", json);
         }
@@ -320,66 +253,6 @@ public sealed class FontReferenceOracleWorkflowTests
         });
         Assert.True(File.Exists(result.PlacementReportTextPath));
         Assert.True(File.Exists(result.PlacementReportJsonPath));
-        Assert.True(File.Exists(result.CoverageExperimentJsonPath));
-    }
-
-    [Fact]
-    public async Task TypographyMsdfReferenceRender_ProofStringsRemainNonBlank()
-    {
-        string directory = CreateDirectory();
-
-        await FontReferenceOracleWorkflow.ExportAsync(directory);
-        FontReferenceOraclePlacementReport report = FontReferenceOracleWorkflow.ReadPlacementReportForTest(directory);
-
-        Assert.All(report.Fixtures, static fixture => Assert.True(fixture.AlphaCoverageCountAbove001 > 0));
-    }
-
-    [Fact]
-    public async Task TypographyMsdfReferenceRender_OutputIsDeterministic()
-    {
-        string firstDirectory = CreateDirectory();
-        string secondDirectory = CreateDirectory();
-
-        FontReferenceOracleExportResult first = await FontReferenceOracleWorkflow.ExportAsync(firstDirectory);
-        FontReferenceOracleExportResult second = await FontReferenceOracleWorkflow.ExportAsync(secondDirectory);
-
-        Assert.Equal(
-            File.ReadAllText(first.PlacementReportJsonPath),
-            File.ReadAllText(second.PlacementReportJsonPath));
-        Assert.Equal(
-            File.ReadAllText(first.CoverageExperimentJsonPath),
-            File.ReadAllText(second.CoverageExperimentJsonPath));
-    }
-
-    [Fact]
-    public async Task TypographyMsdfReferenceRender_LowerInkExtentDoesNotRegressAgainstM8q2Baseline()
-    {
-        string directory = CreateDirectory();
-
-        await FontReferenceOracleWorkflow.ExportAsync(directory);
-        FontReferenceOraclePlacementReport report = FontReferenceOracleWorkflow.ReadPlacementReportForTest(directory);
-        string repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-        JsonDocument baseline = JsonDocument.Parse(File.ReadAllText(Path.Combine(repoRoot, "artifacts", "m8q2", FontReferenceOracleWorkflow.PlacementReportJsonFileName)));
-
-        Dictionary<string, int> baselineDescentByFixture = baseline.RootElement
-            .GetProperty("Fixtures")
-            .EnumerateArray()
-            .ToDictionary(
-                static fixture => fixture.GetProperty("Id").GetString()!,
-                static fixture => fixture.GetProperty("MaxInkBottom").GetInt32() - (int)Math.Round(fixture.GetProperty("BaselineY").GetDouble(), MidpointRounding.AwayFromZero),
-                StringComparer.Ordinal);
-
-        Assert.All(report.Fixtures, fixture =>
-        {
-            if (fixture.DescentBelowBaseline is null)
-            {
-                return;
-            }
-
-            Assert.True(
-                fixture.DescentBelowBaseline.Value <= baselineDescentByFixture[fixture.Id],
-                $"Fixture '{fixture.Id}' regressed below the M8q2 lower-ink extent baseline.");
-        });
     }
 
     private static string CreateDirectory()
@@ -422,21 +295,6 @@ public sealed class FontReferenceOracleWorkflowTests
                 "alphabeticBaseline": 0,
                 "hangingBaseline": 24,
                 "ideographicBaseline": -11
-              },
-              "coverage": {
-                "inkTop": 18,
-                "inkBottom": 39,
-                "inkLeft": 8,
-                "inkRight": 118,
-                "inkHeight": 22,
-                "inkWidth": 111,
-                "alphaCoverageCountAbove001": 1059,
-                "alphaCoverageCountAbove010": 1021,
-                "alphaCoverageCountAbove050": 749,
-                "maxAlpha": 1,
-                "averageAlphaNonZero": 0.706,
-                "baselineY": 40,
-                "descentBelowBaseline": -1
               }
             }
           ]

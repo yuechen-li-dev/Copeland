@@ -129,12 +129,7 @@ public static class CpuDistanceFieldGlyphRenderer
                 double normalizedX = (x + 0.5d) / outputWidth;
                 double u = Lerp(entry.U0, entry.U1, normalizedX);
                 float distance = DistanceFieldSampling.SampleDistance(page, u, v);
-                double coverage = DistanceFieldSampling.ComputeCoverage(
-                    distance,
-                    options.PxRange,
-                    options.Threshold,
-                    scale,
-                    options.SmoothingMultiplier);
+                double coverage = DistanceFieldSampling.ComputeCoverage(distance, options.PxRange, options.Threshold, scale);
                 Rgba32 existing = image.GetPixel(targetX, targetY);
                 image.SetPixel(targetX, targetY, Composite(existing, options.Foreground, coverage));
             }

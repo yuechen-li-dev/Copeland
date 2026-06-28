@@ -76,7 +76,6 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina MSDF Vertical Metrics M8q](docs/machina-msdf-vertical-metrics-m8q.md)
 - [Machina MSDF Baseline Rounding Fix M8q.1](docs/machina-msdf-baseline-rounding-fix-m8q1.md)
 - [Machina MSDF Baseline Guide Overlay M8q.2](docs/machina-msdf-baseline-guide-overlay-m8q2.md)
-- [Machina MSDF Coverage / Threshold M8r](docs/machina-msdf-coverage-threshold-m8r.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -146,26 +145,25 @@ Default outputs:
 
 These M8o outputs remain local debug artifacts only. They are intended to bootstrap evidence for the next proof-path placement fix, not to introduce production text integration or an automated visual gate.
 
-M8r is the current proof-path coverage audit/tuning pass. The current recommended proof export is:
+M8q.2 is the current proof-path baseline-inspection overlay pass. The current recommended proof export is:
 
 ```powershell
-.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8r
+.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q2
 ```
 
-Current M8r outputs include:
+Current M8q.2 outputs include:
 
-- `artifacts/m8r/browser-text-metrics.json`
-- `artifacts/m8r/reference-machina.png`
-- `artifacts/m8r/reference-hello-machina.png`
-- `artifacts/m8r/reference-kerning.png`
-- `artifacts/m8r/machina-msdf-machina.ppm`
-- `artifacts/m8r/machina-msdf-machina.png`
-- `artifacts/m8r/compare-machina.png`
-- `artifacts/m8r/glyph-placement-report.txt`
-- `artifacts/m8r/glyph-placement-report.json`
-- `artifacts/m8r/coverage-experiment.json`
+- `artifacts/m8q2/browser-text-metrics.json`
+- `artifacts/m8q2/reference-machina.png`
+- `artifacts/m8q2/reference-hello-machina.png`
+- `artifacts/m8q2/reference-kerning.png`
+- `artifacts/m8q2/machina-msdf-machina.ppm`
+- `artifacts/m8q2/machina-msdf-machina.png`
+- `artifacts/m8q2/compare-machina.png`
+- `artifacts/m8q2/glyph-placement-report.txt`
+- `artifacts/m8q2/glyph-placement-report.json`
 
-M8r keeps the work proof-only. It preserves the red baseline-guide overlay, adds browser/Machina coverage metrics, and tunes proof threshold/smoothing without changing baseline placement, kerning, `TextBlock`, or any production renderer path.
+M8q.2 keeps the work proof-only. It adds a red baseline-guide overlay to the browser oracle, Machina proof, compare artifacts, and gallery proof export so vertical mismatch is easier to inspect. It is a tooling upgrade, not another rendering fix, and no production text path changed.
 
 ## Reference source
 

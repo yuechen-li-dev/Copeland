@@ -258,14 +258,3 @@ M8q.2 keeps the M8q and M8q.1 conclusions intact, but makes the evidence easier 
 
 This remains a tooling overlay for visual diagnosis only.
 It is not a new rendering fix, and no production text path changed.
-
-## M8r follow-up
-
-M8r uses the M8q vertical evidence exactly as intended:
-
-- baseline placement stayed fixed
-- browser `TextMetrics` were preserved
-- new browser/Machina image-coverage metrics were added on top of the earlier vertical report
-- the next landed change was proof-only coverage tuning, not another baseline correction
-
-So M8q's core conclusion remains valid: the remaining mismatch was below-baseline ink coverage, not baseline-origin math.

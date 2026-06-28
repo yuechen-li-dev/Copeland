@@ -34,10 +34,8 @@ async function renderMetrics(params) {
     await ensureFontLoaded(config.fontFamily, config.fontUrl);
 
     const canvas = createCanvas(config.width, config.height);
-    const context = canvas.getContext("2d", { alpha: false, willReadFrequently: true });
+    const context = canvas.getContext("2d", { alpha: false });
     applyTextRenderState(context, config);
-    context.fillText(config.text, config.x, config.baselineY);
-    drawBaselineGuide(context, config);
 
     const metrics = context.measureText(config.text);
     const result = {
@@ -67,7 +65,6 @@ async function renderMetrics(params) {
             hangingBaseline: toNullableNumber(metrics.hangingBaseline),
             ideographicBaseline: toNullableNumber(metrics.ideographicBaseline),
         },
-        coverage: computeCoverageMetrics(context, config),
     };
 
     const pre = document.createElement("pre");
@@ -76,102 +73,6 @@ async function renderMetrics(params) {
 
     document.body.innerHTML = "";
     document.body.appendChild(pre);
-}
-
-function computeCoverageMetrics(context, config) {
-    const imageData = context.getImageData(0, 0, config.width, config.height);
-    const pixels = imageData.data;
-    const foreground = parseHexColor(config.foreground);
-    const background = parseHexColor(config.background);
-    const baselineGuide = config.showBaselineGuide
-        ? parseHexColor(config.baselineGuideColor)
-        : null;
-
-    let inkTop = config.height;
-    let inkBottom = -1;
-    let inkLeft = config.width;
-    let inkRight = -1;
-    let alphaCoverageCountAbove001 = 0;
-    let alphaCoverageCountAbove010 = 0;
-    let alphaCoverageCountAbove050 = 0;
-    let maxAlpha = 0;
-    let nonZeroAlphaSum = 0;
-    let nonZeroAlphaCount = 0;
-
-    for (let y = 0; y < config.height; y += 1) {
-        for (let x = 0; x < config.width; x += 1) {
-            const pixelIndex = (y * config.width + x) * 4;
-            const pixel = {
-                r: pixels[pixelIndex],
-                g: pixels[pixelIndex + 1],
-                b: pixels[pixelIndex + 2],
-                a: pixels[pixelIndex + 3],
-            };
-
-            if (isIgnoredPixel(pixel, background, baselineGuide)) {
-                continue;
-            }
-
-            const coverage = deriveCoverage(pixel, foreground, background);
-            if (coverage <= 0) {
-                continue;
-            }
-
-            maxAlpha = Math.max(maxAlpha, coverage);
-            nonZeroAlphaSum += coverage;
-            nonZeroAlphaCount += 1;
-
-            if (coverage > 0.01) {
-                alphaCoverageCountAbove001 += 1;
-                inkTop = Math.min(inkTop, y);
-                inkBottom = Math.max(inkBottom, y);
-                inkLeft = Math.min(inkLeft, x);
-                inkRight = Math.max(inkRight, x);
-            }
-
-            if (coverage > 0.10) {
-                alphaCoverageCountAbove010 += 1;
-            }
-
-            if (coverage > 0.50) {
-                alphaCoverageCountAbove050 += 1;
-            }
-        }
-    }
-
-    if (inkBottom < 0 || inkRight < 0) {
-        return {
-            inkTop: null,
-            inkBottom: null,
-            inkLeft: null,
-            inkRight: null,
-            inkHeight: 0,
-            inkWidth: 0,
-            alphaCoverageCountAbove001,
-            alphaCoverageCountAbove010,
-            alphaCoverageCountAbove050,
-            maxAlpha: 0,
-            averageAlphaNonZero: 0,
-            baselineY: config.baselineY,
-            descentBelowBaseline: null,
-        };
-    }
-
-    return {
-        inkTop,
-        inkBottom,
-        inkLeft,
-        inkRight,
-        inkHeight: inkBottom - inkTop + 1,
-        inkWidth: inkRight - inkLeft + 1,
-        alphaCoverageCountAbove001,
-        alphaCoverageCountAbove010,
-        alphaCoverageCountAbove050,
-        maxAlpha,
-        averageAlphaNonZero: nonZeroAlphaCount === 0 ? 0 : nonZeroAlphaSum / nonZeroAlphaCount,
-        baselineY: config.baselineY,
-        descentBelowBaseline: inkBottom - config.baselineY,
-    };
 }
 
 async function renderCompare(params) {
@@ -278,63 +179,6 @@ function applyTextRenderState(context, config) {
     context.font = `${config.fontSize}px "${config.fontFamily}"`;
 }
 
-function parseHexColor(value) {
-    const normalized = value.trim();
-    const hex = normalized.startsWith("#")
-        ? normalized.slice(1)
-        : normalized;
-
-    if (hex.length !== 6) {
-        throw new Error(`Expected a 6-digit hex color, got: ${value}`);
-    }
-
-    return {
-        r: Number.parseInt(hex.slice(0, 2), 16),
-        g: Number.parseInt(hex.slice(2, 4), 16),
-        b: Number.parseInt(hex.slice(4, 6), 16),
-        a: 255,
-    };
-}
-
-function isIgnoredPixel(pixel, background, baselineGuide) {
-    if (colorsEqual(pixel, background)) {
-        return true;
-    }
-
-    return baselineGuide !== null && colorsEqual(pixel, baselineGuide);
-}
-
-function colorsEqual(left, right) {
-    return left.r === right.r
-        && left.g === right.g
-        && left.b === right.b
-        && left.a === right.a;
-}
-
-function deriveCoverage(pixel, foreground, background) {
-    const channels = [];
-
-    collectChannelCoverage(channels, pixel.r, foreground.r, background.r);
-    collectChannelCoverage(channels, pixel.g, foreground.g, background.g);
-    collectChannelCoverage(channels, pixel.b, foreground.b, background.b);
-
-    if (channels.length === 0) {
-        return 0;
-    }
-
-    const average = channels.reduce((sum, value) => sum + value, 0) / channels.length;
-    return clamp01(average);
-}
-
-function collectChannelCoverage(target, pixelChannel, foregroundChannel, backgroundChannel) {
-    const channelDelta = foregroundChannel - backgroundChannel;
-    if (channelDelta === 0) {
-        return;
-    }
-
-    target.push((pixelChannel - backgroundChannel) / channelDelta);
-}
-
 function drawBaselineGuide(context, config) {
     if (!config.showBaselineGuide) {
         return;
@@ -363,16 +207,4 @@ function toNullableNumber(value) {
     return typeof value === "number" && Number.isFinite(value)
         ? value
         : null;
-}
-
-function clamp01(value) {
-    if (value < 0) {
-        return 0;
-    }
-
-    if (value > 1) {
-        return 1;
-    }
-
-    return value;
 }

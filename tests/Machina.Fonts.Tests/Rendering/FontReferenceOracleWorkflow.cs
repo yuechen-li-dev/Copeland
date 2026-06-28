@@ -19,20 +19,15 @@ internal static class FontReferenceOracleWorkflow
     public const string BrowserTextMetricsFileName = "browser-text-metrics.json";
     public const string PlacementReportTextFileName = "glyph-placement-report.txt";
     public const string PlacementReportJsonFileName = "glyph-placement-report.json";
-    public const string CoverageExperimentFileName = "coverage-experiment.json";
     public const double ProofEmSize = 32d;
     public const int ProofWidth = 320;
     public const int ProofHeight = 64;
     public const double ProofOriginX = 8d;
     public const double ProofBaselineY = 40d;
-    public const double ProofThreshold = 0.54d;
-    public const double ProofSmoothingMultiplier = 0.5d;
 
     private static readonly Rgba32 Background = new(16, 16, 24, 255);
     private static readonly Rgba32 Foreground = new(240, 240, 240, 255);
     private static readonly Rgba32 BaselineGuideColor = new(255, 0, 0, 255);
-    private static readonly double[] ExperimentThresholds = [0.48d, 0.50d, 0.52d, 0.54d, 0.56d, 0.58d, 0.60d];
-    private static readonly double[] ExperimentSmoothingMultipliers = [0.5d, 1.0d, 1.5d];
     private const string CoordinateConventionNote =
         "Font outline coordinates use +Y up relative to the alphabetic baseline. Output image coordinates use +Y down from the top-left. GlyphFieldPlacement.PlaneTop/PlaneBottom are stored as image-down offsets relative to the baseline, so negative PlaneTop draws above the baseline and positive PlaneBottom draws below it.";
 
@@ -64,8 +59,6 @@ internal static class FontReferenceOracleWorkflow
             Background,
             ProofOriginX,
             ProofBaselineY,
-            Threshold: ProofThreshold,
-            SmoothingMultiplier: ProofSmoothingMultiplier,
             ShowBaselineGuide: true,
             BaselineGuideColor: BaselineGuideColor,
             FlipY: true,
@@ -103,22 +96,16 @@ internal static class FontReferenceOracleWorkflow
         List<FontReferenceOracleArtifact> artifacts = [];
         Dictionary<string, DistanceFieldTextLayoutResult> layouts = [];
         Dictionary<string, Dictionary<GlyphPairKey, GlyphPairAdjustment>> pairAdjustmentsByFixture = [];
-        Dictionary<string, CoverageScanResult> machinaCoverageByFixture = [];
+        Dictionary<string, InkBounds?> inkBoundsByFixture = [];
         Dictionary<GlyphKey, GlyphMetrics> metricsByGlyph = await LoadMetricsAsync(source, cancellationToken);
         DistanceFieldTextRenderOptions renderOptions = CreateRenderOptions();
-        Dictionary<int, DistanceFieldPageReference> pages = LoadPages(export.PagePaths, export.Snapshot);
 
         foreach (FontReferenceOracleDefinition definition in Definitions)
         {
             FontProofArtifact artifact = AssertSingleArtifact(export.Artifacts, definition.MachinaPpmFileName);
             string pngPath = Path.Combine(fullOutputDirectory, definition.MachinaPngFileName);
             RgbaPngWriter.Write(pngPath, artifact.Image);
-            machinaCoverageByFixture[definition.Id] = CoverageMetrics.Scan(
-                artifact.Image,
-                Foreground,
-                Background,
-                ProofBaselineY,
-                BaselineGuideColor);
+            inkBoundsByFixture[definition.Id] = ComputeInkBounds(artifact.Image, Background);
 
             DistanceFieldTextRun run = DistanceFieldTextRun.Create(
                 definition.Text,
@@ -147,21 +134,13 @@ internal static class FontReferenceOracleWorkflow
             metricsByGlyph,
             pairAdjustmentsByFixture,
             layouts,
-            machinaCoverageByFixture,
+            inkBoundsByFixture,
             browserMetrics);
 
         string reportTextPath = Path.Combine(fullOutputDirectory, PlacementReportTextFileName);
         string reportJsonPath = Path.Combine(fullOutputDirectory, PlacementReportJsonFileName);
         File.WriteAllText(reportTextPath, BuildTextReport(report));
         File.WriteAllText(reportJsonPath, JsonSerializer.Serialize(report, JsonOptions));
-        CoverageExperimentReport experiment = BuildCoverageExperimentReport(
-            export.Snapshot,
-            pages,
-            layouts,
-            machinaCoverageByFixture,
-            browserMetrics);
-        string coverageExperimentPath = Path.Combine(fullOutputDirectory, CoverageExperimentFileName);
-        File.WriteAllText(coverageExperimentPath, JsonSerializer.Serialize(experiment, JsonOptions));
 
         return new FontReferenceOracleExportResult(
             OutputDirectory: fullOutputDirectory,
@@ -171,7 +150,6 @@ internal static class FontReferenceOracleWorkflow
             BrowserMetricsJsonPath: ResolveBrowserMetricsPath(),
             PlacementReportTextPath: reportTextPath,
             PlacementReportJsonPath: reportJsonPath,
-            CoverageExperimentJsonPath: coverageExperimentPath,
             FontPath: TypographyKerningFixtureFont.FontPath,
             EmSize: ProofEmSize,
             OutputWidth: ProofWidth,
@@ -294,7 +272,7 @@ internal static class FontReferenceOracleWorkflow
         IReadOnlyDictionary<GlyphKey, GlyphMetrics> metricsByGlyph,
         IReadOnlyDictionary<string, Dictionary<GlyphPairKey, GlyphPairAdjustment>> pairAdjustmentsByFixture,
         IReadOnlyDictionary<string, DistanceFieldTextLayoutResult> layouts,
-        IReadOnlyDictionary<string, CoverageScanResult> machinaCoverageByFixture,
+        IReadOnlyDictionary<string, InkBounds?> inkBoundsByFixture,
         BrowserTextMetricsDocument? browserMetrics)
     {
         List<FontReferenceOracleFixtureReport> fixtures = [];
@@ -391,13 +369,12 @@ internal static class FontReferenceOracleWorkflow
             double? maxPlaneBottom = MaxOrNull(rows.Select(static row => row.PlaneBottom));
             double? computedTextTop = minPlaneTop is null ? null : ProofBaselineY + minPlaneTop.Value;
             double? computedTextBottom = maxPlaneBottom is null ? null : ProofBaselineY + maxPlaneBottom.Value;
-            CoverageScanResult? machinaCoverage = machinaCoverageByFixture.TryGetValue(definition.Id, out CoverageScanResult? bounds)
+            InkBounds? inkBounds = inkBoundsByFixture.TryGetValue(definition.Id, out InkBounds? bounds)
                 ? bounds
                 : null;
             BrowserTextMetricsFixture? browserFixture = browserMetricsByFixture.TryGetValue(definition.Id, out BrowserTextMetricsFixture? metricsFixture)
                 ? metricsFixture
                 : null;
-            BrowserCoverageMetrics? browserCoverage = browserFixture?.Coverage;
 
             fixtures.Add(new FontReferenceOracleFixtureReport(
                 definition.Id,
@@ -415,23 +392,8 @@ internal static class FontReferenceOracleWorkflow
                 computedTextBottom,
                 minPlaneTop,
                 maxPlaneBottom,
-                machinaCoverage?.InkTop,
-                machinaCoverage?.InkBottom,
-                machinaCoverage?.InkLeft,
-                machinaCoverage?.InkRight,
-                machinaCoverage?.InkHeight ?? 0,
-                machinaCoverage?.InkWidth ?? 0,
-                machinaCoverage?.AlphaCoverageCountAbove001 ?? 0,
-                machinaCoverage?.AlphaCoverageCountAbove010 ?? 0,
-                machinaCoverage?.AlphaCoverageCountAbove050 ?? 0,
-                machinaCoverage?.MaxAlpha ?? 0d,
-                machinaCoverage?.AverageAlphaNonZero ?? 0d,
-                machinaCoverage?.DescentBelowBaseline,
-                browserCoverage?.InkTop,
-                browserCoverage?.InkBottom,
-                browserCoverage?.InkLeft,
-                browserCoverage?.InkRight,
-                browserCoverage?.DescentBelowBaseline,
+                inkBounds?.MinY,
+                inkBounds?.MaxY,
                 browserFixture,
                 CreateBrowserVerticalMetrics(browserFixture),
                 rows));
@@ -510,8 +472,6 @@ internal static class FontReferenceOracleWorkflow
             Background,
             ProofOriginX,
             ProofBaselineY,
-            Threshold: ProofThreshold,
-            SmoothingMultiplier: ProofSmoothingMultiplier,
             ShowBaselineGuide: true,
             BaselineGuideColor: BaselineGuideColor,
             FlipY: true,
@@ -560,23 +520,8 @@ internal static class FontReferenceOracleWorkflow
             builder.AppendLine($"computedTextBottom: {FormatNullable(fixture.ComputedTextBottom)}");
             builder.AppendLine($"minPlaneTop: {FormatNullable(fixture.MinPlaneTop)}");
             builder.AppendLine($"maxPlaneBottom: {FormatNullable(fixture.MaxPlaneBottom)}");
-            builder.AppendLine($"inkTop: {FormatNullable(fixture.InkTop)}");
-            builder.AppendLine($"inkBottom: {FormatNullable(fixture.InkBottom)}");
-            builder.AppendLine($"inkLeft: {FormatNullable(fixture.InkLeft)}");
-            builder.AppendLine($"inkRight: {FormatNullable(fixture.InkRight)}");
-            builder.AppendLine($"inkHeight: {fixture.InkHeight}");
-            builder.AppendLine($"inkWidth: {fixture.InkWidth}");
-            builder.AppendLine($"alphaCoverageCount_above_001: {fixture.AlphaCoverageCountAbove001}");
-            builder.AppendLine($"alphaCoverageCount_above_010: {fixture.AlphaCoverageCountAbove010}");
-            builder.AppendLine($"alphaCoverageCount_above_050: {fixture.AlphaCoverageCountAbove050}");
-            builder.AppendLine($"maxAlpha: {fixture.MaxAlpha:0.###}");
-            builder.AppendLine($"averageAlphaNonZero: {fixture.AverageAlphaNonZero:0.###}");
-            builder.AppendLine($"descentBelowBaseline: {FormatNullable(fixture.DescentBelowBaseline)}");
-            builder.AppendLine($"browserInkTop: {FormatNullable(fixture.BrowserInkTop)}");
-            builder.AppendLine($"browserInkBottom: {FormatNullable(fixture.BrowserInkBottom)}");
-            builder.AppendLine($"browserInkLeft: {FormatNullable(fixture.BrowserInkLeft)}");
-            builder.AppendLine($"browserInkRight: {FormatNullable(fixture.BrowserInkRight)}");
-            builder.AppendLine($"browserDescentBelowBaseline: {FormatNullable(fixture.BrowserDescentBelowBaseline)}");
+            builder.AppendLine($"minInkTop: {FormatNullable(fixture.MinInkTop)}");
+            builder.AppendLine($"maxInkBottom: {FormatNullable(fixture.MaxInkBottom)}");
 
             if (fixture.BrowserVerticalMetrics is not null)
             {
@@ -708,143 +653,36 @@ internal static class FontReferenceOracleWorkflow
         return descent is null ? null : baselineY + descent.Value;
     }
 
-    private static Dictionary<int, DistanceFieldPageReference> LoadPages(
-        IReadOnlyList<string> pagePaths,
-        FontAtlasSnapshot? snapshot)
+    private static InkBounds? ComputeInkBounds(RgbaImage image, Rgba32 background)
     {
-        ArgumentNullException.ThrowIfNull(pagePaths);
+        int minX = image.Width;
+        int minY = image.Height;
+        int maxX = -1;
+        int maxY = -1;
 
-        if (snapshot is null)
+        for (int y = 0; y < image.Height; y++)
         {
-            throw new InvalidOperationException("Expected a snapshot when loading proof pages.");
-        }
-
-        Dictionary<int, DistanceFieldPageReference> pages = [];
-        foreach (FontAtlasPage page in snapshot.Pages)
-        {
-            string? pagePath = pagePaths.FirstOrDefault(candidate => string.Equals(Path.GetFileName(candidate), page.ImagePath, StringComparison.OrdinalIgnoreCase));
-            if (pagePath is null)
+            for (int x = 0; x < image.Width; x++)
             {
-                throw new InvalidOperationException($"Missing exported page artifact for page {page.Index}.");
-            }
-
-            pages[page.Index] = DistanceFieldPageReferenceReader.Read(pagePath);
-        }
-
-        return pages;
-    }
-
-    private static CoverageExperimentReport BuildCoverageExperimentReport(
-        FontAtlasSnapshot? snapshot,
-        IReadOnlyDictionary<int, DistanceFieldPageReference> pages,
-        IReadOnlyDictionary<string, DistanceFieldTextLayoutResult> layouts,
-        IReadOnlyDictionary<string, CoverageScanResult> defaultCoverageByFixture,
-        BrowserTextMetricsDocument? browserMetrics)
-    {
-        if (snapshot is null)
-        {
-            throw new InvalidOperationException("Expected a snapshot when building the coverage experiment.");
-        }
-
-        IReadOnlyDictionary<string, BrowserTextMetricsFixture> browserMetricsByFixture =
-            browserMetrics?.Fixtures.ToDictionary(static fixture => fixture.Id, StringComparer.Ordinal)
-            ?? new Dictionary<string, BrowserTextMetricsFixture>(StringComparer.Ordinal);
-        List<CoverageExperimentFixtureReport> fixtures = [];
-
-        foreach (FontReferenceOracleDefinition definition in Definitions)
-        {
-            DistanceFieldTextLayoutResult layout = layouts[definition.Id];
-            CoverageScanResult defaultCoverage = defaultCoverageByFixture[definition.Id];
-            BrowserTextMetricsFixture? browserFixture = browserMetricsByFixture.TryGetValue(definition.Id, out BrowserTextMetricsFixture? browserMatch)
-                ? browserMatch
-                : null;
-            List<CoverageExperimentMeasurement> measurements = [];
-
-            foreach (double threshold in ExperimentThresholds)
-            {
-                foreach (double smoothingMultiplier in ExperimentSmoothingMultipliers)
+                Rgba32 pixel = image.GetPixel(x, y);
+                if (pixel == background || pixel == BaselineGuideColor)
                 {
-                    RgbaImage image = CpuDistanceFieldTextRenderer.RenderText(
-                        snapshot,
-                        new Dictionary<int, DistanceFieldPageReference>(pages),
-                        layout,
-                        CreateRenderOptions() with
-                        {
-                            Threshold = threshold,
-                            SmoothingMultiplier = smoothingMultiplier,
-                        });
-
-                    CoverageScanResult coverage = CoverageMetrics.Scan(
-                        image,
-                        Foreground,
-                        Background,
-                        ProofBaselineY,
-                        BaselineGuideColor);
-                    double? browserDescent = browserFixture?.Coverage?.DescentBelowBaseline;
-
-                    measurements.Add(new CoverageExperimentMeasurement(
-                        threshold,
-                        smoothingMultiplier,
-                        coverage.InkTop,
-                        coverage.InkBottom,
-                        coverage.InkHeight,
-                        coverage.AlphaCoverageCountAbove001,
-                        coverage.AlphaCoverageCountAbove010,
-                        coverage.AlphaCoverageCountAbove050,
-                        coverage.MaxAlpha,
-                        coverage.AverageAlphaNonZero,
-                        coverage.DescentBelowBaseline,
-                        browserDescent is null || coverage.DescentBelowBaseline is null
-                            ? null
-                            : coverage.DescentBelowBaseline.Value - browserDescent.Value));
+                    continue;
                 }
-            }
 
-            fixtures.Add(new CoverageExperimentFixtureReport(
-                definition.Id,
-                definition.Text,
-                defaultCoverage.DescentBelowBaseline,
-                browserFixture?.Coverage?.DescentBelowBaseline,
-                measurements));
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+            }
         }
 
-        return new CoverageExperimentReport(
-            ProofBaselineY,
-            ExperimentThresholds,
-            ExperimentSmoothingMultipliers,
-            fixtures);
-    }
+        if (maxX < 0 || maxY < 0)
+        {
+            return null;
+        }
 
-    internal static CoverageScanResult ScanCoverageForTest(
-        RgbaImage image,
-        double baselineY,
-        Rgba32? ignoredColor = null)
-    {
-        return CoverageMetrics.Scan(image, Foreground, Background, baselineY, ignoredColor);
-    }
-
-    internal static FontReferenceOraclePlacementReport ReadPlacementReportForTest(string outputDirectory)
-    {
-        return JsonSerializer.Deserialize<FontReferenceOraclePlacementReport>(
-            File.ReadAllText(Path.Combine(outputDirectory, PlacementReportJsonFileName)),
-            JsonReadOptions)
-            ?? throw new InvalidOperationException("Placement report could not be read.");
-    }
-
-    internal static CoverageExperimentReport ReadCoverageExperimentForTest(string outputDirectory)
-    {
-        return JsonSerializer.Deserialize<CoverageExperimentReport>(
-            File.ReadAllText(Path.Combine(outputDirectory, CoverageExperimentFileName)),
-            JsonReadOptions)
-            ?? throw new InvalidOperationException("Coverage experiment report could not be read.");
-    }
-
-    internal static BrowserTextMetricsDocument ReadBrowserMetricsForTest(string outputDirectory)
-    {
-        return JsonSerializer.Deserialize<BrowserTextMetricsDocument>(
-            File.ReadAllText(Path.Combine(outputDirectory, BrowserTextMetricsFileName)),
-            JsonReadOptions)
-            ?? throw new InvalidOperationException("Browser metrics document could not be read.");
+        return new InkBounds(minX, minY, maxX, maxY);
     }
 
     private static double? MinOrNull(IEnumerable<double?> values)
@@ -902,6 +740,12 @@ internal static class FontReferenceOracleWorkflow
         int OutputHeight,
         int DrawX,
         int DrawY);
+
+    private sealed record InkBounds(
+        int MinX,
+        int MinY,
+        int MaxX,
+        int MaxY);
 }
 
 internal sealed record FontReferenceOracleDefinition(string Id, string Text)
@@ -928,7 +772,6 @@ internal sealed record FontReferenceOracleExportResult(
     string? BrowserMetricsJsonPath,
     string PlacementReportTextPath,
     string PlacementReportJsonPath,
-    string CoverageExperimentJsonPath,
     string FontPath,
     double EmSize,
     int OutputWidth,
@@ -966,23 +809,8 @@ internal sealed record FontReferenceOracleFixtureReport(
     double? ComputedTextBottom,
     double? MinPlaneTop,
     double? MaxPlaneBottom,
-    int? InkTop,
-    int? InkBottom,
-    int? InkLeft,
-    int? InkRight,
-    int InkHeight,
-    int InkWidth,
-    int AlphaCoverageCountAbove001,
-    int AlphaCoverageCountAbove010,
-    int AlphaCoverageCountAbove050,
-    double MaxAlpha,
-    double AverageAlphaNonZero,
-    double? DescentBelowBaseline,
-    int? BrowserInkTop,
-    int? BrowserInkBottom,
-    int? BrowserInkLeft,
-    int? BrowserInkRight,
-    double? BrowserDescentBelowBaseline,
+    int? MinInkTop,
+    int? MaxInkBottom,
     BrowserTextMetricsFixture? Browser,
     BrowserVerticalMetrics? BrowserVerticalMetrics,
     IReadOnlyList<FontReferenceOracleGlyphRow> Glyphs);
@@ -1046,7 +874,6 @@ internal sealed record BrowserTextMetricsFixture(
     string TextBaseline,
     string TextAlign,
     BrowserTextMetricValues Metrics,
-    BrowserCoverageMetrics? Coverage,
     string? UnavailableReason = null);
 
 internal sealed record BrowserTextMetricValues(
@@ -1062,21 +889,6 @@ internal sealed record BrowserTextMetricValues(
     double? AlphabeticBaseline,
     double? HangingBaseline,
     double? IdeographicBaseline);
-
-internal sealed record BrowserCoverageMetrics(
-    int? InkTop,
-    int? InkBottom,
-    int? InkLeft,
-    int? InkRight,
-    int InkHeight,
-    int InkWidth,
-    int AlphaCoverageCountAbove001,
-    int AlphaCoverageCountAbove010,
-    int AlphaCoverageCountAbove050,
-    double MaxAlpha,
-    double AverageAlphaNonZero,
-    double BaselineY,
-    double? DescentBelowBaseline);
 
 internal sealed record BrowserVerticalMetrics(
     double? ActualBoundingBoxAscent,
@@ -1094,30 +906,3 @@ internal sealed record BrowserVerticalMetrics(
     double? FontBottom,
     double? EmTop,
     double? EmBottom);
-
-internal sealed record CoverageExperimentReport(
-    double BaselineY,
-    IReadOnlyList<double> Thresholds,
-    IReadOnlyList<double> SmoothingMultipliers,
-    IReadOnlyList<CoverageExperimentFixtureReport> Fixtures);
-
-internal sealed record CoverageExperimentFixtureReport(
-    string Id,
-    string Text,
-    double? DefaultDescentBelowBaseline,
-    double? BrowserDescentBelowBaseline,
-    IReadOnlyList<CoverageExperimentMeasurement> Measurements);
-
-internal sealed record CoverageExperimentMeasurement(
-    double Threshold,
-    double SmoothingMultiplier,
-    int? InkTop,
-    int? InkBottom,
-    int InkHeight,
-    int AlphaCoverageCountAbove001,
-    int AlphaCoverageCountAbove010,
-    int AlphaCoverageCountAbove050,
-    double MaxAlpha,
-    double AverageAlphaNonZero,
-    double? DescentBelowBaseline,
-    double? DeltaVsBrowserDescent);
