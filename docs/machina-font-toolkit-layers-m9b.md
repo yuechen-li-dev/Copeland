@@ -197,3 +197,13 @@ M9d keeps these layers and presets, but changes their semantic center:
 - `direct-vs-msdf` now compares the static default against the scalable/experimental path by name
 
 See `docs/machina-direct-outline-static-text-m9d.md`.
+
+## M9e follow-up
+
+M9e does not add a new production layer preset. Instead, it reuses the M9d backend split in a sample-only gallery proof:
+
+- `Bitmap/current` remains the ordinary gallery text path
+- `DirectOutlineStatic` can now be shown beside it through an explicit sample proof section
+- `MSDF experimental` remains optional comparison only
+
+See `docs/machina-direct-outline-text-proof-m9e.md`.

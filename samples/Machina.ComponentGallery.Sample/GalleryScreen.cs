@@ -7,8 +7,17 @@ public static class GalleryScreen
 {
     public const int Width = 960;
     public const int Height = 1000;
+    public const int DirectOutlineProofSectionHeight = 1080;
+    public const int MsdfProofSectionHeight = 208;
+    private const int ProofSectionTop = 776;
+    private const int ProofSectionGap = 24;
 
     public static UiDocument Build(GalleryState state, bool includeMsdfFontProof = false, StandardTheme? theme = null)
+    {
+        return Build(state, new GalleryProofOptions(IncludeMsdfFontProof: includeMsdfFontProof), theme);
+    }
+
+    public static UiDocument Build(GalleryState state, GalleryProofOptions proofOptions, StandardTheme? theme = null)
     {
         var effectiveTheme = theme ?? StandardTheme.Default;
         List<Machina.Core.Flat.UiRow> rows =
@@ -99,19 +108,53 @@ public static class GalleryScreen
                 component: GallerySections.ThemeSection(effectiveTheme)),
         ];
 
-        if (includeMsdfFontProof)
+        var nextTop = ProofSectionTop;
+
+        if (proofOptions.IncludeDirectOutlineTextProof)
+        {
+            rows.Add(
+                Row.Anchor(
+                    id: GalleryDirectOutlineTextProofLayout.SectionId,
+                    parent: "root",
+                    left: 24,
+                    top: nextTop,
+                    width: 912,
+                    height: DirectOutlineProofSectionHeight,
+                    component: GallerySections.DirectOutlineTextProofSection(effectiveTheme, proofOptions.IncludeMsdfFontProof)));
+
+            nextTop += DirectOutlineProofSectionHeight + ProofSectionGap;
+        }
+
+        if (proofOptions.IncludeMsdfFontProof)
         {
             rows.Add(
                 Row.Anchor(
                     id: GalleryMsdfFontProofLayout.SectionId,
                     parent: "root",
                     left: 24,
-                    top: 776,
+                    top: nextTop,
                     width: 912,
-                    height: 208,
+                    height: MsdfProofSectionHeight,
                     component: GallerySections.MsdfFontProofSection(effectiveTheme)));
         }
 
         return UiDocument.Create(rows);
+    }
+
+    public static int GetHeight(GalleryProofOptions proofOptions)
+    {
+        var height = Height;
+
+        if (proofOptions.IncludeDirectOutlineTextProof)
+        {
+            height += DirectOutlineProofSectionHeight + ProofSectionGap;
+        }
+
+        if (proofOptions.IncludeMsdfFontProof)
+        {
+            height += MsdfProofSectionHeight + ProofSectionGap;
+        }
+
+        return height;
     }
 }

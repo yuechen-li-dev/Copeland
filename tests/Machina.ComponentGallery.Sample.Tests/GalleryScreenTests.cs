@@ -55,6 +55,19 @@ public sealed class GalleryScreenTests
     }
 
     [Fact]
+    public void ComponentGallery_DirectOutlineTextProof_IsOptIn()
+    {
+        var defaultDocument = GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default);
+        var proofDocument = GalleryScreen.Build(
+            GalleryState.Default,
+            new GalleryProofOptions(IncludeDirectOutlineTextProof: true),
+            StandardTheme.Default);
+
+        Assert.DoesNotContain(defaultDocument.Rows, row => row.Id == GalleryDirectOutlineTextProofLayout.SectionId);
+        Assert.Contains(proofDocument.Rows, row => row.Id == GalleryDirectOutlineTextProofLayout.SectionId);
+    }
+
+    [Fact]
     public void Gallery_HitTargets_UseGalleryActions()
     {
         var frame = GeometryHarness.ResolveDocument(

@@ -99,6 +99,23 @@ public sealed class GalleryGeometryTests
         Assert.True(rect.Height > 0);
     }
 
+    [Fact]
+    public void ComponentGallery_CanBuildDirectOutlineTextProof()
+    {
+        var options = new GalleryProofOptions(IncludeDirectOutlineTextProof: true);
+        var frame = GeometryHarness.ResolveDocument(
+            GalleryScreen.Build(GalleryState.Default, options, StandardTheme.Default),
+            GalleryScreen.Width,
+            GalleryScreen.GetHeight(options));
+
+        Assert.True(GalleryDirectOutlineTextProofLayout.TryGetProofImageSlotRect(frame.Resolved, out var proofRect));
+        Assert.True(GalleryDirectOutlineTextProofLayout.TryGetComparisonDirectSlotRect(frame.Resolved, out var comparisonRect));
+        Assert.True(proofRect.Width > 0);
+        Assert.True(proofRect.Height > 0);
+        Assert.True(comparisonRect.Width > 0);
+        Assert.True(comparisonRect.Height > 0);
+    }
+
     private static void AssertRectInside(Machina.Layout.Geometry.Rect inner, Machina.Layout.Geometry.Rect outer, string id)
     {
         Assert.True(inner.X >= outer.X, $"{id} left outside root.");

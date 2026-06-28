@@ -18,6 +18,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m9a/` is the historical first consolidated Machina font toolkit diagnostic output directory.
 - `artifacts/m9b/` is the historical preset-driven Machina font toolkit diagnostic output directory.
 - `artifacts/m9c/` is the current export-hygiene and source-contract font toolkit diagnostic output directory.
+- `artifacts/m9e/` is the current direct-outline component-gallery proof output directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -30,6 +31,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M9a comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M9b comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M9c comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M9e comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -57,6 +59,13 @@ Current M8m proof audit command:
 
 ```powershell
 .\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m8m -IncludeMsdfFontProof
+```
+
+Current M9e proof audit command:
+
+```powershell
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9e -IncludeDirectOutlineTextProof
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9e -IncludeDirectOutlineTextProof -IncludeMsdfFontProof
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -139,6 +148,9 @@ Current M9d audit commands:
 - `artifacts/m7e/component-gallery-default.png`
 - `artifacts/m7e/component-gallery-interactive.png`
 - `artifacts/m8m/component-gallery-msdf-proof.png`
+- `artifacts/m9e/component-gallery-direct-outline-text-proof.png`
+- `artifacts/m9e/component-gallery-text-backend-comparison.png`
+- `artifacts/m9e/direct-outline-static-text-proof.png`
 
 No automated pixel comparison runs against these files yet. M7e documents the current stable baseline and its limitations without changing that policy.
 
@@ -314,3 +326,11 @@ These remain local diagnostic artifacts only. M8s adds a direct-outline mask ora
 - `artifacts/m9d/font-diagnostic-export-manifest.json`
 
 These remain local diagnostic artifacts only. M9d makes direct-outline the default static proof backend, keeps MSDF explicit as scalable/experimental, records backend policy in the manifest, and does not change production text behavior.
+
+## Current M9e direct-outline gallery proof outputs
+
+- `artifacts/m9e/component-gallery-direct-outline-text-proof.png`
+- `artifacts/m9e/component-gallery-text-backend-comparison.png`
+- `artifacts/m9e/direct-outline-static-text-proof.png`
+
+These remain local proof artifacts only. M9e proves direct-outline static UI-ish text inside the component gallery through an explicit opt-in sample path. It does not switch production UI text defaults, does not change `Standard.Text`, and does not promote MSDF beyond explicit experimental comparison.

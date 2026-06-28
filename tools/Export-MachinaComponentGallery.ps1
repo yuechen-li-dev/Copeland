@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$OutputDir = "artifacts\\m7e",
+    [switch]$IncludeDirectOutlineTextProof,
     [switch]$IncludeMsdfFontProof,
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug"
@@ -38,6 +39,21 @@ if ($IncludeMsdfFontProof)
     $exports += @{
         Name = "component-gallery-msdf-proof"
         Args = @("--include-msdf-font-proof")
+    }
+}
+
+if ($IncludeDirectOutlineTextProof)
+{
+    $directOutlineArgs = @("--include-direct-outline-text-proof")
+
+    if ($IncludeMsdfFontProof)
+    {
+        $directOutlineArgs += "--include-msdf-font-proof"
+    }
+
+    $exports += @{
+        Name = "component-gallery-direct-outline-text-proof"
+        Args = $directOutlineArgs
     }
 }
 
@@ -82,6 +98,13 @@ $createdFiles = @(
 if ($IncludeMsdfFontProof)
 {
     $createdFiles += (Join-Path $resolvedOutputDir "component-gallery-msdf-proof.png")
+}
+
+if ($IncludeDirectOutlineTextProof)
+{
+    $createdFiles += (Join-Path $resolvedOutputDir "component-gallery-direct-outline-text-proof.png")
+    $createdFiles += (Join-Path $resolvedOutputDir "component-gallery-text-backend-comparison.png")
+    $createdFiles += (Join-Path $resolvedOutputDir "direct-outline-static-text-proof.png")
 }
 
 foreach ($createdFile in $createdFiles)

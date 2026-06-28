@@ -143,6 +143,70 @@ public sealed class DirectOutlineStaticTextRendererTests
         Assert.True(kerned.InkBounds!.Right < plain.InkBounds!.Right);
     }
 
+    [Fact]
+    public async Task DirectOutlineStaticRenderer_RendersPresenterTextSamples()
+    {
+        DirectOutlineStaticTextRenderer renderer = new(TypographyKerningFixtureFont.CreateSource());
+
+        string[] samples =
+        [
+            "Hello Machina",
+            "Machina UI",
+            "Settings",
+            "Direct outline static text",
+            "AV To Ta Wa Yo",
+            "Aa0 1234567890",
+            "The quick brown fox jumps over the lazy dog.",
+        ];
+
+        foreach (string sample in samples)
+        {
+            DirectOutlineTextRenderResult result = await renderer.RenderAsync(CreateCrimsonOptions(sample, 24d));
+            Assert.True(result.Success, sample);
+            Assert.NotNull(result.Image);
+            Assert.NotNull(result.InkBounds);
+            Assert.True(result.InkBounds!.Width > 0, sample);
+            Assert.True(result.InkBounds.Height > 0, sample);
+        }
+    }
+
+    [Fact]
+    public async Task DirectOutlineStaticRenderer_SupportsSmallUiSizes()
+    {
+        DirectOutlineStaticTextRenderer renderer = new(TypographyKerningFixtureFont.CreateSource());
+
+        DirectOutlineTextRenderResult result = await renderer.RenderAsync(CreateCrimsonOptions("Settings", 16d));
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.InkBounds);
+        Assert.True(result.InkBounds!.Width > 0);
+        Assert.True(result.InkBounds.Height > 0);
+    }
+
+    [Fact]
+    public async Task DirectOutlineStaticRenderer_SupportsMultipleFontSizes()
+    {
+        DirectOutlineStaticTextRenderer renderer = new(TypographyKerningFixtureFont.CreateSource());
+
+        double[] sizes = [16d, 24d, 32d];
+        InkMaskBounds? previous = null;
+
+        foreach (double size in sizes)
+        {
+            DirectOutlineTextRenderResult result = await renderer.RenderAsync(CreateCrimsonOptions("Hello Machina", size));
+            Assert.True(result.Success);
+            Assert.NotNull(result.InkBounds);
+
+            if (previous is not null)
+            {
+                Assert.True(result.InkBounds!.Width > previous.Width);
+                Assert.True(result.InkBounds.Height > previous.Height);
+            }
+
+            previous = result.InkBounds;
+        }
+    }
+
     private static DirectOutlineTextRenderOptions CreateOptions(string text, FontFaceId face)
     {
         return new DirectOutlineTextRenderOptions(
@@ -158,6 +222,21 @@ public sealed class DirectOutlineStaticTextRendererTests
             Supersample: 4,
             ShowBaselineGuide: true,
             BaselineGuideColor: new Rgba32(255, 0, 0, 255));
+    }
+
+    private static DirectOutlineTextRenderOptions CreateCrimsonOptions(string text, double emSize)
+    {
+        return new DirectOutlineTextRenderOptions(
+            text,
+            TypographyKerningFixtureFont.Face,
+            emSize,
+            640,
+            96,
+            Foreground,
+            Background,
+            8d,
+            emSize + 16d,
+            Supersample: 4);
     }
 
     private static int CountInk(InkMask mask)

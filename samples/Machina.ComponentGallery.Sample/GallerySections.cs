@@ -406,4 +406,142 @@ public static class GallerySections
                         ])),
             ]);
     }
+
+    public static UiNode DirectOutlineTextProofSection(StandardTheme theme, bool includeMsdfExperimentalComparison)
+    {
+        var panelBackground = ColorToken.Hex(0x111827FF);
+        var panelBorder = ColorToken.Hex(0x334155FF);
+        var panelForeground = ColorToken.Hex(0xF8FAFCFF);
+        var panelMuted = ColorToken.Hex(0xCBD5E1FF);
+        var panelStyle = new UiStyle(
+            Background: panelBackground,
+            Foreground: panelForeground,
+            Padding: 10,
+            BorderColor: panelBorder,
+            BorderThickness: 1);
+        var comparisonChildren = new List<UiNode>
+        {
+            UI.At(
+                UI.Rect(
+                    id: "bitmap-current-panel",
+                    width: 272,
+                    height: 132,
+                    style: panelStyle,
+                    child: UI.Column(
+                    [
+                        UI.Text("Bitmap/current", id: "bitmap-current-label", size: TextSize.Sm, color: panelMuted),
+                        UI.Text("Hello Machina", id: "bitmap-current-hello", color: panelForeground),
+                        UI.Text("AV To Ta Wa Yo", id: "bitmap-current-kerning", color: panelForeground),
+                        UI.Text("Aa0 1234567890", id: "bitmap-current-aa0", color: panelForeground),
+                    ],
+                    gap: 6)),
+                x: 0,
+                y: 0,
+                width: 272,
+                height: 132),
+
+            UI.At(
+                UI.Rect(
+                    id: "direct-outline-panel",
+                    width: 272,
+                    height: 132,
+                    style: panelStyle,
+                    child: UI.Column(
+                    [
+                        UI.Text("DirectOutlineStatic", id: "direct-outline-label", size: TextSize.Sm, color: panelMuted),
+                        UI.Rect(
+                            id: GalleryDirectOutlineTextProofLayout.ComparisonDirectImageSlotLeafId,
+                            width: 252,
+                            height: 96,
+                            child: UI.Container(
+                                UI.Text(
+                                    "Direct-outline proof image is written here during export.",
+                                    id: "direct-outline-placeholder",
+                                    size: TextSize.Sm,
+                                    color: panelMuted),
+                                alignX: Align.Center,
+                                alignY: Align.Center)),
+                    ],
+                    gap: 6)),
+                x: 294,
+                y: 0,
+                width: 272,
+                height: 132),
+        };
+
+        if (includeMsdfExperimentalComparison)
+        {
+            comparisonChildren.Add(
+                UI.At(
+                    UI.Rect(
+                        id: "msdf-experimental-panel",
+                        width: 272,
+                        height: 132,
+                        style: panelStyle,
+                        child: UI.Column(
+                        [
+                            UI.Text("MSDF experimental", id: "msdf-experimental-label", size: TextSize.Sm, color: panelMuted),
+                            UI.Rect(
+                                id: GalleryDirectOutlineTextProofLayout.ComparisonMsdfImageSlotLeafId,
+                                width: 252,
+                                height: 96,
+                                child: UI.Container(
+                                    UI.Text(
+                                        "MSDF experimental comparison image is written here during export.",
+                                        id: "msdf-experimental-placeholder",
+                                        size: TextSize.Sm,
+                                        color: panelMuted),
+                                    alignX: Align.Center,
+                                    alignY: Align.Center)),
+                        ],
+                        gap: 6)),
+                    x: 588,
+                    y: 0,
+                    width: 272,
+                    height: 132));
+        }
+
+        return StandardUI.Card(
+            id: "direct-outline-proof-card",
+            theme: theme,
+            gap: 10,
+            children:
+            [
+                UI.Text("Direct Outline Static Text Proof", id: "direct-outline-proof-title", color: theme.Colors.Foreground),
+
+                UI.Text(
+                    "Opt-in proof only. Presenter/gallery text samples are rendered through DirectOutlineStaticTextRenderer without changing the production bitmap text default.",
+                    id: "direct-outline-proof-caption",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Rect(
+                    id: GalleryDirectOutlineTextProofLayout.ProofImageSlotLeafId,
+                    width: 860,
+                    height: 760,
+                    style: panelStyle,
+                    child: UI.Container(
+                        UI.Text(
+                            "Direct-outline static text proof image is written here during export.",
+                            id: "direct-outline-proof-slot-placeholder",
+                            size: TextSize.Sm,
+                            color: panelMuted),
+                        alignX: Align.Center,
+                        alignY: Align.Center)),
+
+                UI.Text(
+                    includeMsdfExperimentalComparison
+                        ? "Comparison keeps Bitmap/current on the left, DirectOutlineStatic in the center, and MSDF experimental on the right."
+                        : "Comparison keeps Bitmap/current on the left and DirectOutlineStatic on the right. MSDF remains explicit experimental tooling unless separately requested.",
+                    id: "direct-outline-proof-comparison-caption",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Rect(
+                    id: GalleryDirectOutlineTextProofLayout.ComparisonSurfaceLeafId,
+                    width: 860,
+                    height: 132,
+                    child: UI.Layer(children: comparisonChildren)),
+            ]);
+    }
 }

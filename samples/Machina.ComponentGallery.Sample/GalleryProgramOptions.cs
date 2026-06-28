@@ -5,6 +5,7 @@ public sealed record GalleryProgramOptions(
     bool ExportOnly,
     string ExportDirectory,
     string ExportName,
+    bool IncludeDirectOutlineTextProof,
     bool IncludeMsdfFontProof)
 {
     public static GalleryProgramOptions Parse(IReadOnlyList<string> args)
@@ -13,6 +14,7 @@ public sealed record GalleryProgramOptions(
         var exportOnly = false;
         var exportDirectory = GalleryExportContract.DefaultOutputDirectory;
         var exportName = GalleryExportContract.DefaultExportName;
+        var includeDirectOutlineTextProof = false;
         var includeMsdfFontProof = false;
 
         for (var index = 0; index < args.Count; index++)
@@ -43,6 +45,12 @@ public sealed record GalleryProgramOptions(
                 continue;
             }
 
+            if (arg == "--include-direct-outline-text-proof")
+            {
+                includeDirectOutlineTextProof = true;
+                continue;
+            }
+
             if (arg == "--primary-clicks" && index + 1 < args.Count && int.TryParse(args[++index], out var clickCount))
             {
                 state = state with { PrimaryClicks = clickCount };
@@ -62,7 +70,13 @@ public sealed record GalleryProgramOptions(
             }
         }
 
-        return new GalleryProgramOptions(state, exportOnly, exportDirectory, exportName, includeMsdfFontProof);
+        return new GalleryProgramOptions(
+            state,
+            exportOnly,
+            exportDirectory,
+            exportName,
+            includeDirectOutlineTextProof,
+            includeMsdfFontProof);
     }
 
     private static bool ParseOnOff(string value)

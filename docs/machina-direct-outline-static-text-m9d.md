@@ -66,6 +66,17 @@ M9d does not attempt to repair MSDF.
 
 If production text integration follows, it should build on the M9d direct-outline API and remain explicitly opt-in until a separate runtime milestone chooses that path.
 
+## M9e follow-up
+
+M9e uses the M9d API as a sample-only proof bridge in `samples/Machina.ComponentGallery.Sample`.
+
+- the gallery can now render real UI-ish strings through `DirectOutlineStaticTextRenderer`
+- the proof path is opt-in with `--include-direct-outline-text-proof`
+- default production UI text behavior stays unchanged
+- MSDF remains explicit experimental/scalable, including when shown beside direct-outline in proof-only comparison panels
+
+See `docs/machina-direct-outline-text-proof-m9e.md`.
+
 ## Future MSDF repair path
 
 MSDF repair remains a separate milestone focused on placement drift, larger-size mismatch growth, and scalable-text use cases.

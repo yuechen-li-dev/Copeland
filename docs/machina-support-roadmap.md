@@ -154,6 +154,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Real text backend | Raster.Text adapter | Planned | Debug text tests only | Roadmap M1g candidate.
 | PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement; M7e keeps the default local audit path on `artifacts/m7e/`. |
 | Font diagnostics toolkit | Machina.Fonts.Tooling | Implemented | Toolkit tests + local export script | M9a establishes the toolkit boundary and CAD overlays; M9b adds configurable layers and named presets; M9c adds clean export hygiene, source-availability contracts, and deterministic manifests; M9d formalizes direct-outline as the default static proof backend while keeping MSDF explicit and experimental. |
+| Direct-outline gallery proof | ComponentGallery sample + Machina.Fonts proof bridge | Implemented | Gallery tests + local export script + deterministic PNG crops | M9e adds an opt-in `DirectOutlineStatic` proof section and backend comparison panel to the gallery without changing the production text default. |
 | Gallery-driven visual defect sweep | Machina.Standard + ComponentGallery sample | Implemented | Local PNG inspection + docs | M7c formalizes gallery-based visual triage and explicit deferral documentation; small safe fixes remain opportunistic. |
 | Gallery baseline and limitation register | ComponentGallery sample + docs | Implemented | Local PNG inspection + docs + export-contract tests | M7e marks the current gallery baseline stable enough for routine audits and records intentional renderer/sample limitations. |
 | Dirty rects | Renderer/runtime | Deferred | None | Performance milestone later.
@@ -243,6 +244,7 @@ React mapping guide:
 - **M9b**: configurable diagnostic layers, named compositions/presets, preset-driven export workflow, and LLM/human inspection ergonomics (implemented).
 - **M9c**: export hygiene, clean-mode guardrails, source-availability contract, strict-vs-partial preset policy, and deterministic export manifests (implemented).
 - **M9d**: direct-outline static text backend formalized as the default diagnostic/static proof path, stable direct-outline renderer API, and explicit MSDF scalable/experimental labeling (implemented).
+- **M9e**: opt-in direct-outline static text proof integration in the component gallery, deterministic gallery comparison artifacts, and proof-only reuse of the direct-outline renderer (implemented).
 
 ## Open Questions
 
@@ -795,3 +797,34 @@ This remains tooling-only:
 - no new native or forbidden dependency
 
 See `docs/machina-font-toolkit-export-hygiene-m9c.md`.
+
+## M9d update
+
+M9d formalizes the backend naming and default proof policy inside the toolkit stack.
+
+- `DirectOutlineStatic` is the default static/UI-text proof backend.
+- `MsdfScalableExperimental` remains explicit and experimental.
+- `cad-debug` defaults to direct-outline imagery.
+- `msdf-debug` remains MSDF-only.
+
+This remains tooling-only and does not change production UI text behavior.
+
+See `docs/machina-direct-outline-static-text-m9d.md`.
+
+## M9e update
+
+M9e carries that direct-outline backend into the component gallery as an explicit proof integration step.
+
+- `samples/Machina.ComponentGallery.Sample` now accepts `--include-direct-outline-text-proof`.
+- the proof section renders real UI-ish strings through `DirectOutlineStaticTextRenderer` with `CrimsonText-Regular.ttf`.
+- backend comparison labels are explicit: `Bitmap/current`, `DirectOutlineStatic`, and optional `MSDF experimental`.
+- deterministic standalone artifacts now include `component-gallery-text-backend-comparison.png` and `direct-outline-static-text-proof.png`.
+
+This remains proof-only:
+
+- no production default text renderer switch
+- no `Standard.Text` semantic change
+- no `Machina.Core` document-model change
+- no MSDF repair
+
+See `docs/machina-direct-outline-text-proof-m9e.md`.

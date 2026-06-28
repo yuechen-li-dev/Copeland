@@ -174,10 +174,31 @@ public sealed class GalleryRenderTests
         Assert.True(stableShell.Rect.X + stableShell.Rect.Width <= alertShell.Rect.X);
     }
 
-    private static MachinaFrame Render(GalleryState state, StandardTheme theme)
+    [Fact]
+    public void ComponentGallery_DirectOutlineProof_LabelsBackend()
     {
-        var document = GalleryScreen.Build(state, theme: theme);
-        return new MachinaRasterPipeline().Render(document, GalleryScreen.Width, GalleryScreen.Height);
+        var frame = Render(GalleryState.Default, StandardTheme.Default, new GalleryProofOptions(IncludeDirectOutlineTextProof: true));
+        var textCommands = frame.RenderCommands.OfType<DrawTextCommand>().ToList();
+
+        Assert.Contains(textCommands, command => command.Text == "DirectOutlineStatic");
+        Assert.Contains(textCommands, command => command.Text == "Bitmap/current");
+    }
+
+    [Fact]
+    public void ComponentGallery_TextBackendComparison_IncludesCurrentAndDirectOutline()
+    {
+        var frame = Render(GalleryState.Default, StandardTheme.Default, new GalleryProofOptions(IncludeDirectOutlineTextProof: true));
+        var ids = frame.Resolved.Nodes.Keys.Select(key => key.Value).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains($"{GalleryDirectOutlineTextProofLayout.SectionId}/bitmap-current-panel", ids);
+        Assert.Contains($"{GalleryDirectOutlineTextProofLayout.SectionId}/direct-outline-panel", ids);
+    }
+
+    private static MachinaFrame Render(GalleryState state, StandardTheme theme, GalleryProofOptions? proofOptions = null)
+    {
+        var effectiveProofOptions = proofOptions ?? new GalleryProofOptions();
+        var document = GalleryScreen.Build(state, effectiveProofOptions, theme);
+        return new MachinaRasterPipeline().Render(document, GalleryScreen.Width, GalleryScreen.GetHeight(effectiveProofOptions));
     }
 
     private static string[] Summarize(IReadOnlyList<IActuationCommand> commands)

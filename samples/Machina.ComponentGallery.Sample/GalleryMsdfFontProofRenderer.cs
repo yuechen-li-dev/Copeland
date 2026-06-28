@@ -43,7 +43,38 @@ public static class GalleryMsdfFontProofRenderer
         return new GalleryMsdfFontProofPlacement(targetX, targetY, targetWidth, targetHeight);
     }
 
+    public static Task<RgbaImage> RenderComparisonImageAsync(
+        int width,
+        int height,
+        IReadOnlyList<string> lines,
+        double emSize,
+        FontFaceId face,
+        string fontPath,
+        string fontFamilyName)
+    {
+        return RenderCompositeProofAsync(width, height, lines, emSize, face, fontPath, fontFamilyName);
+    }
+
     private static async Task<RgbaImage> RenderCompositeProofAsync(int width, int height)
+    {
+        return await RenderCompositeProofAsync(
+            width,
+            height,
+            ProofLines,
+            24d,
+            Face,
+            GalleryFontFixturePaths.ResolveSpaceMonoPath(),
+            "Space Mono");
+    }
+
+    private static async Task<RgbaImage> RenderCompositeProofAsync(
+        int width,
+        int height,
+        IReadOnlyList<string> proofLines,
+        double emSize,
+        FontFaceId face,
+        string fontPath,
+        string fontFamilyName)
     {
         RgbaImage image = CreateFilledImage(width, height, ProofBackground);
 
@@ -52,16 +83,16 @@ public static class GalleryMsdfFontProofRenderer
 
         try
         {
-            DistanceFieldTextPipeline pipeline = CreatePipeline();
+            DistanceFieldTextPipeline pipeline = CreatePipeline(face, fontPath, fontFamilyName, emSize);
             int lineHeight = 34;
             int top = 10;
             int gap = 5;
 
-            for (int index = 0; index < ProofLines.Length; index++)
+            for (int index = 0; index < proofLines.Count; index++)
             {
                 DistanceFieldTextPipelineResult lineResult = await pipeline.RenderTextAsync(
-                    ProofLines[index],
-                    CreateLineOptions(width, lineHeight),
+                    proofLines[index],
+                    CreateLineOptions(width, lineHeight, face, emSize),
                     Path.Combine(tempRoot, $"line-{index}"));
 
                 if (!lineResult.Success || lineResult.Image is null)
@@ -69,7 +100,7 @@ public static class GalleryMsdfFontProofRenderer
                     string message = string.Join(
                         " | ",
                         lineResult.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
-                    throw new InvalidOperationException($"MSDF proof rendering failed for '{ProofLines[index]}'. {message}");
+                    throw new InvalidOperationException($"MSDF proof rendering failed for '{proofLines[index]}'. {message}");
                 }
 
                 CopyLine(image, lineResult.Image, top + ((lineHeight + gap) * index));
@@ -86,13 +117,16 @@ public static class GalleryMsdfFontProofRenderer
         }
     }
 
-    private static DistanceFieldTextPipeline CreatePipeline()
+    private static DistanceFieldTextPipeline CreatePipeline(
+        FontFaceId face,
+        string fontPath,
+        string fontFamilyName,
+        double emSize)
     {
-        string fontPath = ResolveFixtureFontPath();
         TypographyGlyphOutlineSource outlineSource = new(
             new Dictionary<FontFaceId, TypographyFontFaceSource>
             {
-                [Face] = new(Face, fontPath),
+                [face] = new(face, fontPath),
             });
 
         return new DistanceFieldTextPipeline(
@@ -101,19 +135,19 @@ public static class GalleryMsdfFontProofRenderer
             new FontAtlasTomlExportMetadata(
                 "component-gallery-msdf-proof",
                 "msdf",
-                "Space Mono",
+                fontFamilyName,
                 "Regular",
                 fontPath,
-                "sha256-space-mono",
+                $"sha256-{fontFamilyName.ToLowerInvariant().Replace(' ', '-')}",
                 "OFL-1.1",
                 new FontAtlasMetricsToml
                 {
-                    EmSize = 24,
+                    EmSize = emSize,
                     UnitsPerEm = 1000,
-                    Ascent = 19.2,
-                    Descent = -4.8,
+                    Ascent = emSize * 0.8d,
+                    Descent = emSize * -0.2d,
                     LineGap = 0,
-                    LineHeight = 24,
+                    LineHeight = emSize,
                 },
                 new FontAtlasMsdfToml
                 {
@@ -124,13 +158,13 @@ public static class GalleryMsdfFontProofRenderer
                 }));
     }
 
-    private static DistanceFieldTextRenderOptions CreateLineOptions(int width, int height)
+    private static DistanceFieldTextRenderOptions CreateLineOptions(int width, int height, FontFaceId face, double emSize)
     {
         return new DistanceFieldTextRenderOptions(
             OutputWidth: width,
             OutputHeight: height,
-            Face: Face,
-            EmSize: 24,
+            Face: face,
+            EmSize: emSize,
             Weight: MachinaFontWeight.Regular,
             Slant: MachinaFontSlant.Upright,
             Kind: DistanceFieldKind.Msdf,
@@ -140,7 +174,7 @@ public static class GalleryMsdfFontProofRenderer
             Foreground: ProofForeground,
             Background: ProofBackground,
             X: 12d,
-            BaselineY: 26d,
+            BaselineY: emSize + 2d,
             ShowBaselineGuide: true,
             BaselineGuideColor: BaselineGuideColor,
             FlipY: true,
@@ -200,18 +234,5 @@ public static class GalleryMsdfFontProofRenderer
                 target.SetPixel(destinationX, destinationY, new RasterRgba32(pixel.R, pixel.G, pixel.B, pixel.A));
             }
         }
-    }
-
-    private static string ResolveFixtureFontPath()
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Fonts", "SpaceMono-Regular.ttf");
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException(
-                "The MSDF gallery proof font fixture was not found. Expected SpaceMono-Regular.ttf in the sample output.",
-                path);
-        }
-
-        return path;
     }
 }

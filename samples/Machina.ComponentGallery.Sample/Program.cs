@@ -28,7 +28,9 @@ internal sealed class Program
 
     private static AppBuilder BuildAvaloniaApp(GalleryProgramOptions options)
     {
-        return AppBuilder.Configure(() => new App(options.InitialState, options.IncludeMsdfFontProof))
+        return AppBuilder.Configure(() => new App(
+                options.InitialState,
+                new GalleryProofOptions(options.IncludeDirectOutlineTextProof, options.IncludeMsdfFontProof)))
             .UsePlatformDetect();
     }
 
@@ -41,19 +43,19 @@ internal sealed class Program
     private sealed class App : Application
     {
         private readonly GalleryState _initialState;
-        private readonly bool _includeMsdfFontProof;
+        private readonly GalleryProofOptions _proofOptions;
 
-        public App(GalleryState initialState, bool includeMsdfFontProof)
+        public App(GalleryState initialState, GalleryProofOptions proofOptions)
         {
             _initialState = initialState;
-            _includeMsdfFontProof = includeMsdfFontProof;
+            _proofOptions = proofOptions;
         }
 
         public override void OnFrameworkInitializationCompleted()
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new GalleryWindow(_initialState, _includeMsdfFontProof);
+                desktop.MainWindow = new GalleryWindow(_initialState, _proofOptions);
             }
 
             base.OnFrameworkInitializationCompleted();
@@ -66,13 +68,13 @@ internal sealed class Program
 
         private readonly Image _image;
         private readonly MachinaRasterPipeline _pipeline;
-        private readonly bool _includeMsdfFontProof;
+        private readonly GalleryProofOptions _proofOptions;
 
         private GalleryState _state;
         private UiHitTestIndex _hitTestIndex;
         private MachinaFrame _currentFrame;
 
-        public GalleryWindow(GalleryState initialState, bool includeMsdfFontProof)
+        public GalleryWindow(GalleryState initialState, GalleryProofOptions proofOptions)
         {
             _image = new Image
             {
@@ -84,7 +86,7 @@ internal sealed class Program
             _image.PointerPressed += HandlePointerPressed;
 
             _state = initialState;
-            _includeMsdfFontProof = includeMsdfFontProof;
+            _proofOptions = proofOptions;
             _pipeline = new MachinaRasterPipeline();
             _hitTestIndex = default!;
             _currentFrame = default!;
@@ -97,11 +99,19 @@ internal sealed class Program
 
         private void RenderCurrentState()
         {
-            var document = GalleryScreen.Build(_state, _includeMsdfFontProof, StandardTheme.Default);
-            _currentFrame = _pipeline.Render(document, GalleryScreen.Width, GalleryScreen.Height);
+            var document = GalleryScreen.Build(_state, _proofOptions, StandardTheme.Default);
+            _currentFrame = _pipeline.Render(document, GalleryScreen.Width, GalleryScreen.GetHeight(_proofOptions));
             _hitTestIndex = _currentFrame.HitTest;
 
-            if (_includeMsdfFontProof)
+            if (_proofOptions.IncludeDirectOutlineTextProof)
+            {
+                GalleryDirectOutlineTextProofRenderer.BlitProof(
+                    _currentFrame.RasterFrame,
+                    _currentFrame.Resolved,
+                    _proofOptions.IncludeMsdfFontProof);
+            }
+
+            if (_proofOptions.IncludeMsdfFontProof)
             {
                 GalleryMsdfFontProofRenderer.BlitProof(_currentFrame.RasterFrame, _currentFrame.Resolved);
             }

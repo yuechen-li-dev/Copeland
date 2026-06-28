@@ -82,6 +82,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina Font Toolkit Layers M9b](docs/machina-font-toolkit-layers-m9b.md)
 - [Machina Font Toolkit Export Hygiene M9c](docs/machina-font-toolkit-export-hygiene-m9c.md)
 - [Machina Direct-Outline Static Text M9d](docs/machina-direct-outline-static-text-m9d.md)
+- [Machina Direct-Outline Text Proof M9e](docs/machina-direct-outline-text-proof-m9e.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -109,6 +110,20 @@ Proof output:
 - `artifacts/m8m/component-gallery-msdf-proof.png`
 
 This proof mode is experimental, local, and sample-only. It does not replace `UI.Text`, `StandardUI.TextBlock`, or the current raster text renderer.
+
+Opt-in direct-outline static proof export:
+
+```powershell
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9e -IncludeDirectOutlineTextProof
+```
+
+Proof outputs:
+
+- `artifacts/m9e/component-gallery-direct-outline-text-proof.png`
+- `artifacts/m9e/component-gallery-text-backend-comparison.png`
+- `artifacts/m9e/direct-outline-static-text-proof.png`
+
+This proof mode is also local and sample-only. It proves `DirectOutlineStatic` on real UI-ish strings without changing the production UI text default, and MSDF stays explicit experimental/scalable only.
 
 Current font proof audit workflow:
 

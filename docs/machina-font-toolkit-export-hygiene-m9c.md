@@ -159,3 +159,13 @@ M9d keeps the M9c export-hygiene contract and adds an explicit backend policy:
 - manifests and reports now record the strategy split directly
 
 See `docs/machina-direct-outline-static-text-m9d.md`.
+
+## M9e follow-up
+
+M9e keeps the M9c export hygiene and manifest contract, but adds a separate sample/gallery proof export surface.
+
+- `.\tools\Export-MachinaComponentGallery.ps1` now accepts `-IncludeDirectOutlineTextProof`
+- direct-outline gallery proof exports stay local and deterministic under an explicit output directory such as `artifacts\m9e`
+- `font-diagnostic-export-manifest.json/txt` remain the diagnostic-toolkit manifest outputs, while the gallery proof writes standalone PNG crops for direct-outline and backend comparison
+
+This still does not change production UI text behavior.

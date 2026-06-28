@@ -10,6 +10,7 @@ public sealed class GalleryExportTests
         var options = GalleryProgramOptions.Parse([]);
 
         Assert.False(options.ExportOnly);
+        Assert.False(options.IncludeDirectOutlineTextProof);
         Assert.False(options.IncludeMsdfFontProof);
         Assert.Equal(Path.Combine("artifacts", "m7e"), options.ExportDirectory);
         Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
@@ -29,10 +30,26 @@ public sealed class GalleryExportTests
         ]);
 
         Assert.True(options.ExportOnly);
+        Assert.False(options.IncludeDirectOutlineTextProof);
         Assert.False(options.IncludeMsdfFontProof);
         Assert.Equal(@"artifacts\m7e", options.ExportDirectory);
         Assert.Equal("component-gallery-default", options.ExportName);
         Assert.Equal(GalleryState.Default, options.InitialState);
+    }
+
+    [Fact]
+    public void GalleryProgramOptions_ParsesIncludeDirectOutlineTextProof()
+    {
+        var options = GalleryProgramOptions.Parse(
+        [
+            "--export-only",
+            "--include-direct-outline-text-proof",
+        ]);
+
+        Assert.True(options.ExportOnly);
+        Assert.True(options.IncludeDirectOutlineTextProof);
+        Assert.False(options.IncludeMsdfFontProof);
+        Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
     }
 
     [Fact]
@@ -54,6 +71,7 @@ public sealed class GalleryExportTests
     {
         Assert.Equal("component-gallery-default", GalleryExportContract.DefaultExportName);
         Assert.Equal("component-gallery-interactive", GalleryExportContract.InteractiveExportName);
+        Assert.Equal("component-gallery-direct-outline-text-proof", GalleryExportContract.DirectOutlineProofExportName);
         Assert.Equal("component-gallery-msdf-proof", GalleryExportContract.MsdfProofExportName);
     }
 
@@ -69,6 +87,15 @@ public sealed class GalleryExportTests
         Assert.Equal(
             Path.Combine("artifacts", "m7e", "component-gallery-msdf-proof.png"),
             GalleryExportContract.GetMsdfProofOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "component-gallery-direct-outline-text-proof.png"),
+            GalleryExportContract.GetDirectOutlineProofOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "component-gallery-text-backend-comparison.png"),
+            GalleryExportContract.GetTextBackendComparisonOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "direct-outline-static-text-proof.png"),
+            GalleryExportContract.GetDirectOutlineStandaloneOutputPath(Path.Combine("artifacts", "m7e")));
     }
 
     [Fact]
@@ -109,8 +136,11 @@ public sealed class GalleryExportTests
             Assert.Equal(
                 GalleryExportContract.GetInteractiveOutputPath(outputDirectory),
                 result.OutputPath);
-            Assert.False(result.IncludeMsdfFontProof);
+            Assert.False(result.ProofOptions.IncludeDirectOutlineTextProof);
+            Assert.False(result.ProofOptions.IncludeMsdfFontProof);
+            Assert.Null(result.DirectOutlineProofPlacement);
             Assert.Null(result.MsdfProofPlacement);
+            Assert.Null(result.DirectOutlineArtifacts);
             Assert.True(File.Exists(result.OutputPath));
 
             var bytes = File.ReadAllBytes(result.OutputPath);
@@ -141,7 +171,9 @@ public sealed class GalleryExportTests
                 outputDirectory,
                 GalleryExportContract.DefaultExportName);
 
-            Assert.False(result.IncludeMsdfFontProof);
+            Assert.False(result.ProofOptions.IncludeDirectOutlineTextProof);
+            Assert.False(result.ProofOptions.IncludeMsdfFontProof);
+            Assert.Null(result.DirectOutlineProofPlacement);
             Assert.Null(result.MsdfProofPlacement);
         }
         finally
@@ -151,6 +183,58 @@ public sealed class GalleryExportTests
                 Directory.Delete(outputDirectory, recursive: true);
             }
         }
+    }
+
+    [Fact]
+    public void ExportComponentGallery_WithDirectOutlineTextProof_WritesArtifact()
+    {
+        var outputDirectory = Path.Combine(Path.GetTempPath(), "machina-gallery-export-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var result = GalleryExporter.Export(
+                GalleryState.Default,
+                outputDirectory,
+                GalleryExportContract.DirectOutlineProofExportName,
+                new GalleryProofOptions(IncludeDirectOutlineTextProof: true));
+
+            Assert.True(result.ProofOptions.IncludeDirectOutlineTextProof);
+            Assert.False(result.ProofOptions.IncludeMsdfFontProof);
+            Assert.NotNull(result.DirectOutlineProofPlacement);
+            Assert.Equal(
+                GalleryExportContract.GetDirectOutlineProofOutputPath(outputDirectory),
+                result.OutputPath);
+            Assert.True(File.Exists(result.OutputPath));
+            Assert.NotNull(result.DirectOutlineArtifacts);
+            Assert.True(File.Exists(result.DirectOutlineArtifacts!.StandaloneProofPath));
+            Assert.True(File.Exists(result.DirectOutlineArtifacts.ComparisonPath));
+            Assert.Equal(
+                GalleryExportContract.GetDirectOutlineStandaloneOutputPath(outputDirectory),
+                result.DirectOutlineArtifacts.StandaloneProofPath);
+            Assert.Equal(
+                GalleryExportContract.GetTextBackendComparisonOutputPath(outputDirectory),
+                result.DirectOutlineArtifacts.ComparisonPath);
+
+            var bytes = File.ReadAllBytes(result.OutputPath);
+            Assert.True(bytes.Length > 8);
+        }
+        finally
+        {
+            if (Directory.Exists(outputDirectory))
+            {
+                Directory.Delete(outputDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void ExportComponentGallery_DefaultBehaviorUnchanged()
+    {
+        var options = GalleryProgramOptions.Parse(["--export-only"]);
+
+        Assert.False(options.IncludeDirectOutlineTextProof);
+        Assert.False(options.IncludeMsdfFontProof);
+        Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
     }
 
     [Fact]
@@ -166,7 +250,7 @@ public sealed class GalleryExportTests
                 GalleryExportContract.MsdfProofExportName,
                 includeMsdfFontProof: true);
 
-            Assert.True(result.IncludeMsdfFontProof);
+            Assert.True(result.ProofOptions.IncludeMsdfFontProof);
             Assert.NotNull(result.MsdfProofPlacement);
             Assert.Equal(
                 GalleryExportContract.GetMsdfProofOutputPath(outputDirectory),
