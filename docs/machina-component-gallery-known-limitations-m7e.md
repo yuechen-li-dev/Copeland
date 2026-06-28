@@ -76,3 +76,8 @@ Use this register when a visual rough edge appears during gallery inspection.
 - Add new items only when they are visible in the real gallery path or supported by headless evidence.
 - Do not remove limitations simply because they are cosmetically tolerable; remove them when the capability actually exists.
 - Keep generated PNG artifacts out of source control unless artifact policy changes explicitly.
+
+
+## M8a font atlas architecture note
+
+M8a keeps the gallery visuals unchanged and documents the long-term async MSDF font atlas path in `docs/machina-font-atlas-architecture-m8a.md`. The current deterministic bitmap text renderer remains a bootstrap/debug renderer until later milestones add font atlas records, worker preflight, and renderer consumption.

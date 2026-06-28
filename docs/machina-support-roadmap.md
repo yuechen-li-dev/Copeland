@@ -415,3 +415,8 @@ Deferred:
 ## M5i validation note
 
 M5i fixed the unrelated Windows blockers in `Copeland.Script.Tests` and `Copeland.Cli.Tests`, so `dotnet test Copeland.slnx` is green again on Windows. See `docs/copeland-windows-test-triage-m5i.md`.
+
+
+## M8a font atlas architecture
+
+M8a documents the future `Machina.Fonts` direction: async runtime MSDF atlas generation, immutable snapshot consumption, TOML/PNG atlas export/import, and headless gallery-export preflight. Implementation is staged for M8b+; M8a intentionally does not replace the current bitmap renderer or add Vulkan/native font dependencies. See `docs/machina-font-atlas-architecture-m8a.md`.

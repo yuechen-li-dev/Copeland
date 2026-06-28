@@ -38,3 +38,8 @@ To update later:
 ```powershell
 git submodule update --remote reference/dominatus
 ```
+
+
+## M8a font atlas audit
+
+`reference/dominatus/src/Dominatus.Assets.Toml` and `reference/dominatus/src/Dominatus.SpriteForge` were audited for Machina font atlas design in `../docs/machina-font-atlas-architecture-m8a.md`. The submodule remains reference-only; active builds continue to use NuGet packages rather than ProjectReferences into `reference/dominatus`.
