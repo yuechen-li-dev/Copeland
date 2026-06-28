@@ -242,3 +242,17 @@ M8p replaces the recomputed fit-padding workaround with an explicit stored field
 - `CpuDistanceFieldTextRenderer` now uses stored plane bounds and no longer treats a fixed field tile as the draw contract
 
 Kerning behavior from M8n remains intact and still applies before placement.
+
+## M8q update
+
+M8q re-checks the remaining vertical question without changing M8n kerning behavior.
+
+- browser `TextMetrics` are now captured for the same proof strings
+- the proof report now records browser actual/font bounds alongside Machina plane/ink bounds
+- new tests prove the renderer uses baseline-relative plane bounds and does not double-apply `BearingY`
+
+Current result:
+
+- horizontal/kerning behavior from M8n and M8p stays intact
+- the remaining discrepancy is not another spacing guess target
+- no vertical magic constant was added

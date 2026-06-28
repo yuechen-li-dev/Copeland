@@ -30,8 +30,8 @@ function Find-BrowserPath {
     }
 
     $candidates = @(
-        "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-        "C:\Program Files\Google\Chrome\Application\chrome.exe"
+        "C:\Program Files\Google\Chrome\Application\chrome.exe",
+        "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
     )
 
     foreach ($candidate in $candidates) {
@@ -71,7 +71,7 @@ function Invoke-BrowserScreenshot {
 
     & $BrowserExe @args
 
-    if ($LASTEXITCODE -ne 0) {
+    if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
         throw "Browser screenshot failed for $ScreenshotPath"
     }
 
@@ -84,6 +84,81 @@ function Invoke-BrowserScreenshot {
     if (-not (Test-Path -LiteralPath $ScreenshotPath)) {
         throw "Expected screenshot was not created: $ScreenshotPath"
     }
+}
+
+function Invoke-BrowserDumpDom {
+    param(
+        [string]$BrowserExe,
+        [string]$Url
+    )
+
+    $args = @(
+        "--headless=new",
+        "--disable-gpu",
+        "--hide-scrollbars",
+        "--force-device-scale-factor=1",
+        "--allow-file-access-from-files",
+        "--virtual-time-budget=3000",
+        "--dump-dom",
+        $Url
+    )
+
+    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("machina-font-reference-dom-" + [Guid]::NewGuid().ToString("N") + ".txt")
+    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("machina-font-reference-dom-" + [Guid]::NewGuid().ToString("N") + ".err.txt")
+
+    try {
+        $process = Start-Process `
+            -FilePath $BrowserExe `
+            -ArgumentList $args `
+            -NoNewWindow `
+            -PassThru `
+            -Wait `
+            -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath
+
+        if ($process.ExitCode -ne 0) {
+            $stderr = if (Test-Path -LiteralPath $stderrPath) {
+                Get-Content -LiteralPath $stderrPath -Raw
+            }
+            else {
+                ""
+            }
+
+            throw "Browser DOM dump failed for $Url`n$stderr"
+        }
+
+        return Get-Content -LiteralPath $stdoutPath -Raw
+    }
+    finally {
+        Remove-Item -LiteralPath $stdoutPath -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $stderrPath -ErrorAction SilentlyContinue
+    }
+}
+
+function Get-MetricsJsonFromDom {
+    param([object]$DomLines)
+
+    if ($null -eq $DomLines) {
+        throw "Browser DOM dump did not return any content."
+    }
+
+    $dom = if ($DomLines -is [System.Array]) {
+        [string]::Join([Environment]::NewLine, [string[]]$DomLines)
+    }
+    else {
+        [string]$DomLines
+    }
+
+    $match = [System.Text.RegularExpressions.Regex]::Match(
+        $dom,
+        '<pre[^>]*id="metrics-output"[^>]*>(?<json>\{.*\})</pre>',
+        [System.Text.RegularExpressions.RegexOptions]::Singleline)
+
+    if (-not $match.Success) {
+        throw "Metrics JSON payload was not found in browser DOM output."
+    }
+
+    return $match.Groups["json"].Value
 }
 
 function Build-QueryString {
@@ -103,14 +178,95 @@ $projectPath = Join-Path $repoRoot "tests\\Machina.Fonts.Tests\\Machina.Fonts.Te
 $filter = "FullyQualifiedName~Machina.Fonts.Tests.Rendering.FontReferenceOracleWorkflowTests.FontReferenceOracleWorkflow_ScriptWorkflowExportsArtifacts"
 $fixtureHtmlPath = Join-Path $repoRoot "tools\\font-reference\\reference-render.html"
 $fontPath = Join-Path $repoRoot "tests\\Machina.Fonts.Tests\\Fixtures\\Fonts\\CrimsonText-Regular.ttf"
+$definitions = @(
+    @{ Id = "machina"; Text = "Machina" },
+    @{ Id = "hello-machina"; Text = "Hello Machina" },
+    @{ Id = "kerning"; Text = "AV To Ta Wa Yo" },
+    @{ Id = "aa0"; Text = "Aa0" },
+    @{ Id = "a-space-a"; Text = "A A" }
+)
 
 $resolvedOutputDir = Resolve-FullPath $OutputDir
 New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
+$browserExe = Find-BrowserPath $BrowserPath
+$browserMetricsPath = Join-Path $resolvedOutputDir "browser-text-metrics.json"
+$manualInstructionsPath = Join-Path $resolvedOutputDir "manual-reference-instructions.txt"
+$fixtureHtmlUri = Convert-ToFileUri $fixtureHtmlPath
+$fontUri = Convert-ToFileUri $fontPath
+
+$browserMetricsFixtures = @()
+
+foreach ($definition in $definitions) {
+    if ($browserExe) {
+        $metricsParams = Build-QueryString @{
+            mode = "metrics"
+            width = "320"
+            height = "64"
+            x = "8"
+            baseline = "40"
+            fontSize = "32"
+            fontFamily = "CrimsonText-Regular"
+            fontUrl = $fontUri
+            foreground = "#f0f0f0"
+            background = "#101018"
+            text = $definition.Text
+        }
+
+        $metricsJson = Get-MetricsJsonFromDom (Invoke-BrowserDumpDom `
+            -BrowserExe $browserExe `
+            -Url ($fixtureHtmlUri + "?" + $metricsParams))
+
+        $fixtureMetrics = $metricsJson | ConvertFrom-Json -AsHashtable
+        $fixtureMetrics["id"] = $definition.Id
+        $browserMetricsFixtures += $fixtureMetrics
+    }
+    else {
+        $browserMetricsFixtures += @{
+            id = $definition.Id
+            text = $definition.Text
+            fontFamily = "CrimsonText-Regular"
+            fontSize = 32
+            canvasWidth = 320
+            canvasHeight = 64
+            x = 8
+            baselineY = 40
+            textBaseline = "alphabetic"
+            textAlign = "left"
+            metrics = @{
+                width = $null
+                actualBoundingBoxLeft = $null
+                actualBoundingBoxRight = $null
+                actualBoundingBoxAscent = $null
+                actualBoundingBoxDescent = $null
+                fontBoundingBoxAscent = $null
+                fontBoundingBoxDescent = $null
+                emHeightAscent = $null
+                emHeightDescent = $null
+                alphabeticBaseline = $null
+                hangingBaseline = $null
+                ideographicBaseline = $null
+            }
+            unavailableReason = "No compatible headless browser was found for automated TextMetrics capture."
+        }
+    }
+}
+
+$browserMetricsDocument = @{
+    generatedAtUtc = [DateTime]::UtcNow.ToString("o")
+    browserPath = $browserExe
+    fixtureHtmlPath = $fixtureHtmlPath
+    fixtures = $browserMetricsFixtures
+}
+
+$browserMetricsDocument |
+    ConvertTo-Json -Depth 8 |
+    Set-Content -LiteralPath $browserMetricsPath -Encoding UTF8
 
 Push-Location $repoRoot
 
 try {
     $env:MACHINA_FONT_REFERENCE_OUTPUT_DIR = $resolvedOutputDir
+    $env:MACHINA_FONT_REFERENCE_BROWSER_METRICS_PATH = $browserMetricsPath
 
     $arguments = @(
         "test",
@@ -129,19 +285,9 @@ try {
 }
 finally {
     Remove-Item Env:\MACHINA_FONT_REFERENCE_OUTPUT_DIR -ErrorAction SilentlyContinue
+    Remove-Item Env:\MACHINA_FONT_REFERENCE_BROWSER_METRICS_PATH -ErrorAction SilentlyContinue
     Pop-Location
 }
-
-$definitions = @(
-    @{ Id = "machina"; Text = "Machina" },
-    @{ Id = "hello-machina"; Text = "Hello Machina" },
-    @{ Id = "kerning"; Text = "AV To Ta Wa Yo" },
-    @{ Id = "aa0"; Text = "Aa0" },
-    @{ Id = "a-space-a"; Text = "A A" }
-)
-
-$browserExe = Find-BrowserPath $BrowserPath
-$manualInstructionsPath = Join-Path $resolvedOutputDir "manual-reference-instructions.txt"
 
 if (-not $browserExe) {
     @"
@@ -174,9 +320,6 @@ Canvas:
     Write-Host "Manual instructions: $manualInstructionsPath"
     return
 }
-
-$fixtureHtmlUri = Convert-ToFileUri $fixtureHtmlPath
-$fontUri = Convert-ToFileUri $fontPath
 
 foreach ($definition in $definitions) {
     $referencePath = Join-Path $resolvedOutputDir ("reference-" + $definition.Id + ".png")

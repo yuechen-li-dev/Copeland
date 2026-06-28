@@ -171,3 +171,14 @@ M8p is that next placement-data correction pass.
 - regenerated `artifacts/m8p` comparisons materially reduce the contiguous-string overlap that M8o identified
 
 The oracle remains local and proof-only, but it now validates a concrete field-placement contract rather than just exposing the absence of one.
+
+## M8q follow-up
+
+M8q keeps the browser oracle but adds explicit browser `TextMetrics` capture and merged vertical reporting.
+
+- the browser fixture now exports `measureText(...)` fields such as actual bounding box ascent/descent, font bounding box ascent/descent, and baseline metrics
+- `glyph-placement-report.txt/json` now includes both browser and Machina vertical metrics
+- current M8q evidence shows both paths use the same alphabetic baseline and the same `baselineY = 40`
+- the remaining mismatch is not a baseline-origin bug; Machina ink tops already line up with browser actual tops, while Machina ink bottoms still extend slightly lower
+
+So M8q narrows the next problem from “vertical placement might be wrong” to “proof ink extent below the baseline is still a little heavier than browser canvas.”

@@ -203,3 +203,13 @@ This is still proof-path only:
 - no Standard/UI migration
 - no production renderer integration
 - no shaping or bidi engine adoption
+
+## M8q follow-up
+
+M8q keeps the M8l proof-only baseline/orientation policy but adds browser-measured validation for it.
+
+- the browser oracle now confirms explicit `alphabetic` baseline use
+- the merged report shows Machina proof uses the same `baselineY`
+- renderer tests now lock the “plane bounds relative to baseline” contract
+
+M8q therefore does not reintroduce the pre-M8p `baselineY - bearingY - inferred padding` placement model.

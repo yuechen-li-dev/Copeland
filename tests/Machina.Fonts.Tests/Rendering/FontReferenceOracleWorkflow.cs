@@ -14,7 +14,9 @@ namespace Machina.Fonts.Tests.Rendering;
 internal static class FontReferenceOracleWorkflow
 {
     public const string OutputDirectoryEnvironmentVariable = "MACHINA_FONT_REFERENCE_OUTPUT_DIR";
+    public const string BrowserMetricsPathEnvironmentVariable = "MACHINA_FONT_REFERENCE_BROWSER_METRICS_PATH";
     public const string ManualInstructionsFileName = "manual-reference-instructions.txt";
+    public const string BrowserTextMetricsFileName = "browser-text-metrics.json";
     public const string PlacementReportTextFileName = "glyph-placement-report.txt";
     public const string PlacementReportJsonFileName = "glyph-placement-report.json";
     public const double ProofEmSize = 32d;
@@ -25,6 +27,8 @@ internal static class FontReferenceOracleWorkflow
 
     private static readonly Rgba32 Background = new(16, 16, 24, 255);
     private static readonly Rgba32 Foreground = new(240, 240, 240, 255);
+    private const string CoordinateConventionNote =
+        "Font outline coordinates use +Y up relative to the alphabetic baseline. Output image coordinates use +Y down from the top-left. GlyphFieldPlacement.PlaneTop/PlaneBottom are stored as image-down offsets relative to the baseline, so negative PlaneTop draws above the baseline and positive PlaneBottom draws below it.";
 
     public static IReadOnlyList<FontReferenceOracleDefinition> Definitions { get; } =
     [
@@ -64,6 +68,7 @@ internal static class FontReferenceOracleWorkflow
     {
         string fullOutputDirectory = Path.GetFullPath(outputDirectory);
         Directory.CreateDirectory(fullOutputDirectory);
+        BrowserTextMetricsDocument? browserMetrics = TryLoadBrowserMetricsFromEnvironment();
 
         TypographyGlyphOutlineSource source = TypographyKerningFixtureFont.CreateSource();
         FontProofExporter exporter = new(
@@ -88,6 +93,7 @@ internal static class FontReferenceOracleWorkflow
         List<FontReferenceOracleArtifact> artifacts = [];
         Dictionary<string, DistanceFieldTextLayoutResult> layouts = [];
         Dictionary<string, Dictionary<GlyphPairKey, GlyphPairAdjustment>> pairAdjustmentsByFixture = [];
+        Dictionary<string, InkBounds?> inkBoundsByFixture = [];
         Dictionary<GlyphKey, GlyphMetrics> metricsByGlyph = await LoadMetricsAsync(source, cancellationToken);
         DistanceFieldTextRenderOptions renderOptions = CreateRenderOptions();
 
@@ -96,6 +102,7 @@ internal static class FontReferenceOracleWorkflow
             FontProofArtifact artifact = AssertSingleArtifact(export.Artifacts, definition.MachinaPpmFileName);
             string pngPath = Path.Combine(fullOutputDirectory, definition.MachinaPngFileName);
             RgbaPngWriter.Write(pngPath, artifact.Image);
+            inkBoundsByFixture[definition.Id] = ComputeInkBounds(artifact.Image, Background);
 
             DistanceFieldTextRun run = DistanceFieldTextRun.Create(
                 definition.Text,
@@ -123,7 +130,9 @@ internal static class FontReferenceOracleWorkflow
             export.Snapshot,
             metricsByGlyph,
             pairAdjustmentsByFixture,
-            layouts);
+            layouts,
+            inkBoundsByFixture,
+            browserMetrics);
 
         string reportTextPath = Path.Combine(fullOutputDirectory, PlacementReportTextFileName);
         string reportJsonPath = Path.Combine(fullOutputDirectory, PlacementReportJsonFileName);
@@ -135,6 +144,7 @@ internal static class FontReferenceOracleWorkflow
             TomlPath: export.TomlPath!,
             PagePaths: export.PagePaths,
             Artifacts: artifacts,
+            BrowserMetricsJsonPath: ResolveBrowserMetricsPath(),
             PlacementReportTextPath: reportTextPath,
             PlacementReportJsonPath: reportJsonPath,
             FontPath: TypographyKerningFixtureFont.FontPath,
@@ -255,9 +265,14 @@ internal static class FontReferenceOracleWorkflow
         FontAtlasSnapshot snapshot,
         IReadOnlyDictionary<GlyphKey, GlyphMetrics> metricsByGlyph,
         IReadOnlyDictionary<string, Dictionary<GlyphPairKey, GlyphPairAdjustment>> pairAdjustmentsByFixture,
-        IReadOnlyDictionary<string, DistanceFieldTextLayoutResult> layouts)
+        IReadOnlyDictionary<string, DistanceFieldTextLayoutResult> layouts,
+        IReadOnlyDictionary<string, InkBounds?> inkBoundsByFixture,
+        BrowserTextMetricsDocument? browserMetrics)
     {
         List<FontReferenceOracleFixtureReport> fixtures = [];
+        IReadOnlyDictionary<string, BrowserTextMetricsFixture> browserMetricsByFixture =
+            browserMetrics?.Fixtures.ToDictionary(static fixture => fixture.Id, StringComparer.Ordinal)
+            ?? new Dictionary<string, BrowserTextMetricsFixture>(StringComparer.Ordinal);
 
         foreach (FontReferenceOracleDefinition definition in Definitions)
         {
@@ -305,6 +320,7 @@ internal static class FontReferenceOracleWorkflow
                     index,
                     FormatCharacter(key.Codepoint),
                     $"U+{key.Codepoint:X4}",
+                    key.Codepoint,
                     $"{key.Face}:{key.Codepoint:X4}@{key.EmSize:0.##}",
                     metrics.Advance,
                     metrics.BearingX,
@@ -315,8 +331,12 @@ internal static class FontReferenceOracleWorkflow
                     pairAdjustment?.AdvanceY,
                     penBeforeAdjustment,
                     penAfterAdjustment,
+                    placement.X,
+                    placement.BaselineY,
                     fieldPlacement?.DrawX,
                     fieldPlacement?.DrawY,
+                    fieldPlacement?.OutputWidth,
+                    fieldPlacement?.OutputHeight,
                     atlasEntry?.PageIndex,
                     atlasEntry?.X,
                     atlasEntry?.Y,
@@ -332,8 +352,6 @@ internal static class FontReferenceOracleWorkflow
                     atlasEntry?.Placement.PlaneBottom,
                     atlasEntry?.Placement.PixelRange,
                     atlasEntry?.Placement.ProjectionScale,
-                    fieldPlacement?.OutputWidth,
-                    fieldPlacement?.OutputHeight,
                     isWhitespace));
 
                 runningPenX = penAfterAdjustment + metrics.Advance;
@@ -341,20 +359,46 @@ internal static class FontReferenceOracleWorkflow
                 previousWasWhitespace = isWhitespace;
             }
 
+            double? minPlaneTop = MinOrNull(rows.Select(static row => row.PlaneTop));
+            double? maxPlaneBottom = MaxOrNull(rows.Select(static row => row.PlaneBottom));
+            double? computedTextTop = minPlaneTop is null ? null : ProofBaselineY + minPlaneTop.Value;
+            double? computedTextBottom = maxPlaneBottom is null ? null : ProofBaselineY + maxPlaneBottom.Value;
+            InkBounds? inkBounds = inkBoundsByFixture.TryGetValue(definition.Id, out InkBounds? bounds)
+                ? bounds
+                : null;
+            BrowserTextMetricsFixture? browserFixture = browserMetricsByFixture.TryGetValue(definition.Id, out BrowserTextMetricsFixture? metricsFixture)
+                ? metricsFixture
+                : null;
+
             fixtures.Add(new FontReferenceOracleFixtureReport(
                 definition.Id,
                 definition.Text,
                 layout.Width,
+                TypographyKerningFixtureFont.Face.Value,
+                ProofEmSize,
+                ProofWidth,
+                ProofHeight,
+                ProofBaselineY,
+                computedTextTop,
+                computedTextBottom,
+                minPlaneTop,
+                maxPlaneBottom,
+                inkBounds?.MinY,
+                inkBounds?.MaxY,
+                browserFixture,
+                CreateBrowserVerticalMetrics(browserFixture),
                 rows));
         }
 
         return new FontReferenceOraclePlacementReport(
             FontPath: TypographyKerningFixtureFont.FontPath,
+            FontFace: TypographyKerningFixtureFont.Face.Value,
             EmSize: ProofEmSize,
             OutputWidth: ProofWidth,
             OutputHeight: ProofHeight,
             OriginX: ProofOriginX,
             BaselineY: ProofBaselineY,
+            CoordinateConvention: CoordinateConventionNote,
             Fixtures: fixtures);
     }
 
@@ -436,17 +480,46 @@ internal static class FontReferenceOracleWorkflow
         StringBuilder builder = new();
         builder.AppendLine("Machina MSDF glyph placement report");
         builder.AppendLine($"fontPath: {report.FontPath}");
+        builder.AppendLine($"fontFace: {report.FontFace}");
         builder.AppendLine($"emSize: {report.EmSize}");
         builder.AppendLine($"output: {report.OutputWidth}x{report.OutputHeight}");
         builder.AppendLine($"originX: {report.OriginX}");
         builder.AppendLine($"baselineY: {report.BaselineY}");
+        builder.AppendLine($"coordinateConvention: {report.CoordinateConvention}");
         builder.AppendLine();
 
         foreach (FontReferenceOracleFixtureReport fixture in report.Fixtures)
         {
             builder.AppendLine($"[{fixture.Id}] {fixture.Text}");
+            builder.AppendLine($"fontFace: {fixture.FontFace}");
+            builder.AppendLine($"emSize: {fixture.EmSize}");
+            builder.AppendLine($"output: {fixture.OutputWidth}x{fixture.OutputHeight}");
+            builder.AppendLine($"baselineY: {fixture.BaselineY}");
             builder.AppendLine($"layoutWidth: {fixture.LayoutWidth:0.###}");
-            builder.AppendLine("index\tchar\tcodepoint\tglyphKey\tadvance\tbearingX\tbearingY\tmetricsWidth\tmetricsHeight\tpairAdjustX\tpairAdjustY\tpenBefore\tpenAfter\tdrawX\tdrawY\tatlasPage\tatlasRect\tuv0\tuv1\tplaneBounds\tpixelRange\tprojectionScale\tfieldSize\twhitespace");
+            builder.AppendLine($"computedTextTop: {FormatNullable(fixture.ComputedTextTop)}");
+            builder.AppendLine($"computedTextBottom: {FormatNullable(fixture.ComputedTextBottom)}");
+            builder.AppendLine($"minPlaneTop: {FormatNullable(fixture.MinPlaneTop)}");
+            builder.AppendLine($"maxPlaneBottom: {FormatNullable(fixture.MaxPlaneBottom)}");
+            builder.AppendLine($"minInkTop: {FormatNullable(fixture.MinInkTop)}");
+            builder.AppendLine($"maxInkBottom: {FormatNullable(fixture.MaxInkBottom)}");
+
+            if (fixture.BrowserVerticalMetrics is not null)
+            {
+                builder.AppendLine($"browserTextBaseline: {fixture.Browser?.TextBaseline ?? "not available"}");
+                builder.AppendLine($"browserTextAlign: {fixture.Browser?.TextAlign ?? "not available"}");
+                builder.AppendLine($"browserActualTop: {FormatNullable(fixture.BrowserVerticalMetrics.ActualTop)}");
+                builder.AppendLine($"browserActualBottom: {FormatNullable(fixture.BrowserVerticalMetrics.ActualBottom)}");
+                builder.AppendLine($"browserFontTop: {FormatNullable(fixture.BrowserVerticalMetrics.FontTop)}");
+                builder.AppendLine($"browserFontBottom: {FormatNullable(fixture.BrowserVerticalMetrics.FontBottom)}");
+                builder.AppendLine($"browserEmTop: {FormatNullable(fixture.BrowserVerticalMetrics.EmTop)}");
+                builder.AppendLine($"browserEmBottom: {FormatNullable(fixture.BrowserVerticalMetrics.EmBottom)}");
+                builder.AppendLine($"browserActualBoundingBoxAscent: {FormatNullable(fixture.BrowserVerticalMetrics.ActualBoundingBoxAscent)}");
+                builder.AppendLine($"browserActualBoundingBoxDescent: {FormatNullable(fixture.BrowserVerticalMetrics.ActualBoundingBoxDescent)}");
+                builder.AppendLine($"browserFontBoundingBoxAscent: {FormatNullable(fixture.BrowserVerticalMetrics.FontBoundingBoxAscent)}");
+                builder.AppendLine($"browserFontBoundingBoxDescent: {FormatNullable(fixture.BrowserVerticalMetrics.FontBoundingBoxDescent)}");
+            }
+
+            builder.AppendLine("index\tchar\tcodepoint\tcodepointValue\tglyphKey\tadvance\tbearingX\tbearingY\tmetricsWidth\tmetricsHeight\tpairAdjustX\tpairAdjustY\tpenBefore\tpenAfter\tpenX\tbaselineY\tdrawX\tdrawY\tdrawWidth\tdrawHeight\tatlasPage\tatlasRect\tuv0\tuv1\tplaneBounds\tpixelRange\tprojectionScale\twhitespace");
 
             foreach (FontReferenceOracleGlyphRow row in fixture.Glyphs)
             {
@@ -456,6 +529,7 @@ internal static class FontReferenceOracleWorkflow
                         row.Index,
                         row.Character,
                         row.Codepoint,
+                        row.CodepointValue,
                         row.GlyphKey,
                         FormatNullable(row.Advance),
                         FormatNullable(row.BearingX),
@@ -466,8 +540,12 @@ internal static class FontReferenceOracleWorkflow
                         FormatNullable(row.PairAdjustmentAdvanceY),
                         FormatNullable(row.PenXBeforePairAdjustment),
                         FormatNullable(row.PenXAfterPairAdjustment),
+                        FormatNullable(row.PenX),
+                        FormatNullable(row.BaselineY),
                         FormatNullable(row.DrawX),
                         FormatNullable(row.DrawY),
+                        FormatNullable(row.DrawWidth),
+                        FormatNullable(row.DrawHeight),
                         FormatNullable(row.AtlasPage),
                         $"{FormatNullable(row.AtlasRectX)},{FormatNullable(row.AtlasRectY)},{FormatNullable(row.AtlasRectWidth)},{FormatNullable(row.AtlasRectHeight)}",
                         $"{FormatNullable(row.U0)},{FormatNullable(row.V0)}",
@@ -475,7 +553,6 @@ internal static class FontReferenceOracleWorkflow
                         $"{FormatNullable(row.PlaneLeft)},{FormatNullable(row.PlaneTop)},{FormatNullable(row.PlaneRight)},{FormatNullable(row.PlaneBottom)}",
                         FormatNullable(row.PixelRange),
                         FormatNullable(row.ProjectionScale),
-                        $"{FormatNullable(row.FieldWidth)},{FormatNullable(row.FieldHeight)}",
                         row.IsWhitespace ? "yes" : "no"));
             }
 
@@ -507,6 +584,104 @@ internal static class FontReferenceOracleWorkflow
         return value?.ToString() ?? "not available";
     }
 
+    private static BrowserVerticalMetrics? CreateBrowserVerticalMetrics(BrowserTextMetricsFixture? fixture)
+    {
+        if (fixture is null)
+        {
+            return null;
+        }
+
+        return new BrowserVerticalMetrics(
+            fixture.Metrics.ActualBoundingBoxAscent,
+            fixture.Metrics.ActualBoundingBoxDescent,
+            fixture.Metrics.FontBoundingBoxAscent,
+            fixture.Metrics.FontBoundingBoxDescent,
+            fixture.Metrics.EmHeightAscent,
+            fixture.Metrics.EmHeightDescent,
+            fixture.Metrics.AlphabeticBaseline,
+            fixture.Metrics.HangingBaseline,
+            fixture.Metrics.IdeographicBaseline,
+            ComputeTop(fixture.BaselineY, fixture.Metrics.ActualBoundingBoxAscent),
+            ComputeBottom(fixture.BaselineY, fixture.Metrics.ActualBoundingBoxDescent),
+            ComputeTop(fixture.BaselineY, fixture.Metrics.FontBoundingBoxAscent),
+            ComputeBottom(fixture.BaselineY, fixture.Metrics.FontBoundingBoxDescent),
+            ComputeTop(fixture.BaselineY, fixture.Metrics.EmHeightAscent),
+            ComputeBottom(fixture.BaselineY, fixture.Metrics.EmHeightDescent));
+    }
+
+    private static double? ComputeTop(double baselineY, double? ascent)
+    {
+        return ascent is null ? null : baselineY - ascent.Value;
+    }
+
+    private static double? ComputeBottom(double baselineY, double? descent)
+    {
+        return descent is null ? null : baselineY + descent.Value;
+    }
+
+    private static InkBounds? ComputeInkBounds(RgbaImage image, Rgba32 background)
+    {
+        int minX = image.Width;
+        int minY = image.Height;
+        int maxX = -1;
+        int maxY = -1;
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                if (image.GetPixel(x, y) == background)
+                {
+                    continue;
+                }
+
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+            }
+        }
+
+        if (maxX < 0 || maxY < 0)
+        {
+            return null;
+        }
+
+        return new InkBounds(minX, minY, maxX, maxY);
+    }
+
+    private static double? MinOrNull(IEnumerable<double?> values)
+    {
+        double[] collected = values.Where(static value => value.HasValue).Select(static value => value!.Value).ToArray();
+        return collected.Length == 0 ? null : collected.Min();
+    }
+
+    private static double? MaxOrNull(IEnumerable<double?> values)
+    {
+        double[] collected = values.Where(static value => value.HasValue).Select(static value => value!.Value).ToArray();
+        return collected.Length == 0 ? null : collected.Max();
+    }
+
+    private static BrowserTextMetricsDocument? TryLoadBrowserMetricsFromEnvironment()
+    {
+        string? path = ResolveBrowserMetricsPath();
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return null;
+        }
+
+        string json = File.ReadAllText(path);
+        return JsonSerializer.Deserialize<BrowserTextMetricsDocument>(json, JsonReadOptions);
+    }
+
+    private static string? ResolveBrowserMetricsPath()
+    {
+        string? requested = Environment.GetEnvironmentVariable(BrowserMetricsPathEnvironmentVariable);
+        return string.IsNullOrWhiteSpace(requested)
+            ? null
+            : Path.GetFullPath(requested);
+    }
+
     private static FontProofArtifact AssertSingleArtifact(IReadOnlyList<FontProofArtifact> artifacts, string fileName)
     {
         FontProofArtifact? artifact = artifacts.SingleOrDefault(
@@ -520,11 +695,22 @@ internal static class FontReferenceOracleWorkflow
         WriteIndented = true,
     };
 
+    private static readonly JsonSerializerOptions JsonReadOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     private sealed record FieldPlacementDetails(
         int OutputWidth,
         int OutputHeight,
         int DrawX,
         int DrawY);
+
+    private sealed record InkBounds(
+        int MinX,
+        int MinY,
+        int MaxX,
+        int MaxY);
 }
 
 internal sealed record FontReferenceOracleDefinition(string Id, string Text)
@@ -548,6 +734,7 @@ internal sealed record FontReferenceOracleExportResult(
     string TomlPath,
     IReadOnlyList<string> PagePaths,
     IReadOnlyList<FontReferenceOracleArtifact> Artifacts,
+    string? BrowserMetricsJsonPath,
     string PlacementReportTextPath,
     string PlacementReportJsonPath,
     string FontPath,
@@ -559,23 +746,39 @@ internal sealed record FontReferenceOracleExportResult(
 
 internal sealed record FontReferenceOraclePlacementReport(
     string FontPath,
+    string FontFace,
     double EmSize,
     int OutputWidth,
     int OutputHeight,
     double OriginX,
     double BaselineY,
+    string CoordinateConvention,
     IReadOnlyList<FontReferenceOracleFixtureReport> Fixtures);
 
 internal sealed record FontReferenceOracleFixtureReport(
     string Id,
     string Text,
     double LayoutWidth,
+    string FontFace,
+    double EmSize,
+    int OutputWidth,
+    int OutputHeight,
+    double BaselineY,
+    double? ComputedTextTop,
+    double? ComputedTextBottom,
+    double? MinPlaneTop,
+    double? MaxPlaneBottom,
+    int? MinInkTop,
+    int? MaxInkBottom,
+    BrowserTextMetricsFixture? Browser,
+    BrowserVerticalMetrics? BrowserVerticalMetrics,
     IReadOnlyList<FontReferenceOracleGlyphRow> Glyphs);
 
 internal sealed record FontReferenceOracleGlyphRow(
     int Index,
     string Character,
     string Codepoint,
+    int CodepointValue,
     string GlyphKey,
     double Advance,
     double BearingX,
@@ -586,8 +789,12 @@ internal sealed record FontReferenceOracleGlyphRow(
     double? PairAdjustmentAdvanceY,
     double PenXBeforePairAdjustment,
     double PenXAfterPairAdjustment,
+    double PenX,
+    double BaselineY,
     int? DrawX,
     int? DrawY,
+    int? DrawWidth,
+    int? DrawHeight,
     int? AtlasPage,
     int? AtlasRectX,
     int? AtlasRectY,
@@ -603,6 +810,55 @@ internal sealed record FontReferenceOracleGlyphRow(
     double? PlaneBottom,
     double? PixelRange,
     double? ProjectionScale,
-    int? FieldWidth,
-    int? FieldHeight,
     bool IsWhitespace);
+
+internal sealed record BrowserTextMetricsDocument(
+    string? GeneratedAtUtc,
+    string? BrowserPath,
+    string? FixtureHtmlPath,
+    IReadOnlyList<BrowserTextMetricsFixture> Fixtures);
+
+internal sealed record BrowserTextMetricsFixture(
+    string Id,
+    string Text,
+    string FontFamily,
+    double FontSize,
+    int CanvasWidth,
+    int CanvasHeight,
+    double X,
+    double BaselineY,
+    string TextBaseline,
+    string TextAlign,
+    BrowserTextMetricValues Metrics,
+    string? UnavailableReason = null);
+
+internal sealed record BrowserTextMetricValues(
+    double? Width,
+    double? ActualBoundingBoxLeft,
+    double? ActualBoundingBoxRight,
+    double? ActualBoundingBoxAscent,
+    double? ActualBoundingBoxDescent,
+    double? FontBoundingBoxAscent,
+    double? FontBoundingBoxDescent,
+    double? EmHeightAscent,
+    double? EmHeightDescent,
+    double? AlphabeticBaseline,
+    double? HangingBaseline,
+    double? IdeographicBaseline);
+
+internal sealed record BrowserVerticalMetrics(
+    double? ActualBoundingBoxAscent,
+    double? ActualBoundingBoxDescent,
+    double? FontBoundingBoxAscent,
+    double? FontBoundingBoxDescent,
+    double? EmHeightAscent,
+    double? EmHeightDescent,
+    double? AlphabeticBaseline,
+    double? HangingBaseline,
+    double? IdeographicBaseline,
+    double? ActualTop,
+    double? ActualBottom,
+    double? FontTop,
+    double? FontBottom,
+    double? EmTop,
+    double? EmBottom);

@@ -147,6 +147,36 @@ public sealed class CpuDistanceFieldTextRendererTests
     }
 
     [Fact]
+    public void CpuDistanceFieldTextRenderer_UsesPlaneBoundsRelativeToBaseline()
+    {
+        GlyphFieldPlacement placement = new(-1d, -8d, 3d, 2d, 4d, 1d);
+        GlyphAtlasEntry entry = CreateEntry('A', 0, 0, bearingY: 99d, placement: placement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: 14d);
+
+        DistanceFieldGlyphDrawBounds bounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], entry);
+
+        Assert.Equal(0, bounds.X);
+        Assert.Equal(6, bounds.Y);
+        Assert.Equal(4, bounds.Width);
+        Assert.Equal(10, bounds.Height);
+    }
+
+    [Fact]
+    public void CpuDistanceFieldTextRenderer_DoesNotDoubleApplyBearingYWhenUsingPlacement()
+    {
+        GlyphFieldPlacement placement = new(0d, -6d, 4d, 0d, 4d, 1d);
+        GlyphAtlasEntry lowBearingEntry = CreateEntry('A', 0, 0, bearingY: 6d, placement: placement);
+        GlyphAtlasEntry highBearingEntry = CreateEntry('A', 0, 0, bearingY: 18d, placement: placement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: 12d);
+
+        DistanceFieldGlyphDrawBounds lowBearingBounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], lowBearingEntry);
+        DistanceFieldGlyphDrawBounds highBearingBounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], highBearingEntry);
+
+        Assert.Equal(lowBearingBounds.Y, highBearingBounds.Y);
+        Assert.Equal(6, lowBearingBounds.Y);
+    }
+
+    [Fact]
     public void CpuDistanceFieldTextRenderer_UsesPlacementNotTileSize()
     {
         DistanceFieldPageReference page = RenderingTestHelpers.CreatePage(

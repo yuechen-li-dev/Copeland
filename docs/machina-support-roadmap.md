@@ -622,3 +622,23 @@ M8p fixes the field placement contract exposed by M8o.
 - regenerated `artifacts/m8p` comparisons show contiguous strings without the prior oversized field-tile overlap
 
 This milestone remains proof-path only and still defers any `TextBlock`, Standard, or production renderer integration.
+
+## M8q update
+
+M8q adds vertical-metrics evidence on top of the M8o/M8p oracle path.
+
+- `tools/Export-MachinaFontReferenceComparison.ps1` now also writes `artifacts/m8q/browser-text-metrics.json`
+- the browser fixture exports `measureText(...)` baseline and bounding-box metrics with explicit `alphabetic` baseline mode
+- `glyph-placement-report.txt/json` now merge browser vertical metrics with Machina plane/ink/baseline data
+- current evidence shows the proof renderer is already using the correct baseline-relative plane convention and is not double-applying `BearingY`
+- the remaining visible difference is a small proof-only lower-edge ink extent mismatch, not a baseline-origin bug
+
+M8q remains proof-path only:
+
+- no `TextBlock` integration
+- no `Machina.Standard.Text` integration
+- no production renderer integration
+- no browser dependency at runtime
+- no magic vertical offset
+
+See `docs/machina-msdf-vertical-metrics-m8q.md`.

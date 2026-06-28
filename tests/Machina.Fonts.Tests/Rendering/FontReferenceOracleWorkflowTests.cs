@@ -63,6 +63,79 @@ public sealed class FontReferenceOracleWorkflowTests
     }
 
     [Fact]
+    public async Task GlyphPlacementReport_IncludesVerticalMetrics()
+    {
+        string directory = CreateDirectory();
+
+        FontReferenceOracleExportResult result = await FontReferenceOracleWorkflow.ExportAsync(directory);
+        string report = File.ReadAllText(result.PlacementReportTextPath);
+
+        Assert.Contains("coordinateConvention", report);
+        Assert.Contains("computedTextTop", report);
+        Assert.Contains("computedTextBottom", report);
+        Assert.Contains("minPlaneTop", report);
+        Assert.Contains("maxPlaneBottom", report);
+        Assert.Contains("minInkTop", report);
+        Assert.Contains("maxInkBottom", report);
+        Assert.Contains("penX", report);
+        Assert.Contains("drawWidth", report);
+        Assert.Contains("drawHeight", report);
+    }
+
+    [Fact]
+    public async Task ReferenceOracle_ReportIncludesBrowserAndMachinaVerticalMetrics()
+    {
+        string directory = CreateDirectory();
+        string metricsPath = Path.Combine(directory, FontReferenceOracleWorkflow.BrowserTextMetricsFileName);
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(metricsPath, CreateBrowserMetricsJson());
+
+        string? previous = Environment.GetEnvironmentVariable(FontReferenceOracleWorkflow.BrowserMetricsPathEnvironmentVariable);
+
+        try
+        {
+            Environment.SetEnvironmentVariable(FontReferenceOracleWorkflow.BrowserMetricsPathEnvironmentVariable, metricsPath);
+
+            FontReferenceOracleExportResult result = await FontReferenceOracleWorkflow.ExportAsync(directory);
+            string report = File.ReadAllText(result.PlacementReportTextPath);
+            string json = File.ReadAllText(result.PlacementReportJsonPath);
+
+            Assert.Equal(metricsPath, result.BrowserMetricsJsonPath);
+            Assert.Contains("browserActualTop", report);
+            Assert.Contains("browserFontBottom", report);
+            Assert.Contains("\"BrowserVerticalMetrics\"", json);
+            Assert.Contains("\"ComputedTextTop\"", json);
+            Assert.Contains("\"CoordinateConvention\"", json);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(FontReferenceOracleWorkflow.BrowserMetricsPathEnvironmentVariable, previous);
+        }
+    }
+
+    [Fact]
+    public void ReferenceOracle_TextMetricsScriptContainsBaselineAndBoundsCapture()
+    {
+        string scriptPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "..",
+            "tools",
+            "font-reference",
+            "reference-render.js");
+        string script = File.ReadAllText(Path.GetFullPath(scriptPath));
+
+        Assert.Contains("measureText", script);
+        Assert.Contains("context.textBaseline = \"alphabetic\"", script);
+        Assert.Contains("actualBoundingBoxAscent", script);
+        Assert.Contains("fontBoundingBoxAscent", script);
+        Assert.Contains("alphabeticBaseline", script);
+    }
+
+    [Fact]
     public async Task FontReferenceOracleWorkflow_PngArtifactsHavePngSignature()
     {
         string directory = CreateDirectory();
@@ -99,5 +172,44 @@ public sealed class FontReferenceOracleWorkflowTests
     private static string CreateDirectory()
     {
         return Path.Combine(Path.GetTempPath(), "machina-fonts-m8o-tests", Guid.NewGuid().ToString("N"));
+    }
+
+    private static string CreateBrowserMetricsJson()
+    {
+        return """
+        {
+          "generatedAtUtc": "2026-06-28T00:00:00Z",
+          "browserPath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+          "fixtureHtmlPath": "tools/font-reference/reference-render.html",
+          "fixtures": [
+            {
+              "id": "machina",
+              "text": "Machina",
+              "fontFamily": "CrimsonText-Regular",
+              "fontSize": 32,
+              "canvasWidth": 320,
+              "canvasHeight": 64,
+              "x": 8,
+              "baselineY": 40,
+              "textBaseline": "alphabetic",
+              "textAlign": "left",
+              "metrics": {
+                "width": 109.875,
+                "actualBoundingBoxLeft": 0,
+                "actualBoundingBoxRight": 110.65625,
+                "actualBoundingBoxAscent": 22,
+                "actualBoundingBoxDescent": 0,
+                "fontBoundingBoxAscent": 30,
+                "fontBoundingBoxDescent": 11,
+                "emHeightAscent": null,
+                "emHeightDescent": null,
+                "alphabeticBaseline": 0,
+                "hangingBaseline": 24,
+                "ideographicBaseline": -11
+              }
+            }
+          ]
+        }
+        """;
     }
 }

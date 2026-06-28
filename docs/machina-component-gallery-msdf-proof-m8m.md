@@ -133,4 +133,14 @@ M8n uses this proof card exactly as intended: as an opt-in local audit surface, 
 - proof spacing improves because the CPU renderer now recomputes real field-canvas fit padding
 - the gallery still uses `SpaceMono-Regular.ttf`, so it does not become the primary kerning-proof artifact
 
+## M8q follow-up
+
+M8q does not change default gallery behavior and does not promote the proof card into production text integration.
+
+- the gallery MSDF proof remains opt-in and sample-only
+- the same proof renderer was revalidated against browser `TextMetrics`
+- no gallery-only vertical offset was introduced
+
+The gallery proof continues to be a local audit surface for the standalone proof renderer, now with better baseline documentation behind it.
+
 Real kerning proof now lives in the standalone `artifacts/m8n/msdf-av-to-wa.ppm` and `artifacts/m8n/msdf-spacing-proof.ppm` outputs that use the checked-in proportional `CrimsonText-Regular.ttf` fixture.

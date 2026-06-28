@@ -110,3 +110,14 @@ Observed local result:
 ## Next milestone
 
 The next milestone should evaluate remaining quality differences after the placement contract fix, not re-open guessed spacing compensation.
+
+## M8q follow-up
+
+M8q extends the oracle/reporting path to prove the vertical contract numerically.
+
+- browser `TextMetrics` are now exported to `artifacts/m8q/browser-text-metrics.json`
+- glyph placement reports now include run-level baseline/plane/ink metrics and per-glyph `penX`, `baselineY`, `drawWidth`, and `drawHeight`
+- current M8q evidence shows the proof renderer is already using the correct baseline-relative plane contract
+- new tests prove `BearingY` is not double-applied once `GlyphFieldPlacement` is present
+
+The remaining visual difference after M8q is a small lower-edge ink extent mismatch, not a `PlaneTop`/`PlaneBottom` sign bug.

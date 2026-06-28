@@ -10,10 +10,12 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m8l/` is the current local CPU MSDF text proof audit output directory.
 - `artifacts/m8n/` is the current local CPU MSDF spacing and kerning audit output directory.
 - `artifacts/m8o/` is the current local MSDF reference-oracle comparison output directory.
+- `artifacts/m8q/` is the current local MSDF vertical-metrics comparison output directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8o comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M8q comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -78,6 +80,13 @@ Current M8o audit command:
 .\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8o
 ```
 
+Current M8q audit command:
+
+```powershell
+.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m8q -IncludeMsdfFontProof
+```
+
 ## Current component gallery outputs
 
 - `artifacts/m7e/component-gallery-default.png`
@@ -127,3 +136,26 @@ No automated pixel comparison runs against these files yet. M7e documents the cu
 These remain local proof artifacts for CPU MSDF audit work. They do not imply `TextBlock` integration, Standard text migration, production renderer integration, shaping adoption, or a committed golden-image baseline.
 
 The M8m gallery proof PNG is also a local audit artifact only. It does not imply production `TextBlock` migration, renderer integration, Vulkan/Aurelian work, or a committed golden-image baseline.
+
+## Current M8q vertical-metrics outputs
+
+- `artifacts/m8q/browser-text-metrics.json`
+- `artifacts/m8q/reference-machina.png`
+- `artifacts/m8q/reference-hello-machina.png`
+- `artifacts/m8q/reference-kerning.png`
+- `artifacts/m8q/reference-aa0.png`
+- `artifacts/m8q/reference-a-space-a.png`
+- `artifacts/m8q/machina-msdf-machina.ppm`
+- `artifacts/m8q/machina-msdf-machina.png`
+- `artifacts/m8q/machina-msdf-hello-machina.ppm`
+- `artifacts/m8q/machina-msdf-hello-machina.png`
+- `artifacts/m8q/machina-msdf-kerning.ppm`
+- `artifacts/m8q/machina-msdf-kerning.png`
+- `artifacts/m8q/compare-machina.png`
+- `artifacts/m8q/compare-hello-machina.png`
+- `artifacts/m8q/compare-kerning.png`
+- `artifacts/m8q/glyph-placement-report.txt`
+- `artifacts/m8q/glyph-placement-report.json`
+- `artifacts/m8q/component-gallery-msdf-proof.png`
+
+These remain local proof artifacts for browser/Machina vertical-metrics audit work only. They do not imply runtime browser dependency, `TextBlock` integration, Standard text migration, or production renderer integration.

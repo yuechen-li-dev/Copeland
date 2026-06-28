@@ -73,6 +73,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina CPU MSDF Spacing and Kerning M8n](docs/machina-cpu-msdf-spacing-kerning-m8n.md)
 - [Machina MSDF Reference Oracle M8o](docs/machina-msdf-reference-oracle-m8o.md)
 - [Machina Glyph Field Placement M8p](docs/machina-glyph-field-placement-m8p.md)
+- [Machina MSDF Vertical Metrics M8q](docs/machina-msdf-vertical-metrics-m8q.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -142,13 +143,25 @@ Default outputs:
 
 These M8o outputs remain local debug artifacts only. They are intended to bootstrap evidence for the next proof-path placement fix, not to introduce production text integration or an automated visual gate.
 
-M8p is the follow-on placement contract fix. The current recommended proof export is:
+M8q is the current vertical-metrics proof pass. The current recommended proof export is:
 
 ```powershell
-.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8p
+.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q
 ```
 
-M8p keeps the work proof-only, but it now persists explicit glyph field plane bounds through generation, atlas packing, `.font-atlas.toml`, import, and CPU reference rendering. The current proof renderer no longer reconstructs draw placement from centered `32x32` tile assumptions or arbitrary tracking fudge.
+Current M8q outputs include:
+
+- `artifacts/m8q/browser-text-metrics.json`
+- `artifacts/m8q/reference-machina.png`
+- `artifacts/m8q/reference-hello-machina.png`
+- `artifacts/m8q/reference-kerning.png`
+- `artifacts/m8q/machina-msdf-machina.ppm`
+- `artifacts/m8q/machina-msdf-machina.png`
+- `artifacts/m8q/compare-machina.png`
+- `artifacts/m8q/glyph-placement-report.txt`
+- `artifacts/m8q/glyph-placement-report.json`
+
+M8q keeps the work proof-only. It adds browser/canvas `TextMetrics` capture and merged vertical reports, confirms the proof renderer is already using a baseline-relative plane contract, and does not introduce `TextBlock`, Standard, or production renderer integration.
 
 ## Reference source
 
