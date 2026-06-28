@@ -141,6 +141,8 @@ public static class GalleryMsdfFontProofRenderer
             Background: ProofBackground,
             X: 12d,
             BaselineY: 26d,
+            Threshold: 0.54d,
+            SmoothingMultiplier: 0.5d,
             ShowBaselineGuide: true,
             BaselineGuideColor: BaselineGuideColor,
             FlipY: true,

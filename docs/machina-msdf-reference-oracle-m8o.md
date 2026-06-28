@@ -203,3 +203,13 @@ M8q.2 upgrades the oracle for easier visual inspection without changing the unde
 - the compare PNGs therefore show the baseline explicitly in both panels
 
 This is a tooling overlay for diagnosis, not a rendering fix, and no production text path changed.
+
+## M8r follow-up
+
+M8r keeps the browser oracle local and proof-only, but extends it from placement evidence into coverage evidence.
+
+- browser metrics export now includes actual canvas-image coverage bounds and coverage counts
+- Machina reports now use the same foreground/background-derived coverage policy
+- `coverage-experiment.json` records threshold/smoothing sweeps across the proof strings
+
+This keeps M8o's evidence-first role intact while upgrading the oracle from "where are the glyphs?" to "how much ink/coverage is really being produced?"

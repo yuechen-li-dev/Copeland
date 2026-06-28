@@ -173,6 +173,43 @@ function Build-QueryString {
     return [string]::Join("&", $pairs)
 }
 
+function ConvertTo-Hashtable {
+    param([object]$Value)
+
+    if ($null -eq $Value) {
+        return $null
+    }
+
+    if ($Value -is [System.Collections.IDictionary]) {
+        $result = @{}
+        foreach ($key in $Value.Keys) {
+            $result[$key] = ConvertTo-Hashtable $Value[$key]
+        }
+
+        return $result
+    }
+
+    if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+        $items = @()
+        foreach ($item in $Value) {
+            $items += ,(ConvertTo-Hashtable $item)
+        }
+
+        return $items
+    }
+
+    if ($Value -is [pscustomobject]) {
+        $result = @{}
+        foreach ($property in $Value.PSObject.Properties) {
+            $result[$property.Name] = ConvertTo-Hashtable $property.Value
+        }
+
+        return $result
+    }
+
+    return $Value
+}
+
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $projectPath = Join-Path $repoRoot "tests\\Machina.Fonts.Tests\\Machina.Fonts.Tests.csproj"
 $filter = "FullyQualifiedName~Machina.Fonts.Tests.Rendering.FontReferenceOracleWorkflowTests.FontReferenceOracleWorkflow_ScriptWorkflowExportsArtifacts"
@@ -218,7 +255,7 @@ foreach ($definition in $definitions) {
             -BrowserExe $browserExe `
             -Url ($fixtureHtmlUri + "?" + $metricsParams))
 
-        $fixtureMetrics = $metricsJson | ConvertFrom-Json -AsHashtable
+        $fixtureMetrics = ConvertTo-Hashtable ($metricsJson | ConvertFrom-Json)
         $fixtureMetrics["id"] = $definition.Id
         $browserMetricsFixtures += $fixtureMetrics
     }

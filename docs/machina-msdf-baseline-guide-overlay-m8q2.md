@@ -69,3 +69,13 @@ The guide should make it immediately obvious whether browser and Machina ink sit
 - no production UI text rendering change
 - no `StandardUI.TextBlock` integration change
 - no arbitrary vertical-offset “fix”
+
+## M8r follow-up
+
+M8r keeps the M8q.2 baseline-guide conclusion intact.
+
+- the red guide remains the shared proof/browser inspection aid
+- M8r does not move the baseline again
+- the M8r fix is proof-path coverage tuning plus coverage-aware reporting
+
+So the guide stays diagnostic evidence, while the actual M8r adjustment lands in proof threshold/smoothing policy rather than in baseline placement.

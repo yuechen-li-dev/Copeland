@@ -17,6 +17,8 @@ public sealed record DistanceFieldTextRenderOptions(
     Rgba32 Background,
     double X,
     double BaselineY,
+    double Threshold = 0.5d,
+    double SmoothingMultiplier = 1d,
     bool ShowBaselineGuide = false,
     Rgba32? BaselineGuideColor = null,
     bool FlipY = false,
@@ -66,6 +68,16 @@ public sealed record DistanceFieldTextRenderOptions(
         if (!double.IsFinite(BaselineY))
         {
             throw new ArgumentOutOfRangeException(nameof(BaselineY));
+        }
+
+        if (!double.IsFinite(Threshold) || Threshold < 0d || Threshold > 1d)
+        {
+            throw new ArgumentOutOfRangeException(nameof(Threshold));
+        }
+
+        if (!double.IsFinite(SmoothingMultiplier) || SmoothingMultiplier <= 0d)
+        {
+            throw new ArgumentOutOfRangeException(nameof(SmoothingMultiplier));
         }
 
         if (ShowBaselineGuide && BaselineGuideColor is null)

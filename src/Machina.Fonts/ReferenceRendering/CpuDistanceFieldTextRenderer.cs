@@ -30,7 +30,8 @@ public static class CpuDistanceFieldTextRenderer
             options.Foreground,
             Rgba32.Transparent,
             options.PixelRange,
-            0.5d,
+            options.Threshold,
+            options.SmoothingMultiplier,
             options.FlipY);
 
         foreach (DistanceFieldGlyphPlacement placement in layout.Placements)

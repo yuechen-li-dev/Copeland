@@ -134,3 +134,13 @@ Instead it fixes the final proof raster placement step:
 - `drawY` is derived from that one baseline invariant
 
 So M8q.1 is a proof-renderer raster rounding fix, not an atlas or placement-contract redesign.
+
+## M8r follow-up
+
+M8r explicitly leaves the M8p placement contract alone.
+
+- no `GlyphFieldPlacement` field meaning changed
+- no new plane-bound heuristic was added
+- no field-generation placement metadata was redefined
+
+The M8r fix instead adjusts proof-path coverage policy after placement is already resolved, which keeps M8p's explicit field-placement contract intact.
