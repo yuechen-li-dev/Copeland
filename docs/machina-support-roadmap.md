@@ -44,6 +44,9 @@ This roadmap tracks support status across Machina packages so implementation bra
 - **samples/Machina.Presenter.Sample**  
   Avalonia bitmap presenter sample and interactive proof slice.
 
+- **samples/Machina.ComponentGallery.Sample**
+  canonical local widget wall / visual workbench for StandardUI.
+
 ## Current Vertical Slice
 
 Current proven path (with some steps still partial depending on scenario breadth):
@@ -63,6 +66,8 @@ Current proven path (with some steps still partial depending on scenario breadth
 -> redraw.
 
 Manual GUI validation depth across broader component scenarios is **Partial / needs continuing audit**.
+
+M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample.
 
 ## Support Matrix
 
@@ -145,6 +150,7 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 | Avalonia static bitmap window | Presenter sample | Implemented | Presenter docs/proofs | M0 presenter baseline.
 | Avalonia click-to-action | Presenter sample | Partial | Presenter/runtime docs | Expand robust input loops.
 | Avalonia redraw loop | Presenter sample | Partial | Presenter docs | Harden for multi-event scenarios.
+| Component gallery visual workbench | ComponentGallery sample | Implemented | Dedicated gallery tests + local Windows visual audit | Canonical “wall of widgets” page; local-first, not a Storybook clone, no automated pixel diffs yet. |
 | Scaling/DPI conversion | Presenter sample | Partial | Presenter M1d mapper/tests | Explicit image-to-root mapping landed for None/Fill/Uniform math; broader DPI policy still pending.
 | Window resize handling | Presenter sample | Planned | None | Needed for practical desktop UX.
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
@@ -158,6 +164,7 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 - **Runtime**: evolve from hit-test + deterministic transitions into focus, keyboard, and modal coordination.
 - **Renderer**: keep snapshot confidence while adding style/text fidelity.
 - **Presenter**: harden one reference shell before multiplying platforms.
+- **Gallery workbench**: keep one explicit local visual page for StandardUI smoke checks without introducing web tooling.
 
 ## Runtime Control Model
 
@@ -216,6 +223,7 @@ React mapping guide:
 - **M1e**: Standard component + presenter visual tuning pass (flat deterministic polish, no new renderer primitives).
 - **M1f**: scaling/DPI pointer conversion follow-through and resize behavior hardening.
 - **M1g**: border/radius style support.
+- **M7a**: dedicated Machina component gallery sample and headless+local visual proof path (implemented).
 
 ## Open Questions
 

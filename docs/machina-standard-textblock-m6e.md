@@ -115,3 +115,14 @@ Still deferred after M6e:
 - shaping, kerning, glyph atlas, or alternate font backends
 
 The current bitmap renderer now draws the bullet marker correctly, but rich inline styling still mainly survives as layout metadata rather than distinct visual styling.
+
+## M7a follow-up
+
+M7a adopts `StandardUI.TextBlock` inside the dedicated component gallery sample as the canonical visual workbench proof for current Standard rich text:
+
+- plain paragraph
+- markup paragraph
+- bullet list
+- card-hosted `TextBlock`
+
+This keeps `TextBlock` visible in the standard widget wall without implying broad migration of primitive `UI.Text` labels or control chrome.

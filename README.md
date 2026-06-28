@@ -51,3 +51,8 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/machina-support-roadmap.md)
 - [Windows Test Triage M5i](docs/copeland-windows-test-triage-m5i.md)
+
+## Machina samples
+
+- [Machina Component Gallery M7a](docs/machina-component-gallery-m7a.md)
+- [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)

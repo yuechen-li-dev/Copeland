@@ -397,3 +397,18 @@ StandardUI.Card(
 ```
 
 This avoids a manual `UI.Column` wrapper at call sites while preserving explicit local composition. Theme handling remains explicit: explicit `style:` wins, explicit `theme:` supplies defaults, and omitted theme falls back to `StandardTheme.Default`.
+
+## M7a component gallery workbench
+
+M7a adds `samples/Machina.ComponentGallery.Sample` as the canonical StandardUI visual workbench.
+
+Contract notes:
+
+- the gallery is a dedicated sample, not a generalized Storybook clone
+- it stays local-first and Windows-inspectable through the existing raster/presenter path
+- it demonstrates current canonical StandardUI components and key states in one deterministic wall
+- it includes a nested custom-theme probe without adding hidden theme cascade behavior
+- headless tests still enforce document shape, ids, actions, theme propagation, geometry stability, and render-command determinism
+- automated pixel diffs remain deferred
+
+The gallery is therefore the preferred place to visually audit current StandardUI component behavior before expanding broader component inventory.

@@ -197,3 +197,16 @@ Presenter-style samples should keep top-level screen placement separate from com
 - theme is an explicit argument handed from screen to component to child `StandardUI` controls.
 
 For card content, prefer `StandardUI.Card(theme: theme, gap: 10, children: [...])` over `StandardUI.Card(child: UI.Column(...))`. This preserves the hosted component boundary while keeping local composition boring and reviewable.
+
+## M7a gallery convention
+
+The component gallery follows the same stabilized split:
+
+- screens own top-level `UiDocument` rows
+- localized sections own `StandardUI` / `UI` subtrees
+- state is immutable record data
+- actions are explicit ids
+- dispatch is plain C#
+- theme is always passed explicitly
+
+M7a uses this pattern to build a canonical “wall of widgets” sample without introducing a new app framework or hidden theme/runtime behavior.

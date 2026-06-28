@@ -13,6 +13,7 @@
     <Project Path="src/Machina.Pipeline/Machina.Pipeline.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />
     <Project Path="samples/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -27,6 +28,7 @@
     <Project Path="tests/Machina.Renderer.Raster.Dominatus.Tests/Machina.Renderer.Raster.Dominatus.Tests.csproj" />
     <Project Path="tests/Machina.Runtime.Tests/Machina.Runtime.Tests.csproj" />
     <Project Path="tests/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj" />
+    <Project Path="tests/Machina.ComponentGallery.Sample.Tests/Machina.ComponentGallery.Sample.Tests.csproj" />
     <Project Path="tests/Machina.Presenter.Sample.Tests/Machina.Presenter.Sample.Tests.csproj" />
     <Project Path="tests/Machina.Testing/Machina.Testing.csproj" />
   </Folder>
