@@ -27,6 +27,7 @@ internal static class FontReferenceOracleWorkflow
 
     private static readonly Rgba32 Background = new(16, 16, 24, 255);
     private static readonly Rgba32 Foreground = new(240, 240, 240, 255);
+    private static readonly Rgba32 BaselineGuideColor = new(255, 0, 0, 255);
     private const string CoordinateConventionNote =
         "Font outline coordinates use +Y up relative to the alphabetic baseline. Output image coordinates use +Y down from the top-left. GlyphFieldPlacement.PlaneTop/PlaneBottom are stored as image-down offsets relative to the baseline, so negative PlaneTop draws above the baseline and positive PlaneBottom draws below it.";
 
@@ -58,6 +59,8 @@ internal static class FontReferenceOracleWorkflow
             Background,
             ProofOriginX,
             ProofBaselineY,
+            ShowBaselineGuide: true,
+            BaselineGuideColor: BaselineGuideColor,
             FlipY: true,
             PageWidth: 128,
             PageHeight: 128,
@@ -178,6 +181,9 @@ internal static class FontReferenceOracleWorkflow
         builder.AppendLine($"Canvas: {ProofWidth}x{ProofHeight}");
         builder.AppendLine($"OriginX: {ProofOriginX}");
         builder.AppendLine($"BaselineY: {ProofBaselineY}");
+        builder.AppendLine("BaselineGuideEnabled: true");
+        builder.AppendLine($"BaselineGuideY: {ProofBaselineY}");
+        builder.AppendLine($"BaselineGuideColor: {ToHexColor(BaselineGuideColor)}");
         builder.AppendLine();
         builder.AppendLine("Required texts:");
         foreach (FontReferenceOracleDefinition definition in Definitions.Take(3))
@@ -379,6 +385,9 @@ internal static class FontReferenceOracleWorkflow
                 ProofWidth,
                 ProofHeight,
                 ProofBaselineY,
+                true,
+                ProofBaselineY,
+                BaselineGuideColor,
                 computedTextTop,
                 computedTextBottom,
                 minPlaneTop,
@@ -398,6 +407,9 @@ internal static class FontReferenceOracleWorkflow
             OutputHeight: ProofHeight,
             OriginX: ProofOriginX,
             BaselineY: ProofBaselineY,
+            BaselineGuideEnabled: true,
+            BaselineGuideY: ProofBaselineY,
+            BaselineGuideColor: BaselineGuideColor,
             CoordinateConvention: CoordinateConventionNote,
             Fixtures: fixtures);
     }
@@ -460,6 +472,8 @@ internal static class FontReferenceOracleWorkflow
             Background,
             ProofOriginX,
             ProofBaselineY,
+            ShowBaselineGuide: true,
+            BaselineGuideColor: BaselineGuideColor,
             FlipY: true,
             PageWidth: 128,
             PageHeight: 128,
@@ -485,6 +499,9 @@ internal static class FontReferenceOracleWorkflow
         builder.AppendLine($"output: {report.OutputWidth}x{report.OutputHeight}");
         builder.AppendLine($"originX: {report.OriginX}");
         builder.AppendLine($"baselineY: {report.BaselineY}");
+        builder.AppendLine($"baselineGuideEnabled: {report.BaselineGuideEnabled.ToString().ToLowerInvariant()}");
+        builder.AppendLine($"baselineGuideY: {report.BaselineGuideY:0.###}");
+        builder.AppendLine($"baselineGuideColor: {ToHexColor(report.BaselineGuideColor)}");
         builder.AppendLine($"coordinateConvention: {report.CoordinateConvention}");
         builder.AppendLine();
 
@@ -495,6 +512,9 @@ internal static class FontReferenceOracleWorkflow
             builder.AppendLine($"emSize: {fixture.EmSize}");
             builder.AppendLine($"output: {fixture.OutputWidth}x{fixture.OutputHeight}");
             builder.AppendLine($"baselineY: {fixture.BaselineY}");
+            builder.AppendLine($"baselineGuideEnabled: {fixture.BaselineGuideEnabled.ToString().ToLowerInvariant()}");
+            builder.AppendLine($"baselineGuideY: {fixture.BaselineGuideY:0.###}");
+            builder.AppendLine($"baselineGuideColor: {ToHexColor(fixture.BaselineGuideColor)}");
             builder.AppendLine($"layoutWidth: {fixture.LayoutWidth:0.###}");
             builder.AppendLine($"computedTextTop: {FormatNullable(fixture.ComputedTextTop)}");
             builder.AppendLine($"computedTextBottom: {FormatNullable(fixture.ComputedTextBottom)}");
@@ -507,6 +527,10 @@ internal static class FontReferenceOracleWorkflow
             {
                 builder.AppendLine($"browserTextBaseline: {fixture.Browser?.TextBaseline ?? "not available"}");
                 builder.AppendLine($"browserTextAlign: {fixture.Browser?.TextAlign ?? "not available"}");
+                builder.AppendLine($"browserBaselineY: {FormatNullable(fixture.Browser?.BaselineY)}");
+                builder.AppendLine($"browserBaselineGuideEnabled: {FormatNullable(fixture.Browser?.BaselineGuideEnabled)}");
+                builder.AppendLine($"browserBaselineGuideY: {FormatNullable(fixture.Browser?.BaselineGuideY)}");
+                builder.AppendLine($"browserBaselineGuideColor: {fixture.Browser?.BaselineGuideColor ?? "not available"}");
                 builder.AppendLine($"browserActualTop: {FormatNullable(fixture.BrowserVerticalMetrics.ActualTop)}");
                 builder.AppendLine($"browserActualBottom: {FormatNullable(fixture.BrowserVerticalMetrics.ActualBottom)}");
                 builder.AppendLine($"browserFontTop: {FormatNullable(fixture.BrowserVerticalMetrics.FontTop)}");
@@ -584,6 +608,16 @@ internal static class FontReferenceOracleWorkflow
         return value?.ToString() ?? "not available";
     }
 
+    private static string FormatNullable(bool? value)
+    {
+        return value?.ToString().ToLowerInvariant() ?? "not available";
+    }
+
+    private static string ToHexColor(Rgba32 color)
+    {
+        return $"#{color.R:x2}{color.G:x2}{color.B:x2}";
+    }
+
     private static BrowserVerticalMetrics? CreateBrowserVerticalMetrics(BrowserTextMetricsFixture? fixture)
     {
         if (fixture is null)
@@ -630,7 +664,8 @@ internal static class FontReferenceOracleWorkflow
         {
             for (int x = 0; x < image.Width; x++)
             {
-                if (image.GetPixel(x, y) == background)
+                Rgba32 pixel = image.GetPixel(x, y);
+                if (pixel == background || pixel == BaselineGuideColor)
                 {
                     continue;
                 }
@@ -752,6 +787,9 @@ internal sealed record FontReferenceOraclePlacementReport(
     int OutputHeight,
     double OriginX,
     double BaselineY,
+    bool BaselineGuideEnabled,
+    double BaselineGuideY,
+    Rgba32 BaselineGuideColor,
     string CoordinateConvention,
     IReadOnlyList<FontReferenceOracleFixtureReport> Fixtures);
 
@@ -764,6 +802,9 @@ internal sealed record FontReferenceOracleFixtureReport(
     int OutputWidth,
     int OutputHeight,
     double BaselineY,
+    bool BaselineGuideEnabled,
+    double BaselineGuideY,
+    Rgba32 BaselineGuideColor,
     double? ComputedTextTop,
     double? ComputedTextBottom,
     double? MinPlaneTop,
@@ -827,6 +868,9 @@ internal sealed record BrowserTextMetricsFixture(
     int CanvasHeight,
     double X,
     double BaselineY,
+    bool BaselineGuideEnabled,
+    double? BaselineGuideY,
+    string? BaselineGuideColor,
     string TextBaseline,
     string TextAlign,
     BrowserTextMetricValues Metrics,

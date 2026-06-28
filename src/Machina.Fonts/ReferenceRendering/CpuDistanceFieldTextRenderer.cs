@@ -63,6 +63,27 @@ public static class CpuDistanceFieldTextRenderer
                 glyphOptions);
         }
 
+        if (options.ShowBaselineGuide)
+        {
+            DrawHorizontalLine(
+                image,
+                (int)Math.Round(options.BaselineY, MidpointRounding.AwayFromZero),
+                options.BaselineGuideColor ?? throw new InvalidOperationException("Baseline guide color was not configured."));
+        }
+
         return image;
+    }
+
+    private static void DrawHorizontalLine(RgbaImage image, int y, Rgba32 color)
+    {
+        if ((uint)y >= (uint)image.Height)
+        {
+            return;
+        }
+
+        for (int x = 0; x < image.Width; x++)
+        {
+            image.SetPixel(x, y, color);
+        }
     }
 }

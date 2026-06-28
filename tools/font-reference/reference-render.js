@@ -26,6 +26,7 @@ async function renderReference(params) {
     const context = canvas.getContext("2d", { alpha: false });
     applyTextRenderState(context, config);
     context.fillText(config.text, config.x, config.baselineY);
+    drawBaselineGuide(context, config);
 }
 
 async function renderMetrics(params) {
@@ -45,6 +46,9 @@ async function renderMetrics(params) {
         canvasHeight: config.height,
         x: config.x,
         baselineY: config.baselineY,
+        baselineGuideEnabled: config.showBaselineGuide,
+        baselineGuideY: config.showBaselineGuide ? config.baselineY : null,
+        baselineGuideColor: config.showBaselineGuide ? config.baselineGuideColor : null,
         textBaseline: context.textBaseline,
         textAlign: context.textAlign,
         metrics: {
@@ -136,6 +140,8 @@ function readReferenceConfig(params) {
         fontSize: Number.parseFloat(params.get("fontSize") ?? "32"),
         foreground: params.get("foreground") ?? "#f0f0f0",
         background: params.get("background") ?? "#101018",
+        showBaselineGuide: readBooleanParam(params.get("showBaselineGuide"), true),
+        baselineGuideColor: params.get("baselineGuideColor") ?? "#ff0000",
         fontFamily: params.get("fontFamily") ?? "OracleFixtureFont",
         fontUrl: params.get("fontUrl"),
         text: params.get("text") ?? "",
@@ -171,6 +177,30 @@ function applyTextRenderState(context, config) {
     context.textBaseline = "alphabetic";
     context.textAlign = "left";
     context.font = `${config.fontSize}px "${config.fontFamily}"`;
+}
+
+function drawBaselineGuide(context, config) {
+    if (!config.showBaselineGuide) {
+        return;
+    }
+
+    const y = Math.round(config.baselineY) + 0.5;
+    context.save();
+    context.strokeStyle = config.baselineGuideColor;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(0, y);
+    context.lineTo(config.width, y);
+    context.stroke();
+    context.restore();
+}
+
+function readBooleanParam(value, defaultValue) {
+    if (value === null) {
+        return defaultValue;
+    }
+
+    return value.toLowerCase() !== "false";
 }
 
 function toNullableNumber(value) {

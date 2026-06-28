@@ -144,3 +144,12 @@ M8q does not change default gallery behavior and does not promote the proof card
 The gallery proof continues to be a local audit surface for the standalone proof renderer, now with better baseline documentation behind it.
 
 Real kerning proof now lives in the standalone `artifacts/m8n/msdf-av-to-wa.ppm` and `artifacts/m8n/msdf-spacing-proof.ppm` outputs that use the checked-in proportional `CrimsonText-Regular.ttf` fixture.
+
+## M8q.2 follow-up
+
+M8q.2 keeps the gallery proof opt-in and sample-only, but aligns it with the reference-oracle diagnostics.
+
+- the gallery MSDF proof renderer now enables the same 1 px red baseline guide overlay used by the standalone proof comparison workflow
+- this makes the sample proof card easier to compare visually with the browser-oracle artifacts
+
+This is still a tooling overlay for visual diagnosis, not a production text change or rendering fix.

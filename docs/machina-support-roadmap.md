@@ -661,3 +661,24 @@ This remains proof-path only:
 - no magic vertical offset
 
 See `docs/machina-msdf-baseline-rounding-fix-m8q1.md`.
+
+## M8q.2 update
+
+M8q.2 adds an evidence-first baseline guide overlay on top of the M8o/M8q/M8q.1 proof tooling.
+
+- browser oracle renders now draw a red 1 px baseline guide at the active `baselineY`
+- Machina CPU MSDF proof renders now draw the same red baseline guide
+- compare artifacts and the opt-in gallery MSDF proof export now show that guide explicitly
+- proof reports now include baseline-guide enablement and Y metadata
+
+This remains proof-path only:
+
+- no glyph spacing change
+- no kerning change
+- no plane-bounds math change
+- no MSDF generation change
+- no `TextBlock` integration
+- no production renderer integration
+- no arbitrary vertical-offset fix
+
+See `docs/machina-msdf-baseline-guide-overlay-m8q2.md`.

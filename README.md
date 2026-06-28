@@ -75,6 +75,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina Glyph Field Placement M8p](docs/machina-glyph-field-placement-m8p.md)
 - [Machina MSDF Vertical Metrics M8q](docs/machina-msdf-vertical-metrics-m8q.md)
 - [Machina MSDF Baseline Rounding Fix M8q.1](docs/machina-msdf-baseline-rounding-fix-m8q1.md)
+- [Machina MSDF Baseline Guide Overlay M8q.2](docs/machina-msdf-baseline-guide-overlay-m8q2.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -144,25 +145,25 @@ Default outputs:
 
 These M8o outputs remain local debug artifacts only. They are intended to bootstrap evidence for the next proof-path placement fix, not to introduce production text integration or an automated visual gate.
 
-M8q.1 is the current proof-path baseline rounding pass. The current recommended proof export is:
+M8q.2 is the current proof-path baseline-inspection overlay pass. The current recommended proof export is:
 
 ```powershell
-.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q1
+.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q2
 ```
 
-Current M8q.1 outputs include:
+Current M8q.2 outputs include:
 
-- `artifacts/m8q1/browser-text-metrics.json`
-- `artifacts/m8q1/reference-machina.png`
-- `artifacts/m8q1/reference-hello-machina.png`
-- `artifacts/m8q1/reference-kerning.png`
-- `artifacts/m8q1/machina-msdf-machina.ppm`
-- `artifacts/m8q1/machina-msdf-machina.png`
-- `artifacts/m8q1/compare-machina.png`
-- `artifacts/m8q1/glyph-placement-report.txt`
-- `artifacts/m8q1/glyph-placement-report.json`
+- `artifacts/m8q2/browser-text-metrics.json`
+- `artifacts/m8q2/reference-machina.png`
+- `artifacts/m8q2/reference-hello-machina.png`
+- `artifacts/m8q2/reference-kerning.png`
+- `artifacts/m8q2/machina-msdf-machina.ppm`
+- `artifacts/m8q2/machina-msdf-machina.png`
+- `artifacts/m8q2/compare-machina.png`
+- `artifacts/m8q2/glyph-placement-report.txt`
+- `artifacts/m8q2/glyph-placement-report.json`
 
-M8q.1 keeps the work proof-only. It fixes a narrow CPU MSDF baseline raster rounding issue by using one authoritative baseline invariant for the rounded output tile, without introducing `TextBlock`, Standard, or production renderer integration.
+M8q.2 keeps the work proof-only. It adds a red baseline-guide overlay to the browser oracle, Machina proof, compare artifacts, and gallery proof export so vertical mismatch is easier to inspect. It is a tooling upgrade, not another rendering fix, and no production text path changed.
 
 ## Reference source
 

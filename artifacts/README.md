@@ -12,12 +12,14 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m8o/` is the current local MSDF reference-oracle comparison output directory.
 - `artifacts/m8q/` is the current local MSDF vertical-metrics comparison output directory.
 - `artifacts/m8q1/` is the current local MSDF baseline-rounding comparison output directory.
+- `artifacts/m8q2/` is the current local MSDF baseline-guide overlay comparison output directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8o comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8q comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8q.1 comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M8q.2 comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -94,6 +96,13 @@ Current M8q.1 audit command:
 ```powershell
 .\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q1
 .\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m8q1 -IncludeMsdfFontProof
+```
+
+Current M8q.2 audit command:
+
+```powershell
+.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q2
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m8q2 -IncludeMsdfFontProof
 ```
 
 ## Current component gallery outputs
@@ -191,3 +200,26 @@ These remain local proof artifacts for browser/Machina vertical-metrics audit wo
 - `artifacts/m8q1/component-gallery-msdf-proof.png`
 
 These remain local proof artifacts for CPU MSDF baseline-rounding audit work only. They do not imply runtime browser dependency, `TextBlock` integration, Standard text migration, or production renderer integration.
+
+## Current M8q.2 baseline-guide overlay outputs
+
+- `artifacts/m8q2/browser-text-metrics.json`
+- `artifacts/m8q2/reference-machina.png`
+- `artifacts/m8q2/reference-hello-machina.png`
+- `artifacts/m8q2/reference-kerning.png`
+- `artifacts/m8q2/reference-aa0.png`
+- `artifacts/m8q2/reference-a-space-a.png`
+- `artifacts/m8q2/machina-msdf-machina.ppm`
+- `artifacts/m8q2/machina-msdf-machina.png`
+- `artifacts/m8q2/machina-msdf-hello-machina.ppm`
+- `artifacts/m8q2/machina-msdf-hello-machina.png`
+- `artifacts/m8q2/machina-msdf-kerning.ppm`
+- `artifacts/m8q2/machina-msdf-kerning.png`
+- `artifacts/m8q2/compare-machina.png`
+- `artifacts/m8q2/compare-hello-machina.png`
+- `artifacts/m8q2/compare-kerning.png`
+- `artifacts/m8q2/glyph-placement-report.txt`
+- `artifacts/m8q2/glyph-placement-report.json`
+- `artifacts/m8q2/component-gallery-msdf-proof.png`
+
+These remain local proof artifacts for baseline-visualization audit work only. The red line is a tooling overlay for visual diagnosis, not a rendering fix, and no production text path changed.

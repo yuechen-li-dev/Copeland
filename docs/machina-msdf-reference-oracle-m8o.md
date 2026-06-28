@@ -192,3 +192,14 @@ M8q.1 uses that M8q evidence to fix one last-mile proof raster issue:
 - the proof renderer could still disagree with itself by 1 px when rounding tile top separately from baseline position inside the rounded output tile
 
 The M8q.1 fix keeps the oracle/browser side unchanged and only tightens proof-path raster placement math.
+
+## M8q.2 follow-up
+
+M8q.2 upgrades the oracle for easier visual inspection without changing the underlying browser-vs-proof baseline contract.
+
+- the browser canvas fixture now draws a red 1 px horizontal guide at the requested `baselineY`
+- the Machina proof export now draws the same guide in the proof image
+- `glyph-placement-report.txt/json` now record guide enablement and Y metadata
+- the compare PNGs therefore show the baseline explicitly in both panels
+
+This is a tooling overlay for diagnosis, not a rendering fix, and no production text path changed.

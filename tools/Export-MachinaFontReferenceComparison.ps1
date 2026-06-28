@@ -204,6 +204,8 @@ foreach ($definition in $definitions) {
             height = "64"
             x = "8"
             baseline = "40"
+            showBaselineGuide = "true"
+            baselineGuideColor = "#ff0000"
             fontSize = "32"
             fontFamily = "CrimsonText-Regular"
             fontUrl = $fontUri
@@ -230,6 +232,9 @@ foreach ($definition in $definitions) {
             canvasHeight = 64
             x = 8
             baselineY = 40
+            baselineGuideEnabled = $true
+            baselineGuideY = 40
+            baselineGuideColor = "#ff0000"
             textBaseline = "alphabetic"
             textAlign = "left"
             metrics = @{
@@ -313,6 +318,8 @@ Canvas:
 - font size: 32px
 - x: 8
 - baselineY: 40
+- baseline guide: enabled
+- baseline guide color: #ff0000
 "@ | Set-Content -LiteralPath $manualInstructionsPath
 
     Write-Host "Automated browser capture is not available."
@@ -329,6 +336,8 @@ foreach ($definition in $definitions) {
         height = "64"
         x = "8"
         baseline = "40"
+        showBaselineGuide = "true"
+        baselineGuideColor = "#ff0000"
         fontSize = "32"
         fontFamily = "CrimsonText-Regular"
         fontUrl = $fontUri

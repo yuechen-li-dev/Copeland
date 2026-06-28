@@ -81,6 +81,32 @@ public sealed class CpuDistanceFieldTextRendererTests
     }
 
     [Fact]
+    public void CpuDistanceFieldTextRenderer_BaselineGuideDrawsAtRequestedY()
+    {
+        DistanceFieldPageReference page = CreateSolidPage();
+        GlyphAtlasEntry entryA = CreateEntry('A', 0, 0);
+        FontAtlasSnapshot snapshot = CreateSnapshot(entryA);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: 10);
+        Rgba32 baselineGuide = new(255, 0, 0, 255);
+
+        RgbaImage image = CpuDistanceFieldTextRenderer.RenderText(
+            snapshot,
+            new Dictionary<int, DistanceFieldPageReference> { [0] = page },
+            layout,
+            Options with
+            {
+                BaselineY = 10,
+                ShowBaselineGuide = true,
+                BaselineGuideColor = baselineGuide,
+            });
+
+        for (int x = 0; x < image.Width; x++)
+        {
+            Assert.Equal(baselineGuide, image.GetPixel(x, 10));
+        }
+    }
+
+    [Fact]
     public void RenderText_IsDeterministic()
     {
         DistanceFieldPageReference page = CreateSolidPage();

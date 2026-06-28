@@ -213,3 +213,14 @@ M8q keeps the M8l proof-only baseline/orientation policy but adds browser-measur
 - renderer tests now lock the “plane bounds relative to baseline” contract
 
 M8q therefore does not reintroduce the pre-M8p `baselineY - bearingY - inferred padding` placement model.
+
+## M8q.2 follow-up
+
+M8q.2 adds an explicit proof-side baseline guide overlay to the standalone CPU MSDF audit path.
+
+- proof render options can now enable a 1 px red horizontal guide at the active baseline
+- proof-export workflows enable that guide for the browser-oracle comparison set
+- the same proof-side option is reused by the opt-in gallery MSDF proof export
+
+This is evidence tooling only.
+It is not another placement/bearing/spacing fix, and no production text path changed.

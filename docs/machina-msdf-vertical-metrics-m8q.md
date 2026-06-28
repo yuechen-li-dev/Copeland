@@ -246,3 +246,15 @@ drawY = round(baselineY) - baselineInOutput
 ```
 
 No magic vertical offset, generator change, or production renderer integration was introduced.
+
+## M8q.2 follow-up
+
+M8q.2 keeps the M8q and M8q.1 conclusions intact, but makes the evidence easier to inspect visually.
+
+- browser reference renders now include a 1 px red baseline guide at the exact `baselineY`
+- Machina proof renders now include the same 1 px red baseline guide
+- compare artifacts and the opt-in gallery proof export therefore show the shared baseline explicitly
+- reports now record `baselineGuideEnabled`, `baselineGuideY`, and guide color metadata
+
+This remains a tooling overlay for visual diagnosis only.
+It is not a new rendering fix, and no production text path changed.

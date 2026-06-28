@@ -23,6 +23,7 @@ public static class GalleryMsdfFontProofRenderer
 
     private static readonly Machina.Fonts.ReferenceRendering.Rgba32 ProofForeground = new(248, 250, 252, 255);
     private static readonly Machina.Fonts.ReferenceRendering.Rgba32 ProofBackground = new(17, 24, 39, 255);
+    private static readonly Machina.Fonts.ReferenceRendering.Rgba32 BaselineGuideColor = new(255, 0, 0, 255);
 
     public static GalleryMsdfFontProofPlacement BlitProof(RasterFrame frame, ResolvedLayoutDocument resolved)
     {
@@ -140,6 +141,8 @@ public static class GalleryMsdfFontProofRenderer
             Background: ProofBackground,
             X: 12d,
             BaselineY: 26d,
+            ShowBaselineGuide: true,
+            BaselineGuideColor: BaselineGuideColor,
             FlipY: true,
             PageWidth: 128,
             PageHeight: 128,

@@ -17,6 +17,8 @@ public sealed record DistanceFieldTextRenderOptions(
     Rgba32 Background,
     double X,
     double BaselineY,
+    bool ShowBaselineGuide = false,
+    Rgba32? BaselineGuideColor = null,
     bool FlipY = false,
     int PageWidth = 96,
     int PageHeight = 96,
@@ -64,6 +66,11 @@ public sealed record DistanceFieldTextRenderOptions(
         if (!double.IsFinite(BaselineY))
         {
             throw new ArgumentOutOfRangeException(nameof(BaselineY));
+        }
+
+        if (ShowBaselineGuide && BaselineGuideColor is null)
+        {
+            throw new ArgumentException("Baseline guide color must be provided when the baseline guide is enabled.", nameof(BaselineGuideColor));
         }
 
         if (PageWidth <= 0)

@@ -132,9 +132,63 @@ public sealed class FontReferenceOracleWorkflowTests
 
         Assert.Contains("measureText", script);
         Assert.Contains("context.textBaseline = \"alphabetic\"", script);
+        Assert.Contains("drawBaselineGuide", script);
+        Assert.Contains("baselineGuideEnabled", script);
         Assert.Contains("actualBoundingBoxAscent", script);
         Assert.Contains("fontBoundingBoxAscent", script);
         Assert.Contains("alphabeticBaseline", script);
+    }
+
+    [Fact]
+    public void ReferenceOracle_BaselineGuideIsEnabledInExport()
+    {
+        FontProofExportOptions options = FontReferenceOracleWorkflow.CreateOptions(CreateDirectory());
+        string scriptPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "..",
+            "tools",
+            "Export-MachinaFontReferenceComparison.ps1");
+        string script = File.ReadAllText(Path.GetFullPath(scriptPath));
+
+        Assert.True(options.ShowBaselineGuide);
+        Assert.Equal(new Rgba32(255, 0, 0, 255), options.BaselineGuideColor);
+        Assert.Contains("showBaselineGuide = \"true\"", script);
+        Assert.Contains("baselineGuideColor = \"#ff0000\"", script);
+    }
+
+    [Fact]
+    public async Task ReferenceOracle_ReportIncludesBaselineGuideMetadata()
+    {
+        string directory = CreateDirectory();
+        string metricsPath = Path.Combine(directory, FontReferenceOracleWorkflow.BrowserTextMetricsFileName);
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(metricsPath, CreateBrowserMetricsJson());
+
+        string? previous = Environment.GetEnvironmentVariable(FontReferenceOracleWorkflow.BrowserMetricsPathEnvironmentVariable);
+
+        try
+        {
+            Environment.SetEnvironmentVariable(FontReferenceOracleWorkflow.BrowserMetricsPathEnvironmentVariable, metricsPath);
+
+            FontReferenceOracleExportResult result = await FontReferenceOracleWorkflow.ExportAsync(directory);
+            string report = File.ReadAllText(result.PlacementReportTextPath);
+            string json = File.ReadAllText(result.PlacementReportJsonPath);
+
+            Assert.Contains("baselineGuideEnabled: true", report);
+            Assert.Contains("baselineGuideY: 40", report);
+            Assert.Contains("browserBaselineGuideEnabled: true", report);
+            Assert.Contains("browserBaselineGuideColor: #ff0000", report);
+            Assert.Contains("\"BaselineGuideEnabled\": true", json);
+            Assert.Contains("\"BaselineGuideY\": 40", json);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(FontReferenceOracleWorkflow.BrowserMetricsPathEnvironmentVariable, previous);
+        }
     }
 
     [Fact]
@@ -223,6 +277,9 @@ public sealed class FontReferenceOracleWorkflowTests
               "canvasHeight": 64,
               "x": 8,
               "baselineY": 40,
+              "baselineGuideEnabled": true,
+              "baselineGuideY": 40,
+              "baselineGuideColor": "#ff0000",
               "textBaseline": "alphabetic",
               "textAlign": "left",
               "metrics": {

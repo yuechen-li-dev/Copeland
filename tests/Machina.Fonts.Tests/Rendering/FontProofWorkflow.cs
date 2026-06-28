@@ -11,7 +11,6 @@ internal static class FontProofWorkflow
     public const string OutputDirectoryEnvironmentVariable = "MACHINA_FONT_PROOF_OUTPUT_DIR";
 
     private static readonly Rgba32 Background = new(16, 16, 24, 255);
-
     public static IReadOnlyList<FontProofArtifactDefinition> Definitions { get; } =
     [
         new("msdf-machina.ppm", "Machina"),
