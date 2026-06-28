@@ -72,3 +72,15 @@ M8e keeps the M8b standalone boundary intact and still adds no real dependency. 
 - native FreeType only as fallback.
 
 That recommendation keeps `Machina.Fonts` in control of the public contract instead of exposing third-party outline or MSDF types. See `docs/machina-font-msdf-dependency-audit-m8e.md`.
+
+## M8f generation seam follow-up
+
+M8f keeps M8b's fake-worker architecture intact and adds a separate generation seam under `src/Machina.Fonts/Generation/`.
+
+- Machina-owned outline records now exist.
+- Generation-local diagnostics now exist.
+- `IGlyphOutlineSource` and `IGlyphDistanceFieldGenerator` now define the future real dependency boundary.
+- Fake outline and fake distance-field implementations now prove deterministic seam behavior.
+- `GlyphGenerationPipeline` now proves missing-outline short-circuiting and diagnostic aggregation before any real dependency adoption.
+
+M8f still adds no `Typography.OpenFont`, `MSDF-Sharp.Core`, `SixLabors`, `FreeType`, renderer integration, or native dependency. See `docs/machina-font-generation-adapters-m8f.md`.

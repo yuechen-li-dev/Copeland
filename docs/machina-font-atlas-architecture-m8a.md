@@ -597,3 +597,14 @@ M8e completes the deferred package audit and recommends a split dependency path:
 - `SharpFont`/native FreeType kept as a fallback if managed outline extraction fails on real fixture fonts.
 
 The recommendation is intentionally adapter-first. Machina should keep outline loading and distance-field generation behind Machina-owned interfaces so the implementation can change later without touching atlas packing, TOML export, or renderer consumers. See `docs/machina-font-msdf-dependency-audit-m8e.md`.
+
+## M8f seam note
+
+M8f is the first compile-checked proof of the future generation boundary described here.
+
+- outline extraction is now represented by Machina-owned records and `IGlyphOutlineSource`
+- distance-field generation is now represented by `IGlyphDistanceFieldGenerator`
+- fake implementations prove deterministic seam behavior
+- worker integration and renderer/Vulkan integration remain deferred
+
+This keeps the long-term architecture stable while real dependency choice stays swappable. See `docs/machina-font-generation-adapters-m8f.md`.

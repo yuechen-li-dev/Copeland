@@ -81,3 +81,14 @@ M8e refines the direction above at the dependency/design level, not by changing 
 - Machina-owned outline/generator interfaces so artifact export and import remain insulated from dependency churn.
 
 Real PNG pages remain deferred until the outline and generator proofs land in later milestones. See `docs/machina-font-msdf-dependency-audit-m8e.md`.
+
+## M8f follow-up
+
+M8f builds beside this artifact flow rather than through it.
+
+- artifact export/import remains fake-page based
+- the existing fake atlas worker behavior is unchanged
+- the new generation seam lives under `src/Machina.Fonts/Generation/`
+- fake outline and fake distance-field adapters now exist for seam proof only
+
+Real page-image generation and real dependency-backed glyph generation remain deferred.

@@ -444,3 +444,14 @@ M8e is a research/design milestone only. It audits current public sources for `M
 - keep native FreeType as fallback only.
 
 No package references or implementation behavior change land in M8e. See `docs/machina-font-msdf-dependency-audit-m8e.md`.
+
+### Machina M8f — generation adapter seam
+
+M8f lands that strict Machina-owned adapter boundary in code without adopting any real dependency yet.
+
+- Machina-owned outline records and generation diagnostics are implemented in `Machina.Fonts.Generation`.
+- `IGlyphOutlineSource` and `IGlyphDistanceFieldGenerator` now exist as compile-checked seams.
+- `FakeGlyphOutlineSource`, `FakeGlyphDistanceFieldGenerator`, and `GlyphGenerationPipeline` prove deterministic output, cancellation behavior, missing-outline short-circuiting, and diagnostic aggregation.
+- No `Typography.OpenFont`, `MSDF-Sharp.Core`, `SixLabors`, `FreeType`, renderer integration, or native dependency is added.
+
+See `docs/machina-font-generation-adapters-m8f.md`.

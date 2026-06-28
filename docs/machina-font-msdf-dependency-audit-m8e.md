@@ -605,6 +605,31 @@ Recommended success gate for `M8g` and `M8h`:
 - stable page metadata,
 - no renderer integration yet.
 
+## M8f landed follow-up
+
+M8f is now the concrete proof step between this audit and any real dependency adoption.
+
+What landed in M8f:
+
+- Machina-owned outline records and segment types
+- generation-local diagnostic records
+- `IGlyphOutlineSource`
+- `IGlyphDistanceFieldGenerator`
+- `FakeGlyphOutlineSource`
+- `FakeGlyphDistanceFieldGenerator`
+- `GlyphGenerationPipeline`
+- focused seam tests
+
+What still did not land:
+
+- no `Typography.OpenFont` package reference
+- no `MSDF-Sharp.Core` package reference
+- no `SixLabors` dependency
+- no native dependency
+- no renderer integration
+
+That keeps this audit's swappable-boundary recommendation intact. See `docs/machina-font-generation-adapters-m8f.md`.
+
 ## Sources
 
 Primary sources inspected:

@@ -63,6 +63,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina Font Atlas TOML M8c](docs/machina-font-atlas-toml-m8c.md)
 - [Machina Font Atlas Artifacts M8d](docs/machina-font-atlas-artifacts-m8d.md)
 - [Machina Font MSDF Dependency Audit M8e](docs/machina-font-msdf-dependency-audit-m8e.md)
+- [Machina Font Generation Adapters M8f](docs/machina-font-generation-adapters-m8f.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
 Current gallery audit workflow:
