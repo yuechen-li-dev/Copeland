@@ -104,7 +104,7 @@ public sealed class TypographyMsdfReferenceTextRenderTests
             Background,
             8d,
             40d,
-            FlipY: false,
+            FlipY: true,
             PageWidth: 128,
             PageHeight: 128,
             PagePadding: 2);

@@ -69,6 +69,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina Distance Field Atlas Packing M8i](docs/machina-distance-field-atlas-packing-m8i.md)
 - [Machina CPU MSDF Text Renderer M8k](docs/machina-cpu-msdf-text-renderer-m8k.md)
 - [Machina CPU MSDF Reference Renderer M8k](docs/machina-cpu-msdf-reference-renderer-m8k.md)
+- [Machina CPU MSDF Text Proof Audit M8l](docs/machina-cpu-msdf-text-proof-audit-m8l.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
 Current gallery audit workflow:
@@ -83,6 +84,22 @@ Default outputs:
 - `artifacts/m7e/component-gallery-interactive.png`
 
 These PNGs are deterministic local visual audit aids. They are not a committed pixel-diff baseline.
+
+Current font proof audit workflow:
+
+```powershell
+.\tools\Export-MachinaFontProofs.ps1
+```
+
+Default outputs:
+
+- `artifacts/m8l/msdf-machina.ppm`
+- `artifacts/m8l/msdf-aa0.ppm`
+- `artifacts/m8l/msdf-a-space-a.ppm`
+- `artifacts/m8l/msdf-machina-0.ppm`
+- `artifacts/m8l/msdf-hello-machina.ppm`
+
+These PPMs are deterministic local audit aids for standalone `Machina.Fonts`. They are not a committed pixel-diff baseline and do not imply `TextBlock`, renderer, gallery, Vulkan, or PNG integration.
 
 ## Reference source
 

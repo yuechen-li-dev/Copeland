@@ -560,7 +560,8 @@ Boundary checks run for M8a confirmed no active ProjectReference into `reference
 - M8h: prove `MSDF-Sharp.Core` generation from Machina-owned outline records.
 - M8i: integrate real generated fields into atlas packing and real page artifact export.
 - M8k: add CPU reference MSDF inspection/rendering for export/debug.
-- M8l: add Aurelian/Vulkan MSDF shader consumer after renderer contracts are ready.
+- M8l: add repeatable CPU proof export, visual audit, and convention stabilization while keeping the path standalone.
+- M8m: add Aurelian/Vulkan or other renderer-consumer work only after the proof conventions are explicit.
 
 ## Deferred issues
 
@@ -654,3 +655,14 @@ M8k now proves the CPU reference rendering slice that this architecture original
 - `.ppm` proof output keeps the path dependency-free and avoids PNG/image packages
 - glyph metrics and advances now drive CPU reference placement
 - the result is still not a runtime renderer, `TextBlock` consumer, gallery integration, or Vulkan/Aurelian path
+
+## M8l follow-up
+
+M8l now proves the next architecture checkpoint without crossing into UI integration:
+
+- deterministic local `.ppm` text proofs can be exported under `artifacts/m8l`
+- the current CPU proof path has documented coordinate-orientation, baseline/bearing, smoothing, and whitespace conventions
+- the proof workflow uses `FlipY = true` for the current real Typography/MSDF atlas orientation
+- the current centered field-padding compensation remains explicitly proof-only
+
+The architecture doctrine is unchanged: this is still evidence for later renderer work, not the final renderer itself.

@@ -112,6 +112,7 @@ Policy:
 - map output pixels across the entry UV rectangle
 - default Y policy is atlas-top-to-bottom (`FlipY = false`)
 - optional `FlipY = true` exists to validate opposite orientation explicitly
+- the real Typography/MSDF proof path now uses `FlipY = true` to produce upright glyphs from the current atlas convention
 - composite foreground over background before writing output
 
 That limitation is what the newer text-renderer proof removes.
@@ -139,6 +140,7 @@ The test asserts:
 - `.dfpage` reads back successfully
 - the rendered image is non-blank
 - repeated render/output bytes are deterministic
+- `FlipY = true` produces the upright proof orientation for the current managed atlas contract
 
 ## Tests
 
@@ -162,4 +164,4 @@ These cover synthetic sampling, rect placement, Y policy, foreground/background 
 
 ## M8l plan
 
-M8l can build on this proof by wiring the settled atlas conventions into a real renderer consumer, likely a GPU/MSDF path, without re-litigating page layout, UV conventions, or threshold basics.
+M8l now builds on this proof by exporting and visually auditing a deterministic text proof set, documenting the current Y-orientation choice, and leaving broader renderer integration deferred. See `docs/machina-cpu-msdf-text-proof-audit-m8l.md`.

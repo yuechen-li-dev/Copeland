@@ -100,6 +100,17 @@ Current formula:
 
 This is a proof convention for the current centered-field generator. A final runtime renderer may choose a different atlas contract later.
 
+## Coordinate orientation
+
+Current convention after M8l:
+
+- `.dfpage` page data is interpreted top-to-bottom
+- output image rows are also top-to-bottom
+- `FlipY` only changes sampling direction inside the glyph UV rect
+- the real Typography/MSDF proof path currently renders upright with `FlipY = true`
+
+That is a stabilized proof convention, not yet a locked production renderer contract.
+
 ## Sampling and compositing
 
 Sampling remains the same managed proof policy introduced by the earlier glyph renderer:
@@ -141,17 +152,19 @@ Coverage now includes:
 - no kerning/shaping/fallback
 - no multiline layout
 - no HiDPI/runtime scale negotiation beyond the proof em-size path
+- the current `FlipY = true` Typography/MSDF proof orientation is documented but not yet promoted into a broader runtime atlas contract
+- centered field-padding compensation is still proof-only
 
 MSDF still matters because it should avoid a per-scale bitmap atlas explosion, but final renderer integration is deferred.
 
 ## M8l plan
 
-M8l can build on this by connecting the settled atlas/page conventions to a real renderer consumer.
+M8l now builds on this by adding repeatable proof export, visual inspection, and convention stabilization without crossing into UI integration.
 
-That later step should reuse:
+That follow-up reuses:
 
 - the real outline and MSDF generator seam
 - the packed atlas artifact conventions
 - the single-line placement proof lessons
 
-without claiming that this CPU debug path is itself the final text backend.
+without claiming that this CPU debug path is itself the final text backend. See `docs/machina-cpu-msdf-text-proof-audit-m8l.md`.

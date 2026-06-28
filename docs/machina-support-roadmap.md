@@ -538,3 +538,22 @@ Still deferred:
 - no Vulkan/Aurelian dependency
 
 See `docs/machina-cpu-msdf-text-renderer-m8k.md`.
+
+### Machina M8l — CPU MSDF text proof audit and convention stabilization
+
+M8l turns the M8k proof path into a repeatable local audit workflow without integrating it into UI code.
+
+- `FontProofExporter` now exports a deterministic proof set from one shared real Typography + `MSDF-Sharp.Core` atlas.
+- `tools/Export-MachinaFontProofs.ps1` writes local proof artifacts to `artifacts/m8l`.
+- visual audit found and fixed two small convention issues: the real proof path needed `FlipY = true` for upright output, and the longest proof strings needed a wider deterministic canvas.
+- docs now explicitly record coordinate orientation, baseline/bearing placement, centered field compensation, smoothing/threshold behavior, and whitespace/missing-glyph policy.
+
+Still deferred:
+
+- no `TextBlock` integration
+- no component gallery integration
+- no renderer replacement
+- no Vulkan/Aurelian work
+- no shaping/kerning/fallback policy expansion
+
+See `docs/machina-cpu-msdf-text-proof-audit-m8l.md`.
