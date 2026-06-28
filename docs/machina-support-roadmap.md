@@ -428,3 +428,6 @@ M8b adds the standalone `Machina.Fonts` project and focused tests for validated 
 ### Machina M8c — Font atlas TOML metadata
 
 M8c lands `.font-atlas.toml` document records, a deterministic writer, loader/parser, validation diagnostics, and snapshot conversion helpers inside standalone `Machina.Fonts`. It is metadata-only and defers real MSDF generation, font loading, PNG writing, and renderer integration to later milestones.
+
+
+M8d lands the fake atlas artifact pipeline: ready fake-worker snapshots export to deterministic `.font-atlas.toml` plus `.fakepage` page files, import validates existence, content hashes, and fake page dimensions, and tests prove roundtrip equivalence. Real MSDF, PNG, font parsing, and renderer integration remain deferred.

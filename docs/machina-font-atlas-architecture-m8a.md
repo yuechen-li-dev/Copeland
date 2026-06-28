@@ -577,3 +577,8 @@ M8b creates the standalone `Machina.Fonts` and `Machina.Fonts.Tests` projects pr
 ## M8c contract update
 
 M8c implements the inspectable atlas metadata layer proposed by the audit: a binary/art asset can be paired with editable `.font-atlas.toml` metadata, typed document records, deterministic export, and precise diagnostics. It deliberately avoids Dominatus submodule ProjectReferences and does not implement real MSDF, font parsing, PNG output, or renderer integration.
+
+
+## M8d fake artifact milestone
+
+M8d proves the atlas export/import shape with deterministic `.fakepage` artifacts beside `.font-atlas.toml` metadata. It intentionally does not add real MSDF generation, PNG encoding, font parsing, renderer integration, Vulkan/Aurelian code, or native dependencies.
