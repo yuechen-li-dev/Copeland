@@ -595,3 +595,20 @@ Still deferred:
 - no shaping, ligatures, bidi, fallback, or multiline layout
 
 See `docs/machina-cpu-msdf-spacing-kerning-m8n.md`.
+
+### Machina M8o — MSDF reference-oracle comparison fixture
+
+M8o adds the local oracle needed before another proof-path spacing or placement change.
+
+- `tools/Export-MachinaFontReferenceComparison.ps1` now exports browser-canvas reference renders, Machina MSDF proof renders, side-by-side compare PNGs, and a glyph placement report under `artifacts/m8o`.
+- the reference path uses checked-in fixture fonts plus local headless Edge/Chrome canvas rendering, staying independent from Machina placement logic.
+- the current evidence shows the dominant mismatch is not missing kerning data but oversized/underconstrained glyph render quads relative to the advances in use.
+
+Still deferred:
+
+- no production renderer integration
+- no `StandardUI.TextBlock` migration
+- no visual pixel-diff gate
+- no new production dependency on browser tooling
+
+See `docs/machina-msdf-reference-oracle-m8o.md`.

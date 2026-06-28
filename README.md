@@ -71,6 +71,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina CPU MSDF Reference Renderer M8k](docs/machina-cpu-msdf-reference-renderer-m8k.md)
 - [Machina CPU MSDF Text Proof Audit M8l](docs/machina-cpu-msdf-text-proof-audit-m8l.md)
 - [Machina CPU MSDF Spacing and Kerning M8n](docs/machina-cpu-msdf-spacing-kerning-m8n.md)
+- [Machina MSDF Reference Oracle M8o](docs/machina-msdf-reference-oracle-m8o.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -116,6 +117,29 @@ Default outputs:
 - `artifacts/m8n/msdf-spacing-proof.ppm`
 
 These PPMs are deterministic local audit aids for standalone `Machina.Fonts`. M8n keeps them proof-path only: no `TextBlock` integration, no production renderer integration, no shaping engine adoption, and no arbitrary tracking hack as the primary spacing fix.
+
+Current reference-oracle workflow:
+
+```powershell
+.\tools\Export-MachinaFontReferenceComparison.ps1
+```
+
+Default outputs:
+
+- `artifacts/m8o/reference-machina.png`
+- `artifacts/m8o/reference-hello-machina.png`
+- `artifacts/m8o/reference-kerning.png`
+- `artifacts/m8o/machina-msdf-machina.ppm`
+- `artifacts/m8o/machina-msdf-machina.png`
+- `artifacts/m8o/machina-msdf-hello-machina.ppm`
+- `artifacts/m8o/machina-msdf-kerning.ppm`
+- `artifacts/m8o/compare-machina.png`
+- `artifacts/m8o/compare-hello-machina.png`
+- `artifacts/m8o/compare-kerning.png`
+- `artifacts/m8o/glyph-placement-report.txt`
+- `artifacts/m8o/glyph-placement-report.json`
+
+These M8o outputs remain local debug artifacts only. They are intended to bootstrap evidence for the next proof-path placement fix, not to introduce production text integration or an automated visual gate.
 
 ## Reference source
 
