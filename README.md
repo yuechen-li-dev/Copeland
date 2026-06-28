@@ -56,4 +56,18 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 
 - [Machina Component Gallery M7a](docs/machina-component-gallery-m7a.md)
 - [Machina Component Gallery Export M7b](docs/machina-component-gallery-export-m7b.md)
+- [Machina Component Gallery Known Limitations M7e](docs/machina-component-gallery-known-limitations-m7e.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
+
+Current gallery audit workflow:
+
+```powershell
+.\tools\Export-MachinaComponentGallery.ps1
+```
+
+Default outputs:
+
+- `artifacts/m7e/component-gallery-default.png`
+- `artifacts/m7e/component-gallery-interactive.png`
+
+These PNGs are deterministic local visual audit aids. They are not a committed pixel-diff baseline.

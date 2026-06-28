@@ -10,7 +10,7 @@ public sealed class GalleryExportTests
         var options = GalleryProgramOptions.Parse([]);
 
         Assert.False(options.ExportOnly);
-        Assert.Equal(Path.Combine("artifacts", "m7b"), options.ExportDirectory);
+        Assert.Equal(Path.Combine("artifacts", "m7e"), options.ExportDirectory);
         Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
         Assert.Equal(GalleryState.Default, options.InitialState);
     }
@@ -22,15 +22,33 @@ public sealed class GalleryExportTests
         [
             "--export-only",
             "--export-dir",
-            @"artifacts\m7b",
+            @"artifacts\m7e",
             "--export-name",
             "component-gallery-default",
         ]);
 
         Assert.True(options.ExportOnly);
-        Assert.Equal(@"artifacts\m7b", options.ExportDirectory);
+        Assert.Equal(@"artifacts\m7e", options.ExportDirectory);
         Assert.Equal("component-gallery-default", options.ExportName);
         Assert.Equal(GalleryState.Default, options.InitialState);
+    }
+
+    [Fact]
+    public void GalleryExportContract_DefaultAndInteractiveNamesAreStable()
+    {
+        Assert.Equal("component-gallery-default", GalleryExportContract.DefaultExportName);
+        Assert.Equal("component-gallery-interactive", GalleryExportContract.InteractiveExportName);
+    }
+
+    [Fact]
+    public void GalleryExportContract_DefaultOutputPathsAreStable()
+    {
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "component-gallery-default.png"),
+            GalleryExportContract.GetDefaultOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "component-gallery-interactive.png"),
+            GalleryExportContract.GetInteractiveOutputPath(Path.Combine("artifacts", "m7e")));
     }
 
     [Fact]
@@ -69,7 +87,7 @@ public sealed class GalleryExportTests
                 GalleryExportContract.InteractiveExportName);
 
             Assert.Equal(
-                Path.Combine(outputDirectory, $"{GalleryExportContract.InteractiveExportName}.png"),
+                GalleryExportContract.GetInteractiveOutputPath(outputDirectory),
                 result.OutputPath);
             Assert.True(File.Exists(result.OutputPath));
 

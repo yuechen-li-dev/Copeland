@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$OutputDir = "artifacts\\m7b",
+    [string]$OutputDir = "artifacts\\m7e",
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug"
 )

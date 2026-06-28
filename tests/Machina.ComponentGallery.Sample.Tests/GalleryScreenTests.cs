@@ -29,6 +29,22 @@ public sealed class GalleryScreenTests
     }
 
     [Fact]
+    public void GalleryScreen_StillContainsKnownSections()
+    {
+        var document = GalleryScreen.Build(GalleryState.Default, StandardTheme.Default);
+        var rowIds = document.Rows.Select(row => row.Id).ToArray();
+
+        Assert.Contains("text-section", rowIds);
+        Assert.Contains("buttons-section", rowIds);
+        Assert.Contains("selection-section", rowIds);
+        Assert.Contains("badges-section", rowIds);
+        Assert.Contains("actions-section", rowIds);
+        Assert.Contains("input-section", rowIds);
+        Assert.Contains("cards-section", rowIds);
+        Assert.Contains("theme-section", rowIds);
+    }
+
+    [Fact]
     public void Gallery_HitTargets_UseGalleryActions()
     {
         var frame = GeometryHarness.ResolveDocument(

@@ -78,6 +78,11 @@ Historical note after M7d:
 - the badge issue documented here is resolved by a Badge-local intrinsic sizing + label-region contract
 - M7d preserves the rest of this sweep's deferrals and does not change general layout semantics
 
+Historical note after M7e:
+
+- the gallery remains stable enough to keep using as the canonical local workbench
+- current residual roughness is captured in `docs/machina-component-gallery-known-limitations-m7e.md` instead of being treated as active M7c defects
+
 ## Validation results
 
 Validation executed after the fix:

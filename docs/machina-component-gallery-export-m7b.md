@@ -6,31 +6,42 @@ M7b formalizes the component gallery export path introduced in M7a.
 
 The goal is a boring, repeatable local workflow for producing deterministic raster artifacts from the canonical gallery sample without relying on OS screenshot capture or a visible GUI window.
 
+M7e follow-up note:
+
+- the current default export directory is now `artifacts/m7e`
+- the stable baseline and current limitation register live in `docs/machina-component-gallery-known-limitations-m7e.md`
+
 ## Export contract
 
 Canonical sample:
 
 - `samples/Machina.ComponentGallery.Sample`
 
-Canonical output directory:
+Current default output directory:
 
-- `artifacts/m7b`
+- `artifacts/m7e`
 
-Canonical export files:
+Current canonical export files:
 
-- `artifacts/m7b/component-gallery-default.png`
-- `artifacts/m7b/component-gallery-interactive.png`
+- `artifacts/m7e/component-gallery-default.png`
+- `artifacts/m7e/component-gallery-interactive.png`
 
 Canonical default-state command:
 
 ```powershell
-dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7b --export-name component-gallery-default
+dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-default
 ```
 
 Canonical interactive-state command:
 
 ```powershell
-dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7b --export-name component-gallery-interactive --primary-clicks 1 --checkbox on --switch on
+dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-interactive --primary-clicks 1 --checkbox on --switch on
+```
+
+Current default-script command:
+
+```powershell
+.\tools\Export-MachinaComponentGallery.ps1
 ```
 
 Contract notes:
@@ -56,7 +67,7 @@ Default usage:
 Optional arguments:
 
 ```powershell
-.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m7b
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m7e
 .\tools\Export-MachinaComponentGallery.ps1 -Configuration Debug
 ```
 
@@ -72,14 +83,14 @@ Behavior:
 If PowerShell script execution is blocked by local execution policy, run the sample commands directly:
 
 ```powershell
-dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7b --export-name component-gallery-default
-dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7b --export-name component-gallery-interactive --primary-clicks 1 --checkbox on --switch on
+dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-default
+dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-interactive --primary-clicks 1 --checkbox on --switch on
 ```
 
 ## Artifact policy
 
 - M7b keeps the export docs and script checked in.
-- M7b treats `artifacts/m7b/` outputs as generated local artifacts for now.
+- Current gallery outputs under `artifacts/m7e/` are generated local artifacts for now.
 - M7b does not introduce an automated pixel-diff gate.
 - Historical checked-in artifacts from older milestone notes may remain in the repo.
 - Current gallery exports are visual audit aids only.
@@ -88,9 +99,9 @@ See `artifacts/README.md` for the local regeneration note.
 
 ## Local visual inspection workflow
 
-1. Run `.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m7b`.
-2. Open `artifacts/m7b/component-gallery-default.png`.
-3. Open `artifacts/m7b/component-gallery-interactive.png`.
+1. Run `.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m7e`.
+2. Open `artifacts/m7e/component-gallery-default.png`.
+3. Open `artifacts/m7e/component-gallery-interactive.png`.
 4. Confirm both files exist and render visible gallery content.
 5. Confirm the interactive export differs where expected:
    primary click count advanced,
@@ -111,6 +122,8 @@ Dedicated gallery sample tests now cover:
 
 Existing gallery tests still cover document shape, hit targets, geometry stability, theme propagation, and deterministic render-command summaries.
 
+M7e adds a small contract guard for stable export names and default output paths.
+
 ## Deferred visual-diff work
 
 M7b intentionally defers:
@@ -120,4 +133,4 @@ M7b intentionally defers:
 - screenshot capture workflows
 - broader component redesign or renderer architecture changes
 
-Future M7c/M7d work can add comparison policy after the export contract stays stable and useful in local practice.
+Future work can add comparison policy after the export contract stays stable and useful in local practice.

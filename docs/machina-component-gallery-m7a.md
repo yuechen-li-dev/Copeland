@@ -1,8 +1,11 @@
 # Machina Component Gallery M7a
 
-M7b follow-up note:
+Follow-up milestones:
 
-- export contract, script, and artifact policy are now formalized in `docs/machina-component-gallery-export-m7b.md`
+- M7b formalizes export contract, script, and artifact policy in `docs/machina-component-gallery-export-m7b.md`
+- M7c uses the gallery as a visual ruler in `docs/machina-component-gallery-visual-defect-sweep-m7c.md`
+- M7d fixes Badge locally in `docs/machina-badge-intrinsic-layout-m7d.md`
+- M7e records the stable baseline and limitation register in `docs/machina-component-gallery-known-limitations-m7e.md`
 
 ## Purpose
 
@@ -137,6 +140,8 @@ Future milestones can add more components or states here, but should preserve th
 - deterministic raster export
 - local visual inspection on Windows
 - headless structural contracts
+
+M7e keeps that role intact and documents the current baseline rather than broadening the renderer or redesigning the screen.
 
 ## M7d badge note
 

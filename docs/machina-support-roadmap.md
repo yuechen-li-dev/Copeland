@@ -67,7 +67,7 @@ Current proven path (with some steps still partial depending on scenario breadth
 
 Manual GUI validation depth across broader component scenarios is **Partial / needs continuing audit**.
 
-M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow. M7c uses that workflow for evidence-backed visual defect triage and deferral documentation. M7d closes the deferred badge intrinsic-size / label-placement issue with a Badge-local contract and no general layout-engine changes.
+M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow. M7c uses that workflow for evidence-backed visual defect triage and deferral documentation. M7d closes the deferred badge intrinsic-size / label-placement issue with a Badge-local contract and no general layout-engine changes. M7e records the current stable baseline and known limitations so the gallery can keep serving as the canonical local visual workbench without pretending typography and interaction fidelity are finished.
 
 ## Support Matrix
 
@@ -144,8 +144,9 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Rounded rects | Renderer/Core styles | Planned | None | Roadmap M1f candidate.
 | Images | Renderer/Core | Deferred | None | Later asset pipeline milestone.
 | Real text backend | Raster.Text adapter | Planned | Debug text tests only | Roadmap M1g candidate.
-| PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement.
+| PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement; M7e keeps the default local audit path on `artifacts/m7e/`. |
 | Gallery-driven visual defect sweep | Machina.Standard + ComponentGallery sample | Implemented | Local PNG inspection + docs | M7c formalizes gallery-based visual triage and explicit deferral documentation; small safe fixes remain opportunistic. |
+| Gallery baseline and limitation register | ComponentGallery sample + docs | Implemented | Local PNG inspection + docs + export-contract tests | M7e marks the current gallery baseline stable enough for routine audits and records intentional renderer/sample limitations. |
 | Dirty rects | Renderer/runtime | Deferred | None | Performance milestone later.
 | GPU backend | Future renderer | Deferred | None | Future platform strategy.
 | Avalonia static bitmap window | Presenter sample | Implemented | Presenter docs/proofs | M0 presenter baseline.
@@ -228,6 +229,7 @@ React mapping guide:
 - **M7b**: gallery export contract, local export script, stable PNG artifact names, and artifact policy cleanup (implemented).
 - **M7c**: gallery visual defect sweep, shared defect triage, and visual audit documentation (implemented).
 - **M7d**: Badge intrinsic sizing and local text placement contract, with gallery regression coverage and artifact revalidation (implemented).
+- **M7e**: gallery stabilization ledger, known-limitation register, current audit workflow cleanup, and small export-contract hardening (implemented).
 
 ## Open Questions
 

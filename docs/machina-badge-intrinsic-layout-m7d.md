@@ -144,6 +144,11 @@ Observed result:
 - no new section overlap was introduced
 - the rest of the gallery remained visually stable for the current workbench purpose
 
+M7e follow-up:
+
+- the post-fix gallery baseline is now treated as stable enough for ongoing local audits
+- remaining roughness is documented in `docs/machina-component-gallery-known-limitations-m7e.md`
+
 ## Deferred issues
 
 - the current raster text renderer still has coarse bitmap text limits unrelated to badge layout
