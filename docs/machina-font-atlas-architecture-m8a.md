@@ -649,7 +649,8 @@ The architecture boundary stays intact:
 
 M8k now proves the CPU reference rendering slice that this architecture originally anticipated.
 
-- standalone `Machina.Fonts.ReferenceRendering` reads `.dfpage` artifacts and renders a single glyph entry into an RGBA buffer
+- standalone `Machina.Fonts.ReferenceRendering` reads `.dfpage` artifacts and renders short single-line strings into an RGBA buffer
 - deterministic bilinear sampling validates SDF/MSDF page interpretation and atlas UV/rect conventions
 - `.ppm` proof output keeps the path dependency-free and avoids PNG/image packages
+- glyph metrics and advances now drive CPU reference placement
 - the result is still not a runtime renderer, `TextBlock` consumer, gallery integration, or Vulkan/Aurelian path

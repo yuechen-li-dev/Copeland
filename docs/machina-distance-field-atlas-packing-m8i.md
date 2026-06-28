@@ -191,9 +191,10 @@ M8i adds focused tests for:
 
 ## M8k follow-up
 
-M8k now builds on M8i by adding a standalone CPU reference rendering path for packed `.dfpage` artifacts.
+M8k now builds on M8i by adding a standalone CPU reference text-rendering path for packed `.dfpage` artifacts.
 
-- the new proof path reads `.dfpage` back into a reference page model
-- CPU sampling validates SDF/MSDF conventions, UV/rect placement, Y orientation, and threshold behavior
-- proof output is deterministic `.ppm`, not PNG
+- `.dfpage` pages are read back into reference page objects
+- real glyph metrics now drive single-line string placement
+- whitespace advances as metrics-only spacing and still has no atlas entry
+- proof output remains deterministic `.ppm`, not PNG
 - renderer/TextBlock/gallery/Vulkan integration remains deferred

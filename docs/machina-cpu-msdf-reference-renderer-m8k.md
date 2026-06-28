@@ -1,8 +1,14 @@
 # Machina CPU MSDF Reference Renderer M8k
 
+This file now serves as the historical bridge note for the earlier single-glyph proof.
+
+The current M8k milestone answer for string rendering is documented in:
+
+- [Machina CPU MSDF Text Renderer M8k](machina-cpu-msdf-text-renderer-m8k.md)
+
 ## Purpose
 
-M8k proves that packed distance-field atlas data can be sampled on the CPU and turned into a visible deterministic glyph image.
+The earlier proof established that packed distance-field atlas data could be sampled on the CPU and turned into a visible deterministic glyph image.
 
 This is a validation milestone, not a runtime rendering integration milestone.
 
@@ -108,7 +114,7 @@ Policy:
 - optional `FlipY = true` exists to validate opposite orientation explicitly
 - composite foreground over background before writing output
 
-There is no string layout, baseline placement, or runtime text composition in M8k.
+That limitation is what the newer text-renderer proof removes.
 
 ## PPM proof output
 

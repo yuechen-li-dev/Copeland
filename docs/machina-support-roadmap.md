@@ -520,15 +520,16 @@ Still deferred:
 
 See `docs/machina-distance-field-atlas-packing-m8i.md`.
 
-### Machina M8k — CPU reference MSDF glyph renderer proof
+### Machina M8k — CPU reference MSDF string renderer proof
 
-M8k proves that packed `.dfpage` atlas data can be sampled back into visible glyph pixels inside standalone `Machina.Fonts`.
+M8k proves that packed `.dfpage` atlas data can be sampled back into visible multi-glyph string pixels inside standalone `Machina.Fonts`.
 
-- `Machina.Fonts.ReferenceRendering` adds a tiny RGBA image model, distance-field page reader, CPU sampling helpers, single-glyph renderer, and deterministic `.ppm` writer.
+- `Machina.Fonts.ReferenceRendering` adds a tiny RGBA image model, distance-field page reader, CPU sampling helpers, single-line text layout, string renderer, and deterministic `.ppm` writer.
 - `Sdf`/`Psdf` sampling uses the scalar channel.
 - `Msdf` sampling uses median RGB.
 - `Mtsdf` currently also uses median RGB and explicitly defers alpha-channel usage.
-- focused tests cover sampling, threshold behavior, glyph rect placement, Y orientation, `.ppm` output, and a real Typography + `MSDF-Sharp.Core` + packing + artifact-read + render proof.
+- whitespace now advances as metrics-only spacing without atlas entries.
+- focused tests cover sampling, threshold behavior, glyph placement, baseline/bearing policy, `.ppm` output, and a real Typography + `MSDF-Sharp.Core` + packing + artifact-read + string-render proof.
 
 Still deferred:
 
@@ -536,4 +537,4 @@ Still deferred:
 - no PNG output
 - no Vulkan/Aurelian dependency
 
-See `docs/machina-cpu-msdf-reference-renderer-m8k.md`.
+See `docs/machina-cpu-msdf-text-renderer-m8k.md`.

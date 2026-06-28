@@ -230,9 +230,10 @@ Still deferred after M8i:
 
 ## M8k follow-up
 
-M8k now proves that the generated and packed field data from M8h + M8i is actually sampleable as visible glyph output.
+M8k now proves that the generated and packed field data from M8h + M8i is sampleable as visible string output.
 
 - `.dfpage` artifacts are read back through a CPU reference page reader
 - `MSDF` sampling uses median RGB on the CPU just as the eventual renderer path is expected to
+- glyph metrics and advances now place multi-glyph single-line strings
 - deterministic `.ppm` proof images now exist without adding a PNG/image dependency
 - GPU/runtime integration remains deferred
