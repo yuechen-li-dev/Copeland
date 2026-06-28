@@ -51,6 +51,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/machina-support-roadmap.md)
 - [Windows Test Triage M5i](docs/copeland-windows-test-triage-m5i.md)
+- [Reference Source](reference/README.md)
 
 ## Machina samples
 
@@ -71,3 +72,7 @@ Default outputs:
 - `artifacts/m7e/component-gallery-interactive.png`
 
 These PNGs are deterministic local visual audit aids. They are not a committed pixel-diff baseline.
+
+## Reference source
+
+`reference/dominatus` is a reference-only Git submodule for source inspection. Active Copeland and Machina builds continue to use the NuGet `Dominatus.Core` and `Dominatus.OptFlow` `0.4.0` packages.

@@ -29,6 +29,8 @@ This roadmap tracks support status across Machina packages so implementation bra
 - **Machina.Dominatus**  
   render command bridge and Dominatus-driven runtime proofs/orchestration.
 
+  Reference-only upstream Dominatus source is available under `reference/dominatus`, especially `src/Dominatus.Assets.Toml` and `src/Dominatus.SpriteForge`. The active build remains pinned to NuGet `Dominatus.Core` and `Dominatus.OptFlow` `0.4.0`.
+
 - **Machina.Renderer.Raster**  
   CPU raster surface + primitive pixel operations.
 
