@@ -51,3 +51,7 @@ M8b intentionally defers MSDF generation, real font loading, glyph outline extra
 ## M8c plan
 
 M8c can build on this standalone service by adding stronger diagnostics and generation contracts, then later milestones can add real atlas serialization and renderer consumption behind the immutable snapshot boundary.
+
+## M8c follow-up
+
+M8c adds the standalone `.font-atlas.toml` metadata contract in `Machina.Fonts.Toml`. The M8b runtime records remain standalone; M8c layers deterministic TOML loading, writing, validation diagnostics, and snapshot conversion metadata on top without adding MSDF generation, PNG writing, renderer integration, or native dependencies.

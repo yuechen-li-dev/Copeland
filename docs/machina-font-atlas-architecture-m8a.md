@@ -573,3 +573,7 @@ Boundary checks run for M8a confirmed no active ProjectReference into `reference
 ## M8b implementation note
 
 M8b creates the standalone `Machina.Fonts` and `Machina.Fonts.Tests` projects proposed by this audit. The implementation remains fake-generation only: no MSDF, no real font loading, no TOML, no PNG writing, no renderer integration, no native dependencies, and no active build dependency on `reference/dominatus`. See `docs/machina-fonts-m8b.md`.
+
+## M8c contract update
+
+M8c implements the inspectable atlas metadata layer proposed by the audit: a binary/art asset can be paired with editable `.font-atlas.toml` metadata, typed document records, deterministic export, and precise diagnostics. It deliberately avoids Dominatus submodule ProjectReferences and does not implement real MSDF, font parsing, PNG output, or renderer integration.

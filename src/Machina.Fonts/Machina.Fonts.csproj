@@ -3,4 +3,7 @@
     <AssemblyName>Machina.Fonts</AssemblyName>
     <RootNamespace>Machina.Fonts</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Tomlyn" />
+  </ItemGroup>
 </Project>
