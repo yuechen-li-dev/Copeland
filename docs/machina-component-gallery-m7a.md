@@ -1,5 +1,9 @@
 # Machina Component Gallery M7a
 
+M7b follow-up note:
+
+- export contract, script, and artifact policy are now formalized in `docs/machina-component-gallery-export-m7b.md`
+
 ## Purpose
 
 M7a adds a dedicated Machina component gallery sample.
@@ -105,14 +109,14 @@ Launch the Windows sample:
 dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj
 ```
 
-Deterministic raster export mode:
+Historical deterministic export mode used during M7a:
 
 ```powershell
 dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7a --export-name component-gallery-initial
 dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7a --export-name component-gallery-final --primary-clicks 1 --checkbox on --switch on
 ```
 
-The sample exports `.ppm` directly. For this audit, `.png` copies were generated from those deterministic `.ppm` files for easier inspection.
+M7a wrote `.ppm` directly. M7b replaces that ad hoc export note with the stable `.png` contract documented in `docs/machina-component-gallery-export-m7b.md`.
 
 ## Deferred issues
 

@@ -55,4 +55,5 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 ## Machina samples
 
 - [Machina Component Gallery M7a](docs/machina-component-gallery-m7a.md)
+- [Machina Component Gallery Export M7b](docs/machina-component-gallery-export-m7b.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)

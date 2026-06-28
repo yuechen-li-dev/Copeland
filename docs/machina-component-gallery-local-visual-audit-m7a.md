@@ -1,5 +1,9 @@
 # Machina Component Gallery Local Visual Audit M7a
 
+This document remains the historical M7a audit note.
+
+For the current repeatable export contract and artifact policy, use `docs/machina-component-gallery-export-m7b.md`.
+
 ## Environment
 
 - OS: Windows 11 x64

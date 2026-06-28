@@ -67,7 +67,7 @@ Current proven path (with some steps still partial depending on scenario breadth
 
 Manual GUI validation depth across broader component scenarios is **Partial / needs continuing audit**.
 
-M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample.
+M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow.
 
 ## Support Matrix
 
@@ -144,13 +144,13 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Rounded rects | Renderer/Core styles | Planned | None | Roadmap M1f candidate.
 | Images | Renderer/Core | Deferred | None | Later asset pipeline milestone.
 | Real text backend | Raster.Text adapter | Planned | Debug text tests only | Roadmap M1g candidate.
-| PNG output | Renderer tooling | Planned | None | Add output adapter policy.
+| PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement.
 | Dirty rects | Renderer/runtime | Deferred | None | Performance milestone later.
 | GPU backend | Future renderer | Deferred | None | Future platform strategy.
 | Avalonia static bitmap window | Presenter sample | Implemented | Presenter docs/proofs | M0 presenter baseline.
 | Avalonia click-to-action | Presenter sample | Partial | Presenter/runtime docs | Expand robust input loops.
 | Avalonia redraw loop | Presenter sample | Partial | Presenter docs | Harden for multi-event scenarios.
-| Component gallery visual workbench | ComponentGallery sample | Implemented | Dedicated gallery tests + local Windows visual audit | Canonical “wall of widgets” page; local-first, not a Storybook clone, no automated pixel diffs yet. |
+| Component gallery visual workbench | ComponentGallery sample | Implemented | Dedicated gallery tests + local Windows visual audit + repeatable export script | Canonical “wall of widgets” page; local-first, not a Storybook clone; M7b formalizes deterministic PNG export and generated-artifact policy. |
 | Scaling/DPI conversion | Presenter sample | Partial | Presenter M1d mapper/tests | Explicit image-to-root mapping landed for None/Fill/Uniform math; broader DPI policy still pending.
 | Window resize handling | Presenter sample | Planned | None | Needed for practical desktop UX.
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
@@ -224,6 +224,7 @@ React mapping guide:
 - **M1f**: scaling/DPI pointer conversion follow-through and resize behavior hardening.
 - **M1g**: border/radius style support.
 - **M7a**: dedicated Machina component gallery sample and headless+local visual proof path (implemented).
+- **M7b**: gallery export contract, local export script, stable PNG artifact names, and artifact policy cleanup (implemented).
 
 ## Open Questions
 
