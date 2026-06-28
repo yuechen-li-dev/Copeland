@@ -85,3 +85,11 @@ M8s keeps the same red baseline-guide contract and applies the same ignore polic
 - browser, direct-outline, and MSDF artifacts at `32px`, `48px`, and `64px` all include the same baseline line
 - the extracted ink masks explicitly ignore that guide before computing IoU, bounds, or edge-distance metrics
 - the resulting report still points away from the baseline line itself as the dominant mismatch source
+
+## M9a follow-up
+
+M9a keeps the M8q.2 baseline guide idea and folds it into the consolidated toolkit grid.
+
+- baseline remains a tooling overlay, not a renderer fix
+- the new toolkit adds axes, grid density, optional unit labels, and bounds on top of the same baseline-visibility goal
+- the red baseline is now part of a broader CAD-style measurement surface under `Machina.Fonts.Tooling`

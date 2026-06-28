@@ -4,6 +4,7 @@
     <Project Path="src/Copeland.Cli/Copeland.Cli.csproj" />
     <Project Path="src/Machina.Layout/Machina.Layout.csproj" />
     <Project Path="src/Machina.Fonts/Machina.Fonts.csproj" />
+    <Project Path="src/Machina.Fonts.Tooling/Machina.Fonts.Tooling.csproj" />
     <Project Path="src/Machina.Core/Machina.Core.csproj" />
     <Project Path="src/Machina.Standard/Machina.Standard.csproj" />
     <Project Path="src/Machina.Dominatus/Machina.Dominatus.csproj" />
@@ -22,6 +23,7 @@
     <Project Path="tests/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
     <Project Path="tests/Machina.Layout.Tests/Machina.Layout.Tests.csproj" />
     <Project Path="tests/Machina.Fonts.Tests/Machina.Fonts.Tests.csproj" />
+    <Project Path="tests/Machina.Fonts.Tooling.Tests/Machina.Fonts.Tooling.Tests.csproj" />
     <Project Path="tests/Machina.Core.Tests/Machina.Core.Tests.csproj" />
     <Project Path="tests/Machina.Standard.Tests/Machina.Standard.Tests.csproj" />
     <Project Path="tests/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj" />

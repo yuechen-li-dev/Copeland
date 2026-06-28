@@ -15,6 +15,8 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m8q2/` is the current local MSDF baseline-guide overlay comparison output directory.
 - `artifacts/m8r/` is the current local browser-vs-Machina overlay diff output directory.
 - `artifacts/m8s/` is the current local browser/direct-outline/MSDF three-way shape-diff output directory.
+- `artifacts/m9a/` is the historical first consolidated Machina font toolkit diagnostic output directory.
+- `artifacts/m9b/` is the current preset-driven Machina font toolkit diagnostic output directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -24,6 +26,8 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M8q.2 comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8r comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8s comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M9a comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M9b comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -119,6 +123,13 @@ Current M8s audit command:
 
 ```powershell
 .\tools\Export-MachinaFontShapeDiff.ps1 -OutputDir artifacts\m8s
+```
+
+Current M9b audit commands:
+
+```powershell
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9b -Preset direct-vs-msdf -GridStep 8 -ShowUnitLabels
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9b -Preset cad-debug -GridStep 8 -ShowUnitLabels -ShowBounds
 ```
 
 ## Current component gallery outputs
@@ -289,3 +300,17 @@ These remain local diagnostic artifacts only. M8r makes mismatch explicit with o
 - `artifacts/m8s/64/...`
 
 These remain local diagnostic artifacts only. M8s adds a direct-outline mask oracle, multi-size numeric shape-diff metrics, and three-way overlays without changing MSDF sampling, baseline placement, kerning, `GlyphFieldPlacement`, or any production text path.
+
+## Current M9b consolidated font toolkit outputs
+
+- `artifacts/m9b/32/m9b-direct-vs-msdf-hello-machina.png`
+- `artifacts/m9b/32/m9b-browser-vs-direct-hello-machina.png`
+- `artifacts/m9b/32/m9b-three-way-hello-machina.png`
+- `artifacts/m9b/32/m9b-cad-debug-hello-machina.png`
+- `artifacts/m9b/32/m9b-msdf-debug-hello-machina.png`
+- `artifacts/m9b/layer-composition-report.txt`
+- `artifacts/m9b/layer-composition-report.json`
+- `artifacts/m9b/shape-diff-report.txt`
+- `artifacts/m9b/shape-diff-report.json`
+
+These remain local diagnostic artifacts only. M9b keeps the `Machina.Fonts.Tooling` boundary, adds configurable layer compositions and named presets, and makes differences easier for humans and LLMs to inspect without changing production text behavior.

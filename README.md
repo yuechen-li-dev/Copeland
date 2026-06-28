@@ -78,6 +78,8 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina MSDF Baseline Guide Overlay M8q.2](docs/machina-msdf-baseline-guide-overlay-m8q2.md)
 - [Machina MSDF Reference Diff Overlay M8r](docs/machina-msdf-reference-diff-overlay-m8r.md)
 - [Machina MSDF Three-Way Shape Diff M8s](docs/machina-msdf-three-way-shape-diff-m8s.md)
+- [Machina Font Toolkit M9a](docs/machina-font-toolkit-m9a.md)
+- [Machina Font Toolkit Layers M9b](docs/machina-font-toolkit-layers-m9b.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -196,6 +198,27 @@ Current M8s outputs include:
 - `artifacts/m8s/shape-diff-report.json`
 
 M8s is diagnostic tooling only. It adds a direct-outline raster oracle, multi-size mask metrics, and three-way overlays without changing MSDF sampling, baseline placement, kerning behavior, or any production text path.
+
+Current consolidated M9b font-toolkit workflow:
+
+```powershell
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9b -Preset direct-vs-msdf -GridStep 8 -ShowUnitLabels
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9b -Preset cad-debug -GridStep 8 -ShowUnitLabels -ShowBounds
+```
+
+Current M9b outputs include:
+
+- `artifacts/m9b/32/m9b-direct-vs-msdf-hello-machina.png`
+- `artifacts/m9b/32/m9b-browser-vs-direct-hello-machina.png`
+- `artifacts/m9b/32/m9b-three-way-hello-machina.png`
+- `artifacts/m9b/32/m9b-cad-debug-hello-machina.png`
+- `artifacts/m9b/32/m9b-msdf-debug-hello-machina.png`
+- `artifacts/m9b/layer-composition-report.txt`
+- `artifacts/m9b/layer-composition-report.json`
+- `artifacts/m9b/shape-diff-report.txt`
+- `artifacts/m9b/shape-diff-report.json`
+
+M9b is still diagnostic tooling only. It keeps the `Machina.Fonts.Tooling` boundary, adds configurable layer compositions and presets, treats direct-outline geometry as the current internal reference, and explicitly does not claim a new renderer fix.
 
 M8q.2 remains the baseline-guide overlay pass that preceded M8r. Its current proof export is:
 

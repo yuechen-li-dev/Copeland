@@ -213,3 +213,22 @@ Do not start with:
 - kerning rewrites
 - `GlyphFieldPlacement` redesign
 - smoothing/threshold tweaks presented as the fix
+
+## M9a follow-up
+
+M9a keeps M8s as important historical evidence, but moves the human-facing orchestration into `Machina.Fonts.Tooling`.
+
+- the new consolidated export entry point is `.\tools\Export-MachinaFontDiagnostics.ps1`
+- the new diagnostic PNGs add CAD-style grid, axis, baseline, bounds, and wireframe overlays
+- browser horizontal kerning is no longer treated as the primary target oracle for the consolidated workflow
+- direct-outline text with Machina's own kerning remains the current geometry reference for M9a diagnostics
+
+M8s therefore remains valid as the proof that the direct-outline oracle matters, while M9a turns that lesson into a clearer toolkit boundary.
+
+## M9b follow-up
+
+M9b keeps that same diagnostic lesson, but expresses it through configurable layers and named presets inside `Machina.Fonts.Tooling`.
+
+- three-way comparison is now one preset instead of one hardcoded export shape
+- CAD-style grid, bounds, axes, baseline, labels, and diff layers can now be recombined for humans and LLMs
+- this is still tooling ergonomics only, not a renderer fix

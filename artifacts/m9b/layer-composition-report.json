@@ -1,0 +1,2424 @@
+{
+  "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b",
+  "PresetsGenerated": [
+    "direct-vs-msdf",
+    "browser-vs-direct",
+    "three-way",
+    "cad-debug",
+    "msdf-debug"
+  ],
+  "Artifacts": [
+    {
+      "PresetName": "direct-vs-msdf",
+      "SizePx": 32,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-direct-vs-msdf-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "difference",
+          "Label": "Direct vs MSDF difference",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "browser-vs-direct",
+      "SizePx": 32,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-browser-vs-direct-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "browser-image",
+          "Label": "Browser image",
+          "Visible": false,
+          "Opacity": 0.75,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": "Browser source unavailable. Preset still generated with browser layers hidden and a status label."
+    },
+    {
+      "PresetName": "three-way",
+      "SizePx": 32,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-three-way-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "three-way-diff",
+          "Label": "Three-way difference",
+          "Visible": true,
+          "Opacity": 0.85,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 32,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-cad-debug-machina.png",
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "msdf-debug",
+      "SizePx": 32,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-msdf-debug-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.8,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-mask",
+          "Label": "MSDF mask",
+          "Visible": true,
+          "Opacity": 0.3,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticMaskLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "direct-vs-msdf",
+      "SizePx": 32,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-direct-vs-msdf-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "difference",
+          "Label": "Direct vs MSDF difference",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "browser-vs-direct",
+      "SizePx": 32,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-browser-vs-direct-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "browser-image",
+          "Label": "Browser image",
+          "Visible": false,
+          "Opacity": 0.75,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": "Browser source unavailable. Preset still generated with browser layers hidden and a status label."
+    },
+    {
+      "PresetName": "three-way",
+      "SizePx": 32,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-three-way-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "three-way-diff",
+          "Label": "Three-way difference",
+          "Visible": true,
+          "Opacity": 0.85,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 32,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-cad-debug-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "msdf-debug",
+      "SizePx": 32,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-msdf-debug-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.8,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-mask",
+          "Label": "MSDF mask",
+          "Visible": true,
+          "Opacity": 0.3,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticMaskLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "direct-vs-msdf",
+      "SizePx": 32,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-direct-vs-msdf-kerning.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "difference",
+          "Label": "Direct vs MSDF difference",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "browser-vs-direct",
+      "SizePx": 32,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-browser-vs-direct-kerning.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "browser-image",
+          "Label": "Browser image",
+          "Visible": false,
+          "Opacity": 0.75,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": "Browser source unavailable. Preset still generated with browser layers hidden and a status label."
+    },
+    {
+      "PresetName": "three-way",
+      "SizePx": 32,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-three-way-kerning.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "three-way-diff",
+          "Label": "Three-way difference",
+          "Visible": true,
+          "Opacity": 0.85,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 32,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-cad-debug-kerning.png",
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "msdf-debug",
+      "SizePx": 32,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\m9b-msdf-debug-kerning.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.8,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-mask",
+          "Label": "MSDF mask",
+          "Visible": true,
+          "Opacity": 0.3,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticMaskLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\32\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "direct-vs-msdf",
+      "SizePx": 64,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-direct-vs-msdf-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "difference",
+          "Label": "Direct vs MSDF difference",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "browser-vs-direct",
+      "SizePx": 64,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-browser-vs-direct-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "browser-image",
+          "Label": "Browser image",
+          "Visible": false,
+          "Opacity": 0.75,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": "Browser source unavailable. Preset still generated with browser layers hidden and a status label."
+    },
+    {
+      "PresetName": "three-way",
+      "SizePx": 64,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-three-way-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "three-way-diff",
+          "Label": "Three-way difference",
+          "Visible": true,
+          "Opacity": 0.85,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 64,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-cad-debug-machina.png",
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "msdf-debug",
+      "SizePx": 64,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-msdf-debug-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.8,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-mask",
+          "Label": "MSDF mask",
+          "Visible": true,
+          "Opacity": 0.3,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticMaskLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "direct-vs-msdf",
+      "SizePx": 64,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-direct-vs-msdf-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "difference",
+          "Label": "Direct vs MSDF difference",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "browser-vs-direct",
+      "SizePx": 64,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-browser-vs-direct-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "browser-image",
+          "Label": "Browser image",
+          "Visible": false,
+          "Opacity": 0.75,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": "Browser source unavailable. Preset still generated with browser layers hidden and a status label."
+    },
+    {
+      "PresetName": "three-way",
+      "SizePx": 64,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-three-way-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "three-way-diff",
+          "Label": "Three-way difference",
+          "Visible": true,
+          "Opacity": 0.85,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 64,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-cad-debug-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "msdf-debug",
+      "SizePx": 64,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-msdf-debug-hello-machina.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.8,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-mask",
+          "Label": "MSDF mask",
+          "Visible": true,
+          "Opacity": 0.3,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticMaskLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "direct-vs-msdf",
+      "SizePx": 64,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-direct-vs-msdf-kerning.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "difference",
+          "Label": "Direct vs MSDF difference",
+          "Visible": true,
+          "Opacity": 0.7,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "browser-vs-direct",
+      "SizePx": 64,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-browser-vs-direct-kerning.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "browser-image",
+          "Label": "Browser image",
+          "Visible": false,
+          "Opacity": 0.75,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": "Browser source unavailable. Preset still generated with browser layers hidden and a status label."
+    },
+    {
+      "PresetName": "three-way",
+      "SizePx": 64,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-three-way-kerning.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "three-way-diff",
+          "Label": "Three-way difference",
+          "Visible": true,
+          "Opacity": 0.85,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticDifferenceLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 64,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-cad-debug-kerning.png",
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct outline image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    },
+    {
+      "PresetName": "msdf-debug",
+      "SizePx": 64,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\m9b-msdf-debug-kerning.png",
+      "Layers": [
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "msdf-image",
+          "Label": "MSDF image",
+          "Visible": true,
+          "Opacity": 0.8,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "msdf-mask",
+          "Label": "MSDF mask",
+          "Visible": true,
+          "Opacity": 0.3,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticMaskLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9b\\64\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      },
+      "Notes": null
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Fonts.Tooling</AssemblyName>
+    <RootNamespace>Machina.Fonts.Tooling</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Machina.Fonts/Machina.Fonts.csproj" />
+  </ItemGroup>
+</Project>

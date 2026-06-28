@@ -43,6 +43,12 @@ This roadmap tracks support status across Machina packages so implementation bra
 - **Machina.Pipeline**  
   reusable `UiNode`-to-`MachinaFrame` service (lowering/layout/hit-test/render/raster).
 
+- **Machina.Fonts**
+  production font records, generation adapters, atlas artifacts, and proof-path rendering substrate.
+
+- **Machina.Fonts.Tooling**
+  human-facing and LLM-facing font diagnostics, CAD-style overlays, artifact export, and numeric/visual diff workflows.
+
 - **samples/Machina.Presenter.Sample**  
   Avalonia bitmap presenter sample and interactive proof slice.
 
@@ -147,6 +153,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Images | Renderer/Core | Deferred | None | Later asset pipeline milestone.
 | Real text backend | Raster.Text adapter | Planned | Debug text tests only | Roadmap M1g candidate.
 | PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement; M7e keeps the default local audit path on `artifacts/m7e/`. |
+| Font diagnostics toolkit | Machina.Fonts.Tooling | Implemented | Toolkit tests + local export script | M9a establishes the toolkit boundary and CAD overlays; M9b adds configurable layers, named presets, and preset-driven export without introducing production dependencies. |
 | Gallery-driven visual defect sweep | Machina.Standard + ComponentGallery sample | Implemented | Local PNG inspection + docs | M7c formalizes gallery-based visual triage and explicit deferral documentation; small safe fixes remain opportunistic. |
 | Gallery baseline and limitation register | ComponentGallery sample + docs | Implemented | Local PNG inspection + docs + export-contract tests | M7e marks the current gallery baseline stable enough for routine audits and records intentional renderer/sample limitations. |
 | Dirty rects | Renderer/runtime | Deferred | None | Performance milestone later.
@@ -232,6 +239,8 @@ React mapping guide:
 - **M7c**: gallery visual defect sweep, shared defect triage, and visual audit documentation (implemented).
 - **M7d**: Badge intrinsic sizing and local text placement contract, with gallery regression coverage and artifact revalidation (implemented).
 - **M7e**: gallery stabilization ledger, known-limitation register, current audit workflow cleanup, and small export-contract hardening (implemented).
+- **M9a**: `Machina.Fonts.Tooling` consolidation, CAD-style diagnostic grid, unified artifact export, and production-vs-tooling boundary documentation (implemented).
+- **M9b**: configurable diagnostic layers, named compositions/presets, preset-driven export workflow, and LLM/human inspection ergonomics (implemented).
 
 ## Open Questions
 
@@ -722,3 +731,44 @@ This remains diagnostic-only:
 - no CI pixel gate
 
 See `docs/machina-msdf-three-way-shape-diff-m8s.md`.
+
+## M9a update
+
+M9a consolidates the late-M8 proof/debug stack into an explicit toolkit boundary.
+
+- `src/Machina.Fonts.Tooling` now holds the human-facing and LLM-facing overlay/export orchestration.
+- `tests/Machina.Fonts.Tooling.Tests` now cover grid, bounds, and deterministic export behavior.
+- `.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9a -ShowGrid -GridStep 8 -ShowBounds` is the new consolidated local workflow.
+- the toolkit adds X/Y axes, configurable grid density, optional unit labels, explicit baseline display, and stable bounds/wireframe overlays.
+- browser kerning remains useful context in older M8 workflows, but is no longer treated as the primary target oracle for horizontal spacing.
+- direct-outline text with Machina's own kerning is the current internal geometry reference for diagnostics.
+
+This remains tooling-only:
+
+- no production text rendering behavior changed
+- no Typography outline extraction change landed here
+- no MSDF generation or atlas packing change landed here
+- no `TextBlock` or `Standard.Text` integration changed
+
+See `docs/machina-font-toolkit-m9a.md`.
+
+## M9b update
+
+M9b builds on M9a by replacing hardcoded diagnostic compositions with a reusable layer model inside `Machina.Fonts.Tooling`.
+
+- `DiagnosticLayerComposition` and `DiagnosticLayer` now model export surfaces as ordered, toggleable layers.
+- image, mask, bounds, grid, axis, baseline, label, difference, and glyph-wireframe views can now be composed without changing production font behavior.
+- `LayerPresets` now provide named views such as `direct-vs-msdf`, `browser-vs-direct`, `three-way`, `cad-debug`, and `msdf-debug`.
+- `.\tools\Export-MachinaFontDiagnostics.ps1` now accepts `-Preset` and writes M9b preset artifacts plus `layer-composition-report.txt/json`.
+- browser comparison layers remain diagnostic context only; browser horizontal kerning is still not the primary success oracle.
+- direct-outline text with Machina's own kerning remains the current internal geometry reference.
+
+This remains tooling-only:
+
+- no production renderer change
+- no MSDF generation change
+- no atlas packing change
+- no `TextBlock` or production UI integration change
+- no new native or forbidden dependency
+
+See `docs/machina-font-toolkit-layers-m9b.md`.

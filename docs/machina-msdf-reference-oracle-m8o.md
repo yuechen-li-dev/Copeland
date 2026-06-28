@@ -221,3 +221,14 @@ M8s keeps the M8o browser oracle, but adds a second Machina-owned oracle between
 - current M8s evidence shows browser-vs-direct stays relatively stable while direct-vs-MSDF degrades sharply at larger sizes
 
 That means M8o's original “placement/extent first, not another blind spacing guess” conclusion still holds, but M8s narrows the next investigation more specifically toward the MSDF side of the proof stack.
+
+## M9a follow-up
+
+M9a does not remove the M8o browser oracle, but it changes how the project treats it.
+
+- browser capture remains useful context
+- browser horizontal kerning is not the main success target for the consolidated toolkit
+- the new M9a workflow centers direct-outline geometry plus Machina MSDF diagnostics
+- `Machina.Fonts.Tooling` is now the preferred home for human-facing export orchestration
+
+For current local inspection, prefer the consolidated M9a export when the question is geometric measurement rather than “what does browser canvas do?”
