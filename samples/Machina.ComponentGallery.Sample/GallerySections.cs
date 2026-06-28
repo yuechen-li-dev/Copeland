@@ -331,4 +331,79 @@ public static class GallerySections
                     ]),
             ]);
     }
+
+    public static UiNode MsdfFontProofSection(StandardTheme theme)
+    {
+        var panelBackground = ColorToken.Hex(0x111827FF);
+        var panelBorder = ColorToken.Hex(0x334155FF);
+        var panelForeground = ColorToken.Hex(0xF8FAFCFF);
+        var panelMuted = ColorToken.Hex(0xCBD5E1FF);
+        var panelStyle = new UiStyle(
+            Background: panelBackground,
+            Foreground: panelForeground,
+            Padding: 10,
+            BorderColor: panelBorder,
+            BorderThickness: 1);
+
+        return StandardUI.Card(
+            id: "msdf-proof-card",
+            theme: theme,
+            gap: 10,
+            children:
+            [
+                UI.Text("MSDF Font Proof", id: "msdf-proof-title", color: theme.Colors.Foreground),
+
+                UI.Text(
+                    "Opt-in export overlay only. Bitmap UI.Text stays on the left, Machina.Fonts CPU MSDF proof is blitted into the right slot during export.",
+                    id: "msdf-proof-caption",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Rect(
+                    id: "proof-comparison-surface",
+                    width: 860,
+                    height: 132,
+                    child: UI.Layer(
+                        children:
+                        [
+                            UI.At(
+                                UI.Rect(
+                                    id: "bitmap-proof-panel",
+                                    width: 228,
+                                    height: 132,
+                                    style: panelStyle,
+                                    child: UI.Column(
+                                    [
+                                        UI.Text("Current bitmap text", id: "bitmap-proof-label", size: TextSize.Sm, color: panelMuted),
+                                        UI.Text("Machina", id: "bitmap-proof-machina", color: panelForeground),
+                                        UI.Text("Aa0", id: "bitmap-proof-aa0", color: panelForeground),
+                                        UI.Text("Hello Machina", id: "bitmap-proof-hello", color: panelForeground),
+                                    ],
+                                    gap: 6)),
+                                x: 0,
+                                y: 0,
+                                width: 228,
+                                height: 132),
+
+                            UI.At(
+                                UI.Rect(
+                                    id: GalleryMsdfFontProofLayout.ImageSlotLeafId,
+                                    width: 620,
+                                    height: 132,
+                                    style: panelStyle,
+                                    child: UI.Container(
+                                        UI.Text(
+                                            "MSDF proof image is written here during export.",
+                                            id: "msdf-proof-slot-placeholder",
+                                            size: TextSize.Sm,
+                                            color: panelMuted),
+                                        alignX: Align.Center,
+                                        alignY: Align.Center)),
+                                x: 240,
+                                y: 0,
+                                width: 620,
+                                height: 132),
+                        ])),
+            ]);
+    }
 }

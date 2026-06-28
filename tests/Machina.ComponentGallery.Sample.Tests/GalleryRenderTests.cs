@@ -176,7 +176,7 @@ public sealed class GalleryRenderTests
 
     private static MachinaFrame Render(GalleryState state, StandardTheme theme)
     {
-        var document = GalleryScreen.Build(state, theme);
+        var document = GalleryScreen.Build(state, theme: theme);
         return new MachinaRasterPipeline().Render(document, GalleryScreen.Width, GalleryScreen.Height);
     }
 

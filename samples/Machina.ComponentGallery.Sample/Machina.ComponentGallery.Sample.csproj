@@ -2,10 +2,12 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <NoWarn>$(NoWarn);NU1903</NoWarn>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../src/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../src/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../src/Machina.Layout/Machina.Layout.csproj" />
     <ProjectReference Include="../../src/Machina.Dominatus/Machina.Dominatus.csproj" />
@@ -19,5 +21,15 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="MSDF-Sharp.Core" />
+    <PackageReference Include="Tomlyn" />
+    <PackageReference Include="WycliffeAssociates.Typography.OpenFont" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\tests\Machina.Fonts.Tests\Fixtures\Fonts\**\*">
+      <Link>Fixtures\Fonts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

@@ -81,3 +81,14 @@ Use this register when a visual rough edge appears during gallery inspection.
 ## M8a font atlas architecture note
 
 M8a keeps the gallery visuals unchanged and documents the long-term async MSDF font atlas path in `docs/machina-font-atlas-architecture-m8a.md`. The current deterministic bitmap text renderer remains a bootstrap/debug renderer until later milestones add font atlas records, worker preflight, and renderer consumption.
+
+## M8m proof-mode note
+
+M8m adds an opt-in gallery proof card for CPU MSDF comparison, but this does not retire the existing text limitations in the normal gallery path.
+
+- default gallery text is still the deterministic bitmap renderer
+- `StandardUI.TextBlock` is not migrated to MSDF
+- control labels are not migrated to MSDF
+- the proof card is a local audit aid only
+
+See `docs/machina-component-gallery-msdf-proof-m8m.md`.

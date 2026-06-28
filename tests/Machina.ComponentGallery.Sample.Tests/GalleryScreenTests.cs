@@ -10,7 +10,7 @@ public sealed class GalleryScreenTests
     [Fact]
     public void GalleryScreen_BuildsRootAndSections()
     {
-        var document = GalleryScreen.Build(GalleryState.Default, StandardTheme.Default);
+        var document = GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default);
 
         Assert.Contains(document.Rows, row => row.Id == "root");
         Assert.Contains(document.Rows, row => row.Id == "header");
@@ -31,7 +31,7 @@ public sealed class GalleryScreenTests
     [Fact]
     public void GalleryScreen_StillContainsKnownSections()
     {
-        var document = GalleryScreen.Build(GalleryState.Default, StandardTheme.Default);
+        var document = GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default);
         var rowIds = document.Rows.Select(row => row.Id).ToArray();
 
         Assert.Contains("text-section", rowIds);
@@ -45,10 +45,20 @@ public sealed class GalleryScreenTests
     }
 
     [Fact]
+    public void GalleryScreen_MsdfProofSection_IsOptIn()
+    {
+        var defaultDocument = GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default);
+        var proofDocument = GalleryScreen.Build(GalleryState.Default, includeMsdfFontProof: true, theme: StandardTheme.Default);
+
+        Assert.DoesNotContain(defaultDocument.Rows, row => row.Id == GalleryMsdfFontProofLayout.SectionId);
+        Assert.Contains(proofDocument.Rows, row => row.Id == GalleryMsdfFontProofLayout.SectionId);
+    }
+
+    [Fact]
     public void Gallery_HitTargets_UseGalleryActions()
     {
         var frame = GeometryHarness.ResolveDocument(
-            GalleryScreen.Build(GalleryState.Default, StandardTheme.Default),
+            GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default),
             GalleryScreen.Width,
             GalleryScreen.Height);
 

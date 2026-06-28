@@ -13,26 +13,38 @@ public static class GalleryExporter
 {
     public static GalleryExportResult Export(GalleryProgramOptions options)
     {
-        return Export(options.InitialState, options.ExportDirectory, options.ExportName);
+        return Export(options.InitialState, options.ExportDirectory, options.ExportName, options.IncludeMsdfFontProof);
     }
 
-    public static GalleryExportResult Export(GalleryState state, string outputDirectory, string exportName)
+    public static GalleryExportResult Export(
+        GalleryState state,
+        string outputDirectory,
+        string exportName,
+        bool includeMsdfFontProof = false)
     {
         var fullOutputDirectory = Path.GetFullPath(outputDirectory);
         Directory.CreateDirectory(fullOutputDirectory);
 
         var outputPath = BuildOutputPath(fullOutputDirectory, exportName);
         var frame = new MachinaRasterPipeline().Render(
-            GalleryScreen.Build(state, StandardTheme.Default),
+            GalleryScreen.Build(state, includeMsdfFontProof, StandardTheme.Default),
             GalleryScreen.Width,
             GalleryScreen.Height);
+        GalleryMsdfFontProofPlacement? msdfProofPlacement = null;
+
+        if (includeMsdfFontProof)
+        {
+            msdfProofPlacement = GalleryMsdfFontProofRenderer.BlitProof(frame.RasterFrame, frame.Resolved);
+        }
 
         PngRasterWriter.Write(outputPath, frame.RasterFrame);
 
         return new GalleryExportResult(
             OutputPath: outputPath,
             Width: frame.RasterFrame.Width,
-            Height: frame.RasterFrame.Height);
+            Height: frame.RasterFrame.Height,
+            IncludeMsdfFontProof: includeMsdfFontProof,
+            MsdfProofPlacement: msdfProofPlacement);
     }
 
     public static WriteableBitmap ToBitmap(RasterFrame frame)
@@ -224,4 +236,6 @@ public static class GalleryExporter
 public sealed record GalleryExportResult(
     string OutputPath,
     int Width,
-    int Height);
+    int Height,
+    bool IncludeMsdfFontProof,
+    GalleryMsdfFontProofPlacement? MsdfProofPlacement);

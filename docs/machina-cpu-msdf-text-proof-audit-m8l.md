@@ -148,7 +148,7 @@ No UI/TextBlock/gallery/renderer integration was introduced.
 ## Deferred issues
 
 - no `TextBlock` integration
-- no component gallery integration
+- no production component gallery text integration
 - no Machina renderer replacement
 - no Vulkan or Aurelian work
 - no PNG dependency in `Machina.Fonts`
@@ -172,7 +172,13 @@ These are still proof-oriented tests. M8l does not add pixel-diff golden compari
 
 ## M8m plan
 
-M8m should consume the stabilized audit evidence without over-promoting the CPU proof path.
+M8m consumes the stabilized audit evidence without over-promoting the CPU proof path.
+
+It now adds an opt-in component-gallery proof card that blits CPU MSDF proof text into the exported gallery PNG while leaving normal bitmap gallery text unchanged. See `docs/machina-component-gallery-msdf-proof-m8m.md`.
+
+That still does not mean production text integration exists.
+
+## Post-M8m follow-up
 
 Likely next work:
 

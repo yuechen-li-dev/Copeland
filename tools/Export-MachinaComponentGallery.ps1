@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$OutputDir = "artifacts\\m7e",
+    [switch]$IncludeMsdfFontProof,
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug"
 )
@@ -31,6 +32,14 @@ $exports = @(
         Args = @("--primary-clicks", "1", "--checkbox", "on", "--switch", "on")
     }
 )
+
+if ($IncludeMsdfFontProof)
+{
+    $exports += @{
+        Name = "component-gallery-msdf-proof"
+        Args = @("--include-msdf-font-proof")
+    }
+}
 
 Push-Location $repoRoot
 
@@ -69,6 +78,11 @@ $createdFiles = @(
     (Join-Path $resolvedOutputDir "component-gallery-default.png"),
     (Join-Path $resolvedOutputDir "component-gallery-interactive.png")
 )
+
+if ($IncludeMsdfFontProof)
+{
+    $createdFiles += (Join-Path $resolvedOutputDir "component-gallery-msdf-proof.png")
+}
 
 foreach ($createdFile in $createdFiles)
 {

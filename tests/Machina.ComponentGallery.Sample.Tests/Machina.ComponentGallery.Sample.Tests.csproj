@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,10 +12,14 @@
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="MSDF-Sharp.Core" />
+    <PackageReference Include="Tomlyn" />
+    <PackageReference Include="WycliffeAssociates.Typography.OpenFont" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Machina.Testing/Machina.Testing.csproj" />
+    <ProjectReference Include="../../src/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />
   </ItemGroup>
 </Project>

@@ -6,6 +6,7 @@ public static class GalleryExportContract
 
     public const string DefaultExportName = "component-gallery-default";
     public const string InteractiveExportName = "component-gallery-interactive";
+    public const string MsdfProofExportName = "component-gallery-msdf-proof";
 
     public static GalleryState InteractiveState { get; } = GalleryState.Default with
     {
@@ -22,5 +23,10 @@ public static class GalleryExportContract
     public static string GetInteractiveOutputPath(string outputDirectory)
     {
         return Path.Combine(outputDirectory, $"{InteractiveExportName}.png");
+    }
+
+    public static string GetMsdfProofOutputPath(string outputDirectory)
+    {
+        return Path.Combine(outputDirectory, $"{MsdfProofExportName}.png");
     }
 }

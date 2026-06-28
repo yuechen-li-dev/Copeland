@@ -557,3 +557,23 @@ Still deferred:
 - no shaping/kerning/fallback policy expansion
 
 See `docs/machina-cpu-msdf-text-proof-audit-m8l.md`.
+
+### Machina M8m — component gallery MSDF font proof mode
+
+M8m brings the standalone CPU MSDF proof path into the component gallery as an opt-in export-only audit mode.
+
+- `GalleryProgramOptions` and `tools/Export-MachinaComponentGallery.ps1` now accept an explicit proof flag.
+- proof mode adds a dedicated gallery section with current bitmap text on the left and an MSDF proof slot on the right.
+- the gallery sample renders proof strings through `Machina.Fonts.ReferenceRendering.DistanceFieldTextPipeline`.
+- the sample blits the resulting proof image into the exported gallery PNG after normal rasterization.
+- local artifacts now support `artifacts/m8m/component-gallery-msdf-proof.png`.
+
+Still deferred:
+
+- no `UI.Text` replacement
+- no `StandardUI.TextBlock` migration
+- no control-label migration
+- no renderer/Vulkan/Aurelian integration
+- no production UI package dependency on `Machina.Fonts`
+
+See `docs/machina-component-gallery-msdf-proof-m8m.md`.

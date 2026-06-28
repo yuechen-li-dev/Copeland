@@ -23,12 +23,12 @@ internal sealed class Program
             return;
         }
 
-        BuildAvaloniaApp(options.InitialState).StartWithClassicDesktopLifetime(args);
+        BuildAvaloniaApp(options).StartWithClassicDesktopLifetime(args);
     }
 
-    private static AppBuilder BuildAvaloniaApp(GalleryState initialState)
+    private static AppBuilder BuildAvaloniaApp(GalleryProgramOptions options)
     {
-        return AppBuilder.Configure(() => new App(initialState))
+        return AppBuilder.Configure(() => new App(options.InitialState, options.IncludeMsdfFontProof))
             .UsePlatformDetect();
     }
 
@@ -41,17 +41,19 @@ internal sealed class Program
     private sealed class App : Application
     {
         private readonly GalleryState _initialState;
+        private readonly bool _includeMsdfFontProof;
 
-        public App(GalleryState initialState)
+        public App(GalleryState initialState, bool includeMsdfFontProof)
         {
             _initialState = initialState;
+            _includeMsdfFontProof = includeMsdfFontProof;
         }
 
         public override void OnFrameworkInitializationCompleted()
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new GalleryWindow(_initialState);
+                desktop.MainWindow = new GalleryWindow(_initialState, _includeMsdfFontProof);
             }
 
             base.OnFrameworkInitializationCompleted();
@@ -64,12 +66,13 @@ internal sealed class Program
 
         private readonly Image _image;
         private readonly MachinaRasterPipeline _pipeline;
+        private readonly bool _includeMsdfFontProof;
 
         private GalleryState _state;
         private UiHitTestIndex _hitTestIndex;
         private MachinaFrame _currentFrame;
 
-        public GalleryWindow(GalleryState initialState)
+        public GalleryWindow(GalleryState initialState, bool includeMsdfFontProof)
         {
             _image = new Image
             {
@@ -81,6 +84,7 @@ internal sealed class Program
             _image.PointerPressed += HandlePointerPressed;
 
             _state = initialState;
+            _includeMsdfFontProof = includeMsdfFontProof;
             _pipeline = new MachinaRasterPipeline();
             _hitTestIndex = default!;
             _currentFrame = default!;
@@ -93,9 +97,14 @@ internal sealed class Program
 
         private void RenderCurrentState()
         {
-            var document = GalleryScreen.Build(_state, StandardTheme.Default);
+            var document = GalleryScreen.Build(_state, _includeMsdfFontProof, StandardTheme.Default);
             _currentFrame = _pipeline.Render(document, GalleryScreen.Width, GalleryScreen.Height);
             _hitTestIndex = _currentFrame.HitTest;
+
+            if (_includeMsdfFontProof)
+            {
+                GalleryMsdfFontProofRenderer.BlitProof(_currentFrame.RasterFrame, _currentFrame.Resolved);
+            }
 
             _image.Source = GalleryExporter.ToBitmap(_currentFrame.RasterFrame);
             _image.Width = _currentFrame.RasterFrame.Width;

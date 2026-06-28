@@ -70,6 +70,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina CPU MSDF Text Renderer M8k](docs/machina-cpu-msdf-text-renderer-m8k.md)
 - [Machina CPU MSDF Reference Renderer M8k](docs/machina-cpu-msdf-reference-renderer-m8k.md)
 - [Machina CPU MSDF Text Proof Audit M8l](docs/machina-cpu-msdf-text-proof-audit-m8l.md)
+- [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
 Current gallery audit workflow:
@@ -84,6 +85,18 @@ Default outputs:
 - `artifacts/m7e/component-gallery-interactive.png`
 
 These PNGs are deterministic local visual audit aids. They are not a committed pixel-diff baseline.
+
+Opt-in MSDF proof export:
+
+```powershell
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m8m -IncludeMsdfFontProof
+```
+
+Proof output:
+
+- `artifacts/m8m/component-gallery-msdf-proof.png`
+
+This proof mode is experimental, local, and sample-only. It does not replace `UI.Text`, `StandardUI.TextBlock`, or the current raster text renderer.
 
 Current font proof audit workflow:
 

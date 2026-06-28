@@ -23,12 +23,12 @@ public sealed class GalleryGeometryTests
         };
 
         var offFrame = GeometryHarness.ResolveDocument(
-            GalleryScreen.Build(offState, StandardTheme.Default),
+            GalleryScreen.Build(offState, theme: StandardTheme.Default),
             GalleryScreen.Width,
             GalleryScreen.Height);
 
         var onFrame = GeometryHarness.ResolveDocument(
-            GalleryScreen.Build(onState, StandardTheme.Default),
+            GalleryScreen.Build(onState, theme: StandardTheme.Default),
             GalleryScreen.Width,
             GalleryScreen.Height);
 
@@ -43,7 +43,7 @@ public sealed class GalleryGeometryTests
     public void Gallery_SectionHosts_StayInsideRootBounds()
     {
         var frame = GeometryHarness.ResolveDocument(
-            GalleryScreen.Build(GalleryState.Default, StandardTheme.Default),
+            GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default),
             GalleryScreen.Width,
             GalleryScreen.Height);
 
@@ -62,7 +62,7 @@ public sealed class GalleryGeometryTests
     public void Gallery_BadgeRow_ResolvesWithoutOverflowOrOverlap()
     {
         var frame = GeometryHarness.ResolveDocument(
-            GalleryScreen.Build(GalleryState.Default, StandardTheme.Default),
+            GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default),
             GalleryScreen.Width,
             GalleryScreen.Height);
 
@@ -79,6 +79,24 @@ public sealed class GalleryGeometryTests
         Assert.True(stableShell.X + stableShell.Width <= alertShell.X);
         AssertRectInside(stableLabelRegion, stableShell, "badges-section/badge-stable.label-region");
         AssertRectInside(alertLabelRegion, alertShell, "badges-section/badge-alert.label-region");
+    }
+
+    [Fact]
+    public void Gallery_MsdfProofSlot_ExistsOnlyWhenEnabled()
+    {
+        var defaultFrame = GeometryHarness.ResolveDocument(
+            GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default),
+            GalleryScreen.Width,
+            GalleryScreen.Height);
+        var proofFrame = GeometryHarness.ResolveDocument(
+            GalleryScreen.Build(GalleryState.Default, includeMsdfFontProof: true, theme: StandardTheme.Default),
+            GalleryScreen.Width,
+            GalleryScreen.Height);
+
+        Assert.False(GalleryMsdfFontProofLayout.TryGetImageSlotRect(defaultFrame.Resolved, out _));
+        Assert.True(GalleryMsdfFontProofLayout.TryGetImageSlotRect(proofFrame.Resolved, out var rect));
+        Assert.True(rect.Width > 0);
+        Assert.True(rect.Height > 0);
     }
 
     private static void AssertRectInside(Machina.Layout.Geometry.Rect inner, Machina.Layout.Geometry.Rect outer, string id)

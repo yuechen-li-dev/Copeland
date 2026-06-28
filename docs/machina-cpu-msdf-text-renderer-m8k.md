@@ -146,7 +146,7 @@ Coverage now includes:
 ## Deferred issues
 
 - no `TextBlock` or Standard.Text integration
-- no gallery integration
+- no production gallery text integration
 - no renderer replacement
 - no Vulkan/Aurelian path
 - no kerning/shaping/fallback
@@ -157,9 +157,9 @@ Coverage now includes:
 
 MSDF still matters because it should avoid a per-scale bitmap atlas explosion, but final renderer integration is deferred.
 
-## M8l plan
+## M8l and M8m follow-up
 
-M8l now builds on this by adding repeatable proof export, visual inspection, and convention stabilization without crossing into UI integration.
+M8l builds on this by adding repeatable proof export, visual inspection, and convention stabilization without crossing into production UI integration.
 
 That follow-up reuses:
 
@@ -167,4 +167,6 @@ That follow-up reuses:
 - the packed atlas artifact conventions
 - the single-line placement proof lessons
 
-without claiming that this CPU debug path is itself the final text backend. See `docs/machina-cpu-msdf-text-proof-audit-m8l.md`.
+without claiming that this CPU debug path is itself the final text backend.
+
+M8m then consumes the same CPU proof path from the component gallery sample in an opt-in export-only card, still without replacing `UI.Text`, `TextBlock`, or the raster renderer. See `docs/machina-component-gallery-msdf-proof-m8m.md`.

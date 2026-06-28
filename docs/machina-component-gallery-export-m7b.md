@@ -75,6 +75,7 @@ Behavior:
 
 - resolves the repo root from the script location
 - exports default and interactive gallery states
+- optionally exports an MSDF proof gallery artifact when `-IncludeMsdfFontProof` is passed
 - prints the created file paths
 - exits non-zero if an export fails or an expected file is missing
 
@@ -85,6 +86,7 @@ If PowerShell script execution is blocked by local execution policy, run the sam
 ```powershell
 dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-default
 dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-interactive --primary-clicks 1 --checkbox on --switch on
+dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m8m --export-name component-gallery-msdf-proof --include-msdf-font-proof
 ```
 
 ## Artifact policy
@@ -110,6 +112,27 @@ See `artifacts/README.md` for the local regeneration note.
 6. Confirm text content is visible and there is no obvious overlap or black-frame failure.
 
 This workflow is intentionally local and manual. It does not depend on `PrintWindow`, desktop screenshots, or browser tooling.
+
+## M8m opt-in proof mode
+
+M8m adds a third export mode without changing the default script behavior:
+
+```powershell
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m8m -IncludeMsdfFontProof
+```
+
+That command still exports the normal default and interactive gallery PNGs, and additionally writes:
+
+- `artifacts/m8m/component-gallery-msdf-proof.png`
+
+The MSDF proof card is experimental:
+
+- it is opt-in only
+- it uses the standalone `Machina.Fonts` CPU reference path
+- it blits an image into the exported PNG after normal gallery rasterization
+- it does not replace `UI.Text`, `StandardUI.TextBlock`, or control labels
+
+See `docs/machina-component-gallery-msdf-proof-m8m.md`.
 
 ## Tests
 
