@@ -121,3 +121,16 @@ M8q extends the oracle/reporting path to prove the vertical contract numerically
 - new tests prove `BearingY` is not double-applied once `GlyphFieldPlacement` is present
 
 The remaining visual difference after M8q is a small lower-edge ink extent mismatch, not a `PlaneTop`/`PlaneBottom` sign bug.
+
+## M8q.1 follow-up
+
+M8q.1 does not change `GlyphFieldPlacement` semantics.
+
+Instead it fixes the final proof raster placement step:
+
+- plane bounds still define the baseline-relative glyph plane
+- the output tile height is rounded first
+- baseline position inside that rounded tile is then computed from the plane fraction
+- `drawY` is derived from that one baseline invariant
+
+So M8q.1 is a proof-renderer raster rounding fix, not an atlas or placement-contract redesign.

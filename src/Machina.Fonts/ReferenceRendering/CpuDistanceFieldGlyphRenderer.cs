@@ -38,15 +38,40 @@ public static class CpuDistanceFieldGlyphRenderer
         ArgumentNullException.ThrowIfNull(entry);
 
         double drawX = placement.X + (entry.Placement.PlaneLeft * placement.Scale);
-        double drawY = placement.BaselineY + (entry.Placement.PlaneTop * placement.Scale);
         int outputWidth = Math.Max(1, RoundToInt(entry.Placement.Width * placement.Scale));
         int outputHeight = Math.Max(1, RoundToInt(entry.Placement.Height * placement.Scale));
+        int baselineInOutput = ComputeBaselineOffsetInOutput(entry, outputHeight);
+        int drawY = RoundToInt(placement.BaselineY) - baselineInOutput;
 
         return new DistanceFieldGlyphDrawBounds(
             RoundToInt(drawX),
-            RoundToInt(drawY),
+            drawY,
             outputWidth,
             outputHeight);
+    }
+
+    internal static int ComputeBaselineOffsetInOutput(
+        GlyphAtlasEntry entry,
+        int outputHeight)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return ComputeBaselineOffsetInOutput(entry.Placement, outputHeight);
+    }
+
+    internal static int ComputeBaselineOffsetInOutput(
+        GlyphFieldPlacement placement,
+        int outputHeight)
+    {
+        ArgumentNullException.ThrowIfNull(placement);
+
+        if (outputHeight <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(outputHeight));
+        }
+
+        double baselineFraction = -placement.PlaneTop / placement.Height;
+        double baselineInOutput = baselineFraction * outputHeight;
+        return RoundToInt(baselineInOutput);
     }
 
     internal static void RenderGlyphInto(

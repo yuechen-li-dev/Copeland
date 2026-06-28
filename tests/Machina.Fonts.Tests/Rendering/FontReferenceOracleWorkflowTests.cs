@@ -1,4 +1,6 @@
+using Machina.Fonts.ReferenceRendering;
 using Xunit;
+using System.Text.Json;
 
 namespace Machina.Fonts.Tests.Rendering;
 
@@ -133,6 +135,36 @@ public sealed class FontReferenceOracleWorkflowTests
         Assert.Contains("actualBoundingBoxAscent", script);
         Assert.Contains("fontBoundingBoxAscent", script);
         Assert.Contains("alphabeticBaseline", script);
+    }
+
+    [Fact]
+    public async Task TypographyMsdfReferenceRender_CrimsonTextBaselineRegression()
+    {
+        string directory = CreateDirectory();
+
+        FontReferenceOracleExportResult result = await FontReferenceOracleWorkflow.ExportAsync(directory);
+        FontReferenceOraclePlacementReport report = JsonSerializer.Deserialize<FontReferenceOraclePlacementReport>(
+            File.ReadAllText(result.PlacementReportJsonPath))!;
+
+        FontReferenceOracleFixtureReport fixture = Assert.Single(report.Fixtures, static item => item.Id == "machina");
+        FontReferenceOracleGlyphRow glyph = Assert.Single(
+            fixture.Glyphs,
+            static item => item.Character == "i" && !item.IsWhitespace);
+        GlyphFieldPlacement placement = new(
+            glyph.PlaneLeft!.Value,
+            glyph.PlaneTop!.Value,
+            glyph.PlaneRight!.Value,
+            glyph.PlaneBottom!.Value,
+            glyph.PixelRange!.Value,
+            glyph.ProjectionScale!.Value);
+
+        int baselineInOutput = CpuDistanceFieldGlyphRenderer.ComputeBaselineOffsetInOutput(
+            placement,
+            glyph.DrawHeight!.Value);
+
+        Assert.Equal(40d, glyph.BaselineY);
+        Assert.Equal(40, glyph.DrawY!.Value + baselineInOutput);
+        Assert.Equal(16, glyph.DrawY.Value);
     }
 
     [Fact]

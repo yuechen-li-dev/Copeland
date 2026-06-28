@@ -177,6 +177,39 @@ public sealed class CpuDistanceFieldTextRendererTests
     }
 
     [Fact]
+    public void CpuDistanceFieldTextRenderer_BaselineLandsOnRequestedBaseline()
+    {
+        const int requestedBaseline = 30;
+        GlyphFieldPlacement placement = new(0d, -8.4d, 4d, 1.2d, 4d, 1d);
+        GlyphAtlasEntry entry = CreateEntry('A', 0, 0, bearingY: 6d, placement: placement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: requestedBaseline);
+
+        DistanceFieldGlyphDrawBounds bounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], entry);
+        int baselineInOutput = CpuDistanceFieldGlyphRenderer.ComputeBaselineOffsetInOutput(entry, bounds.Height);
+
+        Assert.Equal(10, bounds.Height);
+        Assert.Equal(requestedBaseline, bounds.Y + baselineInOutput);
+    }
+
+    [Fact]
+    public void CpuDistanceFieldTextRenderer_DoesNotDoubleRoundBaseline()
+    {
+        const int requestedBaseline = 30;
+        GlyphFieldPlacement placement = new(0d, -8.4d, 4d, 1.2d, 4d, 1d);
+        GlyphAtlasEntry entry = CreateEntry('A', 0, 0, bearingY: 6d, placement: placement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: requestedBaseline);
+
+        DistanceFieldGlyphDrawBounds bounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], entry);
+        int baselineInOutput = CpuDistanceFieldGlyphRenderer.ComputeBaselineOffsetInOutput(entry, bounds.Height);
+        int independentlyRoundedTop = (int)Math.Round(
+            requestedBaseline + placement.PlaneTop,
+            MidpointRounding.AwayFromZero);
+
+        Assert.Equal(requestedBaseline, bounds.Y + baselineInOutput);
+        Assert.NotEqual(independentlyRoundedTop, bounds.Y);
+    }
+
+    [Fact]
     public void CpuDistanceFieldTextRenderer_UsesPlacementNotTileSize()
     {
         DistanceFieldPageReference page = RenderingTestHelpers.CreatePage(

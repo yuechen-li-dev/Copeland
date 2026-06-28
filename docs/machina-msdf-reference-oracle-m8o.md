@@ -182,3 +182,13 @@ M8q keeps the browser oracle but adds explicit browser `TextMetrics` capture and
 - the remaining mismatch is not a baseline-origin bug; Machina ink tops already line up with browser actual tops, while Machina ink bottoms still extend slightly lower
 
 So M8q narrows the next problem from “vertical placement might be wrong” to “proof ink extent below the baseline is still a little heavier than browser canvas.”
+
+## M8q.1 follow-up
+
+M8q.1 uses that M8q evidence to fix one last-mile proof raster issue:
+
+- browser and Machina still use the same alphabetic baseline value
+- the remaining bug was not kerning or `BearingY` double-application
+- the proof renderer could still disagree with itself by 1 px when rounding tile top separately from baseline position inside the rounded output tile
+
+The M8q.1 fix keeps the oracle/browser side unchanged and only tightens proof-path raster placement math.

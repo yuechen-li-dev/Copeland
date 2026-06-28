@@ -642,3 +642,22 @@ M8q remains proof-path only:
 - no magic vertical offset
 
 See `docs/machina-msdf-vertical-metrics-m8q.md`.
+
+## M8q.1 update
+
+M8q.1 fixes one narrow CPU proof-renderer raster rounding issue that M8q exposed.
+
+- the baseline bug was verified in `ComputeDrawBounds`, not in a second explicit baseline path inside `RenderGlyphInto`
+- `drawY` had been rounded from `PlaneTop` independently of the baseline position implied by the rounded output tile height
+- the fix now computes baseline position inside the rounded output tile first, then derives `drawY` from that one invariant
+- CrimsonText regression coverage now locks the known fractional-case behavior
+
+This remains proof-path only:
+
+- no atlas architecture change
+- no MSDF generation change
+- no `TextBlock` integration
+- no production renderer integration
+- no magic vertical offset
+
+See `docs/machina-msdf-baseline-rounding-fix-m8q1.md`.

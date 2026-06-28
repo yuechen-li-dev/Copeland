@@ -229,3 +229,20 @@ Likely focus:
 - proof-render coverage/threshold audit
 - field-to-ink extent accounting
 - or tighter proof-only ink-bound diagnostics
+
+## M8q.1 follow-up
+
+M8q.1 verified that one narrow proof-renderer raster bug still existed after M8q.
+
+- `RenderGlyphInto` does not compute a second explicit baseline branch
+- but `ComputeDrawBounds` previously rounded `drawY` from `PlaneTop` while the rasterized baseline position inside the rounded output tile was implied by `drawHeight`
+- those two rounded quantities could disagree by 1 px for fractional height-constrained glyphs
+
+The fix keeps the work proof-only and uses one authoritative raster baseline invariant:
+
+```text
+baselineInOutput = round((-PlaneTop / PlaneHeight) * drawHeight)
+drawY = round(baselineY) - baselineInOutput
+```
+
+No magic vertical offset, generator change, or production renderer integration was introduced.
