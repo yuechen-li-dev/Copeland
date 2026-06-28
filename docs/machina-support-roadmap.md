@@ -67,7 +67,7 @@ Current proven path (with some steps still partial depending on scenario breadth
 
 Manual GUI validation depth across broader component scenarios is **Partial / needs continuing audit**.
 
-M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow.
+M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow. M7c uses that workflow for evidence-backed visual defect triage and deferral documentation.
 
 ## Support Matrix
 
@@ -145,6 +145,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Images | Renderer/Core | Deferred | None | Later asset pipeline milestone.
 | Real text backend | Raster.Text adapter | Planned | Debug text tests only | Roadmap M1g candidate.
 | PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement.
+| Gallery-driven visual defect sweep | Machina.Standard + ComponentGallery sample | Implemented | Local PNG inspection + docs | M7c formalizes gallery-based visual triage and explicit deferral documentation; small safe fixes remain opportunistic. |
 | Dirty rects | Renderer/runtime | Deferred | None | Performance milestone later.
 | GPU backend | Future renderer | Deferred | None | Future platform strategy.
 | Avalonia static bitmap window | Presenter sample | Implemented | Presenter docs/proofs | M0 presenter baseline.
@@ -225,6 +226,7 @@ React mapping guide:
 - **M1g**: border/radius style support.
 - **M7a**: dedicated Machina component gallery sample and headless+local visual proof path (implemented).
 - **M7b**: gallery export contract, local export script, stable PNG artifact names, and artifact policy cleanup (implemented).
+- **M7c**: gallery visual defect sweep, shared defect triage, and visual audit documentation (implemented).
 
 ## Open Questions
 

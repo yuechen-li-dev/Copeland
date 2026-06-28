@@ -412,3 +412,15 @@ Contract notes:
 - automated pixel diffs remain deferred
 
 The gallery is therefore the preferred place to visually audit current StandardUI component behavior before expanding broader component inventory.
+
+## M7c visual defect sweep note
+
+M7c uses the deterministic component gallery PNG export as a local visual audit pass over current StandardUI defaults.
+
+Current sweep result:
+
+- no shared StandardUI contract change was merged from this pass
+- the most visible remaining defect is badge label placement in auto-sized shells
+- that issue is deferred until it can be solved without broad layout/text sizing churn
+
+Deferred findings from the sweep remain documentation-only unless they can be proven and fixed locally without broad renderer or text-system work.
