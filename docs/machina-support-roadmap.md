@@ -519,3 +519,21 @@ Still deferred:
 - no Vulkan/Aurelian dependency
 
 See `docs/machina-distance-field-atlas-packing-m8i.md`.
+
+### Machina M8k — CPU reference MSDF glyph renderer proof
+
+M8k proves that packed `.dfpage` atlas data can be sampled back into visible glyph pixels inside standalone `Machina.Fonts`.
+
+- `Machina.Fonts.ReferenceRendering` adds a tiny RGBA image model, distance-field page reader, CPU sampling helpers, single-glyph renderer, and deterministic `.ppm` writer.
+- `Sdf`/`Psdf` sampling uses the scalar channel.
+- `Msdf` sampling uses median RGB.
+- `Mtsdf` currently also uses median RGB and explicitly defers alpha-channel usage.
+- focused tests cover sampling, threshold behavior, glyph rect placement, Y orientation, `.ppm` output, and a real Typography + `MSDF-Sharp.Core` + packing + artifact-read + render proof.
+
+Still deferred:
+
+- no renderer/TextBlock/gallery integration
+- no PNG output
+- no Vulkan/Aurelian dependency
+
+See `docs/machina-cpu-msdf-reference-renderer-m8k.md`.

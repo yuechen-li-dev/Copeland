@@ -67,6 +67,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina Typography Outline Adapter M8g](docs/machina-typography-outline-adapter-m8g.md)
 - [Machina MSDF-Sharp Generator M8h](docs/machina-msdf-sharp-generator-m8h.md)
 - [Machina Distance Field Atlas Packing M8i](docs/machina-distance-field-atlas-packing-m8i.md)
+- [Machina CPU MSDF Reference Renderer M8k](docs/machina-cpu-msdf-reference-renderer-m8k.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
 Current gallery audit workflow:

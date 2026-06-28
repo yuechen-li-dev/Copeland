@@ -189,6 +189,11 @@ M8i adds focused tests for:
 - no cross-platform float-byte stability promise beyond current managed proof scope,
 - no GPU or Vulkan dependency.
 
-## M8j plan
+## M8k follow-up
 
-M8j can build on this by adding a CPU-side inspection or debug rendering path for packed distance-field pages without changing the current renderer stack or requiring Vulkan.
+M8k now builds on M8i by adding a standalone CPU reference rendering path for packed `.dfpage` artifacts.
+
+- the new proof path reads `.dfpage` back into a reference page model
+- CPU sampling validates SDF/MSDF conventions, UV/rect placement, Y orientation, and threshold behavior
+- proof output is deterministic `.ppm`, not PNG
+- renderer/TextBlock/gallery/Vulkan integration remains deferred

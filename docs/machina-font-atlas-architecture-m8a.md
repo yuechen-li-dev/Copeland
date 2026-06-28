@@ -559,8 +559,8 @@ Boundary checks run for M8a confirmed no active ProjectReference into `reference
 - M8g: prove `Typography.OpenFont` outline extraction on a small fixture font through the Machina adapter seam.
 - M8h: prove `MSDF-Sharp.Core` generation from Machina-owned outline records.
 - M8i: integrate real generated fields into atlas packing and real page artifact export.
-- M8j: add CPU reference MSDF inspection/rendering for export/debug.
-- M8k: add Aurelian/Vulkan MSDF shader consumer after renderer contracts are ready.
+- M8k: add CPU reference MSDF inspection/rendering for export/debug.
+- M8l: add Aurelian/Vulkan MSDF shader consumer after renderer contracts are ready.
 
 ## Deferred issues
 
@@ -644,3 +644,12 @@ The architecture boundary stays intact:
 - no TextBlock/gallery integration
 - no PNG dependency yet
 - no Vulkan/Aurelian dependency
+
+## M8k follow-up
+
+M8k now proves the CPU reference rendering slice that this architecture originally anticipated.
+
+- standalone `Machina.Fonts.ReferenceRendering` reads `.dfpage` artifacts and renders a single glyph entry into an RGBA buffer
+- deterministic bilinear sampling validates SDF/MSDF page interpretation and atlas UV/rect conventions
+- `.ppm` proof output keeps the path dependency-free and avoids PNG/image packages
+- the result is still not a runtime renderer, `TextBlock` consumer, gallery integration, or Vulkan/Aurelian path
