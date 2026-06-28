@@ -420,3 +420,7 @@ M5i fixed the unrelated Windows blockers in `Copeland.Script.Tests` and `Copelan
 ## M8a font atlas architecture
 
 M8a documents the future `Machina.Fonts` direction: async runtime MSDF atlas generation, immutable snapshot consumption, TOML/PNG atlas export/import, and headless gallery-export preflight. Implementation is staged for M8b+; M8a intentionally does not replace the current bitmap renderer or add Vulkan/native font dependencies. See `docs/machina-font-atlas-architecture-m8a.md`.
+
+## M8b Machina.Fonts fake architecture
+
+M8b adds the standalone `Machina.Fonts` project and focused tests for validated font atlas records, immutable snapshots, async channel-based fake generation, deterministic fake packing, pending/ready/missing resolution, and export-style preflight waiting. It is intentionally architecture-only: no MSDF, no real font parsing, no TOML or PNG output, no renderer integration, no native dependency, and no active dependency on the Dominatus reference submodule. See `docs/machina-fonts-m8b.md`.
