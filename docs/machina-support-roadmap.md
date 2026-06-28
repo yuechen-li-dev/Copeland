@@ -455,3 +455,26 @@ M8f lands that strict Machina-owned adapter boundary in code without adopting an
 - No `Typography.OpenFont`, `MSDF-Sharp.Core`, `SixLabors`, `FreeType`, renderer integration, or native dependency is added.
 
 See `docs/machina-font-generation-adapters-m8f.md`.
+
+### Machina M8g — Typography outline extraction proof
+
+M8g lands the first real managed outline adapter inside standalone `Machina.Fonts`.
+
+- `Machina.Fonts` now consumes `WycliffeAssociates.Typography.OpenFont` `1.0.0`.
+- `TypographyGlyphOutlineSource` implements `IGlyphOutlineSource`.
+- one checked-in OFL fixture font is loaded from an explicit file path only.
+- real glyph metrics and contours now translate into Machina-owned outline records.
+- whitespace, missing glyphs, cancellation, determinism, and pipeline integration are covered by focused tests.
+
+Still deferred:
+
+- no `MSDF-Sharp.Core`
+- no real distance-field generation
+- no atlas integration
+- no artifact export integration
+- no renderer/TextBlock/gallery integration
+- no OS font lookup
+- no shaping/bidi/ligature work
+- no native dependency
+
+See `docs/machina-typography-outline-adapter-m8g.md`.

@@ -15,4 +15,10 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Machina.Fonts/Machina.Fonts.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Fixtures\\Fonts\\**\\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

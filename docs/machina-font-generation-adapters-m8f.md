@@ -153,3 +153,23 @@ M8g can now focus on one real outline-source proof without changing the rest of 
 2. translate one fixture font into Machina-owned outline records
 3. verify deterministic metrics and contour extraction
 4. keep renderer integration and atlas-page image output deferred
+
+## M8g landed follow-up
+
+M8g now implements that first real outline-source proof.
+
+- `Machina.Fonts` now references `WycliffeAssociates.Typography.OpenFont` `1.0.0`.
+- `TypographyGlyphOutlineSource` sits behind `IGlyphOutlineSource`.
+- one checked-in OFL fixture font is loaded from an explicit file path in tests.
+- glyph metrics and contours now translate into Machina-owned outline records.
+- the existing fake distance-field pipeline is now proven against a real outline source.
+
+Still deferred after M8g:
+
+- no `MSDF-Sharp.Core`
+- no real distance-field generation
+- no atlas integration
+- no renderer integration
+- no native fallback
+
+See `docs/machina-typography-outline-adapter-m8g.md`.

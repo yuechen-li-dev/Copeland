@@ -603,6 +603,16 @@ The recommendation is intentionally adapter-first. Machina should keep outline l
 M8f is the first compile-checked proof of the future generation boundary described here.
 
 - outline extraction is now represented by Machina-owned records and `IGlyphOutlineSource`
+
+## M8g follow-up
+
+M8g now proves the first real outline extraction slice envisioned by this architecture:
+
+- `Machina.Fonts.Generation.Typography` loads an explicit checked-in fixture font
+- `TypographyGlyphOutlineSource` translates real glyph contours into Machina-owned outline records
+- the proof remains standalone and intentionally stops before MSDF generation, atlas integration, page image export, renderer integration, or OS font discovery
+
+See `docs/machina-typography-outline-adapter-m8g.md`.
 - distance-field generation is now represented by `IGlyphDistanceFieldGenerator`
 - fake implementations prove deterministic seam behavior
 - worker integration and renderer/Vulkan integration remain deferred

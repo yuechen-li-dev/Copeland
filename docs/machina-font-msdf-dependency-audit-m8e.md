@@ -630,6 +630,33 @@ What still did not land:
 
 That keeps this audit's swappable-boundary recommendation intact. See `docs/machina-font-generation-adapters-m8f.md`.
 
+## M8g landed follow-up
+
+M8g now proves the first half of this audit's recommendation with a real managed outline adapter.
+
+What landed:
+
+- `Machina.Fonts` consumes `WycliffeAssociates.Typography.OpenFont` `1.0.0`
+- `TypographyGlyphOutlineSource` loads an explicit checked-in fixture font from disk
+- codepoint lookup, metrics extraction, and contour translation are now tested against a real font
+- the proof remains fully managed and keeps the Machina-owned seam intact
+
+What still did not land:
+
+- no `MSDF-Sharp.Core`
+- no real distance-field generation
+- no renderer integration
+- no OS font lookup
+- no native fallback dependency
+
+Packaging conclusion update:
+
+- the packaging story is still weaker than ideal
+- the chosen package is acceptable for a proof because it ships `netstandard2.0`, includes a package license file, and stays isolated behind the Machina-owned adapter seam
+- if M8h+ expands scope beyond the current proof, package freshness and long-term maintenance should be re-evaluated again
+
+See `docs/machina-typography-outline-adapter-m8g.md`.
+
 ## Sources
 
 Primary sources inspected:
