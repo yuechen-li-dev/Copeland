@@ -229,3 +229,14 @@ M8h can now focus on the next seam only:
 4. validate deterministic generated field output for the same checked-in fixture font
 
 The renderer, atlas consumption, and visual integration steps remain later milestones.
+
+## M8n follow-up
+
+M8n extends the Typography adapter proof in one narrow direction without changing its ownership boundary:
+
+- `TypographyGlyphOutlineSource` now also implements optional Machina-owned `IGlyphPairAdjustmentSource`
+- low-level adjacent pair adjustment is extracted from Typography/OpenFont `GPOS` pair-position lookups when available
+- `SpaceMono-Regular.ttf` still proves deterministic outline extraction, but it does not provide useful kerning pairs for `AV/To/Ta/Wa/Yo`
+- `CrimsonText-Regular.ttf` was added as a second OFL fixture specifically to prove pair adjustment behavior in the CPU MSDF proof path
+
+This still does not adopt a shaping engine, ligature engine, bidi engine, or OS font discovery path.

@@ -38,8 +38,8 @@ public sealed class CpuDistanceFieldTextRendererTests
             layout,
             Options);
 
-        Assert.Contains(FindNonBackgroundPixels(image), point => point.X < 8);
-        Assert.Contains(FindNonBackgroundPixels(image), point => point.X >= 8);
+        Assert.Contains(FindNonBackgroundPixels(image), point => point.X < 4);
+        Assert.Contains(FindNonBackgroundPixels(image), point => point.X >= 6);
     }
 
     [Fact]
@@ -59,8 +59,8 @@ public sealed class CpuDistanceFieldTextRendererTests
         int minX = FindNonBackgroundPixels(image).Min(static point => point.X);
         int maxX = FindNonBackgroundPixels(image).Max(static point => point.X);
 
-        Assert.Equal(1, minX);
-        Assert.True(maxX >= 10);
+        Assert.Equal(0, minX);
+        Assert.True(maxX >= 9);
     }
 
     [Fact]

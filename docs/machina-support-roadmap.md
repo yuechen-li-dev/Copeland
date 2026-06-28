@@ -577,3 +577,21 @@ Still deferred:
 - no production UI package dependency on `Machina.Fonts`
 
 See `docs/machina-component-gallery-msdf-proof-m8m.md`.
+
+### Machina M8n — CPU MSDF spacing, bearings, and kerning audit/fix
+
+M8n hardens the standalone CPU MSDF proof path before any UI text integration.
+
+- `DistanceFieldTextLayout` now accepts optional Machina-owned adjacent pair adjustments.
+- `TypographyGlyphOutlineSource` now exposes optional pair adjustment through low-level Typography/OpenFont `GPOS` pair-position lookups.
+- `SpaceMono-Regular.ttf` remains the deterministic monospaced proof fixture, while `CrimsonText-Regular.ttf` was added as a checked-in OFL proportional fixture to prove kerning pairs.
+- CPU field placement now recomputes the generator's fit-to-drawable-area padding instead of assuming raw symmetric leftover field size.
+- `artifacts/m8n` now holds the current local spacing/kerning proof outputs and refreshed gallery proof export.
+
+Still deferred:
+
+- no `TextBlock` integration
+- no production renderer integration
+- no shaping, ligatures, bidi, fallback, or multiline layout
+
+See `docs/machina-cpu-msdf-spacing-kerning-m8n.md`.

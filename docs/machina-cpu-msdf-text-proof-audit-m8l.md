@@ -187,3 +187,19 @@ Likely next work:
 - begin UI-facing integration only after those contracts are explicit
 
 Until then, the CPU reference renderer remains a standalone audit/debug tool, not the final Machina text backend.
+
+## M8n follow-up
+
+M8n closes the biggest open M8l spacing question without crossing into production UI integration.
+
+- centered field compensation now recomputes the generator's fit-to-drawable-area padding instead of assuming `(fieldSize - metricsSize) / 2`
+- optional adjacent pair adjustment now exists through Machina-owned `IGlyphPairAdjustmentSource`
+- Typography/OpenFont pair adjustment is now proven through low-level `GPOS` lookup execution
+- `SpaceMono-Regular.ttf` remains the monospaced audit fixture, but `CrimsonText-Regular.ttf` was added to prove real kerning pairs in deterministic local tests and proof artifacts
+
+This is still proof-path only:
+
+- no `TextBlock` integration
+- no Standard/UI migration
+- no production renderer integration
+- no shaping or bidi engine adoption

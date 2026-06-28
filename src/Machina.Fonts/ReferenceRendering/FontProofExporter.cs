@@ -11,18 +11,23 @@ public sealed class FontProofExporter
     private readonly FontAtlasTomlExportMetadata metadata;
     private readonly GlyphGenerationPipeline generationPipeline;
     private readonly GeneratedFieldAtlasPacker packer;
+    private readonly IGlyphPairAdjustmentSource? pairAdjustmentSource;
 
     public FontProofExporter(
         IGlyphOutlineSource outlineSource,
         IGlyphDistanceFieldGenerator generator,
         FontAtlasTomlExportMetadata metadata,
-        GeneratedFieldAtlasPacker? packer = null)
+        GeneratedFieldAtlasPacker? packer = null,
+        IGlyphPairAdjustmentSource? pairAdjustmentSource = null)
     {
+        ArgumentNullException.ThrowIfNull(outlineSource);
+
         generationPipeline = new GlyphGenerationPipeline(
-            outlineSource ?? throw new ArgumentNullException(nameof(outlineSource)),
+            outlineSource,
             generator ?? throw new ArgumentNullException(nameof(generator)));
         this.metadata = metadata ?? throw new ArgumentNullException(nameof(metadata));
         this.packer = packer ?? new GeneratedFieldAtlasPacker();
+        this.pairAdjustmentSource = pairAdjustmentSource ?? outlineSource as IGlyphPairAdjustmentSource;
     }
 
     public async ValueTask<FontProofExportResult> ExportAsync(
@@ -133,11 +138,22 @@ public sealed class FontProofExporter
         }
 
         List<FontProofArtifact> artifacts = [];
+        Dictionary<DistanceFieldTextRun, Dictionary<GlyphPairKey, GlyphPairAdjustment>> pairAdjustmentsByRun = [];
+        foreach (DistanceFieldTextRun run in runs)
+        {
+            pairAdjustmentsByRun[run] = await CollectPairAdjustmentsAsync(run, cancellationToken);
+        }
+
         for (int i = 0; i < definitions.Count; i++)
         {
             FontProofArtifactDefinition definition = definitions[i];
             DistanceFieldTextRun run = runs[i];
-            DistanceFieldTextLayoutResult layout = DistanceFieldTextLayout.Layout(run, metricsByGlyph, renderOptions, diagnostics);
+            DistanceFieldTextLayoutResult layout = DistanceFieldTextLayout.Layout(
+                run,
+                metricsByGlyph,
+                renderOptions,
+                diagnostics,
+                pairAdjustmentsByRun[run]);
 
             if (layout.Diagnostics.Any(static diagnostic => diagnostic.Severity == FontGenerationDiagnosticSeverity.Error))
             {
@@ -178,6 +194,40 @@ public sealed class FontProofExporter
             import.Snapshot,
             artifacts,
             diagnostics);
+    }
+
+    private async ValueTask<Dictionary<GlyphPairKey, GlyphPairAdjustment>> CollectPairAdjustmentsAsync(
+        DistanceFieldTextRun run,
+        CancellationToken cancellationToken)
+    {
+        Dictionary<GlyphPairKey, GlyphPairAdjustment> adjustments = [];
+        if (pairAdjustmentSource is null)
+        {
+            return adjustments;
+        }
+
+        GlyphKey? previousKey = null;
+        bool previousWasWhitespace = true;
+
+        foreach (GlyphKey key in run.GlyphKeys)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            bool isWhitespace = Rune.IsWhiteSpace(new Rune(key.Codepoint));
+            if (previousKey is GlyphKey previous && !previousWasWhitespace && !isWhitespace)
+            {
+                GlyphPairAdjustment? adjustment = await pairAdjustmentSource.GetPairAdjustmentAsync(previous, key, cancellationToken);
+                if (adjustment is not null)
+                {
+                    adjustments[new GlyphPairKey(previous, key)] = adjustment;
+                }
+            }
+
+            previousKey = key;
+            previousWasWhitespace = isWhitespace;
+        }
+
+        return adjustments;
     }
 
     private static void ValidateDefinitions(IReadOnlyList<FontProofArtifactDefinition> definitions)

@@ -170,3 +170,16 @@ That follow-up reuses:
 without claiming that this CPU debug path is itself the final text backend.
 
 M8m then consumes the same CPU proof path from the component gallery sample in an opt-in export-only card, still without replacing `UI.Text`, `TextBlock`, or the raster renderer. See `docs/machina-component-gallery-msdf-proof-m8m.md`.
+
+## M8n follow-up
+
+M8n keeps this renderer in the proof/reference lane but hardens two important conventions:
+
+- field-canvas placement now mirrors the generator's fit-to-drawable-area convention instead of inferring padding only from `fieldSize - metricsSize`
+- layout can now consume optional Machina-owned pair adjustments before advancing the pen
+
+The renderer is still not a production text backend:
+
+- no `TextBlock` integration
+- no production renderer integration
+- no shaping, ligatures, bidi, or fallback engine

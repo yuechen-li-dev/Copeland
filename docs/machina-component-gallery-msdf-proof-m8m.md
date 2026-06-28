@@ -123,3 +123,14 @@ M8n should use the evidence from this gallery proof to decide whether the next s
 - or beginning a deliberately scoped renderer-facing integration milestone
 
 That next step should still avoid a broad `TextBlock` migration until the production contract is explicit.
+
+## M8n follow-up
+
+M8n uses this proof card exactly as intended: as an opt-in local audit surface, not as production evidence.
+
+- the gallery proof still renders through the CPU reference path only
+- default gallery export behavior is unchanged
+- proof spacing improves because the CPU renderer now recomputes real field-canvas fit padding
+- the gallery still uses `SpaceMono-Regular.ttf`, so it does not become the primary kerning-proof artifact
+
+Real kerning proof now lives in the standalone `artifacts/m8n/msdf-av-to-wa.ppm` and `artifacts/m8n/msdf-spacing-proof.ppm` outputs that use the checked-in proportional `CrimsonText-Regular.ttf` fixture.

@@ -55,7 +55,9 @@ $createdFiles = @(
     (Join-Path $resolvedOutputDir "msdf-aa0.ppm"),
     (Join-Path $resolvedOutputDir "msdf-a-space-a.ppm"),
     (Join-Path $resolvedOutputDir "msdf-machina-0.ppm"),
-    (Join-Path $resolvedOutputDir "msdf-hello-machina.ppm")
+    (Join-Path $resolvedOutputDir "msdf-hello-machina.ppm"),
+    (Join-Path $resolvedOutputDir "msdf-av-to-wa.ppm"),
+    (Join-Path $resolvedOutputDir "msdf-spacing-proof.ppm")
 )
 
 foreach ($createdFile in $createdFiles)

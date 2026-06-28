@@ -21,6 +21,12 @@ internal static class FontProofWorkflow
         new("msdf-hello-machina.ppm", "Hello Machina"),
     ];
 
+    public static IReadOnlyList<FontProofArtifactDefinition> KerningDefinitions { get; } =
+    [
+        new("msdf-av-to-wa.ppm", "AV To Ta Wa Yo"),
+        new("msdf-spacing-proof.ppm", "AVATAR ToTa WaYo"),
+    ];
+
     public static FontProofExportOptions CreateOptions(string outputDirectory)
     {
         return new FontProofExportOptions(
@@ -56,6 +62,37 @@ internal static class FontProofWorkflow
         return await exporter.ExportAsync(Definitions, CreateOptions(outputDirectory), cancellationToken);
     }
 
+    public static async Task<FontProofExportResult> ExportKerningAsync(string outputDirectory, CancellationToken cancellationToken = default)
+    {
+        FontProofExporter exporter = new(
+            TypographyKerningFixtureFont.CreateSource(),
+            new MsdfSharpDistanceFieldGenerator(),
+            DistanceFieldArtifactTestHelpers.Metadata("crimson-text-msdf-proofs", "msdf"));
+
+        return await exporter.ExportAsync(KerningDefinitions, CreateKerningOptions(outputDirectory), cancellationToken);
+    }
+
+    public static async Task<IReadOnlyList<string>> ExportAllAsync(string outputDirectory, CancellationToken cancellationToken = default)
+    {
+        FontProofExportResult baseProofs = await ExportAsync(outputDirectory, cancellationToken);
+        FontProofExportResult kerningProofs = await ExportKerningAsync(outputDirectory, cancellationToken);
+
+        if (!baseProofs.Success)
+        {
+            throw new InvalidOperationException("Base MSDF proof export failed.");
+        }
+
+        if (!kerningProofs.Success)
+        {
+            throw new InvalidOperationException("Kerning MSDF proof export failed.");
+        }
+
+        return Definitions
+            .Concat(KerningDefinitions)
+            .Select(definition => Path.Combine(outputDirectory, definition.Name))
+            .ToArray();
+    }
+
     public static string GetRequestedOutputDirectoryOrCreateTemp()
     {
         string? requested = Environment.GetEnvironmentVariable(OutputDirectoryEnvironmentVariable);
@@ -68,4 +105,29 @@ internal static class FontProofWorkflow
     }
 
     public static Rgba32 BackgroundColor => Background;
+
+    private static FontProofExportOptions CreateKerningOptions(string outputDirectory)
+    {
+        return new FontProofExportOptions(
+            outputDirectory,
+            "crimson-text-msdf-proofs",
+            TypographyKerningFixtureFont.Face,
+            32,
+            MachinaFontWeight.Regular,
+            MachinaFontSlant.Upright,
+            Machina.Fonts.Generation.DistanceFieldKind.Msdf,
+            320,
+            64,
+            32,
+            32,
+            4d,
+            new Rgba32(240, 240, 240, 255),
+            Background,
+            8d,
+            40d,
+            FlipY: true,
+            PageWidth: 128,
+            PageHeight: 128,
+            PagePadding: 2);
+    }
 }

@@ -9,7 +9,8 @@ public static class DistanceFieldTextLayout
         DistanceFieldTextRun run,
         IReadOnlyDictionary<GlyphKey, GlyphMetrics> metricsByGlyph,
         DistanceFieldTextRenderOptions options,
-        IReadOnlyList<FontGenerationDiagnostic>? diagnostics = null)
+        IReadOnlyList<FontGenerationDiagnostic>? diagnostics = null,
+        IReadOnlyDictionary<GlyphPairKey, GlyphPairAdjustment>? pairAdjustments = null)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(metricsByGlyph);
@@ -21,6 +22,9 @@ public static class DistanceFieldTextLayout
 
         double scale = 1d;
         double penX = options.X;
+        GlyphKey? previousKey = null;
+        bool previousWasWhitespace = true;
+
         foreach (GlyphKey key in run.GlyphKeys)
         {
             if (!metricsByGlyph.TryGetValue(key, out GlyphMetrics? metrics))
@@ -34,8 +38,20 @@ public static class DistanceFieldTextLayout
             }
 
             bool isWhitespace = Rune.IsWhiteSpace(new Rune(key.Codepoint));
+
+            if (previousKey is GlyphKey previous
+                && !previousWasWhitespace
+                && !isWhitespace
+                && pairAdjustments is not null
+                && pairAdjustments.TryGetValue(new GlyphPairKey(previous, key), out GlyphPairAdjustment? adjustment))
+            {
+                penX += adjustment.AdvanceX * scale;
+            }
+
             placements.Add(new DistanceFieldGlyphPlacement(key, metrics, penX, options.BaselineY, scale, isWhitespace));
             penX += metrics.Advance * scale;
+            previousKey = key;
+            previousWasWhitespace = isWhitespace;
         }
 
         double width = Math.Max(0d, penX - options.X);

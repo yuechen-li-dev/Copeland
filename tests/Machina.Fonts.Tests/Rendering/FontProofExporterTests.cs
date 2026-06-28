@@ -100,13 +100,58 @@ public sealed class FontProofExporterTests
     {
         string directory = FontProofWorkflow.GetRequestedOutputDirectoryOrCreateTemp();
 
-        FontProofExportResult result = await FontProofWorkflow.ExportAsync(directory);
+        IReadOnlyList<string> createdFiles = await FontProofWorkflow.ExportAllAsync(directory);
+
+        Assert.All(createdFiles, static path =>
+        {
+            Assert.True(File.Exists(path));
+        });
+    }
+
+    [Fact]
+    public async Task FontProofExporter_WritesKerningProofArtifacts()
+    {
+        string directory = CreateDirectory();
+
+        FontProofExportResult result = await FontProofWorkflow.ExportKerningAsync(directory);
 
         Assert.True(result.Success);
-        Assert.All(FontProofWorkflow.Definitions, definition =>
+        Assert.Equal(FontProofWorkflow.KerningDefinitions.Count, result.Artifacts.Count);
+        Assert.All(FontProofWorkflow.KerningDefinitions, definition =>
         {
             Assert.True(File.Exists(Path.Combine(directory, definition.Name)));
         });
+    }
+
+    [Fact]
+    public async Task FontProofExporter_KerningProofIsDeterministic()
+    {
+        string firstDirectory = CreateDirectory();
+        string secondDirectory = CreateDirectory();
+
+        FontProofExportResult first = await FontProofWorkflow.ExportKerningAsync(firstDirectory);
+        FontProofExportResult second = await FontProofWorkflow.ExportKerningAsync(secondDirectory);
+
+        Assert.True(first.Success);
+        Assert.True(second.Success);
+        Assert.Equal(first.Artifacts.Select(ReadArtifactBytes), second.Artifacts.Select(ReadArtifactBytes));
+    }
+
+    [Fact]
+    public async Task FontProofExporter_AVPairDiffersWithKerningIfFixtureSupportsIt()
+    {
+        string directory = CreateDirectory();
+
+        FontProofExportResult result = await FontProofWorkflow.ExportKerningAsync(directory);
+
+        Assert.True(result.Success);
+        FontProofArtifact artifact = Assert.Single(
+            result.Artifacts,
+            static item => item.Definition.Name == "msdf-av-to-wa.ppm");
+
+        IReadOnlyList<(int X, int Y)> pixels = FindNonBackgroundPixels(artifact.Image);
+        Assert.NotEmpty(pixels);
+        Assert.True(pixels.Max(static point => point.X) < artifact.Image.Width - 8);
     }
 
     private static byte[] ReadArtifactBytes(FontProofArtifact artifact)

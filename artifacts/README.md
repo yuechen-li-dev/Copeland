@@ -8,8 +8,10 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m7e/` is the current component-gallery export output directory.
 - `artifacts/m8m/` is the current opt-in component-gallery MSDF proof output directory.
 - `artifacts/m8l/` is the current local CPU MSDF text proof audit output directory.
+- `artifacts/m8n/` is the current local CPU MSDF spacing and kerning audit output directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -61,6 +63,13 @@ Current M8l audit command:
 .\tools\Export-MachinaFontProofs.ps1 -OutputDir artifacts\m8l
 ```
 
+Current M8n audit command:
+
+```powershell
+.\tools\Export-MachinaFontProofs.ps1 -OutputDir artifacts\m8n
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m8n -IncludeMsdfFontProof
+```
+
 ## Current component gallery outputs
 
 - `artifacts/m7e/component-gallery-default.png`
@@ -77,6 +86,17 @@ No automated pixel comparison runs against these files yet. M7e documents the cu
 - `artifacts/m8l/msdf-machina-0.ppm`
 - `artifacts/m8l/msdf-hello-machina.ppm`
 
-These remain local proof artifacts for CPU MSDF audit work. They do not imply UI integration, PNG adoption, or a committed golden-image baseline.
+## Current M8n proof outputs
+
+- `artifacts/m8n/msdf-machina.ppm`
+- `artifacts/m8n/msdf-aa0.ppm`
+- `artifacts/m8n/msdf-a-space-a.ppm`
+- `artifacts/m8n/msdf-machina-0.ppm`
+- `artifacts/m8n/msdf-hello-machina.ppm`
+- `artifacts/m8n/msdf-av-to-wa.ppm`
+- `artifacts/m8n/msdf-spacing-proof.ppm`
+- `artifacts/m8n/component-gallery-msdf-proof.png`
+
+These remain local proof artifacts for CPU MSDF audit work. They do not imply `TextBlock` integration, Standard text migration, production renderer integration, shaping adoption, or a committed golden-image baseline.
 
 The M8m gallery proof PNG is also a local audit artifact only. It does not imply production `TextBlock` migration, renderer integration, Vulkan/Aurelian work, or a committed golden-image baseline.

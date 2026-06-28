@@ -666,3 +666,13 @@ M8l now proves the next architecture checkpoint without crossing into UI integra
 - the current centered field-padding compensation remains explicitly proof-only
 
 The architecture doctrine is unchanged: this is still evidence for later renderer work, not the final renderer itself.
+
+## M8n follow-up
+
+M8n fills in one more proof-path contract that M8a anticipated but did not freeze:
+
+- proof layout now has an explicit optional Machina-owned pair-adjustment seam
+- CPU field placement now mirrors the generator's fixed-canvas fit convention more closely
+- the atlas artifact contract still does not store explicit glyph-origin or field-origin metadata, so this compensation remains proof-only
+
+That means M8a's long-term guidance still stands: final runtime text work should prefer explicit stored origin metadata over inferred centered compensation.

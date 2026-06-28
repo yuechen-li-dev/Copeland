@@ -70,6 +70,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina CPU MSDF Text Renderer M8k](docs/machina-cpu-msdf-text-renderer-m8k.md)
 - [Machina CPU MSDF Reference Renderer M8k](docs/machina-cpu-msdf-reference-renderer-m8k.md)
 - [Machina CPU MSDF Text Proof Audit M8l](docs/machina-cpu-msdf-text-proof-audit-m8l.md)
+- [Machina CPU MSDF Spacing and Kerning M8n](docs/machina-cpu-msdf-spacing-kerning-m8n.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -111,8 +112,10 @@ Default outputs:
 - `artifacts/m8l/msdf-a-space-a.ppm`
 - `artifacts/m8l/msdf-machina-0.ppm`
 - `artifacts/m8l/msdf-hello-machina.ppm`
+- `artifacts/m8n/msdf-av-to-wa.ppm`
+- `artifacts/m8n/msdf-spacing-proof.ppm`
 
-These PPMs are deterministic local audit aids for standalone `Machina.Fonts`. They are not a committed pixel-diff baseline and do not imply `TextBlock`, renderer, gallery, Vulkan, or PNG integration.
+These PPMs are deterministic local audit aids for standalone `Machina.Fonts`. M8n keeps them proof-path only: no `TextBlock` integration, no production renderer integration, no shaping engine adoption, and no arbitrary tracking hack as the primary spacing fix.
 
 ## Reference source
 

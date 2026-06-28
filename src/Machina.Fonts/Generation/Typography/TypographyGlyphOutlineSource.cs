@@ -2,7 +2,7 @@ using Typography.OpenFont;
 
 namespace Machina.Fonts.Generation.Typography;
 
-public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource
+public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource, IGlyphPairAdjustmentSource
 {
     private readonly TypographyFontFaceCache faceCache;
 
@@ -115,6 +115,37 @@ public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource
                 FontGenerationDiagnosticCode.OutlineLoadFailed,
                 $"Failed to extract outline for U+{codepoint:X4} from '{face}': {ex.Message}"));
         }
+    }
+
+    public ValueTask<GlyphPairAdjustment?> GetPairAdjustmentAsync(
+        GlyphKey left,
+        GlyphKey right,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (left.Face != right.Face)
+        {
+            return ValueTask.FromResult<GlyphPairAdjustment?>(null);
+        }
+
+        if (!faceCache.TryGetSource(left.Face, out _))
+        {
+            return ValueTask.FromResult<GlyphPairAdjustment?>(null);
+        }
+
+        TypographyFontFaceCache.CachedTypeface cachedFace = faceCache.GetOrLoad(left.Face);
+        if (!cachedFace.Success || cachedFace.Typeface is null)
+        {
+            return ValueTask.FromResult<GlyphPairAdjustment?>(null);
+        }
+
+        GlyphPairAdjustment? adjustment = TypographyGlyphPairAdjustmentEvaluator.Evaluate(
+            cachedFace.Typeface,
+            left,
+            right);
+
+        return ValueTask.FromResult(adjustment);
     }
 
     private static GlyphOutlineLoadResult CreateFailure(
