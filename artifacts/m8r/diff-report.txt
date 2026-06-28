@@ -1,0 +1,156 @@
+Machina MSDF browser-vs-Machina diff report
+outputDirectory: C:\Users\yuech\source\repos\Copeland\artifacts\m8r
+fontPath: C:\Users\yuech\source\repos\Copeland\tests\Machina.Fonts.Tests\bin\Debug\net10.0\Fixtures\Fonts\CrimsonText-Regular.ttf
+fontFace: CrimsonText-Regular
+emSize: 32
+canvas: 320x64
+originX: 8
+baselineY: 40
+inkMaskPolicy:
+  backgroundColor: #101018
+  baselineGuideColor: #ff0000
+  inkDistanceThreshold: 12
+  baselineDistanceThreshold: 24
+  thresholdDifferenceTolerance: 18
+  description: Ink pixels are any non-background pixels beyond a small RGB distance threshold, excluding pixels close to the 1 px red baseline guide.
+
+[a-space-a] A A
+browserCaptured: true
+browserPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\browser-a-space-a.png
+machinaPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\machina-msdf-a-space-a.png
+overlayPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\overlay-a-space-a.png
+diffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-a-space-a.png
+thresholdDiffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-threshold-a-space-a.png
+wireframePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\wireframe-a-space-a.png
+comparePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\compare-a-space-a.png
+browserInkBounds: left=20, top=14, right=68, bottom=32, width=49, height=19
+machinaInkBounds: left=9, top=19, right=62, bottom=39, width=54, height=21
+deltaLeft: -11
+deltaTop: 5
+deltaRight: -6
+deltaBottom: 7
+deltaWidth: 5
+deltaHeight: 2
+browserInkArea: 931
+machinaInkArea: 288
+overlapArea: 133
+browserOnlyArea: 798
+machinaOnlyArea: 155
+intersectionOverUnion: 0.1225
+meanAbsoluteDifference: 10.2661
+maxDifference: 221.3333
+mismatchPixelCount: 1024
+mismatchRatio: 0.0500
+
+[aa0] Aa0
+browserCaptured: true
+browserPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\browser-aa0.png
+machinaPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\machina-msdf-aa0.png
+overlayPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\overlay-aa0.png
+diffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-aa0.png
+thresholdDiffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-threshold-aa0.png
+wireframePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\wireframe-aa0.png
+comparePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\compare-aa0.png
+browserInkBounds: left=17, top=14, right=65, bottom=32, width=49, height=19
+machinaInkBounds: left=9, top=19, right=58, bottom=39, width=50, height=21
+deltaLeft: -8
+deltaTop: 5
+deltaRight: -7
+deltaBottom: 7
+deltaWidth: 1
+deltaHeight: 2
+browserInkArea: 931
+machinaInkArea: 410
+overlapArea: 240
+browserOnlyArea: 691
+machinaOnlyArea: 170
+intersectionOverUnion: 0.2180
+meanAbsoluteDifference: 9.5729
+maxDifference: 221.3333
+mismatchPixelCount: 1010
+mismatchRatio: 0.0493
+
+[hello-machina] Hello Machina
+browserCaptured: true
+browserPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\browser-hello-machina.png
+machinaPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\machina-msdf-hello-machina.png
+overlayPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\overlay-hello-machina.png
+diffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-hello-machina.png
+thresholdDiffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-threshold-hello-machina.png
+wireframePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\wireframe-hello-machina.png
+comparePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\compare-hello-machina.png
+browserInkBounds: left=11, top=14, right=59, bottom=32, width=49, height=19
+machinaInkBounds: left=9, top=18, right=197, bottom=41, width=189, height=24
+deltaLeft: -2
+deltaTop: 4
+deltaRight: 138
+deltaBottom: 9
+deltaWidth: 140
+deltaHeight: 5
+browserInkArea: 931
+machinaInkArea: 1533
+overlapArea: 313
+browserOnlyArea: 618
+machinaOnlyArea: 1220
+intersectionOverUnion: 0.1455
+meanAbsoluteDifference: 16.4643
+maxDifference: 221.3333
+mismatchPixelCount: 2049
+mismatchRatio: 0.1000
+
+[kerning] AV To Ta Wa Yo
+browserCaptured: true
+browserPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\browser-kerning.png
+machinaPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\machina-msdf-kerning.png
+overlayPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\overlay-kerning.png
+diffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-kerning.png
+thresholdDiffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-threshold-kerning.png
+wireframePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\wireframe-kerning.png
+comparePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\compare-kerning.png
+browserInkBounds: left=14, top=14, right=62, bottom=32, width=49, height=19
+machinaInkBounds: left=9, top=18, right=238, bottom=43, width=230, height=26
+deltaLeft: -5
+deltaTop: 4
+deltaRight: 176
+deltaBottom: 11
+deltaWidth: 181
+deltaHeight: 7
+browserInkArea: 931
+machinaInkArea: 1373
+overlapArea: 200
+browserOnlyArea: 731
+machinaOnlyArea: 1173
+intersectionOverUnion: 0.0951
+meanAbsoluteDifference: 17.2414
+maxDifference: 221.3333
+mismatchPixelCount: 2023
+mismatchRatio: 0.0988
+
+[machina] Machina
+browserCaptured: true
+browserPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\browser-machina.png
+machinaPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\machina-msdf-machina.png
+overlayPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\overlay-machina.png
+diffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-machina.png
+thresholdDiffPngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\diff-threshold-machina.png
+wireframePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\wireframe-machina.png
+comparePngPath: C:\Users\yuech\source\repos\Copeland\artifacts\m8r\compare-machina.png
+browserInkBounds: left=8, top=14, right=56, bottom=32, width=49, height=19
+machinaInkBounds: left=8, top=18, right=119, bottom=41, width=112, height=24
+deltaLeft: 0
+deltaTop: 4
+deltaRight: 63
+deltaBottom: 9
+deltaWidth: 63
+deltaHeight: 5
+browserInkArea: 931
+machinaInkArea: 939
+overlapArea: 248
+browserOnlyArea: 683
+machinaOnlyArea: 691
+intersectionOverUnion: 0.1529
+meanAbsoluteDifference: 12.8317
+maxDifference: 221.3333
+mismatchPixelCount: 1508
+mismatchRatio: 0.0736
+

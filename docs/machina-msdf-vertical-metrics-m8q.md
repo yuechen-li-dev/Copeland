@@ -258,3 +258,21 @@ M8q.2 keeps the M8q and M8q.1 conclusions intact, but makes the evidence easier 
 
 This remains a tooling overlay for visual diagnosis only.
 It is not a new rendering fix, and no production text path changed.
+
+## M8r follow-up
+
+M8r keeps the M8q browser `TextMetrics` capture and draws those metric bounds directly into wireframe artifacts.
+
+- browser actual/font metric bounds can now be compared against browser ink bounds and Machina ink bounds in one image
+- the current overlays still argue against a pure baseline-origin bug
+- the next fix should be justified against extent/bounds evidence before any sampling-only tweak
+
+## M8s follow-up
+
+M8s keeps the M8q baseline and metric conclusions intact while adding direct outline masks and multi-size numeric comparison.
+
+- the M8s report still shows browser-vs-direct masks staying relatively stable from `32px` to `64px`
+- direct-vs-MSDF divergence grows sharply at `64px`
+- that pattern argues against reopening baseline-origin diagnosis as the primary next fix
+
+So M8q's main conclusion survives M8s: the next proof-only fix should not start with another baseline shift.

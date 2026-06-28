@@ -134,3 +134,11 @@ Instead it fixes the final proof raster placement step:
 - `drawY` is derived from that one baseline invariant
 
 So M8q.1 is a proof-renderer raster rounding fix, not an atlas or placement-contract redesign.
+
+## M8r follow-up
+
+M8r does not change `GlyphFieldPlacement`, but it makes the current placement evidence easier to inspect.
+
+- `artifacts/m8r/wireframe-*.png` now draw Machina per-glyph draw rects from the placement report
+- those rects generally track Machina ink instead of floating away from it
+- that evidence suggests the next fix should be grounded in remaining bounds/extent behavior, not another guessed placement offset

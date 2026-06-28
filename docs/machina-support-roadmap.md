@@ -682,3 +682,43 @@ This remains proof-path only:
 - no arbitrary vertical-offset fix
 
 See `docs/machina-msdf-baseline-guide-overlay-m8q2.md`.
+
+## M8r update
+
+M8r turns the browser-oracle proof stack into direct overlay-diff tooling instead of another speculative rendering change.
+
+- `tools/Export-MachinaFontReferenceDiff.ps1` now captures browser reference pixels and metrics, exports browser and Machina source PNGs separately, and writes overlay, absolute-diff, threshold-diff, wireframe, and side-by-side compare artifacts under `artifacts/m8r`.
+- `artifacts/m8r/diff-report.txt` and `.json` now summarize ink bounds, overlap areas, IoU, mismatch counts, and per-axis deltas for each proof string.
+- wireframe artifacts overlay browser bounds, Machina bounds, the baseline guide, browser metric bounds, and Machina glyph draw rects.
+- current evidence shows the remaining mismatch is mostly a lower-and-wider Machina extent problem, not a baseline-line mismatch and not obviously a pure coverage-only issue.
+
+This remains diagnostic-only:
+
+- no MSDF sampling or threshold change
+- no baseline placement change
+- no kerning or `GlyphFieldPlacement` change
+- no `TextBlock` integration
+- no production renderer integration
+- no CI pixel gate
+
+See `docs/machina-msdf-reference-diff-overlay-m8r.md`.
+
+## M8s update
+
+M8s adds a direct Typography-outline mask oracle and turns the proof stack into a three-way browser/direct-outline/MSDF diagnostic.
+
+- `src/Machina.Fonts/ReferenceRendering` now includes deterministic outline flattening, supersampled direct-outline mask rasterization, shared `InkMask` extraction, edge extraction, pairwise shape metrics, and overlay helpers.
+- `.\tools\Export-MachinaFontShapeDiff.ps1 -OutputDir artifacts\m8s` now exports browser, direct-outline, and MSDF artifacts at `32px`, `48px`, and `64px`.
+- pairwise reports now cover browser-vs-direct, direct-vs-MSDF, and browser-vs-MSDF using IoU, bounds deltas, unique-area counts, above/below-baseline mismatch areas, and symmetric edge-distance summaries.
+- current aggregate evidence shows browser-vs-direct staying relatively stable while direct-vs-MSDF degrades sharply at `64px`, so the next proof-only fix most likely belongs on the MSDF generation/rendering side.
+
+This remains diagnostic-only:
+
+- no MSDF sampling or smoothing fix is applied here
+- no baseline placement change
+- no kerning or `GlyphFieldPlacement` change
+- no `TextBlock` or production renderer integration
+- no browser dependency at runtime
+- no CI pixel gate
+
+See `docs/machina-msdf-three-way-shape-diff-m8s.md`.

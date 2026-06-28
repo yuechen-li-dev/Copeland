@@ -69,3 +69,19 @@ The guide should make it immediately obvious whether browser and Machina ink sit
 - no production UI text rendering change
 - no `StandardUI.TextBlock` integration change
 - no arbitrary vertical-offset “fix”
+
+## M8r follow-up
+
+M8r reuses the M8q.2 baseline guide unchanged inside the new overlay workflow.
+
+- the red baseline remains diagnostic-only
+- the M8r ink-mask policy explicitly ignores baseline-guide pixels for bounds and overlap metrics
+- the overlay evidence shows the baseline line itself is aligned even when browser and Machina ink differ
+
+## M8s follow-up
+
+M8s keeps the same red baseline-guide contract and applies the same ignore policy to all three mask paths.
+
+- browser, direct-outline, and MSDF artifacts at `32px`, `48px`, and `64px` all include the same baseline line
+- the extracted ink masks explicitly ignore that guide before computing IoU, bounds, or edge-distance metrics
+- the resulting report still points away from the baseline line itself as the dominant mismatch source

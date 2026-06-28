@@ -1,0 +1,152 @@
+Machina M8s three-way shape diff report
+fontPath: C:\Users\yuech\source\repos\Copeland\tests\Machina.Fonts.Tests\bin\Debug\net10.0\Fixtures\Fonts\CrimsonText-Regular.ttf
+fontFace: CrimsonText-Regular
+sizes: 32px, 48px, 64px
+texts: Machina | Hello Machina | AV To Ta Wa Yo | Aa0 | A A
+directOutlineRasterization: Direct outline rasterization is diagnostic-only. Curves are flattened deterministically, filled with even-odd winding by default, and supersampled at 4x.
+maskPolicy: Browser and MSDF masks use RGB threshold extraction. Background-like pixels are excluded, and pixels near the red baseline guide are ignored.
+metricsPolicy: Metrics are computed on extracted ink masks using IoU, bounds deltas, unique-area counts, and symmetric edge-distance summaries.
+overallFinding: msdf-render-mismatch (confidence 0.88)
+overallNotes: Browser-vs-direct IoU stays relatively stable (0.532 at 32px vs 0.542 at 64px), while direct-vs-MSDF drops sharply (0.584 to 0.316). The mismatch most likely enters in the MSDF generation or MSDF rendering stage, and it becomes more obvious at larger sizes.
+
+[32px] canvas=320x64, x=8, baselineY=40
+  - Machina
+    finding: unknown (confidence 0.35)
+    notes: The three pairwise comparisons do not isolate one stage cleanly.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\browser-machina.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\direct-outline-machina.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\msdf-machina.png
+    browserVsDirect: 0.799 IoU, meanEdge=0.361, p95=1.000, class=coverage-light
+    directVsMsdf: 0.465 IoU, meanEdge=0.822, p95=2.000, class=unknown
+    browserVsMsdf: 0.519 IoU, meanEdge=0.824, p95=2.000, class=coverage-light
+  - Hello Machina
+    finding: global-shift (confidence 0.45)
+    notes: All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\browser-hello-machina.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\direct-outline-hello-machina.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\msdf-hello-machina.png
+    browserVsDirect: 0.403 IoU, meanEdge=0.839, p95=2.828, class=horizontal-overrun
+    directVsMsdf: 0.491 IoU, meanEdge=0.784, p95=2.000, class=unknown
+    browserVsMsdf: 0.350 IoU, meanEdge=1.136, p95=3.162, class=horizontal-overrun
+  - AV To Ta Wa Yo
+    finding: global-shift (confidence 0.45)
+    notes: All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\browser-kerning.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\direct-outline-kerning.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\msdf-kerning.png
+    browserVsDirect: 0.245 IoU, meanEdge=2.525, p95=8.602, class=horizontal-overrun
+    directVsMsdf: 0.510 IoU, meanEdge=0.761, p95=2.236, class=unknown
+    browserVsMsdf: 0.235 IoU, meanEdge=2.604, p95=8.062, class=horizontal-overrun
+  - Aa0
+    finding: msdf-render-mismatch (confidence 0.71)
+    notes: Browser and direct-outline masks stay relatively close while the MSDF path diverges, so the mismatch most likely enters during distance-field generation or MSDF rendering.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\browser-aa0.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\direct-outline-aa0.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\msdf-aa0.png
+    browserVsDirect: 0.802 IoU, meanEdge=0.377, p95=1.000, class=coverage-light
+    directVsMsdf: 0.639 IoU, meanEdge=0.562, p95=1.414, class=unknown
+    browserVsMsdf: 0.673 IoU, meanEdge=0.558, p95=1.414, class=coverage-light
+  - A A
+    finding: outline-mismatch (confidence 0.90)
+    notes: Direct-outline and MSDF masks stay relatively close while the browser differs, so the mismatch most likely enters before MSDF sampling.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\browser-a-space-a.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\direct-outline-a-space-a.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\32\msdf-a-space-a.png
+    browserVsDirect: 0.410 IoU, meanEdge=1.121, p95=4.123, class=horizontal-overrun
+    directVsMsdf: 0.813 IoU, meanEdge=0.341, p95=1.000, class=unknown
+    browserVsMsdf: 0.383 IoU, meanEdge=1.297, p95=5.000, class=horizontal-overrun
+
+[48px] canvas=480x96, x=12, baselineY=60
+  - Machina
+    finding: unknown (confidence 0.35)
+    notes: The three pairwise comparisons do not isolate one stage cleanly.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\browser-machina.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\direct-outline-machina.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\msdf-machina.png
+    browserVsDirect: 0.796 IoU, meanEdge=0.478, p95=1.000, class=coverage-light
+    directVsMsdf: 0.489 IoU, meanEdge=1.106, p95=3.606, class=horizontal-overrun
+    browserVsMsdf: 0.495 IoU, meanEdge=1.263, p95=4.000, class=global-shift
+  - Hello Machina
+    finding: global-shift (confidence 0.45)
+    notes: All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\browser-hello-machina.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\direct-outline-hello-machina.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\msdf-hello-machina.png
+    browserVsDirect: 0.366 IoU, meanEdge=1.282, p95=4.000, class=horizontal-overrun
+    directVsMsdf: 0.461 IoU, meanEdge=1.104, p95=4.000, class=global-shift
+    browserVsMsdf: 0.286 IoU, meanEdge=1.663, p95=5.000, class=horizontal-overrun
+  - AV To Ta Wa Yo
+    finding: global-shift (confidence 0.45)
+    notes: All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\browser-kerning.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\direct-outline-kerning.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\msdf-kerning.png
+    browserVsDirect: 0.214 IoU, meanEdge=3.805, p95=13.000, class=horizontal-overrun
+    directVsMsdf: 0.502 IoU, meanEdge=1.321, p95=5.831, class=unknown
+    browserVsMsdf: 0.160 IoU, meanEdge=4.032, p95=12.000, class=horizontal-overrun
+  - Aa0
+    finding: unknown (confidence 0.35)
+    notes: The three pairwise comparisons do not isolate one stage cleanly.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\browser-aa0.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\direct-outline-aa0.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\msdf-aa0.png
+    browserVsDirect: 0.785 IoU, meanEdge=0.541, p95=1.000, class=coverage-light
+    directVsMsdf: 0.514 IoU, meanEdge=1.019, p95=2.236, class=unknown
+    browserVsMsdf: 0.507 IoU, meanEdge=1.114, p95=3.000, class=coverage-light
+  - A A
+    finding: global-shift (confidence 0.45)
+    notes: All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\browser-a-space-a.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\direct-outline-a-space-a.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\48\msdf-a-space-a.png
+    browserVsDirect: 0.391 IoU, meanEdge=1.666, p95=6.000, class=horizontal-overrun
+    directVsMsdf: 0.515 IoU, meanEdge=1.107, p95=2.236, class=coverage-light
+    browserVsMsdf: 0.287 IoU, meanEdge=1.843, p95=5.831, class=horizontal-overrun
+
+[64px] canvas=640x128, x=16, baselineY=80
+  - Machina
+    finding: msdf-render-mismatch (confidence 0.90)
+    notes: Browser and direct-outline masks stay relatively close while the MSDF path diverges, so the mismatch most likely enters during distance-field generation or MSDF rendering.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\browser-machina.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\direct-outline-machina.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\msdf-machina.png
+    browserVsDirect: 0.866 IoU, meanEdge=0.378, p95=1.000, class=unknown
+    directVsMsdf: 0.306 IoU, meanEdge=2.000, p95=7.050, class=unknown
+    browserVsMsdf: 0.317 IoU, meanEdge=2.020, p95=7.071, class=coverage-light
+  - Hello Machina
+    finding: global-shift (confidence 0.45)
+    notes: All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\browser-hello-machina.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\direct-outline-hello-machina.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\msdf-hello-machina.png
+    browserVsDirect: 0.359 IoU, meanEdge=1.647, p95=5.385, class=horizontal-overrun
+    directVsMsdf: 0.307 IoU, meanEdge=2.051, p95=7.000, class=unknown
+    browserVsMsdf: 0.255 IoU, meanEdge=2.405, p95=7.071, class=horizontal-overrun
+  - AV To Ta Wa Yo
+    finding: global-shift (confidence 0.45)
+    notes: All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\browser-kerning.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\direct-outline-kerning.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\msdf-kerning.png
+    browserVsDirect: 0.218 IoU, meanEdge=5.102, p95=17.079, class=horizontal-overrun
+    directVsMsdf: 0.350 IoU, meanEdge=2.441, p95=10.440, class=coverage-light
+    browserVsMsdf: 0.130 IoU, meanEdge=5.410, p95=16.031, class=horizontal-overrun
+  - Aa0
+    finding: msdf-render-mismatch (confidence 0.90)
+    notes: Browser and direct-outline masks stay relatively close while the MSDF path diverges, so the mismatch most likely enters during distance-field generation or MSDF rendering.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\browser-aa0.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\direct-outline-aa0.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\msdf-aa0.png
+    browserVsDirect: 0.868 IoU, meanEdge=0.403, p95=1.000, class=unknown
+    directVsMsdf: 0.305 IoU, meanEdge=1.766, p95=5.000, class=horizontal-overrun
+    browserVsMsdf: 0.323 IoU, meanEdge=1.824, p95=5.099, class=horizontal-overrun
+  - A A
+    finding: global-shift (confidence 0.45)
+    notes: All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage.
+    browserPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\browser-a-space-a.png
+    directOutlinePng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\direct-outline-a-space-a.png
+    msdfPng: C:\Users\yuech\source\repos\Copeland\artifacts\m8s\64\msdf-a-space-a.png
+    browserVsDirect: 0.398 IoU, meanEdge=2.104, p95=8.246, class=horizontal-overrun
+    directVsMsdf: 0.311 IoU, meanEdge=1.819, p95=4.055, class=coverage-light
+    browserVsMsdf: 0.241 IoU, meanEdge=2.446, p95=7.092, class=horizontal-overrun
+

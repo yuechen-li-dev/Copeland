@@ -40,6 +40,12 @@ internal static class FontReferenceOracleWorkflow
         new("a-space-a", "A A"),
     ];
 
+    public static Rgba32 BackgroundColor => Background;
+
+    public static Rgba32 ForegroundColor => Foreground;
+
+    public static Rgba32 BaselineColor => BaselineGuideColor;
+
     public static FontProofExportOptions CreateOptions(string outputDirectory)
     {
         return new FontProofExportOptions(
@@ -126,7 +132,8 @@ internal static class FontReferenceOracleWorkflow
             artifacts.Add(new FontReferenceOracleArtifact(
                 definition,
                 artifact.PpmPath,
-                pngPath));
+                pngPath,
+                artifact.Image));
         }
 
         FontReferenceOraclePlacementReport report = BuildPlacementReport(
@@ -147,9 +154,11 @@ internal static class FontReferenceOracleWorkflow
             TomlPath: export.TomlPath!,
             PagePaths: export.PagePaths,
             Artifacts: artifacts,
+            BrowserMetrics: browserMetrics,
             BrowserMetricsJsonPath: ResolveBrowserMetricsPath(),
             PlacementReportTextPath: reportTextPath,
             PlacementReportJsonPath: reportJsonPath,
+            PlacementReport: report,
             FontPath: TypographyKerningFixtureFont.FontPath,
             EmSize: ProofEmSize,
             OutputWidth: ProofWidth,
@@ -752,26 +761,39 @@ internal sealed record FontReferenceOracleDefinition(string Id, string Text)
 {
     public string ReferencePngFileName => $"reference-{Id}.png";
 
+    public string BrowserPngFileName => $"browser-{Id}.png";
+
     public string MachinaPpmFileName => $"machina-msdf-{Id}.ppm";
 
     public string MachinaPngFileName => $"machina-msdf-{Id}.png";
 
     public string ComparePngFileName => $"compare-{Id}.png";
+
+    public string OverlayPngFileName => $"overlay-{Id}.png";
+
+    public string DiffPngFileName => $"diff-{Id}.png";
+
+    public string ThresholdDiffPngFileName => $"diff-threshold-{Id}.png";
+
+    public string WireframePngFileName => $"wireframe-{Id}.png";
 }
 
 internal sealed record FontReferenceOracleArtifact(
     FontReferenceOracleDefinition Definition,
     string MachinaPpmPath,
-    string MachinaPngPath);
+    string MachinaPngPath,
+    RgbaImage Image);
 
 internal sealed record FontReferenceOracleExportResult(
     string OutputDirectory,
     string TomlPath,
     IReadOnlyList<string> PagePaths,
     IReadOnlyList<FontReferenceOracleArtifact> Artifacts,
+    BrowserTextMetricsDocument? BrowserMetrics,
     string? BrowserMetricsJsonPath,
     string PlacementReportTextPath,
     string PlacementReportJsonPath,
+    FontReferenceOraclePlacementReport PlacementReport,
     string FontPath,
     double EmSize,
     int OutputWidth,
@@ -874,6 +896,9 @@ internal sealed record BrowserTextMetricsFixture(
     string TextBaseline,
     string TextAlign,
     BrowserTextMetricValues Metrics,
+    string? Background = null,
+    string? Foreground = null,
+    BrowserReferenceCapture? Capture = null,
     string? UnavailableReason = null);
 
 internal sealed record BrowserTextMetricValues(
@@ -906,3 +931,9 @@ internal sealed record BrowserVerticalMetrics(
     double? FontBottom,
     double? EmTop,
     double? EmBottom);
+
+internal sealed record BrowserReferenceCapture(
+    int Width,
+    int Height,
+    string PixelFormat,
+    string RgbaBase64);

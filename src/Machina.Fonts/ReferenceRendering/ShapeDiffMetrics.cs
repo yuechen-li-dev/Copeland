@@ -1,0 +1,25 @@
+namespace Machina.Fonts.ReferenceRendering;
+
+public sealed record ShapeDiffMetrics(
+    InkMaskBounds? LeftBounds,
+    InkMaskBounds? RightBounds,
+    int? DeltaLeft,
+    int? DeltaTop,
+    int? DeltaRight,
+    int? DeltaBottom,
+    int? DeltaWidth,
+    int? DeltaHeight,
+    int LeftInkArea,
+    int RightInkArea,
+    int IntersectionArea,
+    int UnionArea,
+    int LeftOnlyArea,
+    int RightOnlyArea,
+    double IntersectionOverUnion,
+    double MeanEdgeDistance,
+    double P50EdgeDistance,
+    double P95EdgeDistance,
+    double MaxEdgeDistance,
+    int AboveBaselineExtraArea,
+    int BelowBaselineExtraArea,
+    int MismatchArea);

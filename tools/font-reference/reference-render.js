@@ -3,6 +3,11 @@
     const mode = params.get("mode") ?? "reference";
     document.body.dataset.mode = mode;
 
+    if (mode === "capture") {
+        await renderCapture(params);
+        return;
+    }
+
     if (mode === "compare") {
         await renderCompare(params);
         return;
@@ -29,6 +34,22 @@ async function renderReference(params) {
     drawBaselineGuide(context, config);
 }
 
+async function renderCapture(params) {
+    const config = readReferenceConfig(params);
+
+    document.body.style.background = config.background;
+    await ensureFontLoaded(config.fontFamily, config.fontUrl);
+
+    const canvas = createCanvas(config.width, config.height);
+    const context = canvas.getContext("2d", { alpha: false });
+    applyTextRenderState(context, config);
+    context.fillText(config.text, config.x, config.baselineY);
+    drawBaselineGuide(context, config);
+
+    const result = buildCaptureResult(canvas, context, config);
+    writeJsonOutput("capture-output", result);
+}
+
 async function renderMetrics(params) {
     const config = readReferenceConfig(params);
     await ensureFontLoaded(config.fontFamily, config.fontUrl);
@@ -37,42 +58,9 @@ async function renderMetrics(params) {
     const context = canvas.getContext("2d", { alpha: false });
     applyTextRenderState(context, config);
 
-    const metrics = context.measureText(config.text);
-    const result = {
-        text: config.text,
-        fontFamily: config.fontFamily,
-        fontSize: config.fontSize,
-        canvasWidth: config.width,
-        canvasHeight: config.height,
-        x: config.x,
-        baselineY: config.baselineY,
-        baselineGuideEnabled: config.showBaselineGuide,
-        baselineGuideY: config.showBaselineGuide ? config.baselineY : null,
-        baselineGuideColor: config.showBaselineGuide ? config.baselineGuideColor : null,
-        textBaseline: context.textBaseline,
-        textAlign: context.textAlign,
-        metrics: {
-            width: toNullableNumber(metrics.width),
-            actualBoundingBoxLeft: toNullableNumber(metrics.actualBoundingBoxLeft),
-            actualBoundingBoxRight: toNullableNumber(metrics.actualBoundingBoxRight),
-            actualBoundingBoxAscent: toNullableNumber(metrics.actualBoundingBoxAscent),
-            actualBoundingBoxDescent: toNullableNumber(metrics.actualBoundingBoxDescent),
-            fontBoundingBoxAscent: toNullableNumber(metrics.fontBoundingBoxAscent),
-            fontBoundingBoxDescent: toNullableNumber(metrics.fontBoundingBoxDescent),
-            emHeightAscent: toNullableNumber(metrics.emHeightAscent),
-            emHeightDescent: toNullableNumber(metrics.emHeightDescent),
-            alphabeticBaseline: toNullableNumber(metrics.alphabeticBaseline),
-            hangingBaseline: toNullableNumber(metrics.hangingBaseline),
-            ideographicBaseline: toNullableNumber(metrics.ideographicBaseline),
-        },
-    };
-
-    const pre = document.createElement("pre");
-    pre.id = "metrics-output";
-    pre.textContent = JSON.stringify(result, null, 2);
-
-    document.body.innerHTML = "";
-    document.body.appendChild(pre);
+    const result = buildCaptureResult(canvas, context, config);
+    delete result.capture;
+    writeJsonOutput("metrics-output", result);
 }
 
 async function renderCompare(params) {
@@ -148,6 +136,57 @@ function readReferenceConfig(params) {
     };
 }
 
+function buildCaptureResult(canvas, context, config) {
+    const metrics = context.measureText(config.text);
+    const imageData = context.getImageData(0, 0, config.width, config.height);
+
+    return {
+        text: config.text,
+        fontFamily: config.fontFamily,
+        fontSize: config.fontSize,
+        canvasWidth: config.width,
+        canvasHeight: config.height,
+        x: config.x,
+        baselineY: config.baselineY,
+        baselineGuideEnabled: config.showBaselineGuide,
+        baselineGuideY: config.showBaselineGuide ? config.baselineY : null,
+        baselineGuideColor: config.showBaselineGuide ? config.baselineGuideColor : null,
+        textBaseline: context.textBaseline,
+        textAlign: context.textAlign,
+        background: config.background,
+        foreground: config.foreground,
+        metrics: {
+            width: toNullableNumber(metrics.width),
+            actualBoundingBoxLeft: toNullableNumber(metrics.actualBoundingBoxLeft),
+            actualBoundingBoxRight: toNullableNumber(metrics.actualBoundingBoxRight),
+            actualBoundingBoxAscent: toNullableNumber(metrics.actualBoundingBoxAscent),
+            actualBoundingBoxDescent: toNullableNumber(metrics.actualBoundingBoxDescent),
+            fontBoundingBoxAscent: toNullableNumber(metrics.fontBoundingBoxAscent),
+            fontBoundingBoxDescent: toNullableNumber(metrics.fontBoundingBoxDescent),
+            emHeightAscent: toNullableNumber(metrics.emHeightAscent),
+            emHeightDescent: toNullableNumber(metrics.emHeightDescent),
+            alphabeticBaseline: toNullableNumber(metrics.alphabeticBaseline),
+            hangingBaseline: toNullableNumber(metrics.hangingBaseline),
+            ideographicBaseline: toNullableNumber(metrics.ideographicBaseline),
+        },
+        capture: {
+            width: config.width,
+            height: config.height,
+            pixelFormat: "rgba8",
+            rgbaBase64: encodeBase64(imageData.data),
+        },
+    };
+}
+
+function writeJsonOutput(id, value) {
+    const pre = document.createElement("pre");
+    pre.id = id;
+    pre.textContent = JSON.stringify(value, null, 2);
+
+    document.body.innerHTML = "";
+    document.body.appendChild(pre);
+}
+
 function createCanvas(width, height) {
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -207,4 +246,16 @@ function toNullableNumber(value) {
     return typeof value === "number" && Number.isFinite(value)
         ? value
         : null;
+}
+
+function encodeBase64(bytes) {
+    let text = "";
+    const chunkSize = 0x8000;
+
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+        const chunk = bytes.subarray(index, Math.min(index + chunkSize, bytes.length));
+        text += String.fromCharCode(...chunk);
+    }
+
+    return btoa(text);
 }

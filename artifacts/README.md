@@ -13,6 +13,8 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m8q/` is the current local MSDF vertical-metrics comparison output directory.
 - `artifacts/m8q1/` is the current local MSDF baseline-rounding comparison output directory.
 - `artifacts/m8q2/` is the current local MSDF baseline-guide overlay comparison output directory.
+- `artifacts/m8r/` is the current local browser-vs-Machina overlay diff output directory.
+- `artifacts/m8s/` is the current local browser/direct-outline/MSDF three-way shape-diff output directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -20,6 +22,8 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M8q comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8q.1 comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8q.2 comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M8r comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M8s comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -103,6 +107,18 @@ Current M8q.2 audit command:
 ```powershell
 .\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q2
 .\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m8q2 -IncludeMsdfFontProof
+```
+
+Current M8r audit command:
+
+```powershell
+.\tools\Export-MachinaFontReferenceDiff.ps1 -OutputDir artifacts\m8r
+```
+
+Current M8s audit command:
+
+```powershell
+.\tools\Export-MachinaFontShapeDiff.ps1 -OutputDir artifacts\m8s
 ```
 
 ## Current component gallery outputs
@@ -223,3 +239,53 @@ These remain local proof artifacts for CPU MSDF baseline-rounding audit work onl
 - `artifacts/m8q2/component-gallery-msdf-proof.png`
 
 These remain local proof artifacts for baseline-visualization audit work only. The red line is a tooling overlay for visual diagnosis, not a rendering fix, and no production text path changed.
+
+## Current M8r browser-vs-Machina overlay diff outputs
+
+- `artifacts/m8r/browser-machina.png`
+- `artifacts/m8r/browser-hello-machina.png`
+- `artifacts/m8r/browser-kerning.png`
+- `artifacts/m8r/browser-aa0.png`
+- `artifacts/m8r/browser-a-space-a.png`
+- `artifacts/m8r/machina-msdf-machina.png`
+- `artifacts/m8r/machina-msdf-hello-machina.png`
+- `artifacts/m8r/machina-msdf-kerning.png`
+- `artifacts/m8r/overlay-machina.png`
+- `artifacts/m8r/overlay-hello-machina.png`
+- `artifacts/m8r/overlay-kerning.png`
+- `artifacts/m8r/diff-machina.png`
+- `artifacts/m8r/diff-hello-machina.png`
+- `artifacts/m8r/diff-kerning.png`
+- `artifacts/m8r/diff-threshold-machina.png`
+- `artifacts/m8r/diff-threshold-hello-machina.png`
+- `artifacts/m8r/diff-threshold-kerning.png`
+- `artifacts/m8r/wireframe-machina.png`
+- `artifacts/m8r/wireframe-hello-machina.png`
+- `artifacts/m8r/wireframe-kerning.png`
+- `artifacts/m8r/compare-machina.png`
+- `artifacts/m8r/compare-hello-machina.png`
+- `artifacts/m8r/compare-kerning.png`
+- `artifacts/m8r/diff-report.txt`
+- `artifacts/m8r/diff-report.json`
+- `artifacts/m8r/glyph-placement-report.txt`
+- `artifacts/m8r/glyph-placement-report.json`
+
+These remain local diagnostic artifacts only. M8r makes mismatch explicit with overlays and metrics, but it does not apply another rendering fix, add a CI pixel gate, or introduce production text integration.
+
+## Current M8s three-way shape-diff outputs
+
+- `artifacts/m8s/browser-shape-diff-captures.json`
+- `artifacts/m8s/shape-diff-report.txt`
+- `artifacts/m8s/shape-diff-report.json`
+- `artifacts/m8s/32/browser-machina.png`
+- `artifacts/m8s/32/direct-outline-machina.png`
+- `artifacts/m8s/32/msdf-machina.png`
+- `artifacts/m8s/32/diff-browser-vs-direct-machina.png`
+- `artifacts/m8s/32/diff-direct-vs-msdf-machina.png`
+- `artifacts/m8s/32/diff-browser-vs-msdf-machina.png`
+- `artifacts/m8s/32/overlay-three-way-machina.png`
+- `artifacts/m8s/32/wireframe-machina.png`
+- `artifacts/m8s/48/...`
+- `artifacts/m8s/64/...`
+
+These remain local diagnostic artifacts only. M8s adds a direct-outline mask oracle, multi-size numeric shape-diff metrics, and three-way overlays without changing MSDF sampling, baseline placement, kerning, `GlyphFieldPlacement`, or any production text path.

@@ -1,0 +1,2531 @@
+{
+  "FontPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\tests\\Machina.Fonts.Tests\\bin\\Debug\\net10.0\\Fixtures\\Fonts\\CrimsonText-Regular.ttf",
+  "FontFace": "CrimsonText-Regular",
+  "FontSizes": [
+    32,
+    48,
+    64
+  ],
+  "Texts": [
+    "Machina",
+    "Hello Machina",
+    "AV To Ta Wa Yo",
+    "Aa0",
+    "A A"
+  ],
+  "DirectOutlineRasterizationPolicy": "Direct outline rasterization is diagnostic-only. Curves are flattened deterministically, filled with even-odd winding by default, and supersampled at 4x.",
+  "MaskPolicy": "Browser and MSDF masks use RGB threshold extraction. Background-like pixels are excluded, and pixels near the red baseline guide are ignored.",
+  "MetricsPolicy": "Metrics are computed on extracted ink masks using IoU, bounds deltas, unique-area counts, and symmetric edge-distance summaries.",
+  "Sizes": [
+    {
+      "SizePx": 32,
+      "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32",
+      "CanvasWidth": 320,
+      "CanvasHeight": 64,
+      "OriginX": 8,
+      "BaselineY": 40,
+      "Fixtures": [
+        {
+          "Id": "machina",
+          "Text": "Machina",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\browser-machina.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\direct-outline-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\msdf-machina.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-machina.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-machina.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-machina.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\overlay-three-way-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\wireframe-machina.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 118,
+                "Bottom": 39,
+                "Width": 111,
+                "Height": 22
+              },
+              "RightBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 117,
+                "Bottom": 40,
+                "Width": 110,
+                "Height": 23
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 0,
+              "DeltaRight": -1,
+              "DeltaBottom": 1,
+              "DeltaWidth": -1,
+              "DeltaHeight": 1,
+              "LeftInkArea": 1059,
+              "RightInkArea": 875,
+              "IntersectionArea": 859,
+              "UnionArea": 1075,
+              "LeftOnlyArea": 200,
+              "RightOnlyArea": 16,
+              "IntersectionOverUnion": 0.7990697674418604,
+              "MeanEdgeDistance": 0.3610981317233145,
+              "P50EdgeDistance": 0,
+              "P95EdgeDistance": 1,
+              "MaxEdgeDistance": 2,
+              "AboveBaselineExtraArea": 207,
+              "BelowBaselineExtraArea": 9,
+              "MismatchArea": 216
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 117,
+                "Bottom": 40,
+                "Width": 110,
+                "Height": 23
+              },
+              "RightBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 119,
+                "Bottom": 41,
+                "Width": 112,
+                "Height": 24
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 0,
+              "DeltaRight": 2,
+              "DeltaBottom": 1,
+              "DeltaWidth": 2,
+              "DeltaHeight": 1,
+              "LeftInkArea": 875,
+              "RightInkArea": 920,
+              "IntersectionArea": 570,
+              "UnionArea": 1225,
+              "LeftOnlyArea": 305,
+              "RightOnlyArea": 350,
+              "IntersectionOverUnion": 0.46530612244897956,
+              "MeanEdgeDistance": 0.8224821212705198,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 2,
+              "MaxEdgeDistance": 2.8284271247461903,
+              "AboveBaselineExtraArea": 628,
+              "BelowBaselineExtraArea": 27,
+              "MismatchArea": 655
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 118,
+                "Bottom": 39,
+                "Width": 111,
+                "Height": 22
+              },
+              "RightBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 119,
+                "Bottom": 41,
+                "Width": 112,
+                "Height": 24
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 0,
+              "DeltaRight": 1,
+              "DeltaBottom": 2,
+              "DeltaWidth": 1,
+              "DeltaHeight": 2,
+              "LeftInkArea": 1059,
+              "RightInkArea": 920,
+              "IntersectionArea": 676,
+              "UnionArea": 1303,
+              "LeftOnlyArea": 383,
+              "RightOnlyArea": 244,
+              "IntersectionOverUnion": 0.5188027628549501,
+              "MeanEdgeDistance": 0.8235860526552946,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 2,
+              "MaxEdgeDistance": 3,
+              "AboveBaselineExtraArea": 609,
+              "BelowBaselineExtraArea": 18,
+              "MismatchArea": 627
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "Finding": {
+            "Kind": "unknown",
+            "Confidence": 0.35,
+            "Notes": "The three pairwise comparisons do not isolate one stage cleanly."
+          }
+        },
+        {
+          "Id": "hello-machina",
+          "Text": "Hello Machina",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\browser-hello-machina.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\direct-outline-hello-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\msdf-hello-machina.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-hello-machina.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-hello-machina.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-hello-machina.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\overlay-three-way-hello-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\wireframe-hello-machina.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 192,
+                "Bottom": 39,
+                "Width": 185,
+                "Height": 22
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 18,
+                "Right": 196,
+                "Bottom": 40,
+                "Width": 188,
+                "Height": 23
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 0,
+              "DeltaRight": 4,
+              "DeltaBottom": 1,
+              "DeltaWidth": 3,
+              "DeltaHeight": 1,
+              "LeftInkArea": 1734,
+              "RightInkArea": 1465,
+              "IntersectionArea": 919,
+              "UnionArea": 2280,
+              "LeftOnlyArea": 815,
+              "RightOnlyArea": 546,
+              "IntersectionOverUnion": 0.40307017543859647,
+              "MeanEdgeDistance": 0.8391463102611629,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 2.8284271247461903,
+              "MaxEdgeDistance": 5.0990195135927845,
+              "AboveBaselineExtraArea": 1344,
+              "BelowBaselineExtraArea": 17,
+              "MismatchArea": 1361
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 9,
+                "Top": 18,
+                "Right": 196,
+                "Bottom": 40,
+                "Width": 188,
+                "Height": 23
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 18,
+                "Right": 197,
+                "Bottom": 41,
+                "Width": 189,
+                "Height": 24
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 0,
+              "DeltaRight": 1,
+              "DeltaBottom": 1,
+              "DeltaWidth": 1,
+              "DeltaHeight": 1,
+              "LeftInkArea": 1465,
+              "RightInkArea": 1517,
+              "IntersectionArea": 982,
+              "UnionArea": 2000,
+              "LeftOnlyArea": 483,
+              "RightOnlyArea": 535,
+              "IntersectionOverUnion": 0.491,
+              "MeanEdgeDistance": 0.7840807666045861,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 2,
+              "MaxEdgeDistance": 3.1622776601683795,
+              "AboveBaselineExtraArea": 983,
+              "BelowBaselineExtraArea": 35,
+              "MismatchArea": 1018
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 192,
+                "Bottom": 39,
+                "Width": 185,
+                "Height": 22
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 18,
+                "Right": 197,
+                "Bottom": 41,
+                "Width": 189,
+                "Height": 24
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 0,
+              "DeltaRight": 5,
+              "DeltaBottom": 2,
+              "DeltaWidth": 4,
+              "DeltaHeight": 2,
+              "LeftInkArea": 1734,
+              "RightInkArea": 1517,
+              "IntersectionArea": 843,
+              "UnionArea": 2408,
+              "LeftOnlyArea": 891,
+              "RightOnlyArea": 674,
+              "IntersectionOverUnion": 0.3500830564784053,
+              "MeanEdgeDistance": 1.135664998407953,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 3.1622776601683795,
+              "MaxEdgeDistance": 6.324555320336759,
+              "AboveBaselineExtraArea": 1547,
+              "BelowBaselineExtraArea": 18,
+              "MismatchArea": 1565
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "global-shift",
+            "Confidence": 0.45,
+            "Notes": "All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage."
+          }
+        },
+        {
+          "Id": "kerning",
+          "Text": "AV To Ta Wa Yo",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\browser-kerning.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\direct-outline-kerning.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\msdf-kerning.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-kerning.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-kerning.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-kerning.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\overlay-three-way-kerning.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\wireframe-kerning.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 219,
+                "Bottom": 39,
+                "Width": 212,
+                "Height": 22
+              },
+              "RightBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 237,
+                "Bottom": 40,
+                "Width": 230,
+                "Height": 22
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 1,
+              "DeltaRight": 18,
+              "DeltaBottom": 1,
+              "DeltaWidth": 18,
+              "DeltaHeight": 0,
+              "LeftInkArea": 1657,
+              "RightInkArea": 1422,
+              "IntersectionArea": 606,
+              "UnionArea": 2473,
+              "LeftOnlyArea": 1051,
+              "RightOnlyArea": 816,
+              "IntersectionOverUnion": 0.2450465022240194,
+              "MeanEdgeDistance": 2.524540634630626,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 8.602325267042627,
+              "MaxEdgeDistance": 18,
+              "AboveBaselineExtraArea": 1847,
+              "BelowBaselineExtraArea": 20,
+              "MismatchArea": 1867
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 237,
+                "Bottom": 40,
+                "Width": 230,
+                "Height": 22
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 19,
+                "Right": 238,
+                "Bottom": 43,
+                "Width": 230,
+                "Height": 25
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 0,
+              "DeltaRight": 1,
+              "DeltaBottom": 3,
+              "DeltaWidth": 0,
+              "DeltaHeight": 3,
+              "LeftInkArea": 1422,
+              "RightInkArea": 1386,
+              "IntersectionArea": 949,
+              "UnionArea": 1859,
+              "LeftOnlyArea": 473,
+              "RightOnlyArea": 437,
+              "IntersectionOverUnion": 0.5104895104895105,
+              "MeanEdgeDistance": 0.7613068023061101,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 2.23606797749979,
+              "MaxEdgeDistance": 4.47213595499958,
+              "AboveBaselineExtraArea": 871,
+              "BelowBaselineExtraArea": 39,
+              "MismatchArea": 910
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 18,
+                "Right": 219,
+                "Bottom": 39,
+                "Width": 212,
+                "Height": 22
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 19,
+                "Right": 238,
+                "Bottom": 43,
+                "Width": 230,
+                "Height": 25
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 1,
+              "DeltaRight": 19,
+              "DeltaBottom": 4,
+              "DeltaWidth": 18,
+              "DeltaHeight": 3,
+              "LeftInkArea": 1657,
+              "RightInkArea": 1386,
+              "IntersectionArea": 579,
+              "UnionArea": 2464,
+              "LeftOnlyArea": 1078,
+              "RightOnlyArea": 807,
+              "IntersectionOverUnion": 0.23498376623376624,
+              "MeanEdgeDistance": 2.6039075233222766,
+              "P50EdgeDistance": 1.4142135623730951,
+              "P95EdgeDistance": 8.06225774829855,
+              "MaxEdgeDistance": 19.026297590440446,
+              "AboveBaselineExtraArea": 1866,
+              "BelowBaselineExtraArea": 19,
+              "MismatchArea": 1885
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "global-shift",
+            "Confidence": 0.45,
+            "Notes": "All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage."
+          }
+        },
+        {
+          "Id": "aa0",
+          "Text": "Aa0",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\browser-aa0.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\direct-outline-aa0.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\msdf-aa0.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-aa0.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-aa0.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-aa0.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\overlay-three-way-aa0.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\wireframe-aa0.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 57,
+                "Bottom": 39,
+                "Width": 50,
+                "Height": 21
+              },
+              "RightBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 57,
+                "Bottom": 40,
+                "Width": 50,
+                "Height": 22
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 0,
+              "DeltaRight": 0,
+              "DeltaBottom": 1,
+              "DeltaWidth": 0,
+              "DeltaHeight": 1,
+              "LeftInkArea": 480,
+              "RightInkArea": 403,
+              "IntersectionArea": 393,
+              "UnionArea": 490,
+              "LeftOnlyArea": 87,
+              "RightOnlyArea": 10,
+              "IntersectionOverUnion": 0.8020408163265306,
+              "MeanEdgeDistance": 0.3772455089820359,
+              "P50EdgeDistance": 0,
+              "P95EdgeDistance": 1,
+              "MaxEdgeDistance": 1,
+              "AboveBaselineExtraArea": 93,
+              "BelowBaselineExtraArea": 4,
+              "MismatchArea": 97
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 57,
+                "Bottom": 40,
+                "Width": 50,
+                "Height": 22
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 19,
+                "Right": 57,
+                "Bottom": 39,
+                "Width": 49,
+                "Height": 21
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 0,
+              "DeltaRight": 0,
+              "DeltaBottom": -1,
+              "DeltaWidth": -1,
+              "DeltaHeight": -1,
+              "LeftInkArea": 403,
+              "RightInkArea": 400,
+              "IntersectionArea": 313,
+              "UnionArea": 490,
+              "LeftOnlyArea": 90,
+              "RightOnlyArea": 87,
+              "IntersectionOverUnion": 0.6387755102040816,
+              "MeanEdgeDistance": 0.562475250659689,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 1.4142135623730951,
+              "MaxEdgeDistance": 2.23606797749979,
+              "AboveBaselineExtraArea": 173,
+              "BelowBaselineExtraArea": 4,
+              "MismatchArea": 177
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 57,
+                "Bottom": 39,
+                "Width": 50,
+                "Height": 21
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 19,
+                "Right": 57,
+                "Bottom": 39,
+                "Width": 49,
+                "Height": 21
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 0,
+              "DeltaRight": 0,
+              "DeltaBottom": 0,
+              "DeltaWidth": -1,
+              "DeltaHeight": 0,
+              "LeftInkArea": 480,
+              "RightInkArea": 400,
+              "IntersectionArea": 354,
+              "UnionArea": 526,
+              "LeftOnlyArea": 126,
+              "RightOnlyArea": 46,
+              "IntersectionOverUnion": 0.6730038022813688,
+              "MeanEdgeDistance": 0.5578864960127052,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 1.4142135623730951,
+              "MaxEdgeDistance": 2.23606797749979,
+              "AboveBaselineExtraArea": 172,
+              "BelowBaselineExtraArea": 0,
+              "MismatchArea": 172
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "Finding": {
+            "Kind": "msdf-render-mismatch",
+            "Confidence": 0.713265306122449,
+            "Notes": "Browser and direct-outline masks stay relatively close while the MSDF path diverges, so the mismatch most likely enters during distance-field generation or MSDF rendering."
+          }
+        },
+        {
+          "Id": "a-space-a",
+          "Text": "A A",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\browser-a-space-a.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\direct-outline-a-space-a.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\msdf-a-space-a.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-a-space-a.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-a-space-a.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-a-space-a.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\overlay-three-way-a-space-a.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\wireframe-a-space-a.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-direct-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 57,
+                "Bottom": 39,
+                "Width": 50,
+                "Height": 21
+              },
+              "RightBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 61,
+                "Bottom": 39,
+                "Width": 54,
+                "Height": 21
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 0,
+              "DeltaRight": 4,
+              "DeltaBottom": 0,
+              "DeltaWidth": 4,
+              "DeltaHeight": 0,
+              "LeftInkArea": 364,
+              "RightInkArea": 296,
+              "IntersectionArea": 192,
+              "UnionArea": 468,
+              "LeftOnlyArea": 172,
+              "RightOnlyArea": 104,
+              "IntersectionOverUnion": 0.41025641025641024,
+              "MeanEdgeDistance": 1.1214710632402698,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 4.123105625617661,
+              "MaxEdgeDistance": 5.0990195135927845,
+              "AboveBaselineExtraArea": 276,
+              "BelowBaselineExtraArea": 0,
+              "MismatchArea": 276
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-direct-vs-msdf-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 61,
+                "Bottom": 39,
+                "Width": 54,
+                "Height": 21
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 19,
+                "Right": 62,
+                "Bottom": 39,
+                "Width": 54,
+                "Height": 21
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 0,
+              "DeltaRight": 1,
+              "DeltaBottom": 0,
+              "DeltaWidth": 0,
+              "DeltaHeight": 0,
+              "LeftInkArea": 296,
+              "RightInkArea": 286,
+              "IntersectionArea": 261,
+              "UnionArea": 321,
+              "LeftOnlyArea": 35,
+              "RightOnlyArea": 25,
+              "IntersectionOverUnion": 0.8130841121495327,
+              "MeanEdgeDistance": 0.3409090909090909,
+              "P50EdgeDistance": 0,
+              "P95EdgeDistance": 1,
+              "MaxEdgeDistance": 1,
+              "AboveBaselineExtraArea": 60,
+              "BelowBaselineExtraArea": 0,
+              "MismatchArea": 60
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\32\\diff-browser-vs-msdf-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 8,
+                "Top": 19,
+                "Right": 57,
+                "Bottom": 39,
+                "Width": 50,
+                "Height": 21
+              },
+              "RightBounds": {
+                "Left": 9,
+                "Top": 19,
+                "Right": 62,
+                "Bottom": 39,
+                "Width": 54,
+                "Height": 21
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 0,
+              "DeltaRight": 5,
+              "DeltaBottom": 0,
+              "DeltaWidth": 4,
+              "DeltaHeight": 0,
+              "LeftInkArea": 364,
+              "RightInkArea": 286,
+              "IntersectionArea": 180,
+              "UnionArea": 470,
+              "LeftOnlyArea": 184,
+              "RightOnlyArea": 106,
+              "IntersectionOverUnion": 0.3829787234042553,
+              "MeanEdgeDistance": 1.296949185290511,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 5,
+              "MaxEdgeDistance": 6.082762530298219,
+              "AboveBaselineExtraArea": 290,
+              "BelowBaselineExtraArea": 0,
+              "MismatchArea": 290
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "outline-mismatch",
+            "Confidence": 0.9,
+            "Notes": "Direct-outline and MSDF masks stay relatively close while the browser differs, so the mismatch most likely enters before MSDF sampling."
+          }
+        }
+      ]
+    },
+    {
+      "SizePx": 48,
+      "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48",
+      "CanvasWidth": 480,
+      "CanvasHeight": 96,
+      "OriginX": 12,
+      "BaselineY": 60,
+      "Fixtures": [
+        {
+          "Id": "machina",
+          "Text": "Machina",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\browser-machina.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\direct-outline-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\msdf-machina.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-machina.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-machina.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-machina.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\overlay-three-way-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\wireframe-machina.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 12,
+                "Top": 26,
+                "Right": 176,
+                "Bottom": 59,
+                "Width": 165,
+                "Height": 34
+              },
+              "RightBounds": {
+                "Left": 13,
+                "Top": 27,
+                "Right": 176,
+                "Bottom": 60,
+                "Width": 164,
+                "Height": 34
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 1,
+              "DeltaRight": 0,
+              "DeltaBottom": 1,
+              "DeltaWidth": -1,
+              "DeltaHeight": 0,
+              "LeftInkArea": 2145,
+              "RightInkArea": 1825,
+              "IntersectionArea": 1760,
+              "UnionArea": 2210,
+              "LeftOnlyArea": 385,
+              "RightOnlyArea": 65,
+              "IntersectionOverUnion": 0.7963800904977375,
+              "MeanEdgeDistance": 0.47810201167851485,
+              "P50EdgeDistance": 0,
+              "P95EdgeDistance": 1,
+              "MaxEdgeDistance": 3,
+              "AboveBaselineExtraArea": 416,
+              "BelowBaselineExtraArea": 34,
+              "MismatchArea": 450
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 13,
+                "Top": 27,
+                "Right": 176,
+                "Bottom": 60,
+                "Width": 164,
+                "Height": 34
+              },
+              "RightBounds": {
+                "Left": 11,
+                "Top": 29,
+                "Right": 177,
+                "Bottom": 64,
+                "Width": 167,
+                "Height": 36
+              },
+              "DeltaLeft": -2,
+              "DeltaTop": 2,
+              "DeltaRight": 1,
+              "DeltaBottom": 4,
+              "DeltaWidth": 3,
+              "DeltaHeight": 2,
+              "LeftInkArea": 1825,
+              "RightInkArea": 1709,
+              "IntersectionArea": 1161,
+              "UnionArea": 2373,
+              "LeftOnlyArea": 664,
+              "RightOnlyArea": 548,
+              "IntersectionOverUnion": 0.4892541087231353,
+              "MeanEdgeDistance": 1.1057735465106322,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 3.605551275463989,
+              "MaxEdgeDistance": 5.830951894845301,
+              "AboveBaselineExtraArea": 1055,
+              "BelowBaselineExtraArea": 157,
+              "MismatchArea": 1212
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 12,
+                "Top": 26,
+                "Right": 176,
+                "Bottom": 59,
+                "Width": 165,
+                "Height": 34
+              },
+              "RightBounds": {
+                "Left": 11,
+                "Top": 29,
+                "Right": 177,
+                "Bottom": 64,
+                "Width": 167,
+                "Height": 36
+              },
+              "DeltaLeft": -1,
+              "DeltaTop": 3,
+              "DeltaRight": 1,
+              "DeltaBottom": 5,
+              "DeltaWidth": 2,
+              "DeltaHeight": 2,
+              "LeftInkArea": 2145,
+              "RightInkArea": 1709,
+              "IntersectionArea": 1276,
+              "UnionArea": 2578,
+              "LeftOnlyArea": 869,
+              "RightOnlyArea": 433,
+              "IntersectionOverUnion": 0.49495733126454616,
+              "MeanEdgeDistance": 1.2626898642565414,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 4,
+              "MaxEdgeDistance": 7.615773105863909,
+              "AboveBaselineExtraArea": 1179,
+              "BelowBaselineExtraArea": 123,
+              "MismatchArea": 1302
+            },
+            "Classification": {
+              "Kind": "global-shift",
+              "Confidence": 0.65,
+              "Notes": "Bounds align horizontally but shift vertically, which points to a shared coordinate-placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "unknown",
+            "Confidence": 0.35,
+            "Notes": "The three pairwise comparisons do not isolate one stage cleanly."
+          }
+        },
+        {
+          "Id": "hello-machina",
+          "Text": "Hello Machina",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\browser-hello-machina.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\direct-outline-hello-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\msdf-hello-machina.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-hello-machina.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-hello-machina.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-hello-machina.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\overlay-three-way-hello-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\wireframe-hello-machina.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 13,
+                "Top": 26,
+                "Right": 288,
+                "Bottom": 59,
+                "Width": 276,
+                "Height": 34
+              },
+              "RightBounds": {
+                "Left": 13,
+                "Top": 27,
+                "Right": 294,
+                "Bottom": 60,
+                "Width": 282,
+                "Height": 34
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 1,
+              "DeltaRight": 6,
+              "DeltaBottom": 1,
+              "DeltaWidth": 6,
+              "DeltaHeight": 0,
+              "LeftInkArea": 3432,
+              "RightInkArea": 2997,
+              "IntersectionArea": 1722,
+              "UnionArea": 4707,
+              "LeftOnlyArea": 1710,
+              "RightOnlyArea": 1275,
+              "IntersectionOverUnion": 0.3658381134480561,
+              "MeanEdgeDistance": 1.2819225784240014,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 4,
+              "MaxEdgeDistance": 7.280109889280518,
+              "AboveBaselineExtraArea": 2936,
+              "BelowBaselineExtraArea": 49,
+              "MismatchArea": 2985
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 13,
+                "Top": 27,
+                "Right": 294,
+                "Bottom": 60,
+                "Width": 282,
+                "Height": 34
+              },
+              "RightBounds": {
+                "Left": 13,
+                "Top": 29,
+                "Right": 295,
+                "Bottom": 64,
+                "Width": 283,
+                "Height": 36
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 2,
+              "DeltaRight": 1,
+              "DeltaBottom": 4,
+              "DeltaWidth": 1,
+              "DeltaHeight": 2,
+              "LeftInkArea": 2997,
+              "RightInkArea": 2799,
+              "IntersectionArea": 1829,
+              "UnionArea": 3967,
+              "LeftOnlyArea": 1168,
+              "RightOnlyArea": 970,
+              "IntersectionOverUnion": 0.46105369296697757,
+              "MeanEdgeDistance": 1.1042981517647636,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 4,
+              "MaxEdgeDistance": 5.830951894845301,
+              "AboveBaselineExtraArea": 1901,
+              "BelowBaselineExtraArea": 237,
+              "MismatchArea": 2138
+            },
+            "Classification": {
+              "Kind": "global-shift",
+              "Confidence": 0.65,
+              "Notes": "Bounds align horizontally but shift vertically, which points to a shared coordinate-placement disagreement."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 13,
+                "Top": 26,
+                "Right": 288,
+                "Bottom": 59,
+                "Width": 276,
+                "Height": 34
+              },
+              "RightBounds": {
+                "Left": 13,
+                "Top": 29,
+                "Right": 295,
+                "Bottom": 64,
+                "Width": 283,
+                "Height": 36
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": 3,
+              "DeltaRight": 7,
+              "DeltaBottom": 5,
+              "DeltaWidth": 7,
+              "DeltaHeight": 2,
+              "LeftInkArea": 3432,
+              "RightInkArea": 2799,
+              "IntersectionArea": 1384,
+              "UnionArea": 4847,
+              "LeftOnlyArea": 2048,
+              "RightOnlyArea": 1415,
+              "IntersectionOverUnion": 0.28553744584278934,
+              "MeanEdgeDistance": 1.6627285413434463,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 5,
+              "MaxEdgeDistance": 8.48528137423857,
+              "AboveBaselineExtraArea": 3275,
+              "BelowBaselineExtraArea": 188,
+              "MismatchArea": 3463
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "global-shift",
+            "Confidence": 0.45,
+            "Notes": "All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage."
+          }
+        },
+        {
+          "Id": "kerning",
+          "Text": "AV To Ta Wa Yo",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\browser-kerning.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\direct-outline-kerning.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\msdf-kerning.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-kerning.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-kerning.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-kerning.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\overlay-three-way-kerning.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\wireframe-kerning.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 12,
+                "Top": 27,
+                "Right": 329,
+                "Bottom": 59,
+                "Width": 318,
+                "Height": 33
+              },
+              "RightBounds": {
+                "Left": 13,
+                "Top": 28,
+                "Right": 355,
+                "Bottom": 60,
+                "Width": 343,
+                "Height": 33
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 1,
+              "DeltaRight": 26,
+              "DeltaBottom": 1,
+              "DeltaWidth": 25,
+              "DeltaHeight": 0,
+              "LeftInkArea": 3267,
+              "RightInkArea": 2840,
+              "IntersectionArea": 1077,
+              "UnionArea": 5030,
+              "LeftOnlyArea": 2190,
+              "RightOnlyArea": 1763,
+              "IntersectionOverUnion": 0.21411530815109345,
+              "MeanEdgeDistance": 3.8053117676369386,
+              "P50EdgeDistance": 2,
+              "P95EdgeDistance": 13,
+              "MaxEdgeDistance": 26.1725046566048,
+              "AboveBaselineExtraArea": 3914,
+              "BelowBaselineExtraArea": 39,
+              "MismatchArea": 3953
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 13,
+                "Top": 28,
+                "Right": 355,
+                "Bottom": 60,
+                "Width": 343,
+                "Height": 33
+              },
+              "RightBounds": {
+                "Left": 11,
+                "Top": 30,
+                "Right": 356,
+                "Bottom": 69,
+                "Width": 346,
+                "Height": 40
+              },
+              "DeltaLeft": -2,
+              "DeltaTop": 2,
+              "DeltaRight": 1,
+              "DeltaBottom": 9,
+              "DeltaWidth": 3,
+              "DeltaHeight": 7,
+              "LeftInkArea": 2840,
+              "RightInkArea": 2565,
+              "IntersectionArea": 1806,
+              "UnionArea": 3599,
+              "LeftOnlyArea": 1034,
+              "RightOnlyArea": 759,
+              "IntersectionOverUnion": 0.5018060572381217,
+              "MeanEdgeDistance": 1.3210185189252597,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 5.830951894845301,
+              "MaxEdgeDistance": 11.180339887498949,
+              "AboveBaselineExtraArea": 1597,
+              "BelowBaselineExtraArea": 196,
+              "MismatchArea": 1793
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 12,
+                "Top": 27,
+                "Right": 329,
+                "Bottom": 59,
+                "Width": 318,
+                "Height": 33
+              },
+              "RightBounds": {
+                "Left": 11,
+                "Top": 30,
+                "Right": 356,
+                "Bottom": 69,
+                "Width": 346,
+                "Height": 40
+              },
+              "DeltaLeft": -1,
+              "DeltaTop": 3,
+              "DeltaRight": 27,
+              "DeltaBottom": 10,
+              "DeltaWidth": 28,
+              "DeltaHeight": 7,
+              "LeftInkArea": 3267,
+              "RightInkArea": 2565,
+              "IntersectionArea": 805,
+              "UnionArea": 5027,
+              "LeftOnlyArea": 2462,
+              "RightOnlyArea": 1760,
+              "IntersectionOverUnion": 0.16013526954445992,
+              "MeanEdgeDistance": 4.032284266590617,
+              "P50EdgeDistance": 2.23606797749979,
+              "P95EdgeDistance": 12,
+              "MaxEdgeDistance": 27,
+              "AboveBaselineExtraArea": 4065,
+              "BelowBaselineExtraArea": 157,
+              "MismatchArea": 4222
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "global-shift",
+            "Confidence": 0.45,
+            "Notes": "All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage."
+          }
+        },
+        {
+          "Id": "aa0",
+          "Text": "Aa0",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\browser-aa0.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\direct-outline-aa0.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\msdf-aa0.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-aa0.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-aa0.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-aa0.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\overlay-three-way-aa0.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\wireframe-aa0.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 12,
+                "Top": 28,
+                "Right": 86,
+                "Bottom": 59,
+                "Width": 75,
+                "Height": 32
+              },
+              "RightBounds": {
+                "Left": 13,
+                "Top": 29,
+                "Right": 86,
+                "Bottom": 60,
+                "Width": 74,
+                "Height": 32
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 1,
+              "DeltaRight": 0,
+              "DeltaBottom": 1,
+              "DeltaWidth": -1,
+              "DeltaHeight": 0,
+              "LeftInkArea": 961,
+              "RightInkArea": 812,
+              "IntersectionArea": 780,
+              "UnionArea": 993,
+              "LeftOnlyArea": 181,
+              "RightOnlyArea": 32,
+              "IntersectionOverUnion": 0.7854984894259819,
+              "MeanEdgeDistance": 0.5414854492532278,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 1,
+              "MaxEdgeDistance": 1.4142135623730951,
+              "AboveBaselineExtraArea": 200,
+              "BelowBaselineExtraArea": 13,
+              "MismatchArea": 213
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 13,
+                "Top": 29,
+                "Right": 86,
+                "Bottom": 60,
+                "Width": 74,
+                "Height": 32
+              },
+              "RightBounds": {
+                "Left": 11,
+                "Top": 30,
+                "Right": 83,
+                "Bottom": 61,
+                "Width": 73,
+                "Height": 32
+              },
+              "DeltaLeft": -2,
+              "DeltaTop": 1,
+              "DeltaRight": -3,
+              "DeltaBottom": 1,
+              "DeltaWidth": -1,
+              "DeltaHeight": 0,
+              "LeftInkArea": 812,
+              "RightInkArea": 746,
+              "IntersectionArea": 529,
+              "UnionArea": 1029,
+              "LeftOnlyArea": 283,
+              "RightOnlyArea": 217,
+              "IntersectionOverUnion": 0.5140913508260447,
+              "MeanEdgeDistance": 1.0192053171763806,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 2.23606797749979,
+              "MaxEdgeDistance": 3.605551275463989,
+              "AboveBaselineExtraArea": 460,
+              "BelowBaselineExtraArea": 40,
+              "MismatchArea": 500
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 12,
+                "Top": 28,
+                "Right": 86,
+                "Bottom": 59,
+                "Width": 75,
+                "Height": 32
+              },
+              "RightBounds": {
+                "Left": 11,
+                "Top": 30,
+                "Right": 83,
+                "Bottom": 61,
+                "Width": 73,
+                "Height": 32
+              },
+              "DeltaLeft": -1,
+              "DeltaTop": 2,
+              "DeltaRight": -3,
+              "DeltaBottom": 2,
+              "DeltaWidth": -2,
+              "DeltaHeight": 0,
+              "LeftInkArea": 961,
+              "RightInkArea": 746,
+              "IntersectionArea": 574,
+              "UnionArea": 1133,
+              "LeftOnlyArea": 387,
+              "RightOnlyArea": 172,
+              "IntersectionOverUnion": 0.5066195939982348,
+              "MeanEdgeDistance": 1.1143282974861397,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 3,
+              "MaxEdgeDistance": 4.242640687119285,
+              "AboveBaselineExtraArea": 532,
+              "BelowBaselineExtraArea": 27,
+              "MismatchArea": 559
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "Finding": {
+            "Kind": "unknown",
+            "Confidence": 0.35,
+            "Notes": "The three pairwise comparisons do not isolate one stage cleanly."
+          }
+        },
+        {
+          "Id": "a-space-a",
+          "Text": "A A",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\browser-a-space-a.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\direct-outline-a-space-a.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\msdf-a-space-a.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-a-space-a.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-a-space-a.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-a-space-a.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\overlay-three-way-a-space-a.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\wireframe-a-space-a.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-direct-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 12,
+                "Top": 28,
+                "Right": 86,
+                "Bottom": 59,
+                "Width": 75,
+                "Height": 32
+              },
+              "RightBounds": {
+                "Left": 13,
+                "Top": 29,
+                "Right": 92,
+                "Bottom": 60,
+                "Width": 80,
+                "Height": 32
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 1,
+              "DeltaRight": 6,
+              "DeltaBottom": 1,
+              "DeltaWidth": 5,
+              "DeltaHeight": 0,
+              "LeftInkArea": 710,
+              "RightInkArea": 609,
+              "IntersectionArea": 371,
+              "UnionArea": 948,
+              "LeftOnlyArea": 339,
+              "RightOnlyArea": 238,
+              "IntersectionOverUnion": 0.39135021097046413,
+              "MeanEdgeDistance": 1.665964890133545,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 6,
+              "MaxEdgeDistance": 7.211102550927978,
+              "AboveBaselineExtraArea": 568,
+              "BelowBaselineExtraArea": 9,
+              "MismatchArea": 577
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-direct-vs-msdf-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 13,
+                "Top": 29,
+                "Right": 92,
+                "Bottom": 60,
+                "Width": 80,
+                "Height": 32
+              },
+              "RightBounds": {
+                "Left": 11,
+                "Top": 30,
+                "Right": 91,
+                "Bottom": 61,
+                "Width": 81,
+                "Height": 32
+              },
+              "DeltaLeft": -2,
+              "DeltaTop": 1,
+              "DeltaRight": -1,
+              "DeltaBottom": 1,
+              "DeltaWidth": 1,
+              "DeltaHeight": 0,
+              "LeftInkArea": 609,
+              "RightInkArea": 536,
+              "IntersectionArea": 389,
+              "UnionArea": 756,
+              "LeftOnlyArea": 220,
+              "RightOnlyArea": 147,
+              "IntersectionOverUnion": 0.5145502645502645,
+              "MeanEdgeDistance": 1.1068291937623773,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 2.23606797749979,
+              "MaxEdgeDistance": 3.605551275463989,
+              "AboveBaselineExtraArea": 316,
+              "BelowBaselineExtraArea": 51,
+              "MismatchArea": 367
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\48\\diff-browser-vs-msdf-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 12,
+                "Top": 28,
+                "Right": 86,
+                "Bottom": 59,
+                "Width": 75,
+                "Height": 32
+              },
+              "RightBounds": {
+                "Left": 11,
+                "Top": 30,
+                "Right": 91,
+                "Bottom": 61,
+                "Width": 81,
+                "Height": 32
+              },
+              "DeltaLeft": -1,
+              "DeltaTop": 2,
+              "DeltaRight": 5,
+              "DeltaBottom": 2,
+              "DeltaWidth": 6,
+              "DeltaHeight": 0,
+              "LeftInkArea": 710,
+              "RightInkArea": 536,
+              "IntersectionArea": 278,
+              "UnionArea": 968,
+              "LeftOnlyArea": 432,
+              "RightOnlyArea": 258,
+              "IntersectionOverUnion": 0.2871900826446281,
+              "MeanEdgeDistance": 1.8425264109849184,
+              "P50EdgeDistance": 1.4142135623730951,
+              "P95EdgeDistance": 5.830951894845301,
+              "MaxEdgeDistance": 6.708203932499369,
+              "AboveBaselineExtraArea": 648,
+              "BelowBaselineExtraArea": 42,
+              "MismatchArea": 690
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "global-shift",
+            "Confidence": 0.45,
+            "Notes": "All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage."
+          }
+        }
+      ]
+    },
+    {
+      "SizePx": 64,
+      "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64",
+      "CanvasWidth": 640,
+      "CanvasHeight": 128,
+      "OriginX": 16,
+      "BaselineY": 80,
+      "Fixtures": [
+        {
+          "Id": "machina",
+          "Text": "Machina",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\browser-machina.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\direct-outline-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\msdf-machina.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-machina.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-machina.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-machina.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\overlay-three-way-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\wireframe-machina.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 17,
+                "Top": 37,
+                "Right": 235,
+                "Bottom": 79,
+                "Width": 219,
+                "Height": 43
+              },
+              "RightBounds": {
+                "Left": 17,
+                "Top": 36,
+                "Right": 235,
+                "Bottom": 80,
+                "Width": 219,
+                "Height": 45
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": -1,
+              "DeltaRight": 0,
+              "DeltaBottom": 1,
+              "DeltaWidth": 0,
+              "DeltaHeight": 2,
+              "LeftInkArea": 3276,
+              "RightInkArea": 3064,
+              "IntersectionArea": 2943,
+              "UnionArea": 3397,
+              "LeftOnlyArea": 333,
+              "RightOnlyArea": 121,
+              "IntersectionOverUnion": 0.8663526641153959,
+              "MeanEdgeDistance": 0.3782500074209753,
+              "P50EdgeDistance": 0,
+              "P95EdgeDistance": 1,
+              "MaxEdgeDistance": 3.1622776601683795,
+              "AboveBaselineExtraArea": 403,
+              "BelowBaselineExtraArea": 51,
+              "MismatchArea": 454
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 17,
+                "Top": 36,
+                "Right": 235,
+                "Bottom": 80,
+                "Width": 219,
+                "Height": 45
+              },
+              "RightBounds": {
+                "Left": 14,
+                "Top": 40,
+                "Right": 234,
+                "Bottom": 89,
+                "Width": 221,
+                "Height": 50
+              },
+              "DeltaLeft": -3,
+              "DeltaTop": 4,
+              "DeltaRight": -1,
+              "DeltaBottom": 9,
+              "DeltaWidth": 2,
+              "DeltaHeight": 5,
+              "LeftInkArea": 3064,
+              "RightInkArea": 2794,
+              "IntersectionArea": 1371,
+              "UnionArea": 4487,
+              "LeftOnlyArea": 1693,
+              "RightOnlyArea": 1423,
+              "IntersectionOverUnion": 0.3055493648317361,
+              "MeanEdgeDistance": 1.9998567711295383,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 7.04974746830582,
+              "MaxEdgeDistance": 11.180339887498949,
+              "AboveBaselineExtraArea": 2732,
+              "BelowBaselineExtraArea": 384,
+              "MismatchArea": 3116
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 17,
+                "Top": 37,
+                "Right": 235,
+                "Bottom": 79,
+                "Width": 219,
+                "Height": 43
+              },
+              "RightBounds": {
+                "Left": 14,
+                "Top": 40,
+                "Right": 234,
+                "Bottom": 89,
+                "Width": 221,
+                "Height": 50
+              },
+              "DeltaLeft": -3,
+              "DeltaTop": 3,
+              "DeltaRight": -1,
+              "DeltaBottom": 10,
+              "DeltaWidth": 2,
+              "DeltaHeight": 7,
+              "LeftInkArea": 3276,
+              "RightInkArea": 2794,
+              "IntersectionArea": 1460,
+              "UnionArea": 4610,
+              "LeftOnlyArea": 1816,
+              "RightOnlyArea": 1334,
+              "IntersectionOverUnion": 0.31670281995661603,
+              "MeanEdgeDistance": 2.020408121033621,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 7.0710678118654755,
+              "MaxEdgeDistance": 10.770329614269007,
+              "AboveBaselineExtraArea": 2817,
+              "BelowBaselineExtraArea": 333,
+              "MismatchArea": 3150
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "Finding": {
+            "Kind": "msdf-render-mismatch",
+            "Confidence": 0.9,
+            "Notes": "Browser and direct-outline masks stay relatively close while the MSDF path diverges, so the mismatch most likely enters during distance-field generation or MSDF rendering."
+          }
+        },
+        {
+          "Id": "hello-machina",
+          "Text": "Hello Machina",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\browser-hello-machina.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\direct-outline-hello-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\msdf-hello-machina.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-hello-machina.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-hello-machina.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-hello-machina.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\overlay-three-way-hello-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\wireframe-hello-machina.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 18,
+                "Top": 37,
+                "Right": 384,
+                "Bottom": 79,
+                "Width": 367,
+                "Height": 43
+              },
+              "RightBounds": {
+                "Left": 18,
+                "Top": 36,
+                "Right": 392,
+                "Bottom": 80,
+                "Width": 375,
+                "Height": 45
+              },
+              "DeltaLeft": 0,
+              "DeltaTop": -1,
+              "DeltaRight": 8,
+              "DeltaBottom": 1,
+              "DeltaWidth": 8,
+              "DeltaHeight": 2,
+              "LeftInkArea": 5414,
+              "RightInkArea": 5032,
+              "IntersectionArea": 2760,
+              "UnionArea": 7686,
+              "LeftOnlyArea": 2654,
+              "RightOnlyArea": 2272,
+              "IntersectionOverUnion": 0.3590944574551132,
+              "MeanEdgeDistance": 1.6467865309102125,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 5.385164807134504,
+              "MaxEdgeDistance": 10,
+              "AboveBaselineExtraArea": 4841,
+              "BelowBaselineExtraArea": 85,
+              "MismatchArea": 4926
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 18,
+                "Top": 36,
+                "Right": 392,
+                "Bottom": 80,
+                "Width": 375,
+                "Height": 45
+              },
+              "RightBounds": {
+                "Left": 15,
+                "Top": 40,
+                "Right": 392,
+                "Bottom": 89,
+                "Width": 378,
+                "Height": 50
+              },
+              "DeltaLeft": -3,
+              "DeltaTop": 4,
+              "DeltaRight": 0,
+              "DeltaBottom": 9,
+              "DeltaWidth": 3,
+              "DeltaHeight": 5,
+              "LeftInkArea": 5032,
+              "RightInkArea": 4608,
+              "IntersectionArea": 2263,
+              "UnionArea": 7377,
+              "LeftOnlyArea": 2769,
+              "RightOnlyArea": 2345,
+              "IntersectionOverUnion": 0.3067642673173377,
+              "MeanEdgeDistance": 2.050949569096916,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 7,
+              "MaxEdgeDistance": 11.180339887498949,
+              "AboveBaselineExtraArea": 4536,
+              "BelowBaselineExtraArea": 578,
+              "MismatchArea": 5114
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-hello-machina.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 18,
+                "Top": 37,
+                "Right": 384,
+                "Bottom": 79,
+                "Width": 367,
+                "Height": 43
+              },
+              "RightBounds": {
+                "Left": 15,
+                "Top": 40,
+                "Right": 392,
+                "Bottom": 89,
+                "Width": 378,
+                "Height": 50
+              },
+              "DeltaLeft": -3,
+              "DeltaTop": 3,
+              "DeltaRight": 8,
+              "DeltaBottom": 10,
+              "DeltaWidth": 11,
+              "DeltaHeight": 7,
+              "LeftInkArea": 5414,
+              "RightInkArea": 4608,
+              "IntersectionArea": 2036,
+              "UnionArea": 7986,
+              "LeftOnlyArea": 3378,
+              "RightOnlyArea": 2572,
+              "IntersectionOverUnion": 0.25494615577260205,
+              "MeanEdgeDistance": 2.404600220082714,
+              "P50EdgeDistance": 2,
+              "P95EdgeDistance": 7.0710678118654755,
+              "MaxEdgeDistance": 10.816653826391969,
+              "AboveBaselineExtraArea": 5457,
+              "BelowBaselineExtraArea": 493,
+              "MismatchArea": 5950
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "global-shift",
+            "Confidence": 0.45,
+            "Notes": "All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage."
+          }
+        },
+        {
+          "Id": "kerning",
+          "Text": "AV To Ta Wa Yo",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\browser-kerning.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\direct-outline-kerning.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\msdf-kerning.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-kerning.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-kerning.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-kerning.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\overlay-three-way-kerning.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\wireframe-kerning.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 16,
+                "Top": 38,
+                "Right": 438,
+                "Bottom": 79,
+                "Width": 423,
+                "Height": 42
+              },
+              "RightBounds": {
+                "Left": 17,
+                "Top": 38,
+                "Right": 474,
+                "Bottom": 80,
+                "Width": 458,
+                "Height": 43
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": 0,
+              "DeltaRight": 36,
+              "DeltaBottom": 1,
+              "DeltaWidth": 35,
+              "DeltaHeight": 1,
+              "LeftInkArea": 5082,
+              "RightInkArea": 4810,
+              "IntersectionArea": 1769,
+              "UnionArea": 8123,
+              "LeftOnlyArea": 3313,
+              "RightOnlyArea": 3041,
+              "IntersectionOverUnion": 0.21777668349132093,
+              "MeanEdgeDistance": 5.102100931551323,
+              "P50EdgeDistance": 2.23606797749979,
+              "P95EdgeDistance": 17.079214321928756,
+              "MaxEdgeDistance": 36,
+              "AboveBaselineExtraArea": 6293,
+              "BelowBaselineExtraArea": 61,
+              "MismatchArea": 6354
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 17,
+                "Top": 38,
+                "Right": 474,
+                "Bottom": 80,
+                "Width": 458,
+                "Height": 43
+              },
+              "RightBounds": {
+                "Left": 15,
+                "Top": 42,
+                "Right": 474,
+                "Bottom": 95,
+                "Width": 460,
+                "Height": 54
+              },
+              "DeltaLeft": -2,
+              "DeltaTop": 4,
+              "DeltaRight": 0,
+              "DeltaBottom": 15,
+              "DeltaWidth": 2,
+              "DeltaHeight": 11,
+              "LeftInkArea": 4810,
+              "RightInkArea": 4213,
+              "IntersectionArea": 2337,
+              "UnionArea": 6686,
+              "LeftOnlyArea": 2473,
+              "RightOnlyArea": 1876,
+              "IntersectionOverUnion": 0.3495363446006581,
+              "MeanEdgeDistance": 2.4412093187797836,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 10.44030650891055,
+              "MaxEdgeDistance": 17.72004514666935,
+              "AboveBaselineExtraArea": 3820,
+              "BelowBaselineExtraArea": 529,
+              "MismatchArea": 4349
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-kerning.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 16,
+                "Top": 38,
+                "Right": 438,
+                "Bottom": 79,
+                "Width": 423,
+                "Height": 42
+              },
+              "RightBounds": {
+                "Left": 15,
+                "Top": 42,
+                "Right": 474,
+                "Bottom": 95,
+                "Width": 460,
+                "Height": 54
+              },
+              "DeltaLeft": -1,
+              "DeltaTop": 4,
+              "DeltaRight": 36,
+              "DeltaBottom": 16,
+              "DeltaWidth": 37,
+              "DeltaHeight": 12,
+              "LeftInkArea": 5082,
+              "RightInkArea": 4213,
+              "IntersectionArea": 1068,
+              "UnionArea": 8227,
+              "LeftOnlyArea": 4014,
+              "RightOnlyArea": 3145,
+              "IntersectionOverUnion": 0.12981645800413275,
+              "MeanEdgeDistance": 5.410424816143054,
+              "P50EdgeDistance": 3.1622776601683795,
+              "P95EdgeDistance": 16.0312195418814,
+              "MaxEdgeDistance": 36,
+              "AboveBaselineExtraArea": 6691,
+              "BelowBaselineExtraArea": 468,
+              "MismatchArea": 7159
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "global-shift",
+            "Confidence": 0.45,
+            "Notes": "All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage."
+          }
+        },
+        {
+          "Id": "aa0",
+          "Text": "Aa0",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\browser-aa0.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\direct-outline-aa0.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\msdf-aa0.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-aa0.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-aa0.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-aa0.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\overlay-three-way-aa0.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\wireframe-aa0.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 16,
+                "Top": 39,
+                "Right": 115,
+                "Bottom": 79,
+                "Width": 100,
+                "Height": 41
+              },
+              "RightBounds": {
+                "Left": 17,
+                "Top": 38,
+                "Right": 114,
+                "Bottom": 80,
+                "Width": 98,
+                "Height": 43
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": -1,
+              "DeltaRight": -1,
+              "DeltaBottom": 1,
+              "DeltaWidth": -2,
+              "DeltaHeight": 2,
+              "LeftInkArea": 1497,
+              "RightInkArea": 1370,
+              "IntersectionArea": 1332,
+              "UnionArea": 1535,
+              "LeftOnlyArea": 165,
+              "RightOnlyArea": 38,
+              "IntersectionOverUnion": 0.8677524429967427,
+              "MeanEdgeDistance": 0.4033957310898747,
+              "P50EdgeDistance": 0,
+              "P95EdgeDistance": 1,
+              "MaxEdgeDistance": 2,
+              "AboveBaselineExtraArea": 183,
+              "BelowBaselineExtraArea": 20,
+              "MismatchArea": 203
+            },
+            "Classification": {
+              "Kind": "unknown",
+              "Confidence": 0.4,
+              "Notes": "Mismatch is real but does not isolate to a single pairwise pattern."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 17,
+                "Top": 38,
+                "Right": 114,
+                "Bottom": 80,
+                "Width": 98,
+                "Height": 43
+              },
+              "RightBounds": {
+                "Left": 15,
+                "Top": 42,
+                "Right": 109,
+                "Bottom": 83,
+                "Width": 95,
+                "Height": 42
+              },
+              "DeltaLeft": -2,
+              "DeltaTop": 4,
+              "DeltaRight": -5,
+              "DeltaBottom": 3,
+              "DeltaWidth": -3,
+              "DeltaHeight": -1,
+              "LeftInkArea": 1370,
+              "RightInkArea": 1237,
+              "IntersectionArea": 610,
+              "UnionArea": 1997,
+              "LeftOnlyArea": 760,
+              "RightOnlyArea": 627,
+              "IntersectionOverUnion": 0.3054581872809214,
+              "MeanEdgeDistance": 1.7658616395053544,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 5,
+              "MaxEdgeDistance": 6.708203932499369,
+              "AboveBaselineExtraArea": 1253,
+              "BelowBaselineExtraArea": 134,
+              "MismatchArea": 1387
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-aa0.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 16,
+                "Top": 39,
+                "Right": 115,
+                "Bottom": 79,
+                "Width": 100,
+                "Height": 41
+              },
+              "RightBounds": {
+                "Left": 15,
+                "Top": 42,
+                "Right": 109,
+                "Bottom": 83,
+                "Width": 95,
+                "Height": 42
+              },
+              "DeltaLeft": -1,
+              "DeltaTop": 3,
+              "DeltaRight": -6,
+              "DeltaBottom": 4,
+              "DeltaWidth": -5,
+              "DeltaHeight": 1,
+              "LeftInkArea": 1497,
+              "RightInkArea": 1237,
+              "IntersectionArea": 668,
+              "UnionArea": 2066,
+              "LeftOnlyArea": 829,
+              "RightOnlyArea": 569,
+              "IntersectionOverUnion": 0.3233301064859632,
+              "MeanEdgeDistance": 1.8238269289752604,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 5.0990195135927845,
+              "MaxEdgeDistance": 7.211102550927978,
+              "AboveBaselineExtraArea": 1284,
+              "BelowBaselineExtraArea": 114,
+              "MismatchArea": 1398
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "msdf-render-mismatch",
+            "Confidence": 0.9,
+            "Notes": "Browser and direct-outline masks stay relatively close while the MSDF path diverges, so the mismatch most likely enters during distance-field generation or MSDF rendering."
+          }
+        },
+        {
+          "Id": "a-space-a",
+          "Text": "A A",
+          "BrowserCaptured": true,
+          "BrowserPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\browser-a-space-a.png",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\direct-outline-a-space-a.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\msdf-a-space-a.png",
+          "BrowserVsDirectDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-a-space-a.png",
+          "DirectVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-a-space-a.png",
+          "BrowserVsMsdfDiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-a-space-a.png",
+          "ThreeWayOverlayPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\overlay-three-way-a-space-a.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\wireframe-a-space-a.png",
+          "BrowserVsDirect": {
+            "ComparisonId": "browser-vs-direct",
+            "LeftLabel": "browser",
+            "RightLabel": "direct-outline",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-direct-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 16,
+                "Top": 39,
+                "Right": 114,
+                "Bottom": 79,
+                "Width": 99,
+                "Height": 41
+              },
+              "RightBounds": {
+                "Left": 17,
+                "Top": 38,
+                "Right": 123,
+                "Bottom": 80,
+                "Width": 107,
+                "Height": 43
+              },
+              "DeltaLeft": 1,
+              "DeltaTop": -1,
+              "DeltaRight": 9,
+              "DeltaBottom": 1,
+              "DeltaWidth": 8,
+              "DeltaHeight": 2,
+              "LeftInkArea": 1108,
+              "RightInkArea": 1025,
+              "IntersectionArea": 607,
+              "UnionArea": 1526,
+              "LeftOnlyArea": 501,
+              "RightOnlyArea": 418,
+              "IntersectionOverUnion": 0.3977719528178244,
+              "MeanEdgeDistance": 2.1040900769801723,
+              "P50EdgeDistance": 1,
+              "P95EdgeDistance": 8.246211251235321,
+              "MaxEdgeDistance": 10,
+              "AboveBaselineExtraArea": 903,
+              "BelowBaselineExtraArea": 16,
+              "MismatchArea": 919
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "DirectVsMsdf": {
+            "ComparisonId": "direct-vs-msdf",
+            "LeftLabel": "direct-outline",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-direct-vs-msdf-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 17,
+                "Top": 38,
+                "Right": 123,
+                "Bottom": 80,
+                "Width": 107,
+                "Height": 43
+              },
+              "RightBounds": {
+                "Left": 15,
+                "Top": 42,
+                "Right": 120,
+                "Bottom": 83,
+                "Width": 106,
+                "Height": 42
+              },
+              "DeltaLeft": -2,
+              "DeltaTop": 4,
+              "DeltaRight": -3,
+              "DeltaBottom": 3,
+              "DeltaWidth": -1,
+              "DeltaHeight": -1,
+              "LeftInkArea": 1025,
+              "RightInkArea": 912,
+              "IntersectionArea": 459,
+              "UnionArea": 1478,
+              "LeftOnlyArea": 566,
+              "RightOnlyArea": 453,
+              "IntersectionOverUnion": 0.31055480378890393,
+              "MeanEdgeDistance": 1.8190755942698713,
+              "P50EdgeDistance": 1.4142135623730951,
+              "P95EdgeDistance": 4.055397531527939,
+              "MaxEdgeDistance": 5,
+              "AboveBaselineExtraArea": 855,
+              "BelowBaselineExtraArea": 164,
+              "MismatchArea": 1019
+            },
+            "Classification": {
+              "Kind": "coverage-light",
+              "Confidence": 0.55,
+              "Notes": "The right-hand mask consistently covers less area than the left-hand mask."
+            }
+          },
+          "BrowserVsMsdf": {
+            "ComparisonId": "browser-vs-msdf",
+            "LeftLabel": "browser",
+            "RightLabel": "msdf",
+            "DiffPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m8s\\64\\diff-browser-vs-msdf-a-space-a.png",
+            "Metrics": {
+              "LeftBounds": {
+                "Left": 16,
+                "Top": 39,
+                "Right": 114,
+                "Bottom": 79,
+                "Width": 99,
+                "Height": 41
+              },
+              "RightBounds": {
+                "Left": 15,
+                "Top": 42,
+                "Right": 120,
+                "Bottom": 83,
+                "Width": 106,
+                "Height": 42
+              },
+              "DeltaLeft": -1,
+              "DeltaTop": 3,
+              "DeltaRight": 6,
+              "DeltaBottom": 4,
+              "DeltaWidth": 7,
+              "DeltaHeight": 1,
+              "LeftInkArea": 1108,
+              "RightInkArea": 912,
+              "IntersectionArea": 392,
+              "UnionArea": 1628,
+              "LeftOnlyArea": 716,
+              "RightOnlyArea": 520,
+              "IntersectionOverUnion": 0.24078624078624078,
+              "MeanEdgeDistance": 2.4463160835243865,
+              "P50EdgeDistance": 2,
+              "P95EdgeDistance": 7.092073022724848,
+              "MaxEdgeDistance": 8.54400374531753,
+              "AboveBaselineExtraArea": 1088,
+              "BelowBaselineExtraArea": 148,
+              "MismatchArea": 1236
+            },
+            "Classification": {
+              "Kind": "horizontal-overrun",
+              "Confidence": 0.55,
+              "Notes": "Mismatch is dominated by width drift, which suggests a horizontal overrun or placement disagreement."
+            }
+          },
+          "Finding": {
+            "Kind": "global-shift",
+            "Confidence": 0.45,
+            "Notes": "All three paths differ materially, which suggests a remaining shared convention mismatch rather than a single isolated stage."
+          }
+        }
+      ]
+    }
+  ],
+  "OverallFinding": {
+    "Kind": "msdf-render-mismatch",
+    "Confidence": 0.88,
+    "Notes": "Browser-vs-direct IoU stays relatively stable (0.532 at 32px vs 0.542 at 64px), while direct-vs-MSDF drops sharply (0.584 to 0.316). The mismatch most likely enters in the MSDF generation or MSDF rendering stage, and it becomes more obvious at larger sizes."
+  }
+}

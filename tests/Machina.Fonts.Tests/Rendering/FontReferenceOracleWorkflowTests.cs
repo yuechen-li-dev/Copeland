@@ -4,6 +4,7 @@ using System.Text.Json;
 
 namespace Machina.Fonts.Tests.Rendering;
 
+[Collection("EnvironmentVariable")]
 public sealed class FontReferenceOracleWorkflowTests
 {
     [Fact]

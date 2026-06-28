@@ -203,3 +203,21 @@ M8q.2 upgrades the oracle for easier visual inspection without changing the unde
 - the compare PNGs therefore show the baseline explicitly in both panels
 
 This is a tooling overlay for diagnosis, not a rendering fix, and no production text path changed.
+
+## M8r follow-up
+
+M8r keeps the M8o oracle contract but replaces side-by-side inspection with direct overlay and diff artifacts.
+
+- `.\tools\Export-MachinaFontReferenceDiff.ps1 -OutputDir artifacts\m8r` now writes separate browser and Machina PNGs, overlays, absolute/threshold diffs, wireframes, and structured reports
+- the remaining mismatch is now visible without guessing another fix first
+- no additional rendering change is bundled into that tooling pass
+
+## M8s follow-up
+
+M8s keeps the M8o browser oracle, but adds a second Machina-owned oracle between browser and MSDF.
+
+- `.\tools\Export-MachinaFontShapeDiff.ps1 -OutputDir artifacts\m8s` now exports browser masks, direct Typography-outline masks, and MSDF masks at `32px`, `48px`, and `64px`
+- the direct-outline path shares Machina layout and pair-adjustment behavior while bypassing MSDF generation and sampling
+- current M8s evidence shows browser-vs-direct stays relatively stable while direct-vs-MSDF degrades sharply at larger sizes
+
+That means M8o's original “placement/extent first, not another blind spacing guess” conclusion still holds, but M8s narrows the next investigation more specifically toward the MSDF side of the proof stack.

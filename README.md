@@ -76,6 +76,8 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina MSDF Vertical Metrics M8q](docs/machina-msdf-vertical-metrics-m8q.md)
 - [Machina MSDF Baseline Rounding Fix M8q.1](docs/machina-msdf-baseline-rounding-fix-m8q1.md)
 - [Machina MSDF Baseline Guide Overlay M8q.2](docs/machina-msdf-baseline-guide-overlay-m8q2.md)
+- [Machina MSDF Reference Diff Overlay M8r](docs/machina-msdf-reference-diff-overlay-m8r.md)
+- [Machina MSDF Three-Way Shape Diff M8s](docs/machina-msdf-three-way-shape-diff-m8s.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -145,7 +147,57 @@ Default outputs:
 
 These M8o outputs remain local debug artifacts only. They are intended to bootstrap evidence for the next proof-path placement fix, not to introduce production text integration or an automated visual gate.
 
-M8q.2 is the current proof-path baseline-inspection overlay pass. The current recommended proof export is:
+Current browser-vs-Machina diff-overlay workflow:
+
+```powershell
+.\tools\Export-MachinaFontReferenceDiff.ps1 -OutputDir artifacts\m8r
+```
+
+Current M8r outputs include:
+
+- `artifacts/m8r/browser-machina.png`
+- `artifacts/m8r/machina-msdf-machina.png`
+- `artifacts/m8r/overlay-machina.png`
+- `artifacts/m8r/diff-machina.png`
+- `artifacts/m8r/diff-threshold-machina.png`
+- `artifacts/m8r/wireframe-machina.png`
+- `artifacts/m8r/browser-hello-machina.png`
+- `artifacts/m8r/overlay-hello-machina.png`
+- `artifacts/m8r/diff-hello-machina.png`
+- `artifacts/m8r/wireframe-hello-machina.png`
+- `artifacts/m8r/browser-kerning.png`
+- `artifacts/m8r/overlay-kerning.png`
+- `artifacts/m8r/diff-kerning.png`
+- `artifacts/m8r/wireframe-kerning.png`
+- `artifacts/m8r/diff-report.txt`
+- `artifacts/m8r/diff-report.json`
+
+M8r is diagnostic tooling only. It adds direct overlays, threshold/absolute diff artifacts, wireframes, and structured metrics without changing the proof renderer contract or any production text path.
+
+Current three-way browser/direct-outline/MSDF shape-diff workflow:
+
+```powershell
+.\tools\Export-MachinaFontShapeDiff.ps1 -OutputDir artifacts\m8s
+```
+
+Current M8s outputs include:
+
+- `artifacts/m8s/32/browser-machina.png`
+- `artifacts/m8s/32/direct-outline-machina.png`
+- `artifacts/m8s/32/msdf-machina.png`
+- `artifacts/m8s/32/diff-browser-vs-direct-machina.png`
+- `artifacts/m8s/32/diff-direct-vs-msdf-machina.png`
+- `artifacts/m8s/32/diff-browser-vs-msdf-machina.png`
+- `artifacts/m8s/32/overlay-three-way-machina.png`
+- `artifacts/m8s/32/wireframe-machina.png`
+- `artifacts/m8s/48/...`
+- `artifacts/m8s/64/...`
+- `artifacts/m8s/shape-diff-report.txt`
+- `artifacts/m8s/shape-diff-report.json`
+
+M8s is diagnostic tooling only. It adds a direct-outline raster oracle, multi-size mask metrics, and three-way overlays without changing MSDF sampling, baseline placement, kerning behavior, or any production text path.
+
+M8q.2 remains the baseline-guide overlay pass that preceded M8r. Its current proof export is:
 
 ```powershell
 .\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8q2

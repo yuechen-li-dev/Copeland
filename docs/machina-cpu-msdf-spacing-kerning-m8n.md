@@ -256,3 +256,11 @@ Current result:
 - horizontal/kerning behavior from M8n and M8p stays intact
 - the remaining discrepancy is not another spacing guess target
 - no vertical magic constant was added
+
+## M8r follow-up
+
+M8r keeps the M8n kerning work intact and uses the `AV To Ta Wa Yo` fixture as a dedicated overlay-diff diagnostic.
+
+- the M8r kerning overlays show that pair adjustment is no longer the dominant missing feature
+- the remaining mismatch is still wider/lower than the browser reference even with kerning data present
+- the next fix should not be another speculative kerning pass
