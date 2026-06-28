@@ -13,7 +13,7 @@ public sealed class FontAtlasTomlRoundtripTests
         Assert.True(result.Success);
         Assert.Equal(document.Atlas, result.Document!.Atlas);
         Assert.Equal(document.Font, result.Document.Font);
-        Assert.Equal(document.Glyphs[0].Codepoint, result.Document.Glyphs[0].Codepoint);
+        Assert.Equal(document.Glyphs[0], result.Document.Glyphs[0]);
     }
 
     [Fact]
@@ -25,6 +25,9 @@ public sealed class FontAtlasTomlRoundtripTests
         FontAtlasTomlLoadResult reloaded = FontAtlasTomlLoader.LoadString(FontAtlasTomlWriter.Write(exported));
         Assert.True(reloaded.Success);
         Assert.Equal(loaded.Snapshot!.Glyphs.Keys, reloaded.Snapshot!.Glyphs.Keys);
+        Assert.Equal(
+            loaded.Snapshot.Glyphs.Values.Single().Placement,
+            reloaded.Snapshot.Glyphs.Values.Single().Placement);
     }
 
     [Fact]

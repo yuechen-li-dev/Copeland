@@ -74,6 +74,7 @@ public sealed class FakeGlyphDistanceFieldGenerator : IGlyphDistanceFieldGenerat
             settings.Kind,
             channelCount,
             data,
+            GlyphFieldPlacement.CreateFromMetricsBox(outline.Metrics, settings.PixelRange, Math.Max(settings.Scale, 0.0001d)),
             diagnostics);
     }
 

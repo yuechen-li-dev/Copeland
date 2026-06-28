@@ -118,6 +118,12 @@ public static class FontAtlasTomlWriter
         Write(builder, "v0", glyph.V0);
         Write(builder, "u1", glyph.U1);
         Write(builder, "v1", glyph.V1);
+        Write(builder, "plane_left", glyph.PlaneLeft);
+        Write(builder, "plane_top", glyph.PlaneTop);
+        Write(builder, "plane_right", glyph.PlaneRight);
+        Write(builder, "plane_bottom", glyph.PlaneBottom);
+        Write(builder, "pixel_range", glyph.PixelRange);
+        Write(builder, "projection_scale", glyph.ProjectionScale);
         builder.AppendLine();
     }
 

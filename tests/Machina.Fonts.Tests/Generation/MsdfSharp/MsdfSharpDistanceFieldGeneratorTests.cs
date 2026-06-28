@@ -88,7 +88,88 @@ public sealed class MsdfSharpDistanceFieldGeneratorTests
 
         Assert.Empty(first.Diagnostics);
         Assert.Empty(second.Diagnostics);
+        Assert.Equal(first.Placement, second.Placement);
         Assert.Equal(first.Data.ToArray(), second.Data.ToArray());
+    }
+
+    [Fact]
+    public void GeneratedGlyphDistanceField_IncludesPlacement()
+    {
+        MsdfSharpDistanceFieldGenerator generator = new();
+
+        GeneratedGlyphDistanceField result = generator.Generate(
+            MsdfSharpTestHelpers.CreateLineOutline(),
+            MsdfSharpTestHelpers.CreateSettings(DistanceFieldKind.Sdf));
+
+        Assert.NotNull(result.Placement);
+        Assert.True(result.Placement.Width > 0d);
+        Assert.True(result.Placement.Height > 0d);
+    }
+
+    [Fact]
+    public void MsdfSharpGenerator_ComputesFinitePlacement()
+    {
+        MsdfSharpDistanceFieldGenerator generator = new();
+
+        GeneratedGlyphDistanceField result = generator.Generate(
+            MsdfSharpTestHelpers.CreateQuadraticOutline(),
+            MsdfSharpTestHelpers.CreateSettings(DistanceFieldKind.Msdf));
+
+        Assert.All(
+            new[]
+            {
+                result.Placement.PlaneLeft,
+                result.Placement.PlaneTop,
+                result.Placement.PlaneRight,
+                result.Placement.PlaneBottom,
+                result.Placement.PixelRange,
+                result.Placement.ProjectionScale,
+            },
+            static value => Assert.True(double.IsFinite(value)));
+    }
+
+    [Fact]
+    public void MsdfSharpGenerator_PlacementMatchesProjectionCorners()
+    {
+        MsdfSharpDistanceFieldGenerator generator = new();
+        GlyphOutline outline = MsdfSharpTestHelpers.CreateLineOutline();
+        MsdfGenerationSettings settings = MsdfSharpTestHelpers.CreateSettings(DistanceFieldKind.Sdf);
+
+        GeneratedGlyphDistanceField result = generator.Generate(outline, settings);
+
+        double drawableWidth = settings.Width - (settings.PixelRange * 2d);
+        double drawableHeight = settings.Height - (settings.PixelRange * 2d);
+        double fitScale = Math.Min(
+            drawableWidth / (outline.Bounds.MaxX - outline.Bounds.MinX),
+            drawableHeight / (outline.Bounds.MaxY - outline.Bounds.MinY));
+        double projectionScale = fitScale * settings.Scale;
+        double translateX = ((settings.Width - ((outline.Bounds.MaxX - outline.Bounds.MinX) * projectionScale)) / 2d)
+            - (outline.Bounds.MinX * projectionScale);
+        double translateY = ((settings.Height - ((outline.Bounds.MaxY - outline.Bounds.MinY) * projectionScale)) / 2d)
+            - (outline.Bounds.MinY * projectionScale);
+
+        double planeLeft = (0d - translateX) / projectionScale;
+        double planeRight = (settings.Width - translateX) / projectionScale;
+        double glyphBottom = (0d - translateY) / projectionScale;
+        double glyphTop = (settings.Height - translateY) / projectionScale;
+
+        Assert.Equal(planeLeft, result.Placement.PlaneLeft, 6);
+        Assert.Equal(-glyphTop, result.Placement.PlaneTop, 6);
+        Assert.Equal(planeRight, result.Placement.PlaneRight, 6);
+        Assert.Equal(-glyphBottom, result.Placement.PlaneBottom, 6);
+    }
+
+    [Fact]
+    public void MsdfSharpGenerator_PlacementIsDeterministic()
+    {
+        MsdfSharpDistanceFieldGenerator generator = new();
+        GlyphOutline outline = MsdfSharpTestHelpers.CreateQuadraticOutline();
+        MsdfGenerationSettings settings = MsdfSharpTestHelpers.CreateSettings(DistanceFieldKind.Msdf);
+
+        GeneratedGlyphDistanceField first = generator.Generate(outline, settings);
+        GeneratedGlyphDistanceField second = generator.Generate(outline, settings);
+
+        Assert.Equal(first.Placement, second.Placement);
     }
 
     [Fact]

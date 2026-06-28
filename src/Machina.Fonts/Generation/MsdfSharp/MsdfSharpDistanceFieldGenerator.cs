@@ -20,7 +20,13 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
         List<FontGenerationDiagnostic> diagnostics = [];
         int channelCount = FakeDistanceFieldValidation.GetChannelCount(settings.Kind);
 
-        if (!TryCreateProjection(outline, settings, out Projection projection, out Msdfgen.Range range, out FontGenerationDiagnostic? projectionDiagnostic))
+        if (!TryCreateProjection(
+                outline,
+                settings,
+                out Projection projection,
+                out Msdfgen.Range range,
+                out GlyphFieldPlacement? fieldPlacement,
+                out FontGenerationDiagnostic? projectionDiagnostic))
         {
             diagnostics.Add(projectionDiagnostic!);
             return CreateResult(outline, settings, channelCount, diagnostics);
@@ -108,6 +114,7 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
                 settings.Kind,
                 channelCount,
                 pixels,
+                fieldPlacement!,
                 diagnostics);
         }
         catch (OperationCanceledException)
@@ -157,10 +164,12 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
         MsdfGenerationSettings settings,
         out Projection projection,
         out Msdfgen.Range range,
+        out GlyphFieldPlacement? fieldPlacement,
         out FontGenerationDiagnostic? diagnostic)
     {
         range = new Msdfgen.Range(settings.PixelRange);
         projection = new Projection();
+        fieldPlacement = null;
         diagnostic = null;
 
         double drawableWidth = settings.Width - (settings.PixelRange * 2d);
@@ -193,6 +202,7 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
         projection = new Projection(
             new Vector2(appliedScale, appliedScale),
             new Vector2(translateX, translateY));
+        fieldPlacement = CreatePlacement(settings, appliedScale, translateX, translateY);
 
         return true;
     }
@@ -212,7 +222,38 @@ public sealed class MsdfSharpDistanceFieldGenerator : IGlyphDistanceFieldGenerat
             settings.Kind,
             channelCount,
             data,
+            GlyphFieldPlacement.CreateFromMetricsBox(outline.Metrics, settings.PixelRange, Math.Max(settings.Scale, 0.0001d)),
             diagnostics);
+    }
+
+    private static GlyphFieldPlacement CreatePlacement(
+        MsdfGenerationSettings settings,
+        double projectionScale,
+        double translateX,
+        double translateY)
+    {
+        double glyphLeft = InverseProjectX(0d, projectionScale, translateX);
+        double glyphRight = InverseProjectX(settings.Width, projectionScale, translateX);
+        double glyphBottom = InverseProjectY(0d, projectionScale, translateY);
+        double glyphTop = InverseProjectY(settings.Height, projectionScale, translateY);
+
+        return new GlyphFieldPlacement(
+            glyphLeft,
+            -glyphTop,
+            glyphRight,
+            -glyphBottom,
+            settings.PixelRange,
+            projectionScale);
+    }
+
+    private static double InverseProjectX(double bitmapX, double projectionScale, double translateX)
+    {
+        return (bitmapX - translateX) / projectionScale;
+    }
+
+    private static double InverseProjectY(double bitmapY, double projectionScale, double translateY)
+    {
+        return (bitmapY - translateY) / projectionScale;
     }
 
     private static FontGenerationDiagnostic CreateDiagnostic(

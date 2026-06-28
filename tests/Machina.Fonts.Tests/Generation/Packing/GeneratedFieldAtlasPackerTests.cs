@@ -22,6 +22,7 @@ public sealed class GeneratedFieldAtlasPackerTests
         Assert.Equal(0, entry.Y);
         Assert.Equal(4, entry.Width);
         Assert.Equal(5, entry.Height);
+        Assert.Equal(field.Placement, entry.Placement);
     }
 
     [Fact]
@@ -131,5 +132,15 @@ public sealed class GeneratedFieldAtlasPackerTests
 
         GlyphAtlasEntry[] orderedEntries = result.Snapshot.Glyphs.Values.OrderBy(entry => entry.X).ToArray();
         Assert.Equal(['A', 'C', 'D', 'B'], orderedEntries.Select(entry => (char)entry.Key.Codepoint).ToArray());
+    }
+
+    [Fact]
+    public void GeneratedFieldAtlasPacker_PreservesGlyphPlacement()
+    {
+        GeneratedGlyphDistanceField field = DistanceFieldArtifactTestHelpers.CreateField('A', 4, 5);
+
+        GeneratedFieldAtlasPackResult result = DistanceFieldArtifactTestHelpers.Pack([field], 16, 16, 1);
+
+        Assert.Equal(field.Placement, result.Snapshot.Glyphs[field.Key].Placement);
     }
 }

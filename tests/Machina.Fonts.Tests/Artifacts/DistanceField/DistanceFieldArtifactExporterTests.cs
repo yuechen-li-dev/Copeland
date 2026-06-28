@@ -142,6 +142,25 @@ public sealed class DistanceFieldArtifactExporterTests
             import.Snapshot!);
     }
 
+    [Fact]
+    public void ArtifactRoundtrip_PreservesPlacement()
+    {
+        GeneratedFieldAtlasPackResult packResult = DistanceFieldArtifactTestHelpers.Pack(
+            [DistanceFieldArtifactTestHelpers.CreateField('A', 4, 4)],
+            16,
+            16,
+            1);
+
+        FontAtlasArtifactExportResult export = DistanceFieldArtifactTestHelpers.Export(
+            packResult,
+            Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")));
+        FontAtlasArtifactImportResult import = FontAtlasArtifactImporter.Import(export.TomlPath);
+
+        Assert.Equal(
+            packResult.Snapshot.Glyphs.Values.Single().Placement,
+            import.Snapshot!.Glyphs.Values.Single().Placement);
+    }
+
     private static FontAtlasArtifactExportResult ExportSinglePage()
     {
         GeneratedFieldAtlasPackResult packResult = DistanceFieldArtifactTestHelpers.Pack(

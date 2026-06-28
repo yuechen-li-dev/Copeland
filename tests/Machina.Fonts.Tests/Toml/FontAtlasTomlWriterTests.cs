@@ -63,4 +63,17 @@ public sealed class FontAtlasTomlWriterTests
     {
         Assert.Contains("char = \"A\"", FontAtlasTomlWriter.Write(FontAtlasTomlTestData.CreateDocument()), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void FontAtlasTomlWriter_EmitsPlacementFields()
+    {
+        string text = FontAtlasTomlWriter.Write(FontAtlasTomlTestData.CreateDocument());
+
+        Assert.Contains("plane_left =", text, StringComparison.Ordinal);
+        Assert.Contains("plane_top =", text, StringComparison.Ordinal);
+        Assert.Contains("plane_right =", text, StringComparison.Ordinal);
+        Assert.Contains("plane_bottom =", text, StringComparison.Ordinal);
+        Assert.Contains("pixel_range =", text, StringComparison.Ordinal);
+        Assert.Contains("projection_scale =", text, StringComparison.Ordinal);
+    }
 }

@@ -72,6 +72,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina CPU MSDF Text Proof Audit M8l](docs/machina-cpu-msdf-text-proof-audit-m8l.md)
 - [Machina CPU MSDF Spacing and Kerning M8n](docs/machina-cpu-msdf-spacing-kerning-m8n.md)
 - [Machina MSDF Reference Oracle M8o](docs/machina-msdf-reference-oracle-m8o.md)
+- [Machina Glyph Field Placement M8p](docs/machina-glyph-field-placement-m8p.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -140,6 +141,14 @@ Default outputs:
 - `artifacts/m8o/glyph-placement-report.json`
 
 These M8o outputs remain local debug artifacts only. They are intended to bootstrap evidence for the next proof-path placement fix, not to introduce production text integration or an automated visual gate.
+
+M8p is the follow-on placement contract fix. The current recommended proof export is:
+
+```powershell
+.\tools\Export-MachinaFontReferenceComparison.ps1 -OutputDir artifacts\m8p
+```
+
+M8p keeps the work proof-only, but it now persists explicit glyph field plane bounds through generation, atlas packing, `.font-atlas.toml`, import, and CPU reference rendering. The current proof renderer no longer reconstructs draw placement from centered `32x32` tile assumptions or arbitrary tracking fudge.
 
 ## Reference source
 

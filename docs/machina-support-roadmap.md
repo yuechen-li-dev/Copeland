@@ -612,3 +612,13 @@ Still deferred:
 - no new production dependency on browser tooling
 
 See `docs/machina-msdf-reference-oracle-m8o.md`.
+## M8p update
+
+M8p fixes the field placement contract exposed by M8o.
+
+- generated fields now preserve explicit `GlyphFieldPlacement`
+- atlas entries and `.font-atlas.toml` roundtrip that metadata
+- the CPU proof renderer now draws from stored plane bounds instead of fixed tile assumptions
+- regenerated `artifacts/m8p` comparisons show contiguous strings without the prior oversized field-tile overlap
+
+This milestone remains proof-path only and still defers any `TextBlock`, Standard, or production renderer integration.

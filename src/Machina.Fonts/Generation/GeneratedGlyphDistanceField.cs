@@ -10,9 +10,11 @@ public sealed record GeneratedGlyphDistanceField
         DistanceFieldKind kind,
         int channelCount,
         ReadOnlyMemory<float> data,
+        GlyphFieldPlacement placement,
         IReadOnlyList<FontGenerationDiagnostic> diagnostics)
     {
         ArgumentNullException.ThrowIfNull(metrics);
+        ArgumentNullException.ThrowIfNull(placement);
         ArgumentNullException.ThrowIfNull(diagnostics);
 
         if (diagnostics.Any(static diagnostic => diagnostic is null))
@@ -49,6 +51,7 @@ public sealed record GeneratedGlyphDistanceField
         Kind = kind;
         ChannelCount = channelCount;
         Data = data;
+        Placement = placement;
         Diagnostics = [.. diagnostics];
     }
 
@@ -65,6 +68,8 @@ public sealed record GeneratedGlyphDistanceField
     public int ChannelCount { get; }
 
     public ReadOnlyMemory<float> Data { get; }
+
+    public GlyphFieldPlacement Placement { get; }
 
     public IReadOnlyList<FontGenerationDiagnostic> Diagnostics { get; }
 }

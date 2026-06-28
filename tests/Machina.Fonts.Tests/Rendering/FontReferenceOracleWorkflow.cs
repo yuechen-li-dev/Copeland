@@ -258,7 +258,6 @@ internal static class FontReferenceOracleWorkflow
         IReadOnlyDictionary<string, DistanceFieldTextLayoutResult> layouts)
     {
         List<FontReferenceOracleFixtureReport> fixtures = [];
-        DistanceFieldTextRenderOptions renderOptions = CreateRenderOptions();
 
         foreach (FontReferenceOracleDefinition definition in Definitions)
         {
@@ -300,7 +299,7 @@ internal static class FontReferenceOracleWorkflow
                     : null;
                 FieldPlacementDetails? fieldPlacement = atlasEntry is null || isWhitespace
                     ? null
-                    : ComputeFieldPlacement(placement, atlasEntry, renderOptions);
+                    : ComputeFieldPlacement(placement, atlasEntry);
 
                 rows.Add(new FontReferenceOracleGlyphRow(
                     index,
@@ -327,10 +326,14 @@ internal static class FontReferenceOracleWorkflow
                     atlasEntry?.V0,
                     atlasEntry?.U1,
                     atlasEntry?.V1,
+                    atlasEntry?.Placement.PlaneLeft,
+                    atlasEntry?.Placement.PlaneTop,
+                    atlasEntry?.Placement.PlaneRight,
+                    atlasEntry?.Placement.PlaneBottom,
+                    atlasEntry?.Placement.PixelRange,
+                    atlasEntry?.Placement.ProjectionScale,
                     fieldPlacement?.OutputWidth,
                     fieldPlacement?.OutputHeight,
-                    fieldPlacement?.LeftPadding,
-                    fieldPlacement?.TopPadding,
                     isWhitespace));
 
                 runningPenX = penAfterAdjustment + metrics.Advance;
@@ -357,61 +360,15 @@ internal static class FontReferenceOracleWorkflow
 
     private static FieldPlacementDetails ComputeFieldPlacement(
         DistanceFieldGlyphPlacement placement,
-        GlyphAtlasEntry entry,
-        DistanceFieldTextRenderOptions options)
+        GlyphAtlasEntry entry)
     {
-        int outputWidth = Math.Max(1, RoundToInt(entry.Width * placement.Scale));
-        int outputHeight = Math.Max(1, RoundToInt(entry.Height * placement.Scale));
-
-        double metricsWidth = placement.Metrics.Width * placement.Scale;
-        double metricsHeight = placement.Metrics.Height * placement.Scale;
-        double leftPadding;
-        double topPadding;
-
-        if (metricsWidth <= 0d || metricsHeight <= 0d)
-        {
-            leftPadding = outputWidth * 0.5d;
-            topPadding = outputHeight * 0.5d;
-        }
-        else
-        {
-            double scaleX = outputWidth / (double)entry.Width;
-            double scaleY = outputHeight / (double)entry.Height;
-            double scaledPixelRangeX = options.PixelRange * scaleX;
-            double scaledPixelRangeY = options.PixelRange * scaleY;
-            double drawableWidth = Math.Max(0.0001d, outputWidth - (scaledPixelRangeX * 2d));
-            double drawableHeight = Math.Max(0.0001d, outputHeight - (scaledPixelRangeY * 2d));
-            double fitScale = Math.Min(drawableWidth / metricsWidth, drawableHeight / metricsHeight);
-
-            if (!double.IsFinite(fitScale) || fitScale <= 0d)
-            {
-                leftPadding = 0d;
-                topPadding = 0d;
-            }
-            else
-            {
-                double outlineWidth = metricsWidth * fitScale;
-                double outlineHeight = metricsHeight * fitScale;
-                leftPadding = Math.Max(0d, (outputWidth - outlineWidth) * 0.5d);
-                topPadding = Math.Max(0d, (outputHeight - outlineHeight) * 0.5d);
-            }
-        }
-
-        int drawX = RoundToInt((placement.X + (placement.Metrics.BearingX * placement.Scale)) - leftPadding);
-        int drawY = RoundToInt((placement.BaselineY - (placement.Metrics.BearingY * placement.Scale)) - topPadding);
+        DistanceFieldGlyphDrawBounds drawBounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(placement, entry);
 
         return new FieldPlacementDetails(
-            outputWidth,
-            outputHeight,
-            leftPadding,
-            topPadding,
-            drawX,
-            drawY);
-    }
-
-    private static int RoundToInt(double value)
-    {
-        return (int)Math.Round(value, MidpointRounding.AwayFromZero);
+            drawBounds.Width,
+            drawBounds.Height,
+            drawBounds.X,
+            drawBounds.Y);
     }
 
     private static FontAtlasTomlExportMetadata CreateMetadata()
@@ -489,7 +446,7 @@ internal static class FontReferenceOracleWorkflow
         {
             builder.AppendLine($"[{fixture.Id}] {fixture.Text}");
             builder.AppendLine($"layoutWidth: {fixture.LayoutWidth:0.###}");
-            builder.AppendLine("index\tchar\tcodepoint\tglyphKey\tadvance\tbearingX\tbearingY\tmetricsWidth\tmetricsHeight\tpairAdjustX\tpairAdjustY\tpenBefore\tpenAfter\tdrawX\tdrawY\tatlasPage\tatlasRect\tuv0\tuv1\tfieldSize\tfieldPadding\twhitespace");
+            builder.AppendLine("index\tchar\tcodepoint\tglyphKey\tadvance\tbearingX\tbearingY\tmetricsWidth\tmetricsHeight\tpairAdjustX\tpairAdjustY\tpenBefore\tpenAfter\tdrawX\tdrawY\tatlasPage\tatlasRect\tuv0\tuv1\tplaneBounds\tpixelRange\tprojectionScale\tfieldSize\twhitespace");
 
             foreach (FontReferenceOracleGlyphRow row in fixture.Glyphs)
             {
@@ -515,8 +472,10 @@ internal static class FontReferenceOracleWorkflow
                         $"{FormatNullable(row.AtlasRectX)},{FormatNullable(row.AtlasRectY)},{FormatNullable(row.AtlasRectWidth)},{FormatNullable(row.AtlasRectHeight)}",
                         $"{FormatNullable(row.U0)},{FormatNullable(row.V0)}",
                         $"{FormatNullable(row.U1)},{FormatNullable(row.V1)}",
+                        $"{FormatNullable(row.PlaneLeft)},{FormatNullable(row.PlaneTop)},{FormatNullable(row.PlaneRight)},{FormatNullable(row.PlaneBottom)}",
+                        FormatNullable(row.PixelRange),
+                        FormatNullable(row.ProjectionScale),
                         $"{FormatNullable(row.FieldWidth)},{FormatNullable(row.FieldHeight)}",
-                        $"{FormatNullable(row.LeftPadding)},{FormatNullable(row.TopPadding)}",
                         row.IsWhitespace ? "yes" : "no"));
             }
 
@@ -564,8 +523,6 @@ internal static class FontReferenceOracleWorkflow
     private sealed record FieldPlacementDetails(
         int OutputWidth,
         int OutputHeight,
-        double LeftPadding,
-        double TopPadding,
         int DrawX,
         int DrawY);
 }
@@ -640,8 +597,12 @@ internal sealed record FontReferenceOracleGlyphRow(
     double? V0,
     double? U1,
     double? V1,
+    double? PlaneLeft,
+    double? PlaneTop,
+    double? PlaneRight,
+    double? PlaneBottom,
+    double? PixelRange,
+    double? ProjectionScale,
     int? FieldWidth,
     int? FieldHeight,
-    double? LeftPadding,
-    double? TopPadding,
     bool IsWhitespace);

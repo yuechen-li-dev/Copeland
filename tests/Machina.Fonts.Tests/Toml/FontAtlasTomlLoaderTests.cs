@@ -1,5 +1,6 @@
 using Xunit;
 using Machina.Fonts.Toml;
+using Machina.Fonts;
 
 namespace Machina.Fonts.Tests.Toml;
 
@@ -81,6 +82,20 @@ public sealed class FontAtlasTomlLoaderTests
     {
         FontAtlasTomlDocument document = FontAtlasTomlTestData.CreateDocument() with { Glyphs = [FontAtlasTomlTestData.CreateDocument().Glyphs[0] with { U1 = 0.9 }] };
         AssertCode(document, FontAtlasTomlDiagnosticCode.UvMismatch);
+    }
+
+    [Fact]
+    public void FontAtlasTomlLoader_RestoresPlacementFields()
+    {
+        FontAtlasTomlLoadResult result = FontAtlasTomlLoader.LoadString(FontAtlasTomlWriter.Write(FontAtlasTomlTestData.CreateDocument()));
+
+        GlyphAtlasEntry glyph = result.Snapshot!.Glyphs.Values.Single();
+        Assert.Equal(1d, glyph.Placement.PlaneLeft);
+        Assert.Equal(-34d, glyph.Placement.PlaneTop);
+        Assert.Equal(41d, glyph.Placement.PlaneRight);
+        Assert.Equal(10d, glyph.Placement.PlaneBottom);
+        Assert.Equal(4d, glyph.Placement.PixelRange);
+        Assert.Equal(1d, glyph.Placement.ProjectionScale);
     }
 
     private static void AssertCode(FontAtlasTomlDocument document, FontAtlasTomlDiagnosticCode code)

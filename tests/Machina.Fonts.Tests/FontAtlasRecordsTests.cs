@@ -32,8 +32,9 @@ public sealed class FontAtlasRecordsTests
     {
         GlyphKey key = GlyphKey.FromChar(new FontFaceId("Fake"), 'A', 12);
         GlyphMetrics metrics = new(8, 0, 10, 8, 12);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new GlyphAtlasEntry(key, 0, 0, 0, 0, 1, 0, 0, 1, 1, metrics));
-        Assert.Throws<ArgumentException>(() => new GlyphAtlasEntry(key, 0, 0, 0, 1, 1, 1, 0, 0, 1, metrics));
+        GlyphFieldPlacement placement = GlyphFieldPlacement.CreateFromMetricsBox(metrics);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new GlyphAtlasEntry(key, 0, 0, 0, 0, 1, 0, 0, 1, 1, metrics, placement));
+        Assert.Throws<ArgumentException>(() => new GlyphAtlasEntry(key, 0, 0, 0, 1, 1, 1, 0, 0, 1, metrics, placement));
     }
 
     [Fact]
@@ -41,7 +42,8 @@ public sealed class FontAtlasRecordsTests
     {
         GlyphKey key = GlyphKey.FromChar(new FontFaceId("Fake"), 'A', 12);
         FontAtlasPage page = new(0, "fake.png", 64, 64, null);
-        GlyphAtlasEntry entry = new(key, 0, 0, 0, 10, 10, 0, 0, 1, 1, new GlyphMetrics(8, 0, 10, 8, 12));
+        GlyphMetrics metrics = new(8, 0, 10, 8, 12);
+        GlyphAtlasEntry entry = new(key, 0, 0, 0, 10, 10, 0, 0, 1, 1, metrics, GlyphFieldPlacement.CreateFromMetricsBox(metrics));
         List<FontAtlasPage> pages = [page];
         Dictionary<GlyphKey, GlyphAtlasEntry> glyphs = new() { [key] = entry };
 

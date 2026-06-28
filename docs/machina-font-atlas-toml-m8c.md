@@ -61,3 +61,16 @@ M8i keeps the same TOML page/glyph schema but broadens the artifact story.
 - `content_hash` now validates real generated field-page bytes as well as fake page bytes
 - glyph entries remain rect/UV/metric records only
 - whitespace remains metrics-only and is intentionally not exported as a zero-sized glyph entry
+
+## M8p update
+
+M8p extends the glyph schema with explicit field-placement metadata:
+
+- `plane_left`
+- `plane_top`
+- `plane_right`
+- `plane_bottom`
+- `pixel_range`
+- `projection_scale`
+
+These fields let imported atlas entries reconstruct the generator-defined glyph field plane exactly. This is proof-path font-generation metadata, not UI padding or layout decoration.

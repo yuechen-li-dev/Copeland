@@ -24,6 +24,18 @@ public sealed class FontReferenceOracleWorkflowTests
     }
 
     [Fact]
+    public async Task ReferenceOracle_MachinaComparisonArtifactsGenerate()
+    {
+        string directory = CreateDirectory();
+
+        FontReferenceOracleExportResult result = await FontReferenceOracleWorkflow.ExportAsync(directory);
+
+        Assert.Equal(FontReferenceOracleWorkflow.Definitions.Count, result.Artifacts.Count);
+        Assert.True(File.Exists(result.PlacementReportTextPath));
+        Assert.True(File.Exists(result.PlacementReportJsonPath));
+    }
+
+    [Fact]
     public async Task FontReferenceOracleWorkflow_PlacementReportContainsKerningRows()
     {
         string directory = CreateDirectory();
@@ -35,6 +47,19 @@ public sealed class FontReferenceOracleWorkflowTests
         Assert.Contains("pairAdjustX", report);
         Assert.Contains("<space>", report);
         Assert.Contains("CrimsonText-Regular:0056", report);
+    }
+
+    [Fact]
+    public async Task ReferenceOracle_PlacementReportIncludesPlacementFields()
+    {
+        string directory = CreateDirectory();
+
+        FontReferenceOracleExportResult result = await FontReferenceOracleWorkflow.ExportAsync(directory);
+        string report = File.ReadAllText(result.PlacementReportTextPath);
+
+        Assert.Contains("planeBounds", report);
+        Assert.Contains("pixelRange", report);
+        Assert.Contains("projectionScale", report);
     }
 
     [Fact]

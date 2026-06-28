@@ -53,6 +53,7 @@ internal static class RenderingTestHelpers
             y / (double)pageHeight,
             (x + width) / (double)pageWidth,
             (y + height) / (double)pageHeight,
-            metrics);
+            metrics,
+            GlyphFieldPlacement.CreateFromMetricsBox(metrics));
     }
 }

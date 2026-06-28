@@ -71,6 +71,7 @@ internal static class DistanceFieldArtifactTestHelpers
             kind,
             channelCount,
             data,
+            GlyphFieldPlacement.CreateFromMetricsBox(metrics, pixelRange: 4d),
             diagnostics ?? Array.Empty<FontGenerationDiagnostic>());
     }
 

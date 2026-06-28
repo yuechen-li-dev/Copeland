@@ -168,6 +168,24 @@ public sealed record FontAtlasGlyphToml
 
     [TomlPropertyName("v1")]
     public double V1 { get; init; }
+
+    [TomlPropertyName("plane_left")]
+    public double PlaneLeft { get; init; }
+
+    [TomlPropertyName("plane_top")]
+    public double PlaneTop { get; init; }
+
+    [TomlPropertyName("plane_right")]
+    public double PlaneRight { get; init; }
+
+    [TomlPropertyName("plane_bottom")]
+    public double PlaneBottom { get; init; }
+
+    [TomlPropertyName("pixel_range")]
+    public double PixelRange { get; init; }
+
+    [TomlPropertyName("projection_scale")]
+    public double ProjectionScale { get; init; }
 }
 
 public sealed record FontAtlasTomlExportMetadata(

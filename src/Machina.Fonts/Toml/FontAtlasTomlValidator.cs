@@ -134,6 +134,22 @@ public static class FontAtlasTomlValidator
         NonNegativeFinite(glyph.Advance, diagnostics, path, keyPath + ".advance");
         Finite(glyph.BearingX, diagnostics, path, keyPath + ".bearing_x");
         Finite(glyph.BearingY, diagnostics, path, keyPath + ".bearing_y");
+        Finite(glyph.PlaneLeft, diagnostics, path, keyPath + ".plane_left");
+        Finite(glyph.PlaneTop, diagnostics, path, keyPath + ".plane_top");
+        Finite(glyph.PlaneRight, diagnostics, path, keyPath + ".plane_right");
+        Finite(glyph.PlaneBottom, diagnostics, path, keyPath + ".plane_bottom");
+        NonNegativeFinite(glyph.PixelRange, diagnostics, path, keyPath + ".pixel_range");
+        PositiveFinite(glyph.ProjectionScale, diagnostics, path, keyPath + ".projection_scale");
+        if (glyph.PlaneRight <= glyph.PlaneLeft)
+        {
+            Add(diagnostics, FontAtlasTomlDiagnosticCode.InvalidValue, "Glyph plane bounds must have positive width.", path, keyPath + ".plane_right");
+        }
+
+        if (glyph.PlaneBottom <= glyph.PlaneTop)
+        {
+            Add(diagnostics, FontAtlasTomlDiagnosticCode.InvalidValue, "Glyph plane bounds must have positive height.", path, keyPath + ".plane_bottom");
+        }
+
         ValidateOrderedUv(glyph, diagnostics, path, keyPath);
     }
 

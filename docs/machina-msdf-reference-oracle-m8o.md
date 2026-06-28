@@ -160,3 +160,14 @@ Suggested order:
 3. regenerate `artifacts/m8o`
 4. compare again against the browser oracle
 5. only then decide whether any remaining mismatch is kerning, bearing, baseline, or atlas-origin related
+
+## M8p follow-up
+
+M8p is that next placement-data correction pass.
+
+- generated fields now carry explicit `GlyphFieldPlacement` plane bounds
+- atlas entries and `.font-atlas.toml` preserve those bounds
+- the CPU proof renderer now draws from stored plane bounds instead of fixed-tile compensation
+- regenerated `artifacts/m8p` comparisons materially reduce the contiguous-string overlap that M8o identified
+
+The oracle remains local and proof-only, but it now validates a concrete field-placement contract rather than just exposing the absence of one.

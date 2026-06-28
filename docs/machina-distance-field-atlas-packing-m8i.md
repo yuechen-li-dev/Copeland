@@ -200,3 +200,11 @@ M8k now builds on M8i by adding a standalone CPU reference text-rendering path f
 - renderer/TextBlock/gallery/Vulkan integration remains deferred
 
 M8l then uses those same `.dfpage` artifacts for a local proof-audit workflow, visually inspecting deterministic CPU MSDF text artifacts without introducing UI integration or PNG dependencies.
+## M8p update
+
+M8p keeps M8i's storage model but adds the missing placement contract.
+
+- atlas packing still stores raw field bitmap rects in `.dfpage`
+- `GlyphAtlasEntry` now also carries `GlyphFieldPlacement`
+- `.font-atlas.toml` glyph rows now persist plane bounds, pixel range, and projection scale
+- import/export roundtrip now preserves both atlas rect storage and glyph field placement semantics

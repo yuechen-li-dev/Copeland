@@ -53,9 +53,16 @@ public static class FontAtlasTomlConversion
                 ParseSlant(glyph.Slant));
 
             GlyphMetrics metrics = new(glyph.Advance, glyph.BearingX, glyph.BearingY, glyph.Width, glyph.Height);
+            GlyphFieldPlacement placement = new(
+                glyph.PlaneLeft,
+                glyph.PlaneTop,
+                glyph.PlaneRight,
+                glyph.PlaneBottom,
+                glyph.PixelRange,
+                glyph.ProjectionScale);
             glyphs.Add(
                 key,
-                new GlyphAtlasEntry(key, glyph.Page, glyph.X, glyph.Y, glyph.Width, glyph.Height, glyph.U0, glyph.V0, glyph.U1, glyph.V1, metrics));
+                new GlyphAtlasEntry(key, glyph.Page, glyph.X, glyph.Y, glyph.Width, glyph.Height, glyph.U0, glyph.V0, glyph.U1, glyph.V1, metrics, placement));
         }
 
         return new FontAtlasSnapshot(document.Atlas.Version, pages, glyphs);
@@ -94,6 +101,12 @@ public static class FontAtlasTomlConversion
             V0 = entry.V0,
             U1 = entry.U1,
             V1 = entry.V1,
+            PlaneLeft = entry.Placement.PlaneLeft,
+            PlaneTop = entry.Placement.PlaneTop,
+            PlaneRight = entry.Placement.PlaneRight,
+            PlaneBottom = entry.Placement.PlaneBottom,
+            PixelRange = entry.Placement.PixelRange,
+            ProjectionScale = entry.Placement.ProjectionScale,
         };
     }
 

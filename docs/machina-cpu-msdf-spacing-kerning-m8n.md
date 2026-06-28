@@ -231,3 +231,14 @@ Likely M8o follow-up work:
 - formalize stored field-origin metadata instead of recomputing fit padding,
 - decide whether the eventual runtime atlas contract should preserve or normalize the current `FlipY` proof convention,
 - start UI-facing integration only after the glyph-origin, pair-adjustment, and fallback contracts are explicit.
+
+## M8p update
+
+M8p replaces the recomputed fit-padding workaround with an explicit stored field-placement contract.
+
+- `MsdfSharpDistanceFieldGenerator` now exports generator-derived plane bounds directly
+- `GlyphAtlasEntry` now carries `GlyphFieldPlacement`
+- `.font-atlas.toml` persists placement metadata for import/export roundtrip
+- `CpuDistanceFieldTextRenderer` now uses stored plane bounds and no longer treats a fixed field tile as the draw contract
+
+Kerning behavior from M8n remains intact and still applies before placement.

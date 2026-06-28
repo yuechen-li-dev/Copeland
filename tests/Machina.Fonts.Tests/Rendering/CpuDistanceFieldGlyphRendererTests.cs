@@ -118,6 +118,34 @@ public sealed class CpuDistanceFieldGlyphRendererTests
         Assert.True(flipped.GetPixel(0, 1).R > flipped.GetPixel(0, 0).R);
     }
 
+    [Fact]
+    public void CpuDistanceFieldGlyphRenderer_UsesPlacementBounds()
+    {
+        GlyphKey key = GlyphKey.FromChar(new FontFaceId("machina-reference-render"), 'A', 32);
+        GlyphMetrics metrics = new(4, 0, 6, 4, 6);
+        GlyphAtlasEntry entry = new(
+            key,
+            0,
+            0,
+            0,
+            8,
+            6,
+            0d,
+            0d,
+            1d,
+            1d,
+            metrics,
+            new GlyphFieldPlacement(1d, -5d, 3d, -1d, 4d, 1d));
+        DistanceFieldGlyphPlacement placement = new(key, metrics, 10d, 12d, 1d, false);
+
+        DistanceFieldGlyphDrawBounds bounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(placement, entry);
+
+        Assert.Equal(11, bounds.X);
+        Assert.Equal(7, bounds.Y);
+        Assert.Equal(2, bounds.Width);
+        Assert.Equal(4, bounds.Height);
+    }
+
     private static DistanceFieldPageReference CreateBinaryPage()
     {
         return RenderingTestHelpers.CreatePage(

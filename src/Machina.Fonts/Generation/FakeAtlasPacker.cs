@@ -70,7 +70,8 @@ public sealed class FakeAtlasPacker
             (double)y / PageHeight,
             (double)(x + generated.Width) / PageWidth,
             (double)(y + generated.Height) / PageHeight,
-            generated.Metrics);
+            generated.Metrics,
+            GlyphFieldPlacement.CreateFromMetricsBox(generated.Metrics));
 
         return FakeAtlasPackResult.Packed(entry);
     }

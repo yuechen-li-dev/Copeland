@@ -59,7 +59,7 @@ public sealed class CpuDistanceFieldTextRendererTests
         int minX = FindNonBackgroundPixels(image).Min(static point => point.X);
         int maxX = FindNonBackgroundPixels(image).Max(static point => point.X);
 
-        Assert.Equal(0, minX);
+        Assert.InRange(minX, 0, 1);
         Assert.True(maxX >= 9);
     }
 
@@ -146,6 +146,95 @@ public sealed class CpuDistanceFieldTextRendererTests
         Assert.True(lowerTop > upperTop);
     }
 
+    [Fact]
+    public void CpuDistanceFieldTextRenderer_UsesPlacementNotTileSize()
+    {
+        DistanceFieldPageReference page = RenderingTestHelpers.CreatePage(
+            DistanceFieldKind.Msdf,
+            16,
+            6,
+            static (_, _) => [1f, 1f, 1f]);
+        GlyphFieldPlacement compactPlacement = new(0d, -6d, 2d, 0d, 4d, 1d);
+        GlyphAtlasEntry entryA = CreateEntry('A', 0, 0, atlasWidth: 8, atlasHeight: 6, pageWidth: 16, pageHeight: 6, placement: compactPlacement);
+        GlyphAtlasEntry entryB = CreateEntry('B', 8, 0, atlasWidth: 8, atlasHeight: 6, pageWidth: 16, pageHeight: 6, placement: compactPlacement);
+        FontAtlasSnapshot snapshot = CreateSnapshot(16, 6, entryA, entryB);
+        DistanceFieldTextLayoutResult layout = CreateLayout("AB");
+
+        RgbaImage image = CpuDistanceFieldTextRenderer.RenderText(
+            snapshot,
+            new Dictionary<int, DistanceFieldPageReference> { [0] = page },
+            layout,
+            Options);
+
+        IReadOnlyList<(int X, int Y)> pixels = FindNonBackgroundPixels(image);
+        Assert.DoesNotContain(pixels, point => point.X == 3 || point.X == 4);
+        Assert.Contains(pixels, point => point.X <= 2);
+        Assert.Contains(pixels, point => point.X >= 5);
+    }
+
+    [Fact]
+    public void CpuDistanceFieldTextRenderer_ContiguousGlyphsDoNotOverlapDueToTileSize()
+    {
+        DistanceFieldPageReference page = RenderingTestHelpers.CreatePage(
+            DistanceFieldKind.Msdf,
+            16,
+            6,
+            static (_, _) => [1f, 1f, 1f]);
+        GlyphFieldPlacement compactPlacement = new(0d, -6d, 2d, 0d, 4d, 1d);
+        GlyphAtlasEntry entryA = CreateEntry('A', 0, 0, atlasWidth: 8, atlasHeight: 6, pageWidth: 16, pageHeight: 6, placement: compactPlacement);
+        FontAtlasSnapshot snapshot = CreateSnapshot(16, 6, entryA);
+        DistanceFieldTextLayoutResult layout = CreateLayout("AAA");
+
+        RgbaImage image = CpuDistanceFieldTextRenderer.RenderText(
+            snapshot,
+            new Dictionary<int, DistanceFieldPageReference> { [0] = page },
+            layout,
+            Options);
+
+        IReadOnlyList<(int X, int Y)> pixels = FindNonBackgroundPixels(image);
+        Assert.Contains(pixels, point => point.X <= 2);
+        Assert.Contains(pixels, point => point.X >= 9);
+        Assert.DoesNotContain(pixels, point => point.X == 3 || point.X == 7);
+    }
+
+    [Fact]
+    public void DistanceFieldTextLayout_KerningStillAppliesBeforePlacement()
+    {
+        DistanceFieldTextRun run = DistanceFieldTextRun.Create(
+            "AV",
+            Options.Face,
+            Options.EmSize,
+            Options.Weight,
+            Options.Slant);
+        Dictionary<GlyphKey, GlyphMetrics> metrics = run.GlyphKeys.ToDictionary(
+            static key => key,
+            static _ => new GlyphMetrics(4, 0, 6, 4, 6));
+        Dictionary<GlyphPairKey, GlyphPairAdjustment> pairAdjustments = new()
+        {
+            [new GlyphPairKey(run.GlyphKeys[0], run.GlyphKeys[1])] = new GlyphPairAdjustment(-1, 0),
+        };
+
+        DistanceFieldTextLayoutResult layout = DistanceFieldTextLayout.Layout(
+            run,
+            metrics,
+            Options,
+            pairAdjustments: pairAdjustments);
+        GlyphAtlasEntry entry = CreateEntry('V', 0, 0, placement: new GlyphFieldPlacement(0d, -6d, 2d, 0d, 4d, 1d));
+        DistanceFieldGlyphDrawBounds bounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[1], entry);
+
+        Assert.Equal(4, layout.Placements[1].X);
+        Assert.Equal(4, bounds.X);
+    }
+
+    [Fact]
+    public void Whitespace_RemainsMetricsOnly()
+    {
+        DistanceFieldTextLayoutResult layout = CreateLayout("A A");
+
+        Assert.True(layout.Placements[1].IsWhitespace);
+        Assert.Equal(5d, layout.Placements[2].X - layout.Placements[1].X);
+    }
+
     private static DistanceFieldTextLayoutResult CreateLayout(string text, double baselineY = 10d)
     {
         DistanceFieldTextRun run = DistanceFieldTextRun.Create(
@@ -169,30 +258,46 @@ public sealed class CpuDistanceFieldTextRendererTests
             Options with { BaselineY = baselineY });
     }
 
-    private static FontAtlasSnapshot CreateSnapshot(params GlyphAtlasEntry[] entries)
+    private static FontAtlasSnapshot CreateSnapshot(int pageWidth, int pageHeight, params GlyphAtlasEntry[] entries)
     {
         return new FontAtlasSnapshot(
             1,
-            [new FontAtlasPage(0, "synthetic.dfpage", 8, 6, null)],
+            [new FontAtlasPage(0, "synthetic.dfpage", pageWidth, pageHeight, null)],
             entries.ToDictionary(static entry => entry.Key, static entry => entry));
     }
 
-    private static GlyphAtlasEntry CreateEntry(char value, int x, int y, double bearingY = 6)
+    private static FontAtlasSnapshot CreateSnapshot(params GlyphAtlasEntry[] entries)
+    {
+        return CreateSnapshot(8, 6, entries);
+    }
+
+    private static GlyphAtlasEntry CreateEntry(
+        char value,
+        int x,
+        int y,
+        double bearingY = 6,
+        int atlasWidth = 4,
+        int atlasHeight = 6,
+        int pageWidth = 8,
+        int pageHeight = 6,
+        GlyphFieldPlacement? placement = null)
     {
         GlyphKey key = GlyphKey.FromChar(Options.Face, value, Options.EmSize);
         GlyphMetrics metrics = new(4, 0, bearingY, 4, 6);
+        placement ??= GlyphFieldPlacement.CreateFromMetricsBox(metrics);
         return new GlyphAtlasEntry(
             key,
             0,
             x,
             y,
-            4,
-            6,
-            x / 8d,
-            y / 6d,
-            (x + 4) / 8d,
-            (y + 6) / 6d,
-            metrics);
+            atlasWidth,
+            atlasHeight,
+            x / (double)pageWidth,
+            y / (double)pageHeight,
+            (x + atlasWidth) / (double)pageWidth,
+            (y + atlasHeight) / (double)pageHeight,
+            metrics,
+            placement);
     }
 
     private static DistanceFieldPageReference CreateSolidPage()

@@ -676,3 +676,14 @@ M8n fills in one more proof-path contract that M8a anticipated but did not freez
 - the atlas artifact contract still does not store explicit glyph-origin or field-origin metadata, so this compensation remains proof-only
 
 That means M8a's long-term guidance still stands: final runtime text work should prefer explicit stored origin metadata over inferred centered compensation.
+## M8p update
+
+M8p fills a gap that remained in the original atlas architecture notes: atlas rects alone are not enough to place a generated field relative to glyph origin/baseline.
+
+The current proof-path contract is now:
+
+- generated field bitmap rect: atlas storage concern
+- glyph field plane bounds: render placement concern
+- glyph metrics/advance/bearings: text layout concern
+
+`GlyphFieldPlacement` now bridges generation and rendering without introducing production UI integration.

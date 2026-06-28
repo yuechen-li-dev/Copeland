@@ -3,6 +3,7 @@ using Machina.Fonts.Generation.Typography;
 using Machina.Fonts.ReferenceRendering;
 using Machina.Fonts.Tests.Artifacts.DistanceField;
 using Machina.Fonts.Tests.Generation.Typography;
+using Machina.Fonts;
 using Xunit;
 
 namespace Machina.Fonts.Tests.Rendering;
@@ -80,6 +81,22 @@ public sealed class TypographyMsdfReferenceTextRenderTests
         Assert.NotNull(result.Snapshot);
         Assert.True(File.Exists(Path.Combine(directory, "space-mono-text.font-atlas.toml")));
         Assert.NotEmpty(Directory.GetFiles(directory, "*.dfpage"));
+    }
+
+    [Fact]
+    public async Task TypographyMsdfTextPipeline_MachinaStringNoLongerUsesFixedTileDrawWidth()
+    {
+        DistanceFieldTextPipelineResult result = await RenderAsync("Machina");
+
+        Assert.True(result.Success);
+        Assert.NotNull(result.Snapshot);
+
+        GlyphAtlasEntry[] entries = result.Snapshot!.Glyphs.Values
+            .Where(entry => !" ".Contains((char)entry.Key.Codepoint))
+            .ToArray();
+
+        Assert.Contains(entries, entry => Math.Abs(entry.Placement.Width - entry.Width) > 0.5d);
+        Assert.Contains(entries, entry => entry.Placement.Width < entry.Width);
     }
 
     private static async Task<DistanceFieldTextPipelineResult> RenderAsync(string text, string? artifactDirectory = null)

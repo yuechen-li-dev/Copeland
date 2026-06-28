@@ -163,6 +163,7 @@ public sealed class GlyphGenerationPipelineTests
                 settings.Kind,
                 channelCount,
                 data,
+                GlyphFieldPlacement.CreateFromMetricsBox(outline.Metrics, settings.PixelRange, Math.Max(settings.Scale, 0.0001d)),
                 [diagnostic]);
         }
     }

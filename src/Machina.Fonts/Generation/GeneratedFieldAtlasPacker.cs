@@ -268,7 +268,8 @@ public sealed class GeneratedFieldAtlasPacker
                 (double)y / Height,
                 (double)(x + field.Width) / Width,
                 (double)(y + field.Height) / Height,
-                field.Metrics);
+                field.Metrics,
+                field.Placement);
 
             return true;
         }

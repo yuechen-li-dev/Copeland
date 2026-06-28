@@ -183,3 +183,13 @@ The renderer is still not a production text backend:
 - no `TextBlock` integration
 - no production renderer integration
 - no shaping, ligatures, bidi, or fallback engine
+## M8p update
+
+M8k's original proof renderer assumed it could reconstruct glyph field placement from metrics plus fixed field tile dimensions.
+M8p narrows that contract:
+
+- the renderer now consumes explicit `GlyphFieldPlacement` plane bounds from atlas entries
+- draw width/height come from stored plane bounds, not raw atlas tile size
+- centered-field compensation is removed from the main proof path
+
+This remains standalone `Machina.Fonts` proof rendering only.

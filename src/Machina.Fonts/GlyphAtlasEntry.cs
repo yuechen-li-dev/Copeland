@@ -13,7 +13,8 @@ public sealed record GlyphAtlasEntry
         double v0,
         double u1,
         double v1,
-        GlyphMetrics metrics)
+        GlyphMetrics metrics,
+        GlyphFieldPlacement placement)
     {
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
         if (x < 0) throw new ArgumentOutOfRangeException(nameof(x));
@@ -38,6 +39,7 @@ public sealed record GlyphAtlasEntry
         U1 = u1;
         V1 = v1;
         Metrics = metrics ?? throw new ArgumentNullException(nameof(metrics));
+        Placement = placement ?? throw new ArgumentNullException(nameof(placement));
     }
 
     public GlyphKey Key { get; }
@@ -51,4 +53,5 @@ public sealed record GlyphAtlasEntry
     public double U1 { get; }
     public double V1 { get; }
     public GlyphMetrics Metrics { get; }
+    public GlyphFieldPlacement Placement { get; }
 }

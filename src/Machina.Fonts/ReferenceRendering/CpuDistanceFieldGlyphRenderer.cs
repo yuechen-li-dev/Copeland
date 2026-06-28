@@ -30,6 +30,25 @@ public static class CpuDistanceFieldGlyphRenderer
         return image;
     }
 
+    internal static DistanceFieldGlyphDrawBounds ComputeDrawBounds(
+        DistanceFieldGlyphPlacement placement,
+        GlyphAtlasEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(placement);
+        ArgumentNullException.ThrowIfNull(entry);
+
+        double drawX = placement.X + (entry.Placement.PlaneLeft * placement.Scale);
+        double drawY = placement.BaselineY + (entry.Placement.PlaneTop * placement.Scale);
+        int outputWidth = Math.Max(1, RoundToInt(entry.Placement.Width * placement.Scale));
+        int outputHeight = Math.Max(1, RoundToInt(entry.Placement.Height * placement.Scale));
+
+        return new DistanceFieldGlyphDrawBounds(
+            RoundToInt(drawX),
+            RoundToInt(drawY),
+            outputWidth,
+            outputHeight);
+    }
+
     internal static void RenderGlyphInto(
         RgbaImage image,
         DistanceFieldPageReference page,
@@ -163,4 +182,15 @@ public static class CpuDistanceFieldGlyphRenderer
 
         return value;
     }
+
+    private static int RoundToInt(double value)
+    {
+        return (int)Math.Round(value, MidpointRounding.AwayFromZero);
+    }
 }
+
+internal readonly record struct DistanceFieldGlyphDrawBounds(
+    int X,
+    int Y,
+    int Width,
+    int Height);
