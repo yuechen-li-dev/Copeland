@@ -429,5 +429,18 @@ M8b adds the standalone `Machina.Fonts` project and focused tests for validated 
 
 M8c lands `.font-atlas.toml` document records, a deterministic writer, loader/parser, validation diagnostics, and snapshot conversion helpers inside standalone `Machina.Fonts`. It is metadata-only and defers real MSDF generation, font loading, PNG writing, and renderer integration to later milestones.
 
+### Machina M8d — fake atlas artifacts
 
-M8d lands the fake atlas artifact pipeline: ready fake-worker snapshots export to deterministic `.font-atlas.toml` plus `.fakepage` page files, import validates existence, content hashes, and fake page dimensions, and tests prove roundtrip equivalence. Real MSDF, PNG, font parsing, and renderer integration remain deferred.
+M8d lands the fake atlas artifact pipeline: ready fake-worker snapshots export to deterministic `.font-atlas.toml` plus `.fakepage` page files, import validates existence, content hashes, and fake page dimensions, and tests prove roundtrip equivalence. Real MSDF, PNG, font parsing, and renderer integration remain deferred. See `docs/machina-font-atlas-artifacts-m8d.md`.
+
+### Machina M8e — MSDF and outline dependency audit
+
+M8e is a research/design milestone only. It audits current public sources for `MSDF-Sharp.Core`, `LayoutFarm/Typography`, `SixLabors.Fonts`, and `SharpFont`, then recommends a strict Machina-owned adapter boundary. Current recommendation:
+
+- prefer `Typography.OpenFont` for outline extraction,
+- prefer `MSDF-Sharp.Core` for MSDF generation,
+- avoid `MSDF-Sharp.Extensions` in the first real path because it pulls in `SixLabors.ImageSharp`,
+- avoid `SixLabors.Fonts` for now because of the split-license policy,
+- keep native FreeType as fallback only.
+
+No package references or implementation behavior change land in M8e. See `docs/machina-font-msdf-dependency-audit-m8e.md`.

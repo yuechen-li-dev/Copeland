@@ -74,4 +74,10 @@ M8d does not add real MSDF generation, real PNG encoding/decoding, real font fil
 
 ## M8e plan
 
-M8e can build on this contract by refining artifact preflight and pipeline ergonomics while keeping real renderer and real MSDF/PNG work deferred to later milestones.
+M8e refines the direction above at the dependency/design level, not by changing artifacts yet. The audit recommends:
+
+- `Typography.OpenFont` for outline extraction,
+- `MSDF-Sharp.Core` for distance-field generation,
+- Machina-owned outline/generator interfaces so artifact export and import remain insulated from dependency churn.
+
+Real PNG pages remain deferred until the outline and generator proofs land in later milestones. See `docs/machina-font-msdf-dependency-audit-m8e.md`.

@@ -60,3 +60,15 @@ M8c adds the standalone `.font-atlas.toml` metadata contract in `Machina.Fonts.T
 ## M8d artifact export/import
 
 M8d uses the fake worker and preflight path to publish ready-only `FontAtlasSnapshot` values, then exports those snapshots to `.font-atlas.toml` plus deterministic `.fakepage` page artifacts. Missing glyphs remain preflight failures and are not serialized as glyph entries.
+
+## M8e dependency audit follow-up
+
+M8e keeps the M8b standalone boundary intact and still adds no real dependency. The follow-up audit recommends:
+
+- a Machina-owned `IGlyphOutlineSource` seam,
+- a Machina-owned `IGlyphDistanceFieldGenerator` seam,
+- `Typography.OpenFont` as the preferred outline candidate,
+- `MSDF-Sharp.Core` as the preferred generator candidate,
+- native FreeType only as fallback.
+
+That recommendation keeps `Machina.Fonts` in control of the public contract instead of exposing third-party outline or MSDF types. See `docs/machina-font-msdf-dependency-audit-m8e.md`.

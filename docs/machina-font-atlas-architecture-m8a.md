@@ -554,10 +554,13 @@ Boundary checks run for M8a confirmed no active ProjectReference into `reference
 - M8b: create `Machina.Fonts` records/interfaces plus fake worker and fake atlas generator. No MSDF yet.
 - M8c: implement `.font-atlas.toml` loader/writer using Assets.Toml-inspired typed document, validators, diagnostics, and deterministic canonical writer.
 - M8d: implement atlas packing/cache/snapshot versioning with fake generated glyph bitmaps to prove async worker semantics.
-- M8e: perform current dependency/license/platform audit and build a CPU MSDF generation proof with selected outline extraction path.
-- M8f: add CPU reference MSDF rendering for gallery export/debug, still renderer-independent and deterministic.
-- M8g: connect gallery export preflight/await glyph readiness so exported artifacts contain complete glyphs without GUI/Vulkan.
-- M8h: add Aurelian/Vulkan MSDF shader consumer after renderer contracts are ready.
+- M8e: perform the current dependency/license/platform audit and define a strict Machina-owned outline/MSDF adapter seam before real package adoption.
+- M8f: add compile-checked generation adapter records/interfaces plus fake outline and distance-field adapters.
+- M8g: prove `Typography.OpenFont` outline extraction on a small fixture font through the Machina adapter seam.
+- M8h: prove `MSDF-Sharp.Core` generation from Machina-owned outline records.
+- M8i: integrate real generated fields into atlas packing and real page artifact export.
+- M8j: add CPU reference MSDF inspection/rendering for export/debug.
+- M8k: add Aurelian/Vulkan MSDF shader consumer after renderer contracts are ready.
 
 ## Deferred issues
 
@@ -582,3 +585,15 @@ M8c implements the inspectable atlas metadata layer proposed by the audit: a bin
 ## M8d fake artifact milestone
 
 M8d proves the atlas export/import shape with deterministic `.fakepage` artifacts beside `.font-atlas.toml` metadata. It intentionally does not add real MSDF generation, PNG encoding, font parsing, renderer integration, Vulkan/Aurelian code, or native dependencies.
+
+## M8e dependency audit note
+
+M8e completes the deferred package audit and recommends a split dependency path:
+
+- `Typography.OpenFont` as the likely outline extraction source,
+- `MSDF-Sharp.Core` as the likely MSDF generator,
+- `MSDF-Sharp.Extensions` intentionally avoided in the first real path because it pulls in `SixLabors.ImageSharp`,
+- `SixLabors.Fonts` avoided for now because of its split-license policy,
+- `SharpFont`/native FreeType kept as a fallback if managed outline extraction fails on real fixture fonts.
+
+The recommendation is intentionally adapter-first. Machina should keep outline loading and distance-field generation behind Machina-owned interfaces so the implementation can change later without touching atlas packing, TOML export, or renderer consumers. See `docs/machina-font-msdf-dependency-audit-m8e.md`.
