@@ -35,6 +35,39 @@ public sealed record StandardButtonStyles(
     }
 }
 
+public sealed record StandardBadgeStyle(
+    ColorToken? Background,
+    ColorToken Foreground,
+    ColorToken? BorderColor,
+    double BorderThickness,
+    double MinWidth,
+    double Height,
+    double HorizontalAllowance,
+    TextAlignX TextAlignX,
+    TextAlignY TextAlignY,
+    double TextOffsetX,
+    double TextOffsetY,
+    TextStyle TextStyle);
+
+public sealed record StandardBadgeStyles(
+    StandardBadgeStyle Default,
+    StandardBadgeStyle Secondary,
+    StandardBadgeStyle Destructive,
+    StandardBadgeStyle Outline)
+{
+    public StandardBadgeStyle ForVariant(BadgeVariant variant)
+    {
+        return variant switch
+        {
+            BadgeVariant.Default => Default,
+            BadgeVariant.Secondary => Secondary,
+            BadgeVariant.Destructive => Destructive,
+            BadgeVariant.Outline => Outline,
+            _ => throw new ArgumentOutOfRangeException(nameof(variant), variant, null),
+        };
+    }
+}
+
 public sealed record StandardCardStyle(
     ColorToken Background,
     ColorToken Foreground,

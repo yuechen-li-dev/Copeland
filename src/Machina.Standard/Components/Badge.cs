@@ -1,6 +1,8 @@
 using Machina.Core.Authoring;
+using Machina.Core.Measurement;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
+using Machina.Layout.Geometry;
 using Machina.Layout.Rows;
 using Machina.Standard.Theme;
 
@@ -12,56 +14,90 @@ public static class Badge
         string text,
         NodeId? id = null,
         StandardTheme? theme = null,
-        BadgeVariant variant = BadgeVariant.Secondary)
+        BadgeVariant variant = BadgeVariant.Secondary,
+        StandardBadgeStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(text);
 
         var effectiveTheme = theme ?? StandardTheme.Default;
-        var colors = ResolveVariantColors(variant, effectiveTheme);
-        var textNode = UI.Text(
-            text,
-            color: colors.Foreground,
-            size: TextSize.Sm,
-            alignX: TextAlignX.Center,
-            alignY: TextAlignY.Center);
-        var style = new UiStyle(
-            Background: colors.Background,
-            Foreground: colors.Foreground,
-            Padding: effectiveTheme.Spacing.Xs);
+        var effectiveStyle = style ?? effectiveTheme.Badge.ForVariant(variant);
+        var labelTextStyle = ResolveLabelTextStyle(effectiveStyle);
+        var measuredText = DeterministicTextMeasurer.Instance.MeasureText(text, labelTextStyle);
+        var width = Math.Max(effectiveStyle.MinWidth, measuredText.Width + effectiveStyle.HorizontalAllowance);
+        var height = effectiveStyle.Height;
+        var labelRegion = CreateLabelRegion(id, effectiveStyle, labelTextStyle, text);
+        var shellStyle = new UiStyle(
+            Background: effectiveStyle.Background,
+            Foreground: effectiveStyle.Foreground,
+            Padding: 0,
+            BorderColor: effectiveStyle.BorderColor,
+            BorderThickness: effectiveStyle.BorderThickness);
 
         return UI.Rect(
-            child: textNode,
+            child: labelRegion,
             id: id,
+            width: width,
+            height: height,
             color: null,
             padding: null,
-            style: style);
+            style: shellStyle);
     }
 
-    private static BadgeColors ResolveVariantColors(
-        BadgeVariant variant,
-        StandardTheme theme)
+    private static UiNode CreateLabelRegion(
+        NodeId? id,
+        StandardBadgeStyle style,
+        TextStyle labelTextStyle,
+        string text)
     {
-        var colors = theme.Colors;
+        var leftInset = ResolveLeadingInset(style.TextOffsetX);
+        var rightInset = ResolveTrailingInset(style.TextOffsetX);
+        var topInset = ResolveLeadingInset(style.TextOffsetY);
+        var bottomInset = ResolveTrailingInset(style.TextOffsetY);
 
-        return variant switch
+        return UI.Anchor(
+            child: UI.Text(
+                text,
+                id: CreateChildId(id, "label"),
+                color: labelTextStyle.Color,
+                size: labelTextStyle.Size,
+                alignX: labelTextStyle.AlignX,
+                alignY: labelTextStyle.AlignY,
+                style: labelTextStyle),
+            id: CreateChildId(id, "label-region"),
+            left: leftInset,
+            right: rightInset,
+            top: topInset,
+            bottom: bottomInset);
+    }
+
+    private static TextStyle ResolveLabelTextStyle(StandardBadgeStyle style)
+    {
+        var labelColor = style.TextStyle.Color ?? style.Foreground;
+        return style.TextStyle with
         {
-            BadgeVariant.Default => new BadgeColors(
-                Background: colors.Primary,
-                Foreground: colors.PrimaryForeground),
-            BadgeVariant.Secondary => new BadgeColors(
-                Background: colors.Secondary,
-                Foreground: colors.SecondaryForeground),
-            BadgeVariant.Destructive => new BadgeColors(
-                Background: colors.Destructive,
-                Foreground: colors.DestructiveForeground),
-            BadgeVariant.Outline => new BadgeColors(
-                Background: colors.Background,
-                Foreground: colors.Foreground),
-            _ => throw new ArgumentOutOfRangeException(nameof(variant), variant, null),
+            Color = labelColor,
+            AlignX = style.TextAlignX,
+            AlignY = style.TextAlignY,
         };
     }
 
-    private sealed record BadgeColors(
-        ColorToken Background,
-        ColorToken Foreground);
+    private static UiLength ResolveLeadingInset(double offset)
+    {
+        return Math.Max(0, offset);
+    }
+
+    private static UiLength ResolveTrailingInset(double offset)
+    {
+        return Math.Max(0, -offset);
+    }
+
+    private static NodeId? CreateChildId(NodeId? id, string suffix)
+    {
+        if (id is not { } value)
+        {
+            return null;
+        }
+
+        return new NodeId($"{value.Value}.{suffix}");
+    }
 }

@@ -137,6 +137,25 @@ public sealed class MachinaRenderBridgeTests
     }
 
     [Fact]
+    public void StandardBadge_EmitsExactlyOneDrawTextCommand()
+    {
+        var ui = StandardUI.Badge("Alert", id: "alert");
+        var lowering = UiLowerer.Lower(ui);
+        var resolved = ResolveLayout(lowering, 240, 120);
+        var commands = MachinaRenderBridge.BuildCommands(lowering, resolved, new MachinaRenderOptions(240, 120));
+
+        var alertTextCommands = commands
+            .OfType<DrawTextCommand>()
+            .Where(command => command.Text == "Alert")
+            .ToList();
+
+        var alertText = Assert.Single(alertTextCommands);
+        Assert.Equal("alert.label", alertText.Id);
+        Assert.Equal(resolved.Nodes[new NodeId("alert.label-region")].Rect, alertText.Rect);
+        Assert.DoesNotContain(commands, command => command is DrawTextCommand draw && draw.Id == "alert");
+    }
+
+    [Fact]
     public void StandardForm_EmitsDeterministicRenderCommandsWithoutActions()
     {
         var ui = StandardUI.Card(

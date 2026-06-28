@@ -58,6 +58,29 @@ public sealed class GalleryGeometryTests
         AssertRectInside(frame.RectOf("theme-section"), root, "theme-section");
     }
 
+    [Fact]
+    public void Gallery_BadgeRow_ResolvesWithoutOverflowOrOverlap()
+    {
+        var frame = GeometryHarness.ResolveDocument(
+            GalleryScreen.Build(GalleryState.Default, StandardTheme.Default),
+            GalleryScreen.Width,
+            GalleryScreen.Height);
+
+        var row = frame.RectOf("badges-section/badges-row");
+        var stableShell = frame.RectOf("badges-section/badge-stable");
+        var alertShell = frame.RectOf("badges-section/badge-alert");
+        var stableLabelRegion = frame.RectOf("badges-section/badge-stable.label-region");
+        var alertLabelRegion = frame.RectOf("badges-section/badge-alert.label-region");
+
+        Assert.True(stableShell.Width > 0 && stableShell.Height > 0);
+        Assert.True(alertShell.Width > 0 && alertShell.Height > 0);
+        Assert.True(stableShell.X >= row.X);
+        Assert.True(alertShell.X + alertShell.Width <= row.X + row.Width);
+        Assert.True(stableShell.X + stableShell.Width <= alertShell.X);
+        AssertRectInside(stableLabelRegion, stableShell, "badges-section/badge-stable.label-region");
+        AssertRectInside(alertLabelRegion, alertShell, "badges-section/badge-alert.label-region");
+    }
+
     private static void AssertRectInside(Machina.Layout.Geometry.Rect inner, Machina.Layout.Geometry.Rect outer, string id)
     {
         Assert.True(inner.X >= outer.X, $"{id} left outside root.");

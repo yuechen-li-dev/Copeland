@@ -7,6 +7,7 @@ public sealed record StandardTheme(
     StandardSpacing Spacing,
     StandardRadius Radius,
     StandardButtonStyles Button,
+    StandardBadgeStyles Badge,
     StandardCardStyles Card,
     StandardInputStyles Input,
     StandardCheckboxStyles Checkbox,
@@ -33,6 +34,7 @@ public sealed record StandardTheme(
 
         var spacing = new StandardSpacing(Xs: 4, Sm: 8, Md: 12, Lg: 16, Xl: 24);
         var radius = new StandardRadius(Sm: 4, Md: 6, Lg: 8);
+        var badgeTextStyle = new TextStyle(colors.SecondaryForeground, TextSize.Sm, TextAlignX.Center, TextAlignY.Center);
 
         return new StandardTheme(
             Colors: colors,
@@ -45,6 +47,11 @@ public sealed record StandardTheme(
                 Secondary: new StandardButtonStyle(colors.Secondary, colors.SecondaryForeground, null, 0, new TextStyle(colors.SecondaryForeground, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 112, 32),
                 Ghost: new StandardButtonStyle(null, colors.Foreground, null, 0, new TextStyle(colors.Foreground, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 112, 32),
                 Link: new StandardButtonStyle(null, colors.Primary, null, 0, new TextStyle(colors.Primary, TextSize.Md, TextAlignX.Center, TextAlignY.Center), 112, 32)),
+            Badge: new StandardBadgeStyles(
+                Default: new StandardBadgeStyle(colors.Primary, colors.PrimaryForeground, null, 0, 44, 20, 16, TextAlignX.Center, TextAlignY.Center, 0, 1, new TextStyle(colors.PrimaryForeground, TextSize.Sm, TextAlignX.Center, TextAlignY.Center)),
+                Secondary: new StandardBadgeStyle(colors.Secondary, colors.SecondaryForeground, null, 0, 44, 20, 16, TextAlignX.Center, TextAlignY.Center, 0, 1, badgeTextStyle),
+                Destructive: new StandardBadgeStyle(colors.Destructive, colors.DestructiveForeground, null, 0, 44, 20, 16, TextAlignX.Center, TextAlignY.Center, 0, 1, new TextStyle(colors.DestructiveForeground, TextSize.Sm, TextAlignX.Center, TextAlignY.Center)),
+                Outline: new StandardBadgeStyle(colors.Background, colors.Foreground, colors.Border, 1, 44, 20, 16, TextAlignX.Center, TextAlignY.Center, 0, 1, new TextStyle(colors.Foreground, TextSize.Sm, TextAlignX.Center, TextAlignY.Center))),
             Card: new StandardCardStyles(new StandardCardStyle(colors.Background, colors.Foreground, colors.Border, 1, spacing.Sm)),
             Input: new StandardInputStyles(new StandardInputStyle(colors.Background, colors.Foreground, colors.Border, 1, 180, 36, spacing.Sm, new TextStyle(colors.Foreground, TextSize.Md, TextAlignX.Left, TextAlignY.Center), new TextStyle(colors.MutedForeground, TextSize.Md, TextAlignX.Left, TextAlignY.Center), colors.Muted, colors.MutedForeground)),
             Checkbox: new StandardCheckboxStyles(new StandardCheckboxStyle(colors.Background, colors.Foreground, 1, colors.Primary, colors.Foreground, colors.Muted, colors.MutedForeground, colors.MutedForeground, colors.MutedForeground, 18, 10, spacing.Sm, new TextStyle(colors.Foreground, TextSize.Sm, TextAlignX.Left, TextAlignY.Center))),

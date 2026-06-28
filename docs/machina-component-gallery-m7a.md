@@ -137,3 +137,13 @@ Future milestones can add more components or states here, but should preserve th
 - deterministic raster export
 - local visual inspection on Windows
 - headless structural contracts
+
+## M7d badge note
+
+M7d keeps the gallery itself structurally unchanged while fixing `StandardUI.Badge` locally:
+
+- badge shell size is now deterministic and finite
+- badge label placement uses a local explicit label region
+- badge row geometry is regression-tested so gallery badge examples do not overflow or trigger negative stack-space failures
+
+No gallery-only workaround, no general layout change, and no style cascade was introduced.

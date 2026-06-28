@@ -138,6 +138,42 @@ public sealed class GalleryRenderTests
         Assert.Equal(Summarize(first.RenderCommands), Summarize(second.RenderCommands));
     }
 
+    [Fact]
+    public void ComponentGallery_BadgeSection_RenderCommandsAreStable()
+    {
+        var first = Render(GalleryState.Default, StandardTheme.Default);
+        var second = Render(GalleryState.Default, StandardTheme.Default);
+        var firstBadgeCommands = first.RenderCommands
+            .Where(command => command is FillRectCommand { Id: "badges-section/badge-stable" or "badges-section/badge-alert" }
+                || command is DrawTextCommand { Id: "badges-section/badge-stable.label" or "badges-section/badge-alert.label" })
+            .ToList();
+        var secondBadgeCommands = second.RenderCommands
+            .Where(command => command is FillRectCommand { Id: "badges-section/badge-stable" or "badges-section/badge-alert" }
+                || command is DrawTextCommand { Id: "badges-section/badge-stable.label" or "badges-section/badge-alert.label" })
+            .ToList();
+
+        Assert.Equal(Summarize(firstBadgeCommands), Summarize(secondBadgeCommands));
+
+        var stableShell = Assert.Single(first.RenderCommands.OfType<FillRectCommand>(), command => command.Id == "badges-section/badge-stable");
+        var alertShell = Assert.Single(first.RenderCommands.OfType<FillRectCommand>(), command => command.Id == "badges-section/badge-alert");
+        var stableText = Assert.Single(first.RenderCommands.OfType<DrawTextCommand>(), command => command.Id == "badges-section/badge-stable.label");
+        var alertText = Assert.Single(first.RenderCommands.OfType<DrawTextCommand>(), command => command.Id == "badges-section/badge-alert.label");
+
+        Assert.DoesNotContain(first.RenderCommands, command => command is DrawTextCommand draw && draw.Id == "badges-section/badge-stable");
+        Assert.DoesNotContain(first.RenderCommands, command => command is DrawTextCommand draw && draw.Id == "badges-section/badge-alert");
+        Assert.True(stableText.Rect.Width > 0 && stableText.Rect.Height > 0);
+        Assert.True(alertText.Rect.Width > 0 && alertText.Rect.Height > 0);
+        Assert.True(stableText.Rect.X >= stableShell.Rect.X);
+        Assert.True(stableText.Rect.Y >= stableShell.Rect.Y);
+        Assert.True(stableText.Rect.X + stableText.Rect.Width <= stableShell.Rect.X + stableShell.Rect.Width);
+        Assert.True(stableText.Rect.Y + stableText.Rect.Height <= stableShell.Rect.Y + stableShell.Rect.Height);
+        Assert.True(alertText.Rect.X >= alertShell.Rect.X);
+        Assert.True(alertText.Rect.Y >= alertShell.Rect.Y);
+        Assert.True(alertText.Rect.X + alertText.Rect.Width <= alertShell.Rect.X + alertShell.Rect.Width);
+        Assert.True(alertText.Rect.Y + alertText.Rect.Height <= alertShell.Rect.Y + alertShell.Rect.Height);
+        Assert.True(stableShell.Rect.X + stableShell.Rect.Width <= alertShell.Rect.X);
+    }
+
     private static MachinaFrame Render(GalleryState state, StandardTheme theme)
     {
         var document = GalleryScreen.Build(state, theme);

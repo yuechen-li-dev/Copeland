@@ -67,7 +67,7 @@ Current proven path (with some steps still partial depending on scenario breadth
 
 Manual GUI validation depth across broader component scenarios is **Partial / needs continuing audit**.
 
-M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow. M7c uses that workflow for evidence-backed visual defect triage and deferral documentation.
+M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow. M7c uses that workflow for evidence-backed visual defect triage and deferral documentation. M7d closes the deferred badge intrinsic-size / label-placement issue with a Badge-local contract and no general layout-engine changes.
 
 ## Support Matrix
 
@@ -102,7 +102,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Explicit ids | Machina.Core | Implemented | Core tests | Deterministic generation + validation.
 | Standard Button | Machina.Standard | Implemented | Standard tests | Current stable standard control.
 | Card | Machina.Standard | Partial | Standard snapshot tests | Verify final API/behavior contract.
-| Badge | Machina.Standard | Partial | Standard snapshot tests | Validate runtime semantics needs.
+| Badge | Machina.Standard | Implemented | Standard badge geometry tests + gallery geometry/render tests + local PNG inspection | M7d adds deterministic intrinsic width/height and local label-region placement without changing general layout semantics.
 | Separator | Machina.Standard | Partial | Snapshot-level evidence | Confirm layout/render conventions.
 | Label | Machina.Standard | Partial | Snapshot-level evidence | Formalize semantic behavior.
 | Field | Machina.Standard | Partial | Standard form tests | Expand interaction states.
@@ -227,6 +227,7 @@ React mapping guide:
 - **M7a**: dedicated Machina component gallery sample and headless+local visual proof path (implemented).
 - **M7b**: gallery export contract, local export script, stable PNG artifact names, and artifact policy cleanup (implemented).
 - **M7c**: gallery visual defect sweep, shared defect triage, and visual audit documentation (implemented).
+- **M7d**: Badge intrinsic sizing and local text placement contract, with gallery regression coverage and artifact revalidation (implemented).
 
 ## Open Questions
 

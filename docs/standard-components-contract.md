@@ -424,3 +424,23 @@ Current sweep result:
 - that issue is deferred until it can be solved without broad layout/text sizing churn
 
 Deferred findings from the sweep remain documentation-only unless they can be proven and fixed locally without broad renderer or text-system work.
+
+## M7d badge intrinsic layout note
+
+M7d resolves the deferred badge defect with a Badge-local contract.
+
+`StandardUI.Badge` now owns typed badge style records and deterministic local geometry:
+
+- explicit finite shell width and height
+- intrinsic width from measured text plus badge-local horizontal allowance
+- explicit `*.label-region` inside the shell
+- center-aligned text with badge-local offset support
+
+Important boundaries:
+
+- no general layout resolver changes
+- no constraint solver
+- no CSS-like padding cascade
+- no migration to `StandardUI.TextBlock`
+
+Badge remains a primitive-text control, but it no longer depends on generic `UiStyle.Padding` or fill-shell behavior for label placement.

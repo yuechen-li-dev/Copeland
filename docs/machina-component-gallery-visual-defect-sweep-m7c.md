@@ -6,6 +6,10 @@ M7c uses the deterministic Machina component gallery export from M7b as a local 
 
 The goal is to inspect the default and interactive PNG artifacts, classify visible issues, fix only small shared defects with evidence, and leave broader renderer/text limitations clearly deferred.
 
+M7d follow-up note:
+
+- the deferred badge intrinsic-size / label-placement defect from this sweep is now fixed locally in `docs/machina-badge-intrinsic-layout-m7d.md`
+
 ## Export commands
 
 ```powershell
@@ -68,6 +72,11 @@ Inspection method:
 - `artifacts/m7c/component-gallery-interactive.png`
 
 The final inspection reconfirmed the badge-label top-edge issue while also confirming that the rest of the gallery remains readable, non-overlapping, and contract-stable under the M7b export path.
+
+Historical note after M7d:
+
+- the badge issue documented here is resolved by a Badge-local intrinsic sizing + label-region contract
+- M7d preserves the rest of this sweep's deferrals and does not change general layout semantics
 
 ## Validation results
 

@@ -47,9 +47,14 @@ public static class StandardUI
         return Components.Card.Create(children, id, theme, width, height, gap, style);
     }
 
-    public static UiNode Badge(string text, NodeId? id = null, StandardTheme? theme = null, BadgeVariant variant = BadgeVariant.Secondary)
+    public static UiNode Badge(
+        string text,
+        NodeId? id = null,
+        StandardTheme? theme = null,
+        BadgeVariant variant = BadgeVariant.Secondary,
+        StandardBadgeStyle? style = null)
     {
-        return Components.Badge.Create(text, id, theme, variant);
+        return Components.Badge.Create(text, id, theme, variant, style);
     }
 
     public static UiNode Label(string text, NodeId? id = null, StandardTheme? theme = null)
