@@ -424,3 +424,7 @@ M8a documents the future `Machina.Fonts` direction: async runtime MSDF atlas gen
 ## M8b Machina.Fonts fake architecture
 
 M8b adds the standalone `Machina.Fonts` project and focused tests for validated font atlas records, immutable snapshots, async channel-based fake generation, deterministic fake packing, pending/ready/missing resolution, and export-style preflight waiting. It is intentionally architecture-only: no MSDF, no real font parsing, no TOML or PNG output, no renderer integration, no native dependency, and no active dependency on the Dominatus reference submodule. See `docs/machina-fonts-m8b.md`.
+
+### Machina M8c — Font atlas TOML metadata
+
+M8c lands `.font-atlas.toml` document records, a deterministic writer, loader/parser, validation diagnostics, and snapshot conversion helpers inside standalone `Machina.Fonts`. It is metadata-only and defers real MSDF generation, font loading, PNG writing, and renderer integration to later milestones.
