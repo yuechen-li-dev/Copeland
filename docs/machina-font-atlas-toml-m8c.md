@@ -47,3 +47,8 @@ Real font loading, outline extraction, MSDF generation, PNG page writing/inspect
 ## M8d plan
 
 M8d can add a real generator pipeline around the metadata contract: source font discovery, glyph extraction, MSDF rasterization, PNG page writing, and optional page-file verification while keeping this TOML contract deterministic.
+
+
+## M8d fake page artifacts
+
+M8d allows TOML `page.image` values to reference `.fakepage` files. These are deterministic text artifacts, not real PNG images, and their SHA-256 bytes are stored in `content_hash` for import validation.

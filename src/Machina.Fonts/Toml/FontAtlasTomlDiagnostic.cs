@@ -25,6 +25,8 @@ public enum FontAtlasTomlDiagnosticCode
     HashMissing,
     ImageMissing,
     PageDimensionMismatch,
+    ContentHashMismatch,
+    InvalidPageArtifact,
 }
 
 public sealed record FontAtlasTomlDiagnostic(

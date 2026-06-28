@@ -55,3 +55,8 @@ M8c can build on this standalone service by adding stronger diagnostics and gene
 ## M8c follow-up
 
 M8c adds the standalone `.font-atlas.toml` metadata contract in `Machina.Fonts.Toml`. The M8b runtime records remain standalone; M8c layers deterministic TOML loading, writing, validation diagnostics, and snapshot conversion metadata on top without adding MSDF generation, PNG writing, renderer integration, or native dependencies.
+
+
+## M8d artifact export/import
+
+M8d uses the fake worker and preflight path to publish ready-only `FontAtlasSnapshot` values, then exports those snapshots to `.font-atlas.toml` plus deterministic `.fakepage` page artifacts. Missing glyphs remain preflight failures and are not serialized as glyph entries.
