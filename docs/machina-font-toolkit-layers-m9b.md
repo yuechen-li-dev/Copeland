@@ -187,3 +187,13 @@ M9c keeps the M9b layer model and preset set, but hardens the export contract ar
 
 M9c is still tooling hygiene only.
 It does not change direct-outline rasterization, MSDF sampling, atlas packing, or production renderer behavior.
+
+## M9d follow-up
+
+M9d keeps these layers and presets, but changes their semantic center:
+
+- `cad-debug` now defaults to direct-outline static imagery
+- `msdf-debug` is explicitly MSDF scalable/experimental
+- `direct-vs-msdf` now compares the static default against the scalable/experimental path by name
+
+See `docs/machina-direct-outline-static-text-m9d.md`.

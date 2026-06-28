@@ -1,0 +1,71 @@
+# Machina Direct-Outline Static Text M9d
+
+## Purpose
+
+M9d formalizes the text backend split inside the proof/tooling stack.
+
+Direct-outline rasterization is now the default static/UI-text proof backend.
+MSDF remains available only as an explicit scalable/experimental path.
+
+No production UI text renderer changed in this milestone.
+
+## Why direct-outline is the static default
+
+- direct-outline rasterized text is visually correct and stable
+- browser horizontal kerning is not the target oracle
+- Machina's own direct-outline kerning is acceptable and may be preferable
+- MSDF output still drifts visually and numerically, especially at larger sizes
+
+That makes direct-outline the right default for ordinary static proof work.
+
+## Render strategies
+
+M9d introduces stable strategy names:
+
+- `DirectOutlineStatic`
+- `MsdfScalableExperimental`
+
+## DirectOutlineStatic
+
+`DirectOutlineStatic` renders from Machina/Typography outlines directly.
+
+It uses existing metrics and pair adjustments, supports deterministic supersampling, returns glyph placements and ink bounds, and does not use MSDF generation, atlas packing, or `.dfpage` artifacts.
+
+## MsdfScalableExperimental
+
+`MsdfScalableExperimental` remains available for explicit comparison work and future zoomable/transform-heavy text scenarios.
+
+M9d does not attempt to repair MSDF.
+
+## Diagnostic tooling behavior
+
+`Machina.Fonts.Tooling` now treats direct-outline as the internal geometry reference.
+
+- `cad-debug` defaults to direct-outline static imagery
+- `direct-vs-msdf` compares `DirectOutlineStatic` against `MsdfScalableExperimental`
+- `msdf-debug` stays explicit MSDF-only diagnostic mode
+- manifests and reports record strategy names
+
+## What changed
+
+- explicit text render strategies
+- stable `DirectOutlineStaticTextRenderer` API
+- direct-outline promoted to the default static diagnostic backend
+- MSDF relabeled as scalable/experimental in presets and reports
+- manifests record backend policy
+
+## What did not change
+
+- no MSDF generation/sampling/smoothing fix
+- no Typography outline extraction semantic change
+- no Standard text semantic change
+- no production `Machina.Standard` or raster text integration by default
+- no browser oracle repair
+
+## Future production integration path
+
+If production text integration follows, it should build on the M9d direct-outline API and remain explicitly opt-in until a separate runtime milestone chooses that path.
+
+## Future MSDF repair path
+
+MSDF repair remains a separate milestone focused on placement drift, larger-size mismatch growth, and scalable-text use cases.

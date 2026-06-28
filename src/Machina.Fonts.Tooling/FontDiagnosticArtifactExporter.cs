@@ -11,6 +11,7 @@ namespace Machina.Fonts.Tooling;
 public sealed class FontDiagnosticArtifactExporter
 {
     private readonly IGlyphDistanceFieldGenerator distanceFieldGenerator;
+    private readonly DirectOutlineStaticTextRenderer directOutlineRenderer;
     private readonly IGlyphOutlineSource outlineSource;
     private readonly GeneratedFieldAtlasPacker packer;
     private readonly IGlyphPairAdjustmentSource? pairAdjustmentSource;
@@ -25,6 +26,7 @@ public sealed class FontDiagnosticArtifactExporter
         this.distanceFieldGenerator = distanceFieldGenerator ?? throw new ArgumentNullException(nameof(distanceFieldGenerator));
         this.packer = packer ?? new GeneratedFieldAtlasPacker();
         this.pairAdjustmentSource = pairAdjustmentSource ?? outlineSource as IGlyphPairAdjustmentSource;
+        directOutlineRenderer = new DirectOutlineStaticTextRenderer(this.outlineSource, this.pairAdjustmentSource);
     }
 
     public async Task<FontDiagnosticExportResult> ExportAsync(
@@ -118,9 +120,9 @@ public sealed class FontDiagnosticArtifactExporter
             validated.Face.Value,
             shapeDiffSizeReports.Select(static report => report.SizePx).ToArray(),
             validated.TextDefinitions.Select(static definition => definition.Text).ToArray(),
-            "Direct outline rasterization with Machina's own kerning is the current geometry reference for M9 diagnostics.",
+            "Direct-outline static rasterization with Machina's own kerning is the current internal geometry reference for M9d diagnostics.",
             "Browser capture may still be useful for context, but browser horizontal kerning is not the target oracle in this workflow.",
-            "Diagnostic layers make measurements, baseline placement, bounds, and diffs easier to inspect for humans and LLMs without changing production text behavior.",
+            "Diagnostic layers make measurements, baseline placement, bounds, and diffs easier to inspect for humans and LLMs without changing production text behavior. MSDF remains available only as an explicit scalable/experimental comparison path.",
             shapeDiffSizeReports);
 
         LayerCompositionReport compositionReport = new(
@@ -236,14 +238,38 @@ public sealed class FontDiagnosticArtifactExporter
             string msdfPngPath = Path.Combine(sizeDirectory, definition.MsdfPngFileName);
             WritePngFile(msdfPngPath, msdfArtifact.Image);
 
+            DirectOutlineTextRenderResult directRender = await directOutlineRenderer.RenderAsync(
+                new DirectOutlineTextRenderOptions(
+                    definition.Text,
+                    options.Face,
+                    canvas.SizePx,
+                    canvas.Width,
+                    canvas.Height,
+                    options.Foreground,
+                    options.Background,
+                    canvas.OriginX,
+                    canvas.BaselineY,
+                    options.Weight,
+                    options.Slant,
+                    Supersample: 4,
+                    FillRule: OutlineFillRule.EvenOdd,
+                    CurveSubdivisionCount: 24,
+                    ShowBaselineGuide: true,
+                    BaselineGuideColor: options.GridOptions.BaselineColor,
+                    UsePairAdjustments: true),
+                cancellationToken);
+
+            if (!directRender.Success || directRender.Image is null || directRender.Mask is null)
+            {
+                string diagnostics = string.Join(
+                    " | ",
+                    directRender.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+                throw new InvalidOperationException($"Direct-outline static rendering failed for {definition.Id} at {canvas.SizePx}px. {diagnostics}");
+            }
+
             DirectOutlineMaskRenderOptions directOptions = CreateDirectOptions(options, canvas);
-            InkMask directMask = DirectOutlineMaskRenderer.RenderMask(outlinesByGlyph, layout, directOptions);
-            RgbaImage directImage = directMask.ToImage(
-                options.Foreground,
-                options.Background,
-                showBaselineGuide: true,
-                baselineY: canvas.BaselineY,
-                baselineGuideColor: options.GridOptions.BaselineColor);
+            InkMask directMask = directRender.Mask;
+            RgbaImage directImage = directRender.Image;
             string directPngPath = Path.Combine(sizeDirectory, definition.DirectOutlinePngFileName);
             WritePngFile(directPngPath, directImage);
 
@@ -274,6 +300,8 @@ public sealed class FontDiagnosticArtifactExporter
                     RoundToInt(canvas.BaselineY),
                     options.Background,
                     options.Foreground,
+                    options.StaticTextRenderStrategy,
+                    MachinaTextRenderStrategyCatalog.ScalableExperimental,
                     BrowserImage: null,
                     BrowserImagePath: null,
                     DirectImage: directImage,
@@ -326,6 +354,8 @@ public sealed class FontDiagnosticArtifactExporter
                 item.Scene.DirectImagePath,
                 item.Scene.MsdfImagePath,
                 item.Scene.WireframeImagePath,
+                MachinaTextRenderStrategyCatalog.GetStableName(item.Scene.StaticTextRenderStrategy),
+                MachinaTextRenderStrategyCatalog.GetStableName(item.Scene.MsdfRenderStrategy),
                 item.Scene.DirectBounds,
                 item.Scene.MsdfBounds,
                 item.Scene.GlyphWireframes,
@@ -358,6 +388,8 @@ public sealed class FontDiagnosticArtifactExporter
             scene.Id,
             scene.Text,
             artifactPath,
+            MachinaTextRenderStrategyCatalog.GetStableName(scene.StaticTextRenderStrategy),
+            GetRenderStrategiesForPreset(presetName, scene),
             presetAvailability,
             layers,
             new Dictionary<string, string?>(StringComparer.Ordinal)
@@ -374,6 +406,27 @@ public sealed class FontDiagnosticArtifactExporter
             scene.BrowserImage is null && presetName.Contains("browser", StringComparison.OrdinalIgnoreCase)
                 ? "Browser source unavailable. Preset still generated with browser layers hidden and a status label."
                 : null);
+    }
+
+    private static IReadOnlyList<string> GetRenderStrategiesForPreset(string presetName, FontDiagnosticScene scene)
+    {
+        List<string> strategies = [];
+
+        if (!string.Equals(presetName, "msdf-debug", StringComparison.OrdinalIgnoreCase))
+        {
+            strategies.Add(MachinaTextRenderStrategyCatalog.GetStableName(scene.StaticTextRenderStrategy));
+        }
+
+        if (presetName.Contains("msdf", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(presetName, "three-way", StringComparison.OrdinalIgnoreCase))
+        {
+            strategies.Add(MachinaTextRenderStrategyCatalog.GetStableName(scene.MsdfRenderStrategy));
+        }
+
+        return strategies
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static item => item, StringComparer.Ordinal)
+            .ToArray();
     }
 
     private async Task<Dictionary<GlyphKey, GlyphOutline>> LoadOutlinesAsync(
@@ -621,7 +674,7 @@ public sealed class FontDiagnosticArtifactExporter
     private static string BuildShapeDiffTextReport(FontShapeDiffReport report)
     {
         StringBuilder builder = new();
-        builder.AppendLine("Machina Font Toolkit M9c shape diff report");
+        builder.AppendLine("Machina Font Toolkit M9d shape diff report");
         builder.AppendLine($"fontPath: {report.FontPath}");
         builder.AppendLine($"fontFace: {report.FontFace}");
         builder.AppendLine($"sizes: {string.Join(", ", report.FontSizes.Select(static value => value + "px"))}");
@@ -641,6 +694,8 @@ public sealed class FontDiagnosticArtifactExporter
                 builder.AppendLine($"    directOutlinePngPath: {fixture.DirectOutlinePngPath}");
                 builder.AppendLine($"    msdfPngPath: {fixture.MsdfPngPath}");
                 builder.AppendLine($"    wireframePngPath: {fixture.WireframePngPath}");
+                builder.AppendLine($"    directOutlineRenderStrategy: {fixture.DirectOutlineRenderStrategy}");
+                builder.AppendLine($"    msdfRenderStrategy: {fixture.MsdfRenderStrategy}");
                 builder.AppendLine($"    directBounds: {FormatBounds(fixture.DirectOutlineBounds)}");
                 builder.AppendLine($"    msdfBounds: {FormatBounds(fixture.MsdfBounds)}");
                 builder.AppendLine($"    wireframes: {fixture.WireframeBounds.Count}");
@@ -663,7 +718,7 @@ public sealed class FontDiagnosticArtifactExporter
     private static string BuildLayerCompositionTextReport(LayerCompositionReport report)
     {
         StringBuilder builder = new();
-        builder.AppendLine("Machina Font Toolkit M9c layer composition report");
+        builder.AppendLine("Machina Font Toolkit M9d layer composition report");
         builder.AppendLine($"outputDirectory: {report.OutputDirectory}");
         builder.AppendLine($"presetsGenerated: {string.Join(", ", report.PresetsGenerated)}");
         builder.AppendLine();
@@ -672,6 +727,8 @@ public sealed class FontDiagnosticArtifactExporter
         {
             builder.AppendLine($"[{artifact.PresetName}] {artifact.Text} @ {artifact.SizePx}px");
             builder.AppendLine($"artifactPath: {artifact.ArtifactPath}");
+            builder.AppendLine($"referenceRenderStrategy: {artifact.ReferenceRenderStrategy}");
+            builder.AppendLine($"renderStrategies: {FormatJoinedValues(artifact.RenderStrategies)}");
             builder.AppendLine($"notes: {artifact.Notes ?? "none"}");
             builder.AppendLine($"presetComplete: {artifact.PresetAvailability.Complete.ToString().ToLowerInvariant()}");
             builder.AppendLine($"missingRequiredSources: {FormatJoinedValues(artifact.PresetAvailability.MissingRequiredSources)}");
@@ -707,12 +764,15 @@ public sealed class FontDiagnosticArtifactExporter
     private static string BuildManifestTextReport(FontDiagnosticExportManifest manifest)
     {
         StringBuilder builder = new();
-        builder.AppendLine("Machina Font Toolkit M9c export manifest");
+        builder.AppendLine("Machina Font Toolkit M9d export manifest");
         builder.AppendLine($"format: {manifest.Format}");
         builder.AppendLine($"kind: {manifest.Kind}");
         builder.AppendLine($"milestone: {manifest.Milestone}");
         builder.AppendLine($"outputDirectory: {manifest.OutputDirectory}");
         builder.AppendLine($"presets: {string.Join(", ", manifest.Presets)}");
+        builder.AppendLine("textBackend:");
+        builder.AppendLine($"  staticDefault: {manifest.TextBackend.StaticDefault}");
+        builder.AppendLine($"  scalableExperimental: {manifest.TextBackend.ScalableExperimental}");
         builder.AppendLine($"complete: {manifest.Complete.ToString().ToLowerInvariant()}");
         builder.AppendLine($"generatedAtUtc: {manifest.GeneratedAtUtc ?? "<omitted>"}");
         builder.AppendLine("options:");
@@ -992,12 +1052,15 @@ public sealed class FontDiagnosticArtifactExporter
         return new FontDiagnosticExportManifest(
             Format: 1,
             Kind: "machina-font-diagnostic-export",
-            Milestone: "M9c",
+            Milestone: "M9d",
             OutputDirectory: outputDirectory,
             Presets: options.PresetNames
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(static item => item, StringComparer.OrdinalIgnoreCase)
                 .ToArray(),
+            TextBackend: new FontDiagnosticTextBackendPolicy(
+                MachinaTextRenderStrategyCatalog.GetStableName(options.StaticTextRenderStrategy),
+                MachinaTextRenderStrategyCatalog.GetStableName(MachinaTextRenderStrategyCatalog.ScalableExperimental)),
             Options: new FontDiagnosticExportManifestOptions(
                 options.CleanOutputDirectory,
                 options.AllowPartial,

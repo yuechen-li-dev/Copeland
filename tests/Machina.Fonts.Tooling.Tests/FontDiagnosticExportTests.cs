@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Machina.Fonts.Generation.MsdfSharp;
+using Machina.Fonts.ReferenceRendering;
 using Machina.Fonts.Tooling;
 using Xunit;
 
@@ -19,6 +20,7 @@ public sealed class FontDiagnosticExportTests
     private const string ShowWireframeEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_SHOW_WIREFRAME";
     private const string CleanEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_CLEAN";
     private const string AllowPartialEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_ALLOW_PARTIAL";
+    private const string TextBackendEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_TEXT_BACKEND";
     private const string RepositoryRootEnvironmentVariable = "MACHINA_FONT_DIAGNOSTICS_REPO_ROOT";
 
     [Fact]
@@ -32,13 +34,15 @@ public sealed class FontDiagnosticExportTests
 
         FontDiagnosticExportResult result = await CreateExporter().ExportAsync(options);
 
-        Assert.Equal(6, result.LayerCompositionReport.Artifacts.Count);
+        Assert.Equal(8, result.LayerCompositionReport.Artifacts.Count);
         Assert.All(
             result.LayerCompositionReport.Artifacts,
             artifact =>
             {
                 Assert.Equal("cad-debug", artifact.PresetName);
                 Assert.True(artifact.PresetAvailability.Complete);
+                Assert.Equal("DirectOutlineStatic", artifact.ReferenceRenderStrategy);
+                Assert.Contains("DirectOutlineStatic", artifact.RenderStrategies);
                 Assert.Contains(artifact.Layers, layer => layer.Id == "grid");
                 Assert.Contains(artifact.Layers, layer => layer.Id == "axes");
                 Assert.Contains(artifact.Layers, layer => layer.Id == "baseline");
@@ -58,10 +62,10 @@ public sealed class FontDiagnosticExportTests
         Assert.True(File.Exists(result.LayerCompositionReportTextPath));
         Assert.True(File.Exists(result.ManifestJsonPath));
         Assert.True(File.Exists(result.ManifestTextPath));
-        Assert.True(File.Exists(Path.Combine(directory, "32", "m9b-direct-vs-msdf-machina.png")));
-        Assert.True(File.Exists(Path.Combine(directory, "32", "m9b-cad-debug-machina.png")));
-        Assert.True(File.Exists(Path.Combine(directory, "64", "m9b-direct-vs-msdf-hello-machina.png")));
-        Assert.True(File.Exists(Path.Combine(directory, "64", "m9b-cad-debug-kerning.png")));
+        Assert.True(File.Exists(Path.Combine(directory, "32", "m9d-direct-vs-msdf-machina.png")));
+        Assert.True(File.Exists(Path.Combine(directory, "32", "m9d-cad-debug-machina.png")));
+        Assert.True(File.Exists(Path.Combine(directory, "64", "m9d-direct-vs-msdf-hello-machina.png")));
+        Assert.True(File.Exists(Path.Combine(directory, "64", "m9d-cad-debug-kerning.png")));
     }
 
     [Fact]
@@ -115,7 +119,7 @@ public sealed class FontDiagnosticExportTests
 
         foreach (string presetName in result.LayerCompositionReport.PresetsGenerated)
         {
-            Assert.True(File.Exists(Path.Combine(directory, "32", $"m9b-{presetName}-machina.png")));
+            Assert.True(File.Exists(Path.Combine(directory, "32", $"m9d-{presetName}-machina.png")));
         }
     }
 
@@ -266,7 +270,7 @@ public sealed class FontDiagnosticExportTests
         Assert.False(result.Manifest.Complete);
         Assert.Contains(result.Manifest.Warnings, warning => warning.Contains("degraded", StringComparison.OrdinalIgnoreCase));
         Assert.Empty(result.Manifest.Errors);
-        Assert.True(File.Exists(Path.Combine(directory, "32", "m9b-browser-vs-direct-machina.png")));
+        Assert.True(File.Exists(Path.Combine(directory, "32", "m9d-browser-vs-direct-machina.png")));
     }
 
     [Fact]
@@ -301,7 +305,9 @@ public sealed class FontDiagnosticExportTests
         FontDiagnosticExportResult result = await CreateExporter().ExportAsync(CreateOptions(directory));
 
         Assert.True(File.Exists(result.ManifestTextPath));
-        Assert.Contains("Machina Font Toolkit M9c export manifest", File.ReadAllText(result.ManifestTextPath), StringComparison.Ordinal);
+        Assert.Contains("Machina Font Toolkit M9d export manifest", File.ReadAllText(result.ManifestTextPath), StringComparison.Ordinal);
+        Assert.Equal("DirectOutlineStatic", result.Manifest.TextBackend.StaticDefault);
+        Assert.Equal("MsdfScalableExperimental", result.Manifest.TextBackend.ScalableExperimental);
     }
 
     [Fact]
@@ -366,7 +372,7 @@ public sealed class FontDiagnosticExportTests
         {
             OutputDirectory = outputDirectory,
             RepositoryRootDirectory = FindRepoRoot(),
-            AtlasName = "crimson-text-m9b-diagnostics",
+            AtlasName = "crimson-text-m9d-diagnostics",
             FontPath = CrimsonTextFixtureFont.FontPath,
             FontFamilyName = "Crimson Text",
             FontStyleName = "Regular",
@@ -378,6 +384,7 @@ public sealed class FontDiagnosticExportTests
                 new FontDiagnosticTextDefinition("machina", "Machina"),
                 new FontDiagnosticTextDefinition("hello-machina", "Hello Machina"),
                 new FontDiagnosticTextDefinition("kerning", "AV To Ta Wa Yo"),
+                new FontDiagnosticTextDefinition("aa0", "Aa0"),
             ],
             CanvasDefinitions =
             [
@@ -425,6 +432,7 @@ public sealed class FontDiagnosticExportTests
             PresetNames = presets,
             GridOptions = gridOptions,
             BoundsOptions = boundsOptions,
+            StaticTextRenderStrategy = ReadTextBackend(TextBackendEnvironmentVariable, baseOptions.StaticTextRenderStrategy),
             CleanOutputDirectory = ReadBoolean(CleanEnvironmentVariable, baseOptions.CleanOutputDirectory),
             AllowPartial = ReadBoolean(AllowPartialEnvironmentVariable, baseOptions.AllowPartial),
         };
@@ -485,6 +493,14 @@ public sealed class FontDiagnosticExportTests
             : value;
     }
 
+    private static MachinaTextRenderStrategy ReadTextBackend(string variableName, MachinaTextRenderStrategy defaultValue)
+    {
+        string? value = Environment.GetEnvironmentVariable(variableName);
+        return string.IsNullOrWhiteSpace(value)
+            ? defaultValue
+            : MachinaTextRenderStrategyCatalog.ParseStableName(value);
+    }
+
     private static string[] ReadPresets(IReadOnlyList<string> defaultPresets)
     {
         string? value = Environment.GetEnvironmentVariable(PresetEnvironmentVariable);
@@ -512,7 +528,7 @@ public sealed class FontDiagnosticExportTests
 
     private static string CreateDirectory()
     {
-        return Path.Combine(Path.GetTempPath(), "machina-font-tooling-m9c-tests", Guid.NewGuid().ToString("N"));
+        return Path.Combine(Path.GetTempPath(), "machina-font-tooling-m9d-tests", Guid.NewGuid().ToString("N"));
     }
 
     private static string FindRepoRoot()

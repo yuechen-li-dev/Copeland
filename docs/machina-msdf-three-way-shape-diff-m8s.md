@@ -232,3 +232,11 @@ M9b keeps that same diagnostic lesson, but expresses it through configurable lay
 - three-way comparison is now one preset instead of one hardcoded export shape
 - CAD-style grid, bounds, axes, baseline, labels, and diff layers can now be recombined for humans and LLMs
 - this is still tooling ergonomics only, not a renderer fix
+
+## M9d follow-up
+
+The M8s direct-outline path is now the formal static geometry reference inside the tooling stack.
+
+Browser horizontal kerning is still not the oracle, and M9d still does not attempt an MSDF repair.
+
+See `docs/machina-direct-outline-static-text-m9d.md`.

@@ -149,3 +149,13 @@ Key script options now include:
 - M9c does not change direct-outline rasterization
 - M9c does not change MSDF sampling, smoothing, or thresholds
 - M9c does not change atlas packing or production renderer integration
+
+## M9d follow-up
+
+M9d keeps the M9c export-hygiene contract and adds an explicit backend policy:
+
+- `DirectOutlineStatic` is now the default static/UI-text proof backend
+- `MsdfScalableExperimental` remains opt-in
+- manifests and reports now record the strategy split directly
+
+See `docs/machina-direct-outline-static-text-m9d.md`.

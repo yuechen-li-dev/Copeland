@@ -153,7 +153,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Images | Renderer/Core | Deferred | None | Later asset pipeline milestone.
 | Real text backend | Raster.Text adapter | Planned | Debug text tests only | Roadmap M1g candidate.
 | PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement; M7e keeps the default local audit path on `artifacts/m7e/`. |
-| Font diagnostics toolkit | Machina.Fonts.Tooling | Implemented | Toolkit tests + local export script | M9a establishes the toolkit boundary and CAD overlays; M9b adds configurable layers and named presets; M9c adds clean export hygiene, source-availability contracts, and deterministic manifests without introducing production dependencies. |
+| Font diagnostics toolkit | Machina.Fonts.Tooling | Implemented | Toolkit tests + local export script | M9a establishes the toolkit boundary and CAD overlays; M9b adds configurable layers and named presets; M9c adds clean export hygiene, source-availability contracts, and deterministic manifests; M9d formalizes direct-outline as the default static proof backend while keeping MSDF explicit and experimental. |
 | Gallery-driven visual defect sweep | Machina.Standard + ComponentGallery sample | Implemented | Local PNG inspection + docs | M7c formalizes gallery-based visual triage and explicit deferral documentation; small safe fixes remain opportunistic. |
 | Gallery baseline and limitation register | ComponentGallery sample + docs | Implemented | Local PNG inspection + docs + export-contract tests | M7e marks the current gallery baseline stable enough for routine audits and records intentional renderer/sample limitations. |
 | Dirty rects | Renderer/runtime | Deferred | None | Performance milestone later.
@@ -242,6 +242,7 @@ React mapping guide:
 - **M9a**: `Machina.Fonts.Tooling` consolidation, CAD-style diagnostic grid, unified artifact export, and production-vs-tooling boundary documentation (implemented).
 - **M9b**: configurable diagnostic layers, named compositions/presets, preset-driven export workflow, and LLM/human inspection ergonomics (implemented).
 - **M9c**: export hygiene, clean-mode guardrails, source-availability contract, strict-vs-partial preset policy, and deterministic export manifests (implemented).
+- **M9d**: direct-outline static text backend formalized as the default diagnostic/static proof path, stable direct-outline renderer API, and explicit MSDF scalable/experimental labeling (implemented).
 
 ## Open Questions
 

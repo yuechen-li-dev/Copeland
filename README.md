@@ -81,6 +81,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina Font Toolkit M9a](docs/machina-font-toolkit-m9a.md)
 - [Machina Font Toolkit Layers M9b](docs/machina-font-toolkit-layers-m9b.md)
 - [Machina Font Toolkit Export Hygiene M9c](docs/machina-font-toolkit-export-hygiene-m9c.md)
+- [Machina Direct-Outline Static Text M9d](docs/machina-direct-outline-static-text-m9d.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -200,24 +201,24 @@ Current M8s outputs include:
 
 M8s is diagnostic tooling only. It adds a direct-outline raster oracle, multi-size mask metrics, and three-way overlays without changing MSDF sampling, baseline placement, kerning behavior, or any production text path.
 
-Current consolidated M9c font-toolkit workflow:
+Current consolidated M9d font-toolkit workflow:
 
 ```powershell
-.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9c -Preset direct-vs-msdf -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
-.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9c-partial -Preset browser-vs-direct -AllowPartial -Clean
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9d -Preset cad-debug -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9d-msdf -Preset msdf-debug -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
 ```
 
-Current M9c outputs include:
+Current M9d outputs include:
 
-- `artifacts/m9c/32/m9b-direct-vs-msdf-hello-machina.png`
-- `artifacts/m9c/layer-composition-report.txt`
-- `artifacts/m9c/layer-composition-report.json`
-- `artifacts/m9c/shape-diff-report.txt`
-- `artifacts/m9c/shape-diff-report.json`
-- `artifacts/m9c/font-diagnostic-export-manifest.txt`
-- `artifacts/m9c/font-diagnostic-export-manifest.json`
+- `artifacts/m9d/32/direct-outline-hello-machina.png`
+- `artifacts/m9d/32/m9d-cad-debug-hello-machina.png`
+- `artifacts/m9d/32/m9d-direct-vs-msdf-hello-machina.png`
+- `artifacts/m9d/shape-diff-report.txt`
+- `artifacts/m9d/shape-diff-report.json`
+- `artifacts/m9d/font-diagnostic-export-manifest.txt`
+- `artifacts/m9d/font-diagnostic-export-manifest.json`
 
-M9c is still diagnostic tooling only. It keeps the `Machina.Fonts.Tooling` boundary, adds clean export mode plus guardrails, makes source availability machine-readable, writes an export manifest, and explicitly does not claim a renderer or MSDF fix.
+M9d is still diagnostic tooling only. It formalizes direct-outline as the default static/UI-text proof backend, keeps MSDF explicit as scalable/experimental, and does not change production UI text behavior or attempt an MSDF fix.
 
 M8q.2 remains the baseline-guide overlay pass that preceded M8r. Its current proof export is:
 

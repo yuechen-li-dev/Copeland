@@ -1,3 +1,5 @@
+using Machina.Fonts.ReferenceRendering;
+
 namespace Machina.Fonts.Tooling;
 
 public enum FontDiagnosticSourceKind
@@ -73,12 +75,17 @@ public sealed record FontDiagnosticExportManifestOptions(
     bool ShowBounds,
     bool ShowWireframes);
 
+public sealed record FontDiagnosticTextBackendPolicy(
+    string StaticDefault,
+    string ScalableExperimental);
+
 public sealed record FontDiagnosticExportManifest(
     int Format,
     string Kind,
     string Milestone,
     string OutputDirectory,
     IReadOnlyList<string> Presets,
+    FontDiagnosticTextBackendPolicy TextBackend,
     FontDiagnosticExportManifestOptions Options,
     FontDiagnosticSourceAvailability Sources,
     IReadOnlyList<FontDiagnosticPresetAvailabilityReport> PresetReports,

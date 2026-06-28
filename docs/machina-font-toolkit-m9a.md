@@ -204,3 +204,12 @@ M9c keeps the same tooling-only boundary and focuses on export hygiene instead o
 - export folders now include deterministic manifest files so full and partial runs are harder to misread
 
 See `docs/machina-font-toolkit-export-hygiene-m9c.md`.
+
+## M9d follow-up
+
+The consolidated toolkit from M9a now has an explicit backend split:
+
+- direct-outline is the default static proof path
+- MSDF remains available, but only as an explicit scalable/experimental path
+
+That change stays within `Machina.Fonts` and `Machina.Fonts.Tooling`; it does not change production UI rendering.

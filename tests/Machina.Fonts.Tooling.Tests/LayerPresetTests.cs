@@ -47,6 +47,9 @@ public sealed class LayerPresetTests
         Assert.Contains(composition.Layers, layer => layer is DiagnosticBaselineLayer { Id: "baseline" });
         Assert.Contains(composition.Layers, layer => layer is DiagnosticBoundsLayer { Id: "bounds" });
         Assert.Contains(composition.Layers, layer => layer is DiagnosticGlyphWireframeLayer { Id: "glyph-wireframes" });
+
+        DiagnosticImageLayer imageLayer = Assert.Single(composition.Layers.OfType<DiagnosticImageLayer>());
+        Assert.Equal("Direct-outline static image", imageLayer.Label);
     }
 
     [Fact]
@@ -56,8 +59,8 @@ public sealed class LayerPresetTests
             .GetPreset("msdf-debug")
             .CreateComposition(CreateScene(), CreateOptions());
 
-        Assert.Contains(composition.Layers, layer => layer is DiagnosticImageLayer { Id: "msdf-image" });
-        Assert.Contains(composition.Layers, layer => layer is DiagnosticMaskLayer { Id: "msdf-mask" });
+        Assert.Contains(composition.Layers, layer => layer is DiagnosticImageLayer { Id: "msdf-image", Label: "MSDF scalable/experimental image" });
+        Assert.Contains(composition.Layers, layer => layer is DiagnosticMaskLayer { Id: "msdf-mask", Label: "MSDF scalable/experimental mask" });
 
         DiagnosticBoundsLayer boundsLayer = Assert.Single(composition.Layers.OfType<DiagnosticBoundsLayer>());
         Assert.Contains(boundsLayer.Items, item => item.Id == "msdf-bounds");
@@ -98,6 +101,16 @@ public sealed class LayerPresetTests
         Assert.Empty(preset.Requirements.RequiredSources);
     }
 
+    [Fact]
+    public void LayerPreset_DirectVsMsdf_LabelsMsdfExperimental()
+    {
+        DiagnosticLayerComposition composition = LayerPresets
+            .GetPreset("direct-vs-msdf")
+            .CreateComposition(CreateScene(), CreateOptions());
+
+        Assert.Contains(composition.Layers, layer => layer is DiagnosticImageLayer { Id: "msdf-image", Label: "MSDF scalable/experimental image" });
+    }
+
     private static FontDiagnosticScene CreateScene()
     {
         RgbaImage directImage = CreateFilledImage(32, 16, new Rgba32(10, 10, 10, 255));
@@ -115,6 +128,8 @@ public sealed class LayerPresetTests
             12,
             Rgba32.Black,
             Rgba32.White,
+            MachinaTextRenderStrategy.DirectOutlineStatic,
+            MachinaTextRenderStrategy.MsdfScalableExperimental,
             BrowserImage: null,
             BrowserImagePath: null,
             DirectImage: directImage,

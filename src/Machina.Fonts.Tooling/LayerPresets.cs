@@ -11,6 +11,8 @@ public sealed record FontDiagnosticScene(
     int BaselineY,
     Rgba32 Background,
     Rgba32 Foreground,
+    MachinaTextRenderStrategy StaticTextRenderStrategy,
+    MachinaTextRenderStrategy MsdfRenderStrategy,
     RgbaImage? BrowserImage,
     string? BrowserImagePath,
     RgbaImage DirectImage,
@@ -64,7 +66,7 @@ public static class LayerPresets
                 static (scene, options) => CreateBrowserVsDirect(scene, options)),
             ["direct-vs-msdf"] = new(
                 "direct-vs-msdf",
-                "Direct outline and MSDF image comparison with bounds and baseline.",
+                "Direct-outline static reference and MSDF scalable/experimental comparison with bounds and baseline.",
                 new FontDiagnosticPresetRequirements(
                 [
                     FontDiagnosticSourceKind.DirectOutline,
@@ -73,7 +75,7 @@ public static class LayerPresets
                 static (scene, options) => CreateDirectVsMsdf(scene, options)),
             ["browser-vs-msdf"] = new(
                 "browser-vs-msdf",
-                "Browser image and MSDF image comparison with bounds and baseline.",
+                "Browser image and MSDF scalable/experimental image comparison with bounds and baseline.",
                 new FontDiagnosticPresetRequirements(
                 [
                     FontDiagnosticSourceKind.BrowserReference,
@@ -82,7 +84,7 @@ public static class LayerPresets
                 static (scene, options) => CreateBrowserVsMsdf(scene, options)),
             ["three-way"] = new(
                 "three-way",
-                "Three-way mask overlay for browser, direct outline, and MSDF where available.",
+                "Three-way mask overlay for browser, direct-outline static, and MSDF scalable/experimental where available.",
                 new FontDiagnosticPresetRequirements(
                 [
                     FontDiagnosticSourceKind.BrowserReference,
@@ -97,25 +99,23 @@ public static class LayerPresets
                 static (scene, options) => CreateGridOnly(scene, options)),
             ["bounds-only"] = new(
                 "bounds-only",
-                "Bounds and wireframe overlay without image comparison.",
+                "Direct-outline static bounds and wireframe overlay without image comparison.",
                 new FontDiagnosticPresetRequirements(
                 [
                     FontDiagnosticSourceKind.DirectOutline,
-                    FontDiagnosticSourceKind.Msdf,
                 ]),
                 static (scene, options) => CreateBoundsOnly(scene, options)),
             ["cad-debug"] = new(
                 "cad-debug",
-                "CAD-style debug view with grid, axes, baseline, bounds, labels, and wireframes.",
+                "CAD-style debug view with direct-outline static reference, grid, axes, baseline, bounds, labels, and wireframes.",
                 new FontDiagnosticPresetRequirements(
                 [
                     FontDiagnosticSourceKind.DirectOutline,
-                    FontDiagnosticSourceKind.Msdf,
                 ]),
                 static (scene, options) => CreateCadDebug(scene, options)),
             ["msdf-debug"] = new(
                 "msdf-debug",
-                "MSDF-focused debug view with MSDF image, mask, bounds, and wireframes.",
+                "MSDF scalable/experimental debug view with MSDF image, mask, bounds, and wireframes.",
                 new FontDiagnosticPresetRequirements(
                 [
                     FontDiagnosticSourceKind.Msdf,
@@ -131,7 +131,7 @@ public static class LayerPresets
             CreateAxisLayer(scene, options, 10),
             CreateBaselineLayer(scene, options, 20),
             new DiagnosticImageLayer("browser-image", "Browser image", scene.BrowserImage is not null, 0.75d, 30, scene.BrowserImage, SourcePath: scene.BrowserImagePath, MissingReason: "Browser source unavailable."),
-            new DiagnosticImageLayer("direct-image", "Direct outline image", true, scene.BrowserImage is not null ? 0.65d : 1d, 40, scene.DirectImage, SourcePath: scene.DirectImagePath),
+            new DiagnosticImageLayer("direct-image", "Direct-outline static image", true, scene.BrowserImage is not null ? 0.65d : 1d, 40, scene.DirectImage, SourcePath: scene.DirectImagePath),
             CreateBoundsLayer(scene, options, includeBrowser: true, includeDirect: true, includeMsdf: false, zIndex: 60),
             CreateBrowserUnavailableLabel(scene, 70),
         ];
@@ -146,9 +146,9 @@ public static class LayerPresets
             CreateGridLayer(scene, options, 0),
             CreateAxisLayer(scene, options, 10),
             CreateBaselineLayer(scene, options, 20),
-            new DiagnosticImageLayer("direct-image", "Direct outline image", true, 0.70d, 30, scene.DirectImage, SourcePath: scene.DirectImagePath),
-            new DiagnosticImageLayer("msdf-image", "MSDF image", true, 0.70d, 40, scene.MsdfImage, SourcePath: scene.MsdfImagePath),
-            CreateDifferenceLayer(scene, options, "difference", "Direct vs MSDF difference", scene.DirectMask, scene.MsdfMask, null, zIndex: 50),
+            new DiagnosticImageLayer("direct-image", "Direct-outline static image", true, 0.70d, 30, scene.DirectImage, SourcePath: scene.DirectImagePath),
+            new DiagnosticImageLayer("msdf-image", "MSDF scalable/experimental image", true, 0.70d, 40, scene.MsdfImage, SourcePath: scene.MsdfImagePath),
+            CreateDifferenceLayer(scene, options, "difference", "Direct-outline static vs MSDF scalable/experimental difference", scene.DirectMask, scene.MsdfMask, null, zIndex: 50),
             CreateBoundsLayer(scene, options, includeBrowser: false, includeDirect: true, includeMsdf: true, zIndex: 60),
         ];
 
@@ -163,7 +163,7 @@ public static class LayerPresets
             CreateAxisLayer(scene, options, 10),
             CreateBaselineLayer(scene, options, 20),
             new DiagnosticImageLayer("browser-image", "Browser image", scene.BrowserImage is not null, 0.75d, 30, scene.BrowserImage, SourcePath: scene.BrowserImagePath, MissingReason: "Browser source unavailable."),
-            new DiagnosticImageLayer("msdf-image", "MSDF image", true, scene.BrowserImage is not null ? 0.65d : 1d, 40, scene.MsdfImage, SourcePath: scene.MsdfImagePath),
+            new DiagnosticImageLayer("msdf-image", "MSDF scalable/experimental image", true, scene.BrowserImage is not null ? 0.65d : 1d, 40, scene.MsdfImage, SourcePath: scene.MsdfImagePath),
             CreateBoundsLayer(scene, options, includeBrowser: true, includeDirect: false, includeMsdf: true, zIndex: 60),
             CreateBrowserUnavailableLabel(scene, 70),
         ];
@@ -218,8 +218,8 @@ public static class LayerPresets
     {
         List<DiagnosticLayer> layers =
         [
-            new DiagnosticImageLayer("direct-image", "Direct outline image", true, 0.35d, 0, scene.DirectImage, SourcePath: scene.DirectImagePath),
-            CreateBoundsLayer(scene, options, includeBrowser: true, includeDirect: true, includeMsdf: true, zIndex: 10),
+            new DiagnosticImageLayer("direct-image", "Direct-outline static image", true, 0.35d, 0, scene.DirectImage, SourcePath: scene.DirectImagePath),
+            CreateBoundsLayer(scene, options, includeBrowser: true, includeDirect: true, includeMsdf: false, zIndex: 10),
             CreateGlyphWireframeLayer(scene, options, 20),
             CreateBrowserUnavailableLabel(scene, 30),
         ];
@@ -231,11 +231,11 @@ public static class LayerPresets
     {
         List<DiagnosticLayer> layers =
         [
-            new DiagnosticImageLayer("direct-image", "Direct outline image", true, 0.40d, 0, scene.DirectImage, SourcePath: scene.DirectImagePath),
+            new DiagnosticImageLayer("direct-image", "Direct-outline static image", true, 0.40d, 0, scene.DirectImage, SourcePath: scene.DirectImagePath),
             CreateGridLayer(scene, options, 10),
             CreateAxisLayer(scene, options, 20),
             CreateBaselineLayer(scene, options, 30),
-            CreateBoundsLayer(scene, options, includeBrowser: true, includeDirect: true, includeMsdf: true, zIndex: 40),
+            CreateBoundsLayer(scene, options, includeBrowser: true, includeDirect: true, includeMsdf: false, zIndex: 40),
             CreateGlyphWireframeLayer(scene, options, 50),
             new DiagnosticTextLabelLayer(
                 "cad-labels",
@@ -257,8 +257,8 @@ public static class LayerPresets
             CreateGridLayer(scene, options, 0),
             CreateAxisLayer(scene, options, 10),
             CreateBaselineLayer(scene, options, 20),
-            new DiagnosticImageLayer("msdf-image", "MSDF image", true, 0.80d, 30, scene.MsdfImage, SourcePath: scene.MsdfImagePath),
-            new DiagnosticMaskLayer("msdf-mask", "MSDF mask", true, 0.30d, 40, scene.MsdfMask, options.BoundsOptions.MsdfBoundsColor, SourcePath: scene.MsdfImagePath),
+            new DiagnosticImageLayer("msdf-image", "MSDF scalable/experimental image", true, 0.80d, 30, scene.MsdfImage, SourcePath: scene.MsdfImagePath),
+            new DiagnosticMaskLayer("msdf-mask", "MSDF scalable/experimental mask", true, 0.30d, 40, scene.MsdfMask, options.BoundsOptions.MsdfBoundsColor, SourcePath: scene.MsdfImagePath),
             CreateBoundsLayer(scene, options, includeBrowser: false, includeDirect: false, includeMsdf: true, zIndex: 50),
             CreateGlyphWireframeLayer(scene, options, 60),
         ];

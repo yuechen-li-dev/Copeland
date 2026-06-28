@@ -1,9 +1,11 @@
 [CmdletBinding()]
 param(
-    [string]$OutputDir = "artifacts\\m9c",
+    [string]$OutputDir = "artifacts\\m9d",
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug",
     [string[]]$Preset = @("direct-vs-msdf", "cad-debug"),
+    [ValidateSet("DirectOutlineStatic", "MsdfScalableExperimental")]
+    [string]$TextBackend = "DirectOutlineStatic",
     [switch]$ShowGrid,
     [int]$GridStep = 8,
     [switch]$ShowUnitLabels,
@@ -34,11 +36,11 @@ Push-Location $repoRoot
 
 try
 {
-    $effectiveShowGrid = $PSBoundParameters.ContainsKey("ShowGrid") ? $ShowGrid.IsPresent : $true
-    $effectiveShowUnitLabels = $PSBoundParameters.ContainsKey("ShowUnitLabels") ? $ShowUnitLabels.IsPresent : $true
-    $effectiveShowAxes = $PSBoundParameters.ContainsKey("ShowAxes") ? $ShowAxes.IsPresent : $true
-    $effectiveShowBounds = $PSBoundParameters.ContainsKey("ShowBounds") ? $ShowBounds.IsPresent : $true
-    $effectiveShowWireframe = $PSBoundParameters.ContainsKey("ShowWireframe") ? $ShowWireframe.IsPresent : $true
+    $effectiveShowGrid = if ($PSBoundParameters.ContainsKey("ShowGrid")) { $ShowGrid.IsPresent } else { $true }
+    $effectiveShowUnitLabels = if ($PSBoundParameters.ContainsKey("ShowUnitLabels")) { $ShowUnitLabels.IsPresent } else { $true }
+    $effectiveShowAxes = if ($PSBoundParameters.ContainsKey("ShowAxes")) { $ShowAxes.IsPresent } else { $true }
+    $effectiveShowBounds = if ($PSBoundParameters.ContainsKey("ShowBounds")) { $ShowBounds.IsPresent } else { $true }
+    $effectiveShowWireframe = if ($PSBoundParameters.ContainsKey("ShowWireframe")) { $ShowWireframe.IsPresent } else { $true }
 
     $env:MACHINA_FONT_DIAGNOSTICS_OUTPUT_DIR = $resolvedOutputDir
     $env:MACHINA_FONT_DIAGNOSTICS_PRESET = ($Preset -join ",")
@@ -51,6 +53,7 @@ try
     $env:MACHINA_FONT_DIAGNOSTICS_SHOW_WIREFRAME = $effectiveShowWireframe.ToString().ToLowerInvariant()
     $env:MACHINA_FONT_DIAGNOSTICS_CLEAN = $Clean.IsPresent.ToString().ToLowerInvariant()
     $env:MACHINA_FONT_DIAGNOSTICS_ALLOW_PARTIAL = $AllowPartial.IsPresent.ToString().ToLowerInvariant()
+    $env:MACHINA_FONT_DIAGNOSTICS_TEXT_BACKEND = $TextBackend
     $env:MACHINA_FONT_DIAGNOSTICS_REPO_ROOT = $repoRoot.Path
 
     if (-not $Clean.IsPresent -and (Test-Path -LiteralPath $resolvedOutputDir))
@@ -91,11 +94,12 @@ finally
     Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_SHOW_WIREFRAME -ErrorAction SilentlyContinue
     Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_CLEAN -ErrorAction SilentlyContinue
     Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_ALLOW_PARTIAL -ErrorAction SilentlyContinue
+    Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_TEXT_BACKEND -ErrorAction SilentlyContinue
     Remove-Item Env:\MACHINA_FONT_DIAGNOSTICS_REPO_ROOT -ErrorAction SilentlyContinue
     Pop-Location
 }
 
-Write-Host "Created Machina M9c font diagnostics artifacts:"
+Write-Host "Created Machina M9d font diagnostics artifacts:"
 Get-ChildItem -LiteralPath $resolvedOutputDir -Recurse | Sort-Object FullName | ForEach-Object {
     Write-Host $_.FullName
 }

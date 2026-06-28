@@ -8,7 +8,7 @@ public sealed record FontDiagnosticTextDefinition(string Id, string Text)
 {
     public string GetPresetArtifactFileName(string presetName)
     {
-        return $"m9b-{presetName}-{Id}.png";
+        return $"m9d-{presetName}-{Id}.png";
     }
 
     public string DirectOutlinePngFileName => $"direct-outline-{Id}.png";
@@ -119,6 +119,8 @@ public sealed record FontDiagnosticExportOptions
         "cad-debug",
     ];
 
+    public MachinaTextRenderStrategy StaticTextRenderStrategy { get; init; } = MachinaTextRenderStrategyCatalog.DefaultStatic;
+
     public bool CleanOutputDirectory { get; init; }
 
     public bool AllowPartial { get; init; }
@@ -174,6 +176,12 @@ public sealed record FontDiagnosticExportOptions
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(presetName);
             _ = LayerPresets.GetPreset(presetName);
+        }
+
+        if (!MachinaTextRenderStrategyCatalog.IsStaticDefault(StaticTextRenderStrategy)
+            && StaticTextRenderStrategy != MachinaTextRenderStrategy.MsdfScalableExperimental)
+        {
+            throw new InvalidOperationException($"Unsupported static text render strategy '{StaticTextRenderStrategy}'.");
         }
 
         return this;

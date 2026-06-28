@@ -127,11 +127,11 @@ Current M8s audit command:
 .\tools\Export-MachinaFontShapeDiff.ps1 -OutputDir artifacts\m8s
 ```
 
-Current M9c audit commands:
+Current M9d audit commands:
 
 ```powershell
-.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9c -Preset direct-vs-msdf -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
-.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9c-partial -Preset browser-vs-direct -AllowPartial -Clean
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9d -Preset cad-debug -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9d-msdf -Preset msdf-debug -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
 ```
 
 ## Current component gallery outputs
@@ -303,14 +303,14 @@ These remain local diagnostic artifacts only. M8r makes mismatch explicit with o
 
 These remain local diagnostic artifacts only. M8s adds a direct-outline mask oracle, multi-size numeric shape-diff metrics, and three-way overlays without changing MSDF sampling, baseline placement, kerning, `GlyphFieldPlacement`, or any production text path.
 
-## Current M9c consolidated font toolkit outputs
+## Current M9d consolidated font toolkit outputs
 
-- `artifacts/m9c/32/m9b-direct-vs-msdf-hello-machina.png`
-- `artifacts/m9c/layer-composition-report.txt`
-- `artifacts/m9c/layer-composition-report.json`
-- `artifacts/m9c/shape-diff-report.txt`
-- `artifacts/m9c/shape-diff-report.json`
-- `artifacts/m9c/font-diagnostic-export-manifest.txt`
-- `artifacts/m9c/font-diagnostic-export-manifest.json`
+- `artifacts/m9d/32/direct-outline-hello-machina.png`
+- `artifacts/m9d/32/m9d-cad-debug-hello-machina.png`
+- `artifacts/m9d/32/m9d-direct-vs-msdf-hello-machina.png`
+- `artifacts/m9d/shape-diff-report.txt`
+- `artifacts/m9d/shape-diff-report.json`
+- `artifacts/m9d/font-diagnostic-export-manifest.txt`
+- `artifacts/m9d/font-diagnostic-export-manifest.json`
 
-These remain local diagnostic artifacts only. M9c adds clean export mode, manifest files, and explicit source availability so repeated local/Codex runs are safer and easier to interpret without changing production text behavior.
+These remain local diagnostic artifacts only. M9d makes direct-outline the default static proof backend, keeps MSDF explicit as scalable/experimental, records backend policy in the manifest, and does not change production text behavior.
