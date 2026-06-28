@@ -478,3 +478,44 @@ Still deferred:
 - no native dependency
 
 See `docs/machina-typography-outline-adapter-m8g.md`.
+
+### Machina M8h — MSDF-Sharp distance-field generation proof
+
+M8h lands the first real managed distance-field generator inside standalone `Machina.Fonts`.
+
+- `Machina.Fonts` now consumes `MSDF-Sharp.Core` `1.0.2`.
+- `MsdfSharpDistanceFieldGenerator` implements `IGlyphDistanceFieldGenerator`.
+- Machina-owned outlines convert into `Msdfgen.Shape`, `Contour`, and edge segments.
+- real `SDF`, `PSDF`, `MSDF`, and `MTSDF` output is covered by focused tests.
+- Typography fixture outlines now generate real distance fields through the existing pipeline.
+
+Still deferred:
+
+- no `MSDF-Sharp.Extensions`
+- no SixLabors
+- no FreeType/native dependency
+- no atlas integration
+- no artifact export integration
+- no PNG output
+- no renderer/TextBlock/gallery integration
+
+See `docs/machina-msdf-sharp-generator-m8h.md`.
+
+### Machina M8i — deterministic generated-field atlas packing and real page artifacts
+
+M8i lands the first real atlas asset pipeline inside standalone `Machina.Fonts`.
+
+- `GeneratedFieldAtlasPacker` now turns real `GeneratedGlyphDistanceField` outputs into deterministic shelf-packed pages.
+- packed pages now produce real `GlyphAtlasEntry` rects, UVs, and metrics.
+- `.dfpage` artifacts now store deterministic float/channel page data with SHA-256 hashes.
+- import validation now checks missing files, hash mismatches, invalid headers, page index mismatches, dimension mismatches, channel mismatches, and payload-length mismatches.
+- Typography + `MSDF-Sharp.Core` now roundtrip through pack/export/import successfully.
+- whitespace remains metrics-only and is intentionally excluded from atlas entries.
+
+Still deferred:
+
+- no renderer/TextBlock/gallery integration
+- no PNG output
+- no Vulkan/Aurelian dependency
+
+See `docs/machina-distance-field-atlas-packing-m8i.md`.

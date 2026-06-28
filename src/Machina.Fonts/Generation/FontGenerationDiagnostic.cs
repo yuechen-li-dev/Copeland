@@ -15,6 +15,8 @@ public enum FontGenerationDiagnosticCode
     EmptyOutline,
     OutlineLoadFailed,
     DistanceFieldGenerationFailed,
+    AtlasPackingFailed,
+    MetricsOnlyGlyphSkipped,
     Cancelled,
     InvalidGenerationSettings,
 }

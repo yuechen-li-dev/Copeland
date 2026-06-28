@@ -92,3 +92,17 @@ M8f builds beside this artifact flow rather than through it.
 - fake outline and fake distance-field adapters now exist for seam proof only
 
 Real page-image generation and real dependency-backed glyph generation remain deferred.
+
+## M8i follow-up
+
+M8i adds a second artifact path beside the original fake proof.
+
+- `.fakepage` remains as the deterministic fake-artifact milestone proof
+- `.dfpage` is now the real generated-field page artifact for packed distance-field float data
+- shared import/validation now understands both artifact families
+
+Important boundary notes:
+
+- `.dfpage` is deterministic generated field data, not PNG
+- no renderer integration is introduced
+- no GPU/Vulkan dependency is introduced

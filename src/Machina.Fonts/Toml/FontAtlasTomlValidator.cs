@@ -21,7 +21,7 @@ public static class FontAtlasTomlValidator
         if (atlas.Format != 1) Add(diagnostics, FontAtlasTomlDiagnosticCode.UnsupportedFormat, "Atlas format must be 1.", path, "atlas.format");
         if (atlas.Kind != "machina-font-atlas") Add(diagnostics, FontAtlasTomlDiagnosticCode.InvalidKind, "Atlas kind must be machina-font-atlas.", path, "atlas.kind");
         RequireText(atlas.Name, diagnostics, path, "atlas.name");
-        if (atlas.DistanceField != "msdf") Add(diagnostics, FontAtlasTomlDiagnosticCode.InvalidValue, "Distance field must be msdf.", path, "atlas.distance_field");
+        if (!TryParseDistanceField(atlas.DistanceField, out _)) Add(diagnostics, FontAtlasTomlDiagnosticCode.InvalidValue, "Distance field must be sdf, psdf, msdf, or mtsdf.", path, "atlas.distance_field");
         if (atlas.Version < 1) Add(diagnostics, FontAtlasTomlDiagnosticCode.InvalidValue, "Atlas version must be at least 1.", path, "atlas.version");
     }
 
@@ -177,6 +177,24 @@ public static class FontAtlasTomlValidator
         return Enum.TryParse(value, ignoreCase: true, out slant);
     }
 
+    internal static bool TryParseDistanceField(string value, out Generation.DistanceFieldKind kind)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            kind = default;
+            return false;
+        }
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "sdf" => SetKind(Generation.DistanceFieldKind.Sdf, out kind),
+            "psdf" => SetKind(Generation.DistanceFieldKind.Psdf, out kind),
+            "msdf" => SetKind(Generation.DistanceFieldKind.Msdf, out kind),
+            "mtsdf" => SetKind(Generation.DistanceFieldKind.Mtsdf, out kind),
+            _ => SetKind(default, out kind, false),
+        };
+    }
+
     private static bool Close(double left, double right)
     {
         return Math.Abs(left - right) <= 0.000001;
@@ -210,5 +228,11 @@ public static class FontAtlasTomlValidator
     private static void Add(List<FontAtlasTomlDiagnostic> diagnostics, FontAtlasTomlDiagnosticCode code, string message, string? path, string keyPath)
     {
         diagnostics.Add(new FontAtlasTomlDiagnostic(FontAtlasTomlDiagnosticSeverity.Error, code, message, path, KeyPath: keyPath));
+    }
+
+    private static bool SetKind(Generation.DistanceFieldKind value, out Generation.DistanceFieldKind kind, bool result = true)
+    {
+        kind = value;
+        return result;
     }
 }

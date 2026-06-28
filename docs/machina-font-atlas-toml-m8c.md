@@ -52,3 +52,12 @@ M8d can add a real generator pipeline around the metadata contract: source font 
 ## M8d fake page artifacts
 
 M8d allows TOML `page.image` values to reference `.fakepage` files. These are deterministic text artifacts, not real PNG images, and their SHA-256 bytes are stored in `content_hash` for import validation.
+
+## M8i update
+
+M8i keeps the same TOML page/glyph schema but broadens the artifact story.
+
+- `page.image` can now point at deterministic `.dfpage` files
+- `content_hash` now validates real generated field-page bytes as well as fake page bytes
+- glyph entries remain rect/UV/metric records only
+- whitespace remains metrics-only and is intentionally not exported as a zero-sized glyph entry

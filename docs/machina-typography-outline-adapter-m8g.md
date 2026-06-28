@@ -209,6 +209,16 @@ All of these tests live under `tests/Machina.Fonts.Tests/Generation/Typography/`
 - no shaping, ligatures, bidi, or grapheme-cluster work
 - no native dependency fallback path
 
+## M8h landed follow-up
+
+M8h now proves the second half of the outline-to-distance-field path.
+
+- `MsdfSharpDistanceFieldGenerator` consumes the outlines produced here.
+- `SpaceMono-Regular.ttf` fixture outlines now generate real `SDF`, `PSDF`, `MSDF`, and `MTSDF` data through the existing pipeline.
+- whitespace remains outline-load success but distance-field generation currently rejects empty outlines with `EmptyOutline`.
+
+See `docs/machina-msdf-sharp-generator-m8h.md`.
+
 ## M8h plan
 
 M8h can now focus on the next seam only:

@@ -613,8 +613,34 @@ M8g now proves the first real outline extraction slice envisioned by this archit
 - the proof remains standalone and intentionally stops before MSDF generation, atlas integration, page image export, renderer integration, or OS font discovery
 
 See `docs/machina-typography-outline-adapter-m8g.md`.
+
+## M8h follow-up
+
+M8h now proves the first real distance-field generation slice envisioned by this architecture:
+
+- `Machina.Fonts.Generation.MsdfSharp` converts Machina-owned contours into `Msdfgen.Shape`
+- real distance-field data is generated with `MSDF-Sharp.Core`
+- the proof remains standalone and intentionally stops before atlas packing, page export, renderer integration, or PNG output
+
+See `docs/machina-msdf-sharp-generator-m8h.md`.
 - distance-field generation is now represented by `IGlyphDistanceFieldGenerator`
 - fake implementations prove deterministic seam behavior
 - worker integration and renderer/Vulkan integration remain deferred
 
 This keeps the long-term architecture stable while real dependency choice stays swappable. See `docs/machina-font-generation-adapters-m8f.md`.
+
+## M8i follow-up
+
+M8i proves the next planned architecture slice without crossing into renderer work.
+
+- real generated distance fields now pack into deterministic atlas pages
+- deterministic `.dfpage` artifacts now hold real float/channel page data
+- `.font-atlas.toml` roundtrips against real packed entries and page hashes
+- whitespace is treated as metrics-only and is not packed into atlas rects
+
+The architecture boundary stays intact:
+
+- no renderer integration
+- no TextBlock/gallery integration
+- no PNG dependency yet
+- no Vulkan/Aurelian dependency

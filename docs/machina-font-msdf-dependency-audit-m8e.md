@@ -657,6 +657,27 @@ Packaging conclusion update:
 
 See `docs/machina-typography-outline-adapter-m8g.md`.
 
+## M8h landed follow-up
+
+M8h now proves the `MSDF-Sharp.Core` half of this audit's recommended managed path.
+
+What landed:
+
+- `Machina.Fonts` consumes `MSDF-Sharp.Core` `1.0.2`
+- Machina-owned outlines convert into `Msdfgen.Shape`
+- real `SDF`, `PSDF`, `MSDF`, and `MTSDF` generation now runs in tests
+- Typography fixture outlines now feed the real generator through `GlyphGenerationPipeline`
+
+What still did not land:
+
+- no `MSDF-Sharp.Extensions`
+- no `SixLabors.ImageSharp`
+- no native font loader
+- no atlas integration
+- no renderer integration
+
+This keeps the audit's seam-first recommendation intact while proving the intended managed dependency pair in isolation. See `docs/machina-msdf-sharp-generator-m8h.md`.
+
 ## Sources
 
 Primary sources inspected:

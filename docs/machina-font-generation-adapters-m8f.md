@@ -173,3 +173,22 @@ Still deferred after M8g:
 - no native fallback
 
 See `docs/machina-typography-outline-adapter-m8g.md`.
+
+## M8h landed follow-up
+
+M8h now implements the first real generator behind `IGlyphDistanceFieldGenerator`.
+
+- `Machina.Fonts` now references `MSDF-Sharp.Core` `1.0.2`.
+- `MsdfSharpDistanceFieldGenerator` converts Machina-owned outlines into `Msdfgen.Shape`.
+- real `SDF`, `PSDF`, `MSDF`, and `MTSDF` output is now tested.
+- the pipeline now has a real outline source and a real distance-field generator while remaining standalone.
+
+Still deferred after M8h:
+
+- no `MSDF-Sharp.Extensions`
+- no SixLabors
+- no native dependency
+- no atlas integration
+- no renderer integration
+
+See `docs/machina-msdf-sharp-generator-m8h.md`.
