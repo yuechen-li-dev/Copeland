@@ -47,8 +47,8 @@ public static class PresenterExporter
         string? oblivionInspectorManifestTextPath = null;
         string? oblivionPhaseCloseoutManifestJsonPath = null;
         string? oblivionPhaseCloseoutManifestTextPath = null;
-        string? oblivionMarkdownBodyManifestJsonPath = null;
-        string? oblivionMarkdownBodyManifestTextPath = null;
+        string? oblivionMarkdownRenderingManifestJsonPath = null;
+        string? oblivionMarkdownRenderingManifestTextPath = null;
         RasterFrame rasterFrame;
         int width;
         int height;
@@ -86,8 +86,8 @@ public static class PresenterExporter
                 proofOptions);
             (oblivionPhaseCloseoutManifestJsonPath, oblivionPhaseCloseoutManifestTextPath) =
                 OblivionWorkbenchCatalog.WritePhaseCloseoutManifest(outputDirectory);
-            (oblivionMarkdownBodyManifestJsonPath, oblivionMarkdownBodyManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteMarkdownBodyIntegrationManifest(outputDirectory, proofOptions);
+            (oblivionMarkdownRenderingManifestJsonPath, oblivionMarkdownRenderingManifestTextPath) =
+                OblivionWorkbenchCatalog.WriteMarkdownRenderingManifest(outputDirectory, proofOptions);
         }
         else
         {
@@ -131,8 +131,8 @@ public static class PresenterExporter
             OblivionInspectorManifestTextPath = oblivionInspectorManifestTextPath,
             OblivionPhaseCloseoutManifestJsonPath = oblivionPhaseCloseoutManifestJsonPath,
             OblivionPhaseCloseoutManifestTextPath = oblivionPhaseCloseoutManifestTextPath,
-            OblivionMarkdownBodyManifestJsonPath = oblivionMarkdownBodyManifestJsonPath,
-            OblivionMarkdownBodyManifestTextPath = oblivionMarkdownBodyManifestTextPath,
+            OblivionMarkdownRenderingManifestJsonPath = oblivionMarkdownRenderingManifestJsonPath,
+            OblivionMarkdownRenderingManifestTextPath = oblivionMarkdownRenderingManifestTextPath,
         };
     }
 
@@ -209,7 +209,7 @@ public sealed record PresenterExportResult(
 
     public string? OblivionPhaseCloseoutManifestTextPath { get; init; }
 
-    public string? OblivionMarkdownBodyManifestJsonPath { get; init; }
+    public string? OblivionMarkdownRenderingManifestJsonPath { get; init; }
 
-    public string? OblivionMarkdownBodyManifestTextPath { get; init; }
+    public string? OblivionMarkdownRenderingManifestTextPath { get; init; }
 }

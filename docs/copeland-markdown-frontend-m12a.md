@@ -14,7 +14,7 @@ This milestone is compiler-pipeline dogfooding:
 - diagnostics
 - deterministic dump/export output
 
-It does not add a Markdown editor, Roslyn execution, xUnit notebook execution, or Visionary. Production Oblivion integration is deferred from M12a itself and lands separately in M12b as text-card body integration.
+It does not add a Markdown editor, Roslyn execution, xUnit notebook execution, or Visionary. Oblivion follow-through lands separately in M12b as text-card body loading and in M12c as the first Markdown rendering dogfood pass.
 
 ## Why write our own Markdown frontend
 
@@ -223,9 +223,9 @@ Copeland Markdown -> Document MIR -> future lowering into Machina/Oblivion text 
 
 That means future Standard or Oblivion rendering can consume document MIR if that becomes useful, while current `Machina.Standard.Text` behavior stays stable.
 
-## M12b follow-through note
+## M12b and M12c follow-through note
 
-M12b is the direct follow-through to this frontend milestone.
+M12b and M12c are the direct follow-through to this frontend milestone.
 
 In M12b:
 
@@ -234,6 +234,13 @@ In M12b:
 - `workspace.oblivion.json` plus `*.card.toml` remain canonical storage
 - external `body/*.md` files become text-card body inputs
 - single-file Markdown remains future export/import work only
+
+In M12c:
+
+- `DocumentMir` lowers into presenter-side Machina UI nodes
+- compact cards show richer Markdown previews
+- the inspector shows fuller rendered headings, lists, code fences, and links
+- diagnostics become visibly useful in dogfood mode
 
 ## CLI or dump workflow
 
@@ -272,7 +279,7 @@ Generated local proof outputs:
 
 - no external Markdown dependency
 - no Markdown editor
-- no production Oblivion Markdown rendering
+- no production-wide Oblivion Markdown rendering dependency
 - no Roslyn execution
 - no xUnit `[Fact]` / `[Theory]` execution
 - no Visionary implementation
@@ -283,7 +290,7 @@ Generated local proof outputs:
 - broader Markdown dialect support
 - nested list handling
 - blockquote/table/reference-link support
-- MIR-to-Oblivion rendering
+- broader MIR-to-Oblivion rendering beyond the current M12c dogfood pass
 - richer Oblivion inline styling on top of MIR-backed bodies
 - MIR-to-Machina document rendering
 - richer document diagnostics categories

@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "markdown-diagnostics-sample"
+card_kind = "note"
+status = "warning"
+title = "Markdown diagnostics sample"
+subtitle = "Malformed Markdown should stay readable and visible in the inspector"
+tags = ["markdown", "diagnostics", "m12c", "dogfood"]
+
+[body]
+format = "copeland-markdown"
+path = "body/markdown-diagnostics-sample.md"

@@ -188,31 +188,50 @@ public static class OblivionCardRenderer
             card.Artifacts.Select(artifact => $"{artifact.Label} ({artifact.Kind})").ToArray(),
             options.MaxArtifactsToShow);
 
-        IReadOnlyList<string> visibleLines = ClipLinesToFit(
-            card.BodyLines,
-            layout.BodyWidth,
-            layout.BodyHeight,
-            options,
-            theme.Colors.MutedForeground);
-
         List<UiNode> children = [];
         double currentTop = 0;
 
-        foreach ((string line, int index) in visibleLines.Select((line, index) => (line, index)))
+        if (card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
         {
             children.Add(
                 UI.Anchor(
-                    UI.Text(
-                        line,
-                        id: card.Id.Value + BodyLineSuffixPrefix + index,
-                        size: TextSize.Sm,
-                        color: theme.Colors.MutedForeground),
-                    id: $"{card.Id.Value}{BodyLineSuffixPrefix}{index}.slot",
+                    OblivionMarkdownRenderer.BuildPreviewBody(
+                        card.Id.Value,
+                        card.Body,
+                        theme,
+                        layout.BodyWidth,
+                        layout.BodyHeight),
+                    id: $"{card.Id.Value}.markdown-preview.slot",
                     left: 0,
-                    right: 0,
-                    top: currentTop,
-                    height: options.BodyLineHeight));
-            currentTop += options.BodyLineHeight + options.BodyLineGap;
+                    width: layout.BodyWidth,
+                    top: 0,
+                    height: layout.BodyHeight));
+        }
+        else
+        {
+            IReadOnlyList<string> visibleLines = ClipLinesToFit(
+                card.BodyLines,
+                layout.BodyWidth,
+                layout.BodyHeight,
+                options,
+                theme.Colors.MutedForeground);
+
+            foreach ((string line, int index) in visibleLines.Select((line, index) => (line, index)))
+            {
+                children.Add(
+                    UI.Anchor(
+                        UI.Text(
+                            line,
+                            id: card.Id.Value + BodyLineSuffixPrefix + index,
+                            size: TextSize.Sm,
+                            color: theme.Colors.MutedForeground),
+                        id: $"{card.Id.Value}{BodyLineSuffixPrefix}{index}.slot",
+                        left: 0,
+                        right: 0,
+                        top: currentTop,
+                        height: options.BodyLineHeight));
+                currentTop += options.BodyLineHeight + options.BodyLineGap;
+            }
         }
 
         double footerCursorTop = Math.Max(0, (layout.FooterRectInContent?.Y ?? layout.BodyHeight) - layout.BodyRectInContent.Y);

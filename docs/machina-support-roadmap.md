@@ -1118,4 +1118,23 @@ Still deferred in M12b:
 - Roslyn execution
 - xUnit `[Fact]` / `[Theory]` execution
 - Visionary
+
+## M12c update
+
+M12c is the Markdown rendering dogfood pass for Oblivion.
+
+- `DocumentMir` now lowers into presenter-side Machina UI nodes in the sample/Oblivion layer
+- compact cards now show clearer Markdown previews
+- the inspector now renders headings, paragraphs, bullet lists, ordered lists, static code fences, inline code, strong/emphasis, and links distinctly enough for dogfooding
+- diagnostics are now visible as badges plus a readable inspector diagnostics panel
+- selected doc-derived Markdown samples now render from the sample workspace
+
+Still deferred in M12c:
+
+- Markdown editor and keyboard input
+- file watcher / live editing
+- Roslyn execution
+- xUnit execution
+- Visionary
+- full CommonMark
 - future image/table/video/code typed-card expansions beyond the current body integration

@@ -255,7 +255,12 @@ public static class OblivionWorkspaceLoader
                     OblivionWorkspaceDiagnosticSeverity.Warning,
                     diagnostic.Id,
                     diagnostic.Message,
-                    markdownSourcePath ?? sourcePath));
+                    markdownSourcePath ?? sourcePath,
+                    diagnostic.Severity.ToString(),
+                    diagnostic.Span.StartLocation.Line,
+                    diagnostic.Span.StartLocation.Column,
+                    diagnostic.Span.Start,
+                    diagnostic.Span.Length));
         }
 
         diagnostics.AddRange(markdownDiagnostics);

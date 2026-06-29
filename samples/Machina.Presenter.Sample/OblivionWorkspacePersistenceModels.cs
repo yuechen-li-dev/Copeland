@@ -102,13 +102,23 @@ public sealed record OblivionWorkspaceDiagnostic(
     OblivionWorkspaceDiagnosticSeverity Severity,
     string Code,
     string Message,
-    string? SourcePath)
+    string? SourcePath,
+    string? DisplaySeverity = null,
+    int? Line = null,
+    int? Column = null,
+    int? SpanStart = null,
+    int? SpanLength = null)
 {
     public override string ToString()
     {
+        string severity = DisplaySeverity ?? Severity.ToString();
+        string location = Line is null || Column is null
+            ? string.Empty
+            : $"@{Line}:{Column}";
+
         return SourcePath is null
-            ? $"{Severity}:{Code}:{Message}"
-            : $"{Severity}:{Code}:{SourcePath}:{Message}";
+            ? $"{severity}:{Code}{location}:{Message}"
+            : $"{severity}:{Code}{location}:{SourcePath}:{Message}";
     }
 }
 

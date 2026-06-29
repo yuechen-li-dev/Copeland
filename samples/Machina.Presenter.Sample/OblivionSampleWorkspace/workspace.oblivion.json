@@ -29,7 +29,9 @@
           "asset": "pages/execution-roadmap.page.toml",
           "cards": [
             "cards/markdown-first-roadmap.card.toml",
+            "cards/selected-doc-dogfood.card.toml",
             "cards/markdown-readiness-audit.card.toml",
+            "cards/markdown-diagnostics-sample.card.toml",
             "cards/execution-deferred.card.toml",
             "cards/execution-readiness-audit.card.toml",
             "cards/visionary-future.card.toml"

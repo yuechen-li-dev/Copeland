@@ -34,7 +34,8 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m11f/` is the current Oblivion card-selection and inspector proof export directory.
 - `artifacts/m11g/` is the current Oblivion phase-closeout and Markdown-first roadmap export directory.
 - `artifacts/m12a/` is the current local Copeland Markdown frontend proof export directory.
-- `artifacts/m12b/` is the current Oblivion Markdown body integration proof export directory.
+- `artifacts/m12b/` is the historical Oblivion Markdown body integration proof export directory.
+- `artifacts/m12c/` is the current Oblivion Markdown rendering dogfood proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -65,6 +66,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M11g Oblivion closeout PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12a Markdown AST/MIR/report artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12b Oblivion Markdown body PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M12c Oblivion Markdown rendering PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -236,6 +238,15 @@ Current M12b Oblivion Markdown body commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12b\presenter-oblivion-markdown-cards.png -SelectedSection oblivion -SelectedTab cards
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12b\presenter-oblivion-markdown-inspector-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard markdown-first-roadmap
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12b\presenter-oblivion-markdown-inspector-code-fence.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard execution-deferred
+```
+
+Current M12c Oblivion Markdown rendering commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12c\presenter-markdown-rendering-cards.png -SelectedSection oblivion -SelectedTab cards
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12c\presenter-markdown-rendering-inspector-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard markdown-first-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12c\presenter-markdown-rendering-inspector-code.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard execution-deferred
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12c\presenter-markdown-rendering-diagnostics.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard markdown-diagnostics-sample
 ```
 
 ## Regenerating the Machina font proof artifacts

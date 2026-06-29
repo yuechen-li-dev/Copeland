@@ -1,8 +1,10 @@
 # Machina Oblivion Markdown Body Integration M12b
 
+M12c follows this milestone with the first real Markdown rendering dogfood pass. See [Machina Oblivion Markdown Rendering M12c](machina-oblivion-markdown-rendering-m12c.md) for the richer compact-card and inspector rendering behavior.
+
 ## Purpose
 
-M12b integrates `Copeland.Markdown` into Oblivion as a text-card body compiler and renderer.
+M12b integrates `Copeland.Markdown` into Oblivion as a text-card body compiler and loading path.
 
 The milestone goal is narrow and explicit:
 
@@ -10,9 +12,9 @@ The milestone goal is narrow and explicit:
 - allow text/note card bodies to come from `.md` files
 - compile those `.md` files through `Copeland.Markdown`
 - carry `DocumentMir` plus diagnostics on loaded cards
-- render compact previews and fuller inspector content
+- render compact previews and fuller inspector content through a simple first-pass lowering
 
-M12b does not add a Markdown editor, Roslyn execution, xUnit `[Fact]` / `[Theory]` execution, or Visionary.
+M12b does not add a Markdown editor, file watcher, Roslyn execution, xUnit `[Fact]` / `[Theory]` execution, or Visionary.
 
 ## Core doctrine
 

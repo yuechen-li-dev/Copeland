@@ -84,9 +84,9 @@ dotnet run --project src/Copeland.Cli -- markdown parse README.md --emit mir --f
 
 This is frontend/MIR dogfooding only. It adds no Markdown editor, no production Oblivion rendering path yet, and no Roslyn or xUnit notebook execution.
 
-## Oblivion Markdown M12b status
+## Oblivion Markdown M12b/M12c status
 
-M12b integrates that frontend into Oblivion as a text-card body path.
+M12b integrates that frontend into Oblivion as a text-card body path. M12c then makes the Markdown body visibly useful for dogfooding.
 
 Current doctrine:
 
@@ -114,7 +114,22 @@ body/*.md
   -> text-card body content
 ```
 
-M12b adds external `copeland-markdown` body loading, `DocumentMir` attachment, compact Markdown card previews, inspector diagnostics, and sample `.md` body files. It adds no Markdown editor, no Roslyn/xUnit execution, and no Visionary implementation.
+Current state:
+
+- external `copeland-markdown` body loading
+- `DocumentMir` attachment on loaded cards
+- compact Markdown previews that surface headings, summaries, code, and diagnostics
+- inspector rendering that distinguishes headings, paragraphs, lists, code fences, inline code, strong/emphasis, and links
+- readable Markdown diagnostics with line/column data
+- sample `.md` dogfood bodies, including a curated doc-derived sample
+
+Still not included:
+
+- Markdown editor or keyboard input
+- live editing or file watcher behavior
+- Roslyn/xUnit execution
+- Visionary
+- full CommonMark compatibility
 
 ## Test suites
 
@@ -188,6 +203,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Oblivion Phase Closeout M11g](docs/machina-oblivion-phase-closeout-m11g.md)
 - [Copeland Markdown Frontend M12a](docs/copeland-markdown-frontend-m12a.md)
 - [Machina Oblivion Markdown Body Integration M12b](docs/machina-oblivion-markdown-body-integration-m12b.md)
+- [Machina Oblivion Markdown Rendering M12c](docs/machina-oblivion-markdown-rendering-m12c.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 

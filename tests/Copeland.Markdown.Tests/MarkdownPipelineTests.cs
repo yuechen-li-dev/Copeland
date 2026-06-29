@@ -199,6 +199,16 @@ public sealed class MarkdownPipelineTests
     }
 
     [Fact]
+    public void MarkdownToDocumentMir_LowersOrderedList()
+    {
+        DocumentMir mir = MarkdownCompiler.Compile("1. one\n2. two").Mir;
+
+        ListMir list = Assert.IsType<ListMir>(Assert.Single(mir.Blocks));
+        Assert.Equal(DocumentListKind.Ordered, list.Kind);
+        Assert.Equal(2, list.Items.Count);
+    }
+
+    [Fact]
     public void MarkdownToDocumentMir_LowersCodeBlock()
     {
         DocumentMir mir = MarkdownCompiler.Compile("```txt\nbody\n```").Mir;
@@ -268,6 +278,8 @@ public sealed class MarkdownPipelineTests
             @"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\oblivion-substrate-status.md",
             @"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\markdown-first-roadmap.md",
             @"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\markdown-readiness-audit.md",
+            @"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\selected-doc-dogfood.md",
+            @"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\markdown-diagnostics-sample.md",
             @"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\execution-deferred.md",
             @"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\visionary-future.md",
         ];
@@ -282,13 +294,36 @@ public sealed class MarkdownPipelineTests
     [Fact]
     public void MarkdownCorpus_OblivionMalformedBody_ReportsDeterministicDiagnostics()
     {
-        string source = File.ReadAllText(GetRepoFile(@"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\markdown-readiness-audit.md"));
+        string source = File.ReadAllText(GetRepoFile(@"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\markdown-diagnostics-sample.md"));
 
         string first = MarkdownDumpWriter.DumpDiagnostics(MarkdownCompiler.Compile(source).Syntax.Diagnostics);
         string second = MarkdownDumpWriter.DumpDiagnostics(MarkdownCompiler.Compile(source).Syntax.Diagnostics);
 
         Assert.Equal(first, second);
         Assert.Contains(MarkdownDiagnosticIds.MalformedLink, first, StringComparison.Ordinal);
+        Assert.Contains(MarkdownDiagnosticIds.UnclosedCodeFence, first, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OblivionMarkdownDogfood_LoadsSelectedDocMarkdown()
+    {
+        string source = File.ReadAllText(GetRepoFile(@"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\selected-doc-dogfood.md"));
+
+        MarkdownCompilation compilation = MarkdownCompiler.Compile(source);
+
+        Assert.NotEmpty(compilation.Mir.Blocks);
+        Assert.Contains(compilation.Mir.Blocks, static block => block is HeadingMir);
+    }
+
+    [Fact]
+    public void OblivionMarkdownDogfood_ReportsUnsupportedSyntaxDeterministically()
+    {
+        string source = File.ReadAllText(GetRepoFile(@"samples\Machina.Presenter.Sample\OblivionSampleWorkspace\body\markdown-diagnostics-sample.md"));
+
+        string first = MarkdownDumpWriter.DumpDiagnostics(MarkdownCompiler.Compile(source).Syntax.Diagnostics);
+        string second = MarkdownDumpWriter.DumpDiagnostics(MarkdownCompiler.Compile(source).Syntax.Diagnostics);
+
+        Assert.Equal(first, second);
     }
 
     [Fact]
