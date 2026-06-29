@@ -38,9 +38,9 @@ The root manifest is nested and tree-shaped:
 
 That makes JSON the practical choice for the `.sln`-like coordination file.
 
-## M11f follow-on
+## M11f and M11g follow-on
 
-M11f keeps this JSON/TOML split and adds source-path visibility in the Oblivion inspector. Persistence remains metadata/loading infrastructure only, with Roslyn and xUnit execution still deferred.
+M11f keeps this JSON/TOML split and adds source-path visibility in the Oblivion inspector. M11g keeps the same persistence model and uses it for closeout/status/roadmap cards, Markdown-first planning cards, and execution-readiness audit cards. Persistence remains metadata/loading infrastructure only.
 
 ## Why TOML is used for cards/assets
 
@@ -269,9 +269,11 @@ Manifest outputs:
 
 ## Deferred work
 
+- Markdown document/card support still needs its own milestone
+- no Markdown editor is implemented yet
+- no Markdown renderer is implemented yet beyond static planning copy
 - Roslyn-backed executable cards
-- notebook/runtime `[Fact]` / `[Theory]` execution
-- markdown authoring/editing
+- notebook/runtime `[Fact]` / `[Theory]` execution, now deferred to M13+ or later unless explicitly re-prioritized
 - Visionary source workspace/editor implementation
 - richer artifact generation/runtime behavior
 - broader project/file explorer behavior

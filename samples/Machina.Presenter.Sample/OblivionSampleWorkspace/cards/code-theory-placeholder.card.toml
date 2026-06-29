@@ -4,8 +4,8 @@ id = "oblivion-code-theory-card"
 card_kind = "code-theory"
 status = "deferred"
 title = "Code theory placeholder"
-subtitle = "not executed in M11d"
-tags = ["code", "theory", "deferred"]
+subtitle = "not executed in M11g"
+tags = ["code", "theory", "deferred", "placeholder"]
 
 [body]
 format = "plain"
@@ -17,7 +17,8 @@ public void TextProof_RendersAtSize(int size)
 {
     // Execution deferred.
 }
-not executed in M11d
+Markdown cards come first.
+Deferred until M13+.
 """
 
 [[actions]]

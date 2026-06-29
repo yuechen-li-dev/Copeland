@@ -15,6 +15,7 @@
           "asset": "pages/cards.page.toml",
           "cards": [
             "cards/intro.card.toml",
+            "cards/oblivion-substrate-status.card.toml",
             "cards/status.card.toml",
             "cards/ui-preview-placeholder.card.toml",
             "cards/artifact-placeholder.card.toml",
@@ -27,8 +28,11 @@
           "title": "Execution Roadmap",
           "asset": "pages/execution-roadmap.page.toml",
           "cards": [
-            "cards/execution-roadmap.card.toml",
-            "cards/visionary-relationship.card.toml"
+            "cards/markdown-first-roadmap.card.toml",
+            "cards/markdown-readiness-audit.card.toml",
+            "cards/execution-deferred.card.toml",
+            "cards/execution-readiness-audit.card.toml",
+            "cards/visionary-future.card.toml"
           ]
         },
         {

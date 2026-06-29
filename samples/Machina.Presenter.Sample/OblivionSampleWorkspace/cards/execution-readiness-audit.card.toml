@@ -1,0 +1,17 @@
+format = 1
+kind = "card"
+id = "execution-readiness-audit"
+card_kind = "status"
+status = "warning"
+title = "Execution readiness audit"
+subtitle = "Future local execution needs a real audit before any Roslyn proof"
+tags = ["execution", "audit", "roslyn", "deferred"]
+
+[body]
+format = "plain"
+text = """
+No execution in M11g.
+Trusted local code only; not a sandbox.
+Future work must define result model, stdout/log capture, diagnostics, exceptions, artifact capture, workspace-relative temp/output dirs, permission model later, determinism policy, test isolation, inspector placement, and persistence.
+CodeFact and CodeTheory cards remain placeholders.
+"""

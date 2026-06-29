@@ -2,5 +2,5 @@ format = 1
 kind = "page"
 id = "execution-roadmap"
 title = "Execution Roadmap"
-description = "Execution remains deferred while persistence lands."
-tags = ["oblivion", "roadmap", "deferred"]
+description = "Markdown comes before execution while M11 closes out the static persisted-card substrate."
+tags = ["oblivion", "roadmap", "markdown", "deferred"]

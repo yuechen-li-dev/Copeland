@@ -213,8 +213,8 @@ public sealed class OblivionCardInspectorM11fTests
         PresenterPageRenderResult page = RenderSelectedPage("oblivion-code-fact-card");
         string text = PageText(page);
 
-        Assert.Contains("Not executed in M11f.", text, StringComparison.Ordinal);
-        Assert.Contains("Roslyn/xUnit execution deferred to M12+.", text, StringComparison.Ordinal);
+        Assert.Contains("Not executed in M11g.", text, StringComparison.Ordinal);
+        Assert.Contains("Execution result", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -361,7 +361,7 @@ public sealed class OblivionCardInspectorM11fTests
             OblivionWorkbenchCatalog.GetPageCardsForSelection(OblivionWorkbenchCatalog.CardsPageId),
             card => card.Id.Value == "oblivion-code-fact-card");
 
-        Assert.Contains("Not executed in M11f.", text, StringComparison.Ordinal);
+        Assert.Contains("Not executed in M11g.", text, StringComparison.Ordinal);
         Assert.Contains("Execution result", text, StringComparison.Ordinal);
         Assert.Equal(OblivionCardStatus.Deferred, selectedCard.Status);
     }

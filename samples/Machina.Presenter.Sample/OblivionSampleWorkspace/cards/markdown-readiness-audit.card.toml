@@ -1,0 +1,19 @@
+format = 1
+kind = "card"
+id = "markdown-readiness-audit"
+card_kind = "note"
+status = "warning"
+title = "Markdown readiness audit"
+subtitle = "Plan the document-card seam before implementing rendering"
+tags = ["markdown", "audit", "m12", "deferred"]
+
+[body]
+format = "plain"
+text = """
+TOML remains card metadata.
+Markdown can be body content.
+A card may point to a .md body file, or include inline markdown in TOML.
+First Markdown milestone should render a small safe subset: headings, paragraphs, bullet lists, code fences, and inline code.
+Links, relative asset references, source file path policy, front matter relationship, import/export, preview vs edit mode, and .md-as-card decisions still need audit.
+No editor yet.
+"""

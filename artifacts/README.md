@@ -32,6 +32,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m11c/` is the current presenter scrollbar state-machine and cached-composition proof export directory.
 - `artifacts/m11e/` is the current presenter/Oblivion card-hardening proof export directory.
 - `artifacts/m11f/` is the current Oblivion card-selection and inspector proof export directory.
+- `artifacts/m11g/` is the current Oblivion phase-closeout and Markdown-first roadmap export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -59,6 +60,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M11c presenter scrollbar state-machine PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11e presenter/Oblivion card-hardening PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11f Oblivion inspector PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M11g Oblivion closeout PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -205,6 +207,15 @@ Current M11e presenter/Oblivion card-hardening commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-components-controls.png -SelectedSection components -SelectedTab controls
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-components-controls-bottom-scroll.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:9999
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
+```
+
+Current M11g Oblivion closeout commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-closeout-status.png -SelectedSection oblivion -SelectedTab cards -SelectedCard oblivion-substrate-status
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-markdown-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard markdown-first-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-execution-deferred.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard execution-deferred
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-visionary-future.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard visionary-future
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -657,3 +668,14 @@ These remain local sample proof artifacts only. M11d makes the root Oblivion wor
 - `artifacts/m11e/presenter-card-hardening-manifest.json`
 
 These remain local sample proof artifacts only. M11e fixes presenter/Oblivion card layout bugs, centralizes shared card geometry/clipping helpers, keeps JSON/TOML persistence unchanged, keeps scrollbar behavior on the M11c cached-composition path, adds no Roslyn execution, adds no notebook/runtime `[Fact]` / `[Theory]` execution behavior, and adds no new notebook/editor/runtime feature.
+
+## Current M11g Oblivion closeout outputs
+
+- `artifacts/m11g/presenter-oblivion-closeout-status.png`
+- `artifacts/m11g/presenter-oblivion-markdown-roadmap.png`
+- `artifacts/m11g/presenter-oblivion-execution-deferred.png`
+- `artifacts/m11g/presenter-oblivion-visionary-future.png`
+- `artifacts/m11g/oblivion-phase-closeout-manifest.txt`
+- `artifacts/m11g/oblivion-phase-closeout-manifest.json`
+
+These remain local sample proof artifacts only. M11g closes out the static persisted-card Oblivion substrate, records Markdown as the next phase, defers Roslyn plus notebook/runtime `[Fact]` / `[Theory]` execution to M13+ or later unless explicitly re-prioritized, adds no Markdown editor, adds no full Markdown renderer, and keeps Visionary as future-only.

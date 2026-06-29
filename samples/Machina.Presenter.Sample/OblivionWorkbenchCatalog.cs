@@ -276,15 +276,7 @@ public static class OblivionWorkbenchCatalog
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
 
-        string[] deferredWork =
-        [
-            "Roslyn compilation and execution",
-            "xUnit [Fact] and [Theory] runtime",
-            "Action execution",
-            "Artifact generation and execution",
-            "Visionary code editor/source workspace",
-            "Markdown editing",
-        ];
+        string[] deferredWork = GetPhaseCloseoutDeferredWork();
 
         var manifest = new
         {
@@ -325,6 +317,76 @@ public static class OblivionWorkbenchCatalog
             "xunitEnabled=false",
             "visionaryImplemented=false",
             $"deferredWork={string.Join(" | ", deferredWork)}",
+        ];
+
+        File.WriteAllText(jsonPath, json);
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
+    }
+
+    public static (string jsonPath, string textPath) WritePhaseCloseoutManifest(
+        string outputDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "oblivion-phase-closeout-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "oblivion-phase-closeout-manifest.txt");
+
+        string[] canonicalCommands =
+        [
+            @".\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-closeout-status.png -SelectedSection oblivion -SelectedTab cards -SelectedCard oblivion-substrate-status",
+            @".\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-markdown-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard markdown-first-roadmap",
+            @".\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-execution-deferred.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard execution-deferred",
+            @".\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-visionary-future.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard visionary-future",
+        ];
+
+        string[] deferredWork = GetPhaseCloseoutDeferredWork();
+
+        var manifest = new
+        {
+            milestone = "M11g",
+            kind = "oblivion-phase-closeout",
+            substrateReady = true,
+            workspacePersistenceReady = true,
+            inspectorReady = true,
+            markdownNext = true,
+            markdownImplemented = false,
+            executionEnabled = false,
+            roslynEnabled = false,
+            xunitEnabled = false,
+            factExecutionDeferredUntil = "M13+",
+            visionaryImplemented = false,
+            canonicalCommands,
+            deferredWork,
+            nextPhase = "M12 Markdown document/card support",
+        };
+
+        string json = JsonSerializer.Serialize(
+            manifest,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+
+        string[] textLines =
+        [
+            "milestone=M11g",
+            "kind=oblivion-phase-closeout",
+            "substrateReady=true",
+            "workspacePersistenceReady=true",
+            "inspectorReady=true",
+            "markdownNext=true",
+            "markdownImplemented=false",
+            "executionEnabled=false",
+            "roslynEnabled=false",
+            "xunitEnabled=false",
+            "factExecutionDeferredUntil=M13+",
+            "visionaryImplemented=false",
+            $"canonicalCommands={string.Join(" | ", canonicalCommands)}",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+            "nextPhase=M12 Markdown document/card support",
         ];
 
         File.WriteAllText(jsonPath, json);
@@ -588,7 +650,7 @@ public static class OblivionWorkbenchCatalog
                     [
                         "This page currently has no selected Oblivion card.",
                         "Click a compact card cell to restore selection.",
-                        "M11f keeps the inspector static and non-executing.",
+                        "M11g keeps the inspector static and non-executing.",
                     ],
                     theme: theme,
                     options: new PresenterCardOptions(layout.InspectorWidth, 180))));
@@ -612,7 +674,7 @@ public static class OblivionWorkbenchCatalog
                 [
                     $"Kind: {KindLabel(card.Kind)}",
                     $"Status: {StatusLabel(card.Status)}",
-                    "Selected card details are expanded here so the main cards can stay compact.",
+                    "Selected card details are expanded here so the main cards can stay compact while Markdown-first planning stays visible.",
                 ],
                 theme: theme,
                 options: new PresenterCardOptions(layout.InspectorWidth, 188))));
@@ -706,10 +768,10 @@ public static class OblivionWorkbenchCatalog
                 badges: [],
                 lines:
                 [
-                    "Not executed in M11f.",
-                    "Roslyn/xUnit execution deferred to M12+.",
+                    "Not executed in M11g.",
+                    "Markdown cards come first; Roslyn/xUnit execution deferred to M13+.",
                     card.Kind is OblivionCardKind.CodeFact or OblivionCardKind.CodeTheory
-                        ? "CodeFact/CodeTheory source is static placeholder content only."
+                        ? "CodeFact/CodeTheory source is static placeholder content only and remains deferred."
                         : "Actions and artifacts are displayed as metadata only.",
                 ],
                 theme: theme,
@@ -790,6 +852,20 @@ public static class OblivionWorkbenchCatalog
             OblivionCardStatus.Placeholder => "Placeholder",
             _ => status.ToString(),
         };
+    }
+
+    private static string[] GetPhaseCloseoutDeferredWork()
+    {
+        return
+        [
+            "Markdown renderer",
+            "Markdown editor",
+            "Roslyn compilation and execution",
+            "xUnit [Fact] and [Theory] runtime",
+            "Action execution",
+            "Artifact generation and execution",
+            "Visionary code editor/source workspace",
+        ];
     }
 }
 

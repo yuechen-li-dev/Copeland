@@ -114,6 +114,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Oblivion Workspace Persistence M11d](docs/machina-oblivion-workspace-persistence-m11d.md)
 - [Machina Presenter Card Hardening M11e](docs/machina-presenter-card-hardening-m11e.md)
 - [Machina Oblivion Card Inspector M11f](docs/machina-oblivion-card-inspector-m11f.md)
+- [Machina Oblivion Phase Closeout M11g](docs/machina-oblivion-phase-closeout-m11g.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -385,6 +386,26 @@ Representative M11e outputs:
 - `artifacts/m11e/presenter-card-hardening-manifest.txt`
 
 M11e is bug-fixing and authoring-hardening only. Presenter/Oblivion cards now derive body geometry from shared card-layout helpers, hosted legacy content no longer paints a full-width dark body background, overflowing pages keep the scrollbar thumb clamped inside the visible track, JSON/TOML persistence stays unchanged, and Roslyn plus notebook/runtime `[Fact]` / `[Theory]` execution remain deferred.
+
+M11g then closes out the current Oblivion substrate and explicitly shifts the next phase to Markdown-first document cards instead of code execution:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-closeout-status.png -SelectedSection oblivion -SelectedTab cards -SelectedCard oblivion-substrate-status
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-markdown-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard markdown-first-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-execution-deferred.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard execution-deferred
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-visionary-future.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard visionary-future
+```
+
+Representative M11g outputs:
+
+- `artifacts/m11g/presenter-oblivion-closeout-status.png`
+- `artifacts/m11g/presenter-oblivion-markdown-roadmap.png`
+- `artifacts/m11g/presenter-oblivion-execution-deferred.png`
+- `artifacts/m11g/presenter-oblivion-visionary-future.png`
+- `artifacts/m11g/oblivion-phase-closeout-manifest.json`
+- `artifacts/m11g/oblivion-phase-closeout-manifest.txt`
+
+M11g adds no Roslyn execution, no `[Fact]` / `[Theory]` runtime, no Markdown editor, no full Markdown renderer, and no Visionary editor. M11 now closes as a static persisted-card substrate, M12 should focus on Markdown document/card support, and trusted local C# execution is deferred to M13+ or later unless explicitly re-prioritized.
 
 Current font proof audit workflow:
 

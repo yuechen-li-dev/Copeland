@@ -77,7 +77,7 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 
 M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow. M7c uses that workflow for evidence-backed visual defect triage and deferral documentation. M7d closes the deferred badge intrinsic-size / label-placement issue with a Badge-local contract and no general layout-engine changes. M7e records the current stable baseline and known limitations so the gallery can keep serving as the canonical local visual workbench without pretending typography and interaction fidelity are finished.
 
-M11f adds static Oblivion card selection and an inspector panel. Roslyn/xUnit execution remains deferred to M12+ or later.
+M11g closes out the current Oblivion substrate. Markdown cards are next, and Roslyn/xUnit execution is now explicitly deferred to M13+ or later unless explicitly re-prioritized.
 
 ## Support Matrix
 
@@ -1062,3 +1062,21 @@ This remains bug-fixing and authoring-hardening only:
 - no Visionary editor
 - no new notebook/editor/runtime behavior
 - no reopened font or MSDF work
+
+## M11g update
+
+M11g is the phase closeout and roadmap-hardening step for the current Oblivion substrate.
+
+- M11 now closes with static persisted cards, workspace persistence, bounded layout, selection, and inspector behavior all in place.
+- the sample workspace now includes explicit substrate-status, Markdown-first roadmap, Markdown-readiness audit, execution-deferred, execution-readiness audit, and Visionary-future cards.
+- deterministic closeout manifests now record `markdownNext=true`, `executionEnabled=false`, and `factExecutionDeferredUntil=M13+`.
+- M12 is now the recommended Markdown document/card support milestone.
+- trusted local C# execution proof is deferred to M13+ or later unless explicitly re-prioritized.
+
+This remains closeout-only:
+
+- no Roslyn execution
+- no xUnit notebook/runtime execution
+- no Markdown renderer implementation beyond static planning copy
+- no Markdown editor
+- no Visionary editor

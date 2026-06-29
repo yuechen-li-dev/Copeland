@@ -1,22 +1,22 @@
 format = 1
 kind = "card"
-id = "oblivion-code-fact-card"
+id = "execution-deferred"
 card_kind = "code-fact"
 status = "deferred"
-title = "Code fact placeholder"
-subtitle = "not executed in M11g"
-tags = ["code", "fact", "deferred", "placeholder"]
+title = "Execution deferred"
+subtitle = "Roslyn and xUnit are intentionally not part of M11g"
+tags = ["code", "fact", "deferred", "m13-plus"]
 
 [body]
 format = "plain"
 text = """
 [Fact]
-public void SettingsCard_Renders()
+public void MarkdownCards_ComeBeforeExecution()
 {
-    // Execution deferred.
+    // Deferred until M13+.
 }
+Not executed.
 Markdown cards come first.
-Deferred until M13+.
 """
 
 [[actions]]

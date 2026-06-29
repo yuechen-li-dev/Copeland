@@ -331,7 +331,7 @@ public sealed class OblivionWorkspacePersistenceM11dTests
             result.Workspace!.Sections.Single().Pages,
             page => page.PresenterPageId == "oblivion.cards");
 
-        Assert.Equal(6, cardsPage.Cards.Count);
+        Assert.Equal(7, cardsPage.Cards.Count);
         Assert.Equal("oblivion-intro-note-card", cardsPage.Cards[0].Id.Value);
     }
 
@@ -396,8 +396,8 @@ public sealed class OblivionWorkspacePersistenceM11dTests
         PresenterPageRenderResult page = RenderPage(OblivionWorkbenchCatalog.ExecutionRoadmapPageId);
         List<string> text = page.Frame.RenderCommands.OfType<DrawTextCommand>().Select(command => command.Text).ToList();
 
-        Assert.Contains("Execution roadmap", text);
-        Assert.Contains("Visionary relationship", text);
+        Assert.Contains("Markdown-first roadmap", text);
+        Assert.Contains("Visionary future card", text);
     }
 
     [Fact]
@@ -465,10 +465,11 @@ public sealed class OblivionWorkspacePersistenceM11dTests
     [Fact]
     public void M11d_DoesNotRunFactOrTheoryCards()
     {
-        PresenterPageRenderResult page = RenderPage(OblivionWorkbenchCatalog.CardsPageId);
-        List<string> text = page.Frame.RenderCommands.OfType<DrawTextCommand>().Select(command => command.Text).ToList();
+        OblivionCard factCard = Assert.Single(
+            OblivionWorkbenchCatalog.GetPageCardsForSelection(OblivionWorkbenchCatalog.CardsPageId),
+            card => card.Id.Value == "oblivion-code-fact-card");
 
-        Assert.Contains("not executed in M11d", text);
+        Assert.Contains("Deferred until M13+.", factCard.BodyLines);
         Assert.DoesNotContain("Xunit.Sdk", string.Join(Environment.NewLine, GetSourceFiles("samples", "Machina.Presenter.Sample").Select(File.ReadAllText)), StringComparison.Ordinal);
     }
 

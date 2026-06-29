@@ -33,9 +33,16 @@ Legacy
 
 `Oblivion -> Cards` is the primary proof page. `Execution Roadmap` and `Artifacts` stay static.
 
-## M11f follow-on
+## M11f and M11g follow-on
 
-M11f keeps the static card model but adds page-local selection, deterministic hit testing, and a bounded inspector panel for expanded detail. Execution remains deferred to M12+.
+M11f keeps the static card model but adds page-local selection, deterministic hit testing, and a bounded inspector panel for expanded detail.
+
+M11g closes out the current substrate phase with static persisted roadmap and audit cards:
+
+- M11 completes the static persisted-card substrate
+- Markdown cards come before code execution
+- `[Fact]` / `[Theory]` execution is deferred to M13+ or later unless explicitly re-prioritized
+- Visionary remains future-only
 
 M10d card containment policy remains the practical starting point:
 

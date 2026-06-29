@@ -53,10 +53,20 @@ M11f does not execute actions or artifacts. The inspector labels them as metadat
 
 The inspector includes a static result card:
 
-- `Not executed in M11f.`
-- `Roslyn/xUnit execution deferred to M12+.`
+- `Not executed in M11g.`
+- `Markdown cards come first; Roslyn/xUnit execution deferred to M13+.`
 
 `CodeFact` and `CodeTheory` remain placeholder cards only.
+
+## M11g closeout note
+
+M11g keeps the inspector model unchanged but repoints the roadmap:
+
+- M11 closes out the static persisted-card substrate
+- M12 should focus on Markdown cards and Markdown document dogfooding
+- no Markdown editor is implemented yet
+- no Markdown renderer is implemented yet beyond static planning copy
+- Visionary remains future-only
 
 ## Persistence integration
 
