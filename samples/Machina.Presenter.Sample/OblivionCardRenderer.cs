@@ -41,7 +41,8 @@ public static class OblivionCardRenderer
     public static UiNode BuildCard(
         OblivionCard card,
         StandardTheme theme,
-        OblivionCardRenderOptions options)
+        OblivionCardRenderOptions options,
+        bool isSelected = false)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(theme);
@@ -136,7 +137,7 @@ public static class OblivionCardRenderer
 
         return StandardUI.Card(
             id: card.Id.Value,
-            theme: theme,
+            theme: isSelected ? CreateSelectedTheme(theme) : theme,
             width: options.Width,
             height: options.Height,
             child: UI.Layer(
@@ -337,6 +338,21 @@ public static class OblivionCardRenderer
             OblivionCardStatus.Deferred => "Deferred",
             OblivionCardStatus.Placeholder => "Placeholder",
             _ => status.ToString(),
+        };
+    }
+
+    private static StandardTheme CreateSelectedTheme(StandardTheme theme)
+    {
+        return theme with
+        {
+            Card = theme.Card with
+            {
+                Default = theme.Card.Default with
+                {
+                    BorderColor = ColorToken.Hex(0x2563EBFF),
+                    Background = ColorToken.Hex(0xF8FBFFFF),
+                },
+            },
         };
     }
 }

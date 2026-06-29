@@ -7,6 +7,7 @@ param(
     [string]$OblivionWorkspace,
     [string]$SelectedSection,
     [string]$SelectedTab,
+    [string]$SelectedCard,
     [string]$NavigationPage,
     [string]$ScrollPage,
     [ValidateSet("Debug", "Release")]
@@ -82,6 +83,12 @@ if (-not [string]::IsNullOrWhiteSpace($SelectedTab))
 {
     $arguments += "--selected-tab"
     $arguments += $SelectedTab
+}
+
+if (-not [string]::IsNullOrWhiteSpace($SelectedCard))
+{
+    $arguments += "--selected-card"
+    $arguments += $SelectedCard
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ScrollPage))

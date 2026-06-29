@@ -39,6 +39,7 @@ public sealed class PresenterNavigationRenderSession
 
         PresenterPageRenderResult pageRender = GetOrRenderPageLayer(
             demoState,
+            normalizedState,
             theme,
             proofOptions,
             effectiveLayout,
@@ -91,7 +92,8 @@ public sealed class PresenterNavigationRenderSession
                 _pageRenderCount,
                 _shellRenderCount,
                 _compositionCount),
-            Session: this);
+            Session: this,
+            PageRender: pageRender);
     }
 
     public PresenterNavigationRenderDiagnostics GetDiagnostics()
@@ -104,17 +106,26 @@ public sealed class PresenterNavigationRenderSession
 
     private PresenterPageRenderResult GetOrRenderPageLayer(
         DemoState demoState,
+        PresenterNavigationState navigationState,
         StandardTheme theme,
         PresenterProofOptions proofOptions,
         PresenterNavigationLayout layout,
         string pageId)
     {
+        string? selectedCardId = null;
+        if (PresenterNavigationCatalog.IsOblivionPage(pageId))
+        {
+            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, proofOptions);
+            selectedCardId = navigationState.GetSelectedCardId(pageId, cards);
+        }
+
         var key = new PresenterCachedPageLayerKey(
             pageId,
             demoState,
             theme,
             proofOptions,
-            layout.ContentVisibleWidth);
+            layout.ContentVisibleWidth,
+            selectedCardId);
 
         if (_cachedPageLayer is not null && Equals(_cachedPageLayer.Key, key))
         {
@@ -126,7 +137,8 @@ public sealed class PresenterNavigationRenderSession
             demoState,
             theme,
             proofOptions,
-            layout.ContentVisibleWidth);
+            layout.ContentVisibleWidth,
+            navigationState);
 
         _cachedPageLayer = new PresenterCachedPageLayer(key, pageRender);
         _pageRenderCount++;
@@ -185,7 +197,8 @@ internal sealed record PresenterCachedPageLayerKey(
     DemoState DemoState,
     StandardTheme Theme,
     PresenterProofOptions ProofOptions,
-    int ContentWidth);
+    int ContentWidth,
+    string? SelectedCardId);
 
 internal sealed record PresenterCachedPageLayer(
     PresenterCachedPageLayerKey Key,

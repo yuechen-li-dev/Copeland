@@ -31,6 +31,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m11d/` is the current Oblivion workspace-persistence proof export directory.
 - `artifacts/m11c/` is the current presenter scrollbar state-machine and cached-composition proof export directory.
 - `artifacts/m11e/` is the current presenter/Oblivion card-hardening proof export directory.
+- `artifacts/m11f/` is the current Oblivion card-selection and inspector proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -57,6 +58,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M11d Oblivion workspace PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11c presenter scrollbar state-machine PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11e presenter/Oblivion card-hardening PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M11f Oblivion inspector PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

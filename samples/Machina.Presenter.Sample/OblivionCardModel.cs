@@ -31,7 +31,9 @@ public sealed record OblivionCardArtifact(
     string Id,
     string Label,
     string Kind,
-    string? Path);
+    string? Path,
+    bool Generated = false,
+    string? SourcePath = null);
 
 public sealed record OblivionCard(
     OblivionCardId Id,
@@ -42,4 +44,7 @@ public sealed record OblivionCard(
     IReadOnlyList<string> Tags,
     IReadOnlyList<string> BodyLines,
     IReadOnlyList<OblivionCardAction> Actions,
-    IReadOnlyList<OblivionCardArtifact> Artifacts);
+    IReadOnlyList<OblivionCardArtifact> Artifacts,
+    string? SourcePath = null,
+    string? PageId = null,
+    string? WorkspaceId = null);

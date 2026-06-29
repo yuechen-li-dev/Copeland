@@ -113,6 +113,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Presenter Scrollbar State Machine M11c](docs/machina-presenter-scrollbar-state-machine-m11c.md)
 - [Machina Oblivion Workspace Persistence M11d](docs/machina-oblivion-workspace-persistence-m11d.md)
 - [Machina Presenter Card Hardening M11e](docs/machina-presenter-card-hardening-m11e.md)
+- [Machina Oblivion Card Inspector M11f](docs/machina-oblivion-card-inspector-m11f.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 

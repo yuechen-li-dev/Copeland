@@ -100,6 +100,17 @@ public static class PresenterNavigationCatalog
             state = state
                 .WithSelectedTab(section.Id, tab.Id)
                 .WithSelectedSection(section.Id);
+
+            if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedCardId) &&
+                IsOblivionPage(resolvedPageId))
+            {
+                state = state.WithSelectedCard(
+                    resolvedPageId,
+                    OblivionWorkbenchCatalog.ResolveCardSelectionId(
+                        resolvedPageId,
+                        navigationOptions.SelectedCardId,
+                        proofOptions));
+            }
         }
         else
         {
@@ -114,6 +125,20 @@ public static class PresenterNavigationCatalog
                     state = state.WithSelectedTab(resolvedSectionId, resolvedTabId);
                 }
             }
+        }
+
+        string currentPageId = model.FindTab(
+            state.SelectedSectionId,
+            state.GetSelectedTabId(state.SelectedSectionId, model))?.PageId ?? model.Sections[0].Tabs[0].PageId;
+        if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedCardId) &&
+            IsOblivionPage(currentPageId))
+        {
+            state = state.WithSelectedCard(
+                currentPageId,
+                OblivionWorkbenchCatalog.ResolveCardSelectionId(
+                    currentPageId,
+                    navigationOptions.SelectedCardId,
+                    proofOptions));
         }
 
         if (navigationOptions.ScrollOffsetByPageId is not null)
@@ -263,10 +288,11 @@ public static class PresenterNavigationCatalog
         DemoState demoState,
         StandardTheme theme,
         PresenterProofOptions proofOptions,
-        int contentWidth)
+        int contentWidth,
+        PresenterNavigationState? navigationState = null)
     {
         double contentHeight = GetPageContentHeight(pageId, proofOptions);
-        UiDocument document = BuildPageDocument(pageId, demoState, theme, proofOptions, contentWidth);
+        UiDocument document = BuildPageDocument(pageId, demoState, theme, proofOptions, contentWidth, navigationState);
         var frame = new Machina.Pipeline.MachinaRasterPipeline().Render(document, contentWidth, (int)Math.Ceiling(contentHeight));
 
         if (pageId == "text.direct-outline" && proofOptions.IncludeDirectOutlineRenderBridgeProof)
@@ -274,11 +300,20 @@ public static class PresenterNavigationCatalog
             PresenterDirectOutlineRenderBridgeProofRenderer.BlitProof(frame.RasterFrame, frame.Resolved);
         }
 
-        return new PresenterPageRenderResult(
+        PresenterPageRenderResult result = new(
             PageId: pageId,
             Document: document,
             Frame: frame,
             ContentHeight: contentHeight);
+        if (IsOblivionPage(pageId))
+        {
+            result = result with
+            {
+                OblivionInteraction = OblivionWorkbenchCatalog.BuildInteractionMap(pageId, proofOptions, frame.Resolved),
+            };
+        }
+
+        return result;
     }
 
     private static UiDocument BuildPageDocument(
@@ -286,7 +321,8 @@ public static class PresenterNavigationCatalog
         DemoState demoState,
         StandardTheme theme,
         PresenterProofOptions proofOptions,
-        int contentWidth)
+        int contentWidth,
+        PresenterNavigationState? navigationState)
     {
         List<UiRow> rows =
         [
@@ -567,7 +603,7 @@ public static class PresenterNavigationCatalog
             case OblivionWorkbenchCatalog.CardsPageId:
             case OblivionWorkbenchCatalog.ExecutionRoadmapPageId:
             case OblivionWorkbenchCatalog.ArtifactsPageId:
-                rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth, proofOptions));
+                rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth, proofOptions, navigationState));
                 break;
 
             case "legacy.m1e-card":
@@ -667,10 +703,20 @@ public static class PresenterNavigationCatalog
                 Width: width,
                 Height: 352));
     }
+
+    public static bool IsOblivionPage(string pageId)
+    {
+        return string.Equals(pageId, OblivionWorkbenchCatalog.CardsPageId, StringComparison.Ordinal) ||
+               string.Equals(pageId, OblivionWorkbenchCatalog.ExecutionRoadmapPageId, StringComparison.Ordinal) ||
+               string.Equals(pageId, OblivionWorkbenchCatalog.ArtifactsPageId, StringComparison.Ordinal);
+    }
 }
 
 public sealed record PresenterPageRenderResult(
     string PageId,
     UiDocument Document,
     Machina.Pipeline.MachinaFrame Frame,
-    double ContentHeight);
+    double ContentHeight)
+{
+    public OblivionPageInteractionMap? OblivionInteraction { get; init; }
+}

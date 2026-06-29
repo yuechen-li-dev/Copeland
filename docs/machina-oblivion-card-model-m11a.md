@@ -33,6 +33,10 @@ Legacy
 
 `Oblivion -> Cards` is the primary proof page. `Execution Roadmap` and `Artifacts` stay static.
 
+## M11f follow-on
+
+M11f keeps the static card model but adds page-local selection, deterministic hit testing, and a bounded inspector panel for expanded detail. Execution remains deferred to M12+.
+
 M10d card containment policy remains the practical starting point:
 
 - finite outer card rect

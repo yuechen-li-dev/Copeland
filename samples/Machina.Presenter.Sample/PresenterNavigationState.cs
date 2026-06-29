@@ -3,7 +3,8 @@ namespace Machina.Presenter.Sample;
 public sealed record PresenterNavigationState(
     string SelectedSectionId,
     IReadOnlyDictionary<string, string> SelectedTabBySectionId,
-    IReadOnlyDictionary<string, double> ScrollOffsetByPageId)
+    IReadOnlyDictionary<string, double> ScrollOffsetByPageId,
+    IReadOnlyDictionary<string, string?> SelectedCardByPageId)
 {
     public static PresenterNavigationState CreateDefault(PresenterNavigationModel model)
     {
@@ -18,7 +19,8 @@ public sealed record PresenterNavigationState(
         return new PresenterNavigationState(
             SelectedSectionId: model.Sections[0].Id,
             SelectedTabBySectionId: selectedTabs,
-            ScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal));
+            ScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal),
+            SelectedCardByPageId: new Dictionary<string, string?>(StringComparer.Ordinal));
     }
 
     public string GetSelectedTabId(string sectionId, PresenterNavigationModel model)
@@ -83,6 +85,55 @@ public sealed record PresenterNavigationState(
         return this with
         {
             ScrollOffsetByPageId = offsets,
+        };
+    }
+
+    public string? GetSelectedCardId(string pageId, IReadOnlyList<OblivionCard> cards)
+    {
+        ArgumentNullException.ThrowIfNull(pageId);
+        ArgumentNullException.ThrowIfNull(cards);
+
+        if (SelectedCardByPageId.TryGetValue(pageId, out string? selectedCardId))
+        {
+            if (selectedCardId is null)
+            {
+                return null;
+            }
+
+            if (cards.Any(card => string.Equals(card.Id.Value, selectedCardId, StringComparison.Ordinal)))
+            {
+                return selectedCardId;
+            }
+        }
+
+        return cards.Count == 0
+            ? null
+            : cards[0].Id.Value;
+    }
+
+    public PresenterNavigationState WithSelectedCard(string pageId, string cardId)
+    {
+        var selectedCards = new Dictionary<string, string?>(SelectedCardByPageId, StringComparer.Ordinal)
+        {
+            [pageId] = cardId,
+        };
+
+        return this with
+        {
+            SelectedCardByPageId = selectedCards,
+        };
+    }
+
+    public PresenterNavigationState ClearSelectedCard(string pageId)
+    {
+        var selectedCards = new Dictionary<string, string?>(SelectedCardByPageId, StringComparer.Ordinal)
+        {
+            [pageId] = null,
+        };
+
+        return this with
+        {
+            SelectedCardByPageId = selectedCards,
         };
     }
 }

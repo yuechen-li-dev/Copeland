@@ -8,6 +8,8 @@ public static class PresenterNavigationActions
     public const string SelectSectionPrefix = "presenter.navigation.select-section|";
     public const string SelectTabPrefix = "presenter.navigation.select-tab|";
     public const string SetScrollOffsetPrefix = "presenter.navigation.set-scroll-offset|";
+    public const string SelectOblivionCardPrefix = "presenter.navigation.select-oblivion-card|";
+    public const string ClearOblivionCardSelectionPrefix = "presenter.navigation.clear-oblivion-card-selection|";
 
     public static UiActionId SelectSection(string sectionId)
     {
@@ -23,6 +25,16 @@ public static class PresenterNavigationActions
     {
         string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
         return new UiActionId($"{SetScrollOffsetPrefix}{pageId}|{offsetText}");
+    }
+
+    public static UiActionId SelectOblivionCard(string pageId, string cardId)
+    {
+        return new UiActionId($"{SelectOblivionCardPrefix}{pageId}|{cardId}");
+    }
+
+    public static UiActionId ClearOblivionCardSelection(string pageId)
+    {
+        return new UiActionId($"{ClearOblivionCardSelectionPrefix}{pageId}");
     }
 
     public static bool TryParseSelectSection(UiActionId actionId, out string sectionId)
@@ -75,6 +87,37 @@ public static class PresenterNavigationActions
 
         pageId = string.Empty;
         scrollOffset = 0;
+        return false;
+    }
+
+    public static bool TryParseSelectOblivionCard(UiActionId actionId, out string pageId, out string cardId)
+    {
+        if (actionId.Value.StartsWith(SelectOblivionCardPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[SelectOblivionCardPrefix.Length..];
+            string[] parts = payload.Split('|', StringSplitOptions.None);
+            if (parts.Length == 2)
+            {
+                pageId = parts[0];
+                cardId = parts[1];
+                return true;
+            }
+        }
+
+        pageId = string.Empty;
+        cardId = string.Empty;
+        return false;
+    }
+
+    public static bool TryParseClearOblivionCardSelection(UiActionId actionId, out string pageId)
+    {
+        if (actionId.Value.StartsWith(ClearOblivionCardSelectionPrefix, StringComparison.Ordinal))
+        {
+            pageId = actionId.Value[ClearOblivionCardSelectionPrefix.Length..];
+            return true;
+        }
+
+        pageId = string.Empty;
         return false;
     }
 }

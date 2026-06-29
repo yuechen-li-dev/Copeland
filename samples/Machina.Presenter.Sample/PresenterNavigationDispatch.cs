@@ -58,6 +58,33 @@ public static class PresenterNavigationDispatch
             return state.WithScrollOffset(pageId, clamped);
         }
 
+        if (PresenterNavigationActions.TryParseSelectOblivionCard(actionId, out string oblivionPageId, out string cardId))
+        {
+            if (!model.ContainsPage(oblivionPageId))
+            {
+                return state;
+            }
+
+            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(oblivionPageId, proofOptions);
+            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(oblivionPageId, cardId, proofOptions);
+            if (cards.All(card => !string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal)))
+            {
+                return state;
+            }
+
+            return state.WithSelectedCard(oblivionPageId, resolvedCardId);
+        }
+
+        if (PresenterNavigationActions.TryParseClearOblivionCardSelection(actionId, out string clearPageId))
+        {
+            if (!model.ContainsPage(clearPageId))
+            {
+                return state;
+            }
+
+            return state.ClearSelectedCard(clearPageId);
+        }
+
         return state;
     }
 }

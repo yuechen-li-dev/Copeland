@@ -69,7 +69,8 @@ public sealed record PresenterNavigationShellRenderResult(
     Machina.Renderer.Raster.Dominatus.Models.RasterFrame ComposedFrame,
     ScrollbarGeometry ScrollbarGeometry,
     PresenterNavigationRenderDiagnostics Diagnostics,
-    PresenterNavigationRenderSession Session)
+    PresenterNavigationRenderSession Session,
+    PresenterPageRenderResult? PageRender = null)
 {
     public UiAction? HitTestContent(PointerPoint rootPoint)
     {
@@ -85,6 +86,18 @@ public sealed record PresenterNavigationShellRenderResult(
         double contentX = rootPoint.X - viewport.X;
         double contentY = rootPoint.Y - viewport.Y + ScrollbarGeometry.ScrollOffset;
         UiHitTestResult? hit = PageFrame.HitTest.HitTest(new PointerPoint(contentX, contentY));
+        if (hit?.Action is not null)
+        {
+            return hit.Action;
+        }
+
+        if (PageRender?.OblivionInteraction is not null)
+        {
+            return PageRender.OblivionInteraction.HitTest(
+                new PresenterInputPoint((float)contentX, (float)(contentY - ScrollbarGeometry.ScrollOffset)),
+                ScrollbarGeometry.ScrollOffset);
+        }
+
         return hit?.Action;
     }
 }

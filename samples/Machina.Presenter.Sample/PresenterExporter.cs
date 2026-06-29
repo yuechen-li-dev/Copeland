@@ -43,6 +43,8 @@ public static class PresenterExporter
         string? manifestTextPath = null;
         string? oblivionManifestJsonPath = null;
         string? oblivionManifestTextPath = null;
+        string? oblivionInspectorManifestJsonPath = null;
+        string? oblivionInspectorManifestTextPath = null;
         RasterFrame rasterFrame;
         int width;
         int height;
@@ -74,6 +76,10 @@ public static class PresenterExporter
                 proofOptions,
                 navigationOptions.InteractionBackendName);
             (oblivionManifestJsonPath, oblivionManifestTextPath) = OblivionWorkbenchCatalog.WriteManifest(outputDirectory, proofOptions);
+            (oblivionInspectorManifestJsonPath, oblivionInspectorManifestTextPath) = OblivionWorkbenchCatalog.WriteInspectorManifest(
+                outputDirectory,
+                shellRender.NavigationState,
+                proofOptions);
         }
         else
         {
@@ -113,6 +119,8 @@ public static class PresenterExporter
             NavigationManifestTextPath = manifestTextPath,
             OblivionManifestJsonPath = oblivionManifestJsonPath,
             OblivionManifestTextPath = oblivionManifestTextPath,
+            OblivionInspectorManifestJsonPath = oblivionInspectorManifestJsonPath,
+            OblivionInspectorManifestTextPath = oblivionInspectorManifestTextPath,
         };
     }
 
@@ -180,4 +188,8 @@ public sealed record PresenterExportResult(
     public string? OblivionManifestJsonPath { get; init; }
 
     public string? OblivionManifestTextPath { get; init; }
+
+    public string? OblivionInspectorManifestJsonPath { get; init; }
+
+    public string? OblivionInspectorManifestTextPath { get; init; }
 }

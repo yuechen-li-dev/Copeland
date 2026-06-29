@@ -38,6 +38,10 @@ The root manifest is nested and tree-shaped:
 
 That makes JSON the practical choice for the `.sln`-like coordination file.
 
+## M11f follow-on
+
+M11f keeps this JSON/TOML split and adds source-path visibility in the Oblivion inspector. Persistence remains metadata/loading infrastructure only, with Roslyn and xUnit execution still deferred.
+
 ## Why TOML is used for cards/assets
 
 Cards, pages, and artifact metadata are intended to stay readable and hand-editable.

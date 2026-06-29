@@ -171,7 +171,8 @@ public static class OblivionWorkspaceLoader
             document.Tags,
             SplitLines(document.Body.Text),
             document.Actions.Select(action => new OblivionCardAction(action.Id, action.Label, action.Enabled)).ToArray(),
-            artifacts);
+            artifacts,
+            SourcePath: GetRelativePath(workspaceRoot, sourcePath));
     }
 
     private static OblivionCardArtifact BuildArtifact(
@@ -185,12 +186,14 @@ public static class OblivionWorkspaceLoader
         string label = artifactDocument.Label;
         string kind = artifactDocument.Kind;
         string? path = artifactDocument.Path;
+        string? artifactSourcePath = null;
 
         if (!string.IsNullOrWhiteSpace(artifactDocument.Asset))
         {
             string? resolvedArtifactPath = ResolveAssetPath(workspaceRoot, artifactDocument.Asset!, options, diagnostics, sourcePath, "artifact asset");
             if (resolvedArtifactPath is not null)
             {
+                artifactSourcePath = GetRelativePath(workspaceRoot, resolvedArtifactPath);
                 if (File.Exists(resolvedArtifactPath))
                 {
                     OblivionArtifactTomlReadResult artifactResult = OblivionArtifactTomlReader.Read(File.ReadAllText(resolvedArtifactPath), resolvedArtifactPath);
@@ -215,7 +218,13 @@ public static class OblivionWorkspaceLoader
             }
         }
 
-        return new OblivionCardArtifact(id, label, kind, path);
+        return new OblivionCardArtifact(
+            id,
+            label,
+            kind,
+            path,
+            artifactDocument.Generated,
+            SourcePath: artifactSourcePath);
     }
 
     private static string? ResolveAssetPath(

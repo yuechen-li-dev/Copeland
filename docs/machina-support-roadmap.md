@@ -77,6 +77,8 @@ Manual GUI validation depth across broader component scenarios is **Partial / ne
 
 M7a adds a dedicated component gallery so broader StandardUI visual inspection no longer has to overload the presenter sample. M7b formalizes its repeatable PNG export contract and local artifact workflow. M7c uses that workflow for evidence-backed visual defect triage and deferral documentation. M7d closes the deferred badge intrinsic-size / label-placement issue with a Badge-local contract and no general layout-engine changes. M7e records the current stable baseline and known limitations so the gallery can keep serving as the canonical local visual workbench without pretending typography and interaction fidelity are finished.
 
+M11f adds static Oblivion card selection and an inspector panel. Roslyn/xUnit execution remains deferred to M12+ or later.
+
 ## Support Matrix
 
 | Feature | Package | Status | Tests/Proof | Notes / Next Step |

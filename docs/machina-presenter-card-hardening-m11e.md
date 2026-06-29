@@ -37,6 +37,10 @@ The shared helper computes these regions once and card builders consume the name
 
 Future card authors should derive layout from the helper first and then place title, badges, body text, and hosted content into the named regions.
 
+## M11f follow-on
+
+M11f preserves the compact bounded-card policy from M11e. Expanded static detail now lives in a separate inspector rather than being pushed into larger card bodies.
+
 ## Body text line capacity
 
 The original presenter bug came from subtracting the card inset twice when computing body height.
