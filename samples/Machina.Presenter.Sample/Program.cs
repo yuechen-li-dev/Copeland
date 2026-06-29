@@ -97,6 +97,7 @@ internal sealed class Program
         private readonly PresenterNavigationExportOptions _navigationOptions;
         private readonly AvaloniaPresenterInputBackend _inputBackend;
         private PresenterNavigationState? _navigationState;
+        private PresenterScrollbarDragState? _scrollbarDragState;
         private UiHitTestIndex _hitTestIndex;
         private MachinaFrame _currentFrame;
         private PresenterNavigationShellRenderResult? _navigationShellRender;
@@ -111,6 +112,8 @@ internal sealed class Program
             };
 
             _image.PointerPressed += HandlePointerPressed;
+            _image.PointerMoved += HandlePointerMoved;
+            _image.PointerReleased += HandlePointerReleased;
             _image.PointerWheelChanged += HandlePointerWheelChanged;
 
             _state = new DemoState(
@@ -124,6 +127,7 @@ internal sealed class Program
             _navigationState = navigationOptions.IncludeNavigationShell
                 ? PresenterExporterNavigationState()
                 : null;
+            _scrollbarDragState = null;
             _hitTestIndex = default!;
             _currentFrame = default!;
             _navigationShellRender = null;
@@ -189,7 +193,25 @@ internal sealed class Program
             PresenterInputEvent inputEvent = _inputBackend.TranslatePointerPressed(
                 args.GetCurrentPoint(_image).Properties,
                 new PresenterInputPoint((float)position.X, (float)position.Y));
-            ProcessInput(inputEvent, position.X, position.Y);
+            ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
+        }
+
+        private void HandlePointerMoved(object? sender, PointerEventArgs args)
+        {
+            Point position = args.GetPosition(_image);
+            PresenterInputEvent inputEvent = _inputBackend.TranslatePointerMoved(
+                args,
+                new PresenterInputPoint((float)position.X, (float)position.Y));
+            ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
+        }
+
+        private void HandlePointerReleased(object? sender, PointerReleasedEventArgs args)
+        {
+            Point position = args.GetPosition(_image);
+            PresenterInputEvent inputEvent = _inputBackend.TranslatePointerReleased(
+                args,
+                new PresenterInputPoint((float)position.X, (float)position.Y));
+            ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
         }
 
         private void HandlePointerWheelChanged(object? sender, PointerWheelEventArgs args)
@@ -198,10 +220,10 @@ internal sealed class Program
             PresenterInputEvent inputEvent = _inputBackend.TranslateWheel(
                 args,
                 new PresenterInputPoint((float)position.X, (float)position.Y));
-            ProcessInput(inputEvent, position.X, position.Y);
+            ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
         }
 
-        private void ProcessInput(PresenterInputEvent inputEvent, double presentedX, double presentedY)
+        private void ProcessInput(PresenterInputEvent inputEvent, double presentedX, double presentedY, IPointer? pointer)
         {
             RuntimePointerPoint? point = MapToRootPoint(inputEvent.Position);
             UiAction? action = null;
@@ -215,8 +237,26 @@ internal sealed class Program
                         Position = new PresenterInputPoint((float)point.Value.X, (float)point.Value.Y),
                     };
 
-                    PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(_navigationShellRender, rootInput);
+                    PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
+                        _navigationShellRender,
+                        rootInput,
+                        _scrollbarDragState);
                     UiActionId? routedActionId = routed.ActionId;
+                    _scrollbarDragState = routed.ScrollbarDragState;
+
+                    if (pointer is not null)
+                    {
+                        if (routed.RequestPointerCapture)
+                        {
+                            pointer.Capture(_image);
+                        }
+
+                        if (routed.ReleasePointerCapture)
+                        {
+                            pointer.Capture(null);
+                        }
+                    }
+
                     if (routedActionId is not null)
                     {
                         action = new UiAction(routedActionId.Value);

@@ -108,6 +108,7 @@ M10c keeps the M10b interaction boundary:
 - sidebar clicks still select sections
 - local tab clicks still select tabs
 - wheel input over the content viewport still updates selected-page scroll offsets
+- M10d later adds scrollbar thumb dragging and card-bound containment without changing the shell model
 - Avalonia remains only the current sample input backend
 - state/actions/hit testing remain backend-neutral
 

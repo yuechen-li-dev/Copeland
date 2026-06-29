@@ -10,7 +10,7 @@ public static class SettingsScreen
     public const int RootHeight = 360;
     public const int ProofSectionTop = 336;
     public const int ProofSectionLeft = 72;
-    public const int ProofSectionWidth = (int)PresenterDirectOutlineRenderBridgeProofCard.Width;
+    public const int ProofSectionWidth = (int)PresenterDirectOutlineRenderBridgeProofCard.MinimumWidth;
     public const int ProofSectionHeight = (int)PresenterDirectOutlineRenderBridgeProofCard.Height;
     public const int ExpandedRootHeight = ProofSectionTop + ProofSectionHeight + 24;
 
@@ -51,7 +51,7 @@ public static class SettingsScreen
                     top: ProofSectionTop,
                     width: ProofSectionWidth,
                     height: ProofSectionHeight,
-                    component: PresenterDirectOutlineRenderBridgeProofCard.Build(effectiveTheme)));
+                    component: PresenterDirectOutlineRenderBridgeProofCard.Build(effectiveTheme, ProofSectionWidth)));
         }
 
         return UiDocument.Create(rows);

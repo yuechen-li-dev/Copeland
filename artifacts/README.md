@@ -25,7 +25,8 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m9i/` is the current font phase closeout manifest directory.
 - `artifacts/m10a/` is the historical presenter navigation shell export directory.
 - `artifacts/m10b/` is the historical presenter navigation interaction export directory.
-- `artifacts/m10c/` is the current presenter shell organization export directory.
+- `artifacts/m10c/` is the historical presenter shell organization export directory.
+- `artifacts/m10d/` is the current presenter shell stabilization export directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -46,6 +47,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M10a presenter shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M10b presenter interaction PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M10c presenter shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M10d presenter stabilization PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -135,6 +137,18 @@ Current M10c presenter organization commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-diagnostics-layout.png -SelectedSection diagnostics -SelectedTab layout
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-scrolled.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:120
+```
+
+Current M10d presenter stabilization commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-components-controls.png -SelectedSection components -SelectedTab controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-components-controls-scrolled.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:344
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-text-current.png -SelectedSection text -SelectedTab current
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-text-direct-outline.png -SelectedSection text -SelectedTab direct-outline -IncludeDirectOutlineRenderBridgeProof
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-text-proofs.png -SelectedSection text -SelectedTab proofs -IncludeDirectOutlineRenderBridgeProof
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-diagnostics-layout.png -SelectedSection diagnostics -SelectedTab layout
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -258,6 +272,15 @@ Current M9f audit command:
 - `artifacts/m10c/presenter-shell-scrolled.png`
 - `artifacts/m10c/presenter-shell-manifest.txt`
 - `artifacts/m10c/presenter-shell-manifest.json`
+- `artifacts/m10d/presenter-stabilized-components-controls.png`
+- `artifacts/m10d/presenter-stabilized-components-controls-scrolled.png`
+- `artifacts/m10d/presenter-stabilized-text-current.png`
+- `artifacts/m10d/presenter-stabilized-text-direct-outline.png`
+- `artifacts/m10d/presenter-stabilized-text-proofs.png`
+- `artifacts/m10d/presenter-stabilized-diagnostics-layout.png`
+- `artifacts/m10d/presenter-stabilized-legacy-m1e-card.png`
+- `artifacts/m10d/presenter-stabilization-manifest.txt`
+- `artifacts/m10d/presenter-stabilization-manifest.json`
 
 No automated pixel comparison runs against these files yet. M7e documents the current stable baseline and its limitations without changing that policy.
 
@@ -522,3 +545,17 @@ These remain local sample proof artifacts only. M10b adds sample-level sidebar/t
 - `artifacts/m10c/presenter-shell-manifest.json`
 
 These remain local sample proof artifacts only. M10c makes the navigation shell the canonical presenter sample surface, preserves the old M1e card as a `Legacy` page, keeps M9 font work closed, adds no new component families, and does not change production renderer/core/layout behavior.
+
+## Current M10d presenter stabilization outputs
+
+- `artifacts/m10d/presenter-stabilized-components-controls.png`
+- `artifacts/m10d/presenter-stabilized-components-controls-scrolled.png`
+- `artifacts/m10d/presenter-stabilized-text-current.png`
+- `artifacts/m10d/presenter-stabilized-text-direct-outline.png`
+- `artifacts/m10d/presenter-stabilized-text-proofs.png`
+- `artifacts/m10d/presenter-stabilized-diagnostics-layout.png`
+- `artifacts/m10d/presenter-stabilized-legacy-m1e-card.png`
+- `artifacts/m10d/presenter-stabilization-manifest.txt`
+- `artifacts/m10d/presenter-stabilization-manifest.json`
+
+These remain local sample proof artifacts only. M10d stabilizes the existing shell, keeps M9 font work closed, adds no new component families, keeps card/cell containment as presenter-sample policy, and keeps scrollbar input routed through the existing Avalonia backend seam.

@@ -92,7 +92,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | ResolvedLayoutDocument | Machina.Layout | Implemented | Resolver tests | Canonical flat resolved geometry.
 | ResolvedLayoutTree | Machina.Layout | Implemented | Tree builder tests | Derived projection for adapters/debug.
 | Clipping/overflow semantics | Layout/Renderer | Partial | Raster contract/docs | Basic rectangular behavior exists; richer semantics pending.
-| Scrolling | Layout/Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds explicit presenter-local viewport/content/offset state and deterministic scrollbar geometry; M10b adds sample-local wheel routing; M10c makes that shell the canonical presenter sample surface without changing shared layout semantics.
+| Scrolling | Layout/Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds explicit presenter-local viewport/content/offset state and deterministic scrollbar geometry; M10b adds sample-local wheel routing; M10c makes that shell the canonical presenter sample surface; M10d adds sample-local track click and thumb dragging without changing shared layout semantics.
 | Z/painter ordering | Layout/Renderer | Partial | Contract-level coverage | Expand explicit tests across render adapters.
 | UI.Text | Machina.Core | Implemented | Core tests | Deterministic measurement seam integrated.
 | UI.Rect | Machina.Core | Implemented | Core tests | Style + child lowering path.
@@ -163,7 +163,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | GPU backend | Future renderer | Deferred | None | Future platform strategy.
 | Avalonia static bitmap window | Presenter sample | Implemented | Presenter docs/proofs | M0 presenter baseline.
 | Avalonia click-to-action | Presenter sample | Partial | Presenter/runtime docs | Expand robust input loops.
-| Avalonia redraw loop | Presenter sample | Partial | Presenter docs + M10b/M10c shell tests | Shell mode composes sidebar/tabs/page content, keeps the original settings page reachable under `Legacy`, and routes sample-local pointer/wheel input through an Avalonia adapter.
+| Avalonia redraw loop | Presenter sample | Partial | Presenter docs + M10b/M10c/M10d shell tests | Shell mode composes sidebar/tabs/page content, keeps the original settings page reachable under `Legacy`, routes sample-local pointer/wheel input through an Avalonia adapter, and now supports sample-local scrollbar thumb dragging through the same seam.
 | Component gallery visual workbench | ComponentGallery sample | Implemented | Dedicated gallery tests + local Windows visual audit + repeatable export script | Canonical “wall of widgets” page; local-first, not a Storybook clone; M7b formalizes deterministic PNG export and generated-artifact policy. |
 | Scaling/DPI conversion | Presenter sample | Partial | Presenter M1d mapper/tests | Explicit image-to-root mapping landed for None/Fill/Uniform math; broader DPI policy still pending.
 | Window resize handling | Presenter sample | Planned | None | Needed for practical desktop UX.
@@ -968,3 +968,20 @@ This remains sample-local:
 - no `Machina.Layout` resolver behavior changed
 - M9 font work remains closed unless a concrete integration need appears
 - no new component family was introduced
+
+## M10d update
+
+M10d stabilizes the existing presenter shell before any new workbench or card-system work resumes.
+
+- `Text -> DirectOutlineStatic` now renders inside a bounded presenter proof card with corrected page-height accounting.
+- `Text -> Proofs` no longer throws from negative remaining stack space inside a fixed-height sample card.
+- presenter sample cards now use bounded title/body regions with sample-local clipped/truncated copy so content stays cell-like.
+- scrollbar track paging remains, and sample-local thumb dragging now works through the same Avalonia adapter and backend-neutral routing seam introduced in M10b.
+
+This remains sample-local:
+
+- no production renderer default changed
+- no `Machina.Core` document-model semantic changed
+- no shared `Machina.Layout` resolver behavior changed
+- no new component family was introduced
+- M9 font work remains closed

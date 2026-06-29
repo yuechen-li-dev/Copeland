@@ -90,7 +90,7 @@ M10b also adds low-risk scrollbar track paging:
 - pressing above the thumb pages upward
 - pressing below the thumb pages downward
 
-Thumb dragging is still deferred.
+M10d later adds sample-local thumb dragging with explicit pointer capture while keeping the same backend-neutral routing seam. See [docs/machina-presenter-stabilization-m10d.md](./machina-presenter-stabilization-m10d.md).
 
 ## State ownership
 
@@ -145,7 +145,6 @@ M10c later makes this interacted shell the canonical/default presenter surface. 
 
 ## Deferred work
 
-- thumb dragging
 - keyboard navigation
 - focus/accessibility state
 - reusable Standard sidebar/tab components

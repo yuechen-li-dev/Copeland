@@ -6,6 +6,7 @@ M10a adds a presenter organization shell so the sample can keep growing without 
 
 M10b later adds the interaction wiring on top of this structure. See [docs/machina-presenter-navigation-interaction-m10b.md](./machina-presenter-navigation-interaction-m10b.md).
 M10c later makes this shell the canonical/default presenter surface. See [docs/machina-presenter-page-organization-m10c.md](./machina-presenter-page-organization-m10c.md).
+M10d later stabilizes the shell with bounded presenter cards and working scrollbar mouse interaction. See [docs/machina-presenter-stabilization-m10d.md](./machina-presenter-stabilization-m10d.md).
 
 ## Why presenter navigation is needed now
 

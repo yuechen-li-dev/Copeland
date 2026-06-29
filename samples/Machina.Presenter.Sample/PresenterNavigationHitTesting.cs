@@ -149,7 +149,15 @@ public static class PresenterNavigationHitTesting
 
 public sealed record PresenterNavigationInputRoutingResult(
     PresenterNavigationHitTarget HitTarget,
-    UiActionId? ActionId);
+    UiActionId? ActionId,
+    PresenterScrollbarDragState? ScrollbarDragState = null,
+    bool RequestPointerCapture = false,
+    bool ReleasePointerCapture = false);
+
+public sealed record PresenterScrollbarDragState(
+    string PageId,
+    float DragStartPointerY,
+    float DragStartScrollOffset);
 
 public static class PresenterNavigationInputRouter
 {
@@ -159,13 +167,55 @@ public static class PresenterNavigationInputRouter
         PresenterNavigationShellRenderResult render,
         PresenterInputEvent inputEvent)
     {
+        return Route(render, inputEvent, null);
+    }
+
+    public static PresenterNavigationInputRoutingResult Route(
+        PresenterNavigationShellRenderResult render,
+        PresenterInputEvent inputEvent,
+        PresenterScrollbarDragState? dragState)
+    {
         ArgumentNullException.ThrowIfNull(render);
 
         PresenterNavigationHitTarget hitTarget = PresenterNavigationHitTesting.HitTest(render.ChromeGeometry, inputEvent.Position);
 
+        if (dragState is not null)
+        {
+            if (inputEvent.Kind == PresenterInputKind.PointerMoved)
+            {
+                UiActionId? dragAction = BuildThumbDragAction(render, dragState, inputEvent.Position);
+                return new PresenterNavigationInputRoutingResult(
+                    hitTarget,
+                    dragAction,
+                    dragState);
+            }
+
+            if (inputEvent.Kind == PresenterInputKind.PointerReleased)
+            {
+                return new PresenterNavigationInputRoutingResult(
+                    hitTarget,
+                    null,
+                    null,
+                    ReleasePointerCapture: true);
+            }
+        }
+
         if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
             inputEvent.Button == PresenterInputButton.Primary)
         {
+            if (hitTarget.Kind == PresenterNavigationHitKind.ScrollbarThumb &&
+                render.ScrollbarGeometry.IsVisible)
+            {
+                return new PresenterNavigationInputRoutingResult(
+                    hitTarget,
+                    null,
+                    new PresenterScrollbarDragState(
+                        render.SelectedTab.PageId,
+                        inputEvent.Position.Y,
+                        (float)render.ScrollbarGeometry.ScrollOffset),
+                    RequestPointerCapture: true);
+            }
+
             if (hitTarget.Kind == PresenterNavigationHitKind.SidebarSection &&
                 !string.IsNullOrWhiteSpace(hitTarget.SectionId))
             {
@@ -193,7 +243,8 @@ public static class PresenterNavigationInputRouter
 
                 return new PresenterNavigationInputRoutingResult(
                     hitTarget,
-                    PresenterNavigationActions.SetScrollOffset(render.SelectedTab.PageId, nextOffset));
+                    PresenterNavigationActions.SetScrollOffset(render.SelectedTab.PageId, nextOffset),
+                    null);
             }
         }
 
@@ -204,9 +255,33 @@ public static class PresenterNavigationInputRouter
             double nextOffset = render.ScrollbarGeometry.ScrollOffset - (inputEvent.WheelDeltaY * ScrollWheelMultiplier);
             return new PresenterNavigationInputRoutingResult(
                 hitTarget,
-                PresenterNavigationActions.SetScrollOffset(render.SelectedTab.PageId, nextOffset));
+                PresenterNavigationActions.SetScrollOffset(render.SelectedTab.PageId, nextOffset),
+                dragState);
         }
 
-        return new PresenterNavigationInputRoutingResult(hitTarget, null);
+        return new PresenterNavigationInputRoutingResult(hitTarget, null, dragState);
+    }
+
+    private static UiActionId? BuildThumbDragAction(
+        PresenterNavigationShellRenderResult render,
+        PresenterScrollbarDragState dragState,
+        PresenterInputPoint position)
+    {
+        if (!render.ScrollbarGeometry.IsVisible ||
+            !string.Equals(render.SelectedTab.PageId, dragState.PageId, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        double thumbTravel = render.ScrollbarGeometry.TrackRect.Height - render.ScrollbarGeometry.ThumbRect.Height;
+        if (thumbTravel <= 0 || render.ScrollbarGeometry.MaxScrollOffset <= 0)
+        {
+            return PresenterNavigationActions.SetScrollOffset(dragState.PageId, dragState.DragStartScrollOffset);
+        }
+
+        double deltaY = position.Y - dragState.DragStartPointerY;
+        double scrollDelta = deltaY * (render.ScrollbarGeometry.MaxScrollOffset / thumbTravel);
+        double nextOffset = dragState.DragStartScrollOffset + scrollDelta;
+        return PresenterNavigationActions.SetScrollOffset(dragState.PageId, nextOffset);
     }
 }

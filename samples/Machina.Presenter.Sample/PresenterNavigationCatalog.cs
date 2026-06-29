@@ -232,11 +232,11 @@ public static class PresenterNavigationCatalog
             "components.controls" => 860,
             "components.cards" => 560,
             "text.current" => 448,
-            "text.direct-outline" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 700 : 304,
-            "text.proofs" => 340,
+            "text.direct-outline" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 896 : 320,
+            "text.proofs" => 376,
             "diagnostics.layout" => 360,
             "diagnostics.export" => 432,
-            "legacy.m1e-card" => SettingsScreen.GetHeight(proofOptions),
+            "legacy.m1e-card" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 1152 : 420,
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
     }
@@ -428,7 +428,7 @@ public static class PresenterNavigationCatalog
                 break;
 
             case "text.direct-outline":
-                rows.Add(Row.Anchor("text-direct-outline-intro", "root", left: 0, top: 0, width: contentWidth, height: 140, component: BuildInfoCard(
+                rows.Add(Row.Anchor("text-direct-outline-intro", "root", left: 0, top: 0, width: contentWidth, height: 148, component: BuildInfoCard(
                     "text-direct-outline-intro-card",
                     "DirectOutlineStatic is still proof-only here",
                     [
@@ -447,13 +447,13 @@ public static class PresenterNavigationCatalog
                         "root",
                         left: 0,
                         top: 164,
-                        width: SettingsScreen.ProofSectionWidth,
-                        height: SettingsScreen.ProofSectionHeight,
-                        component: PresenterDirectOutlineRenderBridgeProofCard.Build(theme)));
+                        width: contentWidth,
+                        height: 708,
+                        component: PresenterDirectOutlineRenderBridgeProofCard.Build(theme, contentWidth)));
                 }
                 else
                 {
-                    rows.Add(Row.Anchor("text-direct-outline-disabled", "root", left: 0, top: 164, width: contentWidth, height: 116, component: BuildInfoCard(
+                    rows.Add(Row.Anchor("text-direct-outline-disabled", "root", left: 0, top: 164, width: contentWidth, height: 132, component: BuildInfoCard(
                         "text-direct-outline-disabled-card",
                         "Proof flag not enabled",
                         [
@@ -480,7 +480,7 @@ public static class PresenterNavigationCatalog
                     theme,
                     contentWidth,
                     180)));
-                rows.Add(Row.Anchor("text-proofs-status", "root", left: 0, top: 204, width: contentWidth, height: 112, component: BuildInfoCard(
+                rows.Add(Row.Anchor("text-proofs-status", "root", left: 0, top: 204, width: contentWidth, height: 136, component: BuildInfoCard(
                     "text-proofs-status-card",
                     "Proof routing",
                     [
@@ -549,13 +549,13 @@ public static class PresenterNavigationCatalog
 
             case "legacy.m1e-card":
                 rows.Add(Row.Anchor(
-                    "legacy-settings-card",
+                    "legacy-settings-card-wrapper",
                     "root",
-                    left: 72,
+                    left: 0,
                     top: 24,
-                    width: 500,
-                    height: 292,
-                    component: SettingsCard.Build(demoState, theme)));
+                    width: contentWidth,
+                    height: 352,
+                    component: BuildLegacyCardWrapper(demoState, theme, contentWidth)));
 
                 if (proofOptions.IncludeDirectOutlineRenderBridgeProof)
                 {
@@ -563,11 +563,11 @@ public static class PresenterNavigationCatalog
                         Row.Anchor(
                             PresenterDirectOutlineRenderBridgeProofLayout.SectionId,
                             "root",
-                            left: SettingsScreen.ProofSectionLeft,
-                            top: SettingsScreen.ProofSectionTop,
-                            width: SettingsScreen.ProofSectionWidth,
-                            height: SettingsScreen.ProofSectionHeight,
-                            component: PresenterDirectOutlineRenderBridgeProofCard.Build(theme)));
+                            left: 0,
+                            top: 400,
+                            width: contentWidth,
+                            height: 708,
+                            component: PresenterDirectOutlineRenderBridgeProofCard.Build(theme, contentWidth)));
                 }
 
                 break;
@@ -581,35 +581,25 @@ public static class PresenterNavigationCatalog
 
     private static UiNode BuildStatusCard(DemoState state, StandardTheme theme, int width, double height)
     {
-        return StandardUI.Card(
+        return PresenterCard.BuildTextCard(
             id: "overview-status-card-content",
-            theme: theme,
-            width: width,
-            height: height,
-            gap: 10,
-            children:
+            title: "Presenter status",
+            badges:
             [
-                UI.Text("Presenter status", id: "status-title", size: TextSize.Md, color: theme.Colors.Foreground),
-                UI.Row(
-                    id: "status-badges",
-                    gap: 8,
-                    children:
-                    [
-                        StandardUI.Badge($"Count {state.Count}", id: "status-count", theme: theme),
-                        StandardUI.Badge(state.EmailUpdates ? "Email on" : "Email off", id: "status-email", theme: theme),
-                        StandardUI.Badge(state.Notifications ? "Notify on" : "Notify off", id: "status-notifications", theme: theme),
-                    ]),
-                StandardUI.TextBlock(
-                    id: "status-copy",
-                    text: Text.Markup(
-                        """
-                        The presenter shell keeps the legacy control demo reachable,
-                        while moving app-level organization into explicit section/tab state.
-                        """,
-                        variant: MachinaTextVariant.Caption),
-                    theme: theme,
-                    foreground: theme.Colors.MutedForeground),
-            ]);
+                $"Count {state.Count}",
+                state.EmailUpdates ? "Email on" : "Email off",
+                state.Notifications ? "Notify on" : "Notify off",
+            ],
+            lines:
+            [
+                "The presenter shell keeps the legacy control demo reachable.",
+                "App-level organization now lives in explicit section and tab state.",
+                "Per-page scroll offset remains separate from component-local state.",
+            ],
+            theme: theme,
+            options: new PresenterCardOptions(
+                Width: width,
+                Height: height));
     }
 
     private static UiNode BuildInfoCard(
@@ -621,38 +611,38 @@ public static class PresenterNavigationCatalog
         int width,
         double height)
     {
-        List<UiNode> children =
-        [
-            UI.Text(title, id: "title", size: TextSize.Md, color: theme.Colors.Foreground),
-        ];
-
-        if (badges.Count > 0)
-        {
-            children.Add(
-                UI.Row(
-                    id: "badges",
-                    gap: 8,
-                    children: badges.Select((badge, index) => (UiNode)StandardUI.Badge(badge, id: $"badge-{index}", theme: theme, variant: BadgeVariant.Secondary)).ToArray()));
-        }
-
-        string markdown = string.Join(
-            Environment.NewLine + Environment.NewLine,
-            lines.Select(line => $"- {line}"));
-
-        children.Add(
-            StandardUI.TextBlock(
-                id: "copy",
-                text: Text.Markup(markdown, variant: MachinaTextVariant.Caption),
-                theme: theme,
-                foreground: theme.Colors.MutedForeground));
-
-        return StandardUI.Card(
+        return PresenterCard.BuildTextCard(
             id: id,
+            title: title,
+            badges: badges,
+            lines: lines,
             theme: theme,
-            width: width,
-            height: height,
-            gap: 10,
-            children: children);
+            options: new PresenterCardOptions(
+                Width: width,
+                Height: height));
+    }
+
+    private static UiNode BuildLegacyCardWrapper(DemoState state, StandardTheme theme, int width)
+    {
+        return PresenterCard.BuildHostedCard(
+            id: "legacy-settings-wrapper-card",
+            title: "Legacy M1e Card",
+            badges:
+            [
+                "preserved",
+                "legacy root",
+            ],
+            body: UI.Anchor(
+                SettingsCard.Build(state, theme),
+                id: "legacy-settings-card-slot",
+                left: 0,
+                top: 0,
+                width: 500,
+                height: 292),
+            theme: theme,
+            options: new PresenterCardOptions(
+                Width: width,
+                Height: 352));
     }
 }
 

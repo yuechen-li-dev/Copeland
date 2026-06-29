@@ -1,0 +1,32 @@
+{
+  "milestone": "M10d",
+  "purpose": "Presenter shell stabilization",
+  "defaultShell": true,
+  "fixes": [
+    "Text direct-outline page bounded proof card",
+    "Text proofs page no-throw layout",
+    "Scrollbar track paging",
+    "Scrollbar thumb dragging",
+    "Presenter sample card containment"
+  ],
+  "artifacts": [
+    "presenter-stabilized-components-controls.png",
+    "presenter-stabilized-components-controls-scrolled.png",
+    "presenter-stabilized-text-current.png",
+    "presenter-stabilized-text-direct-outline.png",
+    "presenter-stabilized-text-proofs.png",
+    "presenter-stabilized-diagnostics-layout.png",
+    "presenter-stabilized-legacy-m1e-card.png"
+  ],
+  "docs": [
+    "docs/machina-presenter-stabilization-m10d.md",
+    "docs/machina-presenter-page-organization-m10c.md",
+    "docs/machina-presenter-navigation-interaction-m10b.md",
+    "docs/machina-presenter-navigation-shell-m10a.md"
+  ],
+  "notes": [
+    "Sample-only stabilization",
+    "No new component families",
+    "No resumed font work"
+  ]
+}

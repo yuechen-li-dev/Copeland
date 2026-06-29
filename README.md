@@ -103,6 +103,7 @@ dotnet test Copeland.Slow.slnx
 - [Machina Presenter Navigation Shell M10a](docs/machina-presenter-navigation-shell-m10a.md)
 - [Machina Presenter Navigation Interaction M10b](docs/machina-presenter-navigation-interaction-m10b.md)
 - [Machina Presenter Page Organization M10c](docs/machina-presenter-page-organization-m10c.md)
+- [Machina Presenter Stabilization M10d](docs/machina-presenter-stabilization-m10d.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -262,6 +263,32 @@ Representative M10c outputs:
 - `artifacts/m10c/presenter-shell-manifest.txt`
 
 M10c makes the navigation shell the default presenter run/export surface, preserves the old M1e card as a `Legacy` page, keeps M9 font work closed, does not add new component families, and does not change production renderer/core/layout behavior.
+
+M10d stabilizes that existing shell:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-components-controls.png -SelectedSection components -SelectedTab controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-components-controls-scrolled.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:344
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-text-current.png -SelectedSection text -SelectedTab current
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-text-direct-outline.png -SelectedSection text -SelectedTab direct-outline -IncludeDirectOutlineRenderBridgeProof
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-text-proofs.png -SelectedSection text -SelectedTab proofs -IncludeDirectOutlineRenderBridgeProof
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-diagnostics-layout.png -SelectedSection diagnostics -SelectedTab layout
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
+```
+
+Representative M10d outputs:
+
+- `artifacts/m10d/presenter-stabilized-components-controls.png`
+- `artifacts/m10d/presenter-stabilized-components-controls-scrolled.png`
+- `artifacts/m10d/presenter-stabilized-text-current.png`
+- `artifacts/m10d/presenter-stabilized-text-direct-outline.png`
+- `artifacts/m10d/presenter-stabilized-text-proofs.png`
+- `artifacts/m10d/presenter-stabilized-diagnostics-layout.png`
+- `artifacts/m10d/presenter-stabilized-legacy-m1e-card.png`
+- `artifacts/m10d/presenter-stabilization-manifest.json`
+- `artifacts/m10d/presenter-stabilization-manifest.txt`
+
+This remains stabilization-only: no new component families, no resumed font-phase work, and no production renderer/core/layout behavior change.
 
 Current font proof audit workflow:
 
