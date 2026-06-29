@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>Copeland.Cli.Tests</AssemblyName>
-    <RootNamespace>Copeland.Cli.Tests</RootNamespace>
+    <AssemblyName>Copeland.Markdown.Tests</AssemblyName>
+    <RootNamespace>Copeland.Markdown.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/Copeland.Cli/Copeland.Cli.csproj" />
+    <ProjectReference Include="../../src/Copeland.Markdown/Copeland.Markdown.csproj" />
+    <ProjectReference Include="../../src/Machina.Standard/Machina.Standard.csproj" />
   </ItemGroup>
 </Project>

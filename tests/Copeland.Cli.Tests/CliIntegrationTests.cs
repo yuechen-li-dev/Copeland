@@ -145,6 +145,34 @@ function value(flag: boolean): number {
         Assert.Contains("COPE-CLI-0008", result.StdErr);
     }
 
+    [Fact]
+    public void MarkdownParseMirJsonToStdout()
+    {
+        using var temp = new TempDir();
+        var inputPath = temp.WriteFile("input.md", "# Heading");
+
+        var result = RunCli(temp.Path, "markdown", "parse", inputPath, "--emit", "mir", "--format", "json");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("\"kind\": \"DocumentMir\"", result.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"Heading\"", result.StdOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownExportCorpusWritesArtifacts()
+    {
+        using var temp = new TempDir();
+        var outputPath = System.IO.Path.Combine(temp.Path, "m12a");
+
+        var result = RunCli(temp.Path, "markdown", "export-corpus", "--output-dir", outputPath);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(System.IO.Path.Combine(outputPath, "copeland-markdown-readme.mir.json")));
+        Assert.True(File.Exists(System.IO.Path.Combine(outputPath, "copeland-markdown-closeout.mir.json")));
+        Assert.True(File.Exists(System.IO.Path.Combine(outputPath, "copeland-markdown-corpus-report.json")));
+        Assert.True(File.Exists(System.IO.Path.Combine(outputPath, "copeland-markdown-corpus-report.txt")));
+    }
+
     private static CliResult RunCli(string workingDirectory, params string[] args)
     {
         var psi = new ProcessStartInfo

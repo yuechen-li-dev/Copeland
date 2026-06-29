@@ -1,3 +1,4 @@
+using Copeland.Markdown;
 using Copeland.Script.Compiler;
 
 namespace Copeland.Cli;
@@ -13,54 +14,61 @@ internal static class Program
     {
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported command: 'compile'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'markdown'.");
         }
 
-        if (!string.Equals(args[0], "compile", StringComparison.Ordinal))
+        return args[0] switch
         {
-            return UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported command: 'compile'.");
-        }
+            "compile" => RunCompile(args),
+            "markdown" => RunMarkdown(args),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'markdown'."),
+        };
+    }
 
+    private static int RunCompile(string[] args)
+    {
         if (args.Length < 2)
         {
             return UsageError("COPE-CLI-0003", "Missing source file. Usage: compile <source-file>.");
         }
 
-        var sourcePath = args[1];
+        string sourcePath = args[1];
         string? emitTarget = null;
         string? outPath = null;
 
-        for (var i = 2; i < args.Length; i++)
+        for (int index = 2; index < args.Length; index += 1)
         {
-            var arg = args[i];
-            if (arg == "--emit")
+            string argument = args[index];
+            if (argument == "--emit")
             {
-                if (i + 1 >= args.Length)
+                if (index + 1 >= args.Length)
                 {
                     return UsageError("COPE-CLI-0006", "Option '--emit' requires a value.");
                 }
 
-                emitTarget = args[++i];
+                emitTarget = args[index + 1];
+                index += 1;
                 continue;
             }
 
-            if (arg == "--out")
+            if (argument == "--out")
             {
-                if (i + 1 >= args.Length)
+                if (index + 1 >= args.Length)
                 {
                     return UsageError("COPE-CLI-0006", "Option '--out' requires a value.");
                 }
 
-                outPath = args[++i];
+                outPath = args[index + 1];
+                index += 1;
                 continue;
             }
 
-            if (arg.StartsWith("--", StringComparison.Ordinal))
+            if (argument.StartsWith("--", StringComparison.Ordinal))
             {
-                return UsageError("COPE-CLI-0005", $"Unknown option '{arg}'.");
+                return UsageError("COPE-CLI-0005", $"Unknown option '{argument}'.");
             }
 
-            return UsageError("COPE-CLI-0007", $"Unexpected argument '{arg}'.");
+            return UsageError("COPE-CLI-0007", $"Unexpected argument '{argument}'.");
         }
 
         if (emitTarget is null)
@@ -68,25 +76,20 @@ internal static class Program
             return UsageError("COPE-CLI-0001", "Missing required option '--emit'. Use '--emit mir' or '--emit csharp'.");
         }
 
-        if (!string.Equals(emitTarget, "mir", StringComparison.Ordinal) && !string.Equals(emitTarget, "csharp", StringComparison.Ordinal))
+        if (!string.Equals(emitTarget, "mir", StringComparison.Ordinal) &&
+            !string.Equals(emitTarget, "csharp", StringComparison.Ordinal))
         {
             return UsageError("COPE-CLI-0002", $"Unknown emit target '{emitTarget}'. Use 'mir' or 'csharp'.");
         }
 
-        string sourceText;
-        try
+        if (!TryReadAllText(sourcePath, out string? sourceText, out int readFailureExitCode))
         {
-            sourceText = File.ReadAllText(sourcePath);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Console.Error.WriteLine($"COPE-CLI-0008 error: Failed to read source file '{sourcePath}': {ex.Message}");
-            return FileIoErrorExitCode;
+            return readFailureExitCode;
         }
 
-        var compilation = string.Equals(emitTarget, "mir", StringComparison.Ordinal)
-            ? CopelandCompiler.CompileToMir(sourceText)
-            : CopelandCompiler.CompileToCSharp(sourceText);
+        CopelandCompilation compilation = string.Equals(emitTarget, "mir", StringComparison.Ordinal)
+            ? CopelandCompiler.CompileToMir(sourceText!)
+            : CopelandCompiler.CompileToCSharp(sourceText!);
 
         if (!compilation.Success)
         {
@@ -98,7 +101,7 @@ internal static class Program
             return CompileFailureExitCode;
         }
 
-        var artifactText = string.Equals(emitTarget, "mir", StringComparison.Ordinal)
+        string? artifactText = string.Equals(emitTarget, "mir", StringComparison.Ordinal)
             ? compilation.MirText
             : compilation.CSharpText;
 
@@ -108,6 +111,179 @@ internal static class Program
             return CompileFailureExitCode;
         }
 
+        return WriteArtifact(artifactText, outPath);
+    }
+
+    private static int RunMarkdown(string[] args)
+    {
+        if (args.Length < 2)
+        {
+            return UsageError(
+                "COPE-CLI-0011",
+                "Missing markdown subcommand. Use 'markdown parse <file>' or 'markdown export-corpus --output-dir <path>'.");
+        }
+
+        return args[1] switch
+        {
+            "parse" => RunMarkdownParse(args),
+            "export-corpus" => RunMarkdownExportCorpus(args),
+            _ => UsageError(
+                "COPE-CLI-0011",
+                $"Unknown markdown subcommand '{args[1]}'. Use 'parse' or 'export-corpus'."),
+        };
+    }
+
+    private static int RunMarkdownParse(string[] args)
+    {
+        if (args.Length < 3)
+        {
+            return UsageError(
+                "COPE-CLI-0012",
+                "Missing Markdown source file. Usage: markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>].");
+        }
+
+        string sourcePath = args[2];
+        string? emitTarget = null;
+        string format = "text";
+        string? outPath = null;
+
+        for (int index = 3; index < args.Length; index += 1)
+        {
+            string argument = args[index];
+            if (argument == "--emit")
+            {
+                if (index + 1 >= args.Length)
+                {
+                    return UsageError("COPE-CLI-0013", "Option '--emit' requires a value.");
+                }
+
+                emitTarget = args[index + 1];
+                index += 1;
+                continue;
+            }
+
+            if (argument == "--format")
+            {
+                if (index + 1 >= args.Length)
+                {
+                    return UsageError("COPE-CLI-0013", "Option '--format' requires a value.");
+                }
+
+                format = args[index + 1];
+                index += 1;
+                continue;
+            }
+
+            if (argument == "--out")
+            {
+                if (index + 1 >= args.Length)
+                {
+                    return UsageError("COPE-CLI-0013", "Option '--out' requires a value.");
+                }
+
+                outPath = args[index + 1];
+                index += 1;
+                continue;
+            }
+
+            return UsageError("COPE-CLI-0014", $"Unexpected markdown parse argument '{argument}'.");
+        }
+
+        if (emitTarget is null)
+        {
+            return UsageError("COPE-CLI-0015", "Markdown parse requires '--emit ast|mir|tokens|diagnostics'.");
+        }
+
+        if (!TryReadAllText(sourcePath, out string? sourceText, out int readFailureExitCode))
+        {
+            return readFailureExitCode;
+        }
+
+        MarkdownCompilation compilation = MarkdownCompiler.Compile(sourceText!);
+        string artifactText;
+
+        switch (emitTarget)
+        {
+            case "ast":
+                artifactText = string.Equals(format, "json", StringComparison.Ordinal)
+                    ? MarkdownDumpWriter.SerializeSyntaxAsJson(compilation.Syntax)
+                    : MarkdownDumpWriter.DumpSyntax(compilation.Syntax);
+                break;
+            case "mir":
+                artifactText = string.Equals(format, "json", StringComparison.Ordinal)
+                    ? MarkdownDumpWriter.SerializeMirAsJson(compilation.Mir)
+                    : MarkdownDumpWriter.DumpMir(compilation.Mir);
+                break;
+            case "tokens":
+                if (string.Equals(format, "json", StringComparison.Ordinal))
+                {
+                    return UsageError("COPE-CLI-0016", "Markdown token JSON output is not implemented. Use '--format text'.");
+                }
+
+                artifactText = MarkdownDumpWriter.DumpTokens(compilation.TokenizedSource);
+                break;
+            case "diagnostics":
+                if (string.Equals(format, "json", StringComparison.Ordinal))
+                {
+                    artifactText = MarkdownDumpWriter.SerializeSyntaxAsJson(
+                        new MarkdownDocument([], compilation.Syntax.Diagnostics, compilation.Syntax.Span));
+                }
+                else
+                {
+                    artifactText = MarkdownDumpWriter.DumpDiagnostics(compilation.Syntax.Diagnostics);
+                }
+
+                break;
+            default:
+                return UsageError("COPE-CLI-0017", $"Unknown markdown emit target '{emitTarget}'.");
+        }
+
+        return WriteArtifact(artifactText, outPath);
+    }
+
+    private static int RunMarkdownExportCorpus(string[] args)
+    {
+        string? outputDirectory = null;
+
+        for (int index = 2; index < args.Length; index += 1)
+        {
+            string argument = args[index];
+            if (argument == "--output-dir")
+            {
+                if (index + 1 >= args.Length)
+                {
+                    return UsageError("COPE-CLI-0018", "Option '--output-dir' requires a value.");
+                }
+
+                outputDirectory = args[index + 1];
+                index += 1;
+                continue;
+            }
+
+            return UsageError("COPE-CLI-0019", $"Unexpected markdown export-corpus argument '{argument}'.");
+        }
+
+        if (string.IsNullOrWhiteSpace(outputDirectory))
+        {
+            return UsageError("COPE-CLI-0020", "Markdown export-corpus requires '--output-dir <path>'.");
+        }
+
+        try
+        {
+            string repoRoot = GetRepoRoot();
+            MarkdownCorpusExporter.ExportSelectedDocs(repoRoot, outputDirectory);
+            Console.Out.WriteLine($"wrote {Path.GetFullPath(outputDirectory)}");
+            return SuccessExitCode;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            Console.Error.WriteLine($"COPE-CLI-0021 error: Failed to export Markdown corpus: {exception.Message}");
+            return FileIoErrorExitCode;
+        }
+    }
+
+    private static int WriteArtifact(string artifactText, string? outPath)
+    {
         if (outPath is null)
         {
             Console.Out.Write(artifactText);
@@ -116,8 +292,15 @@ internal static class Program
 
         try
         {
-            File.WriteAllText(outPath, artifactText);
-            Console.Out.WriteLine($"wrote {outPath}");
+            string fullOutputPath = Path.GetFullPath(outPath);
+            string? directory = Path.GetDirectoryName(fullOutputPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllText(fullOutputPath, artifactText);
+            Console.Out.WriteLine($"wrote {fullOutputPath}");
             return SuccessExitCode;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -127,10 +310,46 @@ internal static class Program
         }
     }
 
+    private static bool TryReadAllText(string path, out string? text, out int exitCode)
+    {
+        try
+        {
+            text = File.ReadAllText(path);
+            exitCode = SuccessExitCode;
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"COPE-CLI-0008 error: Failed to read source file '{path}': {ex.Message}");
+            text = null;
+            exitCode = FileIoErrorExitCode;
+            return false;
+        }
+    }
+
+    private static string GetRepoRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Copeland.slnx")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new InvalidOperationException("Could not locate repository root.");
+    }
+
     private static int UsageError(string id, string message)
     {
         Console.Error.WriteLine("Usage:");
         Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp [--out <path>]");
+        Console.Error.WriteLine("  copeland markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>]");
+        Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
         Console.Error.WriteLine($"{id} error: {message}");
         return UsageErrorExitCode;
     }

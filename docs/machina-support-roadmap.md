@@ -1080,3 +1080,23 @@ This remains closeout-only:
 - no Markdown renderer implementation beyond static planning copy
 - no Markdown editor
 - no Visionary editor
+
+## M12a update
+
+M12a lands the first Copeland Markdown frontend as the recommended follow-through to the M11g Markdown-first plan.
+
+- `src/Copeland.Markdown` now provides a deterministic `.md` lexer/scanner, parser, Markdown AST, diagnostics, backend-neutral document MIR, and text/json dump output.
+- `tests/Copeland.Markdown.Tests` now cover block parsing, inline parsing, diagnostics, MIR lowering, corpus smoke, and milestone boundary checks.
+- `Copeland.Cli` now exposes `markdown parse` and `markdown export-corpus`.
+- `tools/Export-CopelandMarkdownCorpus.ps1 -OutputDir artifacts\m12a` now writes local proof artifacts and corpus reports.
+- existing docs under `README.md` and `docs/*.md` now serve as the first real Markdown corpus.
+- `Machina.Standard.Text` remains unchanged; M12a documents future convergence through document MIR rather than forcing risky parser integration now.
+
+This remains frontend-only:
+
+- no external Markdown parser dependency
+- no Markdown editor
+- no production Oblivion Markdown rendering integration
+- no Roslyn execution
+- no xUnit notebook/runtime execution
+- no Visionary implementation

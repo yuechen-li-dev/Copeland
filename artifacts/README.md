@@ -33,6 +33,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m11e/` is the current presenter/Oblivion card-hardening proof export directory.
 - `artifacts/m11f/` is the current Oblivion card-selection and inspector proof export directory.
 - `artifacts/m11g/` is the current Oblivion phase-closeout and Markdown-first roadmap export directory.
+- `artifacts/m12a/` is the current local Copeland Markdown frontend proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -61,6 +62,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M11e presenter/Oblivion card-hardening PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11f Oblivion inspector PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11g Oblivion closeout PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M12a Markdown AST/MIR/report artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -216,6 +218,14 @@ Current M11g Oblivion closeout commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-markdown-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard markdown-first-roadmap
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-execution-deferred.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard execution-deferred
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11g\presenter-oblivion-visionary-future.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard visionary-future
+```
+
+Current M12a Copeland Markdown commands:
+
+```powershell
+dotnet test tests/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj
+dotnet run --project src/Copeland.Cli -- markdown parse README.md --emit mir --format json
+.\tools\Export-CopelandMarkdownCorpus.ps1 -OutputDir artifacts\m12a
 ```
 
 ## Regenerating the Machina font proof artifacts

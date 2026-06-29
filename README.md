@@ -45,6 +45,45 @@ Current CLI command:
 
 The CLI currently emits artifacts only. It does not execute compiled programs or expose host/browser APIs.
 
+## Copeland Markdown M12a status
+
+M12a adds `src/Copeland.Markdown`, a small compiler-style Markdown frontend for existing `.md` docs.
+
+Current Copeland Markdown pipeline:
+
+```text
+.md source
+  -> lexer/scanner
+  -> parser
+  -> Markdown AST
+  -> Document MIR
+  -> deterministic text/json dump
+```
+
+Copeland Markdown is intentionally not full CommonMark. `.md` remains the practical dogfood extension, predictable compilation is prioritized over dialect compatibility, and no external Markdown parser dependency is added.
+
+Current supported subset:
+
+- ATX headings
+- paragraphs
+- single-level bullet lists
+- ordered lists
+- fenced code blocks
+- thematic breaks
+- inline code
+- strong
+- emphasis
+- inline links
+
+Current CLI workflow:
+
+```powershell
+dotnet run --project src/Copeland.Cli -- markdown parse README.md --emit mir --format json
+.\tools\Export-CopelandMarkdownCorpus.ps1 -OutputDir artifacts\m12a
+```
+
+This is frontend/MIR dogfooding only. It adds no Markdown editor, no production Oblivion rendering path yet, and no Roslyn or xUnit notebook execution.
+
 ## Test suites
 
 Regular solution test coverage:
@@ -115,6 +154,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Presenter Card Hardening M11e](docs/machina-presenter-card-hardening-m11e.md)
 - [Machina Oblivion Card Inspector M11f](docs/machina-oblivion-card-inspector-m11f.md)
 - [Machina Oblivion Phase Closeout M11g](docs/machina-oblivion-phase-closeout-m11g.md)
+- [Copeland Markdown Frontend M12a](docs/copeland-markdown-frontend-m12a.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
