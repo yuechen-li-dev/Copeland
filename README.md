@@ -110,6 +110,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Presenter Stabilization M10d](docs/machina-presenter-stabilization-m10d.md)
 - [Machina Oblivion Card Model M11a](docs/machina-oblivion-card-model-m11a.md)
 - [Machina Test Suite Topology M11b](docs/machina-test-suite-topology-m11b.md)
+- [Machina Presenter Scrollbar State Machine M11c](docs/machina-presenter-scrollbar-state-machine-m11c.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -325,6 +326,22 @@ Representative M11a outputs:
 - `artifacts/m11a/oblivion-card-model-manifest.txt`
 
 M11a is static proof only. It adds no Roslyn execution, no xUnit execution runtime, no markdown editor, no Visionary editor behavior, and it keeps the M9 font phase closed while M10 remains the shell host.
+
+M11c refactors presenter scrollbar interaction and scroll rendering before more Oblivion work continues:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11c\presenter-scrollbar-state-machine-components.png -SelectedSection components -SelectedTab controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11c\presenter-scrollbar-state-machine-scrolled.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:344
+```
+
+Representative M11c outputs:
+
+- `artifacts/m11c/presenter-scrollbar-state-machine-components.png`
+- `artifacts/m11c/presenter-scrollbar-state-machine-scrolled.png`
+- `artifacts/m11c/presenter-scrollbar-state-machine-manifest.json`
+- `artifacts/m11c/presenter-scrollbar-state-machine-manifest.txt`
+
+M11c is scrollbar/input/composition refactor only. Dominatus orchestration ladder guidance is applied to interaction ownership and lifecycle clarity, Avalonia remains the current sample-only input backend, page scroll should not full-rerender page content or shell chrome, and `[Fact]` / `[Theory]` execution as notebook/runtime behavior remains deferred to M12+.
 
 Current font proof audit workflow:
 

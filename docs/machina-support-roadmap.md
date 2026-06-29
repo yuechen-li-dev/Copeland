@@ -92,7 +92,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | ResolvedLayoutDocument | Machina.Layout | Implemented | Resolver tests | Canonical flat resolved geometry.
 | ResolvedLayoutTree | Machina.Layout | Implemented | Tree builder tests | Derived projection for adapters/debug.
 | Clipping/overflow semantics | Layout/Renderer | Partial | Raster contract/docs | Basic rectangular behavior exists; richer semantics pending.
-| Scrolling | Layout/Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds explicit presenter-local viewport/content/offset state and deterministic scrollbar geometry; M10b adds sample-local wheel routing; M10c makes that shell the canonical presenter sample surface; M10d adds sample-local track click and thumb dragging without changing shared layout semantics.
+| Scrolling | Layout/Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds explicit presenter-local viewport/content/offset state and deterministic scrollbar geometry; M10b adds sample-local wheel routing; M10c makes that shell the canonical presenter sample surface; M10d adds sample-local track click and thumb dragging without changing shared layout semantics; M11c replaces nullable drag routing with explicit interaction states and cached composition so scroll offset changes do not full-rerender page content or shell chrome.
 | Z/painter ordering | Layout/Renderer | Partial | Contract-level coverage | Expand explicit tests across render adapters.
 | UI.Text | Machina.Core | Implemented | Core tests | Deterministic measurement seam integrated.
 | UI.Rect | Machina.Core | Implemented | Core tests | Style + child lowering path.

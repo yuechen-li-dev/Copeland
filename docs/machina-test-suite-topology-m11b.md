@@ -177,3 +177,13 @@ Smoke examples:
 - real `[Fact]` / `[Theory]` execution remains deferred to M12 or later
 - notebook/runtime execution remains deferred
 - any production text integration work remains outside M11b
+
+## M11c note
+
+M11b remains test-topology work only, but M11c adds more presenter fast-loop coverage on top of that topology:
+
+- explicit scrollbar interaction-state tests
+- cached composition counter tests
+- compose/blit geometry tests
+
+`[Fact]` / `[Theory]` execution as notebook/runtime behavior is still deferred to M12+; these are ordinary test-suite validations only.

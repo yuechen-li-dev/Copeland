@@ -166,3 +166,13 @@ The shell export path also writes:
 - markdown authoring/editing
 - Visionary source editor implementation
 - richer notebook/workbench interaction beyond static proof rendering
+
+## M11c dependency note
+
+Before Oblivion resumes runtime-facing work, the presenter host now uses the M11c scrollbar/input/composition refactor:
+
+- explicit interaction states for scrollbar drag
+- Avalonia still isolated as the current sample backend
+- cached page/shell composition so scroll offset changes do not force full rerender
+
+M11c does not add notebook execution, Roslyn execution, or `[Fact]` / `[Theory]` execution behavior.

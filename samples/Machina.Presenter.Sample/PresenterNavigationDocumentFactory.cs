@@ -155,16 +155,6 @@ public static class PresenterNavigationDocumentFactory
                     width: scrollbarGeometry.TrackRect.Width,
                     height: scrollbarGeometry.TrackRect.Height,
                     view: View.Rect(background: ColorToken.Hex(0xE2E8F0FF))));
-
-            rows.Add(
-                Row.Anchor(
-                    id: "scrollbar-thumb",
-                    parent: "root",
-                    left: scrollbarGeometry.ThumbRect.X,
-                    top: scrollbarGeometry.ThumbRect.Y,
-                    width: scrollbarGeometry.ThumbRect.Width,
-                    height: scrollbarGeometry.ThumbRect.Height,
-                    view: View.Rect(background: ColorToken.Hex(0x64748BFF))));
         }
 
         return UiDocument.Create(rows);

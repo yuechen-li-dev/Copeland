@@ -4,17 +4,17 @@ namespace Machina.Presenter.Sample;
 
 public static class PresenterNavigationManifestWriter
 {
-    public const string JsonFileName = "presenter-shell-manifest.json";
-    public const string TextFileName = "presenter-shell-manifest.txt";
+    public const string JsonFileName = "presenter-scrollbar-state-machine-manifest.json";
+    public const string TextFileName = "presenter-scrollbar-state-machine-manifest.txt";
 
     public static (string jsonPath, string textPath) Write(
         string outputDirectory,
-        PresenterNavigationModel model,
+        PresenterNavigationShellRenderResult render,
         PresenterProofOptions proofOptions,
         string? interactionBackendName)
     {
         ArgumentNullException.ThrowIfNull(outputDirectory);
-        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(proofOptions);
 
         Directory.CreateDirectory(outputDirectory);
@@ -24,9 +24,9 @@ public static class PresenterNavigationManifestWriter
 
         var manifest = new
         {
-            milestone = "M10c",
-            kind = "presenter-navigation-shell",
-            purpose = "Canonical presenter sample surface organized as app -> sidebar -> tabs -> page with per-page scroll state.",
+            milestone = "M11c",
+            kind = "presenter-scrollbar-state-machine",
+            purpose = "Presenter scrollbar refactor with explicit interaction states and cached composition layers.",
             m9FontPhase = new
             {
                 status = "closed-unless-concrete-integration-needs-arise",
@@ -34,7 +34,7 @@ public static class PresenterNavigationManifestWriter
                 msdf = "explicit-experimental-scalable",
             },
             navigationHierarchy = new[] { "app", "sidebar", "tabs", "pages" },
-            sections = model.Sections.Select(section => new
+            sections = render.Model.Sections.Select(section => new
             {
                 id = section.Id,
                 label = section.Label,
@@ -45,9 +45,19 @@ public static class PresenterNavigationManifestWriter
                 navigationShellDefault = true,
                 legacySingleCardAvailable = true,
                 deterministicScrollbars = true,
+                explicitInteractionStateMachine = true,
+                cachedComposition = true,
                 directOutlineProofOptIn = proofOptions.IncludeDirectOutlineRenderBridgeProof,
                 interactionBackend = interactionBackendName ?? "none",
                 backendBoundary = "sample-scoped-adapter",
+                dominatusIntegrationDecision = "local-dominatus-style-state-machine-with-render-bridge-boundary",
+                pageRenderCount = render.Diagnostics.PageRenderCount,
+                shellRenderCount = render.Diagnostics.ShellRenderCount,
+                compositionCount = render.Diagnostics.CompositionCount,
+                scrollOffset = render.ScrollbarGeometry.ScrollOffset,
+                selectedSection = render.SelectedSection.Id,
+                selectedTab = render.SelectedTab.Id,
+                selectedPage = render.SelectedTab.PageId,
             },
         };
 
@@ -58,8 +68,8 @@ public static class PresenterNavigationManifestWriter
 
         string[] textLines =
         [
-            "milestone=M10c",
-            "kind=presenter-navigation-shell",
+            "milestone=M11c",
+            "kind=presenter-scrollbar-state-machine",
             "m9FontPhase.status=closed-unless-concrete-integration-needs-arise",
             "m9FontPhase.directOutlineStatic=static-reference-path",
             "m9FontPhase.msdf=explicit-experimental-scalable",
@@ -67,11 +77,21 @@ public static class PresenterNavigationManifestWriter
             $"shell.navigationShellDefault={true.ToString().ToLowerInvariant()}",
             $"shell.legacySingleCardAvailable={true.ToString().ToLowerInvariant()}",
             $"shell.deterministicScrollbars={true.ToString().ToLowerInvariant()}",
+            $"shell.explicitInteractionStateMachine={true.ToString().ToLowerInvariant()}",
+            $"shell.cachedComposition={true.ToString().ToLowerInvariant()}",
             $"shell.directOutlineProofOptIn={proofOptions.IncludeDirectOutlineRenderBridgeProof.ToString().ToLowerInvariant()}",
             $"shell.interactionBackend={interactionBackendName ?? "none"}",
             "shell.backendBoundary=sample-scoped-adapter",
+            "shell.dominatusIntegrationDecision=local-dominatus-style-state-machine-with-render-bridge-boundary",
+            $"shell.pageRenderCount={render.Diagnostics.PageRenderCount}",
+            $"shell.shellRenderCount={render.Diagnostics.ShellRenderCount}",
+            $"shell.compositionCount={render.Diagnostics.CompositionCount}",
+            $"shell.scrollOffset={render.ScrollbarGeometry.ScrollOffset}",
+            $"shell.selectedSection={render.SelectedSection.Id}",
+            $"shell.selectedTab={render.SelectedTab.Id}",
+            $"shell.selectedPage={render.SelectedTab.PageId}",
             "sections:",
-            .. model.Sections.Select(section => $"  {section.Id}:{section.Label}:{string.Join(",", section.Tabs.Select(tab => $"{tab.Id}->{tab.PageId}"))}"),
+            .. render.Model.Sections.Select(section => $"  {section.Id}:{section.Label}:{string.Join(",", section.Tabs.Select(tab => $"{tab.Id}->{tab.PageId}"))}"),
         ];
 
         File.WriteAllText(jsonPath, json);

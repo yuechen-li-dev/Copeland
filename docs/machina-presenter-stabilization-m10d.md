@@ -140,3 +140,15 @@ M11a builds directly on this containment policy.
 - `Oblivion` becomes the notebook/card/workbench layer inside the shell.
 - `Visionary` remains documentation-only as the future code editor/source workspace layer.
 - M10d remains the stabilization host; M11a does not reopen M9 font work or add execution runtime behavior.
+
+## M11c follow-up
+
+M10d kept scrollbar behavior functional, but its drag path still used nullable sample-local drag routing and rerendered more than necessary during scroll.
+
+M11c keeps the M10d behavior surface intact while changing the internals:
+
+- explicit scrollbar interaction states replace nullable drag bookkeeping
+- pointer capture/release is requested explicitly by the interaction state machine
+- scroll offset changes use cached page/shell layers plus cheap recomposition
+
+This remains presenter-shell refactor work only. No Roslyn execution, no resumed font work, and no `[Fact]` / `[Theory]` notebook/runtime execution behavior are added here.

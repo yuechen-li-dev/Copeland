@@ -38,6 +38,7 @@ public static class PresenterExporter
         string? selectedTabId = null;
         string? selectedPageId = null;
         ScrollbarGeometry? scrollbarGeometry = null;
+        PresenterNavigationRenderDiagnostics? navigationDiagnostics = null;
         string? manifestJsonPath = null;
         string? manifestTextPath = null;
         string? oblivionManifestJsonPath = null;
@@ -64,11 +65,12 @@ public static class PresenterExporter
             selectedTabId = shellRender.SelectedTab.Id;
             selectedPageId = shellRender.SelectedTab.PageId;
             scrollbarGeometry = shellRender.ScrollbarGeometry;
+            navigationDiagnostics = shellRender.Diagnostics;
 
             string outputDirectory = Path.GetDirectoryName(fullOutputPath) ?? Path.GetFullPath(".");
             (manifestJsonPath, manifestTextPath) = PresenterNavigationManifestWriter.Write(
                 outputDirectory,
-                model,
+                shellRender,
                 proofOptions,
                 navigationOptions.InteractionBackendName);
             (oblivionManifestJsonPath, oblivionManifestTextPath) = OblivionWorkbenchCatalog.WriteManifest(outputDirectory);
@@ -106,6 +108,7 @@ public static class PresenterExporter
             NavigationTabId = selectedTabId,
             NavigationPageId = selectedPageId,
             ScrollbarGeometry = scrollbarGeometry,
+            NavigationDiagnostics = navigationDiagnostics,
             NavigationManifestJsonPath = manifestJsonPath,
             NavigationManifestTextPath = manifestTextPath,
             OblivionManifestJsonPath = oblivionManifestJsonPath,
@@ -167,6 +170,8 @@ public sealed record PresenterExportResult(
     public string? NavigationPageId { get; init; }
 
     public ScrollbarGeometry? ScrollbarGeometry { get; init; }
+
+    public PresenterNavigationRenderDiagnostics? NavigationDiagnostics { get; init; }
 
     public string? NavigationManifestJsonPath { get; init; }
 

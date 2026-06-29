@@ -380,13 +380,13 @@ public sealed class PresenterStabilizationM10dTests
         IReadOnlyList<PresenterInputEvent> inputs)
     {
         PresenterNavigationState state = initialState;
-        PresenterScrollbarDragState? dragState = null;
+        PresenterScrollbarInteractionState interactionState = PresenterScrollbarInteractionState.Default;
 
         foreach (PresenterInputEvent input in inputs)
         {
             PresenterNavigationShellRenderResult render = RenderShell(state);
-            PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(render, input, dragState);
-            dragState = routed.ScrollbarDragState;
+            PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(render, input, interactionState);
+            interactionState = routed.InteractionState;
 
             if (routed.ActionId is not null)
             {

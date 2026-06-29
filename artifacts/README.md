@@ -28,6 +28,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m10c/` is the historical presenter shell organization export directory.
 - `artifacts/m10d/` is the current presenter shell stabilization export directory.
 - `artifacts/m11a/` is the current Oblivion card-model proof export directory.
+- `artifacts/m11c/` is the current presenter scrollbar state-machine and cached-composition proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -51,6 +52,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M10c presenter shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M10d presenter stabilization PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11a Oblivion PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M11c presenter scrollbar state-machine PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -173,6 +175,13 @@ dotnet test Copeland.Slow.slnx
 ```
 
 M11b treats export scripts as intentional smoke/artifact validation, not ordinary fast-loop unit tests.
+
+Current M11c presenter scrollbar-state-machine commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11c\presenter-scrollbar-state-machine-components.png -SelectedSection components -SelectedTab controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11c\presenter-scrollbar-state-machine-scrolled.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:344
+```
 
 ## Regenerating the Machina font proof artifacts
 
@@ -593,3 +602,12 @@ These remain local sample proof artifacts only. M10d stabilizes the existing she
 - `artifacts/m11a/oblivion-card-model-manifest.json`
 
 These remain local sample proof artifacts only. `Oblivion` is the notebook/card/workbench layer, `Visionary` remains only the future code editor/source workspace layer, M11a adds no Roslyn or xUnit execution runtime, M10 remains the shell host, and the M9 font phase stays closed.
+
+## Current M11c presenter scrollbar-state-machine outputs
+
+- `artifacts/m11c/presenter-scrollbar-state-machine-components.png`
+- `artifacts/m11c/presenter-scrollbar-state-machine-scrolled.png`
+- `artifacts/m11c/presenter-scrollbar-state-machine-manifest.txt`
+- `artifacts/m11c/presenter-scrollbar-state-machine-manifest.json`
+
+These remain local sample proof artifacts only. M11c refactors scrollbar interaction into explicit states, keeps Avalonia sample-scoped, adds cached page/shell composition so scroll offset changes avoid full rerender, adds no Roslyn execution, adds no notebook/runtime `[Fact]` / `[Theory]` execution behavior, and does not resume font work.

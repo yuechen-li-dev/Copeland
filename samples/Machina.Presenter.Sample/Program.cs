@@ -96,8 +96,9 @@ internal sealed class Program
         private readonly PresenterProofOptions _proofOptions;
         private readonly PresenterNavigationExportOptions _navigationOptions;
         private readonly AvaloniaPresenterInputBackend _inputBackend;
+        private readonly PresenterNavigationRenderSession _renderSession;
         private PresenterNavigationState? _navigationState;
-        private PresenterScrollbarDragState? _scrollbarDragState;
+        private PresenterScrollbarInteractionState _scrollbarInteractionState;
         private UiHitTestIndex _hitTestIndex;
         private MachinaFrame _currentFrame;
         private PresenterNavigationShellRenderResult? _navigationShellRender;
@@ -124,10 +125,11 @@ internal sealed class Program
             _proofOptions = proofOptions;
             _navigationOptions = navigationOptions;
             _inputBackend = new AvaloniaPresenterInputBackend();
+            _renderSession = new PresenterNavigationRenderSession();
             _navigationState = navigationOptions.IncludeNavigationShell
                 ? PresenterExporterNavigationState()
                 : null;
-            _scrollbarDragState = null;
+            _scrollbarInteractionState = PresenterScrollbarInteractionState.Default;
             _hitTestIndex = default!;
             _currentFrame = default!;
             _navigationShellRender = null;
@@ -156,7 +158,8 @@ internal sealed class Program
                     _state,
                     _navigationState ?? PresenterNavigationState.CreateDefault(PresenterNavigationCatalog.CreateModel()),
                     AppTheme,
-                    _proofOptions);
+                    _proofOptions,
+                    _renderSession);
                 _navigationState = _navigationShellRender.NavigationState;
                 _currentFrame = _navigationShellRender.ShellFrame;
                 _hitTestIndex = _navigationShellRender.ShellFrame.HitTest;
@@ -240,18 +243,18 @@ internal sealed class Program
                     PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
                         _navigationShellRender,
                         rootInput,
-                        _scrollbarDragState);
+                        _scrollbarInteractionState);
                     UiActionId? routedActionId = routed.ActionId;
-                    _scrollbarDragState = routed.ScrollbarDragState;
+                    _scrollbarInteractionState = routed.InteractionState;
 
                     if (pointer is not null)
                     {
-                        if (routed.RequestPointerCapture)
+                        if (routed.PointerCaptureRequest == PresenterPointerCaptureRequest.Capture)
                         {
                             pointer.Capture(_image);
                         }
 
-                        if (routed.ReleasePointerCapture)
+                        if (routed.PointerCaptureRequest == PresenterPointerCaptureRequest.Release)
                         {
                             pointer.Capture(null);
                         }

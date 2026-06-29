@@ -1,10 +1,4 @@
 using Machina.Core.Actions;
-using Machina.Core.Flat;
-using Machina.Layout.Geometry;
-using Machina.Pipeline;
-using Machina.Renderer.Raster.Colors;
-using Machina.Renderer.Raster.Dominatus.Models;
-using Machina.Renderer.Raster.Surface;
 using Machina.Runtime.Input;
 using Machina.Standard.Theme;
 
@@ -18,63 +12,29 @@ public static class PresenterNavigationShellRenderer
         StandardTheme theme,
         PresenterProofOptions proofOptions)
     {
-        ArgumentNullException.ThrowIfNull(theme);
-        ArgumentNullException.ThrowIfNull(proofOptions);
+        return Render(demoState, navigationState, theme, proofOptions, session: null, layout: null);
+    }
 
-        PresenterNavigationModel model = PresenterNavigationCatalog.CreateModel();
-        PresenterNavigationLayout layout = PresenterNavigationLayout.Default;
-        PresenterNavigationState normalizedState = NormalizeState(navigationState, model, proofOptions, layout);
+    public static PresenterNavigationShellRenderResult Render(
+        DemoState demoState,
+        PresenterNavigationState navigationState,
+        StandardTheme theme,
+        PresenterProofOptions proofOptions,
+        PresenterNavigationLayout layout)
+    {
+        return Render(demoState, navigationState, theme, proofOptions, session: null, layout);
+    }
 
-        PresenterNavigationSection section = model.FindSection(normalizedState.SelectedSectionId) ?? model.Sections[0];
-        string selectedTabId = normalizedState.GetSelectedTabId(section.Id, model);
-        PresenterNavigationTab tab = model.FindTab(section.Id, selectedTabId) ?? section.Tabs[0];
-
-        PresenterPageRenderResult pageRender = PresenterNavigationCatalog.RenderPage(
-            tab.PageId,
-            demoState,
-            theme,
-            proofOptions,
-            layout.ContentVisibleWidth);
-
-        double currentOffset = normalizedState.GetScrollOffset(tab.PageId);
-        ScrollbarGeometry scrollbarGeometry = PresenterScrollRegion.ComputeScrollbarGeometry(
-            layout.ScrollbarTrackRect,
-            pageRender.ContentHeight,
-            layout.ViewportHeight,
-            currentOffset);
-
-        normalizedState = normalizedState.WithScrollOffset(tab.PageId, scrollbarGeometry.ScrollOffset);
-        PresenterNavigationChromeGeometry chromeGeometry = PresenterNavigationChromeGeometryBuilder.Build(
-            model,
-            normalizedState,
-            layout,
-            section,
-            scrollbarGeometry);
-
-        UiDocument shellDocument = PresenterNavigationDocumentFactory.BuildShellDocument(
-            model,
-            normalizedState,
-            chromeGeometry,
-            layout,
-            theme,
-            tab.PageId,
-            scrollbarGeometry,
-            proofOptions);
-
-        MachinaFrame shellFrame = new MachinaRasterPipeline().Render(shellDocument, layout.RootWidth, layout.RootHeight);
-        RasterFrame composedFrame = ComposeFrame(shellFrame.RasterFrame, pageRender.Frame.RasterFrame, layout.ViewportRect, scrollbarGeometry.ScrollOffset);
-
-        return new PresenterNavigationShellRenderResult(
-            Model: model,
-            NavigationState: normalizedState,
-            Layout: layout,
-            SelectedSection: section,
-            SelectedTab: tab,
-            ChromeGeometry: chromeGeometry,
-            ShellFrame: shellFrame,
-            PageFrame: pageRender.Frame,
-            ComposedFrame: composedFrame,
-            ScrollbarGeometry: scrollbarGeometry);
+    public static PresenterNavigationShellRenderResult Render(
+        DemoState demoState,
+        PresenterNavigationState navigationState,
+        StandardTheme theme,
+        PresenterProofOptions proofOptions,
+        PresenterNavigationRenderSession? session = null,
+        PresenterNavigationLayout? layout = null)
+    {
+        PresenterNavigationRenderSession effectiveSession = session ?? new PresenterNavigationRenderSession();
+        return effectiveSession.Render(demoState, navigationState, theme, proofOptions, layout);
     }
 
     public static PresenterNavigationState NormalizeState(
@@ -95,67 +55,6 @@ public static class PresenterNavigationShellRenderer
             .WithSelectedSection(section.Id)
             .WithScrollOffset(tab.PageId, clampedOffset);
     }
-
-    private static RasterFrame ComposeFrame(RasterFrame shellFrame, RasterFrame pageFrame, Rect viewportRect, double scrollOffset)
-    {
-        RasterSurface composedSurface = CloneSurface(shellFrame.Surface);
-        BlitPageContent(pageFrame.Surface, composedSurface, viewportRect, scrollOffset);
-        return new RasterFrame(shellFrame.Width, shellFrame.Height, composedSurface);
-    }
-
-    private static RasterSurface CloneSurface(RasterSurface source)
-    {
-        var clone = new RasterSurface(source.Width, source.Height);
-        Array.Copy(source.Pixels, clone.Pixels, source.Pixels.Length);
-        return clone;
-    }
-
-    private static void BlitPageContent(RasterSurface source, RasterSurface destination, Rect viewportRect, double scrollOffset)
-    {
-        int sourceTop = Math.Max(0, (int)Math.Floor(scrollOffset));
-        int viewportLeft = (int)Math.Floor(viewportRect.X);
-        int viewportTop = (int)Math.Floor(viewportRect.Y);
-        int viewportWidth = Math.Min((int)Math.Floor(viewportRect.Width), source.Width);
-        int viewportHeight = (int)Math.Floor(viewportRect.Height);
-
-        for (int y = 0; y < viewportHeight; y++)
-        {
-            int sourceY = sourceTop + y;
-            if (sourceY < 0 || sourceY >= source.Height)
-            {
-                continue;
-            }
-
-            int destinationY = viewportTop + y;
-            if (destinationY < 0 || destinationY >= destination.Height)
-            {
-                continue;
-            }
-
-            for (int x = 0; x < viewportWidth; x++)
-            {
-                int sourceX = x;
-                if (sourceX < 0 || sourceX >= source.Width)
-                {
-                    continue;
-                }
-
-                int destinationX = viewportLeft + x;
-                if (destinationX < 0 || destinationX >= destination.Width)
-                {
-                    continue;
-                }
-
-                Rgba32 pixel = source.GetPixel(sourceX, sourceY);
-                if (pixel.A == 0)
-                {
-                    continue;
-                }
-
-                destination.SetPixel(destinationX, destinationY, pixel);
-            }
-        }
-    }
 }
 
 public sealed record PresenterNavigationShellRenderResult(
@@ -165,14 +64,16 @@ public sealed record PresenterNavigationShellRenderResult(
     PresenterNavigationSection SelectedSection,
     PresenterNavigationTab SelectedTab,
     PresenterNavigationChromeGeometry ChromeGeometry,
-    MachinaFrame ShellFrame,
-    MachinaFrame PageFrame,
-    RasterFrame ComposedFrame,
-    ScrollbarGeometry ScrollbarGeometry)
+    Machina.Pipeline.MachinaFrame ShellFrame,
+    Machina.Pipeline.MachinaFrame PageFrame,
+    Machina.Renderer.Raster.Dominatus.Models.RasterFrame ComposedFrame,
+    ScrollbarGeometry ScrollbarGeometry,
+    PresenterNavigationRenderDiagnostics Diagnostics,
+    PresenterNavigationRenderSession Session)
 {
     public UiAction? HitTestContent(PointerPoint rootPoint)
     {
-        Rect viewport = Layout.ViewportRect;
+        var viewport = Layout.ViewportRect;
         if (rootPoint.X < viewport.X ||
             rootPoint.Y < viewport.Y ||
             rootPoint.X >= viewport.X + viewport.Width ||
@@ -183,7 +84,7 @@ public sealed record PresenterNavigationShellRenderResult(
 
         double contentX = rootPoint.X - viewport.X;
         double contentY = rootPoint.Y - viewport.Y + ScrollbarGeometry.ScrollOffset;
-        var hit = PageFrame.HitTest.HitTest(new PointerPoint(contentX, contentY));
+        UiHitTestResult? hit = PageFrame.HitTest.HitTest(new PointerPoint(contentX, contentY));
         return hit?.Action;
     }
 }

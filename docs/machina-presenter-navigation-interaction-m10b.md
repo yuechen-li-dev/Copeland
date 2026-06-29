@@ -78,6 +78,16 @@ The hit-test model uses geometry derived from the same presenter navigation layo
 - current rule is `scrollOffset -= wheelDeltaY * 48`
 - positive wheel delta scrolls upward
 - negative wheel delta scrolls downward
+
+## M11c follow-up
+
+M10b established the backend-neutral presenter input path, but M11c supersedes its scrollbar internals:
+
+- nullable drag routing is replaced by explicit interaction states
+- pointer capture/release becomes explicit transition output
+- scroll offset changes recompose cached page/shell layers instead of forcing full rerender
+
+Avalonia remains only the current sample input backend, and `[Fact]` / `[Theory]` execution as notebook/runtime behavior remains deferred to M12+.
 - offsets clamp to `0..maxScrollOffset`
 - if content fits the viewport, wheel input does nothing
 
