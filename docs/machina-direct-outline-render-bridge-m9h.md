@@ -166,7 +166,13 @@ MSDF remains explicit experimental/scalable.
 
 ## Future presenter integration path
 
-A future presenter or raster renderer can translate its text node intent into `StaticTextRenderRequest`, choose `DirectOutlineStaticTextRenderBridge`, and composite the returned image explicitly.
+M9i now proves this path in `samples/Machina.Presenter.Sample`.
+
+- the presenter sample accepts `--include-direct-outline-render-bridge-proof`
+- the opt-in proof card composites bridge-rendered text into a presenter-style sample surface
+- `.\tools\Export-MachinaPresenter.ps1` writes a deterministic presenter proof PNG
+
+The host still translates text intent into `StaticTextRenderRequest`, chooses `DirectOutlineStaticTextRenderBridge`, and composites the returned image explicitly.
 
 That choice remains host-owned.
 The component layer does not need to know about proof tooling.
@@ -189,3 +195,11 @@ M9h is not that switch.
 - automatic wrapping and truncation policy
 - richer baseline-anchor input
 - MSDF production/scalable decisions
+
+## M9i closeout
+
+M9i is the proof-integration and hygiene closeout step for this font phase.
+
+- presenter proof is now covered beside the gallery proof
+- canonical commands and artifact locations are documented in `docs/machina-font-phase-closeout-m9i.md`
+- production UI text defaults still do not change

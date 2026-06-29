@@ -10,6 +10,14 @@ public static class DemoDocumentFactory
 
     public static UiDocument Build(DemoState state, StandardTheme? theme = null)
     {
-        return SettingsScreen.Build(state, theme);
+        return Build(state, theme, new PresenterProofOptions());
+    }
+
+    public static UiDocument Build(
+        DemoState state,
+        StandardTheme? theme,
+        PresenterProofOptions proofOptions)
+    {
+        return SettingsScreen.Build(state, theme, proofOptions);
     }
 }

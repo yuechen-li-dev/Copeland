@@ -162,6 +162,26 @@ Proof outputs:
 
 This M9h proof is still local and sample-only. It adds a renderer-facing bridge contract in `Machina.Fonts.ReferenceRendering`, keeps production UI text behavior unchanged, keeps `DirectOutlineStatic` as the static/reference path, and keeps MSDF explicit experimental/scalable.
 
+Font phase closeout workflow (M9i):
+
+```powershell
+dotnet test Copeland.slnx
+dotnet build Copeland.slnx --no-restore
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\font-current -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\font-current -IncludeDirectOutlineRenderBridgeProof
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\font-current\presenter-direct-outline.png -IncludeDirectOutlineRenderBridgeProof
+.\tools\Write-MachinaFontPhaseCloseoutManifest.ps1 -OutputDir artifacts\m9i
+```
+
+Canonical closeout artifacts:
+
+- `artifacts/m9i/component-gallery-direct-outline-render-bridge-proof.png`
+- `artifacts/m9i/presenter-direct-outline-render-bridge-proof.png`
+- `artifacts/m9i/font-phase-closeout-manifest.json`
+- `artifacts/m9i/font-phase-closeout-manifest.txt`
+
+M9i is still proof-only. It adds an opt-in presenter proof through `DirectOutlineStaticTextRenderBridge`, keeps `DirectOutlineStatic` as the static/reference path, keeps MSDF explicit experimental/scalable, keeps browser kerning out of the oracle role, defers word wrapping and production integration, and leaves production UI text defaults unchanged.
+
 Current font proof audit workflow:
 
 ```powershell

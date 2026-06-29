@@ -3,44 +3,71 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Machina.Core.Actions;
-using Machina.Core.Authoring;
-using Machina.Core.Flat;
-using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Pipeline;
-using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Runtime.Input;
-using Machina.Standard.Authoring;
 using Machina.Standard.Theme;
-using Machina.Layout.Frames;
 using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
 
 namespace Machina.Presenter.Sample;
 
 internal sealed class Program
 {
+    public static readonly StandardTheme AppTheme =
+        StandardTheme.Default with
+        {
+            Button = StandardTheme.Default.Button with
+            {
+                Default = StandardTheme.Default.Button.Default with
+                {
+                    Background = ColorToken.Hex(0x111827FF),
+                    Foreground = ColorToken.Hex(0xF9FAFBFF),
+                },
+            },
+            Card = StandardTheme.Default.Card with
+            {
+                Default = StandardTheme.Default.Card.Default with
+                {
+                    ContentInset = 18,
+                },
+            },
+        };
+
     [STAThread]
     public static void Main(string[] args)
     {
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        PresenterProgramOptions options = PresenterProgramOptions.Parse(args);
+        if (options.ExportOnly)
+        {
+            PresenterExportResult result = PresenterExporter.Export(options);
+            Console.WriteLine($"Exported presenter png to {result.OutputPath} ({result.Width}x{result.Height})");
+            return;
+        }
+
+        BuildAvaloniaApp(options).StartWithClassicDesktopLifetime(args);
     }
 
-    private static AppBuilder BuildAvaloniaApp()
+    private static AppBuilder BuildAvaloniaApp(PresenterProgramOptions options)
     {
-        return AppBuilder.Configure<App>()
+        return AppBuilder.Configure(() => new App(options.ProofOptions))
             .UsePlatformDetect();
     }
 
     private sealed class App : Application
     {
+        private readonly PresenterProofOptions _proofOptions;
+
+        public App(PresenterProofOptions proofOptions)
+        {
+            _proofOptions = proofOptions;
+        }
+
         public override void OnFrameworkInitializationCompleted()
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new PresenterWindow();
+                desktop.MainWindow = new PresenterWindow(_proofOptions);
             }
 
             base.OnFrameworkInitializationCompleted();
@@ -53,32 +80,13 @@ internal sealed class Program
 
         private readonly Image _image;
 
-        private static readonly StandardTheme AppTheme =
-            StandardTheme.Default with
-            {
-                Button = StandardTheme.Default.Button with
-                {
-                    Default = StandardTheme.Default.Button.Default with
-                    {
-                        Background = ColorToken.Hex(0x111827FF),
-                        Foreground = ColorToken.Hex(0xF9FAFBFF),
-                    },
-                },
-                Card = StandardTheme.Default.Card with
-                {
-                    Default = StandardTheme.Default.Card.Default with
-                    {
-                        ContentInset = 18,
-                    },
-                },
-            };
-
         private DemoState _state;
         private readonly MachinaRasterPipeline _pipeline;
+        private readonly PresenterProofOptions _proofOptions;
         private UiHitTestIndex _hitTestIndex;
         private MachinaFrame _currentFrame;
 
-        public PresenterWindow()
+        public PresenterWindow(PresenterProofOptions proofOptions)
         {
             _image = new Image
             {
@@ -94,6 +102,7 @@ internal sealed class Program
                 EmailUpdates: true,
                 Notifications: false);
             _pipeline = new MachinaRasterPipeline();
+            _proofOptions = proofOptions;
             _hitTestIndex = default!;
             _currentFrame = default!;
 
@@ -106,11 +115,20 @@ internal sealed class Program
 
         private void RenderCurrentState()
         {
-            var ui = SettingsScreen.Build(_state, AppTheme);
-            _currentFrame = _pipeline.Render(ui, SettingsScreen.RootWidth, SettingsScreen.RootHeight);
+            var ui = SettingsScreen.Build(_state, AppTheme, _proofOptions);
+            _currentFrame = _pipeline.Render(
+                ui,
+                SettingsScreen.GetWidth(_proofOptions),
+                SettingsScreen.GetHeight(_proofOptions));
+
+            if (_proofOptions.IncludeDirectOutlineRenderBridgeProof)
+            {
+                PresenterDirectOutlineRenderBridgeProofRenderer.BlitProof(_currentFrame.RasterFrame, _currentFrame.Resolved);
+            }
+
             _hitTestIndex = _currentFrame.HitTest;
 
-            _image.Source = ToBitmap(_currentFrame.RasterFrame);
+            _image.Source = PresenterExporter.ToBitmap(_currentFrame.RasterFrame);
             _image.Width = _currentFrame.RasterFrame.Width;
             _image.Height = _currentFrame.RasterFrame.Height;
             Width = _currentFrame.RasterFrame.Width;
@@ -163,43 +181,5 @@ internal sealed class Program
         {
             return value ? "on" : "off";
         }
-    }
-
-
-    private static WriteableBitmap ToBitmap(RasterFrame frame)
-    {
-        var bitmap = new WriteableBitmap(
-            new PixelSize(frame.Width, frame.Height),
-            new Vector(96, 96),
-            PixelFormat.Rgba8888,
-            AlphaFormat.Unpremul);
-
-        using var locked = bitmap.Lock();
-        var pixelBytes = ToRgbaBytes(frame);
-        System.Runtime.InteropServices.Marshal.Copy(pixelBytes, 0, locked.Address, pixelBytes.Length);
-
-        return bitmap;
-    }
-
-    private static byte[] ToRgbaBytes(RasterFrame frame)
-    {
-        var width = frame.Surface.Width;
-        var height = frame.Surface.Height;
-        var bytes = new byte[width * height * 4];
-        var index = 0;
-
-        for (var y = 0; y < height; y++)
-        {
-            for (var x = 0; x < width; x++)
-            {
-                var pixel = frame.Surface.GetPixel(x, y);
-                bytes[index++] = pixel.R;
-                bytes[index++] = pixel.G;
-                bytes[index++] = pixel.B;
-                bytes[index++] = pixel.A;
-            }
-        }
-
-        return bytes;
     }
 }

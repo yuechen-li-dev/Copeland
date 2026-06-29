@@ -140,3 +140,11 @@ If production static UI text later moves to direct-outline, the remaining work s
 - replaces current bitmap/static text only by explicit product decision
 - proves sizing, clipping, wrapping, and control-label behavior in real StandardUI surfaces
 - keeps MSDF as a separate scalable-text decision rather than conflating the two paths
+
+## M9i follow-up
+
+M9i closes the current font proof phase by extending the direct-outline bridge proof into the presenter sample and documenting the canonical commands, artifact locations, and deferred-work list.
+
+- gallery proof remains opt-in
+- presenter proof is also opt-in
+- production UI text defaults remain unchanged

@@ -893,3 +893,21 @@ This remains proof-only:
 - no MSDF backend change beyond preserving the existing explicit experimental/scalable path
 
 See `docs/machina-direct-outline-render-bridge-m9h.md`.
+
+## M9i update
+
+M9i is the closeout step for the current Machina font phase.
+
+- `samples/Machina.Presenter.Sample` now accepts `--include-direct-outline-render-bridge-proof`.
+- the presenter sample exports a deterministic opt-in proof through `.\tools\Export-MachinaPresenter.ps1`.
+- `DirectOutlineStatic` remains the static/reference path across diagnostics, layout, bridge proof, gallery proof, and presenter proof.
+- MSDF remains explicit experimental/scalable after the M9f repair.
+- `docs/machina-font-phase-closeout-m9i.md` and `artifacts/m9i/font-phase-closeout-manifest.json|txt` define the canonical closeout commands, artifact paths, and deferred work.
+
+This remains proof/tooling-only:
+
+- no production default text renderer switch
+- no `Standard.Text` semantic change
+- no `Machina.Core` document-model change
+- no word wrapping
+- no production renderer integration

@@ -111,3 +111,12 @@ M9h keeps the M9d backend policy intact and adds a renderer-facing bridge contra
 - production UI text behavior remains unchanged.
 
 See `docs/machina-direct-outline-render-bridge-m9h.md`.
+
+## M9i follow-up
+
+M9i keeps the M9d backend policy intact and uses it as the phase-closeout golden path.
+
+- `DirectOutlineStatic` remains the static/reference backend
+- presenter and gallery bridge proofs are both opt-in
+- MSDF remains explicit experimental/scalable
+- production defaults remain unchanged

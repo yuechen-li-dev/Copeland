@@ -144,3 +144,12 @@ M9g follows M9f but does not extend this MSDF repair scope.
 - `DirectOutlineStatic` keeps acting as the proof geometry oracle
 - the new layout contract work is direct-outline proof-only
 - MSDF remains explicit experimental/scalable and is not changed again in M9g
+
+## M9i boundary
+
+M9i also does not extend MSDF scope.
+
+- no new MSDF generation change
+- no new MSDF sampling change
+- no production default switch
+- MSDF stays explicit experimental/scalable while direct-outline closes the current proof phase

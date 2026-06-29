@@ -204,3 +204,12 @@ M9h keeps the M9g layout contract intact and adds a renderer-facing bridge that 
 - production UI text behavior remains unchanged
 
 See `docs/machina-direct-outline-render-bridge-m9h.md`.
+
+## M9i follow-up
+
+M9i keeps this layout contract unchanged and uses it through the presenter proof bridge path.
+
+- presenter proof remains opt-in
+- `DirectOutlineStatic` remains the static/reference path
+- word wrapping stays deferred
+- production integration stays deferred

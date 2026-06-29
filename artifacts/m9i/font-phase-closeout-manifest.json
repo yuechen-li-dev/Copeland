@@ -1,0 +1,50 @@
+{
+  "milestone": "M9i",
+  "kind": "machina-font-phase-closeout",
+  "directOutlineStatic": {
+    "status": "static-reference-path",
+    "renderBridge": true,
+    "textBoxLayout": true,
+    "componentGalleryProof": true,
+    "presenterProof": true
+  },
+  "msdf": {
+    "status": "explicit-experimental-scalable",
+    "alignmentRepair": "M9f",
+    "remainingWork": [
+      "coverage-reconstruction",
+      "smoothing"
+    ]
+  },
+  "tooling": {
+    "status": "proof-and-diagnostics-hygiene",
+    "canonicalArtifactRoot": "artifacts\\\\m9i",
+    "canonicalCommands": [
+      "dotnet test Copeland.slnx",
+      "dotnet build Copeland.slnx --no-restore",
+      ".\\\\tools\\\\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\\\\font-current -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean",
+      ".\\\\tools\\\\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\\\\font-current -IncludeDirectOutlineRenderBridgeProof",
+      ".\\\\tools\\\\Export-MachinaPresenter.ps1 -OutputPath artifacts\\\\font-current\\\\presenter-direct-outline.png -IncludeDirectOutlineRenderBridgeProof"
+    ]
+  },
+  "presenterProof": {
+    "status": "opt-in-sample-and-export",
+    "exportAvailable": true,
+    "defaultBehaviorChanged": false
+  },
+  "productionUi": {
+    "defaultRendererChanged": false
+  },
+  "artifactsGenerated": [
+    "artifacts\\\\m9i\\\\component-gallery-direct-outline-render-bridge-proof.png",
+    "artifacts\\\\m9i\\\\font-phase-closeout-manifest.json",
+    "artifacts\\\\m9i\\\\font-phase-closeout-manifest.txt",
+    "artifacts\\\\m9i\\\\presenter-direct-outline-render-bridge-proof.png"
+  ],
+  "deferred": [
+    "word wrapping",
+    "production renderer integration",
+    "caller-positioned baseline anchor",
+    "MSDF coverage/reconstruction polish"
+  ]
+}
