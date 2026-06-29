@@ -77,10 +77,16 @@ public sealed class PresenterDirectOutlineRenderBridgeProofTests
             PresenterExportResult result = PresenterExporter.Export(
                 DemoState.Default,
                 outputPath,
-                new PresenterProofOptions(IncludeDirectOutlineRenderBridgeProof: true));
+                new PresenterProofOptions(IncludeDirectOutlineRenderBridgeProof: true),
+                new PresenterNavigationExportOptions(
+                    true,
+                    SelectedSectionId: "text",
+                    SelectedTabId: "direct-outline"),
+                StandardTheme.Default);
 
             Assert.True(result.ProofOptions.IncludeDirectOutlineRenderBridgeProof);
-            Assert.NotNull(result.DirectOutlineRenderBridgeProofPlacement);
+            Assert.True(result.IncludesNavigationShell);
+            Assert.Equal("text.direct-outline", result.NavigationPageId);
             Assert.True(File.Exists(result.OutputPath));
 
             byte[] bytes = File.ReadAllBytes(result.OutputPath);
@@ -100,7 +106,7 @@ public sealed class PresenterDirectOutlineRenderBridgeProofTests
     }
 
     [Fact]
-    public void ExportPresenter_DefaultBehaviorUnchanged()
+    public void ExportPresenter_DefaultBehavior_UsesNavigationShell()
     {
         PresenterProgramOptions options = PresenterProgramOptions.Parse(["--export-only"]);
         string outputDirectory = Path.Combine(Path.GetTempPath(), "machina-presenter-export-tests", Guid.NewGuid().ToString("N"));
@@ -116,7 +122,8 @@ public sealed class PresenterDirectOutlineRenderBridgeProofTests
             Assert.True(options.ExportOnly);
             Assert.False(options.ProofOptions.IncludeDirectOutlineRenderBridgeProof);
             Assert.False(result.ProofOptions.IncludeDirectOutlineRenderBridgeProof);
-            Assert.Null(result.DirectOutlineRenderBridgeProofPlacement);
+            Assert.True(result.IncludesNavigationShell);
+            Assert.Equal("overview.home", result.NavigationPageId);
             Assert.True(File.Exists(result.OutputPath));
         }
         finally

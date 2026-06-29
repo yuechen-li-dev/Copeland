@@ -358,7 +358,7 @@ public sealed class PresenterNavigationInteractionM10bTests
     }
 
     [Fact]
-    public void Presenter_DefaultBehavior_RemainsUnchangedWithoutNavigationShell()
+    public void Presenter_DefaultBehavior_UsesNavigationShell()
     {
         string outputDirectory = Path.Combine(Path.GetTempPath(), "machina-presenter-navigation-m10b-tests", Guid.NewGuid().ToString("N"));
         string outputPath = Path.Combine(outputDirectory, "presenter-default.png");
@@ -372,11 +372,13 @@ public sealed class PresenterNavigationInteractionM10bTests
                 StandardTheme.Default);
 
             Assert.True(File.Exists(result.OutputPath));
-            Assert.False(result.IncludesNavigationShell);
-            Assert.Null(result.NavigationSectionId);
-            Assert.Null(result.NavigationManifestJsonPath);
-            Assert.Equal(SettingsScreen.RootWidth, result.Width);
-            Assert.Equal(SettingsScreen.RootHeight, result.Height);
+            Assert.True(result.IncludesNavigationShell);
+            Assert.Equal("overview", result.NavigationSectionId);
+            Assert.Equal("home", result.NavigationTabId);
+            Assert.Equal("overview.home", result.NavigationPageId);
+            Assert.NotNull(result.NavigationManifestJsonPath);
+            Assert.Equal(PresenterNavigationLayout.Default.RootWidth, result.Width);
+            Assert.Equal(PresenterNavigationLayout.Default.RootHeight, result.Height);
         }
         finally
         {
@@ -385,11 +387,12 @@ public sealed class PresenterNavigationInteractionM10bTests
     }
 
     [Fact]
-    public void Presenter_NavigationShellInteraction_IsOptIn()
+    public void Presenter_IncludeNavigationShell_RemainsCompatible()
     {
+        string outputPath = Path.Combine(Path.GetTempPath(), "presenter-navigation-compatible.png");
         PresenterExportResult result = PresenterExporter.Export(
             DemoState.Default,
-            Path.Combine(Path.GetTempPath(), "presenter-navigation-opt-in.png"),
+            outputPath,
             ProofOptions,
             new PresenterNavigationExportOptions(
                 true,
@@ -408,6 +411,11 @@ public sealed class PresenterNavigationInteractionM10bTests
             if (File.Exists(result.OutputPath))
             {
                 File.Delete(result.OutputPath);
+            }
+
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
             }
         }
     }

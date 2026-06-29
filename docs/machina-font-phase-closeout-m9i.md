@@ -108,10 +108,10 @@ The toolkit is now mainly a proof and diagnostic surface.
 
 ## Presenter proof status
 
-The presenter sample now has an opt-in `DirectOutlineStatic Presenter Proof` card.
+The presenter sample still has an opt-in `DirectOutlineStatic Presenter Proof` path.
 
 - enabled by `--include-direct-outline-render-bridge-proof`
-- default presenter behavior remains unchanged
+- M10c keeps that proof under the canonical shell instead of reopening font work
 - proof text is rendered through `DirectOutlineStaticTextRenderBridge`
 - deterministic PNG export is available through `.\tools\Export-MachinaPresenter.ps1`
 

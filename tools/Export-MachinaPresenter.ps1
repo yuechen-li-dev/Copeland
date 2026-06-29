@@ -3,6 +3,7 @@ param(
     [string]$OutputPath = "artifacts\\presenter-default.png",
     [switch]$IncludeDirectOutlineRenderBridgeProof,
     [switch]$IncludeNavigationShell,
+    [switch]$LegacySingleCard,
     [string]$SelectedSection,
     [string]$SelectedTab,
     [string]$NavigationPage,
@@ -51,6 +52,11 @@ if ($IncludeDirectOutlineRenderBridgeProof)
 if ($IncludeNavigationShell)
 {
     $arguments += "--include-navigation-shell"
+}
+
+if ($LegacySingleCard)
+{
+    $arguments += "--legacy-single-card"
 }
 
 if (-not [string]::IsNullOrWhiteSpace($NavigationPage))

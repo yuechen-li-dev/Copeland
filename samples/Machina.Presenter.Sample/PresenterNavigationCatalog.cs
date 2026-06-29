@@ -12,6 +12,24 @@ namespace Machina.Presenter.Sample;
 
 public static class PresenterNavigationCatalog
 {
+    private static readonly IReadOnlyDictionary<string, string> PageAliases = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["text.bitmap-current"] = "text.current",
+        ["text.direct-outline-static"] = "text.direct-outline",
+        ["text.msdf-experimental"] = "text.proofs",
+    };
+
+    private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> TabAliases =
+        new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal)
+        {
+            ["text"] = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["bitmap-current"] = "current",
+                ["direct-outline-static"] = "direct-outline",
+                ["msdf-experimental"] = "proofs",
+            },
+        };
+
     public static PresenterNavigationModel CreateModel()
     {
         return new PresenterNavigationModel(
@@ -34,9 +52,9 @@ public static class PresenterNavigationCatalog
                 "text",
                 "Text",
                 [
-                    new PresenterNavigationTab("bitmap-current", "Bitmap/current", "text.bitmap-current"),
-                    new PresenterNavigationTab("direct-outline-static", "DirectOutlineStatic", "text.direct-outline-static"),
-                    new PresenterNavigationTab("msdf-experimental", "MSDF experimental", "text.msdf-experimental"),
+                    new PresenterNavigationTab("current", "Current", "text.current"),
+                    new PresenterNavigationTab("direct-outline", "DirectOutlineStatic", "text.direct-outline"),
+                    new PresenterNavigationTab("proofs", "Proofs", "text.proofs"),
                 ]),
             new PresenterNavigationSection(
                 "diagnostics",
@@ -45,7 +63,126 @@ public static class PresenterNavigationCatalog
                     new PresenterNavigationTab("layout", "Layout", "diagnostics.layout"),
                     new PresenterNavigationTab("export", "Export", "diagnostics.export"),
                 ]),
+            new PresenterNavigationSection(
+                "legacy",
+                "Legacy",
+                [
+                    new PresenterNavigationTab("m1e-card", "M1e Card", "legacy.m1e-card"),
+                ]),
         ]);
+    }
+
+    public static PresenterNavigationState CreateState(
+        PresenterNavigationModel model,
+        PresenterProofOptions proofOptions,
+        PresenterNavigationExportOptions navigationOptions)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(proofOptions);
+        ArgumentNullException.ThrowIfNull(navigationOptions);
+
+        PresenterNavigationLayout layout = PresenterNavigationLayout.Default;
+        PresenterNavigationState state = PresenterNavigationState.CreateDefault(model);
+
+        string? resolvedPageId = ResolvePageId(navigationOptions.SelectedPageId, model);
+        if (resolvedPageId is not null)
+        {
+            PresenterNavigationSection section = model.FindSectionByPageId(resolvedPageId);
+            PresenterNavigationTab tab = model.FindTabByPageId(resolvedPageId);
+            state = state
+                .WithSelectedTab(section.Id, tab.Id)
+                .WithSelectedSection(section.Id);
+        }
+        else
+        {
+            string? resolvedSectionId = ResolveSectionId(navigationOptions.SelectedSectionId, model);
+            if (resolvedSectionId is not null)
+            {
+                state = state.WithSelectedSection(resolvedSectionId);
+
+                string? resolvedTabId = ResolveTabId(resolvedSectionId, navigationOptions.SelectedTabId, model);
+                if (resolvedTabId is not null)
+                {
+                    state = state.WithSelectedTab(resolvedSectionId, resolvedTabId);
+                }
+            }
+        }
+
+        if (navigationOptions.ScrollOffsetByPageId is not null)
+        {
+            foreach ((string pageId, double offset) in navigationOptions.ScrollOffsetByPageId)
+            {
+                string? resolvedScrollPageId = ResolvePageId(pageId, model);
+                if (resolvedScrollPageId is null)
+                {
+                    continue;
+                }
+
+                double contentHeight = GetPageContentHeight(resolvedScrollPageId, proofOptions);
+                double clamped = PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, offset);
+                state = state.WithScrollOffset(resolvedScrollPageId, clamped);
+            }
+        }
+
+        return state;
+    }
+
+    public static string? ResolveSectionId(string? sectionId, PresenterNavigationModel model)
+    {
+        if (string.IsNullOrWhiteSpace(sectionId))
+        {
+            return null;
+        }
+
+        return model.FindSection(sectionId) is not null
+            ? sectionId
+            : null;
+    }
+
+    public static string? ResolveTabId(string sectionId, string? tabId, PresenterNavigationModel model)
+    {
+        ArgumentNullException.ThrowIfNull(sectionId);
+        ArgumentNullException.ThrowIfNull(model);
+
+        if (string.IsNullOrWhiteSpace(tabId))
+        {
+            return null;
+        }
+
+        if (model.FindTab(sectionId, tabId) is not null)
+        {
+            return tabId;
+        }
+
+        if (TabAliases.TryGetValue(sectionId, out IReadOnlyDictionary<string, string>? aliases) &&
+            aliases.TryGetValue(tabId, out string? aliasTarget) &&
+            model.FindTab(sectionId, aliasTarget) is not null)
+        {
+            return aliasTarget;
+        }
+
+        return null;
+    }
+
+    public static string? ResolvePageId(string? pageId, PresenterNavigationModel model)
+    {
+        if (string.IsNullOrWhiteSpace(pageId))
+        {
+            return null;
+        }
+
+        if (model.ContainsPage(pageId))
+        {
+            return pageId;
+        }
+
+        if (PageAliases.TryGetValue(pageId, out string? aliasTarget) &&
+            model.ContainsPage(aliasTarget))
+        {
+            return aliasTarget;
+        }
+
+        return null;
     }
 
     public static string GetPageTitle(string pageId)
@@ -56,11 +193,12 @@ public static class PresenterNavigationCatalog
             "overview.status" => "Presenter status",
             "components.controls" => "Component controls",
             "components.cards" => "Component cards",
-            "text.bitmap-current" => "Bitmap/current text",
-            "text.direct-outline-static" => "DirectOutlineStatic proof",
-            "text.msdf-experimental" => "MSDF experimental note",
+            "text.current" => "Current text path",
+            "text.direct-outline" => "DirectOutlineStatic proof",
+            "text.proofs" => "Proof organization",
             "diagnostics.layout" => "Layout diagnostics",
             "diagnostics.export" => "Export diagnostics",
+            "legacy.m1e-card" => "Legacy M1e Card",
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
     }
@@ -69,17 +207,18 @@ public static class PresenterNavigationCatalog
     {
         return pageId switch
         {
-            "overview.home" => "The original presenter settings card stays as the first/default page inside the presenter navigation shell.",
-            "overview.status" => "A compact status page for sample state and navigation structure.",
+            "overview.home" => "The navigation shell is now the canonical presenter sample surface and starts here deterministically.",
+            "overview.status" => "Current presenter state and navigation defaults without falling back to the old single-screen root.",
             "components.controls" => "A scrollable page that keeps control proofs together without growing one giant screen.",
             "components.cards" => "Card-focused organization notes using the same local presenter primitives.",
-            "text.bitmap-current" => "Production UI text defaults remain on the current bitmap path.",
-            "text.direct-outline-static" => proofOptions.IncludeDirectOutlineRenderBridgeProof
+            "text.current" => "Production UI text defaults remain on the current bitmap path.",
+            "text.direct-outline" => proofOptions.IncludeDirectOutlineRenderBridgeProof
                 ? "DirectOutlineStatic remains a localized proof path under the Text section."
-                : "DirectOutlineStatic remains available as an opt-in proof path and is not resumed by default in M10b.",
-            "text.msdf-experimental" => "MSDF stays explicit experimental/scalable after the M9 closeout.",
+                : "DirectOutlineStatic remains available as an opt-in proof path and is not resumed by default in M10c.",
+            "text.proofs" => "Existing proof-only text notes stay organized here without reopening font work.",
             "diagnostics.layout" => "Layout and scroll structure notes for the presenter navigation shell.",
-            "diagnostics.export" => "Export and artifact notes for M10b navigation interaction validation.",
+            "diagnostics.export" => "Export and artifact notes for the canonical M10c presenter shell.",
+            "legacy.m1e-card" => "Preserved sample content from the old single-card presenter root.",
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
     }
@@ -88,15 +227,16 @@ public static class PresenterNavigationCatalog
     {
         return pageId switch
         {
-            "overview.home" => 516,
-            "overview.status" => 340,
+            "overview.home" => 504,
+            "overview.status" => 376,
             "components.controls" => 860,
             "components.cards" => 560,
-            "text.bitmap-current" => 356,
-            "text.direct-outline-static" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 700 : 260,
-            "text.msdf-experimental" => 320,
+            "text.current" => 448,
+            "text.direct-outline" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 700 : 304,
+            "text.proofs" => 340,
             "diagnostics.layout" => 360,
-            "diagnostics.export" => 380,
+            "diagnostics.export" => 432,
+            "legacy.m1e-card" => SettingsScreen.GetHeight(proofOptions),
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
     }
@@ -112,7 +252,7 @@ public static class PresenterNavigationCatalog
         UiDocument document = BuildPageDocument(pageId, demoState, theme, proofOptions, contentWidth);
         var frame = new Machina.Pipeline.MachinaRasterPipeline().Render(document, contentWidth, (int)Math.Ceiling(contentHeight));
 
-        if (pageId == "text.direct-outline-static" && proofOptions.IncludeDirectOutlineRenderBridgeProof)
+        if (pageId == "text.direct-outline" && proofOptions.IncludeDirectOutlineRenderBridgeProof)
         {
             PresenterDirectOutlineRenderBridgeProofRenderer.BlitProof(frame.RasterFrame, frame.Resolved);
         }
@@ -141,19 +281,31 @@ public static class PresenterNavigationCatalog
         switch (pageId)
         {
             case "overview.home":
-                rows.Add(Row.Anchor("settings-card", "root", left: 0, top: 0, width: 500, height: 292, component: SettingsCard.Build(demoState, theme)));
-                rows.Add(Row.Anchor("overview-summary", "root", left: 0, top: 316, width: contentWidth, height: 176, component: BuildInfoCard(
-                    "overview-summary-card",
-                    "Presenter navigation shell",
+                rows.Add(Row.Anchor("overview-home-intro", "root", left: 0, top: 0, width: contentWidth, height: 156, component: BuildInfoCard(
+                    "overview-home-intro-card",
+                    "Canonical presenter sample surface",
                     [
-                        "App -> sidebar -> tabs -> pages keeps the presenter sample organized as it grows.",
-                        "The original settings content remains the first/default page.",
-                        "Scroll state is explicit and tracked per page id.",
+                        "The presenter now opens inside the navigation shell by default.",
+                        "Sections and local tabs organize the existing sample/proof content instead of one awkward root screen.",
+                        "The old single-card sample is preserved under Legacy rather than acting as the application root.",
                     ],
-                    ["M10a", "input", "scroll state"],
+                    ["M10c", "default shell"],
                     theme,
                     contentWidth,
-                    176)));
+                    156)));
+                rows.Add(Row.Anchor("overview-home-state", "root", left: 0, top: 180, width: contentWidth, height: 132, component: BuildStatusCard(demoState, theme, contentWidth, 132)));
+                rows.Add(Row.Anchor("overview-summary", "root", left: 0, top: 336, width: contentWidth, height: 144, component: BuildInfoCard(
+                    "overview-summary-card",
+                    "Navigation defaults",
+                    [
+                        "Default section: Overview / Home.",
+                        "Scroll offsets begin at zero and stay scoped per page id.",
+                        "Scroll state is explicit and tracked per page id.",
+                    ],
+                    ["immutable state"],
+                    theme,
+                    contentWidth,
+                    144)));
                 break;
 
             case "overview.status":
@@ -249,7 +401,7 @@ public static class PresenterNavigationCatalog
                     180)));
                 break;
 
-            case "text.bitmap-current":
+            case "text.current":
                 rows.Add(Row.Anchor("text-bitmap-current", "root", left: 0, top: 0, width: contentWidth, height: 164, component: BuildInfoCard(
                     "text-bitmap-current-card",
                     "Bitmap/current remains default",
@@ -262,25 +414,25 @@ public static class PresenterNavigationCatalog
                     theme,
                     contentWidth,
                     164)));
-                rows.Add(Row.Anchor("text-bitmap-current-status", "root", left: 0, top: 188, width: contentWidth, height: 144, component: BuildInfoCard(
+                rows.Add(Row.Anchor("text-bitmap-current-status", "root", left: 0, top: 188, width: contentWidth, height: 220, component: BuildInfoCard(
                     "text-bitmap-current-status-card",
                     "Font phase note",
                     [
                         "DirectOutlineStatic remains the static/reference path.",
                         "MSDF remains explicit experimental/scalable.",
                     ],
-                    ["DirectOutlineStatic", "MSDF experimental"],
+                    [],
                     theme,
                     contentWidth,
-                    144)));
+                    220)));
                 break;
 
-            case "text.direct-outline-static":
+            case "text.direct-outline":
                 rows.Add(Row.Anchor("text-direct-outline-intro", "root", left: 0, top: 0, width: contentWidth, height: 140, component: BuildInfoCard(
                     "text-direct-outline-intro-card",
                     "DirectOutlineStatic is still proof-only here",
                     [
-                        "M10b keeps the existing presenter proof path under Text.",
+                        "M10c keeps the existing presenter proof path under Text.",
                         "No new font/rendering milestone is started.",
                     ],
                     ["proof-only"],
@@ -301,7 +453,7 @@ public static class PresenterNavigationCatalog
                 }
                 else
                 {
-                    rows.Add(Row.Anchor("text-direct-outline-disabled", "root", left: 0, top: 164, width: contentWidth, height: 72, component: BuildInfoCard(
+                    rows.Add(Row.Anchor("text-direct-outline-disabled", "root", left: 0, top: 164, width: contentWidth, height: 116, component: BuildInfoCard(
                         "text-direct-outline-disabled-card",
                         "Proof flag not enabled",
                         [
@@ -310,24 +462,35 @@ public static class PresenterNavigationCatalog
                         ["opt-in only"],
                         theme,
                         contentWidth,
-                        72)));
+                        116)));
                 }
 
                 break;
 
-            case "text.msdf-experimental":
-                rows.Add(Row.Anchor("text-msdf-experimental", "root", left: 0, top: 0, width: contentWidth, height: 180, component: BuildInfoCard(
-                    "text-msdf-experimental-card",
-                    "MSDF remains explicit experimental/scalable",
+            case "text.proofs":
+                rows.Add(Row.Anchor("text-proofs-overview", "root", left: 0, top: 0, width: contentWidth, height: 180, component: BuildInfoCard(
+                    "text-proofs-overview-card",
+                    "Proof-only text surfaces remain organized",
                     [
-                        "M9f repaired the experimental path structurally.",
-                        "M10b does not extend or integrate that work.",
-                        "This page is organizational only.",
+                        "DirectOutlineStatic stays localized to explicit proof pages.",
+                        "MSDF remains explicit experimental/scalable after the M9 closeout.",
+                        "M10c reorganizes sample surfaces but does not resume font work.",
                     ],
-                    ["M9f", "experimental"],
+                    ["M9 closed", "proof-only"],
                     theme,
                     contentWidth,
                     180)));
+                rows.Add(Row.Anchor("text-proofs-status", "root", left: 0, top: 204, width: contentWidth, height: 112, component: BuildInfoCard(
+                    "text-proofs-status-card",
+                    "Proof routing",
+                    [
+                        "Use the direct-outline proof flag together with the Text / DirectOutlineStatic page when you want the bridge proof rendered in the shell.",
+                        "Legacy single-card mode still exists if you need the old root export path.",
+                    ],
+                    ["organization only"],
+                    theme,
+                    contentWidth,
+                    112)));
                 break;
 
             case "diagnostics.layout":
@@ -362,25 +525,51 @@ public static class PresenterNavigationCatalog
                     "diagnostics-export-card",
                     "Export workflow",
                     [
-                        "The presenter export script supports the navigation shell as an opt-in sample mode.",
-                        "Representative M10b artifacts live under artifacts/m10b.",
+                        "The presenter export script now writes the navigation shell by default.",
+                        "Representative M10c artifacts live under artifacts/m10c.",
                         "A deterministic manifest is written alongside shell exports.",
                     ],
-                    ["artifacts/m10b", "manifest"],
+                    ["artifacts/m10c", "manifest"],
                     theme,
                     contentWidth,
                     176)));
-                rows.Add(Row.Anchor("diagnostics-export-policy", "root", left: 0, top: 200, width: contentWidth, height: 156, component: BuildInfoCard(
+                rows.Add(Row.Anchor("diagnostics-export-policy", "root", left: 0, top: 200, width: contentWidth, height: 208, component: BuildInfoCard(
                     "diagnostics-export-policy-card",
                     "Artifact policy",
                     [
                         "These images are local proof artifacts, not a committed pixel golden gate.",
-                        "The old non-shell presenter export path stays available and unchanged by default.",
+                        "The old non-shell presenter export path stays available behind the legacy flag.",
+                        "Selected section, selected tab, and per-page scroll exports still resolve deterministically.",
                     ],
-                    ["local proof", "default-safe"],
+                    ["local proof", "legacy opt-out"],
                     theme,
                     contentWidth,
-                    156)));
+                    208)));
+                break;
+
+            case "legacy.m1e-card":
+                rows.Add(Row.Anchor(
+                    "legacy-settings-card",
+                    "root",
+                    left: 72,
+                    top: 24,
+                    width: 500,
+                    height: 292,
+                    component: SettingsCard.Build(demoState, theme)));
+
+                if (proofOptions.IncludeDirectOutlineRenderBridgeProof)
+                {
+                    rows.Add(
+                        Row.Anchor(
+                            PresenterDirectOutlineRenderBridgeProofLayout.SectionId,
+                            "root",
+                            left: SettingsScreen.ProofSectionLeft,
+                            top: SettingsScreen.ProofSectionTop,
+                            width: SettingsScreen.ProofSectionWidth,
+                            height: SettingsScreen.ProofSectionHeight,
+                            component: PresenterDirectOutlineRenderBridgeProofCard.Build(theme)));
+                }
+
                 break;
 
             default:

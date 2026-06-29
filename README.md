@@ -102,6 +102,7 @@ dotnet test Copeland.Slow.slnx
 - [Machina Direct-Outline Render Bridge M9h](docs/machina-direct-outline-render-bridge-m9h.md)
 - [Machina Presenter Navigation Shell M10a](docs/machina-presenter-navigation-shell-m10a.md)
 - [Machina Presenter Navigation Interaction M10b](docs/machina-presenter-navigation-interaction-m10b.md)
+- [Machina Presenter Page Organization M10c](docs/machina-presenter-page-organization-m10c.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -237,6 +238,30 @@ Representative M10b outputs:
 - `artifacts/m10b/presenter-navigation-interaction-manifest.txt`
 
 This is still proof/sample-level input work. Avalonia remains only the current sample input backend, navigation state/actions remain backend-independent, M9 font work stays closed unless a concrete integration need appears, and no production renderer behavior changed.
+
+M10c turns that shell into the canonical presenter sample surface:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-overview.png
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-components-controls.png -SelectedSection components -SelectedTab controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-text-direct-outline.png -SelectedSection text -SelectedTab direct-outline -IncludeDirectOutlineRenderBridgeProof
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-diagnostics-layout.png -SelectedSection diagnostics -SelectedTab layout
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10c\presenter-shell-scrolled.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:120
+```
+
+Representative M10c outputs:
+
+- `artifacts/m10c/presenter-shell-overview.png`
+- `artifacts/m10c/presenter-shell-components-controls.png`
+- `artifacts/m10c/presenter-shell-text-direct-outline.png`
+- `artifacts/m10c/presenter-shell-diagnostics-layout.png`
+- `artifacts/m10c/presenter-shell-legacy-m1e-card.png`
+- `artifacts/m10c/presenter-shell-scrolled.png`
+- `artifacts/m10c/presenter-shell-manifest.json`
+- `artifacts/m10c/presenter-shell-manifest.txt`
+
+M10c makes the navigation shell the default presenter run/export surface, preserves the old M1e card as a `Legacy` page, keeps M9 font work closed, does not add new component families, and does not change production renderer/core/layout behavior.
 
 Current font proof audit workflow:
 

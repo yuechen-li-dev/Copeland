@@ -2,7 +2,7 @@
 
 ## Purpose
 
-M10b wires pointer and wheel interaction into the opt-in presenter navigation shell that M10a introduced.
+M10b wires pointer and wheel interaction into the presenter navigation shell that M10a introduced.
 
 The goal is narrow:
 
@@ -133,13 +133,15 @@ The navigation manifest now writes:
 
 ## What did not change
 
-- default presenter behavior without `--include-navigation-shell`
+- production presenter legacy mode still exists as an explicit compatibility path after M10c
 - production renderer defaults
 - `Machina.Core` document semantics
 - `Machina.Layout` resolver behavior
 - M9 font-phase closure
 - generic routing framework work
 - keyboard/focus/accessibility systems
+
+M10c later makes this interacted shell the canonical/default presenter surface. See [docs/machina-presenter-page-organization-m10c.md](./machina-presenter-page-organization-m10c.md).
 
 ## Deferred work
 

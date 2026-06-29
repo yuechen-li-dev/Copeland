@@ -79,10 +79,10 @@ public sealed class PresenterNavigationShellM10aTests
     [Fact]
     public void PresenterNavigationDispatch_SelectTab()
     {
-        PresenterNavigationState next = Dispatch(PresenterNavigationState.CreateDefault(Model), PresenterNavigationActions.SelectTab("text", "msdf-experimental"));
+        PresenterNavigationState next = Dispatch(PresenterNavigationState.CreateDefault(Model), PresenterNavigationActions.SelectTab("text", "proofs"));
 
         Assert.Equal("text", next.SelectedSectionId);
-        Assert.Equal("msdf-experimental", next.GetSelectedTabId("text", Model));
+        Assert.Equal("proofs", next.GetSelectedTabId("text", Model));
     }
 
     [Fact]
@@ -117,6 +117,7 @@ public sealed class PresenterNavigationShellM10aTests
         Assert.Contains("Components", texts);
         Assert.Contains("Text", texts);
         Assert.Contains("Diagnostics", texts);
+        Assert.Contains("Legacy", texts);
     }
 
     [Fact]
@@ -274,7 +275,7 @@ public sealed class PresenterNavigationShellM10aTests
     }
 
     [Fact]
-    public void ExportPresenter_DefaultBehaviorUnchangedIfNavigationShellIsOptIn()
+    public void ExportPresenter_DefaultBehavior_UsesNavigationShell()
     {
         string outputDirectory = Path.Combine(Path.GetTempPath(), "machina-presenter-navigation-tests", Guid.NewGuid().ToString("N"));
         string outputPath = Path.Combine(outputDirectory, "presenter-default.png");
@@ -288,11 +289,12 @@ public sealed class PresenterNavigationShellM10aTests
                 StandardTheme.Default);
 
             Assert.True(File.Exists(result.OutputPath));
-            Assert.False(result.IncludesNavigationShell);
-            Assert.Null(result.NavigationPageId);
-            Assert.Null(result.NavigationManifestJsonPath);
-            Assert.Equal(SettingsScreen.RootWidth, result.Width);
-            Assert.Equal(SettingsScreen.RootHeight, result.Height);
+            Assert.True(result.IncludesNavigationShell);
+            Assert.Equal("overview.home", result.NavigationPageId);
+            Assert.NotNull(result.NavigationManifestJsonPath);
+            Assert.NotNull(result.NavigationManifestTextPath);
+            Assert.Equal(PresenterNavigationLayout.Default.RootWidth, result.Width);
+            Assert.Equal(PresenterNavigationLayout.Default.RootHeight, result.Height);
         }
         finally
         {

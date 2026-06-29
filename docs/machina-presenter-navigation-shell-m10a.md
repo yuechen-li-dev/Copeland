@@ -5,6 +5,7 @@
 M10a adds a presenter organization shell so the sample can keep growing without collapsing into one long mixed proof screen.
 
 M10b later adds the interaction wiring on top of this structure. See [docs/machina-presenter-navigation-interaction-m10b.md](./machina-presenter-navigation-interaction-m10b.md).
+M10c later makes this shell the canonical/default presenter surface. See [docs/machina-presenter-page-organization-m10c.md](./machina-presenter-page-organization-m10c.md).
 
 ## Why presenter navigation is needed now
 

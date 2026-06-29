@@ -1,0 +1,106 @@
+{
+  "milestone": "M10c",
+  "kind": "presenter-navigation-shell",
+  "purpose": "Canonical presenter sample surface organized as app -\u003E sidebar -\u003E tabs -\u003E page with per-page scroll state.",
+  "m9FontPhase": {
+    "status": "closed-unless-concrete-integration-needs-arise",
+    "directOutlineStatic": "static-reference-path",
+    "msdf": "explicit-experimental-scalable"
+  },
+  "navigationHierarchy": [
+    "app",
+    "sidebar",
+    "tabs",
+    "pages"
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "label": "Overview",
+      "tabs": [
+        {
+          "id": "home",
+          "label": "Home",
+          "pageId": "overview.home"
+        },
+        {
+          "id": "status",
+          "label": "Status",
+          "pageId": "overview.status"
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "label": "Components",
+      "tabs": [
+        {
+          "id": "controls",
+          "label": "Controls",
+          "pageId": "components.controls"
+        },
+        {
+          "id": "cards",
+          "label": "Cards",
+          "pageId": "components.cards"
+        }
+      ]
+    },
+    {
+      "id": "text",
+      "label": "Text",
+      "tabs": [
+        {
+          "id": "current",
+          "label": "Current",
+          "pageId": "text.current"
+        },
+        {
+          "id": "direct-outline",
+          "label": "DirectOutlineStatic",
+          "pageId": "text.direct-outline"
+        },
+        {
+          "id": "proofs",
+          "label": "Proofs",
+          "pageId": "text.proofs"
+        }
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "label": "Diagnostics",
+      "tabs": [
+        {
+          "id": "layout",
+          "label": "Layout",
+          "pageId": "diagnostics.layout"
+        },
+        {
+          "id": "export",
+          "label": "Export",
+          "pageId": "diagnostics.export"
+        }
+      ]
+    },
+    {
+      "id": "legacy",
+      "label": "Legacy",
+      "tabs": [
+        {
+          "id": "m1e-card",
+          "label": "M1e Card",
+          "pageId": "legacy.m1e-card"
+        }
+      ]
+    }
+  ],
+  "shell": {
+    "navigationShellDefault": true,
+    "legacySingleCardAvailable": true,
+    "deterministicScrollbars": true,
+    "directOutlineProofOptIn": false,
+    "interactionBackend": "Avalonia",
+    "backendBoundary": "sample-scoped-adapter"
+  }
+}
