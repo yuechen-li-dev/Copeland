@@ -27,6 +27,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m10b/` is the historical presenter navigation interaction export directory.
 - `artifacts/m10c/` is the historical presenter shell organization export directory.
 - `artifacts/m10d/` is the current presenter shell stabilization export directory.
+- `artifacts/m11a/` is the current Oblivion card-model proof export directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -48,6 +49,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M10b presenter interaction PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M10c presenter shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M10d presenter stabilization PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M11a Oblivion PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -149,6 +151,15 @@ Current M10d presenter stabilization commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-text-proofs.png -SelectedSection text -SelectedTab proofs -IncludeDirectOutlineRenderBridgeProof
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-diagnostics-layout.png -SelectedSection diagnostics -SelectedTab layout
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10d\presenter-stabilized-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
+```
+
+Current M11a Oblivion commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-cards.png -SelectedSection oblivion -SelectedTab cards
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-execution-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-artifacts.png -SelectedSection oblivion -SelectedTab artifacts
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-scrolled.png -SelectedSection oblivion -SelectedTab cards -ScrollPage oblivion.cards:220
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -559,3 +570,14 @@ These remain local sample proof artifacts only. M10c makes the navigation shell 
 - `artifacts/m10d/presenter-stabilization-manifest.json`
 
 These remain local sample proof artifacts only. M10d stabilizes the existing shell, keeps M9 font work closed, adds no new component families, keeps card/cell containment as presenter-sample policy, and keeps scrollbar input routed through the existing Avalonia backend seam.
+
+## Current M11a Oblivion card-model outputs
+
+- `artifacts/m11a/presenter-oblivion-cards.png`
+- `artifacts/m11a/presenter-oblivion-execution-roadmap.png`
+- `artifacts/m11a/presenter-oblivion-artifacts.png`
+- `artifacts/m11a/presenter-oblivion-scrolled.png`
+- `artifacts/m11a/oblivion-card-model-manifest.txt`
+- `artifacts/m11a/oblivion-card-model-manifest.json`
+
+These remain local sample proof artifacts only. `Oblivion` is the notebook/card/workbench layer, `Visionary` remains only the future code editor/source workspace layer, M11a adds no Roslyn or xUnit execution runtime, M10 remains the shell host, and the M9 font phase stays closed.

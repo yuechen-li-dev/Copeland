@@ -104,6 +104,7 @@ dotnet test Copeland.Slow.slnx
 - [Machina Presenter Navigation Interaction M10b](docs/machina-presenter-navigation-interaction-m10b.md)
 - [Machina Presenter Page Organization M10c](docs/machina-presenter-page-organization-m10c.md)
 - [Machina Presenter Stabilization M10d](docs/machina-presenter-stabilization-m10d.md)
+- [Machina Oblivion Card Model M11a](docs/machina-oblivion-card-model-m11a.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -289,6 +290,36 @@ Representative M10d outputs:
 - `artifacts/m10d/presenter-stabilization-manifest.txt`
 
 This remains stabilization-only: no new component families, no resumed font-phase work, and no production renderer/core/layout behavior change.
+
+M11a adds the first static Oblivion workbench-card proof on top of that shell:
+
+```text
+Oblivion:
+  notebook/card/workbench layer
+
+Visionary:
+  future code editor/source workspace layer
+```
+
+Representative M11a exports:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-cards.png -SelectedSection oblivion -SelectedTab cards
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-execution-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-artifacts.png -SelectedSection oblivion -SelectedTab artifacts
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-scrolled.png -SelectedSection oblivion -SelectedTab cards -ScrollPage oblivion.cards:220
+```
+
+Representative M11a outputs:
+
+- `artifacts/m11a/presenter-oblivion-cards.png`
+- `artifacts/m11a/presenter-oblivion-execution-roadmap.png`
+- `artifacts/m11a/presenter-oblivion-artifacts.png`
+- `artifacts/m11a/presenter-oblivion-scrolled.png`
+- `artifacts/m11a/oblivion-card-model-manifest.json`
+- `artifacts/m11a/oblivion-card-model-manifest.txt`
+
+M11a is static proof only. It adds no Roslyn execution, no xUnit execution runtime, no markdown editor, no Visionary editor behavior, and it keeps the M9 font phase closed while M10 remains the shell host.
 
 Current font proof audit workflow:
 

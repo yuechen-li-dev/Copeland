@@ -1,0 +1,101 @@
+{
+  "milestone": "M11a",
+  "kind": "oblivion-card-model-proof",
+  "cardKinds": [
+    "Note",
+    "Status",
+    "UiPreview",
+    "Artifact",
+    "CodeFact",
+    "CodeTheory"
+  ],
+  "cardStatuses": [
+    "Idle",
+    "Passing",
+    "Failing",
+    "Warning",
+    "Deferred",
+    "Placeholder"
+  ],
+  "cardsRendered": [
+    {
+      "id": "oblivion-artifact-placeholder-card",
+      "kind": "Artifact",
+      "status": "Placeholder",
+      "title": "Artifact placeholder"
+    },
+    {
+      "id": "oblivion-artifacts-export-policy-card",
+      "kind": "Note",
+      "status": "Idle",
+      "title": "Artifact policy"
+    },
+    {
+      "id": "oblivion-artifacts-page-card",
+      "kind": "Artifact",
+      "status": "Placeholder",
+      "title": "Artifact lane placeholder"
+    },
+    {
+      "id": "oblivion-code-fact-card",
+      "kind": "CodeFact",
+      "status": "Deferred",
+      "title": "Code fact placeholder"
+    },
+    {
+      "id": "oblivion-code-theory-card",
+      "kind": "CodeTheory",
+      "status": "Deferred",
+      "title": "Code theory placeholder"
+    },
+    {
+      "id": "oblivion-execution-roadmap-card",
+      "kind": "Status",
+      "status": "Deferred",
+      "title": "Execution roadmap"
+    },
+    {
+      "id": "oblivion-intro-note-card",
+      "kind": "Note",
+      "status": "Idle",
+      "title": "Oblivion workbench substrate"
+    },
+    {
+      "id": "oblivion-static-status-card",
+      "kind": "Status",
+      "status": "Passing",
+      "title": "Current substrate status"
+    },
+    {
+      "id": "oblivion-ui-preview-card",
+      "kind": "UiPreview",
+      "status": "Placeholder",
+      "title": "UI preview placeholder"
+    },
+    {
+      "id": "oblivion-visionary-note-card",
+      "kind": "Note",
+      "status": "Deferred",
+      "title": "Visionary relationship"
+    }
+  ],
+  "executionEnabled": false,
+  "roslynEnabled": false,
+  "xunitEnabled": false,
+  "visionaryImplemented": false,
+  "artifactsGenerated": [
+    "presenter-oblivion-cards.png",
+    "presenter-oblivion-execution-roadmap.png",
+    "presenter-oblivion-artifacts.png",
+    "presenter-oblivion-scrolled.png",
+    "oblivion-card-model-manifest.json",
+    "oblivion-card-model-manifest.txt"
+  ],
+  "deferredWork": [
+    "Roslyn execution",
+    "xUnit [Fact] and [Theory] runtime",
+    "Artifact capture from card execution",
+    "Visionary code editor/source workspace implementation",
+    "Markdown editing"
+  ]
+}

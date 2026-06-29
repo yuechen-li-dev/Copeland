@@ -985,3 +985,22 @@ This remains sample-local:
 - no shared `Machina.Layout` resolver behavior changed
 - no new component family was introduced
 - M9 font work remains closed
+
+## M11a update
+
+M11a adds the first static Oblivion notebook/workbench card substrate inside the existing presenter shell.
+
+- `Oblivion` is now the notebook/card/workbench layer.
+- the presenter shell now contains `Oblivion -> Cards`, `Execution Roadmap`, and `Artifacts`.
+- a sample-local deterministic card model now covers note, status, UI-preview placeholder, artifact placeholder, code-fact placeholder, and code-theory placeholder cards.
+- bounded card rendering follows the M10d containment rule with explicit header/body regions and local clipping/truncation.
+- deterministic local exports now include `artifacts/m11a` PNGs plus `oblivion-card-model-manifest.json|txt`.
+- `Visionary` is documented only as the future code editor/source workspace layer.
+
+This remains sample-local and static:
+
+- no Roslyn execution
+- no xUnit execution runtime
+- no markdown editor
+- no code editor implementation
+- no reopened M9 font or MSDF milestone work

@@ -64,6 +64,14 @@ public static class PresenterNavigationCatalog
                     new PresenterNavigationTab("export", "Export", "diagnostics.export"),
                 ]),
             new PresenterNavigationSection(
+                "oblivion",
+                "Oblivion",
+                [
+                    new PresenterNavigationTab("cards", "Cards", OblivionWorkbenchCatalog.CardsPageId),
+                    new PresenterNavigationTab("execution-roadmap", "Execution Roadmap", OblivionWorkbenchCatalog.ExecutionRoadmapPageId),
+                    new PresenterNavigationTab("artifacts", "Artifacts", OblivionWorkbenchCatalog.ArtifactsPageId),
+                ]),
+            new PresenterNavigationSection(
                 "legacy",
                 "Legacy",
                 [
@@ -198,6 +206,9 @@ public static class PresenterNavigationCatalog
             "text.proofs" => "Proof organization",
             "diagnostics.layout" => "Layout diagnostics",
             "diagnostics.export" => "Export diagnostics",
+            OblivionWorkbenchCatalog.CardsPageId => "Oblivion cards",
+            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => "Oblivion execution roadmap",
+            OblivionWorkbenchCatalog.ArtifactsPageId => "Oblivion artifacts",
             "legacy.m1e-card" => "Legacy M1e Card",
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -218,6 +229,9 @@ public static class PresenterNavigationCatalog
             "text.proofs" => "Existing proof-only text notes stay organized here without reopening font work.",
             "diagnostics.layout" => "Layout and scroll structure notes for the presenter navigation shell.",
             "diagnostics.export" => "Export and artifact notes for the canonical M10c presenter shell.",
+            OblivionWorkbenchCatalog.CardsPageId => "Oblivion proves the first bounded notebook/workbench card substrate inside the existing presenter shell.",
+            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => "Execution remains explicitly deferred while the card model and shell placement are proven first.",
+            OblivionWorkbenchCatalog.ArtifactsPageId => "Artifact-facing placeholders stay visible as static cards before any capture/runtime work exists.",
             "legacy.m1e-card" => "Preserved sample content from the old single-card presenter root.",
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -236,6 +250,9 @@ public static class PresenterNavigationCatalog
             "text.proofs" => 376,
             "diagnostics.layout" => 360,
             "diagnostics.export" => 432,
+            OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.CardsPageContentHeight,
+            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.ExecutionRoadmapPageContentHeight,
+            OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.ArtifactsPageContentHeight,
             "legacy.m1e-card" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 1152 : 420,
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -545,6 +562,12 @@ public static class PresenterNavigationCatalog
                     theme,
                     contentWidth,
                     208)));
+                break;
+
+            case OblivionWorkbenchCatalog.CardsPageId:
+            case OblivionWorkbenchCatalog.ExecutionRoadmapPageId:
+            case OblivionWorkbenchCatalog.ArtifactsPageId:
+                rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth));
                 break;
 
             case "legacy.m1e-card":

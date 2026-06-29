@@ -136,3 +136,13 @@ M10c keeps the M10b interaction boundary:
 - keyboard/focus/accessibility systems
 - richer shared clipping/scrolling semantics
 - any new font integration work unless a concrete integration need appears
+
+## Follow-on note
+
+M11a extends this shell with an `Oblivion` section:
+
+- `Cards`
+- `Execution Roadmap`
+- `Artifacts`
+
+`Oblivion` is the notebook/card/workbench layer. `Visionary` is still only the future code editor/source workspace layer and is not implemented in M11a.

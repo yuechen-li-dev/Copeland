@@ -131,3 +131,12 @@ Cards do not rely on unbounded stack growth inside fixed-size slots.
 - keyboard/focus/accessibility work for the presenter shell
 - reusable Standard navigation widgets
 - any broader presenter workbench or card-system feature work beyond this stabilization pass
+
+## Follow-on note
+
+M11a builds directly on this containment policy.
+
+- Oblivion cards reuse the same bounded outer/body framing idea.
+- `Oblivion` becomes the notebook/card/workbench layer inside the shell.
+- `Visionary` remains documentation-only as the future code editor/source workspace layer.
+- M10d remains the stabilization host; M11a does not reopen M9 font work or add execution runtime behavior.

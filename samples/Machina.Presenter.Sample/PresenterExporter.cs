@@ -40,6 +40,8 @@ public static class PresenterExporter
         ScrollbarGeometry? scrollbarGeometry = null;
         string? manifestJsonPath = null;
         string? manifestTextPath = null;
+        string? oblivionManifestJsonPath = null;
+        string? oblivionManifestTextPath = null;
         RasterFrame rasterFrame;
         int width;
         int height;
@@ -69,6 +71,7 @@ public static class PresenterExporter
                 model,
                 proofOptions,
                 navigationOptions.InteractionBackendName);
+            (oblivionManifestJsonPath, oblivionManifestTextPath) = OblivionWorkbenchCatalog.WriteManifest(outputDirectory);
         }
         else
         {
@@ -105,6 +108,8 @@ public static class PresenterExporter
             ScrollbarGeometry = scrollbarGeometry,
             NavigationManifestJsonPath = manifestJsonPath,
             NavigationManifestTextPath = manifestTextPath,
+            OblivionManifestJsonPath = oblivionManifestJsonPath,
+            OblivionManifestTextPath = oblivionManifestTextPath,
         };
     }
 
@@ -166,4 +171,8 @@ public sealed record PresenterExportResult(
     public string? NavigationManifestJsonPath { get; init; }
 
     public string? NavigationManifestTextPath { get; init; }
+
+    public string? OblivionManifestJsonPath { get; init; }
+
+    public string? OblivionManifestTextPath { get; init; }
 }
