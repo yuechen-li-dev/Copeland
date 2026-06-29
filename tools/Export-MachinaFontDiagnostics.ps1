@@ -21,7 +21,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $projectPath = Join-Path $repoRoot "tests\\Machina.Fonts.Tooling.Tests\\Machina.Fonts.Tooling.Tests.csproj"
-$filter = "FullyQualifiedName~Machina.Fonts.Tooling.Tests.FontDiagnosticExportTests.FontDiagnosticsExport_ScriptWorkflowExportsArtifacts"
+$filter = "FullyQualifiedName~Machina.Fonts.Tooling.Tests.FontDiagnosticExportSmokeTests.ScriptSmoke_FontDiagnosticsExport_ExportsArtifacts"
 
 if ([System.IO.Path]::IsPathRooted($OutputDir))
 {

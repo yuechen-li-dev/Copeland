@@ -1,13 +1,13 @@
 using Xunit;
 
-namespace Machina.Fonts.Tooling.Tests;
+namespace Machina.Fonts.Tooling.Unit.Tests;
 
 public sealed class RenderBridgeBoundaryTests
 {
     [Fact]
     public void ProductionProjects_DoNotReferenceFontsToolingOrDiagnostics()
     {
-        string repoRoot = FindRepoRoot();
+        string repoRoot = ToolingUnitTestEnvironment.FindRepoRoot();
         string[] directories =
         [
             Path.Combine(repoRoot, "src", "Machina.Standard"),
@@ -34,7 +34,7 @@ public sealed class RenderBridgeBoundaryTests
     [Fact]
     public void ProjectFiles_DoNotIntroduceForbiddenFontDependencies()
     {
-        string repoRoot = FindRepoRoot();
+        string repoRoot = ToolingUnitTestEnvironment.FindRepoRoot();
         string[] projectFiles = Directory.EnumerateFiles(repoRoot, "*.*", SearchOption.AllDirectories)
             .Where(path =>
                 path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
@@ -69,21 +69,5 @@ public sealed class RenderBridgeBoundaryTests
             .SelectMany(directory => patterns.SelectMany(pattern => Directory.EnumerateFiles(directory, pattern, SearchOption.AllDirectories)))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-    }
-
-    private static string FindRepoRoot()
-    {
-        DirectoryInfo? directory = new(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "Copeland.slnx")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new InvalidOperationException("Could not locate repository root.");
     }
 }

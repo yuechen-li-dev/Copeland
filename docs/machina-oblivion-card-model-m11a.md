@@ -159,8 +159,9 @@ The shell export path also writes:
 
 ## Deferred work
 
+- M11b follow-up only reorganizes test topology around this static card proof work. It does not add execution behavior.
 - Roslyn-backed executable cards
-- real `[Fact]` / `[Theory]` execution
+- real `[Fact]` / `[Theory]` execution, still deferred to M12 or later
 - artifact capture from executing cards
 - markdown authoring/editing
 - Visionary source editor implementation

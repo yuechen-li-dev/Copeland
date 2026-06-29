@@ -2,7 +2,7 @@ using Machina.Fonts.ReferenceRendering;
 using Machina.Fonts.Tooling;
 using Xunit;
 
-namespace Machina.Fonts.Tooling.Tests;
+namespace Machina.Fonts.Tooling.Unit.Tests;
 
 public sealed class LayerCompositionTests
 {

@@ -37,17 +37,17 @@ public sealed class FontDiagnosticArtifactExporter
         FontDiagnosticExportOptions validated = options.Validate();
 
         string outputDirectory = Path.GetFullPath(validated.OutputDirectory);
-        List<string> warnings = PrepareOutputDirectory(validated, outputDirectory);
+        IReadOnlyList<string> warnings = FontDiagnosticOutputCleaner.PrepareOutputDirectory(validated, outputDirectory);
         List<string> errors = [];
 
-        FontDiagnosticSourceAvailability initialSourceAvailability = CreateSourceAvailability(
+        FontDiagnosticSourceAvailability initialSourceAvailability = FontDiagnosticSourceAvailabilityEvaluator.Create(
             warnings,
             errors,
             placementReportAvailable: false,
             shapeDiffReportAvailable: false);
 
         IReadOnlyList<FontDiagnosticPresetAvailabilityReport> initialPresetReports =
-            EvaluatePresetAvailability(validated.PresetNames, initialSourceAvailability, validated.AllowPartial);
+            FontDiagnosticPresetRequirementEvaluator.EvaluatePresetAvailability(validated.PresetNames, initialSourceAvailability, validated.AllowPartial);
 
         List<string> strictErrors = initialPresetReports
             .SelectMany(static report => report.Errors)
@@ -58,7 +58,7 @@ public sealed class FontDiagnosticArtifactExporter
         if (strictErrors.Count > 0)
         {
             errors.AddRange(strictErrors);
-            FontDiagnosticExportManifest failedManifest = CreateManifest(
+            FontDiagnosticExportManifest failedManifest = FontDiagnosticManifestBuilder.CreateManifest(
                 validated,
                 outputDirectory,
                 initialSourceAvailability with { Errors = errors.ToArray() },
@@ -70,7 +70,7 @@ public sealed class FontDiagnosticArtifactExporter
             string failedManifestJsonPath = Path.Combine(outputDirectory, "font-diagnostic-export-manifest.json");
             string failedManifestTextPath = Path.Combine(outputDirectory, "font-diagnostic-export-manifest.txt");
             WriteTextFile(failedManifestJsonPath, JsonSerializer.Serialize(failedManifest, JsonOptions));
-            WriteTextFile(failedManifestTextPath, BuildManifestTextReport(failedManifest));
+            WriteTextFile(failedManifestTextPath, FontDiagnosticManifestBuilder.BuildTextReport(failedManifest));
 
             throw new InvalidOperationException(
                 $"Font diagnostics export failed source validation. {string.Join(" | ", strictErrors)} Manifest: {failedManifestJsonPath}");
@@ -140,7 +140,7 @@ public sealed class FontDiagnosticArtifactExporter
         WriteTextFile(layerCompositionReportJsonPath, JsonSerializer.Serialize(compositionReport, JsonOptions));
         WriteTextFile(layerCompositionReportTextPath, BuildLayerCompositionTextReport(compositionReport));
 
-        FontDiagnosticSourceAvailability finalSourceAvailability = CreateSourceAvailability(
+        FontDiagnosticSourceAvailability finalSourceAvailability = FontDiagnosticSourceAvailabilityEvaluator.Create(
             warnings,
             errors,
             placementReportAvailable: true,
@@ -148,7 +148,7 @@ public sealed class FontDiagnosticArtifactExporter
 
         string manifestJsonPath = Path.Combine(outputDirectory, "font-diagnostic-export-manifest.json");
         string manifestTextPath = Path.Combine(outputDirectory, "font-diagnostic-export-manifest.txt");
-        IReadOnlyList<string> generatedArtifacts = EnumerateGeneratedArtifacts(outputDirectory)
+        IReadOnlyList<string> generatedArtifacts = FontDiagnosticManifestBuilder.EnumerateGeneratedArtifacts(outputDirectory)
             .Concat(
             [
                 Path.GetRelativePath(outputDirectory, manifestJsonPath),
@@ -156,17 +156,17 @@ public sealed class FontDiagnosticArtifactExporter
             ])
             .OrderBy(static item => item, StringComparer.Ordinal)
             .ToArray();
-        FontDiagnosticExportManifest manifest = CreateManifest(
+        FontDiagnosticExportManifest manifest = FontDiagnosticManifestBuilder.CreateManifest(
             validated,
             outputDirectory,
             finalSourceAvailability,
-            EvaluatePresetAvailability(validated.PresetNames, finalSourceAvailability, validated.AllowPartial),
+            FontDiagnosticPresetRequirementEvaluator.EvaluatePresetAvailability(validated.PresetNames, finalSourceAvailability, validated.AllowPartial),
             generatedArtifacts,
             warnings,
             errors);
 
         WriteTextFile(manifestJsonPath, JsonSerializer.Serialize(manifest, JsonOptions));
-        WriteTextFile(manifestTextPath, BuildManifestTextReport(manifest));
+        WriteTextFile(manifestTextPath, FontDiagnosticManifestBuilder.BuildTextReport(manifest));
 
         return new FontDiagnosticExportResult(
             outputDirectory,
@@ -775,58 +775,6 @@ public sealed class FontDiagnosticArtifactExporter
         return builder.ToString();
     }
 
-    private static string BuildManifestTextReport(FontDiagnosticExportManifest manifest)
-    {
-        StringBuilder builder = new();
-        builder.AppendLine("Machina Font Toolkit M9d export manifest");
-        builder.AppendLine($"format: {manifest.Format}");
-        builder.AppendLine($"kind: {manifest.Kind}");
-        builder.AppendLine($"milestone: {manifest.Milestone}");
-        builder.AppendLine($"outputDirectory: {manifest.OutputDirectory}");
-        builder.AppendLine($"presets: {string.Join(", ", manifest.Presets)}");
-        builder.AppendLine("textBackend:");
-        builder.AppendLine($"  staticDefault: {manifest.TextBackend.StaticDefault}");
-        builder.AppendLine($"  scalableExperimental: {manifest.TextBackend.ScalableExperimental}");
-        builder.AppendLine($"complete: {manifest.Complete.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"generatedAtUtc: {manifest.GeneratedAtUtc ?? "<omitted>"}");
-        builder.AppendLine("options:");
-        builder.AppendLine($"  cleanOutputDirectory: {manifest.Options.CleanOutputDirectory.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  allowPartial: {manifest.Options.AllowPartial.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  scaleExperimentalFieldWithEmSize: {manifest.Options.ScaleExperimentalFieldWithEmSize.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  gridStep: {manifest.Options.GridStep}");
-        builder.AppendLine($"  showGrid: {manifest.Options.ShowGrid.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  showUnitLabels: {manifest.Options.ShowUnitLabels.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  showAxes: {manifest.Options.ShowAxes.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  axisStep: {manifest.Options.AxisStep}");
-        builder.AppendLine($"  showBounds: {manifest.Options.ShowBounds.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  showWireframes: {manifest.Options.ShowWireframes.ToString().ToLowerInvariant()}");
-        builder.AppendLine("sources:");
-        builder.AppendLine($"  browserReferenceAvailable: {manifest.Sources.BrowserReferenceAvailable.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  directOutlineAvailable: {manifest.Sources.DirectOutlineAvailable.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  msdfAvailable: {manifest.Sources.MsdfAvailable.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  browserMaskAvailable: {manifest.Sources.BrowserMaskAvailable.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  directMaskAvailable: {manifest.Sources.DirectMaskAvailable.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  msdfMaskAvailable: {manifest.Sources.MsdfMaskAvailable.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  placementReportAvailable: {manifest.Sources.PlacementReportAvailable.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"  shapeDiffReportAvailable: {manifest.Sources.ShapeDiffReportAvailable.ToString().ToLowerInvariant()}");
-        builder.AppendLine($"warnings: {FormatJoinedValues(manifest.Warnings)}");
-        builder.AppendLine($"errors: {FormatJoinedValues(manifest.Errors)}");
-        builder.AppendLine("presetReports:");
-
-        foreach (FontDiagnosticPresetAvailabilityReport presetReport in manifest.PresetReports)
-        {
-            builder.AppendLine($"  - {presetReport.PresetName}: complete={presetReport.Complete.ToString().ToLowerInvariant()} required={FormatJoinedValues(presetReport.RequiredSources)} available={FormatJoinedValues(presetReport.AvailableSources)} missing={FormatJoinedValues(presetReport.MissingRequiredSources)} degraded={FormatJoinedValues(presetReport.DegradedSources)} warnings={FormatJoinedValues(presetReport.Warnings)} errors={FormatJoinedValues(presetReport.Errors)}");
-        }
-
-        builder.AppendLine("artifacts:");
-        foreach (string artifact in manifest.Artifacts)
-        {
-            builder.AppendLine($"  - {artifact}");
-        }
-
-        return builder.ToString();
-    }
-
     private static string FormatBounds(FontDiagnosticBounds? bounds)
     {
         return bounds is null
@@ -858,260 +806,6 @@ public sealed class FontDiagnosticArtifactExporter
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
-
-    private static List<string> PrepareOutputDirectory(FontDiagnosticExportOptions options, string outputDirectory)
-    {
-        if (options.CleanOutputDirectory)
-        {
-            ValidateCleanOutputDirectory(options, outputDirectory);
-        }
-
-        if (Directory.Exists(outputDirectory))
-        {
-            if (options.CleanOutputDirectory)
-            {
-                try
-                {
-                    Directory.Delete(outputDirectory, recursive: true);
-                }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-                {
-                    string? lockedPath = TryFindLockedPath(outputDirectory);
-                    string target = lockedPath ?? outputDirectory;
-                    throw new InvalidOperationException(
-                        $"Unable to clean diagnostic output directory '{outputDirectory}'. Locked or inaccessible path: '{target}'.",
-                        ex);
-                }
-            }
-            else if (Directory.EnumerateFileSystemEntries(outputDirectory).Any())
-            {
-                return
-                [
-                    $"Output directory '{outputDirectory}' already contains files. Existing artifacts may be overwritten and stale files may remain."
-                ];
-            }
-        }
-
-        Directory.CreateDirectory(outputDirectory);
-        return [];
-    }
-
-    private static void ValidateCleanOutputDirectory(FontDiagnosticExportOptions options, string outputDirectory)
-    {
-        string normalizedOutputDirectory = NormalizeDirectoryPath(outputDirectory);
-        if (string.IsNullOrWhiteSpace(normalizedOutputDirectory))
-        {
-            throw new InvalidOperationException("Clean export requires a non-empty output directory.");
-        }
-
-        string root = NormalizeDirectoryPath(Path.GetPathRoot(normalizedOutputDirectory)!);
-        if (string.Equals(normalizedOutputDirectory, root, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException($"Refusing to clean root directory '{normalizedOutputDirectory}'.");
-        }
-
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (!string.IsNullOrWhiteSpace(userProfile)
-            && string.Equals(normalizedOutputDirectory, NormalizeDirectoryPath(userProfile), StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException($"Refusing to clean user profile root '{normalizedOutputDirectory}'.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.RepositoryRootDirectory)
-            && string.Equals(
-                normalizedOutputDirectory,
-                NormalizeDirectoryPath(options.RepositoryRootDirectory),
-                StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException($"Refusing to clean repository root '{normalizedOutputDirectory}'.");
-        }
-    }
-
-    private static string NormalizeDirectoryPath(string path)
-    {
-        return Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
-    }
-
-    private static string? TryFindLockedPath(string outputDirectory)
-    {
-        if (!Directory.Exists(outputDirectory))
-        {
-            return null;
-        }
-
-        foreach (string path in Directory.EnumerateFiles(outputDirectory, "*", SearchOption.AllDirectories)
-                     .OrderBy(static item => item, StringComparer.Ordinal))
-        {
-            try
-            {
-                using FileStream stream = File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                return path;
-            }
-        }
-
-        return null;
-    }
-
-    private static FontDiagnosticSourceAvailability CreateSourceAvailability(
-        IReadOnlyList<string> warnings,
-        IReadOnlyList<string> errors,
-        bool placementReportAvailable,
-        bool shapeDiffReportAvailable)
-    {
-        return new FontDiagnosticSourceAvailability(
-            BrowserReferenceAvailable: false,
-            DirectOutlineAvailable: true,
-            MsdfAvailable: true,
-            BrowserMaskAvailable: false,
-            DirectMaskAvailable: true,
-            MsdfMaskAvailable: true,
-            PlacementReportAvailable: placementReportAvailable,
-            ShapeDiffReportAvailable: shapeDiffReportAvailable,
-            warnings.ToArray(),
-            errors.ToArray());
-    }
-
-    private static IReadOnlyList<FontDiagnosticPresetAvailabilityReport> EvaluatePresetAvailability(
-        IReadOnlyList<string> presetNames,
-        FontDiagnosticSourceAvailability sourceAvailability,
-        bool allowPartial)
-    {
-        List<FontDiagnosticPresetAvailabilityReport> reports = [];
-
-        foreach (string presetName in presetNames
-                     .Distinct(StringComparer.OrdinalIgnoreCase)
-                     .OrderBy(static item => item, StringComparer.OrdinalIgnoreCase))
-        {
-            DiagnosticPresetDefinition preset = LayerPresets.GetPreset(presetName);
-            List<string> requiredSources = preset.Requirements.RequiredSources
-                .Select(FontDiagnosticSourceCatalog.GetName)
-                .OrderBy(static item => item, StringComparer.Ordinal)
-                .ToList();
-            List<string> availableSources = preset.Requirements.RequiredSources
-                .Where(sourceAvailability.IsAvailable)
-                .Select(FontDiagnosticSourceCatalog.GetName)
-                .OrderBy(static item => item, StringComparer.Ordinal)
-                .ToList();
-            List<string> missingRequiredSources = preset.Requirements.RequiredSources
-                .Where(sourceKind => !sourceAvailability.IsAvailable(sourceKind))
-                .Select(FontDiagnosticSourceCatalog.GetName)
-                .OrderBy(static item => item, StringComparer.Ordinal)
-                .ToList();
-
-            List<string> warnings = [];
-            List<string> errors = [];
-            List<string> degradedSources = [];
-
-            if (missingRequiredSources.Count > 0)
-            {
-                if (allowPartial)
-                {
-                    degradedSources.AddRange(missingRequiredSources);
-                    warnings.Add($"Preset '{preset.Name}' degraded because required sources are missing: {string.Join(", ", missingRequiredSources)}.");
-                }
-                else
-                {
-                    errors.Add($"Preset '{preset.Name}' requires sources that are unavailable: {string.Join(", ", missingRequiredSources)}.");
-                }
-            }
-
-            reports.Add(new FontDiagnosticPresetAvailabilityReport(
-                preset.Name,
-                requiredSources,
-                availableSources,
-                missingRequiredSources,
-                degradedSources
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(static item => item, StringComparer.Ordinal)
-                    .ToArray(),
-                warnings
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(static item => item, StringComparer.Ordinal)
-                    .ToArray(),
-                errors
-                    .Distinct(StringComparer.Ordinal)
-                    .OrderBy(static item => item, StringComparer.Ordinal)
-                    .ToArray(),
-                Complete: missingRequiredSources.Count == 0));
-        }
-
-        return reports;
-    }
-
-    private static FontDiagnosticExportManifest CreateManifest(
-        FontDiagnosticExportOptions options,
-        string outputDirectory,
-        FontDiagnosticSourceAvailability sourceAvailability,
-        IReadOnlyList<FontDiagnosticPresetAvailabilityReport> presetReports,
-        IReadOnlyList<string> artifacts,
-        IReadOnlyList<string> warnings,
-        IReadOnlyList<string> errors)
-    {
-        List<string> manifestWarnings = warnings
-            .Concat(sourceAvailability.Warnings)
-            .Concat(presetReports.SelectMany(static report => report.Warnings))
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(static item => item, StringComparer.Ordinal)
-            .ToList();
-
-        List<string> manifestErrors = errors
-            .Concat(sourceAvailability.Errors)
-            .Concat(presetReports.SelectMany(static report => report.Errors))
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(static item => item, StringComparer.Ordinal)
-            .ToList();
-
-        return new FontDiagnosticExportManifest(
-            Format: 1,
-            Kind: "machina-font-diagnostic-export",
-            Milestone: "M9d",
-            OutputDirectory: outputDirectory,
-            Presets: options.PresetNames
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(static item => item, StringComparer.OrdinalIgnoreCase)
-                .ToArray(),
-            TextBackend: new FontDiagnosticTextBackendPolicy(
-                MachinaTextRenderStrategyCatalog.GetStableName(options.StaticTextRenderStrategy),
-                MachinaTextRenderStrategyCatalog.GetStableName(MachinaTextRenderStrategyCatalog.ScalableExperimental)),
-            Options: new FontDiagnosticExportManifestOptions(
-                options.CleanOutputDirectory,
-                options.AllowPartial,
-                options.ScaleExperimentalFieldWithEmSize,
-                options.GridOptions.GridStep,
-                options.GridOptions.ShowGrid,
-                options.GridOptions.ShowUnitLabels,
-                options.GridOptions.ShowAxes,
-                options.GridOptions.AxisStep,
-                options.BoundsOptions.ShowBounds,
-                options.BoundsOptions.ShowWireframes),
-            Sources: sourceAvailability with
-            {
-                Warnings = manifestWarnings.ToArray(),
-                Errors = manifestErrors.ToArray(),
-            },
-            PresetReports: presetReports,
-            Artifacts: artifacts
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(static item => item, StringComparer.Ordinal)
-                .ToArray(),
-            Warnings: manifestWarnings.ToArray(),
-            Errors: manifestErrors.ToArray(),
-            Complete: manifestErrors.Count == 0 && presetReports.All(static report => report.Complete),
-            GeneratedAtUtc: options.IncludeTimestamp
-                ? DateTimeOffset.UtcNow.ToString("O")
-                : null);
-    }
-
-    private static IReadOnlyList<string> EnumerateGeneratedArtifacts(string outputDirectory)
-    {
-        return Directory.EnumerateFiles(outputDirectory, "*", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(outputDirectory, path))
-            .OrderBy(static item => item, StringComparer.Ordinal)
-            .ToArray();
-    }
 
     private static void WriteTextFile(string path, string content)
     {

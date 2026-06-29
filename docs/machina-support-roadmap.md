@@ -1004,3 +1004,21 @@ This remains sample-local and static:
 - no markdown editor
 - no code editor implementation
 - no reopened M9 font or MSDF milestone work
+
+## M11b update
+
+M11b is test topology and slow-pipeline cleanup only.
+
+- `tests/Machina.Fonts.Tooling.Unit.Tests` now holds the fast font-tooling unit coverage and is included in `Copeland.slnx`.
+- `tests/Machina.Fonts.Tooling.Tests` stays in `Copeland.Slow.slnx` for real export/MSDF/smoke coverage.
+- output cleaner, source availability, preset requirement evaluation, and manifest building now have pure seams that can be tested without full rendering.
+- MSDF before/after regression exports now run once per fixture instead of once per test method.
+- script export workflows are documented as intentional smoke validation, not ordinary fast-loop unit tests.
+
+This remains infrastructure-only:
+
+- no Roslyn execution
+- no xUnit notebook/runtime execution
+- `[Fact]` / `[Theory]` execution remains deferred to M12 or later
+- no font rendering behavior change
+- no presenter/runtime behavior change

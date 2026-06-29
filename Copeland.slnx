@@ -33,6 +33,7 @@
     <Project Path="tests/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj" />
     <Project Path="tests/Machina.ComponentGallery.Sample.Tests/Machina.ComponentGallery.Sample.Tests.csproj" />
     <Project Path="tests/Machina.Presenter.Sample.Tests/Machina.Presenter.Sample.Tests.csproj" />
+    <Project Path="tests/Machina.Fonts.Tooling.Unit.Tests/Machina.Fonts.Tooling.Unit.Tests.csproj" />
     <Project Path="tests/Machina.Testing/Machina.Testing.csproj" />
   </Folder>
 </Solution>

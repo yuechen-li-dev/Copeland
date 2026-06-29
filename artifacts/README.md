@@ -28,6 +28,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m10c/` is the historical presenter shell organization export directory.
 - `artifacts/m10d/` is the current presenter shell stabilization export directory.
 - `artifacts/m11a/` is the current Oblivion card-model proof export directory.
+- M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -161,6 +162,17 @@ Current M11a Oblivion commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-artifacts.png -SelectedSection oblivion -SelectedTab artifacts
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11a\presenter-oblivion-scrolled.png -SelectedSection oblivion -SelectedTab cards -ScrollPage oblivion.cards:220
 ```
+
+Current M11b smoke/validation commands:
+
+```powershell
+dotnet test Copeland.slnx
+dotnet test Copeland.Slow.slnx
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m11b-smoke-fonts -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11b-smoke\presenter-oblivion-cards.png -SelectedSection oblivion -SelectedTab cards
+```
+
+M11b treats export scripts as intentional smoke/artifact validation, not ordinary fast-loop unit tests.
 
 ## Regenerating the Machina font proof artifacts
 

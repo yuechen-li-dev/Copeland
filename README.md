@@ -59,6 +59,10 @@ Slow tooling coverage that is intentionally excluded from the regular solution p
 dotnet test Copeland.Slow.slnx
 ```
 
+Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling unit coverage into `tests/Machina.Fonts.Tooling.Unit.Tests`, and keeps full export/MSDF/smoke coverage in `Copeland.Slow.slnx`.
+
+`[Fact]` / `[Theory]` execution as notebook/runtime behavior is still deferred to M12 or later. M11b changes test topology only.
+
 
 ## Support matrices
 
@@ -105,6 +109,7 @@ dotnet test Copeland.Slow.slnx
 - [Machina Presenter Page Organization M10c](docs/machina-presenter-page-organization-m10c.md)
 - [Machina Presenter Stabilization M10d](docs/machina-presenter-stabilization-m10d.md)
 - [Machina Oblivion Card Model M11a](docs/machina-oblivion-card-model-m11a.md)
+- [Machina Test Suite Topology M11b](docs/machina-test-suite-topology-m11b.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 

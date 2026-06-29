@@ -1,8 +1,9 @@
+using Machina.Fonts;
 using Machina.Fonts.ReferenceRendering;
 using Machina.Fonts.Tooling;
 using Xunit;
 
-namespace Machina.Fonts.Tooling.Tests;
+namespace Machina.Fonts.Tooling.Unit.Tests;
 
 public sealed class LayerPresetTests
 {
@@ -157,11 +158,11 @@ public sealed class LayerPresetTests
         {
             OutputDirectory = ".",
             AtlasName = "test",
-            FontPath = CrimsonTextFixtureFont.FontPath,
-            FontFamilyName = "Crimson Text",
+            FontPath = "fixture-font-not-required.ttf",
+            FontFamilyName = "Fixture Font",
             FontStyleName = "Regular",
-            LicenseIdentifier = "OFL-1.1",
-            Face = CrimsonTextFixtureFont.Face,
+            LicenseIdentifier = "TEST",
+            Face = new FontFaceId("fixture-face"),
             TextDefinitions = [new FontDiagnosticTextDefinition("hello-machina", "Hello Machina")],
             CanvasDefinitions = [new FontDiagnosticCanvasDefinition(32, 32, 16, 0d, 12d)],
         };
