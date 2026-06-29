@@ -3,6 +3,8 @@ param(
     [string]$OutputPath = "artifacts\\presenter-default.png",
     [switch]$IncludeDirectOutlineRenderBridgeProof,
     [switch]$IncludeNavigationShell,
+    [string]$SelectedSection,
+    [string]$SelectedTab,
     [string]$NavigationPage,
     [string]$ScrollPage,
     [ValidateSet("Debug", "Release")]
@@ -55,6 +57,18 @@ if (-not [string]::IsNullOrWhiteSpace($NavigationPage))
 {
     $arguments += "--navigation-page"
     $arguments += $NavigationPage
+}
+
+if (-not [string]::IsNullOrWhiteSpace($SelectedSection))
+{
+    $arguments += "--selected-section"
+    $arguments += $SelectedSection
+}
+
+if (-not [string]::IsNullOrWhiteSpace($SelectedTab))
+{
+    $arguments += "--selected-tab"
+    $arguments += $SelectedTab
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ScrollPage))

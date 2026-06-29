@@ -44,10 +44,17 @@ public static class PresenterNavigationShellRenderer
             currentOffset);
 
         normalizedState = normalizedState.WithScrollOffset(tab.PageId, scrollbarGeometry.ScrollOffset);
+        PresenterNavigationChromeGeometry chromeGeometry = PresenterNavigationChromeGeometryBuilder.Build(
+            model,
+            normalizedState,
+            layout,
+            section,
+            scrollbarGeometry);
 
         UiDocument shellDocument = PresenterNavigationDocumentFactory.BuildShellDocument(
             model,
             normalizedState,
+            chromeGeometry,
             layout,
             theme,
             tab.PageId,
@@ -63,6 +70,7 @@ public static class PresenterNavigationShellRenderer
             Layout: layout,
             SelectedSection: section,
             SelectedTab: tab,
+            ChromeGeometry: chromeGeometry,
             ShellFrame: shellFrame,
             PageFrame: pageRender.Frame,
             ComposedFrame: composedFrame,
@@ -156,6 +164,7 @@ public sealed record PresenterNavigationShellRenderResult(
     PresenterNavigationLayout Layout,
     PresenterNavigationSection SelectedSection,
     PresenterNavigationTab SelectedTab,
+    PresenterNavigationChromeGeometry ChromeGeometry,
     MachinaFrame ShellFrame,
     MachinaFrame PageFrame,
     RasterFrame ComposedFrame,

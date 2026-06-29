@@ -95,6 +95,7 @@ internal sealed class Program
         private readonly MachinaRasterPipeline _pipeline;
         private readonly PresenterProofOptions _proofOptions;
         private readonly PresenterNavigationExportOptions _navigationOptions;
+        private readonly AvaloniaPresenterInputBackend _inputBackend;
         private PresenterNavigationState? _navigationState;
         private UiHitTestIndex _hitTestIndex;
         private MachinaFrame _currentFrame;
@@ -110,6 +111,7 @@ internal sealed class Program
             };
 
             _image.PointerPressed += HandlePointerPressed;
+            _image.PointerWheelChanged += HandlePointerWheelChanged;
 
             _state = new DemoState(
                 Count: 0,
@@ -118,6 +120,7 @@ internal sealed class Program
             _pipeline = new MachinaRasterPipeline();
             _proofOptions = proofOptions;
             _navigationOptions = navigationOptions;
+            _inputBackend = new AvaloniaPresenterInputBackend();
             _navigationState = navigationOptions.IncludeNavigationShell
                 ? PresenterExporterNavigationState()
                 : null;
@@ -125,7 +128,7 @@ internal sealed class Program
             _currentFrame = default!;
             _navigationShellRender = null;
             _baseTitle = navigationOptions.IncludeNavigationShell
-                ? "Machina Presenter M10a"
+                ? "Machina Presenter M10b"
                 : "Machina Presenter M1e";
 
             RenderCurrentState();
@@ -148,6 +151,23 @@ internal sealed class Program
                 state = state
                     .WithSelectedTab(section.Id, tab.Id)
                     .WithSelectedSection(section.Id);
+            }
+            else if (!string.IsNullOrWhiteSpace(_navigationOptions.SelectedSectionId))
+            {
+                PresenterNavigationSection? section = model.FindSection(_navigationOptions.SelectedSectionId);
+                if (section is not null)
+                {
+                    state = state.WithSelectedSection(section.Id);
+
+                    if (!string.IsNullOrWhiteSpace(_navigationOptions.SelectedTabId))
+                    {
+                        PresenterNavigationTab? tab = model.FindTab(section.Id, _navigationOptions.SelectedTabId);
+                        if (tab is not null)
+                        {
+                            state = state.WithSelectedTab(section.Id, tab.Id);
+                        }
+                    }
+                }
             }
 
             if (_navigationOptions.ScrollOffsetByPageId is not null)
@@ -202,31 +222,57 @@ internal sealed class Program
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
-            var position = args.GetPosition(_image);
-            var presentedPoint = new RuntimePointerPoint(position.X, position.Y);
-            var destination = new PresentedImageRect(0, 0, _image.Bounds.Width, _image.Bounds.Height);
-            RuntimePointerPoint? rootPoint = PresentedImageMapper.ToRootPoint(
-                presentedPoint,
-                _navigationShellRender?.ComposedFrame.Width ?? _currentFrame.RasterFrame.Width,
-                _navigationShellRender?.ComposedFrame.Height ?? _currentFrame.RasterFrame.Height,
-                destination,
-                ImageStretchMode.None);
+            Point position = args.GetPosition(_image);
+            PresenterInputEvent inputEvent = _inputBackend.TranslatePointerPressed(
+                args.GetCurrentPoint(_image).Properties,
+                new PresenterInputPoint((float)position.X, (float)position.Y));
+            ProcessInput(inputEvent, position.X, position.Y);
+        }
 
-            var point = rootPoint;
+        private void HandlePointerWheelChanged(object? sender, PointerWheelEventArgs args)
+        {
+            Point position = args.GetPosition(_image);
+            PresenterInputEvent inputEvent = _inputBackend.TranslateWheel(
+                args,
+                new PresenterInputPoint((float)position.X, (float)position.Y));
+            ProcessInput(inputEvent, position.X, position.Y);
+        }
+
+        private void ProcessInput(PresenterInputEvent inputEvent, double presentedX, double presentedY)
+        {
+            RuntimePointerPoint? point = MapToRootPoint(inputEvent.Position);
             UiAction? action = null;
 
             if (point is not null)
             {
-                var hit = _hitTestIndex.HitTest(point.Value);
-                action = hit?.Action;
-
-                if (action is null && _navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
+                if (_navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
                 {
-                    action = _navigationShellRender.HitTestContent(point.Value);
+                    PresenterInputEvent rootInput = inputEvent with
+                    {
+                        Position = new PresenterInputPoint((float)point.Value.X, (float)point.Value.Y),
+                    };
+
+                    PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(_navigationShellRender, rootInput);
+                    UiActionId? routedActionId = routed.ActionId;
+                    if (routedActionId is not null)
+                    {
+                        action = new UiAction(routedActionId.Value);
+                    }
+                }
+
+                if (action is null && inputEvent.Kind == PresenterInputKind.PointerPressed)
+                {
+                    UiHitTestResult? hit = _hitTestIndex.HitTest(point.Value);
+                    action = hit?.Action;
+
+                    if (action is null && _navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
+                    {
+                        action = _navigationShellRender.HitTestContent(point.Value);
+                    }
                 }
             }
 
-            var actionName = action?.Name ?? "<none>";
+            string actionName = action?.Name ?? "<none>";
 
             if (action is not null)
             {
@@ -235,7 +281,20 @@ internal sealed class Program
 
             Title = BuildTitle(actionName);
             Console.WriteLine(
-                $"Pointer ({position.X}, {position.Y}) -> root: {(point is null ? "<outside>" : $"{point.Value.X}, {point.Value.Y}")} -> action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}");
+                $"Input {inputEvent.Kind} ({presentedX}, {presentedY}) -> root: {(point is null ? "<outside>" : $"{point.Value.X}, {point.Value.Y}")} -> action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}");
+        }
+
+        private RuntimePointerPoint? MapToRootPoint(PresenterInputPoint position)
+        {
+            var presentedPoint = new RuntimePointerPoint(position.X, position.Y);
+            var destination = new PresentedImageRect(0, 0, _image.Bounds.Width, _image.Bounds.Height);
+
+            return PresentedImageMapper.ToRootPoint(
+                presentedPoint,
+                _navigationShellRender?.ComposedFrame.Width ?? _currentFrame.RasterFrame.Width,
+                _navigationShellRender?.ComposedFrame.Height ?? _currentFrame.RasterFrame.Height,
+                destination,
+                ImageStretchMode.None);
         }
 
         private void ApplyAction(UiAction action)

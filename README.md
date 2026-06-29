@@ -101,6 +101,7 @@ dotnet test Copeland.Slow.slnx
 - [Machina Direct-Outline Text Layout Contract M9g](docs/machina-direct-outline-text-layout-contract-m9g.md)
 - [Machina Direct-Outline Render Bridge M9h](docs/machina-direct-outline-render-bridge-m9h.md)
 - [Machina Presenter Navigation Shell M10a](docs/machina-presenter-navigation-shell-m10a.md)
+- [Machina Presenter Navigation Interaction M10b](docs/machina-presenter-navigation-interaction-m10b.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -216,6 +217,26 @@ Representative M10a outputs:
 - `artifacts/m10a/presenter-navigation-shell-manifest.txt`
 
 This milestone adds sidebar section navigation, tabs local to the selected sidebar item, a scrollable page viewport, and deterministic sample-local scrollbar visuals. It does not resume font work or change production UI text defaults.
+
+M10b layers interaction wiring onto that shell while keeping Avalonia sample-scoped:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10b\presenter-navigation-interaction-overview.png -IncludeNavigationShell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10b\presenter-navigation-interaction-components-selected.png -IncludeNavigationShell -SelectedSection components
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10b\presenter-navigation-interaction-tab-selected.png -IncludeNavigationShell -SelectedSection components -SelectedTab controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10b\presenter-navigation-interaction-scrolled.png -IncludeNavigationShell -SelectedSection components -SelectedTab controls -ScrollPage components.controls:120
+```
+
+Representative M10b outputs:
+
+- `artifacts/m10b/presenter-navigation-interaction-overview.png`
+- `artifacts/m10b/presenter-navigation-interaction-components-selected.png`
+- `artifacts/m10b/presenter-navigation-interaction-tab-selected.png`
+- `artifacts/m10b/presenter-navigation-interaction-scrolled.png`
+- `artifacts/m10b/presenter-navigation-interaction-manifest.json`
+- `artifacts/m10b/presenter-navigation-interaction-manifest.txt`
+
+This is still proof/sample-level input work. Avalonia remains only the current sample input backend, navigation state/actions remain backend-independent, M9 font work stays closed unless a concrete integration need appears, and no production renderer behavior changed.
 
 Current font proof audit workflow:
 

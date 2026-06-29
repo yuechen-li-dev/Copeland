@@ -12,6 +12,8 @@ public sealed record PresenterProgramOptions(
         string outputPath = PresenterExportContract.DefaultOutputPath;
         bool includeDirectOutlineRenderBridgeProof = false;
         bool includeNavigationShell = false;
+        string? selectedSectionId = null;
+        string? selectedTabId = null;
         string? selectedNavigationPageId = null;
         Dictionary<string, double>? scrollOffsetByPageId = null;
 
@@ -50,6 +52,20 @@ public sealed record PresenterProgramOptions(
                 continue;
             }
 
+            if (arg == "--selected-section" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                selectedSectionId = args[++index];
+                continue;
+            }
+
+            if (arg == "--selected-tab" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                selectedTabId = args[++index];
+                continue;
+            }
+
             if (arg == "--scroll-page" && index + 1 < args.Count)
             {
                 includeNavigationShell = true;
@@ -76,6 +92,12 @@ public sealed record PresenterProgramOptions(
             exportOnly,
             outputPath,
             new PresenterProofOptions(includeDirectOutlineRenderBridgeProof),
-            new PresenterNavigationExportOptions(includeNavigationShell, selectedNavigationPageId, scrollOffsetByPageId));
+            new PresenterNavigationExportOptions(
+                includeNavigationShell,
+                selectedSectionId,
+                selectedTabId,
+                selectedNavigationPageId,
+                scrollOffsetByPageId,
+                includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null));
     }
 }

@@ -4,6 +4,8 @@
 
 M10a adds a presenter organization shell so the sample can keep growing without collapsing into one long mixed proof screen.
 
+M10b later adds the interaction wiring on top of this structure. See [docs/machina-presenter-navigation-interaction-m10b.md](./machina-presenter-navigation-interaction-m10b.md).
+
 ## Why presenter navigation is needed now
 
 The M9 font phase is closed enough for current needs:

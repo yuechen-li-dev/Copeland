@@ -13,6 +13,7 @@ public static class PresenterNavigationDocumentFactory
     public static UiDocument BuildShellDocument(
         PresenterNavigationModel model,
         PresenterNavigationState navigationState,
+        PresenterNavigationChromeGeometry chromeGeometry,
         PresenterNavigationLayout layout,
         StandardTheme theme,
         string selectedPageId,
@@ -21,6 +22,7 @@ public static class PresenterNavigationDocumentFactory
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(navigationState);
+        ArgumentNullException.ThrowIfNull(chromeGeometry);
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(proofOptions);
@@ -65,7 +67,7 @@ public static class PresenterNavigationDocumentFactory
                 top: layout.SidebarTop + 20,
                 width: layout.SidebarWidth - 40,
                 height: 20,
-                view: View.Text("Machina M10a", color: theme.Colors.MutedForeground, size: TextSize.Sm)),
+                view: View.Text("Machina M10b", color: theme.Colors.MutedForeground, size: TextSize.Sm)),
 
             Row.Anchor(
                 id: "app-title",
@@ -98,49 +100,45 @@ public static class PresenterNavigationDocumentFactory
                     borderThickness: 1)),
         ];
 
-        double sidebarItemTop = layout.SidebarTop + 60;
-        foreach (PresenterNavigationSection section in model.Sections)
+        foreach (PresenterNavigationSidebarHitRegion sectionRegion in chromeGeometry.SidebarSections)
         {
+            PresenterNavigationSection section = model.FindSection(sectionRegion.SectionId) ?? model.Sections[0];
             bool isSelected = string.Equals(section.Id, selectedSection.Id, StringComparison.Ordinal);
             rows.Add(
                 Row.Anchor(
                     id: $"sidebar-section-{section.Id}",
                     parent: "root",
-                    left: layout.SidebarLeft + 16,
-                    top: sidebarItemTop,
-                    width: layout.SidebarWidth - 32,
-                    height: 36,
+                    left: sectionRegion.Rect.X,
+                    top: sectionRegion.Rect.Y,
+                    width: sectionRegion.Rect.Width,
+                    height: sectionRegion.Rect.Height,
                     component: BuildNavButton(
                         id: $"sidebar-section-{section.Id}.button",
                         label: section.Label,
-                        width: layout.SidebarWidth - 32,
-                        height: 36,
+                        width: sectionRegion.Rect.Width,
+                        height: sectionRegion.Rect.Height,
                         selected: isSelected,
                         theme: theme,
                         action: PresenterNavigationActions.SelectSection(section.Id).ToAction())));
-
-            sidebarItemTop += 44;
         }
 
-        double tabsLeft = layout.ContentLeft + layout.ContentPanelPadding;
-        double tabsTop = layout.ContentTop + 80;
-
-        foreach ((PresenterNavigationTab tab, int index) in selectedSection.Tabs.Select((tab, index) => (tab, index)))
+        foreach (PresenterNavigationTabHitRegion tabRegion in chromeGeometry.LocalTabs)
         {
+            PresenterNavigationTab tab = model.FindTab(tabRegion.SectionId, tabRegion.TabId) ?? selectedSection.Tabs[0];
             bool isSelected = string.Equals(tab.Id, selectedTabId, StringComparison.Ordinal);
             rows.Add(
                 Row.Anchor(
                     id: $"tab-{selectedSection.Id}-{tab.Id}",
                     parent: "root",
-                    left: tabsLeft + (index * (150 + layout.TabsGap)),
-                    top: tabsTop,
-                    width: 150,
-                    height: layout.TabsHeight,
+                    left: tabRegion.Rect.X,
+                    top: tabRegion.Rect.Y,
+                    width: tabRegion.Rect.Width,
+                    height: tabRegion.Rect.Height,
                     component: BuildNavButton(
                         id: $"tab-{selectedSection.Id}-{tab.Id}.button",
                         label: tab.Label,
-                        width: 150,
-                        height: layout.TabsHeight,
+                        width: tabRegion.Rect.Width,
+                        height: tabRegion.Rect.Height,
                         selected: isSelected,
                         theme: theme,
                         action: PresenterNavigationActions.SelectTab(selectedSection.Id, tab.Id).ToAction())));

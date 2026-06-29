@@ -10,7 +10,7 @@ M9i is the last proof-integration and closeout-hygiene step for the current Mach
 - MSDF remains explicit experimental/scalable after the M9f repair
 - production UI text defaults remain unchanged
 
-M10 starts presenter organization work, not more font work.
+M10 starts presenter organization and presenter-shell interaction work, not more font work.
 Keep the M9 font phase closed unless a concrete integration need appears.
 
 ## Golden path
@@ -136,3 +136,5 @@ The presenter sample now has an opt-in `DirectOutlineStatic Presenter Proof` car
 Stop expanding the font subsystem for now.
 
 The next useful work should be non-font product integration or UI capability work that consumes the existing direct-outline proof seams only if needed.
+
+M10b follows that rule: it wires presenter navigation input at the sample boundary and does not reopen font work.

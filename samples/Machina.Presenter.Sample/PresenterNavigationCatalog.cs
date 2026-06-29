@@ -69,17 +69,17 @@ public static class PresenterNavigationCatalog
     {
         return pageId switch
         {
-            "overview.home" => "The original presenter settings card stays as the first/default page inside the M10a shell.",
+            "overview.home" => "The original presenter settings card stays as the first/default page inside the presenter navigation shell.",
             "overview.status" => "A compact status page for sample state and navigation structure.",
             "components.controls" => "A scrollable page that keeps control proofs together without growing one giant screen.",
             "components.cards" => "Card-focused organization notes using the same local presenter primitives.",
             "text.bitmap-current" => "Production UI text defaults remain on the current bitmap path.",
             "text.direct-outline-static" => proofOptions.IncludeDirectOutlineRenderBridgeProof
                 ? "DirectOutlineStatic remains a localized proof path under the Text section."
-                : "DirectOutlineStatic remains available as an opt-in proof path and is not resumed by default in M10a.",
+                : "DirectOutlineStatic remains available as an opt-in proof path and is not resumed by default in M10b.",
             "text.msdf-experimental" => "MSDF stays explicit experimental/scalable after the M9 closeout.",
-            "diagnostics.layout" => "Layout and scroll structure notes for the presenter shell.",
-            "diagnostics.export" => "Export and artifact notes for M10a navigation validation.",
+            "diagnostics.layout" => "Layout and scroll structure notes for the presenter navigation shell.",
+            "diagnostics.export" => "Export and artifact notes for M10b navigation interaction validation.",
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
     }
@@ -144,13 +144,13 @@ public static class PresenterNavigationCatalog
                 rows.Add(Row.Anchor("settings-card", "root", left: 0, top: 0, width: 500, height: 292, component: SettingsCard.Build(demoState, theme)));
                 rows.Add(Row.Anchor("overview-summary", "root", left: 0, top: 316, width: contentWidth, height: 176, component: BuildInfoCard(
                     "overview-summary-card",
-                    "M10a navigation shell",
+                    "Presenter navigation shell",
                     [
                         "App -> sidebar -> tabs -> pages keeps the presenter sample organized as it grows.",
                         "The original settings content remains the first/default page.",
                         "Scroll state is explicit and tracked per page id.",
                     ],
-                    ["M10a", "default page", "scroll state"],
+                    ["M10a", "input", "scroll state"],
                     theme,
                     contentWidth,
                     176)));
@@ -203,7 +203,7 @@ public static class PresenterNavigationCatalog
                     "components-controls-notes-card",
                     "Scope boundary",
                     [
-                        "M10a reorganizes presenter navigation and overflow structure only.",
+                        "M10b wires interaction onto the presenter shell.",
                         "No production renderer default changed.",
                     ],
                     ["no animations", "no router framework"],
@@ -254,7 +254,7 @@ public static class PresenterNavigationCatalog
                     "text-bitmap-current-card",
                     "Bitmap/current remains default",
                     [
-                        "M10a does not resume font work.",
+                        "M10b does not resume font work.",
                         "Production UI text defaults remain unchanged.",
                         "The presenter shell only reorganizes sample navigation.",
                     ],
@@ -280,7 +280,7 @@ public static class PresenterNavigationCatalog
                     "text-direct-outline-intro-card",
                     "DirectOutlineStatic is still proof-only here",
                     [
-                        "M10a organizes the existing presenter proof path under a localized Text section.",
+                        "M10b keeps the existing presenter proof path under Text.",
                         "No new font/rendering milestone is started.",
                     ],
                     ["proof-only"],
@@ -321,7 +321,7 @@ public static class PresenterNavigationCatalog
                     "MSDF remains explicit experimental/scalable",
                     [
                         "M9f repaired the experimental path structurally.",
-                        "M10a does not extend or integrate that work.",
+                        "M10b does not extend or integrate that work.",
                         "This page is organizational only.",
                     ],
                     ["M9f", "experimental"],
@@ -362,11 +362,11 @@ public static class PresenterNavigationCatalog
                     "diagnostics-export-card",
                     "Export workflow",
                     [
-                        "The presenter export script now supports the navigation shell as an opt-in sample mode.",
-                        "Representative M10a artifacts live under artifacts/m10a.",
+                        "The presenter export script supports the navigation shell as an opt-in sample mode.",
+                        "Representative M10b artifacts live under artifacts/m10b.",
                         "A deterministic manifest is written alongside shell exports.",
                     ],
-                    ["artifacts/m10a", "manifest"],
+                    ["artifacts/m10b", "manifest"],
                     theme,
                     contentWidth,
                     176)));

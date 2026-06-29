@@ -65,7 +65,11 @@ public static class PresenterExporter
             scrollbarGeometry = shellRender.ScrollbarGeometry;
 
             string outputDirectory = Path.GetDirectoryName(fullOutputPath) ?? Path.GetFullPath(".");
-            (manifestJsonPath, manifestTextPath) = PresenterNavigationManifestWriter.Write(outputDirectory, model, proofOptions);
+            (manifestJsonPath, manifestTextPath) = PresenterNavigationManifestWriter.Write(
+                outputDirectory,
+                model,
+                proofOptions,
+                navigationOptions.InteractionBackendName);
         }
         else
         {
@@ -122,6 +126,23 @@ public static class PresenterExporter
             current = current
                 .WithSelectedTab(section.Id, tab.Id)
                 .WithSelectedSection(section.Id);
+        }
+        else if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedSectionId))
+        {
+            PresenterNavigationSection? section = model.FindSection(navigationOptions.SelectedSectionId);
+            if (section is not null)
+            {
+                current = current.WithSelectedSection(section.Id);
+
+                if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedTabId))
+                {
+                    PresenterNavigationTab? tab = model.FindTab(section.Id, navigationOptions.SelectedTabId);
+                    if (tab is not null)
+                    {
+                        current = current.WithSelectedTab(section.Id, tab.Id);
+                    }
+                }
+            }
         }
 
         if (navigationOptions.ScrollOffsetByPageId is not null)

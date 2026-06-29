@@ -92,7 +92,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | ResolvedLayoutDocument | Machina.Layout | Implemented | Resolver tests | Canonical flat resolved geometry.
 | ResolvedLayoutTree | Machina.Layout | Implemented | Tree builder tests | Derived projection for adapters/debug.
 | Clipping/overflow semantics | Layout/Renderer | Partial | Raster contract/docs | Basic rectangular behavior exists; richer semantics pending.
-| Scrolling | Layout/Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds explicit presenter-local viewport/content/offset state and deterministic scrollbar geometry without changing shared layout semantics or adding wheel input.
+| Scrolling | Layout/Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds explicit presenter-local viewport/content/offset state and deterministic scrollbar geometry; M10b adds sample-local wheel routing without changing shared layout semantics.
 | Z/painter ordering | Layout/Renderer | Partial | Contract-level coverage | Expand explicit tests across render adapters.
 | UI.Text | Machina.Core | Implemented | Core tests | Deterministic measurement seam integrated.
 | UI.Rect | Machina.Core | Implemented | Core tests | Style + child lowering path.
@@ -138,7 +138,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | Focus model | Runtime/Core | Planned | None | Required for interactive controls.
 | Hover/pressed state | Runtime/Core | Planned | None | Add pointer state lifecycle.
 | Text editing | Runtime/Standard | Planned | None | Required for real input components.
-| Routing/navigation | Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds sample-local sidebar + local tabs + page selection state. Generic routing remains deferred.
+| Routing/navigation | Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds sample-local sidebar + local tabs + page selection state; M10b adds sample-local hit testing and explicit input-to-action routing. Generic routing remains deferred.
 | Dominatus runtime scopes | Machina.Dominatus | Partial | Dominatus tests/docs | Baseline proof exists; expand authoring patterns.
 | Modal stack | Runtime/Dominatus | Planned | None | Coupled with focus/layer routing.
 | Async effects | Dominatus | Planned | None | Needed for richer app behaviors.
@@ -163,7 +163,7 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | GPU backend | Future renderer | Deferred | None | Future platform strategy.
 | Avalonia static bitmap window | Presenter sample | Implemented | Presenter docs/proofs | M0 presenter baseline.
 | Avalonia click-to-action | Presenter sample | Partial | Presenter/runtime docs | Expand robust input loops.
-| Avalonia redraw loop | Presenter sample | Partial | Presenter docs + M10a shell tests | Shell mode now composes sidebar/tabs/page content and keeps the original settings page reachable as default content.
+| Avalonia redraw loop | Presenter sample | Partial | Presenter docs + M10b shell tests | Shell mode composes sidebar/tabs/page content, keeps the original settings page reachable as default content, and now routes sample-local pointer/wheel input through an Avalonia adapter.
 | Component gallery visual workbench | ComponentGallery sample | Implemented | Dedicated gallery tests + local Windows visual audit + repeatable export script | Canonical “wall of widgets” page; local-first, not a Storybook clone; M7b formalizes deterministic PNG export and generated-artifact policy. |
 | Scaling/DPI conversion | Presenter sample | Partial | Presenter M1d mapper/tests | Explicit image-to-root mapping landed for None/Fill/Uniform math; broader DPI policy still pending.
 | Window resize handling | Presenter sample | Planned | None | Needed for practical desktop UX.
@@ -251,6 +251,7 @@ React mapping guide:
 - **M9g**: direct-outline static text box/layout contract, proof-only text-in-rect placement API, gallery text-layout artifacts, and no production UI text default change (implemented).
 - **M9h**: direct-outline static render bridge contract, renderer-facing request/result API, opt-in gallery bridge proof, and dependency-direction guardrails with no production UI text default change (implemented).
 - **M10a**: presenter navigation shell with sidebar, local tabs, scrollable pages, deterministic scrollbar visuals, and opt-in export/runtime integration (implemented).
+- **M10b**: presenter navigation interaction wiring with Avalonia as the current sample input backend, backend-neutral shell hit testing, explicit action routing, and interaction export proof states (implemented).
 
 ## Open Questions
 
@@ -925,6 +926,25 @@ M10a begins presenter organization work after the M9 font closeout.
 
 This remains sample-local:
 
+- no production renderer default changed
+- no `Machina.Core` document-model semantic changed
+- no `Machina.Layout` resolver behavior changed
+- no new font work was resumed
+- no generic routing framework was introduced
+
+## M10b update
+
+M10b wires input onto the M10a shell without changing its architectural boundary.
+
+- the presenter sample now translates Avalonia pointer and wheel events through a sample-local `AvaloniaPresenterInputBackend`
+- backend-neutral shell hit testing covers sidebar items, local tabs, content viewport, scrollbar track, and scrollbar thumb
+- input routes into explicit presenter navigation actions and the existing immutable navigation reducer
+- wheel scrolling now updates selected-page scroll offsets with deterministic clamping and per-page preservation
+- exports can now target representative interacted states under `artifacts/m10b`
+
+This remains sample-local:
+
+- Avalonia is still only the current backend, not the architecture
 - no production renderer default changed
 - no `Machina.Core` document-model semantic changed
 - no `Machina.Layout` resolver behavior changed
