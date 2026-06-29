@@ -111,6 +111,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Oblivion Card Model M11a](docs/machina-oblivion-card-model-m11a.md)
 - [Machina Test Suite Topology M11b](docs/machina-test-suite-topology-m11b.md)
 - [Machina Presenter Scrollbar State Machine M11c](docs/machina-presenter-scrollbar-state-machine-m11c.md)
+- [Machina Oblivion Workspace Persistence M11d](docs/machina-oblivion-workspace-persistence-m11d.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -342,6 +343,24 @@ Representative M11c outputs:
 - `artifacts/m11c/presenter-scrollbar-state-machine-manifest.txt`
 
 M11c is scrollbar/input/composition refactor only. Dominatus orchestration ladder guidance is applied to interaction ownership and lifecycle clarity, Avalonia remains the current sample-only input backend, page scroll should not full-rerender page content or shell chrome, and `[Fact]` / `[Theory]` execution as notebook/runtime behavior remains deferred to M12+.
+
+M11d then lands workspace persistence for Oblivion without adding execution:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-cards.png -SelectedSection oblivion -SelectedTab cards
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-artifacts.png -SelectedSection oblivion -SelectedTab artifacts
+```
+
+Representative M11d outputs:
+
+- `artifacts/m11d/presenter-oblivion-workspace-cards.png`
+- `artifacts/m11d/presenter-oblivion-workspace-roadmap.png`
+- `artifacts/m11d/presenter-oblivion-workspace-artifacts.png`
+- `artifacts/m11d/oblivion-workspace-persistence-manifest.json`
+- `artifacts/m11d/oblivion-workspace-persistence-manifest.txt`
+
+M11d makes the root workspace graph/tree JSON and the card/page/artifact metadata TOML, following a `.sln` root plus `.csproj`-like asset analogy. It adds no Roslyn execution, no xUnit notebook/runtime execution, no markdown editor, and no Visionary editor behavior.
 
 Current font proof audit workflow:
 

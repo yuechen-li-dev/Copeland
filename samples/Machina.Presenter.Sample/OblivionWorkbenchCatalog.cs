@@ -11,208 +11,43 @@ public static class OblivionWorkbenchCatalog
     public const string ExecutionRoadmapPageId = "oblivion.execution-roadmap";
     public const string ArtifactsPageId = "oblivion.artifacts";
 
-    public const double CardsPageContentHeight = 1496;
-    public const double ExecutionRoadmapPageContentHeight = 492;
-    public const double ArtifactsPageContentHeight = 432;
-
     public static IReadOnlyList<OblivionCard> CreateCardsPageCards()
     {
-        return
-        [
-            new OblivionCard(
-                new OblivionCardId("oblivion-intro-note-card"),
-                OblivionCardKind.Note,
-                OblivionCardStatus.Idle,
-                "Oblivion workbench substrate",
-                "Notebook/card/workbench layer",
-                ["oblivion", "m11a", "static proof"],
-                [
-                    "Oblivion is the notebook/card layer for Machina Workbench.",
-                    "Cards are bounded cells with deterministic layout.",
-                    "Execution is deferred to a later milestone.",
-                ],
-                [],
-                []),
-            new OblivionCard(
-                new OblivionCardId("oblivion-static-status-card"),
-                OblivionCardKind.Status,
-                OblivionCardStatus.Passing,
-                "Current substrate status",
-                "Static proof state",
-                ["direct-outline-static", "msdf", "presenter", "deferred"],
-                [
-                    "DirectOutlineStatic: ready",
-                    "MSDF: experimental",
-                    "Presenter shell: active",
-                    "Roslyn execution: deferred",
-                ],
-                [],
-                []),
-            new OblivionCard(
-                new OblivionCardId("oblivion-ui-preview-card"),
-                OblivionCardKind.UiPreview,
-                OblivionCardStatus.Placeholder,
-                "UI preview placeholder",
-                "Future visual proof surface",
-                ["preview", "ui", "placeholder"],
-                [
-                    "Future card will render a Machina UI document preview here.",
-                    "This static proof keeps the card bounded without introducing live rendering behavior.",
-                ],
-                [new OblivionCardAction("open-preview", "Open preview", false)],
-                []),
-            new OblivionCard(
-                new OblivionCardId("oblivion-artifact-placeholder-card"),
-                OblivionCardKind.Artifact,
-                OblivionCardStatus.Placeholder,
-                "Artifact placeholder",
-                "Export surface placeholder",
-                ["artifact", "export", "placeholder"],
-                [
-                    "Future card will attach/export PNG, JSON, TOML, or source artifacts.",
-                    "M11a only proves the static card substrate and metadata surface.",
-                ],
-                [new OblivionCardAction("open-artifacts", "Open artifacts", false)],
-                [
-                    new OblivionCardArtifact("artifact-png", "PNG proof", "png", null),
-                    new OblivionCardArtifact("artifact-json", "JSON manifest", "json", null),
-                ]),
-            new OblivionCard(
-                new OblivionCardId("oblivion-code-fact-card"),
-                OblivionCardKind.CodeFact,
-                OblivionCardStatus.Deferred,
-                "Code fact placeholder",
-                "not executed in M11a",
-                ["code", "fact", "deferred"],
-                [
-                    "[Fact]",
-                    "public void SettingsCard_Renders()",
-                    "{",
-                    "    // Execution deferred.",
-                    "}",
-                    "not executed in M11a",
-                ],
-                [new OblivionCardAction("run-fact", "Run fact", false)],
-                [new OblivionCardArtifact("fact-source", "Source snippet", "code", null)]),
-            new OblivionCard(
-                new OblivionCardId("oblivion-code-theory-card"),
-                OblivionCardKind.CodeTheory,
-                OblivionCardStatus.Deferred,
-                "Code theory placeholder",
-                "not executed in M11a",
-                ["code", "theory", "deferred"],
-                [
-                    "[Theory]",
-                    "public void TextProof_RendersAtSize(int size)",
-                    "[InlineData(16)]",
-                    "[InlineData(24)]",
-                    "{",
-                    "    // Execution deferred.",
-                    "}",
-                    "not executed in M11a",
-                ],
-                [new OblivionCardAction("run-theory", "Run theory", false)],
-                [new OblivionCardArtifact("theory-source", "Source snippet", "code", null)]),
-        ];
+        return GetPageCards(CardsPageId, proofOptions: null);
     }
 
     public static IReadOnlyList<OblivionCard> CreateExecutionRoadmapCards()
     {
-        return
-        [
-            new OblivionCard(
-                new OblivionCardId("oblivion-execution-roadmap-card"),
-                OblivionCardKind.Status,
-                OblivionCardStatus.Deferred,
-                "Execution roadmap",
-                "Card model proven first",
-                ["roslyn", "xunit", "deferred"],
-                [
-                    "Roslyn execution deferred.",
-                    "xUnit [Fact] / [Theory] deferred.",
-                    "Artifact capture deferred.",
-                    "Card model proven first.",
-                ],
-                [],
-                []),
-            new OblivionCard(
-                new OblivionCardId("oblivion-visionary-note-card"),
-                OblivionCardKind.Note,
-                OblivionCardStatus.Deferred,
-                "Visionary relationship",
-                "Future source workspace layer",
-                ["visionary", "future", "docs-only"],
-                [
-                    "Visionary is the future code editor/source workspace layer.",
-                    "M11a does not implement Visionary.",
-                ],
-                [],
-                []),
-        ];
+        return GetPageCards(ExecutionRoadmapPageId, proofOptions: null);
     }
 
     public static IReadOnlyList<OblivionCard> CreateArtifactsPageCards()
     {
-        return
-        [
-            new OblivionCard(
-                new OblivionCardId("oblivion-artifacts-page-card"),
-                OblivionCardKind.Artifact,
-                OblivionCardStatus.Placeholder,
-                "Artifact lane placeholder",
-                "Static export-facing proof",
-                ["artifacts", "png", "json", "toml"],
-                [
-                    "Artifacts tab keeps export-facing placeholders visible inside the workbench shell.",
-                    "M11a exports presenter PNGs and card model manifests without introducing execution.",
-                ],
-                [new OblivionCardAction("capture-artifact", "Capture artifact", false)],
-                [
-                    new OblivionCardArtifact("png-proof", "Presenter PNG", "png", "artifacts/m11a/presenter-oblivion-cards.png"),
-                    new OblivionCardArtifact("manifest-json", "Card model manifest", "json", "artifacts/m11a/oblivion-card-model-manifest.json"),
-                    new OblivionCardArtifact("manifest-text", "Card model manifest text", "txt", "artifacts/m11a/oblivion-card-model-manifest.txt"),
-                ]),
-            new OblivionCard(
-                new OblivionCardId("oblivion-artifacts-export-policy-card"),
-                OblivionCardKind.Note,
-                OblivionCardStatus.Idle,
-                "Artifact policy",
-                "Deterministic local proof outputs",
-                ["deterministic", "local proof"],
-                [
-                    "Exports stay under artifacts/m11a for this milestone.",
-                    "No timestamp is included in the Oblivion card model manifest by default.",
-                ],
-                [],
-                []),
-        ];
+        return GetPageCards(ArtifactsPageId, proofOptions: null);
     }
 
-    public static IReadOnlyList<OblivionCard> CreateAllCards()
+    public static IReadOnlyList<OblivionCard> CreateAllCards(PresenterProofOptions? proofOptions = null)
     {
         return
         [
-            .. CreateCardsPageCards(),
-            .. CreateExecutionRoadmapCards(),
-            .. CreateArtifactsPageCards(),
+            .. GetPageCards(CardsPageId, proofOptions),
+            .. GetPageCards(ExecutionRoadmapPageId, proofOptions),
+            .. GetPageCards(ArtifactsPageId, proofOptions),
         ];
     }
 
     public static IReadOnlyList<UiRow> BuildPageRows(
         string pageId,
         StandardTheme theme,
-        int contentWidth)
+        int contentWidth,
+        PresenterProofOptions? proofOptions = null)
     {
-        IReadOnlyList<OblivionCard> cards = pageId switch
-        {
-            CardsPageId => CreateCardsPageCards(),
-            ExecutionRoadmapPageId => CreateExecutionRoadmapCards(),
-            ArtifactsPageId => CreateArtifactsPageCards(),
-            _ => throw new InvalidOperationException($"Unknown Oblivion page id '{pageId}'."),
-        };
+        ArgumentNullException.ThrowIfNull(theme);
 
+        IReadOnlyList<OblivionCard> cards = GetPageCards(pageId, proofOptions);
         List<UiRow> rows = [];
         double currentTop = 0;
+
         foreach (OblivionCard card in cards)
         {
             double cardHeight = GetCardHeight(card);
@@ -237,6 +72,27 @@ public static class OblivionWorkbenchCatalog
         return rows;
     }
 
+    public static double GetPageContentHeight(string pageId, PresenterProofOptions? proofOptions = null)
+    {
+        IReadOnlyList<OblivionCard> cards = GetPageCards(pageId, proofOptions);
+        if (cards.Count == 0)
+        {
+            return 0;
+        }
+
+        double height = 0;
+        for (int index = 0; index < cards.Count; index++)
+        {
+            height += GetCardHeight(cards[index]);
+            if (index < cards.Count - 1)
+            {
+                height += 24;
+            }
+        }
+
+        return height;
+    }
+
     public static double GetCardHeight(OblivionCard card)
     {
         return card.Kind switch
@@ -249,58 +105,86 @@ public static class OblivionWorkbenchCatalog
         };
     }
 
-    public static (string jsonPath, string textPath) WriteManifest(string outputDirectory)
+    public static OblivionWorkspaceLoadResult LoadWorkspace(PresenterProofOptions? proofOptions = null, bool useCache = true)
+    {
+        string manifestPath = OblivionWorkspacePaths.ResolveWorkspaceManifestPath(proofOptions?.OblivionWorkspacePath);
+        return OblivionWorkspaceLoader.Load(manifestPath, useCache: useCache);
+    }
+
+    public static (string jsonPath, string textPath) WriteManifest(
+        string outputDirectory,
+        PresenterProofOptions? proofOptions = null)
     {
         ArgumentNullException.ThrowIfNull(outputDirectory);
 
         Directory.CreateDirectory(outputDirectory);
 
-        string jsonPath = Path.Combine(outputDirectory, "oblivion-card-model-manifest.json");
-        string textPath = Path.Combine(outputDirectory, "oblivion-card-model-manifest.txt");
+        string jsonPath = Path.Combine(outputDirectory, "oblivion-workspace-persistence-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "oblivion-workspace-persistence-manifest.txt");
 
-        string[] expectedArtifactNames =
-        [
-            "presenter-oblivion-cards.png",
-            "presenter-oblivion-execution-roadmap.png",
-            "presenter-oblivion-artifacts.png",
-            "presenter-oblivion-scrolled.png",
-            "oblivion-card-model-manifest.json",
-            "oblivion-card-model-manifest.txt",
-        ];
+        string workspacePath = OblivionWorkspacePaths.ResolveWorkspaceManifestPath(proofOptions?.OblivionWorkspacePath);
+        bool usingFallbackCatalog = ShouldUseFallbackCatalog(proofOptions);
+        OblivionWorkspaceLoadResult loadResult = usingFallbackCatalog
+            ? new OblivionWorkspaceLoadResult(null, [])
+            : LoadWorkspace(proofOptions);
 
-        string[] artifactsGenerated = expectedArtifactNames
-            .Where(fileName => File.Exists(Path.Combine(outputDirectory, fileName)) || fileName.StartsWith("oblivion-card-model-manifest", StringComparison.Ordinal))
+        IReadOnlyList<OblivionCard> cards = CreateAllCards(proofOptions)
+            .OrderBy(card => card.Id.Value, StringComparer.Ordinal)
             .ToArray();
+
+        string[] cardKinds = cards
+            .Select(card => OblivionWorkspaceValidator.GetCardKindValue(card.Kind))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+
+        string[] statuses = cards
+            .Select(card => OblivionWorkspaceValidator.GetCardStatusValue(card.Status))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+
+        int sectionsLoaded = usingFallbackCatalog
+            ? 1
+            : loadResult.Workspace?.Sections.Count ?? 0;
+        int pagesLoaded = usingFallbackCatalog
+            ? 3
+            : loadResult.Workspace?.Sections.Sum(section => section.Pages.Count) ?? 0;
+        int cardsLoaded = cards.Count;
+        string[] validationErrors = usingFallbackCatalog
+            ? []
+            : loadResult.Diagnostics
+                .Where(diagnostic => diagnostic.Severity == OblivionWorkspaceDiagnosticSeverity.Error)
+                .Select(diagnostic => diagnostic.ToString())
+                .ToArray();
 
         string[] deferredWork =
         [
             "Roslyn execution",
             "xUnit [Fact] and [Theory] runtime",
-            "Artifact capture from card execution",
+            "Artifact execution and generation runtime",
             "Visionary code editor/source workspace implementation",
             "Markdown editing",
         ];
 
-        OblivionCard[] cards = CreateAllCards().OrderBy(card => card.Id.Value, StringComparer.Ordinal).ToArray();
-
         var manifest = new
         {
-            milestone = "M11a",
-            kind = "oblivion-card-model-proof",
-            cardKinds = Enum.GetNames<OblivionCardKind>(),
-            cardStatuses = Enum.GetNames<OblivionCardStatus>(),
-            cardsRendered = cards.Select(card => new
-            {
-                id = card.Id.Value,
-                kind = card.Kind.ToString(),
-                status = card.Status.ToString(),
-                title = card.Title,
-            }).ToArray(),
+            milestone = "M11d",
+            kind = "oblivion-workspace-persistence",
+            rootFormat = "json",
+            assetFormat = "toml",
+            workspacePath,
+            sectionsLoaded,
+            pagesLoaded,
+            cardsLoaded,
+            cardKinds,
+            statuses,
+            validationErrors,
             executionEnabled = false,
             roslynEnabled = false,
             xunitEnabled = false,
             visionaryImplemented = false,
-            artifactsGenerated,
+            usingFallbackCatalog,
             deferredWork,
         };
 
@@ -313,22 +197,197 @@ public static class OblivionWorkbenchCatalog
 
         string[] textLines =
         [
-            "milestone=M11a",
-            "kind=oblivion-card-model-proof",
-            $"cardKinds={string.Join(",", Enum.GetNames<OblivionCardKind>())}",
-            $"cardStatuses={string.Join(",", Enum.GetNames<OblivionCardStatus>())}",
+            "milestone=M11d",
+            "kind=oblivion-workspace-persistence",
+            "rootFormat=json",
+            "assetFormat=toml",
+            $"workspacePath={workspacePath}",
+            $"sectionsLoaded={sectionsLoaded}",
+            $"pagesLoaded={pagesLoaded}",
+            $"cardsLoaded={cardsLoaded}",
+            $"cardKinds={string.Join(",", cardKinds)}",
+            $"statuses={string.Join(",", statuses)}",
+            $"validationErrors={string.Join(" | ", validationErrors)}",
             "executionEnabled=false",
             "roslynEnabled=false",
             "xunitEnabled=false",
             "visionaryImplemented=false",
-            $"artifactsGenerated={string.Join(",", artifactsGenerated)}",
+            $"usingFallbackCatalog={usingFallbackCatalog.ToString().ToLowerInvariant()}",
             $"deferredWork={string.Join(" | ", deferredWork)}",
             "cardsRendered:",
-            .. cards.Select(card => $"  {card.Id.Value}:{card.Kind}:{card.Status}:{card.Title}"),
+            .. cards.Select(card => $"  {card.Id.Value}:{OblivionWorkspaceValidator.GetCardKindValue(card.Kind)}:{OblivionWorkspaceValidator.GetCardStatusValue(card.Status)}:{card.Title}"),
         ];
 
         File.WriteAllText(jsonPath, json);
         File.WriteAllLines(textPath, textLines);
         return (jsonPath, textPath);
+    }
+
+    private static IReadOnlyList<OblivionCard> GetPageCards(string pageId, PresenterProofOptions? proofOptions)
+    {
+        if (ShouldUseFallbackCatalog(proofOptions))
+        {
+            return GetFallbackPageCards(pageId);
+        }
+
+        OblivionWorkspaceLoadResult loadResult = LoadWorkspace(proofOptions);
+        if (!loadResult.Succeeded || loadResult.Workspace is null)
+        {
+            return CreateWorkspaceErrorCards(pageId, loadResult, proofOptions);
+        }
+
+        OblivionWorkspacePage? page = loadResult.Workspace.Sections
+            .SelectMany(section => section.Pages)
+            .FirstOrDefault(candidate => string.Equals(candidate.PresenterPageId, pageId, StringComparison.Ordinal));
+
+        if (page is null)
+        {
+            return
+            [
+                CreateStatusCard(
+                    "oblivion-missing-page-card",
+                    OblivionCardStatus.Failing,
+                    "Oblivion page missing",
+                    "Workspace did not contain the requested page",
+                    ["oblivion", "workspace", "error"],
+                    [$"Requested page '{pageId}' was not found in '{loadResult.Workspace.ManifestPath}'."],
+                    [])
+            ];
+        }
+
+        return page.Cards;
+    }
+
+    private static bool ShouldUseFallbackCatalog(PresenterProofOptions? proofOptions)
+    {
+        return string.IsNullOrWhiteSpace(proofOptions?.OblivionWorkspacePath) &&
+            !OblivionWorkspacePaths.HasDefaultWorkspace();
+    }
+
+    private static IReadOnlyList<OblivionCard> CreateWorkspaceErrorCards(
+        string pageId,
+        OblivionWorkspaceLoadResult loadResult,
+        PresenterProofOptions? proofOptions)
+    {
+        string workspacePath = OblivionWorkspacePaths.ResolveWorkspaceManifestPath(proofOptions?.OblivionWorkspacePath);
+        string[] diagnosticLines = loadResult.Diagnostics.Count == 0
+            ? [$"Workspace manifest '{workspacePath}' could not be loaded for page '{pageId}'."]
+            : loadResult.Diagnostics.Select(diagnostic => diagnostic.ToString()).ToArray();
+
+        return
+        [
+            CreateStatusCard(
+                $"oblivion-workspace-error-{SanitizeId(pageId)}",
+                OblivionCardStatus.Failing,
+                "Oblivion workspace load failed",
+                "Presenter stayed live and rendered a bounded error card",
+                ["oblivion", "workspace", "error"],
+                diagnosticLines,
+                [])
+        ];
+    }
+
+    private static IReadOnlyList<OblivionCard> GetFallbackPageCards(string pageId)
+    {
+        return pageId switch
+        {
+            CardsPageId => CreateFallbackCardsPageCards(),
+            ExecutionRoadmapPageId => CreateFallbackExecutionRoadmapCards(),
+            ArtifactsPageId => CreateFallbackArtifactsPageCards(),
+            _ => throw new InvalidOperationException($"Unknown Oblivion page id '{pageId}'."),
+        };
+    }
+
+    private static IReadOnlyList<OblivionCard> CreateFallbackCardsPageCards()
+    {
+        return
+        [
+            CreateStatusCard(
+                "oblivion-fallback-note-card",
+                OblivionCardStatus.Warning,
+                "Oblivion fallback catalog active",
+                "Sample workspace files were not available",
+                ["oblivion", "fallback", "workspace"],
+                [
+                    "The presenter is using the hardcoded M11a fallback catalog.",
+                    "Persisted workspace files were not found in the sample output.",
+                    "Execution remains deferred.",
+                ],
+                []),
+            CreateStatusCard(
+                "oblivion-fallback-status-card",
+                OblivionCardStatus.Deferred,
+                "Persistence fallback state",
+                "Safe fallback instead of a crash",
+                ["json", "toml", "deferred"],
+                [
+                    "JSON/TOML persistence is expected in M11d.",
+                    "When the sample workspace is unavailable, the fallback catalog keeps the shell renderable.",
+                ],
+                [])
+        ];
+    }
+
+    private static IReadOnlyList<OblivionCard> CreateFallbackExecutionRoadmapCards()
+    {
+        return
+        [
+            CreateStatusCard(
+                "oblivion-fallback-roadmap-card",
+                OblivionCardStatus.Deferred,
+                "Execution roadmap",
+                "Fallback catalog",
+                ["roslyn", "xunit", "deferred"],
+                [
+                    "Roslyn execution deferred.",
+                    "xUnit [Fact] / [Theory] runtime deferred.",
+                    "Persistence fallback is active because the sample workspace was not found.",
+                ],
+                [])
+        ];
+    }
+
+    private static IReadOnlyList<OblivionCard> CreateFallbackArtifactsPageCards()
+    {
+        return
+        [
+            CreateStatusCard(
+                "oblivion-fallback-artifacts-card",
+                OblivionCardStatus.Placeholder,
+                "Artifacts placeholder",
+                "Fallback catalog",
+                ["artifact", "fallback", "placeholder"],
+                [
+                    "Artifact metadata remains static in M11d.",
+                    "Execution and generation remain deferred.",
+                ],
+                [])
+        ];
+    }
+
+    private static OblivionCard CreateStatusCard(
+        string id,
+        OblivionCardStatus status,
+        string title,
+        string? subtitle,
+        IReadOnlyList<string> tags,
+        IReadOnlyList<string> bodyLines,
+        IReadOnlyList<OblivionCardArtifact> artifacts)
+    {
+        return new OblivionCard(
+            new OblivionCardId(id),
+            OblivionCardKind.Status,
+            status,
+            title,
+            subtitle,
+            tags,
+            bodyLines,
+            [],
+            artifacts);
+    }
+
+    private static string SanitizeId(string pageId)
+    {
+        return pageId.Replace('.', '-');
     }
 }

@@ -153,3 +153,12 @@ M11c adds coverage for:
 - broader direct Dominatus HFSM adoption for presenter UI
 - notebook/runtime execution work
 - any `[Fact]` / `[Theory]` execution model beyond ordinary test-suite validation
+
+## M11d dependency note
+
+M11d uses this shell interaction/composition baseline as the host for persisted Oblivion workspaces:
+
+- the shell page IDs stay stable
+- workspace loading changes page content, not scrollbar/layout behavior
+- load failures are bounded into error cards instead of changing shell/runtime behavior
+- no Roslyn execution, xUnit notebook/runtime execution, or Visionary editor work is introduced

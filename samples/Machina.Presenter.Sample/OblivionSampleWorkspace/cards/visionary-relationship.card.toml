@@ -1,0 +1,15 @@
+format = 1
+kind = "card"
+id = "oblivion-visionary-note-card"
+card_kind = "note"
+status = "deferred"
+title = "Visionary relationship"
+subtitle = "Future source workspace layer"
+tags = ["visionary", "future", "docs-only"]
+
+[body]
+format = "plain"
+text = """
+Visionary is the future code editor/source workspace layer.
+M11d does not implement Visionary.
+"""

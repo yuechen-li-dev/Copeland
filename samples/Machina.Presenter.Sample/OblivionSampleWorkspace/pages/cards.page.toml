@@ -1,0 +1,6 @@
+format = 1
+kind = "page"
+id = "cards"
+title = "Cards"
+description = "Persisted Oblivion cards loaded from disk."
+tags = ["oblivion", "cards", "persistence"]

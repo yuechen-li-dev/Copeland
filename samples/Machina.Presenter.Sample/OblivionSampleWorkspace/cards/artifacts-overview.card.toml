@@ -1,0 +1,32 @@
+format = 1
+kind = "card"
+id = "oblivion-artifacts-page-card"
+card_kind = "artifact"
+status = "placeholder"
+title = "Artifact lane placeholder"
+subtitle = "Static export-facing proof"
+tags = ["artifacts", "png", "json", "toml"]
+
+[body]
+format = "plain"
+text = """
+Artifacts stay visible inside the workbench shell.
+M11d records artifact metadata without introducing generation runtime.
+"""
+
+[[actions]]
+id = "capture-artifact"
+label = "Capture artifact"
+enabled = false
+
+[[artifacts]]
+id = "presenter-proof"
+label = "Presenter PNG"
+kind = "png"
+asset = "artifacts/presenter-proof.artifact.toml"
+
+[[artifacts]]
+id = "workspace-manifest"
+label = "Workspace manifest"
+kind = "json"
+asset = "artifacts/workspace-manifest.artifact.toml"

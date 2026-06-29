@@ -176,3 +176,13 @@ Before Oblivion resumes runtime-facing work, the presenter host now uses the M11
 - cached page/shell composition so scroll offset changes do not force full rerender
 
 M11c does not add notebook execution, Roslyn execution, or `[Fact]` / `[Theory]` execution behavior.
+
+## M11d follow-up
+
+M11d keeps the M11a boundary but replaces the hardcoded sample-local card catalog with persisted workspace data:
+
+- `workspace.oblivion.json` is now the `.sln`-like workspace graph/tree
+- `*.page.toml`, `*.card.toml`, and `*.artifact.toml` are now the `.csproj`-like human-editable asset units
+- the presenter now loads static Oblivion cards from disk
+
+M11d still adds no Roslyn execution, no xUnit notebook/runtime execution, no markdown editor, and no Visionary editor behavior.

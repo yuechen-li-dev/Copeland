@@ -1,0 +1,31 @@
+format = 1
+kind = "card"
+id = "oblivion-code-theory-card"
+card_kind = "code-theory"
+status = "deferred"
+title = "Code theory placeholder"
+subtitle = "not executed in M11d"
+tags = ["code", "theory", "deferred"]
+
+[body]
+format = "plain"
+text = """
+[Theory]
+public void TextProof_RendersAtSize(int size)
+[InlineData(16)]
+[InlineData(24)]
+{
+    // Execution deferred.
+}
+not executed in M11d
+"""
+
+[[actions]]
+id = "run-theory"
+label = "Run theory"
+enabled = false
+
+[[artifacts]]
+id = "theory-source"
+label = "Source snippet"
+kind = "code"

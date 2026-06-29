@@ -1,0 +1,15 @@
+format = 1
+kind = "card"
+id = "oblivion-artifacts-export-policy-card"
+card_kind = "note"
+status = "idle"
+title = "Artifact policy"
+subtitle = "Deterministic local proof outputs"
+tags = ["deterministic", "local-proof"]
+
+[body]
+format = "plain"
+text = """
+Exports stay under artifacts/m11d for this milestone.
+No timestamp is included in the Oblivion persistence manifest by default.
+"""

@@ -1,0 +1,6 @@
+format = 1
+kind = "page"
+id = "execution-roadmap"
+title = "Execution Roadmap"
+description = "Execution remains deferred while persistence lands."
+tags = ["oblivion", "roadmap", "deferred"]

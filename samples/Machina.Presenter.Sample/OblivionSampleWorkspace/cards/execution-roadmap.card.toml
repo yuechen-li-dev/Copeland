@@ -1,0 +1,17 @@
+format = 1
+kind = "card"
+id = "oblivion-execution-roadmap-card"
+card_kind = "status"
+status = "deferred"
+title = "Execution roadmap"
+subtitle = "Card model and persistence proven first"
+tags = ["roslyn", "xunit", "deferred"]
+
+[body]
+format = "plain"
+text = """
+Roslyn execution deferred.
+xUnit [Fact] / [Theory] deferred.
+Artifact capture deferred.
+Persistence lands before execution.
+"""

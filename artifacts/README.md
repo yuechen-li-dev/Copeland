@@ -28,6 +28,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m10c/` is the historical presenter shell organization export directory.
 - `artifacts/m10d/` is the current presenter shell stabilization export directory.
 - `artifacts/m11a/` is the current Oblivion card-model proof export directory.
+- `artifacts/m11d/` is the current Oblivion workspace-persistence proof export directory.
 - `artifacts/m11c/` is the current presenter scrollbar state-machine and cached-composition proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
@@ -52,6 +53,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M10c presenter shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M10d presenter stabilization PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11a Oblivion PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M11d Oblivion workspace PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11c presenter scrollbar state-machine PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
@@ -181,6 +183,14 @@ Current M11c presenter scrollbar-state-machine commands:
 ```powershell
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11c\presenter-scrollbar-state-machine-components.png -SelectedSection components -SelectedTab controls
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11c\presenter-scrollbar-state-machine-scrolled.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:344
+```
+
+Current M11d Oblivion workspace commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-cards.png -SelectedSection oblivion -SelectedTab cards
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-artifacts.png -SelectedSection oblivion -SelectedTab artifacts
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -611,3 +621,13 @@ These remain local sample proof artifacts only. `Oblivion` is the notebook/card/
 - `artifacts/m11c/presenter-scrollbar-state-machine-manifest.json`
 
 These remain local sample proof artifacts only. M11c refactors scrollbar interaction into explicit states, keeps Avalonia sample-scoped, adds cached page/shell composition so scroll offset changes avoid full rerender, adds no Roslyn execution, adds no notebook/runtime `[Fact]` / `[Theory]` execution behavior, and does not resume font work.
+
+## Current M11d Oblivion workspace-persistence outputs
+
+- `artifacts/m11d/presenter-oblivion-workspace-cards.png`
+- `artifacts/m11d/presenter-oblivion-workspace-roadmap.png`
+- `artifacts/m11d/presenter-oblivion-workspace-artifacts.png`
+- `artifacts/m11d/oblivion-workspace-persistence-manifest.txt`
+- `artifacts/m11d/oblivion-workspace-persistence-manifest.json`
+
+These remain local sample proof artifacts only. M11d makes the root Oblivion workspace graph/tree JSON, keeps card/page/artifact metadata in human-editable TOML assets, loads static workspace pages into the existing presenter shell, adds no Roslyn execution, adds no notebook/runtime `[Fact]` / `[Theory]` execution behavior, adds no markdown editor, and adds no Visionary editor behavior.

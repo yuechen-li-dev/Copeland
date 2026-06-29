@@ -1,0 +1,7 @@
+format = 1
+kind = "artifact"
+id = "presenter-proof"
+label = "Presenter proof"
+artifact_kind = "png"
+path = "artifacts/presenter-oblivion-workspace-cards.png"
+generated = false

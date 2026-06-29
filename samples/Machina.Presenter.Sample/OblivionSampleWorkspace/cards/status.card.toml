@@ -1,0 +1,17 @@
+format = 1
+kind = "card"
+id = "oblivion-static-status-card"
+card_kind = "status"
+status = "passing"
+title = "Current substrate status"
+subtitle = "Persistence proof state"
+tags = ["json", "toml", "presenter", "deferred"]
+
+[body]
+format = "plain"
+text = """
+Root workspace manifest: JSON
+Card/page/artifact assets: TOML
+Presenter shell: active
+Roslyn execution: deferred
+"""

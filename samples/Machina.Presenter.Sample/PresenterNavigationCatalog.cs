@@ -250,9 +250,9 @@ public static class PresenterNavigationCatalog
             "text.proofs" => 376,
             "diagnostics.layout" => 360,
             "diagnostics.export" => 432,
-            OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.CardsPageContentHeight,
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.ExecutionRoadmapPageContentHeight,
-            OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.ArtifactsPageContentHeight,
+            OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
+            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
+            OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
             "legacy.m1e-card" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 1152 : 420,
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -567,7 +567,7 @@ public static class PresenterNavigationCatalog
             case OblivionWorkbenchCatalog.CardsPageId:
             case OblivionWorkbenchCatalog.ExecutionRoadmapPageId:
             case OblivionWorkbenchCatalog.ArtifactsPageId:
-                rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth));
+                rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth, proofOptions));
                 break;
 
             case "legacy.m1e-card":

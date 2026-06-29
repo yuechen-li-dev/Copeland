@@ -1,7 +1,10 @@
 namespace Machina.Presenter.Sample;
 
 public sealed record PresenterProofOptions(
-    bool IncludeDirectOutlineRenderBridgeProof = false)
+    bool IncludeDirectOutlineRenderBridgeProof = false,
+    string? OblivionWorkspacePath = null)
 {
-    public bool HasAnyProof => IncludeDirectOutlineRenderBridgeProof;
+    public bool HasAnyProof =>
+        IncludeDirectOutlineRenderBridgeProof ||
+        !string.IsNullOrWhiteSpace(OblivionWorkspacePath);
 }

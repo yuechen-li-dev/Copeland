@@ -4,6 +4,7 @@ param(
     [switch]$IncludeDirectOutlineRenderBridgeProof,
     [switch]$IncludeNavigationShell,
     [switch]$LegacySingleCard,
+    [string]$OblivionWorkspace,
     [string]$SelectedSection,
     [string]$SelectedTab,
     [string]$NavigationPage,
@@ -57,6 +58,12 @@ if ($IncludeNavigationShell)
 if ($LegacySingleCard)
 {
     $arguments += "--legacy-single-card"
+}
+
+if (-not [string]::IsNullOrWhiteSpace($OblivionWorkspace))
+{
+    $arguments += "--oblivion-workspace"
+    $arguments += $OblivionWorkspace
 }
 
 if (-not [string]::IsNullOrWhiteSpace($NavigationPage))

@@ -1,0 +1,7 @@
+format = 1
+kind = "artifact"
+id = "workspace-manifest"
+label = "Workspace manifest"
+artifact_kind = "json"
+path = "workspace.oblivion.json"
+generated = false

@@ -1,0 +1,20 @@
+format = 1
+kind = "card"
+id = "oblivion-ui-preview-card"
+card_kind = "ui-preview"
+status = "placeholder"
+title = "UI preview placeholder"
+subtitle = "Future visual proof surface"
+tags = ["preview", "ui", "placeholder"]
+
+[body]
+format = "plain"
+text = """
+Future card will render a Machina UI document preview here.
+M11d keeps the preview surface as metadata only.
+"""
+
+[[actions]]
+id = "open-preview"
+label = "Open preview"
+enabled = false

@@ -1022,3 +1022,21 @@ This remains infrastructure-only:
 - `[Fact]` / `[Theory]` execution remains deferred to M12 or later
 - no font rendering behavior change
 - no presenter/runtime behavior change
+
+## M11d update
+
+M11d lands Oblivion workspace persistence without adding execution.
+
+- `workspace.oblivion.json` is now the JSON workspace root for the Oblivion tree/graph.
+- `*.page.toml`, `*.card.toml`, and `*.artifact.toml` are the human-editable page/card/artifact metadata units.
+- the presenter sample now loads a static sample workspace from disk into `Oblivion -> Cards`, `Execution Roadmap`, and `Artifacts`.
+- load failures now render bounded error cards instead of crashing the presenter shell.
+- deterministic manifest output now records the JSON/TOML split and workspace load counts under `artifacts/m11d`.
+
+This remains persistence-only:
+
+- no Roslyn execution
+- no xUnit notebook/runtime execution
+- no markdown editor
+- no Visionary editor
+- execution remains deferred to M12+

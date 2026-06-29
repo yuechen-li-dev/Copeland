@@ -73,7 +73,7 @@ public static class PresenterExporter
                 shellRender,
                 proofOptions,
                 navigationOptions.InteractionBackendName);
-            (oblivionManifestJsonPath, oblivionManifestTextPath) = OblivionWorkbenchCatalog.WriteManifest(outputDirectory);
+            (oblivionManifestJsonPath, oblivionManifestTextPath) = OblivionWorkbenchCatalog.WriteManifest(outputDirectory, proofOptions);
         }
         else
         {

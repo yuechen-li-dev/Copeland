@@ -1,0 +1,6 @@
+format = 1
+kind = "page"
+id = "artifacts"
+title = "Artifacts"
+description = "Static artifact metadata for the persistence milestone."
+tags = ["oblivion", "artifacts", "metadata"]

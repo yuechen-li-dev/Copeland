@@ -1,0 +1,17 @@
+format = 1
+kind = "card"
+id = "oblivion-intro-note-card"
+card_kind = "note"
+status = "idle"
+title = "Oblivion workbench substrate"
+subtitle = "Notebook/card/workbench layer"
+tags = ["oblivion", "m11d", "workspace"]
+
+[body]
+format = "plain"
+text = """
+Oblivion is the notebook/card layer for Machina Workbench.
+Workspace structure now lives in a JSON root manifest.
+Cards, pages, and artifact metadata now live in human-editable TOML assets.
+Execution is deferred to M12+.
+"""

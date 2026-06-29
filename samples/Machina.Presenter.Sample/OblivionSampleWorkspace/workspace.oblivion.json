@@ -1,0 +1,46 @@
+{
+  "format": 1,
+  "kind": "oblivion-workspace",
+  "workspaceId": "machina-sample",
+  "title": "Machina Sample Workspace",
+  "defaultPageId": "cards",
+  "sections": [
+    {
+      "id": "oblivion",
+      "title": "Oblivion",
+      "pages": [
+        {
+          "id": "cards",
+          "title": "Cards",
+          "asset": "pages/cards.page.toml",
+          "cards": [
+            "cards/intro.card.toml",
+            "cards/status.card.toml",
+            "cards/ui-preview-placeholder.card.toml",
+            "cards/artifact-placeholder.card.toml",
+            "cards/code-fact-placeholder.card.toml",
+            "cards/code-theory-placeholder.card.toml"
+          ]
+        },
+        {
+          "id": "execution-roadmap",
+          "title": "Execution Roadmap",
+          "asset": "pages/execution-roadmap.page.toml",
+          "cards": [
+            "cards/execution-roadmap.card.toml",
+            "cards/visionary-relationship.card.toml"
+          ]
+        },
+        {
+          "id": "artifacts",
+          "title": "Artifacts",
+          "asset": "pages/artifacts.page.toml",
+          "cards": [
+            "cards/artifacts-overview.card.toml",
+            "cards/artifact-policy.card.toml"
+          ]
+        }
+      ]
+    }
+  ]
+}

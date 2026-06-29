@@ -1,0 +1,29 @@
+format = 1
+kind = "card"
+id = "oblivion-code-fact-card"
+card_kind = "code-fact"
+status = "deferred"
+title = "Code fact placeholder"
+subtitle = "not executed in M11d"
+tags = ["code", "fact", "deferred"]
+
+[body]
+format = "plain"
+text = """
+[Fact]
+public void SettingsCard_Renders()
+{
+    // Execution deferred.
+}
+not executed in M11d
+"""
+
+[[actions]]
+id = "run-fact"
+label = "Run fact"
+enabled = false
+
+[[artifacts]]
+id = "fact-source"
+label = "Source snippet"
+kind = "code"

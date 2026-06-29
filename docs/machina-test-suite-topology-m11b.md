@@ -187,3 +187,12 @@ M11b remains test-topology work only, but M11c adds more presenter fast-loop cov
 - compose/blit geometry tests
 
 `[Fact]` / `[Theory]` execution as notebook/runtime behavior is still deferred to M12+; these are ordinary test-suite validations only.
+
+## M11d note
+
+M11d builds on this split without changing its intent:
+
+- persistence roundtrip and loader validation tests stay in the fast presenter sample suite
+- no Roslyn execution is added
+- no xUnit notebook/runtime execution is added
+- execution remains deferred to M12+
