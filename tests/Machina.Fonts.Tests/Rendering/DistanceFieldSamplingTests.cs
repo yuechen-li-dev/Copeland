@@ -70,4 +70,21 @@ public sealed class DistanceFieldSamplingTests
         Assert.True(above > 0.5d);
         Assert.True(below < above);
     }
+
+    [Fact]
+    public void MsdfUvMapping_MapsDrawRectCornersToExpectedAtlasTexels()
+    {
+        Assert.Equal(0d, DistanceFieldSampling.MapToSourceCoordinate(0d, 8), 6);
+        Assert.Equal(7d, DistanceFieldSampling.MapToSourceCoordinate(1d, 8), 6);
+        Assert.Equal(3.5d, DistanceFieldSampling.MapToSourceCoordinate(0.5d, 8), 6);
+    }
+
+    [Fact]
+    public void MsdfUvMapping_UsesTexelCenterConventionConsistently()
+    {
+        Assert.Equal(0d, DistanceFieldSampling.MapToSourceCoordinate(0.0625d, 1), 6);
+        Assert.Equal(0d, DistanceFieldSampling.MapToSourceCoordinate(0.125d, 2), 6);
+        Assert.Equal(1d, DistanceFieldSampling.MapToSourceCoordinate(0.875d, 2), 6);
+        Assert.Equal(1.5d, DistanceFieldSampling.MapToSourceCoordinate(0.5d, 4), 6);
+    }
 }

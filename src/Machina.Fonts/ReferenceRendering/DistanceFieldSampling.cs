@@ -26,8 +26,8 @@ public static class DistanceFieldSampling
 
         double clampedU = Clamp01(u);
         double clampedV = Clamp01(v);
-        double sourceX = clampedU * Math.Max(0, width - 1);
-        double sourceY = clampedV * Math.Max(0, height - 1);
+        double sourceX = MapToSourceCoordinate(clampedU, width);
+        double sourceY = MapToSourceCoordinate(clampedV, height);
 
         int x0 = (int)Math.Floor(sourceX);
         int y0 = (int)Math.Floor(sourceY);
@@ -69,6 +69,16 @@ public static class DistanceFieldSampling
 
         double smoothing = 0.5 / Math.Max(1d, pxRange * scale);
         return SmoothStep(threshold - smoothing, threshold + smoothing, distance);
+    }
+
+    internal static double MapToSourceCoordinate(double normalizedCoordinate, int length)
+    {
+        if (length <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length));
+        }
+
+        return Clamp((Clamp01(normalizedCoordinate) * length) - 0.5d, 0d, length - 1d);
     }
 
     internal static float DecodeDistanceAt(
@@ -179,6 +189,26 @@ public static class DistanceFieldSampling
         if (value > 1d)
         {
             return 1d;
+        }
+
+        return value;
+    }
+
+    private static double Clamp(double value, double min, double max)
+    {
+        if (double.IsNaN(value))
+        {
+            return min;
+        }
+
+        if (value < min)
+        {
+            return min;
+        }
+
+        if (value > max)
+        {
+            return max;
         }
 
         return value;

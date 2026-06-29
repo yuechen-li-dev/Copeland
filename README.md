@@ -83,6 +83,9 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina Font Toolkit Export Hygiene M9c](docs/machina-font-toolkit-export-hygiene-m9c.md)
 - [Machina Direct-Outline Static Text M9d](docs/machina-direct-outline-static-text-m9d.md)
 - [Machina Direct-Outline Text Proof M9e](docs/machina-direct-outline-text-proof-m9e.md)
+- [Machina MSDF Alignment Repair M9f](docs/machina-msdf-alignment-repair-m9f.md)
+- [Machina Direct-Outline Text Layout Contract M9g](docs/machina-direct-outline-text-layout-contract-m9g.md)
+- [Machina Direct-Outline Render Bridge M9h](docs/machina-direct-outline-render-bridge-m9h.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -124,6 +127,40 @@ Proof outputs:
 - `artifacts/m9e/direct-outline-static-text-proof.png`
 
 This proof mode is also local and sample-only. It proves `DirectOutlineStatic` on real UI-ish strings without changing the production UI text default, and MSDF stays explicit experimental/scalable only.
+
+Opt-in direct-outline text layout proof export:
+
+```powershell
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9g -IncludeDirectOutlineTextProof -IncludeDirectOutlineTextLayoutProof
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9g -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
+```
+
+Proof outputs:
+
+- `artifacts/m9g/component-gallery-direct-outline-text-layout-proof.png`
+- `artifacts/m9g/direct-outline-text-box-layout-proof.png`
+- `artifacts/m9g/direct-outline-text-alignment-grid.png`
+- `artifacts/m9g/font-diagnostic-export-manifest.txt`
+- `artifacts/m9g/font-diagnostic-export-manifest.json`
+
+This M9g proof remains local and sample-only. It formalizes a deterministic text-in-rect layout contract for `DirectOutlineStatic`, adds padding/alignment/clipping and explicit newline layout to the proof path, keeps production UI text behavior unchanged, and leaves MSDF explicit experimental/scalable.
+
+Opt-in direct-outline render bridge proof export:
+
+```powershell
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9h -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9h -IncludeDirectOutlineRenderBridgeProof
+```
+
+Proof outputs:
+
+- `artifacts/m9h/component-gallery-direct-outline-render-bridge-proof.png`
+- `artifacts/m9h/direct-outline-render-bridge-proof.png`
+- `artifacts/m9h/direct-outline-render-bridge-layout-grid.png`
+- `artifacts/m9h/font-diagnostic-export-manifest.txt`
+- `artifacts/m9h/font-diagnostic-export-manifest.json`
+
+This M9h proof is still local and sample-only. It adds a renderer-facing bridge contract in `Machina.Fonts.ReferenceRendering`, keeps production UI text behavior unchanged, keeps `DirectOutlineStatic` as the static/reference path, and keeps MSDF explicit experimental/scalable.
 
 Current font proof audit workflow:
 
@@ -234,6 +271,24 @@ Current M9d outputs include:
 - `artifacts/m9d/font-diagnostic-export-manifest.json`
 
 M9d is still diagnostic tooling only. It formalizes direct-outline as the default static/UI-text proof backend, keeps MSDF explicit as scalable/experimental, and does not change production UI text behavior or attempt an MSDF fix.
+
+Current M9f alignment-repair workflow:
+
+```powershell
+.\tools\Export-MachinaMsdfAlignmentRepairM9f.ps1 -OutputDir artifacts\m9f -Clean
+```
+
+Current M9f outputs include:
+
+- `artifacts/m9f/m9f-direct-vs-msdf-hello-machina.png`
+- `artifacts/m9f/m9f-direct-vs-msdf-machina.png`
+- `artifacts/m9f/m9f-direct-vs-msdf-settings.png`
+- `artifacts/m9f/m9f-before-after-direct-vs-msdf-hello-machina.png`
+- `artifacts/m9f/shape-diff-report.txt`
+- `artifacts/m9f/font-diagnostic-export-manifest.txt`
+- `artifacts/m9f/msdf-alignment-report.txt`
+
+M9f is still proof/tooling-only. It keeps `DirectOutlineStatic` as the geometry oracle, repairs MSDF-side alignment in the explicit experimental/scalable path, keeps browser kerning out of the target contract, and does not change production UI text behavior.
 
 M8q.2 remains the baseline-guide overlay pass that preceded M8r. Its current proof export is:
 

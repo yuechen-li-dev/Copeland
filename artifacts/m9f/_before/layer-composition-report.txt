@@ -1,0 +1,2048 @@
+Machina Font Toolkit M9d layer composition report
+outputDirectory: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before
+presetsGenerated: direct-vs-msdf, cad-debug, msdf-debug
+
+[direct-vs-msdf] Hello Machina @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-direct-vs-msdf-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Hello Machina @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-cad-debug-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Hello Machina @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-msdf-debug-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Machina @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-direct-vs-msdf-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Machina @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-cad-debug-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Machina @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-msdf-debug-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Machina UI @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-direct-vs-msdf-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Machina UI @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-cad-debug-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Machina UI @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-msdf-debug-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Settings @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-direct-vs-msdf-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Settings @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-cad-debug-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Settings @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-msdf-debug-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Direct outline static text @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-direct-vs-msdf-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Direct outline static text @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-cad-debug-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Direct outline static text @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-msdf-debug-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] AV To Ta Wa Yo @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-direct-vs-msdf-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] AV To Ta Wa Yo @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-cad-debug-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] AV To Ta Wa Yo @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-msdf-debug-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Aa0 1234567890 @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-direct-vs-msdf-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Aa0 1234567890 @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-cad-debug-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Aa0 1234567890 @ 16px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\m9d-msdf-debug-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\16\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Hello Machina @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-direct-vs-msdf-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Hello Machina @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-cad-debug-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Hello Machina @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-msdf-debug-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Machina @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-direct-vs-msdf-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Machina @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-cad-debug-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Machina @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-msdf-debug-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Machina UI @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-direct-vs-msdf-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Machina UI @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-cad-debug-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Machina UI @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-msdf-debug-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Settings @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-direct-vs-msdf-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Settings @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-cad-debug-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Settings @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-msdf-debug-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Direct outline static text @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-direct-vs-msdf-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Direct outline static text @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-cad-debug-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Direct outline static text @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-msdf-debug-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] AV To Ta Wa Yo @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-direct-vs-msdf-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] AV To Ta Wa Yo @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-cad-debug-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] AV To Ta Wa Yo @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-msdf-debug-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Aa0 1234567890 @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-direct-vs-msdf-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Aa0 1234567890 @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-cad-debug-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Aa0 1234567890 @ 24px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\m9d-msdf-debug-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\24\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Hello Machina @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-direct-vs-msdf-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Hello Machina @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-cad-debug-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Hello Machina @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-msdf-debug-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Machina @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-direct-vs-msdf-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Machina @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-cad-debug-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Machina @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-msdf-debug-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Machina UI @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-direct-vs-msdf-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Machina UI @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-cad-debug-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Machina UI @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-msdf-debug-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Settings @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-direct-vs-msdf-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Settings @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-cad-debug-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Settings @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-msdf-debug-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Direct outline static text @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-direct-vs-msdf-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Direct outline static text @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-cad-debug-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Direct outline static text @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-msdf-debug-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] AV To Ta Wa Yo @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-direct-vs-msdf-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] AV To Ta Wa Yo @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-cad-debug-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] AV To Ta Wa Yo @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-msdf-debug-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Aa0 1234567890 @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-direct-vs-msdf-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Aa0 1234567890 @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-cad-debug-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Aa0 1234567890 @ 32px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\m9d-msdf-debug-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\32\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Hello Machina @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-direct-vs-msdf-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Hello Machina @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-cad-debug-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Hello Machina @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-msdf-debug-hello-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-hello-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-hello-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-hello-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Machina @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-direct-vs-msdf-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Machina @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-cad-debug-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Machina @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-msdf-debug-machina.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-machina.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-machina.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-machina.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Machina UI @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-direct-vs-msdf-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Machina UI @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-cad-debug-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Machina UI @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-msdf-debug-machina-ui.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-machina-ui.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-machina-ui.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-machina-ui.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Settings @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-direct-vs-msdf-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Settings @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-cad-debug-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Settings @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-msdf-debug-settings.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-settings.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-settings.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-settings.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Direct outline static text @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-direct-vs-msdf-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Direct outline static text @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-cad-debug-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Direct outline static text @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-msdf-debug-direct-outline-static-text.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-direct-outline-static-text.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-direct-outline-static-text.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-direct-outline-static-text.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] AV To Ta Wa Yo @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-direct-vs-msdf-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] AV To Ta Wa Yo @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-cad-debug-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] AV To Ta Wa Yo @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-msdf-debug-kerning.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-kerning.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-kerning.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-kerning.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+
+[direct-vs-msdf] Aa0 1234567890 @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-direct-vs-msdf-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic, MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=30
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.7 zIndex=40
+  - difference (DiagnosticDifferenceLayer) visible=true opacity=0.7 zIndex=50
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=60
+
+[cad-debug] Aa0 1234567890 @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-cad-debug-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: DirectOutlineStatic
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - direct-image (DiagnosticImageLayer) visible=true opacity=0.4 zIndex=0
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=10
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=20
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=30
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=40
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=50
+  - cad-labels (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=60
+  - browser-status-label (DiagnosticTextLabelLayer) visible=true opacity=1 zIndex=70
+
+[msdf-debug] Aa0 1234567890 @ 64px
+artifactPath: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\m9d-msdf-debug-aa0.png
+referenceRenderStrategy: DirectOutlineStatic
+renderStrategies: MsdfScalableExperimental
+notes: none
+presetComplete: true
+missingRequiredSources: none
+degradedSources: none
+sourceImagePaths:
+  browser: not available
+  direct: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\direct-outline-aa0.png
+  msdf: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\msdf-aa0.png
+  wireframe: C:\Users\yuech\source\repos\Copeland\artifacts\m9f\_before\64\wireframe-aa0.png
+grid: show=true, step=8, majorStep=32, unitLabels=true
+bounds: show=true, wireframes=true
+layers:
+  - grid (DiagnosticGridLayer) visible=true opacity=1 zIndex=0
+  - axes (DiagnosticAxisLayer) visible=true opacity=1 zIndex=10
+  - baseline (DiagnosticBaselineLayer) visible=true opacity=1 zIndex=20
+  - msdf-image (DiagnosticImageLayer) visible=true opacity=0.8 zIndex=30
+  - msdf-mask (DiagnosticMaskLayer) visible=true opacity=0.3 zIndex=40
+  - bounds (DiagnosticBoundsLayer) visible=true opacity=1 zIndex=50
+  - glyph-wireframes (DiagnosticGlyphWireframeLayer) visible=true opacity=1 zIndex=60
+

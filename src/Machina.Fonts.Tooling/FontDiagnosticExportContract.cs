@@ -67,6 +67,7 @@ public sealed record FontDiagnosticPresetAvailabilityReport(
 public sealed record FontDiagnosticExportManifestOptions(
     bool CleanOutputDirectory,
     bool AllowPartial,
+    bool ScaleExperimentalFieldWithEmSize,
     int GridStep,
     bool ShowGrid,
     bool ShowUnitLabels,

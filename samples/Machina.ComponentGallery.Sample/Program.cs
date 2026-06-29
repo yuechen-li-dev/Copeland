@@ -30,7 +30,11 @@ internal sealed class Program
     {
         return AppBuilder.Configure(() => new App(
                 options.InitialState,
-                new GalleryProofOptions(options.IncludeDirectOutlineTextProof, options.IncludeMsdfFontProof)))
+                new GalleryProofOptions(
+                    options.IncludeDirectOutlineTextProof,
+                    options.IncludeDirectOutlineRenderBridgeProof,
+                    options.IncludeDirectOutlineTextLayoutProof,
+                    options.IncludeMsdfFontProof)))
             .UsePlatformDetect();
     }
 
@@ -114,6 +118,16 @@ internal sealed class Program
             if (_proofOptions.IncludeMsdfFontProof)
             {
                 GalleryMsdfFontProofRenderer.BlitProof(_currentFrame.RasterFrame, _currentFrame.Resolved);
+            }
+
+            if (_proofOptions.IncludeDirectOutlineRenderBridgeProof)
+            {
+                GalleryDirectOutlineRenderBridgeProofRenderer.BlitProof(_currentFrame.RasterFrame, _currentFrame.Resolved);
+            }
+
+            if (_proofOptions.IncludeDirectOutlineTextLayoutProof)
+            {
+                GalleryDirectOutlineTextLayoutProofRenderer.BlitProof(_currentFrame.RasterFrame, _currentFrame.Resolved);
             }
 
             _image.Source = GalleryExporter.ToBitmap(_currentFrame.RasterFrame);

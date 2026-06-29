@@ -1,0 +1,3836 @@
+{
+  "FontPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\tests\\Machina.Fonts.Tooling.Tests\\bin\\Debug\\net10.0\\Fixtures\\Fonts\\CrimsonText-Regular.ttf",
+  "FontFace": "CrimsonText-Regular",
+  "FontSizes": [
+    16,
+    24,
+    32,
+    64
+  ],
+  "Texts": [
+    "Hello Machina",
+    "Machina",
+    "Machina UI",
+    "Settings",
+    "Direct outline static text",
+    "AV To Ta Wa Yo",
+    "Aa0 1234567890"
+  ],
+  "GeometryReferencePolicy": "Direct-outline static rasterization with Machina\u0027s own kerning is the current internal geometry reference for M9d diagnostics.",
+  "BrowserKerningPolicy": "Browser capture may still be useful for context, but browser horizontal kerning is not the target oracle in this workflow.",
+  "DiagnosticGridPolicy": "Diagnostic layers make measurements, baseline placement, bounds, and diffs easier to inspect for humans and LLMs without changing production text behavior. MSDF remains available only as an explicit scalable/experimental comparison path.",
+  "Sizes": [
+    {
+      "SizePx": 16,
+      "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16",
+      "CanvasWidth": 360,
+      "CanvasHeight": 56,
+      "OriginX": 8,
+      "BaselineY": 24,
+      "Fixtures": [
+        {
+          "Id": "hello-machina",
+          "Text": "Hello Machina",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\direct-outline-hello-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\msdf-hello-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\wireframe-hello-machina.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 13,
+            "Right": 102,
+            "Bottom": 23,
+            "Width": 95,
+            "Height": 11
+          },
+          "MsdfBounds": {
+            "Left": 10,
+            "Top": 10,
+            "Right": 103,
+            "Bottom": 22,
+            "Width": 94,
+            "Height": 13
+          },
+          "WireframeBounds": [
+            {
+              "Left": 7,
+              "Top": 12,
+              "Right": 20,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 18,
+              "Top": 16,
+              "Right": 26,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 20,
+              "Top": 11,
+              "Right": 34,
+              "Bottom": 25,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 24,
+              "Top": 11,
+              "Right": 38,
+              "Bottom": 25,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 33,
+              "Top": 16,
+              "Right": 41,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 46,
+              "Top": 10,
+              "Right": 63,
+              "Bottom": 27,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 61,
+              "Top": 16,
+              "Right": 69,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 67,
+              "Top": 16,
+              "Right": 75,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 71,
+              "Top": 11,
+              "Right": 85,
+              "Bottom": 25,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 78,
+              "Top": 13,
+              "Right": 90,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 86,
+              "Top": 16,
+              "Right": 95,
+              "Bottom": 25,
+              "Width": 10,
+              "Height": 10
+            },
+            {
+              "Left": 95,
+              "Top": 16,
+              "Right": 103,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.26422250316055623,
+            "MeanEdgeDistance": 1.083980614302802,
+            "P95EdgeDistance": 2.8970562748477104,
+            "MaxEdgeDistance": 6,
+            "LeftOnlyArea": 274,
+            "RightOnlyArea": 308,
+            "DeltaLeft": 2,
+            "DeltaTop": -3,
+            "DeltaRight": 1,
+            "DeltaBottom": -1,
+            "DeltaWidth": -1,
+            "DeltaHeight": 2
+          }
+        },
+        {
+          "Id": "machina",
+          "Text": "Machina",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\direct-outline-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\msdf-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\wireframe-machina.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 13,
+            "Right": 62,
+            "Bottom": 23,
+            "Width": 55,
+            "Height": 11
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 10,
+            "Right": 63,
+            "Bottom": 22,
+            "Width": 55,
+            "Height": 13
+          },
+          "WireframeBounds": [
+            {
+              "Left": 6,
+              "Top": 10,
+              "Right": 23,
+              "Bottom": 27,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 21,
+              "Top": 16,
+              "Right": 29,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 28,
+              "Top": 16,
+              "Right": 36,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 32,
+              "Top": 11,
+              "Right": 46,
+              "Bottom": 25,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 39,
+              "Top": 13,
+              "Right": 51,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 47,
+              "Top": 16,
+              "Right": 56,
+              "Bottom": 25,
+              "Width": 10,
+              "Height": 10
+            },
+            {
+              "Left": 55,
+              "Top": 16,
+              "Right": 63,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.31648351648351647,
+            "MeanEdgeDistance": 0.9434543189898559,
+            "P95EdgeDistance": 2.8284271247461903,
+            "MaxEdgeDistance": 4.242640687119285,
+            "LeftOnlyArea": 134,
+            "RightOnlyArea": 177,
+            "DeltaLeft": 1,
+            "DeltaTop": -3,
+            "DeltaRight": 1,
+            "DeltaBottom": -1,
+            "DeltaWidth": 0,
+            "DeltaHeight": 2
+          }
+        },
+        {
+          "Id": "machina-ui",
+          "Text": "Machina UI",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\direct-outline-machina-ui.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\msdf-machina-ui.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\wireframe-machina-ui.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 13,
+            "Right": 84,
+            "Bottom": 23,
+            "Width": 77,
+            "Height": 11
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 10,
+            "Right": 89,
+            "Bottom": 22,
+            "Width": 81,
+            "Height": 13
+          },
+          "WireframeBounds": [
+            {
+              "Left": 6,
+              "Top": 10,
+              "Right": 23,
+              "Bottom": 27,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 21,
+              "Top": 16,
+              "Right": 29,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 28,
+              "Top": 16,
+              "Right": 36,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 32,
+              "Top": 11,
+              "Right": 46,
+              "Bottom": 25,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 39,
+              "Top": 13,
+              "Right": 51,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 47,
+              "Top": 16,
+              "Right": 56,
+              "Bottom": 25,
+              "Width": 10,
+              "Height": 10
+            },
+            {
+              "Left": 55,
+              "Top": 16,
+              "Right": 63,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 68,
+              "Top": 12,
+              "Right": 81,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 76,
+              "Top": 12,
+              "Right": 89,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.24646781789638933,
+            "MeanEdgeDistance": 1.1711259033503705,
+            "P95EdgeDistance": 3.1622776601683795,
+            "MaxEdgeDistance": 6,
+            "LeftOnlyArea": 217,
+            "RightOnlyArea": 263,
+            "DeltaLeft": 1,
+            "DeltaTop": -3,
+            "DeltaRight": 5,
+            "DeltaBottom": -1,
+            "DeltaWidth": 4,
+            "DeltaHeight": 2
+          }
+        },
+        {
+          "Id": "settings",
+          "Text": "Settings",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\direct-outline-settings.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\msdf-settings.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\wireframe-settings.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 13,
+            "Right": 57,
+            "Bottom": 27,
+            "Width": 50,
+            "Height": 15
+          },
+          "MsdfBounds": {
+            "Left": 12,
+            "Top": 12,
+            "Right": 59,
+            "Bottom": 22,
+            "Width": 48,
+            "Height": 11
+          },
+          "WireframeBounds": [
+            {
+              "Left": 5,
+              "Top": 12,
+              "Right": 18,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 15,
+              "Top": 16,
+              "Right": 23,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 19,
+              "Top": 14,
+              "Right": 29,
+              "Bottom": 24,
+              "Width": 11,
+              "Height": 11
+            },
+            {
+              "Left": 24,
+              "Top": 14,
+              "Right": 34,
+              "Bottom": 24,
+              "Width": 11,
+              "Height": 11
+            },
+            {
+              "Left": 28,
+              "Top": 13,
+              "Right": 40,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 36,
+              "Top": 16,
+              "Right": 45,
+              "Bottom": 25,
+              "Width": 10,
+              "Height": 10
+            },
+            {
+              "Left": 42,
+              "Top": 15,
+              "Right": 55,
+              "Bottom": 28,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 51,
+              "Top": 16,
+              "Right": 59,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.30971128608923887,
+            "MeanEdgeDistance": 1.2555751013803378,
+            "P95EdgeDistance": 4,
+            "MaxEdgeDistance": 7.211102550927978,
+            "LeftOnlyArea": 155,
+            "RightOnlyArea": 108,
+            "DeltaLeft": 4,
+            "DeltaTop": -1,
+            "DeltaRight": 2,
+            "DeltaBottom": -5,
+            "DeltaWidth": -2,
+            "DeltaHeight": -4
+          }
+        },
+        {
+          "Id": "direct-outline-static-text",
+          "Text": "Direct outline static text",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\direct-outline-direct-outline-static-text.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\msdf-direct-outline-static-text.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\wireframe-direct-outline-static-text.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 13,
+            "Right": 165,
+            "Bottom": 24,
+            "Width": 158,
+            "Height": 12
+          },
+          "MsdfBounds": {
+            "Left": 10,
+            "Top": 11,
+            "Right": 168,
+            "Bottom": 22,
+            "Width": 159,
+            "Height": 12
+          },
+          "WireframeBounds": [
+            {
+              "Left": 7,
+              "Top": 12,
+              "Right": 20,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 15,
+              "Top": 13,
+              "Right": 27,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 22,
+              "Top": 16,
+              "Right": 30,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 28,
+              "Top": 16,
+              "Right": 36,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 35,
+              "Top": 16,
+              "Right": 43,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 40,
+              "Top": 14,
+              "Right": 50,
+              "Bottom": 24,
+              "Width": 11,
+              "Height": 11
+            },
+            {
+              "Left": 53,
+              "Top": 16,
+              "Right": 61,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 61,
+              "Top": 16,
+              "Right": 70,
+              "Bottom": 25,
+              "Width": 10,
+              "Height": 10
+            },
+            {
+              "Left": 66,
+              "Top": 14,
+              "Right": 76,
+              "Bottom": 24,
+              "Width": 11,
+              "Height": 11
+            },
+            {
+              "Left": 69,
+              "Top": 11,
+              "Right": 83,
+              "Bottom": 25,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 74,
+              "Top": 13,
+              "Right": 86,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 82,
+              "Top": 16,
+              "Right": 91,
+              "Bottom": 25,
+              "Width": 10,
+              "Height": 10
+            },
+            {
+              "Left": 90,
+              "Top": 16,
+              "Right": 98,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 102,
+              "Top": 16,
+              "Right": 110,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 106,
+              "Top": 14,
+              "Right": 116,
+              "Bottom": 24,
+              "Width": 11,
+              "Height": 11
+            },
+            {
+              "Left": 113,
+              "Top": 16,
+              "Right": 121,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 118,
+              "Top": 14,
+              "Right": 128,
+              "Bottom": 24,
+              "Width": 11,
+              "Height": 11
+            },
+            {
+              "Left": 121,
+              "Top": 13,
+              "Right": 133,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 129,
+              "Top": 16,
+              "Right": 137,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 139,
+              "Top": 14,
+              "Right": 149,
+              "Bottom": 24,
+              "Width": 11,
+              "Height": 11
+            },
+            {
+              "Left": 146,
+              "Top": 16,
+              "Right": 154,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 153,
+              "Top": 16,
+              "Right": 162,
+              "Bottom": 25,
+              "Width": 10,
+              "Height": 10
+            },
+            {
+              "Left": 158,
+              "Top": 14,
+              "Right": 168,
+              "Bottom": 24,
+              "Width": 11,
+              "Height": 11
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.26711668273866923,
+            "MeanEdgeDistance": 1.2119031236591284,
+            "P95EdgeDistance": 3.1622776601683795,
+            "MaxEdgeDistance": 5.830951894845301,
+            "LeftOnlyArea": 419,
+            "RightOnlyArea": 341,
+            "DeltaLeft": 2,
+            "DeltaTop": -2,
+            "DeltaRight": 3,
+            "DeltaBottom": -2,
+            "DeltaWidth": 1,
+            "DeltaHeight": 0
+          }
+        },
+        {
+          "Id": "kerning",
+          "Text": "AV To Ta Wa Yo",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\direct-outline-kerning.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\msdf-kerning.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\wireframe-kerning.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 13,
+            "Right": 122,
+            "Bottom": 24,
+            "Width": 115,
+            "Height": 12
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 10,
+            "Right": 123,
+            "Bottom": 22,
+            "Width": 115,
+            "Height": 13
+          },
+          "WireframeBounds": [
+            {
+              "Left": 6,
+              "Top": 12,
+              "Right": 19,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 16,
+              "Top": 12,
+              "Right": 29,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 33,
+              "Top": 12,
+              "Right": 46,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 43,
+              "Top": 16,
+              "Right": 51,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 56,
+              "Top": 12,
+              "Right": 69,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 66,
+              "Top": 16,
+              "Right": 74,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 77,
+              "Top": 8,
+              "Right": 98,
+              "Bottom": 29,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 93,
+              "Top": 16,
+              "Right": 101,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 105,
+              "Top": 12,
+              "Right": 118,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 115,
+              "Top": 16,
+              "Right": 123,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.24808184143222506,
+            "MeanEdgeDistance": 0.990303322891891,
+            "P95EdgeDistance": 2.23606797749979,
+            "MaxEdgeDistance": 3.1622776601683795,
+            "LeftOnlyArea": 273,
+            "RightOnlyArea": 315,
+            "DeltaLeft": 1,
+            "DeltaTop": -3,
+            "DeltaRight": 1,
+            "DeltaBottom": -2,
+            "DeltaWidth": 0,
+            "DeltaHeight": 1
+          }
+        },
+        {
+          "Id": "aa0",
+          "Text": "Aa0 1234567890",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\direct-outline-aa0.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\msdf-aa0.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\16\\wireframe-aa0.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 13,
+            "Right": 111,
+            "Bottom": 24,
+            "Width": 104,
+            "Height": 12
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 12,
+            "Right": 114,
+            "Bottom": 22,
+            "Width": 106,
+            "Height": 11
+          },
+          "WireframeBounds": [
+            {
+              "Left": 6,
+              "Top": 12,
+              "Right": 19,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 18,
+              "Top": 16,
+              "Right": 26,
+              "Bottom": 24,
+              "Width": 9,
+              "Height": 9
+            },
+            {
+              "Left": 23,
+              "Top": 13,
+              "Right": 35,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 35,
+              "Top": 13,
+              "Right": 47,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 42,
+              "Top": 13,
+              "Right": 54,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 49,
+              "Top": 13,
+              "Right": 61,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 57,
+              "Top": 12,
+              "Right": 70,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 65,
+              "Top": 13,
+              "Right": 77,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 72,
+              "Top": 12,
+              "Right": 85,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 80,
+              "Top": 13,
+              "Right": 92,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            },
+            {
+              "Left": 86,
+              "Top": 12,
+              "Right": 99,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 94,
+              "Top": 12,
+              "Right": 107,
+              "Bottom": 25,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 102,
+              "Top": 13,
+              "Right": 114,
+              "Bottom": 25,
+              "Width": 13,
+              "Height": 13
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.26674364896073904,
+            "MeanEdgeDistance": 0.9917177186086557,
+            "P95EdgeDistance": 2.8284271247461903,
+            "MaxEdgeDistance": 4.47213595499958,
+            "LeftOnlyArea": 263,
+            "RightOnlyArea": 372,
+            "DeltaLeft": 1,
+            "DeltaTop": -1,
+            "DeltaRight": 3,
+            "DeltaBottom": -2,
+            "DeltaWidth": 2,
+            "DeltaHeight": -1
+          }
+        }
+      ]
+    },
+    {
+      "SizePx": 24,
+      "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24",
+      "CanvasWidth": 520,
+      "CanvasHeight": 72,
+      "OriginX": 8,
+      "BaselineY": 32,
+      "Fixtures": [
+        {
+          "Id": "hello-machina",
+          "Text": "Hello Machina",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\direct-outline-hello-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\msdf-hello-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\wireframe-hello-machina.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 9,
+            "Top": 15,
+            "Right": 149,
+            "Bottom": 32,
+            "Width": 141,
+            "Height": 18
+          },
+          "MsdfBounds": {
+            "Left": 10,
+            "Top": 14,
+            "Right": 151,
+            "Bottom": 31,
+            "Width": 142,
+            "Height": 18
+          },
+          "WireframeBounds": [
+            {
+              "Left": 6,
+              "Top": 14,
+              "Right": 26,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 23,
+              "Top": 20,
+              "Right": 36,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 27,
+              "Top": 13,
+              "Right": 48,
+              "Bottom": 34,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 33,
+              "Top": 13,
+              "Right": 54,
+              "Bottom": 34,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 45,
+              "Top": 20,
+              "Right": 58,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 64,
+              "Top": 11,
+              "Right": 90,
+              "Bottom": 37,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 87,
+              "Top": 20,
+              "Right": 100,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 96,
+              "Top": 20,
+              "Right": 109,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 103,
+              "Top": 13,
+              "Right": 124,
+              "Bottom": 34,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 114,
+              "Top": 15,
+              "Right": 133,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 126,
+              "Top": 20,
+              "Right": 140,
+              "Bottom": 34,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 138,
+              "Top": 20,
+              "Right": 151,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.32426920462270564,
+            "MeanEdgeDistance": 0.9324815037081092,
+            "P95EdgeDistance": 2.23606797749979,
+            "MaxEdgeDistance": 4.123105625617661,
+            "LeftOnlyArea": 447,
+            "RightOnlyArea": 547,
+            "DeltaLeft": 1,
+            "DeltaTop": -1,
+            "DeltaRight": 2,
+            "DeltaBottom": -1,
+            "DeltaWidth": 1,
+            "DeltaHeight": 0
+          }
+        },
+        {
+          "Id": "machina",
+          "Text": "Machina",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\direct-outline-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\msdf-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\wireframe-machina.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 15,
+            "Right": 90,
+            "Bottom": 32,
+            "Width": 83,
+            "Height": 18
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 14,
+            "Right": 92,
+            "Bottom": 31,
+            "Width": 84,
+            "Height": 18
+          },
+          "WireframeBounds": [
+            {
+              "Left": 5,
+              "Top": 11,
+              "Right": 31,
+              "Bottom": 37,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 28,
+              "Top": 20,
+              "Right": 41,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 37,
+              "Top": 20,
+              "Right": 50,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 44,
+              "Top": 13,
+              "Right": 65,
+              "Bottom": 34,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 54,
+              "Top": 15,
+              "Right": 73,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 67,
+              "Top": 20,
+              "Right": 81,
+              "Bottom": 34,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 79,
+              "Top": 20,
+              "Right": 92,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.3452914798206278,
+            "MeanEdgeDistance": 0.840604316325745,
+            "P95EdgeDistance": 2.23606797749979,
+            "MaxEdgeDistance": 3.605551275463989,
+            "LeftOnlyArea": 264,
+            "RightOnlyArea": 320,
+            "DeltaLeft": 1,
+            "DeltaTop": -1,
+            "DeltaRight": 2,
+            "DeltaBottom": -1,
+            "DeltaWidth": 1,
+            "DeltaHeight": 0
+          }
+        },
+        {
+          "Id": "machina-ui",
+          "Text": "Machina UI",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\direct-outline-machina-ui.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\msdf-machina-ui.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\wireframe-machina-ui.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 15,
+            "Right": 122,
+            "Bottom": 32,
+            "Width": 115,
+            "Height": 18
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 14,
+            "Right": 126,
+            "Bottom": 31,
+            "Width": 118,
+            "Height": 18
+          },
+          "WireframeBounds": [
+            {
+              "Left": 5,
+              "Top": 11,
+              "Right": 31,
+              "Bottom": 37,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 28,
+              "Top": 20,
+              "Right": 41,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 37,
+              "Top": 20,
+              "Right": 50,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 44,
+              "Top": 13,
+              "Right": 65,
+              "Bottom": 34,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 54,
+              "Top": 15,
+              "Right": 73,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 67,
+              "Top": 20,
+              "Right": 81,
+              "Bottom": 34,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 79,
+              "Top": 20,
+              "Right": 92,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 97,
+              "Top": 14,
+              "Right": 117,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 109,
+              "Top": 14,
+              "Right": 129,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.33710801393728224,
+            "MeanEdgeDistance": 0.9279560851554409,
+            "P95EdgeDistance": 2.8284271247461903,
+            "MaxEdgeDistance": 4.123105625617661,
+            "LeftOnlyArea": 347,
+            "RightOnlyArea": 414,
+            "DeltaLeft": 1,
+            "DeltaTop": -1,
+            "DeltaRight": 4,
+            "DeltaBottom": -1,
+            "DeltaWidth": 3,
+            "DeltaHeight": 0
+          }
+        },
+        {
+          "Id": "settings",
+          "Text": "Settings",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\direct-outline-settings.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\msdf-settings.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\wireframe-settings.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 9,
+            "Top": 16,
+            "Right": 82,
+            "Bottom": 37,
+            "Width": 74,
+            "Height": 22
+          },
+          "MsdfBounds": {
+            "Left": 11,
+            "Top": 15,
+            "Right": 85,
+            "Bottom": 31,
+            "Width": 75,
+            "Height": 17
+          },
+          "WireframeBounds": [
+            {
+              "Left": 3,
+              "Top": 14,
+              "Right": 23,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 18,
+              "Top": 20,
+              "Right": 31,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 25,
+              "Top": 17,
+              "Right": 41,
+              "Bottom": 33,
+              "Width": 17,
+              "Height": 17
+            },
+            {
+              "Left": 32,
+              "Top": 17,
+              "Right": 48,
+              "Bottom": 33,
+              "Width": 17,
+              "Height": 17
+            },
+            {
+              "Left": 38,
+              "Top": 15,
+              "Right": 57,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 50,
+              "Top": 20,
+              "Right": 64,
+              "Bottom": 34,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 59,
+              "Top": 19,
+              "Right": 79,
+              "Bottom": 39,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 72,
+              "Top": 20,
+              "Right": 85,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.22783389450056116,
+            "MeanEdgeDistance": 1.150311730444973,
+            "P95EdgeDistance": 3.1622776601683795,
+            "MaxEdgeDistance": 6.082762530298219,
+            "LeftOnlyArea": 325,
+            "RightOnlyArea": 363,
+            "DeltaLeft": 2,
+            "DeltaTop": -1,
+            "DeltaRight": 3,
+            "DeltaBottom": -6,
+            "DeltaWidth": 1,
+            "DeltaHeight": -5
+          }
+        },
+        {
+          "Id": "direct-outline-static-text",
+          "Text": "Direct outline static text",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\direct-outline-direct-outline-static-text.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\msdf-direct-outline-static-text.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\wireframe-direct-outline-static-text.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 15,
+            "Right": 244,
+            "Bottom": 32,
+            "Width": 237,
+            "Height": 18
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 14,
+            "Right": 249,
+            "Bottom": 31,
+            "Width": 241,
+            "Height": 18
+          },
+          "WireframeBounds": [
+            {
+              "Left": 6,
+              "Top": 14,
+              "Right": 26,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 18,
+              "Top": 15,
+              "Right": 37,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 29,
+              "Top": 20,
+              "Right": 42,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 39,
+              "Top": 20,
+              "Right": 52,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 49,
+              "Top": 20,
+              "Right": 62,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 55,
+              "Top": 17,
+              "Right": 71,
+              "Bottom": 33,
+              "Width": 17,
+              "Height": 17
+            },
+            {
+              "Left": 75,
+              "Top": 20,
+              "Right": 88,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 87,
+              "Top": 19,
+              "Right": 101,
+              "Bottom": 33,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 96,
+              "Top": 17,
+              "Right": 112,
+              "Bottom": 33,
+              "Width": 17,
+              "Height": 17
+            },
+            {
+              "Left": 100,
+              "Top": 13,
+              "Right": 121,
+              "Bottom": 34,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 107,
+              "Top": 15,
+              "Right": 126,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 119,
+              "Top": 20,
+              "Right": 133,
+              "Bottom": 34,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 131,
+              "Top": 20,
+              "Right": 144,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 149,
+              "Top": 20,
+              "Right": 162,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 156,
+              "Top": 17,
+              "Right": 172,
+              "Bottom": 33,
+              "Width": 17,
+              "Height": 17
+            },
+            {
+              "Left": 166,
+              "Top": 20,
+              "Right": 179,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 173,
+              "Top": 17,
+              "Right": 189,
+              "Bottom": 33,
+              "Width": 17,
+              "Height": 17
+            },
+            {
+              "Left": 178,
+              "Top": 15,
+              "Right": 197,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 189,
+              "Top": 20,
+              "Right": 202,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 205,
+              "Top": 17,
+              "Right": 221,
+              "Bottom": 33,
+              "Width": 17,
+              "Height": 17
+            },
+            {
+              "Left": 215,
+              "Top": 20,
+              "Right": 228,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 225,
+              "Top": 19,
+              "Right": 239,
+              "Bottom": 33,
+              "Width": 15,
+              "Height": 15
+            },
+            {
+              "Left": 233,
+              "Top": 17,
+              "Right": 249,
+              "Bottom": 33,
+              "Width": 17,
+              "Height": 17
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.2316764953664701,
+            "MeanEdgeDistance": 1.1719792099947952,
+            "P95EdgeDistance": 3,
+            "MaxEdgeDistance": 5.830951894845301,
+            "LeftOnlyArea": 808,
+            "RightOnlyArea": 1016,
+            "DeltaLeft": 1,
+            "DeltaTop": -1,
+            "DeltaRight": 5,
+            "DeltaBottom": -1,
+            "DeltaWidth": 4,
+            "DeltaHeight": 0
+          }
+        },
+        {
+          "Id": "kerning",
+          "Text": "AV To Ta Wa Yo",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\direct-outline-kerning.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\msdf-kerning.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\wireframe-kerning.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 16,
+            "Right": 179,
+            "Bottom": 32,
+            "Width": 172,
+            "Height": 17
+          },
+          "MsdfBounds": {
+            "Left": 10,
+            "Top": 15,
+            "Right": 181,
+            "Bottom": 31,
+            "Width": 172,
+            "Height": 17
+          },
+          "WireframeBounds": [
+            {
+              "Left": 6,
+              "Top": 14,
+              "Right": 26,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 20,
+              "Top": 14,
+              "Right": 40,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 45,
+              "Top": 14,
+              "Right": 65,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 60,
+              "Top": 20,
+              "Right": 73,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 79,
+              "Top": 14,
+              "Right": 99,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 94,
+              "Top": 20,
+              "Right": 107,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 111,
+              "Top": 8,
+              "Right": 143,
+              "Bottom": 40,
+              "Width": 33,
+              "Height": 33
+            },
+            {
+              "Left": 136,
+              "Top": 20,
+              "Right": 149,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 153,
+              "Top": 14,
+              "Right": 173,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 168,
+              "Top": 20,
+              "Right": 181,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.4228395061728395,
+            "MeanEdgeDistance": 0.7676962850083758,
+            "P95EdgeDistance": 2.23606797749979,
+            "MaxEdgeDistance": 3.605551275463989,
+            "LeftOnlyArea": 346,
+            "RightOnlyArea": 402,
+            "DeltaLeft": 2,
+            "DeltaTop": -1,
+            "DeltaRight": 2,
+            "DeltaBottom": -1,
+            "DeltaWidth": 0,
+            "DeltaHeight": 0
+          }
+        },
+        {
+          "Id": "aa0",
+          "Text": "Aa0 1234567890",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\direct-outline-aa0.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\msdf-aa0.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\24\\wireframe-aa0.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 16,
+            "Right": 163,
+            "Bottom": 32,
+            "Width": 156,
+            "Height": 17
+          },
+          "MsdfBounds": {
+            "Left": 10,
+            "Top": 14,
+            "Right": 166,
+            "Bottom": 31,
+            "Width": 157,
+            "Height": 18
+          },
+          "WireframeBounds": [
+            {
+              "Left": 6,
+              "Top": 14,
+              "Right": 26,
+              "Bottom": 34,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 22,
+              "Top": 20,
+              "Right": 35,
+              "Bottom": 33,
+              "Width": 14,
+              "Height": 14
+            },
+            {
+              "Left": 30,
+              "Top": 15,
+              "Right": 49,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 49,
+              "Top": 15,
+              "Right": 68,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 59,
+              "Top": 14,
+              "Right": 78,
+              "Bottom": 33,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 70,
+              "Top": 15,
+              "Right": 89,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 81,
+              "Top": 15,
+              "Right": 100,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 93,
+              "Top": 15,
+              "Right": 112,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 104,
+              "Top": 15,
+              "Right": 123,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 115,
+              "Top": 15,
+              "Right": 134,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 125,
+              "Top": 15,
+              "Right": 144,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 137,
+              "Top": 15,
+              "Right": 156,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 149,
+              "Top": 15,
+              "Right": 168,
+              "Bottom": 34,
+              "Width": 20,
+              "Height": 20
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.23821039903264812,
+            "MeanEdgeDistance": 0.9681245923139481,
+            "P95EdgeDistance": 2.23606797749979,
+            "MaxEdgeDistance": 3.605551275463989,
+            "LeftOnlyArea": 575,
+            "RightOnlyArea": 685,
+            "DeltaLeft": 2,
+            "DeltaTop": -2,
+            "DeltaRight": 3,
+            "DeltaBottom": -1,
+            "DeltaWidth": 1,
+            "DeltaHeight": 1
+          }
+        }
+      ]
+    },
+    {
+      "SizePx": 32,
+      "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32",
+      "CanvasWidth": 720,
+      "CanvasHeight": 96,
+      "OriginX": 8,
+      "BaselineY": 44,
+      "Fixtures": [
+        {
+          "Id": "hello-machina",
+          "Text": "Hello Machina",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\direct-outline-hello-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\msdf-hello-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\wireframe-hello-machina.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 9,
+            "Top": 22,
+            "Right": 196,
+            "Bottom": 44,
+            "Width": 188,
+            "Height": 23
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 22,
+            "Right": 197,
+            "Bottom": 45,
+            "Width": 189,
+            "Height": 24
+          },
+          "WireframeBounds": [
+            {
+              "Left": 5,
+              "Top": 20,
+              "Right": 32,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 28,
+              "Top": 28,
+              "Right": 45,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 33,
+              "Top": 19,
+              "Right": 61,
+              "Bottom": 47,
+              "Width": 29,
+              "Height": 29
+            },
+            {
+              "Left": 41,
+              "Top": 19,
+              "Right": 69,
+              "Bottom": 47,
+              "Width": 29,
+              "Height": 29
+            },
+            {
+              "Left": 58,
+              "Top": 28,
+              "Right": 76,
+              "Bottom": 45,
+              "Width": 19,
+              "Height": 18
+            },
+            {
+              "Left": 83,
+              "Top": 16,
+              "Right": 118,
+              "Bottom": 51,
+              "Width": 36,
+              "Height": 36
+            },
+            {
+              "Left": 113,
+              "Top": 28,
+              "Right": 130,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 126,
+              "Top": 28,
+              "Right": 143,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 135,
+              "Top": 19,
+              "Right": 163,
+              "Bottom": 47,
+              "Width": 29,
+              "Height": 29
+            },
+            {
+              "Left": 149,
+              "Top": 20,
+              "Right": 175,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 165,
+              "Top": 27,
+              "Right": 185,
+              "Bottom": 47,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 181,
+              "Top": 28,
+              "Right": 198,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.48372558838257385,
+            "MeanEdgeDistance": 0.7911135419665012,
+            "P95EdgeDistance": 2,
+            "MaxEdgeDistance": 3.1622776601683795,
+            "LeftOnlyArea": 499,
+            "RightOnlyArea": 532,
+            "DeltaLeft": 0,
+            "DeltaTop": 0,
+            "DeltaRight": 1,
+            "DeltaBottom": 1,
+            "DeltaWidth": 1,
+            "DeltaHeight": 1
+          }
+        },
+        {
+          "Id": "machina",
+          "Text": "Machina",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\direct-outline-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\msdf-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\wireframe-machina.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 22,
+            "Right": 117,
+            "Bottom": 44,
+            "Width": 110,
+            "Height": 23
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 22,
+            "Right": 119,
+            "Bottom": 45,
+            "Width": 111,
+            "Height": 24
+          },
+          "WireframeBounds": [
+            {
+              "Left": 4,
+              "Top": 16,
+              "Right": 39,
+              "Bottom": 51,
+              "Width": 36,
+              "Height": 36
+            },
+            {
+              "Left": 34,
+              "Top": 28,
+              "Right": 51,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 47,
+              "Top": 28,
+              "Right": 64,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 56,
+              "Top": 19,
+              "Right": 84,
+              "Bottom": 47,
+              "Width": 29,
+              "Height": 29
+            },
+            {
+              "Left": 70,
+              "Top": 20,
+              "Right": 96,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 86,
+              "Top": 27,
+              "Right": 106,
+              "Bottom": 47,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 103,
+              "Top": 28,
+              "Right": 120,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.4684466019417476,
+            "MeanEdgeDistance": 0.8271613738806579,
+            "P95EdgeDistance": 2,
+            "MaxEdgeDistance": 3.605551275463989,
+            "LeftOnlyArea": 296,
+            "RightOnlyArea": 361,
+            "DeltaLeft": 1,
+            "DeltaTop": 0,
+            "DeltaRight": 2,
+            "DeltaBottom": 1,
+            "DeltaWidth": 1,
+            "DeltaHeight": 1
+          }
+        },
+        {
+          "Id": "machina-ui",
+          "Text": "Machina UI",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\direct-outline-machina-ui.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\msdf-machina-ui.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\wireframe-machina-ui.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 22,
+            "Right": 160,
+            "Bottom": 44,
+            "Width": 153,
+            "Height": 23
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 22,
+            "Right": 162,
+            "Bottom": 45,
+            "Width": 154,
+            "Height": 24
+          },
+          "WireframeBounds": [
+            {
+              "Left": 4,
+              "Top": 16,
+              "Right": 39,
+              "Bottom": 51,
+              "Width": 36,
+              "Height": 36
+            },
+            {
+              "Left": 34,
+              "Top": 28,
+              "Right": 51,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 47,
+              "Top": 28,
+              "Right": 64,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 56,
+              "Top": 19,
+              "Right": 84,
+              "Bottom": 47,
+              "Width": 29,
+              "Height": 29
+            },
+            {
+              "Left": 70,
+              "Top": 20,
+              "Right": 96,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 86,
+              "Top": 27,
+              "Right": 106,
+              "Bottom": 47,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 103,
+              "Top": 28,
+              "Right": 120,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 127,
+              "Top": 20,
+              "Right": 154,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 143,
+              "Top": 20,
+              "Right": 170,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.5078636959370905,
+            "MeanEdgeDistance": 0.7505325121193255,
+            "P95EdgeDistance": 2,
+            "MaxEdgeDistance": 3.605551275463989,
+            "LeftOnlyArea": 360,
+            "RightOnlyArea": 391,
+            "DeltaLeft": 1,
+            "DeltaTop": 0,
+            "DeltaRight": 2,
+            "DeltaBottom": 1,
+            "DeltaWidth": 1,
+            "DeltaHeight": 1
+          }
+        },
+        {
+          "Id": "settings",
+          "Text": "Settings",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\direct-outline-settings.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\msdf-settings.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\wireframe-settings.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 9,
+            "Top": 23,
+            "Right": 107,
+            "Bottom": 50,
+            "Width": 99,
+            "Height": 28
+          },
+          "MsdfBounds": {
+            "Left": 10,
+            "Top": 22,
+            "Right": 109,
+            "Bottom": 48,
+            "Width": 100,
+            "Height": 27
+          },
+          "WireframeBounds": [
+            {
+              "Left": 2,
+              "Top": 20,
+              "Right": 29,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 21,
+              "Top": 28,
+              "Right": 38,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 31,
+              "Top": 25,
+              "Right": 52,
+              "Bottom": 46,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 41,
+              "Top": 25,
+              "Right": 62,
+              "Bottom": 46,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 47,
+              "Top": 20,
+              "Right": 73,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 64,
+              "Top": 27,
+              "Right": 84,
+              "Bottom": 47,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 76,
+              "Top": 27,
+              "Right": 102,
+              "Bottom": 53,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 93,
+              "Top": 28,
+              "Right": 111,
+              "Bottom": 46,
+              "Width": 19,
+              "Height": 19
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.3114374034003091,
+            "MeanEdgeDistance": 1.0043485961283771,
+            "P95EdgeDistance": 2.23606797749979,
+            "MaxEdgeDistance": 3.1622776601683795,
+            "LeftOnlyArea": 436,
+            "RightOnlyArea": 455,
+            "DeltaLeft": 1,
+            "DeltaTop": -1,
+            "DeltaRight": 2,
+            "DeltaBottom": -2,
+            "DeltaWidth": 1,
+            "DeltaHeight": -1
+          }
+        },
+        {
+          "Id": "direct-outline-static-text",
+          "Text": "Direct outline static text",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\direct-outline-direct-outline-static-text.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\msdf-direct-outline-static-text.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\wireframe-direct-outline-static-text.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 9,
+            "Top": 22,
+            "Right": 323,
+            "Bottom": 44,
+            "Width": 315,
+            "Height": 23
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 22,
+            "Right": 326,
+            "Bottom": 43,
+            "Width": 318,
+            "Height": 22
+          },
+          "WireframeBounds": [
+            {
+              "Left": 5,
+              "Top": 20,
+              "Right": 32,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 22,
+              "Top": 20,
+              "Right": 48,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 37,
+              "Top": 28,
+              "Right": 54,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 49,
+              "Top": 28,
+              "Right": 66,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 62,
+              "Top": 28,
+              "Right": 79,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 71,
+              "Top": 25,
+              "Right": 92,
+              "Bottom": 46,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 98,
+              "Top": 28,
+              "Right": 116,
+              "Bottom": 45,
+              "Width": 19,
+              "Height": 18
+            },
+            {
+              "Left": 113,
+              "Top": 27,
+              "Right": 132,
+              "Bottom": 46,
+              "Width": 20,
+              "Height": 20
+            },
+            {
+              "Left": 125,
+              "Top": 25,
+              "Right": 146,
+              "Bottom": 46,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 130,
+              "Top": 19,
+              "Right": 158,
+              "Bottom": 47,
+              "Width": 29,
+              "Height": 29
+            },
+            {
+              "Left": 140,
+              "Top": 20,
+              "Right": 166,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 156,
+              "Top": 27,
+              "Right": 176,
+              "Bottom": 47,
+              "Width": 21,
+              "Height": 21
+            },
+            {
+              "Left": 172,
+              "Top": 28,
+              "Right": 189,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 196,
+              "Top": 28,
+              "Right": 214,
+              "Bottom": 46,
+              "Width": 19,
+              "Height": 19
+            },
+            {
+              "Left": 205,
+              "Top": 25,
+              "Right": 226,
+              "Bottom": 46,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 218,
+              "Top": 28,
+              "Right": 235,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 228,
+              "Top": 25,
+              "Right": 249,
+              "Bottom": 46,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 235,
+              "Top": 20,
+              "Right": 261,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 250,
+              "Top": 28,
+              "Right": 267,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 271,
+              "Top": 25,
+              "Right": 292,
+              "Bottom": 46,
+              "Width": 22,
+              "Height": 22
+            },
+            {
+              "Left": 284,
+              "Top": 28,
+              "Right": 301,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 298,
+              "Top": 28,
+              "Right": 316,
+              "Bottom": 46,
+              "Width": 19,
+              "Height": 19
+            },
+            {
+              "Left": 309,
+              "Top": 25,
+              "Right": 330,
+              "Bottom": 46,
+              "Width": 22,
+              "Height": 22
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.3103448275862069,
+            "MeanEdgeDistance": 1.027576181745407,
+            "P95EdgeDistance": 2.8284271247461903,
+            "MaxEdgeDistance": 3.605551275463989,
+            "LeftOnlyArea": 1107,
+            "RightOnlyArea": 1233,
+            "DeltaLeft": 0,
+            "DeltaTop": 0,
+            "DeltaRight": 3,
+            "DeltaBottom": -1,
+            "DeltaWidth": 3,
+            "DeltaHeight": -1
+          }
+        },
+        {
+          "Id": "kerning",
+          "Text": "AV To Ta Wa Yo",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\direct-outline-kerning.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\msdf-kerning.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\wireframe-kerning.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 23,
+            "Right": 237,
+            "Bottom": 44,
+            "Width": 230,
+            "Height": 22
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 23,
+            "Right": 238,
+            "Bottom": 47,
+            "Width": 230,
+            "Height": 25
+          },
+          "WireframeBounds": [
+            {
+              "Left": 5,
+              "Top": 20,
+              "Right": 32,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 24,
+              "Top": 20,
+              "Right": 51,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 57,
+              "Top": 20,
+              "Right": 84,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 78,
+              "Top": 28,
+              "Right": 96,
+              "Bottom": 45,
+              "Width": 19,
+              "Height": 18
+            },
+            {
+              "Left": 103,
+              "Top": 20,
+              "Right": 130,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 123,
+              "Top": 28,
+              "Right": 140,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 145,
+              "Top": 12,
+              "Right": 188,
+              "Bottom": 55,
+              "Width": 44,
+              "Height": 44
+            },
+            {
+              "Left": 178,
+              "Top": 28,
+              "Right": 195,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 202,
+              "Top": 20,
+              "Right": 229,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 221,
+              "Top": 28,
+              "Right": 239,
+              "Bottom": 45,
+              "Width": 19,
+              "Height": 18
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.500542888165038,
+            "MeanEdgeDistance": 0.7563471736740313,
+            "P95EdgeDistance": 2.23606797749979,
+            "MaxEdgeDistance": 3.605551275463989,
+            "LeftOnlyArea": 500,
+            "RightOnlyArea": 420,
+            "DeltaLeft": 1,
+            "DeltaTop": 0,
+            "DeltaRight": 1,
+            "DeltaBottom": 3,
+            "DeltaWidth": 0,
+            "DeltaHeight": 3
+          }
+        },
+        {
+          "Id": "aa0",
+          "Text": "Aa0 1234567890",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\direct-outline-aa0.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\msdf-aa0.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\32\\wireframe-aa0.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 8,
+            "Top": 23,
+            "Right": 215,
+            "Bottom": 44,
+            "Width": 208,
+            "Height": 22
+          },
+          "MsdfBounds": {
+            "Left": 9,
+            "Top": 22,
+            "Right": 217,
+            "Bottom": 43,
+            "Width": 209,
+            "Height": 22
+          },
+          "WireframeBounds": [
+            {
+              "Left": 5,
+              "Top": 20,
+              "Right": 32,
+              "Bottom": 47,
+              "Width": 28,
+              "Height": 28
+            },
+            {
+              "Left": 27,
+              "Top": 28,
+              "Right": 44,
+              "Bottom": 45,
+              "Width": 18,
+              "Height": 18
+            },
+            {
+              "Left": 37,
+              "Top": 20,
+              "Right": 63,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 63,
+              "Top": 20,
+              "Right": 89,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 76,
+              "Top": 20,
+              "Right": 102,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 91,
+              "Top": 21,
+              "Right": 117,
+              "Bottom": 47,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 106,
+              "Top": 21,
+              "Right": 132,
+              "Bottom": 47,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 121,
+              "Top": 21,
+              "Right": 147,
+              "Bottom": 47,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 136,
+              "Top": 21,
+              "Right": 162,
+              "Bottom": 47,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 151,
+              "Top": 21,
+              "Right": 177,
+              "Bottom": 47,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 165,
+              "Top": 21,
+              "Right": 191,
+              "Bottom": 47,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 180,
+              "Top": 21,
+              "Right": 206,
+              "Bottom": 47,
+              "Width": 27,
+              "Height": 27
+            },
+            {
+              "Left": 196,
+              "Top": 20,
+              "Right": 222,
+              "Bottom": 46,
+              "Width": 27,
+              "Height": 27
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.5174224343675418,
+            "MeanEdgeDistance": 0.8132962036432824,
+            "P95EdgeDistance": 2,
+            "MaxEdgeDistance": 3,
+            "LeftOnlyArea": 503,
+            "RightOnlyArea": 508,
+            "DeltaLeft": 1,
+            "DeltaTop": -1,
+            "DeltaRight": 2,
+            "DeltaBottom": -1,
+            "DeltaWidth": 1,
+            "DeltaHeight": 0
+          }
+        }
+      ]
+    },
+    {
+      "SizePx": 64,
+      "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64",
+      "CanvasWidth": 1280,
+      "CanvasHeight": 168,
+      "OriginX": 16,
+      "BaselineY": 88,
+      "Fixtures": [
+        {
+          "Id": "hello-machina",
+          "Text": "Hello Machina",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\direct-outline-hello-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\msdf-hello-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\wireframe-hello-machina.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 18,
+            "Top": 44,
+            "Right": 392,
+            "Bottom": 88,
+            "Width": 375,
+            "Height": 45
+          },
+          "MsdfBounds": {
+            "Left": 15,
+            "Top": 48,
+            "Right": 392,
+            "Bottom": 95,
+            "Width": 378,
+            "Height": 48
+          },
+          "WireframeBounds": [
+            {
+              "Left": 10,
+              "Top": 40,
+              "Right": 64,
+              "Bottom": 94,
+              "Width": 55,
+              "Height": 55
+            },
+            {
+              "Left": 56,
+              "Top": 56,
+              "Right": 92,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 66,
+              "Top": 37,
+              "Right": 123,
+              "Bottom": 94,
+              "Width": 58,
+              "Height": 58
+            },
+            {
+              "Left": 82,
+              "Top": 37,
+              "Right": 139,
+              "Bottom": 94,
+              "Width": 58,
+              "Height": 58
+            },
+            {
+              "Left": 116,
+              "Top": 56,
+              "Right": 152,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 166,
+              "Top": 32,
+              "Right": 236,
+              "Bottom": 102,
+              "Width": 71,
+              "Height": 71
+            },
+            {
+              "Left": 226,
+              "Top": 56,
+              "Right": 262,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 252,
+              "Top": 56,
+              "Right": 288,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 270,
+              "Top": 37,
+              "Right": 327,
+              "Bottom": 94,
+              "Width": 58,
+              "Height": 58
+            },
+            {
+              "Left": 297,
+              "Top": 41,
+              "Right": 350,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 330,
+              "Top": 54,
+              "Right": 370,
+              "Bottom": 94,
+              "Width": 41,
+              "Height": 41
+            },
+            {
+              "Left": 363,
+              "Top": 56,
+              "Right": 399,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.3409896497944137,
+            "MeanEdgeDistance": 1.8909421897999696,
+            "P95EdgeDistance": 7,
+            "MaxEdgeDistance": 10.770329614269007,
+            "LeftOnlyArea": 2627,
+            "RightOnlyArea": 2021,
+            "DeltaLeft": -3,
+            "DeltaTop": 4,
+            "DeltaRight": 0,
+            "DeltaBottom": 7,
+            "DeltaWidth": 3,
+            "DeltaHeight": 3
+          }
+        },
+        {
+          "Id": "machina",
+          "Text": "Machina",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\direct-outline-machina.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\msdf-machina.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\wireframe-machina.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 17,
+            "Top": 44,
+            "Right": 235,
+            "Bottom": 88,
+            "Width": 219,
+            "Height": 45
+          },
+          "MsdfBounds": {
+            "Left": 14,
+            "Top": 48,
+            "Right": 234,
+            "Bottom": 95,
+            "Width": 221,
+            "Height": 48
+          },
+          "WireframeBounds": [
+            {
+              "Left": 9,
+              "Top": 32,
+              "Right": 79,
+              "Bottom": 102,
+              "Width": 71,
+              "Height": 71
+            },
+            {
+              "Left": 69,
+              "Top": 56,
+              "Right": 105,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 94,
+              "Top": 56,
+              "Right": 130,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 112,
+              "Top": 37,
+              "Right": 169,
+              "Bottom": 94,
+              "Width": 58,
+              "Height": 58
+            },
+            {
+              "Left": 140,
+              "Top": 41,
+              "Right": 193,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 172,
+              "Top": 54,
+              "Right": 212,
+              "Bottom": 94,
+              "Width": 41,
+              "Height": 41
+            },
+            {
+              "Left": 205,
+              "Top": 56,
+              "Right": 241,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.34146341463414637,
+            "MeanEdgeDistance": 1.8147921962413105,
+            "P95EdgeDistance": 7,
+            "MaxEdgeDistance": 9.848857801796104,
+            "LeftOnlyArea": 1594,
+            "RightOnlyArea": 1241,
+            "DeltaLeft": -3,
+            "DeltaTop": 4,
+            "DeltaRight": -1,
+            "DeltaBottom": 7,
+            "DeltaWidth": 2,
+            "DeltaHeight": 3
+          }
+        },
+        {
+          "Id": "machina-ui",
+          "Text": "Machina UI",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\direct-outline-machina-ui.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\msdf-machina-ui.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\wireframe-machina-ui.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 17,
+            "Top": 44,
+            "Right": 321,
+            "Bottom": 88,
+            "Width": 305,
+            "Height": 45
+          },
+          "MsdfBounds": {
+            "Left": 14,
+            "Top": 48,
+            "Right": 312,
+            "Bottom": 95,
+            "Width": 299,
+            "Height": 48
+          },
+          "WireframeBounds": [
+            {
+              "Left": 9,
+              "Top": 32,
+              "Right": 79,
+              "Bottom": 102,
+              "Width": 71,
+              "Height": 71
+            },
+            {
+              "Left": 69,
+              "Top": 56,
+              "Right": 105,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 94,
+              "Top": 56,
+              "Right": 130,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 112,
+              "Top": 37,
+              "Right": 169,
+              "Bottom": 94,
+              "Width": 58,
+              "Height": 58
+            },
+            {
+              "Left": 140,
+              "Top": 41,
+              "Right": 193,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 172,
+              "Top": 54,
+              "Right": 212,
+              "Bottom": 94,
+              "Width": 41,
+              "Height": 41
+            },
+            {
+              "Left": 205,
+              "Top": 56,
+              "Right": 241,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 254,
+              "Top": 39,
+              "Right": 309,
+              "Bottom": 94,
+              "Width": 56,
+              "Height": 56
+            },
+            {
+              "Left": 286,
+              "Top": 40,
+              "Right": 340,
+              "Bottom": 94,
+              "Width": 55,
+              "Height": 55
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.31218905472636815,
+            "MeanEdgeDistance": 1.983903343141922,
+            "P95EdgeDistance": 7,
+            "MaxEdgeDistance": 9.848857801796104,
+            "LeftOnlyArea": 2165,
+            "RightOnlyArea": 1706,
+            "DeltaLeft": -3,
+            "DeltaTop": 4,
+            "DeltaRight": -9,
+            "DeltaBottom": 7,
+            "DeltaWidth": -6,
+            "DeltaHeight": 3
+          }
+        },
+        {
+          "Id": "settings",
+          "Text": "Settings",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\direct-outline-settings.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\msdf-settings.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\wireframe-settings.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 18,
+            "Top": 46,
+            "Right": 214,
+            "Bottom": 102,
+            "Width": 197,
+            "Height": 57
+          },
+          "MsdfBounds": {
+            "Left": 13,
+            "Top": 50,
+            "Right": 213,
+            "Bottom": 108,
+            "Width": 201,
+            "Height": 59
+          },
+          "WireframeBounds": [
+            {
+              "Left": 3,
+              "Top": 40,
+              "Right": 58,
+              "Bottom": 95,
+              "Width": 56,
+              "Height": 56
+            },
+            {
+              "Left": 42,
+              "Top": 56,
+              "Right": 78,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 62,
+              "Top": 50,
+              "Right": 105,
+              "Bottom": 93,
+              "Width": 44,
+              "Height": 44
+            },
+            {
+              "Left": 81,
+              "Top": 50,
+              "Right": 124,
+              "Bottom": 93,
+              "Width": 44,
+              "Height": 44
+            },
+            {
+              "Left": 95,
+              "Top": 41,
+              "Right": 148,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 127,
+              "Top": 54,
+              "Right": 167,
+              "Bottom": 94,
+              "Width": 41,
+              "Height": 41
+            },
+            {
+              "Left": 152,
+              "Top": 54,
+              "Right": 206,
+              "Bottom": 108,
+              "Width": 55,
+              "Height": 55
+            },
+            {
+              "Left": 187,
+              "Top": 56,
+              "Right": 223,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.3030153237765695,
+            "MeanEdgeDistance": 2.0137261805280637,
+            "P95EdgeDistance": 6.4031242374328485,
+            "MaxEdgeDistance": 10,
+            "LeftOnlyArea": 1600,
+            "RightOnlyArea": 1220,
+            "DeltaLeft": -5,
+            "DeltaTop": 4,
+            "DeltaRight": -1,
+            "DeltaBottom": 6,
+            "DeltaWidth": 4,
+            "DeltaHeight": 2
+          }
+        },
+        {
+          "Id": "direct-outline-static-text",
+          "Text": "Direct outline static text",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\direct-outline-direct-outline-static-text.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\msdf-direct-outline-static-text.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\wireframe-direct-outline-static-text.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 18,
+            "Top": 44,
+            "Right": 648,
+            "Bottom": 88,
+            "Width": 631,
+            "Height": 45
+          },
+          "MsdfBounds": {
+            "Left": 16,
+            "Top": 48,
+            "Right": 644,
+            "Bottom": 90,
+            "Width": 629,
+            "Height": 43
+          },
+          "WireframeBounds": [
+            {
+              "Left": 11,
+              "Top": 40,
+              "Right": 65,
+              "Bottom": 94,
+              "Width": 55,
+              "Height": 55
+            },
+            {
+              "Left": 43,
+              "Top": 41,
+              "Right": 96,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 73,
+              "Top": 56,
+              "Right": 109,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 98,
+              "Top": 56,
+              "Right": 134,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 124,
+              "Top": 56,
+              "Right": 160,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 143,
+              "Top": 50,
+              "Right": 186,
+              "Bottom": 93,
+              "Width": 44,
+              "Height": 44
+            },
+            {
+              "Left": 195,
+              "Top": 56,
+              "Right": 231,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 226,
+              "Top": 55,
+              "Right": 265,
+              "Bottom": 94,
+              "Width": 40,
+              "Height": 40
+            },
+            {
+              "Left": 250,
+              "Top": 50,
+              "Right": 293,
+              "Bottom": 93,
+              "Width": 44,
+              "Height": 44
+            },
+            {
+              "Left": 260,
+              "Top": 37,
+              "Right": 317,
+              "Bottom": 94,
+              "Width": 58,
+              "Height": 58
+            },
+            {
+              "Left": 279,
+              "Top": 41,
+              "Right": 332,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 312,
+              "Top": 54,
+              "Right": 352,
+              "Bottom": 94,
+              "Width": 41,
+              "Height": 41
+            },
+            {
+              "Left": 344,
+              "Top": 56,
+              "Right": 380,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 392,
+              "Top": 56,
+              "Right": 428,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 409,
+              "Top": 50,
+              "Right": 452,
+              "Bottom": 93,
+              "Width": 44,
+              "Height": 44
+            },
+            {
+              "Left": 437,
+              "Top": 56,
+              "Right": 473,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 455,
+              "Top": 50,
+              "Right": 498,
+              "Bottom": 93,
+              "Width": 44,
+              "Height": 44
+            },
+            {
+              "Left": 469,
+              "Top": 41,
+              "Right": 522,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 500,
+              "Top": 56,
+              "Right": 536,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 541,
+              "Top": 50,
+              "Right": 584,
+              "Bottom": 93,
+              "Width": 44,
+              "Height": 44
+            },
+            {
+              "Left": 568,
+              "Top": 56,
+              "Right": 604,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 595,
+              "Top": 55,
+              "Right": 633,
+              "Bottom": 93,
+              "Width": 39,
+              "Height": 39
+            },
+            {
+              "Left": 617,
+              "Top": 50,
+              "Right": 660,
+              "Bottom": 93,
+              "Width": 44,
+              "Height": 44
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.46100892761105733,
+            "MeanEdgeDistance": 1.4552437714375395,
+            "P95EdgeDistance": 5,
+            "MaxEdgeDistance": 8.602325267042627,
+            "LeftOnlyArea": 2906,
+            "RightOnlyArea": 2105,
+            "DeltaLeft": -2,
+            "DeltaTop": 4,
+            "DeltaRight": -4,
+            "DeltaBottom": 2,
+            "DeltaWidth": -2,
+            "DeltaHeight": -2
+          }
+        },
+        {
+          "Id": "kerning",
+          "Text": "AV To Ta Wa Yo",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\direct-outline-kerning.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\msdf-kerning.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\wireframe-kerning.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 17,
+            "Top": 46,
+            "Right": 474,
+            "Bottom": 88,
+            "Width": 458,
+            "Height": 43
+          },
+          "MsdfBounds": {
+            "Left": 15,
+            "Top": 49,
+            "Right": 474,
+            "Bottom": 102,
+            "Width": 460,
+            "Height": 54
+          },
+          "WireframeBounds": [
+            {
+              "Left": 10,
+              "Top": 39,
+              "Right": 65,
+              "Bottom": 94,
+              "Width": 56,
+              "Height": 56
+            },
+            {
+              "Left": 48,
+              "Top": 40,
+              "Right": 103,
+              "Bottom": 95,
+              "Width": 56,
+              "Height": 56
+            },
+            {
+              "Left": 114,
+              "Top": 39,
+              "Right": 169,
+              "Bottom": 94,
+              "Width": 56,
+              "Height": 56
+            },
+            {
+              "Left": 156,
+              "Top": 56,
+              "Right": 192,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 206,
+              "Top": 39,
+              "Right": 261,
+              "Bottom": 94,
+              "Width": 56,
+              "Height": 56
+            },
+            {
+              "Left": 246,
+              "Top": 56,
+              "Right": 282,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 290,
+              "Top": 24,
+              "Right": 376,
+              "Bottom": 110,
+              "Width": 87,
+              "Height": 87
+            },
+            {
+              "Left": 357,
+              "Top": 56,
+              "Right": 393,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 404,
+              "Top": 40,
+              "Right": 458,
+              "Bottom": 94,
+              "Width": 55,
+              "Height": 55
+            },
+            {
+              "Left": 443,
+              "Top": 56,
+              "Right": 479,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.39368355222013757,
+            "MeanEdgeDistance": 2.217983602600412,
+            "P95EdgeDistance": 9.44983668659115,
+            "MaxEdgeDistance": 17.08800749063506,
+            "LeftOnlyArea": 2292,
+            "RightOnlyArea": 1586,
+            "DeltaLeft": -2,
+            "DeltaTop": 3,
+            "DeltaRight": 0,
+            "DeltaBottom": 14,
+            "DeltaWidth": 2,
+            "DeltaHeight": 11
+          }
+        },
+        {
+          "Id": "aa0",
+          "Text": "Aa0 1234567890",
+          "DirectOutlinePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\direct-outline-aa0.png",
+          "MsdfPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\msdf-aa0.png",
+          "WireframePngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m9f\\_before\\64\\wireframe-aa0.png",
+          "DirectOutlineRenderStrategy": "DirectOutlineStatic",
+          "MsdfRenderStrategy": "MsdfScalableExperimental",
+          "DirectOutlineBounds": {
+            "Left": 17,
+            "Top": 46,
+            "Right": 431,
+            "Bottom": 88,
+            "Width": 415,
+            "Height": 43
+          },
+          "MsdfBounds": {
+            "Left": 15,
+            "Top": 49,
+            "Right": 427,
+            "Bottom": 90,
+            "Width": 413,
+            "Height": 42
+          },
+          "WireframeBounds": [
+            {
+              "Left": 10,
+              "Top": 39,
+              "Right": 65,
+              "Bottom": 94,
+              "Width": 56,
+              "Height": 56
+            },
+            {
+              "Left": 55,
+              "Top": 56,
+              "Right": 91,
+              "Bottom": 92,
+              "Width": 37,
+              "Height": 37
+            },
+            {
+              "Left": 74,
+              "Top": 41,
+              "Right": 127,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 126,
+              "Top": 41,
+              "Right": 179,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 153,
+              "Top": 41,
+              "Right": 206,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 181,
+              "Top": 41,
+              "Right": 234,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 211,
+              "Top": 41,
+              "Right": 264,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 242,
+              "Top": 41,
+              "Right": 295,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 272,
+              "Top": 41,
+              "Right": 325,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 303,
+              "Top": 41,
+              "Right": 356,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 329,
+              "Top": 41,
+              "Right": 382,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 359,
+              "Top": 41,
+              "Right": 412,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            },
+            {
+              "Left": 391,
+              "Top": 41,
+              "Right": 444,
+              "Bottom": 94,
+              "Width": 54,
+              "Height": 54
+            }
+          ],
+          "DirectVsMsdf": {
+            "IntersectionOverUnion": 0.21394114809454895,
+            "MeanEdgeDistance": 1.9688754095493204,
+            "P95EdgeDistance": 5.0990195135927845,
+            "MaxEdgeDistance": 7.211102550927978,
+            "LeftOnlyArea": 3674,
+            "RightOnlyArea": 2844,
+            "DeltaLeft": -2,
+            "DeltaTop": 3,
+            "DeltaRight": -4,
+            "DeltaBottom": 2,
+            "DeltaWidth": -2,
+            "DeltaHeight": -1
+          }
+        }
+      ]
+    }
+  ]
+}

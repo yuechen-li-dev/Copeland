@@ -1,0 +1,443 @@
+[atlas]
+format = 1
+kind = "machina-font-atlas"
+name = "crimson-text-m9d-diagnostics-64"
+distance_field = "msdf"
+version = 1
+
+[font]
+face = "CrimsonText-Regular"
+family = "Crimson Text"
+style = "Regular"
+source = "C:\\Users\\yuech\\source\\repos\\Copeland\\tests\\Machina.Fonts.Tooling.Tests\\bin\\Debug\\net10.0\\Fixtures\\Fonts\\CrimsonText-Regular.ttf"
+source_hash = "sha256:48e6c5d5ad1d01599d374ecb817e15890d1feb3b8a3a88e527d44c90389e1f06"
+license = "OFL-1.1"
+
+[metrics]
+em_size = 64
+units_per_em = 1000
+ascent = 51.200000000000003
+descent = -12.800000000000001
+line_gap = 0
+line_height = 64
+
+[msdf]
+range = 4
+scale = 1
+edge_coloring = "simple"
+miter_limit = 2
+
+[[page]]
+index = 0
+image = "crimson-text-m9d-diagnostics-64.page0.dfpage"
+width = 256
+height = 256
+content_hash = "sha256:68c02d5812c7527a54735597c0e52f668abfb3bcac4523818e1b25e474613bda"
+
+[[page]]
+index = 1
+image = "crimson-text-m9d-diagnostics-64.page1.dfpage"
+width = 256
+height = 256
+content_hash = "sha256:391a580b1562772673b1d6875a7e204a803a9cbeb9bed2bd57f40c0836cc6d02"
+
+[[glyph]]
+codepoint = 48
+char = "0"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 0
+y = 0
+width = 64
+height = 64
+advance = 32.25
+bearing_x = 2.5
+bearing_y = 40.0625
+u0 = 0
+v0 = 0
+u1 = 0.25
+v1 = 0.25
+plane_left = -6.8750000000000018
+plane_top = -42.9375
+plane_right = 39.125
+plane_bottom = 3.0625000000000004
+pixel_range = 4
+projection_scale = 1.3913043478260869
+
+[[glyph]]
+codepoint = 65
+char = "A"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 66
+y = 0
+width = 64
+height = 64
+advance = 42.75
+bearing_x = 1.25
+bearing_y = 41.4375
+u0 = 0.2578125
+v0 = 0
+u1 = 0.5078125
+v1 = 0.25
+plane_left = -2.3482142857142851
+plane_top = -44.410714285714285
+plane_right = 45.223214285714285
+plane_bottom = 3.1607142857142829
+pixel_range = 4
+projection_scale = 1.3453453453453454
+
+[[glyph]]
+codepoint = 72
+char = "H"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 132
+y = 0
+width = 64
+height = 64
+advance = 44.1875
+bearing_x = 2.375
+bearing_y = 41.375
+u0 = 0.515625
+v0 = 0
+u1 = 0.765625
+v1 = 0.25
+plane_left = -1.6249999999999996
+plane_top = -44.34375
+plane_right = 45.875
+plane_bottom = 3.15625
+pixel_range = 4
+projection_scale = 1.3473684210526315
+
+[[glyph]]
+codepoint = 77
+char = "M"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 0
+y = 66
+width = 64
+height = 64
+advance = 56.875
+bearing_x = 1.625
+bearing_y = 41.375
+u0 = 0
+v0 = 0.2578125
+u1 = 0.25
+v1 = 0.5078125
+plane_left = -2.1874999999999996
+plane_top = -51.09375
+plane_right = 58.8125
+plane_bottom = 9.9062499999999964
+pixel_range = 4
+projection_scale = 1.0491803278688525
+
+[[glyph]]
+codepoint = 84
+char = "T"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 66
+y = 66
+width = 64
+height = 64
+advance = 41.8125
+bearing_x = 1.75
+bearing_y = 41.9375
+u0 = 0.2578125
+v0 = 0.2578125
+u1 = 0.5078125
+v1 = 0.5078125
+plane_left = -3.1026785714285716
+plane_top = -44.946428571428577
+plane_right = 45.040178571428577
+plane_bottom = 3.1964285714285716
+pixel_range = 4
+projection_scale = 1.3293768545994065
+
+[[glyph]]
+codepoint = 86
+char = "V"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 132
+y = 66
+width = 64
+height = 64
+advance = 44.3125
+bearing_x = 1.0625
+bearing_y = 41.375
+u0 = 0.515625
+v0 = 0.2578125
+u1 = 0.765625
+v1 = 0.5078125
+plane_left = -1.9553571428571399
+plane_top = -44.549107142857139
+plane_right = 46.330357142857139
+plane_bottom = 3.736607142857141
+pixel_range = 4
+projection_scale = 1.3254437869822486
+
+[[glyph]]
+codepoint = 87
+char = "W"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 0
+y = 132
+width = 64
+height = 64
+advance = 67.25
+bearing_x = 1
+bearing_y = 41.375
+u0 = 0
+v0 = 0.515625
+u1 = 0.25
+v1 = 0.765625
+plane_left = -3.6651785714285712
+plane_top = -57.758928571428569
+plane_right = 70.977678571428569
+plane_bottom = 16.883928571428573
+pixel_range = 4
+projection_scale = 0.85741626794258374
+
+[[glyph]]
+codepoint = 89
+char = "Y"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 66
+y = 132
+width = 64
+height = 64
+advance = 40.5625
+bearing_x = 0.9375
+bearing_y = 41.375
+u0 = 0.2578125
+v0 = 0.515625
+u1 = 0.5078125
+v1 = 0.765625
+plane_left = -3.4375
+plane_top = -44.34375
+plane_right = 44.0625
+plane_bottom = 3.15625
+pixel_range = 4
+projection_scale = 1.3473684210526315
+
+[[glyph]]
+codepoint = 97
+char = "a"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 0
+x = 132
+y = 132
+width = 64
+height = 64
+advance = 26.4375
+bearing_x = 2.4375
+bearing_y = 27.25
+u0 = 0.515625
+v0 = 0.515625
+u1 = 0.765625
+v1 = 0.765625
+plane_left = -1.5714285714285703
+plane_top = -29.227678571428569
+plane_right = 30.071428571428573
+plane_bottom = 2.4151785714285712
+pixel_range = 4
+projection_scale = 2.0225733634311513
+
+[[glyph]]
+codepoint = 99
+char = "c"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 1
+x = 0
+y = 0
+width = 64
+height = 64
+advance = 25.3125
+bearing_x = 2.3125
+bearing_y = 27.25
+u0 = 0
+v0 = 0
+u1 = 0.25
+v1 = 0.25
+plane_left = -2.4732142857142865
+plane_top = -29.223214285714288
+plane_right = 29.098214285714285
+plane_bottom = 2.3482142857142856
+pixel_range = 4
+projection_scale = 2.0271493212669682
+
+[[glyph]]
+codepoint = 101
+char = "e"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 1
+x = 66
+y = 0
+width = 64
+height = 64
+advance = 26.875
+bearing_x = 2.3125
+bearing_y = 27.25
+u0 = 0.2578125
+v0 = 0
+u1 = 0.5078125
+v1 = 0.25
+plane_left = -1.9732142857142867
+plane_top = -29.223214285714288
+plane_right = 29.598214285714288
+plane_bottom = 2.3482142857142856
+pixel_range = 4
+projection_scale = 2.0271493212669682
+
+[[glyph]]
+codepoint = 104
+char = "h"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 1
+x = 132
+y = 0
+width = 64
+height = 64
+advance = 33.125
+bearing_x = 1.125
+bearing_y = 43.375
+u0 = 0.515625
+v0 = 0
+u1 = 0.765625
+v1 = 0.25
+plane_left = -8.3928571428571459
+plane_top = -46.486607142857146
+plane_right = 41.392857142857139
+plane_bottom = 3.2991071428571459
+pixel_range = 4
+projection_scale = 1.285509325681492
+
+[[glyph]]
+codepoint = 105
+char = "i"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 1
+x = 0
+y = 66
+width = 64
+height = 64
+advance = 17.625
+bearing_x = 2
+bearing_y = 40.1875
+u0 = 0
+v0 = 0.2578125
+u1 = 0.25
+v1 = 0.5078125
+plane_left = -14.133928571428571
+plane_top = -43.071428571428569
+plane_right = 32.008928571428577
+plane_bottom = 3.0714285714285716
+pixel_range = 4
+projection_scale = 1.3869969040247678
+
+[[glyph]]
+codepoint = 108
+char = "l"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 1
+x = 66
+y = 66
+width = 64
+height = 64
+advance = 15.6875
+bearing_x = 0.9375
+bearing_y = 43.375
+u0 = 0.2578125
+v0 = 0.2578125
+u1 = 0.5078125
+v1 = 0.5078125
+plane_left = -17.017857142857142
+plane_top = -46.486607142857146
+plane_right = 32.767857142857146
+plane_bottom = 3.2991071428571459
+pixel_range = 4
+projection_scale = 1.285509325681492
+
+[[glyph]]
+codepoint = 110
+char = "n"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 1
+x = 132
+y = 66
+width = 64
+height = 64
+advance = 33.9375
+bearing_x = 1.8125
+bearing_y = 27.375
+u0 = 0.515625
+v0 = 0.2578125
+u1 = 0.765625
+v1 = 0.5078125
+plane_left = -0.38392857142857145
+plane_top = -31.165178571428573
+plane_right = 34.758928571428569
+plane_bottom = 3.9776785714285716
+pixel_range = 4
+projection_scale = 1.8211382113821137
+
+[[glyph]]
+codepoint = 111
+char = "o"
+em_size = 64
+weight = 400
+slant = "upright"
+page = 1
+x = 0
+y = 132
+width = 64
+height = 64
+advance = 31.875
+bearing_x = 2.3125
+bearing_y = 27.3125
+u0 = 0
+v0 = 0.515625
+u1 = 0.25
+v1 = 0.765625
+plane_left = 0.049107142857142141
+plane_top = -29.294642857142858
+plane_right = 31.763392857142858
+plane_bottom = 2.419642857142859
+pixel_range = 4
+projection_scale = 2.0180180180180178
+

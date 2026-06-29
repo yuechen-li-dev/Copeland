@@ -11,6 +11,8 @@ public sealed class GalleryExportTests
 
         Assert.False(options.ExportOnly);
         Assert.False(options.IncludeDirectOutlineTextProof);
+        Assert.False(options.IncludeDirectOutlineRenderBridgeProof);
+        Assert.False(options.IncludeDirectOutlineTextLayoutProof);
         Assert.False(options.IncludeMsdfFontProof);
         Assert.Equal(Path.Combine("artifacts", "m7e"), options.ExportDirectory);
         Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
@@ -31,6 +33,8 @@ public sealed class GalleryExportTests
 
         Assert.True(options.ExportOnly);
         Assert.False(options.IncludeDirectOutlineTextProof);
+        Assert.False(options.IncludeDirectOutlineRenderBridgeProof);
+        Assert.False(options.IncludeDirectOutlineTextLayoutProof);
         Assert.False(options.IncludeMsdfFontProof);
         Assert.Equal(@"artifacts\m7e", options.ExportDirectory);
         Assert.Equal("component-gallery-default", options.ExportName);
@@ -48,6 +52,42 @@ public sealed class GalleryExportTests
 
         Assert.True(options.ExportOnly);
         Assert.True(options.IncludeDirectOutlineTextProof);
+        Assert.False(options.IncludeDirectOutlineRenderBridgeProof);
+        Assert.False(options.IncludeDirectOutlineTextLayoutProof);
+        Assert.False(options.IncludeMsdfFontProof);
+        Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
+    }
+
+    [Fact]
+    public void GalleryProgramOptions_ParsesIncludeDirectOutlineTextLayoutProof()
+    {
+        var options = GalleryProgramOptions.Parse(
+        [
+            "--export-only",
+            "--include-direct-outline-text-layout-proof",
+        ]);
+
+        Assert.True(options.ExportOnly);
+        Assert.False(options.IncludeDirectOutlineTextProof);
+        Assert.False(options.IncludeDirectOutlineRenderBridgeProof);
+        Assert.True(options.IncludeDirectOutlineTextLayoutProof);
+        Assert.False(options.IncludeMsdfFontProof);
+        Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
+    }
+
+    [Fact]
+    public void GalleryProgramOptions_ParsesIncludeDirectOutlineRenderBridgeProof()
+    {
+        var options = GalleryProgramOptions.Parse(
+        [
+            "--export-only",
+            "--include-direct-outline-render-bridge-proof",
+        ]);
+
+        Assert.True(options.ExportOnly);
+        Assert.False(options.IncludeDirectOutlineTextProof);
+        Assert.True(options.IncludeDirectOutlineRenderBridgeProof);
+        Assert.False(options.IncludeDirectOutlineTextLayoutProof);
         Assert.False(options.IncludeMsdfFontProof);
         Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
     }
@@ -72,6 +112,8 @@ public sealed class GalleryExportTests
         Assert.Equal("component-gallery-default", GalleryExportContract.DefaultExportName);
         Assert.Equal("component-gallery-interactive", GalleryExportContract.InteractiveExportName);
         Assert.Equal("component-gallery-direct-outline-text-proof", GalleryExportContract.DirectOutlineProofExportName);
+        Assert.Equal("component-gallery-direct-outline-render-bridge-proof", GalleryExportContract.DirectOutlineRenderBridgeProofExportName);
+        Assert.Equal("component-gallery-direct-outline-text-layout-proof", GalleryExportContract.DirectOutlineTextLayoutProofExportName);
         Assert.Equal("component-gallery-msdf-proof", GalleryExportContract.MsdfProofExportName);
     }
 
@@ -91,11 +133,29 @@ public sealed class GalleryExportTests
             Path.Combine("artifacts", "m7e", "component-gallery-direct-outline-text-proof.png"),
             GalleryExportContract.GetDirectOutlineProofOutputPath(Path.Combine("artifacts", "m7e")));
         Assert.Equal(
+            Path.Combine("artifacts", "m7e", "component-gallery-direct-outline-render-bridge-proof.png"),
+            GalleryExportContract.GetDirectOutlineRenderBridgeProofOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "component-gallery-direct-outline-text-layout-proof.png"),
+            GalleryExportContract.GetDirectOutlineTextLayoutProofOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
             Path.Combine("artifacts", "m7e", "component-gallery-text-backend-comparison.png"),
             GalleryExportContract.GetTextBackendComparisonOutputPath(Path.Combine("artifacts", "m7e")));
         Assert.Equal(
             Path.Combine("artifacts", "m7e", "direct-outline-static-text-proof.png"),
             GalleryExportContract.GetDirectOutlineStandaloneOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "direct-outline-render-bridge-proof.png"),
+            GalleryExportContract.GetDirectOutlineRenderBridgeOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "direct-outline-render-bridge-layout-grid.png"),
+            GalleryExportContract.GetDirectOutlineRenderBridgeLayoutGridOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "direct-outline-text-box-layout-proof.png"),
+            GalleryExportContract.GetDirectOutlineTextBoxLayoutOutputPath(Path.Combine("artifacts", "m7e")));
+        Assert.Equal(
+            Path.Combine("artifacts", "m7e", "direct-outline-text-alignment-grid.png"),
+            GalleryExportContract.GetDirectOutlineTextAlignmentGridOutputPath(Path.Combine("artifacts", "m7e")));
     }
 
     [Fact]
@@ -137,10 +197,16 @@ public sealed class GalleryExportTests
                 GalleryExportContract.GetInteractiveOutputPath(outputDirectory),
                 result.OutputPath);
             Assert.False(result.ProofOptions.IncludeDirectOutlineTextProof);
+            Assert.False(result.ProofOptions.IncludeDirectOutlineRenderBridgeProof);
+            Assert.False(result.ProofOptions.IncludeDirectOutlineTextLayoutProof);
             Assert.False(result.ProofOptions.IncludeMsdfFontProof);
             Assert.Null(result.DirectOutlineProofPlacement);
+            Assert.Null(result.DirectOutlineRenderBridgeProofPlacement);
+            Assert.Null(result.DirectOutlineTextLayoutProofPlacement);
             Assert.Null(result.MsdfProofPlacement);
             Assert.Null(result.DirectOutlineArtifacts);
+            Assert.Null(result.DirectOutlineRenderBridgeArtifacts);
+            Assert.Null(result.DirectOutlineTextLayoutArtifacts);
             Assert.True(File.Exists(result.OutputPath));
 
             var bytes = File.ReadAllBytes(result.OutputPath);
@@ -172,8 +238,12 @@ public sealed class GalleryExportTests
                 GalleryExportContract.DefaultExportName);
 
             Assert.False(result.ProofOptions.IncludeDirectOutlineTextProof);
+            Assert.False(result.ProofOptions.IncludeDirectOutlineRenderBridgeProof);
+            Assert.False(result.ProofOptions.IncludeDirectOutlineTextLayoutProof);
             Assert.False(result.ProofOptions.IncludeMsdfFontProof);
             Assert.Null(result.DirectOutlineProofPlacement);
+            Assert.Null(result.DirectOutlineRenderBridgeProofPlacement);
+            Assert.Null(result.DirectOutlineTextLayoutProofPlacement);
             Assert.Null(result.MsdfProofPlacement);
         }
         finally
@@ -199,8 +269,10 @@ public sealed class GalleryExportTests
                 new GalleryProofOptions(IncludeDirectOutlineTextProof: true));
 
             Assert.True(result.ProofOptions.IncludeDirectOutlineTextProof);
+            Assert.False(result.ProofOptions.IncludeDirectOutlineTextLayoutProof);
             Assert.False(result.ProofOptions.IncludeMsdfFontProof);
             Assert.NotNull(result.DirectOutlineProofPlacement);
+            Assert.Null(result.DirectOutlineTextLayoutProofPlacement);
             Assert.Equal(
                 GalleryExportContract.GetDirectOutlineProofOutputPath(outputDirectory),
                 result.OutputPath);
@@ -233,8 +305,91 @@ public sealed class GalleryExportTests
         var options = GalleryProgramOptions.Parse(["--export-only"]);
 
         Assert.False(options.IncludeDirectOutlineTextProof);
+        Assert.False(options.IncludeDirectOutlineRenderBridgeProof);
+        Assert.False(options.IncludeDirectOutlineTextLayoutProof);
         Assert.False(options.IncludeMsdfFontProof);
         Assert.Equal(GalleryExportContract.DefaultExportName, options.ExportName);
+    }
+
+    [Fact]
+    public void ExportComponentGallery_WithRenderBridgeProof_WritesArtifact()
+    {
+        var outputDirectory = Path.Combine(Path.GetTempPath(), "machina-gallery-export-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var result = GalleryExporter.Export(
+                GalleryState.Default,
+                outputDirectory,
+                GalleryExportContract.DirectOutlineRenderBridgeProofExportName,
+                new GalleryProofOptions(IncludeDirectOutlineRenderBridgeProof: true));
+
+            Assert.False(result.ProofOptions.IncludeDirectOutlineTextProof);
+            Assert.True(result.ProofOptions.IncludeDirectOutlineRenderBridgeProof);
+            Assert.False(result.ProofOptions.IncludeDirectOutlineTextLayoutProof);
+            Assert.False(result.ProofOptions.IncludeMsdfFontProof);
+            Assert.NotNull(result.DirectOutlineRenderBridgeProofPlacement);
+            Assert.Equal(
+                GalleryExportContract.GetDirectOutlineRenderBridgeProofOutputPath(outputDirectory),
+                result.OutputPath);
+            Assert.True(File.Exists(result.OutputPath));
+            Assert.NotNull(result.DirectOutlineRenderBridgeArtifacts);
+            Assert.True(File.Exists(result.DirectOutlineRenderBridgeArtifacts!.StandaloneProofPath));
+            Assert.True(File.Exists(result.DirectOutlineRenderBridgeArtifacts.AlignmentGridPath));
+            Assert.Equal(
+                GalleryExportContract.GetDirectOutlineRenderBridgeOutputPath(outputDirectory),
+                result.DirectOutlineRenderBridgeArtifacts.StandaloneProofPath);
+            Assert.Equal(
+                GalleryExportContract.GetDirectOutlineRenderBridgeLayoutGridOutputPath(outputDirectory),
+                result.DirectOutlineRenderBridgeArtifacts.AlignmentGridPath);
+        }
+        finally
+        {
+            if (Directory.Exists(outputDirectory))
+            {
+                Directory.Delete(outputDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void ExportComponentGallery_WithDirectOutlineTextLayoutProof_WritesArtifact()
+    {
+        var outputDirectory = Path.Combine(Path.GetTempPath(), "machina-gallery-export-tests", Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            var result = GalleryExporter.Export(
+                GalleryState.Default,
+                outputDirectory,
+                GalleryExportContract.DirectOutlineTextLayoutProofExportName,
+                new GalleryProofOptions(IncludeDirectOutlineTextLayoutProof: true));
+
+            Assert.False(result.ProofOptions.IncludeDirectOutlineTextProof);
+            Assert.True(result.ProofOptions.IncludeDirectOutlineTextLayoutProof);
+            Assert.False(result.ProofOptions.IncludeMsdfFontProof);
+            Assert.NotNull(result.DirectOutlineTextLayoutProofPlacement);
+            Assert.Equal(
+                GalleryExportContract.GetDirectOutlineTextLayoutProofOutputPath(outputDirectory),
+                result.OutputPath);
+            Assert.True(File.Exists(result.OutputPath));
+            Assert.NotNull(result.DirectOutlineTextLayoutArtifacts);
+            Assert.True(File.Exists(result.DirectOutlineTextLayoutArtifacts!.StandaloneProofPath));
+            Assert.True(File.Exists(result.DirectOutlineTextLayoutArtifacts.AlignmentGridPath));
+            Assert.Equal(
+                GalleryExportContract.GetDirectOutlineTextBoxLayoutOutputPath(outputDirectory),
+                result.DirectOutlineTextLayoutArtifacts.StandaloneProofPath);
+            Assert.Equal(
+                GalleryExportContract.GetDirectOutlineTextAlignmentGridOutputPath(outputDirectory),
+                result.DirectOutlineTextLayoutArtifacts.AlignmentGridPath);
+        }
+        finally
+        {
+            if (Directory.Exists(outputDirectory))
+            {
+                Directory.Delete(outputDirectory, recursive: true);
+            }
+        }
     }
 
     [Fact]

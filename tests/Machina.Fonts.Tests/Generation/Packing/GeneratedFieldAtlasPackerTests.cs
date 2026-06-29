@@ -143,4 +143,21 @@ public sealed class GeneratedFieldAtlasPackerTests
 
         Assert.Equal(field.Placement, result.Snapshot.Glyphs[field.Key].Placement);
     }
+
+    [Fact]
+    public void AtlasGlyphRect_RecordsPackedRectAndDrawableRectClearly()
+    {
+        GeneratedGlyphDistanceField field = DistanceFieldArtifactTestHelpers.CreateField('A', 8, 8);
+
+        GeneratedFieldAtlasPackResult result = DistanceFieldArtifactTestHelpers.Pack([field], 32, 32, 2);
+        GlyphAtlasEntry entry = result.Snapshot.Glyphs[field.Key];
+
+        Assert.Equal(0, entry.X);
+        Assert.Equal(0, entry.Y);
+        Assert.Equal(8, entry.Width);
+        Assert.Equal(8, entry.Height);
+        Assert.Equal(field.Placement, entry.Placement);
+        Assert.True(entry.Placement.Width > 0d);
+        Assert.True(entry.Placement.Height > 0d);
+    }
 }

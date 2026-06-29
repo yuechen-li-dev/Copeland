@@ -17,7 +17,11 @@ public static class GalleryExporter
             options.InitialState,
             options.ExportDirectory,
             options.ExportName,
-            new GalleryProofOptions(options.IncludeDirectOutlineTextProof, options.IncludeMsdfFontProof));
+            new GalleryProofOptions(
+                options.IncludeDirectOutlineTextProof,
+                options.IncludeDirectOutlineRenderBridgeProof,
+                options.IncludeDirectOutlineTextLayoutProof,
+                options.IncludeMsdfFontProof));
     }
 
     public static GalleryExportResult Export(
@@ -45,6 +49,8 @@ public static class GalleryExporter
             GalleryScreen.Width,
             galleryHeight);
         GalleryDirectOutlineTextProofPlacement? directOutlineProofPlacement = null;
+        GalleryDirectOutlineRenderBridgeProofPlacement? directOutlineRenderBridgeProofPlacement = null;
+        GalleryDirectOutlineTextLayoutProofPlacement? directOutlineTextLayoutProofPlacement = null;
         GalleryMsdfFontProofPlacement? msdfProofPlacement = null;
 
         if (proofOptions.IncludeDirectOutlineTextProof)
@@ -53,6 +59,20 @@ public static class GalleryExporter
                 frame.RasterFrame,
                 frame.Resolved,
                 proofOptions.IncludeMsdfFontProof);
+        }
+
+        if (proofOptions.IncludeDirectOutlineTextLayoutProof)
+        {
+            directOutlineTextLayoutProofPlacement = GalleryDirectOutlineTextLayoutProofRenderer.BlitProof(
+                frame.RasterFrame,
+                frame.Resolved);
+        }
+
+        if (proofOptions.IncludeDirectOutlineRenderBridgeProof)
+        {
+            directOutlineRenderBridgeProofPlacement = GalleryDirectOutlineRenderBridgeProofRenderer.BlitProof(
+                frame.RasterFrame,
+                frame.Resolved);
         }
 
         if (proofOptions.IncludeMsdfFontProof)
@@ -82,14 +102,76 @@ public static class GalleryExporter
             directOutlineArtifacts = new GalleryDirectOutlineTextProofArtifacts(standaloneProofPath, comparisonPath);
         }
 
+        GalleryDirectOutlineTextLayoutProofArtifacts? directOutlineTextLayoutArtifacts = null;
+        if (proofOptions.IncludeDirectOutlineTextLayoutProof)
+        {
+            string standaloneLayoutProofPath = GalleryExportContract.GetDirectOutlineTextBoxLayoutOutputPath(fullOutputDirectory);
+            string alignmentGridPath = GalleryExportContract.GetDirectOutlineTextAlignmentGridOutputPath(fullOutputDirectory);
+
+            GalleryPngWriter.Write(
+                standaloneLayoutProofPath,
+                Crop(
+                    frame.RasterFrame,
+                    directOutlineTextLayoutProofPlacement!.ProofX,
+                    directOutlineTextLayoutProofPlacement.ProofY,
+                    directOutlineTextLayoutProofPlacement.ProofWidth,
+                    directOutlineTextLayoutProofPlacement.ProofHeight));
+
+            GalleryPngWriter.Write(
+                alignmentGridPath,
+                Crop(
+                    frame.RasterFrame,
+                    directOutlineTextLayoutProofPlacement.AlignmentGridX,
+                    directOutlineTextLayoutProofPlacement.AlignmentGridY,
+                    directOutlineTextLayoutProofPlacement.AlignmentGridWidth,
+                    directOutlineTextLayoutProofPlacement.AlignmentGridHeight));
+
+            directOutlineTextLayoutArtifacts = new GalleryDirectOutlineTextLayoutProofArtifacts(
+                standaloneLayoutProofPath,
+                alignmentGridPath);
+        }
+
+        GalleryDirectOutlineRenderBridgeProofArtifacts? directOutlineRenderBridgeArtifacts = null;
+        if (proofOptions.IncludeDirectOutlineRenderBridgeProof)
+        {
+            string standaloneBridgeProofPath = GalleryExportContract.GetDirectOutlineRenderBridgeOutputPath(fullOutputDirectory);
+            string bridgeLayoutGridPath = GalleryExportContract.GetDirectOutlineRenderBridgeLayoutGridOutputPath(fullOutputDirectory);
+
+            GalleryPngWriter.Write(
+                standaloneBridgeProofPath,
+                Crop(
+                    frame.RasterFrame,
+                    directOutlineRenderBridgeProofPlacement!.ProofX,
+                    directOutlineRenderBridgeProofPlacement.ProofY,
+                    directOutlineRenderBridgeProofPlacement.ProofWidth,
+                    directOutlineRenderBridgeProofPlacement.ProofHeight));
+
+            GalleryPngWriter.Write(
+                bridgeLayoutGridPath,
+                Crop(
+                    frame.RasterFrame,
+                    directOutlineRenderBridgeProofPlacement.AlignmentGridX,
+                    directOutlineRenderBridgeProofPlacement.AlignmentGridY,
+                    directOutlineRenderBridgeProofPlacement.AlignmentGridWidth,
+                    directOutlineRenderBridgeProofPlacement.AlignmentGridHeight));
+
+            directOutlineRenderBridgeArtifacts = new GalleryDirectOutlineRenderBridgeProofArtifacts(
+                standaloneBridgeProofPath,
+                bridgeLayoutGridPath);
+        }
+
         return new GalleryExportResult(
             OutputPath: outputPath,
             Width: frame.RasterFrame.Width,
             Height: frame.RasterFrame.Height,
             ProofOptions: proofOptions,
             DirectOutlineProofPlacement: directOutlineProofPlacement,
+            DirectOutlineRenderBridgeProofPlacement: directOutlineRenderBridgeProofPlacement,
+            DirectOutlineTextLayoutProofPlacement: directOutlineTextLayoutProofPlacement,
             MsdfProofPlacement: msdfProofPlacement,
-            DirectOutlineArtifacts: directOutlineArtifacts);
+            DirectOutlineArtifacts: directOutlineArtifacts,
+            DirectOutlineRenderBridgeArtifacts: directOutlineRenderBridgeArtifacts,
+            DirectOutlineTextLayoutArtifacts: directOutlineTextLayoutArtifacts);
     }
 
     public static WriteableBitmap ToBitmap(RasterFrame frame)
@@ -182,9 +264,21 @@ public sealed record GalleryExportResult(
     int Height,
     GalleryProofOptions ProofOptions,
     GalleryDirectOutlineTextProofPlacement? DirectOutlineProofPlacement,
+    GalleryDirectOutlineRenderBridgeProofPlacement? DirectOutlineRenderBridgeProofPlacement,
+    GalleryDirectOutlineTextLayoutProofPlacement? DirectOutlineTextLayoutProofPlacement,
     GalleryMsdfFontProofPlacement? MsdfProofPlacement,
-    GalleryDirectOutlineTextProofArtifacts? DirectOutlineArtifacts);
+    GalleryDirectOutlineTextProofArtifacts? DirectOutlineArtifacts,
+    GalleryDirectOutlineRenderBridgeProofArtifacts? DirectOutlineRenderBridgeArtifacts,
+    GalleryDirectOutlineTextLayoutProofArtifacts? DirectOutlineTextLayoutArtifacts);
 
 public sealed record GalleryDirectOutlineTextProofArtifacts(
     string StandaloneProofPath,
     string ComparisonPath);
+
+public sealed record GalleryDirectOutlineTextLayoutProofArtifacts(
+    string StandaloneProofPath,
+    string AlignmentGridPath);
+
+public sealed record GalleryDirectOutlineRenderBridgeProofArtifacts(
+    string StandaloneProofPath,
+    string AlignmentGridPath);

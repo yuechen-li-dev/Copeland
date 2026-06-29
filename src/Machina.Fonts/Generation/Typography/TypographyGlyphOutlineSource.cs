@@ -1,8 +1,9 @@
+using Machina.Fonts.ReferenceRendering;
 using Typography.OpenFont;
 
 namespace Machina.Fonts.Generation.Typography;
 
-public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource, IGlyphPairAdjustmentSource
+public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource, IGlyphPairAdjustmentSource, IDirectOutlineFontMetricsSource
 {
     private readonly TypographyFontFaceCache faceCache;
 
@@ -146,6 +147,48 @@ public sealed class TypographyGlyphOutlineSource : IGlyphOutlineSource, IGlyphPa
             right);
 
         return ValueTask.FromResult(adjustment);
+    }
+
+    public ValueTask<DirectOutlineFontMetricsLoadResult> LoadFontMetricsAsync(
+        FontFaceId face,
+        double fontSize,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (!double.IsFinite(fontSize) || fontSize <= 0d)
+        {
+            throw new ArgumentOutOfRangeException(nameof(fontSize));
+        }
+
+        if (!faceCache.TryGetSource(face, out _))
+        {
+            FontGenerationDiagnostic diagnostic = new(
+                FontGenerationDiagnosticSeverity.Error,
+                FontGenerationDiagnosticCode.OutlineLoadFailed,
+                $"No Typography font face source is configured for '{face}'.");
+            return ValueTask.FromResult(new DirectOutlineFontMetricsLoadResult(false, null, false, [diagnostic]));
+        }
+
+        TypographyFontFaceCache.CachedTypeface cachedFace = faceCache.GetOrLoad(face);
+        if (!cachedFace.Success || cachedFace.Typeface is null)
+        {
+            FontGenerationDiagnostic diagnostic = new(
+                FontGenerationDiagnosticSeverity.Error,
+                FontGenerationDiagnosticCode.OutlineLoadFailed,
+                cachedFace.ErrorMessage ?? $"Failed to load font face '{face}'.");
+            return ValueTask.FromResult(new DirectOutlineFontMetricsLoadResult(false, null, false, [diagnostic]));
+        }
+
+        Typeface typeface = cachedFace.Typeface;
+        double scale = fontSize / typeface.UnitsPerEm;
+        DirectOutlineFontMetrics metrics = new(
+            typeface.UnitsPerEm,
+            Math.Abs(typeface.Ascender * scale),
+            Math.Abs(typeface.Descender * scale),
+            Math.Max(0d, typeface.LineGap * scale));
+
+        return ValueTask.FromResult(new DirectOutlineFontMetricsLoadResult(true, metrics, false, []));
     }
 
     private static GlyphOutlineLoadResult CreateFailure(

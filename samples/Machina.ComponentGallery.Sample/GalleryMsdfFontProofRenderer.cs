@@ -160,6 +160,8 @@ public static class GalleryMsdfFontProofRenderer
 
     private static DistanceFieldTextRenderOptions CreateLineOptions(int width, int height, FontFaceId face, double emSize)
     {
+        int fieldDimension = ExperimentalMsdfSizing.ComputeFieldDimension(emSize);
+
         return new DistanceFieldTextRenderOptions(
             OutputWidth: width,
             OutputHeight: height,
@@ -168,8 +170,8 @@ public static class GalleryMsdfFontProofRenderer
             Weight: MachinaFontWeight.Regular,
             Slant: MachinaFontSlant.Upright,
             Kind: DistanceFieldKind.Msdf,
-            FieldWidth: 32,
-            FieldHeight: 32,
+            FieldWidth: fieldDimension,
+            FieldHeight: fieldDimension,
             PixelRange: 4d,
             Foreground: ProofForeground,
             Background: ProofBackground,

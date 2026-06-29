@@ -93,6 +93,8 @@ public sealed record FontDiagnosticExportOptions
 
     public double PixelRange { get; init; } = 4d;
 
+    public bool ScaleExperimentalFieldWithEmSize { get; init; } = true;
+
     public int PageWidth { get; init; } = 256;
 
     public int PageHeight { get; init; } = 256;

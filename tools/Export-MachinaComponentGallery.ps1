@@ -2,6 +2,8 @@
 param(
     [string]$OutputDir = "artifacts\\m7e",
     [switch]$IncludeDirectOutlineTextProof,
+    [switch]$IncludeDirectOutlineRenderBridgeProof,
+    [switch]$IncludeDirectOutlineTextLayoutProof,
     [switch]$IncludeMsdfFontProof,
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug"
@@ -57,6 +59,51 @@ if ($IncludeDirectOutlineTextProof)
     }
 }
 
+if ($IncludeDirectOutlineTextLayoutProof)
+{
+    $directOutlineLayoutArgs = @("--include-direct-outline-text-layout-proof")
+
+    if ($IncludeDirectOutlineTextProof)
+    {
+        $directOutlineLayoutArgs += "--include-direct-outline-text-proof"
+    }
+
+    if ($IncludeMsdfFontProof)
+    {
+        $directOutlineLayoutArgs += "--include-msdf-font-proof"
+    }
+
+    $exports += @{
+        Name = "component-gallery-direct-outline-text-layout-proof"
+        Args = $directOutlineLayoutArgs
+    }
+}
+
+if ($IncludeDirectOutlineRenderBridgeProof)
+{
+    $directOutlineRenderBridgeArgs = @("--include-direct-outline-render-bridge-proof")
+
+    if ($IncludeDirectOutlineTextProof)
+    {
+        $directOutlineRenderBridgeArgs += "--include-direct-outline-text-proof"
+    }
+
+    if ($IncludeDirectOutlineTextLayoutProof)
+    {
+        $directOutlineRenderBridgeArgs += "--include-direct-outline-text-layout-proof"
+    }
+
+    if ($IncludeMsdfFontProof)
+    {
+        $directOutlineRenderBridgeArgs += "--include-msdf-font-proof"
+    }
+
+    $exports += @{
+        Name = "component-gallery-direct-outline-render-bridge-proof"
+        Args = $directOutlineRenderBridgeArgs
+    }
+}
+
 Push-Location $repoRoot
 
 try
@@ -105,6 +152,20 @@ if ($IncludeDirectOutlineTextProof)
     $createdFiles += (Join-Path $resolvedOutputDir "component-gallery-direct-outline-text-proof.png")
     $createdFiles += (Join-Path $resolvedOutputDir "component-gallery-text-backend-comparison.png")
     $createdFiles += (Join-Path $resolvedOutputDir "direct-outline-static-text-proof.png")
+}
+
+if ($IncludeDirectOutlineTextLayoutProof)
+{
+    $createdFiles += (Join-Path $resolvedOutputDir "component-gallery-direct-outline-text-layout-proof.png")
+    $createdFiles += (Join-Path $resolvedOutputDir "direct-outline-text-box-layout-proof.png")
+    $createdFiles += (Join-Path $resolvedOutputDir "direct-outline-text-alignment-grid.png")
+}
+
+if ($IncludeDirectOutlineRenderBridgeProof)
+{
+    $createdFiles += (Join-Path $resolvedOutputDir "component-gallery-direct-outline-render-bridge-proof.png")
+    $createdFiles += (Join-Path $resolvedOutputDir "direct-outline-render-bridge-proof.png")
+    $createdFiles += (Join-Path $resolvedOutputDir "direct-outline-render-bridge-layout-grid.png")
 }
 
 foreach ($createdFile in $createdFiles)

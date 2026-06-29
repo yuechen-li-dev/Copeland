@@ -155,6 +155,8 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 | PNG output | Renderer tooling | Partial | Gallery export tests + local script | M7b adds deterministic PNG export for the component gallery sample without introducing pixel-diff enforcement; M7e keeps the default local audit path on `artifacts/m7e/`. |
 | Font diagnostics toolkit | Machina.Fonts.Tooling | Implemented | Toolkit tests + local export script | M9a establishes the toolkit boundary and CAD overlays; M9b adds configurable layers and named presets; M9c adds clean export hygiene, source-availability contracts, and deterministic manifests; M9d formalizes direct-outline as the default static proof backend while keeping MSDF explicit and experimental. |
 | Direct-outline gallery proof | ComponentGallery sample + Machina.Fonts proof bridge | Implemented | Gallery tests + local export script + deterministic PNG crops | M9e adds an opt-in `DirectOutlineStatic` proof section and backend comparison panel to the gallery without changing the production text default. |
+| Direct-outline text layout contract | Machina.Fonts reference rendering + ComponentGallery sample | Implemented | Fonts tests + gallery tests + local export script | M9g adds a deterministic proof-only text-in-rect contract for `DirectOutlineStatic`, including padding, content rects, line metrics, alignment, clipping, explicit newline layout, and gallery exports without changing production UI text behavior. |
+| Direct-outline render bridge contract | Machina.Fonts reference rendering + ComponentGallery sample | Implemented | Fonts tests + gallery tests + tooling boundary tests + local export script | M9h adds a renderer-facing static text request/result contract, a direct-outline bridge that maps UI-ish text intent into the M9g layout API, and an opt-in gallery proof without changing production UI text behavior or adding `Machina.Fonts.Tooling` as a production dependency. |
 | Gallery-driven visual defect sweep | Machina.Standard + ComponentGallery sample | Implemented | Local PNG inspection + docs | M7c formalizes gallery-based visual triage and explicit deferral documentation; small safe fixes remain opportunistic. |
 | Gallery baseline and limitation register | ComponentGallery sample + docs | Implemented | Local PNG inspection + docs + export-contract tests | M7e marks the current gallery baseline stable enough for routine audits and records intentional renderer/sample limitations. |
 | Dirty rects | Renderer/runtime | Deferred | None | Performance milestone later.
@@ -245,6 +247,9 @@ React mapping guide:
 - **M9c**: export hygiene, clean-mode guardrails, source-availability contract, strict-vs-partial preset policy, and deterministic export manifests (implemented).
 - **M9d**: direct-outline static text backend formalized as the default diagnostic/static proof path, stable direct-outline renderer API, and explicit MSDF scalable/experimental labeling (implemented).
 - **M9e**: opt-in direct-outline static text proof integration in the component gallery, deterministic gallery comparison artifacts, and proof-only reuse of the direct-outline renderer (implemented).
+- **M9f**: MSDF alignment repair against the direct-outline oracle, including scalable field-resolution sizing for the experimental path, texel-center UV sampling, before/after reports, and no production UI text default change (implemented).
+- **M9g**: direct-outline static text box/layout contract, proof-only text-in-rect placement API, gallery text-layout artifacts, and no production UI text default change (implemented).
+- **M9h**: direct-outline static render bridge contract, renderer-facing request/result API, opt-in gallery bridge proof, and dependency-direction guardrails with no production UI text default change (implemented).
 
 ## Open Questions
 
@@ -828,3 +833,63 @@ This remains proof-only:
 - no MSDF repair
 
 See `docs/machina-direct-outline-text-proof-m9e.md`.
+
+## M9f update
+
+M9f is the first real MSDF repair milestone after the proof/tooling groundwork.
+
+- `DirectOutlineStatic` remains the geometry oracle.
+- `MsdfScalableExperimental` remains explicit and experimental.
+- the repaired experimental MSDF path now scales field dimensions with em size instead of reconstructing larger proof text from a fixed `32x32` field.
+- atlas UV sampling now uses a texel-center contract.
+- `.\tools\Export-MachinaMsdfAlignmentRepairM9f.ps1 -OutputDir artifacts\m9f -Clean` writes before/after direct-vs-MSDF evidence and alignment reports.
+
+This remains proof/tooling-only:
+
+- no browser-kerning oracle swap
+- no arbitrary visual offsets
+- no production default text renderer switch
+- no `Standard.Text` or `Machina.Core` runtime integration change
+
+See `docs/machina-msdf-alignment-repair-m9f.md`.
+
+## M9g update
+
+M9g keeps the M9d/M9e proof-only boundary and formalizes deterministic UI-rectangle text layout for `DirectOutlineStatic`.
+
+- `src/Machina.Fonts/ReferenceRendering` now exposes direct-outline text box options, padding, alignment, clip mode, line-height mode, layout results, and proof rendering helpers.
+- Typography-backed proof fonts now provide ascent, descent, line-gap, and units-per-em through a direct-outline metrics seam.
+- explicit newline splitting is supported for proof multi-line layout.
+- clipping is proof-side pixel clipping to the computed content rect.
+- `samples/Machina.ComponentGallery.Sample` now accepts `--include-direct-outline-text-layout-proof`.
+- deterministic standalone artifacts now include `direct-outline-text-box-layout-proof.png` and `direct-outline-text-alignment-grid.png`.
+
+This remains proof-only:
+
+- no production default text renderer switch
+- no `Standard.Text` semantic change
+- no `Machina.Core` document-model change
+- no `Machina.Layout` resolver change
+- no new MSDF repair work
+
+See `docs/machina-direct-outline-text-layout-contract-m9g.md`.
+
+## M9h update
+
+M9h keeps the M9d/M9e/M9g proof-only boundary and adds the renderer-facing seam that sits between UI-ish text intent and the direct-outline proof backend.
+
+- `src/Machina.Fonts/ReferenceRendering` now exposes `StaticTextRenderRequest`, `StaticTextRenderResult`, and `DirectOutlineStaticTextRenderBridge`.
+- the bridge validates renderer-facing text intent, maps it into `DirectOutlineTextBoxOptions`, and reuses the M9g layout/rendering contract.
+- `samples/Machina.ComponentGallery.Sample` now accepts `--include-direct-outline-render-bridge-proof`.
+- deterministic standalone artifacts now include `direct-outline-render-bridge-proof.png` and `direct-outline-render-bridge-layout-grid.png`.
+- tests now also guard the production dependency boundary so `Machina.Fonts.Tooling` does not leak into production packages.
+
+This remains proof-only:
+
+- no production default text renderer switch
+- no `Standard.Text` semantic change
+- no `Machina.Core` document-model change
+- no new production dependency on `Machina.Fonts.Tooling`
+- no MSDF backend change beyond preserving the existing explicit experimental/scalable path
+
+See `docs/machina-direct-outline-render-bridge-m9h.md`.

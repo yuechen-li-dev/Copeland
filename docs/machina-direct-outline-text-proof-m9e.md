@@ -84,9 +84,35 @@ If MSDF proof is not requested, the comparison stays on bitmap/current vs direct
 
 M9e does not repair MSDF and does not make MSDF a default.
 
+## M9f follow-up
+
+M9f repairs the explicit MSDF proof/comparison path without changing the M9e production boundary.
+
+- `DirectOutlineStatic` remains the static/UI-text proof oracle.
+- MSDF remains explicit experimental/scalable beside it.
+- the gallery/sample proof path can now reuse scalable field sizing for larger MSDF proof text without switching the production UI default.
+
 - `msdf-debug` remains explicit
 - `IncludeMsdfFontProof` remains opt-in
 - browser kerning is still not the target oracle
+
+## M9g follow-up
+
+M9g builds on the M9e proof bridge by defining a deterministic text-in-rect layout contract for `DirectOutlineStatic`.
+
+- the gallery now has a separate opt-in `Direct Outline Text Box Layout Proof` section
+- proof-only layout now covers padding, content rects, horizontal alignment, vertical alignment, clipping, and explicit newline splitting
+- production UI text behavior still does not change
+- MSDF still remains explicit experimental/scalable only
+
+## M9h follow-up
+
+M9h keeps the M9e proof-only boundary and adds a renderer-facing bridge contract above the M9g layout layer.
+
+- the gallery now has a separate opt-in `DirectOutlineStatic Render Bridge Proof` section
+- proof hosts can describe text intent through `StaticTextRenderRequest` and choose the direct-outline backend explicitly
+- production UI text behavior still does not change
+- `Machina.Fonts.Tooling` remains diagnostic-only and is not added as a production dependency
 
 ## What changed
 

@@ -188,6 +188,62 @@ public sealed class CpuDistanceFieldTextRendererTests
     }
 
     [Fact]
+    public void GlyphFieldPlacement_ConvertsToDrawRectWithBaseline()
+    {
+        GlyphFieldPlacement placement = new(2d, -9d, 8d, 3d, 4d, 1d);
+        GlyphAtlasEntry entry = CreateEntry('A', 0, 0, placement: placement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: 20d);
+
+        DistanceFieldGlyphDrawBounds bounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], entry);
+
+        Assert.Equal(3, bounds.X);
+        Assert.Equal(11, bounds.Y);
+        Assert.Equal(6, bounds.Width);
+        Assert.Equal(12, bounds.Height);
+    }
+
+    [Fact]
+    public void MsdfDrawRect_UsesPlaneBoundsNotAtlasRect()
+    {
+        GlyphFieldPlacement placement = new(0d, -6d, 4d, 0d, 4d, 1d);
+        GlyphAtlasEntry entry = CreateEntry('A', 0, 0, atlasWidth: 24, atlasHeight: 20, placement: placement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: 18d);
+
+        DistanceFieldGlyphDrawBounds bounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], entry);
+
+        Assert.Equal(4, bounds.Width);
+        Assert.Equal(6, bounds.Height);
+    }
+
+    [Fact]
+    public void MsdfDrawRect_DoesNotDoubleApplyPadding()
+    {
+        GlyphFieldPlacement paddedPlacement = new(-4d, -10d, 8d, 2d, 4d, 1d);
+        GlyphAtlasEntry entry = CreateEntry('A', 0, 0, atlasWidth: 32, atlasHeight: 32, placement: paddedPlacement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: 18d);
+
+        DistanceFieldGlyphDrawBounds bounds = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], entry);
+
+        Assert.Equal(12, bounds.Width);
+        Assert.Equal(12, bounds.Height);
+        Assert.Equal(8, bounds.Y);
+    }
+
+    [Fact]
+    public void MsdfDrawRect_DoesNotDoubleFlipY()
+    {
+        GlyphFieldPlacement placement = new(0d, -8d, 4d, 2d, 4d, 1d);
+        GlyphAtlasEntry entry = CreateEntry('A', 0, 0, placement: placement);
+        DistanceFieldTextLayoutResult layout = CreateLayout("A", baselineY: 20d);
+
+        DistanceFieldGlyphDrawBounds first = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], entry);
+        DistanceFieldGlyphDrawBounds second = CpuDistanceFieldGlyphRenderer.ComputeDrawBounds(layout.Placements[0], entry);
+
+        Assert.Equal(first.Y, second.Y);
+        Assert.Equal(12, first.Y);
+    }
+
+    [Fact]
     public void CpuDistanceFieldTextRenderer_DoesNotDoubleApplyBearingYWhenUsingPlacement()
     {
         GlyphFieldPlacement placement = new(0d, -6d, 4d, 0d, 4d, 1d);

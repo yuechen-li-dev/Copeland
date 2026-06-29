@@ -544,4 +544,140 @@ public static class GallerySections
                     child: UI.Layer(children: comparisonChildren)),
             ]);
     }
+
+    public static UiNode DirectOutlineTextLayoutProofSection(StandardTheme theme)
+    {
+        var panelBackground = ColorToken.Hex(0x111827FF);
+        var panelBorder = ColorToken.Hex(0x334155FF);
+        var panelMuted = ColorToken.Hex(0xCBD5E1FF);
+        var panelStyle = new UiStyle(
+            Background: panelBackground,
+            Foreground: ColorToken.Hex(0xF8FAFCFF),
+            Padding: 10,
+            BorderColor: panelBorder,
+            BorderThickness: 1);
+
+        return StandardUI.Card(
+            id: "direct-outline-text-layout-proof-card",
+            theme: theme,
+            gap: 10,
+            children:
+            [
+                UI.Text("Direct Outline Text Box Layout Proof", id: "direct-outline-text-layout-proof-title", color: theme.Colors.Foreground),
+
+                UI.Text(
+                    "Proof-only layout contract for placing DirectOutlineStatic text inside UI rectangles with padding, line metrics, alignment, clipping, and explicit newline handling. Production UI text behavior stays unchanged.",
+                    id: "direct-outline-text-layout-proof-caption",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Text(
+                    "Cases: labels, buttons, settings rows, cards/body text, clipping, and an alignment grid with bounds/baselines.",
+                    id: "direct-outline-text-layout-proof-cases",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Rect(
+                    id: GalleryDirectOutlineTextLayoutProofLayout.ProofImageSlotLeafId,
+                    width: 860,
+                    height: 860,
+                    style: panelStyle,
+                    child: UI.Container(
+                        UI.Text(
+                            "Direct-outline text layout proof image is written here during export.",
+                            id: "direct-outline-text-layout-proof-slot-placeholder",
+                            size: TextSize.Sm,
+                            color: panelMuted),
+                        alignX: Align.Center,
+                        alignY: Align.Center)),
+
+                UI.Text(
+                    "Alignment grid: the same box contract rendered across horizontal and vertical alignment combinations with content bounds and baseline guides enabled.",
+                    id: "direct-outline-text-layout-alignment-caption",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Rect(
+                    id: GalleryDirectOutlineTextLayoutProofLayout.AlignmentGridImageSlotLeafId,
+                    width: 860,
+                    height: 220,
+                    style: panelStyle,
+                    child: UI.Container(
+                        UI.Text(
+                            "Direct-outline alignment grid image is written here during export.",
+                            id: "direct-outline-text-layout-alignment-slot-placeholder",
+                            size: TextSize.Sm,
+                            color: panelMuted),
+                        alignX: Align.Center,
+                        alignY: Align.Center)),
+            ]);
+    }
+
+    public static UiNode DirectOutlineRenderBridgeProofSection(StandardTheme theme)
+    {
+        var panelBackground = ColorToken.Hex(0x111827FF);
+        var panelBorder = ColorToken.Hex(0x334155FF);
+        var panelMuted = ColorToken.Hex(0xCBD5E1FF);
+        var panelStyle = new UiStyle(
+            Background: panelBackground,
+            Foreground: ColorToken.Hex(0xF8FAFCFF),
+            Padding: 10,
+            BorderColor: panelBorder,
+            BorderThickness: 1);
+
+        return StandardUI.Card(
+            id: "direct-outline-render-bridge-proof-card",
+            theme: theme,
+            gap: 10,
+            children:
+            [
+                UI.Text("DirectOutlineStatic Render Bridge Proof", id: "direct-outline-render-bridge-proof-title", color: theme.Colors.Foreground),
+
+                UI.Text(
+                    "Opt-in proof only. A renderer-facing static text request maps UI-ish text intent into DirectOutlineTextBoxLayout and DirectOutlineStatic without changing the production bitmap text default.",
+                    id: "direct-outline-render-bridge-proof-caption",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Text(
+                    "Cases: label, centered button, settings row, card title/body, clipped long label, plus a layout grid showing alignment, content bounds, and baselines.",
+                    id: "direct-outline-render-bridge-proof-cases",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Rect(
+                    id: GalleryDirectOutlineRenderBridgeProofLayout.ProofImageSlotLeafId,
+                    width: 860,
+                    height: 792,
+                    style: panelStyle,
+                    child: UI.Container(
+                        UI.Text(
+                            "Direct-outline render bridge proof image is written here during export.",
+                            id: "direct-outline-render-bridge-proof-slot-placeholder",
+                            size: TextSize.Sm,
+                            color: panelMuted),
+                        alignX: Align.Center,
+                        alignY: Align.Center)),
+
+                UI.Text(
+                    "Layout grid: the same bridge contract rendered across horizontal and vertical alignment combinations with proof-side diagnostics enabled.",
+                    id: "direct-outline-render-bridge-layout-grid-caption",
+                    size: TextSize.Sm,
+                    color: theme.Colors.MutedForeground),
+
+                UI.Rect(
+                    id: GalleryDirectOutlineRenderBridgeProofLayout.AlignmentGridImageSlotLeafId,
+                    width: 860,
+                    height: 220,
+                    style: panelStyle,
+                    child: UI.Container(
+                        UI.Text(
+                            "Direct-outline render bridge layout grid image is written here during export.",
+                            id: "direct-outline-render-bridge-layout-grid-slot-placeholder",
+                            size: TextSize.Sm,
+                            color: panelMuted),
+                        alignX: Align.Center,
+                        alignY: Align.Center)),
+            ]);
+    }
 }

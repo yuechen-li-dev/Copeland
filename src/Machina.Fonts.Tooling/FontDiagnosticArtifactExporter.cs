@@ -561,6 +561,13 @@ public sealed class FontDiagnosticArtifactExporter
         string outputDirectory,
         FontDiagnosticCanvasDefinition canvas)
     {
+        int fieldWidth = options.ScaleExperimentalFieldWithEmSize
+            ? ExperimentalMsdfSizing.ComputeFieldDimension(canvas.SizePx, options.FieldWidth)
+            : options.FieldWidth;
+        int fieldHeight = options.ScaleExperimentalFieldWithEmSize
+            ? ExperimentalMsdfSizing.ComputeFieldDimension(canvas.SizePx, options.FieldHeight)
+            : options.FieldHeight;
+
         return new FontProofExportOptions(
             outputDirectory,
             $"{options.AtlasName}-{canvas.SizePx}",
@@ -571,8 +578,8 @@ public sealed class FontDiagnosticArtifactExporter
             options.Kind,
             canvas.Width,
             canvas.Height,
-            options.FieldWidth,
-            options.FieldHeight,
+            fieldWidth,
+            fieldHeight,
             options.PixelRange,
             options.Foreground,
             options.Background,
@@ -592,6 +599,13 @@ public sealed class FontDiagnosticArtifactExporter
         FontDiagnosticExportOptions options,
         FontDiagnosticCanvasDefinition canvas)
     {
+        int fieldWidth = options.ScaleExperimentalFieldWithEmSize
+            ? ExperimentalMsdfSizing.ComputeFieldDimension(canvas.SizePx, options.FieldWidth)
+            : options.FieldWidth;
+        int fieldHeight = options.ScaleExperimentalFieldWithEmSize
+            ? ExperimentalMsdfSizing.ComputeFieldDimension(canvas.SizePx, options.FieldHeight)
+            : options.FieldHeight;
+
         return new DistanceFieldTextRenderOptions(
             canvas.Width,
             canvas.Height,
@@ -600,8 +614,8 @@ public sealed class FontDiagnosticArtifactExporter
             options.Weight,
             options.Slant,
             options.Kind,
-            options.FieldWidth,
-            options.FieldHeight,
+            fieldWidth,
+            fieldHeight,
             options.PixelRange,
             options.Foreground,
             options.Background,
@@ -778,6 +792,7 @@ public sealed class FontDiagnosticArtifactExporter
         builder.AppendLine("options:");
         builder.AppendLine($"  cleanOutputDirectory: {manifest.Options.CleanOutputDirectory.ToString().ToLowerInvariant()}");
         builder.AppendLine($"  allowPartial: {manifest.Options.AllowPartial.ToString().ToLowerInvariant()}");
+        builder.AppendLine($"  scaleExperimentalFieldWithEmSize: {manifest.Options.ScaleExperimentalFieldWithEmSize.ToString().ToLowerInvariant()}");
         builder.AppendLine($"  gridStep: {manifest.Options.GridStep}");
         builder.AppendLine($"  showGrid: {manifest.Options.ShowGrid.ToString().ToLowerInvariant()}");
         builder.AppendLine($"  showUnitLabels: {manifest.Options.ShowUnitLabels.ToString().ToLowerInvariant()}");
@@ -1064,6 +1079,7 @@ public sealed class FontDiagnosticArtifactExporter
             Options: new FontDiagnosticExportManifestOptions(
                 options.CleanOutputDirectory,
                 options.AllowPartial,
+                options.ScaleExperimentalFieldWithEmSize,
                 options.GridOptions.GridStep,
                 options.GridOptions.ShowGrid,
                 options.GridOptions.ShowUnitLabels,

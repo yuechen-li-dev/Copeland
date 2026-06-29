@@ -194,6 +194,82 @@ public sealed class GalleryRenderTests
         Assert.Contains($"{GalleryDirectOutlineTextProofLayout.SectionId}/direct-outline-panel", ids);
     }
 
+    [Fact]
+    public void ComponentGallery_DefaultExport_DoesNotIncludeTextLayoutProof()
+    {
+        var frame = Render(GalleryState.Default, StandardTheme.Default);
+        var ids = frame.Resolved.Nodes.Keys.Select(key => key.Value).ToHashSet(StringComparer.Ordinal);
+
+        Assert.DoesNotContain($"{GalleryDirectOutlineTextLayoutProofLayout.SectionId}/{GalleryDirectOutlineTextLayoutProofLayout.ProofImageSlotLeafId}", ids);
+    }
+
+    [Fact]
+    public void ComponentGallery_RenderBridgeProof_IsOptIn()
+    {
+        var frame = Render(
+            GalleryState.Default,
+            StandardTheme.Default,
+            new GalleryProofOptions(IncludeDirectOutlineRenderBridgeProof: true));
+        var ids = frame.Resolved.Nodes.Keys.Select(key => key.Value).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains($"{GalleryDirectOutlineRenderBridgeProofLayout.SectionId}/{GalleryDirectOutlineRenderBridgeProofLayout.ProofImageSlotLeafId}", ids);
+    }
+
+    [Fact]
+    public void ComponentGallery_DefaultExport_DoesNotIncludeRenderBridgeProof()
+    {
+        var frame = Render(GalleryState.Default, StandardTheme.Default);
+        var ids = frame.Resolved.Nodes.Keys.Select(key => key.Value).ToHashSet(StringComparer.Ordinal);
+
+        Assert.DoesNotContain($"{GalleryDirectOutlineRenderBridgeProofLayout.SectionId}/{GalleryDirectOutlineRenderBridgeProofLayout.ProofImageSlotLeafId}", ids);
+    }
+
+    [Fact]
+    public void ComponentGallery_RenderBridgeProof_ContainsLabelButtonCardClippingCases()
+    {
+        var frame = Render(
+            GalleryState.Default,
+            StandardTheme.Default,
+            new GalleryProofOptions(IncludeDirectOutlineRenderBridgeProof: true));
+        var textCommands = frame.RenderCommands.OfType<DrawTextCommand>().ToList();
+        var ids = frame.Resolved.Nodes.Keys.Select(key => key.Value).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains(textCommands, command => command.Text == "DirectOutlineStatic Render Bridge Proof");
+        Assert.Contains(textCommands, command => command.Text.Contains("label, centered button, settings row", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(textCommands, command => command.Text.Contains("clipped long label", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains($"{GalleryDirectOutlineRenderBridgeProofLayout.SectionId}/{GalleryDirectOutlineRenderBridgeProofLayout.ProofImageSlotLeafId}", ids);
+        Assert.Contains($"{GalleryDirectOutlineRenderBridgeProofLayout.SectionId}/{GalleryDirectOutlineRenderBridgeProofLayout.AlignmentGridImageSlotLeafId}", ids);
+    }
+
+    [Fact]
+    public void ComponentGallery_TextLayoutProof_ContainsAlignmentCases()
+    {
+        var frame = Render(
+            GalleryState.Default,
+            StandardTheme.Default,
+            new GalleryProofOptions(IncludeDirectOutlineTextLayoutProof: true));
+        var textCommands = frame.RenderCommands.OfType<DrawTextCommand>().ToList();
+        var ids = frame.Resolved.Nodes.Keys.Select(key => key.Value).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains(textCommands, command => command.Text == "Direct Outline Text Box Layout Proof");
+        Assert.Contains(textCommands, command => command.Text.Contains("labels, buttons, settings rows", StringComparison.Ordinal));
+        Assert.Contains($"{GalleryDirectOutlineTextLayoutProofLayout.SectionId}/{GalleryDirectOutlineTextLayoutProofLayout.ProofImageSlotLeafId}", ids);
+        Assert.Contains($"{GalleryDirectOutlineTextLayoutProofLayout.SectionId}/{GalleryDirectOutlineTextLayoutProofLayout.AlignmentGridImageSlotLeafId}", ids);
+    }
+
+    [Fact]
+    public void ComponentGallery_TextLayoutProof_ContainsClippingCase()
+    {
+        var frame = Render(
+            GalleryState.Default,
+            StandardTheme.Default,
+            new GalleryProofOptions(IncludeDirectOutlineTextLayoutProof: true));
+        var textCommands = frame.RenderCommands.OfType<DrawTextCommand>().ToList();
+
+        Assert.Contains(textCommands, command => command.Text.Contains("clipping", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(textCommands, command => command.Text.Contains("alignment grid", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static MachinaFrame Render(GalleryState state, StandardTheme theme, GalleryProofOptions? proofOptions = null)
     {
         var effectiveProofOptions = proofOptions ?? new GalleryProofOptions();

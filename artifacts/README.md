@@ -19,6 +19,9 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m9b/` is the historical preset-driven Machina font toolkit diagnostic output directory.
 - `artifacts/m9c/` is the current export-hygiene and source-contract font toolkit diagnostic output directory.
 - `artifacts/m9e/` is the current direct-outline component-gallery proof output directory.
+- `artifacts/m9f/` is the current MSDF alignment-repair diagnostic output directory.
+- `artifacts/m9g/` is the current direct-outline text-layout proof output directory.
+- `artifacts/m9h/` is the current direct-outline render-bridge proof output directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -32,6 +35,9 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M9b comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M9c comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M9e comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M9f comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M9g comparison artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M9h comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -66,6 +72,21 @@ Current M9e proof audit command:
 ```powershell
 .\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9e -IncludeDirectOutlineTextProof
 .\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9e -IncludeDirectOutlineTextProof -IncludeMsdfFontProof
+```
+
+Current M9g proof audit commands:
+
+```powershell
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9g -IncludeDirectOutlineTextProof -IncludeDirectOutlineTextLayoutProof
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9g -IncludeDirectOutlineTextProof -IncludeDirectOutlineTextLayoutProof -IncludeMsdfFontProof
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9g -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
+```
+
+Current M9h proof audit commands:
+
+```powershell
+.\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9h -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
+.\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9h -IncludeDirectOutlineRenderBridgeProof
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -143,6 +164,12 @@ Current M9d audit commands:
 .\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m9d-msdf -Preset msdf-debug -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
 ```
 
+Current M9f audit command:
+
+```powershell
+.\tools\Export-MachinaMsdfAlignmentRepairM9f.ps1 -OutputDir artifacts\m9f -Clean
+```
+
 ## Current component gallery outputs
 
 - `artifacts/m7e/component-gallery-default.png`
@@ -151,6 +178,16 @@ Current M9d audit commands:
 - `artifacts/m9e/component-gallery-direct-outline-text-proof.png`
 - `artifacts/m9e/component-gallery-text-backend-comparison.png`
 - `artifacts/m9e/direct-outline-static-text-proof.png`
+- `artifacts/m9g/component-gallery-direct-outline-text-layout-proof.png`
+- `artifacts/m9g/direct-outline-text-box-layout-proof.png`
+- `artifacts/m9g/direct-outline-text-alignment-grid.png`
+- `artifacts/m9g/font-diagnostic-export-manifest.txt`
+- `artifacts/m9g/font-diagnostic-export-manifest.json`
+- `artifacts/m9h/component-gallery-direct-outline-render-bridge-proof.png`
+- `artifacts/m9h/direct-outline-render-bridge-proof.png`
+- `artifacts/m9h/direct-outline-render-bridge-layout-grid.png`
+- `artifacts/m9h/font-diagnostic-export-manifest.txt`
+- `artifacts/m9h/font-diagnostic-export-manifest.json`
 
 No automated pixel comparison runs against these files yet. M7e documents the current stable baseline and its limitations without changing that policy.
 
@@ -327,6 +364,23 @@ These remain local diagnostic artifacts only. M8s adds a direct-outline mask ora
 
 These remain local diagnostic artifacts only. M9d makes direct-outline the default static proof backend, keeps MSDF explicit as scalable/experimental, records backend policy in the manifest, and does not change production text behavior.
 
+## Current M9f MSDF alignment-repair outputs
+
+- `artifacts/m9f/m9f-direct-vs-msdf-hello-machina.png`
+- `artifacts/m9f/m9f-direct-vs-msdf-machina.png`
+- `artifacts/m9f/m9f-direct-vs-msdf-settings.png`
+- `artifacts/m9f/m9f-msdf-debug-hello-machina.png`
+- `artifacts/m9f/m9f-cad-debug-hello-machina.png`
+- `artifacts/m9f/m9f-before-after-direct-vs-msdf-hello-machina.png`
+- `artifacts/m9f/shape-diff-report.txt`
+- `artifacts/m9f/shape-diff-report.json`
+- `artifacts/m9f/font-diagnostic-export-manifest.txt`
+- `artifacts/m9f/font-diagnostic-export-manifest.json`
+- `artifacts/m9f/msdf-alignment-report.txt`
+- `artifacts/m9f/msdf-alignment-report.json`
+
+These remain local diagnostic artifacts only. M9f repairs MSDF-side alignment against the direct-outline oracle, keeps MSDF explicit experimental/scalable, uses no arbitrary visual offsets, and does not change production UI text behavior.
+
 ## Current M9e direct-outline gallery proof outputs
 
 - `artifacts/m9e/component-gallery-direct-outline-text-proof.png`
@@ -334,3 +388,23 @@ These remain local diagnostic artifacts only. M9d makes direct-outline the defau
 - `artifacts/m9e/direct-outline-static-text-proof.png`
 
 These remain local proof artifacts only. M9e proves direct-outline static UI-ish text inside the component gallery through an explicit opt-in sample path. It does not switch production UI text defaults, does not change `Standard.Text`, and does not promote MSDF beyond explicit experimental comparison.
+
+## Current M9g direct-outline text-layout proof outputs
+
+- `artifacts/m9g/component-gallery-direct-outline-text-layout-proof.png`
+- `artifacts/m9g/direct-outline-text-box-layout-proof.png`
+- `artifacts/m9g/direct-outline-text-alignment-grid.png`
+- `artifacts/m9g/font-diagnostic-export-manifest.txt`
+- `artifacts/m9g/font-diagnostic-export-manifest.json`
+
+These remain local proof artifacts only. M9g adds a deterministic `DirectOutlineStatic` text-in-rect layout contract with padding, alignment, clipping, line boxes, and explicit newline support for gallery/tooling proof work. It does not change production UI text behavior and does not promote MSDF beyond explicit experimental/scalable comparison.
+
+## Current M9h direct-outline render-bridge proof outputs
+
+- `artifacts/m9h/component-gallery-direct-outline-render-bridge-proof.png`
+- `artifacts/m9h/direct-outline-render-bridge-proof.png`
+- `artifacts/m9h/direct-outline-render-bridge-layout-grid.png`
+- `artifacts/m9h/font-diagnostic-export-manifest.txt`
+- `artifacts/m9h/font-diagnostic-export-manifest.json`
+
+These remain local proof artifacts only. M9h adds a renderer-facing bridge contract for direct-outline static text and an opt-in gallery proof that exercises it. It does not change the production UI text default, and `Machina.Fonts.Tooling` remains out of production package dependencies.

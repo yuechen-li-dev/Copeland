@@ -77,6 +77,37 @@ M9e uses the M9d API as a sample-only proof bridge in `samples/Machina.Component
 
 See `docs/machina-direct-outline-text-proof-m9e.md`.
 
+## M9g follow-up
+
+M9g keeps the M9d backend policy intact and adds a proof-level text box/layout contract on top of `DirectOutlineStatic`.
+
+- direct-outline remains the default static/reference backend
+- font metrics, line boxes, baselines, padding, alignment, clipping, and explicit newline layout are now formalized for proof work
+- production UI text behavior remains unchanged
+
+See `docs/machina-direct-outline-text-layout-contract-m9g.md`.
+
 ## Future MSDF repair path
 
 MSDF repair remains a separate milestone focused on placement drift, larger-size mismatch growth, and scalable-text use cases.
+
+## M9f follow-up
+
+M9f is that first real repair milestone.
+
+- `DirectOutlineStatic` stays the geometry oracle.
+- `MsdfScalableExperimental` keeps its explicit experimental/scalable label.
+- the repaired MSDF path now scales field resolution with em size in proof/export workflows and uses a texel-center UV sampling contract.
+- no direct-outline geometry was changed to match broken MSDF output.
+- no production UI text default changed.
+
+## M9h follow-up
+
+M9h keeps the M9d backend policy intact and adds a renderer-facing bridge contract on top of the M9g layout API.
+
+- `DirectOutlineStatic` remains the static/reference backend.
+- renderer/proof hosts can now describe UI-ish text intent through `StaticTextRenderRequest`.
+- the bridge lives in `Machina.Fonts.ReferenceRendering`, not in `Machina.Fonts.Tooling`.
+- production UI text behavior remains unchanged.
+
+See `docs/machina-direct-outline-render-bridge-m9h.md`.

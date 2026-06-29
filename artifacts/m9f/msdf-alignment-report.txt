@@ -1,0 +1,36 @@
+Machina MSDF Alignment Repair M9f
+geometryOracle: DirectOutlineStatic
+msdfBackend: MsdfScalableExperimental
+diagnosis: the experimental MSDF path was still using a fixed 32x32 field for larger text, so larger sizes reconstructed the right layout from under-resolved glyph fields. A smaller UV texel-center mismatch also existed in sampling.
+fixApplied: scale MSDF field dimensions with em size in the experimental diagnostic/export path and sample atlas UVs on a texel-center contract.
+
+[64px] Hello Machina
+  before: IoU=0.3410, meanEdge=1.8909, p95=7.0000, max=10.7703
+  after:  IoU=0.4349, meanEdge=1.4006, p95=4.0000, max=6.0000
+  fix: Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.
+
+[64px] Machina
+  before: IoU=0.3415, meanEdge=1.8148, p95=7.0000, max=9.8489
+  after:  IoU=0.5029, meanEdge=1.2797, p95=3.1623, max=6.0000
+  fix: Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.
+
+[64px] Settings
+  before: IoU=0.3030, meanEdge=2.0137, p95=6.4031, max=10.0000
+  after:  IoU=0.2748, meanEdge=1.8229, p95=5.0000, max=7.2111
+  fix: Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.
+
+[64px] AV To Ta Wa Yo
+  before: IoU=0.3937, meanEdge=2.2180, p95=9.4498, max=17.0880
+  after:  IoU=0.5575, meanEdge=1.1783, p95=2.8284, max=4.2426
+  fix: Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.
+
+[64px] Aa0 1234567890
+  before: IoU=0.2139, meanEdge=1.9689, p95=5.0990, max=7.2111
+  after:  IoU=0.3951, meanEdge=1.7086, p95=3.1623, max=5.3852
+  fix: Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.
+
+[64px] Direct outline static text
+  before: IoU=0.4610, meanEdge=1.4552, p95=5.0000, max=8.6023
+  after:  IoU=0.2973, meanEdge=1.7779, p95=5.0000, max=7.0711
+  fix: Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.
+

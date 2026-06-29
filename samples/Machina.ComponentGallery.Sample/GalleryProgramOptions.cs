@@ -6,6 +6,8 @@ public sealed record GalleryProgramOptions(
     string ExportDirectory,
     string ExportName,
     bool IncludeDirectOutlineTextProof,
+    bool IncludeDirectOutlineRenderBridgeProof,
+    bool IncludeDirectOutlineTextLayoutProof,
     bool IncludeMsdfFontProof)
 {
     public static GalleryProgramOptions Parse(IReadOnlyList<string> args)
@@ -15,6 +17,8 @@ public sealed record GalleryProgramOptions(
         var exportDirectory = GalleryExportContract.DefaultOutputDirectory;
         var exportName = GalleryExportContract.DefaultExportName;
         var includeDirectOutlineTextProof = false;
+        var includeDirectOutlineRenderBridgeProof = false;
+        var includeDirectOutlineTextLayoutProof = false;
         var includeMsdfFontProof = false;
 
         for (var index = 0; index < args.Count; index++)
@@ -42,6 +46,18 @@ public sealed record GalleryProgramOptions(
             if (arg == "--include-msdf-font-proof")
             {
                 includeMsdfFontProof = true;
+                continue;
+            }
+
+            if (arg == "--include-direct-outline-render-bridge-proof")
+            {
+                includeDirectOutlineRenderBridgeProof = true;
+                continue;
+            }
+
+            if (arg == "--include-direct-outline-text-layout-proof")
+            {
+                includeDirectOutlineTextLayoutProof = true;
                 continue;
             }
 
@@ -76,6 +92,8 @@ public sealed record GalleryProgramOptions(
             exportDirectory,
             exportName,
             includeDirectOutlineTextProof,
+            includeDirectOutlineRenderBridgeProof,
+            includeDirectOutlineTextLayoutProof,
             includeMsdfFontProof);
     }
 

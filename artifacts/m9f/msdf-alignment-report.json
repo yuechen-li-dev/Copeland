@@ -1,0 +1,247 @@
+{
+  "milestone": "M9f",
+  "geometryOracle": "DirectOutlineStatic",
+  "msdfBackend": "MsdfScalableExperimental",
+  "layoutContract": {
+    "sharedRunLayout": true,
+    "browserKerningTarget": false,
+    "notes": "Direct-outline and MSDF diagnostics share the same DistanceFieldTextLayout pen positions, advances, pair adjustments, whitespace handling, and glyph order."
+  },
+  "samples": [
+    {
+      "text": "Hello Machina",
+      "fontSize": 64,
+      "before": {
+        "iou": 0.3409896497944137,
+        "meanEdgeDistance": 1.8909421897999696,
+        "p95EdgeDistance": 7,
+        "maxEdgeDistance": 10.770329614269007,
+        "boundsDelta": {
+          "left": -3,
+          "top": 4,
+          "right": 0,
+          "bottom": 7,
+          "width": 3,
+          "height": 3
+        }
+      },
+      "after": {
+        "iou": 0.43485500208130984,
+        "meanEdgeDistance": 1.4005787469434001,
+        "p95EdgeDistance": 4,
+        "maxEdgeDistance": 6,
+        "boundsDelta": {
+          "left": 0,
+          "top": -1,
+          "right": 2,
+          "bottom": -1,
+          "width": 2,
+          "height": 0
+        }
+      },
+      "diagnosis": {
+        "suspectedStage": "projectionScale/fieldResolution",
+        "fixApplied": "Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.",
+        "notes": "DirectOutlineStatic remained the geometry oracle. No arbitrary offsets were introduced."
+      }
+    },
+    {
+      "text": "Machina",
+      "fontSize": 64,
+      "before": {
+        "iou": 0.34146341463414637,
+        "meanEdgeDistance": 1.8147921962413105,
+        "p95EdgeDistance": 7,
+        "maxEdgeDistance": 9.848857801796104,
+        "boundsDelta": {
+          "left": -3,
+          "top": 4,
+          "right": -1,
+          "bottom": 7,
+          "width": 2,
+          "height": 3
+        }
+      },
+      "after": {
+        "iou": 0.5028749401054144,
+        "meanEdgeDistance": 1.2797168267824839,
+        "p95EdgeDistance": 3.1622776601683795,
+        "maxEdgeDistance": 6,
+        "boundsDelta": {
+          "left": 1,
+          "top": -1,
+          "right": 2,
+          "bottom": -1,
+          "width": 1,
+          "height": 0
+        }
+      },
+      "diagnosis": {
+        "suspectedStage": "projectionScale/fieldResolution",
+        "fixApplied": "Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.",
+        "notes": "DirectOutlineStatic remained the geometry oracle. No arbitrary offsets were introduced."
+      }
+    },
+    {
+      "text": "Settings",
+      "fontSize": 64,
+      "before": {
+        "iou": 0.3030153237765695,
+        "meanEdgeDistance": 2.0137261805280637,
+        "p95EdgeDistance": 6.4031242374328485,
+        "maxEdgeDistance": 10,
+        "boundsDelta": {
+          "left": -5,
+          "top": 4,
+          "right": -1,
+          "bottom": 6,
+          "width": 4,
+          "height": 2
+        }
+      },
+      "after": {
+        "iou": 0.2748040313549832,
+        "meanEdgeDistance": 1.8229280684280675,
+        "p95EdgeDistance": 5,
+        "maxEdgeDistance": 7.211102550927978,
+        "boundsDelta": {
+          "left": 2,
+          "top": -1,
+          "right": 5,
+          "bottom": -7,
+          "width": 3,
+          "height": -6
+        }
+      },
+      "diagnosis": {
+        "suspectedStage": "projectionScale/fieldResolution",
+        "fixApplied": "Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.",
+        "notes": "DirectOutlineStatic remained the geometry oracle. No arbitrary offsets were introduced."
+      }
+    },
+    {
+      "text": "AV To Ta Wa Yo",
+      "fontSize": 64,
+      "before": {
+        "iou": 0.39368355222013757,
+        "meanEdgeDistance": 2.217983602600412,
+        "p95EdgeDistance": 9.44983668659115,
+        "maxEdgeDistance": 17.08800749063506,
+        "boundsDelta": {
+          "left": -2,
+          "top": 3,
+          "right": 0,
+          "bottom": 14,
+          "width": 2,
+          "height": 11
+        }
+      },
+      "after": {
+        "iou": 0.557546408393866,
+        "meanEdgeDistance": 1.1783429646901664,
+        "p95EdgeDistance": 2.8284271247461903,
+        "maxEdgeDistance": 4.242640687119285,
+        "boundsDelta": {
+          "left": 1,
+          "top": -2,
+          "right": 0,
+          "bottom": 2,
+          "width": -1,
+          "height": 4
+        }
+      },
+      "diagnosis": {
+        "suspectedStage": "projectionScale/fieldResolution",
+        "fixApplied": "Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.",
+        "notes": "DirectOutlineStatic remained the geometry oracle. No arbitrary offsets were introduced."
+      }
+    },
+    {
+      "text": "Aa0 1234567890",
+      "fontSize": 64,
+      "before": {
+        "iou": 0.21394114809454895,
+        "meanEdgeDistance": 1.9688754095493204,
+        "p95EdgeDistance": 5.0990195135927845,
+        "maxEdgeDistance": 7.211102550927978,
+        "boundsDelta": {
+          "left": -2,
+          "top": 3,
+          "right": -4,
+          "bottom": 2,
+          "width": -2,
+          "height": -1
+        }
+      },
+      "after": {
+        "iou": 0.3950554351981649,
+        "meanEdgeDistance": 1.7085897462788224,
+        "p95EdgeDistance": 3.1622776601683795,
+        "maxEdgeDistance": 5.385164807134504,
+        "boundsDelta": {
+          "left": 1,
+          "top": -2,
+          "right": 3,
+          "bottom": -1,
+          "width": 2,
+          "height": 1
+        }
+      },
+      "diagnosis": {
+        "suspectedStage": "projectionScale/fieldResolution",
+        "fixApplied": "Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.",
+        "notes": "DirectOutlineStatic remained the geometry oracle. No arbitrary offsets were introduced."
+      }
+    },
+    {
+      "text": "Direct outline static text",
+      "fontSize": 64,
+      "before": {
+        "iou": 0.46100892761105733,
+        "meanEdgeDistance": 1.4552437714375395,
+        "p95EdgeDistance": 5,
+        "maxEdgeDistance": 8.602325267042627,
+        "boundsDelta": {
+          "left": -2,
+          "top": 4,
+          "right": -4,
+          "bottom": 2,
+          "width": -2,
+          "height": -2
+        }
+      },
+      "after": {
+        "iou": 0.2972549019607843,
+        "meanEdgeDistance": 1.7778922428806982,
+        "p95EdgeDistance": 5,
+        "maxEdgeDistance": 7.0710678118654755,
+        "boundsDelta": {
+          "left": 0,
+          "top": -1,
+          "right": 6,
+          "bottom": -2,
+          "width": 6,
+          "height": -1
+        }
+      },
+      "diagnosis": {
+        "suspectedStage": "projectionScale/fieldResolution",
+        "fixApplied": "Scale experimental MSDF field dimensions with em size and sample atlas UVs with a texel-center contract.",
+        "notes": "DirectOutlineStatic remained the geometry oracle. No arbitrary offsets were introduced."
+      }
+    }
+  ],
+  "summary": {
+    "fixedStages": [
+      "UV and texel-center sampling contract",
+      "Experimental MSDF field resolution scaling"
+    ],
+    "deferredStages": [
+      "Additional smoothing-only tuning, if still desired after M9f"
+    ],
+    "warnings": [
+      "MSDF remains explicit experimental/scalable and is not the production UI default.",
+      "Browser kerning is not the M9f geometry oracle."
+    ]
+  }
+}

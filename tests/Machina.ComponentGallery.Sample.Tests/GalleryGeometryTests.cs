@@ -116,6 +116,46 @@ public sealed class GalleryGeometryTests
         Assert.True(comparisonRect.Height > 0);
     }
 
+    [Fact]
+    public void ComponentGallery_DirectOutlineTextLayoutProof_IsOptIn()
+    {
+        var defaultFrame = GeometryHarness.ResolveDocument(
+            GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default),
+            GalleryScreen.Width,
+            GalleryScreen.Height);
+        var proofOptions = new GalleryProofOptions(IncludeDirectOutlineTextLayoutProof: true);
+        var proofFrame = GeometryHarness.ResolveDocument(
+            GalleryScreen.Build(GalleryState.Default, proofOptions, StandardTheme.Default),
+            GalleryScreen.Width,
+            GalleryScreen.GetHeight(proofOptions));
+
+        Assert.False(GalleryDirectOutlineTextLayoutProofLayout.TryGetProofImageSlotRect(defaultFrame.Resolved, out _));
+        Assert.True(GalleryDirectOutlineTextLayoutProofLayout.TryGetProofImageSlotRect(proofFrame.Resolved, out var proofRect));
+        Assert.True(GalleryDirectOutlineTextLayoutProofLayout.TryGetAlignmentGridImageSlotRect(proofFrame.Resolved, out var gridRect));
+        Assert.True(proofRect.Width > 0);
+        Assert.True(gridRect.Height > 0);
+    }
+
+    [Fact]
+    public void ComponentGallery_RenderBridgeProof_IsOptIn()
+    {
+        var defaultFrame = GeometryHarness.ResolveDocument(
+            GalleryScreen.Build(GalleryState.Default, theme: StandardTheme.Default),
+            GalleryScreen.Width,
+            GalleryScreen.Height);
+        var proofOptions = new GalleryProofOptions(IncludeDirectOutlineRenderBridgeProof: true);
+        var proofFrame = GeometryHarness.ResolveDocument(
+            GalleryScreen.Build(GalleryState.Default, proofOptions, StandardTheme.Default),
+            GalleryScreen.Width,
+            GalleryScreen.GetHeight(proofOptions));
+
+        Assert.False(GalleryDirectOutlineRenderBridgeProofLayout.TryGetProofImageSlotRect(defaultFrame.Resolved, out _));
+        Assert.True(GalleryDirectOutlineRenderBridgeProofLayout.TryGetProofImageSlotRect(proofFrame.Resolved, out var proofRect));
+        Assert.True(GalleryDirectOutlineRenderBridgeProofLayout.TryGetAlignmentGridImageSlotRect(proofFrame.Resolved, out var gridRect));
+        Assert.True(proofRect.Width > 0);
+        Assert.True(gridRect.Height > 0);
+    }
+
     private static void AssertRectInside(Machina.Layout.Geometry.Rect inner, Machina.Layout.Geometry.Rect outer, string id)
     {
         Assert.True(inner.X >= outer.X, $"{id} left outside root.");

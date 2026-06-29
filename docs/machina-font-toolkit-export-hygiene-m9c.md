@@ -169,3 +169,24 @@ M9e keeps the M9c export hygiene and manifest contract, but adds a separate samp
 - `font-diagnostic-export-manifest.json/txt` remain the diagnostic-toolkit manifest outputs, while the gallery proof writes standalone PNG crops for direct-outline and backend comparison
 
 This still does not change production UI text behavior.
+
+## M9f follow-up
+
+M9f keeps the M9c export-hygiene and manifest discipline while adding a dedicated alignment-repair export path.
+
+- `.\tools\Export-MachinaMsdfAlignmentRepairM9f.ps1 -OutputDir artifacts\m9f -Clean`
+- `msdf-alignment-report.json/txt` now summarize before/after direct-vs-MSDF metrics
+- `DirectOutlineStatic` remains the geometry oracle
+- `MsdfScalableExperimental` remains explicit experimental/scalable
+- no browser-kerning oracle swap and no arbitrary visual offsets are introduced
+
+## M9h follow-up
+
+M9h keeps the M9c export-hygiene and manifest discipline while adding a separate render-bridge proof export surface.
+
+- `.\tools\Export-MachinaComponentGallery.ps1` now accepts `-IncludeDirectOutlineRenderBridgeProof`
+- render-bridge proof exports stay local and deterministic under an explicit output directory such as `artifacts\m9h`
+- `font-diagnostic-export-manifest.json/txt` remain the diagnostic-toolkit manifest outputs
+- the bridge contract itself lives in `Machina.Fonts.ReferenceRendering`, not in `Machina.Fonts.Tooling`
+
+This still does not change production UI text behavior or production package dependencies.

@@ -8,6 +8,8 @@ public static class GalleryScreen
     public const int Width = 960;
     public const int Height = 1000;
     public const int DirectOutlineProofSectionHeight = 1080;
+    public const int DirectOutlineRenderBridgeProofSectionHeight = 1148;
+    public const int DirectOutlineTextLayoutProofSectionHeight = 1248;
     public const int MsdfProofSectionHeight = 208;
     private const int ProofSectionTop = 776;
     private const int ProofSectionGap = 24;
@@ -125,6 +127,36 @@ public static class GalleryScreen
             nextTop += DirectOutlineProofSectionHeight + ProofSectionGap;
         }
 
+        if (proofOptions.IncludeDirectOutlineRenderBridgeProof)
+        {
+            rows.Add(
+                Row.Anchor(
+                    id: GalleryDirectOutlineRenderBridgeProofLayout.SectionId,
+                    parent: "root",
+                    left: 24,
+                    top: nextTop,
+                    width: 912,
+                    height: DirectOutlineRenderBridgeProofSectionHeight,
+                    component: GallerySections.DirectOutlineRenderBridgeProofSection(effectiveTheme)));
+
+            nextTop += DirectOutlineRenderBridgeProofSectionHeight + ProofSectionGap;
+        }
+
+        if (proofOptions.IncludeDirectOutlineTextLayoutProof)
+        {
+            rows.Add(
+                Row.Anchor(
+                    id: GalleryDirectOutlineTextLayoutProofLayout.SectionId,
+                    parent: "root",
+                    left: 24,
+                    top: nextTop,
+                    width: 912,
+                    height: DirectOutlineTextLayoutProofSectionHeight,
+                    component: GallerySections.DirectOutlineTextLayoutProofSection(effectiveTheme)));
+
+            nextTop += DirectOutlineTextLayoutProofSectionHeight + ProofSectionGap;
+        }
+
         if (proofOptions.IncludeMsdfFontProof)
         {
             rows.Add(
@@ -148,6 +180,16 @@ public static class GalleryScreen
         if (proofOptions.IncludeDirectOutlineTextProof)
         {
             height += DirectOutlineProofSectionHeight + ProofSectionGap;
+        }
+
+        if (proofOptions.IncludeDirectOutlineRenderBridgeProof)
+        {
+            height += DirectOutlineRenderBridgeProofSectionHeight + ProofSectionGap;
+        }
+
+        if (proofOptions.IncludeDirectOutlineTextLayoutProof)
+        {
+            height += DirectOutlineTextLayoutProofSectionHeight + ProofSectionGap;
         }
 
         if (proofOptions.IncludeMsdfFontProof)
