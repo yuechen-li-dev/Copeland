@@ -8,6 +8,7 @@ using Machina.Layout.Rows;
 using Machina.Standard.Authoring;
 using Machina.Standard.Components;
 using Machina.Standard.Theme;
+using static Machina.Presenter.Sample.OblivionMarkdownBody;
 
 namespace Machina.Presenter.Sample;
 
@@ -604,7 +605,7 @@ public static class OblivionWorkbenchCatalog
             title,
             subtitle,
             tags,
-            bodyLines,
+            OblivionMarkdownBody.CreatePlain(string.Join('\n', bodyLines)),
             [],
             artifacts);
     }
@@ -674,7 +675,10 @@ public static class OblivionWorkbenchCatalog
                 [
                     $"Kind: {KindLabel(card.Kind)}",
                     $"Status: {StatusLabel(card.Status)}",
-                    "Selected card details are expanded here so the main cards can stay compact while Markdown-first planning stays visible.",
+                    $"Body format: {BodyFormatLabel(card.Body.Format)}",
+                    card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
+                        ? "Selected card details are expanded here while the page model stays a stack of typed cards and Markdown remains only the text-card body language."
+                        : "Selected card details are expanded here so the main cards can stay compact while the typed-card page model stays visible.",
                 ],
                 theme: theme,
                 options: new PresenterCardOptions(layout.InspectorWidth, 188))));
@@ -696,6 +700,7 @@ public static class OblivionWorkbenchCatalog
                     $"Card ID: {card.Id.Value}",
                     $"Page ID: {pageId}",
                     $"Source path: {card.SourcePath ?? "<none>"}",
+                    $"Body source path: {card.Body.BodySourcePath ?? "<inline>"}",
                     $"Workspace: {card.WorkspaceId ?? "<none>"}",
                     $"Tags: {FormatTags(card.Tags)}",
                 ],
@@ -709,15 +714,33 @@ public static class OblivionWorkbenchCatalog
             left: layout.InspectorLeft,
             top: currentTop,
             width: layout.InspectorWidth,
-            height: 236,
+            height: 360,
             component: PresenterCard.BuildTextCard(
                 id: $"{pageId}.inspector-body-card",
                 title: "Body",
                 badges: [],
-                lines: card.BodyLines.Count == 0 ? ["<empty>"] : card.BodyLines,
+                lines: BuildInspectorLines(card.Body),
                 theme: theme,
-                options: new PresenterCardOptions(layout.InspectorWidth, 236))));
-        currentTop += 260;
+                options: new PresenterCardOptions(layout.InspectorWidth, 360))));
+        currentTop += 384;
+
+        rows.Add(Row.Anchor(
+            id: $"{pageId}.inspector-diagnostics",
+            parent: "root",
+            left: layout.InspectorLeft,
+            top: currentTop,
+            width: layout.InspectorWidth,
+            height: 212,
+            component: PresenterCard.BuildTextCard(
+                id: $"{pageId}.inspector-diagnostics-card",
+                title: "Markdown diagnostics",
+                badges: [],
+                lines: card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
+                    ? BuildDiagnosticLines(card.Body.Diagnostics)
+                    : ["Not a Markdown body."],
+                theme: theme,
+                options: new PresenterCardOptions(layout.InspectorWidth, 212))));
+        currentTop += 236;
 
         rows.Add(Row.Anchor(
             id: $"{pageId}.inspector-actions",
@@ -816,7 +839,7 @@ public static class OblivionWorkbenchCatalog
 
     private static double GetInspectorHeight(OblivionInspectorSelection selection)
     {
-        return selection.SelectedCard is null ? 240 : 1440;
+        return selection.SelectedCard is null ? 240 : 1680;
     }
 
     private static string FormatTags(IReadOnlyList<string> tags)
@@ -866,6 +889,101 @@ public static class OblivionWorkbenchCatalog
             "Artifact generation and execution",
             "Visionary code editor/source workspace",
         ];
+    }
+
+    public static (string jsonPath, string textPath) WriteMarkdownBodyIntegrationManifest(
+        string outputDirectory,
+        PresenterProofOptions? proofOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "oblivion-markdown-body-integration-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "oblivion-markdown-body-integration-manifest.txt");
+
+        IReadOnlyList<OblivionCard> cards = CreateAllCards(proofOptions)
+            .OrderBy(card => card.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+        IReadOnlyList<OblivionCard> markdownCards = cards
+            .Where(card => card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
+            .OrderBy(card => card.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+
+        string[] deferredWork =
+        [
+            "Markdown editor",
+            "Roslyn compilation and execution",
+            "xUnit [Fact] and [Theory] runtime",
+            "Image/media/table/video typed card implementation",
+            "Single-file Markdown export/import pipeline",
+            "Visionary code editor/source workspace",
+        ];
+
+        int diagnosticsCount = markdownCards.Sum(card => card.Body.Diagnostics.Count);
+        string[] markdownCardIds = markdownCards.Select(card => card.Id.Value).ToArray();
+        string[] markdownBodySourcePaths = markdownCards
+            .Select(card => card.Body.BodySourcePath ?? "<inline>")
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+
+        var manifest = new
+        {
+            milestone = "M12b",
+            kind = "oblivion-markdown-body-integration",
+            markdownFrontend = "Copeland.Markdown",
+            markdownAsCardBodyOnly = true,
+            canonicalDocumentModel = "stack-of-typed-cards",
+            singleFileMarkdownIsExportTarget = true,
+            markdownCardsLoaded = markdownCardIds,
+            markdownBodyFilesLoaded = markdownBodySourcePaths,
+            markdownDiagnosticsCount = diagnosticsCount,
+            markdownEditorImplemented = false,
+            roslynEnabled = false,
+            xunitEnabled = false,
+            visionaryImplemented = false,
+            deferredWork,
+        };
+
+        string json = JsonSerializer.Serialize(
+            manifest,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+
+        string[] textLines =
+        [
+            "milestone=M12b",
+            "kind=oblivion-markdown-body-integration",
+            "markdownFrontend=Copeland.Markdown",
+            "markdownAsCardBodyOnly=true",
+            "canonicalDocumentModel=stack-of-typed-cards",
+            "singleFileMarkdownIsExportTarget=true",
+            $"markdownCardsLoaded={string.Join(",", markdownCardIds)}",
+            $"markdownBodyFilesLoaded={string.Join(",", markdownBodySourcePaths)}",
+            $"markdownDiagnosticsCount={diagnosticsCount}",
+            "markdownEditorImplemented=false",
+            "roslynEnabled=false",
+            "xunitEnabled=false",
+            "visionaryImplemented=false",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+        ];
+
+        File.WriteAllText(jsonPath, json);
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
+    }
+
+    private static string BodyFormatLabel(OblivionCardBodyFormat format)
+    {
+        return format switch
+        {
+            OblivionCardBodyFormat.Plain => "Plain",
+            OblivionCardBodyFormat.CopelandMarkdown => "Copeland Markdown",
+            _ => format.ToString(),
+        };
     }
 }
 

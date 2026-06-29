@@ -219,6 +219,8 @@ M11g therefore ends the substrate phase by shifting the next real Oblivion work 
 M12a lands the first Markdown follow-through as a Copeland frontend milestone, not as a renderer/editor milestone.
 
 - `src/Copeland.Markdown` now parses a bounded Copeland Markdown subset into backend-neutral document MIR.
+- M12b then integrates that frontend into Oblivion as text-card body loading/rendering while keeping pages as stacks of typed cards.
+- single-file Markdown remains future export/import work, not canonical Oblivion storage.
 - existing repo `.md` files now serve as the first real dogfood corpus.
 - no Markdown editor was added.
 - no production Oblivion Markdown rendering was added yet.

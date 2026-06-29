@@ -174,7 +174,7 @@ public sealed class OblivionPhaseCloseoutM11gTests
         string text = PageText(page);
 
         Assert.Contains("Markdown-first roadmap", text, StringComparison.Ordinal);
-        Assert.Contains("Markdown cards come first.", text, StringComparison.Ordinal);
+        Assert.Contains("Body format: Copeland Markdown", text, StringComparison.Ordinal);
         Assert.Contains("Kind: Note", text, StringComparison.Ordinal);
     }
 

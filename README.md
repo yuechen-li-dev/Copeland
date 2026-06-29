@@ -84,6 +84,38 @@ dotnet run --project src/Copeland.Cli -- markdown parse README.md --emit mir --f
 
 This is frontend/MIR dogfooding only. It adds no Markdown editor, no production Oblivion rendering path yet, and no Roslyn or xUnit notebook execution.
 
+## Oblivion Markdown M12b status
+
+M12b integrates that frontend into Oblivion as a text-card body path.
+
+Current doctrine:
+
+```text
+Oblivion page
+  -> stack of typed cards
+
+Text/note card
+  -> Copeland Markdown body
+
+Single-file Markdown
+  -> future export/import target only
+```
+
+Current storage split:
+
+```text
+workspace.oblivion.json
+  -> sections/pages/card references
+
+*.card.toml
+  -> typed card metadata
+
+body/*.md
+  -> text-card body content
+```
+
+M12b adds external `copeland-markdown` body loading, `DocumentMir` attachment, compact Markdown card previews, inspector diagnostics, and sample `.md` body files. It adds no Markdown editor, no Roslyn/xUnit execution, and no Visionary implementation.
+
 ## Test suites
 
 Regular solution test coverage:
@@ -155,6 +187,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Oblivion Card Inspector M11f](docs/machina-oblivion-card-inspector-m11f.md)
 - [Machina Oblivion Phase Closeout M11g](docs/machina-oblivion-phase-closeout-m11g.md)
 - [Copeland Markdown Frontend M12a](docs/copeland-markdown-frontend-m12a.md)
+- [Machina Oblivion Markdown Body Integration M12b](docs/machina-oblivion-markdown-body-integration-m12b.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 

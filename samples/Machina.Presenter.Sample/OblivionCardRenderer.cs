@@ -91,11 +91,7 @@ public static class OblivionCardRenderer
                 UI.Row(
                     id: card.Id.Value + MetaRowSuffix,
                     gap: 8,
-                    children:
-                    [
-                        BuildBadge($"{KindLabel(card.Kind)}", card.Id.Value + ".kind", theme),
-                        BuildBadge($"{StatusLabel(card.Status)}", card.Id.Value + ".status", theme),
-                    ]),
+                    children: BuildMetaBadges(card, theme)),
                 id: card.Id.Value + MetaRowSuffix + ".slot",
                 left: 0,
                 right: 0,
@@ -274,6 +270,27 @@ public static class OblivionCardRenderer
             id: id,
             theme: theme,
             variant: BadgeVariant.Secondary);
+    }
+
+    private static UiNode[] BuildMetaBadges(OblivionCard card, StandardTheme theme)
+    {
+        List<UiNode> badges =
+        [
+            BuildBadge($"{KindLabel(card.Kind)}", card.Id.Value + ".kind", theme),
+            BuildBadge($"{StatusLabel(card.Status)}", card.Id.Value + ".status", theme),
+        ];
+
+        if (card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
+        {
+            badges.Add(BuildBadge("Markdown body", card.Id.Value + ".markdown", theme));
+        }
+
+        if (card.Body.Diagnostics.Count > 0)
+        {
+            badges.Add(BuildBadge($"Diagnostics {card.Body.Diagnostics.Count}", card.Id.Value + ".diagnostics", theme));
+        }
+
+        return badges.ToArray();
     }
 
     private static IReadOnlyList<string> LimitLabels(IReadOnlyList<string> values, int maxToShow)

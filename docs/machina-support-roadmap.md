@@ -1100,3 +1100,22 @@ This remains frontend-only:
 - no Roslyn execution
 - no xUnit notebook/runtime execution
 - no Visionary implementation
+
+## M12b update
+
+M12b connects that frontend to Oblivion as a text-card body integration step.
+
+- card TOML now supports `format = "copeland-markdown"` body entries
+- text/note cards can load external workspace-root-relative `.md` body files
+- those files compile through `Copeland.Markdown` into `DocumentMir`
+- compact cards and the inspector now render Markdown-derived body content and diagnostics
+- the canonical Oblivion model still remains JSON/TOML typed-card storage
+- single-file Markdown remains a future export/import target only
+
+Still deferred in M12b:
+
+- Markdown editor
+- Roslyn execution
+- xUnit `[Fact]` / `[Theory]` execution
+- Visionary
+- future image/table/video/code typed-card expansions beyond the current body integration

@@ -1,0 +1,14 @@
+milestone=M12b
+kind=oblivion-markdown-body-integration
+markdownFrontend=Copeland.Markdown
+markdownAsCardBodyOnly=true
+canonicalDocumentModel=stack-of-typed-cards
+singleFileMarkdownIsExportTarget=true
+markdownCardsLoaded=execution-deferred,markdown-first-roadmap,markdown-readiness-audit,oblivion-substrate-status,visionary-future
+markdownBodyFilesLoaded=body/execution-deferred.md,body/markdown-first-roadmap.md,body/markdown-readiness-audit.md,body/oblivion-substrate-status.md,body/visionary-future.md
+markdownDiagnosticsCount=1
+markdownEditorImplemented=false
+roslynEnabled=false
+xunitEnabled=false
+visionaryImplemented=false
+deferredWork=Markdown editor | Roslyn compilation and execution | xUnit [Fact] and [Theory] runtime | Image/media/table/video typed card implementation | Single-file Markdown export/import pipeline | Visionary code editor/source workspace

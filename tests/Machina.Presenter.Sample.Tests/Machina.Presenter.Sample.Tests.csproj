@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Machina.Testing/Machina.Testing.csproj" />
+    <ProjectReference Include="../../src/Copeland.Markdown/Copeland.Markdown.csproj" />
     <ProjectReference Include="../../src/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../samples/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
   </ItemGroup>

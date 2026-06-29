@@ -1,0 +1,32 @@
+milestone=M11d
+kind=oblivion-workspace-persistence
+rootFormat=json
+assetFormat=toml
+workspacePath=C:\Users\yuech\source\repos\Copeland\samples\Machina.Presenter.Sample\bin\Debug\net10.0\OblivionSampleWorkspace\workspace.oblivion.json
+sectionsLoaded=1
+pagesLoaded=3
+cardsLoaded=14
+cardKinds=artifact,code-fact,code-theory,note,status,ui-preview
+statuses=deferred,idle,passing,placeholder,warning
+validationErrors=
+executionEnabled=false
+roslynEnabled=false
+xunitEnabled=false
+visionaryImplemented=false
+usingFallbackCatalog=false
+deferredWork=Roslyn execution | xUnit [Fact] and [Theory] runtime | Artifact execution and generation runtime | Visionary code editor/source workspace implementation | Markdown editing
+cardsRendered:
+  execution-deferred:code-fact:deferred:Execution deferred
+  execution-readiness-audit:status:warning:Execution readiness audit
+  markdown-first-roadmap:note:passing:Markdown-first roadmap
+  markdown-readiness-audit:note:warning:Markdown readiness audit
+  oblivion-artifact-placeholder-card:artifact:placeholder:Artifact placeholder
+  oblivion-artifacts-export-policy-card:note:idle:Artifact policy
+  oblivion-artifacts-page-card:artifact:placeholder:Artifact lane placeholder
+  oblivion-code-fact-card:code-fact:deferred:Code fact placeholder
+  oblivion-code-theory-card:code-theory:deferred:Code theory placeholder
+  oblivion-intro-note-card:note:idle:Oblivion workbench substrate
+  oblivion-static-status-card:status:passing:Current substrate status
+  oblivion-substrate-status:status:passing:Oblivion substrate status
+  oblivion-ui-preview-card:ui-preview:placeholder:UI preview placeholder
+  visionary-future:note:deferred:Visionary future card

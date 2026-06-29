@@ -8,16 +8,8 @@ subtitle = "Roslyn and xUnit are intentionally not part of M11g"
 tags = ["code", "fact", "deferred", "m13-plus"]
 
 [body]
-format = "plain"
-text = """
-[Fact]
-public void MarkdownCards_ComeBeforeExecution()
-{
-    // Deferred until M13+.
-}
-Not executed.
-Markdown cards come first.
-"""
+format = "copeland-markdown"
+path = "body/execution-deferred.md"
 
 [[actions]]
 id = "run-fact"

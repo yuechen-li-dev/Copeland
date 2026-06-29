@@ -8,11 +8,5 @@ subtitle = "M12 should dogfood document cards before code execution"
 tags = ["markdown", "roadmap", "m12", "dogfood"]
 
 [body]
-format = "plain"
-text = """
-Markdown cards come first.
-Codex-authored docs are the first dogfood target.
-Markdown is already the format Codex produces heavily.
-Markdown is the lowest-friction way to validate reading, inspecting, organizing, persistence, and card UI before code execution.
-M12 should focus on Markdown document/card support before Roslyn execution.
-"""
+format = "copeland-markdown"
+path = "body/markdown-first-roadmap.md"

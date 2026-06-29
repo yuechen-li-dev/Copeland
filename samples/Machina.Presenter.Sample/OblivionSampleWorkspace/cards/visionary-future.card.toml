@@ -8,9 +8,5 @@ subtitle = "Future code/source editor layer only"
 tags = ["visionary", "future", "editor", "deferred"]
 
 [body]
-format = "plain"
-text = """
-Visionary is the future code editor/source workspace layer.
-M11g does not implement it.
-Markdown-first Oblivion work comes before any Visionary editor layer.
-"""
+format = "copeland-markdown"
+path = "body/visionary-future.md"

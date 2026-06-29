@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Copeland.Markdown;
 
 namespace Machina.Presenter.Sample;
 
@@ -162,6 +163,8 @@ public static class OblivionWorkspaceLoader
             artifacts.Add(BuildArtifact(artifactDocument, workspaceRoot, diagnostics, sourcePath, options));
         }
 
+        OblivionCardBody body = BuildBody(document.Body, workspaceRoot, diagnostics, sourcePath, options);
+
         return new OblivionCard(
             new OblivionCardId(document.Id),
             cardKind,
@@ -169,10 +172,94 @@ public static class OblivionWorkspaceLoader
             document.Title,
             document.Subtitle,
             document.Tags,
-            SplitLines(document.Body.Text),
+            body,
             document.Actions.Select(action => new OblivionCardAction(action.Id, action.Label, action.Enabled)).ToArray(),
             artifacts,
             SourcePath: GetRelativePath(workspaceRoot, sourcePath));
+    }
+
+    private static OblivionCardBody BuildBody(
+        OblivionCardBodyDocument bodyDocument,
+        string workspaceRoot,
+        List<OblivionWorkspaceDiagnostic> diagnostics,
+        string sourcePath,
+        OblivionWorkspaceLoadOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(bodyDocument);
+
+        if (string.Equals(bodyDocument.Format, "plain", StringComparison.Ordinal))
+        {
+            return OblivionMarkdownBody.CreatePlain(bodyDocument.Text ?? string.Empty);
+        }
+
+        if (!string.Equals(bodyDocument.Format, "copeland-markdown", StringComparison.Ordinal))
+        {
+            return new OblivionCardBody(
+                OblivionCardBodyFormat.Plain,
+                RawText: bodyDocument.Text,
+                BodySourcePath: null,
+                PreviewLines: ["Unsupported card body format."],
+                DocumentMir: null,
+                Diagnostics:
+                [
+                    OblivionWorkspaceValidator.Error("unknown-body-format", $"Body format '{bodyDocument.Format}' is not supported.", sourcePath),
+                ]);
+        }
+
+        string markdownText;
+        string? markdownSourcePath = null;
+        List<OblivionWorkspaceDiagnostic> markdownDiagnostics = [];
+
+        if (!string.IsNullOrWhiteSpace(bodyDocument.Path))
+        {
+            string? resolvedBodyPath = ResolveAssetPath(workspaceRoot, bodyDocument.Path!, options, diagnostics, sourcePath, "markdown body");
+            if (resolvedBodyPath is null)
+            {
+                markdownDiagnostics.Add(OblivionWorkspaceValidator.Error("invalid-markdown-body-path", $"Markdown body path '{bodyDocument.Path}' could not be resolved.", sourcePath));
+                return OblivionMarkdownBody.CreateMarkdown(
+                    string.Empty,
+                    bodyDocument.Path,
+                    MarkdownCompiler.Compile(string.Empty),
+                    markdownDiagnostics);
+            }
+
+            markdownSourcePath = GetRelativePath(workspaceRoot, resolvedBodyPath);
+            if (!File.Exists(resolvedBodyPath))
+            {
+                OblivionWorkspaceDiagnostic missingDiagnostic = OblivionWorkspaceValidator.Error(
+                    "missing-markdown-body-file",
+                    $"Markdown body file '{bodyDocument.Path}' was not found.",
+                    resolvedBodyPath);
+                diagnostics.Add(missingDiagnostic);
+                markdownDiagnostics.Add(missingDiagnostic);
+
+                return OblivionMarkdownBody.CreateMarkdown(
+                    string.Empty,
+                    markdownSourcePath,
+                    MarkdownCompiler.Compile(string.Empty),
+                    markdownDiagnostics);
+            }
+
+            markdownText = File.ReadAllText(resolvedBodyPath);
+        }
+        else
+        {
+            markdownText = bodyDocument.Text ?? string.Empty;
+        }
+
+        MarkdownCompilation compilation = MarkdownCompiler.Compile(markdownText);
+        foreach (DocumentDiagnostic diagnostic in compilation.Mir.Diagnostics)
+        {
+            markdownDiagnostics.Add(
+                new OblivionWorkspaceDiagnostic(
+                    OblivionWorkspaceDiagnosticSeverity.Warning,
+                    diagnostic.Id,
+                    diagnostic.Message,
+                    markdownSourcePath ?? sourcePath));
+        }
+
+        diagnostics.AddRange(markdownDiagnostics);
+        return OblivionMarkdownBody.CreateMarkdown(markdownText, markdownSourcePath, compilation, markdownDiagnostics);
     }
 
     private static OblivionCardArtifact BuildArtifact(
@@ -255,14 +342,6 @@ public static class OblivionWorkspaceLoader
         }
 
         return fullPath;
-    }
-
-    private static IReadOnlyList<string> SplitLines(string text)
-    {
-        return text.Replace("\r\n", "\n", StringComparison.Ordinal)
-            .Replace('\r', '\n')
-            .Split('\n')
-            .ToArray();
     }
 
     private static string EnsureTrailingSeparator(string path)

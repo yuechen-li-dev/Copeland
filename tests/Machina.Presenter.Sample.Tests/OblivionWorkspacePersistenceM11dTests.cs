@@ -579,7 +579,7 @@ public sealed class OblivionWorkspacePersistenceM11dTests
                     "Intro",
                     null,
                     ["test"],
-                    new OblivionCardBodyDocument("plain", "Hello"),
+                    new OblivionCardBodyDocument("plain", "Hello", null),
                     [],
                     [])));
     }

@@ -42,9 +42,12 @@ public sealed record OblivionCard(
     string Title,
     string? Subtitle,
     IReadOnlyList<string> Tags,
-    IReadOnlyList<string> BodyLines,
+    OblivionCardBody Body,
     IReadOnlyList<OblivionCardAction> Actions,
     IReadOnlyList<OblivionCardArtifact> Artifacts,
     string? SourcePath = null,
     string? PageId = null,
-    string? WorkspaceId = null);
+    string? WorkspaceId = null)
+{
+    public IReadOnlyList<string> BodyLines => Body.PreviewLines;
+}

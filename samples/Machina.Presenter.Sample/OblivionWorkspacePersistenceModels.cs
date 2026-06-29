@@ -1,3 +1,5 @@
+using Copeland.Markdown;
+
 namespace Machina.Presenter.Sample;
 
 public sealed record OblivionWorkspaceManifest(
@@ -29,7 +31,8 @@ public sealed record OblivionPageAssetDocument(
 
 public sealed record OblivionCardBodyDocument(
     string Format,
-    string Text);
+    string? Text,
+    string? Path);
 
 public sealed record OblivionCardActionDocument(
     string Id,
@@ -136,3 +139,17 @@ public sealed record OblivionWorkspaceLoadResult(
         Workspace is not null &&
         Diagnostics.All(diagnostic => diagnostic.Severity != OblivionWorkspaceDiagnosticSeverity.Error);
 }
+
+public enum OblivionCardBodyFormat
+{
+    Plain,
+    CopelandMarkdown,
+}
+
+public sealed record OblivionCardBody(
+    OblivionCardBodyFormat Format,
+    string? RawText,
+    string? BodySourcePath,
+    IReadOnlyList<string> PreviewLines,
+    DocumentMir? DocumentMir,
+    IReadOnlyList<OblivionWorkspaceDiagnostic> Diagnostics);

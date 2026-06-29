@@ -90,7 +90,8 @@ public static class OblivionCardTomlReader
 
         TomlTable? bodyTable = ReadRequiredTable(parsedTable, "body", sourcePath, diagnostics);
         string bodyFormat = bodyTable is null ? string.Empty : ReadRequiredString(bodyTable, "format", sourcePath, diagnostics);
-        string bodyText = bodyTable is null ? string.Empty : ReadRequiredString(bodyTable, "text", sourcePath, diagnostics);
+        string? bodyText = bodyTable is null ? null : ReadOptionalString(bodyTable, "text");
+        string? bodyPath = bodyTable is null ? null : ReadOptionalString(bodyTable, "path");
 
         IReadOnlyList<OblivionCardActionDocument> actions = ReadActions(parsedTable, sourcePath, diagnostics);
         IReadOnlyList<OblivionCardArtifactDocument> artifacts = ReadArtifacts(parsedTable, sourcePath, diagnostics);
@@ -115,9 +116,49 @@ public static class OblivionCardTomlReader
             diagnostics.Add(OblivionWorkspaceValidator.Error("unknown-card-status", $"Card status '{status}' is not supported.", sourcePath));
         }
 
-        if (!string.Equals(bodyFormat, "plain", StringComparison.Ordinal))
+        bool isPlainBody = string.Equals(bodyFormat, "plain", StringComparison.Ordinal);
+        bool isMarkdownBody = string.Equals(bodyFormat, "copeland-markdown", StringComparison.Ordinal);
+
+        if (!isPlainBody && !isMarkdownBody)
         {
-            diagnostics.Add(OblivionWorkspaceValidator.Error("unknown-body-format", $"Body format '{bodyFormat}' is not supported. Expected 'plain'.", sourcePath));
+            diagnostics.Add(OblivionWorkspaceValidator.Error("unknown-body-format", $"Body format '{bodyFormat}' is not supported. Expected 'plain' or 'copeland-markdown'.", sourcePath));
+        }
+
+        if (isPlainBody)
+        {
+            if (string.IsNullOrWhiteSpace(bodyText))
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error("missing-required-field", "Field 'body.text' is required for plain card bodies.", sourcePath));
+            }
+
+            if (!string.IsNullOrWhiteSpace(bodyPath))
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error("plain-body-path-not-supported", "Field 'body.path' is not supported for plain card bodies.", sourcePath));
+            }
+        }
+
+        if (isMarkdownBody)
+        {
+            bool hasText = !string.IsNullOrWhiteSpace(bodyText);
+            bool hasPath = !string.IsNullOrWhiteSpace(bodyPath);
+
+            if (hasText == hasPath)
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error("invalid-markdown-body-source", "Markdown card bodies must provide exactly one of 'body.text' or 'body.path'.", sourcePath));
+            }
+
+            if (!string.IsNullOrWhiteSpace(bodyPath))
+            {
+                if (Path.IsPathRooted(bodyPath))
+                {
+                    diagnostics.Add(OblivionWorkspaceValidator.Error("absolute-path-not-allowed", $"The markdown body path '{bodyPath}' must be relative to the workspace root.", sourcePath));
+                }
+
+                if (LooksLikePathTraversal(bodyPath))
+                {
+                    diagnostics.Add(OblivionWorkspaceValidator.Error("path-traversal-not-allowed", $"The markdown body path '{bodyPath}' escapes the workspace root.", sourcePath));
+                }
+            }
         }
 
         OblivionCardAssetDocument? document = diagnostics.Any(diagnostic => diagnostic.Severity == OblivionWorkspaceDiagnosticSeverity.Error)
@@ -131,7 +172,7 @@ public static class OblivionCardTomlReader
                 title,
                 subtitle,
                 tags,
-                new OblivionCardBodyDocument(bodyFormat, bodyText),
+                new OblivionCardBodyDocument(bodyFormat, bodyText, bodyPath),
                 actions,
                 artifacts);
 
@@ -162,15 +203,22 @@ public static class OblivionCardTomlWriter
         builder.AppendLine();
         builder.AppendLine("[body]");
         builder.AppendLine($"format = \"{Escape(document.Body.Format)}\"");
-        builder.AppendLine("text = \"\"\"");
-        string normalizedBodyText = NormalizeMultiline(document.Body.Text);
-        builder.Append(normalizedBodyText);
-        if (!normalizedBodyText.EndsWith('\n'))
-        {
-            builder.AppendLine();
-        }
 
-        builder.AppendLine("\"\"\"");
+        if (!string.IsNullOrWhiteSpace(document.Body.Path))
+        {
+            builder.AppendLine($"path = \"{Escape(document.Body.Path!)}\"");
+        }
+        else
+        {
+            builder.AppendLine("text = \"\"\"");
+            string normalizedBodyText = NormalizeMultiline(document.Body.Text ?? string.Empty);
+            builder.Append(normalizedBodyText);
+            if (!normalizedBodyText.EndsWith('\n'))
+            {
+                builder.AppendLine();
+            }
+            builder.AppendLine("\"\"\"");
+        }
 
         foreach (OblivionCardActionDocument action in document.Actions)
         {
@@ -432,6 +480,13 @@ internal static class OblivionTomlHelpers
         builder.Append(" = [");
         builder.Append(string.Join(", ", values.Select(value => $"\"{Escape(value)}\"")));
         builder.AppendLine("]");
+    }
+
+    public static bool LooksLikePathTraversal(string path)
+    {
+        string normalized = path.Replace('\\', '/');
+        string[] segments = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return segments.Any(segment => string.Equals(segment, "..", StringComparison.Ordinal));
     }
 }
 

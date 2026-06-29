@@ -8,11 +8,5 @@ subtitle = "M11 static persisted-card substrate closeout"
 tags = ["oblivion", "m11g", "status", "markdown-next"]
 
 [body]
-format = "plain"
-text = """
-Workspace persistence: ready
-Card inspector: ready
-Markdown support: next
-Code execution: deferred
-Visionary editor: future
-"""
+format = "copeland-markdown"
+path = "body/oblivion-substrate-status.md"

@@ -42,6 +42,8 @@ That makes JSON the practical choice for the `.sln`-like coordination file.
 
 M11f keeps this JSON/TOML split and adds source-path visibility in the Oblivion inspector. M11g keeps the same persistence model and uses it for closeout/status/roadmap cards, Markdown-first planning cards, and execution-readiness audit cards. Persistence remains metadata/loading infrastructure only.
 
+M12b keeps the same canonical split and adds external `body/*.md` files for text-card bodies only. The page model still remains JSON/TOML card topology, not one large Markdown document.
+
 ## Why TOML is used for cards/assets
 
 Cards, pages, and artifact metadata are intended to stay readable and hand-editable.

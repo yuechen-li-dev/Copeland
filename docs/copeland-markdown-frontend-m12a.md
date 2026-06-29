@@ -14,7 +14,7 @@ This milestone is compiler-pipeline dogfooding:
 - diagnostics
 - deterministic dump/export output
 
-It does not add a Markdown editor, production Oblivion rendering, Roslyn execution, xUnit notebook execution, or Visionary.
+It does not add a Markdown editor, Roslyn execution, xUnit notebook execution, or Visionary. Production Oblivion integration is deferred from M12a itself and lands separately in M12b as text-card body integration.
 
 ## Why write our own Markdown frontend
 
@@ -223,6 +223,18 @@ Copeland Markdown -> Document MIR -> future lowering into Machina/Oblivion text 
 
 That means future Standard or Oblivion rendering can consume document MIR if that becomes useful, while current `Machina.Standard.Text` behavior stays stable.
 
+## M12b follow-through note
+
+M12b is the direct follow-through to this frontend milestone.
+
+In M12b:
+
+- Oblivion still keeps pages as stacks of typed cards
+- `DocumentMir` is used as text-card body MIR only
+- `workspace.oblivion.json` plus `*.card.toml` remain canonical storage
+- external `body/*.md` files become text-card body inputs
+- single-file Markdown remains future export/import work only
+
 ## CLI or dump workflow
 
 Parse or inspect a file:
@@ -272,6 +284,7 @@ Generated local proof outputs:
 - nested list handling
 - blockquote/table/reference-link support
 - MIR-to-Oblivion rendering
+- richer Oblivion inline styling on top of MIR-backed bodies
 - MIR-to-Machina document rendering
 - richer document diagnostics categories
 - front matter policy
