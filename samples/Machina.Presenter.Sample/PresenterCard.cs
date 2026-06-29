@@ -1,6 +1,4 @@
-using System.Text;
 using Machina.Core.Authoring;
-using Machina.Core.Measurement;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Layout.Documents;
@@ -36,7 +34,10 @@ public static class PresenterCard
     private const string BadgeRowSuffix = ".badges";
     private const string BodyStackSuffix = ".body-stack";
     private const string BodyLineSuffixPrefix = ".body-line-";
-    private const string Ellipsis = "...";
+    private static readonly PresenterCardTextLayout BodyTextLayout = new(
+        LineHeight: 16,
+        LineGap: 6,
+        Prefix: "\u2022 ");
 
     public static UiNode BuildTextCard(
         string id,
@@ -53,14 +54,9 @@ public static class PresenterCard
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(options);
 
-        StandardCardStyle cardStyle = theme.Card.Default;
-        double innerWidth = Math.Max(0, options.Width - (cardStyle.ContentInset * 2));
-        double titleTop = 0;
+        PresenterCardLayout layout = ComputeTextLayout(options, theme.Card.Default, badges.Count);
+        double titleTop = layout.HeaderRectInContent.Y;
         double badgesTop = titleTop + options.TitleHeight + options.HeaderGap;
-        double bodyTop = badges.Count > 0
-            ? badgesTop + options.BadgeRowHeight + options.BodyGap
-            : titleTop + options.TitleHeight + options.BodyGap;
-        double bodyHeight = Math.Max(0, (options.Height - (cardStyle.ContentInset * 2)) - bodyTop);
 
         List<UiNode> layoutChildren =
         [
@@ -100,12 +96,12 @@ public static class PresenterCard
 
         layoutChildren.Add(
             UI.Anchor(
-                BuildBodyFrame(id, lines, theme, options, innerWidth, bodyHeight),
+                BuildBodyFrame(id, lines, theme, options, layout),
                 id: id + BodyFrameSuffix + ".slot",
-                left: 0,
-                right: 0,
-                top: bodyTop,
-                bottom: 0));
+                left: layout.BodyRectInContent.X,
+                width: layout.BodyRectInContent.Width,
+                top: layout.BodyRectInContent.Y,
+                height: layout.BodyRectInContent.Height));
 
         return StandardUI.Card(
             id: id,
@@ -132,12 +128,9 @@ public static class PresenterCard
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(options);
 
-        StandardCardStyle cardStyle = theme.Card.Default;
-        double titleTop = 0;
+        PresenterCardLayout layout = ComputeHostedLayout(options, theme.Card.Default, badges.Count);
+        double titleTop = layout.HeaderRectInContent.Y;
         double badgesTop = titleTop + options.TitleHeight + options.HeaderGap;
-        double bodyTop = badges.Count > 0
-            ? badgesTop + options.BadgeRowHeight + options.BodyGap
-            : titleTop + options.TitleHeight + options.BodyGap;
 
         List<UiNode> layoutChildren =
         [
@@ -181,14 +174,14 @@ public static class PresenterCard
                     child: body,
                     id: id + BodyFrameSuffix,
                     style: new UiStyle(
-                        Background: options.ClipContent ? ColorToken.Hex(0x0B1220FF) : null,
+                        Background: null,
                         BorderColor: ColorToken.Hex(0x334155FF),
                         BorderThickness: 1)),
                 id: id + BodyFrameSuffix + ".slot",
-                left: 0,
-                right: 0,
-                top: bodyTop,
-                bottom: 0));
+                left: layout.BodyRectInContent.X,
+                width: layout.BodyRectInContent.Width,
+                top: layout.BodyRectInContent.Y,
+                height: layout.BodyRectInContent.Height));
 
         return StandardUI.Card(
             id: id,
@@ -198,6 +191,34 @@ public static class PresenterCard
             child: UI.Layer(
                 id: id + ".layout",
                 children: layoutChildren));
+    }
+
+    public static PresenterCardLayout ComputeTextLayout(
+        PresenterCardOptions options,
+        StandardCardStyle cardStyle,
+        int badgeCount)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(cardStyle);
+
+        double titleTop = 0;
+        double badgesTop = titleTop + options.TitleHeight + options.HeaderGap;
+        double bodyTop = badgeCount > 0
+            ? badgesTop + options.BadgeRowHeight + options.BodyGap
+            : titleTop + options.TitleHeight + options.BodyGap;
+        return PresenterCardLayoutHelper.ComputeLayout(
+            options.Width,
+            options.Height,
+            cardStyle.ContentInset,
+            bodyTop);
+    }
+
+    public static PresenterCardLayout ComputeHostedLayout(
+        PresenterCardOptions options,
+        StandardCardStyle cardStyle,
+        int badgeCount)
+    {
+        return ComputeTextLayout(options, cardStyle, badgeCount);
     }
 
     public static PresenterCardFrame DescribeFrame(ResolvedLayoutDocument resolved, string id, bool clipContent = true)
@@ -220,35 +241,22 @@ public static class PresenterCard
         ArgumentNullException.ThrowIfNull(lines);
         ArgumentNullException.ThrowIfNull(options);
 
-        int maxLineCount = ComputeLineCapacity(height, options);
-        if (maxLineCount <= 0)
-        {
-            return [];
-        }
-
         TextStyle style = new(
             Color: color,
             Size: TextSize.Sm,
             AlignX: TextAlignX.Left,
             AlignY: TextAlignY.Top);
 
-        List<string> visibleLines = [];
-        foreach (string line in lines)
-        {
-            if (visibleLines.Count == maxLineCount)
+        return PresenterCardLayoutHelper.ClipLinesToFit(
+            lines,
+            width,
+            height,
+            BodyTextLayout with
             {
-                break;
-            }
-
-            visibleLines.Add(ClipLineToWidth("\u2022 " + line, width, style));
-        }
-
-        if (visibleLines.Count < lines.Count && visibleLines.Count > 0)
-        {
-            visibleLines[^1] = ClipLineToWidth(visibleLines[^1] + " " + Ellipsis, width, style);
-        }
-
-        return visibleLines;
+                LineHeight = options.BodyLineHeight,
+                LineGap = options.BodyLineGap,
+            },
+            style);
     }
 
     private static UiNode BuildBodyFrame(
@@ -256,13 +264,12 @@ public static class PresenterCard
         IReadOnlyList<string> lines,
         StandardTheme theme,
         PresenterCardOptions options,
-        double innerWidth,
-        double bodyHeight)
+        PresenterCardLayout layout)
     {
         IReadOnlyList<string> visibleLines = ClipBodyLinesToFit(
             lines,
-            innerWidth,
-            bodyHeight,
+            layout.BodyWidth,
+            layout.BodyHeight,
             options,
             theme.Colors.MutedForeground);
 
@@ -284,56 +291,6 @@ public static class PresenterCard
                 Background: options.ClipContent ? ColorToken.Hex(0x0B1220FF) : null,
                 BorderColor: ColorToken.Hex(0x334155FF),
                 BorderThickness: 1));
-    }
-
-    private static int ComputeLineCapacity(double height, PresenterCardOptions options)
-    {
-        double lineSpan = options.BodyLineHeight + options.BodyLineGap;
-        if (height <= 0 || lineSpan <= 0)
-        {
-            return 0;
-        }
-
-        return Math.Max(1, (int)Math.Floor((height + options.BodyLineGap) / lineSpan));
-    }
-
-    private static string ClipLineToWidth(string text, double width, TextStyle style)
-    {
-        if (string.IsNullOrEmpty(text) || width <= 0)
-        {
-            return string.Empty;
-        }
-
-        if (Measure(text, style) <= width)
-        {
-            return text;
-        }
-
-        if (Measure(Ellipsis, style) > width)
-        {
-            return string.Empty;
-        }
-
-        var builder = new StringBuilder();
-        foreach (char character in text)
-        {
-            string candidate = builder.ToString() + character + Ellipsis;
-            if (Measure(candidate, style) > width)
-            {
-                break;
-            }
-
-            builder.Append(character);
-        }
-
-        return builder.Length == 0
-            ? Ellipsis
-            : builder.ToString().TrimEnd() + Ellipsis;
-    }
-
-    private static double Measure(string text, TextStyle style)
-    {
-        return DeterministicTextMeasurer.Instance.MeasureText(text, style).Width;
     }
 
     private static Rect FindRectBySuffix(ResolvedLayoutDocument resolved, string suffix)

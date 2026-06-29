@@ -54,7 +54,11 @@ public static class PresenterScrollRegion
 
         double thumbTravel = Math.Max(0, trackRect.Height - thumbHeight);
         double thumbProgress = maxScrollOffset <= 0 ? 0 : clampedOffset / maxScrollOffset;
-        double thumbTop = trackRect.Y + Math.Floor(thumbTravel * thumbProgress);
+        double unclampedThumbTop = trackRect.Y + Math.Floor(thumbTravel * thumbProgress);
+        double thumbTop = Math.Clamp(
+            unclampedThumbTop,
+            trackRect.Y,
+            trackRect.Y + trackRect.Height - thumbHeight);
 
         return new ScrollbarGeometry(
             TrackRect: trackRect,

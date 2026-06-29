@@ -112,6 +112,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Test Suite Topology M11b](docs/machina-test-suite-topology-m11b.md)
 - [Machina Presenter Scrollbar State Machine M11c](docs/machina-presenter-scrollbar-state-machine-m11c.md)
 - [Machina Oblivion Workspace Persistence M11d](docs/machina-oblivion-workspace-persistence-m11d.md)
+- [Machina Presenter Card Hardening M11e](docs/machina-presenter-card-hardening-m11e.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -361,6 +362,28 @@ Representative M11d outputs:
 - `artifacts/m11d/oblivion-workspace-persistence-manifest.txt`
 
 M11d makes the root workspace graph/tree JSON and the card/page/artifact metadata TOML, following a `.sln` root plus `.csproj`-like asset analogy. It adds no Roslyn execution, no xUnit notebook/runtime execution, no markdown editor, and no Visionary editor behavior.
+
+M11e then hardens presenter and Oblivion card layout authoring without reopening runtime work:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-oblivion-cards.png -SelectedSection oblivion -SelectedTab cards
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-oblivion-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-components-controls.png -SelectedSection components -SelectedTab controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-components-controls-bottom-scroll.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:9999
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
+```
+
+Representative M11e outputs:
+
+- `artifacts/m11e/presenter-card-hardening-oblivion-cards.png`
+- `artifacts/m11e/presenter-card-hardening-oblivion-roadmap.png`
+- `artifacts/m11e/presenter-card-hardening-components-controls.png`
+- `artifacts/m11e/presenter-card-hardening-components-controls-bottom-scroll.png`
+- `artifacts/m11e/presenter-card-hardening-legacy-m1e-card.png`
+- `artifacts/m11e/presenter-card-hardening-manifest.json`
+- `artifacts/m11e/presenter-card-hardening-manifest.txt`
+
+M11e is bug-fixing and authoring-hardening only. Presenter/Oblivion cards now derive body geometry from shared card-layout helpers, hosted legacy content no longer paints a full-width dark body background, overflowing pages keep the scrollbar thumb clamped inside the visible track, JSON/TOML persistence stays unchanged, and Roslyn plus notebook/runtime `[Fact]` / `[Theory]` execution remain deferred.
 
 Current font proof audit workflow:
 

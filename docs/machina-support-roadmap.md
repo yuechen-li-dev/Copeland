@@ -1040,3 +1040,23 @@ This remains persistence-only:
 - no markdown editor
 - no Visionary editor
 - execution remains deferred to M12+
+
+## M11e update
+
+M11e hardens presenter and Oblivion card layout authoring after the M11d persistence landing.
+
+- shared card-layout helpers now compute outer/content/header/body/footer regions for presenter and Oblivion cards
+- presenter body text no longer loses height to mixed coordinate frames or overly tight body width math
+- bullet clipping now reserves prefix width before clipping content
+- legacy hosted-card background bleed is removed by keeping hosted wrappers transparent by default
+- scrollbar track/thumb geometry is clamped fully inside the visible viewport chrome while preserving the M11c cached-composition model
+- persisted Oblivion cards keep using the same JSON/TOML workspace assets through the hardened layout path
+
+This remains bug-fixing and authoring-hardening only:
+
+- no Roslyn execution
+- no xUnit notebook/runtime execution
+- no markdown editor
+- no Visionary editor
+- no new notebook/editor/runtime behavior
+- no reopened font or MSDF work

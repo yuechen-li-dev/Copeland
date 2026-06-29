@@ -162,3 +162,13 @@ M11d uses this shell interaction/composition baseline as the host for persisted 
 - workspace loading changes page content, not scrollbar/layout behavior
 - load failures are bounded into error cards instead of changing shell/runtime behavior
 - no Roslyn execution, xUnit notebook/runtime execution, or Visionary editor work is introduced
+
+## M11e follow-up
+
+M11e keeps the M11c interaction-state/cached-composition model but tightens geometry:
+
+- the scrollbar track is inset slightly inside viewport chrome
+- the thumb is clamped fully inside the track at top, middle, and bottom positions
+- short pages still hide the scrollbar deterministically
+
+This is geometry hardening only. It does not change the M11c backend boundary, cached-composition behavior, or add notebook/runtime execution work.

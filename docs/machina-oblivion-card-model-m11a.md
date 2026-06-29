@@ -186,3 +186,13 @@ M11d keeps the M11a boundary but replaces the hardcoded sample-local card catalo
 - the presenter now loads static Oblivion cards from disk
 
 M11d still adds no Roslyn execution, no xUnit notebook/runtime execution, no markdown editor, and no Visionary editor behavior.
+
+## M11e follow-up
+
+M11e keeps the M11a bounded-card direction but removes fragile per-card math:
+
+- shared presenter/Oblivion card layout helpers now compute outer/content/header/body/footer regions
+- body line-capacity and clipping are centralized instead of being hand-authored per card
+- future cards should use the shared helper path rather than recomputing inset/body geometry
+
+This remains sample-level stabilization only. No execution runtime, editor/runtime feature, or font milestone work is added.

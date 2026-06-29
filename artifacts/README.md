@@ -30,6 +30,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m11a/` is the current Oblivion card-model proof export directory.
 - `artifacts/m11d/` is the current Oblivion workspace-persistence proof export directory.
 - `artifacts/m11c/` is the current presenter scrollbar state-machine and cached-composition proof export directory.
+- `artifacts/m11e/` is the current presenter/Oblivion card-hardening proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -55,6 +56,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M11a Oblivion PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11d Oblivion workspace PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M11c presenter scrollbar state-machine PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M11e presenter/Oblivion card-hardening PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -191,6 +193,16 @@ Current M11d Oblivion workspace commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-cards.png -SelectedSection oblivion -SelectedTab cards
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11d\presenter-oblivion-workspace-artifacts.png -SelectedSection oblivion -SelectedTab artifacts
+```
+
+Current M11e presenter/Oblivion card-hardening commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-oblivion-cards.png -SelectedSection oblivion -SelectedTab cards
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-oblivion-roadmap.png -SelectedSection oblivion -SelectedTab execution-roadmap
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-components-controls.png -SelectedSection components -SelectedTab controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-components-controls-bottom-scroll.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:9999
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -631,3 +643,15 @@ These remain local sample proof artifacts only. M11c refactors scrollbar interac
 - `artifacts/m11d/oblivion-workspace-persistence-manifest.json`
 
 These remain local sample proof artifacts only. M11d makes the root Oblivion workspace graph/tree JSON, keeps card/page/artifact metadata in human-editable TOML assets, loads static workspace pages into the existing presenter shell, adds no Roslyn execution, adds no notebook/runtime `[Fact]` / `[Theory]` execution behavior, adds no markdown editor, and adds no Visionary editor behavior.
+
+## Current M11e presenter/Oblivion card-hardening outputs
+
+- `artifacts/m11e/presenter-card-hardening-oblivion-cards.png`
+- `artifacts/m11e/presenter-card-hardening-oblivion-roadmap.png`
+- `artifacts/m11e/presenter-card-hardening-components-controls.png`
+- `artifacts/m11e/presenter-card-hardening-components-controls-bottom-scroll.png`
+- `artifacts/m11e/presenter-card-hardening-legacy-m1e-card.png`
+- `artifacts/m11e/presenter-card-hardening-manifest.txt`
+- `artifacts/m11e/presenter-card-hardening-manifest.json`
+
+These remain local sample proof artifacts only. M11e fixes presenter/Oblivion card layout bugs, centralizes shared card geometry/clipping helpers, keeps JSON/TOML persistence unchanged, keeps scrollbar behavior on the M11c cached-composition path, adds no Roslyn execution, adds no notebook/runtime `[Fact]` / `[Theory]` execution behavior, and adds no new notebook/editor/runtime feature.

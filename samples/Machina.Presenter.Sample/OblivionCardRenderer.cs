@@ -1,6 +1,4 @@
-using System.Text;
 using Machina.Core.Authoring;
-using Machina.Core.Measurement;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Layout.Documents;
@@ -36,7 +34,9 @@ public static class OblivionCardRenderer
     private const string BodyLineSuffixPrefix = ".body-line-";
     private const string ActionsRowSuffix = ".actions-row";
     private const string ArtifactsRowSuffix = ".artifacts-row";
-    private const string Ellipsis = "...";
+    private static readonly PresenterCardTextLayout BodyTextLayout = new(
+        LineHeight: 16,
+        LineGap: 6);
 
     public static UiNode BuildCard(
         OblivionCard card,
@@ -47,8 +47,6 @@ public static class OblivionCardRenderer
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(options);
 
-        StandardCardStyle cardStyle = theme.Card.Default;
-        double innerWidth = Math.Max(0, options.Width - (cardStyle.ContentInset * 2));
         double cursorTop = 0;
 
         List<UiNode> layoutChildren =
@@ -125,15 +123,16 @@ public static class OblivionCardRenderer
         }
 
         cursorTop += options.SectionGap;
-        double bodyHeight = Math.Max(0, (options.Height - (cardStyle.ContentInset * 2)) - cursorTop);
+        PresenterCardLayout layout = ComputeLayout(card, options, theme.Card.Default, cursorTop);
+        double bodyContainerHeight = layout.BodyRectInContent.Height + (layout.FooterRectInContent?.Height ?? 0);
         layoutChildren.Add(
             UI.Anchor(
-                BuildBody(card, theme, options, innerWidth, bodyHeight),
+                BuildBody(card, theme, options, layout),
                 id: card.Id.Value + BodyFrameSuffix + ".slot",
-                left: 0,
-                right: 0,
-                top: cursorTop,
-                bottom: 0));
+                left: layout.BodyRectInContent.X,
+                width: layout.BodyRectInContent.Width,
+                top: layout.BodyRectInContent.Y,
+                height: bodyContainerHeight));
 
         return StandardUI.Card(
             id: card.Id.Value,
@@ -150,12 +149,40 @@ public static class OblivionCardRenderer
         return PresenterCard.DescribeFrame(resolved, cardId);
     }
 
+    public static PresenterCardLayout ComputeLayout(
+        OblivionCard card,
+        OblivionCardRenderOptions options,
+        StandardCardStyle cardStyle,
+        double bodyTopInContent)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(cardStyle);
+
+        double footerHeight = 0;
+        if (card.Actions.Count > 0)
+        {
+            footerHeight += options.RowHeight + options.SmallGap;
+        }
+
+        if (card.Artifacts.Count > 0)
+        {
+            footerHeight += options.RowHeight + options.SmallGap;
+        }
+
+        return PresenterCardLayoutHelper.ComputeLayout(
+            options.Width,
+            options.Height,
+            cardStyle.ContentInset,
+            bodyTopInContent,
+            footerHeight);
+    }
+
     private static UiNode BuildBody(
         OblivionCard card,
         StandardTheme theme,
         OblivionCardRenderOptions options,
-        double innerWidth,
-        double bodyHeight)
+        PresenterCardLayout layout)
     {
         IReadOnlyList<string> actionLabels = LimitLabels(
             card.Actions.Select(action => $"{action.Label} {(action.Enabled ? "ready" : "disabled")}").ToArray(),
@@ -164,22 +191,10 @@ public static class OblivionCardRenderer
             card.Artifacts.Select(artifact => $"{artifact.Label} ({artifact.Kind})").ToArray(),
             options.MaxArtifactsToShow);
 
-        double reservedRows = 0;
-        if (actionLabels.Count > 0)
-        {
-            reservedRows += options.RowHeight + options.SmallGap;
-        }
-
-        if (artifactLabels.Count > 0)
-        {
-            reservedRows += options.RowHeight + options.SmallGap;
-        }
-
-        double bodyTextHeight = Math.Max(0, bodyHeight - reservedRows);
         IReadOnlyList<string> visibleLines = ClipLinesToFit(
             card.BodyLines,
-            innerWidth,
-            bodyTextHeight,
+            layout.BodyWidth,
+            layout.BodyHeight,
             options,
             theme.Colors.MutedForeground);
 
@@ -203,6 +218,8 @@ public static class OblivionCardRenderer
             currentTop += options.BodyLineHeight + options.BodyLineGap;
         }
 
+        double footerCursorTop = Math.Max(0, (layout.FooterRectInContent?.Y ?? layout.BodyHeight) - layout.BodyRectInContent.Y);
+
         if (actionLabels.Count > 0)
         {
             children.Add(
@@ -216,9 +233,9 @@ public static class OblivionCardRenderer
                     id: card.Id.Value + ActionsRowSuffix + ".slot",
                     left: 0,
                     right: 0,
-                    top: currentTop,
+                    top: footerCursorTop,
                     height: options.RowHeight));
-            currentTop += options.RowHeight + options.SmallGap;
+            footerCursorTop += options.RowHeight + options.SmallGap;
         }
 
         if (artifactLabels.Count > 0)
@@ -234,7 +251,7 @@ public static class OblivionCardRenderer
                     id: card.Id.Value + ArtifactsRowSuffix + ".slot",
                     left: 0,
                     right: 0,
-                    top: currentTop,
+                    top: footerCursorTop,
                     height: options.RowHeight));
         }
 
@@ -277,85 +294,22 @@ public static class OblivionCardRenderer
         OblivionCardRenderOptions options,
         ColorToken color)
     {
-        int maxLineCount = ComputeLineCapacity(height, options);
-        if (maxLineCount <= 0)
-        {
-            return [];
-        }
-
         TextStyle style = new(
             Color: color,
             Size: TextSize.Sm,
             AlignX: TextAlignX.Left,
             AlignY: TextAlignY.Top);
 
-        List<string> visibleLines = [];
-        foreach (string line in lines)
-        {
-            if (visibleLines.Count == maxLineCount)
+        return PresenterCardLayoutHelper.ClipLinesToFit(
+            lines,
+            width,
+            height,
+            BodyTextLayout with
             {
-                break;
-            }
-
-            visibleLines.Add(ClipLineToWidth(line, width, style));
-        }
-
-        if (visibleLines.Count < lines.Count && visibleLines.Count > 0)
-        {
-            visibleLines[^1] = ClipLineToWidth(visibleLines[^1] + " " + Ellipsis, width, style);
-        }
-
-        return visibleLines;
-    }
-
-    private static int ComputeLineCapacity(double height, OblivionCardRenderOptions options)
-    {
-        double lineSpan = options.BodyLineHeight + options.BodyLineGap;
-        if (height <= 0 || lineSpan <= 0)
-        {
-            return 0;
-        }
-
-        return Math.Max(1, (int)Math.Floor((height + options.BodyLineGap) / lineSpan));
-    }
-
-    private static string ClipLineToWidth(string text, double width, TextStyle style)
-    {
-        if (string.IsNullOrEmpty(text) || width <= 0)
-        {
-            return string.Empty;
-        }
-
-        if (Measure(text, style) <= width)
-        {
-            return text;
-        }
-
-        if (Measure(Ellipsis, style) > width)
-        {
-            return string.Empty;
-        }
-
-        var builder = new StringBuilder();
-        foreach (char character in text)
-        {
-            string candidate = builder.ToString() + character + Ellipsis;
-            if (Measure(candidate, style) > width)
-            {
-                break;
-            }
-
-            builder.Append(character);
-        }
-
-        return builder.Length == 0
-            ? Ellipsis
-            : builder.ToString().TrimEnd() + Ellipsis;
-    }
-
-    private static double Measure(string text, TextStyle style)
-    {
-        return DeterministicTextMeasurer.Instance.MeasureText(text, style).Width;
+                LineHeight = options.BodyLineHeight,
+                LineGap = options.BodyLineGap,
+            },
+            style);
     }
 
     private static string KindLabel(OblivionCardKind kind)

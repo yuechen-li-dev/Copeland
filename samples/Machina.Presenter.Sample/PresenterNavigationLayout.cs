@@ -16,6 +16,8 @@ public sealed record PresenterNavigationLayout(
     int ScrollbarWidth,
     int ScrollbarGap)
 {
+    private const int ScrollbarTrackInset = 2;
+
     public static PresenterNavigationLayout Default { get; } = new(
         RootWidth: 1120,
         RootHeight: 760,
@@ -52,11 +54,15 @@ public sealed record PresenterNavigationLayout(
 
     public int ViewportWidth => ContentWidth - (ContentPanelPadding * 2);
 
-    public int ScrollbarTrackLeft => ViewportLeft + ViewportWidth - ScrollbarWidth;
+    public int ScrollbarTrackLeft => ViewportLeft + ViewportWidth - ScrollbarWidth - ScrollbarTrackInset;
+
+    public int ScrollbarTrackTop => ViewportTop + ScrollbarTrackInset;
+
+    public int ScrollbarTrackHeight => Math.Max(0, ViewportHeight - (ScrollbarTrackInset * 2));
 
     public int ContentVisibleWidth => ViewportWidth - ScrollbarWidth - ScrollbarGap;
 
     public Rect ViewportRect => new(ViewportLeft, ViewportTop, ContentVisibleWidth, ViewportHeight);
 
-    public Rect ScrollbarTrackRect => new(ScrollbarTrackLeft, ViewportTop, ScrollbarWidth, ViewportHeight);
+    public Rect ScrollbarTrackRect => new(ScrollbarTrackLeft, ScrollbarTrackTop, ScrollbarWidth, ScrollbarTrackHeight);
 }

@@ -271,3 +271,14 @@ Manifest outputs:
 - Visionary source workspace/editor implementation
 - richer artifact generation/runtime behavior
 - broader project/file explorer behavior
+
+## M11e follow-up
+
+M11e keeps the M11d persistence model intact while hardening card layout authoring:
+
+- presenter and Oblivion cards now use shared card-layout helpers instead of hand-rolled body geometry
+- persisted Oblivion cards still load from the same JSON/TOML assets
+- hosted-card background bleed is fixed without changing workspace data
+- scrollbar geometry is hardened at the presenter-shell level only
+
+M11e still adds no Roslyn execution, no xUnit notebook/runtime execution, and no new notebook/editor/runtime behavior.

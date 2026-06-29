@@ -152,3 +152,13 @@ M11c keeps the M10d behavior surface intact while changing the internals:
 - scroll offset changes use cached page/shell layers plus cheap recomposition
 
 This remains presenter-shell refactor work only. No Roslyn execution, no resumed font work, and no `[Fact]` / `[Theory]` notebook/runtime execution behavior are added here.
+
+## M11e follow-up
+
+M11e keeps the M10d bounded-card policy but hardens how cards are authored:
+
+- presenter and Oblivion cards now derive body geometry from shared card-layout helpers
+- body text clipping is centralized and uses explicit inner/body widths
+- hosted-card wrappers no longer paint accidental full-width dark fills behind smaller hosted content
+
+The containment policy remains sample-local, persistence remains the M11d JSON/TOML model, and no new runtime/editor capability is introduced.
