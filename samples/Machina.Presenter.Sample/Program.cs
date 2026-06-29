@@ -38,6 +38,7 @@ internal sealed class Program
     public static void Main(string[] args)
     {
         PresenterProgramOptions options = PresenterProgramOptions.Parse(args);
+        ProgramOptionsHolder.Set(options);
         if (options.ExportOnly)
         {
             PresenterExportResult result = PresenterExporter.Export(options);
@@ -67,26 +68,39 @@ internal sealed class Program
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new PresenterWindow(_proofOptions);
+                desktop.MainWindow = new PresenterWindow(_proofOptions, ProgramOptionsHolder.Current.NavigationOptions);
             }
 
             base.OnFrameworkInitializationCompleted();
         }
     }
 
+    private static class ProgramOptionsHolder
+    {
+        public static PresenterProgramOptions Current { get; private set; } = new(false, PresenterExportContract.DefaultOutputPath, new PresenterProofOptions(), PresenterNavigationExportOptions.Disabled);
+
+        public static void Set(PresenterProgramOptions options)
+        {
+            Current = options;
+        }
+    }
+
     private sealed class PresenterWindow : Window
     {
-        private const string BaseTitle = "Machina Presenter M1e";
+        private readonly string _baseTitle;
 
         private readonly Image _image;
 
         private DemoState _state;
         private readonly MachinaRasterPipeline _pipeline;
         private readonly PresenterProofOptions _proofOptions;
+        private readonly PresenterNavigationExportOptions _navigationOptions;
+        private PresenterNavigationState? _navigationState;
         private UiHitTestIndex _hitTestIndex;
         private MachinaFrame _currentFrame;
+        private PresenterNavigationShellRenderResult? _navigationShellRender;
 
-        public PresenterWindow(PresenterProofOptions proofOptions)
+        public PresenterWindow(PresenterProofOptions proofOptions, PresenterNavigationExportOptions navigationOptions)
         {
             _image = new Image
             {
@@ -103,8 +117,16 @@ internal sealed class Program
                 Notifications: false);
             _pipeline = new MachinaRasterPipeline();
             _proofOptions = proofOptions;
+            _navigationOptions = navigationOptions;
+            _navigationState = navigationOptions.IncludeNavigationShell
+                ? PresenterExporterNavigationState()
+                : null;
             _hitTestIndex = default!;
             _currentFrame = default!;
+            _navigationShellRender = null;
+            _baseTitle = navigationOptions.IncludeNavigationShell
+                ? "Machina Presenter M10a"
+                : "Machina Presenter M1e";
 
             RenderCurrentState();
             Title = BuildTitle("startup");
@@ -113,8 +135,52 @@ internal sealed class Program
             Content = _image;
         }
 
+        private PresenterNavigationState PresenterExporterNavigationState()
+        {
+            PresenterNavigationModel model = PresenterNavigationCatalog.CreateModel();
+            PresenterNavigationState state = PresenterNavigationState.CreateDefault(model);
+
+            if (!string.IsNullOrWhiteSpace(_navigationOptions.SelectedPageId) &&
+                model.ContainsPage(_navigationOptions.SelectedPageId))
+            {
+                PresenterNavigationSection section = model.FindSectionByPageId(_navigationOptions.SelectedPageId);
+                PresenterNavigationTab tab = model.FindTabByPageId(_navigationOptions.SelectedPageId);
+                state = state
+                    .WithSelectedTab(section.Id, tab.Id)
+                    .WithSelectedSection(section.Id);
+            }
+
+            if (_navigationOptions.ScrollOffsetByPageId is not null)
+            {
+                foreach ((string pageId, double offset) in _navigationOptions.ScrollOffsetByPageId)
+                {
+                    state = state.WithScrollOffset(pageId, offset);
+                }
+            }
+
+            return state;
+        }
+
         private void RenderCurrentState()
         {
+            if (_navigationOptions.IncludeNavigationShell)
+            {
+                _navigationShellRender = PresenterNavigationShellRenderer.Render(
+                    _state,
+                    _navigationState ?? PresenterNavigationState.CreateDefault(PresenterNavigationCatalog.CreateModel()),
+                    AppTheme,
+                    _proofOptions);
+                _navigationState = _navigationShellRender.NavigationState;
+                _currentFrame = _navigationShellRender.ShellFrame;
+                _hitTestIndex = _navigationShellRender.ShellFrame.HitTest;
+                _image.Source = PresenterExporter.ToBitmap(_navigationShellRender.ComposedFrame);
+                _image.Width = _navigationShellRender.ComposedFrame.Width;
+                _image.Height = _navigationShellRender.ComposedFrame.Height;
+                Width = _navigationShellRender.ComposedFrame.Width;
+                Height = _navigationShellRender.ComposedFrame.Height;
+                return;
+            }
+
             var ui = SettingsScreen.Build(_state, AppTheme, _proofOptions);
             _currentFrame = _pipeline.Render(
                 ui,
@@ -127,7 +193,6 @@ internal sealed class Program
             }
 
             _hitTestIndex = _currentFrame.HitTest;
-
             _image.Source = PresenterExporter.ToBitmap(_currentFrame.RasterFrame);
             _image.Width = _currentFrame.RasterFrame.Width;
             _image.Height = _currentFrame.RasterFrame.Height;
@@ -142,14 +207,25 @@ internal sealed class Program
             var destination = new PresentedImageRect(0, 0, _image.Bounds.Width, _image.Bounds.Height);
             RuntimePointerPoint? rootPoint = PresentedImageMapper.ToRootPoint(
                 presentedPoint,
-                _currentFrame.RasterFrame.Width,
-                _currentFrame.RasterFrame.Height,
+                _navigationShellRender?.ComposedFrame.Width ?? _currentFrame.RasterFrame.Width,
+                _navigationShellRender?.ComposedFrame.Height ?? _currentFrame.RasterFrame.Height,
                 destination,
                 ImageStretchMode.None);
 
             var point = rootPoint;
-            var hit = point is null ? null : _hitTestIndex.HitTest(point.Value);
-            var action = hit?.Action;
+            UiAction? action = null;
+
+            if (point is not null)
+            {
+                var hit = _hitTestIndex.HitTest(point.Value);
+                action = hit?.Action;
+
+                if (action is null && _navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
+                {
+                    action = _navigationShellRender.HitTestContent(point.Value);
+                }
+            }
+
             var actionName = action?.Name ?? "<none>";
 
             if (action is not null)
@@ -164,6 +240,25 @@ internal sealed class Program
 
         private void ApplyAction(UiAction action)
         {
+            if (_navigationOptions.IncludeNavigationShell && _navigationState is not null)
+            {
+                PresenterNavigationModel model = PresenterNavigationCatalog.CreateModel();
+                PresenterNavigationState nextNavigation = PresenterNavigationDispatch.Dispatch(
+                    _navigationState,
+                    action.Id,
+                    model,
+                    _proofOptions,
+                    PresenterNavigationLayout.Default);
+
+                if (!ReferenceEquals(nextNavigation, _navigationState) &&
+                    !Equals(nextNavigation, _navigationState))
+                {
+                    _navigationState = nextNavigation;
+                    RenderCurrentState();
+                    return;
+                }
+            }
+
             var next = DemoStateDispatch.Dispatch(_state, action.Id);
             if (!ReferenceEquals(next, _state))
             {
@@ -174,7 +269,12 @@ internal sealed class Program
 
         private string BuildTitle(string actionName)
         {
-            return $"{BaseTitle} - action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}";
+            if (_navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
+            {
+                return $"{_baseTitle} - section: {_navigationShellRender.SelectedSection.Label}, tab: {_navigationShellRender.SelectedTab.Label}, action: {actionName}, count: {_state.Count}";
+            }
+
+            return $"{_baseTitle} - action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}";
         }
 
         private static string OnOff(bool value)

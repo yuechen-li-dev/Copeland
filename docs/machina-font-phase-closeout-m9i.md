@@ -10,6 +10,9 @@ M9i is the last proof-integration and closeout-hygiene step for the current Mach
 - MSDF remains explicit experimental/scalable after the M9f repair
 - production UI text defaults remain unchanged
 
+M10 starts presenter organization work, not more font work.
+Keep the M9 font phase closed unless a concrete integration need appears.
+
 ## Golden path
 
 Use `DirectOutlineStatic` when the goal is deterministic static/reference proof output.

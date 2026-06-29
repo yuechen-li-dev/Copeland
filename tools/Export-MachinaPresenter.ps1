@@ -2,6 +2,9 @@
 param(
     [string]$OutputPath = "artifacts\\presenter-default.png",
     [switch]$IncludeDirectOutlineRenderBridgeProof,
+    [switch]$IncludeNavigationShell,
+    [string]$NavigationPage,
+    [string]$ScrollPage,
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug"
 )
@@ -41,6 +44,23 @@ $arguments = @(
 if ($IncludeDirectOutlineRenderBridgeProof)
 {
     $arguments += "--include-direct-outline-render-bridge-proof"
+}
+
+if ($IncludeNavigationShell)
+{
+    $arguments += "--include-navigation-shell"
+}
+
+if (-not [string]::IsNullOrWhiteSpace($NavigationPage))
+{
+    $arguments += "--navigation-page"
+    $arguments += $NavigationPage
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ScrollPage))
+{
+    $arguments += "--scroll-page"
+    $arguments += $ScrollPage
 }
 
 Push-Location $repoRoot

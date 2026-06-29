@@ -23,6 +23,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m9g/` is the current direct-outline text-layout proof output directory.
 - `artifacts/m9h/` is the current direct-outline render-bridge proof output directory.
 - `artifacts/m9i/` is the current font phase closeout manifest directory.
+- `artifacts/m10a/` is the current presenter navigation shell export directory.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8n proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -40,6 +41,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M9g comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M9h comparison artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M9i presenter/gallery PNG proof artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M10a presenter shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -100,6 +102,15 @@ dotnet build Copeland.slnx --no-restore
 .\tools\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\m9i -IncludeDirectOutlineRenderBridgeProof
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m9i\presenter-direct-outline-render-bridge-proof.png -IncludeDirectOutlineRenderBridgeProof
 .\tools\Write-MachinaFontPhaseCloseoutManifest.ps1 -OutputDir artifacts\m9i
+```
+
+Current M10a presenter shell commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10a\presenter-navigation-shell-overview.png -IncludeNavigationShell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10a\presenter-navigation-shell-components.png -IncludeNavigationShell -NavigationPage components.controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10a\presenter-navigation-shell-text.png -IncludeNavigationShell -NavigationPage text.direct-outline-static -IncludeDirectOutlineRenderBridgeProof
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10a\presenter-navigation-shell-scrolled.png -IncludeNavigationShell -NavigationPage components.controls -ScrollPage components.controls:120
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -203,6 +214,12 @@ Current M9f audit command:
 - `artifacts/m9h/font-diagnostic-export-manifest.json`
 - `artifacts/m9i/font-phase-closeout-manifest.txt`
 - `artifacts/m9i/font-phase-closeout-manifest.json`
+- `artifacts/m10a/presenter-navigation-shell-overview.png`
+- `artifacts/m10a/presenter-navigation-shell-components.png`
+- `artifacts/m10a/presenter-navigation-shell-text.png`
+- `artifacts/m10a/presenter-navigation-shell-scrolled.png`
+- `artifacts/m10a/presenter-navigation-shell-manifest.txt`
+- `artifacts/m10a/presenter-navigation-shell-manifest.json`
 
 No automated pixel comparison runs against these files yet. M7e documents the current stable baseline and its limitations without changing that policy.
 
@@ -432,3 +449,14 @@ These remain local proof artifacts only. M9h adds a renderer-facing bridge contr
 - `artifacts/m9i/font-phase-closeout-manifest.json`
 
 M9i closes the current font phase without changing the production UI text default. `DirectOutlineStatic` remains the static/reference path, the presenter proof remains opt-in, MSDF remains explicit experimental/scalable, browser kerning is not the oracle, and word wrapping plus production integration stay deferred.
+
+## Current M10a presenter shell outputs
+
+- `artifacts/m10a/presenter-navigation-shell-overview.png`
+- `artifacts/m10a/presenter-navigation-shell-components.png`
+- `artifacts/m10a/presenter-navigation-shell-text.png`
+- `artifacts/m10a/presenter-navigation-shell-scrolled.png`
+- `artifacts/m10a/presenter-navigation-shell-manifest.txt`
+- `artifacts/m10a/presenter-navigation-shell-manifest.json`
+
+These remain local sample proof artifacts only. M10a organizes the presenter with app-level sidebar sections, tabs local to the selected section, a scrollable page viewport, and deterministic scrollbar visuals. It does not resume M9 font work and does not change production UI defaults.

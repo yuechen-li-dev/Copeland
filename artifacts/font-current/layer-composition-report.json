@@ -1,0 +1,864 @@
+{
+  "OutputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current",
+  "PresetsGenerated": [
+    "cad-debug"
+  ],
+  "Artifacts": [
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 32,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\m9d-cad-debug-machina.png",
+      "ReferenceRenderStrategy": "DirectOutlineStatic",
+      "RenderStrategies": [
+        "DirectOutlineStatic"
+      ],
+      "PresetAvailability": {
+        "PresetName": "cad-debug",
+        "RequiredSources": [
+          "direct-outline"
+        ],
+        "AvailableSources": [
+          "direct-outline"
+        ],
+        "MissingRequiredSources": [],
+        "DegradedSources": [],
+        "Warnings": [],
+        "Errors": [],
+        "Complete": true
+      },
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct-outline static image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      }
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 32,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\m9d-cad-debug-hello-machina.png",
+      "ReferenceRenderStrategy": "DirectOutlineStatic",
+      "RenderStrategies": [
+        "DirectOutlineStatic"
+      ],
+      "PresetAvailability": {
+        "PresetName": "cad-debug",
+        "RequiredSources": [
+          "direct-outline"
+        ],
+        "AvailableSources": [
+          "direct-outline"
+        ],
+        "MissingRequiredSources": [],
+        "DegradedSources": [],
+        "Warnings": [],
+        "Errors": [],
+        "Complete": true
+      },
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct-outline static image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      }
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 32,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\m9d-cad-debug-kerning.png",
+      "ReferenceRenderStrategy": "DirectOutlineStatic",
+      "RenderStrategies": [
+        "DirectOutlineStatic"
+      ],
+      "PresetAvailability": {
+        "PresetName": "cad-debug",
+        "RequiredSources": [
+          "direct-outline"
+        ],
+        "AvailableSources": [
+          "direct-outline"
+        ],
+        "MissingRequiredSources": [],
+        "DegradedSources": [],
+        "Warnings": [],
+        "Errors": [],
+        "Complete": true
+      },
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct-outline static image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      }
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 32,
+      "TextId": "aa0",
+      "Text": "Aa0",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\m9d-cad-debug-aa0.png",
+      "ReferenceRenderStrategy": "DirectOutlineStatic",
+      "RenderStrategies": [
+        "DirectOutlineStatic"
+      ],
+      "PresetAvailability": {
+        "PresetName": "cad-debug",
+        "RequiredSources": [
+          "direct-outline"
+        ],
+        "AvailableSources": [
+          "direct-outline"
+        ],
+        "MissingRequiredSources": [],
+        "DegradedSources": [],
+        "Warnings": [],
+        "Errors": [],
+        "Complete": true
+      },
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct-outline static image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\direct-outline-aa0.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\msdf-aa0.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\32\\wireframe-aa0.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      }
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 64,
+      "TextId": "machina",
+      "Text": "Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\m9d-cad-debug-machina.png",
+      "ReferenceRenderStrategy": "DirectOutlineStatic",
+      "RenderStrategies": [
+        "DirectOutlineStatic"
+      ],
+      "PresetAvailability": {
+        "PresetName": "cad-debug",
+        "RequiredSources": [
+          "direct-outline"
+        ],
+        "AvailableSources": [
+          "direct-outline"
+        ],
+        "MissingRequiredSources": [],
+        "DegradedSources": [],
+        "Warnings": [],
+        "Errors": [],
+        "Complete": true
+      },
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct-outline static image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\direct-outline-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\msdf-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\wireframe-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      }
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 64,
+      "TextId": "hello-machina",
+      "Text": "Hello Machina",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\m9d-cad-debug-hello-machina.png",
+      "ReferenceRenderStrategy": "DirectOutlineStatic",
+      "RenderStrategies": [
+        "DirectOutlineStatic"
+      ],
+      "PresetAvailability": {
+        "PresetName": "cad-debug",
+        "RequiredSources": [
+          "direct-outline"
+        ],
+        "AvailableSources": [
+          "direct-outline"
+        ],
+        "MissingRequiredSources": [],
+        "DegradedSources": [],
+        "Warnings": [],
+        "Errors": [],
+        "Complete": true
+      },
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct-outline static image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\direct-outline-hello-machina.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\msdf-hello-machina.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\wireframe-hello-machina.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      }
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 64,
+      "TextId": "kerning",
+      "Text": "AV To Ta Wa Yo",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\m9d-cad-debug-kerning.png",
+      "ReferenceRenderStrategy": "DirectOutlineStatic",
+      "RenderStrategies": [
+        "DirectOutlineStatic"
+      ],
+      "PresetAvailability": {
+        "PresetName": "cad-debug",
+        "RequiredSources": [
+          "direct-outline"
+        ],
+        "AvailableSources": [
+          "direct-outline"
+        ],
+        "MissingRequiredSources": [],
+        "DegradedSources": [],
+        "Warnings": [],
+        "Errors": [],
+        "Complete": true
+      },
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct-outline static image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\direct-outline-kerning.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\msdf-kerning.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\wireframe-kerning.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      }
+    },
+    {
+      "PresetName": "cad-debug",
+      "SizePx": 64,
+      "TextId": "aa0",
+      "Text": "Aa0",
+      "ArtifactPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\m9d-cad-debug-aa0.png",
+      "ReferenceRenderStrategy": "DirectOutlineStatic",
+      "RenderStrategies": [
+        "DirectOutlineStatic"
+      ],
+      "PresetAvailability": {
+        "PresetName": "cad-debug",
+        "RequiredSources": [
+          "direct-outline"
+        ],
+        "AvailableSources": [
+          "direct-outline"
+        ],
+        "MissingRequiredSources": [],
+        "DegradedSources": [],
+        "Warnings": [],
+        "Errors": [],
+        "Complete": true
+      },
+      "Layers": [
+        {
+          "Id": "direct-image",
+          "Label": "Direct-outline static image",
+          "Visible": true,
+          "Opacity": 0.4,
+          "ZIndex": 0,
+          "LayerType": "DiagnosticImageLayer"
+        },
+        {
+          "Id": "grid",
+          "Label": "Grid",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 10,
+          "LayerType": "DiagnosticGridLayer"
+        },
+        {
+          "Id": "axes",
+          "Label": "Axes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 20,
+          "LayerType": "DiagnosticAxisLayer"
+        },
+        {
+          "Id": "baseline",
+          "Label": "Baseline",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 30,
+          "LayerType": "DiagnosticBaselineLayer"
+        },
+        {
+          "Id": "bounds",
+          "Label": "Bounds",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 40,
+          "LayerType": "DiagnosticBoundsLayer"
+        },
+        {
+          "Id": "glyph-wireframes",
+          "Label": "Glyph wireframes",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 50,
+          "LayerType": "DiagnosticGlyphWireframeLayer"
+        },
+        {
+          "Id": "cad-labels",
+          "Label": "CAD labels",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 60,
+          "LayerType": "DiagnosticTextLabelLayer"
+        },
+        {
+          "Id": "browser-status-label",
+          "Label": "Browser status label",
+          "Visible": true,
+          "Opacity": 1,
+          "ZIndex": 70,
+          "LayerType": "DiagnosticTextLabelLayer"
+        }
+      ],
+      "SourceImagePaths": {
+        "browser": null,
+        "direct": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\direct-outline-aa0.png",
+        "msdf": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\msdf-aa0.png",
+        "wireframe": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\font-current\\64\\wireframe-aa0.png"
+      },
+      "Grid": {
+        "ShowGrid": true,
+        "GridStep": 8,
+        "MajorStep": 32,
+        "ShowUnitLabels": true
+      },
+      "Bounds": {
+        "ShowBounds": true,
+        "ShowWireframes": true
+      }
+    }
+  ]
+}

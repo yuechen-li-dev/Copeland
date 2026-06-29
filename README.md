@@ -45,6 +45,20 @@ Current CLI command:
 
 The CLI currently emits artifacts only. It does not execute compiled programs or expose host/browser APIs.
 
+## Test suites
+
+Regular solution test coverage:
+
+```powershell
+dotnet test Copeland.slnx
+```
+
+Slow tooling coverage that is intentionally excluded from the regular solution path:
+
+```powershell
+dotnet test Copeland.Slow.slnx
+```
+
 
 ## Support matrices
 
@@ -86,6 +100,7 @@ The CLI currently emits artifacts only. It does not execute compiled programs or
 - [Machina MSDF Alignment Repair M9f](docs/machina-msdf-alignment-repair-m9f.md)
 - [Machina Direct-Outline Text Layout Contract M9g](docs/machina-direct-outline-text-layout-contract-m9g.md)
 - [Machina Direct-Outline Render Bridge M9h](docs/machina-direct-outline-render-bridge-m9h.md)
+- [Machina Presenter Navigation Shell M10a](docs/machina-presenter-navigation-shell-m10a.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
@@ -181,6 +196,26 @@ Canonical closeout artifacts:
 - `artifacts/m9i/font-phase-closeout-manifest.txt`
 
 M9i is still proof-only. It adds an opt-in presenter proof through `DirectOutlineStaticTextRenderBridge`, keeps `DirectOutlineStatic` as the static/reference path, keeps MSDF explicit experimental/scalable, keeps browser kerning out of the oracle role, defers word wrapping and production integration, and leaves production UI text defaults unchanged.
+
+M10a begins presenter organization work after that closeout. The new presenter shell is opt-in and sample-local:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10a\presenter-navigation-shell-overview.png -IncludeNavigationShell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10a\presenter-navigation-shell-components.png -IncludeNavigationShell -NavigationPage components.controls
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10a\presenter-navigation-shell-text.png -IncludeNavigationShell -NavigationPage text.direct-outline-static -IncludeDirectOutlineRenderBridgeProof
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m10a\presenter-navigation-shell-scrolled.png -IncludeNavigationShell -NavigationPage components.controls -ScrollPage components.controls:120
+```
+
+Representative M10a outputs:
+
+- `artifacts/m10a/presenter-navigation-shell-overview.png`
+- `artifacts/m10a/presenter-navigation-shell-components.png`
+- `artifacts/m10a/presenter-navigation-shell-text.png`
+- `artifacts/m10a/presenter-navigation-shell-scrolled.png`
+- `artifacts/m10a/presenter-navigation-shell-manifest.json`
+- `artifacts/m10a/presenter-navigation-shell-manifest.txt`
+
+This milestone adds sidebar section navigation, tabs local to the selected sidebar item, a scrollable page viewport, and deterministic sample-local scrollbar visuals. It does not resume font work or change production UI text defaults.
 
 Current font proof audit workflow:
 
