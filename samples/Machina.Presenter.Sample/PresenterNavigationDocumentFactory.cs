@@ -67,7 +67,7 @@ public static class PresenterNavigationDocumentFactory
                 top: layout.SidebarTop + 20,
                 width: layout.SidebarWidth - 40,
                 height: 20,
-                view: View.Text("Machina M10b", color: theme.Colors.MutedForeground, size: TextSize.Sm)),
+                view: View.Text("Machina M10c", color: theme.Colors.MutedForeground, size: TextSize.Sm)),
 
             Row.Anchor(
                 id: "app-title",
@@ -76,7 +76,7 @@ public static class PresenterNavigationDocumentFactory
                 top: layout.ContentTop + 20,
                 width: layout.ContentWidth - (layout.ContentPanelPadding * 2),
                 height: 28,
-                view: View.Text("Presenter navigation shell", color: theme.Colors.Foreground, size: TextSize.H1)),
+                view: View.Text(PresenterNavigationCatalog.GetPageTitle(selectedPageId), color: theme.Colors.Foreground, size: TextSize.H1)),
 
             Row.Anchor(
                 id: "page-description",

@@ -77,7 +77,7 @@ internal sealed class Program
 
     private static class ProgramOptionsHolder
     {
-        public static PresenterProgramOptions Current { get; private set; } = new(false, PresenterExportContract.DefaultOutputPath, new PresenterProofOptions(), PresenterNavigationExportOptions.Disabled);
+        public static PresenterProgramOptions Current { get; private set; } = new(false, PresenterExportContract.DefaultOutputPath, new PresenterProofOptions(), PresenterNavigationExportOptions.DefaultShell);
 
         public static void Set(PresenterProgramOptions options)
         {
@@ -128,7 +128,7 @@ internal sealed class Program
             _currentFrame = default!;
             _navigationShellRender = null;
             _baseTitle = navigationOptions.IncludeNavigationShell
-                ? "Machina Presenter M10b"
+                ? "Machina Presenter M10c"
                 : "Machina Presenter M1e";
 
             RenderCurrentState();
@@ -141,44 +141,7 @@ internal sealed class Program
         private PresenterNavigationState PresenterExporterNavigationState()
         {
             PresenterNavigationModel model = PresenterNavigationCatalog.CreateModel();
-            PresenterNavigationState state = PresenterNavigationState.CreateDefault(model);
-
-            if (!string.IsNullOrWhiteSpace(_navigationOptions.SelectedPageId) &&
-                model.ContainsPage(_navigationOptions.SelectedPageId))
-            {
-                PresenterNavigationSection section = model.FindSectionByPageId(_navigationOptions.SelectedPageId);
-                PresenterNavigationTab tab = model.FindTabByPageId(_navigationOptions.SelectedPageId);
-                state = state
-                    .WithSelectedTab(section.Id, tab.Id)
-                    .WithSelectedSection(section.Id);
-            }
-            else if (!string.IsNullOrWhiteSpace(_navigationOptions.SelectedSectionId))
-            {
-                PresenterNavigationSection? section = model.FindSection(_navigationOptions.SelectedSectionId);
-                if (section is not null)
-                {
-                    state = state.WithSelectedSection(section.Id);
-
-                    if (!string.IsNullOrWhiteSpace(_navigationOptions.SelectedTabId))
-                    {
-                        PresenterNavigationTab? tab = model.FindTab(section.Id, _navigationOptions.SelectedTabId);
-                        if (tab is not null)
-                        {
-                            state = state.WithSelectedTab(section.Id, tab.Id);
-                        }
-                    }
-                }
-            }
-
-            if (_navigationOptions.ScrollOffsetByPageId is not null)
-            {
-                foreach ((string pageId, double offset) in _navigationOptions.ScrollOffsetByPageId)
-                {
-                    state = state.WithScrollOffset(pageId, offset);
-                }
-            }
-
-            return state;
+            return PresenterNavigationCatalog.CreateState(model, _proofOptions, _navigationOptions);
         }
 
         private void RenderCurrentState()

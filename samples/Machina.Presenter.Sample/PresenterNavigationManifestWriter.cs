@@ -4,8 +4,8 @@ namespace Machina.Presenter.Sample;
 
 public static class PresenterNavigationManifestWriter
 {
-    public const string JsonFileName = "presenter-navigation-interaction-manifest.json";
-    public const string TextFileName = "presenter-navigation-interaction-manifest.txt";
+    public const string JsonFileName = "presenter-shell-manifest.json";
+    public const string TextFileName = "presenter-shell-manifest.txt";
 
     public static (string jsonPath, string textPath) Write(
         string outputDirectory,
@@ -24,9 +24,9 @@ public static class PresenterNavigationManifestWriter
 
         var manifest = new
         {
-            milestone = "M10b",
-            kind = "presenter-navigation-interaction",
-            purpose = "Presenter navigation shell with sample-scoped interaction wiring for sidebar, local tabs, and scrollable pages.",
+            milestone = "M10c",
+            kind = "presenter-navigation-shell",
+            purpose = "Canonical presenter sample surface organized as app -> sidebar -> tabs -> page with per-page scroll state.",
             m9FontPhase = new
             {
                 status = "closed-unless-concrete-integration-needs-arise",
@@ -42,7 +42,8 @@ public static class PresenterNavigationManifestWriter
             }).ToArray(),
             shell = new
             {
-                navigationShellOptIn = true,
+                navigationShellDefault = true,
+                legacySingleCardAvailable = true,
                 deterministicScrollbars = true,
                 directOutlineProofOptIn = proofOptions.IncludeDirectOutlineRenderBridgeProof,
                 interactionBackend = interactionBackendName ?? "none",
@@ -57,13 +58,14 @@ public static class PresenterNavigationManifestWriter
 
         string[] textLines =
         [
-            "milestone=M10b",
-            "kind=presenter-navigation-interaction",
+            "milestone=M10c",
+            "kind=presenter-navigation-shell",
             "m9FontPhase.status=closed-unless-concrete-integration-needs-arise",
             "m9FontPhase.directOutlineStatic=static-reference-path",
             "m9FontPhase.msdf=explicit-experimental-scalable",
             "navigationHierarchy=app,sidebar,tabs,pages",
-            $"shell.navigationShellOptIn={true.ToString().ToLowerInvariant()}",
+            $"shell.navigationShellDefault={true.ToString().ToLowerInvariant()}",
+            $"shell.legacySingleCardAvailable={true.ToString().ToLowerInvariant()}",
             $"shell.deterministicScrollbars={true.ToString().ToLowerInvariant()}",
             $"shell.directOutlineProofOptIn={proofOptions.IncludeDirectOutlineRenderBridgeProof.ToString().ToLowerInvariant()}",
             $"shell.interactionBackend={interactionBackendName ?? "none"}",

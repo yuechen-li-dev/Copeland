@@ -21,7 +21,7 @@ public static class PresenterExporter
         PresenterProofOptions proofOptions,
         StandardTheme? theme = null)
     {
-        return Export(state, outputPath, proofOptions, PresenterNavigationExportOptions.Disabled, theme);
+        return Export(state, outputPath, proofOptions, PresenterNavigationExportOptions.DefaultShell, theme);
     }
 
     public static PresenterExportResult Export(
@@ -47,8 +47,7 @@ public static class PresenterExporter
         if (navigationOptions.IncludeNavigationShell)
         {
             PresenterNavigationModel model = PresenterNavigationCatalog.CreateModel();
-            PresenterNavigationState navigationState = PresenterNavigationState.CreateDefault(model);
-            navigationState = ApplyNavigationExportOptions(navigationState, model, proofOptions, navigationOptions);
+            PresenterNavigationState navigationState = PresenterNavigationCatalog.CreateState(model, proofOptions, navigationOptions);
 
             PresenterNavigationShellRenderResult shellRender = PresenterNavigationShellRenderer.Render(
                 state,
@@ -107,60 +106,6 @@ public static class PresenterExporter
             NavigationManifestJsonPath = manifestJsonPath,
             NavigationManifestTextPath = manifestTextPath,
         };
-    }
-
-    private static PresenterNavigationState ApplyNavigationExportOptions(
-        PresenterNavigationState state,
-        PresenterNavigationModel model,
-        PresenterProofOptions proofOptions,
-        PresenterNavigationExportOptions navigationOptions)
-    {
-        PresenterNavigationLayout layout = PresenterNavigationLayout.Default;
-        PresenterNavigationState current = state;
-
-        if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedPageId) &&
-            model.ContainsPage(navigationOptions.SelectedPageId))
-        {
-            PresenterNavigationSection section = model.FindSectionByPageId(navigationOptions.SelectedPageId);
-            PresenterNavigationTab tab = model.FindTabByPageId(navigationOptions.SelectedPageId);
-            current = current
-                .WithSelectedTab(section.Id, tab.Id)
-                .WithSelectedSection(section.Id);
-        }
-        else if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedSectionId))
-        {
-            PresenterNavigationSection? section = model.FindSection(navigationOptions.SelectedSectionId);
-            if (section is not null)
-            {
-                current = current.WithSelectedSection(section.Id);
-
-                if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedTabId))
-                {
-                    PresenterNavigationTab? tab = model.FindTab(section.Id, navigationOptions.SelectedTabId);
-                    if (tab is not null)
-                    {
-                        current = current.WithSelectedTab(section.Id, tab.Id);
-                    }
-                }
-            }
-        }
-
-        if (navigationOptions.ScrollOffsetByPageId is not null)
-        {
-            foreach ((string pageId, double offset) in navigationOptions.ScrollOffsetByPageId)
-            {
-                if (!model.ContainsPage(pageId))
-                {
-                    continue;
-                }
-
-                double contentHeight = PresenterNavigationCatalog.GetPageContentHeight(pageId, proofOptions);
-                double clamped = PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, offset);
-                current = current.WithScrollOffset(pageId, clamped);
-            }
-        }
-
-        return current;
     }
 
     public static WriteableBitmap ToBitmap(RasterFrame frame)

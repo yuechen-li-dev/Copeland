@@ -22,5 +22,8 @@ public sealed record PresenterNavigationExportOptions(
     {
     }
 
+    public static PresenterNavigationExportOptions DefaultShell { get; } =
+        new(true, InteractionBackendName: AvaloniaPresenterInputBackend.BackendName);
+
     public static PresenterNavigationExportOptions Disabled { get; } = new(false);
 }

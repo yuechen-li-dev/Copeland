@@ -11,7 +11,7 @@ public sealed record PresenterProgramOptions(
         bool exportOnly = false;
         string outputPath = PresenterExportContract.DefaultOutputPath;
         bool includeDirectOutlineRenderBridgeProof = false;
-        bool includeNavigationShell = false;
+        bool includeNavigationShell = true;
         string? selectedSectionId = null;
         string? selectedTabId = null;
         string? selectedNavigationPageId = null;
@@ -42,6 +42,12 @@ public sealed record PresenterProgramOptions(
             if (arg == "--include-navigation-shell")
             {
                 includeNavigationShell = true;
+                continue;
+            }
+
+            if (arg == "--legacy-single-card")
+            {
+                includeNavigationShell = false;
                 continue;
             }
 
