@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "agentic-card-contract"
+card_kind = "note"
+status = "passing"
+title = "Agentic card contract"
+subtitle = "Every Oblivion card is a self-contained applet"
+tags = ["oblivion", "cards", "m12e", "applet", "locality"]
+
+[body]
+format = "copeland-markdown"
+path = "body/agentic-card-contract.md"

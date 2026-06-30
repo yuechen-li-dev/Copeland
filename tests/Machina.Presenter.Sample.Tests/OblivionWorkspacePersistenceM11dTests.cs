@@ -331,7 +331,7 @@ public sealed class OblivionWorkspacePersistenceM11dTests
             result.Workspace!.Sections.Single().Pages,
             page => page.PresenterPageId == "oblivion.cards");
 
-        Assert.Equal(7, cardsPage.Cards.Count);
+        Assert.Equal(8, cardsPage.Cards.Count);
         Assert.Equal("oblivion-intro-note-card", cardsPage.Cards[0].Id.Value);
     }
 

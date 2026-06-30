@@ -1158,3 +1158,22 @@ Still deferred in M12d:
 - Roslyn execution
 - xUnit execution
 - Visionary
+
+## M12e update
+
+M12e is the card-architecture and locality hardening step for Oblivion.
+
+- every Oblivion card is now treated as a self-contained applet
+- the shell keeps navigation, selection, scrolling, routing, ordering, and persistence loading
+- card kinds now route through a handler registry and own model, local state, actions, diagnostics, artifacts, compact view, inspector view, and future effect metadata
+- existing Markdown notes and docs-dogfood cards continue through the note-card handler
+- `CodeFact` and `CodeTheory` remain placeholder-only and non-executing
+
+Still deferred in M12e:
+
+- Roslyn execution
+- xUnit notebook/runtime `[Fact]` / `[Theory]` execution
+- runtime action dispatch
+- Dominatus effect execution
+- Markdown editor and file watcher
+- Visionary code editor/source workspace

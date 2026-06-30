@@ -6,6 +6,8 @@ M12c makes Copeland Markdown visibly useful inside Oblivion.
 
 The goal is not editing or execution. The goal is to render `DocumentMir` clearly enough that Codex-authored docs, roadmaps, and note cards can be inspected directly in the presenter shell.
 
+M12e follows this by routing Markdown note behavior through an explicit card handler contract so Markdown model, diagnostics, compact preview, and inspector behavior remain localized to the card implementation instead of the shell.
+
 ## Dogfood goal
 
 Markdown is already the format Codex produces most often.

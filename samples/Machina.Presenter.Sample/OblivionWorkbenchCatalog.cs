@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Machina.Core.Authoring;
 using Machina.Core.Flat;
+using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Layout.Documents;
 using Machina.Layout.Geometry;
@@ -14,6 +15,8 @@ namespace Machina.Presenter.Sample;
 
 public static class OblivionWorkbenchCatalog
 {
+    private static readonly OblivionCardHandlerRegistry CardHandlers = OblivionCardHandlerRegistry.CreateDefault();
+
     public const string CardsPageId = "oblivion.cards";
     public const string ExecutionRoadmapPageId = "oblivion.execution-roadmap";
     public const string ArtifactsPageId = "oblivion.artifacts";
@@ -59,7 +62,7 @@ public static class OblivionWorkbenchCatalog
     {
         ArgumentNullException.ThrowIfNull(theme);
 
-        IReadOnlyList<OblivionCard> cards = GetPageCards(pageId, proofOptions);
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions);
         OblivionInspectorSelection selection = ResolveSelection(pageId, cards, navigationState);
         OblivionPageLayout layout = OblivionPageLayout.Create(contentWidth);
         List<UiRow> rows = [];
@@ -91,20 +94,20 @@ public static class OblivionWorkbenchCatalog
                     borderColor: null,
                     borderThickness: 0)));
 
-        foreach (OblivionCard card in cards)
+        foreach (OblivionBuiltCard builtCard in cards)
         {
-            double cardHeight = GetCardHeight(card);
-            bool isSelected = string.Equals(selection.SelectedCardId, card.Id.Value, StringComparison.Ordinal);
+            double cardHeight = builtCard.CompactView.PreferredHeight;
+            bool isSelected = string.Equals(selection.SelectedCardId, builtCard.SourceCard.Id.Value, StringComparison.Ordinal);
             rows.Add(
                 Row.Anchor(
-                    card.Id.Value + ".anchor",
+                    builtCard.SourceCard.Id.Value + ".anchor",
                     "root",
                     left: 0,
                     top: currentTop,
                     width: layout.CardsColumnWidth,
                     height: cardHeight,
                     component: OblivionCardRenderer.BuildCard(
-                        card,
+                        builtCard.CompactView,
                         theme,
                         new OblivionCardRenderOptions(
                             Width: layout.CardsColumnWidth,
@@ -121,20 +124,13 @@ public static class OblivionWorkbenchCatalog
 
     public static double GetPageContentHeight(string pageId, PresenterProofOptions? proofOptions = null)
     {
-        IReadOnlyList<OblivionCard> cards = GetPageCards(pageId, proofOptions);
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions);
         return Math.Max(GetCardsColumnHeight(cards), 1440);
     }
 
     public static double GetCardHeight(OblivionCard card)
     {
-        return card.Kind switch
-        {
-            OblivionCardKind.CodeFact => 248,
-            OblivionCardKind.CodeTheory => 312,
-            OblivionCardKind.UiPreview => 184,
-            OblivionCardKind.Artifact when card.Artifacts.Count > 1 => 196,
-            _ => 168,
-        };
+        return CardHandlers.BuildCard(card).CompactView.PreferredHeight;
     }
 
     public static OblivionWorkspaceLoadResult LoadWorkspace(PresenterProofOptions? proofOptions = null, bool useCache = true)
@@ -410,6 +406,13 @@ public static class OblivionWorkbenchCatalog
         return GetPageCards(pageId, proofOptions);
     }
 
+    public static IReadOnlyList<OblivionBuiltCard> GetBuiltPageCardsForSelection(
+        string pageId,
+        PresenterProofOptions? proofOptions = null)
+    {
+        return GetBuiltPageCards(pageId, proofOptions);
+    }
+
     public static string ResolveCardSelectionId(
         string pageId,
         string requestedCardId,
@@ -447,6 +450,15 @@ public static class OblivionWorkbenchCatalog
         }
 
         return new OblivionPageInteractionMap(pageId, targets);
+    }
+
+    private static IReadOnlyList<OblivionBuiltCard> GetBuiltPageCards(
+        string pageId,
+        PresenterProofOptions? proofOptions)
+    {
+        return GetPageCards(pageId, proofOptions)
+            .Select(card => CardHandlers.BuildCard(card, pageId, card.WorkspaceId))
+            .ToArray();
     }
 
     private static IReadOnlyList<OblivionCard> GetPageCards(string pageId, PresenterProofOptions? proofOptions)
@@ -686,178 +698,77 @@ public static class OblivionWorkbenchCatalog
             return rows;
         }
 
-        OblivionCard card = selection.SelectedCard;
+        OblivionBuiltCard card = selection.SelectedCard;
 
-        rows.Add(Row.Anchor(
-            id: $"{pageId}.inspector-summary",
-            parent: "root",
-            left: layout.InspectorLeft,
-            top: currentTop,
-            width: layout.InspectorWidth,
-            height: 188,
-            component: PresenterCard.BuildTextCard(
-                id: $"{pageId}.inspector-summary-card",
-                title: card.Title,
-                badges: [],
-                lines:
-                [
-                    $"Kind: {KindLabel(card.Kind)}",
-                    $"Status: {StatusLabel(card.Status)}",
-                    $"Body format: {BodyFormatLabel(card.Body.Format)}",
-                    card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
-                        ? "Selected card details are expanded here while the page model stays a stack of typed cards and Markdown remains only the text-card body language."
-                        : "Selected card details are expanded here so the main cards can stay compact while the typed-card page model stays visible.",
-                ],
-                theme: theme,
-                options: new PresenterCardOptions(layout.InspectorWidth, 188))));
-        currentTop += 212;
+        foreach ((OblivionInspectorSectionView section, int index) in card.InspectorView.Sections.Select((section, index) => (section, index)))
+        {
+            rows.Add(Row.Anchor(
+                id: $"{pageId}.inspector-section-{index}",
+                parent: "root",
+                left: layout.InspectorLeft,
+                top: currentTop,
+                width: layout.InspectorWidth,
+                height: section.Height,
+                component: BuildInspectorSection(section, pageId, theme, layout)));
 
-        rows.Add(Row.Anchor(
-            id: $"{pageId}.inspector-metadata",
-            parent: "root",
-            left: layout.InspectorLeft,
-            top: currentTop,
-            width: layout.InspectorWidth,
-            height: 236,
-            component: PresenterCard.BuildTextCard(
-                id: $"{pageId}.inspector-metadata-card",
-                title: "Metadata",
-                badges: [],
-                lines:
-                [
-                    $"Card ID: {card.Id.Value}",
-                    $"Page ID: {pageId}",
-                    $"Source path: {card.SourcePath ?? "<none>"}",
-                    $"Body source path: {card.Body.BodySourcePath ?? "<inline>"}",
-                    $"Workspace: {card.WorkspaceId ?? "<none>"}",
-                    $"Tags: {FormatTags(card.Tags)}",
-                ],
-                theme: theme,
-                options: new PresenterCardOptions(layout.InspectorWidth, 236))));
-        currentTop += 260;
-
-        rows.Add(Row.Anchor(
-            id: $"{pageId}.inspector-body",
-            parent: "root",
-            left: layout.InspectorLeft,
-            top: currentTop,
-            width: layout.InspectorWidth,
-            height: 448,
-            component: PresenterCard.BuildHostedCard(
-                id: $"{pageId}.inspector-body-card",
-                title: "Body",
-                badges: card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
-                    ? ["DocumentMir rendered", "Static Markdown"]
-                    : [],
-                body: card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
-                    ? OblivionMarkdownRenderer.BuildInspectorBody(
-                        $"{pageId}.inspector-markdown",
-                        card.Body,
-                        theme,
-                        layout.InspectorWidth - 34)
-                    : StandardUI.TextBlock(
-                        Machina.Standard.Text.Text.Plain(
-                            string.Join(Environment.NewLine, BuildInspectorLines(card.Body))),
-                        id: $"{pageId}.inspector-plain",
-                        theme: theme),
-                theme: theme,
-                options: new PresenterCardOptions(layout.InspectorWidth, 448, ClipContent: false))));
-        currentTop += 472;
-
-        rows.Add(Row.Anchor(
-            id: $"{pageId}.inspector-diagnostics",
-            parent: "root",
-            left: layout.InspectorLeft,
-            top: currentTop,
-            width: layout.InspectorWidth,
-            height: 236,
-            component: PresenterCard.BuildTextCard(
-                id: $"{pageId}.inspector-diagnostics-card",
-                title: "Markdown diagnostics",
-                badges: [],
-                lines: card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
-                    ? BuildDiagnosticLines(card.Body.Diagnostics)
-                    : ["Not a Markdown body."],
-                theme: theme,
-                options: new PresenterCardOptions(layout.InspectorWidth, 236))));
-        currentTop += 260;
-
-        rows.Add(Row.Anchor(
-            id: $"{pageId}.inspector-actions",
-            parent: "root",
-            left: layout.InspectorLeft,
-            top: currentTop,
-            width: layout.InspectorWidth,
-            height: 212,
-            component: PresenterCard.BuildTextCard(
-                id: $"{pageId}.inspector-actions-card",
-                title: "Actions metadata",
-                badges: [],
-                lines: card.Actions.Count == 0
-                    ? ["No actions declared on this card.", "Actions remain metadata only and are not executable."]
-                    : ["Actions remain metadata only and are not executable.", .. card.Actions.Select(action => $"{action.Id} | {action.Label} | {(action.Enabled ? "enabled metadata" : "disabled metadata")}")],
-                theme: theme,
-                options: new PresenterCardOptions(layout.InspectorWidth, 212))));
-        currentTop += 236;
-
-        rows.Add(Row.Anchor(
-            id: $"{pageId}.inspector-artifacts",
-            parent: "root",
-            left: layout.InspectorLeft,
-            top: currentTop,
-            width: layout.InspectorWidth,
-            height: 236,
-            component: PresenterCard.BuildTextCard(
-                id: $"{pageId}.inspector-artifacts-card",
-                title: "Artifacts metadata",
-                badges: [],
-                lines: card.Artifacts.Count == 0
-                    ? ["No artifacts declared on this card."]
-                    : card.Artifacts.Select(artifact => $"{artifact.Id} | {artifact.Label} | {artifact.Kind} | path {artifact.Path ?? "<none>"} | generated {artifact.Generated.ToString().ToLowerInvariant()}").ToArray(),
-                theme: theme,
-                options: new PresenterCardOptions(layout.InspectorWidth, 236))));
-        currentTop += 260;
-
-        rows.Add(Row.Anchor(
-            id: $"{pageId}.inspector-execution",
-            parent: "root",
-            left: layout.InspectorLeft,
-            top: currentTop,
-            width: layout.InspectorWidth,
-            height: 212,
-            component: PresenterCard.BuildTextCard(
-                id: $"{pageId}.inspector-execution-card",
-                title: "Execution result",
-                badges: [],
-                lines:
-                [
-                    "Not executed in M11g.",
-                    "Markdown cards come first; Roslyn/xUnit execution deferred to M13+.",
-                    card.Kind is OblivionCardKind.CodeFact or OblivionCardKind.CodeTheory
-                        ? "CodeFact/CodeTheory source is static placeholder content only and remains deferred."
-                        : "Actions and artifacts are displayed as metadata only.",
-                ],
-                theme: theme,
-                options: new PresenterCardOptions(layout.InspectorWidth, 212))));
+            currentTop += section.Height + 24;
+        }
 
         return rows;
     }
 
+    private static UiNode BuildInspectorSection(
+        OblivionInspectorSectionView section,
+        string pageId,
+        StandardTheme theme,
+        OblivionPageLayout layout)
+    {
+        string sectionId = section.Id[(section.Id.LastIndexOf('.') + 1)..];
+        string cardId = sectionId.Replace(".", "-", StringComparison.Ordinal);
+
+        if (section.Body is OblivionInspectorMarkdownBodyContent markdownBody)
+        {
+            return PresenterCard.BuildHostedCard(
+                id: $"{pageId}.{cardId}.card",
+                title: section.Title,
+                badges: section.Badges,
+                body: OblivionMarkdownRenderer.BuildInspectorBody(
+                    $"{pageId}.{cardId}.markdown",
+                    markdownBody.Body,
+                    theme,
+                    layout.InspectorWidth - 34),
+                theme: theme,
+                options: new PresenterCardOptions(layout.InspectorWidth, section.Height, ClipContent: section.ClipContent));
+        }
+
+        IReadOnlyList<string> lines = section.Body is OblivionInspectorTextBodyContent textBody
+            ? textBody.Lines
+            : ["Unsupported inspector body."];
+
+        return PresenterCard.BuildTextCard(
+            id: $"{pageId}.{cardId}.card",
+            title: section.Title,
+            badges: section.Badges,
+            lines: lines,
+            theme: theme,
+            options: new PresenterCardOptions(layout.InspectorWidth, section.Height, ClipContent: section.ClipContent));
+    }
+
     private static OblivionInspectorSelection ResolveSelection(
         string pageId,
-        IReadOnlyList<OblivionCard> cards,
+        IReadOnlyList<OblivionBuiltCard> cards,
         PresenterNavigationState? navigationState)
     {
         string? selectedCardId = navigationState is null
-            ? (cards.Count == 0 ? null : cards[0].Id.Value)
-            : navigationState.GetSelectedCardId(pageId, cards);
-        OblivionCard? selectedCard = selectedCardId is null
+            ? (cards.Count == 0 ? null : cards[0].SourceCard.Id.Value)
+            : navigationState.GetSelectedCardId(pageId, cards.Select(card => card.SourceCard).ToArray());
+        OblivionBuiltCard? selectedBuiltCard = selectedCardId is null
             ? null
-            : cards.FirstOrDefault(card => string.Equals(card.Id.Value, selectedCardId, StringComparison.Ordinal));
-        return new OblivionInspectorSelection(cards, selectedCard, selectedCardId);
+            : cards.FirstOrDefault(card => string.Equals(card.SourceCard.Id.Value, selectedCardId, StringComparison.Ordinal));
+        return new OblivionInspectorSelection(cards, selectedBuiltCard, selectedCardId);
     }
 
-    private static double GetCardsColumnHeight(IReadOnlyList<OblivionCard> cards)
+    private static double GetCardsColumnHeight(IReadOnlyList<OblivionBuiltCard> cards)
     {
         if (cards.Count == 0)
         {
@@ -867,7 +778,7 @@ public static class OblivionWorkbenchCatalog
         double height = 0;
         for (int index = 0; index < cards.Count; index++)
         {
-            height += GetCardHeight(cards[index]);
+            height += cards[index].CompactView.PreferredHeight;
             if (index < cards.Count - 1)
             {
                 height += 24;
@@ -879,42 +790,7 @@ public static class OblivionWorkbenchCatalog
 
     private static double GetInspectorHeight(OblivionInspectorSelection selection)
     {
-        return selection.SelectedCard is null ? 240 : 1760;
-    }
-
-    private static string FormatTags(IReadOnlyList<string> tags)
-    {
-        return tags.Count == 0
-            ? "<none>"
-            : string.Join(", ", tags);
-    }
-
-    private static string KindLabel(OblivionCardKind kind)
-    {
-        return kind switch
-        {
-            OblivionCardKind.Note => "Note",
-            OblivionCardKind.Status => "Status",
-            OblivionCardKind.UiPreview => "UI Preview",
-            OblivionCardKind.Artifact => "Artifact",
-            OblivionCardKind.CodeFact => "Code Fact",
-            OblivionCardKind.CodeTheory => "Code Theory",
-            _ => kind.ToString(),
-        };
-    }
-
-    private static string StatusLabel(OblivionCardStatus status)
-    {
-        return status switch
-        {
-            OblivionCardStatus.Idle => "Idle",
-            OblivionCardStatus.Passing => "Passing",
-            OblivionCardStatus.Failing => "Failing",
-            OblivionCardStatus.Warning => "Warning",
-            OblivionCardStatus.Deferred => "Deferred",
-            OblivionCardStatus.Placeholder => "Placeholder",
-            _ => status.ToString(),
-        };
+        return selection.SelectedCard is null ? 240 : selection.SelectedCard.InspectorView.PreferredHeight;
     }
 
     private static string[] GetPhaseCloseoutDeferredWork()
@@ -1052,15 +928,88 @@ public static class OblivionWorkbenchCatalog
         return OblivionDocsDogfoodCatalog.WriteManifest(outputDirectory, workspacePath);
     }
 
-    private static string BodyFormatLabel(OblivionCardBodyFormat format)
+    public static (string jsonPath, string textPath) WriteAgenticCardContractManifest(
+        string outputDirectory,
+        PresenterProofOptions? proofOptions = null)
     {
-        return format switch
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "oblivion-agentic-card-contract-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "oblivion-agentic-card-contract-manifest.txt");
+
+        IReadOnlyList<OblivionCard> cards = CreateAllCards(proofOptions)
+            .OrderBy(card => card.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+        IReadOnlyList<OblivionBuiltCard> builtCards = cards
+            .Select(card => CardHandlers.BuildCard(card, card.PageId, card.WorkspaceId))
+            .OrderBy(card => card.SourceCard.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+        string[] handlerKinds = CardHandlers.RegisteredKinds
+            .Select(OblivionWorkspaceValidator.GetCardKindValue)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] deferredWork =
+        [
+            "Roslyn compilation and execution",
+            "xUnit [Fact] and [Theory] runtime",
+            "Runtime action dispatch",
+            "Dominatus effect execution",
+            "Artifact generation runtime",
+            "Visionary code editor/source workspace",
+            "Markdown editor",
+            "File watcher / live editing",
+        ];
+
+        var manifest = new
         {
-            OblivionCardBodyFormat.Plain => "Plain",
-            OblivionCardBodyFormat.CopelandMarkdown => "Copeland Markdown",
-            _ => format.ToString(),
+            milestone = "M12e",
+            kind = "oblivion-agentic-card-contract",
+            cardAsAppletDoctrine = true,
+            localityOfChangeDoctrine = true,
+            handlersRegistered = handlerKinds.Length,
+            handlerKinds,
+            actionsExecutable = false,
+            effectsExecutable = false,
+            roslynEnabled = false,
+            xunitEnabled = false,
+            visionaryImplemented = false,
+            diagnosticsAggregated = builtCards.Sum(card => card.RuntimeModel.Diagnostics.Count),
+            artifactsDeclared = builtCards.Sum(card => card.RuntimeModel.Artifacts.Count),
+            deferredWork,
         };
+
+        string json = JsonSerializer.Serialize(
+            manifest,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+
+        string[] textLines =
+        [
+            "milestone=M12e",
+            "kind=oblivion-agentic-card-contract",
+            "cardAsAppletDoctrine=true",
+            "localityOfChangeDoctrine=true",
+            $"handlersRegistered={handlerKinds.Length}",
+            $"handlerKinds={string.Join(",", handlerKinds)}",
+            "actionsExecutable=false",
+            "effectsExecutable=false",
+            "roslynEnabled=false",
+            "xunitEnabled=false",
+            "visionaryImplemented=false",
+            $"diagnosticsAggregated={builtCards.Sum(card => card.RuntimeModel.Diagnostics.Count)}",
+            $"artifactsDeclared={builtCards.Sum(card => card.RuntimeModel.Artifacts.Count)}",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+        ];
+
+        File.WriteAllText(jsonPath, json);
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
     }
+
 }
 
 public sealed record OblivionPageLayout(

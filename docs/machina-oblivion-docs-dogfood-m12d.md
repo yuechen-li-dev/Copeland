@@ -12,6 +12,8 @@ The goal is narrow:
 - preserve source paths and per-doc diagnostics
 - keep the page model as a stack of typed cards
 
+M12e keeps that docs dogfood path intact and routes those generated doc cards through the same note-card handler contract as persisted Markdown notes.
+
 M12d does not add a Markdown editor, file watcher, Roslyn execution, xUnit execution, Visionary, or single-file Markdown import/export.
 
 ## Why dogfood existing docs

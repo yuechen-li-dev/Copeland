@@ -1,0 +1,219 @@
+using Machina.Standard.Theme;
+
+namespace Machina.Presenter.Sample;
+
+public sealed record OblivionCardIdentity(
+    OblivionCardId Id,
+    OblivionCardKind Kind,
+    string? PageId,
+    string? WorkspaceId,
+    string? SourcePath);
+
+public enum OblivionCardDiagnosticSeverity
+{
+    Info,
+    Warning,
+    Error,
+}
+
+public sealed record OblivionCardDiagnostic(
+    string Code,
+    OblivionCardDiagnosticSeverity Severity,
+    string Message,
+    string? SourcePath,
+    int? Line = null,
+    int? Column = null);
+
+public sealed record OblivionCardArtifactRef(
+    string Id,
+    string Label,
+    string Kind,
+    string? Path,
+    bool Generated);
+
+public sealed record OblivionCardActionDescriptor(
+    string Id,
+    string Label,
+    bool Enabled,
+    string Intent,
+    bool RequiresEffect);
+
+public sealed record OblivionCardEffectRequest(
+    string Id,
+    string Kind,
+    string Intent,
+    bool Deferred);
+
+public sealed record OblivionCardLocalState(
+    OblivionCardId CardId,
+    bool IsExpanded,
+    string? SelectedArtifactId,
+    IReadOnlyDictionary<string, string> Properties)
+{
+    public static OblivionCardLocalState CreateDefault(OblivionCardId cardId)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+
+        return new OblivionCardLocalState(
+            cardId,
+            IsExpanded: false,
+            SelectedArtifactId: null,
+            Properties: new Dictionary<string, string>(StringComparer.Ordinal));
+    }
+}
+
+public static class OblivionCardLocalStateCatalog
+{
+    public static OblivionCardLocalState CreateDefault(OblivionCardId cardId)
+    {
+        return OblivionCardLocalState.CreateDefault(cardId);
+    }
+
+    public static IReadOnlyDictionary<string, OblivionCardLocalState> CreateDefaults(
+        IEnumerable<OblivionCard> cards)
+    {
+        ArgumentNullException.ThrowIfNull(cards);
+
+        Dictionary<string, OblivionCardLocalState> states = new(StringComparer.Ordinal);
+
+        foreach (OblivionCard card in cards)
+        {
+            states[card.Id.Value] = CreateDefault(card.Id);
+        }
+
+        return states;
+    }
+}
+
+public sealed record OblivionCardContext(
+    string? PageId,
+    string? WorkspaceId,
+    string? SourcePath);
+
+public sealed record OblivionCardViewContext(
+    OblivionCardLocalState LocalState);
+
+public sealed record OblivionCardInspectorContext(
+    OblivionCardLocalState LocalState);
+
+public sealed record OblivionCardActionContext(
+    OblivionCardLocalState LocalState);
+
+public sealed record OblivionCardRuntimeModel(
+    OblivionCardIdentity Identity,
+    OblivionCardStatus Status,
+    OblivionCardLocalState LocalState,
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
+    IReadOnlyList<OblivionCardArtifactRef> Artifacts,
+    IReadOnlyList<OblivionCardActionDescriptor> Actions,
+    IReadOnlyList<OblivionCardEffectRequest> EffectRequests,
+    OblivionCard SourceCard,
+    object? KindModel);
+
+public abstract record OblivionCompactBodyContent;
+
+public sealed record OblivionCompactPlainBodyContent(
+    IReadOnlyList<string> Lines) : OblivionCompactBodyContent;
+
+public sealed record OblivionCompactMarkdownBodyContent(
+    OblivionCardBody Body) : OblivionCompactBodyContent;
+
+public sealed record OblivionCompactCardView(
+    string CardId,
+    string Title,
+    string? Subtitle,
+    IReadOnlyList<string> MetaBadges,
+    IReadOnlyList<string> Tags,
+    OblivionCompactBodyContent Body,
+    IReadOnlyList<string> ActionBadges,
+    IReadOnlyList<string> ArtifactBadges,
+    double PreferredHeight);
+
+public abstract record OblivionInspectorBodyContent;
+
+public sealed record OblivionInspectorTextBodyContent(
+    IReadOnlyList<string> Lines) : OblivionInspectorBodyContent;
+
+public sealed record OblivionInspectorMarkdownBodyContent(
+    OblivionCardBody Body) : OblivionInspectorBodyContent;
+
+public sealed record OblivionInspectorSectionView(
+    string Id,
+    string Title,
+    IReadOnlyList<string> Badges,
+    OblivionInspectorBodyContent Body,
+    double Height,
+    bool ClipContent = true);
+
+public sealed record OblivionInspectorCardView(
+    string CardId,
+    IReadOnlyList<OblivionInspectorSectionView> Sections,
+    double PreferredHeight);
+
+public sealed record OblivionBuiltCard(
+    OblivionCard SourceCard,
+    OblivionCardRuntimeModel RuntimeModel,
+    OblivionCompactCardView CompactView,
+    OblivionInspectorCardView InspectorView);
+
+public interface IOblivionCardHandler
+{
+    OblivionCardKind Kind { get; }
+
+    OblivionCardRuntimeModel BuildModel(
+        OblivionCard card,
+        OblivionCardContext context);
+
+    OblivionCompactCardView BuildCompactView(
+        OblivionCardRuntimeModel model,
+        OblivionCardViewContext context);
+
+    OblivionInspectorCardView BuildInspectorView(
+        OblivionCardRuntimeModel model,
+        OblivionCardInspectorContext context);
+
+    IReadOnlyList<OblivionCardActionDescriptor> GetActions(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionContext context);
+}
+
+public static class OblivionCardLabels
+{
+    public static string KindLabel(OblivionCardKind kind)
+    {
+        return kind switch
+        {
+            OblivionCardKind.Note => "Note",
+            OblivionCardKind.Status => "Status",
+            OblivionCardKind.UiPreview => "UI Preview",
+            OblivionCardKind.Artifact => "Artifact",
+            OblivionCardKind.CodeFact => "Code Fact",
+            OblivionCardKind.CodeTheory => "Code Theory",
+            _ => kind.ToString(),
+        };
+    }
+
+    public static string StatusLabel(OblivionCardStatus status)
+    {
+        return status switch
+        {
+            OblivionCardStatus.Idle => "Idle",
+            OblivionCardStatus.Passing => "Passing",
+            OblivionCardStatus.Failing => "Failing",
+            OblivionCardStatus.Warning => "Warning",
+            OblivionCardStatus.Deferred => "Deferred",
+            OblivionCardStatus.Placeholder => "Placeholder",
+            _ => status.ToString(),
+        };
+    }
+
+    public static string BodyFormatLabel(OblivionCardBodyFormat format)
+    {
+        return format switch
+        {
+            OblivionCardBodyFormat.Plain => "Plain",
+            OblivionCardBodyFormat.CopelandMarkdown => "Copeland Markdown",
+            _ => format.ToString(),
+        };
+    }
+}

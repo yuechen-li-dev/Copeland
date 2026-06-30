@@ -37,6 +37,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m12b/` is the historical Oblivion Markdown body integration proof export directory.
 - `artifacts/m12c/` is the current Oblivion Markdown rendering dogfood proof export directory.
 - `artifacts/m12d/` is the current Oblivion existing-docs dogfood proof export directory.
+- `artifacts/m12e/` is the current Oblivion agentic-card-contract proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -69,6 +70,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M12b Oblivion Markdown body PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12c Oblivion Markdown rendering PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12d Oblivion existing-docs dogfood PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M12e Oblivion agentic-card-contract PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -258,6 +260,15 @@ Current M12d Oblivion existing-docs dogfood commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12d\presenter-docs-dogfood-closeout-doc.png -SelectedSection oblivion -SelectedTab docs -SelectedCard doc-machina-oblivion-phase-closeout-m11g
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12d\presenter-docs-dogfood-markdown-frontend-doc.png -SelectedSection oblivion -SelectedTab docs -SelectedCard doc-copeland-markdown-frontend-m12a
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12d\presenter-docs-dogfood-diagnostics.png -SelectedSection oblivion -SelectedTab docs -SelectedCard docs-dogfood-index
+```
+
+Current M12e Oblivion agentic-card-contract commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12e\presenter-agentic-card-contract.png -SelectedSection oblivion -SelectedTab cards -SelectedCard agentic-card-contract
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12e\presenter-agentic-markdown-card.png -SelectedSection oblivion -SelectedTab docs -SelectedCard doc-copeland-markdown-frontend-m12a
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12e\presenter-agentic-codefact-placeholder.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard execution-deferred
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12e\presenter-agentic-diagnostics.png -SelectedSection oblivion -SelectedTab docs -SelectedCard docs-dogfood-index
 ```
 
 ## Regenerating the Machina font proof artifacts

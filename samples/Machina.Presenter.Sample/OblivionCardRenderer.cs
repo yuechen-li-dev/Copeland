@@ -30,7 +30,6 @@ public static class OblivionCardRenderer
     private const string SubtitleSuffix = ".subtitle";
     private const string MetaRowSuffix = ".meta-row";
     private const string TagsRowSuffix = ".tags-row";
-    private const string BodyStackSuffix = ".body-stack";
     private const string BodyLineSuffixPrefix = ".body-line-";
     private const string ActionsRowSuffix = ".actions-row";
     private const string ArtifactsRowSuffix = ".artifacts-row";
@@ -39,12 +38,12 @@ public static class OblivionCardRenderer
         LineGap: 6);
 
     public static UiNode BuildCard(
-        OblivionCard card,
+        OblivionCompactCardView view,
         StandardTheme theme,
         OblivionCardRenderOptions options,
         bool isSelected = false)
     {
-        ArgumentNullException.ThrowIfNull(card);
+        ArgumentNullException.ThrowIfNull(view);
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(options);
 
@@ -54,11 +53,11 @@ public static class OblivionCardRenderer
         [
             UI.Anchor(
                 UI.Text(
-                    card.Title,
-                    id: card.Id.Value + TitleSuffix,
+                    view.Title,
+                    id: view.CardId + TitleSuffix,
                     size: TextSize.Md,
                     color: theme.Colors.Foreground),
-                id: card.Id.Value + TitleSuffix + ".slot",
+                id: view.CardId + TitleSuffix + ".slot",
                 left: 0,
                 right: 0,
                 top: cursorTop,
@@ -67,17 +66,17 @@ public static class OblivionCardRenderer
 
         cursorTop += options.TitleHeight;
 
-        if (!string.IsNullOrWhiteSpace(card.Subtitle))
+        if (!string.IsNullOrWhiteSpace(view.Subtitle))
         {
             cursorTop += options.SmallGap;
             layoutChildren.Add(
                 UI.Anchor(
                     UI.Text(
-                        card.Subtitle,
-                        id: card.Id.Value + SubtitleSuffix,
+                        view.Subtitle,
+                        id: view.CardId + SubtitleSuffix,
                         size: TextSize.Sm,
                         color: theme.Colors.MutedForeground),
-                    id: card.Id.Value + SubtitleSuffix + ".slot",
+                    id: view.CardId + SubtitleSuffix + ".slot",
                     left: 0,
                     right: 0,
                     top: cursorTop,
@@ -89,29 +88,29 @@ public static class OblivionCardRenderer
         layoutChildren.Add(
             UI.Anchor(
                 UI.Row(
-                    id: card.Id.Value + MetaRowSuffix,
+                    id: view.CardId + MetaRowSuffix,
                     gap: 8,
-                    children: BuildMetaBadges(card, theme)),
-                id: card.Id.Value + MetaRowSuffix + ".slot",
+                    children: BuildBadges(view.MetaBadges, view.CardId + ".meta", theme)),
+                id: view.CardId + MetaRowSuffix + ".slot",
                 left: 0,
                 right: 0,
                 top: cursorTop,
                 height: options.RowHeight));
         cursorTop += options.RowHeight;
 
-        IReadOnlyList<string> tags = LimitLabels(card.Tags, options.MaxTagsToShow);
+        IReadOnlyList<string> tags = LimitLabels(view.Tags, options.MaxTagsToShow);
         if (tags.Count > 0)
         {
             cursorTop += options.SmallGap;
             layoutChildren.Add(
                 UI.Anchor(
                     UI.Row(
-                        id: card.Id.Value + TagsRowSuffix,
+                        id: view.CardId + TagsRowSuffix,
                         gap: 8,
                         children: tags
-                            .Select((tag, index) => BuildBadge(tag, $"{card.Id.Value}.tag-{index}", theme))
+                            .Select((tag, index) => BuildBadge(tag, $"{view.CardId}.tag-{index}", theme))
                             .ToArray()),
-                    id: card.Id.Value + TagsRowSuffix + ".slot",
+                    id: view.CardId + TagsRowSuffix + ".slot",
                     left: 0,
                     right: 0,
                     top: cursorTop,
@@ -120,30 +119,59 @@ public static class OblivionCardRenderer
         }
 
         cursorTop += options.SectionGap;
-        PresenterCardLayout layout = ComputeLayout(card, options, theme.Card.Default, cursorTop);
+        PresenterCardLayout layout = ComputeLayout(view, options, theme.Card.Default, cursorTop);
         double bodyContainerHeight = layout.BodyRectInContent.Height + (layout.FooterRectInContent?.Height ?? 0);
         layoutChildren.Add(
             UI.Anchor(
-                BuildBody(card, theme, options, layout),
-                id: card.Id.Value + BodyFrameSuffix + ".slot",
+                BuildBody(view, theme, options, layout),
+                id: view.CardId + BodyFrameSuffix + ".slot",
                 left: layout.BodyRectInContent.X,
                 width: layout.BodyRectInContent.Width,
                 top: layout.BodyRectInContent.Y,
                 height: bodyContainerHeight));
 
         return StandardUI.Card(
-            id: card.Id.Value,
+            id: view.CardId,
             theme: isSelected ? CreateSelectedTheme(theme) : theme,
             width: options.Width,
             height: options.Height,
             child: UI.Layer(
-                id: card.Id.Value + ".layout",
+                id: view.CardId + ".layout",
                 children: layoutChildren));
     }
 
     public static PresenterCardFrame DescribeFrame(ResolvedLayoutDocument resolved, string cardId)
     {
         return PresenterCard.DescribeFrame(resolved, cardId);
+    }
+
+    public static PresenterCardLayout ComputeLayout(
+        OblivionCompactCardView view,
+        OblivionCardRenderOptions options,
+        StandardCardStyle cardStyle,
+        double bodyTopInContent)
+    {
+        ArgumentNullException.ThrowIfNull(view);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(cardStyle);
+
+        double footerHeight = 0;
+        if (view.ActionBadges.Count > 0)
+        {
+            footerHeight += options.RowHeight + options.SmallGap;
+        }
+
+        if (view.ArtifactBadges.Count > 0)
+        {
+            footerHeight += options.RowHeight + options.SmallGap;
+        }
+
+        return PresenterCardLayoutHelper.ComputeLayout(
+            options.Width,
+            options.Height,
+            cardStyle.ContentInset,
+            bodyTopInContent,
+            footerHeight);
     }
 
     public static PresenterCardLayout ComputeLayout(
@@ -176,32 +204,28 @@ public static class OblivionCardRenderer
     }
 
     private static UiNode BuildBody(
-        OblivionCard card,
+        OblivionCompactCardView view,
         StandardTheme theme,
         OblivionCardRenderOptions options,
         PresenterCardLayout layout)
     {
-        IReadOnlyList<string> actionLabels = LimitLabels(
-            card.Actions.Select(action => $"{action.Label} {(action.Enabled ? "ready" : "disabled")}").ToArray(),
-            options.MaxActionsToShow);
-        IReadOnlyList<string> artifactLabels = LimitLabels(
-            card.Artifacts.Select(artifact => $"{artifact.Label} ({artifact.Kind})").ToArray(),
-            options.MaxArtifactsToShow);
+        IReadOnlyList<string> actionLabels = LimitLabels(view.ActionBadges, options.MaxActionsToShow);
+        IReadOnlyList<string> artifactLabels = LimitLabels(view.ArtifactBadges, options.MaxArtifactsToShow);
 
         List<UiNode> children = [];
         double currentTop = 0;
 
-        if (card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
+        if (view.Body is OblivionCompactMarkdownBodyContent markdownBody)
         {
             children.Add(
                 UI.Anchor(
                     OblivionMarkdownRenderer.BuildPreviewBody(
-                        card.Id.Value,
-                        card.Body,
+                        view.CardId,
+                        markdownBody.Body,
                         theme,
                         layout.BodyWidth,
                         layout.BodyHeight),
-                    id: $"{card.Id.Value}.markdown-preview.slot",
+                    id: $"{view.CardId}.markdown-preview.slot",
                     left: 0,
                     width: layout.BodyWidth,
                     top: 0,
@@ -209,8 +233,11 @@ public static class OblivionCardRenderer
         }
         else
         {
+            IReadOnlyList<string> lines = view.Body is OblivionCompactPlainBodyContent plainBody
+                ? plainBody.Lines
+                : [];
             IReadOnlyList<string> visibleLines = ClipLinesToFit(
-                card.BodyLines,
+                lines,
                 layout.BodyWidth,
                 layout.BodyHeight,
                 options,
@@ -222,10 +249,10 @@ public static class OblivionCardRenderer
                     UI.Anchor(
                         UI.Text(
                             line,
-                            id: card.Id.Value + BodyLineSuffixPrefix + index,
+                            id: view.CardId + BodyLineSuffixPrefix + index,
                             size: TextSize.Sm,
                             color: theme.Colors.MutedForeground),
-                        id: $"{card.Id.Value}{BodyLineSuffixPrefix}{index}.slot",
+                        id: $"{view.CardId}{BodyLineSuffixPrefix}{index}.slot",
                         left: 0,
                         right: 0,
                         top: currentTop,
@@ -241,12 +268,12 @@ public static class OblivionCardRenderer
             children.Add(
                 UI.Anchor(
                     UI.Row(
-                        id: card.Id.Value + ActionsRowSuffix,
+                        id: view.CardId + ActionsRowSuffix,
                         gap: 8,
                         children: actionLabels
-                            .Select((label, index) => BuildBadge(label, $"{card.Id.Value}.action-{index}", theme))
+                            .Select((label, index) => BuildBadge(label, $"{view.CardId}.action-{index}", theme))
                             .ToArray()),
-                    id: card.Id.Value + ActionsRowSuffix + ".slot",
+                    id: view.CardId + ActionsRowSuffix + ".slot",
                     left: 0,
                     right: 0,
                     top: footerCursorTop,
@@ -259,12 +286,12 @@ public static class OblivionCardRenderer
             children.Add(
                 UI.Anchor(
                     UI.Row(
-                        id: card.Id.Value + ArtifactsRowSuffix,
+                        id: view.CardId + ArtifactsRowSuffix,
                         gap: 8,
                         children: artifactLabels
-                            .Select((label, index) => BuildBadge(label, $"{card.Id.Value}.artifact-{index}", theme))
+                            .Select((label, index) => BuildBadge(label, $"{view.CardId}.artifact-{index}", theme))
                             .ToArray()),
-                    id: card.Id.Value + ArtifactsRowSuffix + ".slot",
+                    id: view.CardId + ArtifactsRowSuffix + ".slot",
                     left: 0,
                     right: 0,
                     top: footerCursorTop,
@@ -273,9 +300,9 @@ public static class OblivionCardRenderer
 
         return UI.Rect(
             child: UI.Layer(
-                id: card.Id.Value + ".body-layout",
+                id: view.CardId + ".body-layout",
                 children: children),
-            id: card.Id.Value + BodyFrameSuffix,
+            id: view.CardId + BodyFrameSuffix,
             style: new UiStyle(
                 Background: ColorToken.Hex(0x0B1220FF),
                 BorderColor: ColorToken.Hex(0x334155FF),
@@ -291,25 +318,14 @@ public static class OblivionCardRenderer
             variant: BadgeVariant.Secondary);
     }
 
-    private static UiNode[] BuildMetaBadges(OblivionCard card, StandardTheme theme)
+    private static UiNode[] BuildBadges(
+        IReadOnlyList<string> labels,
+        string idPrefix,
+        StandardTheme theme)
     {
-        List<UiNode> badges =
-        [
-            BuildBadge($"{KindLabel(card.Kind)}", card.Id.Value + ".kind", theme),
-            BuildBadge($"{StatusLabel(card.Status)}", card.Id.Value + ".status", theme),
-        ];
-
-        if (card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
-        {
-            badges.Add(BuildBadge("Markdown body", card.Id.Value + ".markdown", theme));
-        }
-
-        if (card.Body.Diagnostics.Count > 0)
-        {
-            badges.Add(BuildBadge($"Diagnostics {card.Body.Diagnostics.Count}", card.Id.Value + ".diagnostics", theme));
-        }
-
-        return badges.ToArray();
+        return labels
+            .Select((label, index) => BuildBadge(label, $"{idPrefix}-{index}", theme))
+            .ToArray();
     }
 
     private static IReadOnlyList<string> LimitLabels(IReadOnlyList<string> values, int maxToShow)
@@ -347,34 +363,6 @@ public static class OblivionCardRenderer
                 LineGap = options.BodyLineGap,
             },
             style);
-    }
-
-    private static string KindLabel(OblivionCardKind kind)
-    {
-        return kind switch
-        {
-            OblivionCardKind.Note => "Note",
-            OblivionCardKind.Status => "Status",
-            OblivionCardKind.UiPreview => "UI Preview",
-            OblivionCardKind.Artifact => "Artifact",
-            OblivionCardKind.CodeFact => "Code Fact",
-            OblivionCardKind.CodeTheory => "Code Theory",
-            _ => kind.ToString(),
-        };
-    }
-
-    private static string StatusLabel(OblivionCardStatus status)
-    {
-        return status switch
-        {
-            OblivionCardStatus.Idle => "Idle",
-            OblivionCardStatus.Passing => "Passing",
-            OblivionCardStatus.Failing => "Failing",
-            OblivionCardStatus.Warning => "Warning",
-            OblivionCardStatus.Deferred => "Deferred",
-            OblivionCardStatus.Placeholder => "Placeholder",
-            _ => status.ToString(),
-        };
     }
 
     private static StandardTheme CreateSelectedTheme(StandardTheme theme)

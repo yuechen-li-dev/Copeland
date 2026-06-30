@@ -84,9 +84,9 @@ dotnet run --project src/Copeland.Cli -- markdown parse README.md --emit mir --f
 
 This is frontend/MIR dogfooding only. It adds no Markdown editor, no production Oblivion rendering path yet, and no Roslyn or xUnit notebook execution.
 
-## Oblivion Markdown M12b/M12d status
+## Oblivion Markdown M12b/M12e status
 
-M12b integrates that frontend into Oblivion as a text-card body path. M12c then makes the Markdown body visibly useful for dogfooding. M12d then points that dogfood path at selected existing repo docs under `Oblivion -> Docs`.
+M12b integrates that frontend into Oblivion as a text-card body path. M12c then makes the Markdown body visibly useful for dogfooding. M12d then points that dogfood path at selected existing repo docs under `Oblivion -> Docs`. M12e then formalizes the card-as-applet contract so the shell keeps navigation, selection, scrolling, routing, ordering, and persistence loading while each card kind owns its model, local state, diagnostics, artifacts, views, and future effect metadata.
 
 Current doctrine:
 
@@ -96,10 +96,14 @@ Oblivion page
 
 Text/note card
   -> Copeland Markdown body
+  -> note-card handler runtime model
+  -> compact card + inspector
 
 Single-file Markdown
   -> future export/import target only
 ```
+
+Actions and effects remain deferred in M12e. There is still no Roslyn execution, no xUnit notebook execution, no Markdown editor, no file watcher, and no Visionary implementation here.
 
 Current storage split:
 
@@ -208,6 +212,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Oblivion Markdown Body Integration M12b](docs/machina-oblivion-markdown-body-integration-m12b.md)
 - [Machina Oblivion Markdown Rendering M12c](docs/machina-oblivion-markdown-rendering-m12c.md)
 - [Machina Oblivion Docs Dogfood M12d](docs/machina-oblivion-docs-dogfood-m12d.md)
+- [Machina Oblivion Agentic Card Contract M12e](docs/machina-oblivion-agentic-card-contract-m12e.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 

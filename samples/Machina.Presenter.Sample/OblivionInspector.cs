@@ -33,6 +33,6 @@ public sealed record OblivionPageInteractionMap(
 }
 
 public sealed record OblivionInspectorSelection(
-    IReadOnlyList<OblivionCard> Cards,
-    OblivionCard? SelectedCard,
+    IReadOnlyList<OblivionBuiltCard> Cards,
+    OblivionBuiltCard? SelectedCard,
     string? SelectedCardId);
