@@ -135,3 +135,7 @@ M12f only documents and preserves the seam:
 - real artifact open/export behavior
 - inspector action hit regions
 - richer effect history beyond last-result-per-card
+
+M12g later adds keyboard backend plumbing on the shell side.
+
+That means selected-card keyboard shortcuts can now route into the same deferred effect seam without introducing Avalonia types into card handlers or enabling execution.

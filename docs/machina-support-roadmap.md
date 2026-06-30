@@ -1196,3 +1196,22 @@ Still deferred in M12f:
 - Dominatus-backed real effect execution
 - artifact opening/export side effects
 - Visionary
+
+## M12g update
+
+M12g adds the presenter keyboard input backend without turning M12 into an editor or execution phase.
+
+- the presenter shell now translates Avalonia `KeyDown`, `KeyUp`, and `TextInput` through a sample-local adapter
+- backend-neutral `PresenterKey`, modifier, and keyboard-input records now sit on the shell side of the boundary
+- keyboard routing now supports section navigation, tab navigation, page scrolling, selected-card clearing, and deferred selected-card action routing
+- pointer, wheel, and scrollbar behavior stay on the same existing reducer path
+- text input now exists as shell plumbing only and is intentionally ignored as a deterministic no-op until a future editor target exists
+
+Still deferred in M12g:
+
+- full Markdown editor
+- text buffer, caret, and selection model
+- scaling and zoom input
+- Roslyn execution
+- xUnit execution
+- Visionary

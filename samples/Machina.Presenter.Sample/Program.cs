@@ -116,6 +116,9 @@ internal sealed class Program
             _image.PointerMoved += HandlePointerMoved;
             _image.PointerReleased += HandlePointerReleased;
             _image.PointerWheelChanged += HandlePointerWheelChanged;
+            KeyDown += HandleKeyDown;
+            KeyUp += HandleKeyUp;
+            TextInput += HandleTextInput;
 
             _state = new DemoState(
                 Count: 0,
@@ -136,6 +139,9 @@ internal sealed class Program
             _baseTitle = navigationOptions.IncludeNavigationShell
                 ? "Machina Presenter M10c"
                 : "Machina Presenter M1e";
+
+            Focusable = true;
+            Opened += (_, _) => Focus();
 
             RenderCurrentState();
             Title = BuildTitle("startup");
@@ -226,54 +232,92 @@ internal sealed class Program
             ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
         }
 
+        private void HandleKeyDown(object? sender, KeyEventArgs args)
+        {
+            PresenterInputEvent inputEvent = _inputBackend.TranslateKeyDown(args);
+            ProcessInput(inputEvent, double.NaN, double.NaN, pointer: null);
+        }
+
+        private void HandleKeyUp(object? sender, KeyEventArgs args)
+        {
+            PresenterInputEvent inputEvent = _inputBackend.TranslateKeyUp(args);
+            ProcessInput(inputEvent, double.NaN, double.NaN, pointer: null);
+        }
+
+        private void HandleTextInput(object? sender, TextInputEventArgs args)
+        {
+            PresenterInputEvent inputEvent = _inputBackend.TranslateTextInput(args);
+            ProcessInput(inputEvent, double.NaN, double.NaN, pointer: null);
+        }
+
         private void ProcessInput(PresenterInputEvent inputEvent, double presentedX, double presentedY, IPointer? pointer)
         {
-            RuntimePointerPoint? point = MapToRootPoint(inputEvent.Position);
             UiAction? action = null;
+            RuntimePointerPoint? point = null;
 
-            if (point is not null)
+            if (_navigationOptions.IncludeNavigationShell &&
+                _navigationShellRender is not null &&
+                inputEvent.Keyboard is not null)
             {
-                if (_navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
+                PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
+                    _navigationShellRender,
+                    inputEvent,
+                    _scrollbarInteractionState);
+                _scrollbarInteractionState = routed.InteractionState;
+
+                if (routed.ActionId is not null)
                 {
-                    PresenterInputEvent rootInput = inputEvent with
-                    {
-                        Position = new PresenterInputPoint((float)point.Value.X, (float)point.Value.Y),
-                    };
-
-                    PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
-                        _navigationShellRender,
-                        rootInput,
-                        _scrollbarInteractionState);
-                    UiActionId? routedActionId = routed.ActionId;
-                    _scrollbarInteractionState = routed.InteractionState;
-
-                    if (pointer is not null)
-                    {
-                        if (routed.PointerCaptureRequest == PresenterPointerCaptureRequest.Capture)
-                        {
-                            pointer.Capture(_image);
-                        }
-
-                        if (routed.PointerCaptureRequest == PresenterPointerCaptureRequest.Release)
-                        {
-                            pointer.Capture(null);
-                        }
-                    }
-
-                    if (routedActionId is not null)
-                    {
-                        action = new UiAction(routedActionId.Value);
-                    }
+                    action = new UiAction(routed.ActionId.Value);
                 }
+            }
+            else
+            {
+                point = MapToRootPoint(inputEvent.Position);
 
-                if (action is null && inputEvent.Kind == PresenterInputKind.PointerPressed)
+                if (point is not null)
                 {
-                    UiHitTestResult? hit = _hitTestIndex.HitTest(point.Value);
-                    action = hit?.Action;
-
-                    if (action is null && _navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
+                    if (_navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
                     {
-                        action = _navigationShellRender.HitTestContent(point.Value);
+                        PresenterInputEvent rootInput = inputEvent with
+                        {
+                            Position = new PresenterInputPoint((float)point.Value.X, (float)point.Value.Y),
+                        };
+
+                        PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
+                            _navigationShellRender,
+                            rootInput,
+                            _scrollbarInteractionState);
+                        UiActionId? routedActionId = routed.ActionId;
+                        _scrollbarInteractionState = routed.InteractionState;
+
+                        if (pointer is not null)
+                        {
+                            if (routed.PointerCaptureRequest == PresenterPointerCaptureRequest.Capture)
+                            {
+                                pointer.Capture(_image);
+                            }
+
+                            if (routed.PointerCaptureRequest == PresenterPointerCaptureRequest.Release)
+                            {
+                                pointer.Capture(null);
+                            }
+                        }
+
+                        if (routedActionId is not null)
+                        {
+                            action = new UiAction(routedActionId.Value);
+                        }
+                    }
+
+                    if (action is null && inputEvent.Kind == PresenterInputKind.PointerPressed)
+                    {
+                        UiHitTestResult? hit = _hitTestIndex.HitTest(point.Value);
+                        action = hit?.Action;
+
+                        if (action is null && _navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
+                        {
+                            action = _navigationShellRender.HitTestContent(point.Value);
+                        }
                     }
                 }
             }

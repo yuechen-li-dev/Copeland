@@ -39,6 +39,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m12d/` is the current Oblivion existing-docs dogfood proof export directory.
 - `artifacts/m12e/` is the current Oblivion agentic-card-contract proof export directory.
 - `artifacts/m12f/` is the current Oblivion card-effect-routing proof export directory.
+- `artifacts/m12g/` is the current presenter keyboard-input backend proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -73,6 +74,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M12d Oblivion existing-docs dogfood PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12e Oblivion agentic-card-contract PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12f Oblivion effect-routing PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M12g presenter keyboard-input PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -280,6 +282,15 @@ Current M12f Oblivion effect-routing commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12f\presenter-effect-routing-codefact-deferred.png -SelectedSection oblivion -SelectedTab cards -SelectedCard code-fact-placeholder -InvokeAction run
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12f\presenter-effect-routing-artifact-deferred.png -SelectedSection oblivion -SelectedTab cards -SelectedCard artifact-placeholder -InvokeAction open-artifact
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12f\presenter-effect-routing-manifest-view.png -SelectedSection oblivion -SelectedTab cards -SelectedCard agentic-card-contract
+```
+
+Current M12g presenter keyboard-input commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12g\presenter-keyboard-input-overview.png -SelectedSection overview -SelectedTab home
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12g\presenter-keyboard-input-scrolled-page.png -SelectedSection oblivion -SelectedTab docs -SelectedCard doc-copeland-markdown-frontend-m12a -ScrollPage oblivion.docs:240
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12g\presenter-keyboard-input-tab-selected.png -SelectedSection oblivion -SelectedTab docs
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12g\presenter-keyboard-input-effect-deferred.png -SelectedSection oblivion -SelectedTab execution-roadmap -SelectedCard execution-deferred
 ```
 
 ## Regenerating the Machina font proof artifacts
@@ -743,3 +754,14 @@ These remain local sample proof artifacts only. M11e fixes presenter/Oblivion ca
 - `artifacts/m11g/oblivion-phase-closeout-manifest.json`
 
 These remain local sample proof artifacts only. M11g closes out the static persisted-card Oblivion substrate, records Markdown as the next phase, defers Roslyn plus notebook/runtime `[Fact]` / `[Theory]` execution to M13+ or later unless explicitly re-prioritized, adds no Markdown editor, adds no full Markdown renderer, and keeps Visionary as future-only.
+
+## Current M12g presenter keyboard-input outputs
+
+- `artifacts/m12g/presenter-keyboard-input-overview.png`
+- `artifacts/m12g/presenter-keyboard-input-scrolled-page.png`
+- `artifacts/m12g/presenter-keyboard-input-tab-selected.png`
+- `artifacts/m12g/presenter-keyboard-input-effect-deferred.png`
+- `artifacts/m12g/presenter-keyboard-input-manifest.txt`
+- `artifacts/m12g/presenter-keyboard-input-manifest.json`
+
+These remain local sample proof artifacts only. M12g adds backend-neutral keyboard input plumbing through the sample Avalonia adapter, keeps text input translated but non-editing, preserves pointer/wheel/scrollbar behavior, and adds no Roslyn execution, xUnit execution, Markdown editor, or Visionary implementation.

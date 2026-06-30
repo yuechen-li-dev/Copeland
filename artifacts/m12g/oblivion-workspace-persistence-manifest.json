@@ -1,0 +1,38 @@
+{
+  "milestone": "M11d",
+  "kind": "oblivion-workspace-persistence",
+  "rootFormat": "json",
+  "assetFormat": "toml",
+  "workspacePath": "C:\\Users\\yuech\\source\\repos\\Copeland\\samples\\Machina.Presenter.Sample\\bin\\Debug\\net10.0\\OblivionSampleWorkspace\\workspace.oblivion.json",
+  "sectionsLoaded": 1,
+  "pagesLoaded": 4,
+  "cardsLoaded": 26,
+  "cardKinds": [
+    "artifact",
+    "code-fact",
+    "code-theory",
+    "note",
+    "status",
+    "ui-preview"
+  ],
+  "statuses": [
+    "deferred",
+    "idle",
+    "passing",
+    "placeholder",
+    "warning"
+  ],
+  "validationErrors": [],
+  "executionEnabled": false,
+  "roslynEnabled": false,
+  "xunitEnabled": false,
+  "visionaryImplemented": false,
+  "usingFallbackCatalog": false,
+  "deferredWork": [
+    "Roslyn execution",
+    "xUnit [Fact] and [Theory] runtime",
+    "Artifact execution and generation runtime",
+    "Visionary code editor/source workspace implementation",
+    "Markdown editing"
+  ]
+}

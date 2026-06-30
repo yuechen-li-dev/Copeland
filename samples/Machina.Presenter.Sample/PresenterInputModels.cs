@@ -6,6 +6,9 @@ public enum PresenterInputKind
     PointerReleased,
     PointerMoved,
     Wheel,
+    KeyDown,
+    KeyUp,
+    TextInput,
 }
 
 public enum PresenterInputButton
@@ -16,6 +19,42 @@ public enum PresenterInputButton
     Middle,
 }
 
+public enum PresenterKey
+{
+    Unknown,
+    ArrowUp,
+    ArrowDown,
+    ArrowLeft,
+    ArrowRight,
+    PageUp,
+    PageDown,
+    Home,
+    End,
+    Enter,
+    Escape,
+    Tab,
+    Space,
+    F,
+    R,
+    O,
+    E,
+}
+
+public sealed record PresenterKeyModifiers(
+    bool Ctrl,
+    bool Shift,
+    bool Alt,
+    bool Meta)
+{
+    public static PresenterKeyModifiers None { get; } = new(false, false, false, false);
+}
+
+public sealed record PresenterKeyboardInput(
+    PresenterKey Key,
+    string? Text,
+    PresenterKeyModifiers Modifiers,
+    bool IsRepeat);
+
 public readonly record struct PresenterInputPoint(float X, float Y);
 
 public sealed record PresenterInputEvent(
@@ -23,4 +62,5 @@ public sealed record PresenterInputEvent(
     PresenterInputPoint Position,
     PresenterInputButton Button = PresenterInputButton.None,
     float WheelDeltaY = 0,
-    string? BackendName = null);
+    string? BackendName = null,
+    PresenterKeyboardInput? Keyboard = null);

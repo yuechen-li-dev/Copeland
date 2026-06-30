@@ -81,6 +81,7 @@ public sealed class PresenterNavigationRenderSession
             Model: model,
             NavigationState: normalizedState,
             Layout: effectiveLayout,
+            ProofOptions: proofOptions,
             SelectedSection: section,
             SelectedTab: tab,
             ChromeGeometry: chromeGeometry,

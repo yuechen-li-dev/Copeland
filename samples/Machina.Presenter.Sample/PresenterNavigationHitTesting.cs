@@ -172,13 +172,23 @@ public static class PresenterNavigationInputRouter
     {
         ArgumentNullException.ThrowIfNull(render);
 
+        PresenterScrollbarInteractionState effectiveInteractionState = interactionState ?? PresenterScrollbarInteractionState.Default;
+
+        if (inputEvent.Keyboard is not null)
+        {
+            return PresenterKeyboardInputRouter.Route(
+                render,
+                inputEvent,
+                effectiveInteractionState);
+        }
+
         PresenterNavigationHitTarget hitTarget = PresenterNavigationHitTesting.HitTest(render.ChromeGeometry, inputEvent.Position);
         var context = new PresenterScrollbarInteractionContext(
             render.SelectedTab.PageId,
             render.ScrollbarGeometry,
             render.Layout.ViewportHeight);
         PresenterScrollbarInteractionResult interaction = PresenterScrollbarInteractionStateMachine.Reduce(
-            interactionState,
+            effectiveInteractionState,
             context,
             hitTarget,
             inputEvent);

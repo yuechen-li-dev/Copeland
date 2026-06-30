@@ -61,6 +61,7 @@ public sealed record PresenterNavigationShellRenderResult(
     PresenterNavigationModel Model,
     PresenterNavigationState NavigationState,
     PresenterNavigationLayout Layout,
+    PresenterProofOptions ProofOptions,
     PresenterNavigationSection SelectedSection,
     PresenterNavigationTab SelectedTab,
     PresenterNavigationChromeGeometry ChromeGeometry,

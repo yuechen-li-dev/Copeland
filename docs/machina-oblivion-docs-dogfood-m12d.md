@@ -16,6 +16,8 @@ M12e keeps that docs dogfood path intact and routes those generated doc cards th
 
 M12f keeps the same docs dogfood cards and adds deferred note-card actions plus routed deferred effect results in the inspector. Existing docs still do not execute anything.
 
+M12g keeps the same docs dogfood cards and adds keyboard input plumbing in the presenter shell. Text input now translates through the backend seam, but the docs cards still do not become an editor.
+
 M12d does not add a Markdown editor, file watcher, Roslyn execution, xUnit execution, Visionary, or single-file Markdown import/export.
 
 ## Why dogfood existing docs

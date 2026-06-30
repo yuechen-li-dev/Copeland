@@ -100,6 +100,8 @@ M12f follows by turning that metadata-only idea into an explicit routing skeleto
 
 That routing still does not execute Roslyn, xUnit, artifact opening/export, or Visionary behavior. It only formalizes the seam.
 
+M12g then extends the shell-side input seam so keyboard input can reach those same shell-owned navigation and action-routing paths without leaking Avalonia types into the card contract.
+
 ## Diagnostics and artifacts
 
 Diagnostics are card-local first and aggregate second.

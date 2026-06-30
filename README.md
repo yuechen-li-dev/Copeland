@@ -84,9 +84,9 @@ dotnet run --project src/Copeland.Cli -- markdown parse README.md --emit mir --f
 
 This is frontend/MIR dogfooding only. It adds no Markdown editor, no production Oblivion rendering path yet, and no Roslyn or xUnit notebook execution.
 
-## Oblivion Markdown M12b/M12f status
+## Oblivion Markdown M12b/M12g status
 
-M12b integrates that frontend into Oblivion as a text-card body path. M12c then makes the Markdown body visibly useful for dogfooding. M12d then points that dogfood path at selected existing repo docs under `Oblivion -> Docs`. M12e formalizes the card-as-applet contract so the shell keeps navigation, selection, scrolling, routing, ordering, and persistence loading while each card kind owns its model, local state, diagnostics, artifacts, views, and future effect metadata. M12f then adds the non-executing action/effect routing skeleton so cards can create localized effect requests and the shell can route them generically to deferred results.
+M12b integrates that frontend into Oblivion as a text-card body path. M12c then makes the Markdown body visibly useful for dogfooding. M12d then points that dogfood path at selected existing repo docs under `Oblivion -> Docs`. M12e formalizes the card-as-applet contract so the shell keeps navigation, selection, scrolling, routing, ordering, and persistence loading while each card kind owns its model, local state, diagnostics, artifacts, views, and future effect metadata. M12f then adds the non-executing action/effect routing skeleton so cards can create localized effect requests and the shell can route them generically to deferred results. M12g then extends the presenter input seam with backend-neutral keyboard input so navigation, shortcuts, and future editor routing have a clean shell-owned path.
 
 Current doctrine:
 
@@ -103,7 +103,7 @@ Single-file Markdown
   -> future export/import target only
 ```
 
-Actions and effects remain non-executing in M12f. There is still no Roslyn execution, no xUnit notebook execution, no Markdown editor, no file watcher, and no Visionary implementation here.
+Actions and effects remain non-executing in M12g. Text input now translates through the shell backend seam, but there is still no Roslyn execution, no xUnit notebook execution, no Markdown editor, no file watcher, and no Visionary implementation here.
 
 Current storage split:
 
@@ -214,6 +214,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Oblivion Docs Dogfood M12d](docs/machina-oblivion-docs-dogfood-m12d.md)
 - [Machina Oblivion Agentic Card Contract M12e](docs/machina-oblivion-agentic-card-contract-m12e.md)
 - [Machina Oblivion Card Effect Routing M12f](docs/machina-oblivion-card-effect-routing-m12f.md)
+- [Machina Presenter Keyboard Input M12g](docs/machina-presenter-keyboard-input-m12g.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 
