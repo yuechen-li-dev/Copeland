@@ -17,6 +17,10 @@ public sealed record PresenterProgramOptions(
         string? selectedTabId = null;
         string? selectedNavigationPageId = null;
         string? selectedCardId = null;
+        PresenterCompactPane? compactPane = null;
+        PresenterShellMode? shellMode = null;
+        int width = 1120;
+        int height = 760;
         string? invokeActionId = null;
         Dictionary<string, double>? scrollOffsetByPageId = null;
 
@@ -88,6 +92,32 @@ public sealed record PresenterProgramOptions(
                 continue;
             }
 
+            if (arg == "--compact-pane" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                compactPane = Enum.Parse<PresenterCompactPane>(args[++index], ignoreCase: true);
+                continue;
+            }
+
+            if (arg == "--shell-mode" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                shellMode = Enum.Parse<PresenterShellMode>(args[++index], ignoreCase: true);
+                continue;
+            }
+
+            if (arg == "--width" && index + 1 < args.Count)
+            {
+                width = int.Parse(args[++index], System.Globalization.CultureInfo.InvariantCulture);
+                continue;
+            }
+
+            if (arg == "--height" && index + 1 < args.Count)
+            {
+                height = int.Parse(args[++index], System.Globalization.CultureInfo.InvariantCulture);
+                continue;
+            }
+
             if (arg == "--invoke-action" && index + 1 < args.Count)
             {
                 includeNavigationShell = true;
@@ -127,6 +157,10 @@ public sealed record PresenterProgramOptions(
                 selectedTabId,
                 selectedNavigationPageId,
                 selectedCardId,
+                compactPane,
+                shellMode,
+                width,
+                height,
                 invokeActionId,
                 scrollOffsetByPageId,
                 includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null));

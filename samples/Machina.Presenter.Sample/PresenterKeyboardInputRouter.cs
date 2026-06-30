@@ -142,6 +142,12 @@ public static class PresenterKeyboardInputRouter
             return null;
         }
 
+        if (render.Layout.ShellMode == PresenterShellMode.Compact &&
+            render.NavigationState.CompactPane == PresenterCompactPane.Inspector)
+        {
+            return PresenterNavigationActions.SetCompactPane(PresenterCompactPane.CardList);
+        }
+
         IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, render.ProofOptions);
         string? selectedCardId = render.NavigationState.GetSelectedCardId(pageId, cards);
         return selectedCardId is null

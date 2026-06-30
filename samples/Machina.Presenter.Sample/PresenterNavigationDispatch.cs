@@ -32,7 +32,8 @@ public static class PresenterNavigationDispatch
 
             return state
                 .WithSelectedTab(sectionId, tabId)
-                .WithSelectedSection(sectionId);
+                .WithSelectedSection(sectionId)
+                .WithCompactPane(PresenterCompactPane.CardList);
         }
 
         if (PresenterNavigationActions.TryParseSelectTab(actionId, out string tabSectionId, out string tabIdToSelect))
@@ -43,7 +44,9 @@ public static class PresenterNavigationDispatch
                 return state;
             }
 
-            return state.WithSelectedTab(tabSectionId, tabIdToSelect);
+            return state
+                .WithSelectedTab(tabSectionId, tabIdToSelect)
+                .WithCompactPane(PresenterCompactPane.CardList);
         }
 
         if (PresenterNavigationActions.TryParseSetScrollOffset(actionId, out string pageId, out double requestedOffset))
@@ -75,6 +78,25 @@ public static class PresenterNavigationDispatch
             return state.WithSelectedCard(oblivionPageId, resolvedCardId);
         }
 
+        if (PresenterNavigationActions.TryParseSelectCompactOblivionCard(actionId, out string compactPageId, out string compactCardId))
+        {
+            if (!model.ContainsPage(compactPageId))
+            {
+                return state;
+            }
+
+            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(compactPageId, proofOptions);
+            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(compactPageId, compactCardId, proofOptions);
+            if (cards.All(card => !string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal)))
+            {
+                return state;
+            }
+
+            return state
+                .WithSelectedCard(compactPageId, resolvedCardId)
+                .WithCompactPane(PresenterCompactPane.Inspector);
+        }
+
         if (PresenterNavigationActions.TryParseClearOblivionCardSelection(actionId, out string clearPageId))
         {
             if (!model.ContainsPage(clearPageId))
@@ -83,6 +105,11 @@ public static class PresenterNavigationDispatch
             }
 
             return state.ClearSelectedCard(clearPageId);
+        }
+
+        if (PresenterNavigationActions.TryParseSetCompactPane(actionId, out PresenterCompactPane compactPane))
+        {
+            return state.WithCompactPane(compactPane);
         }
 
         if (PresenterNavigationActions.TryParseInvokeOblivionCardAction(actionId, out string actionPageId, out string actionCardId, out string cardActionId))

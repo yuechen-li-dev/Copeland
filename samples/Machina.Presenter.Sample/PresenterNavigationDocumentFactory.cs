@@ -29,6 +29,8 @@ public static class PresenterNavigationDocumentFactory
 
         PresenterNavigationSection selectedSection = model.FindSection(navigationState.SelectedSectionId) ?? model.Sections[0];
         string selectedTabId = navigationState.GetSelectedTabId(selectedSection.Id, model);
+        bool compactMode = layout.ShellMode == PresenterShellMode.Compact;
+        string appTitle = compactMode ? "M12h" : "Machina M12h";
 
         List<UiRow> rows =
         [
@@ -63,11 +65,11 @@ public static class PresenterNavigationDocumentFactory
             Row.Anchor(
                 id: "app-kicker",
                 parent: "root",
-                left: layout.SidebarLeft + 20,
+                left: layout.SidebarLeft + (compactMode ? 8 : 20),
                 top: layout.SidebarTop + 20,
-                width: layout.SidebarWidth - 40,
+                width: layout.SidebarWidth - (compactMode ? 16 : 40),
                 height: 20,
-                view: View.Text("Machina M10c", color: theme.Colors.MutedForeground, size: TextSize.Sm)),
+                view: View.Text(appTitle, color: theme.Colors.MutedForeground, size: TextSize.Sm)),
 
             Row.Anchor(
                 id: "app-title",
@@ -114,7 +116,7 @@ public static class PresenterNavigationDocumentFactory
                     height: sectionRegion.Rect.Height,
                     component: BuildNavButton(
                         id: $"sidebar-section-{section.Id}.button",
-                        label: section.Label,
+                        label: GetSidebarLabel(section, layout.ShellMode),
                         width: sectionRegion.Rect.Width,
                         height: sectionRegion.Rect.Height,
                         selected: isSelected,
@@ -195,5 +197,28 @@ public static class PresenterNavigationDocumentFactory
             style: baseStyle,
             variant: ButtonVariant.Outline,
             size: ButtonSize.Medium);
+    }
+
+    private static string GetSidebarLabel(
+        PresenterNavigationSection section,
+        PresenterShellMode shellMode)
+    {
+        if (shellMode == PresenterShellMode.Wide)
+        {
+            return section.Label;
+        }
+
+        return section.Id switch
+        {
+            "overview" => "OVR",
+            "components" => "CMP",
+            "text" => "TXT",
+            "diagnostics" => "DIA",
+            "oblivion" => "OBL",
+            "legacy" => "LEG",
+            _ => section.Label.Length <= 3
+                ? section.Label.ToUpperInvariant()
+                : section.Label[..3].ToUpperInvariant(),
+        };
     }
 }

@@ -157,3 +157,14 @@ The docs dogfood manifest also writes:
 - single-file Markdown export/import as a future interchange format
 - Markdown editing UI
 - trusted local execution and notebook behavior
+
+## Follow-on in M12h
+
+M12h keeps the same docs dogfood cards and changes only shell assembly around them.
+
+For compact widths:
+
+- the shell resolves to a compact document once at the top
+- Oblivion docs can show a compact card list or a compact inspector
+- the cards themselves still do not own breakpoints
+- this still does not add continuous scaling, a Markdown editor, Roslyn execution, xUnit execution, or Visionary

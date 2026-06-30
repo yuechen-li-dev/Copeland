@@ -97,6 +97,7 @@ internal sealed class Program
         private readonly PresenterNavigationExportOptions _navigationOptions;
         private readonly AvaloniaPresenterInputBackend _inputBackend;
         private readonly PresenterNavigationRenderSession _renderSession;
+        private readonly PresenterNavigationLayout _navigationLayout;
         private PresenterNavigationState? _navigationState;
         private PresenterScrollbarInteractionState _scrollbarInteractionState;
         private UiHitTestIndex _hitTestIndex;
@@ -129,6 +130,12 @@ internal sealed class Program
             _navigationOptions = navigationOptions;
             _inputBackend = new AvaloniaPresenterInputBackend();
             _renderSession = new PresenterNavigationRenderSession();
+            PresenterShellMode shellMode = navigationOptions.ShellMode
+                ?? PresenterShellModeResolver.Resolve(navigationOptions.Width);
+            _navigationLayout = PresenterNavigationLayout.Create(
+                navigationOptions.Width,
+                navigationOptions.Height,
+                shellMode);
             _navigationState = navigationOptions.IncludeNavigationShell
                 ? PresenterExporterNavigationState()
                 : null;
@@ -137,7 +144,7 @@ internal sealed class Program
             _currentFrame = default!;
             _navigationShellRender = null;
             _baseTitle = navigationOptions.IncludeNavigationShell
-                ? "Machina Presenter M10c"
+                ? "Machina Presenter M12h"
                 : "Machina Presenter M1e";
 
             Focusable = true;
@@ -165,7 +172,8 @@ internal sealed class Program
                     _navigationState ?? PresenterNavigationState.CreateDefault(PresenterNavigationCatalog.CreateModel()),
                     AppTheme,
                     _proofOptions,
-                    _renderSession);
+                    _renderSession,
+                    _navigationLayout);
                 _navigationState = _navigationShellRender.NavigationState;
                 _currentFrame = _navigationShellRender.ShellFrame;
                 _hitTestIndex = _navigationShellRender.ShellFrame.HitTest;
@@ -357,7 +365,7 @@ internal sealed class Program
                     action.Id,
                     model,
                     _proofOptions,
-                    PresenterNavigationLayout.Default);
+                    _navigationLayout);
 
                 if (!ReferenceEquals(nextNavigation, _navigationState) &&
                     !Equals(nextNavigation, _navigationState))

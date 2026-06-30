@@ -8,6 +8,12 @@ param(
     [string]$SelectedSection,
     [string]$SelectedTab,
     [string]$SelectedCard,
+    [ValidateSet("CardList", "Inspector")]
+    [string]$CompactPane,
+    [ValidateSet("Wide", "Compact")]
+    [string]$ShellMode,
+    [int]$Width = 1120,
+    [int]$Height = 760,
     [string]$InvokeAction,
     [string]$NavigationPage,
     [string]$ScrollPage,
@@ -44,7 +50,11 @@ $arguments = @(
     "--",
     "--export-only",
     "--output-path",
-    $resolvedOutputPath
+    $resolvedOutputPath,
+    "--width",
+    $Width,
+    "--height",
+    $Height
 )
 
 if ($IncludeDirectOutlineRenderBridgeProof)
@@ -90,6 +100,18 @@ if (-not [string]::IsNullOrWhiteSpace($SelectedCard))
 {
     $arguments += "--selected-card"
     $arguments += $SelectedCard
+}
+
+if (-not [string]::IsNullOrWhiteSpace($CompactPane))
+{
+    $arguments += "--compact-pane"
+    $arguments += $CompactPane
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ShellMode))
+{
+    $arguments += "--shell-mode"
+    $arguments += $ShellMode
 }
 
 if (-not [string]::IsNullOrWhiteSpace($InvokeAction))

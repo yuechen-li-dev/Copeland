@@ -6,6 +6,10 @@ public sealed record PresenterNavigationExportOptions(
     string? SelectedTabId = null,
     string? SelectedPageId = null,
     string? SelectedCardId = null,
+    PresenterCompactPane? CompactPane = null,
+    PresenterShellMode? ShellMode = null,
+    int Width = 1120,
+    int Height = 760,
     string? InvokeActionId = null,
     IReadOnlyDictionary<string, double>? ScrollOffsetByPageId = null,
     string? InteractionBackendName = null)
@@ -19,6 +23,10 @@ public sealed record PresenterNavigationExportOptions(
             null,
             selectedPageId,
             null,
+            null,
+            null,
+            1120,
+            760,
             null,
             null,
             includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)
@@ -35,6 +43,10 @@ public sealed record PresenterNavigationExportOptions(
             null,
             selectedPageId,
             null,
+            null,
+            null,
+            1120,
+            760,
             null,
             scrollOffsetByPageId,
             includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)
@@ -52,6 +64,10 @@ public sealed record PresenterNavigationExportOptions(
             null,
             selectedPageId,
             selectedCardId,
+            null,
+            null,
+            1120,
+            760,
             null,
             scrollOffsetByPageId,
             includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)

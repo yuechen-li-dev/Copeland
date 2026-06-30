@@ -5,6 +5,7 @@ public sealed record PresenterNavigationState(
     IReadOnlyDictionary<string, string> SelectedTabBySectionId,
     IReadOnlyDictionary<string, double> ScrollOffsetByPageId,
     IReadOnlyDictionary<string, string?> SelectedCardByPageId,
+    PresenterCompactPane CompactPane,
     OblivionCardEffectState EffectState)
 {
     public static PresenterNavigationState CreateDefault(PresenterNavigationModel model)
@@ -22,6 +23,7 @@ public sealed record PresenterNavigationState(
             SelectedTabBySectionId: selectedTabs,
             ScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal),
             SelectedCardByPageId: new Dictionary<string, string?>(StringComparer.Ordinal),
+            CompactPane: PresenterCompactPane.CardList,
             EffectState: OblivionCardEffectState.Empty);
     }
 
@@ -87,6 +89,14 @@ public sealed record PresenterNavigationState(
         return this with
         {
             ScrollOffsetByPageId = offsets,
+        };
+    }
+
+    public PresenterNavigationState WithCompactPane(PresenterCompactPane compactPane)
+    {
+        return this with
+        {
+            CompactPane = compactPane,
         };
     }
 

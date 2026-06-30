@@ -136,11 +136,11 @@ M11g closes out the current Oblivion substrate. Markdown cards are next, and Ros
 | Dispatch Set/Toggle/Increment | Machina.Runtime | Implemented | Dispatch tests | Deterministic state transitions.
 | Prefix/suffix dispatch | Machina.Runtime | Implemented | Dispatch tests | Supported by runtime dispatch model.
 | Pointer click action | Runtime + Presenter | Partial | Presenter/runtime proofs | Broaden scenario tests.
-| Keyboard input | Runtime/Presenter | Planned | None | Define focus + key routing.
+| Keyboard input | Runtime/Presenter | Implemented | Presenter M12g tests + export proof | Backend-neutral keyboard routing exists for presenter navigation and deferred selected-card actions.
 | Focus model | Runtime/Core | Planned | None | Required for interactive controls.
 | Hover/pressed state | Runtime/Core | Planned | None | Add pointer state lifecycle.
 | Text editing | Runtime/Standard | Planned | None | Required for real input components.
-| Routing/navigation | Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds sample-local sidebar + local tabs + page selection state; M10b adds sample-local hit testing and explicit input-to-action routing; M10c makes the organized shell the default presenter surface. Generic routing remains deferred.
+| Routing/navigation | Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds sample-local sidebar + local tabs + page selection state; M10b adds sample-local hit testing and explicit input-to-action routing; M10c makes the organized shell the default presenter surface; M12h adds top-level wide/compact shell document selection without introducing a generic responsive solver. Generic routing remains deferred.
 | Dominatus runtime scopes | Machina.Dominatus | Partial | Dominatus tests/docs | Baseline proof exists; expand authoring patterns.
 | Modal stack | Runtime/Dominatus | Planned | None | Coupled with focus/layer routing.
 | Async effects | Dominatus | Planned | None | Needed for richer app behaviors.
@@ -168,7 +168,7 @@ M11g closes out the current Oblivion substrate. Markdown cards are next, and Ros
 | Avalonia redraw loop | Presenter sample | Partial | Presenter docs + M10b/M10c/M10d shell tests | Shell mode composes sidebar/tabs/page content, keeps the original settings page reachable under `Legacy`, routes sample-local pointer/wheel input through an Avalonia adapter, and now supports sample-local scrollbar thumb dragging through the same seam.
 | Component gallery visual workbench | ComponentGallery sample | Implemented | Dedicated gallery tests + local Windows visual audit + repeatable export script | Canonical “wall of widgets” page; local-first, not a Storybook clone; M7b formalizes deterministic PNG export and generated-artifact policy. |
 | Scaling/DPI conversion | Presenter sample | Partial | Presenter M1d mapper/tests | Explicit image-to-root mapping landed for None/Fill/Uniform math; broader DPI policy still pending.
-| Window resize handling | Presenter sample | Planned | None | Needed for practical desktop UX.
+| Window resize handling | Presenter sample | Partial | Presenter M12h tests + export proof | M12h adds deterministic width-driven wide/compact shell selection and export/runtime width options, but still does not introduce continuous scaling or a generic responsive solver.
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 
@@ -255,6 +255,8 @@ React mapping guide:
 - **M10a**: presenter navigation shell with sidebar, local tabs, scrollable pages, deterministic scrollbar visuals, and opt-in export/runtime integration (implemented).
 - **M10b**: presenter navigation interaction wiring with Avalonia as the current sample input backend, backend-neutral shell hit testing, explicit action routing, and interaction export proof states (implemented).
 - **M10c**: presenter page organization cleanup, shell-as-default behavior, legacy single-card preservation page, and canonical sample-surface docs/artifacts (implemented).
+- **M12g**: presenter keyboard input seam, backend-neutral key events, and deferred selected-card keyboard routing (implemented).
+- **M12h**: presenter adaptive shell modes with one top-level breakpoint, wide/compact shell documents, compact sidebar rail, and compact Oblivion card-list/inspector swap without continuous scaling (implemented).
 
 ## Open Questions
 

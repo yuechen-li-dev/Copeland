@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Machina.Core.Actions;
 using Machina.Core.Authoring;
 using Machina.Core.Flat;
 using Machina.Core.Nodes;
@@ -58,14 +59,27 @@ public static class OblivionWorkbenchCatalog
         StandardTheme theme,
         int contentWidth,
         PresenterProofOptions? proofOptions = null,
-        PresenterNavigationState? navigationState = null)
+        PresenterNavigationState? navigationState = null,
+        PresenterShellMode shellMode = PresenterShellMode.Wide)
     {
         ArgumentNullException.ThrowIfNull(theme);
 
         OblivionCardEffectState effectState = navigationState?.EffectState ?? OblivionCardEffectState.Empty;
         IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions, effectState);
         OblivionInspectorSelection selection = ResolveSelection(pageId, cards, navigationState);
-        OblivionPageLayout layout = OblivionPageLayout.Create(contentWidth);
+        bool compactInspector = shellMode == PresenterShellMode.Compact &&
+            navigationState?.CompactPane == PresenterCompactPane.Inspector;
+        OblivionPageLayout layout = shellMode == PresenterShellMode.Compact
+            ? OblivionPageLayout.CreateCompact(contentWidth)
+            : OblivionPageLayout.CreateWide(contentWidth);
+
+        if (shellMode == PresenterShellMode.Compact)
+        {
+            return compactInspector
+                ? BuildCompactInspectorRows(pageId, selection, theme, layout)
+                : BuildCompactCardListRows(pageId, cards, selection, theme, layout);
+        }
+
         List<UiRow> rows = [];
         double currentTop = 0;
 
@@ -449,15 +463,28 @@ public static class OblivionWorkbenchCatalog
     public static OblivionPageInteractionMap BuildInteractionMap(
         string pageId,
         PresenterProofOptions? proofOptions,
-        ResolvedLayoutDocument resolved)
+        ResolvedLayoutDocument resolved,
+        PresenterNavigationState? navigationState,
+        PresenterShellMode shellMode)
     {
         IReadOnlyList<OblivionCard> cards = GetPageCards(pageId, proofOptions);
         List<OblivionCardHitTarget> targets = [];
+        bool compactCardList = shellMode == PresenterShellMode.Compact &&
+            navigationState?.CompactPane != PresenterCompactPane.Inspector;
+
+        if (shellMode == PresenterShellMode.Compact &&
+            navigationState?.CompactPane == PresenterCompactPane.Inspector)
+        {
+            return new OblivionPageInteractionMap(pageId, []);
+        }
 
         foreach (OblivionCard card in cards)
         {
             PresenterCardFrame frame = OblivionCardRenderer.DescribeFrame(resolved, card.Id.Value);
-            targets.Add(new OblivionCardHitTarget(pageId, card.Id.Value, frame.Bounds));
+            UiActionId actionId = compactCardList
+                ? PresenterNavigationActions.SelectCompactOblivionCard(pageId, card.Id.Value)
+                : PresenterNavigationActions.SelectOblivionCard(pageId, card.Id.Value);
+            targets.Add(new OblivionCardHitTarget(pageId, card.Id.Value, frame.Bounds, actionId));
         }
 
         return new OblivionPageInteractionMap(pageId, targets);
@@ -748,6 +775,142 @@ public static class OblivionWorkbenchCatalog
                 left: layout.InspectorLeft,
                 top: currentTop,
                 width: layout.InspectorWidth,
+                height: section.Height,
+                component: BuildInspectorSection(section, pageId, theme, layout)));
+
+            currentTop += section.Height + 24;
+        }
+
+        return rows;
+    }
+
+    private static IReadOnlyList<UiRow> BuildCompactCardListRows(
+        string pageId,
+        IReadOnlyList<OblivionBuiltCard> cards,
+        OblivionInspectorSelection selection,
+        StandardTheme theme,
+        OblivionPageLayout layout)
+    {
+        List<UiRow> rows = [];
+        double currentTop = 0;
+
+        rows.Add(Row.Anchor(
+            id: $"{pageId}.compact-title",
+            parent: "root",
+            left: 0,
+            top: currentTop,
+            width: layout.ContentWidth,
+            height: 36,
+            view: View.Text("Card list", color: theme.Colors.Foreground, size: TextSize.H1)));
+        currentTop += 44;
+
+        rows.Add(Row.Anchor(
+            id: $"{pageId}.compact-subtitle",
+            parent: "root",
+            left: 0,
+            top: currentTop,
+            width: layout.ContentWidth,
+            height: 20,
+            view: View.Text(
+                selection.SelectedCardId is null
+                    ? "Select a card to open the inspector."
+                    : $"Selected card preserved: {selection.SelectedCardId}",
+                color: theme.Colors.MutedForeground,
+                size: TextSize.Sm)));
+        currentTop += 36;
+
+        foreach (OblivionBuiltCard builtCard in cards)
+        {
+            double cardHeight = builtCard.CompactView.PreferredHeight;
+            bool isSelected = string.Equals(selection.SelectedCardId, builtCard.SourceCard.Id.Value, StringComparison.Ordinal);
+            rows.Add(
+                Row.Anchor(
+                    builtCard.SourceCard.Id.Value + ".anchor",
+                    "root",
+                    left: 0,
+                    top: currentTop,
+                    width: layout.ContentWidth,
+                    height: cardHeight,
+                    component: OblivionCardRenderer.BuildCard(
+                        builtCard.CompactView,
+                        theme,
+                        new OblivionCardRenderOptions(
+                            Width: layout.ContentWidth,
+                            Height: cardHeight),
+                        isSelected)));
+
+            currentTop += cardHeight + 24;
+        }
+
+        return rows;
+    }
+
+    private static IReadOnlyList<UiRow> BuildCompactInspectorRows(
+        string pageId,
+        OblivionInspectorSelection selection,
+        StandardTheme theme,
+        OblivionPageLayout layout)
+    {
+        List<UiRow> rows =
+        [
+            Row.Anchor(
+                id: $"{pageId}.compact-back",
+                parent: "root",
+                left: 0,
+                top: 0,
+                width: 120,
+                height: 36,
+                component: StandardUI.Button(
+                    "Back",
+                    id: $"{pageId}.compact-back.button",
+                    action: PresenterNavigationActions.SetCompactPane(PresenterCompactPane.CardList).ToAction(),
+                    theme: theme,
+                    variant: ButtonVariant.Outline,
+                    size: ButtonSize.Medium)),
+            Row.Anchor(
+                id: $"{pageId}.compact-inspector-title",
+                parent: "root",
+                left: 0,
+                top: 52,
+                width: layout.ContentWidth,
+                height: 36,
+                view: View.Text("Inspector", color: theme.Colors.Foreground, size: TextSize.H1)),
+        ];
+
+        if (selection.SelectedCard is null)
+        {
+            rows.Add(
+                Row.Anchor(
+                    id: $"{pageId}.compact-inspector-empty",
+                    parent: "root",
+                    left: 0,
+                    top: 104,
+                    width: layout.ContentWidth,
+                    height: 180,
+                    component: PresenterCard.BuildTextCard(
+                        id: $"{pageId}.compact-inspector-empty-card",
+                        title: "No card selected",
+                        badges: [],
+                        lines:
+                        [
+                            "No selected card is available for compact inspector view.",
+                            "Use Back to return to the card list.",
+                            "This remains a deterministic shell swap rather than a fluid resize path.",
+                        ],
+                        theme: theme,
+                        options: new PresenterCardOptions(layout.ContentWidth, 180))));
+            return rows;
+        }
+
+        double currentTop = 104;
+        foreach ((OblivionInspectorSectionView section, int index) in selection.SelectedCard.InspectorView.Sections.Select((section, index) => (section, index)))
+        {
+            rows.Add(Row.Anchor(
+                id: $"{pageId}.compact-inspector-section-{index}",
+                parent: "root",
+                left: 0,
+                top: currentTop,
+                width: layout.ContentWidth,
                 height: section.Height,
                 component: BuildInspectorSection(section, pageId, theme, layout)));
 
@@ -1158,12 +1321,17 @@ public sealed record OblivionPageLayout(
     int InspectorLeft,
     int InspectorWidth)
 {
-    public static OblivionPageLayout Create(int contentWidth)
+    public static OblivionPageLayout CreateWide(int contentWidth)
     {
         const int columnGap = 24;
         int inspectorWidth = Math.Max(284, Math.Min(332, (int)Math.Floor(contentWidth * 0.4)));
         int cardsColumnWidth = Math.Max(320, contentWidth - inspectorWidth - columnGap);
         int inspectorLeft = cardsColumnWidth + columnGap;
         return new OblivionPageLayout(contentWidth, cardsColumnWidth, inspectorLeft, inspectorWidth);
+    }
+
+    public static OblivionPageLayout CreateCompact(int contentWidth)
+    {
+        return new OblivionPageLayout(contentWidth, contentWidth, 0, contentWidth);
     }
 }

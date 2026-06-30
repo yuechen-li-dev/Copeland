@@ -57,6 +57,8 @@ public static class PresenterExporter
         string? oblivionEffectRoutingManifestTextPath = null;
         string? keyboardManifestJsonPath = null;
         string? keyboardManifestTextPath = null;
+        string? adaptiveShellManifestJsonPath = null;
+        string? adaptiveShellManifestTextPath = null;
         RasterFrame rasterFrame;
         int width;
         int height;
@@ -64,6 +66,12 @@ public static class PresenterExporter
         if (navigationOptions.IncludeNavigationShell)
         {
             PresenterNavigationModel model = PresenterNavigationCatalog.CreateModel();
+            PresenterShellMode shellMode = navigationOptions.ShellMode
+                ?? PresenterShellModeResolver.Resolve(navigationOptions.Width);
+            PresenterNavigationLayout layout = PresenterNavigationLayout.Create(
+                navigationOptions.Width,
+                navigationOptions.Height,
+                shellMode);
             PresenterNavigationState navigationState = PresenterNavigationCatalog.CreateState(model, proofOptions, navigationOptions);
             if (!string.IsNullOrWhiteSpace(navigationOptions.InvokeActionId))
             {
@@ -89,14 +97,15 @@ public static class PresenterExporter
                         navigationOptions.InvokeActionId),
                     model,
                     proofOptions,
-                    PresenterNavigationLayout.Default);
+                    layout);
             }
 
             PresenterNavigationShellRenderResult shellRender = PresenterNavigationShellRenderer.Render(
                 state,
                 navigationState,
                 effectiveTheme,
-                proofOptions);
+                proofOptions,
+                layout);
 
             rasterFrame = shellRender.ComposedFrame;
             width = shellRender.ComposedFrame.Width;
@@ -136,6 +145,10 @@ public static class PresenterExporter
                     outputDirectory,
                     shellRender,
                     navigationOptions.InteractionBackendName);
+            (adaptiveShellManifestJsonPath, adaptiveShellManifestTextPath) =
+                PresenterAdaptiveShellManifestWriter.Write(
+                    outputDirectory,
+                    shellRender);
         }
         else
         {
@@ -189,6 +202,8 @@ public static class PresenterExporter
             OblivionEffectRoutingManifestTextPath = oblivionEffectRoutingManifestTextPath,
             KeyboardManifestJsonPath = keyboardManifestJsonPath,
             KeyboardManifestTextPath = keyboardManifestTextPath,
+            AdaptiveShellManifestJsonPath = adaptiveShellManifestJsonPath,
+            AdaptiveShellManifestTextPath = adaptiveShellManifestTextPath,
         };
     }
 
@@ -284,4 +299,8 @@ public sealed record PresenterExportResult(
     public string? KeyboardManifestJsonPath { get; init; }
 
     public string? KeyboardManifestTextPath { get; init; }
+
+    public string? AdaptiveShellManifestJsonPath { get; init; }
+
+    public string? AdaptiveShellManifestTextPath { get; init; }
 }

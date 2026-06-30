@@ -9,7 +9,9 @@ public static class PresenterNavigationActions
     public const string SelectTabPrefix = "presenter.navigation.select-tab|";
     public const string SetScrollOffsetPrefix = "presenter.navigation.set-scroll-offset|";
     public const string SelectOblivionCardPrefix = "presenter.navigation.select-oblivion-card|";
+    public const string SelectCompactOblivionCardPrefix = "presenter.navigation.select-compact-oblivion-card|";
     public const string ClearOblivionCardSelectionPrefix = "presenter.navigation.clear-oblivion-card-selection|";
+    public const string SetCompactPanePrefix = "presenter.navigation.set-compact-pane|";
     public const string InvokeOblivionCardActionPrefix = "presenter.navigation.invoke-oblivion-card-action|";
 
     public static UiActionId SelectSection(string sectionId)
@@ -33,9 +35,19 @@ public static class PresenterNavigationActions
         return new UiActionId($"{SelectOblivionCardPrefix}{pageId}|{cardId}");
     }
 
+    public static UiActionId SelectCompactOblivionCard(string pageId, string cardId)
+    {
+        return new UiActionId($"{SelectCompactOblivionCardPrefix}{pageId}|{cardId}");
+    }
+
     public static UiActionId ClearOblivionCardSelection(string pageId)
     {
         return new UiActionId($"{ClearOblivionCardSelectionPrefix}{pageId}");
+    }
+
+    public static UiActionId SetCompactPane(PresenterCompactPane compactPane)
+    {
+        return new UiActionId($"{SetCompactPanePrefix}{compactPane}");
     }
 
     public static UiActionId InvokeOblivionCardAction(string pageId, string cardId, string actionId)
@@ -115,6 +127,25 @@ public static class PresenterNavigationActions
         return false;
     }
 
+    public static bool TryParseSelectCompactOblivionCard(UiActionId actionId, out string pageId, out string cardId)
+    {
+        if (actionId.Value.StartsWith(SelectCompactOblivionCardPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[SelectCompactOblivionCardPrefix.Length..];
+            string[] parts = payload.Split('|', StringSplitOptions.None);
+            if (parts.Length == 2)
+            {
+                pageId = parts[0];
+                cardId = parts[1];
+                return true;
+            }
+        }
+
+        pageId = string.Empty;
+        cardId = string.Empty;
+        return false;
+    }
+
     public static bool TryParseClearOblivionCardSelection(UiActionId actionId, out string pageId)
     {
         if (actionId.Value.StartsWith(ClearOblivionCardSelectionPrefix, StringComparison.Ordinal))
@@ -124,6 +155,21 @@ public static class PresenterNavigationActions
         }
 
         pageId = string.Empty;
+        return false;
+    }
+
+    public static bool TryParseSetCompactPane(UiActionId actionId, out PresenterCompactPane compactPane)
+    {
+        if (actionId.Value.StartsWith(SetCompactPanePrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[SetCompactPanePrefix.Length..];
+            if (Enum.TryParse(payload, ignoreCase: false, out compactPane))
+            {
+                return true;
+            }
+        }
+
+        compactPane = PresenterCompactPane.CardList;
         return false;
     }
 

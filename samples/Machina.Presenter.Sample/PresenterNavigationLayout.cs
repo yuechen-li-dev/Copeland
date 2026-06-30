@@ -3,6 +3,7 @@ using Machina.Layout.Geometry;
 namespace Machina.Presenter.Sample;
 
 public sealed record PresenterNavigationLayout(
+    PresenterShellMode ShellMode,
     int RootWidth,
     int RootHeight,
     int OuterPadding,
@@ -11,6 +12,7 @@ public sealed record PresenterNavigationLayout(
     int ContentPanelPadding,
     int TabsHeight,
     int TabsGap,
+    int TabWidth,
     int ViewportTopOffset,
     int ViewportBottomPadding,
     int ScrollbarWidth,
@@ -19,6 +21,7 @@ public sealed record PresenterNavigationLayout(
     private const int ScrollbarTrackInset = 2;
 
     public static PresenterNavigationLayout Default { get; } = new(
+        ShellMode: PresenterShellMode.Wide,
         RootWidth: 1120,
         RootHeight: 760,
         OuterPadding: 24,
@@ -27,10 +30,52 @@ public sealed record PresenterNavigationLayout(
         ContentPanelPadding: 24,
         TabsHeight: 36,
         TabsGap: 12,
+        TabWidth: 150,
         ViewportTopOffset: 124,
         ViewportBottomPadding: 24,
         ScrollbarWidth: 12,
         ScrollbarGap: 12);
+
+    public static PresenterNavigationLayout Create(
+        int rootWidth,
+        int rootHeight,
+        PresenterShellMode shellMode)
+    {
+        return shellMode switch
+        {
+            PresenterShellMode.Wide => new PresenterNavigationLayout(
+                ShellMode: shellMode,
+                RootWidth: rootWidth,
+                RootHeight: rootHeight,
+                OuterPadding: 24,
+                SidebarWidth: 184,
+                SectionGap: 24,
+                ContentPanelPadding: 24,
+                TabsHeight: 36,
+                TabsGap: 12,
+                TabWidth: 150,
+                ViewportTopOffset: 124,
+                ViewportBottomPadding: 24,
+                ScrollbarWidth: 12,
+                ScrollbarGap: 12),
+            PresenterShellMode.Compact => new PresenterNavigationLayout(
+                ShellMode: shellMode,
+                RootWidth: rootWidth,
+                RootHeight: rootHeight,
+                OuterPadding: 20,
+                SidebarWidth: 64,
+                SectionGap: 16,
+                ContentPanelPadding: 20,
+                TabsHeight: 36,
+                TabsGap: 8,
+                TabWidth: 110,
+                ViewportTopOffset: 124,
+                ViewportBottomPadding: 20,
+                ScrollbarWidth: 12,
+                ScrollbarGap: 10),
+            _ => throw new InvalidOperationException($"Unsupported presenter shell mode '{shellMode}'."),
+        };
+    }
 
     public int SidebarLeft => OuterPadding;
 

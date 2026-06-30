@@ -139,3 +139,11 @@ M12f only documents and preserves the seam:
 M12g later adds keyboard backend plumbing on the shell side.
 
 That means selected-card keyboard shortcuts can now route into the same deferred effect seam without introducing Avalonia types into card handlers or enabling execution.
+
+M12h then adds adaptive shell modes above that same routing path.
+
+The key boundary stays the same:
+
+- width resolves once to a shell mode
+- the shell builds a wide or compact document
+- cards still do not negotiate shell mode and effect routing remains non-executing

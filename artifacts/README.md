@@ -40,6 +40,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m12e/` is the current Oblivion agentic-card-contract proof export directory.
 - `artifacts/m12f/` is the current Oblivion card-effect-routing proof export directory.
 - `artifacts/m12g/` is the current presenter keyboard-input backend proof export directory.
+- `artifacts/m12h/` is the current presenter adaptive-shell proof export directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -75,6 +76,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M12e Oblivion agentic-card-contract PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12f Oblivion effect-routing PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12g presenter keyboard-input PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M12h presenter adaptive-shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -221,6 +223,17 @@ Current M11e presenter/Oblivion card-hardening commands:
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-components-controls.png -SelectedSection components -SelectedTab controls
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-components-controls-bottom-scroll.png -SelectedSection components -SelectedTab controls -ScrollPage components.controls:9999
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11e\presenter-card-hardening-legacy-m1e-card.png -SelectedSection legacy -SelectedTab m1e-card
+```
+
+Current M12h presenter adaptive-shell commands:
+
+```powershell
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12h\presenter-shell-wide-overview.png -SelectedSection overview -SelectedTab home -Width 1120 -Height 760
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12h\presenter-shell-wide-oblivion-docs.png -SelectedSection oblivion -SelectedTab docs -SelectedCard doc-copeland-markdown-frontend-m12a -Width 1120 -Height 760
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12h\presenter-shell-compact-overview.png -SelectedSection overview -SelectedTab home -Width 720 -Height 760
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12h\presenter-shell-compact-card-list.png -SelectedSection oblivion -SelectedTab docs -Width 720 -Height 760
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12h\presenter-shell-compact-inspector.png -SelectedSection oblivion -SelectedTab docs -SelectedCard doc-copeland-markdown-frontend-m12a -CompactPane Inspector -Width 720 -Height 760
+.\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m12h\presenter-shell-compact-back.png -SelectedSection oblivion -SelectedTab docs -SelectedCard doc-copeland-markdown-frontend-m12a -CompactPane Inspector -Width 720 -Height 760
 ```
 
 Current M11g Oblivion closeout commands:

@@ -73,6 +73,8 @@ public sealed record PresenterNavigationShellRenderResult(
     PresenterNavigationRenderSession Session,
     PresenterPageRenderResult? PageRender = null)
 {
+    public PresenterShellMode ShellMode => Layout.ShellMode;
+
     public UiAction? HitTestContent(PointerPoint rootPoint)
     {
         var viewport = Layout.ViewportRect;

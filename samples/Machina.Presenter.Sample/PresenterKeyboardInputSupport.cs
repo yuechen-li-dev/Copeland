@@ -32,7 +32,7 @@ public static class PresenterKeyboardInputSupport
         "Ctrl+ArrowUp -> select previous sidebar section",
         "Ctrl+R -> invoke selected Oblivion card's first deferred effect action",
         "End -> scroll selected page to bottom",
-        "Escape -> clear selected Oblivion card selection",
+        "Escape -> return compact inspector to card list, otherwise clear selected Oblivion card selection",
         "Home -> scroll selected page to top",
         "PageDown -> page scroll selected page down",
         "PageUp -> page scroll selected page up",

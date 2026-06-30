@@ -160,3 +160,13 @@ That future editor can reuse the neutral `TextInput` and key events introduced h
 - Roslyn compilation and execution
 - xUnit runtime execution
 - Visionary code editor/source workspace
+
+## Follow-on in M12h
+
+M12h reuses this keyboard seam unchanged.
+
+Adaptive behavior is still resolved at the shell level, not inside cards:
+
+- width resolves once to `Wide` or `Compact`
+- compact inspector `Escape` now returns to compact card list
+- this still does not introduce continuous scaling, a Markdown editor, Roslyn execution, xUnit execution, or Visionary

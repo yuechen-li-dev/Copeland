@@ -1,0 +1,14 @@
+milestone=M12e
+kind=oblivion-agentic-card-contract
+cardAsAppletDoctrine=true
+localityOfChangeDoctrine=true
+handlersRegistered=6
+handlerKinds=artifact,code-fact,code-theory,note,status,ui-preview
+actionsExecutable=false
+effectsExecutable=false
+roslynEnabled=false
+xunitEnabled=false
+visionaryImplemented=false
+diagnosticsAggregated=3
+artifactsDeclared=7
+deferredWork=Roslyn compilation and execution | xUnit [Fact] and [Theory] runtime | Runtime action dispatch | Dominatus effect execution | Artifact generation runtime | Visionary code editor/source workspace | Markdown editor | File watcher / live editing

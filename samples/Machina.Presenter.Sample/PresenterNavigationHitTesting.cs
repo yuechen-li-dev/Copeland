@@ -61,7 +61,7 @@ public static class PresenterNavigationChromeGeometryBuilder
             sidebarSections.Add(
                 new PresenterNavigationSidebarHitRegion(
                     section.Id,
-                    new Rect(layout.SidebarLeft + 16, sidebarItemTop, layout.SidebarWidth - 32, 36)));
+                    new Rect(layout.SidebarLeft + 8, sidebarItemTop, layout.SidebarWidth - 16, 36)));
 
             sidebarItemTop += 44;
         }
@@ -77,7 +77,7 @@ public static class PresenterNavigationChromeGeometryBuilder
                     selectedSection.Id,
                     tab.Id,
                     tab.PageId,
-                    new Rect(tabsLeft + (index * (150 + layout.TabsGap)), tabsTop, 150, layout.TabsHeight)));
+                    new Rect(tabsLeft + (index * (layout.TabWidth + layout.TabsGap)), tabsTop, layout.TabWidth, layout.TabsHeight)));
         }
 
         return new PresenterNavigationChromeGeometry(

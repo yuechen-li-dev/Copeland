@@ -6,7 +6,8 @@ namespace Machina.Presenter.Sample;
 public sealed record OblivionCardHitTarget(
     string PageId,
     string CardId,
-    Rect Bounds);
+    Rect Bounds,
+    UiActionId ActionId);
 
 public sealed record OblivionPageInteractionMap(
     string PageId,
@@ -24,7 +25,7 @@ public sealed record OblivionPageInteractionMap(
                 contentX < target.Bounds.X + target.Bounds.Width &&
                 contentY < target.Bounds.Y + target.Bounds.Height)
             {
-                return PresenterNavigationActions.SelectOblivionCard(PageId, target.CardId).ToAction();
+                return new UiAction(target.ActionId);
             }
         }
 

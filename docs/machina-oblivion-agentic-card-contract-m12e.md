@@ -177,3 +177,14 @@ That runtime path is deferred.
 - richer local state UI
 - image/table/video card implementations
 - live editing and file watching
+
+## Follow-on in M12h
+
+M12h keeps this contract intact.
+
+Responsive shell behavior is resolved before page assembly:
+
+- width resolves to `Wide` or `Compact`
+- compact mode swaps whole shell/page documents
+- cards still receive bounded regions and do not branch on shell mode
+- no CSS-style continuous responsive solver is introduced

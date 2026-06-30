@@ -125,7 +125,9 @@ public sealed class PresenterNavigationRenderSession
             demoState,
             theme,
             proofOptions,
+            layout.ShellMode,
             layout.ContentVisibleWidth,
+            navigationState.CompactPane,
             selectedCardId);
 
         if (_cachedPageLayer is not null && Equals(_cachedPageLayer.Key, key))
@@ -139,7 +141,8 @@ public sealed class PresenterNavigationRenderSession
             theme,
             proofOptions,
             layout.ContentVisibleWidth,
-            navigationState);
+            navigationState,
+            layout.ShellMode);
 
         _cachedPageLayer = new PresenterCachedPageLayer(key, pageRender);
         _pageRenderCount++;
@@ -198,7 +201,9 @@ internal sealed record PresenterCachedPageLayerKey(
     DemoState DemoState,
     StandardTheme Theme,
     PresenterProofOptions ProofOptions,
+    PresenterShellMode ShellMode,
     int ContentWidth,
+    PresenterCompactPane CompactPane,
     string? SelectedCardId);
 
 internal sealed record PresenterCachedPageLayer(
