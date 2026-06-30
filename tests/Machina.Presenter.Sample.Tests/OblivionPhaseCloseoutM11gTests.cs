@@ -187,7 +187,7 @@ public sealed class OblivionPhaseCloseoutM11gTests
         string text = PageText(page);
 
         Assert.Contains("Execution deferred", text, StringComparison.Ordinal);
-        Assert.Contains("Not executed in M11g.", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing skeleton only.", text, StringComparison.Ordinal);
         Assert.Contains("Code Fact", text, StringComparison.Ordinal);
     }
 
@@ -275,8 +275,8 @@ public sealed class OblivionPhaseCloseoutM11gTests
             OblivionWorkbenchCatalog.GetPageCardsForSelection(OblivionWorkbenchCatalog.ExecutionRoadmapPageId),
             card => card.Id.Value == "execution-deferred");
 
-        Assert.Contains("Not executed in M11g.", text, StringComparison.Ordinal);
-        Assert.Contains("Execution result", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing skeleton only.", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing", text, StringComparison.Ordinal);
         Assert.Equal(OblivionCardStatus.Deferred, selectedCard.Status);
     }
 

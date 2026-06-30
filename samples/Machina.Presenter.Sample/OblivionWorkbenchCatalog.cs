@@ -62,7 +62,8 @@ public static class OblivionWorkbenchCatalog
     {
         ArgumentNullException.ThrowIfNull(theme);
 
-        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions);
+        OblivionCardEffectState effectState = navigationState?.EffectState ?? OblivionCardEffectState.Empty;
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions, effectState);
         OblivionInspectorSelection selection = ResolveSelection(pageId, cards, navigationState);
         OblivionPageLayout layout = OblivionPageLayout.Create(contentWidth);
         List<UiRow> rows = [];
@@ -124,13 +125,13 @@ public static class OblivionWorkbenchCatalog
 
     public static double GetPageContentHeight(string pageId, PresenterProofOptions? proofOptions = null)
     {
-        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions);
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions, OblivionCardEffectState.Empty);
         return Math.Max(GetCardsColumnHeight(cards), 1440);
     }
 
     public static double GetCardHeight(OblivionCard card)
     {
-        return CardHandlers.BuildCard(card).CompactView.PreferredHeight;
+        return CardHandlers.BuildCard(card, effectState: OblivionCardEffectState.Empty).CompactView.PreferredHeight;
     }
 
     public static OblivionWorkspaceLoadResult LoadWorkspace(PresenterProofOptions? proofOptions = null, bool useCache = true)
@@ -280,19 +281,25 @@ public static class OblivionWorkbenchCatalog
             })
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
+        string[] routedCards = navigationState.EffectState.LastResultByCardId.Keys
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
 
         string[] deferredWork = GetPhaseCloseoutDeferredWork();
 
         var manifest = new
         {
-            milestone = "M11f",
+            milestone = "M12f",
             kind = "oblivion-card-selection-inspector",
             selectionModel = "page-local-selected-card-id-by-page-id",
             inspectorEnabled = true,
             defaultSelectionPolicy = "first-card-when-no-explicit-selection; empty-when-cleared",
             selectedCardsExported = exportedSelections,
+            effectRoutingVisible = true,
+            routedCards,
             actionsExecutable = false,
             artifactsExecutable = false,
+            effectsExecutable = false,
             executionEnabled = false,
             roslynEnabled = false,
             xunitEnabled = false,
@@ -309,14 +316,17 @@ public static class OblivionWorkbenchCatalog
 
         string[] textLines =
         [
-            "milestone=M11f",
+            "milestone=M12f",
             "kind=oblivion-card-selection-inspector",
             "selectionModel=page-local-selected-card-id-by-page-id",
             "inspectorEnabled=true",
             "defaultSelectionPolicy=first-card-when-no-explicit-selection; empty-when-cleared",
             $"selectedCardsExported={string.Join(",", exportedSelections)}",
+            "effectRoutingVisible=true",
+            $"routedCards={string.Join(",", routedCards)}",
             "actionsExecutable=false",
             "artifactsExecutable=false",
+            "effectsExecutable=false",
             "executionEnabled=false",
             "roslynEnabled=false",
             "xunitEnabled=false",
@@ -408,9 +418,10 @@ public static class OblivionWorkbenchCatalog
 
     public static IReadOnlyList<OblivionBuiltCard> GetBuiltPageCardsForSelection(
         string pageId,
-        PresenterProofOptions? proofOptions = null)
+        PresenterProofOptions? proofOptions = null,
+        OblivionCardEffectState? effectState = null)
     {
-        return GetBuiltPageCards(pageId, proofOptions);
+        return GetBuiltPageCards(pageId, proofOptions, effectState ?? OblivionCardEffectState.Empty);
     }
 
     public static string ResolveCardSelectionId(
@@ -452,12 +463,41 @@ public static class OblivionWorkbenchCatalog
         return new OblivionPageInteractionMap(pageId, targets);
     }
 
+    public static OblivionCardEffectOutcome? InvokeCardAction(
+        string pageId,
+        string cardId,
+        string actionId,
+        PresenterProofOptions? proofOptions = null,
+        OblivionCardEffectState? effectState = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pageId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(cardId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(actionId);
+
+        IReadOnlyList<OblivionCard> cards = GetPageCards(pageId, proofOptions);
+        string resolvedCardId = ResolveCardSelectionId(pageId, cardId, proofOptions);
+        OblivionCard? card = cards.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id.Value, resolvedCardId, StringComparison.Ordinal));
+        if (card is null)
+        {
+            return null;
+        }
+
+        return CardHandlers.InvokeAction(
+            card,
+            pageId,
+            actionId,
+            card.WorkspaceId,
+            effectState ?? OblivionCardEffectState.Empty);
+    }
+
     private static IReadOnlyList<OblivionBuiltCard> GetBuiltPageCards(
         string pageId,
-        PresenterProofOptions? proofOptions)
+        PresenterProofOptions? proofOptions,
+        OblivionCardEffectState effectState)
     {
         return GetPageCards(pageId, proofOptions)
-            .Select(card => CardHandlers.BuildCard(card, pageId, card.WorkspaceId))
+            .Select(card => CardHandlers.BuildCard(card, pageId, card.WorkspaceId, effectState))
             .ToArray();
     }
 
@@ -801,10 +841,110 @@ public static class OblivionWorkbenchCatalog
             "Markdown editor",
             "Roslyn compilation and execution",
             "xUnit [Fact] and [Theory] runtime",
-            "Action execution",
+            "Effect execution host",
             "Artifact generation and execution",
             "Visionary code editor/source workspace",
         ];
+    }
+
+    public static (string jsonPath, string textPath) WriteEffectRoutingManifest(
+        string outputDirectory,
+        PresenterNavigationState navigationState,
+        PresenterProofOptions? proofOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(navigationState);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "oblivion-card-effect-routing-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "oblivion-card-effect-routing-manifest.txt");
+
+        IReadOnlyList<OblivionCard> cards = CreateAllCards(proofOptions)
+            .OrderBy(card => card.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+        IReadOnlyList<OblivionBuiltCard> builtCards = cards
+            .Select(card => CardHandlers.BuildCard(card, card.PageId, card.WorkspaceId, navigationState.EffectState))
+            .OrderBy(card => card.SourceCard.Id.Value, StringComparer.Ordinal)
+            .ToArray();
+
+        string[] supportedEffectKinds = Enum.GetValues<OblivionCardEffectKind>()
+            .Select(kind => kind.ToString())
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] deferredEffectKinds = supportedEffectKinds
+            .Where(kind => !string.Equals(kind, nameof(OblivionCardEffectKind.Custom), StringComparison.Ordinal))
+            .ToArray();
+        string[] handlersWithActions = builtCards
+            .Where(card => card.RuntimeModel.Actions.Count > 0)
+            .GroupBy(card => card.SourceCard.Kind)
+            .Select(group =>
+            {
+                string kind = OblivionWorkspaceValidator.GetCardKindValue(group.Key);
+                string actions = string.Join(
+                    ",",
+                    group.SelectMany(card => card.RuntimeModel.Actions)
+                        .Select(action => action.Id)
+                        .Distinct(StringComparer.Ordinal)
+                        .OrderBy(id => id, StringComparer.Ordinal));
+                return $"{kind}:{actions}";
+            })
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] deferredWork =
+        [
+            "Dominatus-backed effect execution host",
+            "Roslyn compilation and execution",
+            "xUnit [Fact] and [Theory] runtime",
+            "Real artifact opening/export",
+            "UI action hit regions for inspector action controls",
+            "Visionary code editor/source workspace",
+        ];
+
+        var manifest = new
+        {
+            milestone = "M12f",
+            kind = "oblivion-card-effect-routing",
+            actionRoutingEnabled = true,
+            effectRouterEnabled = true,
+            effectsExecutable = false,
+            actionsExecutable = false,
+            roslynEnabled = false,
+            xunitEnabled = false,
+            visionaryImplemented = false,
+            supportedEffectKinds,
+            deferredEffectKinds,
+            handlersWithActions,
+            deferredWork,
+        };
+
+        string json = JsonSerializer.Serialize(
+            manifest,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+
+        string[] textLines =
+        [
+            "milestone=M12f",
+            "kind=oblivion-card-effect-routing",
+            "actionRoutingEnabled=true",
+            "effectRouterEnabled=true",
+            "effectsExecutable=false",
+            "actionsExecutable=false",
+            "roslynEnabled=false",
+            "xunitEnabled=false",
+            "visionaryImplemented=false",
+            $"supportedEffectKinds={string.Join(",", supportedEffectKinds)}",
+            $"deferredEffectKinds={string.Join(",", deferredEffectKinds)}",
+            $"handlersWithActions={string.Join(",", handlersWithActions)}",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+        ];
+
+        File.WriteAllText(jsonPath, json);
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
     }
 
     public static (string jsonPath, string textPath) WriteMarkdownRenderingManifest(
@@ -943,7 +1083,7 @@ public static class OblivionWorkbenchCatalog
             .OrderBy(card => card.Id.Value, StringComparer.Ordinal)
             .ToArray();
         IReadOnlyList<OblivionBuiltCard> builtCards = cards
-            .Select(card => CardHandlers.BuildCard(card, card.PageId, card.WorkspaceId))
+            .Select(card => CardHandlers.BuildCard(card, card.PageId, card.WorkspaceId, OblivionCardEffectState.Empty))
             .OrderBy(card => card.SourceCard.Id.Value, StringComparer.Ordinal)
             .ToArray();
         string[] handlerKinds = CardHandlers.RegisteredKinds

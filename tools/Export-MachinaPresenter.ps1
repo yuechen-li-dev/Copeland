@@ -8,6 +8,7 @@ param(
     [string]$SelectedSection,
     [string]$SelectedTab,
     [string]$SelectedCard,
+    [string]$InvokeAction,
     [string]$NavigationPage,
     [string]$ScrollPage,
     [ValidateSet("Debug", "Release")]
@@ -89,6 +90,12 @@ if (-not [string]::IsNullOrWhiteSpace($SelectedCard))
 {
     $arguments += "--selected-card"
     $arguments += $SelectedCard
+}
+
+if (-not [string]::IsNullOrWhiteSpace($InvokeAction))
+{
+    $arguments += "--invoke-action"
+    $arguments += $InvokeAction
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ScrollPage))

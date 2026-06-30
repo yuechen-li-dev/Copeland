@@ -14,6 +14,8 @@ The goal is narrow:
 
 M12e keeps that docs dogfood path intact and routes those generated doc cards through the same note-card handler contract as persisted Markdown notes.
 
+M12f keeps the same docs dogfood cards and adds deferred note-card actions plus routed deferred effect results in the inspector. Existing docs still do not execute anything.
+
 M12d does not add a Markdown editor, file watcher, Roslyn execution, xUnit execution, Visionary, or single-file Markdown import/export.
 
 ## Why dogfood existing docs

@@ -31,18 +31,110 @@ public sealed record OblivionCardArtifactRef(
     string? Path,
     bool Generated);
 
+public enum OblivionCardActionAvailability
+{
+    Enabled,
+    Disabled,
+    Deferred,
+}
+
+public enum OblivionCardEffectKind
+{
+    None,
+    RefreshMarkdown,
+    OpenSource,
+    CopySourcePath,
+    OpenArtifact,
+    RunCodeFact,
+    RunCodeTheory,
+    ExportCard,
+    RenderPreview,
+    Custom,
+}
+
 public sealed record OblivionCardActionDescriptor(
     string Id,
     string Label,
     bool Enabled,
     string Intent,
-    bool RequiresEffect);
+    bool RequiresEffect,
+    OblivionCardActionAvailability Availability,
+    OblivionCardEffectKind EffectKind);
+
+public sealed record OblivionCardActionInvocation(
+    OblivionCardId CardId,
+    string ActionId,
+    string PageId,
+    string? SourcePath);
 
 public sealed record OblivionCardEffectRequest(
-    string Id,
-    string Kind,
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionCardEffectKind Kind,
     string Intent,
-    bool Deferred);
+    IReadOnlyDictionary<string, string> Properties);
+
+public enum OblivionCardEffectStatus
+{
+    Deferred,
+    Rejected,
+    Completed,
+}
+
+public sealed record OblivionCardEffectResult(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionCardEffectKind Kind,
+    OblivionCardEffectStatus Status,
+    string Message,
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
+    IReadOnlyList<OblivionCardArtifactRef> Artifacts);
+
+public sealed record OblivionCardEffectState(
+    IReadOnlyDictionary<string, OblivionCardEffectRequest> LastRequestByCardId,
+    IReadOnlyDictionary<string, OblivionCardEffectResult> LastResultByCardId)
+{
+    public static OblivionCardEffectState Empty { get; } = new(
+        new Dictionary<string, OblivionCardEffectRequest>(StringComparer.Ordinal),
+        new Dictionary<string, OblivionCardEffectResult>(StringComparer.Ordinal));
+
+    public OblivionCardEffectRequest? GetLastRequest(OblivionCardId cardId)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+
+        return LastRequestByCardId.TryGetValue(cardId.Value, out OblivionCardEffectRequest? request)
+            ? request
+            : null;
+    }
+
+    public OblivionCardEffectResult? GetLastResult(OblivionCardId cardId)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+
+        return LastResultByCardId.TryGetValue(cardId.Value, out OblivionCardEffectResult? result)
+            ? result
+            : null;
+    }
+
+    public OblivionCardEffectState WithOutcome(
+        OblivionCardEffectRequest request,
+        OblivionCardEffectResult result)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(result);
+
+        Dictionary<string, OblivionCardEffectRequest> requests = new(LastRequestByCardId, StringComparer.Ordinal)
+        {
+            [request.CardId.Value] = request,
+        };
+        Dictionary<string, OblivionCardEffectResult> results = new(LastResultByCardId, StringComparer.Ordinal)
+        {
+            [result.CardId.Value] = result,
+        };
+
+        return new OblivionCardEffectState(requests, results);
+    }
+}
 
 public sealed record OblivionCardLocalState(
     OblivionCardId CardId,
@@ -88,7 +180,9 @@ public static class OblivionCardLocalStateCatalog
 public sealed record OblivionCardContext(
     string? PageId,
     string? WorkspaceId,
-    string? SourcePath);
+    string? SourcePath,
+    OblivionCardEffectRequest? LastEffectRequest,
+    OblivionCardEffectResult? LastEffectResult);
 
 public sealed record OblivionCardViewContext(
     OblivionCardLocalState LocalState);
@@ -99,6 +193,12 @@ public sealed record OblivionCardInspectorContext(
 public sealed record OblivionCardActionContext(
     OblivionCardLocalState LocalState);
 
+public sealed record OblivionCardEffectContext(
+    string PageId,
+    string? WorkspaceId,
+    string? SourcePath,
+    OblivionCardLocalState LocalState);
+
 public sealed record OblivionCardRuntimeModel(
     OblivionCardIdentity Identity,
     OblivionCardStatus Status,
@@ -106,7 +206,8 @@ public sealed record OblivionCardRuntimeModel(
     IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
     IReadOnlyList<OblivionCardArtifactRef> Artifacts,
     IReadOnlyList<OblivionCardActionDescriptor> Actions,
-    IReadOnlyList<OblivionCardEffectRequest> EffectRequests,
+    OblivionCardEffectRequest? LastEffectRequest,
+    OblivionCardEffectResult? LastEffectResult,
     OblivionCard SourceCard,
     object? KindModel);
 
@@ -175,6 +276,11 @@ public interface IOblivionCardHandler
     IReadOnlyList<OblivionCardActionDescriptor> GetActions(
         OblivionCardRuntimeModel model,
         OblivionCardActionContext context);
+
+    OblivionCardEffectRequest? CreateEffectRequest(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionInvocation invocation,
+        OblivionCardEffectContext context);
 }
 
 public static class OblivionCardLabels

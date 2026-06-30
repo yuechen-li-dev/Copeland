@@ -94,6 +94,12 @@ Effect requests are also metadata only in M12e.
 
 They are not executable, do not run Roslyn, do not run xUnit, and do not dispatch through Dominatus yet.
 
+M12f follows by turning that metadata-only idea into an explicit routing skeleton:
+
+`card action -> effect request -> shell router -> deferred effect result`
+
+That routing still does not execute Roslyn, xUnit, artifact opening/export, or Visionary behavior. It only formalizes the seam.
+
 ## Diagnostics and artifacts
 
 Diagnostics are card-local first and aggregate second.

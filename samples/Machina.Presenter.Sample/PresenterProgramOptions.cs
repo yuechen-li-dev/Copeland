@@ -17,6 +17,7 @@ public sealed record PresenterProgramOptions(
         string? selectedTabId = null;
         string? selectedNavigationPageId = null;
         string? selectedCardId = null;
+        string? invokeActionId = null;
         Dictionary<string, double>? scrollOffsetByPageId = null;
 
         for (int index = 0; index < args.Count; index++)
@@ -87,6 +88,13 @@ public sealed record PresenterProgramOptions(
                 continue;
             }
 
+            if (arg == "--invoke-action" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                invokeActionId = args[++index];
+                continue;
+            }
+
             if (arg == "--scroll-page" && index + 1 < args.Count)
             {
                 includeNavigationShell = true;
@@ -119,6 +127,7 @@ public sealed record PresenterProgramOptions(
                 selectedTabId,
                 selectedNavigationPageId,
                 selectedCardId,
+                invokeActionId,
                 scrollOffsetByPageId,
                 includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null));
     }

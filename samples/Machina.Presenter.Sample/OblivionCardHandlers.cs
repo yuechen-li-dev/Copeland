@@ -3,8 +3,11 @@ namespace Machina.Presenter.Sample;
 public sealed class OblivionCardHandlerRegistry
 {
     private readonly IReadOnlyDictionary<OblivionCardKind, IOblivionCardHandler> _handlers;
+    private readonly OblivionCardEffectRouter _router;
 
-    public OblivionCardHandlerRegistry(IEnumerable<IOblivionCardHandler> handlers)
+    public OblivionCardHandlerRegistry(
+        IEnumerable<IOblivionCardHandler> handlers,
+        OblivionCardEffectRouter? router = null)
     {
         ArgumentNullException.ThrowIfNull(handlers);
 
@@ -17,6 +20,7 @@ public sealed class OblivionCardHandlerRegistry
         }
 
         _handlers = map;
+        _router = router ?? new OblivionCardEffectRouter();
     }
 
     public IReadOnlyList<OblivionCardKind> RegisteredKinds =>
@@ -28,20 +32,10 @@ public sealed class OblivionCardHandlerRegistry
         [
             new OblivionNoteCardHandler(),
             new OblivionStatusCardHandler(),
-            new OblivionDeferredPlaceholderCardHandler(
-                OblivionCardKind.UiPreview,
-                "UI preview rendering remains localized placeholder behavior in M12e."),
-            new OblivionDeferredPlaceholderCardHandler(
-                OblivionCardKind.Artifact,
-                "Artifact cards remain metadata-only in M12e."),
-            new OblivionDeferredPlaceholderCardHandler(
-                OblivionCardKind.CodeFact,
-                "CodeFact execution is deferred until a future Dominatus-routed milestone.",
-                actionsRequireEffect: true),
-            new OblivionDeferredPlaceholderCardHandler(
-                OblivionCardKind.CodeTheory,
-                "CodeTheory execution is deferred until a future Dominatus-routed milestone.",
-                actionsRequireEffect: true),
+            new OblivionUiPreviewCardHandler(),
+            new OblivionArtifactCardHandler(),
+            new OblivionCodeFactCardHandler(),
+            new OblivionCodeTheoryCardHandler(),
         ]);
     }
 
@@ -58,14 +52,18 @@ public sealed class OblivionCardHandlerRegistry
     public OblivionBuiltCard BuildCard(
         OblivionCard card,
         string? pageId = null,
-        string? workspaceId = null)
+        string? workspaceId = null,
+        OblivionCardEffectState? effectState = null)
     {
         ArgumentNullException.ThrowIfNull(card);
 
+        OblivionCardEffectState effectiveEffectState = effectState ?? OblivionCardEffectState.Empty;
         OblivionCardContext cardContext = new(
             pageId ?? card.PageId,
             workspaceId ?? card.WorkspaceId,
-            card.SourcePath);
+            card.SourcePath,
+            effectiveEffectState.GetLastRequest(card.Id),
+            effectiveEffectState.GetLastResult(card.Id));
         IOblivionCardHandler handler = GetHandler(card.Kind);
         OblivionCardRuntimeModel model = handler.BuildModel(card, cardContext);
         OblivionCompactCardView compactView = handler.BuildCompactView(model, new OblivionCardViewContext(model.LocalState));
@@ -73,11 +71,48 @@ public sealed class OblivionCardHandlerRegistry
 
         return new OblivionBuiltCard(card, model, compactView, inspectorView);
     }
+
+    public OblivionCardEffectOutcome? InvokeAction(
+        OblivionCard card,
+        string pageId,
+        string actionId,
+        string? workspaceId = null,
+        OblivionCardEffectState? effectState = null)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentException.ThrowIfNullOrWhiteSpace(pageId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(actionId);
+
+        OblivionBuiltCard builtCard = BuildCard(card, pageId, workspaceId, effectState);
+        IOblivionCardHandler handler = GetHandler(card.Kind);
+        OblivionCardActionInvocation invocation = new(
+            card.Id,
+            actionId,
+            pageId,
+            card.SourcePath);
+        OblivionCardEffectContext context = new(
+            pageId,
+            workspaceId ?? card.WorkspaceId,
+            card.SourcePath,
+            builtCard.RuntimeModel.LocalState);
+        OblivionCardEffectRequest? request = handler.CreateEffectRequest(
+            builtCard.RuntimeModel,
+            invocation,
+            context);
+        if (request is null)
+        {
+            return null;
+        }
+
+        OblivionCardEffectResult result = _router.Route(request);
+        return new OblivionCardEffectOutcome(request, result);
+    }
 }
 
 public abstract class OblivionCardHandlerBase : IOblivionCardHandler
 {
-    protected const string DeferredExecutionMessage = "Actions and effect requests remain deferred metadata only in M12e.";
+    protected const string DeferredExecutionMessage = "Effect routing skeleton only.";
+    protected const string ExecutionDeferredMessage = "Execution deferred to M13+.";
 
     public abstract OblivionCardKind Kind { get; }
 
@@ -103,17 +138,16 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
             diagnostics,
             artifacts,
             [],
-            [],
+            context.LastEffectRequest,
+            context.LastEffectResult,
             card,
             BuildKindModel(card, context));
 
         IReadOnlyList<OblivionCardActionDescriptor> actions = GetActions(seed, new OblivionCardActionContext(localState));
-        IReadOnlyList<OblivionCardEffectRequest> effectRequests = BuildEffectRequests(actions);
 
         return seed with
         {
             Actions = actions,
-            EffectRequests = effectRequests,
         };
     }
 
@@ -127,8 +161,34 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                 action.Label,
                 action.Enabled,
                 BuildActionIntent(model.SourceCard, action),
-                ActionRequiresEffect(model.SourceCard, action)))
+                ActionRequiresEffect(model.SourceCard, action),
+                action.Enabled ? OblivionCardActionAvailability.Enabled : OblivionCardActionAvailability.Disabled,
+                ResolveEffectKind(model.SourceCard, action)))
             .ToArray();
+    }
+
+    public virtual OblivionCardEffectRequest? CreateEffectRequest(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionInvocation invocation,
+        OblivionCardEffectContext context)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(invocation);
+        ArgumentNullException.ThrowIfNull(context);
+
+        OblivionCardActionDescriptor? action = model.Actions.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, invocation.ActionId, StringComparison.Ordinal));
+        if (action is null || !action.RequiresEffect)
+        {
+            return null;
+        }
+
+        return new OblivionCardEffectRequest(
+            BuildRequestId(invocation, action.EffectKind),
+            invocation.CardId,
+            action.EffectKind,
+            action.Intent,
+            BuildRequestProperties(model, invocation, action, context));
     }
 
     public abstract OblivionCompactCardView BuildCompactView(
@@ -208,10 +268,17 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
         return false;
     }
 
+    protected virtual OblivionCardEffectKind ResolveEffectKind(
+        OblivionCard card,
+        OblivionCardAction action)
+    {
+        return OblivionCardEffectKind.None;
+    }
+
     protected static IReadOnlyList<string> BuildActionBadgeLabels(OblivionCardRuntimeModel model)
     {
         return model.Actions
-            .Select(action => $"{action.Label} {(action.Enabled ? "ready" : "disabled")}")
+            .Select(action => $"{action.Label} {FormatActionBadgeSuffix(action.Availability)}")
             .ToArray();
     }
 
@@ -300,10 +367,10 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                 Height: 236),
             new OblivionInspectorSectionView(
                 $"{card.Id.Value}.actions",
-                "Actions metadata",
+                "Available actions",
                 [],
                 new OblivionInspectorTextBodyContent(BuildActionLines(model.Actions)),
-                Height: 212),
+                Height: 236),
             new OblivionInspectorSectionView(
                 $"{card.Id.Value}.artifacts",
                 "Artifacts metadata",
@@ -312,24 +379,11 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                 Height: 236),
             new OblivionInspectorSectionView(
                 $"{card.Id.Value}.effects",
-                "Execution result",
+                "Effect routing",
                 [],
                 new OblivionInspectorTextBodyContent(BuildEffectLines(model)),
-                Height: 212),
+                Height: 284),
         ];
-    }
-
-    protected static IReadOnlyList<OblivionCardEffectRequest> BuildEffectRequests(
-        IReadOnlyList<OblivionCardActionDescriptor> actions)
-    {
-        return actions
-            .Where(action => action.RequiresEffect)
-            .Select(action => new OblivionCardEffectRequest(
-                $"{action.Id}.effect",
-                "deferred",
-                action.Intent,
-                Deferred: true))
-            .ToArray();
     }
 
     protected static string FormatTags(IReadOnlyList<string> tags)
@@ -339,11 +393,45 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
             : string.Join(", ", tags);
     }
 
+    protected static string BuildRequestId(
+        OblivionCardActionInvocation invocation,
+        OblivionCardEffectKind effectKind)
+    {
+        return $"{invocation.PageId}:{invocation.CardId.Value}:{invocation.ActionId}:{effectKind}";
+    }
+
+    protected static IReadOnlyDictionary<string, string> BuildRequestProperties(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionInvocation invocation,
+        OblivionCardActionDescriptor action,
+        OblivionCardEffectContext context)
+    {
+        Dictionary<string, string> properties = new(StringComparer.Ordinal)
+        {
+            ["actionId"] = invocation.ActionId,
+            ["cardKind"] = model.Identity.Kind.ToString(),
+            ["pageId"] = context.PageId,
+            ["intent"] = action.Intent,
+        };
+
+        if (!string.IsNullOrWhiteSpace(context.SourcePath))
+        {
+            properties["sourcePath"] = context.SourcePath!;
+        }
+
+        if (!string.IsNullOrWhiteSpace(context.WorkspaceId))
+        {
+            properties["workspaceId"] = context.WorkspaceId!;
+        }
+
+        return properties;
+    }
+
     private static string BuildSummaryLine(OblivionCard card)
     {
         return card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
-            ? "The card owns Markdown model, preview, diagnostics, and inspector rendering while the shell stays responsible for navigation and layout."
-            : "The card owns its localized model, diagnostics, artifacts, actions, and inspector rendering while the shell stays responsible for navigation and layout.";
+            ? "The card owns Markdown model, preview, diagnostics, actions, and effect request creation while the shell owns routing and storage."
+            : "The card owns its localized model, diagnostics, artifacts, actions, and effect request creation while the shell owns routing and storage.";
     }
 
     private static IReadOnlyList<string> BuildDiagnosticLines(
@@ -370,13 +458,14 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
     {
         if (actions.Count == 0)
         {
-            return ["No actions declared on this card.", DeferredExecutionMessage];
+            return ["No actions declared on this card.", DeferredExecutionMessage, ExecutionDeferredMessage];
         }
 
         return
         [
             DeferredExecutionMessage,
-            .. actions.Select(action => $"{action.Id} | {action.Label} | {(action.Enabled ? "enabled metadata" : "disabled metadata")} | intent {action.Intent} | effect {action.RequiresEffect.ToString().ToLowerInvariant()}"),
+            ExecutionDeferredMessage,
+            .. actions.Select(action => $"{action.Id} | {action.Label} | {FormatAvailability(action.Availability)} | intent {action.Intent} | effect {action.EffectKind}"),
         ];
     }
 
@@ -394,22 +483,47 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
 
     private static IReadOnlyList<string> BuildEffectLines(OblivionCardRuntimeModel model)
     {
-        if (model.EffectRequests.Count == 0)
+        if (model.LastEffectRequest is null || model.LastEffectResult is null)
         {
             return
             [
-                "Not executed in M11g.",
-                "No future effect requests declared on this card.",
                 DeferredExecutionMessage,
+                ExecutionDeferredMessage,
+                "No routed effect request has been recorded for this card yet.",
             ];
         }
 
         return
         [
-            "Not executed in M11g.",
-            "Effect requests are declared but not executable in M12e.",
-            .. model.EffectRequests.Select(effect => $"{effect.Id} | {effect.Kind} | intent {effect.Intent} | deferred {effect.Deferred.ToString().ToLowerInvariant()}"),
+            DeferredExecutionMessage,
+            ExecutionDeferredMessage,
+            $"Last request: {model.LastEffectRequest.RequestId} | {model.LastEffectRequest.Kind} | intent {model.LastEffectRequest.Intent}",
+            $"Last result: {model.LastEffectResult.Kind} -> {model.LastEffectResult.Status} | {model.LastEffectResult.Message}",
+            .. model.LastEffectResult.Diagnostics.Select(diagnostic =>
+                $"Diagnostic: {diagnostic.Code} | {diagnostic.Severity} | {diagnostic.Message}"),
         ];
+    }
+
+    private static string FormatAvailability(OblivionCardActionAvailability availability)
+    {
+        return availability switch
+        {
+            OblivionCardActionAvailability.Enabled => "enabled metadata",
+            OblivionCardActionAvailability.Disabled => "disabled metadata",
+            OblivionCardActionAvailability.Deferred => "deferred routing",
+            _ => "unknown",
+        };
+    }
+
+    private static string FormatActionBadgeSuffix(OblivionCardActionAvailability availability)
+    {
+        return availability switch
+        {
+            OblivionCardActionAvailability.Enabled => "ready",
+            OblivionCardActionAvailability.Disabled => "disabled",
+            OblivionCardActionAvailability.Deferred => "deferred",
+            _ => "unknown",
+        };
     }
 
     private static OblivionCardDiagnosticSeverity MapSeverity(OblivionWorkspaceDiagnosticSeverity severity)
@@ -426,6 +540,45 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
 public sealed class OblivionNoteCardHandler : OblivionCardHandlerBase
 {
     public override OblivionCardKind Kind => OblivionCardKind.Note;
+
+    public override IReadOnlyList<OblivionCardActionDescriptor> GetActions(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionContext context)
+    {
+        List<OblivionCardActionDescriptor> actions =
+        [
+            new(
+                "refresh-markdown",
+                "Refresh markdown",
+                Enabled: false,
+                Intent: "Note:refresh-markdown",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.RefreshMarkdown),
+        ];
+
+        if (!string.IsNullOrWhiteSpace(model.Identity.SourcePath))
+        {
+            actions.Add(new OblivionCardActionDescriptor(
+                "open-source",
+                "Open source",
+                Enabled: false,
+                Intent: "Note:open-source",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.OpenSource));
+            actions.Add(new OblivionCardActionDescriptor(
+                "copy-source-path",
+                "Copy source path",
+                Enabled: false,
+                Intent: "Note:copy-source-path",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.CopySourcePath));
+        }
+
+        return actions;
+    }
 
     protected override object? BuildKindModel(
         OblivionCard card,
@@ -454,7 +607,7 @@ public sealed class OblivionNoteCardHandler : OblivionCardHandlerBase
             markdownBody
                 ? new OblivionCompactMarkdownBodyContent(card.Body)
                 : new OblivionCompactPlainBodyContent(card.BodyLines),
-            BuildActionBadgeLabels(model),
+            [],
             BuildArtifactBadgeLabels(model),
             PreferredHeight: 168);
     }
@@ -490,7 +643,7 @@ public sealed class OblivionStatusCardHandler : OblivionCardHandlerBase
             BuildMetaBadges(model, markdownBody: false),
             card.Tags,
             new OblivionCompactPlainBodyContent(card.BodyLines),
-            BuildActionBadgeLabels(model),
+            [],
             BuildArtifactBadgeLabels(model),
             PreferredHeight: 168);
     }
@@ -499,37 +652,25 @@ public sealed class OblivionStatusCardHandler : OblivionCardHandlerBase
 public sealed record OblivionStatusKindModel(
     IReadOnlyList<string> Lines);
 
-public sealed class OblivionDeferredPlaceholderCardHandler : OblivionCardHandlerBase
+public sealed class OblivionUiPreviewCardHandler : OblivionCardHandlerBase
 {
-    private readonly string _deferredMessage;
-    private readonly bool _actionsRequireEffect;
+    public override OblivionCardKind Kind => OblivionCardKind.UiPreview;
 
-    public OblivionDeferredPlaceholderCardHandler(
-        OblivionCardKind kind,
-        string deferredMessage,
-        bool actionsRequireEffect = false)
+    public override IReadOnlyList<OblivionCardActionDescriptor> GetActions(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionContext context)
     {
-        Kind = kind;
-        _deferredMessage = deferredMessage;
-        _actionsRequireEffect = actionsRequireEffect;
-    }
-
-    public override OblivionCardKind Kind { get; }
-
-    protected override object? BuildKindModel(
-        OblivionCard card,
-        OblivionCardContext context)
-    {
-        return new OblivionDeferredPlaceholderKindModel(
-            _deferredMessage,
-            _actionsRequireEffect);
-    }
-
-    protected override bool ActionRequiresEffect(
-        OblivionCard card,
-        OblivionCardAction action)
-    {
-        return _actionsRequireEffect;
+        return
+        [
+            new OblivionCardActionDescriptor(
+                "render-preview",
+                "Render preview",
+                Enabled: false,
+                Intent: "UiPreview:render-preview",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.RenderPreview),
+        ];
     }
 
     public override OblivionCompactCardView BuildCompactView(
@@ -545,48 +686,159 @@ public sealed class OblivionDeferredPlaceholderCardHandler : OblivionCardHandler
             BuildMetaBadges(model, markdownBody: false),
             card.Tags,
             new OblivionCompactPlainBodyContent(card.BodyLines),
-            BuildActionBadgeLabels(model),
+            [],
             BuildArtifactBadgeLabels(model),
-            DeterminePreferredHeight(card));
-    }
-
-    public override OblivionInspectorCardView BuildInspectorView(
-        OblivionCardRuntimeModel model,
-        OblivionCardInspectorContext context)
-    {
-        IReadOnlyList<OblivionInspectorSectionView> sections = BuildStandardInspectorSections(model);
-        sections = sections
-            .Select(section => section.Id.EndsWith(".effects", StringComparison.Ordinal)
-                ? section with
-                {
-                    Body = new OblivionInspectorTextBodyContent(
-                    [
-                        _deferredMessage,
-                        .. ((OblivionInspectorTextBodyContent)section.Body).Lines,
-                    ]),
-                }
-                : section)
-            .ToArray();
-
-        return new OblivionInspectorCardView(model.Identity.Id.Value, sections, 1760);
-    }
-
-    private static double DeterminePreferredHeight(OblivionCard card)
-    {
-        return card.Kind switch
-        {
-            OblivionCardKind.CodeFact => 248,
-            OblivionCardKind.CodeTheory => 312,
-            OblivionCardKind.UiPreview => 184,
-            OblivionCardKind.Artifact when card.Artifacts.Count > 1 => 196,
-            _ => 168,
-        };
+            184);
     }
 }
 
-public sealed record OblivionDeferredPlaceholderKindModel(
-    string DeferredMessage,
-    bool ActionsRequireEffect);
+public sealed class OblivionArtifactCardHandler : OblivionCardHandlerBase
+{
+    public override OblivionCardKind Kind => OblivionCardKind.Artifact;
+
+    public override IReadOnlyList<OblivionCardActionDescriptor> GetActions(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionContext context)
+    {
+        return
+        [
+            new OblivionCardActionDescriptor(
+                "open-artifact",
+                "Open artifact",
+                Enabled: false,
+                Intent: "Artifact:open-artifact",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.OpenArtifact),
+            new OblivionCardActionDescriptor(
+                "export",
+                "Export card",
+                Enabled: false,
+                Intent: "Artifact:export",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.ExportCard),
+        ];
+    }
+
+    public override OblivionCompactCardView BuildCompactView(
+        OblivionCardRuntimeModel model,
+        OblivionCardViewContext context)
+    {
+        OblivionCard card = model.SourceCard;
+
+        return new OblivionCompactCardView(
+            card.Id.Value,
+            card.Title,
+            card.Subtitle,
+            BuildMetaBadges(model, markdownBody: false),
+            card.Tags,
+            new OblivionCompactPlainBodyContent(card.BodyLines),
+            [],
+            BuildArtifactBadgeLabels(model),
+            card.Artifacts.Count > 1 ? 196 : 168);
+    }
+}
+
+public sealed class OblivionCodeFactCardHandler : OblivionCardHandlerBase
+{
+    public override OblivionCardKind Kind => OblivionCardKind.CodeFact;
+
+    public override IReadOnlyList<OblivionCardActionDescriptor> GetActions(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionContext context)
+    {
+        return
+        [
+            new OblivionCardActionDescriptor(
+                "run",
+                "Run fact",
+                Enabled: false,
+                Intent: "CodeFact:run",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.RunCodeFact),
+            new OblivionCardActionDescriptor(
+                "inspect-source",
+                "Inspect source",
+                Enabled: false,
+                Intent: "CodeFact:inspect-source",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.OpenSource),
+        ];
+    }
+
+    public override OblivionCompactCardView BuildCompactView(
+        OblivionCardRuntimeModel model,
+        OblivionCardViewContext context)
+    {
+        OblivionCard card = model.SourceCard;
+
+        return new OblivionCompactCardView(
+            card.Id.Value,
+            card.Title,
+            card.Subtitle,
+            BuildMetaBadges(model, markdownBody: false),
+            card.Tags,
+            new OblivionCompactPlainBodyContent(card.BodyLines),
+            [],
+            BuildArtifactBadgeLabels(model),
+            248);
+    }
+}
+
+public sealed class OblivionCodeTheoryCardHandler : OblivionCardHandlerBase
+{
+    public override OblivionCardKind Kind => OblivionCardKind.CodeTheory;
+
+    public override IReadOnlyList<OblivionCardActionDescriptor> GetActions(
+        OblivionCardRuntimeModel model,
+        OblivionCardActionContext context)
+    {
+        return
+        [
+            new OblivionCardActionDescriptor(
+                "run-theory",
+                "Run theory",
+                Enabled: false,
+                Intent: "CodeTheory:run-theory",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.RunCodeTheory),
+            new OblivionCardActionDescriptor(
+                "inspect-source",
+                "Inspect source",
+                Enabled: false,
+                Intent: "CodeTheory:inspect-source",
+                RequiresEffect: true,
+                Availability: OblivionCardActionAvailability.Deferred,
+                EffectKind: OblivionCardEffectKind.OpenSource),
+        ];
+    }
+
+    public override OblivionCompactCardView BuildCompactView(
+        OblivionCardRuntimeModel model,
+        OblivionCardViewContext context)
+    {
+        OblivionCard card = model.SourceCard;
+
+        return new OblivionCompactCardView(
+            card.Id.Value,
+            card.Title,
+            card.Subtitle,
+            BuildMetaBadges(model, markdownBody: false),
+            card.Tags,
+            new OblivionCompactPlainBodyContent(card.BodyLines),
+            [],
+            BuildArtifactBadgeLabels(model),
+            312);
+    }
+}
+
+public sealed record OblivionCardEffectOutcome(
+    OblivionCardEffectRequest Request,
+    OblivionCardEffectResult Result);
 
 public sealed class OblivionUnknownCardHandler : OblivionCardHandlerBase
 {
@@ -629,7 +881,7 @@ public sealed class OblivionUnknownCardHandler : OblivionCardHandlerBase
                 $"Kind: {_requestedKind}",
                 "Rendering stayed bounded.",
             ]),
-            BuildActionBadgeLabels(model),
+            [],
             BuildArtifactBadgeLabels(model),
             PreferredHeight: 168);
     }

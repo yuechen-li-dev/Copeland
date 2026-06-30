@@ -85,6 +85,38 @@ public static class PresenterNavigationDispatch
             return state.ClearSelectedCard(clearPageId);
         }
 
+        if (PresenterNavigationActions.TryParseInvokeOblivionCardAction(actionId, out string actionPageId, out string actionCardId, out string cardActionId))
+        {
+            if (!model.ContainsPage(actionPageId))
+            {
+                return state;
+            }
+
+            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(actionPageId, proofOptions);
+            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(actionPageId, actionCardId, proofOptions);
+            OblivionCard? card = cards.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id.Value, resolvedCardId, StringComparison.Ordinal));
+            if (card is null)
+            {
+                return state;
+            }
+
+            OblivionCardEffectOutcome? outcome = OblivionWorkbenchCatalog.InvokeCardAction(
+                actionPageId,
+                resolvedCardId,
+                cardActionId,
+                proofOptions,
+                state.EffectState);
+            if (outcome is null)
+            {
+                return state;
+            }
+
+            return state
+                .WithSelectedCard(actionPageId, resolvedCardId)
+                .WithEffectOutcome(outcome.Request, outcome.Result);
+        }
+
         return state;
     }
 }

@@ -4,7 +4,8 @@ public sealed record PresenterNavigationState(
     string SelectedSectionId,
     IReadOnlyDictionary<string, string> SelectedTabBySectionId,
     IReadOnlyDictionary<string, double> ScrollOffsetByPageId,
-    IReadOnlyDictionary<string, string?> SelectedCardByPageId)
+    IReadOnlyDictionary<string, string?> SelectedCardByPageId,
+    OblivionCardEffectState EffectState)
 {
     public static PresenterNavigationState CreateDefault(PresenterNavigationModel model)
     {
@@ -20,7 +21,8 @@ public sealed record PresenterNavigationState(
             SelectedSectionId: model.Sections[0].Id,
             SelectedTabBySectionId: selectedTabs,
             ScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal),
-            SelectedCardByPageId: new Dictionary<string, string?>(StringComparer.Ordinal));
+            SelectedCardByPageId: new Dictionary<string, string?>(StringComparer.Ordinal),
+            EffectState: OblivionCardEffectState.Empty);
     }
 
     public string GetSelectedTabId(string sectionId, PresenterNavigationModel model)
@@ -134,6 +136,16 @@ public sealed record PresenterNavigationState(
         return this with
         {
             SelectedCardByPageId = selectedCards,
+        };
+    }
+
+    public PresenterNavigationState WithEffectOutcome(
+        OblivionCardEffectRequest request,
+        OblivionCardEffectResult result)
+    {
+        return this with
+        {
+            EffectState = EffectState.WithOutcome(request, result),
         };
     }
 }

@@ -150,7 +150,7 @@ public sealed class OblivionMarkdownRenderingM12cTests
         PresenterPageRenderResult page = RenderExecutionRoadmapPage("execution-deferred");
         string text = PageText(page);
 
-        Assert.Contains("Not executed in M11g.", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing skeleton only.", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Run fact ready", text, StringComparison.Ordinal);
     }
 

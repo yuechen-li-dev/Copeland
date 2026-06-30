@@ -1177,3 +1177,22 @@ Still deferred in M12e:
 - Dominatus effect execution
 - Markdown editor and file watcher
 - Visionary code editor/source workspace
+
+## M12f update
+
+M12f adds the action/effect routing skeleton without adding execution.
+
+- card actions now route through an explicit invocation contract
+- handlers now create localized effect requests
+- the shell/router now stores the last request/result per card id
+- known effects route to deterministic deferred results
+- unknown/custom effects route to deterministic rejected results
+- the inspector now shows available actions plus the latest routed request/result state
+
+Still deferred in M12f:
+
+- Roslyn execution
+- xUnit execution
+- Dominatus-backed real effect execution
+- artifact opening/export side effects
+- Visionary

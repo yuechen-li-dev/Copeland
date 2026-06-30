@@ -1,0 +1,73 @@
+{
+  "milestone": "M12d",
+  "kind": "oblivion-docs-dogfood",
+  "markdownFrontend": "Copeland.Markdown",
+  "docsLoaded": 8,
+  "cardsGenerated": 9,
+  "diagnosticsTotal": 0,
+  "unsupportedSyntaxCount": 0,
+  "docs": [
+    {
+      "cardId": "doc-machina-oblivion-phase-closeout-m11g",
+      "sourcePath": "docs/machina-oblivion-phase-closeout-m11g.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Oblivion Phase Closeout M11g"
+    },
+    {
+      "cardId": "doc-machina-oblivion-workspace-persistence-m11d",
+      "sourcePath": "docs/machina-oblivion-workspace-persistence-m11d.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Oblivion Workspace Persistence M11d"
+    },
+    {
+      "cardId": "doc-machina-presenter-card-hardening-m11e",
+      "sourcePath": "docs/machina-presenter-card-hardening-m11e.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Presenter Card Hardening M11e"
+    },
+    {
+      "cardId": "doc-machina-test-suite-topology-m11b",
+      "sourcePath": "docs/machina-test-suite-topology-m11b.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Test Suite Topology M11b"
+    },
+    {
+      "cardId": "doc-machina-presenter-scrollbar-state-machine-m11c",
+      "sourcePath": "docs/machina-presenter-scrollbar-state-machine-m11c.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Presenter Scrollbar State Machine M11c"
+    },
+    {
+      "cardId": "doc-copeland-markdown-frontend-m12a",
+      "sourcePath": "docs/copeland-markdown-frontend-m12a.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Copeland Markdown Frontend M12a"
+    },
+    {
+      "cardId": "doc-machina-oblivion-markdown-body-integration-m12b",
+      "sourcePath": "docs/machina-oblivion-markdown-body-integration-m12b.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Oblivion Markdown Body Integration M12b"
+    },
+    {
+      "cardId": "doc-machina-oblivion-markdown-rendering-m12c",
+      "sourcePath": "docs/machina-oblivion-markdown-rendering-m12c.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Oblivion Markdown Rendering M12c"
+    }
+  ],
+  "editorImplemented": false,
+  "fileWatcherImplemented": false,
+  "roslynEnabled": false,
+  "xunitEnabled": false,
+  "visionaryImplemented": false,
+  "singleFileMarkdownExportImplemented": false,
+  "deferredWork": [
+    "Markdown editor",
+    "File watcher / live editing",
+    "Single-file Markdown export/import pipeline",
+    "Roslyn compilation and execution",
+    "xUnit [Fact] and [Theory] runtime",
+    "Visionary code editor/source workspace"
+  ]
+}

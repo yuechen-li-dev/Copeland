@@ -87,7 +87,7 @@ public sealed class OblivionCardInspectorM11fTests
     {
         PresenterPageRenderResult page = RenderSelectedPage("oblivion-code-fact-card");
 
-        Assert.Contains("Actions metadata", PageText(page), StringComparison.Ordinal);
+        Assert.Contains("Available actions", PageText(page), StringComparison.Ordinal);
         Assert.Contains("oblivion-code-fact-card", PageText(page), StringComparison.Ordinal);
     }
 
@@ -191,7 +191,7 @@ public sealed class OblivionCardInspectorM11fTests
         PresenterPageRenderResult page = RenderSelectedPage("oblivion-code-fact-card");
         string text = PageText(page);
 
-        Assert.Contains("run-fact | Run fact | disabled metadata", text, StringComparison.Ordinal);
+        Assert.Contains("run | Run fact | deferred routing", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -213,8 +213,8 @@ public sealed class OblivionCardInspectorM11fTests
         PresenterPageRenderResult page = RenderSelectedPage("oblivion-code-fact-card");
         string text = PageText(page);
 
-        Assert.Contains("Not executed in M11g.", text, StringComparison.Ordinal);
-        Assert.Contains("Execution result", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing skeleton only.", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -333,7 +333,7 @@ public sealed class OblivionCardInspectorM11fTests
 
             Assert.True(File.Exists(result.OblivionInspectorManifestJsonPath!));
             Assert.True(File.Exists(result.OblivionInspectorManifestTextPath!));
-            Assert.Contains("\"milestone\": \"M11f\"", File.ReadAllText(result.OblivionInspectorManifestJsonPath!), StringComparison.Ordinal);
+            Assert.Contains("\"milestone\": \"M12f\"", File.ReadAllText(result.OblivionInspectorManifestJsonPath!), StringComparison.Ordinal);
         }
         finally
         {
@@ -361,8 +361,8 @@ public sealed class OblivionCardInspectorM11fTests
             OblivionWorkbenchCatalog.GetPageCardsForSelection(OblivionWorkbenchCatalog.CardsPageId),
             card => card.Id.Value == "oblivion-code-fact-card");
 
-        Assert.Contains("Not executed in M11g.", text, StringComparison.Ordinal);
-        Assert.Contains("Execution result", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing skeleton only.", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing", text, StringComparison.Ordinal);
         Assert.Equal(OblivionCardStatus.Deferred, selectedCard.Status);
     }
 

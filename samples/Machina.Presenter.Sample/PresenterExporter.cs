@@ -53,6 +53,8 @@ public static class PresenterExporter
         string? oblivionDocsDogfoodManifestTextPath = null;
         string? oblivionAgenticCardContractManifestJsonPath = null;
         string? oblivionAgenticCardContractManifestTextPath = null;
+        string? oblivionEffectRoutingManifestJsonPath = null;
+        string? oblivionEffectRoutingManifestTextPath = null;
         RasterFrame rasterFrame;
         int width;
         int height;
@@ -61,6 +63,32 @@ public static class PresenterExporter
         {
             PresenterNavigationModel model = PresenterNavigationCatalog.CreateModel();
             PresenterNavigationState navigationState = PresenterNavigationCatalog.CreateState(model, proofOptions, navigationOptions);
+            if (!string.IsNullOrWhiteSpace(navigationOptions.InvokeActionId))
+            {
+                string pageId = navigationOptions.SelectedPageId
+                    ?? model.FindTab(
+                        navigationState.SelectedSectionId,
+                        navigationState.GetSelectedTabId(navigationState.SelectedSectionId, model))?.PageId
+                    ?? throw new InvalidOperationException("Could not resolve presenter page for action invocation.");
+                if (string.IsNullOrWhiteSpace(navigationOptions.SelectedCardId))
+                {
+                    throw new InvalidOperationException("Action invocation requires a selected Oblivion card.");
+                }
+
+                string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(
+                    pageId,
+                    navigationOptions.SelectedCardId,
+                    proofOptions);
+                navigationState = PresenterNavigationDispatch.Dispatch(
+                    navigationState,
+                    PresenterNavigationActions.InvokeOblivionCardAction(
+                        pageId,
+                        resolvedCardId,
+                        navigationOptions.InvokeActionId),
+                    model,
+                    proofOptions,
+                    PresenterNavigationLayout.Default);
+            }
 
             PresenterNavigationShellRenderResult shellRender = PresenterNavigationShellRenderer.Render(
                 state,
@@ -96,6 +124,11 @@ public static class PresenterExporter
                 OblivionWorkbenchCatalog.WriteDocsDogfoodManifest(outputDirectory, proofOptions);
             (oblivionAgenticCardContractManifestJsonPath, oblivionAgenticCardContractManifestTextPath) =
                 OblivionWorkbenchCatalog.WriteAgenticCardContractManifest(outputDirectory, proofOptions);
+            (oblivionEffectRoutingManifestJsonPath, oblivionEffectRoutingManifestTextPath) =
+                OblivionWorkbenchCatalog.WriteEffectRoutingManifest(
+                    outputDirectory,
+                    shellRender.NavigationState,
+                    proofOptions);
         }
         else
         {
@@ -145,6 +178,8 @@ public static class PresenterExporter
             OblivionDocsDogfoodManifestTextPath = oblivionDocsDogfoodManifestTextPath,
             OblivionAgenticCardContractManifestJsonPath = oblivionAgenticCardContractManifestJsonPath,
             OblivionAgenticCardContractManifestTextPath = oblivionAgenticCardContractManifestTextPath,
+            OblivionEffectRoutingManifestJsonPath = oblivionEffectRoutingManifestJsonPath,
+            OblivionEffectRoutingManifestTextPath = oblivionEffectRoutingManifestTextPath,
         };
     }
 
@@ -232,4 +267,8 @@ public sealed record PresenterExportResult(
     public string? OblivionAgenticCardContractManifestJsonPath { get; init; }
 
     public string? OblivionAgenticCardContractManifestTextPath { get; init; }
+
+    public string? OblivionEffectRoutingManifestJsonPath { get; init; }
+
+    public string? OblivionEffectRoutingManifestTextPath { get; init; }
 }

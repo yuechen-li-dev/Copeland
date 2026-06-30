@@ -6,6 +6,7 @@ public sealed record PresenterNavigationExportOptions(
     string? SelectedTabId = null,
     string? SelectedPageId = null,
     string? SelectedCardId = null,
+    string? InvokeActionId = null,
     IReadOnlyDictionary<string, double>? ScrollOffsetByPageId = null,
     string? InteractionBackendName = null)
 {
@@ -17,6 +18,7 @@ public sealed record PresenterNavigationExportOptions(
             null,
             null,
             selectedPageId,
+            null,
             null,
             null,
             includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)
@@ -32,6 +34,7 @@ public sealed record PresenterNavigationExportOptions(
             null,
             null,
             selectedPageId,
+            null,
             null,
             scrollOffsetByPageId,
             includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)
@@ -49,6 +52,7 @@ public sealed record PresenterNavigationExportOptions(
             null,
             selectedPageId,
             selectedCardId,
+            null,
             scrollOffsetByPageId,
             includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)
     {

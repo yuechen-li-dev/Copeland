@@ -10,6 +10,7 @@ public static class PresenterNavigationActions
     public const string SetScrollOffsetPrefix = "presenter.navigation.set-scroll-offset|";
     public const string SelectOblivionCardPrefix = "presenter.navigation.select-oblivion-card|";
     public const string ClearOblivionCardSelectionPrefix = "presenter.navigation.clear-oblivion-card-selection|";
+    public const string InvokeOblivionCardActionPrefix = "presenter.navigation.invoke-oblivion-card-action|";
 
     public static UiActionId SelectSection(string sectionId)
     {
@@ -35,6 +36,11 @@ public static class PresenterNavigationActions
     public static UiActionId ClearOblivionCardSelection(string pageId)
     {
         return new UiActionId($"{ClearOblivionCardSelectionPrefix}{pageId}");
+    }
+
+    public static UiActionId InvokeOblivionCardAction(string pageId, string cardId, string actionId)
+    {
+        return new UiActionId($"{InvokeOblivionCardActionPrefix}{pageId}|{cardId}|{actionId}");
     }
 
     public static bool TryParseSelectSection(UiActionId actionId, out string sectionId)
@@ -118,6 +124,27 @@ public static class PresenterNavigationActions
         }
 
         pageId = string.Empty;
+        return false;
+    }
+
+    public static bool TryParseInvokeOblivionCardAction(UiActionId actionId, out string pageId, out string cardId, out string actionName)
+    {
+        if (actionId.Value.StartsWith(InvokeOblivionCardActionPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[InvokeOblivionCardActionPrefix.Length..];
+            string[] parts = payload.Split('|', StringSplitOptions.None);
+            if (parts.Length == 3)
+            {
+                pageId = parts[0];
+                cardId = parts[1];
+                actionName = parts[2];
+                return true;
+            }
+        }
+
+        pageId = string.Empty;
+        cardId = string.Empty;
+        actionName = string.Empty;
         return false;
     }
 }

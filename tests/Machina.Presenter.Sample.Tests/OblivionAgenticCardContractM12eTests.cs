@@ -61,7 +61,9 @@ public sealed class OblivionAgenticCardContractM12eTests
         IOblivionCardHandler handler = new OblivionNoteCardHandler();
         OblivionCard card = GetExecutionRoadmapCard("markdown-first-roadmap");
 
-        OblivionCardRuntimeModel model = handler.BuildModel(card, new OblivionCardContext(card.PageId, card.WorkspaceId, card.SourcePath));
+        OblivionCardRuntimeModel model = handler.BuildModel(
+            card,
+            new OblivionCardContext(card.PageId, card.WorkspaceId, card.SourcePath, null, null));
         OblivionCompactCardView view = handler.BuildCompactView(model, new OblivionCardViewContext(model.LocalState));
 
         Assert.Equal(card.Id.Value, model.Identity.Id.Value);
@@ -111,7 +113,7 @@ public sealed class OblivionAgenticCardContractM12eTests
         PresenterPageRenderResult page = RenderPage(OblivionWorkbenchCatalog.ExecutionRoadmapPageId, "execution-deferred");
         string text = PageText(page);
 
-        Assert.Contains("Not executed in M11g.", text, StringComparison.Ordinal);
+        Assert.Contains("Effect routing skeleton only.", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Run fact ready", text, StringComparison.Ordinal);
     }
 
@@ -121,7 +123,7 @@ public sealed class OblivionAgenticCardContractM12eTests
         OblivionBuiltCard builtCard = GetBuiltCardsPageCard("oblivion-code-fact-card");
 
         Assert.Equal(OblivionCardStatus.Deferred, builtCard.RuntimeModel.Status);
-        Assert.Contains("Execution result", builtCard.InspectorView.Sections.Select(section => section.Title));
+        Assert.Contains("Effect routing", builtCard.InspectorView.Sections.Select(section => section.Title));
     }
 
     [Fact]
@@ -137,10 +139,8 @@ public sealed class OblivionAgenticCardContractM12eTests
     public void CodeFactCardHandler_ActionsAreDeferred()
     {
         OblivionBuiltCard builtCard = GetBuiltCardsPageCard("oblivion-code-fact-card");
-        OblivionCardActionDescriptor action = Assert.Single(builtCard.RuntimeModel.Actions);
-
-        Assert.False(action.Enabled);
-        Assert.True(action.RequiresEffect);
+        Assert.Contains(builtCard.RuntimeModel.Actions, action => action.Id == "run");
+        Assert.All(builtCard.RuntimeModel.Actions, action => Assert.True(action.RequiresEffect));
     }
 
     [Fact]
@@ -148,7 +148,8 @@ public sealed class OblivionAgenticCardContractM12eTests
     {
         OblivionBuiltCard builtCard = GetBuiltCardsPageCard("oblivion-code-fact-card");
 
-        Assert.All(builtCard.RuntimeModel.EffectRequests, request => Assert.True(request.Deferred));
+        Assert.Null(builtCard.RuntimeModel.LastEffectRequest);
+        Assert.Null(builtCard.RuntimeModel.LastEffectResult);
     }
 
     [Fact]
@@ -193,9 +194,9 @@ public sealed class OblivionAgenticCardContractM12eTests
     public void OblivionCardActions_AreDescriptorsOnlyInM12e()
     {
         OblivionBuiltCard builtCard = GetBuiltCardsPageCard("oblivion-code-fact-card");
-        OblivionCardActionDescriptor action = Assert.Single(builtCard.RuntimeModel.Actions);
-
-        Assert.Equal("CodeFact:run-fact", action.Intent);
+        Assert.Contains(
+            builtCard.RuntimeModel.Actions,
+            action => action.Id == "run" && action.Intent == "CodeFact:run");
     }
 
     [Fact]
@@ -212,7 +213,8 @@ public sealed class OblivionAgenticCardContractM12eTests
     {
         OblivionBuiltCard builtCard = GetBuiltCardsPageCard("oblivion-code-fact-card");
 
-        Assert.All(builtCard.RuntimeModel.EffectRequests, request => Assert.True(request.Deferred));
+        Assert.Null(builtCard.RuntimeModel.LastEffectRequest);
+        Assert.Null(builtCard.RuntimeModel.LastEffectResult);
     }
 
     [Fact]
