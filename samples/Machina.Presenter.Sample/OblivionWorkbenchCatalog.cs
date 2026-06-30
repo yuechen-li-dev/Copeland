@@ -17,6 +17,7 @@ public static class OblivionWorkbenchCatalog
     public const string CardsPageId = "oblivion.cards";
     public const string ExecutionRoadmapPageId = "oblivion.execution-roadmap";
     public const string ArtifactsPageId = "oblivion.artifacts";
+    public const string DocsPageId = OblivionDocsDogfoodCatalog.PageId;
 
     public static IReadOnlyList<OblivionCard> CreateCardsPageCards()
     {
@@ -33,6 +34,11 @@ public static class OblivionWorkbenchCatalog
         return GetPageCards(ArtifactsPageId, proofOptions: null);
     }
 
+    public static IReadOnlyList<OblivionCard> CreateDocsPageCards()
+    {
+        return GetPageCards(DocsPageId, proofOptions: null);
+    }
+
     public static IReadOnlyList<OblivionCard> CreateAllCards(PresenterProofOptions? proofOptions = null)
     {
         return
@@ -40,6 +46,7 @@ public static class OblivionWorkbenchCatalog
             .. GetPageCards(CardsPageId, proofOptions),
             .. GetPageCards(ExecutionRoadmapPageId, proofOptions),
             .. GetPageCards(ArtifactsPageId, proofOptions),
+            .. GetPageCards(DocsPageId, proofOptions),
         ];
     }
 
@@ -173,7 +180,7 @@ public static class OblivionWorkbenchCatalog
             ? 1
             : loadResult.Workspace?.Sections.Count ?? 0;
         int pagesLoaded = usingFallbackCatalog
-            ? 3
+            ? 4
             : loadResult.Workspace?.Sections.Sum(section => section.Pages.Count) ?? 0;
         int cardsLoaded = cards.Count;
         string[] validationErrors = usingFallbackCatalog
@@ -266,6 +273,7 @@ public static class OblivionWorkbenchCatalog
             CardsPageId,
             ExecutionRoadmapPageId,
             ArtifactsPageId,
+            DocsPageId,
         ];
 
         string[] exportedSelections = pageIds
@@ -518,6 +526,7 @@ public static class OblivionWorkbenchCatalog
             CardsPageId => CreateFallbackCardsPageCards(),
             ExecutionRoadmapPageId => CreateFallbackExecutionRoadmapCards(),
             ArtifactsPageId => CreateFallbackArtifactsPageCards(),
+            DocsPageId => CreateFallbackDocsPageCards(),
             _ => throw new InvalidOperationException($"Unknown Oblivion page id '{pageId}'."),
         };
     }
@@ -584,6 +593,25 @@ public static class OblivionWorkbenchCatalog
                 [
                     "Artifact metadata remains static in M11d.",
                     "Execution and generation remain deferred.",
+                ],
+                [])
+        ];
+    }
+
+    private static IReadOnlyList<OblivionCard> CreateFallbackDocsPageCards()
+    {
+        return
+        [
+            CreateStatusCard(
+                "oblivion-fallback-docs-card",
+                OblivionCardStatus.Warning,
+                "Docs dogfood unavailable",
+                "Fallback catalog",
+                ["docs", "markdown", "fallback"],
+                [
+                    "The persisted workspace was not found, so curated repo docs were not loaded.",
+                    "Markdown remains the text-card body language only.",
+                    "No editor, file watcher, Roslyn execution, xUnit execution, or Visionary implementation is added here.",
                 ],
                 [])
         ];
@@ -1012,6 +1040,16 @@ public static class OblivionWorkbenchCatalog
         File.WriteAllText(jsonPath, json);
         File.WriteAllLines(textPath, textLines);
         return (jsonPath, textPath);
+    }
+
+    public static (string jsonPath, string textPath) WriteDocsDogfoodManifest(
+        string outputDirectory,
+        PresenterProofOptions? proofOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+
+        string workspacePath = OblivionWorkspacePaths.ResolveWorkspaceManifestPath(proofOptions?.OblivionWorkspacePath);
+        return OblivionDocsDogfoodCatalog.WriteManifest(outputDirectory, workspacePath);
     }
 
     private static string BodyFormatLabel(OblivionCardBodyFormat format)

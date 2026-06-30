@@ -1,0 +1,6 @@
+format = 1
+kind = "page"
+id = "docs"
+title = "Docs"
+description = "Curated existing repo docs rendered as Oblivion Markdown cards."
+tags = ["docs", "dogfood", "markdown"]

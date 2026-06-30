@@ -291,6 +291,7 @@ Generated local proof outputs:
 - nested list handling
 - blockquote/table/reference-link support
 - broader MIR-to-Oblivion rendering beyond the current M12c dogfood pass
+- existing repo docs rendered as first-class Oblivion dogfood cards, which now lands in M12d without changing the frontend/package boundary
 - richer Oblivion inline styling on top of MIR-backed bodies
 - MIR-to-Machina document rendering
 - richer document diagnostics categories

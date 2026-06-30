@@ -121,6 +121,13 @@ public static class OblivionWorkspaceLoader
                     cards.Add(BuildCard(cardResult.Document, workspaceRoot, diagnostics, resolvedCardPath, options));
                 }
 
+                if (OblivionDocsDogfoodCatalog.IsDocsPage(sectionManifest.Id, pageManifest.Id))
+                {
+                    DocsDogfoodPageData docsPageData = OblivionDocsDogfoodCatalog.CreatePageData(manifestPath);
+                    cards.AddRange(docsPageData.Cards);
+                    diagnostics.AddRange(docsPageData.Documents.SelectMany(doc => doc.Diagnostics));
+                }
+
                 pages.Add(
                     new OblivionWorkspacePage(
                         sectionManifest.Id,

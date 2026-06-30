@@ -260,6 +260,32 @@ public sealed class MarkdownPipelineTests
     }
 
     [Fact]
+    public void DocsDogfood_CompilesDocsThroughCopelandMarkdown()
+    {
+        foreach (string relativePath in DocsDogfoodFiles)
+        {
+            MarkdownCompilation compilation = MarkdownCompiler.Compile(File.ReadAllText(GetRepoFile(relativePath)));
+
+            Assert.NotNull(compilation.Mir);
+            Assert.NotEmpty(compilation.Mir.Blocks);
+        }
+    }
+
+    [Fact]
+    public void DocsDogfood_DoesNotCrashOnUnsupportedSyntax()
+    {
+        foreach (string relativePath in DocsDogfoodFiles)
+        {
+            MarkdownCompilation first = MarkdownCompiler.Compile(File.ReadAllText(GetRepoFile(relativePath)));
+            MarkdownCompilation second = MarkdownCompiler.Compile(File.ReadAllText(GetRepoFile(relativePath)));
+
+            Assert.Equal(
+                MarkdownDumpWriter.DumpDiagnostics(first.Syntax.Diagnostics),
+                MarkdownDumpWriter.DumpDiagnostics(second.Syntax.Diagnostics));
+        }
+    }
+
+    [Fact]
     public void MarkdownCorpus_ReportsUnsupportedSyntaxDeterministically()
     {
         string source = File.ReadAllText(GetRepoFile(@"docs\machina-oblivion-phase-closeout-m11g.md"));
@@ -391,6 +417,18 @@ public sealed class MarkdownPipelineTests
         @"docs\machina-presenter-card-hardening-m11e.md",
         @"docs\machina-test-suite-topology-m11b.md",
         @"docs\machina-presenter-scrollbar-state-machine-m11c.md",
+    ];
+
+    private static readonly string[] DocsDogfoodFiles =
+    [
+        @"docs\machina-oblivion-phase-closeout-m11g.md",
+        @"docs\machina-oblivion-workspace-persistence-m11d.md",
+        @"docs\machina-presenter-card-hardening-m11e.md",
+        @"docs\machina-test-suite-topology-m11b.md",
+        @"docs\machina-presenter-scrollbar-state-machine-m11c.md",
+        @"docs\copeland-markdown-frontend-m12a.md",
+        @"docs\machina-oblivion-markdown-body-integration-m12b.md",
+        @"docs\machina-oblivion-markdown-rendering-m12c.md",
     ];
 
     private static void AssertText(MarkdownInline inline, string expected)

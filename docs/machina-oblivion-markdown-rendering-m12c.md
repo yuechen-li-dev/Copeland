@@ -156,6 +156,12 @@ The renderer also writes:
 - `artifacts/m12c/oblivion-markdown-rendering-manifest.json`
 - `artifacts/m12c/oblivion-markdown-rendering-manifest.txt`
 
+## M12d follow-through
+
+M12d builds directly on this renderer.
+
+Instead of only showing copied sample Markdown bodies, the sample workspace now adds `Oblivion -> Docs` and loads selected existing repo docs as generated Markdown cards. Those docs still render as compact cards plus inspector detail, still keep per-doc diagnostics, and still do not become whole Oblivion pages.
+
 ## What changed
 
 - added presenter-side Markdown lowering/rendering helpers
@@ -163,6 +169,7 @@ The renderer also writes:
 - upgraded inspector Markdown rendering with clearer block distinctions
 - upgraded diagnostics display with line/column data
 - added curated dogfood Markdown samples, including a doc-derived body and a diagnostics sample
+- enabled the next M12d step where selected existing repo docs can reuse the same rendering path as generated cards under `Oblivion -> Docs`
 - added M12c tests, exports, and manifest output
 
 ## What did not change

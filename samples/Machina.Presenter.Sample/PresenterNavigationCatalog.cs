@@ -68,6 +68,7 @@ public static class PresenterNavigationCatalog
                 "Oblivion",
                 [
                     new PresenterNavigationTab("cards", "Cards", OblivionWorkbenchCatalog.CardsPageId),
+                    new PresenterNavigationTab("docs", "Docs", OblivionWorkbenchCatalog.DocsPageId),
                     new PresenterNavigationTab("execution-roadmap", "Execution Roadmap", OblivionWorkbenchCatalog.ExecutionRoadmapPageId),
                     new PresenterNavigationTab("artifacts", "Artifacts", OblivionWorkbenchCatalog.ArtifactsPageId),
                 ]),
@@ -232,6 +233,7 @@ public static class PresenterNavigationCatalog
             "diagnostics.layout" => "Layout diagnostics",
             "diagnostics.export" => "Export diagnostics",
             OblivionWorkbenchCatalog.CardsPageId => "Oblivion cards",
+            OblivionWorkbenchCatalog.DocsPageId => "Oblivion docs",
             OblivionWorkbenchCatalog.ExecutionRoadmapPageId => "Oblivion execution roadmap",
             OblivionWorkbenchCatalog.ArtifactsPageId => "Oblivion artifacts",
             "legacy.m1e-card" => "Legacy M1e Card",
@@ -255,6 +257,7 @@ public static class PresenterNavigationCatalog
             "diagnostics.layout" => "Layout and scroll structure notes for the presenter navigation shell.",
             "diagnostics.export" => "Export and artifact notes for the canonical M10c presenter shell.",
             OblivionWorkbenchCatalog.CardsPageId => "Oblivion now closes out the static persisted-card substrate while keeping the existing presenter shell unchanged.",
+            OblivionWorkbenchCatalog.DocsPageId => "Curated existing repo docs now dogfood the Markdown body path as typed Oblivion cards while editing stays external.",
             OblivionWorkbenchCatalog.ExecutionRoadmapPageId => "Markdown cards come next, while Roslyn and xUnit execution remain explicitly deferred to M13+ or later.",
             OblivionWorkbenchCatalog.ArtifactsPageId => "Artifact-facing placeholders stay visible as static cards before any capture/runtime work exists.",
             "legacy.m1e-card" => "Preserved sample content from the old single-card presenter root.",
@@ -276,6 +279,7 @@ public static class PresenterNavigationCatalog
             "diagnostics.layout" => 360,
             "diagnostics.export" => 432,
             OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
+            OblivionWorkbenchCatalog.DocsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
             OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
             OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
             "legacy.m1e-card" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 1152 : 420,
@@ -601,6 +605,7 @@ public static class PresenterNavigationCatalog
                 break;
 
             case OblivionWorkbenchCatalog.CardsPageId:
+            case OblivionWorkbenchCatalog.DocsPageId:
             case OblivionWorkbenchCatalog.ExecutionRoadmapPageId:
             case OblivionWorkbenchCatalog.ArtifactsPageId:
                 rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth, proofOptions, navigationState));
@@ -707,6 +712,7 @@ public static class PresenterNavigationCatalog
     public static bool IsOblivionPage(string pageId)
     {
         return string.Equals(pageId, OblivionWorkbenchCatalog.CardsPageId, StringComparison.Ordinal) ||
+               string.Equals(pageId, OblivionWorkbenchCatalog.DocsPageId, StringComparison.Ordinal) ||
                string.Equals(pageId, OblivionWorkbenchCatalog.ExecutionRoadmapPageId, StringComparison.Ordinal) ||
                string.Equals(pageId, OblivionWorkbenchCatalog.ArtifactsPageId, StringComparison.Ordinal);
     }

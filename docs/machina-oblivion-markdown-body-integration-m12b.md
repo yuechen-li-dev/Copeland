@@ -177,6 +177,17 @@ Single-file Markdown remains future-only in M12b.
 
 It is a possible lowering/export or import target later, but not canonical storage now.
 
+## M12d follow-through
+
+M12d reuses this body-loading doctrine for existing repo docs.
+
+The important boundary does not change:
+
+- Markdown files are loaded as text-card bodies
+- the Oblivion page still remains a stack of typed cards
+- existing docs do not replace `workspace.oblivion.json` or `*.page.toml`
+- no editor, file watcher, Roslyn execution, xUnit execution, or Visionary implementation is introduced by that dogfood step
+
 ## What changed
 
 - added `copeland-markdown` card body format support

@@ -1138,3 +1138,23 @@ Still deferred in M12c:
 - Visionary
 - full CommonMark
 - future image/table/video/code typed-card expansions beyond the current body integration
+
+## M12d update
+
+M12d turns selected existing repo docs into real Oblivion Markdown dogfood cards.
+
+- the presenter sample now adds `Oblivion -> Docs`
+- a deterministic curated docs list loads existing `docs/*.md` files as generated `note` cards
+- each selected doc compiles through `Copeland.Markdown`
+- each generated card preserves repo-relative source paths plus per-doc diagnostics
+- a synthetic `docs-dogfood-index` status card summarizes loaded docs, generated cards, and diagnostic counts
+- the canonical page model still remains JSON/TOML typed-card storage
+
+Still deferred in M12d:
+
+- Markdown editor and keyboard input
+- file watcher / live editing
+- single-file Markdown export/import implementation
+- Roslyn execution
+- xUnit execution
+- Visionary

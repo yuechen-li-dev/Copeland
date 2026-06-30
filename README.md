@@ -84,9 +84,9 @@ dotnet run --project src/Copeland.Cli -- markdown parse README.md --emit mir --f
 
 This is frontend/MIR dogfooding only. It adds no Markdown editor, no production Oblivion rendering path yet, and no Roslyn or xUnit notebook execution.
 
-## Oblivion Markdown M12b/M12c status
+## Oblivion Markdown M12b/M12d status
 
-M12b integrates that frontend into Oblivion as a text-card body path. M12c then makes the Markdown body visibly useful for dogfooding.
+M12b integrates that frontend into Oblivion as a text-card body path. M12c then makes the Markdown body visibly useful for dogfooding. M12d then points that dogfood path at selected existing repo docs under `Oblivion -> Docs`.
 
 Current doctrine:
 
@@ -122,11 +122,14 @@ Current state:
 - inspector rendering that distinguishes headings, paragraphs, lists, code fences, inline code, strong/emphasis, and links
 - readable Markdown diagnostics with line/column data
 - sample `.md` dogfood bodies, including a curated doc-derived sample
+- curated existing repo docs loaded as generated cards with preserved repo-relative source paths
+- a synthetic docs index/status card that summarizes loaded docs and diagnostics
 
 Still not included:
 
 - Markdown editor or keyboard input
 - live editing or file watcher behavior
+- single-file Markdown export/import implementation
 - Roslyn/xUnit execution
 - Visionary
 - full CommonMark compatibility
@@ -204,6 +207,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Copeland Markdown Frontend M12a](docs/copeland-markdown-frontend-m12a.md)
 - [Machina Oblivion Markdown Body Integration M12b](docs/machina-oblivion-markdown-body-integration-m12b.md)
 - [Machina Oblivion Markdown Rendering M12c](docs/machina-oblivion-markdown-rendering-m12c.md)
+- [Machina Oblivion Docs Dogfood M12d](docs/machina-oblivion-docs-dogfood-m12d.md)
 - [Machina Component Gallery MSDF Proof M8m](docs/machina-component-gallery-msdf-proof-m8m.md)
 - [Machina Component Gallery Local Visual Audit M7a](docs/machina-component-gallery-local-visual-audit-m7a.md)
 

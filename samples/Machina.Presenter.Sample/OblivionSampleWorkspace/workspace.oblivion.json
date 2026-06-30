@@ -45,6 +45,12 @@
             "cards/artifacts-overview.card.toml",
             "cards/artifact-policy.card.toml"
           ]
+        },
+        {
+          "id": "docs",
+          "title": "Docs",
+          "asset": "pages/docs.page.toml",
+          "cards": []
         }
       ]
     }
