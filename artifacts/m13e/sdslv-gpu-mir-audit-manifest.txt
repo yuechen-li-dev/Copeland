@@ -1,0 +1,29 @@
+M13e SDSL-V lane audit and GPU MIR target analysis manifest
+
+milestone: M13e
+kind: sdslv-lane-audit-gpu-mir-target-analysis
+sourceProjectAudited: src/Aurelian.Shaders
+testsAudited: tests/Aurelian.Shaders.Tests
+currentPipelineDocumented: true
+backendNeutralConceptsDocumented: true
+hlslDxcSpecificConceptsDocumented: true
+hiddenMirCandidatesDocumented: true
+gpuMirTargetAnalysisDocumented: true
+oneGpuMirStartingAssumption: true
+shaderKernelMirSplitPerformed: false
+splitDeferredUntilProvenNecessary: true
+sdslvMigrationPerformed: false
+gpuMirImplemented: false
+ptxBackendImplemented: false
+slangBackendImplemented: false
+hlslBackendChanged: false
+machinaAurelianBridgeImplemented: false
+vulkanPresenterIntegrationPerformed: false
+repoRenamed: false
+validationStatus: passed
+
+deferredWork:
+- Define M13f Copeland GPU lane target architecture before implementation.
+- Keep SDSL-V in Aurelian until frontend/backend/package boundaries are earned.
+- Implement GpuMir only after backend-neutral concept pressure is intentionally converged.
+- Defer Slang, PTX, and Shader MIR / Kernel MIR split until proven necessary.

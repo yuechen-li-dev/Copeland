@@ -281,10 +281,11 @@ Validation command results are recorded after the repository docs changes in thi
 - `M13a`: audit and organization.
 - `M13b`: solution/build topology stabilization for imported Aurelian.
 - `M13c`: completed as shader test normalization plus curated Aurelian docs dogfood through the existing Copeland Markdown/Oblivion path, while keeping SDSL-V migration, Machina bridging, and Vulkan presenter integration deferred.
-- `M13d`: SDSL-V compiler audit against Copeland compiler patterns.
-- `M13e`: define `Copeland.Shaders` target architecture and migration doctrine.
-- `M13f`: Aurelian render-model boundary and null-renderer proof strategy.
-- `M13g`: `Machina.Aurelian` bridge design.
+- `M13d`: Copeland compiler workshop architecture. Completed later as doctrine only.
+- `M13e`: Aurelian SDSL-V lane audit and GPU MIR target analysis.
+- `M13f`: define Copeland shader/kernel target architecture and migration doctrine.
+- `M13g`: Aurelian render-model boundary and null-renderer proof strategy.
+- `M13h`: `Machina.Aurelian` bridge design.
 - `M14+`: triangle proof, Vulkan proof, and presenter integration after the boundaries are stable.
 
 ## What not to integrate yet

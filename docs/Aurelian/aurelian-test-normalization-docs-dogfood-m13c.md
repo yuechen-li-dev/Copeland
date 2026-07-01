@@ -102,7 +102,7 @@ The selected Aurelian docs compile through the same `Copeland.Markdown` frontend
 ## Deferred work
 
 - broader Aurelian docs ingestion beyond the curated slice
-- SDSL-V overlap audit and migration doctrine
-- `Copeland.Shaders` target architecture
+- M13e SDSL-V lane audit and GPU MIR target analysis
+- M13f Copeland shader/kernel target architecture
 - `Machina.Aurelian` bridge contracts
 - Vulkan/presenter integration after subsystem boundaries are intentionally tightened

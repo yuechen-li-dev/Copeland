@@ -21,6 +21,8 @@ M13c follows that with test normalization and docs dogfood only: the remaining A
 
 M13d is architecture doctrine only: Copeland is now documented as the compiler workshop for Visionary. It supports explicit compiler lanes, shared primitives promoted only after repeated concrete use, and no universal-IR mandate. This still does not move `Aurelian.Shaders`, create `Copeland.Shaders`, implement GPU TypeScript or PTX packages, wire Machina to Aurelian/Vulkan, or rename the repo.
 
+M13e is recon only: it audits the active `Aurelian.Shaders` SDSL-V lane, documents the exact current `SDSL-V -> HLSL -> DXC -> SPIR-V` path, records backend-neutral versus HLSL/DXC-specific concepts, identifies hidden MIR-shaped pressure already present in lowering/emission/artifact code, and documents one common GPU MIR as the starting assumption for future work. M13e does not move SDSL-V into Copeland, implement `GpuMir`, implement Slang or PTX, or split Shader MIR from Kernel MIR.
+
 ## Pipeline
 
 ```text
@@ -196,6 +198,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Copeland Docs Index](docs/Copeland/README.md)
 - [Copeland Compiler Workshop Architecture M13d](docs/Copeland/copeland-compiler-workshop-architecture-m13d.md)
 - [Copeland Compiler Lane Taxonomy M13d](docs/Copeland/copeland-compiler-lane-taxonomy-m13d.md)
+- [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
+- [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)

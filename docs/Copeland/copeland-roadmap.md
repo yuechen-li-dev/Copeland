@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first in M13d and does not imply immediate package extraction or migration work.
+This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13e and does not imply immediate package extraction or migration work.
 
 ## Current state
 
@@ -23,7 +23,7 @@ M13d:
   Copeland compiler workshop architecture
 
 M13e:
-  Aurelian SDSL-V lane audit against Copeland workshop doctrine
+  Aurelian SDSL-V lane audit and GPU MIR target analysis
 
 M13f:
   Copeland shader/kernel lane target architecture
@@ -60,3 +60,9 @@ Possible future packages:
 - `Copeland.Backends.Cpu`
 
 These are target taxonomy names, not M13d implementation work.
+
+M13e adds one more doctrine constraint:
+
+- start from one common GPU MIR assumption
+- do not split Shader MIR / Kernel MIR until proven necessary
+- do not implement `Copeland.Mir.Gpu`, `Copeland.Backends.Slang`, or `Copeland.Backends.Ptx` during recon

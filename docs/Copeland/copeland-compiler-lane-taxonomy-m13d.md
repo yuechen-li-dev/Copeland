@@ -79,6 +79,12 @@ SDSL-V
   -> SPIR-V
 ```
 
+Current M13e audit finding:
+
+- the active lane has no explicit MIR today
+- one common GPU MIR is the starting assumption for future target analysis
+- Shader MIR / Kernel MIR split is deferred until proven necessary
+
 Possible future Copeland target split:
 
 ```text

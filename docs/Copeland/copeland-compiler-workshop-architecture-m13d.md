@@ -457,7 +457,7 @@ M13d does not:
 Recommended next sequence:
 
 - `M13d`: Copeland compiler workshop architecture
-- `M13e`: Aurelian SDSL-V lane audit against Copeland workshop doctrine
+- `M13e`: Aurelian SDSL-V lane audit and GPU MIR target analysis
 - `M13f`: Copeland shader/kernel lane target architecture
 - `M13g`: Aurelian render model/null renderer boundary proof planning
 - `M14+`: first implementation extraction or bridge proof when the architecture has earned it

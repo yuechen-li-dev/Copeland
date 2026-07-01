@@ -172,7 +172,7 @@ Recommended near-term phases:
 - `M13b`: Aurelian solution/build topology stabilization. Completed as a separate-solution cleanup and NuGet dependency retargeting pass; no runtime integration was introduced.
 - `M13c`: completed as shader test normalization plus curated Aurelian docs dogfood through existing Copeland Markdown/Oblivion paths where safe.
 - `M13d`: Copeland compiler workshop architecture. Completed as doctrine, lane taxonomy, roadmap, and manifest work only.
-- `M13e`: Aurelian SDSL-V lane audit against Copeland workshop doctrine.
+- `M13e`: Aurelian SDSL-V lane audit and GPU MIR target analysis.
 - `M13f`: Copeland shader/kernel lane target architecture.
 - `M13g`: tighten Aurelian render-model boundary and null-renderer proof planning.
 - `M13h`: design `Machina.Aurelian` bridge contracts.
