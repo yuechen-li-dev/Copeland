@@ -41,6 +41,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m12f/` is the current Oblivion card-effect-routing proof export directory.
 - `artifacts/m12g/` is the current presenter keyboard-input backend proof export directory.
 - `artifacts/m12h/` is the current presenter adaptive-shell proof export directory.
+- `artifacts/m13a/` is the current Visionary/Aurelian monorepo import audit manifest directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -77,6 +78,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M12f Oblivion effect-routing PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12g presenter keyboard-input PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M12h presenter adaptive-shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
+- Current M13a monorepo audit manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document repository topology.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

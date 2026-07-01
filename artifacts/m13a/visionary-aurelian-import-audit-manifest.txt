@@ -1,0 +1,31 @@
+milestone: M13a
+kind: aurelian-monorepo-import-audit
+umbrellaNameProposed: Visionary
+repoRenamed: false
+deepIntegrationPerformed: false
+vulkanIntegrationPerformed: false
+sdslvMigrationPerformed: false
+machinaAurelianBridgeImplemented: false
+importedAurelianProjects:
+- src/Aurelian.Actuation
+- src/Aurelian.Assets
+- src/Aurelian.AssetTool
+- src/Aurelian.Core
+- src/Aurelian.Graphics
+- src/Aurelian.Rendering.Contracts
+- src/Aurelian.Rendering.Null
+- src/Aurelian.Runtime
+- src/Aurelian.Shaders
+- src/Aurelian.World
+importedAurelianDocs:
+- docs/Aurelian/docs/architecture
+- docs/Aurelian/docs/audits
+- docs/Aurelian/docs/claude
+recommendedNextPhases:
+- M13b: solution/build topology stabilization for Aurelian
+- M13c: Aurelian docs dogfood and Copeland Markdown parse pass
+- M13d: SDSL-V compiler audit against Copeland compiler patterns
+- M13e: define Copeland.Shaders target architecture
+- M13f: Aurelian render model boundary and null renderer proof
+- M13g: Machina.Aurelian bridge design
+- M14+: triangle proof / Vulkan proof / presenter integration

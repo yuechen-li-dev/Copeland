@@ -4,6 +4,18 @@ Copeland is a Browser TypeScript-to-CLR compiler experiment.
 
 It is **not** a JavaScript engine, does **not** run arbitrary JavaScript, and does not provide DOM/TSX support yet.
 
+## Monorepo direction
+
+This repository is now evolving toward a broader `Visionary` monorepo umbrella, while the existing subsystem names remain meaningful and distinct:
+
+- `Copeland`: compiler infrastructure, frontends, diagnostics, MIR, and backend lowering.
+- `Machina`: UI document model, layout, renderer-facing presenter/workbench shell, and samples.
+- `Oblivion`: notebook/card/workbench layer hosted in the Machina presenter.
+- `Aurelian`: rendering infrastructure, render contracts, shader/compiler work, and Vulkan-oriented backend work.
+- `Dominatus`: orchestration, lifecycle, and effect-routing infrastructure.
+
+The imported `Aurelian` source tree and `docs/Aurelian` content are present for M13a audit and monorepo organization work only. No deep integration has been performed yet: the repo has not been renamed, `Aurelian.slnx` remains separate, SDSL-V has not been merged into Copeland, Machina is not wired to Aurelian, and Vulkan runtime integration is still deferred.
+
 ## Pipeline
 
 ```text
