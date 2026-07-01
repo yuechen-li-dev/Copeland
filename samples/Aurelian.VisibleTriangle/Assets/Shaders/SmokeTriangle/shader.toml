@@ -1,0 +1,24 @@
+format = "aurelian.shader-artifact/0"
+source_language = "SDSL-V"
+source_name = "smoke_triangle.sdslv"
+source_sha256 = "558f1d5ce4449f62683ce89812e089fa10890dbc4f46be6a3cab92b956c59146"
+generated_hlsl_path = "generated.hlsl"
+generated_hlsl_sha256 = "670bb6b680b124406bcf41e678a93df0f2d7bec35a8b7a459641ca8c4419edb4"
+
+[[stages]]
+stage = "vertex"
+entry_point = "VSMain"
+profile = "vs_6_0"
+spirv_encoding = "hex"
+spirv_path = "VSMain.spv.hex"
+spirv_sha256 = "9827214b72c9d1733a0e66764fda809b7b40a2d11d5fa7ccc49b96dfb5ca9b35"
+source_name = "smoke_triangle.sdslv"
+
+[[stages]]
+stage = "fragment"
+entry_point = "PSMain"
+profile = "ps_6_0"
+spirv_encoding = "hex"
+spirv_path = "PSMain.spv.hex"
+spirv_sha256 = "5112170b8915da63f81e1ea95303f79f81f1936f0f4067bece91df1200c723ae"
+source_name = "smoke_triangle.sdslv"

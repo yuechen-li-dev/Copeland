@@ -1,0 +1,3 @@
+[[shaders]]
+id = "smoke_triangle"
+path = "Shaders/SmokeTriangle/shader.toml"
