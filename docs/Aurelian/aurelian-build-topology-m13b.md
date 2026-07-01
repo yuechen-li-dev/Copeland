@@ -103,6 +103,8 @@ The remaining Aurelian test failure after topology stabilization is not a soluti
 - `tests/Aurelian.Shaders.Tests/ShaderArtifactFileWriterM0Tests.cs`
   - currently fails on a CRLF-versus-LF expectation for hex SPIR-V text output on Windows
 
+M13c resolves that remaining blocker by normalizing line endings at the test assertion boundary rather than changing shader writer semantics. After that follow-through, `Aurelian.slnx` restore/build/test is test-clean again.
+
 ## What changed
 
 - `Aurelian.slnx` cleanup removes stale missing-project entries
@@ -130,6 +132,7 @@ M13b does not:
 Likely follow-up lanes after M13b:
 
 - `M13c`: docs dogfood and doc-path convergence cleanup
+- `M13c`: completed as shader test normalization plus curated Aurelian docs dogfood through the existing Copeland Markdown / Oblivion path; no runtime integration was introduced
 - `M13d`: SDSL-V compiler overlap audit and migration doctrine
 - `M13e`: define `Copeland.Shaders` target architecture
 - `M13f`: tighten Aurelian render-model and null-renderer boundary strategy

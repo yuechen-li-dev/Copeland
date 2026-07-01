@@ -43,6 +43,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m12h/` is the current presenter adaptive-shell proof export directory.
 - `artifacts/m13a/` is the current Visionary/Aurelian monorepo import audit manifest directory.
 - `artifacts/m13b/` is the current Aurelian build-topology stabilization manifest directory.
+- `artifacts/m13c/` is the current Aurelian test-normalization and docs-dogfood proof directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -81,6 +82,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M12h presenter adaptive-shell PNG/manifest artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M13a monorepo audit manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document repository topology.
 - Current M13b build-topology manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document repository topology, dependency doctrine, and validation status.
+- Current M13c test/doc dogfood manifests and presenter PNG exports are generated locally by script/command. They document test normalization status and docs-dogfood proof states, not runtime Aurelian integration.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

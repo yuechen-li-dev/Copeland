@@ -280,7 +280,7 @@ Validation command results are recorded after the repository docs changes in thi
 
 - `M13a`: audit and organization.
 - `M13b`: solution/build topology stabilization for imported Aurelian.
-- `M13c`: Aurelian docs dogfood and optional Copeland Markdown/Oblivion surfacing where safe.
+- `M13c`: completed as shader test normalization plus curated Aurelian docs dogfood through the existing Copeland Markdown/Oblivion path, while keeping SDSL-V migration, Machina bridging, and Vulkan presenter integration deferred.
 - `M13d`: SDSL-V compiler audit against Copeland compiler patterns.
 - `M13e`: define `Copeland.Shaders` target architecture and migration doctrine.
 - `M13f`: Aurelian render-model boundary and null-renderer proof strategy.
@@ -298,3 +298,5 @@ Do not perform these in M13a:
 - add Vulkan runtime integration to Machina
 - change Copeland Markdown behavior
 - resume Roslyn/xUnit notebook execution work
+
+M13c keeps those non-goals intact. It only normalizes the remaining shader test line-ending assertion and dogfoods selected `docs/Aurelian/...` files as generated Oblivion Markdown cards.

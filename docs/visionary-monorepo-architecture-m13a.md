@@ -138,6 +138,11 @@ M13b then stabilizes the imported Aurelian build lane without integrating runtim
 - stale `vendor/Dominatus` and missing sample solution references are removed from the imported Aurelian topology.
 - central package management now covers the imported Aurelian package set needed for restore/build.
 
+M13c then proves two narrow follow-through points without changing subsystem boundaries:
+
+- the remaining Aurelian shader test issue is fixed by assertion-boundary line-ending normalization only
+- selected Aurelian docs now dogfood through the existing Copeland Markdown and Oblivion docs-card path
+
 ## What did not change
 
 M13a intentionally does not:
@@ -156,7 +161,7 @@ Recommended near-term phases:
 
 - `M13a`: audit and organization.
 - `M13b`: Aurelian solution/build topology stabilization. Completed as a separate-solution cleanup and NuGet dependency retargeting pass; no runtime integration was introduced.
-- `M13c`: Aurelian docs dogfood through existing Copeland Markdown/Oblivion paths where safe.
+- `M13c`: completed as shader test normalization plus curated Aurelian docs dogfood through existing Copeland Markdown/Oblivion paths where safe.
 - `M13d`: SDSL-V compiler audit against Copeland compiler patterns.
 - `M13e`: define `Copeland.Shaders` target architecture and migration doctrine.
 - `M13f`: tighten Aurelian render-model boundary and null-renderer proof strategy.

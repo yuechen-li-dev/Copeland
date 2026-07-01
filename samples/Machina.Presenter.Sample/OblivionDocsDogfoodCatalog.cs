@@ -20,6 +20,14 @@ public static class OblivionDocsDogfoodCatalog
         "docs/copeland-markdown-frontend-m12a.md",
         "docs/machina-oblivion-markdown-body-integration-m12b.md",
         "docs/machina-oblivion-markdown-rendering-m12c.md",
+        "docs/Aurelian/aurelian-monorepo-import-audit-m13a.md",
+        "docs/Aurelian/aurelian-build-topology-m13b.md",
+        "docs/Aurelian/architecture/aurelian-charter.md",
+        "docs/Aurelian/architecture/dependency-policy.md",
+        "docs/Aurelian/architecture/compositor-policy-mechanism-split.md",
+        "docs/Aurelian/architecture/graphics-memory-allocation.md",
+        "docs/Aurelian/architecture/mvp-roadmap.md",
+        "docs/Aurelian/architecture/world-model-doctrine.md",
     ];
 
     public static IReadOnlyList<string> GetCuratedDocs()
@@ -86,6 +94,8 @@ public static class OblivionDocsDogfoodCatalog
             cardsGenerated = pageData.Summary.CardsGenerated,
             diagnosticsTotal = pageData.Summary.DiagnosticsTotal,
             unsupportedSyntaxCount = pageData.Summary.UnsupportedSyntaxCount,
+            aurelianDocsLoaded = pageData.Summary.AurelianDocsLoaded,
+            aurelianDiagnosticsTotal = pageData.Summary.AurelianDiagnosticsTotal,
             docs = pageData.Documents
                 .Select(doc => new
                 {
@@ -93,6 +103,7 @@ public static class OblivionDocsDogfoodCatalog
                     sourcePath = doc.SourcePath,
                     diagnosticsCount = doc.Diagnostics.Count,
                     firstHeading = doc.FirstHeading,
+                    tags = doc.Card.Tags,
                 })
                 .ToArray(),
             editorImplemented = false,
@@ -120,6 +131,8 @@ public static class OblivionDocsDogfoodCatalog
             $"cardsGenerated={pageData.Summary.CardsGenerated}",
             $"diagnosticsTotal={pageData.Summary.DiagnosticsTotal}",
             $"unsupportedSyntaxCount={pageData.Summary.UnsupportedSyntaxCount}",
+            $"aurelianDocsLoaded={pageData.Summary.AurelianDocsLoaded}",
+            $"aurelianDiagnosticsTotal={pageData.Summary.AurelianDiagnosticsTotal}",
             "editorImplemented=false",
             "fileWatcherImplemented=false",
             "roslynEnabled=false",
@@ -179,7 +192,7 @@ public static class OblivionDocsDogfoodCatalog
             status,
             title,
             Subtitle: normalizedPath,
-            Tags: ["docs", "dogfood", "markdown"],
+            Tags: BuildTags(normalizedPath),
             Body: OblivionMarkdownBody.CreateMarkdown(markdownText, normalizedPath, compilation, diagnostics),
             Actions: [],
             Artifacts: [],
@@ -204,7 +217,7 @@ public static class OblivionDocsDogfoodCatalog
             OblivionCardStatus.Failing,
             fileName,
             Subtitle: relativePath,
-            Tags: ["docs", "dogfood", "markdown"],
+            Tags: BuildTags(relativePath),
             Body: OblivionMarkdownBody.CreateMarkdown(markdownText, relativePath, compilation, diagnostics),
             Actions: [],
             Artifacts: [],
@@ -218,12 +231,18 @@ public static class OblivionDocsDogfoodCatalog
         int docsLoaded = documents.Count(doc => doc.Card.Status != OblivionCardStatus.Failing);
         int diagnosticsTotal = documents.Sum(doc => doc.Diagnostics.Count);
         int unsupportedSyntaxCount = documents.Sum(doc => doc.Diagnostics.Count(IsUnsupportedSyntaxDiagnostic));
+        int aurelianDocsLoaded = documents.Count(doc => IsAurelianDoc(doc.SourcePath) && doc.Card.Status != OblivionCardStatus.Failing);
+        int aurelianDiagnosticsTotal = documents
+            .Where(doc => IsAurelianDoc(doc.SourcePath))
+            .Sum(doc => doc.Diagnostics.Count);
 
         return new DocsDogfoodSummary(
             docsLoaded,
             documents.Count + 1,
             diagnosticsTotal,
-            unsupportedSyntaxCount);
+            unsupportedSyntaxCount,
+            aurelianDocsLoaded,
+            aurelianDiagnosticsTotal);
     }
 
     private static OblivionCard CreateIndexCard(DocsDogfoodSummary summary)
@@ -236,11 +255,14 @@ public static class OblivionDocsDogfoodCatalog
             '\n',
             [
                 $"Docs loaded: {summary.DocsLoaded}",
+                $"Aurelian docs loaded: {summary.AurelianDocsLoaded}",
                 $"Cards generated: {summary.CardsGenerated}",
                 $"Diagnostics total: {summary.DiagnosticsTotal}",
+                $"Aurelian diagnostics: {summary.AurelianDiagnosticsTotal}",
                 $"Unsupported syntax count: {summary.UnsupportedSyntaxCount}",
                 "Docs are edited externally in Notepad or VS Code.",
                 "Markdown remains the text-card body language only.",
+                "Aurelian docs are dogfood inputs, not runtime or presenter integration behavior.",
                 "No editor, file watcher, Roslyn execution, xUnit execution, or Visionary implementation is added here.",
             ]);
 
@@ -311,6 +333,21 @@ public static class OblivionDocsDogfoodCatalog
         return $"doc-{fileName}";
     }
 
+    private static string[] BuildTags(string relativePath)
+    {
+        if (IsAurelianDoc(relativePath))
+        {
+            return ["aurelian", "docs", "dogfood", "markdown"];
+        }
+
+        return ["docs", "dogfood", "markdown"];
+    }
+
+    private static bool IsAurelianDoc(string relativePath)
+    {
+        return relativePath.StartsWith("docs/Aurelian/", StringComparison.Ordinal);
+    }
+
     private static string NormalizePath(string path)
     {
         return path.Replace('\\', '/');
@@ -353,4 +390,6 @@ public sealed record DocsDogfoodSummary(
     int DocsLoaded,
     int CardsGenerated,
     int DiagnosticsTotal,
-    int UnsupportedSyntaxCount);
+    int UnsupportedSyntaxCount,
+    int AurelianDocsLoaded,
+    int AurelianDiagnosticsTotal);

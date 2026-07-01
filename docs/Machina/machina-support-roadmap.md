@@ -88,6 +88,13 @@ M13b stabilizes the imported `Aurelian.slnx` as a separate build lane. That work
 - Machina production packages do not gain `Aurelian.Runtime`, `Aurelian.Graphics`, or Vulkan dependencies in M13b.
 - no `Machina.Aurelian` bridge is implemented yet.
 
+M13c then follows with test normalization and docs dogfood only:
+
+- the remaining Aurelian shader test issue is fixed at the assertion boundary by line-ending normalization only
+- selected `docs/Aurelian/...` files now compile through `Copeland.Markdown` and appear as generated cards under `Oblivion -> Docs`
+- Machina production packages still do not gain Aurelian runtime or Vulkan dependencies
+- no `Machina.Aurelian` bridge is implemented yet
+
 ## Support Matrix
 
 | Feature | Package | Status | Tests/Proof | Notes / Next Step |
@@ -1169,6 +1176,23 @@ Still deferred in M12d:
 - Roslyn execution
 - xUnit execution
 - Visionary
+
+## M13c follow-through
+
+M13c extends the M12d docs dogfood lane with a curated Aurelian slice while keeping the same doctrine.
+
+- `Oblivion -> Docs` now includes selected Aurelian architecture and audit docs
+- those docs compile through the existing `Copeland.Markdown` frontend
+- repo-relative source paths and per-doc diagnostics remain preserved
+- the docs index now summarizes Aurelian docs loaded and Aurelian diagnostics separately
+
+Still deferred in M13c:
+
+- SDSL-V migration into Copeland
+- `Copeland.Shaders`
+- `Machina.Aurelian` bridge work
+- Vulkan presenter integration
+- repo rename
 
 ## M12e update
 

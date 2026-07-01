@@ -16,6 +16,8 @@ This repository is now evolving toward a broader `Visionary` monorepo umbrella, 
 
 The imported `Aurelian` source tree and `docs/Aurelian` content are present as a separate subsystem lane. M13b stabilizes its build topology without deep integration: `Aurelian.slnx` remains separate, Aurelian now uses Dominatus NuGet packages instead of `vendor/Dominatus` or `reference/dominatus` project references, SDSL-V has not been merged into Copeland, Machina is not wired to Aurelian, and Vulkan runtime integration is still deferred. See [Aurelian Build Topology M13b](docs/Aurelian/aurelian-build-topology-m13b.md).
 
+M13c follows that with test normalization and docs dogfood only: the remaining Aurelian shader test failure is fixed by line-ending normalization at the test assertion boundary, and selected `docs/Aurelian/...` files now dogfood through the existing `Copeland.Markdown` and `Oblivion -> Docs` path. This still does not move SDSL-V into Copeland, add a `Machina.Aurelian` bridge, or add Vulkan presenter integration.
+
 ## Pipeline
 
 ```text
@@ -156,6 +158,7 @@ Current state:
 - sample `.md` dogfood bodies, including a curated doc-derived sample
 - curated existing repo docs loaded as generated cards with preserved repo-relative source paths
 - a synthetic docs index/status card that summarizes loaded docs and diagnostics
+- selected Aurelian docs loaded through the same dogfood path with preserved source paths, per-doc diagnostics, and separate Aurelian counts in the index
 
 Still not included:
 
@@ -240,6 +243,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Oblivion Markdown Body Integration M12b](docs/machina-oblivion-markdown-body-integration-m12b.md)
 - [Machina Oblivion Markdown Rendering M12c](docs/machina-oblivion-markdown-rendering-m12c.md)
 - [Machina Oblivion Docs Dogfood M12d](docs/machina-oblivion-docs-dogfood-m12d.md)
+- [Aurelian Test Normalization and Docs Dogfood M13c](docs/Aurelian/aurelian-test-normalization-docs-dogfood-m13c.md)
 - [Machina Oblivion Agentic Card Contract M12e](docs/machina-oblivion-agentic-card-contract-m12e.md)
 - [Machina Oblivion Card Effect Routing M12f](docs/machina-oblivion-card-effect-routing-m12f.md)
 - [Machina Presenter Keyboard Input M12g](docs/machina-presenter-keyboard-input-m12g.md)

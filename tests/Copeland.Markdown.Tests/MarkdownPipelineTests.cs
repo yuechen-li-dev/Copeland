@@ -272,6 +272,18 @@ public sealed class MarkdownPipelineTests
     }
 
     [Fact]
+    public void DocsDogfood_AurelianDocsCompileThroughCopelandMarkdown()
+    {
+        foreach (string relativePath in AurelianDocsDogfoodFiles)
+        {
+            MarkdownCompilation compilation = MarkdownCompiler.Compile(File.ReadAllText(GetRepoFile(relativePath)));
+
+            Assert.NotNull(compilation.Mir);
+            Assert.NotEmpty(compilation.Mir.Blocks);
+        }
+    }
+
+    [Fact]
     public void DocsDogfood_DoesNotCrashOnUnsupportedSyntax()
     {
         foreach (string relativePath in DocsDogfoodFiles)
@@ -429,6 +441,26 @@ public sealed class MarkdownPipelineTests
         @"docs\copeland-markdown-frontend-m12a.md",
         @"docs\machina-oblivion-markdown-body-integration-m12b.md",
         @"docs\machina-oblivion-markdown-rendering-m12c.md",
+        @"docs\Aurelian\aurelian-monorepo-import-audit-m13a.md",
+        @"docs\Aurelian\aurelian-build-topology-m13b.md",
+        @"docs\Aurelian\architecture\aurelian-charter.md",
+        @"docs\Aurelian\architecture\dependency-policy.md",
+        @"docs\Aurelian\architecture\compositor-policy-mechanism-split.md",
+        @"docs\Aurelian\architecture\graphics-memory-allocation.md",
+        @"docs\Aurelian\architecture\mvp-roadmap.md",
+        @"docs\Aurelian\architecture\world-model-doctrine.md",
+    ];
+
+    private static readonly string[] AurelianDocsDogfoodFiles =
+    [
+        @"docs\Aurelian\aurelian-monorepo-import-audit-m13a.md",
+        @"docs\Aurelian\aurelian-build-topology-m13b.md",
+        @"docs\Aurelian\architecture\aurelian-charter.md",
+        @"docs\Aurelian\architecture\dependency-policy.md",
+        @"docs\Aurelian\architecture\compositor-policy-mechanism-split.md",
+        @"docs\Aurelian\architecture\graphics-memory-allocation.md",
+        @"docs\Aurelian\architecture\mvp-roadmap.md",
+        @"docs\Aurelian\architecture\world-model-doctrine.md",
     ];
 
     private static void AssertText(MarkdownInline inline, string expected)

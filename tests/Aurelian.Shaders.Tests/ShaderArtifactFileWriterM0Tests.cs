@@ -56,7 +56,18 @@ public sealed class ShaderArtifactFileWriterM0Tests
         Assert.True(File.Exists(Path.Combine(temp.Path, "VSMain.spv.hex")));
         Assert.True(File.Exists(Path.Combine(temp.Path, "PSMain.spv.hex")));
         Assert.False(File.Exists(Path.Combine(temp.Path, "VSMain.spv")));
-        Assert.Matches("^[0-9a-f\n]+$", File.ReadAllText(Path.Combine(temp.Path, "VSMain.spv.hex")));
+        string hexText = File.ReadAllText(Path.Combine(temp.Path, "VSMain.spv.hex"));
+
+        Assert.Matches("^[0-9a-f\n]+$", NormalizeLineEndings(hexText));
+    }
+
+    [Fact]
+    public void ShaderHexOutputComparison_NormalizesLineEndings()
+    {
+        const string expected = "0302230701000000\n";
+        const string actual = "0302230701000000\r\n";
+
+        Assert.Equal(NormalizeLineEndings(expected), NormalizeLineEndings(actual));
     }
 
     [Fact]
@@ -134,6 +145,11 @@ public sealed class ShaderArtifactFileWriterM0Tests
     }
 
     private static string ComputeSha256(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+
+    private static string NormalizeLineEndings(string text)
+    {
+        return text.Replace("\r\n", "\n", StringComparison.Ordinal);
+    }
 
     private static string FormatDiagnostics(ShaderArtifactFileWriteResult result) =>
         string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));

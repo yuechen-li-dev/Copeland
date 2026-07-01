@@ -18,6 +18,8 @@ M12f keeps the same docs dogfood cards and adds deferred note-card actions plus 
 
 M12g keeps the same docs dogfood cards and adds keyboard input plumbing in the presenter shell. Text input now translates through the backend seam, but the docs cards still do not become an editor.
 
+M13c extends the same docs dogfood path with a curated Aurelian slice. The doctrine does not change: Markdown files are still cards, not whole pages, and the added Aurelian docs are still dogfood inputs rather than renderer or runtime integration behavior.
+
 M12d does not add a Markdown editor, file watcher, Roslyn execution, xUnit execution, Visionary, or single-file Markdown import/export.
 
 ## Why dogfood existing docs
@@ -38,6 +40,17 @@ M12d intentionally uses a hand-curated deterministic list:
 - `docs/copeland-markdown-frontend-m12a.md`
 - `docs/machina-oblivion-markdown-body-integration-m12b.md`
 - `docs/machina-oblivion-markdown-rendering-m12c.md`
+
+M13c extends that deterministic list with selected Aurelian docs:
+
+- `docs/Aurelian/aurelian-monorepo-import-audit-m13a.md`
+- `docs/Aurelian/aurelian-build-topology-m13b.md`
+- `docs/Aurelian/architecture/aurelian-charter.md`
+- `docs/Aurelian/architecture/dependency-policy.md`
+- `docs/Aurelian/architecture/compositor-policy-mechanism-split.md`
+- `docs/Aurelian/architecture/graphics-memory-allocation.md`
+- `docs/Aurelian/architecture/mvp-roadmap.md`
+- `docs/Aurelian/architecture/world-model-doctrine.md`
 
 M12d does not attempt broad automatic repo indexing.
 
@@ -63,6 +76,7 @@ Each curated Markdown file becomes one generated `note` card plus one synthetic 
 - title from the first heading when available
 - file-name fallback when no heading exists
 - tags including `docs`, `dogfood`, and `markdown`
+- Aurelian docs additionally include the `aurelian` tag
 - `Passing` when no diagnostics exist
 - `Warning` when Markdown diagnostics exist
 - `Failing` only when the doc could not be loaded
@@ -90,6 +104,7 @@ Behavior:
 - compact cards show diagnostics badges when needed
 - inspector diagnostics remain readable per selected doc
 - the top docs index card summarizes total diagnostics and unsupported-syntax counts
+- the top docs index card now also summarizes Aurelian docs loaded and Aurelian diagnostics
 - malformed or unsupported syntax does not crash the page
 
 ## Rendering behavior
@@ -115,6 +130,7 @@ It records:
 - unsupported syntax count
 - reminder that docs are edited externally
 - reminder that Markdown is still card body language only
+- reminder that Aurelian docs are dogfood inputs, not integration behavior
 
 ## Export commands
 
