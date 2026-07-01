@@ -1,0 +1,29 @@
+{
+  "milestone": "M13d",
+  "kind": "copeland-compiler-workshop-architecture",
+  "universalIrMandated": false,
+  "copelandShadersMonolithChosen": false,
+  "compilerWorkshopDoctrineDocumented": true,
+  "laneTaxonomyDocumented": true,
+  "sdslvMigrationPerformed": false,
+  "copelandShadersImplemented": false,
+  "gpuTsImplemented": false,
+  "ptxBackendImplemented": false,
+  "octReimplementationPerformed": false,
+  "machinaAurelianBridgeImplemented": false,
+  "vulkanPresenterIntegrationPerformed": false,
+  "repoRenamed": false,
+  "futureLaneCandidates": [
+    "markdown/document",
+    "typescript/script",
+    "sdslv/shader",
+    "gpu-typescript/kernel",
+    "oct/numeric"
+  ],
+  "deferredWork": [
+    "Aurelian SDSL-V lane audit against Copeland workshop doctrine",
+    "Copeland shader/kernel lane target architecture",
+    "Aurelian render model/null renderer boundary proof planning",
+    "First implementation extraction or bridge proof when earned"
+  ]
+}

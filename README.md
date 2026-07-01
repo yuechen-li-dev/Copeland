@@ -13,10 +13,13 @@ This repository is now evolving toward a broader `Visionary` monorepo umbrella, 
 - `Oblivion`: notebook/card/workbench layer hosted in the Machina presenter.
 - `Aurelian`: rendering infrastructure, render contracts, shader/compiler work, and Vulkan-oriented backend work.
 - `Dominatus`: orchestration, lifecycle, and effect-routing infrastructure.
+- `Leviathan`: future web/auth/payment/social/networked application layer.
 
 The imported `Aurelian` source tree and `docs/Aurelian` content are present as a separate subsystem lane. M13b stabilizes its build topology without deep integration: `Aurelian.slnx` remains separate, Aurelian now uses Dominatus NuGet packages instead of `vendor/Dominatus` or `reference/dominatus` project references, SDSL-V has not been merged into Copeland, Machina is not wired to Aurelian, and Vulkan runtime integration is still deferred. See [Aurelian Build Topology M13b](docs/Aurelian/aurelian-build-topology-m13b.md).
 
 M13c follows that with test normalization and docs dogfood only: the remaining Aurelian shader test failure is fixed by line-ending normalization at the test assertion boundary, and selected `docs/Aurelian/...` files now dogfood through the existing `Copeland.Markdown` and `Oblivion -> Docs` path. This still does not move SDSL-V into Copeland, add a `Machina.Aurelian` bridge, or add Vulkan presenter integration.
+
+M13d is architecture doctrine only: Copeland is now documented as the compiler workshop for Visionary. It supports explicit compiler lanes, shared primitives promoted only after repeated concrete use, and no universal-IR mandate. This still does not move `Aurelian.Shaders`, create `Copeland.Shaders`, implement GPU TypeScript or PTX packages, wire Machina to Aurelian/Vulkan, or rename the repo.
 
 ## Pipeline
 
@@ -190,6 +193,10 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 
 ## Support matrices
 
+- [Copeland Docs Index](docs/Copeland/README.md)
+- [Copeland Compiler Workshop Architecture M13d](docs/Copeland/copeland-compiler-workshop-architecture-m13d.md)
+- [Copeland Compiler Lane Taxonomy M13d](docs/Copeland/copeland-compiler-lane-taxonomy-m13d.md)
+- [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)
 - [Windows Test Triage M5i](docs/copeland-windows-test-triage-m5i.md)

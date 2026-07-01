@@ -95,6 +95,13 @@ M13c then follows with test normalization and docs dogfood only:
 - Machina production packages still do not gain Aurelian runtime or Vulkan dependencies
 - no `Machina.Aurelian` bridge is implemented yet
 
+M13d then clarifies the compiler-side doctrine that Machina depends on conceptually but does not own:
+
+- Copeland is the compiler workshop for Visionary
+- Copeland hosts explicit compiler lanes rather than one universal IR mandate
+- `Copeland.Shaders` is too narrow to name the whole architecture
+- Machina should present compiler artifacts and diagnostics, not own compiler semantics
+
 ## Support Matrix
 
 | Feature | Package | Status | Tests/Proof | Notes / Next Step |
@@ -1190,6 +1197,26 @@ Still deferred in M13c:
 
 - SDSL-V migration into Copeland
 - `Copeland.Shaders`
+- `Machina.Aurelian` bridge work
+- Vulkan presenter integration
+- repo rename
+
+## M13d follow-through
+
+M13d is architecture doctrine only. It does not change Machina runtime behavior.
+
+- `docs/Copeland/copeland-compiler-workshop-architecture-m13d.md` defines Copeland as the compiler workshop for Visionary.
+- `docs/Copeland/copeland-compiler-lane-taxonomy-m13d.md` defines compiler-lane terminology and lane categories.
+- `docs/Copeland/README.md` and `docs/Copeland/copeland-roadmap.md` add the Copeland-side docs index and recommended sequence.
+- `artifacts/m13d/copeland-compiler-workshop-manifest.json|txt` record that no migration, no `Copeland.Shaders` implementation, and no Machina/Aurelian/Vulkan bridge work were performed.
+
+Still deferred in M13d:
+
+- SDSL-V migration into Copeland
+- `Copeland.Shaders` implementation
+- GPU TypeScript frontend implementation
+- PTX backend implementation
+- Oct reimplementation work
 - `Machina.Aurelian` bridge work
 - Vulkan presenter integration
 - repo rename

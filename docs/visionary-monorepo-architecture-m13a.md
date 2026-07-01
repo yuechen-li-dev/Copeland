@@ -20,11 +20,12 @@ Keeping the systems separate would continue the current duplication of compiler 
 
 Subsystem names remain:
 
-- `Copeland`: compiler infrastructure.
+- `Copeland`: compiler workshop infrastructure.
 - `Machina`: UI/presenter/workbench shell.
 - `Oblivion`: notebook/card/workbench layer hosted inside Machina.
 - `Aurelian`: rendering infrastructure, render contracts, shader work, and Vulkan-oriented backend path.
 - `Dominatus`: orchestration, lifecycle, and effect-routing infrastructure.
+- `Leviathan`: future web/auth/payment/social/networked application layer.
 
 ## Subsystem responsibilities
 
@@ -32,15 +33,16 @@ The monorepo should converge on explicit subsystem lanes rather than a blended i
 
 ## Copeland
 
-Copeland remains the compiler lane:
+Copeland remains the compiler workshop lane:
 
-- lexer/parser infrastructure
-- AST and semantic binding patterns
+- shared compiler primitives and conventions
+- lexer/parser and lowering patterns
 - diagnostics and compilation staging
-- MIR or equivalent lowering layers
-- backend lowering and compiler CLI surfaces
+- explicit frontends
+- domain-specific HIR/MIR lanes when earned
+- targeted backends and compiler CLI surfaces
 
-Future shader-frontend work may eventually live in a `Copeland.Shaders` or equivalent lane, but M13a does not move any code.
+M13d refines this further: Copeland should host multiple explicit compiler lanes without mandating one universal IR and without naming the whole architecture after shaders.
 
 ## Machina
 
@@ -143,6 +145,13 @@ M13c then proves two narrow follow-through points without changing subsystem bou
 - the remaining Aurelian shader test issue is fixed by assertion-boundary line-ending normalization only
 - selected Aurelian docs now dogfood through the existing Copeland Markdown and Oblivion docs-card path
 
+M13d then defines Copeland as the compiler workshop for Visionary:
+
+- no universal IR mandate
+- no `Copeland.Shaders` monolith as the architectural umbrella
+- explicit document, script, shader, kernel, numeric, and future domain lanes
+- shared abstractions promoted only after repeated concrete use
+
 ## What did not change
 
 M13a intentionally does not:
@@ -162,8 +171,9 @@ Recommended near-term phases:
 - `M13a`: audit and organization.
 - `M13b`: Aurelian solution/build topology stabilization. Completed as a separate-solution cleanup and NuGet dependency retargeting pass; no runtime integration was introduced.
 - `M13c`: completed as shader test normalization plus curated Aurelian docs dogfood through existing Copeland Markdown/Oblivion paths where safe.
-- `M13d`: SDSL-V compiler audit against Copeland compiler patterns.
-- `M13e`: define `Copeland.Shaders` target architecture and migration doctrine.
-- `M13f`: tighten Aurelian render-model boundary and null-renderer proof strategy.
-- `M13g`: design `Machina.Aurelian` bridge contracts.
+- `M13d`: Copeland compiler workshop architecture. Completed as doctrine, lane taxonomy, roadmap, and manifest work only.
+- `M13e`: Aurelian SDSL-V lane audit against Copeland workshop doctrine.
+- `M13f`: Copeland shader/kernel lane target architecture.
+- `M13g`: tighten Aurelian render-model boundary and null-renderer proof planning.
+- `M13h`: design `Machina.Aurelian` bridge contracts.
 - `M14+`: triangle proof, Vulkan proof, and presenter integration after boundaries stabilize.
