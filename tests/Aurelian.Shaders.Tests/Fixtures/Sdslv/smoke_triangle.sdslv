@@ -1,0 +1,24 @@
+namespace Aurelian.Smoke;
+
+record VertexInput {
+    Position: float3;
+    Color: float4;
+}
+
+record VertexOutput {
+    Position: float4;
+    Color: float4;
+}
+
+shader SmokeTriangle {
+    stage VSMain(input: VertexInput): VertexOutput {
+        let output: VertexOutput;
+        output.Position = float4(input.Position, 1.0);
+        output.Color = input.Color;
+        return output;
+    }
+
+    stage PSMain(input: VertexOutput): float4 {
+        return input.Color;
+    }
+}

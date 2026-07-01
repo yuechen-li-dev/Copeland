@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Aurelian.Core/Aurelian.Core.csproj" />
+    <ProjectReference Include="../../src/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <ProjectReference Include="../../src/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../src/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Aurelian.Graphics.Tests/Fixtures/Spirv/TriangleSpirvFixtures.cs" Link="Support/Spirv/TriangleSpirvFixtures.cs" />
+  </ItemGroup>
+</Project>

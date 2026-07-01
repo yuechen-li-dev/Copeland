@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Aurelian.World/Aurelian.World.csproj" />
+    <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+    <ProjectReference Include="..\..\vendor\Dominatus\src\Dominatus.Core\Dominatus.Core.csproj" />
+  </ItemGroup>
+</Project>
