@@ -48,9 +48,23 @@ public static class AssetManifestParser
 {
     public static (AssetManifest? Manifest, IReadOnlyList<AssetDiagnostic> Diagnostics) Parse(string tomlText, string manifestPath)
     {
-        if (!Toml.TryToModel<TomlTable>(tomlText, out var table, out var diagnostics) || table is null)
+        TomlTable? table;
+        try
         {
-            return (null, [new AssetDiagnostic(AssetDiagnosticCodes.TomlParseFailed, "error", diagnostics?.ToString() ?? "TOML parse failure.", manifestPath)]);
+            table = TomlSerializer.Deserialize<TomlTable>(tomlText, new TomlSerializerOptions());
+        }
+        catch (TomlException ex)
+        {
+            return (null, [new AssetDiagnostic(AssetDiagnosticCodes.TomlParseFailed, "error", ex.Message, manifestPath)]);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or FormatException or ArgumentException)
+        {
+            return (null, [new AssetDiagnostic(AssetDiagnosticCodes.TomlParseFailed, "error", ex.Message, manifestPath)]);
+        }
+
+        if (table is null)
+        {
+            return (null, [new AssetDiagnostic(AssetDiagnosticCodes.TomlParseFailed, "error", "TOML document did not bind to a table model.", manifestPath)]);
         }
 
         var manifest = new AssetManifest();

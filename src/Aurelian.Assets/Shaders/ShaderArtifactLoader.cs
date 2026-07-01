@@ -23,15 +23,21 @@ public static class ShaderArtifactLoader
         try
         {
             string toml = File.ReadAllText(manifestPath);
-            if (!Toml.TryToModel<TomlTable>(toml, out TomlTable? parsed, out var parseDiagnostics) || parsed is null)
+            TomlTable? parsed = TomlSerializer.Deserialize<TomlTable>(toml, new TomlSerializerOptions());
+            if (parsed is null)
             {
-                diagnostics.Add(new ShaderArtifactDiagnostic(ShaderArtifactDiagnosticCodes.ManifestParseFailed, parseDiagnostics?.ToString() ?? "TOML parse failed.", manifestPath));
+                diagnostics.Add(new ShaderArtifactDiagnostic(ShaderArtifactDiagnosticCodes.ManifestParseFailed, "TOML document did not bind to a table model.", manifestPath));
                 return new ShaderArtifactLoadResult(ShaderArtifactLoadStatus.Rejected, null, diagnostics);
             }
 
             table = parsed;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+        catch (TomlException ex)
+        {
+            diagnostics.Add(new ShaderArtifactDiagnostic(ShaderArtifactDiagnosticCodes.ManifestParseFailed, ex.Message, manifestPath));
+            return new ShaderArtifactLoadResult(ShaderArtifactLoadStatus.Rejected, null, diagnostics);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or InvalidOperationException or FormatException)
         {
             diagnostics.Add(new ShaderArtifactDiagnostic(ShaderArtifactDiagnosticCodes.ManifestParseFailed, ex.Message, manifestPath));
             return new ShaderArtifactLoadResult(ShaderArtifactLoadStatus.Failed, null, diagnostics);

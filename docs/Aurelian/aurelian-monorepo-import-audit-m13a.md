@@ -50,13 +50,13 @@ Representative source volume from the import:
 
 ## Imported docs layout
 
-Imported Aurelian docs currently live under `docs/Aurelian/docs/` with three visible buckets:
+Imported Aurelian docs currently live under `docs/Aurelian/` with three visible buckets:
 
 - `architecture/`: 10 files
 - `audits/`: 76 files
 - `claude/`: 1 file
 
-The docs are detailed and milestone-oriented. They contain important prior thinking about SDSL-V, render contracts, compositor policy/mechanism splits, dependency policy, and Vulkan progression. They also still describe an older standalone Aurelian world and mention paths such as `vendor/Dominatus` that do not match the current repo layout.
+The docs are detailed and milestone-oriented. They contain important prior thinking about SDSL-V, render contracts, compositor policy/mechanism splits, dependency policy, and Vulkan progression. Some older entries still describe a standalone Aurelian world and mention import-era paths such as `vendor/Dominatus`, but M13b now stabilizes the active repo topology around repo-local source plus NuGet dependencies.
 
 ## Projects/folders
 
@@ -66,7 +66,7 @@ The docs are detailed and milestone-oriented. They contain important prior think
 | `Aurelian.Actuation` | typed world mutation requests and actuators | domain mutation layer | `Aurelian.World` | likely self-contained | conceptually parallel to Dominatus actuation, but domain-specific | low | keep under `Aurelian.Actuation` |
 | `Aurelian.Rendering.Contracts` | render snapshots, command plans, compiled shader/compositor DTOs | neutral render-contract layer | none | likely self-contained | strongest future bridge target for Machina-to-Aurelian rendering | low | keep under `Aurelian.Rendering.Contracts` |
 | `Aurelian.Rendering.Null` | deterministic null renderer over command plans | headless backend | `Aurelian.Rendering.Contracts` | likely self-contained | useful proof backend for future bridge testing | low | keep under `Aurelian.Rendering.Null` |
-| `Aurelian.Runtime` | runtime tick/session/compositor policy and world-to-render extraction | runtime orchestration layer | `Aurelian.World`, `Aurelian.Rendering.Contracts`, missing `vendor/Dominatus` project ref | currently topology-broken in this repo because vendor path is absent | overlaps with Machina.Dominatus control-plane concepts | medium | keep under `Aurelian.Runtime`, retarget references in M13b |
+| `Aurelian.Runtime` | runtime tick/session/compositor policy and world-to-render extraction | runtime orchestration layer | `Aurelian.World`, `Aurelian.Rendering.Contracts`, `Dominatus.Core` | topology stabilized in M13b via NuGet package usage | overlaps with Machina.Dominatus control-plane concepts | medium | keep under `Aurelian.Runtime` |
 | `Aurelian.Core` | engine/frame loop and graphics/runtime composition spine | composition/core engine layer | `Aurelian.Runtime`, `Aurelian.Rendering.Contracts`, `Aurelian.Graphics` | depends on runtime and graphics topology stabilizing | potential eventual presenter-facing engine seam, but not yet | medium | keep under `Aurelian.Core` |
 | `Aurelian.Graphics` | Vulkan-oriented graphics backend and plant/device/resource work | backend implementation layer | `Aurelian.Rendering.Contracts`, Silk.NET packages | package/version topology likely incomplete in current central props | future backend provider for Aurelian, not for direct Machina dependency | medium-high | keep under `Aurelian.Graphics`; future `Aurelian.Vulkan` split possible |
 | `Aurelian.Shaders` | SDSL-V language, lexing, parsing, lowering, artifact generation, DXC bridge | shader compiler frontend/tooling layer | `Aurelian.Rendering.Contracts`, DXC package | package/version topology likely incomplete in current central props | strongest overlap with Copeland compiler infrastructure | high | temporary under `Aurelian.Shaders`; long-term candidate for `Copeland.Shaders` frontend split |
@@ -246,16 +246,26 @@ M13a should not force Aurelian to depend on `reference/dominatus`, and it should
 
 ## Build/test status
 
-Initial topology findings before validation:
+Initial topology findings before M13b validation:
 
 - `Copeland.slnx` remains the current fast/core solution for Copeland/Machina work.
 - `Copeland.Slow.slnx` remains the current slow/proof solution.
 - `Aurelian.slnx` is present and should remain separate for now.
-- `Aurelian.slnx` currently references paths that do not exist in this repository snapshot:
+- `Aurelian.slnx` referenced paths that did not exist in this repository snapshot:
   - `samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj`
   - `vendor/Dominatus/src/...`
-- `src/Aurelian.Runtime/Aurelian.Runtime.csproj` also references `../../vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj`, but the repo currently has `reference/dominatus` and no `vendor/` directory.
-- imported package references for `System.CommandLine`, `Microsoft.Direct3D.DXC`, and several Silk.NET packages are not centrally versioned in the current root `Directory.Packages.props`, which may prevent restore/build until M13b addresses topology/package stabilization.
+- `src/Aurelian.Runtime/Aurelian.Runtime.csproj` referenced `../../vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj`, but the repo uses `reference/dominatus` for inspection only and no active `vendor/` tree.
+- imported package references for `System.CommandLine`, `Microsoft.Direct3D.DXC`, and several Silk.NET packages were not centrally versioned in the current root `Directory.Packages.props`.
+
+M13b resolves those topology issues:
+
+- `Aurelian.slnx` stays separate from `Copeland.slnx` and `Copeland.Slow.slnx`.
+- stale `vendor/Dominatus` and missing sample solution entries are removed from `Aurelian.slnx`.
+- `Aurelian.Runtime` now uses a NuGet `PackageReference` to `Dominatus.Core`.
+- `reference/dominatus` remains reference-only and is not project-referenced by Aurelian.
+- central package management now covers the imported Aurelian package set needed for restore/build.
+- `dotnet restore Aurelian.slnx` and `dotnet build Aurelian.slnx --no-restore` pass after stabilization.
+- remaining Aurelian test failures are non-topology issues and are recorded in [aurelian-build-topology-m13b.md](/C:/Users/yuech/source/repos/Copeland/docs/Aurelian/aurelian-build-topology-m13b.md).
 
 Validation command results are recorded after the repository docs changes in this milestone's closeout report.
 

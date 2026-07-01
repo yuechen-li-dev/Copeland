@@ -79,6 +79,15 @@ M7a adds a dedicated component gallery so broader StandardUI visual inspection n
 
 M11g closes out the current Oblivion substrate. Markdown cards are next, and Roslyn/xUnit execution is now explicitly deferred to M13+ or later unless explicitly re-prioritized.
 
+## Visionary / Aurelian topology note
+
+M13b stabilizes the imported `Aurelian.slnx` as a separate build lane. That work changes dependency topology only:
+
+- Aurelian uses Dominatus NuGet packages for active dependencies.
+- `reference/dominatus` remains reference-only.
+- Machina production packages do not gain `Aurelian.Runtime`, `Aurelian.Graphics`, or Vulkan dependencies in M13b.
+- no `Machina.Aurelian` bridge is implemented yet.
+
 ## Support Matrix
 
 | Feature | Package | Status | Tests/Proof | Notes / Next Step |

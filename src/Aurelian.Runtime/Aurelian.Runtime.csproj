@@ -5,6 +5,6 @@
   <ItemGroup>
     <ProjectReference Include="../Aurelian.World/Aurelian.World.csproj" />
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
-    <ProjectReference Include="..\..\vendor\Dominatus\src\Dominatus.Core\Dominatus.Core.csproj" />
+    <PackageReference Include="Dominatus.Core" />
   </ItemGroup>
 </Project>

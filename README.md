@@ -14,7 +14,7 @@ This repository is now evolving toward a broader `Visionary` monorepo umbrella, 
 - `Aurelian`: rendering infrastructure, render contracts, shader/compiler work, and Vulkan-oriented backend work.
 - `Dominatus`: orchestration, lifecycle, and effect-routing infrastructure.
 
-The imported `Aurelian` source tree and `docs/Aurelian` content are present for M13a audit and monorepo organization work only. No deep integration has been performed yet: the repo has not been renamed, `Aurelian.slnx` remains separate, SDSL-V has not been merged into Copeland, Machina is not wired to Aurelian, and Vulkan runtime integration is still deferred.
+The imported `Aurelian` source tree and `docs/Aurelian` content are present as a separate subsystem lane. M13b stabilizes its build topology without deep integration: `Aurelian.slnx` remains separate, Aurelian now uses Dominatus NuGet packages instead of `vendor/Dominatus` or `reference/dominatus` project references, SDSL-V has not been merged into Copeland, Machina is not wired to Aurelian, and Vulkan runtime integration is still deferred. See [Aurelian Build Topology M13b](docs/Aurelian/aurelian-build-topology-m13b.md).
 
 ## Pipeline
 
@@ -188,7 +188,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 ## Support matrices
 
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
-- [Machina Support Roadmap](docs/machina-support-roadmap.md)
+- [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)
 - [Windows Test Triage M5i](docs/copeland-windows-test-triage-m5i.md)
 - [Reference Source](reference/README.md)
 

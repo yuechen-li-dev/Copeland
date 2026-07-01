@@ -1,7 +1,4 @@
 <Solution>
-  <Folder Name="/samples/">
-    <Project Path="samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
-  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Aurelian.Actuation/Aurelian.Actuation.csproj" />
     <Project Path="src/Aurelian.Assets/Aurelian.Assets.csproj" />
@@ -26,13 +23,5 @@
     <Project Path="tests/Aurelian.Runtime.Tests/Aurelian.Runtime.Tests.csproj" />
     <Project Path="tests/Aurelian.Shaders.Tests/Aurelian.Shaders.Tests.csproj" />
     <Project Path="tests/Aurelian.World.Tests/Aurelian.World.Tests.csproj" />
-  </Folder>
-  <Folder Name="/vendor/" />
-  <Folder Name="/vendor/Dominatus/" />
-  <Folder Name="/vendor/Dominatus/src/">
-    <Project Path="vendor/Dominatus/src/Ariadne.OptFlow/Ariadne.OptFlow.csproj" />
-    <Project Path="vendor/Dominatus/src/Dominatus.Core/Dominatus.Core.csproj" />
-    <Project Path="vendor/Dominatus/src/Dominatus.OptFlow/Dominatus.OptFlow.csproj" />
-    <Project Path="vendor/Dominatus/src/Dominatus.UtilityLite/Dominatus.UtilityLite.csproj" />
   </Folder>
 </Solution>

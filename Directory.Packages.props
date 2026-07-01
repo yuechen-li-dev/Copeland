@@ -7,6 +7,11 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="MSDF-Sharp.Core" Version="1.0.2" />
     <PackageVersion Include="Tomlyn" Version="2.9.0" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.9" />
+    <PackageVersion Include="Microsoft.Direct3D.DXC" Version="1.9.2602.24" />
+    <PackageVersion Include="Silk.NET.Vulkan" Version="2.23.0" />
+    <PackageVersion Include="Silk.NET.Vulkan.Extensions.KHR" Version="2.23.0" />
+    <PackageVersion Include="Silk.NET.Windowing" Version="2.23.0" />
     <PackageVersion Include="WycliffeAssociates.Typography.OpenFont" Version="1.0.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />

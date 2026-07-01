@@ -1,0 +1,26 @@
+{
+  "aurelianSolution": "Aurelian.slnx",
+  "buildStatus": "passed",
+  "centralPackagesAdded": [
+    "System.CommandLine",
+    "Microsoft.Direct3D.DXC",
+    "Silk.NET.Vulkan",
+    "Silk.NET.Vulkan.Extensions.KHR",
+    "Silk.NET.Windowing"
+  ],
+  "deepIntegrationPerformed": false,
+  "dominatusDependencyMode": "nuget",
+  "kind": "aurelian-build-topology",
+  "machinaAurelianBridgeImplemented": false,
+  "milestone": "M13b",
+  "missingSolutionProjectsRemovedOrDocumented": true,
+  "referenceDominatusProjectRefs": false,
+  "remainingBlockers": [
+    "Aurelian.Shaders.Tests hex SPIR-V text assertion currently expects LF-only output on Windows."
+  ],
+  "repoRenamed": false,
+  "restoreStatus": "passed",
+  "sdslvMigrationPerformed": false,
+  "testStatus": "failed-single-non-topology-issue",
+  "vendorDominatusProjectRefs": false
+}

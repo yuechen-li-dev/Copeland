@@ -131,6 +131,13 @@ M13a changes the repository understanding, not the runtime:
 - `Aurelian.slnx` exists at the repo root as an imported, initially separate solution.
 - monorepo architecture, ownership, and migration doctrine are now documented.
 
+M13b then stabilizes the imported Aurelian build lane without integrating runtime behavior:
+
+- `Aurelian.slnx` remains separate from `Copeland.slnx` and `Copeland.Slow.slnx`.
+- Aurelian now follows the active Dominatus dependency doctrine already used by Machina: NuGet packages for builds, `reference/dominatus` for inspection only.
+- stale `vendor/Dominatus` and missing sample solution references are removed from the imported Aurelian topology.
+- central package management now covers the imported Aurelian package set needed for restore/build.
+
 ## What did not change
 
 M13a intentionally does not:
@@ -148,7 +155,7 @@ M13a intentionally does not:
 Recommended near-term phases:
 
 - `M13a`: audit and organization.
-- `M13b`: Aurelian solution/build topology stabilization.
+- `M13b`: Aurelian solution/build topology stabilization. Completed as a separate-solution cleanup and NuGet dependency retargeting pass; no runtime integration was introduced.
 - `M13c`: Aurelian docs dogfood through existing Copeland Markdown/Oblivion paths where safe.
 - `M13d`: SDSL-V compiler audit against Copeland compiler patterns.
 - `M13e`: define `Copeland.Shaders` target architecture and migration doctrine.
