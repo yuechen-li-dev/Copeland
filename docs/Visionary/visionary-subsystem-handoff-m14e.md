@@ -169,6 +169,33 @@ M15c now continues on that same main lane:
 - long Markdown bodies scroll locally inside the expanded card
 - the milestone still does not reopen compiler, rendering, Aurelian, or `VD-MIR` lanes
 
+M15d then hardens the expanded reading surface:
+
+- expanded Markdown becomes document-scale and uses a readable dark-surface style record
+- the inspector stops duplicating formatted Markdown body rendering and shows raw Markdown source instead
+- the milestone still does not reopen compiler, rendering, Aurelian, or `VD-MIR` lanes
+
+M15e then separates reading and inspection into independent panes:
+
+- main card stack and inspector scroll independently
+- expanded body and raw source own nested local scroll regions
+- viewport rendering keeps partially visible Markdown content readable instead of blanking whole blocks
+- the milestone still does not reopen compiler, rendering, Aurelian, or `VD-MIR` lanes
+
+M15f then stabilizes the scroll regressions from that pane split:
+
+- the main card stack regains correct wheel and thumb-drag behavior through its own explicit action path
+- inspector scroll lag is reduced safely by caching prepared raw-source layout
+- inspector scroll is documented as not composition-only yet
+- the milestone still does not reopen compiler, rendering, Aurelian, or `VD-MIR` lanes
+
+M15g then closes out the reading-surface arc as documentation and planning only:
+
+- the current reading golden path is now documented as the baseline
+- the remaining UX papercuts are turned into an explicit backlog
+- the recommended next direction is `M16a — Oblivion reading navigation and focus affordances`
+- the milestone still does not reopen compiler, rendering, Aurelian, or `VD-MIR` lanes
+
 ## Non-goals
 
 M14e does not:

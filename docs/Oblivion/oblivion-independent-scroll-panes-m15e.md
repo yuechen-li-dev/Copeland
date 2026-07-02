@@ -118,3 +118,9 @@ M15f is the regression-stabilization follow-through for this pane model.
 It documents and fixes the M15e main-stack regression where `OblivionMainCardStack` scroll input still dispatched the generic page-scroll action and was then clamped back to zero in wide Oblivion mode.
 
 It also documents the inspector-scroll lag investigation and the narrow safe fix: caching prepared raw-source layout across repeated inspector scroll ticks without adding new feature work or a broad scroll-architecture rewrite.
+
+## M15g closeout note
+
+M15g is the closeout/planning follow-through for the M15 reading-surface arc.
+
+It does not change the M15e pane model. It documents the current golden path, records the remaining UX backlog, and treats independent panes plus nested local scroll regions as the current baseline rather than an active churn target.

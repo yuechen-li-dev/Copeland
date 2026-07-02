@@ -45,6 +45,8 @@ M15e hardens scrolling and viewport behavior. The main card stack and inspector 
 
 M15f is regression stabilization only. It traces and fixes the M15e main-card-stack regression by separating wide main-stack scroll from the generic page-scroll clamp path, and it investigates the inspector scroll lag with render/layout evidence. The safe fix keeps the current narrow presenter architecture but caches prepared raw-source layout so repeated inspector scroll ticks do not rebuild that work over and over. M15f still does not add new features, Markdown editing, notebook execution, Aurelian work, or `VD-MIR` work.
 
+M15g is closeout and planning only. The M15 reading-surface arc is now documented as a baseline: the runtime uses a controlled resizable `16:9` presenter surface, collapsed cards are scannable, one Markdown card can expand inline per page, rendered Markdown reads inline in the stack, the inspector remains an independent metadata/actions/diagnostics/raw-source pane, and scrolling is independent even though selection still couples stack and inspector content. M15g does not change runtime behavior, does not add new features, and does not continue speculative scroll churn; it records the remaining UX backlog and recommends `M16a — Oblivion reading navigation and focus affordances` as the next main direction.
+
 ## Pipeline
 
 ```text
@@ -224,6 +226,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Document Viewport Culling M15e](docs/Machina/machina-document-viewport-culling-m15e.md)
 - [Oblivion Scroll Regression Stabilization M15f](docs/Oblivion/oblivion-scroll-regression-stabilization-m15f.md)
 - [Machina Scroll Region Routing M15f](docs/Machina/machina-scroll-region-routing-m15f.md)
+- [Oblivion Reading Surface Closeout M15g](docs/Oblivion/oblivion-reading-surface-closeout-m15g.md)
+- [Machina/Oblivion UX Backlog M15g](docs/Machina/machina-oblivion-ux-backlog-m15g.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)
 - [Aurelian.VisibleTriangle Topology Audit M13g](docs/Aurelian/aurelian-visible-triangle-topology-audit-m13g.md)

@@ -1,0 +1,38 @@
+Oblivion Reading Surface Closeout Manifest M15g
+
+milestone: M15g
+kind: oblivion-reading-surface-closeout
+m15ArcClosed: true
+goldenPathDocumented: true
+uxBacklogDocumented: true
+recommendedNextMilestone: M16a
+recommendedNextMilestoneName: Oblivion reading navigation and focus affordances
+runtimeBehaviorChanged: false
+newFeatureWorkPerformed: false
+markdownEditingImplemented: false
+notebookExecutionImplemented: false
+roslynExecutionImplemented: false
+aurelianWorkPerformed: false
+vdMirWorkPerformed: false
+arbitrary2DLayoutSolverImplemented: false
+
+knownLimitations:
+- Inspector scroll is not composition-only yet.
+- M15f fixed the visible lag by caching prepared raw-source layout.
+- A future performance pass may separate inspector scroll from page rerender/composition if profiling proves it worthwhile.
+
+validationStatus:
+- Closeout/planning only; no runtime behavior changes intended.
+- Validation commands are expected to run from the existing repo test/build lanes.
+
+deferredWork:
+- reading navigation and focus affordances
+- search and filtering
+- inspector ergonomics
+- card organization
+- Markdown editing
+- card creation/editing
+- raw source editing
+- notebook execution
+- Roslyn/xUnit execution
+- composition-only inspector scroll if profiling proves it worthwhile

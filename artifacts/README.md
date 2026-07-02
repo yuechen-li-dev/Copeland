@@ -57,6 +57,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m15c/` is the current Oblivion expandable-Markdown-card reading-flow proof directory.
 - `artifacts/m15e/` is the current Oblivion independent-scroll-pane and document-viewport-culling proof directory.
 - `artifacts/m15f/` is the current Oblivion scroll-regression-stabilization proof directory.
+- `artifacts/m15g/` is the current Oblivion reading-surface closeout manifest directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -109,6 +110,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M15c expandable-card artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document stack-first Markdown reading, explicit expansion state, local body scrolling, and the explicit non-goals around Markdown editing, notebook execution, Aurelian work, and `VD-MIR` work.
 - Current M15e independent-scroll-pane artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document separate main/inspector panes, explicit nested scroll routing, real raw-source scrolling, and partial viewport culling without claiming editing or execution work.
 - Current M15f regression-stabilization artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document exact regression root causes, local scroll fixes, inspector-lag evidence, preserved non-goals, and no new feature work.
+- Current M15g closeout artifacts are deterministic text/JSON reports. They may be checked in when they document the M15 reading-surface closeout, the current golden path baseline, the explicit no-runtime-change doctrine, the recommended next milestone, and the remaining UX backlog without claiming new feature work.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

@@ -155,3 +155,9 @@ M15f preserves:
 
 - a future pane-local composition path if inspector scroll must avoid page-layer rerender entirely
 - any broader scroll/render performance work outside this regression-stabilization scope
+
+## M15g closeout note
+
+M15g is the closeout/planning follow-through for this stabilization work.
+
+It preserves the M15f behavior, documents the known limitation that inspector scroll is not composition-only yet, and recommends that future work move deliberately toward navigation, focus affordances, search, editing, or execution instead of continued accidental scroll churn.

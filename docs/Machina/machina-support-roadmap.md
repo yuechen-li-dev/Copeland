@@ -305,6 +305,27 @@ This remains a bounded pass:
 - no `VD-MIR` work
 - no broad scroll-architecture rewrite
 
+## M15g update
+
+M15g closes out the M15 reading-surface arc as documentation, backlog, and planning only.
+
+- the current Machina/Oblivion reading loop is now documented as the golden path baseline
+- M15a through M15f are summarized as one coherent reading-surface arc
+- the current presenter sizing, card preview, expandable-card, Markdown reading, inspector, scroll/input, and document viewport models are explicitly recorded
+- the known limitation that inspector scroll is not composition-only yet is carried forward without a speculative fix
+- the remaining UX papercuts are organized into a backlog
+- the recommended next primary direction is `M16a — Oblivion reading navigation and focus affordances`
+
+M15g is closeout/planning only:
+
+- no runtime behavior changed
+- no new feature work was performed
+- no Markdown editing
+- no notebook execution
+- no Roslyn/xUnit execution
+- no Aurelian work
+- no `VD-MIR` work
+
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

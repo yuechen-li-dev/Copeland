@@ -95,3 +95,9 @@ The traced lag fix instead removes repeated raw-source line clipping/layout work
 - no notebook execution
 - no Aurelian work
 - no `VD-MIR` work
+
+## M15g closeout note
+
+M15g keeps this routing model intact and documents it as the current baseline.
+
+The immediate recommendation after M15f is not more speculative scroll surgery. It is deliberate user-facing navigation and focus affordance work on top of the stabilized routing model.
