@@ -4,7 +4,9 @@ public sealed record PresenterNavigationState(
     string SelectedSectionId,
     IReadOnlyDictionary<string, string> SelectedTabBySectionId,
     IReadOnlyDictionary<string, double> ScrollOffsetByPageId,
+    IReadOnlyDictionary<string, double> InspectorScrollOffsetByPageId,
     IReadOnlyDictionary<string, string?> SelectedCardByPageId,
+    IReadOnlyDictionary<string, double> RawMarkdownSourceScrollOffsetByCardId,
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> CardViewStateByPageId,
     PresenterCompactPane CompactPane,
     OblivionCardEffectState EffectState)
@@ -23,7 +25,9 @@ public sealed record PresenterNavigationState(
             SelectedSectionId: model.Sections[0].Id,
             SelectedTabBySectionId: selectedTabs,
             ScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal),
+            InspectorScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal),
             SelectedCardByPageId: new Dictionary<string, string?>(StringComparer.Ordinal),
+            RawMarkdownSourceScrollOffsetByCardId: new Dictionary<string, double>(StringComparer.Ordinal),
             CardViewStateByPageId: new Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>>(StringComparer.Ordinal),
             CompactPane: PresenterCompactPane.CardList,
             EffectState: OblivionCardEffectState.Empty);
@@ -102,6 +106,33 @@ public sealed record PresenterNavigationState(
         };
     }
 
+    public double GetInspectorScrollOffset(string pageId)
+    {
+        ArgumentNullException.ThrowIfNull(pageId);
+
+        if (InspectorScrollOffsetByPageId.TryGetValue(pageId, out double offset))
+        {
+            return offset;
+        }
+
+        return 0;
+    }
+
+    public PresenterNavigationState WithInspectorScrollOffset(string pageId, double offset)
+    {
+        ArgumentNullException.ThrowIfNull(pageId);
+
+        var offsets = new Dictionary<string, double>(InspectorScrollOffsetByPageId, StringComparer.Ordinal)
+        {
+            [pageId] = offset,
+        };
+
+        return this with
+        {
+            InspectorScrollOffsetByPageId = offsets,
+        };
+    }
+
     public string? GetSelectedCardId(string pageId, IReadOnlyList<OblivionCard> cards)
     {
         ArgumentNullException.ThrowIfNull(pageId);
@@ -127,14 +158,51 @@ public sealed record PresenterNavigationState(
 
     public PresenterNavigationState WithSelectedCard(string pageId, string cardId)
     {
+        string? currentSelectedCardId = SelectedCardByPageId.TryGetValue(pageId, out string? selectedCardId)
+            ? selectedCardId
+            : null;
         var selectedCards = new Dictionary<string, string?>(SelectedCardByPageId, StringComparer.Ordinal)
         {
             [pageId] = cardId,
         };
 
-        return this with
+        PresenterNavigationState next = this with
         {
             SelectedCardByPageId = selectedCards,
+        };
+
+        if (!string.Equals(currentSelectedCardId, cardId, StringComparison.Ordinal))
+        {
+            next = next.WithInspectorScrollOffset(pageId, 0);
+        }
+
+        return next;
+    }
+
+    public double GetRawMarkdownSourceScrollOffset(string cardId)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+
+        if (RawMarkdownSourceScrollOffsetByCardId.TryGetValue(cardId, out double offset))
+        {
+            return offset;
+        }
+
+        return 0;
+    }
+
+    public PresenterNavigationState WithRawMarkdownSourceScrollOffset(string cardId, double offset)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+
+        var offsets = new Dictionary<string, double>(RawMarkdownSourceScrollOffsetByCardId, StringComparer.Ordinal)
+        {
+            [cardId] = offset,
+        };
+
+        return this with
+        {
+            RawMarkdownSourceScrollOffsetByCardId = offsets,
         };
     }
 

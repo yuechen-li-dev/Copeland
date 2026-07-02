@@ -263,6 +263,17 @@ M15d is the expanded Markdown reading-surface hardening pass after M15c.
 - the inspector now shows raw Markdown source text in a bounded scrollable source block
 - one expanded Markdown card per page keeps the reading model deterministic
 
+## M15e update
+
+M15e is scroll-pane and document-viewport hardening only.
+
+- the main card stack and inspector are now independent scroll panes in wide Oblivion mode
+- inspector scroll, raw-source scroll, and expanded-body drag are now explicit local state paths
+- wheel routing now prefers the deepest scrollable region under the pointer
+- expanded Markdown and raw-source viewports now clip content intentionally
+- partially visible Markdown blocks now render instead of disappearing wholesale
+- no Markdown editing, execution, Aurelian work, or `VD-MIR` work was added
+
 This remains a bounded pass:
 
 - no Markdown editing
@@ -272,6 +283,28 @@ This remains a bounded pass:
 - no `VD-MIR` work
 - no CSS-like style cascade
 - no arbitrary freeform `2D` layout solver
+
+## M15f update
+
+M15f is regression stabilization only.
+
+- the wide main card stack no longer routes through the generic page-scroll clamp path
+- wheel and thumb drag now update the main stack offset again through a dedicated main-stack action
+- inspector scroll lag was traced, not guessed
+- the narrow safe lag fix caches prepared raw-source layout across repeated inspector scroll ticks
+- independent panes, deepest-region routing, and partial viewport culling remain in place
+- no Markdown editing, execution, Aurelian work, or `VD-MIR` work was added
+
+This remains a bounded pass:
+
+- no new UX features
+- no Markdown editing
+- no notebook execution
+- no Roslyn execution
+- no Aurelian work
+- no `VD-MIR` work
+- no broad scroll-architecture rewrite
+
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

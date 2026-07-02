@@ -76,3 +76,9 @@ The Markdown reading style is global-ish and shared, but it does not replace `St
 - TOML read/write integration for the reading style
 - richer typography controls if later earned by real reading pressure
 - future theme composition only if additional reading surfaces actually need it
+
+## M15e note
+
+M15e keeps this record intact while applying it to stronger local scroll panes and clipped document viewports.
+
+The reading style still does not imply editing, execution, Aurelian work, or `VD-MIR` work.

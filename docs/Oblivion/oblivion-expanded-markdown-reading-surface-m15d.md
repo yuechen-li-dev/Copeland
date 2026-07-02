@@ -120,3 +120,12 @@ Proof artifacts live under `artifacts/m15d/`:
 - TOML loading for the Markdown reading style record
 - pointer-drag scrolling for the inspector raw-source block if later earned
 - any future editor or execution work
+
+## M15e follow-through
+
+M15e keeps the M15d reading surface, but hardens the surrounding interaction model.
+
+- independent main-stack and inspector panes are now explicit
+- inspector raw source now supports real wheel and thumb-drag scrolling
+- expanded Markdown body now supports direct thumb dragging
+- viewport culling now keeps partially visible paragraphs/blocks renderable

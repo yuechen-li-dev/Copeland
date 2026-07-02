@@ -29,46 +29,52 @@ public static class MachinaRenderBridge
             new BeginFrameCommand(renderOptions.Width, renderOptions.Height)
         };
 
-        foreach (var node in EnumeratePreOrder(resolved))
-        {
-            EmitFillAndStrokeCommands(node, lowering.Styles, commands);
-            if (EmitRichTextCommands(node, lowering.NodePayloads, commands))
-            {
-                continue;
-            }
-
-            EmitTextCommand(node, resolved, lowering.TextStyles, lowering.Semantics, commands);
-        }
+        var tree = ResolvedLayoutTreeBuilder.ToResolvedTree(resolved);
+        EmitNodeCommands(tree, lowering, resolved, commands);
 
         commands.Add(new EndFrameCommand());
         return commands;
     }
 
-    private static IEnumerable<ResolvedLayoutNode> EnumeratePreOrder(ResolvedLayoutDocument resolved)
+    private static void EmitNodeCommands(
+        ResolvedLayoutTree tree,
+        UiLoweringResult lowering,
+        ResolvedLayoutDocument resolved,
+        ICollection<IActuationCommand> commands)
     {
-        var tree = ResolvedLayoutTreeBuilder.ToResolvedTree(resolved);
-        var stack = new Stack<ResolvedLayoutTree>();
-        stack.Push(tree);
+        var node = new ResolvedLayoutNode(
+            tree.Id,
+            tree.Rect,
+            tree.Frame,
+            tree.Order,
+            tree.Z,
+            tree.View,
+            tree.Slot,
+            tree.DebugLabel,
+            tree.Layer,
+            tree.Arrange);
+        EmitFillAndStrokeCommands(node, lowering.Styles, commands);
 
-        while (stack.Count > 0)
+        bool pushClip = lowering.Styles.TryGetValue(node.Id, out UiStyle? style) &&
+            style.ClipToBounds;
+        if (pushClip)
         {
-            var current = stack.Pop();
-            yield return new ResolvedLayoutNode(
-                current.Id,
-                current.Rect,
-                current.Frame,
-                current.Order,
-                current.Z,
-                current.View,
-                current.Slot,
-                current.DebugLabel,
-                current.Layer,
-                current.Arrange);
+            commands.Add(new PushClipCommand(node.Id.Value, node.Rect));
+        }
 
-            for (var i = current.Children.Count - 1; i >= 0; i--)
-            {
-                stack.Push(current.Children[i]);
-            }
+        if (!EmitRichTextCommands(node, lowering.NodePayloads, commands))
+        {
+            EmitTextCommand(node, resolved, lowering.TextStyles, lowering.Semantics, commands);
+        }
+
+        foreach (ResolvedLayoutTree child in tree.Children)
+        {
+            EmitNodeCommands(child, lowering, resolved, commands);
+        }
+
+        if (pushClip)
+        {
+            commands.Add(new PopClipCommand());
         }
     }
 

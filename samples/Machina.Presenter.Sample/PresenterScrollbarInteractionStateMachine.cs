@@ -2,12 +2,34 @@ using Machina.Core.Actions;
 
 namespace Machina.Presenter.Sample;
 
+public enum PresenterScrollbarTargetKind
+{
+    Page,
+    OblivionMainCardStack,
+    OblivionExpandedMarkdownBody,
+    OblivionInspectorPane,
+    OblivionInspectorRawMarkdownSource,
+}
+
+public sealed record PresenterScrollbarTarget(
+    PresenterScrollbarTargetKind Kind,
+    string PageId,
+    string? CardId = null);
+
+public enum PresenterScrollbarHitPart
+{
+    None,
+    Viewport,
+    Track,
+    Thumb,
+}
+
 public abstract record PresenterScrollbarInteractionState
 {
     public sealed record Idle : PresenterScrollbarInteractionState;
 
     public sealed record ThumbDragging(
-        string PageId,
+        PresenterScrollbarTarget Target,
         float DragStartPointerY,
         float DragStartScrollOffset,
         ScrollbarGeometry StartGeometry) : PresenterScrollbarInteractionState;
@@ -23,7 +45,7 @@ public enum PresenterPointerCaptureRequest
 }
 
 public sealed record PresenterScrollbarInteractionContext(
-    string PageId,
+    PresenterScrollbarTarget Target,
     ScrollbarGeometry ScrollbarGeometry,
     double ViewportHeight);
 
@@ -38,18 +60,17 @@ public static class PresenterScrollbarInteractionStateMachine
     public static PresenterScrollbarInteractionResult Reduce(
         PresenterScrollbarInteractionState? currentState,
         PresenterScrollbarInteractionContext context,
-        PresenterNavigationHitTarget hitTarget,
+        PresenterScrollbarHitPart hitPart,
         PresenterInputEvent inputEvent)
     {
         ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(hitTarget);
         ArgumentNullException.ThrowIfNull(inputEvent);
 
         PresenterScrollbarInteractionState effectiveState = currentState ?? PresenterScrollbarInteractionState.Default;
 
         return effectiveState switch
         {
-            PresenterScrollbarInteractionState.Idle idle => ReduceIdle(idle, context, hitTarget, inputEvent),
+            PresenterScrollbarInteractionState.Idle idle => ReduceIdle(idle, context, hitPart, inputEvent),
             PresenterScrollbarInteractionState.ThumbDragging dragging => ReduceThumbDragging(dragging, context, inputEvent),
             _ => new PresenterScrollbarInteractionResult(
                 PresenterScrollbarInteractionState.Default,
@@ -62,17 +83,17 @@ public static class PresenterScrollbarInteractionStateMachine
     private static PresenterScrollbarInteractionResult ReduceIdle(
         PresenterScrollbarInteractionState.Idle idle,
         PresenterScrollbarInteractionContext context,
-        PresenterNavigationHitTarget hitTarget,
+        PresenterScrollbarHitPart hitPart,
         PresenterInputEvent inputEvent)
     {
         if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
             inputEvent.Button == PresenterInputButton.Primary &&
-            hitTarget.Kind == PresenterNavigationHitKind.ScrollbarThumb &&
+            hitPart == PresenterScrollbarHitPart.Thumb &&
             context.ScrollbarGeometry.IsVisible)
         {
             return new PresenterScrollbarInteractionResult(
                 new PresenterScrollbarInteractionState.ThumbDragging(
-                    context.PageId,
+                    context.Target,
                     inputEvent.Position.Y,
                     (float)context.ScrollbarGeometry.ScrollOffset,
                     context.ScrollbarGeometry),
@@ -83,7 +104,7 @@ public static class PresenterScrollbarInteractionStateMachine
 
         if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
             inputEvent.Button == PresenterInputButton.Primary &&
-            hitTarget.Kind == PresenterNavigationHitKind.ScrollbarTrack &&
+            hitPart == PresenterScrollbarHitPart.Track &&
             context.ScrollbarGeometry.IsVisible)
         {
             double pageDelta = context.ViewportHeight * 0.9;
@@ -93,20 +114,20 @@ public static class PresenterScrollbarInteractionStateMachine
 
             return new PresenterScrollbarInteractionResult(
                 idle,
-                PresenterNavigationActions.SetScrollOffset(context.PageId, nextOffset),
+                BuildSetScrollAction(context.Target, nextOffset),
                 PresenterPointerCaptureRequest.None,
                 SuppressFurtherRouting: true);
         }
 
         if (inputEvent.Kind == PresenterInputKind.Wheel &&
-            hitTarget.Kind == PresenterNavigationHitKind.ContentViewport &&
+            hitPart == PresenterScrollbarHitPart.Viewport &&
             context.ScrollbarGeometry.MaxScrollOffset > 0)
         {
             double nextOffset = context.ScrollbarGeometry.ScrollOffset - (inputEvent.WheelDeltaY * PresenterNavigationInputRouter.ScrollWheelMultiplier);
 
             return new PresenterScrollbarInteractionResult(
                 idle,
-                PresenterNavigationActions.SetScrollOffset(context.PageId, nextOffset),
+                BuildSetScrollAction(context.Target, nextOffset),
                 PresenterPointerCaptureRequest.None,
                 SuppressFurtherRouting: true);
         }
@@ -155,7 +176,7 @@ public static class PresenterScrollbarInteractionStateMachine
         PresenterInputPoint position)
     {
         if (!context.ScrollbarGeometry.IsVisible ||
-            !string.Equals(context.PageId, dragging.PageId, StringComparison.Ordinal))
+            !Equals(context.Target, dragging.Target))
         {
             return null;
         }
@@ -163,12 +184,36 @@ public static class PresenterScrollbarInteractionStateMachine
         double thumbTravel = dragging.StartGeometry.TrackRect.Height - dragging.StartGeometry.ThumbRect.Height;
         if (thumbTravel <= 0 || dragging.StartGeometry.MaxScrollOffset <= 0)
         {
-            return PresenterNavigationActions.SetScrollOffset(dragging.PageId, dragging.DragStartScrollOffset);
+            return BuildSetScrollAction(dragging.Target, dragging.DragStartScrollOffset);
         }
 
         double deltaY = position.Y - dragging.DragStartPointerY;
         double scrollDelta = deltaY * (dragging.StartGeometry.MaxScrollOffset / thumbTravel);
         double nextOffset = dragging.DragStartScrollOffset + scrollDelta;
-        return PresenterNavigationActions.SetScrollOffset(dragging.PageId, nextOffset);
+        return BuildSetScrollAction(dragging.Target, nextOffset);
+    }
+
+    private static UiActionId BuildSetScrollAction(PresenterScrollbarTarget target, double nextOffset)
+    {
+        return target.Kind switch
+        {
+            PresenterScrollbarTargetKind.Page =>
+                PresenterNavigationActions.SetScrollOffset(target.PageId, nextOffset),
+            PresenterScrollbarTargetKind.OblivionMainCardStack =>
+                PresenterNavigationActions.SetOblivionMainCardStackScrollOffset(target.PageId, nextOffset),
+            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody =>
+                PresenterNavigationActions.SetOblivionCardBodyScrollOffset(
+                    target.PageId,
+                    target.CardId ?? throw new InvalidOperationException("Expanded Markdown body scroll target requires a card id."),
+                    nextOffset),
+            PresenterScrollbarTargetKind.OblivionInspectorPane =>
+                PresenterNavigationActions.SetOblivionInspectorScrollOffset(target.PageId, nextOffset),
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource =>
+                PresenterNavigationActions.SetOblivionRawMarkdownSourceScrollOffset(
+                    target.PageId,
+                    target.CardId ?? throw new InvalidOperationException("Raw Markdown source scroll target requires a card id."),
+                    nextOffset),
+            _ => throw new ArgumentOutOfRangeException(nameof(target), target, "Unsupported scrollbar target."),
+        };
     }
 }

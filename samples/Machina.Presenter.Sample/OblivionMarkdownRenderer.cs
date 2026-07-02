@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using Copeland.Markdown;
 using Machina.Core.Authoring;
@@ -9,7 +10,7 @@ using Machina.Standard.Theme;
 
 namespace Machina.Presenter.Sample;
 
-internal static class OblivionMarkdownRenderer
+public static class OblivionMarkdownRenderer
 {
     private const double PreviewLineHeight = 18;
     private const double PreviewGap = 6;
@@ -33,11 +34,19 @@ internal static class OblivionMarkdownRenderer
     private static readonly PresenterCardTextLayout PreviewTextLayout = new(
         LineHeight: PreviewLineHeight,
         LineGap: PreviewGap);
+    private static readonly ConcurrentDictionary<string, IReadOnlyList<string>> RawMarkdownSourceLinesCache = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<OblivionRawMarkdownSourceLayoutCacheKey, OblivionPreparedRawMarkdownSourceLayout> RawMarkdownSourceLayoutCache = new();
+    private static readonly ConcurrentDictionary<string, int> RawMarkdownSourceLayoutBuildCountBySource = new(StringComparer.Ordinal);
+    private static int RawMarkdownSourceLayoutBuildCount;
 
     public sealed record OblivionScrollableCodeSurfaceRenderResult(
         UiNode Node,
         double ContentHeight,
         ScrollbarGeometry Scrollbar);
+
+    public sealed record OblivionMarkdownRendererDiagnostics(
+        int RawMarkdownSourceLayoutBuildCount,
+        int RawMarkdownSourceLayoutCacheEntryCount);
 
     public static UiNode BuildPreviewBody(
         string id,
@@ -246,7 +255,7 @@ internal static class OblivionMarkdownRenderer
         ArgumentNullException.ThrowIfNull(body);
         ArgumentNullException.ThrowIfNull(style);
 
-        IReadOnlyList<string> sourceLines = BuildRawMarkdownSourceLines(body);
+        IReadOnlyList<string> sourceLines = GetOrBuildRawMarkdownSourceLines(body);
         double contentHeight = MeasureSourceContentHeight(sourceLines, style);
         ScrollbarGeometry scrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
             new Machina.Layout.Geometry.Rect(
@@ -262,15 +271,11 @@ internal static class OblivionMarkdownRenderer
             ? Math.Max(120, width - ExpandedScrollbarWidth - ExpandedScrollbarGap)
             : width;
         double scrollOffset = scrollbar.ScrollOffset;
-        TextStyle sourceTextStyle = new(
-            Color: style.SourceForeground,
-            Size: TextSize.Sm,
-            AlignX: TextAlignX.Left,
-            AlignY: TextAlignY.Top);
+        OblivionPreparedRawMarkdownSourceLayout preparedLayout = GetOrBuildPreparedRawMarkdownSourceLayout(body, style, contentWidth);
         List<UiNode> children = [];
         double currentTop = -scrollOffset;
 
-        foreach ((string sourceLine, int index) in sourceLines.Select((value, index) => (value, index)))
+        foreach ((string sourceLine, int index) in preparedLayout.VisibleLines.Select((value, index) => (value, index)))
         {
             if (!IntersectsViewport(currentTop, style.SourceLineHeight, viewportHeight))
             {
@@ -278,19 +283,10 @@ internal static class OblivionMarkdownRenderer
                 continue;
             }
 
-            string visibleLine = PresenterCardLayoutHelper.ClipLinesToFit(
-                [sourceLine],
-                contentWidth,
-                style.SourceLineHeight,
-                new PresenterCardTextLayout(style.SourceLineHeight, style.SourceLineGap),
-                sourceTextStyle)
-                .FirstOrDefault()
-                ?? string.Empty;
-
             children.Add(
                 UI.Anchor(
                     UI.Text(
-                        visibleLine.Length == 0 ? " " : visibleLine,
+                        sourceLine.Length == 0 ? " " : sourceLine,
                         id: $"{id}.source-line-{index}",
                         size: TextSize.Sm,
                         color: style.SourceForeground),
@@ -337,7 +333,8 @@ internal static class OblivionMarkdownRenderer
                 style: new UiStyle(
                     Background: style.SourceSurface,
                     BorderColor: style.SourceBorder,
-                    BorderThickness: 1)),
+                    BorderThickness: 1,
+                    ClipToBounds: true)),
             contentHeight,
             scrollbar);
     }
@@ -387,6 +384,46 @@ internal static class OblivionMarkdownRenderer
         return diagnostics
             .Select(FormatDiagnosticLine)
             .ToArray();
+    }
+
+    public static IReadOnlyList<string> BuildRawMarkdownSourceLinesForScrollSurface(OblivionCardBody body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        return GetOrBuildRawMarkdownSourceLines(body);
+    }
+
+    public static double MeasureRawMarkdownSourceContentHeight(
+        OblivionCardBody body,
+        OblivionMarkdownReadingStyle style)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        ArgumentNullException.ThrowIfNull(style);
+        return MeasureSourceContentHeight(GetOrBuildRawMarkdownSourceLines(body), style);
+    }
+
+    public static OblivionMarkdownRendererDiagnostics GetDiagnostics()
+    {
+        return new OblivionMarkdownRendererDiagnostics(
+            RawMarkdownSourceLayoutBuildCount,
+            RawMarkdownSourceLayoutCache.Count);
+    }
+
+    public static void ResetDiagnostics()
+    {
+        System.Threading.Interlocked.Exchange(ref RawMarkdownSourceLayoutBuildCount, 0);
+        RawMarkdownSourceLinesCache.Clear();
+        RawMarkdownSourceLayoutCache.Clear();
+        RawMarkdownSourceLayoutBuildCountBySource.Clear();
+    }
+
+    public static int GetRawMarkdownSourceLayoutBuildCountForBody(OblivionCardBody body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+
+        string sourceIdentity = body.RawText ?? string.Empty;
+        return RawMarkdownSourceLayoutBuildCountBySource.TryGetValue(sourceIdentity, out int count)
+            ? count
+            : 0;
     }
 
     private static UiNode BuildPlainPreviewBody(
@@ -778,7 +815,7 @@ internal static class OblivionMarkdownRenderer
     private static bool IntersectsViewport(double top, double height, double viewportHeight)
     {
         double bottom = top + height;
-        return top >= 0 && bottom <= viewportHeight;
+        return bottom > 0 && top < viewportHeight;
     }
 
     private static double MeasureMarkdownDocumentHeight(DocumentMir mir, double width)
@@ -830,6 +867,70 @@ internal static class OblivionMarkdownRenderer
             string.Empty,
             .. SplitLines(body.RawText),
         ];
+    }
+
+    private static IReadOnlyList<string> GetOrBuildRawMarkdownSourceLines(OblivionCardBody body)
+    {
+        if (string.IsNullOrEmpty(body.RawText))
+        {
+            return BuildRawMarkdownSourceLines(body);
+        }
+
+        return RawMarkdownSourceLinesCache.GetOrAdd(
+            body.RawText,
+            static rawText => BuildRawMarkdownSourceLines(
+                new OblivionCardBody(
+                    OblivionCardBodyFormat.CopelandMarkdown,
+                    rawText,
+                    BodySourcePath: null,
+                    PreviewLines: [],
+                    DocumentMir: null,
+                    Diagnostics: [])));
+    }
+
+    private static OblivionPreparedRawMarkdownSourceLayout GetOrBuildPreparedRawMarkdownSourceLayout(
+        OblivionCardBody body,
+        OblivionMarkdownReadingStyle style,
+        double contentWidth)
+    {
+        IReadOnlyList<string> sourceLines = GetOrBuildRawMarkdownSourceLines(body);
+        string sourceIdentity = body.RawText ?? string.Empty;
+        var cacheKey = new OblivionRawMarkdownSourceLayoutCacheKey(
+            sourceIdentity,
+            contentWidth,
+            style.SourceLineHeight,
+            style.SourceLineGap);
+
+        return RawMarkdownSourceLayoutCache.GetOrAdd(
+            cacheKey,
+            _ =>
+            {
+                System.Threading.Interlocked.Increment(ref RawMarkdownSourceLayoutBuildCount);
+                RawMarkdownSourceLayoutBuildCountBySource.AddOrUpdate(
+                    sourceIdentity,
+                    addValue: 1,
+                    static (_, current) => current + 1);
+
+                TextStyle sourceTextStyle = new(
+                    Color: style.SourceForeground,
+                    Size: TextSize.Sm,
+                    AlignX: TextAlignX.Left,
+                    AlignY: TextAlignY.Top);
+                PresenterCardTextLayout sourceLayout = new(style.SourceLineHeight, style.SourceLineGap);
+                string[] clippedLines = sourceLines
+                    .Select(sourceLine =>
+                        PresenterCardLayoutHelper.ClipLinesToFit(
+                            [sourceLine],
+                            contentWidth,
+                            style.SourceLineHeight,
+                            sourceLayout,
+                            sourceTextStyle)
+                        .FirstOrDefault()
+                        ?? string.Empty)
+                    .ToArray();
+                double contentHeight = MeasureSourceContentHeight(sourceLines, style);
+                return new OblivionPreparedRawMarkdownSourceLayout(clippedLines, contentHeight);
+            });
     }
 
     private static double MeasureSourceContentHeight(
@@ -1151,4 +1252,14 @@ internal static class OblivionMarkdownRenderer
         Code,
         Diagnostics,
     }
+
+    private sealed record OblivionRawMarkdownSourceLayoutCacheKey(
+        string SourceIdentity,
+        double ContentWidth,
+        double SourceLineHeight,
+        double SourceLineGap);
+
+    private sealed record OblivionPreparedRawMarkdownSourceLayout(
+        IReadOnlyList<string> VisibleLines,
+        double ContentHeight);
 }

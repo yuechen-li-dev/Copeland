@@ -11,7 +11,10 @@ public static class PresenterNavigationActions
     public const string SelectOblivionCardPrefix = "presenter.navigation.select-oblivion-card|";
     public const string ToggleOblivionCardExpansionPrefix = "presenter.navigation.toggle-oblivion-card-expansion|";
     public const string CollapseOblivionCardPrefix = "presenter.navigation.collapse-oblivion-card|";
+    public const string SetOblivionMainCardStackScrollOffsetPrefix = "presenter.navigation.set-oblivion-main-card-stack-scroll|";
     public const string SetOblivionCardBodyScrollOffsetPrefix = "presenter.navigation.set-oblivion-card-body-scroll|";
+    public const string SetOblivionInspectorScrollOffsetPrefix = "presenter.navigation.set-oblivion-inspector-scroll|";
+    public const string SetOblivionRawMarkdownSourceScrollOffsetPrefix = "presenter.navigation.set-oblivion-raw-markdown-source-scroll|";
     public const string SelectCompactOblivionCardPrefix = "presenter.navigation.select-compact-oblivion-card|";
     public const string ClearOblivionCardSelectionPrefix = "presenter.navigation.clear-oblivion-card-selection|";
     public const string SetCompactPanePrefix = "presenter.navigation.set-compact-pane|";
@@ -48,10 +51,28 @@ public static class PresenterNavigationActions
         return new UiActionId($"{CollapseOblivionCardPrefix}{pageId}|{cardId}");
     }
 
+    public static UiActionId SetOblivionMainCardStackScrollOffset(string pageId, double scrollOffset)
+    {
+        string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
+        return new UiActionId($"{SetOblivionMainCardStackScrollOffsetPrefix}{pageId}|{offsetText}");
+    }
+
     public static UiActionId SetOblivionCardBodyScrollOffset(string pageId, string cardId, double scrollOffset)
     {
         string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
         return new UiActionId($"{SetOblivionCardBodyScrollOffsetPrefix}{pageId}|{cardId}|{offsetText}");
+    }
+
+    public static UiActionId SetOblivionInspectorScrollOffset(string pageId, double scrollOffset)
+    {
+        string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
+        return new UiActionId($"{SetOblivionInspectorScrollOffsetPrefix}{pageId}|{offsetText}");
+    }
+
+    public static UiActionId SetOblivionRawMarkdownSourceScrollOffset(string pageId, string cardId, double scrollOffset)
+    {
+        string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
+        return new UiActionId($"{SetOblivionRawMarkdownSourceScrollOffsetPrefix}{pageId}|{cardId}|{offsetText}");
     }
 
     public static UiActionId SelectCompactOblivionCard(string pageId, string cardId)
@@ -193,6 +214,81 @@ public static class PresenterNavigationActions
         if (actionId.Value.StartsWith(SetOblivionCardBodyScrollOffsetPrefix, StringComparison.Ordinal))
         {
             string payload = actionId.Value[SetOblivionCardBodyScrollOffsetPrefix.Length..];
+            string[] parts = payload.Split('|', StringSplitOptions.None);
+            if (parts.Length == 3 &&
+                double.TryParse(parts[2], CultureInfo.InvariantCulture, out scrollOffset))
+            {
+                pageId = parts[0];
+                cardId = parts[1];
+                return true;
+            }
+        }
+
+        pageId = string.Empty;
+        cardId = string.Empty;
+        scrollOffset = 0;
+        return false;
+    }
+
+    public static bool TryParseSetOblivionMainCardStackScrollOffset(
+        UiActionId actionId,
+        out string pageId,
+        out double scrollOffset)
+    {
+        if (actionId.Value.StartsWith(SetOblivionMainCardStackScrollOffsetPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[SetOblivionMainCardStackScrollOffsetPrefix.Length..];
+            int separator = payload.LastIndexOf('|');
+            if (separator > 0)
+            {
+                pageId = payload[..separator];
+                string offsetText = payload[(separator + 1)..];
+                if (double.TryParse(offsetText, CultureInfo.InvariantCulture, out scrollOffset))
+                {
+                    return true;
+                }
+            }
+        }
+
+        pageId = string.Empty;
+        scrollOffset = 0;
+        return false;
+    }
+
+    public static bool TryParseSetOblivionInspectorScrollOffset(
+        UiActionId actionId,
+        out string pageId,
+        out double scrollOffset)
+    {
+        if (actionId.Value.StartsWith(SetOblivionInspectorScrollOffsetPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[SetOblivionInspectorScrollOffsetPrefix.Length..];
+            int separator = payload.LastIndexOf('|');
+            if (separator > 0)
+            {
+                pageId = payload[..separator];
+                string offsetText = payload[(separator + 1)..];
+                if (double.TryParse(offsetText, CultureInfo.InvariantCulture, out scrollOffset))
+                {
+                    return true;
+                }
+            }
+        }
+
+        pageId = string.Empty;
+        scrollOffset = 0;
+        return false;
+    }
+
+    public static bool TryParseSetOblivionRawMarkdownSourceScrollOffset(
+        UiActionId actionId,
+        out string pageId,
+        out string cardId,
+        out double scrollOffset)
+    {
+        if (actionId.Value.StartsWith(SetOblivionRawMarkdownSourceScrollOffsetPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[SetOblivionRawMarkdownSourceScrollOffsetPrefix.Length..];
             string[] parts = payload.Split('|', StringSplitOptions.None);
             if (parts.Length == 3 &&
                 double.TryParse(parts[2], CultureInfo.InvariantCulture, out scrollOffset))

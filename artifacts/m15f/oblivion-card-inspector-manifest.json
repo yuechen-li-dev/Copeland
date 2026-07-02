@@ -1,0 +1,31 @@
+{
+  "milestone": "M12f",
+  "kind": "oblivion-card-selection-inspector",
+  "selectionModel": "page-local-selected-card-id-by-page-id",
+  "inspectorEnabled": true,
+  "defaultSelectionPolicy": "first-card-when-no-explicit-selection; empty-when-cleared",
+  "selectedCardsExported": [
+    "oblivion.artifacts:oblivion-artifacts-page-card",
+    "oblivion.cards:oblivion-intro-note-card",
+    "oblivion.docs:doc-aurelian-build-topology-m13b",
+    "oblivion.execution-roadmap:markdown-first-roadmap"
+  ],
+  "effectRoutingVisible": true,
+  "routedCards": [],
+  "actionsExecutable": false,
+  "artifactsExecutable": false,
+  "effectsExecutable": false,
+  "executionEnabled": false,
+  "roslynEnabled": false,
+  "xunitEnabled": false,
+  "visionaryImplemented": false,
+  "deferredWork": [
+    "Markdown renderer",
+    "Markdown editor",
+    "Roslyn compilation and execution",
+    "xUnit [Fact] and [Theory] runtime",
+    "Effect execution host",
+    "Artifact generation and execution",
+    "Visionary code editor/source workspace"
+  ]
+}

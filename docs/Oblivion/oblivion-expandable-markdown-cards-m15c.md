@@ -117,3 +117,11 @@ M15d hardens the M15c reading surface rather than widening scope.
 - the inspector now shows raw Markdown source text in a bounded scrollable source block
 
 M15d still does not add Markdown editing, execution, Aurelian work, or `VD-MIR` work.
+
+## M15e follow-through
+
+M15e keeps M15c expansion behavior, but hardens nested scrolling around it.
+
+- the main stack and inspector are now independent panes
+- expanded body scrollbars can now be dragged directly
+- selection still couples the inspector content, but scrolling does not

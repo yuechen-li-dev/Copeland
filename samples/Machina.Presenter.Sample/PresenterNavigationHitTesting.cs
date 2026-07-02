@@ -198,28 +198,38 @@ public static class PresenterNavigationInputRouter
                 {
                     Position = localPoint,
                 },
-                render.ScrollbarGeometry.ScrollOffset);
+                render.ScrollbarGeometry.ScrollOffset,
+                effectiveInteractionState);
 
             if (routedOblivion.Consumed)
             {
                 return new PresenterNavigationInputRoutingResult(
                     new PresenterNavigationHitTarget(PresenterNavigationHitKind.ContentViewport),
                     routedOblivion.Action?.Id,
-                    effectiveInteractionState,
-                    PresenterPointerCaptureRequest.None,
+                    routedOblivion.InteractionState,
+                    routedOblivion.PointerCaptureRequest,
                     SuppressFurtherRouting: true);
             }
         }
 
         PresenterNavigationHitTarget hitTarget = PresenterNavigationHitTesting.HitTest(render.ChromeGeometry, inputEvent.Position);
         var context = new PresenterScrollbarInteractionContext(
-            render.SelectedTab.PageId,
+            new PresenterScrollbarTarget(
+                PresenterScrollbarTargetKind.Page,
+                render.SelectedTab.PageId),
             render.ScrollbarGeometry,
             render.Layout.ViewportHeight);
+        PresenterScrollbarHitPart scrollbarHitPart = hitTarget.Kind switch
+        {
+            PresenterNavigationHitKind.ContentViewport => PresenterScrollbarHitPart.Viewport,
+            PresenterNavigationHitKind.ScrollbarTrack => PresenterScrollbarHitPart.Track,
+            PresenterNavigationHitKind.ScrollbarThumb => PresenterScrollbarHitPart.Thumb,
+            _ => PresenterScrollbarHitPart.None,
+        };
         PresenterScrollbarInteractionResult interaction = PresenterScrollbarInteractionStateMachine.Reduce(
             effectiveInteractionState,
             context,
-            hitTarget,
+            scrollbarHitPart,
             inputEvent);
 
         if (interaction.SuppressFurtherRouting)

@@ -17,6 +17,15 @@ namespace Machina.Presenter.Sample;
 public static class OblivionWorkbenchCatalog
 {
     private static readonly OblivionCardHandlerRegistry CardHandlers = OblivionCardHandlerRegistry.CreateDefault();
+    private const double ScrollbarWidth = 8;
+    private const double ScrollbarGap = 8;
+    private const double InspectorSectionGap = 24;
+    private const double InspectorTitleHeight = 36;
+    private const double InspectorTitleGap = 8;
+    private const string WideCardsPaneViewportSuffix = ".wide-cards-pane.viewport";
+    private const string WideInspectorPaneViewportSuffix = ".wide-inspector-pane.viewport";
+    private const string WideInspectorRawSourceViewportSuffix = ".wide-inspector-raw-source.viewport";
+    private const string WideInspectorRawSourceViewportBaseSuffix = ".wide-inspector-raw-source";
 
     public const string CardsPageId = "oblivion.cards";
     public const string ExecutionRoadmapPageId = "oblivion.execution-roadmap";
@@ -81,72 +90,42 @@ public static class OblivionWorkbenchCatalog
                 : BuildCompactCardListRows(pageId, cards, selection, theme, layout);
         }
 
-        List<UiRow> rows = [];
-        double currentTop = 0;
-
-        rows.Add(
+        return
+        [
             Row.Anchor(
                 id: $"{pageId}.cards-panel",
                 parent: "root",
                 left: 0,
                 top: 0,
                 width: layout.CardsColumnWidth,
-                height: Math.Max(160, GetCardsColumnHeight(cards, layout)),
-                view: View.Rect(
-                    background: ColorToken.Hex(0x00000000),
-                    borderColor: null,
-                    borderThickness: 0)));
-
-        rows.Add(
+                height: layout.ViewportHeight,
+                component: BuildWideCardsPane(pageId, cards, selection, theme, layout, navigationState)),
             Row.Anchor(
                 id: $"{pageId}.inspector-panel",
                 parent: "root",
                 left: layout.InspectorLeft,
                 top: 0,
                 width: layout.InspectorWidth,
-                height: GetInspectorHeight(selection),
-                view: View.Rect(
-                    background: ColorToken.Hex(0x00000000),
-                    borderColor: null,
-                    borderThickness: 0)));
-
-        foreach (OblivionBuiltCard builtCard in cards)
-        {
-            double cardHeight = GetRenderedCardHeight(builtCard.CompactView, layout);
-            bool isSelected = string.Equals(selection.SelectedCardId, builtCard.SourceCard.Id.Value, StringComparison.Ordinal);
-            rows.Add(
-                Row.Anchor(
-                    builtCard.SourceCard.Id.Value + ".anchor",
-                    "root",
-                    left: 0,
-                    top: currentTop,
-                    width: layout.CardsColumnWidth,
-                    height: cardHeight,
-                    component: OblivionCardRenderer.BuildCard(
-                        builtCard.CompactView,
-                        theme,
-                        new OblivionCardRenderOptions(
-                            Width: layout.CardsColumnWidth,
-                            Height: cardHeight),
-                        isSelected)));
-
-            currentTop += cardHeight + 24;
-        }
-
-        rows.AddRange(BuildInspectorRows(pageId, selection, theme, layout));
-
-        return rows;
+                height: layout.ViewportHeight,
+                component: BuildWideInspectorPane(pageId, selection, theme, layout, navigationState)),
+        ];
     }
 
     public static double GetPageContentHeight(
         string pageId,
         PresenterProofOptions? proofOptions = null,
         PresenterNavigationState? navigationState = null,
-        int viewportHeight = 596)
+        int viewportHeight = 596,
+        PresenterShellMode shellMode = PresenterShellMode.Wide)
     {
+        if (shellMode == PresenterShellMode.Wide)
+        {
+            return viewportHeight;
+        }
+
         IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions, OblivionCardEffectState.Empty, navigationState);
         OblivionPageLayout layout = OblivionPageLayout.CreateWide(contentWidth: 920, viewportHeight);
-        return Math.Max(GetCardsColumnHeight(cards, layout), 1440);
+        return Math.Max(viewportHeight, GetCardsColumnHeight(cards, layout));
     }
 
     public static double GetCardHeight(OblivionCard card)
@@ -546,6 +525,207 @@ public static class OblivionWorkbenchCatalog
         return (jsonPath, textPath);
     }
 
+    public static (string jsonPath, string textPath) WriteIndependentScrollPanesManifest(
+        string outputDirectory,
+        PresenterNavigationState navigationState,
+        PresenterProofOptions? proofOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(navigationState);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "oblivion-independent-scroll-panes-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "oblivion-independent-scroll-panes-manifest.txt");
+
+        string[] proofArtifacts =
+        [
+            "artifacts/m15e/m15e-independent-panes-overview-1280x720.png",
+            "artifacts/m15e/m15e-expanded-markdown-partial-scroll-1280x720.png",
+            "artifacts/m15e/m15e-expanded-markdown-mid-paragraph-1280x720.png",
+            "artifacts/m15e/m15e-inspector-raw-source-scrolled-1280x720.png",
+            "artifacts/m15e/m15e-inspector-pane-scrolled-1280x720.png",
+            "artifacts/m15e/m15e-compact-expanded-scroll-960x540.png",
+            "artifacts/m15e/oblivion-independent-scroll-panes-manifest.json",
+            "artifacts/m15e/oblivion-independent-scroll-panes-manifest.txt",
+        ];
+        string[] deferredWork =
+        [
+            "Markdown editing",
+            "Notebook execution",
+            "Roslyn execution",
+            "Aurelian work",
+            "VD-MIR work",
+        ];
+
+        var manifest = new
+        {
+            milestone = "M15e",
+            kind = "oblivion-independent-scroll-panes-document-culling",
+            independentMainAndInspectorScroll = true,
+            inspectorScrollImplemented = true,
+            rawMarkdownSourceScrollImplemented = true,
+            expandedBodyScrollbarDragImplemented = true,
+            inspectorScrollbarDragImplemented = true,
+            rawSourceScrollbarDragImplemented = true,
+            wheelRoutesToDeepestScrollableRegion = true,
+            partialBlockRenderingImplemented = true,
+            lineLevelClippingImplemented = true,
+            allOrNothingBlockCullingRemoved = true,
+            selectionCouplesInspectorContent = true,
+            scrollingDecoupledBetweenPanes = true,
+            markdownEditingImplemented = false,
+            notebookExecutionImplemented = false,
+            roslynExecutionImplemented = false,
+            aurelianWorkPerformed = false,
+            vdMirWorkPerformed = false,
+            arbitrary2DLayoutSolverImplemented = false,
+            validationStatus = "implemented",
+            proofArtifacts,
+            deferredWork,
+        };
+
+        string json = JsonSerializer.Serialize(
+            manifest,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+
+        string[] textLines =
+        [
+            "milestone=M15e",
+            "kind=oblivion-independent-scroll-panes-document-culling",
+            "independentMainAndInspectorScroll=true",
+            "inspectorScrollImplemented=true",
+            "rawMarkdownSourceScrollImplemented=true",
+            "expandedBodyScrollbarDragImplemented=true",
+            "inspectorScrollbarDragImplemented=true",
+            "rawSourceScrollbarDragImplemented=true",
+            "wheelRoutesToDeepestScrollableRegion=true",
+            "partialBlockRenderingImplemented=true",
+            "lineLevelClippingImplemented=true",
+            "allOrNothingBlockCullingRemoved=true",
+            "selectionCouplesInspectorContent=true",
+            "scrollingDecoupledBetweenPanes=true",
+            "markdownEditingImplemented=false",
+            "notebookExecutionImplemented=false",
+            "roslynExecutionImplemented=false",
+            "aurelianWorkPerformed=false",
+            "vdMirWorkPerformed=false",
+            "arbitrary2DLayoutSolverImplemented=false",
+            "validationStatus=implemented",
+            $"proofArtifacts={string.Join(" | ", proofArtifacts)}",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+        ];
+
+        File.WriteAllText(jsonPath, json);
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
+    }
+
+    public static (string jsonPath, string textPath) WriteScrollRegressionStabilizationManifest(
+        string outputDirectory,
+        PresenterNavigationState navigationState,
+        bool inspectorLagFixed,
+        bool inspectorLagRootCauseDocumented,
+        bool inspectorLagBlockerDocumented)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(navigationState);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "oblivion-scroll-regression-stabilization-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "oblivion-scroll-regression-stabilization-manifest.txt");
+
+        string[] regressionTests =
+        [
+            "MainCardStack_WheelOverCards_UpdatesMainScrollOffset",
+            "MainCardStack_WheelOverCards_DoesNotUpdateInspectorScrollOffset",
+            "MainCardStack_ScrollbarThumbDrag_UpdatesMainScrollOffset",
+            "MainCardStack_ScrollbarDrag_DoesNotToggleExpansion",
+            "MainCardStack_ScrollOffsetClamps",
+            "MainCardStack_HitTestUsesEffectivePresenterSurfaceCoordinates",
+            "MainCardStack_RegionIsNotShadowedByInspectorRegion",
+            "MainCardStack_WideModeWheelDoesNotDispatchPageScrollAction",
+            "InspectorScroll_UpdatesInspectorOffsetOnly",
+            "InspectorScroll_DoesNotUpdateMainStackOffset",
+            "InspectorScroll_DoesNotResetSelectedCard",
+            "InspectorScroll_WheelRoutesToSingleRegion",
+            "InspectorScroll_RawSourceLayoutIsCachedAcrossScrollTicks",
+        ];
+        string[] deferredWork =
+        [
+            "Markdown editing",
+            "Notebook execution",
+            "Roslyn execution",
+            "Aurelian work",
+            "VD-MIR work",
+        ];
+
+        var manifest = new
+        {
+            milestone = "M15f",
+            kind = "oblivion-scroll-regression-stabilization",
+            mainCardStackWheelFixed = true,
+            mainCardStackScrollbarDragFixed = true,
+            mainCardStackRootCauseDocumented = true,
+            inspectorLagInvestigated = true,
+            inspectorLagRootCauseDocumented = inspectorLagRootCauseDocumented,
+            inspectorLagFixed = inspectorLagFixed,
+            inspectorLagBlockerDocumented = inspectorLagBlockerDocumented,
+            independentScrollPanesPreserved = true,
+            deepestRegionWheelRoutingPreserved = true,
+            partialViewportCullingPreserved = true,
+            noNewFeatureWork = true,
+            markdownEditingImplemented = false,
+            notebookExecutionImplemented = false,
+            roslynExecutionImplemented = false,
+            aurelianWorkPerformed = false,
+            vdMirWorkPerformed = false,
+            validationStatus = inspectorLagFixed ? "implemented" : "partial",
+            regressionTests,
+            deferredWork,
+        };
+
+        string json = JsonSerializer.Serialize(
+            manifest,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+
+        string[] textLines =
+        [
+            "milestone=M15f",
+            "kind=oblivion-scroll-regression-stabilization",
+            "mainCardStackWheelFixed=true",
+            "mainCardStackScrollbarDragFixed=true",
+            "mainCardStackRootCauseDocumented=true",
+            "inspectorLagInvestigated=true",
+            $"inspectorLagRootCauseDocumented={inspectorLagRootCauseDocumented.ToString().ToLowerInvariant()}",
+            $"inspectorLagFixed={inspectorLagFixed.ToString().ToLowerInvariant()}",
+            $"inspectorLagBlockerDocumented={inspectorLagBlockerDocumented.ToString().ToLowerInvariant()}",
+            "independentScrollPanesPreserved=true",
+            "deepestRegionWheelRoutingPreserved=true",
+            "partialViewportCullingPreserved=true",
+            "noNewFeatureWork=true",
+            "markdownEditingImplemented=false",
+            "notebookExecutionImplemented=false",
+            "roslynExecutionImplemented=false",
+            "aurelianWorkPerformed=false",
+            "vdMirWorkPerformed=false",
+            $"validationStatus={(inspectorLagFixed ? "implemented" : "partial")}",
+            $"regressionTests={string.Join(" | ", regressionTests)}",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+        ];
+
+        File.WriteAllText(jsonPath, json);
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
+    }
+
     public static (string jsonPath, string textPath) WritePhaseCloseoutManifest(
         string outputDirectory)
     {
@@ -670,11 +850,41 @@ public static class OblivionWorkbenchCatalog
         if (shellMode == PresenterShellMode.Compact &&
             navigationState?.CompactPane == PresenterCompactPane.Inspector)
         {
-            return new OblivionPageInteractionMap(pageId, [], []);
+            return new OblivionPageInteractionMap(pageId, [], [], []);
         }
 
         List<OblivionCardHitTarget> cardTargets = [];
         List<OblivionCardBodyHitTarget> bodyTargets = [];
+        List<OblivionScrollRegionTarget> scrollRegions = [];
+
+        if (shellMode == PresenterShellMode.Wide)
+        {
+            Rect cardsPaneBounds = FindRectBySuffix(resolved, pageId + WideCardsPaneViewportSuffix);
+            double cardsPaneContentHeight = GetCardsColumnHeight(cards, OblivionPageLayout.CreateWide((int)Math.Ceiling(cardsPaneBounds.Width), (int)Math.Ceiling(cardsPaneBounds.Height)));
+            ScrollbarGeometry cardsPaneScrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+                FindScrollbarTrackRectOrDefault(resolved, $"{pageId}.wide-cards-pane.scrollbar-track", cardsPaneBounds),
+                cardsPaneContentHeight,
+                cardsPaneBounds.Height,
+                navigationState?.GetScrollOffset(pageId) ?? 0);
+            scrollRegions.Add(new OblivionScrollRegionTarget(
+                new PresenterScrollbarTarget(PresenterScrollbarTargetKind.OblivionMainCardStack, pageId),
+                cardsPaneBounds,
+                cardsPaneScrollbar,
+                cardsPaneContentHeight));
+
+            Rect inspectorPaneBounds = FindRectBySuffix(resolved, pageId + WideInspectorPaneViewportSuffix);
+            double inspectorContentHeight = GetWideInspectorContentHeight(ResolveSelection(pageId, cards, navigationState));
+            ScrollbarGeometry inspectorPaneScrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+                FindScrollbarTrackRectOrDefault(resolved, $"{pageId}.wide-inspector-pane.scrollbar-track", inspectorPaneBounds),
+                inspectorContentHeight,
+                inspectorPaneBounds.Height,
+                navigationState?.GetInspectorScrollOffset(pageId) ?? 0);
+            scrollRegions.Add(new OblivionScrollRegionTarget(
+                new PresenterScrollbarTarget(PresenterScrollbarTargetKind.OblivionInspectorPane, pageId),
+                inspectorPaneBounds,
+                inspectorPaneScrollbar,
+                inspectorContentHeight));
+        }
 
         foreach (OblivionBuiltCard builtCard in cards)
         {
@@ -699,10 +909,38 @@ public static class OblivionWorkbenchCatalog
                         PresenterNavigationActions.SelectOblivionCard(pageId, cardId),
                         viewport.ScrollbarGeometry,
                         viewport.ContentHeight));
+                scrollRegions.Add(
+                    new OblivionScrollRegionTarget(
+                        new PresenterScrollbarTarget(PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody, pageId, cardId),
+                        viewport.Bounds,
+                        TranslateScrollbarGeometry(viewport.ScrollbarGeometry, viewport.Bounds.X, viewport.Bounds.Y),
+                        viewport.ContentHeight));
+            }
+
+            if (builtCard.SourceCard.Body.Format == OblivionCardBodyFormat.CopelandMarkdown &&
+                TryFindRectBySuffix(resolved, $"{pageId}.{cardId.Replace(".", "-", StringComparison.Ordinal)}{WideInspectorRawSourceViewportBaseSuffix}.source-frame", out Rect rawSourceBounds))
+            {
+                double rawSourceContentHeight = OblivionMarkdownRenderer.MeasureRawMarkdownSourceContentHeight(
+                    builtCard.SourceCard.Body,
+                    OblivionCardRenderer.MarkdownReadingStyle);
+                ScrollbarGeometry rawSourceScrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+                    FindScrollbarTrackRectOrDefault(
+                        resolved,
+                        $"{pageId}.{cardId.Replace(".", "-", StringComparison.Ordinal)}{WideInspectorRawSourceViewportBaseSuffix}.scrollbar-track",
+                        rawSourceBounds),
+                    rawSourceContentHeight,
+                    rawSourceBounds.Height,
+                    navigationState?.GetRawMarkdownSourceScrollOffset(cardId) ?? 0);
+                scrollRegions.Add(
+                    new OblivionScrollRegionTarget(
+                        new PresenterScrollbarTarget(PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource, pageId, cardId),
+                        rawSourceBounds,
+                        rawSourceScrollbar,
+                        rawSourceContentHeight));
             }
         }
 
-        return new OblivionPageInteractionMap(pageId, cardTargets, bodyTargets);
+        return new OblivionPageInteractionMap(pageId, cardTargets, bodyTargets, scrollRegions);
     }
 
     public static double ClampBodyScrollOffset(
@@ -740,6 +978,75 @@ public static class OblivionWorkbenchCatalog
             bodyTop);
         double viewportHeight = Math.Max(120, cardLayout.BodyHeight);
         double contentHeight = OblivionMarkdownRenderer.MeasureExpandedContentHeight(markdownBody.Body, cardLayout.BodyWidth);
+        return PresenterScrollRegion.ClampScrollOffset(contentHeight, viewportHeight, requestedOffset);
+    }
+
+    public static double ClampMainCardStackScrollOffset(
+        string pageId,
+        double requestedOffset,
+        PresenterProofOptions? proofOptions,
+        PresenterNavigationState navigationState,
+        PresenterNavigationLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(pageId);
+        ArgumentNullException.ThrowIfNull(navigationState);
+        ArgumentNullException.ThrowIfNull(layout);
+
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(
+            pageId,
+            proofOptions,
+            navigationState.EffectState,
+            navigationState);
+
+        OblivionPageLayout pageLayout = layout.ShellMode == PresenterShellMode.Compact
+            ? OblivionPageLayout.CreateCompact(layout.ContentVisibleWidth, layout.ViewportHeight)
+            : OblivionPageLayout.CreateWide(layout.ContentVisibleWidth, layout.ViewportHeight);
+        double contentHeight = GetCardsColumnHeight(cards, pageLayout);
+        return PresenterScrollRegion.ClampScrollOffset(contentHeight, pageLayout.ViewportHeight, requestedOffset);
+    }
+
+    public static double ClampInspectorScrollOffset(
+        string pageId,
+        double requestedOffset,
+        PresenterProofOptions? proofOptions,
+        PresenterNavigationState navigationState,
+        PresenterNavigationLayout layout)
+    {
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(
+            pageId,
+            proofOptions,
+            navigationState.EffectState,
+            navigationState);
+        double contentHeight = GetWideInspectorContentHeight(ResolveSelection(pageId, cards, navigationState));
+        return PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, requestedOffset);
+    }
+
+    public static double ClampRawMarkdownSourceScrollOffset(
+        string pageId,
+        string cardId,
+        double requestedOffset,
+        PresenterProofOptions? proofOptions,
+        PresenterNavigationState navigationState,
+        PresenterNavigationLayout layout)
+    {
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(
+            pageId,
+            proofOptions,
+            navigationState.EffectState,
+            navigationState);
+        OblivionBuiltCard? builtCard = cards.FirstOrDefault(card =>
+            string.Equals(card.SourceCard.Id.Value, cardId, StringComparison.Ordinal));
+        if (builtCard is null || builtCard.SourceCard.Body.Format != OblivionCardBodyFormat.CopelandMarkdown)
+        {
+            return 0;
+        }
+
+        OblivionInspectorSectionView? rawSourceSection = builtCard.InspectorView.Sections.FirstOrDefault(section =>
+            section.Body is OblivionInspectorRawMarkdownSourceBodyContent);
+        double viewportHeight = GetInspectorRawSourceViewportHeight(rawSourceSection?.Height ?? 448);
+        double contentHeight = OblivionMarkdownRenderer.MeasureRawMarkdownSourceContentHeight(
+            builtCard.SourceCard.Body,
+            OblivionCardRenderer.MarkdownReadingStyle);
         return PresenterScrollRegion.ClampScrollOffset(contentHeight, viewportHeight, requestedOffset);
     }
 
@@ -1198,26 +1505,235 @@ public static class OblivionWorkbenchCatalog
         return rows;
     }
 
+    private static UiNode BuildWideCardsPane(
+        string pageId,
+        IReadOnlyList<OblivionBuiltCard> cards,
+        OblivionInspectorSelection selection,
+        StandardTheme theme,
+        OblivionPageLayout layout,
+        PresenterNavigationState? navigationState)
+    {
+        double viewportHeight = layout.ViewportHeight;
+        double scrollOffset = navigationState?.GetScrollOffset(pageId) ?? 0;
+        double contentHeight = GetCardsColumnHeight(cards, layout);
+
+        ScrollbarGeometry initialScrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+            new Rect(
+                Math.Max(0, layout.CardsColumnWidth - ScrollbarWidth),
+                0,
+                ScrollbarWidth,
+                viewportHeight),
+            contentHeight,
+            viewportHeight,
+            scrollOffset);
+
+        double contentWidth = initialScrollbar.IsVisible
+            ? Math.Max(280, layout.CardsColumnWidth - ScrollbarWidth - ScrollbarGap)
+            : layout.CardsColumnWidth;
+        ScrollbarGeometry scrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+            new Rect(
+                contentWidth + ScrollbarGap,
+                0,
+                ScrollbarWidth,
+                viewportHeight),
+            contentHeight,
+            viewportHeight,
+            scrollOffset);
+
+        List<UiNode> children = [];
+        double currentTop = -scrollbar.ScrollOffset;
+
+        foreach (OblivionBuiltCard builtCard in cards)
+        {
+            double cardHeight = GetRenderedCardHeight(builtCard.CompactView, layout);
+            bool isSelected = string.Equals(selection.SelectedCardId, builtCard.SourceCard.Id.Value, StringComparison.Ordinal);
+            children.Add(
+                UI.Anchor(
+                    OblivionCardRenderer.BuildCard(
+                        builtCard.CompactView,
+                        theme,
+                        new OblivionCardRenderOptions(
+                            Width: contentWidth,
+                            Height: cardHeight),
+                        isSelected),
+                    id: builtCard.SourceCard.Id.Value + ".anchor",
+                    left: 0,
+                    width: contentWidth,
+                    top: currentTop,
+                    height: cardHeight));
+            currentTop += cardHeight + 24;
+        }
+
+        AppendScrollbarNodes(children, $"{pageId}.wide-cards-pane", scrollbar, OblivionCardRenderer.MarkdownReadingStyle);
+
+        return UI.Rect(
+            child: UI.Layer(
+                id: $"{pageId}.wide-cards-pane.layer",
+                children: children),
+            id: $"{pageId}{WideCardsPaneViewportSuffix}",
+            style: new UiStyle(
+                Background: ColorToken.Hex(0x00000000),
+                ClipToBounds: true));
+    }
+
+    private static UiNode BuildWideInspectorPane(
+        string pageId,
+        OblivionInspectorSelection selection,
+        StandardTheme theme,
+        OblivionPageLayout layout,
+        PresenterNavigationState? navigationState)
+    {
+        double viewportHeight = layout.ViewportHeight;
+        double scrollOffset = navigationState?.GetInspectorScrollOffset(pageId) ?? 0;
+        double contentHeight = GetWideInspectorContentHeight(selection);
+        ScrollbarGeometry initialScrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+            new Rect(
+                Math.Max(0, layout.InspectorWidth - ScrollbarWidth),
+                0,
+                ScrollbarWidth,
+                viewportHeight),
+            contentHeight,
+            viewportHeight,
+            scrollOffset);
+        double contentWidth = initialScrollbar.IsVisible
+            ? Math.Max(220, layout.InspectorWidth - ScrollbarWidth - ScrollbarGap)
+            : layout.InspectorWidth;
+        ScrollbarGeometry scrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+            new Rect(
+                contentWidth + ScrollbarGap,
+                0,
+                ScrollbarWidth,
+                viewportHeight),
+            contentHeight,
+            viewportHeight,
+            scrollOffset);
+
+        List<UiNode> children = [];
+        double currentTop = -scrollbar.ScrollOffset;
+
+        children.Add(
+            UI.Anchor(
+                UI.Text("Selected card inspector", id: $"{pageId}.wide-inspector.title", color: theme.Colors.Foreground, size: TextSize.H1),
+                id: $"{pageId}.wide-inspector.title.slot",
+                left: 0,
+                width: contentWidth,
+                top: currentTop,
+                height: InspectorTitleHeight));
+        currentTop += InspectorTitleHeight + InspectorTitleGap;
+
+        if (selection.SelectedCard is null)
+        {
+            children.Add(
+                UI.Anchor(
+                    PresenterCard.BuildTextCard(
+                        id: $"{pageId}.wide-inspector-empty-card",
+                        title: "No card selected",
+                        badges: [],
+                        lines:
+                        [
+                            "This page currently has no selected Oblivion card.",
+                            "Selection couples the main stack and inspector content.",
+                            "Scrolling does not.",
+                        ],
+                        theme: theme,
+                        options: new PresenterCardOptions(contentWidth, 180)),
+                    id: $"{pageId}.wide-inspector-empty.slot",
+                    left: 0,
+                    width: contentWidth,
+                    top: currentTop,
+                    height: 180));
+        }
+        else
+        {
+            foreach ((OblivionInspectorSectionView section, int index) in selection.SelectedCard.InspectorView.Sections.Select((value, index) => (value, index)))
+            {
+                double rawSourceScrollOffset = section.Body is OblivionInspectorRawMarkdownSourceBodyContent
+                    ? navigationState?.GetRawMarkdownSourceScrollOffset(selection.SelectedCard.SourceCard.Id.Value) ?? 0
+                    : 0;
+                children.Add(
+                    UI.Anchor(
+                        BuildInspectorSection(section, pageId, theme, layout with { InspectorWidth = (int)Math.Ceiling(contentWidth) }, rawSourceScrollOffset),
+                        id: $"{pageId}.wide-inspector-section-{index}",
+                        left: 0,
+                        width: contentWidth,
+                        top: currentTop,
+                        height: section.Height));
+                currentTop += section.Height + InspectorSectionGap;
+            }
+        }
+
+        AppendScrollbarNodes(children, $"{pageId}.wide-inspector-pane", scrollbar, OblivionCardRenderer.MarkdownReadingStyle);
+
+        return UI.Rect(
+            child: UI.Layer(
+                id: $"{pageId}.wide-inspector-pane.layer",
+                children: children),
+            id: $"{pageId}{WideInspectorPaneViewportSuffix}",
+            style: new UiStyle(
+                Background: ColorToken.Hex(0x00000000),
+                ClipToBounds: true));
+    }
+
+    private static void AppendScrollbarNodes(
+        List<UiNode> children,
+        string idPrefix,
+        ScrollbarGeometry scrollbar,
+        OblivionMarkdownReadingStyle style)
+    {
+        if (!scrollbar.IsVisible)
+        {
+            return;
+        }
+
+        children.Add(
+            UI.Anchor(
+                UI.Rect(
+                    id: $"{idPrefix}.scrollbar-track",
+                    style: new UiStyle(
+                        Background: style.ScrollbarTrack)),
+                id: $"{idPrefix}.scrollbar-track.slot",
+                left: scrollbar.TrackRect.X,
+                width: scrollbar.TrackRect.Width,
+                top: scrollbar.TrackRect.Y,
+                height: scrollbar.TrackRect.Height));
+        children.Add(
+            UI.Anchor(
+                UI.Rect(
+                    id: $"{idPrefix}.scrollbar-thumb",
+                    style: new UiStyle(
+                        Background: style.ScrollbarThumb)),
+                id: $"{idPrefix}.scrollbar-thumb.slot",
+                left: scrollbar.ThumbRect.X,
+                width: scrollbar.ThumbRect.Width,
+                top: scrollbar.ThumbRect.Y,
+                height: scrollbar.ThumbRect.Height));
+    }
+
     private static UiNode BuildInspectorSection(
         OblivionInspectorSectionView section,
         string pageId,
         StandardTheme theme,
-        OblivionPageLayout layout)
+        OblivionPageLayout layout,
+        double rawMarkdownSourceScrollOffset = 0)
     {
-        string sectionId = section.Id[(section.Id.LastIndexOf('.') + 1)..];
-        string cardId = sectionId.Replace(".", "-", StringComparison.Ordinal);
+        int separator = section.Id.LastIndexOf('.');
+        string sectionId = separator >= 0 ? section.Id[(separator + 1)..] : section.Id;
+        string sectionNodeId = sectionId.Replace(".", "-", StringComparison.Ordinal);
+        string cardNodeId = (separator > 0 ? section.Id[..separator] : section.Id).Replace(".", "-", StringComparison.Ordinal);
 
         if (section.Body is OblivionInspectorRawMarkdownSourceBodyContent rawMarkdownBody)
         {
+            string rawSourceId = $"{pageId}.{cardNodeId}{WideInspectorRawSourceViewportBaseSuffix}";
             OblivionMarkdownRenderer.OblivionScrollableCodeSurfaceRenderResult rawSource = OblivionMarkdownRenderer.BuildInspectorRawSourceBody(
-                $"{pageId}.{cardId}.markdown-source",
+                rawSourceId,
                 rawMarkdownBody.Body,
                 OblivionCardRenderer.MarkdownReadingStyle,
                 layout.InspectorWidth - 34,
-                section.Height - 84);
+                GetInspectorRawSourceViewportHeight(section.Height),
+                rawMarkdownSourceScrollOffset);
 
             return PresenterCard.BuildHostedCard(
-                id: $"{pageId}.{cardId}.card",
+                id: $"{pageId}.{sectionNodeId}.card",
                 title: section.Title,
                 badges: section.Badges,
                 body: rawSource.Node,
@@ -1230,7 +1746,7 @@ public static class OblivionWorkbenchCatalog
             : ["Unsupported inspector body."];
 
         return PresenterCard.BuildTextCard(
-            id: $"{pageId}.{cardId}.card",
+            id: $"{pageId}.{sectionNodeId}.card",
             title: section.Title,
             badges: section.Badges,
             lines: lines,
@@ -1299,9 +1815,87 @@ public static class OblivionWorkbenchCatalog
         return height;
     }
 
+    private static double GetWideInspectorContentHeight(OblivionInspectorSelection selection)
+    {
+        if (selection.SelectedCard is null)
+        {
+            return InspectorTitleHeight + InspectorTitleGap + 180;
+        }
+
+        return InspectorTitleHeight +
+            InspectorTitleGap +
+            selection.SelectedCard.InspectorView.Sections.Sum(section => section.Height) +
+            (Math.Max(0, selection.SelectedCard.InspectorView.Sections.Count - 1) * InspectorSectionGap);
+    }
+
     private static double GetInspectorHeight(OblivionInspectorSelection selection)
     {
         return selection.SelectedCard is null ? 240 : selection.SelectedCard.InspectorView.PreferredHeight;
+    }
+
+    private static double GetInspectorRawSourceViewportHeight(double sectionHeight)
+    {
+        return Math.Max(120, sectionHeight - 84);
+    }
+
+    private static Rect FindRectBySuffix(ResolvedLayoutDocument resolved, string suffix)
+    {
+        foreach ((NodeId nodeId, ResolvedLayoutNode node) in resolved.Nodes)
+        {
+            if (nodeId.Value.EndsWith(suffix, StringComparison.Ordinal))
+            {
+                return node.Rect;
+            }
+        }
+
+        throw new KeyNotFoundException($"No resolved layout node ended with '{suffix}'.");
+    }
+
+    private static bool TryFindRectBySuffix(ResolvedLayoutDocument resolved, string suffix, out Rect rect)
+    {
+        foreach ((NodeId nodeId, ResolvedLayoutNode node) in resolved.Nodes)
+        {
+            if (nodeId.Value.EndsWith(suffix, StringComparison.Ordinal))
+            {
+                rect = node.Rect;
+                return true;
+            }
+        }
+
+        rect = default;
+        return false;
+    }
+
+    private static Rect FindScrollbarTrackRectOrDefault(ResolvedLayoutDocument resolved, string exactSuffix, Rect viewportBounds)
+    {
+        if (TryFindRectBySuffix(resolved, exactSuffix, out Rect rect))
+        {
+            return rect;
+        }
+
+        return new Rect(
+            viewportBounds.X + Math.Max(0, viewportBounds.Width - ScrollbarWidth),
+            viewportBounds.Y,
+            ScrollbarWidth,
+            viewportBounds.Height);
+    }
+
+    private static ScrollbarGeometry TranslateScrollbarGeometry(ScrollbarGeometry geometry, double x, double y)
+    {
+        return new ScrollbarGeometry(
+            new Rect(
+                geometry.TrackRect.X + x,
+                geometry.TrackRect.Y + y,
+                geometry.TrackRect.Width,
+                geometry.TrackRect.Height),
+            new Rect(
+                geometry.ThumbRect.X + x,
+                geometry.ThumbRect.Y + y,
+                geometry.ThumbRect.Width,
+                geometry.ThumbRect.Height),
+            geometry.IsVisible,
+            geometry.ScrollOffset,
+            geometry.MaxScrollOffset);
     }
 
     private static string[] GetPhaseCloseoutDeferredWork()

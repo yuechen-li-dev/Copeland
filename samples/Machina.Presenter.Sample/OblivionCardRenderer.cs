@@ -225,9 +225,14 @@ public static class OblivionCardRenderer
         }
 
         Rect bounds = FindRectBySuffix(resolved, cardId + ExpandedBodyViewportSuffix);
-        double contentHeight = OblivionMarkdownRenderer.MeasureExpandedContentHeight(markdownBody.Body, bounds.Width);
+        double initialContentHeight = OblivionMarkdownRenderer.MeasureExpandedContentHeight(markdownBody.Body, bounds.Width);
+        bool needsScrollbar = initialContentHeight > bounds.Height;
+        double contentWidth = needsScrollbar
+            ? Math.Max(120, bounds.Width - 8 - 8)
+            : bounds.Width;
+        double contentHeight = OblivionMarkdownRenderer.MeasureExpandedContentHeight(markdownBody.Body, contentWidth);
         ScrollbarGeometry scrollbarGeometry = PresenterScrollRegion.ComputeScrollbarGeometry(
-            new Rect(bounds.Width - 8, 0, 8, bounds.Height),
+            new Rect(contentWidth + 8, 0, 8, bounds.Height),
             contentHeight,
             bounds.Height,
             view.BodyScrollOffset);
@@ -449,13 +454,14 @@ public static class OblivionCardRenderer
 
         return UI.Rect(
             child: UI.Anchor(
-                UI.Rect(
-                    child: bodyRender.Node,
-                    id: view.CardId + ExpandedBodyViewportSuffix,
-                    style: new UiStyle(
-                        Background: MarkdownReadingStyle.Surface,
-                        BorderColor: MarkdownReadingStyle.Border,
-                        BorderThickness: 1)),
+                    UI.Rect(
+                        child: bodyRender.Node,
+                        id: view.CardId + ExpandedBodyViewportSuffix,
+                        style: new UiStyle(
+                            Background: MarkdownReadingStyle.Surface,
+                            BorderColor: MarkdownReadingStyle.Border,
+                            BorderThickness: 1,
+                            ClipToBounds: true)),
                 id: view.CardId + ExpandedBodyViewportSuffix + ".slot",
                 left: 0,
                 width: layout.BodyWidth,

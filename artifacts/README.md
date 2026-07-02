@@ -55,6 +55,8 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m15a/` is the current Machina/Oblivion usability re-entry audit directory.
 - `artifacts/m15b/` is the current presenter `16:9` resizing and readable-card-preview proof directory.
 - `artifacts/m15c/` is the current Oblivion expandable-Markdown-card reading-flow proof directory.
+- `artifacts/m15e/` is the current Oblivion independent-scroll-pane and document-viewport-culling proof directory.
+- `artifacts/m15f/` is the current Oblivion scroll-regression-stabilization proof directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -105,6 +107,8 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M15a usability audit artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document the current usability blockers, preserve audit evidence, and clearly record that no main usability fixes were implemented in the milestone.
 - Current M15b presenter resize/readability artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document the controlled `16:9` runtime resizing model, preview readability behavior, export evidence, and explicit non-goals around arbitrary `2D` layout and editor/execution work.
 - Current M15c expandable-card artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document stack-first Markdown reading, explicit expansion state, local body scrolling, and the explicit non-goals around Markdown editing, notebook execution, Aurelian work, and `VD-MIR` work.
+- Current M15e independent-scroll-pane artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document separate main/inspector panes, explicit nested scroll routing, real raw-source scrolling, and partial viewport culling without claiming editing or execution work.
+- Current M15f regression-stabilization artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document exact regression root causes, local scroll fixes, inspector-lag evidence, preserved non-goals, and no new feature work.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -845,3 +849,16 @@ These remain deterministic proof artifacts rather than pixel-golden baselines. T
 - `artifacts/m15d/oblivion-expanded-markdown-reading-surface-manifest.json`
 
 These remain deterministic proof artifacts rather than pixel-golden baselines. They document readable dark-surface Markdown contrast, document-scale expanded card height, preserved local body scrolling, raw Markdown source inspection in the inspector, and the explicit M15d non-goals around Markdown editing, notebook execution, Aurelian work, `VD-MIR` work, CSS-like styling, and arbitrary `2D` layout solving.
+
+## Current M15e independent-scroll and viewport-culling outputs
+
+- `artifacts/m15e/m15e-independent-panes-overview-1280x720.png`
+- `artifacts/m15e/m15e-expanded-markdown-partial-scroll-1280x720.png`
+- `artifacts/m15e/m15e-expanded-markdown-mid-paragraph-1280x720.png`
+- `artifacts/m15e/m15e-inspector-raw-source-scrolled-1280x720.png`
+- `artifacts/m15e/m15e-inspector-pane-scrolled-1280x720.png`
+- `artifacts/m15e/m15e-compact-expanded-scroll-960x540.png`
+- `artifacts/m15e/oblivion-independent-scroll-panes-manifest.json`
+- `artifacts/m15e/oblivion-independent-scroll-panes-manifest.txt`
+
+These remain deterministic proof artifacts rather than pixel-golden baselines. They document independent main/inspector panes, explicit nested scroll routing, direct local scrollbar dragging, raw-source scrolling that is actually functional, and partial document viewport rendering for intersecting Markdown blocks.

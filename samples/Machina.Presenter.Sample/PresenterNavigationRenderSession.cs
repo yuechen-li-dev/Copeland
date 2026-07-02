@@ -124,8 +124,9 @@ public sealed class PresenterNavigationRenderSession
                 cards.Select(card =>
                 {
                     OblivionCardViewState viewState = navigationState.GetCardViewState(pageId, card.Id.Value);
-                    return $"{card.Id.Value}:{viewState.IsExpanded}:{viewState.BodyScrollOffset:0.###}";
+                    return $"{card.Id.Value}:{viewState.IsExpanded}:{viewState.BodyScrollOffset:0.###}:{navigationState.GetRawMarkdownSourceScrollOffset(card.Id.Value):0.###}";
                 }));
+            expansionSignature = $"{expansionSignature}|inspector:{navigationState.GetInspectorScrollOffset(pageId):0.###}|main:{navigationState.GetScrollOffset(pageId):0.###}";
         }
 
         var key = new PresenterCachedPageLayerKey(

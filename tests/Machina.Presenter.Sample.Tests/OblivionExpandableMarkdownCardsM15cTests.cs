@@ -111,9 +111,14 @@ public sealed class OblivionExpandableMarkdownCardsM15cTests
             .OfType<DrawTextCommand>()
             .Where(command => command.Id.Contains($"{ExpandedDocCardId}.expanded.block-", StringComparison.Ordinal))
             .ToArray();
+        PushClipCommand[] clips = page.Frame.RenderCommands
+            .OfType<PushClipCommand>()
+            .Where(command => command.Id.Contains($"{ExpandedDocCardId}.expanded-body-viewport", StringComparison.Ordinal))
+            .ToArray();
 
         Assert.NotEmpty(commands);
-        Assert.All(commands, command => AssertRectInside(command.Rect, viewport!.Bounds));
+        Assert.NotEmpty(clips);
+        Assert.Contains(clips, clip => clip.Rect == viewport!.Bounds);
     }
 
     [Fact]

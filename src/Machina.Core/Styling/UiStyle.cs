@@ -5,4 +5,5 @@ public sealed record UiStyle(
     ColorToken? Foreground = null,
     double Padding = 0,
     ColorToken? BorderColor = null,
-    double BorderThickness = 0);
+    double BorderThickness = 0,
+    bool ClipToBounds = false);

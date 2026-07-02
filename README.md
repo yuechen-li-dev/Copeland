@@ -41,6 +41,10 @@ M15c now makes the stack itself the reading surface. Oblivion Markdown cards hav
 
 M15d hardens that reading surface. Expanded Markdown cards are now treated as document reading surfaces with explicit readable contrast on a dark surface, document-scale expanded height, preserved local body scrolling, and a shared immutable reading-style record rather than scattered renderer-local colors. The inspector no longer renders formatted Markdown body content; it now shows raw Markdown source text in a bounded scrollable source block while remaining the metadata/actions/diagnostics/artifacts surface. M15d still does not implement Markdown editing, notebook execution, Aurelian work, `VD-MIR` work, CSS-like styling, or arbitrary `2D` layout solving.
 
+M15e hardens scrolling and viewport behavior. The main card stack and inspector now behave as independent panes with independent scrollbars, nested scroll regions use explicit wheel/pointer routing plus direct thumb dragging, inspector raw Markdown source is actually scrollable, and document viewport culling now keeps partially visible Markdown content renderable instead of blanking whole blocks. M15e still does not implement Markdown editing, notebook execution, Aurelian work, `VD-MIR` work, or any browser-like event/layout system.
+
+M15f is regression stabilization only. It traces and fixes the M15e main-card-stack regression by separating wide main-stack scroll from the generic page-scroll clamp path, and it investigates the inspector scroll lag with render/layout evidence. The safe fix keeps the current narrow presenter architecture but caches prepared raw-source layout so repeated inspector scroll ticks do not rebuild that work over and over. M15f still does not add new features, Markdown editing, notebook execution, Aurelian work, or `VD-MIR` work.
+
 ## Pipeline
 
 ```text
@@ -216,6 +220,10 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Copeland Docs Index](docs/Copeland/README.md)
 - [Copeland Compiler Workshop Architecture M13d](docs/Copeland/copeland-compiler-workshop-architecture-m13d.md)
 - [Copeland Compiler Lane Taxonomy M13d](docs/Copeland/copeland-compiler-lane-taxonomy-m13d.md)
+- [Oblivion Independent Scroll Panes M15e](docs/Oblivion/oblivion-independent-scroll-panes-m15e.md)
+- [Machina Document Viewport Culling M15e](docs/Machina/machina-document-viewport-culling-m15e.md)
+- [Oblivion Scroll Regression Stabilization M15f](docs/Oblivion/oblivion-scroll-regression-stabilization-m15f.md)
+- [Machina Scroll Region Routing M15f](docs/Machina/machina-scroll-region-routing-m15f.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)
 - [Aurelian.VisibleTriangle Topology Audit M13g](docs/Aurelian/aurelian-visible-triangle-topology-audit-m13g.md)
@@ -232,6 +240,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Oblivion Expandable Markdown Cards M15c](docs/Oblivion/oblivion-expandable-markdown-cards-m15c.md)
 - [Machina Markdown Reading Style M15d](docs/Machina/machina-markdown-reading-style-m15d.md)
 - [Oblivion Expanded Markdown Reading Surface M15d](docs/Oblivion/oblivion-expanded-markdown-reading-surface-m15d.md)
+- [Machina Document Viewport Culling M15e](docs/Machina/machina-document-viewport-culling-m15e.md)
+- [Oblivion Independent Scroll Panes M15e](docs/Oblivion/oblivion-independent-scroll-panes-m15e.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)

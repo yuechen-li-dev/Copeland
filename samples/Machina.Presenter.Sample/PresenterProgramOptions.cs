@@ -19,6 +19,8 @@ public sealed record PresenterProgramOptions(
         string? selectedCardId = null;
         string? expandedCardId = null;
         double? expandedCardBodyScroll = null;
+        double? inspectorScroll = null;
+        double? inspectorRawSourceScroll = null;
         PresenterCompactPane? compactPane = null;
         PresenterShellMode? shellMode = null;
         int width = 1120;
@@ -109,6 +111,20 @@ public sealed record PresenterProgramOptions(
                 continue;
             }
 
+            if (arg == "--inspector-scroll" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                inspectorScroll = double.Parse(args[++index], System.Globalization.CultureInfo.InvariantCulture);
+                continue;
+            }
+
+            if (arg == "--inspector-raw-source-scroll" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                inspectorRawSourceScroll = double.Parse(args[++index], System.Globalization.CultureInfo.InvariantCulture);
+                continue;
+            }
+
             if (arg == "--compact-pane" && index + 1 < args.Count)
             {
                 includeNavigationShell = true;
@@ -178,6 +194,8 @@ public sealed record PresenterProgramOptions(
                 selectedCardId,
                 expandedCardId,
                 expandedCardBodyScroll,
+                inspectorScroll,
+                inspectorRawSourceScroll,
                 compactPane,
                 shellMode,
                 width,

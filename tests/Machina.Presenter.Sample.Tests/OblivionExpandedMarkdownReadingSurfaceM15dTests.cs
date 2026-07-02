@@ -132,12 +132,15 @@ public sealed class OblivionExpandedMarkdownReadingSurfaceM15dTests
     [Fact]
     public void OblivionInspector_DoesNotRenderFormattedMarkdownBody()
     {
-        DrawTextCommand[] commands = RenderDocsPage(expandedCardId: ExpandedDocCardId).Frame.RenderCommands
+        DrawTextCommand[] commands = RenderDocsPage(
+                expandedCardId: ExpandedDocCardId,
+                inspectorScrollOffset: 240)
+            .Frame.RenderCommands
             .OfType<DrawTextCommand>()
             .ToArray();
 
         Assert.DoesNotContain(commands, command => command.Id.Contains(".markdown.block-", StringComparison.Ordinal));
-        Assert.Contains(commands, command => command.Id.Contains(".markdown-source.source-line-", StringComparison.Ordinal));
+        Assert.Contains(commands, command => command.Id.Contains(".wide-inspector-raw-source.source-line-", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -150,7 +153,7 @@ public sealed class OblivionExpandedMarkdownReadingSurfaceM15dTests
             .Select(line => line.TrimEnd('\r'))
             .First(line => !string.IsNullOrWhiteSpace(line));
 
-        string text = PageText(RenderDocsPage(expandedCardId: ExpandedDocCardId));
+        string text = PageText(RenderDocsPage(expandedCardId: ExpandedDocCardId, inspectorScrollOffset: 240));
 
         Assert.Contains(firstSourceLine, text, StringComparison.Ordinal);
     }
@@ -158,20 +161,20 @@ public sealed class OblivionExpandedMarkdownReadingSurfaceM15dTests
     [Fact]
     public void OblivionInspector_RawMarkdownSourceIsScrollable()
     {
-        FillRectCommand[] commands = RenderDocsPage(expandedCardId: ExpandedDocCardId).Frame.RenderCommands
+        FillRectCommand[] commands = RenderDocsPage(expandedCardId: ExpandedDocCardId, inspectorScrollOffset: 240).Frame.RenderCommands
             .OfType<FillRectCommand>()
             .ToArray();
 
-        Assert.Contains(commands, command => command.Id.Contains(".markdown-source.scrollbar-track", StringComparison.Ordinal));
-        Assert.Contains(commands, command => command.Id.Contains(".markdown-source.scrollbar-thumb", StringComparison.Ordinal));
+        Assert.Contains(commands, command => command.Id.Contains(".wide-inspector-raw-source.scrollbar-track", StringComparison.Ordinal));
+        Assert.Contains(commands, command => command.Id.Contains(".wide-inspector-raw-source.scrollbar-thumb", StringComparison.Ordinal));
     }
 
     [Fact]
     public void OblivionInspector_RawMarkdownUsesReadableCodeStyle()
     {
-        DrawTextCommand[] commands = RenderDocsPage(expandedCardId: ExpandedDocCardId).Frame.RenderCommands
+        DrawTextCommand[] commands = RenderDocsPage(expandedCardId: ExpandedDocCardId, inspectorScrollOffset: 240).Frame.RenderCommands
             .OfType<DrawTextCommand>()
-            .Where(command => command.Id.Contains(".markdown-source.source-line-", StringComparison.Ordinal))
+            .Where(command => command.Id.Contains(".wide-inspector-raw-source.source-line-", StringComparison.Ordinal))
             .ToArray();
 
         Assert.NotEmpty(commands);
@@ -307,7 +310,9 @@ public sealed class OblivionExpandedMarkdownReadingSurfaceM15dTests
     private static PresenterNavigationState CreateDocsState(
         string? selectedCardId = null,
         string? expandedCardId = null,
-        double bodyScrollOffset = 0)
+        double bodyScrollOffset = 0,
+        double inspectorScrollOffset = 0,
+        double rawSourceScrollOffset = 0)
     {
         PresenterNavigationState state = PresenterNavigationState.CreateDefault(Model)
             .WithSelectedSection("oblivion")
@@ -316,6 +321,13 @@ public sealed class OblivionExpandedMarkdownReadingSurfaceM15dTests
         if (!string.IsNullOrWhiteSpace(selectedCardId))
         {
             state = state.WithSelectedCard(OblivionWorkbenchCatalog.DocsPageId, selectedCardId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedCardId))
+        {
+            state = state
+                .WithInspectorScrollOffset(OblivionWorkbenchCatalog.DocsPageId, inspectorScrollOffset)
+                .WithRawMarkdownSourceScrollOffset(selectedCardId, rawSourceScrollOffset);
         }
 
         if (!string.IsNullOrWhiteSpace(expandedCardId))
@@ -331,12 +343,18 @@ public sealed class OblivionExpandedMarkdownReadingSurfaceM15dTests
         return state;
     }
 
-    private static PresenterPageRenderResult RenderDocsPage(string? expandedCardId = null, double bodyScrollOffset = 0)
+    private static PresenterPageRenderResult RenderDocsPage(
+        string? expandedCardId = null,
+        double bodyScrollOffset = 0,
+        double inspectorScrollOffset = 0,
+        double rawSourceScrollOffset = 0)
     {
         PresenterNavigationState state = CreateDocsState(
             selectedCardId: expandedCardId ?? ExpandedDocCardId,
             expandedCardId: expandedCardId,
-            bodyScrollOffset: bodyScrollOffset);
+            bodyScrollOffset: bodyScrollOffset,
+            inspectorScrollOffset: inspectorScrollOffset,
+            rawSourceScrollOffset: rawSourceScrollOffset);
         int width = 1280;
         int height = 720;
         PresenterShellMode shellMode = PresenterShellModeResolver.Resolve(width);

@@ -56,8 +56,12 @@ public static class PresenterNavigationDispatch
                 return state;
             }
 
-            double contentHeight = PresenterNavigationCatalog.GetPageContentHeight(pageId, proofOptions, state, layout.ViewportHeight);
-            double clamped = PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, requestedOffset);
+            double clamped = PresenterNavigationCatalog.ClampPageScrollOffset(
+                pageId,
+                requestedOffset,
+                proofOptions,
+                state,
+                layout);
             return state.WithScrollOffset(pageId, clamped);
         }
 
@@ -146,6 +150,66 @@ public static class PresenterNavigationDispatch
             return state
                 .WithSelectedCard(bodyScrollPageId, resolvedCardId)
                 .WithCardBodyScrollOffset(bodyScrollPageId, resolvedCardId, clamped);
+        }
+
+        if (PresenterNavigationActions.TryParseSetOblivionMainCardStackScrollOffset(
+            actionId,
+            out string mainStackScrollPageId,
+            out double requestedMainStackScrollOffset))
+        {
+            if (!model.ContainsPage(mainStackScrollPageId))
+            {
+                return state;
+            }
+
+            double clamped = OblivionWorkbenchCatalog.ClampMainCardStackScrollOffset(
+                mainStackScrollPageId,
+                requestedMainStackScrollOffset,
+                proofOptions,
+                state,
+                layout);
+            return state.WithScrollOffset(mainStackScrollPageId, clamped);
+        }
+
+        if (PresenterNavigationActions.TryParseSetOblivionInspectorScrollOffset(
+            actionId,
+            out string inspectorScrollPageId,
+            out double requestedInspectorScrollOffset))
+        {
+            if (!model.ContainsPage(inspectorScrollPageId))
+            {
+                return state;
+            }
+
+            double clamped = OblivionWorkbenchCatalog.ClampInspectorScrollOffset(
+                inspectorScrollPageId,
+                requestedInspectorScrollOffset,
+                proofOptions,
+                state,
+                layout);
+            return state.WithInspectorScrollOffset(inspectorScrollPageId, clamped);
+        }
+
+        if (PresenterNavigationActions.TryParseSetOblivionRawMarkdownSourceScrollOffset(
+            actionId,
+            out string rawSourcePageId,
+            out string rawSourceCardId,
+            out double requestedRawSourceScrollOffset))
+        {
+            if (!model.ContainsPage(rawSourcePageId))
+            {
+                return state;
+            }
+
+            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(rawSourcePageId, rawSourceCardId, proofOptions);
+            double clamped = OblivionWorkbenchCatalog.ClampRawMarkdownSourceScrollOffset(
+                rawSourcePageId,
+                resolvedCardId,
+                requestedRawSourceScrollOffset,
+                proofOptions,
+                state,
+                layout);
+            return state.WithRawMarkdownSourceScrollOffset(resolvedCardId, clamped);
         }
 
         if (PresenterNavigationActions.TryParseSelectCompactOblivionCard(actionId, out string compactPageId, out string compactCardId))

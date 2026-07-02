@@ -227,6 +227,7 @@ public static class UI
             Padding = padding ?? effectiveStyle.Padding,
             BorderColor = borderColor ?? effectiveStyle.BorderColor,
             BorderThickness = borderThickness ?? effectiveStyle.BorderThickness,
+            ClipToBounds = effectiveStyle.ClipToBounds,
         };
     }
 
