@@ -1,0 +1,18 @@
+M14d Aurelian world screen proof
+
+- milestone: M14d
+- aurelianWorldScreenImplemented: true
+- usesPresenterScreenStack: true
+- worldLayer: world
+- collectionExpressionLayerOrderUsed: true
+- visibleTriangleRuntimePathPreserved: true
+- visibleTriangleRenderedLocally: false
+- machinaOverlayImplemented: false
+- vdMirDefaultChanged: false
+- directHlslPathPreserved: true
+- copelandPackageExtractionPerformed: false
+- slangBackendImplemented: false
+- ptxBackendImplemented: false
+- shaderKernelSplitIntroduced: false
+- oblivionIntegrationPerformed: false
+- runtimeCommand: dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 120

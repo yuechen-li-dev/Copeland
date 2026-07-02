@@ -1,0 +1,20 @@
+{
+  "milestone": "M14d",
+  "kind": "aurelian-world-screen",
+  "aurelianWorldScreenImplemented": true,
+  "usesPresenterScreenStack": true,
+  "worldLayer": "world",
+  "collectionExpressionLayerOrderUsed": true,
+  "visibleTriangleRuntimePathPreserved": true,
+  "visibleTriangleRenderedLocally": false,
+  "machinaOverlayImplemented": false,
+  "vdMirDefaultChanged": false,
+  "directHlslPathPreserved": true,
+  "copelandPackageExtractionPerformed": false,
+  "slangBackendImplemented": false,
+  "ptxBackendImplemented": false,
+  "shaderKernelSplitIntroduced": false,
+  "oblivionIntegrationPerformed": false,
+  "runtimeCommand": "dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 120",
+  "validationSummary": "Visible triangle now registers a Presenter world screen and executes through PresenterScreenStack while preserving the existing Vulkan compositor passthrough and present path."
+}

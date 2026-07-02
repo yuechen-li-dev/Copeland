@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Aurelian.VisibleTriangle.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../../src/Aurelian.Assets/Aurelian.Assets.csproj" />
     <ProjectReference Include="../../src/Aurelian.Core/Aurelian.Core.csproj" />
     <ProjectReference Include="../../src/Aurelian.Graphics/Aurelian.Graphics.csproj" />

@@ -1,6 +1,7 @@
 using Aurelian.Core.Engine;
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Core.Engine.Runtime;
+using Aurelian.Core.Presentation.Screens;
 using Aurelian.Rendering.Contracts.Compositor;
 using Aurelian.Runtime.Sessions;
 
@@ -23,7 +24,7 @@ internal static class Program
         string presenter = ParsePresenter(args);
 
         Console.WriteLine("Aurelian A71 visible triangle sample");
-        Console.WriteLine("Path: Presenter/Silk.NET backend -> prepared Vulkan setup -> AurelianEngine -> AurelianRuntimeSession -> AurelianFrameLoop -> runtime tick -> frame pump -> runtime compositor policy -> core compositor bridge -> Vulkan compositor -> presenter present");
+        Console.WriteLine("Path: Presenter/Silk.NET backend -> PresenterScreenStack -> VisibleTriangleWorldScreen(world) -> prepared Vulkan setup -> AurelianEngine -> AurelianRuntimeSession -> AurelianFrameLoop -> runtime tick -> frame pump -> runtime compositor policy -> core compositor bridge -> Vulkan compositor -> presenter present");
         Console.WriteLine($"Validation: {(enableValidation ? "enabled" : "disabled")}");
         Console.WriteLine($"Presenter backend: {presenter}");
         Console.WriteLine($"Selected finite frame count: {frameCount} (default {DefaultFrameCount}, max {MaximumFrameCount}).");
@@ -60,25 +61,20 @@ internal static class Program
 
             var runtimeTicker = new AurelianRuntimeSessionTickerAdapter(runtimeSession);
             var runtimeTickStep = new AurelianRuntimeTickFrameStep(runtimeTicker);
-            var inputProvider = sample.InputProvider;
-            var frameLoop = new AurelianFrameLoop(
-                sample.FramePump,
-                inputProvider,
-                sample.PresentationMechanism,
-                new AurelianFrameLoopOptions(
-                    MaxFrames: frameCount,
-                    PresentAfterCompletedFrame: true,
-                    StopOnFrameFailure: true),
-                runtimeTickStep);
+            var worldScreen = new VisibleTriangleWorldScreen(sample);
+            PresenterScreenStack screenStack = VisibleTrianglePresenterScreenStack.CreateStack(worldScreen);
+            PrintScreenStack(screenStack);
 
-            AurelianFrameLoopResult loopResult = await frameLoop.RunAsync(sample.StartFrameId).ConfigureAwait(false);
+            AurelianFrameLoopResult loopResult = await VisibleTrianglePresenterScreenStack
+                .RunWorldScreenAsync(screenStack, runtimeTickStep)
+                .ConfigureAwait(false);
             PrintLoopResult(loopResult);
             if (sample.CloseRequested)
             {
                 Console.WriteLine("Window close requested; stopped frame loop.");
             }
 
-            PrintSampleDiagnostics(inputProvider, sample.PresentationMechanism, sample.PresenterBackend);
+            PrintSampleDiagnostics(sample.InputProvider, sample.PresentationMechanism, sample.PresenterBackend);
 
             if (!skipHold && loopResult.Success)
             {
@@ -139,6 +135,15 @@ internal static class Program
                 sample.Dispose();
             }
         }
+    }
+
+    private static void PrintScreenStack(PresenterScreenStack screenStack)
+    {
+        IReadOnlyList<ScreenLayerSlot> layers = screenStack.LayerOrder.DeclaredSlots;
+        Console.WriteLine($"Presenter screen stack layers: {string.Join(", ", layers.Select(static layer => layer.Key.Value))}.");
+
+        IReadOnlyList<IPresenterScreen> visibleScreens = screenStack.VisibleScreensInCompositionOrder();
+        Console.WriteLine($"Visible screens in composition order: {string.Join(", ", visibleScreens.Select(static screen => screen.Layer.Value))}.");
     }
 
     private static string ParsePresenter(string[] args)

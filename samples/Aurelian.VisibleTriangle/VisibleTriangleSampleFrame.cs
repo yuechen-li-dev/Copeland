@@ -88,6 +88,7 @@ internal sealed class VisibleTriangleSampleFrame : IDisposable
         Engine = engine;
         FramePump = framePump;
         StartFrameId = startFrameId;
+        PlannedFrameCount = inputProvider.MaxFrames;
         InputProvider = inputProvider;
         PresentationMechanism = presentationMechanism;
     }
@@ -97,6 +98,8 @@ internal sealed class VisibleTriangleSampleFrame : IDisposable
     public AurelianFramePump FramePump { get; }
 
     public AurelianFrameId StartFrameId { get; }
+
+    public int PlannedFrameCount { get; }
 
     public SilkNetFrameInputProvider InputProvider { get; }
 

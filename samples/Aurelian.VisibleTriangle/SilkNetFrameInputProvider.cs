@@ -46,6 +46,8 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
 
     public IReadOnlyList<string> Diagnostics => diagnostics;
 
+    public int MaxFrames => maxFrames;
+
     public ValueTask<AurelianFrameInput?> GetNextFrameInputAsync(
         AurelianFrameId frameId,
         CancellationToken cancellationToken = default)

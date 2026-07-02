@@ -25,6 +25,7 @@
     <Project Path="tests/Aurelian.Rendering.Null.Tests/Aurelian.Rendering.Null.Tests.csproj" />
     <Project Path="tests/Aurelian.Runtime.Tests/Aurelian.Runtime.Tests.csproj" />
     <Project Path="tests/Aurelian.Shaders.Tests/Aurelian.Shaders.Tests.csproj" />
+    <Project Path="tests/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj" />
     <Project Path="tests/Aurelian.World.Tests/Aurelian.World.Tests.csproj" />
   </Folder>
 </Solution>

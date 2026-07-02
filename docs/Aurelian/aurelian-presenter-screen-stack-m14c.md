@@ -124,7 +124,7 @@ stack.Add(new FakeWorldScreen(ScreenLayers.World.Key));
 stack.Add(new FakeHudScreen(ScreenLayers.Hud.Key));
 ```
 
-The concrete Aurelian/Machina screens are still future work. For M14d, Aurelian will land in the `world` layer. For M14e, Machina HUD/overlay screens will land in upper layers.
+The concrete Aurelian/Machina screens were future work at M14c time. For M14d, Aurelian will land in the `world` layer, and that has now been implemented by the visible-triangle sample. Machina HUD/overlay screens will land in upper layers in M14e.
 
 ## Relationship to M14b
 
