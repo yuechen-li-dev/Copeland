@@ -96,4 +96,6 @@ The change is that the world render path now sits behind Presenter screen-stack 
 
 M14d is the proof that the world layer path is real.
 
-M14e can now add Machina HUD/overlay screens above `world` without needing to redesign the screen model or special-case Aurelian rendering as a separate host lane.
+M14e treats that proof as closeout/handoff input only.
+
+The screen model does not need redesign for the closeout, but M14e also does not add Machina HUD/overlay screens, a general bridge, or any new render contract. Future Machina-focused work can build on this seam later without reopening the current Aurelian migration arc.

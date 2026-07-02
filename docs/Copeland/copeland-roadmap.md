@@ -2,14 +2,15 @@
 
 ## Purpose
 
-This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13g, adds the tiny compiler-only `VD-MIR M0` smoke-triangle slice in M14a, and then uses M14b to prove the first visible triangle through the Presenter/Silk.NET runtime path without implying immediate package extraction or migration work.
+This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. M13d through M14e establish the architecture, topology, proof boundaries, and handoff language around Copeland, `VD-MIR`, and Aurelian without requiring immediate package extraction or migration work.
 
 ## Current state
 
 - `Copeland.Markdown` is the active document lane in the repo.
 - the original script/compiler direction remains an important legacy lane: TypeScript-like source -> AST/MIR -> C# backend
 - Aurelian currently hosts the active SDSL-V shader lane outside Copeland
-- `VD-MIR M0` now exists only as a minimal implementation slice inside `src/Aurelian.Shaders/Language/VdMir`
+- `VD-MIR` implementation as an active Copeland lane remains deferred
+- a historical exploratory `src/Aurelian.Shaders/Language/VdMir` slice remains in-tree, but the visible-triangle golden path does not depend on it
 
 ## Doctrine
 
@@ -32,14 +33,14 @@ M13f:
 M13g:
   Aurelian.VisibleTriangle sample topology and proof-boundary audit
 
-M14a:
-  VD-MIR M0 implementation for smoke triangle
+M14d:
+  visible triangle routed through PresenterScreenStack as semantic world screen
 
-M14b:
-  Presenter/Silk.NET golden triangle path with visible runtime proof
+M14e:
+  Aurelian migration closeout and subsystem handoff
 
 M14+:
-  later implementation extraction, bridge proof, or backend expansion
+  future reviewer-owned VD-MIR implementation, extraction, bridge proof, or backend expansion
 ```
 
 ## Deferred implementation targets
@@ -69,18 +70,28 @@ Possible future packages:
 
 These are target taxonomy names, not M13d implementation work.
 
-M13e and M13f add the current GPU-lane doctrine:
+M13d through M14e establish the current GPU-lane doctrine and handoff:
 
 - replace the temporary phrase `GPU MIR` with `VD-MIR` / `Visual Direct MIR`
 - start from one common `VD-MIR` assumption
 - do not split Shader MIR / Kernel MIR until proven necessary
 - treat HLSL/DXC, Slang, and PTX as backends from `VD-MIR`, not semantic centers
 - do not implement `Copeland.Mir.Vd`, `Copeland.Mir.VdMir`, `Copeland.Backends.Slang`, or `Copeland.Backends.Ptx` during doctrine work
+- keep the active visible-triangle route on the existing checked-in artifact/runtime path
+- treat future `VD-MIR` continuation as a separate reviewer lane
 
-M13g adds the proof-target boundary audit:
+M13g through M14e add the proof-target boundary and closeout:
 
 - treat `samples/Aurelian.VisibleTriangle` as the next concrete visible proof target
 - document the current `assets.toml` -> shader artifact -> `CompiledShaderProgram` -> Vulkan pipeline -> present path before any MIR insertion
 - keep the sample Aurelian-owned and separate from `Copeland.slnx` / `Copeland.Slow.slnx`
-- do not wire the sample to `VD-MIR` until `M14a`/`M14b`
-- after M14a and M14b, keep the default direct AST-to-HLSL path and keep `VD-MIR` opt-in rather than the sample default compiler path
+- route the sample through `PresenterScreenStack` on the semantic `world` layer in M14d
+- close the current migration arc in M14e without changing the sample to a `VD-MIR` path
+
+## M14e closeout note
+
+M14e records that:
+
+- M13d-M14e established the Copeland/`VD-MIR`/Aurelian architecture and handoff boundaries
+- active `VD-MIR` implementation remains deferred as a future reviewer lane
+- future Copeland / `VD-MIR` work can resume from the `M14a` / `M14b` plan space when explicitly reactivated

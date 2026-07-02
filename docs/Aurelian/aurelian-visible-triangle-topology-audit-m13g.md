@@ -4,7 +4,7 @@
 
 M13g audits `samples/Aurelian.VisibleTriangle` as the future visible proof target for `VD-MIR` work without implementing `VD-MIR`, changing the current SDSL-V compiler path, or changing renderer behavior.
 
-M14a later implements the first compiler-side `VD-MIR M0` smoke-triangle slice upstream of this sample, but the sample itself still stays on its existing checked-in shader artifacts in this milestone.
+Later exploratory compiler-side `VD-MIR` work did not change the active sample route described here. In M14e, the sample still stays on its existing checked-in shader artifacts and still is not routed through `VD-MIR`.
 
 This milestone is topology and proof-boundary work only:
 
@@ -376,9 +376,10 @@ After M14a, these non-changes are still true for the sample runtime:
 - the sample is still not wired to `VD-MIR`
 - the checked-in runtime artifact boundary is still preserved
 - renderer/runtime behavior is still unchanged
+- after M14d, the sample additionally routes through `PresenterScreenStack` as a semantic `world` screen without changing the underlying Aurelian frame-loop/compositor/present path
 
 ## Deferred work
 
 - `M14a`: implement `VD-MIR M0` for the smoke-triangle path
-- `M14b`: prove visible triangle through `VD-MIR -> HLSL/DXC -> SPIR-V`
+- future reviewer lane: if `VD-MIR` work resumes, prove visible triangle through `VD-MIR -> HLSL/DXC -> SPIR-V`
 - later: revisit whether the sample can grow a deterministic headless proof seam without changing the Aurelian-owned presentation boundary

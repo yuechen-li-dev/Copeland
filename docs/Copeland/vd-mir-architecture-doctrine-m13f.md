@@ -15,7 +15,7 @@ This milestone is architecture doctrine only:
 - no Machina/Aurelian/Vulkan bridge is implemented
 - `samples/Aurelian.VisibleTriangle` is not wired to `VD-MIR`
 
-M14a later implements the first tiny slice inside `Aurelian.Shaders` only. That implementation does not invalidate this doctrine: `VD-MIR` is still not extracted into Copeland packages, the direct AST-to-HLSL path is still preserved as the default, and visible-triangle runtime wiring remains deferred.
+Historical M14a exploratory work later placed a tiny slice inside `Aurelian.Shaders` only. M14e closes the current migration arc without promoting that slice into the active mainline: `VD-MIR` is still not extracted into Copeland packages, the direct artifact/runtime path remains the visible-triangle default, and future continuation is deferred to a dedicated reviewer lane.
 
 ## Name
 
@@ -537,7 +537,7 @@ Runtime behavior is unchanged.
 
 - M13g later performs the topology and proof-boundary audit for `samples/Aurelian.VisibleTriangle` without changing the sample's current shader/runtime/render path and without adding any `VD-MIR` implementation.
 - `M13g`: audit `Aurelian.VisibleTriangle` topology and proof boundaries
-- `M14a`: implement `VD-MIR M0` for the smoke-triangle path
-- `M14b`: prove visible triangle through `VD-MIR -> HLSL/DXC -> SPIR-V`
+- future reviewer lane: decide whether the historical Aurelian-hosted `VdMir` slice is the right starting point for resumed work
+- future reviewer lane: if reactivated, resume from the `M14a` / `M14b` plan space
 - later: evaluate whether `VD-MIR M1`, `M2`, and `M3` converge cleanly enough to keep one common MIR
 - `M4+`: add optimization or canonicalization passes only if repeated concrete pressure earns them

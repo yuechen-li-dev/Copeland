@@ -186,6 +186,6 @@ Recommended near-term phases:
 - `M13f`: VD-MIR architecture doctrine. Completed as doctrine only; no implementation or migration was added.
 - `M13g`: Aurelian.VisibleTriangle sample topology and proof-boundary audit. Completed as audit/topology work only; the sample remains a future proof target and is not wired to `VD-MIR` yet.
 - `M13h`: design `Machina.Aurelian` bridge contracts.
-- `M14a`: VD-MIR M0 implementation for smoke triangle.
-- `M14b`: visible triangle proof through VD-MIR -> HLSL/DXC -> SPIR-V.
+- `M14d`: visible triangle routed through `PresenterScreenStack` as a semantic `world` screen while preserving the existing Aurelian runtime/render path.
+- `M14e`: Aurelian migration closeout and subsystem handoff; primary active focus returns to Machina and Oblivion while future Aurelian and `VD-MIR` continuation moves to separate reviewer lanes.
 - `M14+`: later triangle proof expansion, Vulkan proof, and presenter integration after boundaries stabilize.
