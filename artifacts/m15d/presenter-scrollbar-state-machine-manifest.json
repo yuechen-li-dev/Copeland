@@ -1,0 +1,142 @@
+{
+  "milestone": "M11c",
+  "kind": "presenter-scrollbar-state-machine",
+  "purpose": "Presenter scrollbar refactor with explicit interaction states and cached composition layers.",
+  "m9FontPhase": {
+    "status": "closed-unless-concrete-integration-needs-arise",
+    "directOutlineStatic": "static-reference-path",
+    "msdf": "explicit-experimental-scalable"
+  },
+  "navigationHierarchy": [
+    "app",
+    "sidebar",
+    "tabs",
+    "pages"
+  ],
+  "sections": [
+    {
+      "id": "overview",
+      "label": "Overview",
+      "tabs": [
+        {
+          "id": "home",
+          "label": "Home",
+          "pageId": "overview.home"
+        },
+        {
+          "id": "status",
+          "label": "Status",
+          "pageId": "overview.status"
+        }
+      ]
+    },
+    {
+      "id": "components",
+      "label": "Components",
+      "tabs": [
+        {
+          "id": "controls",
+          "label": "Controls",
+          "pageId": "components.controls"
+        },
+        {
+          "id": "cards",
+          "label": "Cards",
+          "pageId": "components.cards"
+        }
+      ]
+    },
+    {
+      "id": "text",
+      "label": "Text",
+      "tabs": [
+        {
+          "id": "current",
+          "label": "Current",
+          "pageId": "text.current"
+        },
+        {
+          "id": "direct-outline",
+          "label": "DirectOutlineStatic",
+          "pageId": "text.direct-outline"
+        },
+        {
+          "id": "proofs",
+          "label": "Proofs",
+          "pageId": "text.proofs"
+        }
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "label": "Diagnostics",
+      "tabs": [
+        {
+          "id": "layout",
+          "label": "Layout",
+          "pageId": "diagnostics.layout"
+        },
+        {
+          "id": "export",
+          "label": "Export",
+          "pageId": "diagnostics.export"
+        }
+      ]
+    },
+    {
+      "id": "oblivion",
+      "label": "Oblivion",
+      "tabs": [
+        {
+          "id": "cards",
+          "label": "Cards",
+          "pageId": "oblivion.cards"
+        },
+        {
+          "id": "docs",
+          "label": "Docs",
+          "pageId": "oblivion.docs"
+        },
+        {
+          "id": "execution-roadmap",
+          "label": "Execution Roadmap",
+          "pageId": "oblivion.execution-roadmap"
+        },
+        {
+          "id": "artifacts",
+          "label": "Artifacts",
+          "pageId": "oblivion.artifacts"
+        }
+      ]
+    },
+    {
+      "id": "legacy",
+      "label": "Legacy",
+      "tabs": [
+        {
+          "id": "m1e-card",
+          "label": "M1e Card",
+          "pageId": "legacy.m1e-card"
+        }
+      ]
+    }
+  ],
+  "shell": {
+    "navigationShellDefault": true,
+    "legacySingleCardAvailable": true,
+    "deterministicScrollbars": true,
+    "explicitInteractionStateMachine": true,
+    "cachedComposition": true,
+    "directOutlineProofOptIn": false,
+    "interactionBackend": "Avalonia",
+    "backendBoundary": "sample-scoped-adapter",
+    "dominatusIntegrationDecision": "local-dominatus-style-state-machine-with-render-bridge-boundary",
+    "pageRenderCount": 1,
+    "shellRenderCount": 1,
+    "compositionCount": 1,
+    "scrollOffset": 0,
+    "selectedSection": "oblivion",
+    "selectedTab": "cards",
+    "selectedPage": "oblivion.cards"
+  }
+}

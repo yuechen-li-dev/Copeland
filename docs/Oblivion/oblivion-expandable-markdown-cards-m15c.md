@@ -106,3 +106,14 @@ Proof artifacts live under `artifacts/m15c/`:
 - pointer-drag local scrollbar behavior if later needed
 - richer per-card density controls if later earned
 - any future editor or execution work
+
+## M15d follow-through
+
+M15d hardens the M15c reading surface rather than widening scope.
+
+- rendered Markdown now uses an explicit shared reading-style record with readable contrast
+- expanded Markdown cards now use document-scale height instead of a short preview-like panel
+- the inspector no longer renders formatted Markdown body content
+- the inspector now shows raw Markdown source text in a bounded scrollable source block
+
+M15d still does not add Markdown editing, execution, Aurelian work, or `VD-MIR` work.

@@ -55,3 +55,13 @@ M15c builds on that base by moving the real reading surface into the stack itsel
 - future editing work, only in a later explicit milestone
 - richer inline document interactions if later earned
 - any execution/runtime notebook behavior
+
+## M15d hardening
+
+M15d hardens this stack-reading model without changing its core doctrine.
+
+- expanded Markdown cards are now explicitly document reading surfaces
+- rendered Markdown stays in the expanded card body
+- the inspector remains a secondary surface for metadata, actions, diagnostics, artifacts, and raw source inspection
+- one expanded Markdown card per page keeps the reading surface deterministic
+- the inspector now shows raw Markdown source text instead of formatted Markdown body content

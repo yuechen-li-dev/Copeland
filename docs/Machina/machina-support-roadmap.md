@@ -250,6 +250,28 @@ This remains a bounded pass:
 - no Aurelian work
 - no `VD-MIR` work
 - no arbitrary freeform `2D` layout solver
+
+## M15d update
+
+M15d is the expanded Markdown reading-surface hardening pass after M15c.
+
+- expanded Markdown cards now use an explicit immutable reading-style record
+- expanded Markdown contrast is now deliberately readable on a dark document surface
+- expanded Markdown cards now use document-scale height instead of a short preview panel
+- local body scrolling remains in place for long documents
+- the inspector no longer renders formatted Markdown body content
+- the inspector now shows raw Markdown source text in a bounded scrollable source block
+- one expanded Markdown card per page keeps the reading model deterministic
+
+This remains a bounded pass:
+
+- no Markdown editing
+- no notebook execution
+- no Roslyn execution
+- no Aurelian work
+- no `VD-MIR` work
+- no CSS-like style cascade
+- no arbitrary freeform `2D` layout solver
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

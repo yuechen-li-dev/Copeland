@@ -39,6 +39,8 @@ M15b now lands that controlled follow-through. Runtime presenter resizing is now
 
 M15c now makes the stack itself the reading surface. Oblivion Markdown cards have explicit page-local expansion state, collapsed cards stay compact and scannable, expanded cards render the Markdown body inline with local body scrolling, and the inspector remains the metadata/actions/diagnostics/artifacts surface rather than the only place to read the body. M15c still does not implement Markdown editing, notebook execution, Aurelian work, or `VD-MIR` work.
 
+M15d hardens that reading surface. Expanded Markdown cards are now treated as document reading surfaces with explicit readable contrast on a dark surface, document-scale expanded height, preserved local body scrolling, and a shared immutable reading-style record rather than scattered renderer-local colors. The inspector no longer renders formatted Markdown body content; it now shows raw Markdown source text in a bounded scrollable source block while remaining the metadata/actions/diagnostics/artifacts surface. M15d still does not implement Markdown editing, notebook execution, Aurelian work, `VD-MIR` work, CSS-like styling, or arbitrary `2D` layout solving.
+
 ## Pipeline
 
 ```text
@@ -228,6 +230,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Oblivion Readable Card Previews M15b](docs/Oblivion/oblivion-readable-card-previews-m15b.md)
 - [Machina Card Stack Reading Flow M15c](docs/Machina/machina-card-stack-reading-flow-m15c.md)
 - [Oblivion Expandable Markdown Cards M15c](docs/Oblivion/oblivion-expandable-markdown-cards-m15c.md)
+- [Machina Markdown Reading Style M15d](docs/Machina/machina-markdown-reading-style-m15d.md)
+- [Oblivion Expanded Markdown Reading Surface M15d](docs/Oblivion/oblivion-expanded-markdown-reading-surface-m15d.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)

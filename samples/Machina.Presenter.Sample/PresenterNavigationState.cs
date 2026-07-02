@@ -184,6 +184,38 @@ public sealed record PresenterNavigationState(
             });
     }
 
+    public PresenterNavigationState ExpandCardExclusively(
+        string pageId,
+        string cardId,
+        IReadOnlyList<string> siblingCardIds)
+    {
+        ArgumentNullException.ThrowIfNull(pageId);
+        ArgumentNullException.ThrowIfNull(cardId);
+        ArgumentNullException.ThrowIfNull(siblingCardIds);
+
+        PresenterNavigationState next = this;
+
+        foreach (string siblingCardId in siblingCardIds)
+        {
+            OblivionCardViewState siblingState = next.GetCardViewState(pageId, siblingCardId);
+            bool shouldExpand = string.Equals(siblingCardId, cardId, StringComparison.Ordinal);
+            if (siblingState.IsExpanded == shouldExpand)
+            {
+                continue;
+            }
+
+            next = next.WithCardViewState(
+                pageId,
+                siblingCardId,
+                siblingState with
+                {
+                    IsExpanded = shouldExpand,
+                });
+        }
+
+        return next;
+    }
+
     public PresenterNavigationState CollapseCard(string pageId, string cardId)
     {
         OblivionCardViewState current = GetCardViewState(pageId, cardId);

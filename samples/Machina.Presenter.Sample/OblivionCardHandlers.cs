@@ -371,15 +371,18 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                     $"Tags: {FormatTags(card.Tags)}",
                     $"Local state expanded: {model.LocalState.IsExpanded.ToString().ToLowerInvariant()}",
                     $"Body scroll offset: {model.LocalState.BodyScrollOffset:0.###}",
+                    $"Rendered body surface: {(card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown ? "Expanded card body" : "Inspector body section")}",
                     $"Selected artifact: {model.LocalState.SelectedArtifactId ?? "<none>"}",
                 ]),
                 Height: 260),
             new OblivionInspectorSectionView(
                 $"{card.Id.Value}.body",
-                "Body",
+                card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
+                    ? "Raw Markdown Source"
+                    : "Body",
                 [],
                 card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
-                    ? new OblivionInspectorMarkdownBodyContent(card.Body)
+                    ? new OblivionInspectorRawMarkdownSourceBodyContent(card.Body)
                     : new OblivionInspectorTextBodyContent(OblivionMarkdownBody.BuildInspectorLines(card.Body)),
                 Height: 448,
                 ClipContent: false),

@@ -94,7 +94,7 @@ public sealed class OblivionAgenticCardContractM12eTests
     {
         OblivionBuiltCard builtCard = GetBuiltExecutionRoadmapCard("markdown-first-roadmap");
 
-        Assert.Contains(builtCard.InspectorView.Sections, section => section.Title == "Body");
+        Assert.Contains(builtCard.InspectorView.Sections, section => section.Title == "Raw Markdown Source");
         Assert.Contains(builtCard.InspectorView.Sections, section => section.Title == "Markdown diagnostics");
     }
 

@@ -1,0 +1,33 @@
+milestone=M12d
+kind=oblivion-docs-dogfood
+markdownFrontend=Copeland.Markdown
+docsLoaded=16
+cardsGenerated=17
+diagnosticsTotal=6
+unsupportedSyntaxCount=5
+aurelianDocsLoaded=8
+aurelianDiagnosticsTotal=6
+editorImplemented=false
+fileWatcherImplemented=false
+roslynEnabled=false
+xunitEnabled=false
+visionaryImplemented=false
+singleFileMarkdownExportImplemented=false
+deferredWork=Markdown editor | File watcher / live editing | Single-file Markdown export/import pipeline | Roslyn compilation and execution | xUnit [Fact] and [Theory] runtime | Visionary code editor/source workspace
+docs:
+  doc-machina-oblivion-phase-closeout-m11g|docs/machina-oblivion-phase-closeout-m11g.md|diag=0|heading=Machina Oblivion Phase Closeout M11g
+  doc-machina-oblivion-workspace-persistence-m11d|docs/machina-oblivion-workspace-persistence-m11d.md|diag=0|heading=Machina Oblivion Workspace Persistence M11d
+  doc-machina-presenter-card-hardening-m11e|docs/machina-presenter-card-hardening-m11e.md|diag=0|heading=Machina Presenter Card Hardening M11e
+  doc-machina-test-suite-topology-m11b|docs/machina-test-suite-topology-m11b.md|diag=0|heading=Machina Test Suite Topology M11b
+  doc-machina-presenter-scrollbar-state-machine-m11c|docs/machina-presenter-scrollbar-state-machine-m11c.md|diag=0|heading=Machina Presenter Scrollbar State Machine M11c
+  doc-copeland-markdown-frontend-m12a|docs/copeland-markdown-frontend-m12a.md|diag=0|heading=Copeland Markdown Frontend M12a
+  doc-machina-oblivion-markdown-body-integration-m12b|docs/machina-oblivion-markdown-body-integration-m12b.md|diag=0|heading=Machina Oblivion Markdown Body Integration M12b
+  doc-machina-oblivion-markdown-rendering-m12c|docs/machina-oblivion-markdown-rendering-m12c.md|diag=0|heading=Machina Oblivion Markdown Rendering M12c
+  doc-aurelian-monorepo-import-audit-m13a|docs/Aurelian/aurelian-monorepo-import-audit-m13a.md|diag=3|heading=Aurelian Monorepo Import Audit M13a
+  doc-aurelian-build-topology-m13b|docs/Aurelian/aurelian-build-topology-m13b.md|diag=2|heading=Aurelian Build Topology M13b
+  doc-aurelian-charter|docs/Aurelian/architecture/aurelian-charter.md|diag=0|heading=Aurelian Architecture Charter
+  doc-dependency-policy|docs/Aurelian/architecture/dependency-policy.md|diag=0|heading=Aurelian Dependency and Library Adoption Doctrine
+  doc-compositor-policy-mechanism-split|docs/Aurelian/architecture/compositor-policy-mechanism-split.md|diag=0|heading=Compositor policy/mechanism split
+  doc-graphics-memory-allocation|docs/Aurelian/architecture/graphics-memory-allocation.md|diag=0|heading=Aurelian Graphics Memory Allocation Strategy
+  doc-mvp-roadmap|docs/Aurelian/architecture/mvp-roadmap.md|diag=0|heading=Aurelian MVP Roadmap
+  doc-world-model-doctrine|docs/Aurelian/architecture/world-model-doctrine.md|diag=1|heading=Aurelian World Model Doctrine

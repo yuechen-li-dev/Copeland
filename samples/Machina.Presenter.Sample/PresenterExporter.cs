@@ -47,6 +47,8 @@ public static class PresenterExporter
         string? oblivionInspectorManifestTextPath = null;
         string? oblivionExpandableMarkdownCardsManifestJsonPath = null;
         string? oblivionExpandableMarkdownCardsManifestTextPath = null;
+        string? oblivionExpandedMarkdownReadingSurfaceManifestJsonPath = null;
+        string? oblivionExpandedMarkdownReadingSurfaceManifestTextPath = null;
         string? oblivionPhaseCloseoutManifestJsonPath = null;
         string? oblivionPhaseCloseoutManifestTextPath = null;
         string? oblivionMarkdownRenderingManifestJsonPath = null;
@@ -134,6 +136,11 @@ public static class PresenterExporter
                     outputDirectory,
                     shellRender.NavigationState,
                     proofOptions);
+            (oblivionExpandedMarkdownReadingSurfaceManifestJsonPath, oblivionExpandedMarkdownReadingSurfaceManifestTextPath) =
+                OblivionWorkbenchCatalog.WriteExpandedMarkdownReadingSurfaceManifest(
+                    outputDirectory,
+                    shellRender.NavigationState,
+                    proofOptions);
             (oblivionPhaseCloseoutManifestJsonPath, oblivionPhaseCloseoutManifestTextPath) =
                 OblivionWorkbenchCatalog.WritePhaseCloseoutManifest(outputDirectory);
             (oblivionMarkdownRenderingManifestJsonPath, oblivionMarkdownRenderingManifestTextPath) =
@@ -199,6 +206,8 @@ public static class PresenterExporter
             OblivionInspectorManifestTextPath = oblivionInspectorManifestTextPath,
             OblivionExpandableMarkdownCardsManifestJsonPath = oblivionExpandableMarkdownCardsManifestJsonPath,
             OblivionExpandableMarkdownCardsManifestTextPath = oblivionExpandableMarkdownCardsManifestTextPath,
+            OblivionExpandedMarkdownReadingSurfaceManifestJsonPath = oblivionExpandedMarkdownReadingSurfaceManifestJsonPath,
+            OblivionExpandedMarkdownReadingSurfaceManifestTextPath = oblivionExpandedMarkdownReadingSurfaceManifestTextPath,
             OblivionPhaseCloseoutManifestJsonPath = oblivionPhaseCloseoutManifestJsonPath,
             OblivionPhaseCloseoutManifestTextPath = oblivionPhaseCloseoutManifestTextPath,
             OblivionMarkdownRenderingManifestJsonPath = oblivionMarkdownRenderingManifestJsonPath,
@@ -288,6 +297,10 @@ public sealed record PresenterExportResult(
     public string? OblivionExpandableMarkdownCardsManifestJsonPath { get; init; }
 
     public string? OblivionExpandableMarkdownCardsManifestTextPath { get; init; }
+
+    public string? OblivionExpandedMarkdownReadingSurfaceManifestJsonPath { get; init; }
+
+    public string? OblivionExpandedMarkdownReadingSurfaceManifestTextPath { get; init; }
 
     public string? OblivionPhaseCloseoutManifestJsonPath { get; init; }
 

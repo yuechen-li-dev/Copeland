@@ -174,7 +174,7 @@ public static class PresenterNavigationCatalog
                     continue;
                 }
 
-                double contentHeight = GetPageContentHeight(resolvedScrollPageId, proofOptions, state);
+                double contentHeight = GetPageContentHeight(resolvedScrollPageId, proofOptions, state, layout.ViewportHeight);
                 double clamped = PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, offset);
                 state = state.WithScrollOffset(resolvedScrollPageId, clamped);
             }
@@ -295,7 +295,8 @@ public static class PresenterNavigationCatalog
     public static double GetPageContentHeight(
         string pageId,
         PresenterProofOptions proofOptions,
-        PresenterNavigationState? navigationState = null)
+        PresenterNavigationState? navigationState = null,
+        int viewportHeight = 596)
     {
         return pageId switch
         {
@@ -308,10 +309,10 @@ public static class PresenterNavigationCatalog
             "text.proofs" => 376,
             "diagnostics.layout" => 360,
             "diagnostics.export" => 432,
-            OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState),
-            OblivionWorkbenchCatalog.DocsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState),
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState),
-            OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState),
+            OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight),
+            OblivionWorkbenchCatalog.DocsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight),
+            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight),
+            OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight),
             "legacy.m1e-card" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 1152 : 420,
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -323,11 +324,12 @@ public static class PresenterNavigationCatalog
         StandardTheme theme,
         PresenterProofOptions proofOptions,
         int contentWidth,
+        int viewportHeight,
         PresenterNavigationState? navigationState = null,
         PresenterShellMode shellMode = PresenterShellMode.Wide)
     {
-        double contentHeight = GetPageContentHeight(pageId, proofOptions, navigationState);
-        UiDocument document = BuildPageDocument(pageId, demoState, theme, proofOptions, contentWidth, navigationState, shellMode);
+        double contentHeight = GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight);
+        UiDocument document = BuildPageDocument(pageId, demoState, theme, proofOptions, contentWidth, viewportHeight, navigationState, shellMode);
         var frame = new Machina.Pipeline.MachinaRasterPipeline().Render(document, contentWidth, (int)Math.Ceiling(contentHeight));
 
         if (pageId == "text.direct-outline" && proofOptions.IncludeDirectOutlineRenderBridgeProof)
@@ -351,12 +353,34 @@ public static class PresenterNavigationCatalog
         return result;
     }
 
+    public static PresenterPageRenderResult RenderPage(
+        string pageId,
+        DemoState demoState,
+        StandardTheme theme,
+        PresenterProofOptions proofOptions,
+        int contentWidth,
+        PresenterNavigationState? navigationState = null,
+        PresenterShellMode shellMode = PresenterShellMode.Wide)
+    {
+        int viewportHeight = shellMode == PresenterShellMode.Compact ? 396 : 596;
+        return RenderPage(
+            pageId,
+            demoState,
+            theme,
+            proofOptions,
+            contentWidth,
+            viewportHeight,
+            navigationState,
+            shellMode);
+    }
+
     private static UiDocument BuildPageDocument(
         string pageId,
         DemoState demoState,
         StandardTheme theme,
         PresenterProofOptions proofOptions,
         int contentWidth,
+        int viewportHeight,
         PresenterNavigationState? navigationState,
         PresenterShellMode shellMode)
     {
@@ -640,7 +664,7 @@ public static class PresenterNavigationCatalog
             case OblivionWorkbenchCatalog.DocsPageId:
             case OblivionWorkbenchCatalog.ExecutionRoadmapPageId:
             case OblivionWorkbenchCatalog.ArtifactsPageId:
-                rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth, proofOptions, navigationState, shellMode));
+                rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth, viewportHeight, proofOptions, navigationState, shellMode));
                 break;
 
             case "legacy.m1e-card":

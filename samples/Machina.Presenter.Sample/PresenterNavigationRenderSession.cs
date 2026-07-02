@@ -150,6 +150,7 @@ public sealed class PresenterNavigationRenderSession
             theme,
             proofOptions,
             layout.ContentVisibleWidth,
+            layout.ViewportHeight,
             navigationState,
             layout.ShellMode);
 

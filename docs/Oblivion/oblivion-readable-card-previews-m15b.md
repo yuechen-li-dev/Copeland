@@ -107,3 +107,9 @@ M15c keeps the readable collapsed preview discipline from M15b, but changes the 
 - inspector remains metadata/actions/diagnostics/artifacts, not the only body-reading surface
 
 M15c still does not add Markdown editing or notebook execution.
+
+M15d then hardens the expanded reading surface itself:
+
+- readable contrast is enforced for expanded Markdown bodies
+- expanded Markdown cards use document-scale height
+- the inspector switches from rendered Markdown body to raw Markdown source inspection

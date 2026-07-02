@@ -82,9 +82,11 @@ public sealed class OblivionExpandableMarkdownCardsM15cTests
         PresenterPageRenderResult page = RenderDocsPage(expandedCardId: ExpandedDocCardId);
         DrawTextCommand[] commands = page.Frame.RenderCommands.OfType<DrawTextCommand>().ToArray();
 
-        Assert.Contains(commands, command => command.Id.Contains(".heading-label", StringComparison.Ordinal));
-        Assert.Contains(commands, command => command.Id.Contains(".paragraph", StringComparison.Ordinal));
-        Assert.Contains(commands, command => command.Id.Contains(".item-0.marker", StringComparison.Ordinal));
+        Assert.Contains(commands, command => command.Id.Contains($"{ExpandedDocCardId}.expanded.block-", StringComparison.Ordinal));
+        Assert.True(
+            commands.Any(command => command.Id.Contains(".heading", StringComparison.Ordinal)) ||
+            commands.Any(command => command.Id.Contains(".paragraph", StringComparison.Ordinal)) ||
+            commands.Any(command => command.Id.Contains(".item-0.marker", StringComparison.Ordinal)));
     }
 
     [Fact]

@@ -34,6 +34,11 @@ internal static class OblivionMarkdownRenderer
         LineHeight: PreviewLineHeight,
         LineGap: PreviewGap);
 
+    public sealed record OblivionScrollableCodeSurfaceRenderResult(
+        UiNode Node,
+        double ContentHeight,
+        ScrollbarGeometry Scrollbar);
+
     public static UiNode BuildPreviewBody(
         string id,
         OblivionCardBody body,
@@ -90,70 +95,6 @@ internal static class OblivionMarkdownRenderer
         return BuildPreviewFrame(id, children);
     }
 
-    public static UiNode BuildInspectorBody(
-        string id,
-        OblivionCardBody body,
-        StandardTheme theme,
-        double width)
-    {
-        ArgumentNullException.ThrowIfNull(id);
-        ArgumentNullException.ThrowIfNull(body);
-        ArgumentNullException.ThrowIfNull(theme);
-
-        if (body.DocumentMir is null)
-        {
-            return BuildPlainPreviewBody(id, body.PreviewLines, theme, width, height: 320);
-        }
-
-        List<UiNode> children = [];
-        double currentTop = 0;
-
-        foreach ((DocumentBlockMir block, int index) in body.DocumentMir.Blocks.Select((value, index) => (value, index)))
-        {
-            MarkdownRenderedBlock rendered = LowerBlock($"{id}.block-{index}", block, theme, width);
-            children.Add(
-                UI.Anchor(
-                    rendered.Node,
-                    id: $"{id}.block-{index}.slot",
-                    left: 0,
-                    width: width,
-                    top: currentTop,
-                    height: rendered.Height));
-            currentTop += rendered.Height + BlockGap;
-        }
-
-        if (children.Count == 0)
-        {
-            children.Add(
-                UI.Anchor(
-                    UI.Text(
-                        "<empty markdown body>",
-                        id: $"{id}.empty",
-                        size: TextSize.Sm,
-                        color: theme.Colors.MutedForeground),
-                    id: $"{id}.empty.slot",
-                    left: 0,
-                    right: 0,
-                    top: 0,
-                    height: PreviewLineHeight));
-            currentTop += PreviewLineHeight;
-        }
-
-        return UI.Layer(
-            id: $"{id}.body-layer",
-            children:
-            [
-                .. children,
-                UI.Anchor(
-                    UI.VSpace(Math.Max(0, currentTop)),
-                    id: $"{id}.body-height",
-                    left: 0,
-                    width: width,
-                    top: 0,
-                    height: currentTop),
-            ]);
-    }
-
     public static double MeasureExpandedContentHeight(OblivionCardBody body, double width)
     {
         ArgumentNullException.ThrowIfNull(body);
@@ -170,14 +111,14 @@ internal static class OblivionMarkdownRenderer
     public static OblivionExpandedMarkdownBodyRenderResult BuildExpandedBody(
         string id,
         OblivionCardBody body,
-        StandardTheme theme,
+        OblivionMarkdownReadingStyle style,
         double width,
         double viewportHeight,
         double requestedScrollOffset)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(body);
-        ArgumentNullException.ThrowIfNull(theme);
+        ArgumentNullException.ThrowIfNull(style);
 
         double initialContentHeight = MeasureExpandedContentHeight(body, width);
         bool needsScrollbar = initialContentHeight > viewportHeight;
@@ -205,18 +146,18 @@ internal static class OblivionMarkdownRenderer
                 body.PreviewLines.Count == 0 ? ["<empty markdown body>"] : body.PreviewLines,
                 contentWidth,
                 Math.Max(contentHeight, viewportHeight) + scrollOffset + 64,
-                new PresenterCardTextLayout(ExpandedPlainLineHeight, ExpandedPlainLineGap),
+                new PresenterCardTextLayout(style.BodyLineHeight, style.BodyLineGap),
                 new TextStyle(
-                    Color: theme.Colors.Foreground,
+                    Color: style.Foreground,
                     Size: TextSize.Sm,
                     AlignX: TextAlignX.Left,
                     AlignY: TextAlignY.Top));
 
             foreach ((string line, int index) in wrappedLines.Select((value, index) => (value, index)))
             {
-                if (!IntersectsViewport(currentTop, ExpandedPlainLineHeight, viewportHeight))
+                if (!IntersectsViewport(currentTop, style.BodyLineHeight, viewportHeight))
                 {
-                    currentTop += ExpandedPlainLineHeight + ExpandedPlainLineGap;
+                    currentTop += style.BodyLineHeight + style.BodyLineGap;
                     continue;
                 }
 
@@ -226,13 +167,13 @@ internal static class OblivionMarkdownRenderer
                             line,
                             id: $"{id}.plain-expanded-{index}",
                             size: TextSize.Sm,
-                            color: theme.Colors.Foreground),
+                            color: style.Foreground),
                         id: $"{id}.plain-expanded-{index}.slot",
                         left: 0,
                         width: contentWidth,
                         top: currentTop,
-                        height: ExpandedPlainLineHeight));
-                currentTop += ExpandedPlainLineHeight + ExpandedPlainLineGap;
+                        height: style.BodyLineHeight));
+                currentTop += style.BodyLineHeight + style.BodyLineGap;
             }
         }
         else
@@ -240,7 +181,7 @@ internal static class OblivionMarkdownRenderer
             double currentTop = -scrollOffset;
             foreach ((DocumentBlockMir block, int index) in body.DocumentMir.Blocks.Select((value, index) => (value, index)))
             {
-                MarkdownRenderedBlock rendered = LowerBlock($"{id}.expanded.block-{index}", block, theme, contentWidth);
+                MarkdownRenderedBlock rendered = LowerBlock($"{id}.expanded.block-{index}", block, style, contentWidth);
                 if (!IntersectsViewport(currentTop, rendered.Height, viewportHeight))
                 {
                     currentTop += rendered.Height + BlockGap;
@@ -266,7 +207,7 @@ internal static class OblivionMarkdownRenderer
                     UI.Rect(
                         id: $"{id}.scrollbar-track",
                         style: new UiStyle(
-                            Background: ColorToken.Hex(0x172033FF))),
+                            Background: style.ScrollbarTrack)),
                     id: $"{id}.scrollbar-track.slot",
                     left: scrollbar.TrackRect.X,
                     width: scrollbar.TrackRect.Width,
@@ -277,7 +218,7 @@ internal static class OblivionMarkdownRenderer
                     UI.Rect(
                         id: $"{id}.scrollbar-thumb",
                         style: new UiStyle(
-                            Background: ColorToken.Hex(0x64748BFF))),
+                            Background: style.ScrollbarThumb)),
                     id: $"{id}.scrollbar-thumb.slot",
                     left: scrollbar.ThumbRect.X,
                     width: scrollbar.ThumbRect.Width,
@@ -289,6 +230,114 @@ internal static class OblivionMarkdownRenderer
             UI.Layer(
                 id: $"{id}.expanded-body-layer",
                 children: children),
+            contentHeight,
+            scrollbar);
+    }
+
+    public static OblivionScrollableCodeSurfaceRenderResult BuildInspectorRawSourceBody(
+        string id,
+        OblivionCardBody body,
+        OblivionMarkdownReadingStyle style,
+        double width,
+        double viewportHeight,
+        double requestedScrollOffset = 0)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(body);
+        ArgumentNullException.ThrowIfNull(style);
+
+        IReadOnlyList<string> sourceLines = BuildRawMarkdownSourceLines(body);
+        double contentHeight = MeasureSourceContentHeight(sourceLines, style);
+        ScrollbarGeometry scrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+            new Machina.Layout.Geometry.Rect(
+                Math.Max(0, width - ExpandedScrollbarWidth),
+                0,
+                ExpandedScrollbarWidth,
+                viewportHeight),
+            contentHeight,
+            viewportHeight,
+            requestedScrollOffset);
+
+        double contentWidth = scrollbar.IsVisible
+            ? Math.Max(120, width - ExpandedScrollbarWidth - ExpandedScrollbarGap)
+            : width;
+        double scrollOffset = scrollbar.ScrollOffset;
+        TextStyle sourceTextStyle = new(
+            Color: style.SourceForeground,
+            Size: TextSize.Sm,
+            AlignX: TextAlignX.Left,
+            AlignY: TextAlignY.Top);
+        List<UiNode> children = [];
+        double currentTop = -scrollOffset;
+
+        foreach ((string sourceLine, int index) in sourceLines.Select((value, index) => (value, index)))
+        {
+            if (!IntersectsViewport(currentTop, style.SourceLineHeight, viewportHeight))
+            {
+                currentTop += style.SourceLineHeight + style.SourceLineGap;
+                continue;
+            }
+
+            string visibleLine = PresenterCardLayoutHelper.ClipLinesToFit(
+                [sourceLine],
+                contentWidth,
+                style.SourceLineHeight,
+                new PresenterCardTextLayout(style.SourceLineHeight, style.SourceLineGap),
+                sourceTextStyle)
+                .FirstOrDefault()
+                ?? string.Empty;
+
+            children.Add(
+                UI.Anchor(
+                    UI.Text(
+                        visibleLine.Length == 0 ? " " : visibleLine,
+                        id: $"{id}.source-line-{index}",
+                        size: TextSize.Sm,
+                        color: style.SourceForeground),
+                    id: $"{id}.source-line-{index}.slot",
+                    left: 0,
+                    width: contentWidth,
+                    top: currentTop,
+                    height: style.SourceLineHeight));
+            currentTop += style.SourceLineHeight + style.SourceLineGap;
+        }
+
+        if (scrollbar.IsVisible)
+        {
+            children.Add(
+                UI.Anchor(
+                    UI.Rect(
+                        id: $"{id}.scrollbar-track",
+                        style: new UiStyle(
+                            Background: style.ScrollbarTrack)),
+                    id: $"{id}.scrollbar-track.slot",
+                    left: scrollbar.TrackRect.X,
+                    width: scrollbar.TrackRect.Width,
+                    top: scrollbar.TrackRect.Y,
+                    height: scrollbar.TrackRect.Height));
+            children.Add(
+                UI.Anchor(
+                    UI.Rect(
+                        id: $"{id}.scrollbar-thumb",
+                        style: new UiStyle(
+                            Background: style.ScrollbarThumb)),
+                    id: $"{id}.scrollbar-thumb.slot",
+                    left: scrollbar.ThumbRect.X,
+                    width: scrollbar.ThumbRect.Width,
+                    top: scrollbar.ThumbRect.Y,
+                    height: scrollbar.ThumbRect.Height));
+        }
+
+        return new OblivionScrollableCodeSurfaceRenderResult(
+            UI.Rect(
+                child: UI.Layer(
+                    id: $"{id}.source-layer",
+                    children: children),
+                id: $"{id}.source-frame",
+                style: new UiStyle(
+                    Background: style.SourceSurface,
+                    BorderColor: style.SourceBorder,
+                    BorderThickness: 1)),
             contentHeight,
             scrollbar);
     }
@@ -501,22 +550,22 @@ internal static class OblivionMarkdownRenderer
         return entries;
     }
 
-    private static MarkdownRenderedBlock LowerBlock(string id, DocumentBlockMir block, StandardTheme theme, double width)
+    private static MarkdownRenderedBlock LowerBlock(string id, DocumentBlockMir block, OblivionMarkdownReadingStyle style, double width)
     {
         return block switch
         {
-            HeadingMir heading => LowerHeading(id, heading, theme, width),
-            ParagraphMir paragraph => LowerParagraph(id, paragraph, theme, width),
-            ListMir list => LowerList(id, list, theme, width),
-            CodeBlockMir codeBlock => LowerCodeBlock(id, codeBlock, theme, width),
-            ThematicBreakMir => LowerThematicBreak(id, width),
+            HeadingMir heading => LowerHeading(id, heading, style, width),
+            ParagraphMir paragraph => LowerParagraph(id, paragraph, style, width),
+            ListMir list => LowerList(id, list, style, width),
+            CodeBlockMir codeBlock => LowerCodeBlock(id, codeBlock, style, width),
+            ThematicBreakMir => LowerThematicBreak(id, style, width),
             _ => new MarkdownRenderedBlock(
-                UI.Text(block.GetType().Name, id: $"{id}.unknown", size: TextSize.Sm, color: theme.Colors.MutedForeground),
+                UI.Text(block.GetType().Name, id: $"{id}.unknown", size: TextSize.Sm, color: style.MutedForeground),
                 PreviewLineHeight),
         };
     }
 
-    private static MarkdownRenderedBlock LowerHeading(string id, HeadingMir heading, StandardTheme theme, double width)
+    private static MarkdownRenderedBlock LowerHeading(string id, HeadingMir heading, OblivionMarkdownReadingStyle style, double width)
     {
         string label = $"H{Math.Clamp(heading.Level, 1, 6)}";
         MachinaTextVariant variant = heading.Level <= 2
@@ -541,7 +590,7 @@ internal static class OblivionMarkdownRenderer
                         label,
                         id: $"{id}.heading-label",
                         size: TextSize.Sm,
-                        color: theme.Colors.MutedForeground),
+                        color: style.MutedForeground),
                     id: $"{id}.heading-label.slot",
                     left: 0,
                     width: HeadingLabelWidth,
@@ -551,7 +600,8 @@ internal static class OblivionMarkdownRenderer
                     StandardUI.TextBlock(
                         spec,
                         id: $"{id}.heading-text",
-                        theme: theme),
+                        foreground: style.HeadingForeground,
+                        linkForeground: style.LinkForeground),
                     id: $"{id}.heading-text.slot",
                     left: HeadingLabelWidth + InlineGap,
                     width: textWidth,
@@ -562,7 +612,7 @@ internal static class OblivionMarkdownRenderer
         return new MarkdownRenderedBlock(node, Math.Max(20, textHeight));
     }
 
-    private static MarkdownRenderedBlock LowerParagraph(string id, ParagraphMir paragraph, StandardTheme theme, double width)
+    private static MarkdownRenderedBlock LowerParagraph(string id, ParagraphMir paragraph, OblivionMarkdownReadingStyle style, double width)
     {
         MachinaTextSpec spec = Text.Markup(
             RenderInlineMarkup(paragraph.Inlines, includeLinkTarget: true),
@@ -575,11 +625,12 @@ internal static class OblivionMarkdownRenderer
             StandardUI.TextBlock(
                 spec,
                 id: $"{id}.paragraph",
-                theme: theme),
+                foreground: style.Foreground,
+                linkForeground: style.LinkForeground),
             textHeight);
     }
 
-    private static MarkdownRenderedBlock LowerList(string id, ListMir list, StandardTheme theme, double width)
+    private static MarkdownRenderedBlock LowerList(string id, ListMir list, OblivionMarkdownReadingStyle style, double width)
     {
         List<UiNode> children = [];
         double currentTop = 0;
@@ -602,7 +653,7 @@ internal static class OblivionMarkdownRenderer
                         marker,
                         id: $"{id}.item-{index}.marker",
                         size: TextSize.Sm,
-                        color: theme.Colors.Foreground),
+                        color: style.Foreground),
                     id: $"{id}.item-{index}.marker.slot",
                     left: 0,
                     width: ListMarkerWidth,
@@ -614,7 +665,8 @@ internal static class OblivionMarkdownRenderer
                     StandardUI.TextBlock(
                         spec,
                         id: $"{id}.item-{index}.text",
-                        theme: theme),
+                        foreground: style.Foreground,
+                        linkForeground: style.LinkForeground),
                     id: $"{id}.item-{index}.text.slot",
                     left: ListMarkerWidth + InlineGap,
                     width: contentWidth,
@@ -631,7 +683,7 @@ internal static class OblivionMarkdownRenderer
             Math.Max(18, currentTop == 0 ? 18 : currentTop - 6));
     }
 
-    private static MarkdownRenderedBlock LowerCodeBlock(string id, CodeBlockMir codeBlock, StandardTheme theme, double width)
+    private static MarkdownRenderedBlock LowerCodeBlock(string id, CodeBlockMir codeBlock, OblivionMarkdownReadingStyle style, double width)
     {
         List<UiNode> children = [];
         double currentTop = CodePadding;
@@ -641,14 +693,14 @@ internal static class OblivionMarkdownRenderer
 
         children.Add(
             UI.Anchor(
-                UI.Text(
-                    languageLabel,
-                    id: $"{id}.code-language",
-                    size: TextSize.Sm,
-                    color: ColorToken.Hex(0xBFDBFEFF)),
-                id: $"{id}.code-language.slot",
-                left: CodePadding,
-                right: CodePadding,
+                    UI.Text(
+                        languageLabel,
+                        id: $"{id}.code-language",
+                        size: TextSize.Sm,
+                        color: style.LinkForeground),
+                    id: $"{id}.code-language.slot",
+                    left: CodePadding,
+                    right: CodePadding,
                 top: currentTop,
                 height: CodeHeaderHeight));
         currentTop += CodeHeaderHeight + CodeLineGap;
@@ -667,7 +719,7 @@ internal static class OblivionMarkdownRenderer
                         line.Length == 0 ? " " : line,
                         id: $"{id}.code-line-{index}",
                         size: TextSize.Sm,
-                        color: ColorToken.Hex(0xE2E8F0FF)),
+                        color: style.CodeForeground),
                     id: $"{id}.code-line-{index}.slot",
                     left: CodePadding,
                     right: CodePadding,
@@ -683,14 +735,14 @@ internal static class OblivionMarkdownRenderer
                 children: children),
             id: $"{id}.code-frame",
             style: new UiStyle(
-                Background: ColorToken.Hex(0x0F172AFF),
-                BorderColor: ColorToken.Hex(0x475569FF),
+                Background: style.CodeSurface,
+                BorderColor: style.Border,
                 BorderThickness: 1));
 
         return new MarkdownRenderedBlock(node, frameHeight);
     }
 
-    private static MarkdownRenderedBlock LowerThematicBreak(string id, double width)
+    private static MarkdownRenderedBlock LowerThematicBreak(string id, OblivionMarkdownReadingStyle style, double width)
     {
         UiNode node = UI.Layer(
             id: $"{id}.rule-layer",
@@ -700,7 +752,7 @@ internal static class OblivionMarkdownRenderer
                     UI.Rect(
                         id: $"{id}.rule",
                         style: new UiStyle(
-                            Background: ColorToken.Hex(0x475569FF))),
+                            Background: style.Border)),
                     id: $"{id}.rule.slot",
                     left: 0,
                     width: width,
@@ -763,6 +815,33 @@ internal static class OblivionMarkdownRenderer
         }
 
         return (wrappedLines.Count * ExpandedPlainLineHeight) + ((wrappedLines.Count - 1) * ExpandedPlainLineGap);
+    }
+
+    private static IReadOnlyList<string> BuildRawMarkdownSourceLines(OblivionCardBody body)
+    {
+        if (string.IsNullOrEmpty(body.RawText))
+        {
+            return ["Rendered Markdown appears in the expanded card body.", string.Empty, "Raw Markdown source unavailable for this card."];
+        }
+
+        return
+        [
+            "Rendered Markdown appears in the expanded card body.",
+            string.Empty,
+            .. SplitLines(body.RawText),
+        ];
+    }
+
+    private static double MeasureSourceContentHeight(
+        IReadOnlyList<string> sourceLines,
+        OblivionMarkdownReadingStyle style)
+    {
+        if (sourceLines.Count == 0)
+        {
+            return style.SourceLineHeight;
+        }
+
+        return (sourceLines.Count * style.SourceLineHeight) + ((sourceLines.Count - 1) * style.SourceLineGap);
     }
 
     private static double MeasureBlockHeight(DocumentBlockMir block, double width)

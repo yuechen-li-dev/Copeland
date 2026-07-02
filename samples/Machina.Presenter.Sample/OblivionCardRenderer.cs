@@ -49,6 +49,7 @@ public static class OblivionCardRenderer
     private static readonly PresenterCardTextLayout BodyTextLayout = new(
         LineHeight: 16,
         LineGap: 6);
+    public static OblivionMarkdownReadingStyle MarkdownReadingStyle { get; } = OblivionMarkdownReadingStyle.Default;
 
     public static UiNode BuildCard(
         OblivionCompactCardView view,
@@ -288,7 +289,7 @@ public static class OblivionCardRenderer
     {
         if (view.IsExpanded && view.Body is OblivionCompactMarkdownBodyContent expandedMarkdownBody)
         {
-            return BuildExpandedMarkdownBody(view, expandedMarkdownBody.Body, theme, layout);
+            return BuildExpandedMarkdownBody(view, expandedMarkdownBody.Body, layout);
         }
 
         if (view.Body is OblivionCompactMarkdownBodyContent collapsedMarkdownBody)
@@ -435,14 +436,13 @@ public static class OblivionCardRenderer
     private static UiNode BuildExpandedMarkdownBody(
         OblivionCompactCardView view,
         OblivionCardBody body,
-        StandardTheme theme,
         PresenterCardLayout layout)
     {
         double viewportHeight = Math.Max(120, layout.BodyHeight);
         OblivionMarkdownRenderer.OblivionExpandedMarkdownBodyRenderResult bodyRender = OblivionMarkdownRenderer.BuildExpandedBody(
             view.CardId,
             body,
-            theme,
+            MarkdownReadingStyle,
             layout.BodyWidth,
             viewportHeight,
             view.BodyScrollOffset);
@@ -453,8 +453,8 @@ public static class OblivionCardRenderer
                     child: bodyRender.Node,
                     id: view.CardId + ExpandedBodyViewportSuffix,
                     style: new UiStyle(
-                        Background: ColorToken.Hex(0x09111DFF),
-                        BorderColor: ColorToken.Hex(0x1F2A44FF),
+                        Background: MarkdownReadingStyle.Surface,
+                        BorderColor: MarkdownReadingStyle.Border,
                         BorderThickness: 1)),
                 id: view.CardId + ExpandedBodyViewportSuffix + ".slot",
                 left: 0,
@@ -464,7 +464,7 @@ public static class OblivionCardRenderer
             id: view.CardId + BodyFrameSuffix,
             style: new UiStyle(
                 Background: PreviewFrameBackground,
-                BorderColor: PreviewFrameBorder,
+                BorderColor: MarkdownReadingStyle.Border,
                 BorderThickness: 1));
     }
 

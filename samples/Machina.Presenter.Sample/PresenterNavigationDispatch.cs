@@ -56,7 +56,7 @@ public static class PresenterNavigationDispatch
                 return state;
             }
 
-            double contentHeight = PresenterNavigationCatalog.GetPageContentHeight(pageId, proofOptions, state);
+            double contentHeight = PresenterNavigationCatalog.GetPageContentHeight(pageId, proofOptions, state, layout.ViewportHeight);
             double clamped = PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, requestedOffset);
             return state.WithScrollOffset(pageId, clamped);
         }
@@ -90,6 +90,22 @@ public static class PresenterNavigationDispatch
             if (cards.All(card => !string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal)))
             {
                 return state;
+            }
+
+            OblivionCard? targetCard = cards.First(card => string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal));
+            bool isMarkdownCard = targetCard.Body.Format == OblivionCardBodyFormat.CopelandMarkdown;
+            bool isCurrentlyExpanded = state.GetCardViewState(expansionPageId, resolvedCardId).IsExpanded;
+            if (isMarkdownCard && !isCurrentlyExpanded)
+            {
+                string[] markdownCardIds = cards
+                    .Where(card => card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
+                    .Select(card => card.Id.Value)
+                    .OrderBy(value => value, StringComparer.Ordinal)
+                    .ToArray();
+
+                return state
+                    .WithSelectedCard(expansionPageId, resolvedCardId)
+                    .ExpandCardExclusively(expansionPageId, resolvedCardId, markdownCardIds);
             }
 
             return state

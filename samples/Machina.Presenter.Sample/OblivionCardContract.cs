@@ -281,7 +281,7 @@ public abstract record OblivionInspectorBodyContent;
 public sealed record OblivionInspectorTextBodyContent(
     IReadOnlyList<string> Lines) : OblivionInspectorBodyContent;
 
-public sealed record OblivionInspectorMarkdownBodyContent(
+public sealed record OblivionInspectorRawMarkdownSourceBodyContent(
     OblivionCardBody Body) : OblivionInspectorBodyContent;
 
 public sealed record OblivionInspectorSectionView(

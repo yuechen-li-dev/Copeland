@@ -832,3 +832,16 @@ These remain deterministic proof artifacts rather than pixel-golden baselines. T
 - `artifacts/m15c/oblivion-expandable-markdown-cards-manifest.json`
 
 These remain deterministic proof artifacts rather than pixel-golden baselines. They document stack-first Markdown reading, explicit selection-versus-expansion state, local body scrolling, preserved M15b resize/readability behavior, and the explicit M15c non-goals around Markdown editing, notebook execution, Aurelian work, and `VD-MIR` work.
+
+## Current M15d expanded Markdown reading-surface outputs
+
+- `artifacts/m15d/m15d-oblivion-expanded-dark-readable-1280x720.png`
+- `artifacts/m15d/m15d-oblivion-expanded-full-height-1280x720.png`
+- `artifacts/m15d/m15d-oblivion-expanded-scrolled-1280x720.png`
+- `artifacts/m15d/m15d-oblivion-inspector-raw-markdown-1280x720.png`
+- `artifacts/m15d/m15d-oblivion-docs-compact-expanded-960x540.png`
+- `artifacts/m15d/m15d-oblivion-cards-expanded-1280x720.png`
+- `artifacts/m15d/oblivion-expanded-markdown-reading-surface-manifest.txt`
+- `artifacts/m15d/oblivion-expanded-markdown-reading-surface-manifest.json`
+
+These remain deterministic proof artifacts rather than pixel-golden baselines. They document readable dark-surface Markdown contrast, document-scale expanded card height, preserved local body scrolling, raw Markdown source inspection in the inspector, and the explicit M15d non-goals around Markdown editing, notebook execution, Aurelian work, `VD-MIR` work, CSS-like styling, and arbitrary `2D` layout solving.

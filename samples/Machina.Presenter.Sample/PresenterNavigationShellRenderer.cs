@@ -47,7 +47,7 @@ public static class PresenterNavigationShellRenderer
         PresenterNavigationSection section = model.FindSection(normalized.SelectedSectionId) ?? model.Sections[0];
         string tabId = normalized.GetSelectedTabId(section.Id, model);
         PresenterNavigationTab tab = model.FindTab(section.Id, tabId) ?? section.Tabs[0];
-        double contentHeight = PresenterNavigationCatalog.GetPageContentHeight(tab.PageId, proofOptions, normalized);
+        double contentHeight = PresenterNavigationCatalog.GetPageContentHeight(tab.PageId, proofOptions, normalized, layout.ViewportHeight);
         double clampedOffset = PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, normalized.GetScrollOffset(tab.PageId));
 
         return normalized
