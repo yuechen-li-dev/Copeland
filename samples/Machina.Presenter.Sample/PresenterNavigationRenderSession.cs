@@ -114,10 +114,18 @@ public sealed class PresenterNavigationRenderSession
         string pageId)
     {
         string? selectedCardId = null;
+        string? expansionSignature = null;
         if (PresenterNavigationCatalog.IsOblivionPage(pageId))
         {
             IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, proofOptions);
             selectedCardId = navigationState.GetSelectedCardId(pageId, cards);
+            expansionSignature = string.Join(
+                "|",
+                cards.Select(card =>
+                {
+                    OblivionCardViewState viewState = navigationState.GetCardViewState(pageId, card.Id.Value);
+                    return $"{card.Id.Value}:{viewState.IsExpanded}:{viewState.BodyScrollOffset:0.###}";
+                }));
         }
 
         var key = new PresenterCachedPageLayerKey(
@@ -128,7 +136,8 @@ public sealed class PresenterNavigationRenderSession
             layout.ShellMode,
             layout.ContentVisibleWidth,
             navigationState.CompactPane,
-            selectedCardId);
+            selectedCardId,
+            expansionSignature);
 
         if (_cachedPageLayer is not null && Equals(_cachedPageLayer.Key, key))
         {
@@ -204,7 +213,8 @@ internal sealed record PresenterCachedPageLayerKey(
     PresenterShellMode ShellMode,
     int ContentWidth,
     PresenterCompactPane CompactPane,
-    string? SelectedCardId);
+    string? SelectedCardId,
+    string? ExpansionSignature);
 
 internal sealed record PresenterCachedPageLayer(
     PresenterCachedPageLayerKey Key,

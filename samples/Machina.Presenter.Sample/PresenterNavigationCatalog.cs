@@ -147,6 +147,23 @@ public static class PresenterNavigationCatalog
                     proofOptions));
         }
 
+        if (!string.IsNullOrWhiteSpace(navigationOptions.ExpandedCardId) &&
+            IsOblivionPage(currentPageId))
+        {
+            string expandedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(
+                currentPageId,
+                navigationOptions.ExpandedCardId,
+                proofOptions);
+            state = state
+                .WithSelectedCard(currentPageId, expandedCardId)
+                .WithCardViewState(
+                    currentPageId,
+                    expandedCardId,
+                    new OblivionCardViewState(
+                        IsExpanded: true,
+                        BodyScrollOffset: navigationOptions.ExpandedCardBodyScroll ?? 0));
+        }
+
         if (navigationOptions.ScrollOffsetByPageId is not null)
         {
             foreach ((string pageId, double offset) in navigationOptions.ScrollOffsetByPageId)
@@ -157,7 +174,7 @@ public static class PresenterNavigationCatalog
                     continue;
                 }
 
-                double contentHeight = GetPageContentHeight(resolvedScrollPageId, proofOptions);
+                double contentHeight = GetPageContentHeight(resolvedScrollPageId, proofOptions, state);
                 double clamped = PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, offset);
                 state = state.WithScrollOffset(resolvedScrollPageId, clamped);
             }
@@ -275,7 +292,10 @@ public static class PresenterNavigationCatalog
         };
     }
 
-    public static double GetPageContentHeight(string pageId, PresenterProofOptions proofOptions)
+    public static double GetPageContentHeight(
+        string pageId,
+        PresenterProofOptions proofOptions,
+        PresenterNavigationState? navigationState = null)
     {
         return pageId switch
         {
@@ -288,10 +308,10 @@ public static class PresenterNavigationCatalog
             "text.proofs" => 376,
             "diagnostics.layout" => 360,
             "diagnostics.export" => 432,
-            OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
-            OblivionWorkbenchCatalog.DocsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
-            OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions),
+            OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState),
+            OblivionWorkbenchCatalog.DocsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState),
+            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState),
+            OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState),
             "legacy.m1e-card" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 1152 : 420,
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -306,7 +326,7 @@ public static class PresenterNavigationCatalog
         PresenterNavigationState? navigationState = null,
         PresenterShellMode shellMode = PresenterShellMode.Wide)
     {
-        double contentHeight = GetPageContentHeight(pageId, proofOptions);
+        double contentHeight = GetPageContentHeight(pageId, proofOptions, navigationState);
         UiDocument document = BuildPageDocument(pageId, demoState, theme, proofOptions, contentWidth, navigationState, shellMode);
         var frame = new Machina.Pipeline.MachinaRasterPipeline().Render(document, contentWidth, (int)Math.Ceiling(contentHeight));
 

@@ -174,11 +174,14 @@ public sealed class MachinaPresenterResizeReadabilityM15bTests
     [Fact]
     public void OblivionCardPreview_BodyTextIsReadable()
     {
-        PresenterPageRenderResult page = RenderPage(OblivionWorkbenchCatalog.CardsPageId, 1280);
+        PresenterPageRenderResult page = RenderPage(
+            OblivionWorkbenchCatalog.DocsPageId,
+            1280,
+            CreateDocsState("doc-aurelian-build-topology-m13b"));
         DrawTextCommand[] previewCommands = page.Frame.RenderCommands
             .OfType<DrawTextCommand>()
             .Where(command =>
-                command.Id.Contains("oblivion-intro-note-card", StringComparison.Ordinal) &&
+                command.Id.Contains("doc-aurelian-build-topology-m13b", StringComparison.Ordinal) &&
                 command.Id.Contains(".body-line-", StringComparison.Ordinal))
             .ToArray();
 
@@ -191,19 +194,21 @@ public sealed class MachinaPresenterResizeReadabilityM15bTests
     public void OblivionCardPreview_MarkdownSummaryUsesReadableContrast()
     {
         PresenterPageRenderResult page = RenderPage(
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId,
+            OblivionWorkbenchCatalog.DocsPageId,
             1280,
-            CreateExecutionRoadmapState("selected-doc-dogfood"));
+            CreateDocsState("doc-aurelian-build-topology-m13b"));
         DrawTextCommand summary = page.Frame.RenderCommands
             .OfType<DrawTextCommand>()
-            .First(command => command.Id.Contains(".preview-", StringComparison.Ordinal));
-        string cardId = summary.Id[..summary.Id.IndexOf(".preview-", StringComparison.Ordinal)];
+            .First(command =>
+                command.Id.Contains("doc-aurelian-build-topology-m13b", StringComparison.Ordinal) &&
+                command.Id.Contains(".body-line-", StringComparison.Ordinal));
+        string cardId = "doc-aurelian-build-topology-m13b";
 
         FillRectCommand frame = Assert.Single(
             page.Frame.RenderCommands.OfType<FillRectCommand>(),
             command =>
                 command.Id.Contains(cardId, StringComparison.Ordinal) &&
-                command.Id.EndsWith(".preview-frame", StringComparison.Ordinal));
+                command.Id.EndsWith(".body-frame", StringComparison.Ordinal));
 
         Assert.Equal(DarkPreviewFrame, frame.Color);
         Assert.NotEqual(frame.Color, summary.Style.Color);
@@ -236,15 +241,15 @@ public sealed class MachinaPresenterResizeReadabilityM15bTests
     public void OblivionCardPreview_TextDoesNotOverflowCardBody()
     {
         PresenterPageRenderResult page = RenderPage(
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId,
+            OblivionWorkbenchCatalog.DocsPageId,
             1280,
-            CreateExecutionRoadmapState("selected-doc-dogfood"));
-        PresenterCardFrame frame = OblivionCardRenderer.DescribeFrame(page.Frame.Resolved, "selected-doc-dogfood");
+            CreateDocsState("doc-aurelian-build-topology-m13b"));
+        PresenterCardFrame frame = OblivionCardRenderer.DescribeFrame(page.Frame.Resolved, "doc-aurelian-build-topology-m13b");
         DrawTextCommand[] previewCommands = page.Frame.RenderCommands
             .OfType<DrawTextCommand>()
             .Where(command =>
-                command.Id.Contains("selected-doc-dogfood", StringComparison.Ordinal) &&
-                (command.Id.Contains(".preview-", StringComparison.Ordinal) || command.Id.Contains(".body-line-", StringComparison.Ordinal)))
+                command.Id.Contains("doc-aurelian-build-topology-m13b", StringComparison.Ordinal) &&
+                command.Id.Contains(".body-line-", StringComparison.Ordinal))
             .ToArray();
 
         Assert.NotEmpty(previewCommands);
@@ -255,14 +260,14 @@ public sealed class MachinaPresenterResizeReadabilityM15bTests
     public void OblivionCardPreview_DoesNotRenderDarkTextOnDarkFrame()
     {
         PresenterPageRenderResult page = RenderPage(
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId,
+            OblivionWorkbenchCatalog.DocsPageId,
             1280,
-            CreateExecutionRoadmapState("selected-doc-dogfood"));
+            CreateDocsState("doc-aurelian-build-topology-m13b"));
         DrawTextCommand[] previewCommands = page.Frame.RenderCommands
             .OfType<DrawTextCommand>()
             .Where(command =>
-                command.Id.Contains("selected-doc-dogfood", StringComparison.Ordinal) &&
-                command.Id.Contains(".preview-", StringComparison.Ordinal))
+                command.Id.Contains("doc-aurelian-build-topology-m13b", StringComparison.Ordinal) &&
+                command.Id.Contains(".body-line-", StringComparison.Ordinal))
             .ToArray();
 
         Assert.NotEmpty(previewCommands);

@@ -65,7 +65,7 @@ public static class OblivionWorkbenchCatalog
         ArgumentNullException.ThrowIfNull(theme);
 
         OblivionCardEffectState effectState = navigationState?.EffectState ?? OblivionCardEffectState.Empty;
-        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions, effectState);
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions, effectState, navigationState);
         OblivionInspectorSelection selection = ResolveSelection(pageId, cards, navigationState);
         bool compactInspector = shellMode == PresenterShellMode.Compact &&
             navigationState?.CompactPane == PresenterCompactPane.Inspector;
@@ -111,7 +111,7 @@ public static class OblivionWorkbenchCatalog
 
         foreach (OblivionBuiltCard builtCard in cards)
         {
-            double cardHeight = builtCard.CompactView.PreferredHeight;
+            double cardHeight = GetRenderedCardHeight(builtCard.CompactView);
             bool isSelected = string.Equals(selection.SelectedCardId, builtCard.SourceCard.Id.Value, StringComparison.Ordinal);
             rows.Add(
                 Row.Anchor(
@@ -137,9 +137,12 @@ public static class OblivionWorkbenchCatalog
         return rows;
     }
 
-    public static double GetPageContentHeight(string pageId, PresenterProofOptions? proofOptions = null)
+    public static double GetPageContentHeight(
+        string pageId,
+        PresenterProofOptions? proofOptions = null,
+        PresenterNavigationState? navigationState = null)
     {
-        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions, OblivionCardEffectState.Empty);
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(pageId, proofOptions, OblivionCardEffectState.Empty, navigationState);
         return Math.Max(GetCardsColumnHeight(cards), 1440);
     }
 
@@ -353,6 +356,96 @@ public static class OblivionWorkbenchCatalog
         return (jsonPath, textPath);
     }
 
+    public static (string jsonPath, string textPath) WriteExpandableMarkdownCardsManifest(
+        string outputDirectory,
+        PresenterNavigationState navigationState,
+        PresenterProofOptions? proofOptions = null)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(navigationState);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "oblivion-expandable-markdown-cards-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "oblivion-expandable-markdown-cards-manifest.txt");
+
+        string[] proofArtifacts =
+        [
+            "artifacts/m15c/m15c-oblivion-docs-collapsed-1280x720.png",
+            "artifacts/m15c/m15c-oblivion-docs-expanded-1280x720.png",
+            "artifacts/m15c/m15c-oblivion-docs-expanded-scrolled-1280x720.png",
+            "artifacts/m15c/m15c-oblivion-cards-expanded-1280x720.png",
+            "artifacts/m15c/m15c-oblivion-docs-compact-expanded-960x540.png",
+            "artifacts/m15c/m15c-oblivion-inspector-after-expand-1280x720.png",
+            "artifacts/m15c/oblivion-expandable-markdown-cards-manifest.json",
+            "artifacts/m15c/oblivion-expandable-markdown-cards-manifest.txt",
+        ];
+        string[] deferredWork =
+        [
+            "Markdown editing",
+            "Notebook execution",
+            "Roslyn execution",
+            "Pointer-drag local scrollbar",
+            "Aurelian work",
+            "VD-MIR work",
+        ];
+
+        var manifest = new
+        {
+            milestone = "M15c",
+            kind = "oblivion-expandable-markdown-cards",
+            expandableCardsImplemented = true,
+            markdownBodyInlineInStack = true,
+            inspectorPrimaryBodySurface = false,
+            selectionExpansionSeparated = true,
+            localBodyScrollImplemented = true,
+            collapsedCardScannable = true,
+            expandedCardReadable = true,
+            markdownEditingImplemented = false,
+            notebookExecutionImplemented = false,
+            roslynExecutionImplemented = false,
+            aurelianWorkPerformed = false,
+            vdMirWorkPerformed = false,
+            arbitrary2DLayoutSolverImplemented = false,
+            validationStatus = "implemented",
+            proofArtifacts,
+            deferredWork,
+        };
+
+        string json = JsonSerializer.Serialize(
+            manifest,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+
+        string[] textLines =
+        [
+            "milestone=M15c",
+            "kind=oblivion-expandable-markdown-cards",
+            "expandableCardsImplemented=true",
+            "markdownBodyInlineInStack=true",
+            "inspectorPrimaryBodySurface=false",
+            "selectionExpansionSeparated=true",
+            "localBodyScrollImplemented=true",
+            "collapsedCardScannable=true",
+            "expandedCardReadable=true",
+            "markdownEditingImplemented=false",
+            "notebookExecutionImplemented=false",
+            "roslynExecutionImplemented=false",
+            "aurelianWorkPerformed=false",
+            "vdMirWorkPerformed=false",
+            "arbitrary2DLayoutSolverImplemented=false",
+            "validationStatus=implemented",
+            $"proofArtifacts={string.Join(" | ", proofArtifacts)}",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+        ];
+
+        File.WriteAllText(jsonPath, json);
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
+    }
+
     public static (string jsonPath, string textPath) WritePhaseCloseoutManifest(
         string outputDirectory)
     {
@@ -433,9 +526,10 @@ public static class OblivionWorkbenchCatalog
     public static IReadOnlyList<OblivionBuiltCard> GetBuiltPageCardsForSelection(
         string pageId,
         PresenterProofOptions? proofOptions = null,
-        OblivionCardEffectState? effectState = null)
+        OblivionCardEffectState? effectState = null,
+        PresenterNavigationState? navigationState = null)
     {
-        return GetBuiltPageCards(pageId, proofOptions, effectState ?? OblivionCardEffectState.Empty);
+        return GetBuiltPageCards(pageId, proofOptions, effectState ?? OblivionCardEffectState.Empty, navigationState);
     }
 
     public static string ResolveCardSelectionId(
@@ -467,27 +561,86 @@ public static class OblivionWorkbenchCatalog
         PresenterNavigationState? navigationState,
         PresenterShellMode shellMode)
     {
-        IReadOnlyList<OblivionCard> cards = GetPageCards(pageId, proofOptions);
-        List<OblivionCardHitTarget> targets = [];
-        bool compactCardList = shellMode == PresenterShellMode.Compact &&
-            navigationState?.CompactPane != PresenterCompactPane.Inspector;
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(
+            pageId,
+            proofOptions,
+            navigationState?.EffectState ?? OblivionCardEffectState.Empty,
+            navigationState);
 
         if (shellMode == PresenterShellMode.Compact &&
             navigationState?.CompactPane == PresenterCompactPane.Inspector)
         {
-            return new OblivionPageInteractionMap(pageId, []);
+            return new OblivionPageInteractionMap(pageId, [], []);
         }
 
-        foreach (OblivionCard card in cards)
+        List<OblivionCardHitTarget> cardTargets = [];
+        List<OblivionCardBodyHitTarget> bodyTargets = [];
+
+        foreach (OblivionBuiltCard builtCard in cards)
         {
-            PresenterCardFrame frame = OblivionCardRenderer.DescribeFrame(resolved, card.Id.Value);
-            UiActionId actionId = compactCardList
-                ? PresenterNavigationActions.SelectCompactOblivionCard(pageId, card.Id.Value)
-                : PresenterNavigationActions.SelectOblivionCard(pageId, card.Id.Value);
-            targets.Add(new OblivionCardHitTarget(pageId, card.Id.Value, frame.Bounds, actionId));
+            string cardId = builtCard.SourceCard.Id.Value;
+            PresenterCardFrame frame = OblivionCardRenderer.DescribeFrame(resolved, cardId);
+            Rect headerBounds = OblivionCardRenderer.DescribeHeaderHitRect(resolved, cardId);
+            UiActionId toggleAction = PresenterNavigationActions.ToggleOblivionCardExpansion(pageId, cardId);
+
+            cardTargets.Add(new OblivionCardHitTarget(pageId, cardId, frame.Bounds, toggleAction, headerBounds));
+
+            OblivionExpandedBodyViewport? viewport = OblivionCardRenderer.DescribeExpandedBodyViewport(
+                resolved,
+                builtCard.CompactView,
+                cardId);
+            if (viewport is not null)
+            {
+                bodyTargets.Add(
+                    new OblivionCardBodyHitTarget(
+                        pageId,
+                        cardId,
+                        viewport.Bounds,
+                        PresenterNavigationActions.SelectOblivionCard(pageId, cardId),
+                        viewport.ScrollbarGeometry,
+                        viewport.ContentHeight));
+            }
         }
 
-        return new OblivionPageInteractionMap(pageId, targets);
+        return new OblivionPageInteractionMap(pageId, cardTargets, bodyTargets);
+    }
+
+    public static double ClampBodyScrollOffset(
+        string pageId,
+        string cardId,
+        double requestedOffset,
+        PresenterProofOptions? proofOptions,
+        PresenterNavigationState navigationState,
+        PresenterNavigationLayout layout)
+    {
+        IReadOnlyList<OblivionBuiltCard> cards = GetBuiltPageCards(
+            pageId,
+            proofOptions,
+            navigationState.EffectState,
+            navigationState);
+        OblivionBuiltCard? builtCard = cards.FirstOrDefault(card =>
+            string.Equals(card.SourceCard.Id.Value, cardId, StringComparison.Ordinal));
+        if (builtCard is null || builtCard.CompactView.Body is not OblivionCompactMarkdownBodyContent markdownBody)
+        {
+            return 0;
+        }
+
+        int contentWidth = layout.ContentVisibleWidth;
+        OblivionPageLayout pageLayout = layout.ShellMode == PresenterShellMode.Compact
+            ? OblivionPageLayout.CreateCompact(contentWidth)
+            : OblivionPageLayout.CreateWide(contentWidth);
+        double cardWidth = pageLayout.CardsColumnWidth;
+        double cardHeight = GetRenderedCardHeight(builtCard.CompactView);
+        OblivionCardRenderOptions renderOptions = new(cardWidth, cardHeight);
+        double bodyTop = OblivionCardRenderer.ComputeBodyTop(builtCard.CompactView, renderOptions);
+        PresenterCardLayout cardLayout = OblivionCardRenderer.ComputeLayout(
+            builtCard.CompactView,
+            renderOptions,
+            StandardTheme.Default.Card.Default,
+            bodyTop);
+        double viewportHeight = Math.Max(120, cardLayout.BodyHeight);
+        double contentHeight = OblivionMarkdownRenderer.MeasureExpandedContentHeight(markdownBody.Body, cardLayout.BodyWidth);
+        return PresenterScrollRegion.ClampScrollOffset(contentHeight, viewportHeight, requestedOffset);
     }
 
     public static OblivionCardEffectOutcome? InvokeCardAction(
@@ -521,10 +674,16 @@ public static class OblivionWorkbenchCatalog
     private static IReadOnlyList<OblivionBuiltCard> GetBuiltPageCards(
         string pageId,
         PresenterProofOptions? proofOptions,
-        OblivionCardEffectState effectState)
+        OblivionCardEffectState effectState,
+        PresenterNavigationState? navigationState = null)
     {
         return GetPageCards(pageId, proofOptions)
-            .Select(card => CardHandlers.BuildCard(card, pageId, card.WorkspaceId, effectState))
+            .Select(card => CardHandlers.BuildCard(
+                card,
+                pageId,
+                card.WorkspaceId,
+                effectState,
+                ResolveLocalState(pageId, card, navigationState)))
             .ToArray();
     }
 
@@ -813,15 +972,34 @@ public static class OblivionWorkbenchCatalog
             height: 20,
             view: View.Text(
                 selection.SelectedCardId is null
-                    ? "Select a card to open the inspector."
+                    ? "Scan, expand, read, and open inspector only when metadata or actions are needed."
                     : $"Selected card preserved: {selection.SelectedCardId}",
                 color: theme.Colors.MutedForeground,
                 size: TextSize.Sm)));
         currentTop += 36;
 
+        if (selection.SelectedCardId is not null)
+        {
+            rows.Add(Row.Anchor(
+                id: $"{pageId}.compact-inspector-open",
+                parent: "root",
+                left: 0,
+                top: currentTop,
+                width: 160,
+                height: 36,
+                component: StandardUI.Button(
+                    "Open inspector",
+                    id: $"{pageId}.compact-inspector-open.button",
+                    action: PresenterNavigationActions.SetCompactPane(PresenterCompactPane.Inspector).ToAction(),
+                    theme: theme,
+                    variant: ButtonVariant.Outline,
+                    size: ButtonSize.Medium)));
+            currentTop += 52;
+        }
+
         foreach (OblivionBuiltCard builtCard in cards)
         {
-            double cardHeight = builtCard.CompactView.PreferredHeight;
+            double cardHeight = GetRenderedCardHeight(builtCard.CompactView);
             bool isSelected = string.Equals(selection.SelectedCardId, builtCard.SourceCard.Id.Value, StringComparison.Ordinal);
             rows.Add(
                 Row.Anchor(
@@ -971,6 +1149,28 @@ public static class OblivionWorkbenchCatalog
         return new OblivionInspectorSelection(cards, selectedBuiltCard, selectedCardId);
     }
 
+    private static OblivionCardLocalState ResolveLocalState(
+        string pageId,
+        OblivionCard card,
+        PresenterNavigationState? navigationState)
+    {
+        OblivionCardViewState viewState = navigationState?.GetCardViewState(pageId, card.Id.Value)
+            ?? OblivionCardViewState.Collapsed;
+
+        return OblivionCardLocalState.CreateDefault(card.Id) with
+        {
+            IsExpanded = viewState.IsExpanded,
+            BodyScrollOffset = viewState.BodyScrollOffset,
+        };
+    }
+
+    private static double GetRenderedCardHeight(OblivionCompactCardView view)
+    {
+        return view.IsExpanded
+            ? view.ExpandedPreferredHeight
+            : view.PreferredHeight;
+    }
+
     private static double GetCardsColumnHeight(IReadOnlyList<OblivionBuiltCard> cards)
     {
         if (cards.Count == 0)
@@ -981,7 +1181,7 @@ public static class OblivionWorkbenchCatalog
         double height = 0;
         for (int index = 0; index < cards.Count; index++)
         {
-            height += cards[index].CompactView.PreferredHeight;
+            height += GetRenderedCardHeight(cards[index].CompactView);
             if (index < cards.Count - 1)
             {
                 height += 24;

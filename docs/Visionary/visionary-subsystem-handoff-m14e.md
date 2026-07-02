@@ -162,6 +162,13 @@ M15b now lands as the narrow follow-through:
 - compact card previews are readable enough for workbench scanning
 - the milestone still does not reopen compiler, rendering, Aurelian, or `VD-MIR` lanes
 
+M15c now continues on that same main lane:
+
+- the Oblivion card stack becomes the primary Markdown reading surface
+- cards can expand/collapse inline without turning the inspector into the only document view
+- long Markdown bodies scroll locally inside the expanded card
+- the milestone still does not reopen compiler, rendering, Aurelian, or `VD-MIR` lanes
+
 ## Non-goals
 
 M14e does not:

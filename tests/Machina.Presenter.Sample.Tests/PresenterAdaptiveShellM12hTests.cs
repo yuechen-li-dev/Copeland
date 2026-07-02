@@ -115,7 +115,7 @@ public sealed class PresenterAdaptiveShellM12hTests
     }
 
     [Fact]
-    public void PresenterCompactShell_SelectingCardSwitchesToInspectorPane()
+    public void PresenterCompactShell_SelectingCardExpandsInCardListPane()
     {
         PresenterNavigationState state = OblivionDocsState();
         PresenterNavigationShellRenderResult render = RenderShell(state, width: 720, height: 760);
@@ -127,8 +127,9 @@ public sealed class PresenterAdaptiveShellM12hTests
             720,
             760);
 
-        Assert.Equal(PresenterCompactPane.Inspector, next.CompactPane);
+        Assert.Equal(PresenterCompactPane.CardList, next.CompactPane);
         Assert.Equal(target.CardId, next.GetSelectedCardId(OblivionWorkbenchCatalog.DocsPageId, OblivionWorkbenchCatalog.GetPageCardsForSelection(OblivionWorkbenchCatalog.DocsPageId)));
+        Assert.True(next.GetCardViewState(OblivionWorkbenchCatalog.DocsPageId, target.CardId).IsExpanded);
     }
 
     [Fact]

@@ -100,3 +100,9 @@ For M15b the breakpoint is intentionally high enough that `960x540` can still ex
 - inspector-local scrolling if later readability work proves it necessary
 - broader shell visual refinement after the controlled resize/readability pass
 - any future freeform workbench layout model, only if later earned
+
+## Follow-through
+
+M15c builds directly on this resized/readable base.
+
+The centered effective `16:9` presenter surface, live layout recomposition, and readable collapsed card previews remain in place while Markdown body reading moves into expandable inline cards inside the stack.

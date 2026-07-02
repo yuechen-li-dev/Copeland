@@ -56,7 +56,7 @@ public static class PresenterNavigationDispatch
                 return state;
             }
 
-            double contentHeight = PresenterNavigationCatalog.GetPageContentHeight(pageId, proofOptions);
+            double contentHeight = PresenterNavigationCatalog.GetPageContentHeight(pageId, proofOptions, state);
             double clamped = PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, requestedOffset);
             return state.WithScrollOffset(pageId, clamped);
         }
@@ -76,6 +76,60 @@ public static class PresenterNavigationDispatch
             }
 
             return state.WithSelectedCard(oblivionPageId, resolvedCardId);
+        }
+
+        if (PresenterNavigationActions.TryParseToggleOblivionCardExpansion(actionId, out string expansionPageId, out string expansionCardId))
+        {
+            if (!model.ContainsPage(expansionPageId))
+            {
+                return state;
+            }
+
+            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(expansionPageId, proofOptions);
+            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(expansionPageId, expansionCardId, proofOptions);
+            if (cards.All(card => !string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal)))
+            {
+                return state;
+            }
+
+            return state
+                .WithSelectedCard(expansionPageId, resolvedCardId)
+                .ToggleCardExpansion(expansionPageId, resolvedCardId);
+        }
+
+        if (PresenterNavigationActions.TryParseCollapseOblivionCard(actionId, out string collapsePageId, out string collapseCardId))
+        {
+            if (!model.ContainsPage(collapsePageId))
+            {
+                return state;
+            }
+
+            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(collapsePageId, collapseCardId, proofOptions);
+            return state.CollapseCard(collapsePageId, resolvedCardId);
+        }
+
+        if (PresenterNavigationActions.TryParseSetOblivionCardBodyScrollOffset(
+            actionId,
+            out string bodyScrollPageId,
+            out string bodyScrollCardId,
+            out double requestedBodyScrollOffset))
+        {
+            if (!model.ContainsPage(bodyScrollPageId))
+            {
+                return state;
+            }
+
+            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(bodyScrollPageId, bodyScrollCardId, proofOptions);
+            double clamped = OblivionWorkbenchCatalog.ClampBodyScrollOffset(
+                bodyScrollPageId,
+                resolvedCardId,
+                requestedBodyScrollOffset,
+                proofOptions,
+                state,
+                layout);
+            return state
+                .WithSelectedCard(bodyScrollPageId, resolvedCardId)
+                .WithCardBodyScrollOffset(bodyScrollPageId, resolvedCardId, clamped);
         }
 
         if (PresenterNavigationActions.TryParseSelectCompactOblivionCard(actionId, out string compactPageId, out string compactCardId))

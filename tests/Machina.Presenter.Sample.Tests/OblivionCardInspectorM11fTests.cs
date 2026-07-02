@@ -114,7 +114,9 @@ public sealed class OblivionCardInspectorM11fTests
         UiAction? action = page.OblivionInteraction!.HitTest(Center(target.Bounds), scrollOffset: 0);
 
         Assert.NotNull(action);
-        Assert.True(PresenterNavigationActions.TryParseSelectOblivionCard(action!.Id, out _, out string cardId));
+        bool parsed = PresenterNavigationActions.TryParseToggleOblivionCardExpansion(action!.Id, out _, out string cardId) ||
+            PresenterNavigationActions.TryParseSelectOblivionCard(action.Id, out _, out cardId);
+        Assert.True(parsed);
         Assert.Equal("oblivion-intro-note-card", cardId);
     }
 
@@ -131,7 +133,9 @@ public sealed class OblivionCardInspectorM11fTests
         UiAction? action = page.OblivionInteraction!.HitTest(viewportPoint, scrollOffset);
 
         Assert.NotNull(action);
-        Assert.True(PresenterNavigationActions.TryParseSelectOblivionCard(action!.Id, out _, out string cardId));
+        bool parsed = PresenterNavigationActions.TryParseToggleOblivionCardExpansion(action!.Id, out _, out string cardId) ||
+            PresenterNavigationActions.TryParseSelectOblivionCard(action.Id, out _, out cardId);
+        Assert.True(parsed);
         Assert.Equal("oblivion-code-fact-card", cardId);
     }
 

@@ -97,3 +97,13 @@ M15b proof exports live under `artifacts/m15b/`:
 - density controls after the default preview contract proves stable
 - inspector-local scrolling if later needed
 - any future editor/runtime behavior
+
+## Follow-through
+
+M15c keeps the readable collapsed preview discipline from M15b, but changes the reading contract:
+
+- collapsed card remains the scannable summary surface
+- expanded card becomes the inline document-reading surface
+- inspector remains metadata/actions/diagnostics/artifacts, not the only body-reading surface
+
+M15c still does not add Markdown editing or notebook execution.

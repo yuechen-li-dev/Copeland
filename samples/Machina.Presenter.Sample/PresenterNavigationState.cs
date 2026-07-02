@@ -5,6 +5,7 @@ public sealed record PresenterNavigationState(
     IReadOnlyDictionary<string, string> SelectedTabBySectionId,
     IReadOnlyDictionary<string, double> ScrollOffsetByPageId,
     IReadOnlyDictionary<string, string?> SelectedCardByPageId,
+    IReadOnlyDictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> CardViewStateByPageId,
     PresenterCompactPane CompactPane,
     OblivionCardEffectState EffectState)
 {
@@ -23,6 +24,7 @@ public sealed record PresenterNavigationState(
             SelectedTabBySectionId: selectedTabs,
             ScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal),
             SelectedCardByPageId: new Dictionary<string, string?>(StringComparer.Ordinal),
+            CardViewStateByPageId: new Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>>(StringComparer.Ordinal),
             CompactPane: PresenterCompactPane.CardList,
             EffectState: OblivionCardEffectState.Empty);
     }
@@ -134,6 +136,81 @@ public sealed record PresenterNavigationState(
         {
             SelectedCardByPageId = selectedCards,
         };
+    }
+
+    public OblivionCardViewState GetCardViewState(string pageId, string cardId)
+    {
+        ArgumentNullException.ThrowIfNull(pageId);
+        ArgumentNullException.ThrowIfNull(cardId);
+
+        if (CardViewStateByPageId.TryGetValue(pageId, out IReadOnlyDictionary<string, OblivionCardViewState>? pageState) &&
+            pageState.TryGetValue(cardId, out OblivionCardViewState? viewState))
+        {
+            return viewState;
+        }
+
+        return OblivionCardViewState.Collapsed;
+    }
+
+    public PresenterNavigationState WithCardViewState(string pageId, string cardId, OblivionCardViewState viewState)
+    {
+        ArgumentNullException.ThrowIfNull(pageId);
+        ArgumentNullException.ThrowIfNull(cardId);
+        ArgumentNullException.ThrowIfNull(viewState);
+
+        Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> nextPages = new(CardViewStateByPageId, StringComparer.Ordinal);
+        Dictionary<string, OblivionCardViewState> nextCardState = CardViewStateByPageId.TryGetValue(pageId, out IReadOnlyDictionary<string, OblivionCardViewState>? existing)
+            ? new Dictionary<string, OblivionCardViewState>(existing, StringComparer.Ordinal)
+            : new Dictionary<string, OblivionCardViewState>(StringComparer.Ordinal);
+
+        nextCardState[cardId] = viewState;
+        nextPages[pageId] = nextCardState;
+
+        return this with
+        {
+            CardViewStateByPageId = nextPages,
+        };
+    }
+
+    public PresenterNavigationState ToggleCardExpansion(string pageId, string cardId)
+    {
+        OblivionCardViewState current = GetCardViewState(pageId, cardId);
+        return WithCardViewState(
+            pageId,
+            cardId,
+            current with
+            {
+                IsExpanded = !current.IsExpanded,
+            });
+    }
+
+    public PresenterNavigationState CollapseCard(string pageId, string cardId)
+    {
+        OblivionCardViewState current = GetCardViewState(pageId, cardId);
+        if (!current.IsExpanded)
+        {
+            return this;
+        }
+
+        return WithCardViewState(
+            pageId,
+            cardId,
+            current with
+            {
+                IsExpanded = false,
+            });
+    }
+
+    public PresenterNavigationState WithCardBodyScrollOffset(string pageId, string cardId, double bodyScrollOffset)
+    {
+        OblivionCardViewState current = GetCardViewState(pageId, cardId);
+        return WithCardViewState(
+            pageId,
+            cardId,
+            current with
+            {
+                BodyScrollOffset = bodyScrollOffset,
+            });
     }
 
     public PresenterNavigationState ClearSelectedCard(string pageId)

@@ -139,6 +139,7 @@ public sealed record OblivionCardEffectState(
 public sealed record OblivionCardLocalState(
     OblivionCardId CardId,
     bool IsExpanded,
+    double BodyScrollOffset,
     string? SelectedArtifactId,
     IReadOnlyDictionary<string, string> Properties)
 {
@@ -149,9 +150,19 @@ public sealed record OblivionCardLocalState(
         return new OblivionCardLocalState(
             cardId,
             IsExpanded: false,
+            BodyScrollOffset: 0,
             SelectedArtifactId: null,
             Properties: new Dictionary<string, string>(StringComparer.Ordinal));
     }
+}
+
+public sealed record OblivionCardViewState(
+    bool IsExpanded,
+    double BodyScrollOffset)
+{
+    public static OblivionCardViewState Collapsed { get; } = new(
+        IsExpanded: false,
+        BodyScrollOffset: 0);
 }
 
 public static class OblivionCardLocalStateCatalog
@@ -182,7 +193,8 @@ public sealed record OblivionCardContext(
     string? WorkspaceId,
     string? SourcePath,
     OblivionCardEffectRequest? LastEffectRequest,
-    OblivionCardEffectResult? LastEffectResult);
+    OblivionCardEffectResult? LastEffectResult,
+    OblivionCardLocalState? LocalStateOverride = null);
 
 public sealed record OblivionCardViewContext(
     OblivionCardLocalState LocalState);
@@ -223,12 +235,46 @@ public sealed record OblivionCompactCardView(
     string CardId,
     string Title,
     string? Subtitle,
+    string? SourceLabel,
+    string? SummaryLine,
     IReadOnlyList<string> MetaBadges,
     IReadOnlyList<string> Tags,
     OblivionCompactBodyContent Body,
     IReadOnlyList<string> ActionBadges,
     IReadOnlyList<string> ArtifactBadges,
-    double PreferredHeight);
+    bool IsExpanded,
+    double BodyScrollOffset,
+    double PreferredHeight,
+    double ExpandedPreferredHeight)
+{
+    public OblivionCompactCardView(
+        string cardId,
+        string title,
+        string? subtitle,
+        IReadOnlyList<string> metaBadges,
+        IReadOnlyList<string> tags,
+        OblivionCompactBodyContent body,
+        IReadOnlyList<string> actionBadges,
+        IReadOnlyList<string> artifactBadges,
+        double preferredHeight)
+        : this(
+            cardId,
+            title,
+            subtitle,
+            null,
+            null,
+            metaBadges,
+            tags,
+            body,
+            actionBadges,
+            artifactBadges,
+            false,
+            0,
+            preferredHeight,
+            preferredHeight)
+    {
+    }
+}
 
 public abstract record OblivionInspectorBodyContent;
 

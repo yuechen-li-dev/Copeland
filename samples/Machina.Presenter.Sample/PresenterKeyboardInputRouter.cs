@@ -81,6 +81,8 @@ public static class PresenterKeyboardInputRouter
 
         return keyboard.Key switch
         {
+            PresenterKey.Enter => ToggleSelectedCardExpansion(render),
+            PresenterKey.Space => ToggleSelectedCardExpansion(render),
             PresenterKey.ArrowDown => PresenterNavigationActions.SetScrollOffset(
                 pageId,
                 render.ScrollbarGeometry.ScrollOffset + SmallScrollDelta),
@@ -95,7 +97,7 @@ public static class PresenterKeyboardInputRouter
                 render.ScrollbarGeometry.ScrollOffset - (render.Layout.ViewportHeight * PageScrollFactor)),
             PresenterKey.Home => PresenterNavigationActions.SetScrollOffset(pageId, 0),
             PresenterKey.End => PresenterNavigationActions.SetScrollOffset(pageId, render.ScrollbarGeometry.MaxScrollOffset),
-            PresenterKey.Escape => ClearSelectedCard(render),
+            PresenterKey.Escape => RouteEscape(render),
             _ => null,
         };
     }
@@ -132,6 +134,38 @@ public static class PresenterKeyboardInputRouter
         return string.Equals(nextTabId, render.SelectedTab.Id, StringComparison.Ordinal)
             ? null
             : PresenterNavigationActions.SelectTab(render.SelectedSection.Id, nextTabId);
+    }
+
+    private static UiActionId? ToggleSelectedCardExpansion(PresenterNavigationShellRenderResult render)
+    {
+        string pageId = render.SelectedTab.PageId;
+        if (!PresenterNavigationCatalog.IsOblivionPage(pageId))
+        {
+            return null;
+        }
+
+        IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, render.ProofOptions);
+        string? selectedCardId = render.NavigationState.GetSelectedCardId(pageId, cards);
+        return selectedCardId is null
+            ? null
+            : PresenterNavigationActions.ToggleOblivionCardExpansion(pageId, selectedCardId);
+    }
+
+    private static UiActionId? RouteEscape(PresenterNavigationShellRenderResult render)
+    {
+        string pageId = render.SelectedTab.PageId;
+        if (PresenterNavigationCatalog.IsOblivionPage(pageId))
+        {
+            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, render.ProofOptions);
+            string? selectedCardId = render.NavigationState.GetSelectedCardId(pageId, cards);
+            if (selectedCardId is not null &&
+                render.NavigationState.GetCardViewState(pageId, selectedCardId).IsExpanded)
+            {
+                return PresenterNavigationActions.CollapseOblivionCard(pageId, selectedCardId);
+            }
+        }
+
+        return ClearSelectedCard(render);
     }
 
     private static UiActionId? ClearSelectedCard(PresenterNavigationShellRenderResult render)

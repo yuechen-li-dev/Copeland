@@ -182,6 +182,35 @@ public static class PresenterNavigationInputRouter
                 effectiveInteractionState);
         }
 
+        if (render.PageRender?.OblivionInteraction is not null &&
+            render.ChromeGeometry.ContentViewportRect.Width > 0 &&
+            render.ChromeGeometry.ContentViewportRect.Height > 0 &&
+            inputEvent.Position.X >= render.ChromeGeometry.ContentViewportRect.X &&
+            inputEvent.Position.Y >= render.ChromeGeometry.ContentViewportRect.Y &&
+            inputEvent.Position.X < render.ChromeGeometry.ContentViewportRect.X + render.ChromeGeometry.ContentViewportRect.Width &&
+            inputEvent.Position.Y < render.ChromeGeometry.ContentViewportRect.Y + render.ChromeGeometry.ContentViewportRect.Height)
+        {
+            PresenterInputPoint localPoint = new(
+                (float)(inputEvent.Position.X - render.ChromeGeometry.ContentViewportRect.X),
+                (float)(inputEvent.Position.Y - render.ChromeGeometry.ContentViewportRect.Y));
+            OblivionPageInteractionRoutingResult routedOblivion = render.PageRender.OblivionInteraction.RouteInput(
+                inputEvent with
+                {
+                    Position = localPoint,
+                },
+                render.ScrollbarGeometry.ScrollOffset);
+
+            if (routedOblivion.Consumed)
+            {
+                return new PresenterNavigationInputRoutingResult(
+                    new PresenterNavigationHitTarget(PresenterNavigationHitKind.ContentViewport),
+                    routedOblivion.Action?.Id,
+                    effectiveInteractionState,
+                    PresenterPointerCaptureRequest.None,
+                    SuppressFurtherRouting: true);
+            }
+        }
+
         PresenterNavigationHitTarget hitTarget = PresenterNavigationHitTesting.HitTest(render.ChromeGeometry, inputEvent.Position);
         var context = new PresenterScrollbarInteractionContext(
             render.SelectedTab.PageId,

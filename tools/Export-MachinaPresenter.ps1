@@ -8,6 +8,8 @@ param(
     [string]$SelectedSection,
     [string]$SelectedTab,
     [string]$SelectedCard,
+    [string]$ExpandedCard,
+    [double]$ExpandedCardBodyScroll,
     [ValidateSet("CardList", "Inspector")]
     [string]$CompactPane,
     [ValidateSet("Wide", "Compact")]
@@ -100,6 +102,18 @@ if (-not [string]::IsNullOrWhiteSpace($SelectedCard))
 {
     $arguments += "--selected-card"
     $arguments += $SelectedCard
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ExpandedCard))
+{
+    $arguments += "--expanded-card"
+    $arguments += $ExpandedCard
+}
+
+if ($PSBoundParameters.ContainsKey("ExpandedCardBodyScroll"))
+{
+    $arguments += "--expanded-card-body-scroll"
+    $arguments += $ExpandedCardBodyScroll.ToString([System.Globalization.CultureInfo]::InvariantCulture)
 }
 
 if (-not [string]::IsNullOrWhiteSpace($CompactPane))

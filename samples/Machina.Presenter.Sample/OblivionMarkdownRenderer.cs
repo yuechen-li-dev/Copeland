@@ -22,6 +22,10 @@ internal static class OblivionMarkdownRenderer
     private const double CodeHeaderHeight = 18;
     private const double CodeLineHeight = 16;
     private const double CodeLineGap = 4;
+    private const double ExpandedScrollbarWidth = 8;
+    private const double ExpandedScrollbarGap = 8;
+    private const double ExpandedPlainLineHeight = 18;
+    private const double ExpandedPlainLineGap = 6;
     private static readonly ColorToken PreviewFrameBackground = ColorToken.Hex(0x0B1220FF);
     private static readonly ColorToken PreviewFrameBorder = ColorToken.Hex(0x334155FF);
     private static readonly ColorToken PreviewForeground = ColorToken.Hex(0xE2E8F0FF);
@@ -148,6 +152,145 @@ internal static class OblivionMarkdownRenderer
                     top: 0,
                     height: currentTop),
             ]);
+    }
+
+    public static double MeasureExpandedContentHeight(OblivionCardBody body, double width)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+
+        if (body.DocumentMir is null)
+        {
+            IReadOnlyList<string> lines = body.PreviewLines.Count == 0 ? ["<empty>"] : body.PreviewLines;
+            return MeasureWrappedPlainTextHeight(lines, width);
+        }
+
+        return MeasureMarkdownDocumentHeight(body.DocumentMir, width);
+    }
+
+    public static OblivionExpandedMarkdownBodyRenderResult BuildExpandedBody(
+        string id,
+        OblivionCardBody body,
+        StandardTheme theme,
+        double width,
+        double viewportHeight,
+        double requestedScrollOffset)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(body);
+        ArgumentNullException.ThrowIfNull(theme);
+
+        double initialContentHeight = MeasureExpandedContentHeight(body, width);
+        bool needsScrollbar = initialContentHeight > viewportHeight;
+        double contentWidth = needsScrollbar
+            ? Math.Max(120, width - ExpandedScrollbarWidth - ExpandedScrollbarGap)
+            : width;
+        double contentHeight = MeasureExpandedContentHeight(body, contentWidth);
+        ScrollbarGeometry scrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+            new Machina.Layout.Geometry.Rect(
+                contentWidth + ExpandedScrollbarGap,
+                0,
+                ExpandedScrollbarWidth,
+                viewportHeight),
+            contentHeight,
+            viewportHeight,
+            requestedScrollOffset);
+
+        List<UiNode> children = [];
+        double scrollOffset = scrollbar.ScrollOffset;
+
+        if (body.DocumentMir is null)
+        {
+            double currentTop = -scrollOffset;
+            IReadOnlyList<string> wrappedLines = PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+                body.PreviewLines.Count == 0 ? ["<empty markdown body>"] : body.PreviewLines,
+                contentWidth,
+                Math.Max(contentHeight, viewportHeight) + scrollOffset + 64,
+                new PresenterCardTextLayout(ExpandedPlainLineHeight, ExpandedPlainLineGap),
+                new TextStyle(
+                    Color: theme.Colors.Foreground,
+                    Size: TextSize.Sm,
+                    AlignX: TextAlignX.Left,
+                    AlignY: TextAlignY.Top));
+
+            foreach ((string line, int index) in wrappedLines.Select((value, index) => (value, index)))
+            {
+                if (!IntersectsViewport(currentTop, ExpandedPlainLineHeight, viewportHeight))
+                {
+                    currentTop += ExpandedPlainLineHeight + ExpandedPlainLineGap;
+                    continue;
+                }
+
+                children.Add(
+                    UI.Anchor(
+                        UI.Text(
+                            line,
+                            id: $"{id}.plain-expanded-{index}",
+                            size: TextSize.Sm,
+                            color: theme.Colors.Foreground),
+                        id: $"{id}.plain-expanded-{index}.slot",
+                        left: 0,
+                        width: contentWidth,
+                        top: currentTop,
+                        height: ExpandedPlainLineHeight));
+                currentTop += ExpandedPlainLineHeight + ExpandedPlainLineGap;
+            }
+        }
+        else
+        {
+            double currentTop = -scrollOffset;
+            foreach ((DocumentBlockMir block, int index) in body.DocumentMir.Blocks.Select((value, index) => (value, index)))
+            {
+                MarkdownRenderedBlock rendered = LowerBlock($"{id}.expanded.block-{index}", block, theme, contentWidth);
+                if (!IntersectsViewport(currentTop, rendered.Height, viewportHeight))
+                {
+                    currentTop += rendered.Height + BlockGap;
+                    continue;
+                }
+
+                children.Add(
+                    UI.Anchor(
+                        rendered.Node,
+                        id: $"{id}.expanded.block-{index}.slot",
+                        left: 0,
+                        width: contentWidth,
+                        top: currentTop,
+                        height: rendered.Height));
+                currentTop += rendered.Height + BlockGap;
+            }
+        }
+
+        if (scrollbar.IsVisible)
+        {
+            children.Add(
+                UI.Anchor(
+                    UI.Rect(
+                        id: $"{id}.scrollbar-track",
+                        style: new UiStyle(
+                            Background: ColorToken.Hex(0x172033FF))),
+                    id: $"{id}.scrollbar-track.slot",
+                    left: scrollbar.TrackRect.X,
+                    width: scrollbar.TrackRect.Width,
+                    top: scrollbar.TrackRect.Y,
+                    height: scrollbar.TrackRect.Height));
+            children.Add(
+                UI.Anchor(
+                    UI.Rect(
+                        id: $"{id}.scrollbar-thumb",
+                        style: new UiStyle(
+                            Background: ColorToken.Hex(0x64748BFF))),
+                    id: $"{id}.scrollbar-thumb.slot",
+                    left: scrollbar.ThumbRect.X,
+                    width: scrollbar.ThumbRect.Width,
+                    top: scrollbar.ThumbRect.Y,
+                    height: scrollbar.ThumbRect.Height));
+        }
+
+        return new OblivionExpandedMarkdownBodyRenderResult(
+            UI.Layer(
+                id: $"{id}.expanded-body-layer",
+                children: children),
+            contentHeight,
+            scrollbar);
     }
 
     public static IReadOnlyList<string> BuildPreviewLines(DocumentMir mir, IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics)
@@ -580,6 +723,119 @@ internal static class OblivionMarkdownRenderer
         return Math.Max(minimumHeight, Math.Ceiling(measuredHeight));
     }
 
+    private static bool IntersectsViewport(double top, double height, double viewportHeight)
+    {
+        double bottom = top + height;
+        return top >= 0 && bottom <= viewportHeight;
+    }
+
+    private static double MeasureMarkdownDocumentHeight(DocumentMir mir, double width)
+    {
+        double totalHeight = 0;
+        foreach ((DocumentBlockMir block, int index) in mir.Blocks.Select((value, index) => (value, index)))
+        {
+            totalHeight += MeasureBlockHeight(block, width);
+            if (index < mir.Blocks.Count - 1)
+            {
+                totalHeight += BlockGap;
+            }
+        }
+
+        return totalHeight <= 0 ? PreviewLineHeight : totalHeight;
+    }
+
+    private static double MeasureWrappedPlainTextHeight(IReadOnlyList<string> lines, double width)
+    {
+        IReadOnlyList<string> wrappedLines = PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+            lines,
+            width,
+            4096,
+            new PresenterCardTextLayout(ExpandedPlainLineHeight, ExpandedPlainLineGap),
+            new TextStyle(
+                Color: PreviewForeground,
+                Size: TextSize.Sm,
+                AlignX: TextAlignX.Left,
+                AlignY: TextAlignY.Top));
+
+        if (wrappedLines.Count == 0)
+        {
+            return ExpandedPlainLineHeight;
+        }
+
+        return (wrappedLines.Count * ExpandedPlainLineHeight) + ((wrappedLines.Count - 1) * ExpandedPlainLineGap);
+    }
+
+    private static double MeasureBlockHeight(DocumentBlockMir block, double width)
+    {
+        return block switch
+        {
+            HeadingMir heading => MeasureHeadingHeight(heading, width),
+            ParagraphMir paragraph => MeasureParagraphHeight(paragraph, width),
+            ListMir list => MeasureListHeight(list, width),
+            CodeBlockMir codeBlock => MeasureCodeBlockHeight(codeBlock),
+            ThematicBreakMir => 12,
+            _ => PreviewLineHeight,
+        };
+    }
+
+    private static double MeasureHeadingHeight(HeadingMir heading, double width)
+    {
+        MachinaTextVariant variant = heading.Level <= 2
+            ? MachinaTextVariant.Title
+            : heading.Level <= 4
+                ? MachinaTextVariant.Label
+                : MachinaTextVariant.Body;
+        MachinaTextSpec spec = Text.Markup(
+            RenderInlineMarkup(heading.Inlines, includeLinkTarget: true),
+            variant: variant,
+            leading: heading.Level <= 2 ? MachinaTextLeading.Loose : MachinaTextLeading.Normal,
+            blockGap: 4);
+        double textWidth = Math.Max(120, width - HeadingLabelWidth - InlineGap);
+        double textHeight = MeasureTextHeight(spec, textWidth, minimumHeight: 24);
+        return Math.Max(20, textHeight);
+    }
+
+    private static double MeasureParagraphHeight(ParagraphMir paragraph, double width)
+    {
+        MachinaTextSpec spec = Text.Markup(
+            RenderInlineMarkup(paragraph.Inlines, includeLinkTarget: true),
+            variant: MachinaTextVariant.Body,
+            leading: MachinaTextLeading.Normal,
+            blockGap: 4);
+        return MeasureTextHeight(spec, width, minimumHeight: 20);
+    }
+
+    private static double MeasureListHeight(ListMir list, double width)
+    {
+        double currentTop = 0;
+        double contentWidth = Math.Max(100, width - ListMarkerWidth - InlineGap);
+
+        foreach (ListItemMir item in list.Items)
+        {
+            MachinaTextSpec spec = Text.Markup(
+                RenderInlineMarkup(item.Inlines, includeLinkTarget: true),
+                variant: MachinaTextVariant.Body,
+                leading: MachinaTextLeading.Normal,
+                blockGap: 4);
+            double textHeight = MeasureTextHeight(spec, contentWidth, minimumHeight: 18);
+            double rowHeight = Math.Max(18, textHeight);
+            currentTop += rowHeight + 6;
+        }
+
+        return Math.Max(18, currentTop == 0 ? 18 : currentTop - 6);
+    }
+
+    private static double MeasureCodeBlockHeight(CodeBlockMir codeBlock)
+    {
+        string[] lines = SplitLines(codeBlock.Text);
+        if (lines.Length == 0)
+        {
+            lines = ["<empty>"];
+        }
+
+        return CodePadding + CodeHeaderHeight + CodeLineGap + (lines.Length * (CodeLineHeight + CodeLineGap)) + CodePadding - CodeLineGap;
+    }
+
     private static string RenderInlineMarkup(IReadOnlyList<DocumentInlineMir> inlines, bool includeLinkTarget)
     {
         StringBuilder builder = new();
@@ -801,6 +1057,11 @@ internal static class OblivionMarkdownRenderer
     }
 
     private readonly record struct MarkdownRenderedBlock(UiNode Node, double Height);
+
+    public sealed record OblivionExpandedMarkdownBodyRenderResult(
+        UiNode Node,
+        double ContentHeight,
+        ScrollbarGeometry ScrollbarGeometry);
 
     private readonly record struct MarkdownPreviewEntry(MarkdownPreviewEntryKind Kind, string Text);
 

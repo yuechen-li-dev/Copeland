@@ -230,6 +230,26 @@ This remains a bounded pass:
 - no editor or execution work
 - no Aurelian work
 - no `VD-MIR` work
+
+## M15c update
+
+M15c is the reading-flow follow-through after M15b.
+
+- the Oblivion card stack is now the primary reading surface for Markdown cards
+- expansion state is explicit, page-local, and separate from selected-card state
+- collapsed cards stay compact and scannable
+- expanded cards render Markdown body content inline in the stack
+- long expanded card bodies now use deterministic local scroll regions
+- the inspector remains metadata/actions/diagnostics/artifacts rather than the primary body surface
+
+This remains a bounded pass:
+
+- no Markdown editing
+- no notebook execution
+- no Roslyn execution
+- no Aurelian work
+- no `VD-MIR` work
+- no arbitrary freeform `2D` layout solver
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

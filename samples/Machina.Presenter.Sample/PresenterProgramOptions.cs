@@ -17,6 +17,8 @@ public sealed record PresenterProgramOptions(
         string? selectedTabId = null;
         string? selectedNavigationPageId = null;
         string? selectedCardId = null;
+        string? expandedCardId = null;
+        double? expandedCardBodyScroll = null;
         PresenterCompactPane? compactPane = null;
         PresenterShellMode? shellMode = null;
         int width = 1120;
@@ -93,6 +95,20 @@ public sealed record PresenterProgramOptions(
                 continue;
             }
 
+            if (arg == "--expanded-card" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                expandedCardId = args[++index];
+                continue;
+            }
+
+            if (arg == "--expanded-card-body-scroll" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                expandedCardBodyScroll = double.Parse(args[++index], System.Globalization.CultureInfo.InvariantCulture);
+                continue;
+            }
+
             if (arg == "--compact-pane" && index + 1 < args.Count)
             {
                 includeNavigationShell = true;
@@ -160,6 +176,8 @@ public sealed record PresenterProgramOptions(
                 selectedTabId,
                 selectedNavigationPageId,
                 selectedCardId,
+                expandedCardId,
+                expandedCardBodyScroll,
                 compactPane,
                 shellMode,
                 width,

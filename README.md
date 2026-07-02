@@ -37,6 +37,8 @@ M15a is audit-only and re-enters the Machina/Oblivion workbench lane. The curren
 
 M15b now lands that controlled follow-through. Runtime presenter resizing is now a constrained `16:9` letterboxed surface with a `960x540` minimum and a `1280x720` default runtime surface, layout recomputes from the live effective presenter surface, adaptive shell mode resolves from that live width, and compact Oblivion card previews now use bounded wrap-or-elide behavior with explicit readable preview contrast. M15b still does not implement arbitrary freeform `2D` layout, editor/execution work, Aurelian work, or `VD-MIR` work.
 
+M15c now makes the stack itself the reading surface. Oblivion Markdown cards have explicit page-local expansion state, collapsed cards stay compact and scannable, expanded cards render the Markdown body inline with local body scrolling, and the inspector remains the metadata/actions/diagnostics/artifacts surface rather than the only place to read the body. M15c still does not implement Markdown editing, notebook execution, Aurelian work, or `VD-MIR` work.
+
 ## Pipeline
 
 ```text
@@ -224,6 +226,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Oblivion Card Readability Audit M15a](docs/Oblivion/oblivion-card-readability-audit-m15a.md)
 - [Machina Presenter 16:9 Resizing M15b](docs/Machina/machina-presenter-16x9-resizing-m15b.md)
 - [Oblivion Readable Card Previews M15b](docs/Oblivion/oblivion-readable-card-previews-m15b.md)
+- [Machina Card Stack Reading Flow M15c](docs/Machina/machina-card-stack-reading-flow-m15c.md)
+- [Oblivion Expandable Markdown Cards M15c](docs/Oblivion/oblivion-expandable-markdown-cards-m15c.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)

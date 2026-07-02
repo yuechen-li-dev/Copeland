@@ -53,7 +53,8 @@ public sealed class OblivionCardHandlerRegistry
         OblivionCard card,
         string? pageId = null,
         string? workspaceId = null,
-        OblivionCardEffectState? effectState = null)
+        OblivionCardEffectState? effectState = null,
+        OblivionCardLocalState? localStateOverride = null)
     {
         ArgumentNullException.ThrowIfNull(card);
 
@@ -63,7 +64,8 @@ public sealed class OblivionCardHandlerRegistry
             workspaceId ?? card.WorkspaceId,
             card.SourcePath,
             effectiveEffectState.GetLastRequest(card.Id),
-            effectiveEffectState.GetLastResult(card.Id));
+            effectiveEffectState.GetLastResult(card.Id),
+            localStateOverride);
         IOblivionCardHandler handler = GetHandler(card.Kind);
         OblivionCardRuntimeModel model = handler.BuildModel(card, cardContext);
         OblivionCompactCardView compactView = handler.BuildCompactView(model, new OblivionCardViewContext(model.LocalState));
@@ -216,7 +218,7 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
         OblivionCard card,
         OblivionCardContext context)
     {
-        return OblivionCardLocalState.CreateDefault(card.Id);
+        return context.LocalStateOverride ?? OblivionCardLocalState.CreateDefault(card.Id);
     }
 
     protected virtual IReadOnlyList<OblivionCardDiagnostic> BuildDiagnostics(
@@ -312,6 +314,31 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
         return badges;
     }
 
+    protected static string? BuildSourceLabel(OblivionCard card)
+    {
+        string? sourcePath = card.Body.BodySourcePath ?? card.SourcePath;
+        if (string.IsNullOrWhiteSpace(sourcePath))
+        {
+            return null;
+        }
+
+        string fileName = Path.GetFileName(sourcePath);
+        return string.IsNullOrWhiteSpace(fileName) ? sourcePath : fileName;
+    }
+
+    protected static string? BuildCollapsedSummaryLine(OblivionCard card)
+    {
+        if (card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
+        {
+            return card.Body.DocumentMir is null
+                ? card.Body.PreviewLines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line))
+                : OblivionMarkdownBody.BuildPreviewLines(card.Body.DocumentMir, card.Body.Diagnostics)
+                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        }
+
+        return card.BodyLines.FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+    }
+
     protected IReadOnlyList<OblivionInspectorSectionView> BuildStandardInspectorSections(OblivionCardRuntimeModel model)
     {
         OblivionCard card = model.SourceCard;
@@ -327,7 +354,7 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                     $"Kind: {OblivionCardLabels.KindLabel(card.Kind)}",
                     $"Status: {OblivionCardLabels.StatusLabel(card.Status)}",
                     $"Body format: {OblivionCardLabels.BodyFormatLabel(card.Body.Format)}",
-                    BuildSummaryLine(card),
+                    BuildInspectorSummaryLine(card),
                 ]),
                 Height: 188),
             new OblivionInspectorSectionView(
@@ -343,15 +370,14 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                     $"Workspace: {model.Identity.WorkspaceId ?? "<none>"}",
                     $"Tags: {FormatTags(card.Tags)}",
                     $"Local state expanded: {model.LocalState.IsExpanded.ToString().ToLowerInvariant()}",
+                    $"Body scroll offset: {model.LocalState.BodyScrollOffset:0.###}",
                     $"Selected artifact: {model.LocalState.SelectedArtifactId ?? "<none>"}",
                 ]),
                 Height: 260),
             new OblivionInspectorSectionView(
                 $"{card.Id.Value}.body",
                 "Body",
-                card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
-                    ? ["DocumentMir rendered", "Static Markdown"]
-                    : [],
+                [],
                 card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
                     ? new OblivionInspectorMarkdownBodyContent(card.Body)
                     : new OblivionInspectorTextBodyContent(OblivionMarkdownBody.BuildInspectorLines(card.Body)),
@@ -427,7 +453,7 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
         return properties;
     }
 
-    private static string BuildSummaryLine(OblivionCard card)
+    private static string BuildInspectorSummaryLine(OblivionCard card)
     {
         return card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown
             ? "The card owns Markdown model, preview, diagnostics, actions, and effect request creation while the shell owns routing and storage."
@@ -602,6 +628,8 @@ public sealed class OblivionNoteCardHandler : OblivionCardHandlerBase
             card.Id.Value,
             card.Title,
             card.Subtitle,
+            BuildSourceLabel(card),
+            BuildCollapsedSummaryLine(card),
             BuildMetaBadges(model, markdownBody),
             card.Tags,
             markdownBody
@@ -609,7 +637,10 @@ public sealed class OblivionNoteCardHandler : OblivionCardHandlerBase
                 : new OblivionCompactPlainBodyContent(card.BodyLines),
             [],
             BuildArtifactBadgeLabels(model),
-            PreferredHeight: 168);
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            PreferredHeight: 204,
+            ExpandedPreferredHeight: 452);
     }
 }
 
@@ -640,12 +671,17 @@ public sealed class OblivionStatusCardHandler : OblivionCardHandlerBase
             card.Id.Value,
             card.Title,
             card.Subtitle,
+            BuildSourceLabel(card),
+            BuildCollapsedSummaryLine(card),
             BuildMetaBadges(model, markdownBody: false),
             card.Tags,
             new OblivionCompactPlainBodyContent(card.BodyLines),
             [],
             BuildArtifactBadgeLabels(model),
-            PreferredHeight: 168);
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            PreferredHeight: 204,
+            ExpandedPreferredHeight: 204);
     }
 }
 
@@ -683,12 +719,17 @@ public sealed class OblivionUiPreviewCardHandler : OblivionCardHandlerBase
             card.Id.Value,
             card.Title,
             card.Subtitle,
+            BuildSourceLabel(card),
+            BuildCollapsedSummaryLine(card),
             BuildMetaBadges(model, markdownBody: false),
             card.Tags,
             new OblivionCompactPlainBodyContent(card.BodyLines),
             [],
             BuildArtifactBadgeLabels(model),
-            184);
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            204,
+            204);
     }
 }
 
@@ -731,12 +772,17 @@ public sealed class OblivionArtifactCardHandler : OblivionCardHandlerBase
             card.Id.Value,
             card.Title,
             card.Subtitle,
+            BuildSourceLabel(card),
+            BuildCollapsedSummaryLine(card),
             BuildMetaBadges(model, markdownBody: false),
             card.Tags,
             new OblivionCompactPlainBodyContent(card.BodyLines),
             [],
             BuildArtifactBadgeLabels(model),
-            card.Artifacts.Count > 1 ? 196 : 168);
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            card.Artifacts.Count > 1 ? 212 : 204,
+            card.Artifacts.Count > 1 ? 212 : 204);
     }
 }
 
@@ -779,11 +825,16 @@ public sealed class OblivionCodeFactCardHandler : OblivionCardHandlerBase
             card.Id.Value,
             card.Title,
             card.Subtitle,
+            BuildSourceLabel(card),
+            BuildCollapsedSummaryLine(card),
             BuildMetaBadges(model, markdownBody: false),
             card.Tags,
             new OblivionCompactPlainBodyContent(card.BodyLines),
             [],
             BuildArtifactBadgeLabels(model),
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            248,
             248);
     }
 }
@@ -827,11 +878,16 @@ public sealed class OblivionCodeTheoryCardHandler : OblivionCardHandlerBase
             card.Id.Value,
             card.Title,
             card.Subtitle,
+            BuildSourceLabel(card),
+            BuildCollapsedSummaryLine(card),
             BuildMetaBadges(model, markdownBody: false),
             card.Tags,
             new OblivionCompactPlainBodyContent(card.BodyLines),
             [],
             BuildArtifactBadgeLabels(model),
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            312,
             312);
     }
 }
@@ -873,6 +929,8 @@ public sealed class OblivionUnknownCardHandler : OblivionCardHandlerBase
             model.Identity.Id.Value,
             model.SourceCard.Title,
             model.SourceCard.Subtitle,
+            BuildSourceLabel(model.SourceCard),
+            BuildCollapsedSummaryLine(model.SourceCard),
             BuildMetaBadges(model, markdownBody: false),
             model.SourceCard.Tags,
             new OblivionCompactPlainBodyContent(
@@ -883,6 +941,9 @@ public sealed class OblivionUnknownCardHandler : OblivionCardHandlerBase
             ]),
             [],
             BuildArtifactBadgeLabels(model),
-            PreferredHeight: 168);
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            PreferredHeight: 204,
+            ExpandedPreferredHeight: 204);
     }
 }

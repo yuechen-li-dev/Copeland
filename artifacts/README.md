@@ -54,6 +54,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m14e/` is the current Aurelian migration closeout and handoff manifest directory.
 - `artifacts/m15a/` is the current Machina/Oblivion usability re-entry audit directory.
 - `artifacts/m15b/` is the current presenter `16:9` resizing and readable-card-preview proof directory.
+- `artifacts/m15c/` is the current Oblivion expandable-Markdown-card reading-flow proof directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -103,6 +104,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M14e closeout manifests are deterministic text/JSON reports and may be checked in when they document the migration closeout, reviewer lanes, preserved non-goals, and return-to-Machina/Oblivion recommendation.
 - Current M15a usability audit artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document the current usability blockers, preserve audit evidence, and clearly record that no main usability fixes were implemented in the milestone.
 - Current M15b presenter resize/readability artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document the controlled `16:9` runtime resizing model, preview readability behavior, export evidence, and explicit non-goals around arbitrary `2D` layout and editor/execution work.
+- Current M15c expandable-card artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document stack-first Markdown reading, explicit expansion state, local body scrolling, and the explicit non-goals around Markdown editing, notebook execution, Aurelian work, and `VD-MIR` work.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -817,3 +819,16 @@ These remain local sample proof artifacts only. M12g adds backend-neutral keyboa
 - `artifacts/m15b/machina-presenter-resize-readability-manifest.json`
 
 These remain deterministic proof artifacts rather than pixel-golden baselines. They document controlled `16:9` runtime resizing, live layout recomposition from the effective presenter surface, readable compact preview behavior, and the explicit M15b non-goals around arbitrary `2D` layout plus editor/execution work.
+
+## Current M15c expandable Markdown card outputs
+
+- `artifacts/m15c/m15c-oblivion-docs-collapsed-1280x720.png`
+- `artifacts/m15c/m15c-oblivion-docs-expanded-1280x720.png`
+- `artifacts/m15c/m15c-oblivion-docs-expanded-scrolled-1280x720.png`
+- `artifacts/m15c/m15c-oblivion-cards-expanded-1280x720.png`
+- `artifacts/m15c/m15c-oblivion-docs-compact-expanded-960x540.png`
+- `artifacts/m15c/m15c-oblivion-inspector-after-expand-1280x720.png`
+- `artifacts/m15c/oblivion-expandable-markdown-cards-manifest.txt`
+- `artifacts/m15c/oblivion-expandable-markdown-cards-manifest.json`
+
+These remain deterministic proof artifacts rather than pixel-golden baselines. They document stack-first Markdown reading, explicit selection-versus-expansion state, local body scrolling, preserved M15b resize/readability behavior, and the explicit M15c non-goals around Markdown editing, notebook execution, Aurelian work, and `VD-MIR` work.

@@ -208,13 +208,14 @@ public sealed class PresenterCardHardeningM11eTests
     [Fact]
     public void OblivionCards_DoNotBleedBodyTextOutsideCard()
     {
-        PresenterPageRenderResult page = RenderPage(OblivionWorkbenchCatalog.CardsPageId);
-        PresenterCardFrame frame = OblivionCardRenderer.DescribeFrame(page.Frame.Resolved, "oblivion-intro-note-card");
+        PresenterPageRenderResult page = RenderPage(OblivionWorkbenchCatalog.DocsPageId);
+        PresenterCardFrame frame = OblivionCardRenderer.DescribeFrame(page.Frame.Resolved, "doc-aurelian-build-topology-m13b");
         IReadOnlyList<DrawTextCommand> commands = page.Frame.RenderCommands
             .OfType<DrawTextCommand>()
             .Where(command =>
-                command.Id.Contains("oblivion-intro-note-card", StringComparison.Ordinal) &&
-                command.Id.Contains(".body-line-", StringComparison.Ordinal))
+                command.Id.Contains("doc-aurelian-build-topology-m13b", StringComparison.Ordinal) &&
+                (command.Id.Contains(".body-line-", StringComparison.Ordinal) ||
+                 command.Id.Contains(".summary", StringComparison.Ordinal)))
             .ToArray();
 
         Assert.NotEmpty(commands);

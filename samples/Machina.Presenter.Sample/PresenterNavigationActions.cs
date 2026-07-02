@@ -9,6 +9,9 @@ public static class PresenterNavigationActions
     public const string SelectTabPrefix = "presenter.navigation.select-tab|";
     public const string SetScrollOffsetPrefix = "presenter.navigation.set-scroll-offset|";
     public const string SelectOblivionCardPrefix = "presenter.navigation.select-oblivion-card|";
+    public const string ToggleOblivionCardExpansionPrefix = "presenter.navigation.toggle-oblivion-card-expansion|";
+    public const string CollapseOblivionCardPrefix = "presenter.navigation.collapse-oblivion-card|";
+    public const string SetOblivionCardBodyScrollOffsetPrefix = "presenter.navigation.set-oblivion-card-body-scroll|";
     public const string SelectCompactOblivionCardPrefix = "presenter.navigation.select-compact-oblivion-card|";
     public const string ClearOblivionCardSelectionPrefix = "presenter.navigation.clear-oblivion-card-selection|";
     public const string SetCompactPanePrefix = "presenter.navigation.set-compact-pane|";
@@ -33,6 +36,22 @@ public static class PresenterNavigationActions
     public static UiActionId SelectOblivionCard(string pageId, string cardId)
     {
         return new UiActionId($"{SelectOblivionCardPrefix}{pageId}|{cardId}");
+    }
+
+    public static UiActionId ToggleOblivionCardExpansion(string pageId, string cardId)
+    {
+        return new UiActionId($"{ToggleOblivionCardExpansionPrefix}{pageId}|{cardId}");
+    }
+
+    public static UiActionId CollapseOblivionCard(string pageId, string cardId)
+    {
+        return new UiActionId($"{CollapseOblivionCardPrefix}{pageId}|{cardId}");
+    }
+
+    public static UiActionId SetOblivionCardBodyScrollOffset(string pageId, string cardId, double scrollOffset)
+    {
+        string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
+        return new UiActionId($"{SetOblivionCardBodyScrollOffsetPrefix}{pageId}|{cardId}|{offsetText}");
     }
 
     public static UiActionId SelectCompactOblivionCard(string pageId, string cardId)
@@ -124,6 +143,69 @@ public static class PresenterNavigationActions
 
         pageId = string.Empty;
         cardId = string.Empty;
+        return false;
+    }
+
+    public static bool TryParseToggleOblivionCardExpansion(UiActionId actionId, out string pageId, out string cardId)
+    {
+        if (actionId.Value.StartsWith(ToggleOblivionCardExpansionPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[ToggleOblivionCardExpansionPrefix.Length..];
+            string[] parts = payload.Split('|', StringSplitOptions.None);
+            if (parts.Length == 2)
+            {
+                pageId = parts[0];
+                cardId = parts[1];
+                return true;
+            }
+        }
+
+        pageId = string.Empty;
+        cardId = string.Empty;
+        return false;
+    }
+
+    public static bool TryParseCollapseOblivionCard(UiActionId actionId, out string pageId, out string cardId)
+    {
+        if (actionId.Value.StartsWith(CollapseOblivionCardPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[CollapseOblivionCardPrefix.Length..];
+            string[] parts = payload.Split('|', StringSplitOptions.None);
+            if (parts.Length == 2)
+            {
+                pageId = parts[0];
+                cardId = parts[1];
+                return true;
+            }
+        }
+
+        pageId = string.Empty;
+        cardId = string.Empty;
+        return false;
+    }
+
+    public static bool TryParseSetOblivionCardBodyScrollOffset(
+        UiActionId actionId,
+        out string pageId,
+        out string cardId,
+        out double scrollOffset)
+    {
+        if (actionId.Value.StartsWith(SetOblivionCardBodyScrollOffsetPrefix, StringComparison.Ordinal))
+        {
+            string payload = actionId.Value[SetOblivionCardBodyScrollOffsetPrefix.Length..];
+            string[] parts = payload.Split('|', StringSplitOptions.None);
+            if (parts.Length == 3 &&
+                double.TryParse(parts[2], CultureInfo.InvariantCulture, out scrollOffset))
+            {
+                pageId = parts[0];
+                cardId = parts[1];
+                return true;
+            }
+        }
+
+        pageId = string.Empty;
+        cardId = string.Empty;
+        scrollOffset = 0;
         return false;
     }
 
