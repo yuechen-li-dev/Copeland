@@ -52,6 +52,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m14b/` is the historical Presenter/Silk.NET golden-triangle runtime proof directory.
 - `artifacts/m14d/` is the current Aurelian world-screen proof manifest directory.
 - `artifacts/m14e/` is the current Aurelian migration closeout and handoff manifest directory.
+- `artifacts/m15a/` is the current Machina/Oblivion usability re-entry audit directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -99,6 +100,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Historical M14b Presenter/Silk.NET manifests are deterministic text/JSON reports and may remain checked in as chronology and deferred-reviewer context.
 - Current M14d world-screen manifests are deterministic text/JSON reports and may be checked in when they document the Presenter world-screen seam and preserved runtime path.
 - Current M14e closeout manifests are deterministic text/JSON reports and may be checked in when they document the migration closeout, reviewer lanes, preserved non-goals, and return-to-Machina/Oblivion recommendation.
+- Current M15a usability audit artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document the current usability blockers, preserve audit evidence, and clearly record that no main usability fixes were implemented in the milestone.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

@@ -33,6 +33,8 @@ M14e is closeout/handoff only: the Aurelian migration arc is now documented as g
 
 Historical note: exploratory `src/Aurelian.Shaders/Language/VdMir` code and `artifacts/m14a/` remain in-tree from earlier compiler-only work, but the active visible-triangle golden path documented by M14e does not depend on that slice.
 
+M15a is audit-only and re-enters the Machina/Oblivion workbench lane. The current presenter remains extremely fast, but the workbench is still blocked by usability failures: fixed startup window sizing, no live layout recomposition on resize, unreadable compact card previews, missing intentional wrap/elision rules, and dark-on-dark preview text in part of the Markdown path. The recommended next implementation milestone is M15b: presenter resizing plus readable card previews, without reopening compiler or rendering lanes.
+
 ## Pipeline
 
 ```text
@@ -216,6 +218,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Aurelian World Screen M14d](docs/Aurelian/aurelian-world-screen-m14d.md)
 - [Aurelian Migration Closeout M14e](docs/Aurelian/aurelian-migration-closeout-m14e.md)
 - [Visionary Subsystem Handoff M14e](docs/Visionary/visionary-subsystem-handoff-m14e.md)
+- [Machina/Oblivion Usability Re-entry Audit M15a](docs/Machina/machina-oblivion-usability-reentry-audit-m15a.md)
+- [Oblivion Card Readability Audit M15a](docs/Oblivion/oblivion-card-readability-audit-m15a.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)

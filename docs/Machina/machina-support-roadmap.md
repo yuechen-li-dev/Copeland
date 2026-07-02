@@ -191,7 +191,26 @@ M13d then clarifies the compiler-side doctrine that Machina depends on conceptua
 | Avalonia redraw loop | Presenter sample | Partial | Presenter docs + M10b/M10c/M10d shell tests | Shell mode composes sidebar/tabs/page content, keeps the original settings page reachable under `Legacy`, routes sample-local pointer/wheel input through an Avalonia adapter, and now supports sample-local scrollbar thumb dragging through the same seam.
 | Component gallery visual workbench | ComponentGallery sample | Implemented | Dedicated gallery tests + local Windows visual audit + repeatable export script | Canonical “wall of widgets” page; local-first, not a Storybook clone; M7b formalizes deterministic PNG export and generated-artifact policy. |
 | Scaling/DPI conversion | Presenter sample | Partial | Presenter M1d mapper/tests | Explicit image-to-root mapping landed for None/Fill/Uniform math; broader DPI policy still pending.
-| Window resize handling | Presenter sample | Partial | Presenter M12h tests + export proof | M12h adds deterministic width-driven wide/compact shell selection and export/runtime width options, but still does not introduce continuous scaling or a generic responsive solver.
+| Window resize handling | Presenter sample | Partial | Presenter M12h tests + export proof + M15a audit | M12h adds deterministic width-driven wide/compact shell selection and export/runtime width options, but live runtime resize is still disabled and layout is still startup-width driven; M15b should make resize and recomposition real without introducing a generic responsive solver.
+
+## M15a update
+
+M15a is audit-only and returns main-lane focus to Machina and Oblivion usability after the Aurelian closeout.
+
+- runtime presenter speed remains a documented strength
+- the current workbench is not yet valid for real work because readable primary content is still missing
+- runtime resize is explicitly disabled and shell/page layout is still resolved from startup width and height only
+- compact card previews still mix clipped single-line text, partial wrapping, and dark-on-dark Markdown summary rendering
+- inspector readability is better than preview readability, but still depends on fixed section heights and does not solve the preview problem
+- `docs/Machina/machina-oblivion-usability-reentry-audit-m15a.md` and `docs/Oblivion/oblivion-card-readability-audit-m15a.md` are now the canonical audit notes
+- `artifacts/m15a/machina-oblivion-usability-audit-manifest.json|txt` record that M15a performs no usability implementation fixes, editor work, execution work, Aurelian work, or VD-MIR work
+
+Recommended next milestone:
+
+```text
+M15b:
+  Presenter resizing and readable card previews
+```
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

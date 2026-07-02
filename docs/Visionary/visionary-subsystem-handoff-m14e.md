@@ -136,6 +136,9 @@ Recommended next main-lane direction:
 ```text
 M15a:
   Machina/Oblivion workbench usability re-entry audit
+
+M15b:
+  Presenter resizing and readable card previews
 ```
 
 Suggested goals:
@@ -145,6 +148,12 @@ Suggested goals:
 - revisit Oblivion cards/docs/inspector ergonomics
 - choose the next user-facing workbench milestone
 - avoid new compiler/rendering work in the main lane
+
+M15a now lands as audit/planning only:
+
+- speed remains a documented strength
+- readability and resizing are the current blocker
+- the recommended implementation follow-up is M15b, not a broad shell rewrite
 
 ## Non-goals
 
