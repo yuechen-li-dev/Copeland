@@ -5,4 +5,5 @@ public sealed record VulkanPlantOptions(
     bool RequireTimelineSemaphores = true,
     string ApplicationName = "Aurelian",
     string EngineName = "Aurelian",
-    bool EnablePresentation = false);
+    bool EnablePresentation = false,
+    IReadOnlyList<string>? RequiredPresentationInstanceExtensions = null);

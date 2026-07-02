@@ -13,17 +13,26 @@ internal static class Program
     private const int UnexpectedFailure = 3;
     private const int DefaultFrameCount = 3;
     private const int MaximumFrameCount = 300;
+    private const string DefaultPresenter = "silk";
 
     public static async Task<int> Main(string[] args)
     {
         bool enableValidation = args.Contains("--validation", StringComparer.OrdinalIgnoreCase);
         bool skipHold = args.Contains("--no-hold", StringComparer.OrdinalIgnoreCase);
         int frameCount = ParseFrameCount(args);
+        string presenter = ParsePresenter(args);
 
         Console.WriteLine("Aurelian A71 visible triangle sample");
-        Console.WriteLine("Path: prepared Vulkan setup -> AurelianEngine -> AurelianRuntimeSession -> AurelianFrameLoop -> runtime tick -> frame pump -> runtime compositor policy -> core compositor bridge -> Vulkan compositor -> present -> sample-local event pump/close detection");
+        Console.WriteLine("Path: Presenter/Silk.NET backend -> prepared Vulkan setup -> AurelianEngine -> AurelianRuntimeSession -> AurelianFrameLoop -> runtime tick -> frame pump -> runtime compositor policy -> core compositor bridge -> Vulkan compositor -> presenter present");
         Console.WriteLine($"Validation: {(enableValidation ? "enabled" : "disabled")}");
+        Console.WriteLine($"Presenter backend: {presenter}");
         Console.WriteLine($"Selected finite frame count: {frameCount} (default {DefaultFrameCount}, max {MaximumFrameCount}).");
+
+        if (!string.Equals(presenter, DefaultPresenter, StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine($"Unsupported presenter backend '{presenter}'. M14b currently supports only '--presenter {DefaultPresenter}'.");
+            return EnvironmentOrRuntimeFailure;
+        }
 
         VisibleTriangleSampleFrame? sample = null;
         AurelianRuntimeSession? runtimeSession = null;
@@ -34,7 +43,7 @@ internal static class Program
             var shaderProgram = VisibleTriangleShaderAssets.LoadSmokeTriangleShader(Console.Error);
             sample = VisibleTriangleSampleFrame.Create(enableValidation, frameCount, shaderProgram);
             Console.WriteLine($"Prepared visible Vulkan setup created ({sample.SwapchainDescription}); swapchain images will be acquired per frame.");
-            Console.WriteLine("Window events will be pumped before each acquire and after each present; close requests stop the finite frame loop cleanly.");
+            Console.WriteLine("Presenter events will be pumped before each acquire and after each present; close requests stop the finite frame loop cleanly.");
             Console.WriteLine($"Engine status after start: {sample.Engine.Status}; graphics mode: {sample.Engine.Options.Graphics.Mode} ({sample.Engine.Options.Graphics.Ownership}).");
 
             runtimeSession = new AurelianRuntimeSession();
@@ -69,7 +78,7 @@ internal static class Program
                 Console.WriteLine("Window close requested; stopped frame loop.");
             }
 
-            PrintSampleDiagnostics(inputProvider, sample.PresentationMechanism, sample.WindowState);
+            PrintSampleDiagnostics(inputProvider, sample.PresentationMechanism, sample.PresenterBackend);
 
             if (!skipHold && loopResult.Success)
             {
@@ -132,6 +141,27 @@ internal static class Program
         }
     }
 
+    private static string ParsePresenter(string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (!string.Equals(args[i], "--presenter", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (i + 1 >= args.Length || string.IsNullOrWhiteSpace(args[i + 1]))
+            {
+                Console.Error.WriteLine($"Missing --presenter value; defaulting to '{DefaultPresenter}'.");
+                return DefaultPresenter;
+            }
+
+            return args[i + 1];
+        }
+
+        return DefaultPresenter;
+    }
+
     private static int ParseFrameCount(string[] args)
     {
         for (int i = 0; i < args.Length; i++)
@@ -190,11 +220,11 @@ internal static class Program
     }
 
     private static void PrintSampleDiagnostics(
-        VisibleTriangleFrameInputProvider inputProvider,
-        VisibleTriangleSamplePresentationMechanism presentationMechanism,
-        VisibleTriangleWindowState windowState)
+        SilkNetFrameInputProvider inputProvider,
+        Aurelian.Core.Graphics.Vulkan.Presentation.VulkanPresentationMechanism presentationMechanism,
+        IPresenterBackend presenterBackend)
     {
-        Console.WriteLine($"Window event pump count: {windowState.PumpCount}; close requested: {windowState.CloseRequested}.");
+        Console.WriteLine($"Presenter pump count: {presenterBackend.PumpCount}; close requested: {presenterBackend.CloseRequested}.");
 
         if (inputProvider.Frames.Count > 0)
         {
@@ -205,9 +235,9 @@ internal static class Program
             }
         }
 
-        foreach (string diagnostic in windowState.Diagnostics)
+        foreach (string diagnostic in presenterBackend.Diagnostics)
         {
-            Console.WriteLine($"Window diagnostic: {diagnostic}");
+            Console.WriteLine($"Presenter diagnostic: {diagnostic}");
         }
 
         foreach (string diagnostic in inputProvider.Diagnostics)

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13g, then adds the tiny compiler-only `VD-MIR M0` smoke-triangle slice in M14a without implying immediate package extraction or migration work.
+This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13g, adds the tiny compiler-only `VD-MIR M0` smoke-triangle slice in M14a, and then uses M14b to prove the first visible triangle through the Presenter/Silk.NET runtime path without implying immediate package extraction or migration work.
 
 ## Current state
 
@@ -36,7 +36,7 @@ M14a:
   VD-MIR M0 implementation for smoke triangle
 
 M14b:
-  visible triangle proof through VD-MIR -> HLSL/DXC -> SPIR-V
+  Presenter/Silk.NET golden triangle path with visible runtime proof
 
 M14+:
   later implementation extraction, bridge proof, or backend expansion
@@ -83,4 +83,4 @@ M13g adds the proof-target boundary audit:
 - document the current `assets.toml` -> shader artifact -> `CompiledShaderProgram` -> Vulkan pipeline -> present path before any MIR insertion
 - keep the sample Aurelian-owned and separate from `Copeland.slnx` / `Copeland.Slow.slnx`
 - do not wire the sample to `VD-MIR` until `M14a`/`M14b`
-- after M14a, keep the default direct AST-to-HLSL path and keep visible-triangle runtime wiring deferred to a later milestone
+- after M14a and M14b, keep the default direct AST-to-HLSL path and keep `VD-MIR` opt-in rather than the sample default compiler path

@@ -10,6 +10,7 @@ public sealed class AurelianVulkanSurface : IDisposable
 {
     private readonly AurelianVulkanPlant plant;
     private readonly KhrSurface surfaceApi;
+    private readonly bool ownsWindow;
     private IWindow? window;
     private SurfaceKHR surface;
     private bool closeRequested;
@@ -20,10 +21,12 @@ public sealed class AurelianVulkanSurface : IDisposable
         KhrSurface surfaceApi,
         IWindow window,
         SurfaceKHR surface,
-        VulkanSurfaceFacts facts)
+        VulkanSurfaceFacts facts,
+        bool ownsWindow = true)
     {
         this.plant = plant;
         this.surfaceApi = surfaceApi;
+        this.ownsWindow = ownsWindow;
         this.window = window;
         this.surface = surface;
         Facts = facts;
@@ -85,7 +88,11 @@ public sealed class AurelianVulkanSurface : IDisposable
         if (window is not null)
         {
             window.Closing -= OnWindowClosing;
-            window.Dispose();
+            if (ownsWindow)
+            {
+                window.Dispose();
+            }
+
             window = null;
         }
         surfaceApi.Dispose();

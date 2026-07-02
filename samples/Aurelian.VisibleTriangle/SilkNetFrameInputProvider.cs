@@ -5,48 +5,46 @@ using Aurelian.Runtime.Compositor;
 
 namespace Aurelian.VisibleTriangle;
 
-internal sealed class VisibleTriangleFrameInputProvider : IAurelianFrameInputProvider
+internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
 {
     private readonly AurelianVulkanSwapchain swapchain;
     private readonly uint plantId;
     private readonly string outputImageId;
     private readonly Queue<uint> pendingPresentImageIndices;
-    private readonly VisibleTriangleWindowState windowState;
-    private readonly AurelianVulkanSurface? surface;
+    private readonly IPresenterBackend presenterBackend;
     private readonly Dictionary<AurelianFrameId, VisibleTriangleFrameState> frames = new();
     private readonly int maxFrames;
+    private readonly List<string> diagnostics = [];
     private int suppliedFrames;
 
-    public VisibleTriangleFrameInputProvider(
+    public SilkNetFrameInputProvider(
         AurelianVulkanSwapchain swapchain,
         uint plantId,
         string outputImageId,
         Queue<uint> pendingPresentImageIndices,
-        VisibleTriangleWindowState windowState,
-        AurelianVulkanSurface? surface,
+        IPresenterBackend presenterBackend,
         int maxFrames)
     {
         ArgumentNullException.ThrowIfNull(swapchain);
         ArgumentNullException.ThrowIfNull(outputImageId);
         ArgumentNullException.ThrowIfNull(pendingPresentImageIndices);
-        ArgumentNullException.ThrowIfNull(windowState);
+        ArgumentNullException.ThrowIfNull(presenterBackend);
         if (maxFrames <= 0)
-            throw new ArgumentOutOfRangeException(nameof(maxFrames), "Visible triangle frame input provider must supply at least one frame input.");
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxFrames), "Silk.NET presenter frame input provider must supply at least one frame input.");
+        }
 
         this.swapchain = swapchain;
         this.plantId = plantId;
         this.outputImageId = outputImageId;
         this.pendingPresentImageIndices = pendingPresentImageIndices;
-        this.windowState = windowState;
-        this.surface = surface;
+        this.presenterBackend = presenterBackend;
         this.maxFrames = maxFrames;
     }
 
     public IReadOnlyDictionary<AurelianFrameId, VisibleTriangleFrameState> Frames => frames;
 
     public IReadOnlyList<string> Diagnostics => diagnostics;
-
-    private readonly List<string> diagnostics = new();
 
     public ValueTask<AurelianFrameInput?> GetNextFrameInputAsync(
         AurelianFrameId frameId,
@@ -57,10 +55,10 @@ internal sealed class VisibleTriangleFrameInputProvider : IAurelianFrameInputPro
             return ValueTask.FromCanceled<AurelianFrameInput?>(cancellationToken);
         }
 
-        windowState.Pump(surface);
-        if (windowState.CloseRequested)
+        presenterBackend.PumpEvents();
+        if (presenterBackend.CloseRequested)
         {
-            diagnostics.Add($"Frame {frameId.Value} input stopped before acquire because the window requested close.");
+            diagnostics.Add($"Frame {frameId.Value} input stopped before acquire because the presenter backend requested close.");
             return ValueTask.FromResult<AurelianFrameInput?>(null);
         }
 
@@ -72,7 +70,7 @@ internal sealed class VisibleTriangleFrameInputProvider : IAurelianFrameInputPro
         VulkanSwapchainAcquireResult acquire = swapchain.AcquireNextImage();
         if (acquire.Status is not (VulkanSwapchainAcquireStatus.Acquired or VulkanSwapchainAcquireStatus.Suboptimal) || acquire.ImageIndex is null)
         {
-            diagnostics.Add($"Frame {frameId.Value} swapchain acquire stopped the sample with status {acquire.Status}: {FormatDiagnostics(acquire)}");
+            diagnostics.Add($"Frame {frameId.Value} swapchain acquire stopped the presenter slice with status {acquire.Status}: {FormatDiagnostics(acquire)}");
             return ValueTask.FromResult<AurelianFrameInput?>(null);
         }
 
@@ -102,6 +100,6 @@ internal sealed class VisibleTriangleFrameInputProvider : IAurelianFrameInputPro
         return new CompositorPolicyFacts(frameFacts, required, target, CompositorPolicyKind.Passthrough);
     }
 
-    private static string FormatDiagnostics(VulkanSwapchainAcquireResult result) =>
-        string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+    private static string FormatDiagnostics(VulkanSwapchainAcquireResult result)
+        => string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
 }

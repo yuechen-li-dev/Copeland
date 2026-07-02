@@ -49,6 +49,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m13f/` is the current VD-MIR architecture doctrine manifest directory.
 - `artifacts/m13g/` is the current Aurelian.VisibleTriangle topology and proof-boundary audit manifest directory.
 - `artifacts/m14a/` is the current VD-MIR M0 smoke-triangle compiler-slice proof directory.
+- `artifacts/m14b/` is the current Presenter/Silk.NET golden-triangle runtime proof directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -93,6 +94,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M13f VD-MIR manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document architecture doctrine, staged milestone planning, and explicit non-implementation status.
 - Current M13g visible-triangle manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document sample topology, proof boundaries, validation outcomes, and explicit non-wiring status.
 - Current M14a VD-MIR manifests and proof artifacts are deterministic text/JSON/HLSL/SPIR-V-hex files and may be checked in when they document the minimal compiler-only smoke-triangle slice without changing runtime artifact policy or sample wiring.
+- Current M14b Presenter/Silk.NET manifests are deterministic text/JSON reports and may be checked in when they document the first visible runtime golden path, explicit Presenter ownership, and preserved compiler/runtime boundaries.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

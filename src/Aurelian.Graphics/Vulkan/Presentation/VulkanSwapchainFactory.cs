@@ -17,6 +17,24 @@ public static unsafe class VulkanSwapchainFactory
         AurelianVulkanPlant plant,
         VulkanSwapchainCreateOptions? options = null)
     {
+        return CreateInternal(plant, options, existingWindow: null, ownsWindow: true);
+    }
+
+    public static VulkanSwapchainCreateResult Create(
+        AurelianVulkanPlant plant,
+        IWindow window,
+        VulkanSwapchainCreateOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        return CreateInternal(plant, options, window, ownsWindow: false);
+    }
+
+    private static VulkanSwapchainCreateResult CreateInternal(
+        AurelianVulkanPlant plant,
+        VulkanSwapchainCreateOptions? options,
+        IWindow? existingWindow,
+        bool ownsWindow)
+    {
         ArgumentNullException.ThrowIfNull(plant);
         options ??= new VulkanSwapchainCreateOptions();
         List<VulkanPresentationDiagnostic> diagnostics = [];
@@ -41,13 +59,20 @@ public static unsafe class VulkanSwapchainFactory
 
         try
         {
-            window = CreateWindow(options);
-            window.Initialize();
+            window = existingWindow ?? CreateWindow(options);
+            if (existingWindow is null)
+            {
+                window.Initialize();
+            }
 
             IVkSurface? vkSurface = window.VkSurface;
             if (vkSurface is null)
             {
-                window.Dispose();
+                if (ownsWindow)
+                {
+                    window.Dispose();
+                }
+
                 return ResultWith(
                     VulkanPresentationStatus.Unavailable,
                     diagnostics,
@@ -59,7 +84,11 @@ public static unsafe class VulkanSwapchainFactory
 
             if (!plant.Vk.TryGetInstanceExtension(plant.Instance, out surfaceApi))
             {
-                window.Dispose();
+                if (ownsWindow)
+                {
+                    window.Dispose();
+                }
+
                 return ResultWith(
                     VulkanPresentationStatus.Rejected,
                     diagnostics,
@@ -74,7 +103,11 @@ public static unsafe class VulkanSwapchainFactory
             if (surface.Handle == 0)
             {
                 surfaceCommands.Dispose();
-                window.Dispose();
+                if (ownsWindow)
+                {
+                    window.Dispose();
+                }
+
                 return ResultWith(
                     VulkanPresentationStatus.Unavailable,
                     diagnostics,
@@ -89,7 +122,11 @@ public static unsafe class VulkanSwapchainFactory
             {
                 surfaceCommands.DestroySurface(plant.Instance, surface, (AllocationCallbacks*)null);
                 surfaceCommands.Dispose();
-                window.Dispose();
+                if (ownsWindow)
+                {
+                    window.Dispose();
+                }
+
                 return ResultWith(
                     VulkanPresentationStatus.Rejected,
                     diagnostics,
@@ -103,7 +140,11 @@ public static unsafe class VulkanSwapchainFactory
             {
                 surfaceCommands.DestroySurface(plant.Instance, surface, (AllocationCallbacks*)null);
                 surfaceCommands.Dispose();
-                window.Dispose();
+                if (ownsWindow)
+                {
+                    window.Dispose();
+                }
+
                 return queryFailure!;
             }
 
@@ -112,7 +153,11 @@ public static unsafe class VulkanSwapchainFactory
             {
                 surfaceCommands.DestroySurface(plant.Instance, surface, (AllocationCallbacks*)null);
                 surfaceCommands.Dispose();
-                window.Dispose();
+                if (ownsWindow)
+                {
+                    window.Dispose();
+                }
+
                 return ResultWith(
                     VulkanPresentationStatus.Rejected,
                     diagnostics,
@@ -134,7 +179,7 @@ public static unsafe class VulkanSwapchainFactory
                 (uint)capabilities.CurrentTransform,
                 capabilities.MinImageCount,
                 capabilities.MaxImageCount);
-            surfaceOwner = new AurelianVulkanSurface(plant, surfaceCommands, window, surface, surfaceFacts);
+            surfaceOwner = new AurelianVulkanSurface(plant, surfaceCommands, window, surface, surfaceFacts, ownsWindow);
             surfaceApi = null;
             window = null;
 
@@ -251,7 +296,11 @@ public static unsafe class VulkanSwapchainFactory
             surfaceOwner?.Dispose();
             swapchainApi?.Dispose();
             surfaceApi?.Dispose();
-            window?.Dispose();
+            if (ownsWindow)
+            {
+                window?.Dispose();
+            }
+
             return ResultWith(
                 VulkanPresentationStatus.Unavailable,
                 diagnostics,
@@ -267,7 +316,11 @@ public static unsafe class VulkanSwapchainFactory
             surfaceOwner?.Dispose();
             swapchainApi?.Dispose();
             surfaceApi?.Dispose();
-            window?.Dispose();
+            if (ownsWindow)
+            {
+                window?.Dispose();
+            }
+
             return ResultWith(
                 VulkanPresentationStatus.Failed,
                 diagnostics,

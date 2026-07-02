@@ -37,7 +37,13 @@ public static unsafe class VulkanPlantInitializer
 
             if (options.EnablePresentation)
             {
-                IReadOnlyList<string>? requiredSurfaceExtensions = TryGetRequiredPresentationInstanceExtensions(out string? presentationExtensionError);
+                IReadOnlyList<string>? requiredSurfaceExtensions = options.RequiredPresentationInstanceExtensions;
+                string? presentationExtensionError = null;
+                if (requiredSurfaceExtensions is null || requiredSurfaceExtensions.Count == 0)
+                {
+                    requiredSurfaceExtensions = TryGetRequiredPresentationInstanceExtensions(out presentationExtensionError);
+                }
+
                 if (requiredSurfaceExtensions is null)
                 {
                     vk.Dispose();
@@ -50,7 +56,7 @@ public static unsafe class VulkanPlantInitializer
                         plantId);
                 }
 
-                foreach (string requiredExtension in requiredSurfaceExtensions)
+                foreach (string requiredExtension in requiredSurfaceExtensions.Distinct(StringComparer.Ordinal))
                 {
                     if (!availableInstanceExtensions.Contains(requiredExtension, StringComparer.Ordinal))
                     {
