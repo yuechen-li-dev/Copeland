@@ -309,3 +309,16 @@ Must include:
 - density/font scale controls
 - inspector-local scrolling if still needed after M15b
 - broader shell visual refinement after readability and resize correctness are fixed
+
+## M15b follow-through
+
+M15b now implements the narrow follow-through recommended by this audit:
+
+- controlled live runtime resizing through a letterboxed `16:9` presenter surface
+- minimum usable runtime surface sizing
+- runtime/export sizing separation
+- live layout recomposition from the effective presenter surface
+- live shell-mode resolution from the effective presenter width
+- readable compact card previews with wrap-or-elide behavior and explicit contrast fixes
+
+It still does not implement arbitrary freeform `2D` layout, editor work, execution work, Aurelian work, or `VD-MIR` work.

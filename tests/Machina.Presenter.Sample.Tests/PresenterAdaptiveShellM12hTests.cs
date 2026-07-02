@@ -41,7 +41,7 @@ public sealed class PresenterAdaptiveShellM12hTests
     [Fact]
     public void PresenterShellModeResolver_UsesDocumentedBreakpoint()
     {
-        Assert.Equal(760, PresenterShellModeResolver.BreakpointWidth);
+        Assert.Equal(1120, PresenterShellModeResolver.BreakpointWidth);
     }
 
     [Fact]

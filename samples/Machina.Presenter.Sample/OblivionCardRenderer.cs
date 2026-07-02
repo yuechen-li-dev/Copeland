@@ -17,8 +17,8 @@ public sealed record OblivionCardRenderOptions(
     double RowHeight = 24,
     double SmallGap = 6,
     double SectionGap = 10,
-    double BodyLineHeight = 16,
-    double BodyLineGap = 6,
+    double BodyLineHeight = 18,
+    double BodyLineGap = 4,
     int MaxTagsToShow = 4,
     int MaxActionsToShow = 3,
     int MaxArtifactsToShow = 3);
@@ -33,6 +33,9 @@ public static class OblivionCardRenderer
     private const string BodyLineSuffixPrefix = ".body-line-";
     private const string ActionsRowSuffix = ".actions-row";
     private const string ArtifactsRowSuffix = ".artifacts-row";
+    private static readonly ColorToken PreviewFrameBackground = ColorToken.Hex(0x0B1220FF);
+    private static readonly ColorToken PreviewFrameBorder = ColorToken.Hex(0x334155FF);
+    private static readonly ColorToken PreviewBodyForeground = ColorToken.Hex(0xCBD5E1FF);
     private static readonly PresenterCardTextLayout BodyTextLayout = new(
         LineHeight: 16,
         LineGap: 6);
@@ -236,12 +239,12 @@ public static class OblivionCardRenderer
             IReadOnlyList<string> lines = view.Body is OblivionCompactPlainBodyContent plainBody
                 ? plainBody.Lines
                 : [];
-            IReadOnlyList<string> visibleLines = ClipLinesToFit(
+            IReadOnlyList<string> visibleLines = WrapLinesToFit(
                 lines,
                 layout.BodyWidth,
                 layout.BodyHeight,
                 options,
-                theme.Colors.MutedForeground);
+                PreviewBodyForeground);
 
             foreach ((string line, int index) in visibleLines.Select((line, index) => (line, index)))
             {
@@ -251,7 +254,7 @@ public static class OblivionCardRenderer
                             line,
                             id: view.CardId + BodyLineSuffixPrefix + index,
                             size: TextSize.Sm,
-                            color: theme.Colors.MutedForeground),
+                            color: PreviewBodyForeground),
                         id: $"{view.CardId}{BodyLineSuffixPrefix}{index}.slot",
                         left: 0,
                         right: 0,
@@ -304,8 +307,8 @@ public static class OblivionCardRenderer
                 children: children),
             id: view.CardId + BodyFrameSuffix,
             style: new UiStyle(
-                Background: ColorToken.Hex(0x0B1220FF),
-                BorderColor: ColorToken.Hex(0x334155FF),
+                Background: PreviewFrameBackground,
+                BorderColor: PreviewFrameBorder,
                 BorderThickness: 1));
     }
 
@@ -340,7 +343,7 @@ public static class OblivionCardRenderer
         return limited;
     }
 
-    private static IReadOnlyList<string> ClipLinesToFit(
+    private static IReadOnlyList<string> WrapLinesToFit(
         IReadOnlyList<string> lines,
         double width,
         double height,
@@ -353,7 +356,7 @@ public static class OblivionCardRenderer
             AlignX: TextAlignX.Left,
             AlignY: TextAlignY.Top);
 
-        return PresenterCardLayoutHelper.ClipLinesToFit(
+        return PresenterCardLayoutHelper.WrapOrClipLinesToFit(
             lines,
             width,
             height,

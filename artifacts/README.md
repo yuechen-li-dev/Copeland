@@ -53,6 +53,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m14d/` is the current Aurelian world-screen proof manifest directory.
 - `artifacts/m14e/` is the current Aurelian migration closeout and handoff manifest directory.
 - `artifacts/m15a/` is the current Machina/Oblivion usability re-entry audit directory.
+- `artifacts/m15b/` is the current presenter `16:9` resizing and readable-card-preview proof directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -101,6 +102,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M14d world-screen manifests are deterministic text/JSON reports and may be checked in when they document the Presenter world-screen seam and preserved runtime path.
 - Current M14e closeout manifests are deterministic text/JSON reports and may be checked in when they document the migration closeout, reviewer lanes, preserved non-goals, and return-to-Machina/Oblivion recommendation.
 - Current M15a usability audit artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document the current usability blockers, preserve audit evidence, and clearly record that no main usability fixes were implemented in the milestone.
+- Current M15b presenter resize/readability artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document the controlled `16:9` runtime resizing model, preview readability behavior, export evidence, and explicit non-goals around arbitrary `2D` layout and editor/execution work.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts
@@ -802,3 +804,16 @@ These remain local sample proof artifacts only. M11g closes out the static persi
 - `artifacts/m12g/presenter-keyboard-input-manifest.json`
 
 These remain local sample proof artifacts only. M12g adds backend-neutral keyboard input plumbing through the sample Avalonia adapter, keeps text input translated but non-editing, preserves pointer/wheel/scrollbar behavior, and adds no Roslyn execution, xUnit execution, Markdown editor, or Visionary implementation.
+
+## Current M15b presenter resize/readability outputs
+
+- `artifacts/m15b/m15b-oblivion-cards-960x540.png`
+- `artifacts/m15b/m15b-oblivion-cards-1280x720.png`
+- `artifacts/m15b/m15b-oblivion-docs-1280x720.png`
+- `artifacts/m15b/m15b-oblivion-docs-1600x900.png`
+- `artifacts/m15b/m15b-oblivion-docs-compact-960x540.png`
+- `artifacts/m15b/m15b-oblivion-inspector-1280x720.png`
+- `artifacts/m15b/machina-presenter-resize-readability-manifest.txt`
+- `artifacts/m15b/machina-presenter-resize-readability-manifest.json`
+
+These remain deterministic proof artifacts rather than pixel-golden baselines. They document controlled `16:9` runtime resizing, live layout recomposition from the effective presenter surface, readable compact preview behavior, and the explicit M15b non-goals around arbitrary `2D` layout plus editor/execution work.

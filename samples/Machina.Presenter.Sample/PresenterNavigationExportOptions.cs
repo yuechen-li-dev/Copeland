@@ -12,7 +12,8 @@ public sealed record PresenterNavigationExportOptions(
     int Height = 760,
     string? InvokeActionId = null,
     IReadOnlyDictionary<string, double>? ScrollOffsetByPageId = null,
-    string? InteractionBackendName = null)
+    string? InteractionBackendName = null,
+    bool RuntimeSizeExplicit = false)
 {
     public PresenterNavigationExportOptions(
         bool includeNavigationShell,
@@ -29,7 +30,8 @@ public sealed record PresenterNavigationExportOptions(
             760,
             null,
             null,
-            includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)
+            includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null,
+            false)
     {
     }
 
@@ -49,7 +51,8 @@ public sealed record PresenterNavigationExportOptions(
             760,
             null,
             scrollOffsetByPageId,
-            includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)
+            includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null,
+            false)
     {
     }
 
@@ -70,7 +73,8 @@ public sealed record PresenterNavigationExportOptions(
             760,
             null,
             scrollOffsetByPageId,
-            includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null)
+            includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null,
+            false)
     {
     }
 

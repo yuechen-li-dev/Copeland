@@ -155,6 +155,13 @@ M15a now lands as audit/planning only:
 - readability and resizing are the current blocker
 - the recommended implementation follow-up is M15b, not a broad shell rewrite
 
+M15b now lands as the narrow follow-through:
+
+- controlled `16:9` runtime presenter resizing is implemented
+- runtime layout recomputes from the effective presenter surface
+- compact card previews are readable enough for workbench scanning
+- the milestone still does not reopen compiler, rendering, Aurelian, or `VD-MIR` lanes
+
 ## Non-goals
 
 M14e does not:

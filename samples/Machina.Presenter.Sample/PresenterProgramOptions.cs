@@ -23,6 +23,7 @@ public sealed record PresenterProgramOptions(
         int height = 760;
         string? invokeActionId = null;
         Dictionary<string, double>? scrollOffsetByPageId = null;
+        bool runtimeSizeExplicit = false;
 
         for (int index = 0; index < args.Count; index++)
         {
@@ -109,12 +110,14 @@ public sealed record PresenterProgramOptions(
             if (arg == "--width" && index + 1 < args.Count)
             {
                 width = int.Parse(args[++index], System.Globalization.CultureInfo.InvariantCulture);
+                runtimeSizeExplicit = true;
                 continue;
             }
 
             if (arg == "--height" && index + 1 < args.Count)
             {
                 height = int.Parse(args[++index], System.Globalization.CultureInfo.InvariantCulture);
+                runtimeSizeExplicit = true;
                 continue;
             }
 
@@ -163,6 +166,7 @@ public sealed record PresenterProgramOptions(
                 height,
                 invokeActionId,
                 scrollOffsetByPageId,
-                includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null));
+                includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null,
+                runtimeSizeExplicit));
     }
 }

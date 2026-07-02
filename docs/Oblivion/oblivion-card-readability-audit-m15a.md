@@ -103,3 +103,14 @@ A compact card is minimally usable only if:
 - density/font scale controls
 - Markdown editing
 - execution/runtime features
+
+## M15b follow-through
+
+M15b follows through on this audit by making compact preview text readable enough for real scanning:
+
+- preview body text now wraps or intentionally elides inside the card body
+- preview foregrounds are explicit on dark preview frames
+- Markdown preview rows use a more consistent bounded-preview policy
+- the milestone keeps the work scoped to readability and controlled resizing only
+
+It does not turn compact cards into full document renderers, editors, or execution surfaces.

@@ -211,6 +211,25 @@ Recommended next milestone:
 M15b:
   Presenter resizing and readable card previews
 ```
+
+## M15b update
+
+M15b is the controlled usability implementation pass that follows the M15a audit.
+
+- the runtime presenter window is now resizable
+- the runtime presenter surface now stays on a centered `16:9` surface with neutral letterboxing outside that surface
+- the runtime presenter now enforces a minimum usable surface of `960x540` and defaults to `1280x720`
+- runtime sizing is separated from export frame sizing
+- layout and shell mode now recompute from the live effective presenter surface
+- compact Oblivion card previews now wrap or intentionally elide inside bounded body regions
+- known dark-on-dark Markdown preview states are fixed with explicit preview foregrounds
+
+This remains a bounded pass:
+
+- no arbitrary freeform `2D` layout solver
+- no editor or execution work
+- no Aurelian work
+- no `VD-MIR` work
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

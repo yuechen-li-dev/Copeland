@@ -13,6 +13,7 @@ internal static class OblivionMarkdownRenderer
 {
     private const double PreviewLineHeight = 18;
     private const double PreviewGap = 6;
+    private const int PreviewSummaryLineLimit = 3;
     private const double BlockGap = 12;
     private const double InlineGap = 10;
     private const double HeadingLabelWidth = 28;
@@ -21,6 +22,13 @@ internal static class OblivionMarkdownRenderer
     private const double CodeHeaderHeight = 18;
     private const double CodeLineHeight = 16;
     private const double CodeLineGap = 4;
+    private static readonly ColorToken PreviewFrameBackground = ColorToken.Hex(0x0B1220FF);
+    private static readonly ColorToken PreviewFrameBorder = ColorToken.Hex(0x334155FF);
+    private static readonly ColorToken PreviewForeground = ColorToken.Hex(0xE2E8F0FF);
+    private static readonly ColorToken PreviewMutedForeground = ColorToken.Hex(0xCBD5E1FF);
+    private static readonly PresenterCardTextLayout PreviewTextLayout = new(
+        LineHeight: PreviewLineHeight,
+        LineGap: PreviewGap);
 
     public static UiNode BuildPreviewBody(
         string id,
@@ -40,97 +48,42 @@ internal static class OblivionMarkdownRenderer
 
         List<UiNode> children = [];
         double currentTop = 0;
+        int renderedLineCount = 0;
+        int maxLineCount = PresenterCardLayoutHelper.ComputeLineCapacity(height, PreviewTextLayout);
 
         foreach (MarkdownPreviewEntry entry in BuildPreviewEntries(body.DocumentMir, body.Diagnostics))
         {
-            double remainingHeight = height - currentTop;
-            if (remainingHeight <= 0)
+            if (renderedLineCount >= maxLineCount)
             {
                 break;
             }
 
-            switch (entry.Kind)
+            int remainingLineCount = maxLineCount - renderedLineCount;
+            IReadOnlyList<string> visibleLines = WrapPreviewEntry(
+                entry,
+                width,
+                remainingLineCount);
+
+            for (int lineIndex = 0; lineIndex < visibleLines.Count && renderedLineCount < maxLineCount; lineIndex++)
             {
-                case MarkdownPreviewEntryKind.Heading:
-                    children.Add(
-                        UI.Anchor(
-                            UI.Text(
-                                entry.Text,
-                                id: $"{id}.preview-heading",
-                                size: TextSize.Md,
-                                color: theme.Colors.Foreground),
-                            id: $"{id}.preview-heading.slot",
-                            left: 0,
-                            right: 0,
-                            top: currentTop,
-                            height: PreviewLineHeight));
-                    currentTop += PreviewLineHeight + PreviewGap;
-                    break;
-
-                case MarkdownPreviewEntryKind.Code:
-                    children.Add(
-                        UI.Anchor(
-                            UI.Text(
-                                entry.Text,
-                                id: $"{id}.preview-code",
-                                size: TextSize.Sm,
-                                color: ColorToken.Hex(0xBFDBFEFF)),
-                            id: $"{id}.preview-code.slot",
-                            left: 0,
-                            right: 0,
-                            top: currentTop,
-                            height: PreviewLineHeight));
-                    currentTop += PreviewLineHeight + PreviewGap;
-                    break;
-
-                case MarkdownPreviewEntryKind.Diagnostics:
-                    children.Add(
-                        UI.Anchor(
-                            UI.Text(
-                                entry.Text,
-                                id: $"{id}.preview-diagnostics",
-                                size: TextSize.Sm,
-                                color: ColorToken.Hex(0xFCA5A5FF)),
-                            id: $"{id}.preview-diagnostics.slot",
-                            left: 0,
-                            right: 0,
-                            top: currentTop,
-                            height: PreviewLineHeight));
-                    currentTop += PreviewLineHeight + PreviewGap;
-                    break;
-
-                default:
-                    MachinaTextSpec summarySpec = Text.Markup(
-                        entry.Text,
-                        variant: MachinaTextVariant.Body,
-                        leading: MachinaTextLeading.Tight,
-                        blockGap: 4);
-                    double summaryHeight = MeasureTextHeight(summarySpec, width, minimumHeight: PreviewLineHeight);
-                    children.Add(
-                        UI.Anchor(
-                            StandardUI.TextBlock(
-                                summarySpec,
-                                id: $"{id}.preview-summary",
-                                theme: theme),
-                            id: $"{id}.preview-summary.slot",
-                            left: 0,
-                            width: width,
-                            top: currentTop,
-                            height: summaryHeight));
-                    currentTop += summaryHeight + PreviewGap;
-                    break;
+                children.Add(
+                    UI.Anchor(
+                        UI.Text(
+                            visibleLines[lineIndex],
+                            id: $"{id}.preview-{entry.Kind.ToString().ToLowerInvariant()}-{renderedLineCount}",
+                            size: entry.Kind == MarkdownPreviewEntryKind.Heading ? TextSize.Md : TextSize.Sm,
+                            color: GetPreviewColor(entry.Kind)),
+                        id: $"{id}.preview-{entry.Kind.ToString().ToLowerInvariant()}-{renderedLineCount}.slot",
+                        left: 0,
+                        right: 0,
+                        top: currentTop,
+                        height: PreviewLineHeight));
+                currentTop += PreviewLineHeight + PreviewGap;
+                renderedLineCount += 1;
             }
         }
 
-        return UI.Rect(
-            child: UI.Layer(
-                id: $"{id}.preview-layer",
-                children: children),
-            id: $"{id}.preview-frame",
-            style: new UiStyle(
-                Background: ColorToken.Hex(0x0B1220FF),
-                BorderColor: ColorToken.Hex(0x334155FF),
-                BorderThickness: 1));
+        return BuildPreviewFrame(id, children);
     }
 
     public static UiNode BuildInspectorBody(
@@ -253,21 +206,22 @@ internal static class OblivionMarkdownRenderer
     {
         List<UiNode> children = [];
         double currentTop = 0;
+        IReadOnlyList<string> visibleLines = PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+            lines,
+            width,
+            height,
+            PreviewTextLayout,
+            CreatePreviewTextStyle(PreviewMutedForeground));
 
-        foreach ((string line, int index) in lines.Take(6).Select((value, index) => (value, index)))
+        foreach ((string line, int index) in visibleLines.Select((value, index) => (value, index)))
         {
-            if (currentTop + PreviewLineHeight > height)
-            {
-                break;
-            }
-
             children.Add(
                 UI.Anchor(
                     UI.Text(
                         line,
                         id: $"{id}.plain-{index}",
                         size: TextSize.Sm,
-                        color: theme.Colors.MutedForeground),
+                        color: PreviewMutedForeground),
                     id: $"{id}.plain-{index}.slot",
                     left: 0,
                     right: 0,
@@ -276,15 +230,70 @@ internal static class OblivionMarkdownRenderer
             currentTop += PreviewLineHeight + PreviewGap;
         }
 
+        return BuildPreviewFrame(id, children, layerIdSuffix: "plain-layer", frameIdSuffix: "plain-frame");
+    }
+
+    private static UiNode BuildPreviewFrame(
+        string id,
+        IReadOnlyList<UiNode> children,
+        string layerIdSuffix = "preview-layer",
+        string frameIdSuffix = "preview-frame")
+    {
         return UI.Rect(
             child: UI.Layer(
-                id: $"{id}.plain-layer",
+                id: $"{id}.{layerIdSuffix}",
                 children: children),
-            id: $"{id}.plain-frame",
+            id: $"{id}.{frameIdSuffix}",
             style: new UiStyle(
-                Background: ColorToken.Hex(0x0B1220FF),
-                BorderColor: ColorToken.Hex(0x334155FF),
+                Background: PreviewFrameBackground,
+                BorderColor: PreviewFrameBorder,
                 BorderThickness: 1));
+    }
+
+    private static IReadOnlyList<string> WrapPreviewEntry(
+        MarkdownPreviewEntry entry,
+        double width,
+        int remainingLineCount)
+    {
+        int entryLineLimit = Math.Min(
+            remainingLineCount,
+            entry.Kind == MarkdownPreviewEntryKind.Summary
+                ? PreviewSummaryLineLimit
+                : 1);
+
+        if (entryLineLimit <= 0)
+        {
+            return [];
+        }
+
+        double entryHeight = (entryLineLimit * PreviewLineHeight) + (Math.Max(0, entryLineLimit - 1) * PreviewGap);
+        return PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+            [entry.Text],
+            width,
+            entryHeight,
+            PreviewTextLayout,
+            CreatePreviewTextStyle(GetPreviewColor(entry.Kind)));
+    }
+
+    private static TextStyle CreatePreviewTextStyle(ColorToken color)
+    {
+        return new TextStyle(
+            Color: color,
+            Size: TextSize.Sm,
+            AlignX: TextAlignX.Left,
+            AlignY: TextAlignY.Top);
+    }
+
+    private static ColorToken GetPreviewColor(MarkdownPreviewEntryKind kind)
+    {
+        return kind switch
+        {
+            MarkdownPreviewEntryKind.Heading => PreviewForeground,
+            MarkdownPreviewEntryKind.Summary => PreviewMutedForeground,
+            MarkdownPreviewEntryKind.Code => ColorToken.Hex(0xBFDBFEFF),
+            MarkdownPreviewEntryKind.Diagnostics => ColorToken.Hex(0xFCA5A5FF),
+            _ => PreviewMutedForeground,
+        };
     }
 
     private static IReadOnlyList<MarkdownPreviewEntry> BuildPreviewEntries(

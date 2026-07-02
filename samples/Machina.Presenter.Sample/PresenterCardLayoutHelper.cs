@@ -112,6 +112,46 @@ public static class PresenterCardLayoutHelper
         return visibleLines;
     }
 
+    public static IReadOnlyList<string> WrapOrClipLinesToFit(
+        IReadOnlyList<string> lines,
+        double width,
+        double height,
+        PresenterCardTextLayout textLayout,
+        TextStyle style)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        ArgumentNullException.ThrowIfNull(textLayout);
+
+        int maxLineCount = ComputeLineCapacity(height, textLayout);
+        if (maxLineCount <= 0)
+        {
+            return [];
+        }
+
+        List<string> visibleLines = [];
+        for (int sourceIndex = 0; sourceIndex < lines.Count && visibleLines.Count < maxLineCount; sourceIndex++)
+        {
+            List<string> wrappedLines = WrapSingleLine(lines[sourceIndex], width, style);
+
+            if (wrappedLines.Count == 0)
+            {
+                wrappedLines.Add(string.Empty);
+            }
+
+            for (int wrappedIndex = 0; wrappedIndex < wrappedLines.Count && visibleLines.Count < maxLineCount; wrappedIndex++)
+            {
+                bool isLastVisibleLine = visibleLines.Count == maxLineCount - 1;
+                bool hasMoreContent = wrappedIndex < wrappedLines.Count - 1 || sourceIndex < lines.Count - 1;
+                visibleLines.Add(
+                    hasMoreContent && isLastVisibleLine
+                        ? ClipContentToWidth(wrappedLines[wrappedIndex], width, style)
+                        : wrappedLines[wrappedIndex]);
+            }
+        }
+
+        return visibleLines;
+    }
+
     private static string ClipSingleLine(
         string content,
         double width,
@@ -173,6 +213,66 @@ public static class PresenterCardLayoutHelper
         return builder.Length == 0
             ? Ellipsis
             : builder.ToString().TrimEnd() + Ellipsis;
+    }
+
+    private static List<string> WrapSingleLine(string content, double width, TextStyle style)
+    {
+        List<string> wrappedLines = [];
+        string remaining = content.Trim();
+
+        if (string.IsNullOrEmpty(remaining) || width <= 0)
+        {
+            return wrappedLines;
+        }
+
+        while (remaining.Length > 0)
+        {
+            if (Measure(remaining, style) <= width)
+            {
+                wrappedLines.Add(remaining);
+                break;
+            }
+
+            int lastWhitespaceBeforeOverflow = -1;
+            int lastCharacterBeforeOverflow = -1;
+
+            for (int index = 0; index < remaining.Length; index++)
+            {
+                string candidate = remaining[..(index + 1)];
+                if (Measure(candidate, style) > width)
+                {
+                    break;
+                }
+
+                lastCharacterBeforeOverflow = index;
+                if (char.IsWhiteSpace(remaining[index]))
+                {
+                    lastWhitespaceBeforeOverflow = index;
+                }
+            }
+
+            if (lastCharacterBeforeOverflow < 0)
+            {
+                wrappedLines.Add(ClipContentToWidth(remaining, width, style));
+                break;
+            }
+
+            int splitIndex = lastWhitespaceBeforeOverflow >= 0
+                ? lastWhitespaceBeforeOverflow
+                : lastCharacterBeforeOverflow + 1;
+            string line = remaining[..splitIndex].Trim();
+
+            if (line.Length == 0)
+            {
+                line = remaining[..(lastCharacterBeforeOverflow + 1)].Trim();
+                splitIndex = lastCharacterBeforeOverflow + 1;
+            }
+
+            wrappedLines.Add(line);
+            remaining = remaining[splitIndex..].TrimStart();
+        }
+
+        return wrappedLines;
     }
 
     private static double Measure(string text, TextStyle style)

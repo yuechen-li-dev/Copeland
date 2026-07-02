@@ -14,7 +14,7 @@ public enum PresenterCompactPane
 
 public static class PresenterShellModeResolver
 {
-    public const int BreakpointWidth = 760;
+    public const int BreakpointWidth = 1120;
 
     public static PresenterShellMode Resolve(double windowWidth)
     {

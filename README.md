@@ -35,6 +35,8 @@ Historical note: exploratory `src/Aurelian.Shaders/Language/VdMir` code and `art
 
 M15a is audit-only and re-enters the Machina/Oblivion workbench lane. The current presenter remains extremely fast, but the workbench is still blocked by usability failures: fixed startup window sizing, no live layout recomposition on resize, unreadable compact card previews, missing intentional wrap/elision rules, and dark-on-dark preview text in part of the Markdown path. The recommended next implementation milestone is M15b: presenter resizing plus readable card previews, without reopening compiler or rendering lanes.
 
+M15b now lands that controlled follow-through. Runtime presenter resizing is now a constrained `16:9` letterboxed surface with a `960x540` minimum and a `1280x720` default runtime surface, layout recomputes from the live effective presenter surface, adaptive shell mode resolves from that live width, and compact Oblivion card previews now use bounded wrap-or-elide behavior with explicit readable preview contrast. M15b still does not implement arbitrary freeform `2D` layout, editor/execution work, Aurelian work, or `VD-MIR` work.
+
 ## Pipeline
 
 ```text
@@ -220,6 +222,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Visionary Subsystem Handoff M14e](docs/Visionary/visionary-subsystem-handoff-m14e.md)
 - [Machina/Oblivion Usability Re-entry Audit M15a](docs/Machina/machina-oblivion-usability-reentry-audit-m15a.md)
 - [Oblivion Card Readability Audit M15a](docs/Oblivion/oblivion-card-readability-audit-m15a.md)
+- [Machina Presenter 16:9 Resizing M15b](docs/Machina/machina-presenter-16x9-resizing-m15b.md)
+- [Oblivion Readable Card Previews M15b](docs/Oblivion/oblivion-readable-card-previews-m15b.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)

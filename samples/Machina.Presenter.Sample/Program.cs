@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Layout;
 using Machina.Core.Actions;
 using Machina.Core.Styling;
 using Machina.Pipeline;
@@ -90,6 +91,7 @@ internal sealed class Program
         private readonly string _baseTitle;
 
         private readonly Image _image;
+        private readonly Grid _presenterHost;
 
         private DemoState _state;
         private readonly MachinaRasterPipeline _pipeline;
@@ -97,7 +99,8 @@ internal sealed class Program
         private readonly PresenterNavigationExportOptions _navigationOptions;
         private readonly AvaloniaPresenterInputBackend _inputBackend;
         private readonly PresenterNavigationRenderSession _renderSession;
-        private readonly PresenterNavigationLayout _navigationLayout;
+        private PresenterNavigationLayout _navigationLayout;
+        private PresenterSurfaceSize _surfaceSize;
         private PresenterNavigationState? _navigationState;
         private PresenterScrollbarInteractionState _scrollbarInteractionState;
         private UiHitTestIndex _hitTestIndex;
@@ -109,8 +112,15 @@ internal sealed class Program
             _image = new Image
             {
                 Stretch = Stretch.None,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            _presenterHost = new Grid
+            {
+                Background = new SolidColorBrush(Color.Parse("#CBD5E1")),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Children = { _image },
             };
 
             _image.PointerPressed += HandlePointerPressed;
@@ -130,12 +140,10 @@ internal sealed class Program
             _navigationOptions = navigationOptions;
             _inputBackend = new AvaloniaPresenterInputBackend();
             _renderSession = new PresenterNavigationRenderSession();
-            PresenterShellMode shellMode = navigationOptions.ShellMode
-                ?? PresenterShellModeResolver.Resolve(navigationOptions.Width);
-            _navigationLayout = PresenterNavigationLayout.Create(
-                navigationOptions.Width,
-                navigationOptions.Height,
-                shellMode);
+            _surfaceSize = navigationOptions.RuntimeSizeExplicit
+                ? PresenterSurfaceSize.Compute(navigationOptions.Width, navigationOptions.Height)
+                : PresenterSurfaceSize.DefaultRuntime;
+            _navigationLayout = CreateNavigationLayout(_surfaceSize.SurfaceWidth, _surfaceSize.SurfaceHeight);
             _navigationState = navigationOptions.IncludeNavigationShell
                 ? PresenterExporterNavigationState()
                 : null;
@@ -144,17 +152,26 @@ internal sealed class Program
             _currentFrame = default!;
             _navigationShellRender = null;
             _baseTitle = navigationOptions.IncludeNavigationShell
-                ? "Machina Presenter M12h"
+                ? "Machina Presenter M15b"
                 : "Machina Presenter M1e";
 
             Focusable = true;
-            Opened += (_, _) => Focus();
+            Opened += (_, _) =>
+            {
+                Focus();
+                RefreshRuntimeSurface(forceRender: true);
+            };
+            SizeChanged += (_, _) => RefreshRuntimeSurface(forceRender: false);
 
             RenderCurrentState();
             Title = BuildTitle("startup");
 
-            CanResize = false;
-            Content = _image;
+            Width = _surfaceSize.WindowWidth;
+            Height = _surfaceSize.WindowHeight;
+            MinWidth = PresenterSurfaceSize.MinimumSurfaceWidth;
+            MinHeight = PresenterSurfaceSize.MinimumSurfaceHeight;
+            CanResize = true;
+            Content = _presenterHost;
         }
 
         private PresenterNavigationState PresenterExporterNavigationState()
@@ -180,8 +197,6 @@ internal sealed class Program
                 _image.Source = PresenterExporter.ToBitmap(_navigationShellRender.ComposedFrame);
                 _image.Width = _navigationShellRender.ComposedFrame.Width;
                 _image.Height = _navigationShellRender.ComposedFrame.Height;
-                Width = _navigationShellRender.ComposedFrame.Width;
-                Height = _navigationShellRender.ComposedFrame.Height;
                 return;
             }
 
@@ -200,8 +215,6 @@ internal sealed class Program
             _image.Source = PresenterExporter.ToBitmap(_currentFrame.RasterFrame);
             _image.Width = _currentFrame.RasterFrame.Width;
             _image.Height = _currentFrame.RasterFrame.Height;
-            Width = _currentFrame.RasterFrame.Width;
-            Height = _currentFrame.RasterFrame.Height;
         }
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
@@ -392,6 +405,42 @@ internal sealed class Program
             }
 
             return $"{_baseTitle} - action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}";
+        }
+
+        private PresenterNavigationLayout CreateNavigationLayout(int width, int height)
+        {
+            PresenterShellMode shellMode = _navigationOptions.ShellMode
+                ?? PresenterShellModeResolver.Resolve(width);
+            return PresenterNavigationLayout.Create(width, height, shellMode);
+        }
+
+        private void RefreshRuntimeSurface(bool forceRender)
+        {
+            if (!_navigationOptions.IncludeNavigationShell)
+            {
+                return;
+            }
+
+            if (ClientSize.Width <= 0 || ClientSize.Height <= 0)
+            {
+                return;
+            }
+
+            PresenterSurfaceSize nextSurface = PresenterSurfaceSize.ComputeFromClientSize(
+                ClientSize.Width,
+                ClientSize.Height);
+
+            if (!forceRender &&
+                nextSurface.SurfaceWidth == _surfaceSize.SurfaceWidth &&
+                nextSurface.SurfaceHeight == _surfaceSize.SurfaceHeight)
+            {
+                return;
+            }
+
+            _surfaceSize = nextSurface;
+            _navigationLayout = CreateNavigationLayout(nextSurface.SurfaceWidth, nextSurface.SurfaceHeight);
+            RenderCurrentState();
+            Title = BuildTitle("resize");
         }
 
         private static string OnOff(bool value)
