@@ -48,6 +48,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m13e/` is the current Aurelian SDSL-V lane audit and GPU MIR target-analysis manifest directory.
 - `artifacts/m13f/` is the current VD-MIR architecture doctrine manifest directory.
 - `artifacts/m13g/` is the current Aurelian.VisibleTriangle topology and proof-boundary audit manifest directory.
+- `artifacts/m14a/` is the current VD-MIR M0 smoke-triangle compiler-slice proof directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -91,6 +92,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M13e SDSL-V/GPU-MIR manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document source-layout audit findings, target-analysis doctrine, and explicit recon-only status.
 - Current M13f VD-MIR manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document architecture doctrine, staged milestone planning, and explicit non-implementation status.
 - Current M13g visible-triangle manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document sample topology, proof boundaries, validation outcomes, and explicit non-wiring status.
+- Current M14a VD-MIR manifests and proof artifacts are deterministic text/JSON/HLSL/SPIR-V-hex files and may be checked in when they document the minimal compiler-only smoke-triangle slice without changing runtime artifact policy or sample wiring.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

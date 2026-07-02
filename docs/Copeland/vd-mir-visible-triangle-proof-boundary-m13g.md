@@ -12,6 +12,8 @@ This document is audit-only:
 - no Slang/PTX backend work occurs
 - no Machina/Aurelian/Vulkan bridge work occurs
 
+M14a later implements the compiler-side `VD-MIR M0` smoke-triangle slice, but this proof-boundary document remains accurate: the visible triangle sample is still not wired to `VD-MIR`, and the runtime artifact boundary remains the same checked-in `shader.toml` plus `generated.hlsl` plus `.spv.hex` files.
+
 ## Why visible triangle is the proof target
 
 Visible triangle is the right proof target because it is the smallest current sample that already spans:
@@ -151,6 +153,6 @@ The future proof should not be required to demonstrate:
 
 ## Deferred work
 
-- `M14a`: implement `VD-MIR M0` for the smoke-triangle path
+- `M14a`: implemented `VD-MIR M0` for the smoke-triangle path on the compiler side only
 - `M14b`: prove visible triangle through `VD-MIR -> HLSL/DXC -> SPIR-V`
 - later: decide whether the stable runtime artifact boundary should stay identical or gain optional compiler-side metadata once the first proof exists

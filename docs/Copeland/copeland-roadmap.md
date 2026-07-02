@@ -2,13 +2,14 @@
 
 ## Purpose
 
-This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13g and does not imply immediate package extraction or migration work.
+This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13g, then adds the tiny compiler-only `VD-MIR M0` smoke-triangle slice in M14a without implying immediate package extraction or migration work.
 
 ## Current state
 
 - `Copeland.Markdown` is the active document lane in the repo.
 - the original script/compiler direction remains an important legacy lane: TypeScript-like source -> AST/MIR -> C# backend
 - Aurelian currently hosts the active SDSL-V shader lane outside Copeland
+- `VD-MIR M0` now exists only as a minimal implementation slice inside `src/Aurelian.Shaders/Language/VdMir`
 
 ## Doctrine
 
@@ -82,3 +83,4 @@ M13g adds the proof-target boundary audit:
 - document the current `assets.toml` -> shader artifact -> `CompiledShaderProgram` -> Vulkan pipeline -> present path before any MIR insertion
 - keep the sample Aurelian-owned and separate from `Copeland.slnx` / `Copeland.Slow.slnx`
 - do not wire the sample to `VD-MIR` until `M14a`/`M14b`
+- after M14a, keep the default direct AST-to-HLSL path and keep visible-triangle runtime wiring deferred to a later milestone

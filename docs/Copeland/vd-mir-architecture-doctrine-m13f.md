@@ -15,6 +15,8 @@ This milestone is architecture doctrine only:
 - no Machina/Aurelian/Vulkan bridge is implemented
 - `samples/Aurelian.VisibleTriangle` is not wired to `VD-MIR`
 
+M14a later implements the first tiny slice inside `Aurelian.Shaders` only. That implementation does not invalidate this doctrine: `VD-MIR` is still not extracted into Copeland packages, the direct AST-to-HLSL path is still preserved as the default, and visible-triangle runtime wiring remains deferred.
+
 ## Name
 
 `VD-MIR` means `Visual Direct MIR`.
@@ -252,7 +254,7 @@ M0 should stay intentionally small:
 - enough stage metadata to stop hard-coding all stage facts in later extraction
 - enough provenance to preserve useful diagnostics
 
-M13f does not implement M0.
+M13f does not implement M0. M14a later lands the minimal smoke-triangle compiler slice in `src/Aurelian.Shaders/Language/VdMir` without promoting that code into Copeland packages yet.
 
 ## VD-MIR M1
 

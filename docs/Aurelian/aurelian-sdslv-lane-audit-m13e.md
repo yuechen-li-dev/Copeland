@@ -14,6 +14,8 @@ This milestone is recon only:
 - no PTX backend implementation
 - no shader/kernel MIR split
 
+M14a later implements the first tiny `VD-MIR M0` slice as a compiler seam inside `Aurelian.Shaders`, but this audit still describes the baseline lane that motivated that insertion.
+
 The starting assumption is one common GPU MIR until real evidence proves a split is necessary.
 
 ## Current SDSL-V pipeline
@@ -418,7 +420,7 @@ M13e does not:
 - change artifact semantics
 - wire Machina/Aurelian/Vulkan
 
-M13g later audits `samples/Aurelian.VisibleTriangle` as the future proof target for this lane, but that later audit still does not migrate SDSL-V into Copeland, implement `VD-MIR`, or change the current `SDSL-V -> HLSL -> DXC -> SPIR-V` behavior described here.
+M13g later audits `samples/Aurelian.VisibleTriangle` as the future proof target for this lane, and M14a later implements a minimal `SDSL-V -> VD-MIR -> HLSL -> DXC -> SPIR-V` proof path. Even after M14a, the direct/default behavior described here remains preserved, SDSL-V is not migrated into Copeland, and no Slang/PTX or shader/kernel split work is added.
 
 ## Deferred work
 

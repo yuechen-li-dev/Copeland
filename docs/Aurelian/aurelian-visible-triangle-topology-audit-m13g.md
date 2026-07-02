@@ -4,6 +4,8 @@
 
 M13g audits `samples/Aurelian.VisibleTriangle` as the future visible proof target for `VD-MIR` work without implementing `VD-MIR`, changing the current SDSL-V compiler path, or changing renderer behavior.
 
+M14a later implements the first compiler-side `VD-MIR M0` smoke-triangle slice upstream of this sample, but the sample itself still stays on its existing checked-in shader artifacts in this milestone.
+
 This milestone is topology and proof-boundary work only:
 
 - the sample is documented in its current Aurelian-owned shape
@@ -368,6 +370,12 @@ M13g did not:
 - change Aurelian renderer architecture
 - merge Aurelian into Copeland solutions
 - rename the repository
+
+After M14a, these non-changes are still true for the sample runtime:
+
+- the sample is still not wired to `VD-MIR`
+- the checked-in runtime artifact boundary is still preserved
+- renderer/runtime behavior is still unchanged
 
 ## Deferred work
 

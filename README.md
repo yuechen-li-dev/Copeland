@@ -27,6 +27,8 @@ M13f is doctrine only: the future common GPU-oriented MIR is now named `VD-MIR` 
 
 M13g is audit/topology only: `samples/Aurelian.VisibleTriangle` is now inspected as the future visible proof target, its current Aurelian-owned shader/runtime/render path is documented, and it is restored to `Aurelian.slnx` because the sample project is present and builds cleanly. M13g does not implement `VD-MIR`, does not migrate SDSL-V, does not change HLSL/DXC emission, does not add Slang/PTX backends, and does not wire Machina, Aurelian, or Vulkan together beyond the sample's existing path.
 
+M14a is the first implementation slice: a minimal `VD-MIR M0` now exists inside `src/Aurelian.Shaders/Language/VdMir`, the active smoke-triangle SDSL-V AST can lower into it, and an opt-in `VD-MIR -> HLSL -> existing DXC/SPIR-V` proof path now emits deterministic artifacts under `artifacts/m14a`. The direct AST-to-HLSL path remains the default behavior, `samples/Aurelian.VisibleTriangle` still consumes its existing checked-in shader artifacts, no Copeland `VD-MIR` package is created yet, and no Slang/PTX or renderer/runtime integration work is added in this milestone.
+
 ## Pipeline
 
 ```text
@@ -207,6 +209,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Aurelian.VisibleTriangle Topology Audit M13g](docs/Aurelian/aurelian-visible-triangle-topology-audit-m13g.md)
 - [VD-MIR Architecture Doctrine M13f](docs/Copeland/vd-mir-architecture-doctrine-m13f.md)
 - [VD-MIR Visible Triangle Proof Boundary M13g](docs/Copeland/vd-mir-visible-triangle-proof-boundary-m13g.md)
+- [VD-MIR M0 Implementation Slice M14a](docs/Copeland/vd-mir-m0-implementation-slice-m14a.md)
+- [Aurelian VD-MIR M0 Smoke Triangle M14a](docs/Aurelian/aurelian-vd-mir-m0-smoke-triangle-m14a.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)
