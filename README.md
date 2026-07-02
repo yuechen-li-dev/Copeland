@@ -23,6 +23,8 @@ M13d is architecture doctrine only: Copeland is now documented as the compiler w
 
 M13e is recon only: it audits the active `Aurelian.Shaders` SDSL-V lane, documents the exact current `SDSL-V -> HLSL -> DXC -> SPIR-V` path, records backend-neutral versus HLSL/DXC-specific concepts, identifies hidden MIR-shaped pressure already present in lowering/emission/artifact code, and documents one common GPU MIR as the starting assumption for future work. M13e does not move SDSL-V into Copeland, implement `GpuMir`, implement Slang or PTX, or split Shader MIR from Kernel MIR.
 
+M13f is doctrine only: the future common GPU-oriented MIR is now named `VD-MIR` (`Visual Direct MIR`). `VD-MIR` is defined as backend-lowering-shaped, source-provenance-preserving, target-aware, capability-checkable, and artifact-friendly, while HLSL/DXC, Slang, and PTX are defined as backends from `VD-MIR` rather than semantic centers. M13f does not implement `VD-MIR`, does not migrate SDSL-V, does not change current HLSL/DXC behavior, does not split Shader MIR from Kernel MIR, and does not wire `samples/Aurelian.VisibleTriangle` to `VD-MIR`.
+
 ## Pipeline
 
 ```text
@@ -200,6 +202,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Copeland Compiler Lane Taxonomy M13d](docs/Copeland/copeland-compiler-lane-taxonomy-m13d.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)
+- [VD-MIR Architecture Doctrine M13f](docs/Copeland/vd-mir-architecture-doctrine-m13f.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)

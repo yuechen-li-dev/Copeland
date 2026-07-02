@@ -1,0 +1,27 @@
+M13f VD-MIR architecture doctrine manifest
+
+milestone: M13f
+kind: vd-mir-architecture-doctrine
+name: VD-MIR
+expandedName: Visual Direct MIR
+priorWorkingName: GPU MIR
+vdMirImplemented: false
+sdslvMigrationPerformed: false
+hlslBackendChanged: false
+slangBackendImplemented: false
+ptxBackendImplemented: false
+shaderKernelMirSplitPerformed: false
+oneCommonMirStartingAssumption: true
+visibleTriangleWiredToVdMir: false
+aurelianVisibleTrianglePresent: true
+machinaAurelianBridgeImplemented: false
+vulkanPresenterIntegrationPerformed: false
+repoRenamed: false
+stagedArchitectureDocumented: true
+validationStatus: partial-pass-preexisting-testhost-locks
+
+deferredWork:
+- Audit Aurelian.VisibleTriangle topology and proof boundaries before wiring it to VD-MIR.
+- Implement VD-MIR M0 only after the doctrine and sample proof boundary converge.
+- Keep SDSL-V in Aurelian until a deliberate frontend/backend split is earned.
+- Defer Slang, PTX, HLSL backend changes, and Shader MIR / Kernel MIR split until later milestones.

@@ -6,6 +6,7 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 
 - [Copeland Compiler Workshop Architecture M13d](copeland-compiler-workshop-architecture-m13d.md)
 - [Copeland Compiler Lane Taxonomy M13d](copeland-compiler-lane-taxonomy-m13d.md)
+- [VD-MIR Architecture Doctrine M13f](vd-mir-architecture-doctrine-m13f.md)
 - [Copeland Roadmap](copeland-roadmap.md)
 - [Copeland Markdown Frontend M12a](copeland-markdown-frontend-m12a.md)
 - [Copeland TypeScript Support](copeland-typescript-support.md)
@@ -17,6 +18,7 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - Markdown/document lane: Markdown source -> Markdown AST -> `DocumentMir`
 - original script lane: TypeScript-like source -> AST -> MIR -> C# backend
 - current Aurelian SDSL-V lane: SDSL-V -> Aurelian shader frontend/lowering -> HLSL -> DXC -> SPIR-V
+- future GPU-oriented MIR doctrine: SDSL-V -> VD-MIR -> backend -> tool boundary -> artifacts
 
 ## Doctrine
 
@@ -24,6 +26,7 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - Shared primitives are promoted only after repeated concrete use.
 - `DocumentMir` is a document/body MIR, not a universal MIR.
 - `Copeland.Shaders` is too narrow to name the whole architecture.
+- `VD-MIR` is the current name for the future common GPU-oriented MIR candidate.
 
 ## Related docs
 

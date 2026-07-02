@@ -23,7 +23,7 @@ Stages are optional:
 
 - Markdown may stop at AST plus `DocumentMir`.
 - SDSL-V may keep shader-specific semantic forms.
-- GPU TypeScript-like work may earn a GPU MIR only after real pressure.
+- GPU TypeScript-like work may earn a GPU MIR only after real pressure; M13f later names the current candidate `VD-MIR`.
 - Oct may begin with interpreter or CPU backend work before any GPU lowering exists.
 
 ## Document lane
@@ -83,6 +83,7 @@ Current M13e audit finding:
 
 - the active lane has no explicit MIR today
 - one common GPU MIR is the starting assumption for future target analysis
+- M13f later names that target architecture `VD-MIR` (`Visual Direct MIR`)
 - Shader MIR / Kernel MIR split is deferred until proven necessary
 
 Possible future Copeland target split:
@@ -110,7 +111,7 @@ Possible example:
 GPU TypeScript-ish source
   -> restricted TS-shaped AST
   -> Kernel HIR
-  -> GPU MIR if earned
+  -> VD-MIR if earned
   -> PTX / SPIR-V / HLSL / later targets
 ```
 
@@ -249,7 +250,7 @@ GPU TypeScript-ish source
   -> frontend
   -> restricted TS-shaped AST
   -> Kernel/Shader HIR
-  -> GPU MIR if earned
+  -> VD-MIR if earned
   -> HLSL / SPIR-V / PTX
 ```
 

@@ -2,11 +2,13 @@
 
 ## Purpose
 
-M13e records why a future GPU MIR is being considered for Visionary and why the starting assumption should be one shared GPU MIR rather than an immediate Shader MIR / Kernel MIR split.
+M13e records why a future GPU MIR was being considered for Visionary and why the starting assumption should be one shared GPU MIR rather than an immediate Shader MIR / Kernel MIR split.
+
+M13f now names that future architecture target `VD-MIR` (`Visual Direct MIR`). This M13e document remains valid as the recon and pressure analysis that led into the M13f doctrine.
 
 This is target analysis only:
 
-- no `GpuMir` implementation
+- no `GpuMir` or `VD-MIR` implementation
 - no SDSL-V migration
 - no Slang backend implementation
 - no PTX backend implementation
@@ -148,7 +150,7 @@ Only split into separate Shader MIR and Kernel MIR if the common representation 
 - too many target-specific escape hatches
 - tests showing the shared representation is harming clarity more than helping reuse
 
-Until those symptoms are real and repeated, one `GpuMir` is the better starting doctrine.
+Until those symptoms are real and repeated, one `GpuMir` was the better starting doctrine in M13e and one `VD-MIR` is the named continuation of that doctrine in M13f.
 
 ## HLSL/DXC backend sketch
 
@@ -289,6 +291,6 @@ This analysis follows M13d doctrine:
 
 ## Deferred work
 
-- M13f should refine the target architecture before code moves
+- M13f should refine the target architecture before code moves and name the target architecture `VD-MIR`
 - later milestones may extract frontend/backend seams if the lane audit and MIR doctrine keep converging
-- actual `GpuMir`, Slang, and PTX implementation all remain deferred
+- actual `GpuMir` / `VD-MIR`, Slang, and PTX implementation all remain deferred

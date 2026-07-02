@@ -46,6 +46,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m13c/` is the current Aurelian test-normalization and docs-dogfood proof directory.
 - `artifacts/m13d/` is the current Copeland compiler-workshop architecture manifest directory.
 - `artifacts/m13e/` is the current Aurelian SDSL-V lane audit and GPU MIR target-analysis manifest directory.
+- `artifacts/m13f/` is the current VD-MIR architecture doctrine manifest directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -87,6 +88,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M13c test/doc dogfood manifests and presenter PNG exports are generated locally by script/command. They document test normalization status and docs-dogfood proof states, not runtime Aurelian integration.
 - Current M13d compiler-workshop manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document compiler doctrine, lane taxonomy, and explicit non-migration status.
 - Current M13e SDSL-V/GPU-MIR manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document source-layout audit findings, target-analysis doctrine, and explicit recon-only status.
+- Current M13f VD-MIR manifests are deterministic text/JSON reports rather than render artifacts and may be checked in when they document architecture doctrine, staged milestone planning, and explicit non-implementation status.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

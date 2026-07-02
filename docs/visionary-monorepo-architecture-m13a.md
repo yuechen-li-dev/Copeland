@@ -152,6 +152,16 @@ M13d then defines Copeland as the compiler workshop for Visionary:
 - explicit document, script, shader, kernel, numeric, and future domain lanes
 - shared abstractions promoted only after repeated concrete use
 
+M13e then audits the active Aurelian SDSL-V lane and records the hidden GPU-MIR-shaped pressure already present in HLSL emission, stage extraction, SPIR-V artifact emission, DXC tooling, and older lowering helpers.
+
+M13f then names the future common GPU-oriented MIR target `VD-MIR` (`Visual Direct MIR`):
+
+- `VD-MIR` is a future common GPU-oriented MIR candidate, not a universal Copeland IR
+- SDSL-V should eventually lower into `VD-MIR` before HLSL/DXC
+- HLSL/DXC, Slang, and PTX are backend routes from `VD-MIR`, not semantic centers
+- one common MIR remains the starting assumption until evidence proves a shader/kernel split is necessary
+- `samples/Aurelian.VisibleTriangle` exists as a future proof target but is not wired to `VD-MIR` in M13f
+
 ## What did not change
 
 M13a intentionally does not:
@@ -172,8 +182,10 @@ Recommended near-term phases:
 - `M13b`: Aurelian solution/build topology stabilization. Completed as a separate-solution cleanup and NuGet dependency retargeting pass; no runtime integration was introduced.
 - `M13c`: completed as shader test normalization plus curated Aurelian docs dogfood through existing Copeland Markdown/Oblivion paths where safe.
 - `M13d`: Copeland compiler workshop architecture. Completed as doctrine, lane taxonomy, roadmap, and manifest work only.
-- `M13e`: Aurelian SDSL-V lane audit and GPU MIR target analysis.
-- `M13f`: Copeland shader/kernel lane target architecture.
-- `M13g`: tighten Aurelian render-model boundary and null-renderer proof planning.
+- `M13e`: Aurelian SDSL-V lane audit and GPU MIR target analysis. Completed as recon-only audit work.
+- `M13f`: VD-MIR architecture doctrine. Completed as doctrine only; no implementation or migration was added.
+- `M13g`: Aurelian.VisibleTriangle sample topology and proof-boundary audit.
 - `M13h`: design `Machina.Aurelian` bridge contracts.
-- `M14+`: triangle proof, Vulkan proof, and presenter integration after boundaries stabilize.
+- `M14a`: VD-MIR M0 implementation for smoke triangle.
+- `M14b`: visible triangle proof through VD-MIR -> HLSL/DXC -> SPIR-V.
+- `M14+`: later triangle proof expansion, Vulkan proof, and presenter integration after boundaries stabilize.

@@ -4,10 +4,12 @@
 
 M13e audits the current `Aurelian.Shaders` SDSL-V lane in place and records GPU MIR target analysis pressure without moving code or changing behavior.
 
+M13f later names that future architecture target `VD-MIR` (`Visual Direct MIR`). This M13e document remains the source audit that motivates the M13f doctrine.
+
 This milestone is recon only:
 
 - no SDSL-V migration into Copeland
-- no `GpuMir` implementation
+- no `GpuMir` or `VD-MIR` implementation
 - no Slang backend implementation
 - no PTX backend implementation
 - no shader/kernel MIR split
@@ -419,6 +421,7 @@ M13e does not:
 ## Deferred work
 
 - define Copeland GPU MIR target architecture in doctrine before implementation
+- carry that doctrine forward under the named `VD-MIR` architecture in M13f
 - decide whether older top-level `Aurelian.Shaders` legacy path should later be retired or folded into the active lane
 - implement `GpuMir` only after M13e/M13f doctrine converges
 - evaluate Slang and PTX only after the MIR target model is documented and pressure is concrete

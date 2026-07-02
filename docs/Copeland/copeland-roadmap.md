@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13e and does not imply immediate package extraction or migration work.
+This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13f and does not imply immediate package extraction or migration work.
 
 ## Current state
 
@@ -26,13 +26,19 @@ M13e:
   Aurelian SDSL-V lane audit and GPU MIR target analysis
 
 M13f:
-  Copeland shader/kernel lane target architecture
+  VD-MIR architecture doctrine
 
 M13g:
-  Aurelian render model/null renderer boundary proof planning
+  Aurelian.VisibleTriangle sample topology and proof-boundary audit
+
+M14a:
+  VD-MIR M0 implementation for smoke triangle
+
+M14b:
+  visible triangle proof through VD-MIR -> HLSL/DXC -> SPIR-V
 
 M14+:
-  first implementation extraction or bridge proof
+  later implementation extraction, bridge proof, or backend expansion
 ```
 
 ## Deferred implementation targets
@@ -51,7 +57,8 @@ Possible future packages:
 - `Copeland.Hir.Kernel`
 - `Copeland.Hir.Numeric`
 - `Copeland.Mir.CSharp`
-- `Copeland.Mir.Gpu`
+- `Copeland.Mir.Vd`
+- `Copeland.Mir.VdMir`
 - `Copeland.Mir.Numeric`
 - `Copeland.Backends.CSharp`
 - `Copeland.Backends.Hlsl`
@@ -61,8 +68,10 @@ Possible future packages:
 
 These are target taxonomy names, not M13d implementation work.
 
-M13e adds one more doctrine constraint:
+M13e and M13f add the current GPU-lane doctrine:
 
-- start from one common GPU MIR assumption
+- replace the temporary phrase `GPU MIR` with `VD-MIR` / `Visual Direct MIR`
+- start from one common `VD-MIR` assumption
 - do not split Shader MIR / Kernel MIR until proven necessary
-- do not implement `Copeland.Mir.Gpu`, `Copeland.Backends.Slang`, or `Copeland.Backends.Ptx` during recon
+- treat HLSL/DXC, Slang, and PTX as backends from `VD-MIR`, not semantic centers
+- do not implement `Copeland.Mir.Vd`, `Copeland.Mir.VdMir`, `Copeland.Backends.Slang`, or `Copeland.Backends.Ptx` during doctrine work

@@ -103,6 +103,6 @@ The selected Aurelian docs compile through the same `Copeland.Markdown` frontend
 
 - broader Aurelian docs ingestion beyond the curated slice
 - M13e SDSL-V lane audit and GPU MIR target analysis
-- M13f Copeland shader/kernel target architecture
+- M13f VD-MIR architecture doctrine
 - `Machina.Aurelian` bridge contracts
 - Vulkan/presenter integration after subsystem boundaries are intentionally tightened

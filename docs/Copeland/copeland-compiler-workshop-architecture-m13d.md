@@ -160,7 +160,7 @@ MIR doctrine:
 - MIR is not universal by default
 - one lane's MIR does not define another lane's MIR
 
-`DocumentMir` is body/document MIR for Markdown and document rendering flows. It is not a universal program MIR. A future `Copeland.Mir.Gpu` should appear only if shader/kernel lanes actually need that shared shape.
+`DocumentMir` is body/document MIR for Markdown and document rendering flows. It is not a universal program MIR. M13f later names the future GPU-oriented MIR target `VD-MIR`, with likely code spellings such as `VdMir`, but it still appears only if shader/kernel lanes actually need that shared shape.
 
 ## Backends
 
@@ -238,7 +238,8 @@ src/Copeland.Hir.Kernel
 src/Copeland.Hir.Numeric
 
 src/Copeland.Mir.CSharp
-src/Copeland.Mir.Gpu
+src/Copeland.Mir.Vd
+src/Copeland.Mir.VdMir
 src/Copeland.Mir.Numeric
 
 src/Copeland.Backends.CSharp
@@ -264,7 +265,8 @@ Acceptable future package names include:
 - `Copeland.Hir.Shader`
 - `Copeland.Backends.Hlsl`
 - `Copeland.Backends.Ptx`
-- `Copeland.Mir.Gpu`
+- `Copeland.Mir.Vd`
+- `Copeland.Mir.VdMir`
 
 ## Existing lanes
 
@@ -458,8 +460,10 @@ Recommended next sequence:
 
 - `M13d`: Copeland compiler workshop architecture
 - `M13e`: Aurelian SDSL-V lane audit and GPU MIR target analysis
-- `M13f`: Copeland shader/kernel lane target architecture
-- `M13g`: Aurelian render model/null renderer boundary proof planning
+- `M13f`: VD-MIR architecture doctrine
+- `M13g`: Aurelian.VisibleTriangle sample topology and proof-boundary audit
+- `M14a`: VD-MIR M0 implementation for smoke triangle
+- `M14b`: visible triangle proof through VD-MIR -> HLSL/DXC -> SPIR-V
 - `M14+`: first implementation extraction or bridge proof when the architecture has earned it
 
 Shared abstraction promotion rule for all follow-up work:
