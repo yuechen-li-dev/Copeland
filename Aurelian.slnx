@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Aurelian.Actuation/Aurelian.Actuation.csproj" />
     <Project Path="src/Aurelian.Assets/Aurelian.Assets.csproj" />

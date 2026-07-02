@@ -292,5 +292,6 @@ This analysis follows M13d doctrine:
 ## Deferred work
 
 - M13f should refine the target architecture before code moves and name the target architecture `VD-MIR`
+- M13g should audit `samples/Aurelian.VisibleTriangle` so the first visible proof target has an explicit topology and ownership boundary before `VD-MIR` implementation starts
 - later milestones may extract frontend/backend seams if the lane audit and MIR doctrine keep converging
 - actual `GpuMir` / `VD-MIR`, Slang, and PTX implementation all remain deferred

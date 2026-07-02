@@ -49,7 +49,7 @@ M13b makes these topology fixes:
 - removes stale `vendor/Dominatus/src/...` solution entries from `Aurelian.slnx`
 - replaces the `Aurelian.Runtime` project reference to `vendor/Dominatus` with a NuGet package reference to `Dominatus.Core`
 
-The visible-triangle sample remained deferred rather than recreated as a placeholder in this milestone. It now exists again under `samples/Aurelian.VisibleTriangle`, but that restoration happens after M13b and does not change the M13b topology doctrine.
+The visible-triangle sample remained deferred rather than recreated as a placeholder in this milestone. It now exists again under `samples/Aurelian.VisibleTriangle`, but that restoration happens after M13b and does not change the M13b topology doctrine. M13g later re-audits the restored sample and re-adds it to `Aurelian.slnx` because the project is present and builds cleanly.
 
 ## Central package versions
 
@@ -136,5 +136,5 @@ Likely follow-up lanes after M13b:
 - `M13d`: Copeland compiler workshop architecture. Completed as doctrine, taxonomy, and roadmap work only.
 - `M13e`: Aurelian SDSL-V lane audit and GPU MIR target analysis. Completed as recon-only audit work.
 - `M13f`: VD-MIR architecture doctrine. Completed as doctrine only; no implementation or migration was added.
-- `M13g`: Aurelian.VisibleTriangle sample topology and proof-boundary audit
+- `M13g`: Aurelian.VisibleTriangle sample topology and proof-boundary audit. Completed as audit/topology work only; no VD-MIR wiring or renderer changes were added.
 - `M13h`: design `Machina.Aurelian` bridge contracts

@@ -418,6 +418,8 @@ M13e does not:
 - change artifact semantics
 - wire Machina/Aurelian/Vulkan
 
+M13g later audits `samples/Aurelian.VisibleTriangle` as the future proof target for this lane, but that later audit still does not migrate SDSL-V into Copeland, implement `VD-MIR`, or change the current `SDSL-V -> HLSL -> DXC -> SPIR-V` behavior described here.
+
 ## Deferred work
 
 - define Copeland GPU MIR target architecture in doctrine before implementation

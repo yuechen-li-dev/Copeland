@@ -184,7 +184,7 @@ Recommended near-term phases:
 - `M13d`: Copeland compiler workshop architecture. Completed as doctrine, lane taxonomy, roadmap, and manifest work only.
 - `M13e`: Aurelian SDSL-V lane audit and GPU MIR target analysis. Completed as recon-only audit work.
 - `M13f`: VD-MIR architecture doctrine. Completed as doctrine only; no implementation or migration was added.
-- `M13g`: Aurelian.VisibleTriangle sample topology and proof-boundary audit.
+- `M13g`: Aurelian.VisibleTriangle sample topology and proof-boundary audit. Completed as audit/topology work only; the sample remains a future proof target and is not wired to `VD-MIR` yet.
 - `M13h`: design `Machina.Aurelian` bridge contracts.
 - `M14a`: VD-MIR M0 implementation for smoke triangle.
 - `M14b`: visible triangle proof through VD-MIR -> HLSL/DXC -> SPIR-V.

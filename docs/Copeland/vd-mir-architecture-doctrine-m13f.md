@@ -533,6 +533,7 @@ Runtime behavior is unchanged.
 
 ## Deferred work
 
+- M13g later performs the topology and proof-boundary audit for `samples/Aurelian.VisibleTriangle` without changing the sample's current shader/runtime/render path and without adding any `VD-MIR` implementation.
 - `M13g`: audit `Aurelian.VisibleTriangle` topology and proof boundaries
 - `M14a`: implement `VD-MIR M0` for the smoke-triangle path
 - `M14b`: prove visible triangle through `VD-MIR -> HLSL/DXC -> SPIR-V`

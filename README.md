@@ -25,6 +25,8 @@ M13e is recon only: it audits the active `Aurelian.Shaders` SDSL-V lane, documen
 
 M13f is doctrine only: the future common GPU-oriented MIR is now named `VD-MIR` (`Visual Direct MIR`). `VD-MIR` is defined as backend-lowering-shaped, source-provenance-preserving, target-aware, capability-checkable, and artifact-friendly, while HLSL/DXC, Slang, and PTX are defined as backends from `VD-MIR` rather than semantic centers. M13f does not implement `VD-MIR`, does not migrate SDSL-V, does not change current HLSL/DXC behavior, does not split Shader MIR from Kernel MIR, and does not wire `samples/Aurelian.VisibleTriangle` to `VD-MIR`.
 
+M13g is audit/topology only: `samples/Aurelian.VisibleTriangle` is now inspected as the future visible proof target, its current Aurelian-owned shader/runtime/render path is documented, and it is restored to `Aurelian.slnx` because the sample project is present and builds cleanly. M13g does not implement `VD-MIR`, does not migrate SDSL-V, does not change HLSL/DXC emission, does not add Slang/PTX backends, and does not wire Machina, Aurelian, or Vulkan together beyond the sample's existing path.
+
 ## Pipeline
 
 ```text
@@ -202,7 +204,9 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Copeland Compiler Lane Taxonomy M13d](docs/Copeland/copeland-compiler-lane-taxonomy-m13d.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)
+- [Aurelian.VisibleTriangle Topology Audit M13g](docs/Aurelian/aurelian-visible-triangle-topology-audit-m13g.md)
 - [VD-MIR Architecture Doctrine M13f](docs/Copeland/vd-mir-architecture-doctrine-m13f.md)
+- [VD-MIR Visible Triangle Proof Boundary M13g](docs/Copeland/vd-mir-visible-triangle-proof-boundary-m13g.md)
 - [Copeland Roadmap](docs/Copeland/copeland-roadmap.md)
 - [Copeland TypeScript Support Matrix](docs/copeland-typescript-support.md)
 - [Machina Support Roadmap](docs/Machina/machina-support-roadmap.md)

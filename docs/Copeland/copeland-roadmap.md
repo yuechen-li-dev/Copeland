@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13f and does not imply immediate package extraction or migration work.
+This roadmap tracks the current Copeland direction as the compiler workshop for Visionary. It is intentionally architecture-first through M13g and does not imply immediate package extraction or migration work.
 
 ## Current state
 
@@ -75,3 +75,10 @@ M13e and M13f add the current GPU-lane doctrine:
 - do not split Shader MIR / Kernel MIR until proven necessary
 - treat HLSL/DXC, Slang, and PTX as backends from `VD-MIR`, not semantic centers
 - do not implement `Copeland.Mir.Vd`, `Copeland.Mir.VdMir`, `Copeland.Backends.Slang`, or `Copeland.Backends.Ptx` during doctrine work
+
+M13g adds the proof-target boundary audit:
+
+- treat `samples/Aurelian.VisibleTriangle` as the next concrete visible proof target
+- document the current `assets.toml` -> shader artifact -> `CompiledShaderProgram` -> Vulkan pipeline -> present path before any MIR insertion
+- keep the sample Aurelian-owned and separate from `Copeland.slnx` / `Copeland.Slow.slnx`
+- do not wire the sample to `VD-MIR` until `M14a`/`M14b`
