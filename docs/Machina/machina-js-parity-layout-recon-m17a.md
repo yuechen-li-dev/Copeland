@@ -209,6 +209,7 @@ Relevant areas:
 
 - M17d should expose an authoring-level grid/cell helper over the existing low-level `GridArrange`/`CellFrame`
 - M17e should move the Oblivion page shell onto that grid authoring path
+- M17e has now landed as that page-shell migration, preserving wide/compact behavior while reducing manual authoring math
 
 Representative shape:
 
@@ -532,6 +533,7 @@ Follow-through note:
 - M17b still does not migrate `OblivionCardRenderer` or page layout
 - M17c then applies that surface to `OblivionCardRenderer` internals only, fixes the documented card body/footer and badge-measurement risks, and still does not refactor page layout or implement `UI.Grid(...)`
 - M17d then adds the authoring-level `UI.Grid(...)` surface over the existing low-level `GridArrange`/`CellFrame` engine, including explicit cells plus matrix authoring, while still deferring the Oblivion page-shell migration to M17e
+- M17e then uses that existing `UI.Grid(...)` surface for the Oblivion wide page shell, keeps independent panes intact, preserves compact behavior, and still does not add guide frames, row variants, proportional `UiLength`, or a second layout engine
 
 ## What did not change
 

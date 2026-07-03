@@ -286,3 +286,6 @@ Deferred after M17d:
 - row variants
 - guide/reference placement
 - DeusMachine parity
+
+That immediate page-shell migration has now landed as [Oblivion Page Grid Refactor M17e](../Oblivion/oblivion-page-grid-refactor-m17e.md).
+M17e uses the existing `UI.Grid(...)` surface documented here and does not add new grid primitives.

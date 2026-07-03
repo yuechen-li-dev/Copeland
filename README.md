@@ -57,6 +57,8 @@ M17c is the focused renderer follow-through. `OblivionCardRenderer` now uses sta
 
 M17d is the matching grid authoring primitive. C# already had low-level `GridArrange` and `CellFrame` support; M17d adds `UI.Grid(...)`, `UI.GridCell(...)`, fixed/fill `UI.Track(...)` helpers, explicit sparse-cell authoring, and regular matrix authoring that both lower to the existing grid engine. M17d does not refactor the Oblivion page shell yet, does not implement a second layout engine, and does not intend a product runtime behavior change.
 
+M17e is the focused wide-shell follow-through. Oblivion's wide page panes are now authored through the existing `UI.Grid(...)` surface so the shell reads as left fill cards, right fixed inspector, and page gap rather than manual two-column placement math. M17e preserves the M15 independent-pane behavior, keeps compact mode on its deterministic path, adds proof exports/docs/manifests, and does not add new grid primitives, proportional `UiLength`, guide frames, row variants, or `DeusMachine`.
+
 ## Pipeline
 
 ```text
@@ -248,6 +250,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina UI.Stack Authoring M17b](docs/Machina/machina-ui-stack-authoring-m17b.md)
 - [Machina UI.Grid Authoring M17d](docs/Machina/machina-ui-grid-authoring-m17d.md)
 - [Oblivion Card Renderer Stack Refactor M17c](docs/Oblivion/oblivion-card-renderer-stack-refactor-m17c.md)
+- [Oblivion Page Grid Refactor M17e](docs/Oblivion/oblivion-page-grid-refactor-m17e.md)
 - [Oblivion Playback Regression Coverage M16c](docs/Oblivion/oblivion-playback-regression-coverage-m16c.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)

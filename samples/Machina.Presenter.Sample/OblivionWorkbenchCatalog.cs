@@ -93,21 +93,13 @@ public static class OblivionWorkbenchCatalog
         return
         [
             Row.Anchor(
-                id: $"{pageId}.cards-panel",
+                id: $"{pageId}.wide-page-shell",
                 parent: "root",
                 left: 0,
                 top: 0,
-                width: layout.CardsColumnWidth,
+                width: layout.ContentWidth,
                 height: layout.ViewportHeight,
-                component: BuildWideCardsPane(pageId, cards, selection, theme, layout, navigationState)),
-            Row.Anchor(
-                id: $"{pageId}.inspector-panel",
-                parent: "root",
-                left: layout.InspectorLeft,
-                top: 0,
-                width: layout.InspectorWidth,
-                height: layout.ViewportHeight,
-                component: BuildWideInspectorPane(pageId, selection, theme, layout, navigationState)),
+                component: BuildWidePageShell(pageId, cards, selection, theme, layout, navigationState)),
         ];
     }
 
@@ -1576,6 +1568,56 @@ public static class OblivionWorkbenchCatalog
                 ClipToBounds: true));
     }
 
+    private static UiNode BuildWidePageShell(
+        string pageId,
+        IReadOnlyList<OblivionBuiltCard> cards,
+        OblivionInspectorSelection selection,
+        StandardTheme theme,
+        OblivionPageLayout layout,
+        PresenterNavigationState? navigationState)
+    {
+        // M17e moves the wide Oblivion page shell onto the existing UI.Grid authoring
+        // surface so readers no longer have to manually simulate:
+        // cardsColumnWidth = contentWidth - inspectorWidth - gap
+        // inspectorLeft = cardsColumnWidth + gap
+        // Selection still couples stack and inspector content. Scrolling still does not.
+        return UI.Grid(
+            id: $"{pageId}.page-grid",
+            columns:
+            [
+                UI.Track.Fill(1),
+                UI.Track.Fixed(layout.InspectorWidth),
+            ],
+            rows:
+            [
+                UI.Track.Fill(1),
+            ],
+            columnGap: layout.PageGap,
+            children:
+            [
+                UI.GridCell(
+                    row: 0,
+                    column: 0,
+                    child: UI.Anchor(
+                        BuildWideCardsPane(pageId, cards, selection, theme, layout, navigationState),
+                        id: $"{pageId}.cards-panel",
+                        left: UiLength.Px(0),
+                        top: UiLength.Px(0),
+                        right: UiLength.Px(0),
+                        bottom: UiLength.Px(0))),
+                UI.GridCell(
+                    row: 0,
+                    column: 1,
+                    child: UI.Anchor(
+                        BuildWideInspectorPane(pageId, selection, theme, layout, navigationState),
+                        id: $"{pageId}.inspector-panel",
+                        left: UiLength.Px(0),
+                        top: UiLength.Px(0),
+                        right: UiLength.Px(0),
+                        bottom: UiLength.Px(0))),
+            ]);
+    }
+
     private static UiNode BuildWideInspectorPane(
         string pageId,
         OblivionInspectorSelection selection,
@@ -2219,6 +2261,7 @@ public static class OblivionWorkbenchCatalog
 
 public sealed record OblivionPageLayout(
     int ContentWidth,
+    int PageGap,
     int CardsColumnWidth,
     int InspectorLeft,
     int InspectorWidth,
@@ -2227,17 +2270,17 @@ public sealed record OblivionPageLayout(
 {
     public static OblivionPageLayout CreateWide(int contentWidth, int viewportHeight)
     {
-        const int columnGap = 24;
+        const int pageGap = 24;
         int inspectorWidth = Math.Max(284, Math.Min(332, (int)Math.Floor(contentWidth * 0.4)));
-        int cardsColumnWidth = Math.Max(320, contentWidth - inspectorWidth - columnGap);
-        int inspectorLeft = cardsColumnWidth + columnGap;
+        int cardsColumnWidth = Math.Max(320, contentWidth - inspectorWidth - pageGap);
+        int inspectorLeft = cardsColumnWidth + pageGap;
         int expandedMarkdownCardHeight = Math.Max(480, viewportHeight - 20);
-        return new OblivionPageLayout(contentWidth, cardsColumnWidth, inspectorLeft, inspectorWidth, viewportHeight, expandedMarkdownCardHeight);
+        return new OblivionPageLayout(contentWidth, pageGap, cardsColumnWidth, inspectorLeft, inspectorWidth, viewportHeight, expandedMarkdownCardHeight);
     }
 
     public static OblivionPageLayout CreateCompact(int contentWidth, int viewportHeight)
     {
         int expandedMarkdownCardHeight = Math.Max(360, viewportHeight - 16);
-        return new OblivionPageLayout(contentWidth, contentWidth, 0, contentWidth, viewportHeight, expandedMarkdownCardHeight);
+        return new OblivionPageLayout(contentWidth, 0, contentWidth, 0, contentWidth, viewportHeight, expandedMarkdownCardHeight);
     }
 }

@@ -14,6 +14,7 @@ The goal is parity with the stronger JS authoring model over time, without attem
 P0  M17b  StackArrange + FillFrame authoring parity
 P1  M17c  Oblivion card renderer stack refactor
 P2  M17d  GridArrange + CellFrame authoring parity
+P2  M17e  Oblivion wide page-shell grid refactor
 P3  M17e  Oblivion page layout grid refactor
 P4  M17f  UiLength proportional/clamp support
 P5  M17g  Row variants
@@ -100,6 +101,7 @@ Primary goal:
 Current note:
 
 - M17d built the grid authoring tool
+- M17e now applies that tool to the Oblivion wide page shell without expanding scope into new layout primitives
 - M17e remains the first milestone allowed to apply that tool to the Oblivion page shell
 
 Expected results:

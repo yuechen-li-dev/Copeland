@@ -70,8 +70,8 @@ public sealed class PresenterAdaptiveShellM12hTests
 
         string text = PageText(page);
 
-        Assert.Contains(page.Document.Rows, row => string.Equals(row.Id.Value, "oblivion.docs.cards-panel", StringComparison.Ordinal));
-        Assert.Contains(page.Document.Rows, row => string.Equals(row.Id.Value, "oblivion.docs.inspector-panel", StringComparison.Ordinal));
+        Assert.Contains(page.Frame.Lowering.Rows, row => row.Id.Value.EndsWith("oblivion.docs.cards-panel", StringComparison.Ordinal));
+        Assert.Contains(page.Frame.Lowering.Rows, row => row.Id.Value.EndsWith("oblivion.docs.inspector-panel", StringComparison.Ordinal));
         Assert.Contains("Selected card inspector", text, StringComparison.Ordinal);
     }
 
