@@ -8,6 +8,7 @@ using Machina.Core.Actions;
 using Machina.Core.Styling;
 using Machina.Pipeline;
 using Machina.Runtime.Input;
+using Machina.Presenter.Sample.Playback;
 using Machina.Standard.Theme;
 using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
 
@@ -42,6 +43,27 @@ internal sealed class Program
         ProgramOptionsHolder.Set(options);
         if (options.ExportOnly)
         {
+            if (!string.IsNullOrWhiteSpace(options.PlaybackScenarioPath))
+            {
+                PresenterPlaybackRunner playbackRunner = new(
+                    DemoState.Default,
+                    AppTheme,
+                    options.ProofOptions);
+                PresenterPlaybackOutputWriter.WriteMilestoneManifest(
+                    Path.GetFullPath(Path.Combine("artifacts", "m16a")));
+                PresenterPlaybackRunResult playbackResult = playbackRunner.RunScenarioFile(
+                    options.PlaybackScenarioPath,
+                    options.OutputPath);
+                if (playbackResult.Trace.Assertions.Any(assertion => !assertion.Passed))
+                {
+                    throw new InvalidOperationException(
+                        $"Presenter playback scenario '{playbackResult.Scenario.Id}' failed one or more assertions. See {playbackResult.OutputDirectory}.");
+                }
+
+                Console.WriteLine($"Ran presenter playback scenario '{playbackResult.Scenario.Id}' into {playbackResult.OutputDirectory}");
+                return;
+            }
+
             PresenterExportResult result = PresenterExporter.Export(options);
             Console.WriteLine($"Exported presenter png to {result.OutputPath} ({result.Width}x{result.Height})");
             return;
@@ -78,7 +100,7 @@ internal sealed class Program
 
     private static class ProgramOptionsHolder
     {
-        public static PresenterProgramOptions Current { get; private set; } = new(false, PresenterExportContract.DefaultOutputPath, new PresenterProofOptions(), PresenterNavigationExportOptions.DefaultShell);
+        public static PresenterProgramOptions Current { get; private set; } = new(false, PresenterExportContract.DefaultOutputPath, new PresenterProofOptions(), PresenterNavigationExportOptions.DefaultShell, null);
 
         public static void Set(PresenterProgramOptions options)
         {

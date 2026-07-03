@@ -21,6 +21,7 @@ param(
     [string]$InvokeAction,
     [string]$NavigationPage,
     [string]$ScrollPage,
+    [string]$PlaybackScenario,
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug"
 )
@@ -152,6 +153,12 @@ if (-not [string]::IsNullOrWhiteSpace($ScrollPage))
 {
     $arguments += "--scroll-page"
     $arguments += $ScrollPage
+}
+
+if (-not [string]::IsNullOrWhiteSpace($PlaybackScenario))
+{
+    $arguments += "--playback-scenario"
+    $arguments += $PlaybackScenario
 }
 
 Push-Location $repoRoot

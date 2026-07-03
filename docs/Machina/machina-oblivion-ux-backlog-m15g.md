@@ -12,6 +12,12 @@ The backlog is grouped by the next user-facing pain points rather than by implem
 
 The current reading baseline is good enough to pause. The next work should be chosen deliberately from navigation, focus affordances, search/filtering, editing, or execution.
 
+Follow-up note after M16a:
+
+- M16a used the next slot for internal deterministic playback tooling rather than new UX affordances
+- that playback MVP now gives the backlog a reproducible interaction-artifact path instead of relying on memory or hand-testing alone
+- scenarios, traces, manifests, and final PNGs can now accompany future UX fixes
+
 ## Reading/navigation
 
 Priority items:

@@ -1,0 +1,178 @@
+{
+  "ScenarioId": "oblivion-expanded-body-scroll",
+  "ScenarioName": "Expand a Markdown doc and scroll its expanded body",
+  "Steps": [
+    {
+      "Index": 0,
+      "Type": "click",
+      "Target": "card-header",
+      "CardId": "selected-doc-dogfood",
+      "ResolvedPoint": {
+        "X": 546,
+        "Y": 467
+      },
+      "ResolvedRect": {
+        "X": 274,
+        "Y": 394,
+        "Width": 544,
+        "Height": 146
+      },
+      "EmittedInput": {
+        "Kind": "PointerReleased",
+        "Key": null,
+        "WheelDeltaY": null,
+        "ActionId": null,
+        "PointerCaptureRequest": "None"
+      },
+      "Before": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "execution-roadmap",
+        "PageId": "oblivion.execution-roadmap",
+        "SelectedCard": "selected-doc-dogfood",
+        "ExpandedCards": [],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "card-header",
+        "ShellMode": 0,
+        "PageRenderCount": 1,
+        "ShellRenderCount": 1,
+        "CompositionCount": 2
+      },
+      "After": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "execution-roadmap",
+        "PageId": "oblivion.execution-roadmap",
+        "SelectedCard": "selected-doc-dogfood",
+        "ExpandedCards": [
+          "selected-doc-dogfood"
+        ],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "card-header",
+        "ShellMode": 0,
+        "PageRenderCount": 2,
+        "ShellRenderCount": 1,
+        "CompositionCount": 5
+      },
+      "Result": "ok"
+    },
+    {
+      "Index": 1,
+      "Type": "wheel",
+      "Target": "expanded-body",
+      "CardId": "selected-doc-dogfood",
+      "ResolvedPoint": {
+        "X": 546,
+        "Y": 701
+      },
+      "ResolvedRect": {
+        "X": 274,
+        "Y": 540,
+        "Width": 544,
+        "Height": 322
+      },
+      "EmittedInput": {
+        "Kind": "Wheel",
+        "Key": null,
+        "WheelDeltaY": -7.5,
+        "ActionId": null,
+        "PointerCaptureRequest": "None"
+      },
+      "Before": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "execution-roadmap",
+        "PageId": "oblivion.execution-roadmap",
+        "SelectedCard": "selected-doc-dogfood",
+        "ExpandedCards": [
+          "selected-doc-dogfood"
+        ],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "expanded-body",
+        "ShellMode": 0,
+        "PageRenderCount": 2,
+        "ShellRenderCount": 1,
+        "CompositionCount": 6
+      },
+      "After": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "execution-roadmap",
+        "PageId": "oblivion.execution-roadmap",
+        "SelectedCard": "selected-doc-dogfood",
+        "ExpandedCards": [
+          "selected-doc-dogfood"
+        ],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "expanded-body",
+        "ShellMode": 0,
+        "PageRenderCount": 2,
+        "ShellRenderCount": 1,
+        "CompositionCount": 8
+      },
+      "Result": "ok"
+    }
+  ],
+  "Assertions": [
+    {
+      "Index": 0,
+      "Type": "card-expanded",
+      "Reason": "Clicking a Markdown card header should expand the card so the stack becomes the primary reading surface.",
+      "Expected": "True",
+      "Actual": "True",
+      "Passed": true,
+      "FailureMessage": null
+    },
+    {
+      "Index": 1,
+      "Type": "scroll-offset-changed",
+      "Reason": "Wheel input over an expanded Markdown body should move that body\u0027s local scroll offset.",
+      "Expected": "!= 0",
+      "Actual": "0",
+      "Passed": false,
+      "FailureMessage": "Expected scroll offset for \u0027expanded-body\u0027 to change from 0, but it remained 0."
+    }
+  ],
+  "InitialState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "execution-roadmap",
+    "PageId": "oblivion.execution-roadmap",
+    "SelectedCard": "selected-doc-dogfood",
+    "ExpandedCards": [],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 0,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 1,
+    "ShellRenderCount": 1,
+    "CompositionCount": 1
+  },
+  "FinalState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "execution-roadmap",
+    "PageId": "oblivion.execution-roadmap",
+    "SelectedCard": "selected-doc-dogfood",
+    "ExpandedCards": [
+      "selected-doc-dogfood"
+    ],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 0,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 2,
+    "ShellRenderCount": 1,
+    "CompositionCount": 9
+  }
+}

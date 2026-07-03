@@ -4,7 +4,8 @@ public sealed record PresenterProgramOptions(
     bool ExportOnly,
     string OutputPath,
     PresenterProofOptions ProofOptions,
-    PresenterNavigationExportOptions NavigationOptions)
+    PresenterNavigationExportOptions NavigationOptions,
+    string? PlaybackScenarioPath)
 {
     public static PresenterProgramOptions Parse(IReadOnlyList<string> args)
     {
@@ -28,6 +29,7 @@ public sealed record PresenterProgramOptions(
         string? invokeActionId = null;
         Dictionary<string, double>? scrollOffsetByPageId = null;
         bool runtimeSizeExplicit = false;
+        string? playbackScenarioPath = null;
 
         for (int index = 0; index < args.Count; index++)
         {
@@ -179,6 +181,14 @@ public sealed record PresenterProgramOptions(
 
                 scrollOffsetByPageId ??= new Dictionary<string, double>(StringComparer.Ordinal);
                 scrollOffsetByPageId[pageId] = offset;
+                continue;
+            }
+
+            if (arg == "--playback-scenario" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                exportOnly = true;
+                playbackScenarioPath = args[++index];
             }
         }
 
@@ -203,6 +213,7 @@ public sealed record PresenterProgramOptions(
                 invokeActionId,
                 scrollOffsetByPageId,
                 includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null,
-                runtimeSizeExplicit));
+                runtimeSizeExplicit),
+            playbackScenarioPath);
     }
 }

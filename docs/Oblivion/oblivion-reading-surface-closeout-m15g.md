@@ -212,7 +212,7 @@ Performance and density papercuts:
 
 ## Recommended next milestone
 
-Primary recommendation:
+Primary recommendation recorded at M15g:
 
 ```text
 M16a — Oblivion reading navigation and focus affordances
@@ -234,6 +234,13 @@ M16a could instead be a search/filtering milestone if browsing volume becomes th
 ```
 
 M15g recommends navigation and focus affordances as the primary next step because the reading surface now exists, but its intent and focus ownership are still more expensive than they should be.
+
+Follow-up note after M16a:
+
+- M16a landed instead as internal deterministic playback MVP infrastructure for the current presenter surface.
+- playback scenarios are TOML artifacts that drive Machina's internal presenter input model rather than native OS input
+- assertions now require non-empty reasons so future reviewers can understand what behavior each scenario protects
+- this is not native desktop automation and not pixel-golden screenshot testing
 
 ## What changed
 

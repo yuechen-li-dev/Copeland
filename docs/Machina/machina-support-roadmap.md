@@ -326,6 +326,32 @@ M15g is closeout/planning only:
 - no Aurelian work
 - no `VD-MIR` work
 
+## M16a update
+
+M16a adds internal deterministic presenter playback as sample-local tooling under `samples/Machina.Presenter.Sample`.
+
+- playback scenarios now use TOML via `*.machina-playback.toml`
+- scenarios are artifacts, not disposable scripts
+- playback routes through the presenter's internal input model rather than native OS automation
+- starter scenarios can write normalized scenario TOML, trace JSON, manifest JSON/TXT, and final PNG output under `artifacts/m16a/playback/<scenario-id>/`
+- assertions now require non-empty human-readable reasons and parser tests enforce that policy
+- current semantic targets cover the M15 Oblivion reading-surface regions: main stack, card header, expanded body, inspector pane, raw source, and current scrollbar thumbs
+
+Current status is meaningful progression rather than full closure because the playback seam still has two known parity gaps:
+
+- main-stack wheel playback does not yet match the older direct M15f interaction seam
+- raw-source wheel playback does not yet match the older direct M15f interaction seam
+
+This remains bounded:
+
+- no native OS automation
+- no pixel-golden diffing
+- no Markdown editing
+- no notebook execution
+- no Roslyn execution
+- no Aurelian work
+- no `VD-MIR` work
+
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 
