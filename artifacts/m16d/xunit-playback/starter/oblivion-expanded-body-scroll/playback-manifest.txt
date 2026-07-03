@@ -1,0 +1,18 @@
+scenarioId=oblivion-expanded-body-scroll
+scenarioName=Expand a Markdown doc and scroll its expanded body
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\starter\oblivion-expanded-body-scroll
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\starter\oblivion-expanded-body-scroll\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\starter\oblivion-expanded-body-scroll\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\starter\oblivion-expanded-body-scroll\playback-trace.json
+passed=true
+assertionCount=2
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] card-expanded passed=true reason=Clicking a Markdown card header should expand the card so the stack becomes the primary reading surface. expected=True actual=True
+  [1] scroll-offset-changed passed=true reason=Wheel input over an expanded Markdown body should move that body's local scroll offset. expected=!= 0 actual=48

@@ -383,6 +383,21 @@ This remains bounded:
 - no Aurelian work
 - no `VD-MIR` work
 
+## M16d update
+
+M16d is xUnit playback integration only.
+
+- starter playback scenarios now run as normal generated xUnit theory cases
+- regression playback scenarios now run as normal generated xUnit theory cases
+- canonical scenario discovery now lives in C# and can use the existing M16c suite manifest for deterministic ordering
+- xUnit owns loops, scenario selection, aggregate runs, failure formatting, and any future environment guards
+- TOML remains a cassette and still does not add loops, conditionals, variables, or scripting features
+- deterministic xUnit playback artifacts now write under `artifacts/m16d/xunit-playback/<suite>/<scenario-id>/`
+- failed xUnit playback runs now write `failure.txt` alongside normalized TOML, trace JSON, manifest JSON/TXT, and final PNG
+- the M16c suite runner remains available for non-xUnit suite/report workflows
+
+M16d still does not add native OS automation, pixel-golden diffing, Markdown editing, notebook execution, Roslyn execution, Aurelian work, or `VD-MIR` work.
+
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

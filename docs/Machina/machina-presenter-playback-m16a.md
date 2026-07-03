@@ -12,6 +12,12 @@ Follow-up note after M16c:
 - a suite runner and aggregate report now exist; see [Machina Playback Regression Suite M16c](machina-playback-regression-suite-m16c.md)
 - playback still does not add native OS automation, TOML programming features, or pixel-golden diffing
 
+Follow-up note after M16d:
+
+- playback scenarios now also run as normal xUnit tests through C# discovery/orchestration
+- TOML remains a cassette and still does not gain loops, conditionals, or variables
+- failing xUnit playback runs now write deterministic debug artifacts plus a failure summary under `artifacts/m16d/xunit-playback/`
+
 ## Purpose
 
 M16a introduces a sample-local deterministic playback MVP for the Machina presenter.

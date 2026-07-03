@@ -1,0 +1,19 @@
+scenarioId=m16d-failing-fixture-shell-mode
+scenarioPath=C:\Users\yuech\AppData\Local\Temp\machina-playback-m16d-fixtures\f186413cbb9c41b0a237e898d49f507b\m16d-failing-fixture-shell-mode.machina-playback.toml
+failedAssertionType=shell-mode
+assertionReason=This synthetic failure proves xUnit playback assertions carry scenario reasons.
+expected=Compact
+actual=Wide
+tracePath=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\fixtures\m16d-failing-fixture-shell-mode\playback-trace.json
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\fixtures\m16d-failing-fixture-shell-mode\final.png
+rootCauseHint=Expected shell mode 'Compact', but found 'Wide'.
+testName=MachinaPlaybackXunitIntegrationM16dTests.FixtureFailure
+
+Playback scenario failed: m16d-failing-fixture-shell-mode
+Assertion 1 failed: shell-mode
+Reason: This synthetic failure proves xUnit playback assertions carry scenario reasons.
+Expected: Compact
+Actual: Wide
+Hint: Expected shell mode 'Compact', but found 'Wide'.
+Artifacts: C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\fixtures\m16d-failing-fixture-shell-mode
+Test: MachinaPlaybackXunitIntegrationM16dTests.FixtureFailure

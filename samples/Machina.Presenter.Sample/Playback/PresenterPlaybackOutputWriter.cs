@@ -507,6 +507,103 @@ public static class PresenterPlaybackOutputWriter
         return (jsonPath, textPath);
     }
 
+    public static string WriteFailureSummary(
+        string outputDirectory,
+        IReadOnlyList<string> lines)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(lines);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string path = Path.Combine(outputDirectory, "failure.txt");
+        File.WriteAllLines(path, lines);
+        return path;
+    }
+
+    public static (string jsonPath, string textPath) WriteXunitIntegrationManifest(
+        string outputDirectory,
+        bool starterScenariosRunUnderXunit,
+        bool regressionScenariosRunUnderXunit,
+        string validationStatus,
+        IReadOnlyList<string> deferredWork)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(validationStatus);
+        ArgumentNullException.ThrowIfNull(deferredWork);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "machina-playback-xunit-integration-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "machina-playback-xunit-integration-manifest.txt");
+
+        var manifest = new
+        {
+            milestone = "M16d",
+            kind = "machina-playback-xunit-integration",
+            xunitPlaybackSuiteImplemented = true,
+            starterScenariosRunUnderXunit,
+            regressionScenariosRunUnderXunit,
+            canonicalScenarioDiscoveryImplemented = true,
+            xunitFailureMessagesIncludeAssertionReasons = true,
+            xunitFailureArtifactsWritten = true,
+            artifactRoot = "artifacts/m16d/xunit-playback",
+            tomlConditionalsImplemented = false,
+            tomlLoopsImplemented = false,
+            tomlVariablesImplemented = false,
+            nativeOsAutomationImplemented = false,
+            pixelGoldenDiffingImplemented = false,
+            productUiBehaviorChanged = false,
+            editorImplemented = false,
+            markdownEditingImplemented = false,
+            notebookExecutionImplemented = false,
+            roslynExecutionImplemented = false,
+            aurelianWorkPerformed = false,
+            vdMirWorkPerformed = false,
+            validationStatus,
+            deferredWork,
+        };
+
+        File.WriteAllText(
+            jsonPath,
+            JsonSerializer.Serialize(
+                manifest,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                }));
+
+        string[] textLines =
+        [
+            "milestone=M16d",
+            "kind=machina-playback-xunit-integration",
+            "xunitPlaybackSuiteImplemented=true",
+            $"starterScenariosRunUnderXunit={ToLower(starterScenariosRunUnderXunit)}",
+            $"regressionScenariosRunUnderXunit={ToLower(regressionScenariosRunUnderXunit)}",
+            "canonicalScenarioDiscoveryImplemented=true",
+            "xunitFailureMessagesIncludeAssertionReasons=true",
+            "xunitFailureArtifactsWritten=true",
+            "artifactRoot=artifacts/m16d/xunit-playback",
+            "tomlConditionalsImplemented=false",
+            "tomlLoopsImplemented=false",
+            "tomlVariablesImplemented=false",
+            "nativeOsAutomationImplemented=false",
+            "pixelGoldenDiffingImplemented=false",
+            "productUiBehaviorChanged=false",
+            "editorImplemented=false",
+            "markdownEditingImplemented=false",
+            "notebookExecutionImplemented=false",
+            "roslynExecutionImplemented=false",
+            "aurelianWorkPerformed=false",
+            "vdMirWorkPerformed=false",
+            $"validationStatus={validationStatus}",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+        ];
+
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
+    }
+
     private static string BuildNormalizedScenarioToml(PresenterPlaybackScenario scenario)
     {
         var builder = new StringBuilder();

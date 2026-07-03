@@ -1,0 +1,20 @@
+scenarioId=m16b-raw-source-routing-regression
+scenarioName=M16b raw-source wheel routing stays local to raw source
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\regressions\m16b-raw-source-routing-regression
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\regressions\m16b-raw-source-routing-regression\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\regressions\m16b-raw-source-routing-regression\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16d\xunit-playback\regressions\m16b-raw-source-routing-regression\playback-trace.json
+passed=true
+assertionCount=4
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] region-exists passed=true reason=This guards the M16b visible-coordinate routing path by requiring the raw-source region to be visibly reachable before wheel playback begins. expected=exists actual=280x50
+  [1] scroll-offset-changed passed=true reason=This guards the M16b coordinate-space bug where raw-source wheel routing fell back to inspector-pane due to visible/root versus interaction-map-local mismatch. expected=!= 0 actual=48
+  [2] scroll-offset-equals passed=true reason=This guards the M16b routing fix by proving raw-source wheel input does not fall back to inspector-pane scrolling after the target is visible. expected=240 actual=240
+  [3] scroll-offset-equals passed=true reason=This guards the M16b routing fix by proving raw-source wheel input stays local and does not mutate the main stack. expected=0 actual=0

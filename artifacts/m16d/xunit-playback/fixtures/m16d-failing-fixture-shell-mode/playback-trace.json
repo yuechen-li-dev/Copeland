@@ -1,0 +1,107 @@
+{
+  "ScenarioId": "m16d-failing-fixture-shell-mode",
+  "ScenarioName": "M16d failing fixture shell mode",
+  "Steps": [
+    {
+      "Index": 0,
+      "Type": "wait",
+      "Target": null,
+      "CardId": null,
+      "TargetResolution": null,
+      "ResolvedPoint": null,
+      "ResolvedRect": null,
+      "HitTestResult": null,
+      "EmittedInput": {
+        "Kind": "wait",
+        "Key": null,
+        "WheelDeltaY": null,
+        "ActionId": null,
+        "PointerCaptureRequest": null,
+        "InputConsumed": false
+      },
+      "DispatchedAction": null,
+      "StateDelta": {
+        "MainStackScrollDelta": 0,
+        "InspectorScrollDelta": 0,
+        "RawSourceScrollDelta": 0,
+        "ExpandedBodyScrollDelta": 0
+      },
+      "Before": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "docs-dogfood-index",
+        "ExpandedCards": [],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": null,
+        "ShellMode": 0,
+        "PageRenderCount": 1,
+        "ShellRenderCount": 1,
+        "CompositionCount": 2
+      },
+      "After": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "docs-dogfood-index",
+        "ExpandedCards": [],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": null,
+        "ShellMode": 0,
+        "PageRenderCount": 1,
+        "ShellRenderCount": 1,
+        "CompositionCount": 3
+      },
+      "Result": "wait:0ms"
+    }
+  ],
+  "Assertions": [
+    {
+      "Index": 0,
+      "Type": "shell-mode",
+      "Reason": "This synthetic failure proves xUnit playback assertions carry scenario reasons.",
+      "Expected": "Compact",
+      "Actual": "Wide",
+      "Passed": false,
+      "FailureMessage": "Expected shell mode \u0027Compact\u0027, but found \u0027Wide\u0027."
+    }
+  ],
+  "InitialState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "docs",
+    "PageId": "oblivion.docs",
+    "SelectedCard": "docs-dogfood-index",
+    "ExpandedCards": [],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 0,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 1,
+    "ShellRenderCount": 1,
+    "CompositionCount": 1
+  },
+  "FinalState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "docs",
+    "PageId": "oblivion.docs",
+    "SelectedCard": "docs-dogfood-index",
+    "ExpandedCards": [],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 0,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 1,
+    "ShellRenderCount": 1,
+    "CompositionCount": 4
+  }
+}

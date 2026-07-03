@@ -46,6 +46,7 @@ Do not add loops or conditionals to TOML.
 - M16a introduced the sample-local playback MVP: scenario TOML, normalized scenario output, trace JSON, manifest output, and final PNG output.
 - M16b closed the two playback parity blockers for `main-stack` and `raw-source` wheel routing and kept TOML linear/data-only.
 - M16c keeps the same runner doctrine and adds organized scenario coverage, a suite runner, aggregate reporting, and milestone manifests.
+- M16d then adds normal xUnit orchestration on top of the same playback core; see [Machina Playback xUnit Integration M16d](machina-playback-xunit-integration-m16d.md).
 
 ## Scenario organization
 
@@ -167,3 +168,4 @@ M16c does not implement:
 - richer suite-level performance counters for raw-source layout/build churn
 - broader semantic-target coverage if future regressions need it
 - additional declarative assertions only when a real regression needs them
+- xUnit remains the preferred place for generated cases, scenario selection, and environment guards after M16d

@@ -47,7 +47,7 @@ M15f is regression stabilization only. It traces and fixes the M15e main-card-st
 
 M15g is closeout and planning only. The M15 reading-surface arc is now documented as a baseline: the runtime uses a controlled resizable `16:9` presenter surface, collapsed cards are scannable, one Markdown card can expand inline per page, rendered Markdown reads inline in the stack, the inspector remains an independent metadata/actions/diagnostics/raw-source pane, and scrolling is independent even though selection still couples stack and inspector content. M15g does not change runtime behavior, does not add new features, and does not continue speculative scroll churn; it records the remaining UX backlog and recommends `M16a — Oblivion reading navigation and focus affordances` as the next main direction.
 
-M16a added the internal deterministic playback MVP for the Machina presenter. M16b follows by stabilizing input parity for `main-stack` and `raw-source` wheel playback so starter scenarios now pass through the same internal presenter input/routing path that real user interaction uses. M16c then turns that harness into a regression suite with starter/regression cassette organization, suite manifests, directory/manifest batch runs, deterministic aggregate reports, and milestone manifests. Playback scenarios remain TOML artifacts with required assertion reasons plus normalized scenario/trace/manifest/final-PNG outputs, and this lane still does not implement native OS automation, TOML scripting, or pixel-golden screenshot diffing.
+M16a added the internal deterministic playback MVP for the Machina presenter. M16b follows by stabilizing input parity for `main-stack` and `raw-source` wheel playback so starter scenarios now pass through the same internal presenter input/routing path that real user interaction uses. M16c then turns that harness into a regression suite with starter/regression cassette organization, suite manifests, directory/manifest batch runs, deterministic aggregate reports, and milestone manifests. M16d then wires the same playback core into normal xUnit discovery/execution so C# owns scenario selection, loops, guards, and failure formatting while TOML remains a cassette. Playback scenarios remain TOML artifacts with required assertion reasons plus normalized scenario/trace/manifest/final-PNG outputs, and this lane still does not implement native OS automation, TOML scripting, or pixel-golden screenshot diffing.
 
 ## Pipeline
 
@@ -234,6 +234,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Playback Scenario Format M16a](docs/Machina/machina-playback-scenario-format-m16a.md)
 - [Machina Playback Input Parity M16b](docs/Machina/machina-playback-input-parity-m16b.md)
 - [Machina Playback Regression Suite M16c](docs/Machina/machina-playback-regression-suite-m16c.md)
+- [Machina Playback xUnit Integration M16d](docs/Machina/machina-playback-xunit-integration-m16d.md)
 - [Oblivion Playback Regression Coverage M16c](docs/Oblivion/oblivion-playback-regression-coverage-m16c.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)

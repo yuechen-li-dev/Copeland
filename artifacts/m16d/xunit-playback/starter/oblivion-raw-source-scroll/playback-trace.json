@@ -1,0 +1,162 @@
+{
+  "ScenarioId": "oblivion-raw-source-scroll",
+  "ScenarioName": "Expand a Markdown doc and scroll the raw-source inspector region",
+  "Steps": [
+    {
+      "Index": 0,
+      "Type": "wheel",
+      "Target": "raw-source",
+      "CardId": "doc-aurelian-build-topology-m13b",
+      "TargetResolution": {
+        "SemanticTargetKind": "raw-source",
+        "RequestedCardId": "doc-aurelian-build-topology-m13b",
+        "ResolvedCardId": "doc-aurelian-build-topology-m13b",
+        "ResolvedRegionKind": "oblivion-inspector-raw-markdown-source",
+        "ResolvedRegionId": "oblivion.docs.doc-aurelian-build-topology-m13b.raw-source",
+        "ResolvedPoint": {
+          "X": 1034,
+          "Y": 287
+        },
+        "ResolvedRect": {
+          "X": 894,
+          "Y": 262,
+          "Width": 280,
+          "Height": 50
+        }
+      },
+      "ResolvedPoint": {
+        "X": 1034,
+        "Y": 287
+      },
+      "ResolvedRect": {
+        "X": 894,
+        "Y": 262,
+        "Width": 280,
+        "Height": 50
+      },
+      "HitTestResult": {
+        "RegionKind": "oblivion-inspector-raw-markdown-source",
+        "RegionId": "oblivion.docs.doc-aurelian-build-topology-m13b.raw-source",
+        "CardId": "doc-aurelian-build-topology-m13b",
+        "ScrollRegionId": "oblivion.docs.doc-aurelian-build-topology-m13b.raw-source",
+        "LocalPoint": {
+          "X": 778,
+          "Y": 139
+        }
+      },
+      "EmittedInput": {
+        "Kind": "Wheel",
+        "Key": null,
+        "WheelDeltaY": -1,
+        "ActionId": "presenter.navigation.set-oblivion-raw-markdown-source-scroll|oblivion.docs|doc-aurelian-build-topology-m13b|48",
+        "PointerCaptureRequest": "None",
+        "InputConsumed": true
+      },
+      "DispatchedAction": {
+        "ActionId": "presenter.navigation.set-oblivion-raw-markdown-source-scroll|oblivion.docs|doc-aurelian-build-topology-m13b|48",
+        "ActionType": "set-oblivion-raw-markdown-source-scroll-offset",
+        "ActionHandled": true,
+        "WheelConsumed": true
+      },
+      "StateDelta": {
+        "MainStackScrollDelta": 0,
+        "InspectorScrollDelta": 0,
+        "RawSourceScrollDelta": 48,
+        "ExpandedBodyScrollDelta": 0
+      },
+      "Before": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "doc-aurelian-build-topology-m13b",
+        "ExpandedCards": [
+          "doc-aurelian-build-topology-m13b"
+        ],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 240,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "raw-source",
+        "ShellMode": 0,
+        "PageRenderCount": 1,
+        "ShellRenderCount": 1,
+        "CompositionCount": 2
+      },
+      "After": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "doc-aurelian-build-topology-m13b",
+        "ExpandedCards": [
+          "doc-aurelian-build-topology-m13b"
+        ],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 240,
+        "RawSourceScrollOffset": 48,
+        "CapturedScrollRegion": "raw-source",
+        "ShellMode": 0,
+        "PageRenderCount": 2,
+        "ShellRenderCount": 1,
+        "CompositionCount": 4
+      },
+      "Result": "ok"
+    }
+  ],
+  "Assertions": [
+    {
+      "Index": 0,
+      "Type": "region-exists",
+      "Reason": "The selected Markdown card should expose a raw-source inspector region after M15d.",
+      "Expected": "exists",
+      "Actual": "280x50",
+      "Passed": true,
+      "FailureMessage": null
+    },
+    {
+      "Index": 1,
+      "Type": "scroll-offset-changed",
+      "Reason": "Wheel input over the raw Markdown source region should move its local scroll offset without reopening editing.",
+      "Expected": "!= 0",
+      "Actual": "48",
+      "Passed": true,
+      "FailureMessage": null
+    }
+  ],
+  "InitialState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "docs",
+    "PageId": "oblivion.docs",
+    "SelectedCard": "doc-aurelian-build-topology-m13b",
+    "ExpandedCards": [
+      "doc-aurelian-build-topology-m13b"
+    ],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 240,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 1,
+    "ShellRenderCount": 1,
+    "CompositionCount": 1
+  },
+  "FinalState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "docs",
+    "PageId": "oblivion.docs",
+    "SelectedCard": "doc-aurelian-build-topology-m13b",
+    "ExpandedCards": [
+      "doc-aurelian-build-topology-m13b"
+    ],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 240,
+    "RawSourceScrollOffset": 48,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 2,
+    "ShellRenderCount": 1,
+    "CompositionCount": 5
+  }
+}

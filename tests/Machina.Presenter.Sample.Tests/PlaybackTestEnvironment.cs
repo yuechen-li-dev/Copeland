@@ -68,6 +68,11 @@ internal static class PlaybackTestEnvironment
         return Path.Combine(GetRepoRoot(), "samples", "Machina.Presenter.Sample", "PlaybackScenarios");
     }
 
+    public static string GetArtifactsRoot()
+    {
+        return Path.Combine(GetRepoRoot(), "artifacts");
+    }
+
     public static string GetStarterScenarioDirectory()
     {
         return Path.Combine(GetScenariosRoot(), "starter");
@@ -93,6 +98,11 @@ internal static class PlaybackTestEnvironment
             "playback");
         Directory.CreateDirectory(directory);
         return directory;
+    }
+
+    public static string GetM16dXunitPlaybackRoot()
+    {
+        return Path.Combine(GetArtifactsRoot(), "m16d", "xunit-playback");
     }
 
     public static string GetRepoRoot()

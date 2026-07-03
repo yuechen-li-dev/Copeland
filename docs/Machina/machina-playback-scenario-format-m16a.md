@@ -12,6 +12,12 @@ Follow-up note after M16c:
 - suite manifests are list-only TOML and do not add scripting semantics
 - the assertion library now also includes simple declarative per-step scroll-delta assertions for multi-step regression proof
 
+Follow-up note after M16d:
+
+- normal xUnit tests now discover and run canonical playback scenarios through C# rather than by teaching logic to TOML
+- environment guards, generated cases, loops, and higher-order assertions belong in xUnit/C#
+- the scenario file remains linear declarative data only
+
 ## Purpose
 
 This document defines the first TOML playback scenario format for internal Machina presenter interaction playback.
@@ -196,3 +202,4 @@ Examples of intentional parser failures:
 - assertion without `reason`
 - assertion with empty `reason`
 - target-dependent assertion without the required target/card context
+- programming-like fields such as `if`, `loop`, `repeat`, `script`, `eval`, or `callback`
