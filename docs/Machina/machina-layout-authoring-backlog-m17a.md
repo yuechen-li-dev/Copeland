@@ -8,18 +8,33 @@ It is intentionally staged.
 
 The goal is parity with the stronger JS authoring model over time, without attempting a one-shot port or mixing recon with runtime behavior changes.
 
+## Current status after M17f
+
+M17f is doc-only closeout.
+
+The M17 stack/grid authoring parity arc is now closed:
+
+- M17b landed the authoring-level stack surface
+- M17c migrated `OblivionCardRenderer` internals onto that stack surface
+- M17d landed the authoring-level grid surface
+- M17e migrated the wide Oblivion page shell onto that grid surface
+- M17f documented the resulting baseline, deferred gaps, and recommended next direction
+
+This backlog now serves as chronology plus deferred-gap context rather than an active "next unstarted M17 implementation" queue.
+
 ## Priority order
 
 ```text
-P0  M17b  StackArrange + FillFrame authoring parity
-P1  M17c  Oblivion card renderer stack refactor
-P2  M17d  GridArrange + CellFrame authoring parity
-P2  M17e  Oblivion wide page-shell grid refactor
-P3  M17e  Oblivion page layout grid refactor
-P4  M17f  UiLength proportional/clamp support
-P5  M17g  Row variants
-P6  M17h  GuideFrame
-P7  M17i  DeusMachine parity
+Done  M17b  StackArrange + FillFrame authoring parity
+Done  M17c  Oblivion card renderer stack refactor
+Done  M17d  GridArrange + CellFrame authoring parity
+Done  M17e  Oblivion wide page-shell grid refactor
+Done  M17f  Closeout and next-step planning
+Next  M18a  UiLength proportional/clamp authoring
+Later M18x  Row variants
+Later M18x  GuideFrame / EdgeRef
+Later M18x  DeusMachine parity
+Later M18x  Layout cleanup / manifest cleanup slices
 ```
 
 ## P0 StackArrange + FillFrame
@@ -187,3 +202,5 @@ This backlog does not imply:
 - playback behavior changes
 - editor or notebook work
 - Aurelian or `VD-MIR` work
+
+For the current post-closeout decision surface, see [Machina Layout Parity Next Steps M17f](machina-layout-parity-next-steps-m17f.md).

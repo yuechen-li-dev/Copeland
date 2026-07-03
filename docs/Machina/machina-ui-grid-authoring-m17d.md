@@ -289,3 +289,9 @@ Deferred after M17d:
 
 That immediate page-shell migration has now landed as [Oblivion Page Grid Refactor M17e](../Oblivion/oblivion-page-grid-refactor-m17e.md).
 M17e uses the existing `UI.Grid(...)` surface documented here and does not add new grid primitives.
+
+M17f then closes the stack/grid authoring parity arc as documentation only:
+
+- `UI.Grid(...)` remains the current grid authoring baseline
+- no M17f code changes were made to `UI.Grid`
+- remaining parity concepts stay deferred until concrete pressure exists

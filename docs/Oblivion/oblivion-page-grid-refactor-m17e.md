@@ -150,3 +150,9 @@ Deferred after M17e:
 - pane resizing
 - guide-frame style layout aids
 - row variants
+
+M17f then closes the stack/grid authoring parity arc as documentation only:
+
+- the wide page shell grid refactor is now part of the documented baseline
+- no runtime behavior changed in M17f
+- playback xUnit remains the safety net for later layout cleanup or parity work

@@ -534,6 +534,7 @@ Follow-through note:
 - M17c then applies that surface to `OblivionCardRenderer` internals only, fixes the documented card body/footer and badge-measurement risks, and still does not refactor page layout or implement `UI.Grid(...)`
 - M17d then adds the authoring-level `UI.Grid(...)` surface over the existing low-level `GridArrange`/`CellFrame` engine, including explicit cells plus matrix authoring, while still deferring the Oblivion page-shell migration to M17e
 - M17e then uses that existing `UI.Grid(...)` surface for the Oblivion wide page shell, keeps independent panes intact, preserves compact behavior, and still does not add guide frames, row variants, proportional `UiLength`, or a second layout engine
+- M17f then closes the stack/grid authoring parity arc as a doc-only baseline/next-steps milestone, records that stack/grid authoring is now the C# baseline, and defers the remaining JS parity concepts until concrete pressure exists
 
 ## What did not change
 

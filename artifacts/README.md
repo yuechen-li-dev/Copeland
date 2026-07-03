@@ -67,6 +67,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m17c/` is the current Oblivion card-renderer stack-refactor proof directory.
 - `artifacts/m17d/` is the current Machina UI.Grid authoring manifest directory.
 - `artifacts/m17e/` is the current Oblivion page-grid-refactor proof directory.
+- `artifacts/m17f/` is the current Machina layout-authoring parity closeout manifest directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -128,6 +129,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M17b stack-authoring artifacts are deterministic text/JSON reports. They may be checked in when they document the authoring-level stack surface, preserved reuse of existing low-level stack/fill primitives, explicit non-goals around renderer/page migration, and no intended runtime behavior change.
 - Current M17c card-renderer stack-refactor artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document card-internal stack migration, body/footer separation hardening, badge measurement/render consistency, preserved playback behavior, and the explicit non-goals around page-shell refactors and `UI.Grid(...)`.
 - Current M17e page-grid-refactor artifacts are deterministic text/JSON reports plus local presenter PNG exports. They may be checked in when they document the wide-shell migration onto existing `UI.Grid(...)`, preserved independent-pane behavior, preserved compact behavior, playback-safe region stability, and the explicit non-goals around new grid primitives, proportional `UiLength`, guide frames, row variants, `DeusMachine`, editor work, and `VD-MIR` work.
+- Current M17f layout-authoring closeout artifacts are deterministic text/JSON reports. They may be checked in when they document that the stack/grid authoring parity arc is closed, record the current stack/grid baseline, classify remaining deferred parity pressure, preserve the no-runtime-change boundary, and recommend the next implementation direction without claiming new primitive work.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

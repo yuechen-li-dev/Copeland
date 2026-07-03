@@ -256,3 +256,9 @@ Deferred after M17b:
 - row variants
 - proportional `UiLength`
 - DeusMachine parity
+
+That immediate stack/grid adoption arc is now closed by M17f as a doc-only baseline/next-steps closeout:
+
+- `UI.Stack(...)` remains the current stack authoring baseline
+- no M17f code changes were made to `UI.Stack`
+- remaining parity concepts are now deferred until concrete pressure exists

@@ -141,3 +141,9 @@ They are deterministic local evidence artifacts, not pixel-golden baselines.
 - future authoring-level grid/cell surface work
 - future page-shell grid migration
 - any broader layout-authoring cleanup outside the card renderer
+
+M17f then closes the stack/grid authoring parity arc as documentation only:
+
+- `OblivionCardRenderer` stack authoring is now part of the documented current baseline
+- no further card-renderer refactor happens in M17f
+- remaining parity gaps are deferred until concrete pressure exists

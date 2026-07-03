@@ -123,8 +123,8 @@ M13d then clarifies the compiler-side doctrine that Machina depends on conceptua
 | UI.Rect | Machina.Core | Implemented | Core tests | Style + child lowering path.
 | UI.Row | Machina.Core | Implemented | Core tests | Lowers via stack arrangement.
 | UI.Column | Machina.Core | Implemented | Core tests | Lowers via stack arrangement.
-| UI.Stack | Machina.Core | Implemented | Core tests + layout resolution tests | M17b adds explicit fixed/fill stack authoring over existing `StackArrange`/`FillFrame`; M17c then uses that surface in `OblivionCardRenderer` internal card composition without refactoring the page shell.
-| UI.Grid | Machina.Core | Implemented | Core tests + existing grid arrange tests + playback regression suite | M17d adds authoring-level grid/cell helpers over the existing `GridArrange`/`CellFrame` engine, including explicit sparse cells and matrix authoring. M17e then uses that same surface for the Oblivion wide page shell without adding new grid primitives.
+| UI.Stack | Machina.Core | Implemented | Core tests + layout resolution tests | M17b adds explicit fixed/fill stack authoring over existing `StackArrange`/`FillFrame`; M17c then uses that surface in `OblivionCardRenderer` internal card composition without refactoring the page shell; M17f closes the stack/grid adoption arc and records stack authoring as part of the current baseline.
+| UI.Grid | Machina.Core | Implemented | Core tests + existing grid arrange tests + playback regression suite | M17d adds authoring-level grid/cell helpers over the existing `GridArrange`/`CellFrame` engine, including explicit sparse cells and matrix authoring. M17e then uses that same surface for the Oblivion wide page shell without adding new grid primitives. M17f closes the stack/grid adoption arc and records grid authoring as part of the current baseline.
 | UI.Container | Machina.Core | Implemented | Core tests | Alignment data modeled; behavior partly deferred.
 | UI.Button | Machina.Core | Implemented | Core+Standard tests | Action/semantics integration baseline.
 | HSpace/VSpace | Machina.Core | Implemented | Core tests | Deterministic fixed spacer lowering.
@@ -445,6 +445,26 @@ M17c keeps scope narrow:
 - no notebook execution
 - no Aurelian work
 - no `VD-MIR` work
+
+## M17f update
+
+M17f is doc-only closeout for the M17 layout authoring parity arc.
+
+- the M17 stack/grid authoring parity arc is now closed
+- authoring-level `UI.Stack(...)` and `UI.Grid(...)` are now the current C# baseline over the existing low-level layout engine
+- `OblivionCardRenderer` stack authoring and the wide Oblivion page-shell grid authoring are now recorded as the canonical migrated paths
+- the original external audit complaint has materially changed from missing ergonomic stack/grid authoring to deferred parity concepts and cleanup pressure
+- playback xUnit remains the safety net for future layout work
+- remaining gaps are now explicitly classified as concrete-now versus later pressure
+- the default recommended next step is `Option E: Layout cleanup and bugfix pass`
+- the strongest immediate primitive-parity alternative remains `Option A: UiLength proportional/clamp authoring`
+
+M17f does not change runtime behavior:
+
+- no new layout primitive is implemented
+- no changes are made to `UI.Stack(...)` or `UI.Grid(...)`
+- no further `OblivionCardRenderer` or page-layout refactor is performed
+- no editor work, notebook execution, Aurelian work, or `VD-MIR` work is performed
 
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.

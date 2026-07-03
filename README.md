@@ -59,6 +59,8 @@ M17d is the matching grid authoring primitive. C# already had low-level `GridArr
 
 M17e is the focused wide-shell follow-through. Oblivion's wide page panes are now authored through the existing `UI.Grid(...)` surface so the shell reads as left fill cards, right fixed inspector, and page gap rather than manual two-column placement math. M17e preserves the M15 independent-pane behavior, keeps compact mode on its deterministic path, adds proof exports/docs/manifests, and does not add new grid primitives, proportional `UiLength`, guide frames, row variants, or `DeusMachine`.
 
+M17f is doc-only closeout for that parity arc. The M17 stack/grid authoring parity gap from the external audit is now considered closed: C# Machina now has authoring-level `UI.Stack(...)` and `UI.Grid(...)` surfaces over the existing low-level layout engine, `OblivionCardRenderer` internals now use stack authoring, and the wide Oblivion page shell now uses grid authoring. M17f does not change runtime behavior, does not add primitives, and records playback xUnit as the safety net for later layout cleanup or deferred parity concepts.
+
 ## Pipeline
 
 ```text
@@ -251,6 +253,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina UI.Grid Authoring M17d](docs/Machina/machina-ui-grid-authoring-m17d.md)
 - [Oblivion Card Renderer Stack Refactor M17c](docs/Oblivion/oblivion-card-renderer-stack-refactor-m17c.md)
 - [Oblivion Page Grid Refactor M17e](docs/Oblivion/oblivion-page-grid-refactor-m17e.md)
+- [Machina Layout Authoring Parity Closeout M17f](docs/Machina/machina-layout-authoring-parity-closeout-m17f.md)
+- [Machina Layout Parity Next Steps M17f](docs/Machina/machina-layout-parity-next-steps-m17f.md)
 - [Oblivion Playback Regression Coverage M16c](docs/Oblivion/oblivion-playback-regression-coverage-m16c.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)
