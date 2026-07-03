@@ -31,7 +31,7 @@ Implementation note:
 
 - M17b implementation landed as `UI.Stack(...)`, `UI.VStack(...)`, `UI.HStack(...)`, explicit `UI.StackItem.Fixed(...)` / `UI.StackItem.Fill(...)`, deterministic stack-item wrapper ids, and focused lowering/layout tests
 - no Oblivion renderer migration happened in M17b
-- M17c remains the next renderer migration step
+- M17c has now landed as the renderer migration step for `OblivionCardRenderer` internals only
 
 Why first:
 
@@ -65,6 +65,11 @@ Expected side effects:
 - shared visible badge-row computation
 - clearer title/subtitle/source/meta/tag/body/footer structure
 - better groundwork for later card-specific bug fixes
+
+Status:
+
+- landed in M17c for card renderer internals only
+- page shell remains deferred
 
 ## P2 GridArrange + CellFrame
 

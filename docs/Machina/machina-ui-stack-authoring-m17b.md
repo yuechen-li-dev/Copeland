@@ -247,6 +247,7 @@ There is no Oblivion renderer migration yet.
 Deferred after M17b:
 
 - M17c card-renderer migration onto `UI.Stack(...)`
+  this follow-through has now landed as `docs/Oblivion/oblivion-card-renderer-stack-refactor-m17c.md`
 - card-specific measurement/render cleanup
 - M17d authoring-level grid/cell surface
 - M17e page-shell grid migration

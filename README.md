@@ -53,6 +53,8 @@ M17a is recon only. It incorporates an external frontend/design audit against th
 
 M17b follows through on that first slice. C# already had low-level `StackArrange` and `FillFrame` support; M17b adds the authoring-level `UI.Stack(...)` surface, fixed/fill stack items, stack gap/padding, and deterministic wrapper-id derivation without refactoring `OblivionCardRenderer`, without refactoring page layout, and without intending a product runtime behavior change.
 
+M17c is the focused renderer follow-through. `OblivionCardRenderer` now uses stack-authored internal card composition, collapsed preview cards now separate body and footer through one explicit stack, and compact footer measurement now uses the same final badge-row model as rendering. M17c does not refactor page layout, does not implement `UI.Grid(...)`, and keeps behavior changes limited to the documented card-layout hardening.
+
 ## Pipeline
 
 ```text
@@ -242,6 +244,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina JS Parity Layout Recon M17a](docs/Machina/machina-js-parity-layout-recon-m17a.md)
 - [Machina Layout Authoring Backlog M17a](docs/Machina/machina-layout-authoring-backlog-m17a.md)
 - [Machina UI.Stack Authoring M17b](docs/Machina/machina-ui-stack-authoring-m17b.md)
+- [Oblivion Card Renderer Stack Refactor M17c](docs/Oblivion/oblivion-card-renderer-stack-refactor-m17c.md)
 - [Oblivion Playback Regression Coverage M16c](docs/Oblivion/oblivion-playback-regression-coverage-m16c.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)

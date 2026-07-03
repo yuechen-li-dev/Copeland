@@ -41,17 +41,10 @@ public sealed class MachinaUiStackAuthoringM17bTests
     }
 
     [Fact]
-    public void M17b_DoesNotRefactorOblivionCardRenderer()
+    public void M17b_ManifestStillRecordsNoOblivionMigrationInThatMilestone()
     {
-        string renderer = File.ReadAllText(Path.Combine(
-            RepoRoot,
-            "samples",
-            "Machina.Presenter.Sample",
-            "OblivionCardRenderer.cs"));
-
-        Assert.DoesNotContain("UI.Stack(", renderer, StringComparison.Ordinal);
-        Assert.DoesNotContain("UI.VStack(", renderer, StringComparison.Ordinal);
-        Assert.DoesNotContain("UI.HStack(", renderer, StringComparison.Ordinal);
+        using JsonDocument manifest = LoadManifest();
+        Assert.False(manifest.RootElement.GetProperty("oblivionCardRendererRefactored").GetBoolean());
     }
 
     [Fact]

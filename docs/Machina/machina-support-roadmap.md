@@ -123,7 +123,7 @@ M13d then clarifies the compiler-side doctrine that Machina depends on conceptua
 | UI.Rect | Machina.Core | Implemented | Core tests | Style + child lowering path.
 | UI.Row | Machina.Core | Implemented | Core tests | Lowers via stack arrangement.
 | UI.Column | Machina.Core | Implemented | Core tests | Lowers via stack arrangement.
-| UI.Stack | Machina.Core | Implemented | Core tests + layout resolution tests | M17b adds explicit fixed/fill stack authoring over existing `StackArrange`/`FillFrame` without refactoring current Oblivion renderer callers yet.
+| UI.Stack | Machina.Core | Implemented | Core tests + layout resolution tests | M17b adds explicit fixed/fill stack authoring over existing `StackArrange`/`FillFrame`; M17c then uses that surface in `OblivionCardRenderer` internal card composition without refactoring the page shell.
 | UI.Container | Machina.Core | Implemented | Core tests | Alignment data modeled; behavior partly deferred.
 | UI.Button | Machina.Core | Implemented | Core+Standard tests | Action/semantics integration baseline.
 | HSpace/VSpace | Machina.Core | Implemented | Core tests | Deterministic fixed spacer lowering.
@@ -418,6 +418,26 @@ M17a does not change runtime behavior:
 - no Oblivion renderer refactor
 - no page-shell refactor
 - no playback scenario behavior change
+- no Markdown editing
+- no notebook execution
+- no Aurelian work
+- no `VD-MIR` work
+
+## M17c update
+
+M17c is the focused Oblivion card-renderer follow-through after M17b.
+
+- `OblivionCardRenderer` internal compact-card composition now uses stack-authored sections for header and body/footer layout
+- visible `cursorTop` authoring is sharply reduced in the main card path
+- explicit `".slot"` wrapper authoring is sharply reduced in renderer-internal paths
+- collapsed preview cards now use one explicit body/footer stack, removing overlap risk
+- compact footer measurement now uses the same final badge-row model that rendering uses
+- page shell layout is intentionally unchanged
+- `UI.Grid(...)` is still not implemented
+
+M17c keeps scope narrow:
+
+- no page-shell refactor
 - no Markdown editing
 - no notebook execution
 - no Aurelian work

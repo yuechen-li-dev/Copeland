@@ -34,6 +34,13 @@ public static class OblivionCardRenderer
     private const string BodyFrameSuffix = ".body-frame";
     private const string HeaderHitSuffix = ".header-hit";
     private const string ExpandedBodyViewportSuffix = ".expanded-body-viewport";
+    private const string HeaderStackSuffix = ".header-stack";
+    private const string HeaderFrameSuffix = ".header-frame";
+    private const string FooterStackSuffix = ".footer-stack";
+    private const string FooterFrameSuffix = ".footer-frame";
+    private const string BodyTextStackSuffix = ".body-text-stack";
+    private const string MetaRowFrameSuffix = ".meta-row-frame";
+    private const string TagsRowFrameSuffix = ".tags-row-frame";
     private const string TitleSuffix = ".title";
     private const string SubtitleSuffix = ".subtitle";
     private const string SourceSuffix = ".source";
@@ -61,116 +68,35 @@ public static class OblivionCardRenderer
         ArgumentNullException.ThrowIfNull(theme);
         ArgumentNullException.ThrowIfNull(options);
 
-        double cursorTop = ComputeBodyTop(view, options);
-        List<UiNode> layoutChildren = [];
-        double renderCursorTop = 0;
+        StandardCardStyle cardStyle = theme.Card.Default;
+        OblivionCardCompositionModel composition = BuildCompositionModel(view, options);
+        PresenterCardLayout layout = ComputeLayout(view, options, cardStyle, composition.ComputeHeaderHeight(options));
+        double contentWidth = layout.InnerWidth;
 
-        layoutChildren.Add(
-            UI.Anchor(
-                UI.Text(
-                    view.Title,
-                    id: view.CardId + TitleSuffix,
-                    size: TextSize.Md,
-                    color: theme.Colors.Foreground),
-                id: view.CardId + TitleSuffix + ".slot",
-                left: 0,
-                right: 0,
-                top: renderCursorTop,
-                height: options.TitleHeight));
-        renderCursorTop += options.TitleHeight;
+        UiNode cardLayout = UI.VStack(
+            id: view.CardId + ".layout",
+            children:
+            [
+                UI.StackItem.Fixed(
+                    main: layout.BodyTop,
+                    child: WrapSection(
+                        BuildHeader(view, theme, options, composition, contentWidth),
+                        contentWidth,
+                        view.CardId + HeaderFrameSuffix)),
+                UI.StackItem.Fill(
+                    weight: 1,
+                    child: BuildBody(view, theme, options, layout, composition.Footer)),
+            ]);
 
-        if (!string.IsNullOrWhiteSpace(view.Subtitle))
-        {
-            renderCursorTop += options.SmallGap;
-            layoutChildren.Add(
-                UI.Anchor(
-                    UI.Text(
-                        view.Subtitle,
-                        id: view.CardId + SubtitleSuffix,
-                        size: TextSize.Sm,
-                        color: theme.Colors.MutedForeground),
-                    id: view.CardId + SubtitleSuffix + ".slot",
-                    left: 0,
-                    right: 0,
-                    top: renderCursorTop,
-                    height: options.SubtitleHeight));
-            renderCursorTop += options.SubtitleHeight;
-        }
-
-        if (!string.IsNullOrWhiteSpace(view.SourceLabel))
-        {
-            renderCursorTop += options.SmallGap;
-            layoutChildren.Add(
-                UI.Anchor(
-                    UI.Text(
-                        view.SourceLabel,
-                        id: view.CardId + SourceSuffix,
-                        size: TextSize.Sm,
-                        color: ColorToken.Hex(0x93C5FDFF)),
-                    id: view.CardId + SourceSuffix + ".slot",
-                    left: 0,
-                    right: 0,
-                    top: renderCursorTop,
-                    height: options.SourceHeight));
-            renderCursorTop += options.SourceHeight;
-        }
-
-        renderCursorTop += options.SectionGap;
-        layoutChildren.Add(
-            UI.Anchor(
-                UI.Row(
-                    id: view.CardId + MetaRowSuffix,
-                    gap: 8,
-                    children: BuildBadges(view.MetaBadges, view.CardId + ".meta", theme)),
-                id: view.CardId + MetaRowSuffix + ".slot",
-                left: 0,
-                right: 0,
-                top: renderCursorTop,
-                height: options.RowHeight));
-        renderCursorTop += options.RowHeight;
-
-        IReadOnlyList<string> tags = LimitLabels(view.Tags, options.MaxTagsToShow);
-        if (tags.Count > 0)
-        {
-            renderCursorTop += options.SmallGap;
-            layoutChildren.Add(
-                UI.Anchor(
-                    UI.Row(
-                        id: view.CardId + TagsRowSuffix,
-                        gap: 8,
-                        children: tags
-                            .Select((tag, index) => BuildBadge(tag, $"{view.CardId}.tag-{index}", theme))
-                            .ToArray()),
-                    id: view.CardId + TagsRowSuffix + ".slot",
-                    left: 0,
-                    right: 0,
-                    top: renderCursorTop,
-                    height: options.RowHeight));
-            renderCursorTop += options.RowHeight;
-        }
-
-        PresenterCardLayout layout = ComputeLayout(view, options, theme.Card.Default, cursorTop);
-        double bodyContainerHeight = layout.BodyRectInContent.Height + (layout.FooterRectInContent?.Height ?? 0);
-        layoutChildren.Add(
-            UI.Anchor(
-                BuildBody(view, theme, options, layout),
-                id: view.CardId + BodyFrameSuffix + ".slot",
-                left: layout.BodyRectInContent.X,
-                width: layout.BodyRectInContent.Width,
-                top: layout.BodyRectInContent.Y,
-                height: bodyContainerHeight));
-
-        layoutChildren.Add(
-            UI.Anchor(
-                UI.Rect(
-                    id: view.CardId + HeaderHitSuffix,
-                    style: new UiStyle(
-                        Background: ColorToken.Hex(0x00000000))),
-                id: view.CardId + HeaderHitSuffix + ".slot",
-                left: 0,
-                width: layout.InnerWidth,
-                top: 0,
-                height: layout.BodyTop));
+        UiNode headerHit = UI.Anchor(
+            UI.Rect(
+                id: view.CardId + HeaderHitSuffix,
+                style: new UiStyle(
+                    Background: ColorToken.Hex(0x00000000))),
+            left: 0,
+            width: layout.InnerWidth,
+            top: 0,
+            height: layout.BodyTop);
 
         return StandardUI.Card(
             id: view.CardId,
@@ -178,8 +104,11 @@ public static class OblivionCardRenderer
             width: options.Width,
             height: options.Height,
             child: UI.Layer(
-                id: view.CardId + ".layout",
-                children: layoutChildren));
+                children:
+                [
+                    cardLayout,
+                    headerHit,
+                ]));
     }
 
     public static PresenterCardFrame DescribeFrame(ResolvedLayoutDocument resolved, string cardId)
@@ -189,24 +118,7 @@ public static class OblivionCardRenderer
 
     public static double ComputeBodyTop(OblivionCompactCardView view, OblivionCardRenderOptions options)
     {
-        double cursorTop = options.TitleHeight;
-        if (!string.IsNullOrWhiteSpace(view.Subtitle))
-        {
-            cursorTop += options.SmallGap + options.SubtitleHeight;
-        }
-
-        if (!string.IsNullOrWhiteSpace(view.SourceLabel))
-        {
-            cursorTop += options.SmallGap + options.SourceHeight;
-        }
-
-        cursorTop += options.SectionGap + options.RowHeight;
-        if (LimitLabels(view.Tags, options.MaxTagsToShow).Count > 0)
-        {
-            cursorTop += options.SmallGap + options.RowHeight;
-        }
-
-        return cursorTop + options.SectionGap;
+        return BuildCompositionModel(view, options).ComputeHeaderHeight(options);
     }
 
     public static Rect DescribeHeaderHitRect(ResolvedLayoutDocument resolved, string cardId)
@@ -250,16 +162,7 @@ public static class OblivionCardRenderer
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(cardStyle);
 
-        double footerHeight = 0;
-        if (!view.IsExpanded && view.ActionBadges.Count > 0)
-        {
-            footerHeight += options.RowHeight + options.SmallGap;
-        }
-
-        if (!view.IsExpanded && view.ArtifactBadges.Count > 0)
-        {
-            footerHeight += options.RowHeight + options.SmallGap;
-        }
+        double footerHeight = BuildCompositionModel(view, options).Footer.ComputeRequiredHeight(options);
 
         return PresenterCardLayoutHelper.ComputeLayout(
             options.Width,
@@ -290,7 +193,8 @@ public static class OblivionCardRenderer
         OblivionCompactCardView view,
         StandardTheme theme,
         OblivionCardRenderOptions options,
-        PresenterCardLayout layout)
+        PresenterCardLayout layout,
+        OblivionCardFooterModel footer)
     {
         if (view.IsExpanded && view.Body is OblivionCompactMarkdownBodyContent expandedMarkdownBody)
         {
@@ -299,10 +203,90 @@ public static class OblivionCardRenderer
 
         if (view.Body is OblivionCompactMarkdownBodyContent collapsedMarkdownBody)
         {
-            return BuildCollapsedMarkdownBody(view, collapsedMarkdownBody.Body, theme, options, layout);
+            return BuildCollapsedMarkdownBody(view, collapsedMarkdownBody.Body, theme, options, layout, footer);
         }
 
-        return BuildCollapsedPlainBody(view, theme, options, layout);
+        return BuildCollapsedPlainBody(view, theme, options, layout, footer);
+    }
+
+    private static UiNode BuildHeader(
+        OblivionCompactCardView view,
+        StandardTheme theme,
+        OblivionCardRenderOptions options,
+        OblivionCardCompositionModel composition,
+        double contentWidth)
+    {
+        List<UiStackItem> items =
+        [
+            UI.StackItem.Fixed(
+                main: options.TitleHeight,
+                child: UI.Text(
+                    view.Title,
+                    id: view.CardId + TitleSuffix,
+                    size: TextSize.Md,
+                    color: theme.Colors.Foreground)),
+        ];
+
+        if (!string.IsNullOrWhiteSpace(view.Subtitle))
+        {
+            items.Add(UI.StackItem.Fixed(main: options.SmallGap, child: UI.VSpace(options.SmallGap)));
+            items.Add(
+                UI.StackItem.Fixed(
+                    main: options.SubtitleHeight,
+                    child: UI.Text(
+                        view.Subtitle,
+                        id: view.CardId + SubtitleSuffix,
+                        size: TextSize.Sm,
+                        color: theme.Colors.MutedForeground)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(view.SourceLabel))
+        {
+            items.Add(UI.StackItem.Fixed(main: options.SmallGap, child: UI.VSpace(options.SmallGap)));
+            items.Add(
+                UI.StackItem.Fixed(
+                    main: options.SourceHeight,
+                    child: UI.Text(
+                        view.SourceLabel,
+                        id: view.CardId + SourceSuffix,
+                        size: TextSize.Sm,
+                        color: ColorToken.Hex(0x93C5FDFF))));
+        }
+
+        items.Add(UI.StackItem.Fixed(main: options.SectionGap, child: UI.VSpace(options.SectionGap)));
+        items.Add(
+                UI.StackItem.Fixed(
+                    main: options.RowHeight,
+                    child: WrapSection(
+                        BuildBadgeRow(
+                            view.MetaBadges,
+                            view.CardId + MetaRowSuffix,
+                            view.CardId + ".meta",
+                            theme),
+                        contentWidth,
+                        view.CardId + MetaRowFrameSuffix)));
+
+        if (composition.VisibleTags.Count > 0)
+        {
+            items.Add(UI.StackItem.Fixed(main: options.SmallGap, child: UI.VSpace(options.SmallGap)));
+            items.Add(
+                UI.StackItem.Fixed(
+                    main: options.RowHeight,
+                    child: WrapSection(
+                        BuildBadgeRow(
+                            composition.VisibleTags,
+                            view.CardId + TagsRowSuffix,
+                            view.CardId + ".tag",
+                            theme),
+                        contentWidth,
+                        view.CardId + TagsRowFrameSuffix)));
+        }
+
+        items.Add(UI.StackItem.Fixed(main: options.SectionGap, child: UI.VSpace(options.SectionGap)));
+
+        return UI.VStack(
+            id: view.CardId + HeaderStackSuffix,
+            children: items);
     }
 
     private static UiNode BuildCollapsedMarkdownBody(
@@ -310,7 +294,8 @@ public static class OblivionCardRenderer
         OblivionCardBody body,
         StandardTheme theme,
         OblivionCardRenderOptions options,
-        PresenterCardLayout layout)
+        PresenterCardLayout layout,
+        OblivionCardFooterModel footer)
     {
         string summary = !string.IsNullOrWhiteSpace(view.SummaryLine)
             ? view.SummaryLine!
@@ -323,47 +308,16 @@ public static class OblivionCardRenderer
             options,
             PreviewBodyForeground);
 
-        List<UiNode> children = [];
-        double currentTop = 0;
-        foreach ((string line, int index) in lines.Select((value, index) => (value, index)))
-        {
-            children.Add(
-                UI.Anchor(
-                    UI.Text(
-                        line,
-                        id: view.CardId + BodyLineSuffixPrefix + index,
-                        size: TextSize.Sm,
-                        color: index == 0 ? theme.Colors.Foreground : PreviewBodyForeground),
-                    id: $"{view.CardId}{BodyLineSuffixPrefix}{index}.slot",
-                    left: 0,
-                    right: 0,
-                    top: currentTop,
-                    height: options.BodyLineHeight));
-            currentTop += options.BodyLineHeight + options.BodyLineGap;
-        }
-
-        return UI.Rect(
-            child: UI.Layer(
-                id: view.CardId + ".body-layout",
-                children: children),
-            id: view.CardId + BodyFrameSuffix,
-            style: new UiStyle(
-                Background: PreviewFrameBackground,
-                BorderColor: PreviewFrameBorder,
-                BorderThickness: 1));
+        return BuildCollapsedPreviewBody(view, lines, theme, options, layout, footer, highlightFirstLine: true);
     }
 
     private static UiNode BuildCollapsedPlainBody(
         OblivionCompactCardView view,
         StandardTheme theme,
         OblivionCardRenderOptions options,
-        PresenterCardLayout layout)
+        PresenterCardLayout layout,
+        OblivionCardFooterModel footer)
     {
-        IReadOnlyList<string> actionLabels = LimitLabels(view.ActionBadges, options.MaxActionsToShow);
-        IReadOnlyList<string> artifactLabels = LimitLabels(view.ArtifactBadges, options.MaxArtifactsToShow);
-
-        List<UiNode> children = [];
-        double currentTop = 0;
         IReadOnlyList<string> lines = view.Body is OblivionCompactPlainBodyContent plainBody
             ? plainBody.Lines
             : [];
@@ -374,63 +328,40 @@ public static class OblivionCardRenderer
             options,
             PreviewBodyForeground);
 
-        foreach ((string line, int index) in visibleLines.Select((line, index) => (line, index)))
-        {
-            children.Add(
-                UI.Anchor(
-                    UI.Text(
-                        line,
-                        id: view.CardId + BodyLineSuffixPrefix + index,
-                        size: TextSize.Sm,
-                        color: PreviewBodyForeground),
-                    id: $"{view.CardId}{BodyLineSuffixPrefix}{index}.slot",
-                    left: 0,
-                    right: 0,
-                    top: currentTop,
-                    height: options.BodyLineHeight));
-            currentTop += options.BodyLineHeight + options.BodyLineGap;
-        }
+        return BuildCollapsedPreviewBody(view, visibleLines, theme, options, layout, footer, highlightFirstLine: false);
+    }
 
-        double footerCursorTop = Math.Max(0, (layout.FooterRectInContent?.Y ?? layout.BodyHeight) - layout.BodyRectInContent.Y);
-        if (actionLabels.Count > 0)
-        {
-            children.Add(
-                UI.Anchor(
-                    UI.Row(
-                        id: view.CardId + ActionsRowSuffix,
-                        gap: 8,
-                        children: actionLabels
-                            .Select((label, index) => BuildBadge(label, $"{view.CardId}.action-{index}", theme))
-                            .ToArray()),
-                    id: view.CardId + ActionsRowSuffix + ".slot",
-                    left: 0,
-                    right: 0,
-                    top: footerCursorTop,
-                    height: options.RowHeight));
-            footerCursorTop += options.RowHeight + options.SmallGap;
-        }
+    private static UiNode BuildCollapsedPreviewBody(
+        OblivionCompactCardView view,
+        IReadOnlyList<string> visibleLines,
+        StandardTheme theme,
+        OblivionCardRenderOptions options,
+        PresenterCardLayout layout,
+        OblivionCardFooterModel footer,
+        bool highlightFirstLine)
+    {
+        List<UiStackItem> bodyItems =
+        [
+            UI.StackItem.Fill(
+                weight: 1,
+                child: BuildPreviewTextStack(view, visibleLines, theme, options, highlightFirstLine)),
+        ];
 
-        if (artifactLabels.Count > 0)
+        if (footer.Rows.Count > 0)
         {
-            children.Add(
-                UI.Anchor(
-                    UI.Row(
-                        id: view.CardId + ArtifactsRowSuffix,
-                        gap: 8,
-                        children: artifactLabels
-                            .Select((label, index) => BuildBadge(label, $"{view.CardId}.artifact-{index}", theme))
-                            .ToArray()),
-                    id: view.CardId + ArtifactsRowSuffix + ".slot",
-                    left: 0,
-                    right: 0,
-                    top: footerCursorTop,
-                    height: options.RowHeight));
+            bodyItems.Add(
+                UI.StackItem.Fixed(
+                    main: footer.ComputeRequiredHeight(options),
+                    child: WrapSection(
+                        BuildFooter(view, theme, options, layout.BodyWidth, footer),
+                        layout.BodyWidth,
+                        view.CardId + FooterFrameSuffix)));
         }
 
         return UI.Rect(
-            child: UI.Layer(
+            child: UI.VStack(
                 id: view.CardId + ".body-layout",
-                children: children),
+                children: bodyItems),
             id: view.CardId + BodyFrameSuffix,
             style: new UiStyle(
                 Background: PreviewFrameBackground,
@@ -453,20 +384,14 @@ public static class OblivionCardRenderer
             view.BodyScrollOffset);
 
         return UI.Rect(
-            child: UI.Anchor(
-                    UI.Rect(
-                        child: bodyRender.Node,
-                        id: view.CardId + ExpandedBodyViewportSuffix,
-                        style: new UiStyle(
-                            Background: MarkdownReadingStyle.Surface,
-                            BorderColor: MarkdownReadingStyle.Border,
-                            BorderThickness: 1,
-                            ClipToBounds: true)),
-                id: view.CardId + ExpandedBodyViewportSuffix + ".slot",
-                left: 0,
-                width: layout.BodyWidth,
-                top: 0,
-                height: viewportHeight),
+            child: UI.Rect(
+                child: bodyRender.Node,
+                id: view.CardId + ExpandedBodyViewportSuffix,
+                style: new UiStyle(
+                    Background: MarkdownReadingStyle.Surface,
+                    BorderColor: MarkdownReadingStyle.Border,
+                    BorderThickness: 1,
+                    ClipToBounds: true)),
             id: view.CardId + BodyFrameSuffix,
             style: new UiStyle(
                 Background: PreviewFrameBackground,
@@ -557,4 +482,172 @@ public static class OblivionCardRenderer
 
         throw new KeyNotFoundException($"No resolved layout node ended with '{suffix}'.");
     }
+
+    private static UiNode BuildPreviewTextStack(
+        OblivionCompactCardView view,
+        IReadOnlyList<string> lines,
+        StandardTheme theme,
+        OblivionCardRenderOptions options,
+        bool highlightFirstLine)
+    {
+        List<UiNode> children = [];
+        double currentTop = 0;
+
+        foreach ((string line, int index) in lines.Select((line, index) => (line, index)))
+        {
+            children.Add(
+                UI.Anchor(
+                    UI.Text(
+                        line,
+                        id: view.CardId + BodyLineSuffixPrefix + index,
+                        size: TextSize.Sm,
+                        color: highlightFirstLine && index == 0
+                            ? theme.Colors.Foreground
+                            : PreviewBodyForeground),
+                    left: 0,
+                    right: 0,
+                    top: currentTop,
+                    height: options.BodyLineHeight));
+            currentTop += options.BodyLineHeight + options.BodyLineGap;
+        }
+
+        return UI.Layer(
+            id: view.CardId + BodyTextStackSuffix,
+            children: children);
+    }
+
+    private static UiNode BuildFooter(
+        OblivionCompactCardView view,
+        StandardTheme theme,
+        OblivionCardRenderOptions options,
+        double contentWidth,
+        OblivionCardFooterModel footer)
+    {
+        return UI.VStack(
+            id: view.CardId + FooterStackSuffix,
+            gap: options.SmallGap,
+            children: footer.Rows
+                .Select(row => UI.StackItem.Fixed(
+                    main: options.RowHeight,
+                    child: WrapSection(
+                        BuildBadgeRow(
+                            row.Labels,
+                            view.CardId + row.RowSuffix,
+                            $"{view.CardId}{row.BadgeIdPrefix}",
+                            theme),
+                        contentWidth,
+                        $"{view.CardId}{row.RowSuffix}-frame")))
+                .ToArray());
+    }
+
+    private static UiNode BuildBadgeRow(
+        IReadOnlyList<string> labels,
+        string rowId,
+        string badgeIdPrefix,
+        StandardTheme theme)
+    {
+        return UI.Row(
+            id: rowId,
+            gap: 8,
+            children: labels
+                .Select((label, index) => BuildBadge(label, $"{badgeIdPrefix}-{index}", theme))
+                .ToArray());
+    }
+
+    private static UiNode WrapSection(UiNode child, double width, string id)
+    {
+        return UI.Rect(
+            id: id,
+            width: width,
+            child: child);
+    }
+
+    private static OblivionCardCompositionModel BuildCompositionModel(
+        OblivionCompactCardView view,
+        OblivionCardRenderOptions options)
+    {
+        return new OblivionCardCompositionModel(
+            !string.IsNullOrWhiteSpace(view.Subtitle),
+            !string.IsNullOrWhiteSpace(view.SourceLabel),
+            LimitLabels(view.Tags, options.MaxTagsToShow),
+            BuildFooterModel(view, options));
+    }
+
+    private static OblivionCardFooterModel BuildFooterModel(
+        OblivionCompactCardView view,
+        OblivionCardRenderOptions options)
+    {
+        if (view.IsExpanded)
+        {
+            return OblivionCardFooterModel.Empty;
+        }
+
+        List<OblivionBadgeRowModel> rows = [];
+        IReadOnlyList<string> actionLabels = LimitLabels(view.ActionBadges, options.MaxActionsToShow);
+        IReadOnlyList<string> artifactLabels = LimitLabels(view.ArtifactBadges, options.MaxArtifactsToShow);
+
+        if (actionLabels.Count > 0)
+        {
+            rows.Add(new OblivionBadgeRowModel(ActionsRowSuffix, ".action", actionLabels));
+        }
+
+        if (artifactLabels.Count > 0)
+        {
+            rows.Add(new OblivionBadgeRowModel(ArtifactsRowSuffix, ".artifact", artifactLabels));
+        }
+
+        return new OblivionCardFooterModel(rows);
+    }
+
+    private sealed record OblivionCardCompositionModel(
+        bool VisibleSubtitle,
+        bool VisibleSource,
+        IReadOnlyList<string> VisibleTags,
+        OblivionCardFooterModel Footer)
+    {
+        public double ComputeHeaderHeight(OblivionCardRenderOptions options)
+        {
+            double height = options.TitleHeight;
+
+            if (VisibleSubtitle)
+            {
+                height += options.SmallGap + options.SubtitleHeight;
+            }
+
+            if (VisibleSource)
+            {
+                height += options.SmallGap + options.SourceHeight;
+            }
+
+            height += options.SectionGap + options.RowHeight;
+
+            if (VisibleTags.Count > 0)
+            {
+                height += options.SmallGap + options.RowHeight;
+            }
+
+            return height + options.SectionGap;
+        }
+    }
+
+    private sealed record OblivionCardFooterModel(
+        IReadOnlyList<OblivionBadgeRowModel> Rows)
+    {
+        public static OblivionCardFooterModel Empty { get; } = new([]);
+
+        public double ComputeRequiredHeight(OblivionCardRenderOptions options)
+        {
+            if (Rows.Count == 0)
+            {
+                return 0;
+            }
+
+            return (Rows.Count * options.RowHeight) + ((Rows.Count - 1) * options.SmallGap);
+        }
+    }
+
+    private sealed record OblivionBadgeRowModel(
+        string RowSuffix,
+        string BadgeIdPrefix,
+        IReadOnlyList<string> Labels);
 }

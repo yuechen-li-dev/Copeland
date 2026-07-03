@@ -530,6 +530,7 @@ Follow-through note:
 
 - M17b is the first implementation follow-through and adds the authoring-level stack surface over the existing low-level stack/fill primitives
 - M17b still does not migrate `OblivionCardRenderer` or page layout
+- M17c then applies that surface to `OblivionCardRenderer` internals only, fixes the documented card body/footer and badge-measurement risks, and still does not refactor page layout or implement `UI.Grid(...)`
 
 ## What did not change
 
