@@ -37,6 +37,8 @@ public static class UiLowerer
         bool isRoot,
         bool parentIsStack)
     {
+        ValidateNode(node);
+
         var id = context.AllocateId(node.Id);
         var frame = CreateFrame(node, context, isRoot, parentIsStack);
         var arrange = CreateArrange(node);
@@ -89,6 +91,7 @@ public static class UiLowerer
             SpacerNode spacer => CreateSpacerFrame(spacer),
             RectNode rect => CreateRectFrame(rect),
             StackNode stack => CreateStackPlaceholderFrame(stack),
+            GridNode grid => CreateGridPlaceholderFrame(grid),
             ContainerNode => new FillFrame(),
             PlacementNode placement => placement.Frame,
             LayerNode layer => layer.Frame ?? new FillFrame(),
@@ -106,6 +109,7 @@ public static class UiLowerer
             SpacerNode spacer => new AnchorFrame(Left: 0, Width: SpacerWidth(spacer), Top: 0, Height: SpacerHeight(spacer)),
             RectNode rect => CreateDirectRectFrame(rect),
             StackNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
+            GridNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
             ContainerNode => new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
             PlacementNode placement => placement.Frame,
             LayerNode layer => layer.Frame ?? new AnchorFrame(Left: 0, Right: 0, Top: 0, Bottom: 0),
@@ -161,6 +165,13 @@ public static class UiLowerer
         return new FixedFrame(width, height);
     }
 
+    private static FixedFrame CreateGridPlaceholderFrame(GridNode grid)
+    {
+        var width = EstimateGridPlaceholderMainSize(grid.Columns, fallbackPerTrack: 120);
+        var height = EstimateGridPlaceholderMainSize(grid.Rows, fallbackPerTrack: 48);
+        return new FixedFrame(width, height);
+    }
+
     private static FixedFrame CreateTextFrame(TextNode text, UiLoweringContext context)
     {
         var size = MeasureText(text, context);
@@ -200,6 +211,15 @@ public static class UiLowerer
                 Padding: stack.Padding);
         }
 
+        if (node is GridNode grid)
+        {
+            return new GridArrange(
+                grid.Columns,
+                grid.Rows,
+                grid.ColumnGap,
+                grid.RowGap);
+        }
+
         return null;
     }
 
@@ -222,6 +242,14 @@ public static class UiLowerer
                 for (var index = 0; index < stack.Items.Count; index++)
                 {
                     LowerStackItem(stack.Axis, stack.Items[index], context, id, index);
+                }
+
+                return;
+
+            case GridNode grid:
+                for (var index = 0; index < grid.Cells.Count; index++)
+                {
+                    LowerGridCell(grid.Cells[index], context, id, index);
                 }
 
                 return;
@@ -292,6 +320,7 @@ public static class UiLowerer
                 return;
 
             case StackNode:
+            case GridNode:
             case SpacerNode:
                 return;
 
@@ -346,6 +375,7 @@ public static class UiLowerer
             ButtonNode button => $"Button: {button.Text}",
             RectNode => "Rect",
             StackNode stack => stack.Axis == StackAxis.Horizontal ? "Row" : "Column",
+            GridNode => "Grid",
             ContainerNode container => $"Container: {container.AlignX}/{container.AlignY}",
             SpacerNode spacer => spacer.Axis == StackAxis.Horizontal ? "HSpace" : "VSpace",
             PlacementNode => "Placement",
@@ -444,6 +474,33 @@ public static class UiLowerer
         LowerNode(item.Child, context, wrapperId, order: 0, isRoot: false, parentIsStack: false);
     }
 
+    private static void LowerGridCell(
+        UiGridCell cell,
+        UiLoweringContext context,
+        NodeId parentId,
+        int order)
+    {
+        ArgumentNullException.ThrowIfNull(cell);
+        ArgumentNullException.ThrowIfNull(cell.Child);
+
+        var wrapperId = context.AllocateId(new NodeId($"{parentId.Value}.cell-{cell.Row}-{cell.Column}"));
+        var wrapperFrame = new CellFrame(cell.Column, cell.Row);
+
+        context.Rows.Add(new LayoutRow(
+            wrapperId,
+            wrapperFrame,
+            parentId,
+            order,
+            Z: 0,
+            View: null,
+            Slot: null,
+            DebugLabel: $"GridCell: ({cell.Row},{cell.Column})",
+            Layer: null,
+            Arrange: null));
+
+        LowerNode(cell.Child, context, wrapperId, order: 0, isRoot: false, parentIsStack: false);
+    }
+
     private static FrameSpec CreateExplicitStackItemFrame(
         StackAxis axis,
         UiStackItem item,
@@ -497,6 +554,40 @@ public static class UiLowerer
         return axis == StackAxis.Horizontal ? 48 : 160;
     }
 
+    private static double EstimateGridPlaceholderMainSize(
+        IReadOnlyList<GridTrack> tracks,
+        double fallbackPerTrack)
+    {
+        var size = 0.0;
+        var sawFill = false;
+
+        for (var index = 0; index < tracks.Count; index++)
+        {
+            switch (tracks[index])
+            {
+                case FixedGridTrack fixedTrack:
+                    size += fixedTrack.Size;
+                    break;
+                case FillGridTrack:
+                    sawFill = true;
+                    size += fallbackPerTrack;
+                    break;
+            }
+        }
+
+        if (tracks.Count > 1)
+        {
+            size += 8 * (tracks.Count - 1);
+        }
+
+        if (size <= 0)
+        {
+            return sawFill ? fallbackPerTrack : fallbackPerTrack * Math.Max(1, tracks.Count);
+        }
+
+        return size;
+    }
+
     private static string CreateStackItemDebugLabel(UiStackItem item)
     {
         return item.Kind switch
@@ -525,6 +616,95 @@ public static class UiLowerer
         if (!double.IsFinite(value) || value < 0)
         {
             throw new UiLoweringError(code, message);
+        }
+    }
+
+    private static void ValidateNode(UiNode node)
+    {
+        if (node is not GridNode grid)
+        {
+            return;
+        }
+
+        ValidateGridNode(grid);
+    }
+
+    private static void ValidateGridNode(GridNode grid)
+    {
+        ValidateTracks(grid.Columns, "InvalidGridColumns", "Grid columns must contain at least one supported track.");
+        ValidateTracks(grid.Rows, "InvalidGridRows", "Grid rows must contain at least one supported track.");
+        ValidateFiniteNonNegative(grid.ColumnGap, "InvalidGridColumnGap", "Grid column gap must be finite and non-negative.");
+        ValidateFiniteNonNegative(grid.RowGap, "InvalidGridRowGap", "Grid row gap must be finite and non-negative.");
+
+        var seen = new HashSet<(int Row, int Column)>();
+
+        for (var index = 0; index < grid.Cells.Count; index++)
+        {
+            var cell = grid.Cells[index];
+            if (cell is null)
+            {
+                throw new UiLoweringError("InvalidGridCell", $"Grid cell at index {index} must not be null.");
+            }
+
+            if (cell.Child is null)
+            {
+                throw new UiLoweringError("InvalidGridCellChild", $"Grid cell at index {index} must not have a null child.");
+            }
+
+            if (cell.Row < 0)
+            {
+                throw new UiLoweringError("InvalidGridCellRow", "Grid cell row must be non-negative.");
+            }
+
+            if (cell.Column < 0)
+            {
+                throw new UiLoweringError("InvalidGridCellColumn", "Grid cell column must be non-negative.");
+            }
+
+            if (cell.Column >= grid.Columns.Count)
+            {
+                throw new UiLoweringError("GridCellColumnOutOfRange", $"Grid cell column {cell.Column} is outside the declared columns.");
+            }
+
+            if (cell.Row >= grid.Rows.Count)
+            {
+                throw new UiLoweringError("GridCellRowOutOfRange", $"Grid cell row {cell.Row} is outside the declared rows.");
+            }
+
+            if (!seen.Add((cell.Row, cell.Column)))
+            {
+                throw new UiLoweringError("DuplicateGridCell", $"Duplicate grid cell at row {cell.Row}, column {cell.Column}.");
+            }
+        }
+    }
+
+    private static void ValidateTracks(
+        IReadOnlyList<GridTrack> tracks,
+        string emptyCode,
+        string emptyMessage)
+    {
+        if (tracks.Count == 0)
+        {
+            throw new UiLoweringError(emptyCode, emptyMessage);
+        }
+
+        for (var index = 0; index < tracks.Count; index++)
+        {
+            var track = tracks[index];
+
+            switch (track)
+            {
+                case null:
+                    throw new UiLoweringError("InvalidGridTrack", $"Grid track at index {index} must not be null.");
+                case FixedGridTrack fixedTrack:
+                    ValidateFiniteNonNegative(fixedTrack.Size, "InvalidGridTrackSize", "Fixed grid track size must be finite and non-negative.");
+                    break;
+                case FillGridTrack fillTrack:
+                    ValidateFinitePositive(fillTrack.Weight, "InvalidGridTrackWeight", "Fill grid track weight must be finite and greater than zero.");
+                    break;
+                default:
+                    throw new UiLoweringError("InvalidGridTrack", $"Unsupported grid track type '{track.GetType().Name}'.");
+            }
         }
     }
 

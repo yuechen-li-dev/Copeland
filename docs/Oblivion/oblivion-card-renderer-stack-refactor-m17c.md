@@ -17,6 +17,10 @@ M17b then added `UI.Stack(...)`, `UI.VStack(...)`, `UI.HStack(...)`, explicit st
 
 M17c is the first real renderer migration onto that surface.
 
+M17d follows separately by adding `UI.Grid(...)` as authoring infrastructure only.
+
+The Oblivion page shell is still intentionally deferred to M17e.
+
 ## Previous card authoring problem
 
 Before M17c, the main compact-card path in `OblivionCardRenderer` was written as repeated:

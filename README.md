@@ -55,6 +55,8 @@ M17b follows through on that first slice. C# already had low-level `StackArrange
 
 M17c is the focused renderer follow-through. `OblivionCardRenderer` now uses stack-authored internal card composition, collapsed preview cards now separate body and footer through one explicit stack, and compact footer measurement now uses the same final badge-row model as rendering. M17c does not refactor page layout, does not implement `UI.Grid(...)`, and keeps behavior changes limited to the documented card-layout hardening.
 
+M17d is the matching grid authoring primitive. C# already had low-level `GridArrange` and `CellFrame` support; M17d adds `UI.Grid(...)`, `UI.GridCell(...)`, fixed/fill `UI.Track(...)` helpers, explicit sparse-cell authoring, and regular matrix authoring that both lower to the existing grid engine. M17d does not refactor the Oblivion page shell yet, does not implement a second layout engine, and does not intend a product runtime behavior change.
+
 ## Pipeline
 
 ```text
@@ -244,6 +246,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina JS Parity Layout Recon M17a](docs/Machina/machina-js-parity-layout-recon-m17a.md)
 - [Machina Layout Authoring Backlog M17a](docs/Machina/machina-layout-authoring-backlog-m17a.md)
 - [Machina UI.Stack Authoring M17b](docs/Machina/machina-ui-stack-authoring-m17b.md)
+- [Machina UI.Grid Authoring M17d](docs/Machina/machina-ui-grid-authoring-m17d.md)
 - [Oblivion Card Renderer Stack Refactor M17c](docs/Oblivion/oblivion-card-renderer-stack-refactor-m17c.md)
 - [Oblivion Playback Regression Coverage M16c](docs/Oblivion/oblivion-playback-regression-coverage-m16c.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)

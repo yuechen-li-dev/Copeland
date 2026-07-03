@@ -77,6 +77,11 @@ Primary goal:
 
 - expose an authoring-first grid/cell API over the existing low-level C# grid/cell primitives
 
+Status:
+
+- landed in M17d as `UI.Grid(...)`, `UI.GridCell(...)`, fixed/fill `UI.Track(...)` helpers, deterministic cell-wrapper ids, explicit sparse-cell authoring, and matrix/2D regular-grid authoring
+- page-shell migration remains deferred to M17e
+
 Why after P1:
 
 - page-shell column arithmetic is important, but card-level vertical composition is the larger immediate readability problem
@@ -91,6 +96,11 @@ Target areas:
 Primary goal:
 
 - refactor the wide Oblivion page shell to a declarative grid while preserving independent card-stack and inspector panes
+
+Current note:
+
+- M17d built the grid authoring tool
+- M17e remains the first milestone allowed to apply that tool to the Oblivion page shell
 
 Expected results:
 

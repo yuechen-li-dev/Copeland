@@ -48,10 +48,10 @@ public sealed class MachinaUiStackAuthoringM17bTests
     }
 
     [Fact]
-    public void M17b_DoesNotImplementGrid()
+    public void M17b_StillRecordsGridAsDeferredInThatMilestone()
     {
-        string ui = File.ReadAllText(Path.Combine(RepoRoot, "src", "Machina.Core", "Authoring", "UI.cs"));
-        Assert.DoesNotContain("public static UiNode Grid(", ui, StringComparison.Ordinal);
+        using JsonDocument manifest = LoadManifest();
+        Assert.False(manifest.RootElement.GetProperty("gridImplemented").GetBoolean());
     }
 
     private static JsonDocument LoadManifest()

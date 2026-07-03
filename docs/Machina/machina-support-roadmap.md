@@ -124,6 +124,7 @@ M13d then clarifies the compiler-side doctrine that Machina depends on conceptua
 | UI.Row | Machina.Core | Implemented | Core tests | Lowers via stack arrangement.
 | UI.Column | Machina.Core | Implemented | Core tests | Lowers via stack arrangement.
 | UI.Stack | Machina.Core | Implemented | Core tests + layout resolution tests | M17b adds explicit fixed/fill stack authoring over existing `StackArrange`/`FillFrame`; M17c then uses that surface in `OblivionCardRenderer` internal card composition without refactoring the page shell.
+| UI.Grid | Machina.Core | Implemented | Core tests + existing grid arrange tests + playback regression suite | M17d adds authoring-level grid/cell helpers over the existing `GridArrange`/`CellFrame` engine, including explicit sparse cells and matrix authoring, while keeping the Oblivion page-shell refactor deferred to M17e.
 | UI.Container | Machina.Core | Implemented | Core tests | Alignment data modeled; behavior partly deferred.
 | UI.Button | Machina.Core | Implemented | Core+Standard tests | Action/semantics integration baseline.
 | HSpace/VSpace | Machina.Core | Implemented | Core tests | Deterministic fixed spacer lowering.
@@ -409,6 +410,7 @@ M17a is JS parity layout/refactor recon only.
 - `OblivionCardRenderer`, `OblivionWorkbenchCatalog`, `PresenterCard`, and the presenter shell/document factory are now documented as the highest-value readability and refactor targets
 - StackArrange + FillFrame authoring parity is recorded as the first recommended implementation slice
 - GridArrange + CellFrame authoring parity is recorded as the second implementation slice
+- M17d has now landed that second slice as `UI.Grid(...)` authoring over the existing low-level grid engine, while the page-shell migration remains explicitly deferred to M17e
 - row variants, proportional lengths, guide frames, and DeusMachine parity remain staged follow-up work rather than one-shot port scope
 - playback xUnit coverage from M16d remains the intended safety net for future authoring refactors
 

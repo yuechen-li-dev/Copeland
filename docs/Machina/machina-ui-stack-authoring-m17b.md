@@ -250,6 +250,7 @@ Deferred after M17b:
   this follow-through has now landed as `docs/Oblivion/oblivion-card-renderer-stack-refactor-m17c.md`
 - card-specific measurement/render cleanup
 - M17d authoring-level grid/cell surface
+  this follow-through has now landed as `docs/Machina/machina-ui-grid-authoring-m17d.md`
 - M17e page-shell grid migration
 - cross-node guide/reference placement
 - row variants

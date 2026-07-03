@@ -65,6 +65,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m17a/` is the current Machina JS parity layout/recon manifest directory.
 - `artifacts/m17b/` is the current Machina UI.Stack authoring manifest directory.
 - `artifacts/m17c/` is the current Oblivion card-renderer stack-refactor proof directory.
+- `artifacts/m17d/` is the current Machina UI.Grid authoring manifest directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.

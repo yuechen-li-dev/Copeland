@@ -105,6 +105,62 @@ public static class UI
         return Stack(id, StackAxis.Horizontal, children, gap, padding);
     }
 
+    public static UiNode Grid(
+        IReadOnlyList<GridTrack> columns,
+        IReadOnlyList<GridTrack> rows,
+        IReadOnlyList<UiGridCell> children,
+        NodeId? id = null,
+        double columnGap = 0,
+        double rowGap = 0)
+    {
+        ValidateTracks(columns, nameof(columns));
+        ValidateTracks(rows, nameof(rows));
+        ValidateFiniteNonNegative(columnGap, nameof(columnGap));
+        ValidateFiniteNonNegative(rowGap, nameof(rowGap));
+
+        var normalizedCells = NormalizeExplicitGridCells(children);
+
+        return new GridNode(columns.ToArray(), rows.ToArray(), normalizedCells, columnGap, rowGap) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiNode Grid(
+        IReadOnlyList<GridTrack> columns,
+        IReadOnlyList<IReadOnlyList<UiNode>> cells,
+        NodeId? id = null,
+        IReadOnlyList<GridTrack>? rows = null,
+        double columnGap = 0,
+        double rowGap = 0)
+    {
+        ValidateTracks(columns, nameof(columns));
+        ValidateFiniteNonNegative(columnGap, nameof(columnGap));
+        ValidateFiniteNonNegative(rowGap, nameof(rowGap));
+
+        var normalizedRows = rows is null
+            ? null
+            : NormalizeTracks(rows, nameof(rows));
+        var normalizedCells = NormalizeMatrixGridCells(cells, columns.Count, normalizedRows?.Count);
+        var effectiveRows = normalizedRows ?? CreateDerivedMatrixRows(normalizedCells.Count);
+
+        return new GridNode(columns.ToArray(), effectiveRows, normalizedCells, columnGap, rowGap) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiGridCell GridCell(
+        int row,
+        int column,
+        UiNode child)
+    {
+        ValidateGridCellPosition(row, nameof(row));
+        ValidateGridCellPosition(column, nameof(column));
+        ArgumentNullException.ThrowIfNull(child);
+        return new UiGridCell(row, column, child);
+    }
+
     public static class StackItem
     {
         public static UiStackItem Fixed(
@@ -133,15 +189,170 @@ public static class UI
         }
     }
 
+    public static class Track
+    {
+        public static GridTrack Fixed(double size)
+        {
+            ValidateFiniteNonNegative(size, nameof(size));
+            return new FixedGridTrack(size);
+        }
+
+        public static GridTrack Fill(double weight)
+        {
+            ValidateFinitePositive(weight, nameof(weight));
+            return new FillGridTrack(weight);
+        }
+    }
+
     private static IReadOnlyList<UiStackItem> WrapImplicitStackItems(
         IReadOnlyList<UiNode> children)
     {
         return children.Select(StackItem.Auto).ToArray();
     }
 
+    private static IReadOnlyList<UiGridCell> NormalizeExplicitGridCells(
+        IReadOnlyList<UiGridCell> children)
+    {
+        ArgumentNullException.ThrowIfNull(children);
+
+        var seen = new HashSet<(int Row, int Column)>();
+        var normalized = new UiGridCell[children.Count];
+
+        for (var index = 0; index < children.Count; index++)
+        {
+            ArgumentNullException.ThrowIfNull(children[index]);
+
+            var cell = children[index];
+            ValidateGridCellPosition(cell.Row, nameof(cell.Row));
+            ValidateGridCellPosition(cell.Column, nameof(cell.Column));
+            ArgumentNullException.ThrowIfNull(cell.Child);
+
+            if (!seen.Add((cell.Row, cell.Column)))
+            {
+                throw new ArgumentException(
+                    $"Grid cells must be unique by row and column. Duplicate cell at row {cell.Row}, column {cell.Column}.",
+                    nameof(children));
+            }
+
+            normalized[index] = cell;
+        }
+
+        return normalized;
+    }
+
+    private static IReadOnlyList<UiGridCell> NormalizeMatrixGridCells(
+        IReadOnlyList<IReadOnlyList<UiNode>> cells,
+        int columnCount,
+        int? explicitRowCount)
+    {
+        ArgumentNullException.ThrowIfNull(cells);
+
+        if (cells.Count == 0)
+        {
+            throw new ArgumentException("Matrix grid cells must contain at least one row.", nameof(cells));
+        }
+
+        if (explicitRowCount is { } rowCount && cells.Count != rowCount)
+        {
+            throw new ArgumentException(
+                $"Matrix grid row count {cells.Count} must match explicit row track count {rowCount}.",
+                nameof(cells));
+        }
+
+        var normalized = new List<UiGridCell>(cells.Count * Math.Max(1, columnCount));
+
+        for (var row = 0; row < cells.Count; row++)
+        {
+            var rowCells = cells[row];
+            ArgumentNullException.ThrowIfNull(rowCells);
+
+            if (rowCells.Count != columnCount)
+            {
+                throw new ArgumentException(
+                    $"Matrix grid row {row} contains {rowCells.Count} cells but expected {columnCount}.",
+                    nameof(cells));
+            }
+
+            for (var column = 0; column < rowCells.Count; column++)
+            {
+                var child = rowCells[column];
+                if (child is null)
+                {
+                    throw new ArgumentException(
+                        $"Matrix grid cell at row {row}, column {column} must not be null.",
+                        nameof(cells));
+                }
+
+                normalized.Add(new UiGridCell(row, column, child));
+            }
+        }
+
+        return normalized;
+    }
+
+    private static IReadOnlyList<GridTrack> NormalizeTracks(
+        IReadOnlyList<GridTrack> tracks,
+        string name)
+    {
+        ValidateTracks(tracks, name);
+        return tracks.ToArray();
+    }
+
+    private static GridTrack[] CreateDerivedMatrixRows(int rowCount)
+    {
+        var rows = new GridTrack[rowCount];
+
+        for (var index = 0; index < rowCount; index++)
+        {
+            rows[index] = new FillGridTrack(1);
+        }
+
+        return rows;
+    }
+
+    private static void ValidateTracks(
+        IReadOnlyList<GridTrack> tracks,
+        string name)
+    {
+        ArgumentNullException.ThrowIfNull(tracks);
+
+        if (tracks.Count == 0)
+        {
+            throw new ArgumentException("Grid tracks must contain at least one track.", name);
+        }
+
+        for (var index = 0; index < tracks.Count; index++)
+        {
+            var track = tracks[index];
+            ArgumentNullException.ThrowIfNull(track);
+
+            switch (track)
+            {
+                case FixedGridTrack fixedTrack:
+                    ValidateFiniteNonNegative(fixedTrack.Size, $"{name}[{index}]");
+                    break;
+                case FillGridTrack fillTrack:
+                    ValidateFinitePositive(fillTrack.Weight, $"{name}[{index}]");
+                    break;
+                default:
+                    throw new ArgumentException(
+                        $"Unsupported grid track type '{track.GetType().Name}'.",
+                        name);
+            }
+        }
+    }
+
     private static void ValidateStackItemChild(UiNode child)
     {
         ArgumentNullException.ThrowIfNull(child);
+    }
+
+    private static void ValidateGridCellPosition(int value, string name)
+    {
+        if (value < 0)
+        {
+            throw new ArgumentOutOfRangeException(name);
+        }
     }
 
     private static void ValidateFiniteNonNegative(double value, string name)
