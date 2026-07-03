@@ -526,6 +526,11 @@ It adds:
 - lightweight tests that assert the recon-only contract
 - roadmap/readme updates so the next implementation slices are explicit
 
+Follow-through note:
+
+- M17b is the first implementation follow-through and adds the authoring-level stack surface over the existing low-level stack/fill primitives
+- M17b still does not migrate `OblivionCardRenderer` or page layout
+
 ## What did not change
 
 M17a does not:

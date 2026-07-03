@@ -123,6 +123,7 @@ M13d then clarifies the compiler-side doctrine that Machina depends on conceptua
 | UI.Rect | Machina.Core | Implemented | Core tests | Style + child lowering path.
 | UI.Row | Machina.Core | Implemented | Core tests | Lowers via stack arrangement.
 | UI.Column | Machina.Core | Implemented | Core tests | Lowers via stack arrangement.
+| UI.Stack | Machina.Core | Implemented | Core tests + layout resolution tests | M17b adds explicit fixed/fill stack authoring over existing `StackArrange`/`FillFrame` without refactoring current Oblivion renderer callers yet.
 | UI.Container | Machina.Core | Implemented | Core tests | Alignment data modeled; behavior partly deferred.
 | UI.Button | Machina.Core | Implemented | Core+Standard tests | Action/semantics integration baseline.
 | HSpace/VSpace | Machina.Core | Implemented | Core tests | Deterministic fixed spacer lowering.

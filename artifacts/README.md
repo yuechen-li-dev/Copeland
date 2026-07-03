@@ -63,6 +63,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m16c/` is the current Machina playback regression-suite artifact directory.
 - `artifacts/m16d/` is the current Machina playback xUnit-integration artifact directory.
 - `artifacts/m17a/` is the current Machina JS parity layout/recon manifest directory.
+- `artifacts/m17b/` is the current Machina UI.Stack authoring manifest directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -121,6 +122,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M16c playback artifacts are deterministic per-scenario trace/manifest/scenario/PNG outputs plus aggregate suite report JSON/TXT and a milestone manifest. They may be checked in when they document regression-suite coverage, required assertion reasons, and the explicit non-goals around native OS automation, pixel-golden diffing, and TOML scripting.
 - Current M16d playback artifacts are deterministic xUnit-run trace/manifest/scenario/PNG outputs plus failure summaries under `artifacts/m16d/xunit-playback/<suite>/<scenario-id>/` and an M16d milestone manifest. They may be checked in when they document xUnit-runner integration, failure diagnosability, and the preserved boundary that TOML remains data-only while C# owns orchestration.
 - Current M17a recon artifacts are deterministic text/JSON reports. They may be checked in when they document external-audit incorporation, staged parity planning, explicit recon-only scope, and preserved no-runtime-change boundaries.
+- Current M17b stack-authoring artifacts are deterministic text/JSON reports. They may be checked in when they document the authoring-level stack surface, preserved reuse of existing low-level stack/fill primitives, explicit non-goals around renderer/page migration, and no intended runtime behavior change.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

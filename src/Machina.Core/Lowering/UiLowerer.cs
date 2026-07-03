@@ -197,7 +197,7 @@ public static class UiLowerer
             return new StackArrange(
                 stack.Axis,
                 stack.Gap,
-                Padding: EdgeInsets.All(stack.Padding));
+                Padding: stack.Padding);
         }
 
         return null;
@@ -219,9 +219,9 @@ public static class UiLowerer
                 return;
 
             case StackNode stack:
-                for (var index = 0; index < stack.Children.Count; index++)
+                for (var index = 0; index < stack.Items.Count; index++)
                 {
-                    LowerNode(stack.Children[index], context, id, index, isRoot: false, parentIsStack: true);
+                    LowerStackItem(stack.Axis, stack.Items[index], context, id, index);
                 }
 
                 return;
@@ -408,6 +408,124 @@ public static class UiLowerer
     private static double SpacerHeight(SpacerNode spacer)
     {
         return spacer.Axis == StackAxis.Vertical ? spacer.Size : 0;
+    }
+
+    private static void LowerStackItem(
+        StackAxis axis,
+        UiStackItem item,
+        UiLoweringContext context,
+        NodeId parentId,
+        int order)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(item.Child);
+
+        if (item.Kind == UiStackItemKind.Auto)
+        {
+            LowerNode(item.Child, context, parentId, order, isRoot: false, parentIsStack: true);
+            return;
+        }
+
+        var wrapperId = context.AllocateId(new NodeId($"{parentId.Value}.item-{order}"));
+        var wrapperFrame = CreateExplicitStackItemFrame(axis, item, context);
+
+        context.Rows.Add(new LayoutRow(
+            wrapperId,
+            wrapperFrame,
+            parentId,
+            order,
+            Z: 0,
+            View: null,
+            Slot: null,
+            DebugLabel: CreateStackItemDebugLabel(item),
+            Layer: null,
+            Arrange: null));
+
+        LowerNode(item.Child, context, wrapperId, order: 0, isRoot: false, parentIsStack: false);
+    }
+
+    private static FrameSpec CreateExplicitStackItemFrame(
+        StackAxis axis,
+        UiStackItem item,
+        UiLoweringContext context)
+    {
+        return item.Kind switch
+        {
+            UiStackItemKind.Fixed => CreateFixedStackItemFrame(axis, item, context),
+            UiStackItemKind.Fill => CreateFillStackItemFrame(item),
+            _ => throw new UiLoweringError("InvalidStackItemKind", $"Unsupported stack item kind '{item.Kind}'."),
+        };
+    }
+
+    private static FixedFrame CreateFixedStackItemFrame(
+        StackAxis axis,
+        UiStackItem item,
+        UiLoweringContext context)
+    {
+        ValidateFiniteNonNegative(item.MainSize, "InvalidStackItemMainSize", "Stack item main size must be finite and non-negative.");
+
+        var naturalFrame = CreateStackChildFrame(item.Child, context);
+        var crossSize = ResolveFixedStackItemCrossSize(axis, naturalFrame);
+
+        return axis == StackAxis.Horizontal
+            ? new FixedFrame(item.MainSize, crossSize)
+            : new FixedFrame(crossSize, item.MainSize);
+    }
+
+    private static FillFrame CreateFillStackItemFrame(UiStackItem item)
+    {
+        ValidateFinitePositive(item.Weight, "InvalidStackItemWeight", "Stack item fill weight must be finite and greater than zero.");
+        return new FillFrame(item.Weight);
+    }
+
+    private static double ResolveFixedStackItemCrossSize(
+        StackAxis axis,
+        FrameSpec frame)
+    {
+        var fallback = DefaultFixedStackItemCrossSize(axis);
+
+        return frame switch
+        {
+            FixedFrame fixedFrame => axis == StackAxis.Horizontal ? fixedFrame.Height : fixedFrame.Width,
+            FillFrame fillFrame when fillFrame.Cross is { } cross => cross,
+            _ => fallback,
+        };
+    }
+
+    private static double DefaultFixedStackItemCrossSize(StackAxis axis)
+    {
+        return axis == StackAxis.Horizontal ? 48 : 160;
+    }
+
+    private static string CreateStackItemDebugLabel(UiStackItem item)
+    {
+        return item.Kind switch
+        {
+            UiStackItemKind.Fixed => $"StackItem: Fixed({FormatDebugNumber(item.MainSize)})",
+            UiStackItemKind.Fill => $"StackItem: Fill({FormatDebugNumber(item.Weight)})",
+            _ => "StackItem: Auto",
+        };
+    }
+
+    private static string FormatDebugNumber(double value)
+    {
+        return value.ToString("0.################", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static void ValidateFinitePositive(double value, string code, string message)
+    {
+        if (!double.IsFinite(value) || value <= 0)
+        {
+            throw new UiLoweringError(code, message);
+        }
+    }
+
+    private static void ValidateFiniteNonNegative(double value, string code, string message)
+    {
+        if (!double.IsFinite(value) || value < 0)
+        {
+            throw new UiLoweringError(code, message);
+        }
     }
 
     private static UiLoweringError Unsupported(UiNode node)

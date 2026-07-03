@@ -27,6 +27,12 @@ Primary goal:
 
 - expose an authoring-first vertical/horizontal stack API over the existing low-level C# stack/fill primitives
 
+Implementation note:
+
+- M17b implementation landed as `UI.Stack(...)`, `UI.VStack(...)`, `UI.HStack(...)`, explicit `UI.StackItem.Fixed(...)` / `UI.StackItem.Fill(...)`, deterministic stack-item wrapper ids, and focused lowering/layout tests
+- no Oblivion renderer migration happened in M17b
+- M17c remains the next renderer migration step
+
 Why first:
 
 - it removes the largest current readability tax: vertical `cursorTop` / `currentTop` arithmetic

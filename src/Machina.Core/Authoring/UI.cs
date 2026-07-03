@@ -56,7 +56,7 @@ public static class UI
         double gap = 0,
         double padding = 0)
     {
-        return new StackNode(StackAxis.Horizontal, children, gap, padding) with
+        return new StackNode(StackAxis.Horizontal, WrapImplicitStackItems(children), gap, EdgeInsets.All(padding)) with
         {
             Id = id,
         };
@@ -68,10 +68,96 @@ public static class UI
         double gap = 0,
         double padding = 0)
     {
-        return new StackNode(StackAxis.Vertical, children, gap, padding) with
+        return new StackNode(StackAxis.Vertical, WrapImplicitStackItems(children), gap, EdgeInsets.All(padding)) with
         {
             Id = id,
         };
+    }
+
+    public static UiNode Stack(
+        NodeId? id,
+        StackAxis axis,
+        IReadOnlyList<UiStackItem> children,
+        double gap = 0,
+        UiPadding? padding = null)
+    {
+        return new StackNode(axis, children, gap, (padding ?? UiPadding.Zero).ToEdgeInsets()) with
+        {
+            Id = id,
+        };
+    }
+
+    public static UiNode VStack(
+        IReadOnlyList<UiStackItem> children,
+        NodeId? id = null,
+        double gap = 0,
+        UiPadding? padding = null)
+    {
+        return Stack(id, StackAxis.Vertical, children, gap, padding);
+    }
+
+    public static UiNode HStack(
+        IReadOnlyList<UiStackItem> children,
+        NodeId? id = null,
+        double gap = 0,
+        UiPadding? padding = null)
+    {
+        return Stack(id, StackAxis.Horizontal, children, gap, padding);
+    }
+
+    public static class StackItem
+    {
+        public static UiStackItem Fixed(
+            double main,
+            UiNode child)
+        {
+            ValidateStackItemChild(child);
+            ValidateFiniteNonNegative(main, nameof(main));
+            return new UiStackItem(child, UiStackItemKind.Fixed, MainSize: main);
+        }
+
+        public static UiStackItem Fill(
+            double weight,
+            UiNode child)
+        {
+            ValidateStackItemChild(child);
+            ValidateFinitePositive(weight, nameof(weight));
+            return new UiStackItem(child, UiStackItemKind.Fill, Weight: weight);
+        }
+
+        public static UiStackItem Auto(
+            UiNode child)
+        {
+            ValidateStackItemChild(child);
+            return new UiStackItem(child, UiStackItemKind.Auto);
+        }
+    }
+
+    private static IReadOnlyList<UiStackItem> WrapImplicitStackItems(
+        IReadOnlyList<UiNode> children)
+    {
+        return children.Select(StackItem.Auto).ToArray();
+    }
+
+    private static void ValidateStackItemChild(UiNode child)
+    {
+        ArgumentNullException.ThrowIfNull(child);
+    }
+
+    private static void ValidateFiniteNonNegative(double value, string name)
+    {
+        if (!double.IsFinite(value) || value < 0)
+        {
+            throw new ArgumentOutOfRangeException(name);
+        }
+    }
+
+    private static void ValidateFinitePositive(double value, string name)
+    {
+        if (!double.IsFinite(value) || value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(name);
+        }
     }
 
     public static UiNode Container(

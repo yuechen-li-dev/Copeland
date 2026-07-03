@@ -4,6 +4,6 @@ namespace Machina.Core.Nodes;
 
 public sealed record StackNode(
     StackAxis Axis,
-    IReadOnlyList<UiNode> Children,
+    IReadOnlyList<UiStackItem> Items,
     double Gap = 0,
-    double Padding = 0) : UiNode;
+    EdgeInsets Padding = default) : UiNode;

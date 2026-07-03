@@ -51,6 +51,8 @@ M16a added the internal deterministic playback MVP for the Machina presenter. M1
 
 M17a is recon only. It incorporates an external frontend/design audit against the local C# Machina/Oblivion authoring surface, confirms that the main current gap is readable authoring rather than missing low-level layout primitives, classifies the current bugs and cleanup candidates, and records a staged parity ladder. The recommended next implementation slice is authoring-level StackArrange + FillFrame parity over the existing C# layout engine, followed by an Oblivion card-renderer stack refactor, then authoring-level GridArrange + CellFrame parity and a page-shell grid refactor. M17a does not change runtime behavior, does not refactor the current renderer, and keeps the M16 playback xUnit suite as the safety net for future refactors.
 
+M17b follows through on that first slice. C# already had low-level `StackArrange` and `FillFrame` support; M17b adds the authoring-level `UI.Stack(...)` surface, fixed/fill stack items, stack gap/padding, and deterministic wrapper-id derivation without refactoring `OblivionCardRenderer`, without refactoring page layout, and without intending a product runtime behavior change.
+
 ## Pipeline
 
 ```text
@@ -239,6 +241,7 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Playback xUnit Integration M16d](docs/Machina/machina-playback-xunit-integration-m16d.md)
 - [Machina JS Parity Layout Recon M17a](docs/Machina/machina-js-parity-layout-recon-m17a.md)
 - [Machina Layout Authoring Backlog M17a](docs/Machina/machina-layout-authoring-backlog-m17a.md)
+- [Machina UI.Stack Authoring M17b](docs/Machina/machina-ui-stack-authoring-m17b.md)
 - [Oblivion Playback Regression Coverage M16c](docs/Oblivion/oblivion-playback-regression-coverage-m16c.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)
