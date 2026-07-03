@@ -93,6 +93,8 @@ public static class PresenterPlaybackOutputWriter
             "scroll-offset-greater-than",
             "selected-card",
             "shell-mode",
+            "step-scroll-delta-equals",
+            "step-scroll-delta-greater-than",
         ];
 
         string[] playbackArtifacts =
@@ -207,6 +209,8 @@ public static class PresenterPlaybackOutputWriter
             "scroll-offset-greater-than",
             "selected-card",
             "shell-mode",
+            "step-scroll-delta-equals",
+            "step-scroll-delta-greater-than",
         ];
         string[] starterScenarios =
         [
@@ -314,6 +318,195 @@ public static class PresenterPlaybackOutputWriter
         return (jsonPath, textPath);
     }
 
+    public static (string jsonPath, string textPath) WriteSuiteReport(
+        string outputDirectory,
+        PresenterPlaybackSuiteDefinition suite,
+        string scenarioOutputDirectory,
+        IReadOnlyList<PresenterPlaybackSuiteScenarioResult> scenarioResults,
+        bool starterScenariosIncluded,
+        bool regressionScenariosIncluded,
+        string validationStatus)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(suite);
+        ArgumentNullException.ThrowIfNull(scenarioOutputDirectory);
+        ArgumentNullException.ThrowIfNull(scenarioResults);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "playback-suite-report.json");
+        string textPath = Path.Combine(outputDirectory, "playback-suite-report.txt");
+        int passedCount = scenarioResults.Count(result => result.Passed);
+        int failedCount = scenarioResults.Count(result => !result.Passed && !result.Skipped);
+        int skippedCount = scenarioResults.Count(result => result.Skipped);
+
+        var report = new
+        {
+            suiteId = suite.Id,
+            suiteName = suite.Name,
+            scenarioCount = scenarioResults.Count,
+            passedCount,
+            failedCount,
+            skippedCount,
+            scenarioOutputDirectory,
+            starterScenariosIncluded,
+            regressionScenariosIncluded,
+            validationStatus,
+            scenarioResults = scenarioResults.Select(result => new
+            {
+                id = result.ScenarioId,
+                name = result.ScenarioName,
+                path = result.ScenarioPath,
+                outputDirectory = result.OutputDirectory,
+                passed = result.Passed,
+                skipped = result.Skipped,
+                errorMessage = result.ErrorMessage,
+                failures = result.Failures.Select(failure => new
+                {
+                    failure.AssertionIndex,
+                    failure.AssertionType,
+                    failure.Reason,
+                    failure.Message,
+                }),
+            }),
+        };
+
+        File.WriteAllText(
+            jsonPath,
+            JsonSerializer.Serialize(
+                report,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                }));
+
+        List<string> textLines =
+        [
+            $"suiteId={suite.Id}",
+            $"suiteName={suite.Name}",
+            $"scenarioCount={scenarioResults.Count}",
+            $"passedCount={passedCount}",
+            $"failedCount={failedCount}",
+            $"skippedCount={skippedCount}",
+            $"scenarioOutputDirectory={scenarioOutputDirectory}",
+            $"starterScenariosIncluded={ToLower(starterScenariosIncluded)}",
+            $"regressionScenariosIncluded={ToLower(regressionScenariosIncluded)}",
+            $"validationStatus={validationStatus}",
+            "scenarios:",
+        ];
+
+        textLines.AddRange(scenarioResults.Select(result =>
+            $"{result.ScenarioId}|passed={ToLower(result.Passed)}|skipped={ToLower(result.Skipped)}|path={result.ScenarioPath}|outputDirectory={result.OutputDirectory}|failures={FormatSuiteFailures(result.Failures)}{FormatOptionalFailure(result.ErrorMessage)}"));
+
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
+    }
+
+    public static (string jsonPath, string textPath) WriteRegressionSuiteManifest(
+        string outputDirectory,
+        PresenterPlaybackSuiteDefinition suite,
+        bool starterScenariosStillPass,
+        bool regressionScenariosPass,
+        IReadOnlyList<PresenterPlaybackSuiteScenarioResult> scenarioResults,
+        string validationStatus)
+    {
+        ArgumentNullException.ThrowIfNull(outputDirectory);
+        ArgumentNullException.ThrowIfNull(suite);
+        ArgumentNullException.ThrowIfNull(scenarioResults);
+
+        Directory.CreateDirectory(outputDirectory);
+
+        string jsonPath = Path.Combine(outputDirectory, "machina-playback-regression-suite-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "machina-playback-regression-suite-manifest.txt");
+        string[] regressionScenariosAdded = scenarioResults
+            .Where(result => result.ScenarioPath.Contains($"{Path.DirectorySeparatorChar}regressions{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+                             result.ScenarioPath.Contains($"{Path.AltDirectorySeparatorChar}regressions{Path.AltDirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Select(result => result.ScenarioId)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] deferredWork =
+        [
+            "No native OS automation",
+            "No pixel-golden screenshot diffing",
+            "No TOML conditionals, loops, or variables",
+            "No Markdown editing or execution work",
+            "No Aurelian or VD-MIR work",
+            "Step-level performance counters for raw-source layout rebuilds remain deferred",
+        ];
+
+        var manifest = new
+        {
+            milestone = "M16c",
+            kind = "machina-playback-regression-suite",
+            playbackSuiteImplemented = true,
+            scenarioFormat = "toml",
+            scenarioExtension = ".machina-playback.toml",
+            regressionScenariosAdded,
+            starterScenariosStillPass,
+            regressionScenariosPass,
+            suiteRunnerImplemented = true,
+            suiteReportGenerated = true,
+            assertionReasonsMandatory = true,
+            tomlConditionalsImplemented = false,
+            tomlLoopsImplemented = false,
+            tomlVariablesImplemented = false,
+            nativeOsAutomationImplemented = false,
+            pixelGoldenDiffingImplemented = false,
+            editorImplemented = false,
+            markdownEditingImplemented = false,
+            notebookExecutionImplemented = false,
+            roslynExecutionImplemented = false,
+            aurelianWorkPerformed = false,
+            vdMirWorkPerformed = false,
+            validationStatus,
+            deferredWork,
+            suiteId = suite.Id,
+            suiteName = suite.Name,
+        };
+
+        File.WriteAllText(
+            jsonPath,
+            JsonSerializer.Serialize(
+                manifest,
+                new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                }));
+
+        string[] textLines =
+        [
+            "milestone=M16c",
+            "kind=machina-playback-regression-suite",
+            "playbackSuiteImplemented=true",
+            "scenarioFormat=toml",
+            "scenarioExtension=.machina-playback.toml",
+            $"regressionScenariosAdded={string.Join(",", regressionScenariosAdded)}",
+            $"starterScenariosStillPass={ToLower(starterScenariosStillPass)}",
+            $"regressionScenariosPass={ToLower(regressionScenariosPass)}",
+            "suiteRunnerImplemented=true",
+            "suiteReportGenerated=true",
+            "assertionReasonsMandatory=true",
+            "tomlConditionalsImplemented=false",
+            "tomlLoopsImplemented=false",
+            "tomlVariablesImplemented=false",
+            "nativeOsAutomationImplemented=false",
+            "pixelGoldenDiffingImplemented=false",
+            "editorImplemented=false",
+            "markdownEditingImplemented=false",
+            "notebookExecutionImplemented=false",
+            "roslynExecutionImplemented=false",
+            "aurelianWorkPerformed=false",
+            "vdMirWorkPerformed=false",
+            $"validationStatus={validationStatus}",
+            $"deferredWork={string.Join(" | ", deferredWork)}",
+            $"suiteId={suite.Id}",
+            $"suiteName={suite.Name}",
+        ];
+
+        File.WriteAllLines(textPath, textLines);
+        return (jsonPath, textPath);
+    }
+
     private static string BuildNormalizedScenarioToml(PresenterPlaybackScenario scenario)
     {
         var builder = new StringBuilder();
@@ -404,6 +597,18 @@ public static class PresenterPlaybackOutputWriter
                     builder.AppendLine($"target = {Quote(regionExists.Target)}");
                     AppendOptionalString(builder, "card", regionExists.CardId);
                     break;
+                case PresenterPlaybackStepScrollDeltaGreaterThanAssertion greaterThan:
+                    builder.AppendLine($"step = {greaterThan.Step}");
+                    builder.AppendLine($"target = {Quote(greaterThan.Target)}");
+                    AppendOptionalString(builder, "card", greaterThan.CardId);
+                    builder.AppendLine($"value = {FormatNumber(greaterThan.Value)}");
+                    break;
+                case PresenterPlaybackStepScrollDeltaEqualsAssertion equalsAssertion:
+                    builder.AppendLine($"step = {equalsAssertion.Step}");
+                    builder.AppendLine($"target = {Quote(equalsAssertion.Target)}");
+                    AppendOptionalString(builder, "card", equalsAssertion.CardId);
+                    builder.AppendLine($"value = {FormatNumber(equalsAssertion.Value)}");
+                    break;
             }
 
             builder.AppendLine($"reason = {Quote(assertion.Reason)}");
@@ -456,5 +661,15 @@ public static class PresenterPlaybackOutputWriter
         return string.IsNullOrWhiteSpace(message)
             ? string.Empty
             : $" failure={message}";
+    }
+
+    private static string FormatSuiteFailures(IReadOnlyList<PresenterPlaybackSuiteScenarioFailure> failures)
+    {
+        return failures.Count == 0
+            ? "<none>"
+            : string.Join(
+                " | ",
+                failures.Select(failure =>
+                    $"[{failure.AssertionIndex?.ToString(CultureInfo.InvariantCulture) ?? "error"}]{failure.AssertionType ?? "scenario"}:{failure.Reason}:{failure.Message}"));
     }
 }

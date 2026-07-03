@@ -1,0 +1,280 @@
+{
+  "ScenarioId": "m15e-independent-scroll-panes",
+  "ScenarioName": "M15e main stack and inspector scroll independently",
+  "Steps": [
+    {
+      "Index": 0,
+      "Type": "wheel",
+      "Target": "main-stack",
+      "CardId": null,
+      "TargetResolution": {
+        "SemanticTargetKind": "main-stack",
+        "RequestedCardId": null,
+        "ResolvedCardId": null,
+        "ResolvedRegionKind": "oblivion-main-card-stack",
+        "ResolvedRegionId": "oblivion.docs.main-stack",
+        "ResolvedPoint": {
+          "X": 554,
+          "Y": 230
+        },
+        "ResolvedRect": {
+          "X": 256,
+          "Y": 148,
+          "Width": 596,
+          "Height": 164
+        }
+      },
+      "ResolvedPoint": {
+        "X": 554,
+        "Y": 230
+      },
+      "ResolvedRect": {
+        "X": 256,
+        "Y": 148,
+        "Width": 596,
+        "Height": 164
+      },
+      "HitTestResult": {
+        "RegionKind": "oblivion-main-card-stack",
+        "RegionId": "oblivion.docs.main-stack",
+        "CardId": null,
+        "ScrollRegionId": "oblivion.docs.main-stack",
+        "LocalPoint": {
+          "X": 298,
+          "Y": 82
+        }
+      },
+      "EmittedInput": {
+        "Kind": "Wheel",
+        "Key": null,
+        "WheelDeltaY": -1,
+        "ActionId": "presenter.navigation.set-oblivion-main-card-stack-scroll|oblivion.docs|48",
+        "PointerCaptureRequest": "None",
+        "InputConsumed": true
+      },
+      "DispatchedAction": {
+        "ActionId": "presenter.navigation.set-oblivion-main-card-stack-scroll|oblivion.docs|48",
+        "ActionType": "set-oblivion-main-card-stack-scroll-offset",
+        "ActionHandled": true,
+        "WheelConsumed": true
+      },
+      "StateDelta": {
+        "MainStackScrollDelta": 48,
+        "InspectorScrollDelta": 0,
+        "RawSourceScrollDelta": 0,
+        "ExpandedBodyScrollDelta": 0
+      },
+      "Before": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "doc-aurelian-build-topology-m13b",
+        "ExpandedCards": [
+          "doc-aurelian-build-topology-m13b"
+        ],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "main-stack",
+        "ShellMode": 0,
+        "PageRenderCount": 1,
+        "ShellRenderCount": 1,
+        "CompositionCount": 2
+      },
+      "After": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "doc-aurelian-build-topology-m13b",
+        "ExpandedCards": [
+          "doc-aurelian-build-topology-m13b"
+        ],
+        "MainStackScrollOffset": 48,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "main-stack",
+        "ShellMode": 0,
+        "PageRenderCount": 2,
+        "ShellRenderCount": 1,
+        "CompositionCount": 4
+      },
+      "Result": "ok"
+    },
+    {
+      "Index": 1,
+      "Type": "wheel",
+      "Target": "inspector-pane",
+      "CardId": null,
+      "TargetResolution": {
+        "SemanticTargetKind": "inspector-pane",
+        "RequestedCardId": null,
+        "ResolvedCardId": null,
+        "ResolvedRegionKind": "oblivion-inspector-pane",
+        "ResolvedRegionId": "oblivion.docs.inspector-pane",
+        "ResolvedPoint": {
+          "X": 1042,
+          "Y": 230
+        },
+        "ResolvedRect": {
+          "X": 876,
+          "Y": 148,
+          "Width": 332,
+          "Height": 164
+        }
+      },
+      "ResolvedPoint": {
+        "X": 1042,
+        "Y": 230
+      },
+      "ResolvedRect": {
+        "X": 876,
+        "Y": 148,
+        "Width": 332,
+        "Height": 164
+      },
+      "HitTestResult": {
+        "RegionKind": "oblivion-inspector-pane",
+        "RegionId": "oblivion.docs.inspector-pane",
+        "CardId": null,
+        "ScrollRegionId": "oblivion.docs.inspector-pane",
+        "LocalPoint": {
+          "X": 786,
+          "Y": 82
+        }
+      },
+      "EmittedInput": {
+        "Kind": "Wheel",
+        "Key": null,
+        "WheelDeltaY": -1,
+        "ActionId": "presenter.navigation.set-oblivion-inspector-scroll|oblivion.docs|48",
+        "PointerCaptureRequest": "None",
+        "InputConsumed": true
+      },
+      "DispatchedAction": {
+        "ActionId": "presenter.navigation.set-oblivion-inspector-scroll|oblivion.docs|48",
+        "ActionType": "set-oblivion-inspector-scroll-offset",
+        "ActionHandled": true,
+        "WheelConsumed": true
+      },
+      "StateDelta": {
+        "MainStackScrollDelta": 0,
+        "InspectorScrollDelta": 48,
+        "RawSourceScrollDelta": 0,
+        "ExpandedBodyScrollDelta": 0
+      },
+      "Before": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "doc-aurelian-build-topology-m13b",
+        "ExpandedCards": [
+          "doc-aurelian-build-topology-m13b"
+        ],
+        "MainStackScrollOffset": 48,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "inspector-pane",
+        "ShellMode": 0,
+        "PageRenderCount": 2,
+        "ShellRenderCount": 1,
+        "CompositionCount": 5
+      },
+      "After": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "docs",
+        "PageId": "oblivion.docs",
+        "SelectedCard": "doc-aurelian-build-topology-m13b",
+        "ExpandedCards": [
+          "doc-aurelian-build-topology-m13b"
+        ],
+        "MainStackScrollOffset": 48,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 48,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "inspector-pane",
+        "ShellMode": 0,
+        "PageRenderCount": 3,
+        "ShellRenderCount": 1,
+        "CompositionCount": 7
+      },
+      "Result": "ok"
+    }
+  ],
+  "Assertions": [
+    {
+      "Index": 0,
+      "Type": "step-scroll-delta-greater-than",
+      "Reason": "This guards the M15e contract that wheel input over the main stack changes main-stack scroll.",
+      "Expected": "\u003E 0",
+      "Actual": "48",
+      "Passed": true,
+      "FailureMessage": null
+    },
+    {
+      "Index": 1,
+      "Type": "step-scroll-delta-equals",
+      "Reason": "This guards the M15e contract that selection couples stack and inspector content, but scrolling the stack does not move inspector scroll.",
+      "Expected": "0",
+      "Actual": "0",
+      "Passed": true,
+      "FailureMessage": null
+    },
+    {
+      "Index": 2,
+      "Type": "step-scroll-delta-greater-than",
+      "Reason": "This guards the M15e contract that wheel input over the inspector changes inspector-local scroll.",
+      "Expected": "\u003E 0",
+      "Actual": "48",
+      "Passed": true,
+      "FailureMessage": null
+    },
+    {
+      "Index": 3,
+      "Type": "step-scroll-delta-equals",
+      "Reason": "This guards the M15e contract that scrolling the inspector does not mutate the main-stack offset even when the same card stays selected.",
+      "Expected": "0",
+      "Actual": "0",
+      "Passed": true,
+      "FailureMessage": null
+    }
+  ],
+  "InitialState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "docs",
+    "PageId": "oblivion.docs",
+    "SelectedCard": "doc-aurelian-build-topology-m13b",
+    "ExpandedCards": [
+      "doc-aurelian-build-topology-m13b"
+    ],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 0,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 1,
+    "ShellRenderCount": 1,
+    "CompositionCount": 1
+  },
+  "FinalState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "docs",
+    "PageId": "oblivion.docs",
+    "SelectedCard": "doc-aurelian-build-topology-m13b",
+    "ExpandedCards": [
+      "doc-aurelian-build-topology-m13b"
+    ],
+    "MainStackScrollOffset": 48,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 48,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 3,
+    "ShellRenderCount": 1,
+    "CompositionCount": 8
+  }
+}

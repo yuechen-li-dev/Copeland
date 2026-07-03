@@ -60,6 +60,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m15g/` is the current Oblivion reading-surface closeout manifest directory.
 - `artifacts/m16a/` is the historical Machina presenter playback MVP artifact directory.
 - `artifacts/m16b/` is the current Machina playback input-parity stabilization artifact directory.
+- `artifacts/m16c/` is the current Machina playback regression-suite artifact directory.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.
@@ -115,6 +116,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - Current M15g closeout artifacts are deterministic text/JSON reports. They may be checked in when they document the M15 reading-surface closeout, the current golden path baseline, the explicit no-runtime-change doctrine, the recommended next milestone, and the remaining UX backlog without claiming new feature work.
 - Current M16a playback artifacts are deterministic trace/manifest/scenario/PNG outputs. They may remain checked in as historical MVP evidence, including the formerly blocked parity traces.
 - Current M16b playback artifacts are deterministic trace/manifest/scenario/PNG outputs. They may be checked in when they document stabilized internal presenter playback parity, required assertion reasons, and explicit non-goals around native OS automation and pixel-golden diffing.
+- Current M16c playback artifacts are deterministic per-scenario trace/manifest/scenario/PNG outputs plus aggregate suite report JSON/TXT and a milestone manifest. They may be checked in when they document regression-suite coverage, required assertion reasons, and the explicit non-goals around native OS automation, pixel-golden diffing, and TOML scripting.
 - These files are visual audit aids, not an automated pixel-diff baseline gate.
 
 ## Regenerating the component gallery artifacts

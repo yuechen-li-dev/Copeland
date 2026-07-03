@@ -1,0 +1,45 @@
+[suite]
+id = "m16c-oblivion-playback-suite"
+name = "M16c Oblivion playback regression suite"
+
+[[scenario]]
+path = "starter/oblivion-expand-collapse.machina-playback.toml"
+
+[[scenario]]
+path = "starter/oblivion-expanded-body-scroll.machina-playback.toml"
+
+[[scenario]]
+path = "starter/oblivion-main-stack-scroll.machina-playback.toml"
+
+[[scenario]]
+path = "starter/oblivion-inspector-scroll.machina-playback.toml"
+
+[[scenario]]
+path = "starter/oblivion-raw-source-scroll.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m15b-wide-shell-mode.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m15b-compact-shell-mode.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m15c-expand-collapse-selection.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m15d-expanded-reading-surface.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m15e-independent-scroll-panes.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m15e-partial-viewport-culling.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m15f-main-stack-scroll-regression.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m15f-inspector-raw-source-lag-guard.machina-playback.toml"
+
+[[scenario]]
+path = "regressions/m16b-raw-source-routing-regression.machina-playback.toml"

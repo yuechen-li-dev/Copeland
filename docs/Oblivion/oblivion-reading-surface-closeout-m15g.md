@@ -248,6 +248,12 @@ Follow-up note after M16b:
 - starter playback scenarios now pass through the same presenter input/routing path that real user interaction uses
 - playback still does not add native automation, TOML scripting, or pixel-golden screenshot diffing
 
+Follow-up note after M16c:
+
+- M16c turns those playback cassettes into a canonical regression suite with starter and regression scenario organization
+- the suite now writes deterministic per-scenario artifacts plus aggregate suite reports and an M16c milestone manifest
+- playback still does not add native automation, TOML scripting, or pixel-golden screenshot diffing
+
 ## What changed
 
 What changed across M15a through M15f:

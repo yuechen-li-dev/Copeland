@@ -1,0 +1,32 @@
+[scenario]
+id = "m15c-expand-collapse-selection"
+name = "M15c selection stays deterministic across expand and collapse"
+viewport = { width = 1280, height = 720 }
+section = "oblivion"
+tab = "execution-roadmap"
+selectedCard = "markdown-first-roadmap"
+
+[output]
+captureFinalPng = true
+captureTraceJson = true
+captureManifest = true
+
+[[steps]]
+type = "click"
+target = "card-header"
+card = "markdown-first-roadmap"
+
+[[steps]]
+type = "key"
+key = "Escape"
+
+[[assertions]]
+type = "selected-card"
+value = "markdown-first-roadmap"
+reason = "This guards the M15c separation between selection and expansion so collapsing the reading surface does not destabilize which card the inspector follows."
+
+[[assertions]]
+type = "card-expanded"
+card = "markdown-first-roadmap"
+value = false
+reason = "This guards the M15c contract that Escape collapses the expanded reading surface without clearing deterministic card selection."

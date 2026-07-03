@@ -1,15 +1,36 @@
 using Machina.Presenter.Sample.Playback;
 using Machina.Standard.Theme;
+using Machina.Core.Styling;
 
 namespace Machina.Presenter.Sample.Tests;
 
 internal static class PlaybackTestEnvironment
 {
+    private static readonly StandardTheme TestTheme =
+        StandardTheme.Default with
+        {
+            Button = StandardTheme.Default.Button with
+            {
+                Default = StandardTheme.Default.Button.Default with
+                {
+                    Background = ColorToken.Hex(0x111827FF),
+                    Foreground = ColorToken.Hex(0xF9FAFBFF),
+                },
+            },
+            Card = StandardTheme.Default.Card with
+            {
+                Default = StandardTheme.Default.Card.Default with
+                {
+                    ContentInset = 18,
+                },
+            },
+        };
+
     public static PresenterPlaybackRunner CreateRunner()
     {
         return new PresenterPlaybackRunner(
             DemoState.Default,
-            StandardTheme.Default,
+            TestTheme,
             new PresenterProofOptions());
     }
 
@@ -26,7 +47,52 @@ internal static class PlaybackTestEnvironment
 
     public static string GetScenarioPath(string fileName)
     {
-        return Path.Combine(GetRepoRoot(), "samples", "Machina.Presenter.Sample", "PlaybackScenarios", fileName);
+        string scenariosRoot = GetScenariosRoot();
+        string[] matches = Directory.GetFiles(scenariosRoot, fileName, SearchOption.AllDirectories);
+        if (matches.Length == 0)
+        {
+            throw new FileNotFoundException($"Could not find playback scenario '{fileName}' under {scenariosRoot}.");
+        }
+
+        if (matches.Length > 1)
+        {
+            throw new InvalidOperationException(
+                $"Playback scenario file '{fileName}' is ambiguous under {scenariosRoot}: {string.Join(", ", matches)}");
+        }
+
+        return matches[0];
+    }
+
+    public static string GetScenariosRoot()
+    {
+        return Path.Combine(GetRepoRoot(), "samples", "Machina.Presenter.Sample", "PlaybackScenarios");
+    }
+
+    public static string GetStarterScenarioDirectory()
+    {
+        return Path.Combine(GetScenariosRoot(), "starter");
+    }
+
+    public static string GetRegressionScenarioDirectory()
+    {
+        return Path.Combine(GetScenariosRoot(), "regressions");
+    }
+
+    public static string GetSuiteManifestPath(string fileName)
+    {
+        return Path.Combine(GetScenariosRoot(), fileName);
+    }
+
+    public static string CreateOutputDirectory(string name)
+    {
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            "machina-presenter-playback-m16c-tests",
+            name,
+            Guid.NewGuid().ToString("N"),
+            "playback");
+        Directory.CreateDirectory(directory);
+        return directory;
     }
 
     public static string GetRepoRoot()
@@ -89,7 +155,7 @@ internal static class PlaybackTestEnvironment
         return PresenterNavigationShellRenderer.Render(
             DemoState.Default,
             state,
-            StandardTheme.Default,
+            TestTheme,
             new PresenterProofOptions(),
             layout);
     }

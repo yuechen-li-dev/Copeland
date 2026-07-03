@@ -1,0 +1,20 @@
+scenarioId=m15e-independent-scroll-panes
+scenarioName=M15e main stack and inspector scroll independently
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\m16c\playback\m15e-independent-scroll-panes
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16c\playback\m15e-independent-scroll-panes\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16c\playback\m15e-independent-scroll-panes\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\m16c\playback\m15e-independent-scroll-panes\playback-trace.json
+passed=true
+assertionCount=4
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] step-scroll-delta-greater-than passed=true reason=This guards the M15e contract that wheel input over the main stack changes main-stack scroll. expected=> 0 actual=48
+  [1] step-scroll-delta-equals passed=true reason=This guards the M15e contract that selection couples stack and inspector content, but scrolling the stack does not move inspector scroll. expected=0 actual=0
+  [2] step-scroll-delta-greater-than passed=true reason=This guards the M15e contract that wheel input over the inspector changes inspector-local scroll. expected=> 0 actual=48
+  [3] step-scroll-delta-equals passed=true reason=This guards the M15e contract that scrolling the inspector does not mutate the main-stack offset even when the same card stays selected. expected=0 actual=0

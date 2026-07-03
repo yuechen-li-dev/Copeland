@@ -6,6 +6,12 @@ Follow-up note after M16b:
 - starter scenarios now pass through the internal presenter input/routing path
 - this document remains the MVP landing record; M16b is the stabilization follow-through
 
+Follow-up note after M16c:
+
+- the playback harness is now organized into starter and regression suites under `samples/Machina.Presenter.Sample/PlaybackScenarios/`
+- a suite runner and aggregate report now exist; see [Machina Playback Regression Suite M16c](machina-playback-regression-suite-m16c.md)
+- playback still does not add native OS automation, TOML programming features, or pixel-golden diffing
+
 ## Purpose
 
 M16a introduces a sample-local deterministic playback MVP for the Machina presenter.
@@ -178,6 +184,8 @@ Current starter set:
 - `oblivion-main-stack-scroll`
 - `oblivion-inspector-scroll`
 - `oblivion-raw-source-scroll`
+
+In M16c these now live under `samples/Machina.Presenter.Sample/PlaybackScenarios/starter/`.
 
 Two of those scenarios currently document an honest blocker in playback parity:
 

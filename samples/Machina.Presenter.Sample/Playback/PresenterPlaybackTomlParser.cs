@@ -168,6 +168,18 @@ public static class PresenterPlaybackTomlParser
                 GetRequiredString(table, "target", sourcePath),
                 GetOptionalString(table, "card"),
                 reason),
+            "step-scroll-delta-greater-than" => new PresenterPlaybackStepScrollDeltaGreaterThanAssertion(
+                GetRequiredInt(table, "step", sourcePath),
+                GetRequiredString(table, "target", sourcePath),
+                GetOptionalString(table, "card"),
+                GetRequiredDouble(table, "value", sourcePath),
+                reason),
+            "step-scroll-delta-equals" => new PresenterPlaybackStepScrollDeltaEqualsAssertion(
+                GetRequiredInt(table, "step", sourcePath),
+                GetRequiredString(table, "target", sourcePath),
+                GetOptionalString(table, "card"),
+                GetRequiredDouble(table, "value", sourcePath),
+                reason),
             _ => throw new PresenterPlaybackScenarioParseException(
                 sourcePath,
                 $"Unknown playback assertion type '{type}' at assertions[{index}]."),

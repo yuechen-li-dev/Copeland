@@ -112,6 +112,22 @@ public sealed record PresenterPlaybackRegionExistsAssertion(
     string Reason)
     : PresenterPlaybackAssertion("region-exists", Reason);
 
+public sealed record PresenterPlaybackStepScrollDeltaGreaterThanAssertion(
+    int Step,
+    string Target,
+    string? CardId,
+    double Value,
+    string Reason)
+    : PresenterPlaybackAssertion("step-scroll-delta-greater-than", Reason);
+
+public sealed record PresenterPlaybackStepScrollDeltaEqualsAssertion(
+    int Step,
+    string Target,
+    string? CardId,
+    double Value,
+    string Reason)
+    : PresenterPlaybackAssertion("step-scroll-delta-equals", Reason);
+
 public sealed record PresenterPlaybackResolvedTarget(
     string Name,
     string? CardId,

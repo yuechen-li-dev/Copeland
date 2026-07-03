@@ -22,6 +22,8 @@ param(
     [string]$NavigationPage,
     [string]$ScrollPage,
     [string]$PlaybackScenario,
+    [string]$PlaybackSuite,
+    [string]$OutputDirectory = "artifacts\\m16c\\playback",
     [ValidateSet("Debug", "Release")]
     [string]$Configuration = "Debug"
 )
@@ -40,11 +42,22 @@ else
     $resolvedOutputPath = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutputPath))
 }
 
-$outputDirectory = Split-Path -Parent $resolvedOutputPath
-if (-not [string]::IsNullOrWhiteSpace($outputDirectory))
+$resolvedOutputPathDirectory = Split-Path -Parent $resolvedOutputPath
+if (-not [string]::IsNullOrWhiteSpace($resolvedOutputPathDirectory))
 {
-    New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
+    New-Item -ItemType Directory -Path $resolvedOutputPathDirectory -Force | Out-Null
 }
+
+if ([System.IO.Path]::IsPathRooted($OutputDirectory))
+{
+    $resolvedOutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
+}
+else
+{
+    $resolvedOutputDirectory = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $OutputDirectory))
+}
+
+New-Item -ItemType Directory -Path $resolvedOutputDirectory -Force | Out-Null
 
 $arguments = @(
     "run",
@@ -161,6 +174,14 @@ if (-not [string]::IsNullOrWhiteSpace($PlaybackScenario))
     $arguments += $PlaybackScenario
 }
 
+if (-not [string]::IsNullOrWhiteSpace($PlaybackSuite))
+{
+    $arguments += "--playback-suite"
+    $arguments += $PlaybackSuite
+    $arguments += "--output-directory"
+    $arguments += $resolvedOutputDirectory
+}
+
 Push-Location $repoRoot
 
 try
@@ -175,6 +196,20 @@ try
 finally
 {
     Pop-Location
+}
+
+if (-not [string]::IsNullOrWhiteSpace($PlaybackSuite))
+{
+    $suiteReportJson = Join-Path (Split-Path -Parent $resolvedOutputDirectory) "playback-suite-report.json"
+    if (-not (Test-Path -LiteralPath $suiteReportJson))
+    {
+        throw "Expected presenter playback suite report was not created: $suiteReportJson"
+    }
+
+    Write-Host "Created presenter playback suite artifacts:"
+    Write-Host $resolvedOutputDirectory
+    Write-Host $suiteReportJson
+    return
 }
 
 if (-not (Test-Path -LiteralPath $resolvedOutputPath))

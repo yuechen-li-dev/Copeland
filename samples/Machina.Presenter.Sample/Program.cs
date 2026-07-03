@@ -43,6 +43,27 @@ internal sealed class Program
         ProgramOptionsHolder.Set(options);
         if (options.ExportOnly)
         {
+            if (!string.IsNullOrWhiteSpace(options.PlaybackSuitePath))
+            {
+                PresenterPlaybackSuiteRunner suiteRunner = new(
+                    new PresenterPlaybackRunner(
+                        DemoState.Default,
+                        AppTheme,
+                        options.ProofOptions));
+                PresenterPlaybackSuiteResult suiteResult = suiteRunner.RunSuitePath(
+                    options.PlaybackSuitePath,
+                    options.OutputDirectory);
+                if (suiteResult.ScenarioResults.Any(result => !result.Passed))
+                {
+                    throw new InvalidOperationException(
+                        $"Presenter playback suite '{suiteResult.Suite.Id}' failed one or more scenarios. See {suiteResult.ReportJsonPath}.");
+                }
+
+                Console.WriteLine(
+                    $"Ran presenter playback suite '{suiteResult.Suite.Id}' into {suiteResult.OutputDirectory}; report: {suiteResult.ReportJsonPath}");
+                return;
+            }
+
             if (!string.IsNullOrWhiteSpace(options.PlaybackScenarioPath))
             {
                 PresenterPlaybackRunner playbackRunner = new(
@@ -100,7 +121,14 @@ internal sealed class Program
 
     private static class ProgramOptionsHolder
     {
-        public static PresenterProgramOptions Current { get; private set; } = new(false, PresenterExportContract.DefaultOutputPath, new PresenterProofOptions(), PresenterNavigationExportOptions.DefaultShell, null);
+        public static PresenterProgramOptions Current { get; private set; } = new(
+            false,
+            PresenterExportContract.DefaultOutputPath,
+            Path.Combine("artifacts", "m16c", "playback"),
+            new PresenterProofOptions(),
+            PresenterNavigationExportOptions.DefaultShell,
+            null,
+            null);
 
         public static void Set(PresenterProgramOptions options)
         {

@@ -90,3 +90,40 @@ public sealed record PresenterPlaybackRunResult(
     string? TraceJsonPath,
     string? ManifestJsonPath,
     string? ManifestTextPath);
+
+public sealed record PresenterPlaybackSuiteDefinition(
+    string SourcePath,
+    string Id,
+    string Name,
+    IReadOnlyList<string> ScenarioPaths);
+
+public sealed record PresenterPlaybackSuiteScenarioFailure(
+    int? AssertionIndex,
+    string? AssertionType,
+    string Reason,
+    string Message);
+
+public sealed record PresenterPlaybackSuiteScenarioResult(
+    string ScenarioId,
+    string ScenarioName,
+    string ScenarioPath,
+    string OutputDirectory,
+    bool Passed,
+    bool Skipped,
+    IReadOnlyList<PresenterPlaybackSuiteScenarioFailure> Failures,
+    PresenterPlaybackRunResult? RunResult,
+    string? ErrorMessage);
+
+public sealed record PresenterPlaybackSuiteResult(
+    PresenterPlaybackSuiteDefinition Suite,
+    string OutputDirectory,
+    string ReportJsonPath,
+    string ReportTextPath,
+    string ManifestJsonPath,
+    string ManifestTextPath,
+    IReadOnlyList<PresenterPlaybackSuiteScenarioResult> ScenarioResults,
+    bool StarterScenariosIncluded,
+    bool RegressionScenariosIncluded,
+    bool StarterScenariosStillPass,
+    bool RegressionScenariosPass,
+    string ValidationStatus);

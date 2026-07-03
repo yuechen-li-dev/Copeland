@@ -3,14 +3,17 @@ namespace Machina.Presenter.Sample;
 public sealed record PresenterProgramOptions(
     bool ExportOnly,
     string OutputPath,
+    string OutputDirectory,
     PresenterProofOptions ProofOptions,
     PresenterNavigationExportOptions NavigationOptions,
-    string? PlaybackScenarioPath)
+    string? PlaybackScenarioPath,
+    string? PlaybackSuitePath)
 {
     public static PresenterProgramOptions Parse(IReadOnlyList<string> args)
     {
         bool exportOnly = false;
         string outputPath = PresenterExportContract.DefaultOutputPath;
+        string outputDirectory = Path.Combine("artifacts", "m16c", "playback");
         bool includeDirectOutlineRenderBridgeProof = false;
         bool includeNavigationShell = true;
         string? oblivionWorkspacePath = null;
@@ -30,6 +33,7 @@ public sealed record PresenterProgramOptions(
         Dictionary<string, double>? scrollOffsetByPageId = null;
         bool runtimeSizeExplicit = false;
         string? playbackScenarioPath = null;
+        string? playbackSuitePath = null;
 
         for (int index = 0; index < args.Count; index++)
         {
@@ -44,6 +48,12 @@ public sealed record PresenterProgramOptions(
             if (arg == "--output-path" && index + 1 < args.Count)
             {
                 outputPath = args[++index];
+                continue;
+            }
+
+            if (arg == "--output-directory" && index + 1 < args.Count)
+            {
+                outputDirectory = args[++index];
                 continue;
             }
 
@@ -189,12 +199,21 @@ public sealed record PresenterProgramOptions(
                 includeNavigationShell = true;
                 exportOnly = true;
                 playbackScenarioPath = args[++index];
+                continue;
+            }
+
+            if (arg == "--playback-suite" && index + 1 < args.Count)
+            {
+                includeNavigationShell = true;
+                exportOnly = true;
+                playbackSuitePath = args[++index];
             }
         }
 
         return new PresenterProgramOptions(
             exportOnly,
             outputPath,
+            outputDirectory,
             new PresenterProofOptions(includeDirectOutlineRenderBridgeProof, oblivionWorkspacePath),
             new PresenterNavigationExportOptions(
                 includeNavigationShell,
@@ -214,6 +233,7 @@ public sealed record PresenterProgramOptions(
                 scrollOffsetByPageId,
                 includeNavigationShell ? AvaloniaPresenterInputBackend.BackendName : null,
                 runtimeSizeExplicit),
-            playbackScenarioPath);
+            playbackScenarioPath,
+            playbackSuitePath);
     }
 }

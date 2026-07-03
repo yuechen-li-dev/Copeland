@@ -360,6 +360,19 @@ Current M16b status is full closure for the original parity blockers:
 
 M16b still does not add native OS automation, pixel-golden diffing, Markdown editing, notebook execution, Roslyn execution, Aurelian work, or `VD-MIR` work.
 
+## M16c update
+
+M16c is playback regression-suite tooling only.
+
+- playback scenarios are now organized as starter cassettes plus canonical regression cassettes
+- the sample runner can now execute a scenario directory or a suite manifest
+- deterministic per-scenario outputs still include normalized TOML, trace JSON, manifest JSON/TXT, and final PNG
+- deterministic suite outputs now include aggregate JSON/TXT reports plus an M16c milestone manifest
+- assertion reasons remain mandatory
+- TOML remains linear data and still does not add loops, conditionals, variables, or scripting features
+
+M16c still does not add native OS automation, pixel-golden diffing, Markdown editing, notebook execution, Roslyn execution, Aurelian work, or `VD-MIR` work.
+
 This remains bounded:
 
 - no native OS automation

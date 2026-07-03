@@ -218,6 +218,15 @@ M16b does not implement:
 - no native automation was added
 - no pixel-golden diffing was added
 
+## Follow-through after M16c
+
+M16c builds directly on this parity work:
+
+- starter scenarios moved into `PlaybackScenarios/starter/`
+- regression scenarios now live in `PlaybackScenarios/regressions/`
+- a suite runner can execute either a directory or a suite manifest
+- aggregate suite report JSON/TXT and a milestone manifest now summarize the cassette set without adding native automation or pixel-diffing
+
 ## Deferred work
 
 - broader semantic target coverage beyond the current starter set

@@ -92,7 +92,8 @@ public sealed class PresenterPlaybackRunner
         IReadOnlyList<PresenterPlaybackAssertionResult> assertionResults = EvaluateAssertions(
             scenario.Assertions,
             initialSnapshot,
-            finalRender);
+            finalRender,
+            traceSteps);
 
         PresenterPlaybackTrace trace = new(
             ScenarioId: scenario.Id,
@@ -433,14 +434,15 @@ public sealed class PresenterPlaybackRunner
     private IReadOnlyList<PresenterPlaybackAssertionResult> EvaluateAssertions(
         IReadOnlyList<PresenterPlaybackAssertion> assertions,
         PresenterPlaybackStateSnapshot initialSnapshot,
-        PresenterNavigationShellRenderResult finalRender)
+        PresenterNavigationShellRenderResult finalRender,
+        IReadOnlyList<PresenterPlaybackTraceStep> traceSteps)
     {
         List<PresenterPlaybackAssertionResult> results = [];
 
         for (int index = 0; index < assertions.Count; index++)
         {
             PresenterPlaybackAssertion assertion = assertions[index];
-            results.Add(EvaluateAssertion(assertion, index, initialSnapshot, finalRender));
+            results.Add(EvaluateAssertion(assertion, index, initialSnapshot, finalRender, traceSteps));
         }
 
         return results;
@@ -450,7 +452,8 @@ public sealed class PresenterPlaybackRunner
         PresenterPlaybackAssertion assertion,
         int index,
         PresenterPlaybackStateSnapshot initialSnapshot,
-        PresenterNavigationShellRenderResult finalRender)
+        PresenterNavigationShellRenderResult finalRender,
+        IReadOnlyList<PresenterPlaybackTraceStep> traceSteps)
     {
         PresenterPlaybackStateSnapshot finalSnapshot = PresenterPlaybackStateSnapshot.Capture(finalRender);
         string pageId = finalRender.SelectedTab.PageId;
@@ -494,6 +497,20 @@ public sealed class PresenterPlaybackRunner
                 passed: finalRender.ShellMode == shellMode.Value,
                 failureMessage: $"Expected shell mode '{shellMode.Value}', but found '{finalRender.ShellMode}'."),
             PresenterPlaybackRegionExistsAssertion regionExists => BuildRegionExistsAssertion(index, regionExists, finalRender),
+            PresenterPlaybackStepScrollDeltaGreaterThanAssertion greaterThan => BuildStepDeltaAssertion(
+                index,
+                greaterThan,
+                traceSteps,
+                expected: $"> {greaterThan.Value:0.###}",
+                passed: actual => actual > greaterThan.Value,
+                failureMessageFactory: actual => $"Expected step {greaterThan.Step} scroll delta for '{greaterThan.Target}' to be greater than {greaterThan.Value:0.###}, but found {actual:0.###}."),
+            PresenterPlaybackStepScrollDeltaEqualsAssertion equalsAssertion => BuildStepDeltaAssertion(
+                index,
+                equalsAssertion,
+                traceSteps,
+                expected: equalsAssertion.Value.ToString("0.###"),
+                passed: actual => Math.Abs(actual - equalsAssertion.Value) < 0.001,
+                failureMessageFactory: actual => $"Expected step {equalsAssertion.Step} scroll delta for '{equalsAssertion.Target}' to equal {equalsAssertion.Value:0.###}, but found {actual:0.###}."),
             _ => throw new InvalidOperationException($"Unsupported playback assertion type '{assertion.Type}'."),
         };
     }
@@ -562,6 +579,50 @@ public sealed class PresenterPlaybackRunner
                 passed: false,
                 failureMessage: ex.Message);
         }
+    }
+
+    private PresenterPlaybackAssertionResult BuildStepDeltaAssertion(
+        int index,
+        PresenterPlaybackAssertion assertion,
+        IReadOnlyList<PresenterPlaybackTraceStep> traceSteps,
+        string expected,
+        Func<double, bool> passed,
+        Func<double, string> failureMessageFactory)
+    {
+        int stepIndex = assertion switch
+        {
+            PresenterPlaybackStepScrollDeltaGreaterThanAssertion greaterThan => greaterThan.Step,
+            PresenterPlaybackStepScrollDeltaEqualsAssertion equalsAssertion => equalsAssertion.Step,
+            _ => throw new InvalidOperationException($"Unsupported step-delta assertion type '{assertion.Type}'."),
+        };
+
+        string target = assertion switch
+        {
+            PresenterPlaybackStepScrollDeltaGreaterThanAssertion greaterThan => greaterThan.Target,
+            PresenterPlaybackStepScrollDeltaEqualsAssertion equalsAssertion => equalsAssertion.Target,
+            _ => throw new InvalidOperationException($"Unsupported step-delta assertion type '{assertion.Type}'."),
+        };
+
+        if (stepIndex < 0 || stepIndex >= traceSteps.Count)
+        {
+            return BuildAssertionResult(
+                index,
+                assertion,
+                expected,
+                "<missing-step>",
+                passed: false,
+                failureMessage: $"Expected step index {stepIndex} for assertion '{assertion.Type}', but the scenario only produced {traceSteps.Count} step(s).");
+        }
+
+        PresenterPlaybackTraceStep step = traceSteps[stepIndex];
+        double actual = GetStepScrollDelta(step, target);
+        return BuildAssertionResult(
+            index,
+            assertion,
+            expected,
+            actual.ToString("0.###"),
+            passed(actual),
+            failureMessageFactory(actual));
     }
 
     private PresenterPlaybackAssertionResult BuildAssertionResult(
@@ -781,6 +842,23 @@ public sealed class PresenterPlaybackRunner
             "inspector-pane" => snapshot.InspectorScrollOffset,
             "raw-source" => snapshot.RawSourceScrollOffset ?? 0,
             _ => throw new InvalidOperationException($"Scroll offset target '{target}' is not supported."),
+        };
+    }
+
+    private static double GetStepScrollDelta(PresenterPlaybackTraceStep step, string target)
+    {
+        if (step.StateDelta is null)
+        {
+            throw new InvalidOperationException($"Playback step {step.Index} does not expose state delta information.");
+        }
+
+        return target switch
+        {
+            "main-stack" => step.StateDelta.MainStackScrollDelta,
+            "expanded-body" => step.StateDelta.ExpandedBodyScrollDelta,
+            "inspector-pane" => step.StateDelta.InspectorScrollDelta,
+            "raw-source" => step.StateDelta.RawSourceScrollDelta,
+            _ => throw new InvalidOperationException($"Scroll delta target '{target}' is not supported."),
         };
     }
 

@@ -6,6 +6,12 @@ Follow-up note after M16b:
 - trace output now includes deterministic target-resolution, hit-test, dispatched-action, and scroll-delta fields
 - TOML remains linear data only and now explicitly rejects programming-like fields such as `if`, `loop`, `script`, and `eval`
 
+Follow-up note after M16c:
+
+- scenarios are now organized into starter and regression suites
+- suite manifests are list-only TOML and do not add scripting semantics
+- the assertion library now also includes simple declarative per-step scroll-delta assertions for multi-step regression proof
+
 ## Purpose
 
 This document defines the first TOML playback scenario format for internal Machina presenter interaction playback.
@@ -92,6 +98,8 @@ Supported assertion kinds:
 - `scroll-offset-greater-than`
 - `shell-mode`
 - `region-exists`
+- `step-scroll-delta-greater-than`
+- `step-scroll-delta-equals`
 
 ## Assertion reason policy
 
@@ -133,6 +141,10 @@ Current M16a assertions:
   - asserts the resolved shell mode
 - `region-exists`
   - asserts a semantic region resolves successfully
+- `step-scroll-delta-greater-than`
+  - asserts the captured scroll delta for one specific step is above a threshold
+- `step-scroll-delta-equals`
+  - asserts the captured scroll delta for one specific step equals a specific value
 
 ## Examples
 

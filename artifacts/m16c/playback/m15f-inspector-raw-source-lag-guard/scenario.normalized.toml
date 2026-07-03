@@ -1,0 +1,44 @@
+[scenario]
+id = "m15f-inspector-raw-source-lag-guard"
+name = "M15f raw-source lag guard keeps raw-source scrolling deterministic"
+viewport = { width = 1280, height = 360 }
+section = "oblivion"
+tab = "docs"
+selectedCard = "doc-aurelian-build-topology-m13b"
+expandedCard = "doc-aurelian-build-topology-m13b"
+inspectorScroll = 240
+
+[output]
+captureFinalPng = true
+captureTraceJson = true
+captureManifest = true
+
+[[steps]]
+type = "wheel"
+target = "raw-source"
+card = "doc-aurelian-build-topology-m13b"
+deltaY = 360
+
+[[steps]]
+type = "wheel"
+target = "raw-source"
+card = "doc-aurelian-build-topology-m13b"
+deltaY = 360
+
+[[steps]]
+type = "wheel"
+target = "raw-source"
+card = "doc-aurelian-build-topology-m13b"
+deltaY = 360
+
+[[assertions]]
+type = "scroll-offset-changed"
+target = "raw-source"
+card = "doc-aurelian-build-topology-m13b"
+reason = "This guards the M15f lag root cause path by proving repeated raw-source wheel ticks still advance raw-source scroll instead of stalling."
+
+[[assertions]]
+type = "scroll-offset-equals"
+target = "main-stack"
+value = 0
+reason = "This guards the M15f lag follow-through by proving repeated raw-source wheel ticks do not drift the main stack while the inspector stays active."
