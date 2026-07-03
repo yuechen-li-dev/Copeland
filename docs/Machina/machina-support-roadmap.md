@@ -466,6 +466,16 @@ M17f does not change runtime behavior:
 - no further `OblivionCardRenderer` or page-layout refactor is performed
 - no editor work, notebook execution, Aurelian work, or `VD-MIR` work is performed
 
+## M18a update
+
+M18a is the focused cleanup follow-through from the M17f recommendation.
+
+- the known Oblivion inspector title clipping risk is fixed
+- high-value duplicated ROALoop-style helpers in `tests/Machina.Presenter.Sample.Tests` are consolidated into shared setup, manifest, and region helpers
+- no tests are deleted and no coverage is intentionally removed
+- no product feature or new layout primitive is added
+- future Machina presenter tests should prefer shared setup helpers/builders where they reduce duplication, while keeping behavior assertions readable and explicit
+
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

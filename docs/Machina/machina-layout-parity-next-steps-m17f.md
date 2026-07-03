@@ -8,6 +8,12 @@ M17f is doc-only.
 
 The stack/grid authoring parity arc is now closed enough to stop treating stack/grid adoption itself as the next blocker.
 
+## M18a result
+
+Option E was selected for M18a. The milestone fixes the Oblivion inspector title clipping risk and consolidates duplicated test helper/setup patterns in `tests/Machina.Presenter.Sample.Tests`.
+
+No coverage was intentionally removed. No new product feature or layout primitive was added. Future tests should use shared setup helpers for repeated state/render/path setup while keeping important assertions explicit and readable.
+
 ## Candidate next milestones
 
 - Option A: `UiLength` proportional/clamp authoring

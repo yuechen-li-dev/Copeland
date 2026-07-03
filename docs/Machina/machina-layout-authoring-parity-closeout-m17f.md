@@ -8,6 +8,12 @@ It closes the stack/grid adoption arc, records the current C# authoring baseline
 
 M17f does not change UI/product/playback behavior.
 
+## M18a follow-up
+
+M18a follows the M17f recommendation for a focused layout cleanup and bugfix pass. It fixes the known Oblivion inspector title clipping risk and consolidates duplicated ROALoop-style test setup/helpers without deleting coverage.
+
+M18a does not add new product features or new layout primitives. Future test authors should prefer shared setup helpers where they make tests clearer, but keep behavior assertions readable in the test body.
+
 ## M17 arc summary
 
 ```text

@@ -18,9 +18,7 @@ public sealed class OblivionPageGridRefactorM17eTests
     private const string ExpandedDocCardId = "doc-aurelian-build-topology-m13b";
     private const string AlternateDocCardId = "doc-copeland-markdown-frontend-m12a";
     private static readonly PresenterNavigationModel Model = PresenterNavigationCatalog.CreateModel();
-    private static readonly StandardTheme Theme = StandardTheme.Default;
     private static readonly PresenterProofOptions ProofOptions = new();
-    private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 
     [Fact]
     public void OblivionWidePage_UsesGridForCardsAndInspectorPanes()
@@ -151,9 +149,9 @@ public sealed class OblivionPageGridRefactorM17eTests
             CreateWideShellLayout(1280, 720));
 
         PresenterNavigationShellRenderResult render = RenderWideShell(next);
-        OblivionScrollRegionTarget rawSource = Assert.Single(
-            render.PageRender!.OblivionInteraction!.ScrollRegions,
-            region => region.Target.Kind == PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource);
+        OblivionScrollRegionTarget rawSource = PresenterRegionAssert.SingleScrollRegion(
+            render,
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource);
 
         Assert.Equal(AlternateDocCardId, next.GetSelectedCardId(DocsPageId, OblivionWorkbenchCatalog.GetPageCardsForSelection(DocsPageId, ProofOptions)));
         Assert.Equal(AlternateDocCardId, rawSource.Target.CardId);
@@ -179,12 +177,12 @@ public sealed class OblivionPageGridRefactorM17eTests
             selectedCardId: ExpandedDocCardId,
             expandedCardId: ExpandedDocCardId,
             inspectorScrollOffset: 240));
-        OblivionScrollRegionTarget rawSource = Assert.Single(
-            render.PageRender!.OblivionInteraction!.ScrollRegions,
-            region => region.Target.Kind == PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource &&
-                string.Equals(region.Target.CardId, ExpandedDocCardId, StringComparison.Ordinal));
+        OblivionScrollRegionTarget rawSource = PresenterRegionAssert.SingleScrollRegion(
+            render,
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource,
+            ExpandedDocCardId);
 
-        OblivionPageInteractionRoutingResult routed = render.PageRender.OblivionInteraction.RouteInput(
+        OblivionPageInteractionRoutingResult routed = render.PageRender!.OblivionInteraction!.RouteInput(
             Wheel(Center(rawSource.Bounds), -1),
             render.ScrollbarGeometry.ScrollOffset,
             PresenterScrollbarInteractionState.Default);
@@ -286,28 +284,16 @@ public sealed class OblivionPageGridRefactorM17eTests
         double mainScrollOffset = 0,
         double inspectorScrollOffset = 0)
     {
-        PresenterNavigationState state = PresenterNavigationState.CreateDefault(Model)
-            .WithSelectedSection("oblivion")
-            .WithSelectedTab("oblivion", "docs")
-            .WithScrollOffset(DocsPageId, mainScrollOffset)
-            .WithInspectorScrollOffset(DocsPageId, inspectorScrollOffset);
-
-        if (!string.IsNullOrWhiteSpace(selectedCardId))
-        {
-            state = state.WithSelectedCard(DocsPageId, selectedCardId);
-        }
-
-        if (!string.IsNullOrWhiteSpace(expandedCardId))
-        {
-            state = state.WithCardViewState(DocsPageId, expandedCardId, new OblivionCardViewState(true, 0));
-        }
-
-        return state;
+        return PresenterSampleTestHarness.CreateDocsState(
+            selectedCardId,
+            expandedCardId,
+            mainScrollOffset,
+            inspectorScrollOffset);
     }
 
     private static PresenterNavigationLayout CreateWideShellLayout(int width, int height)
     {
-        return PresenterNavigationLayout.Create(width, height, PresenterShellMode.Wide);
+        return PresenterSampleTestHarness.CreateLayout(width, height, PresenterShellMode.Wide);
     }
 
     private static PresenterPageRenderResult RenderWideDocsPage(
@@ -323,7 +309,7 @@ public sealed class OblivionPageGridRefactorM17eTests
         return PresenterNavigationCatalog.RenderPage(
             DocsPageId,
             DemoState.Default,
-            Theme,
+            PresenterSampleTestHarness.Theme,
             ProofOptions,
             layout.ContentVisibleWidth,
             layout.ViewportHeight,
@@ -333,11 +319,11 @@ public sealed class OblivionPageGridRefactorM17eTests
 
     private static PresenterPageRenderResult RenderCompactDocsPage(PresenterNavigationState? state = null)
     {
-        PresenterNavigationLayout layout = PresenterNavigationLayout.Create(960, 540, PresenterShellMode.Compact);
+        PresenterNavigationLayout layout = PresenterSampleTestHarness.CreateLayout(960, 540, PresenterShellMode.Compact);
         return PresenterNavigationCatalog.RenderPage(
             DocsPageId,
             DemoState.Default,
-            Theme,
+            PresenterSampleTestHarness.Theme,
             ProofOptions,
             layout.ContentVisibleWidth,
             layout.ViewportHeight,
@@ -347,45 +333,29 @@ public sealed class OblivionPageGridRefactorM17eTests
 
     private static PresenterNavigationShellRenderResult RenderWideShell(PresenterNavigationState state)
     {
-        return PresenterNavigationShellRenderer.Render(
-            DemoState.Default,
-            state,
-            Theme,
-            ProofOptions,
-            session: null,
-            CreateWideShellLayout(1280, 720));
+        return PresenterSampleTestHarness.RenderShell(state);
     }
 
     private static PresenterNavigationShellRenderResult RenderCompactShell(PresenterNavigationState state)
     {
-        return PresenterNavigationShellRenderer.Render(
-            DemoState.Default,
-            state,
-            Theme,
-            ProofOptions,
-            session: null,
-            PresenterNavigationLayout.Create(960, 540, PresenterShellMode.Compact));
+        return PresenterSampleTestHarness.RenderShell(state, 960, 540);
     }
 
     private static PresenterInputEvent Wheel(PresenterInputPoint point, float delta)
     {
-        return new PresenterInputEvent(PresenterInputKind.Wheel, point, WheelDeltaY: delta);
+        return PresenterSampleTestHarness.Wheel(point, delta);
     }
 
     private static PresenterInputPoint Center(Rect rect)
     {
-        return new PresenterInputPoint(
-            (float)(rect.X + (rect.Width / 2)),
-            (float)(rect.Y + (rect.Height / 2)));
+        return PresenterSampleTestHarness.Center(rect);
     }
 
     private static JsonDocument LoadMilestoneManifest()
     {
-        return JsonDocument.Parse(File.ReadAllText(Path.Combine(
-            RepoRoot,
-            "artifacts",
+        return ManifestTestHelper.LoadArtifactManifest(
             "m17e",
-            "oblivion-page-grid-refactor-manifest.json")));
+            "oblivion-page-grid-refactor-manifest.json");
     }
 
     private static LayoutRow FindRowBySuffix(IReadOnlyList<LayoutRow> rows, string suffix)

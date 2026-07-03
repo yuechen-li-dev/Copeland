@@ -61,6 +61,8 @@ M17e is the focused wide-shell follow-through. Oblivion's wide page panes are no
 
 M17f is doc-only closeout for that parity arc. The M17 stack/grid authoring parity gap from the external audit is now considered closed: C# Machina now has authoring-level `UI.Stack(...)` and `UI.Grid(...)` surfaces over the existing low-level layout engine, `OblivionCardRenderer` internals now use stack authoring, and the wide Oblivion page shell now uses grid authoring. M17f does not change runtime behavior, does not add primitives, and records playback xUnit as the safety net for later layout cleanup or deferred parity concepts.
 
+M18a follows that recommendation with focused cleanup only: the Oblivion inspector title clipping risk is fixed, duplicated presenter test setup/helpers are consolidated, and no coverage is intentionally removed. It does not add product features, layout primitives, Markdown editing, notebook execution, Aurelian work, or VD-MIR work. Future test authors should use shared setup helpers when they make tests clearer, but keep meaningful assertions explicit.
+
 ## Pipeline
 
 ```text
@@ -255,6 +257,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Oblivion Page Grid Refactor M17e](docs/Oblivion/oblivion-page-grid-refactor-m17e.md)
 - [Machina Layout Authoring Parity Closeout M17f](docs/Machina/machina-layout-authoring-parity-closeout-m17f.md)
 - [Machina Layout Parity Next Steps M17f](docs/Machina/machina-layout-parity-next-steps-m17f.md)
+- [Machina Layout Cleanup and Test Consolidation M18a](docs/Machina/machina-layout-cleanup-test-consolidation-m18a.md)
+- [Machina Test Helper Consolidation Guide M18a](docs/Machina/machina-test-helper-consolidation-guide-m18a.md)
 - [Oblivion Playback Regression Coverage M16c](docs/Oblivion/oblivion-playback-regression-coverage-m16c.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)

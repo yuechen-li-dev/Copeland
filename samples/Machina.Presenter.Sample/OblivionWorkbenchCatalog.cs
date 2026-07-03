@@ -1296,7 +1296,7 @@ public static class OblivionWorkbenchCatalog
             top: currentTop,
             width: layout.InspectorWidth,
             height: 36,
-            view: View.Text("Selected card inspector", color: theme.Colors.Foreground, size: TextSize.H1)));
+            component: BuildInspectorTitle($"{pageId}.inspector-title.text", theme)));
         currentTop += 44;
 
         if (selection.SelectedCard is null)
@@ -1655,7 +1655,7 @@ public static class OblivionWorkbenchCatalog
 
         children.Add(
             UI.Anchor(
-                UI.Text("Selected card inspector", id: $"{pageId}.wide-inspector.title", color: theme.Colors.Foreground, size: TextSize.H1),
+                BuildInspectorTitle($"{pageId}.wide-inspector.title", theme),
                 id: $"{pageId}.wide-inspector.title.slot",
                 left: 0,
                 width: contentWidth,
@@ -1711,6 +1711,20 @@ public static class OblivionWorkbenchCatalog
                 id: $"{pageId}.wide-inspector-pane.layer",
                 children: children),
             id: $"{pageId}{WideInspectorPaneViewportSuffix}",
+            style: new UiStyle(
+                Background: ColorToken.Hex(0x00000000),
+                ClipToBounds: true));
+    }
+
+    private static UiNode BuildInspectorTitle(string id, StandardTheme theme)
+    {
+        return UI.Rect(
+            child: UI.Text(
+                "Selected card inspector",
+                id: id,
+                color: theme.Colors.Foreground,
+                size: TextSize.Md),
+            id: $"{id}.clip",
             style: new UiStyle(
                 Background: ColorToken.Hex(0x00000000),
                 ClipToBounds: true));
