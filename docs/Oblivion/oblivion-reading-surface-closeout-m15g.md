@@ -242,6 +242,12 @@ Follow-up note after M16a:
 - assertions now require non-empty reasons so future reviewers can understand what behavior each scenario protects
 - this is not native desktop automation and not pixel-golden screenshot testing
 
+Follow-up note after M16b:
+
+- M16b stabilized playback parity for `main-stack` and `raw-source` wheel input
+- starter playback scenarios now pass through the same presenter input/routing path that real user interaction uses
+- playback still does not add native automation, TOML scripting, or pixel-golden screenshot diffing
+
 ## What changed
 
 What changed across M15a through M15f:

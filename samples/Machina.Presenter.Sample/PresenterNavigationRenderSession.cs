@@ -52,7 +52,11 @@ public sealed class PresenterNavigationRenderSession
             effectiveLayout.ViewportHeight,
             currentOffset);
 
-        normalizedState = normalizedState.WithScrollOffset(tab.PageId, scrollbarGeometry.ScrollOffset);
+        if (!(effectiveLayout.ShellMode == PresenterShellMode.Wide &&
+              PresenterNavigationCatalog.IsOblivionPage(tab.PageId)))
+        {
+            normalizedState = normalizedState.WithScrollOffset(tab.PageId, scrollbarGeometry.ScrollOffset);
+        }
         PresenterNavigationChromeGeometry chromeGeometry = PresenterNavigationChromeGeometryBuilder.Build(
             model,
             normalizedState,

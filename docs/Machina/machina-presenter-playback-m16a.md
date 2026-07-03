@@ -1,5 +1,11 @@
 # Machina Presenter Playback M16a
 
+Follow-up note after M16b:
+
+- the two M16a parity blockers are now closed by [Machina Playback Input Parity M16b](machina-playback-input-parity-m16b.md)
+- starter scenarios now pass through the internal presenter input/routing path
+- this document remains the MVP landing record; M16b is the stabilization follow-through
+
 ## Purpose
 
 M16a introduces a sample-local deterministic playback MVP for the Machina presenter.

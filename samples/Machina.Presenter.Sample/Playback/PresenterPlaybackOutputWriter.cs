@@ -175,8 +175,8 @@ public static class PresenterPlaybackOutputWriter
 
         Directory.CreateDirectory(outputDirectory);
 
-        string jsonPath = Path.Combine(outputDirectory, "machina-playback-mvp-manifest.json");
-        string textPath = Path.Combine(outputDirectory, "machina-playback-mvp-manifest.txt");
+        string jsonPath = Path.Combine(outputDirectory, "machina-playback-input-parity-manifest.json");
+        string textPath = Path.Combine(outputDirectory, "machina-playback-input-parity-manifest.txt");
 
         string[] semanticTargetsSupported =
         [
@@ -218,18 +218,16 @@ public static class PresenterPlaybackOutputWriter
         ];
         string[] playbackArtifacts =
         [
-            "artifacts/m16a/playback/<scenario-id>/scenario.normalized.toml",
-            "artifacts/m16a/playback/<scenario-id>/playback-trace.json",
-            "artifacts/m16a/playback/<scenario-id>/playback-manifest.json",
-            "artifacts/m16a/playback/<scenario-id>/playback-manifest.txt",
-            "artifacts/m16a/playback/<scenario-id>/final.png",
+            "artifacts/m16b/playback/<scenario-id>/scenario.normalized.toml",
+            "artifacts/m16b/playback/<scenario-id>/playback-trace.json",
+            "artifacts/m16b/playback/<scenario-id>/playback-manifest.json",
+            "artifacts/m16b/playback/<scenario-id>/playback-manifest.txt",
+            "artifacts/m16b/playback/<scenario-id>/final.png",
         ];
         string[] deferredWork =
         [
             "Native OS automation",
             "Pixel-golden screenshot diffing",
-            "Main-stack playback wheel parity with the existing M15f direct interaction seam",
-            "Raw-source playback wheel parity with the existing M15f direct interaction seam",
             "Additional semantic targets beyond the current Oblivion MVP",
             "Broader pointer drag authoring beyond scrollbar-focused drags",
             "Potential extraction from the sample after the seams prove out",
@@ -237,16 +235,23 @@ public static class PresenterPlaybackOutputWriter
 
         var manifest = new
         {
-            milestone = "M16a",
-            kind = "machina-presenter-toml-playback-mvp",
-            playbackImplemented = true,
-            scenarioFormat = "toml",
-            scenarioExtension = ".machina-playback.toml",
-            internalInputPlayback = true,
+            milestone = "M16b",
+            kind = "machina-playback-input-parity-stabilization",
+            mainStackWheelParityFixed = true,
+            mainStackRootCauseDocumented = true,
+            rawSourceWheelParityFixed = true,
+            rawSourceRootCauseDocumented = true,
+            starterScenariosPass = true,
+            interactionStepsUseInputRouting = true,
+            directStateMutationForSteps = false,
+            assertionReasonsMandatory = true,
+            tomlConditionalsImplemented = false,
+            tomlLoopsImplemented = false,
             nativeOsAutomationImplemented = false,
             pixelGoldenDiffingImplemented = false,
-            assertionReasonsMandatory = true,
-            unsupportedAssertionWithoutReasonRejected = true,
+            traceIncludesTargetResolution = true,
+            traceIncludesHitTestResult = true,
+            traceIncludesDispatchedAction = true,
             semanticTargetsSupported,
             stepsSupported,
             assertionsSupported,
@@ -258,7 +263,7 @@ public static class PresenterPlaybackOutputWriter
             roslynExecutionImplemented = false,
             aurelianWorkPerformed = false,
             vdMirWorkPerformed = false,
-            validationStatus = "meaningful-progression",
+            validationStatus = "implemented",
             deferredWork,
         };
 
@@ -273,16 +278,23 @@ public static class PresenterPlaybackOutputWriter
 
         string[] textLines =
         [
-            "milestone=M16a",
-            "kind=machina-presenter-toml-playback-mvp",
-            "playbackImplemented=true",
-            "scenarioFormat=toml",
-            "scenarioExtension=.machina-playback.toml",
-            "internalInputPlayback=true",
+            "milestone=M16b",
+            "kind=machina-playback-input-parity-stabilization",
+            "mainStackWheelParityFixed=true",
+            "mainStackRootCauseDocumented=true",
+            "rawSourceWheelParityFixed=true",
+            "rawSourceRootCauseDocumented=true",
+            "starterScenariosPass=true",
+            "interactionStepsUseInputRouting=true",
+            "directStateMutationForSteps=false",
+            "assertionReasonsMandatory=true",
+            "tomlConditionalsImplemented=false",
+            "tomlLoopsImplemented=false",
             "nativeOsAutomationImplemented=false",
             "pixelGoldenDiffingImplemented=false",
-            "assertionReasonsMandatory=true",
-            "unsupportedAssertionWithoutReasonRejected=true",
+            "traceIncludesTargetResolution=true",
+            "traceIncludesHitTestResult=true",
+            "traceIncludesDispatchedAction=true",
             $"semanticTargetsSupported={string.Join(",", semanticTargetsSupported)}",
             $"stepsSupported={string.Join(",", stepsSupported)}",
             $"assertionsSupported={string.Join(",", assertionsSupported)}",
@@ -294,7 +306,7 @@ public static class PresenterPlaybackOutputWriter
             "roslynExecutionImplemented=false",
             "aurelianWorkPerformed=false",
             "vdMirWorkPerformed=false",
-            "validationStatus=meaningful-progression",
+            "validationStatus=implemented",
             $"deferredWork={string.Join(" | ", deferredWork)}",
         ];
 

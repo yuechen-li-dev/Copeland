@@ -1,0 +1,154 @@
+{
+  "ScenarioId": "oblivion-inspector-scroll",
+  "ScenarioName": "Scroll the inspector pane without moving the main stack",
+  "Steps": [
+    {
+      "Index": 0,
+      "Type": "wheel",
+      "Target": "inspector-pane",
+      "CardId": null,
+      "TargetResolution": {
+        "SemanticTargetKind": "inspector-pane",
+        "RequestedCardId": null,
+        "ResolvedCardId": null,
+        "ResolvedRegionKind": "oblivion-inspector-pane",
+        "ResolvedRegionId": "oblivion.execution-roadmap.inspector-pane",
+        "ResolvedPoint": {
+          "X": 1042,
+          "Y": 230
+        },
+        "ResolvedRect": {
+          "X": 876,
+          "Y": 148,
+          "Width": 332,
+          "Height": 164
+        }
+      },
+      "ResolvedPoint": {
+        "X": 1042,
+        "Y": 230
+      },
+      "ResolvedRect": {
+        "X": 876,
+        "Y": 148,
+        "Width": 332,
+        "Height": 164
+      },
+      "HitTestResult": {
+        "RegionKind": "oblivion-inspector-pane",
+        "RegionId": "oblivion.execution-roadmap.inspector-pane",
+        "CardId": null,
+        "ScrollRegionId": "oblivion.execution-roadmap.inspector-pane",
+        "LocalPoint": {
+          "X": 786,
+          "Y": 82
+        }
+      },
+      "EmittedInput": {
+        "Kind": "Wheel",
+        "Key": null,
+        "WheelDeltaY": -1,
+        "ActionId": "presenter.navigation.set-oblivion-inspector-scroll|oblivion.execution-roadmap|48",
+        "PointerCaptureRequest": "None",
+        "InputConsumed": true
+      },
+      "DispatchedAction": {
+        "ActionId": "presenter.navigation.set-oblivion-inspector-scroll|oblivion.execution-roadmap|48",
+        "ActionType": "set-oblivion-inspector-scroll-offset",
+        "ActionHandled": true,
+        "WheelConsumed": true
+      },
+      "StateDelta": {
+        "MainStackScrollDelta": 0,
+        "InspectorScrollDelta": 48,
+        "RawSourceScrollDelta": 0,
+        "ExpandedBodyScrollDelta": 0
+      },
+      "Before": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "execution-roadmap",
+        "PageId": "oblivion.execution-roadmap",
+        "SelectedCard": "markdown-first-roadmap",
+        "ExpandedCards": [],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 0,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "inspector-pane",
+        "ShellMode": 0,
+        "PageRenderCount": 1,
+        "ShellRenderCount": 1,
+        "CompositionCount": 2
+      },
+      "After": {
+        "SelectedSection": "oblivion",
+        "SelectedTab": "execution-roadmap",
+        "PageId": "oblivion.execution-roadmap",
+        "SelectedCard": "markdown-first-roadmap",
+        "ExpandedCards": [],
+        "MainStackScrollOffset": 0,
+        "ExpandedBodyScrollOffset": 0,
+        "InspectorScrollOffset": 48,
+        "RawSourceScrollOffset": 0,
+        "CapturedScrollRegion": "inspector-pane",
+        "ShellMode": 0,
+        "PageRenderCount": 2,
+        "ShellRenderCount": 1,
+        "CompositionCount": 4
+      },
+      "Result": "ok"
+    }
+  ],
+  "Assertions": [
+    {
+      "Index": 0,
+      "Type": "scroll-offset-changed",
+      "Reason": "Wheel input over the inspector pane must update inspector-local scroll so review can stay anchored on the selected card.",
+      "Expected": "!= 0",
+      "Actual": "48",
+      "Passed": true,
+      "FailureMessage": null
+    },
+    {
+      "Index": 1,
+      "Type": "scroll-offset-equals",
+      "Reason": "Inspector scrolling must not mutate the main card-stack offset; this preserves the independent M15 scroll-pane contract.",
+      "Expected": "0",
+      "Actual": "0",
+      "Passed": true,
+      "FailureMessage": null
+    }
+  ],
+  "InitialState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "execution-roadmap",
+    "PageId": "oblivion.execution-roadmap",
+    "SelectedCard": "markdown-first-roadmap",
+    "ExpandedCards": [],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 0,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 1,
+    "ShellRenderCount": 1,
+    "CompositionCount": 1
+  },
+  "FinalState": {
+    "SelectedSection": "oblivion",
+    "SelectedTab": "execution-roadmap",
+    "PageId": "oblivion.execution-roadmap",
+    "SelectedCard": "markdown-first-roadmap",
+    "ExpandedCards": [],
+    "MainStackScrollOffset": 0,
+    "ExpandedBodyScrollOffset": 0,
+    "InspectorScrollOffset": 48,
+    "RawSourceScrollOffset": 0,
+    "CapturedScrollRegion": null,
+    "ShellMode": 0,
+    "PageRenderCount": 2,
+    "ShellRenderCount": 1,
+    "CompositionCount": 5
+  }
+}

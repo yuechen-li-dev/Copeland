@@ -32,7 +32,8 @@ public sealed class PlaybackTargetResolverM16aTests
     public void PlaybackTargetResolver_ResolvesExpandedBodyByCardId()
     {
         PresenterNavigationShellRenderResult render = PlaybackTestEnvironment.RenderExecutionRoadmapShell(
-            expandedCardId: "markdown-first-roadmap");
+            expandedCardId: "markdown-first-roadmap",
+            inspectorScrollOffset: 240);
 
         PresenterPlaybackResolvedTarget target = PresenterPlaybackTargetResolver.Resolve(render, "expanded-body", "markdown-first-roadmap");
 
@@ -54,12 +55,19 @@ public sealed class PlaybackTargetResolverM16aTests
     [Fact]
     public void PlaybackTargetResolver_ResolvesRawSource()
     {
-        PresenterNavigationShellRenderResult render = PlaybackTestEnvironment.RenderExecutionRoadmapShell(
-            expandedCardId: "markdown-first-roadmap");
+        PresenterNavigationShellRenderResult render = PlaybackTestEnvironment.RenderDocsShell(
+            selectedCardId: "doc-aurelian-build-topology-m13b",
+            expandedCardId: "doc-aurelian-build-topology-m13b",
+            inspectorScrollOffset: 240,
+            width: 1280,
+            height: 360);
 
-        PresenterPlaybackResolvedTarget target = PresenterPlaybackTargetResolver.Resolve(render, "raw-source", "markdown-first-roadmap");
+        PresenterPlaybackResolvedTarget target = PresenterPlaybackTargetResolver.Resolve(
+            render,
+            "raw-source",
+            "doc-aurelian-build-topology-m13b");
 
-        Assert.Equal("markdown-first-roadmap", target.CardId);
+        Assert.Equal("doc-aurelian-build-topology-m13b", target.CardId);
         Assert.True(target.Bounds.Height > 0);
     }
 

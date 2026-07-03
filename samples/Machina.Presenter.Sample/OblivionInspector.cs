@@ -28,7 +28,15 @@ public sealed record OblivionPageInteractionRoutingResult(
     UiAction? Action,
     bool Consumed,
     PresenterScrollbarInteractionState InteractionState,
-    PresenterPointerCaptureRequest PointerCaptureRequest);
+    PresenterPointerCaptureRequest PointerCaptureRequest,
+    OblivionInteractionHitResult? HitResult = null);
+
+public sealed record OblivionInteractionHitResult(
+    string RegionKind,
+    string RegionId,
+    string? CardId,
+    string? ScrollRegionId,
+    PresenterInputPoint LocalPoint);
 
 public sealed record OblivionPageInteractionMap(
     string PageId,
@@ -85,9 +93,11 @@ public sealed record OblivionPageInteractionMap(
         if (inputEvent.Kind == PresenterInputKind.Wheel)
         {
             bool hoveredScrollableRegion = false;
-            foreach (OblivionScrollRegionTarget target in EnumerateScrollableRegionsByPriority(contentX, contentY))
+            OblivionScrollRegionTarget? hoveredRegion = null;
+            foreach (OblivionScrollRegionTarget target in EnumerateScrollableRegionsByPriority(contentX, contentY, pageScrollOffset))
             {
                 hoveredScrollableRegion = true;
+                hoveredRegion = target;
                 OblivionPageInteractionRoutingResult reduced = ReduceScrollInteraction(
                     target,
                     PresenterScrollbarHitPart.Viewport,
@@ -105,16 +115,22 @@ public sealed record OblivionPageInteractionMap(
                     null,
                     Consumed: true,
                     interactionState,
-                    PresenterPointerCaptureRequest.None);
+                    PresenterPointerCaptureRequest.None,
+                    new OblivionInteractionHitResult(
+                        RegionKind: "scroll-region",
+                        RegionId: BuildScrollRegionId(hoveredRegion!.Target),
+                        CardId: hoveredRegion.Target.CardId,
+                        ScrollRegionId: BuildScrollRegionId(hoveredRegion.Target),
+                        LocalPoint: inputEvent.Position));
             }
         }
 
         if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
             inputEvent.Button == PresenterInputButton.Primary)
         {
-            foreach (OblivionScrollRegionTarget target in EnumerateScrollableRegionsByPriority(contentX, contentY))
+            foreach (OblivionScrollRegionTarget target in EnumerateScrollableRegionsByPriority(contentX, contentY, pageScrollOffset))
             {
-                PresenterScrollbarHitPart hitPart = GetScrollbarHitPart(target, contentX, contentY);
+                PresenterScrollbarHitPart hitPart = GetScrollbarHitPart(target, contentX, contentY, pageScrollOffset);
                 if (hitPart == PresenterScrollbarHitPart.None)
                 {
                     continue;
@@ -135,7 +151,13 @@ public sealed record OblivionPageInteractionMap(
                         new UiAction(target.SelectActionId),
                         Consumed: true,
                         interactionState,
-                        PresenterPointerCaptureRequest.None);
+                        PresenterPointerCaptureRequest.None,
+                        new OblivionInteractionHitResult(
+                            RegionKind: "card-body",
+                            RegionId: $"{target.PageId}.{target.CardId}.card-body",
+                            CardId: target.CardId,
+                            ScrollRegionId: null,
+                            LocalPoint: inputEvent.Position));
                 }
             }
 
@@ -148,7 +170,15 @@ public sealed record OblivionPageInteractionMap(
                         new UiAction(target.ActionId),
                         Consumed: true,
                         interactionState,
-                        PresenterPointerCaptureRequest.None);
+                        PresenterPointerCaptureRequest.None,
+                        new OblivionInteractionHitResult(
+                            RegionKind: Contains(target.HeaderBounds, contentX, contentY) ? "card-header" : "card",
+                            RegionId: Contains(target.HeaderBounds, contentX, contentY)
+                                ? $"{target.PageId}.{target.CardId}.card-header"
+                                : $"{target.PageId}.{target.CardId}.card",
+                            CardId: target.CardId,
+                            ScrollRegionId: null,
+                            LocalPoint: inputEvent.Position));
                 }
             }
         }
@@ -157,7 +187,8 @@ public sealed record OblivionPageInteractionMap(
             null,
             Consumed: false,
             interactionState,
-            PresenterPointerCaptureRequest.None);
+            PresenterPointerCaptureRequest.None,
+            null);
     }
 
     public OblivionPageInteractionRoutingResult RouteInput(
@@ -167,10 +198,15 @@ public sealed record OblivionPageInteractionMap(
         return RouteInput(inputEvent, pageScrollOffset, PresenterScrollbarInteractionState.Default);
     }
 
-    private IEnumerable<OblivionScrollRegionTarget> EnumerateScrollableRegionsByPriority(double x, double y)
+    private IEnumerable<OblivionScrollRegionTarget> EnumerateScrollableRegionsByPriority(double x, double y, double pageScrollOffset)
     {
+        double inspectorScrollOffset = ScrollRegions
+            .FirstOrDefault(region => region.Target.Kind == PresenterScrollbarTargetKind.OblivionInspectorPane)?
+            .ScrollbarGeometry.ScrollOffset
+            ?? 0;
+
         return ScrollRegions
-            .Where(target => Contains(target.Bounds, x, y))
+            .Where(target => ContainsInteractiveBounds(target, x, y, pageScrollOffset, inspectorScrollOffset))
             .OrderByDescending(target => GetPriority(target.Target.Kind))
             .ThenBy(target => target.Bounds.Area(), Comparer<double>.Create((left, right) => left.CompareTo(right)));
     }
@@ -187,19 +223,27 @@ public sealed record OblivionPageInteractionMap(
         };
     }
 
-    private static PresenterScrollbarHitPart GetScrollbarHitPart(OblivionScrollRegionTarget target, double x, double y)
+    private PresenterScrollbarHitPart GetScrollbarHitPart(OblivionScrollRegionTarget target, double x, double y, double pageScrollOffset)
     {
-        if (target.ScrollbarGeometry.IsVisible && Contains(target.ScrollbarGeometry.ThumbRect, x, y))
+        double inspectorScrollOffset = ScrollRegions
+            .FirstOrDefault(region => region.Target.Kind == PresenterScrollbarTargetKind.OblivionInspectorPane)?
+            .ScrollbarGeometry.ScrollOffset
+            ?? 0;
+        ScrollbarGeometry visibleGeometry = GetVisibleScrollbarGeometry(target, pageScrollOffset, inspectorScrollOffset);
+
+        if (target.ScrollbarGeometry.IsVisible &&
+            (Contains(target.ScrollbarGeometry.ThumbRect, x, y) || Contains(visibleGeometry.ThumbRect, x, y)))
         {
             return PresenterScrollbarHitPart.Thumb;
         }
 
-        if (target.ScrollbarGeometry.IsVisible && Contains(target.ScrollbarGeometry.TrackRect, x, y))
+        if (target.ScrollbarGeometry.IsVisible &&
+            (Contains(target.ScrollbarGeometry.TrackRect, x, y) || Contains(visibleGeometry.TrackRect, x, y)))
         {
             return PresenterScrollbarHitPart.Track;
         }
 
-        if (Contains(target.Bounds, x, y))
+        if (ContainsInteractiveBounds(target, x, y, pageScrollOffset, inspectorScrollOffset))
         {
             return PresenterScrollbarHitPart.Viewport;
         }
@@ -226,7 +270,95 @@ public sealed record OblivionPageInteractionMap(
             reduced.ActionId is null ? null : new UiAction(reduced.ActionId.Value),
             reduced.SuppressFurtherRouting,
             reduced.State,
-            reduced.PointerCaptureRequest);
+            reduced.PointerCaptureRequest,
+            new OblivionInteractionHitResult(
+                RegionKind: GetScrollRegionKind(target.Target.Kind),
+                RegionId: BuildScrollRegionId(target.Target),
+                CardId: target.Target.CardId,
+                ScrollRegionId: BuildScrollRegionId(target.Target),
+                LocalPoint: inputEvent.Position));
+    }
+
+    private static string GetScrollRegionKind(PresenterScrollbarTargetKind kind)
+    {
+        return kind switch
+        {
+            PresenterScrollbarTargetKind.OblivionMainCardStack => "oblivion-main-card-stack",
+            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody => "oblivion-expanded-markdown-body",
+            PresenterScrollbarTargetKind.OblivionInspectorPane => "oblivion-inspector-pane",
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource => "oblivion-inspector-raw-markdown-source",
+            PresenterScrollbarTargetKind.Page => "page",
+            _ => "unknown",
+        };
+    }
+
+    private static string BuildScrollRegionId(PresenterScrollbarTarget target)
+    {
+        return target.Kind switch
+        {
+            PresenterScrollbarTargetKind.OblivionMainCardStack => $"{target.PageId}.main-stack",
+            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody => $"{target.PageId}.{target.CardId}.expanded-body",
+            PresenterScrollbarTargetKind.OblivionInspectorPane => $"{target.PageId}.inspector-pane",
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource => $"{target.PageId}.{target.CardId}.raw-source",
+            PresenterScrollbarTargetKind.Page => $"{target.PageId}.page",
+            _ => $"{target.PageId}.unknown",
+        };
+    }
+
+    private static bool ContainsInteractiveBounds(
+        OblivionScrollRegionTarget target,
+        double x,
+        double y,
+        double pageScrollOffset,
+        double inspectorScrollOffset)
+    {
+        if (Contains(target.Bounds, x, y))
+        {
+            return true;
+        }
+
+        Rect visibleBounds = GetVisibleBounds(target, pageScrollOffset, inspectorScrollOffset);
+        return Contains(visibleBounds, x, y);
+    }
+
+    private static Rect GetVisibleBounds(
+        OblivionScrollRegionTarget target,
+        double pageScrollOffset,
+        double inspectorScrollOffset)
+    {
+        double deltaY = target.Target.Kind switch
+        {
+            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody => -pageScrollOffset,
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource => -inspectorScrollOffset,
+            _ => 0,
+        };
+
+        return TranslateVertical(target.Bounds, deltaY);
+    }
+
+    private static ScrollbarGeometry GetVisibleScrollbarGeometry(
+        OblivionScrollRegionTarget target,
+        double pageScrollOffset,
+        double inspectorScrollOffset)
+    {
+        double deltaY = target.Target.Kind switch
+        {
+            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody => -pageScrollOffset,
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource => -inspectorScrollOffset,
+            _ => 0,
+        };
+
+        return new ScrollbarGeometry(
+            TranslateVertical(target.ScrollbarGeometry.TrackRect, deltaY),
+            TranslateVertical(target.ScrollbarGeometry.ThumbRect, deltaY),
+            target.ScrollbarGeometry.IsVisible,
+            target.ScrollbarGeometry.ScrollOffset,
+            target.ScrollbarGeometry.MaxScrollOffset);
+    }
+
+    private static Rect TranslateVertical(Rect rect, double deltaY)
+    {
+        return new Rect(rect.X, rect.Y + deltaY, rect.Width, rect.Height);
     }
 
     private static bool Contains(Rect rect, double x, double y)

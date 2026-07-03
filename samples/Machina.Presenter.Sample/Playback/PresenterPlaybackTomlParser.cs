@@ -5,6 +5,23 @@ namespace Machina.Presenter.Sample.Playback;
 
 public static class PresenterPlaybackTomlParser
 {
+    private static readonly HashSet<string> ForbiddenProgrammingKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "if",
+        "then",
+        "else",
+        "loop",
+        "while",
+        "until",
+        "for",
+        "repeat",
+        "script",
+        "eval",
+        "expr",
+        "condition",
+        "callback",
+    };
+
     public static PresenterPlaybackScenario LoadFile(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -28,6 +45,8 @@ public static class PresenterPlaybackTomlParser
         {
             throw new PresenterPlaybackScenarioParseException(sourcePath, ex.Message);
         }
+
+        ValidateProgrammingBoundary(model, sourcePath, "<root>");
 
         TomlTable scenarioTable = GetRequiredTable(model, "scenario", sourcePath);
         TomlTable? outputTable = GetOptionalTable(model, "output");
@@ -357,6 +376,34 @@ public static class PresenterPlaybackTomlParser
         }
 
         throw new PresenterPlaybackScenarioParseException(sourcePath, $"Missing required value '{key}'.");
+    }
+
+    private static void ValidateProgrammingBoundary(object? value, string sourcePath, string path)
+    {
+        if (value is TomlTable table)
+        {
+            foreach ((string key, object? child) in table)
+            {
+                if (ForbiddenProgrammingKeys.Contains(key))
+                {
+                    throw new PresenterPlaybackScenarioParseException(
+                        sourcePath,
+                        $"Playback TOML must remain linear data, not a scripting language. Field '{key}' is not allowed at {path}.");
+                }
+
+                ValidateProgrammingBoundary(child, sourcePath, $"{path}.{key}");
+            }
+
+            return;
+        }
+
+        if (value is TomlTableArray array)
+        {
+            for (int index = 0; index < array.Count; index++)
+            {
+                ValidateProgrammingBoundary(array[index], sourcePath, $"{path}[{index}]");
+            }
+        }
     }
 }
 

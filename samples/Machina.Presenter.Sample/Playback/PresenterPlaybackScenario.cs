@@ -118,4 +118,6 @@ public sealed record PresenterPlaybackResolvedTarget(
     Rect Bounds,
     PresenterPlaybackPoint Point,
     PresenterScrollbarTarget? ScrollbarTarget,
-    ScrollbarGeometry? ScrollbarGeometry);
+    ScrollbarGeometry? ScrollbarGeometry,
+    string? ResolvedRegionKind = null,
+    string? ResolvedRegionId = null);

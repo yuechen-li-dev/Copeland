@@ -71,13 +71,17 @@ public sealed class PresenterPlaybackRunner
                     Type: step.Type,
                     Target: resolvedTarget?.Name,
                     CardId: resolvedTarget?.CardId,
+                    TargetResolution: BuildTargetResolution(step, resolvedTarget),
                     ResolvedPoint: resolvedTarget is null ? null : new PresenterPlaybackResolvedPoint(resolvedTarget.Point.X, resolvedTarget.Point.Y),
                     ResolvedRect: resolvedTarget is null ? null : new PresenterPlaybackResolvedRect(
                         resolvedTarget.Bounds.X,
                         resolvedTarget.Bounds.Y,
                         resolvedTarget.Bounds.Width,
                         resolvedTarget.Bounds.Height),
+                    HitTestResult: execution.HitTestResult,
                     EmittedInput: execution.EmittedInput,
+                    DispatchedAction: execution.DispatchedAction,
+                    StateDelta: BuildStateDelta(beforeSnapshot, afterSnapshot),
                     Before: beforeSnapshot,
                     After: afterSnapshot,
                     Result: execution.Result));
@@ -229,7 +233,9 @@ public sealed class PresenterPlaybackRunner
             PresenterPlaybackWaitStep wait => new StepExecutionResult(
                 state,
                 interactionState,
-                new PresenterPlaybackEmittedInput("wait", null, null, null, null),
+                new PresenterPlaybackEmittedInput("wait", null, null, null, null, false),
+                null,
+                null,
                 $"wait:{wait.Milliseconds}ms"),
             PresenterPlaybackClickStep => ExecuteInputSequence(
                 state,
@@ -366,6 +372,8 @@ public sealed class PresenterPlaybackRunner
         PresenterScrollbarInteractionState currentInteractionState = initialInteractionState;
         PresenterNavigationShellRenderResult currentRender = initialRender;
         PresenterPlaybackEmittedInput? lastInput = null;
+        PresenterPlaybackHitTestResult? lastHitTest = null;
+        PresenterPlaybackDispatchedAction? lastDispatchedAction = null;
 
         foreach (PresenterInputEvent inputEvent in events)
         {
@@ -391,7 +399,24 @@ public sealed class PresenterPlaybackRunner
                 Key: inputEvent.Keyboard?.Key.ToString(),
                 WheelDeltaY: inputEvent.Kind == PresenterInputKind.Wheel ? inputEvent.WheelDeltaY : null,
                 ActionId: actionId?.Value,
-                PointerCaptureRequest: routed.PointerCaptureRequest.ToString());
+                PointerCaptureRequest: routed.PointerCaptureRequest.ToString(),
+                InputConsumed: routed.InputConsumed);
+
+            lastHitTest = routed.ContentHitResult is null
+                ? BuildFallbackHitTestResult(currentRender, inputEvent, routed)
+                : new PresenterPlaybackHitTestResult(
+                    RegionKind: routed.ContentHitResult.RegionKind,
+                    RegionId: routed.ContentHitResult.RegionId,
+                    CardId: routed.ContentHitResult.CardId,
+                    ScrollRegionId: routed.ContentHitResult.ScrollRegionId,
+                    LocalPoint: new PresenterPlaybackResolvedPoint(
+                        routed.ContentHitResult.LocalPoint.X,
+                        routed.ContentHitResult.LocalPoint.Y));
+            lastDispatchedAction = new PresenterPlaybackDispatchedAction(
+                ActionId: actionId?.Value,
+                ActionType: DescribeActionType(actionId),
+                ActionHandled: actionId is not null,
+                WheelConsumed: inputEvent.Kind == PresenterInputKind.Wheel && routed.InputConsumed);
 
             currentRender = Render(currentState, currentRender.Layout, currentRender.Session);
         }
@@ -400,6 +425,8 @@ public sealed class PresenterPlaybackRunner
             currentState,
             currentInteractionState,
             lastInput,
+            lastHitTest,
+            lastDispatchedAction,
             "ok");
     }
 
@@ -567,7 +594,9 @@ public sealed class PresenterPlaybackRunner
                 new Rect(click.Point.Value.X, click.Point.Value.Y, 1, 1),
                 click.Point.Value,
                 null,
-                null),
+                null,
+                "point",
+                "explicit-point"),
             PresenterPlaybackClickStep click when !string.IsNullOrWhiteSpace(click.Target) => PresenterPlaybackTargetResolver.Resolve(render, click.Target!, click.CardId),
             PresenterPlaybackWheelStep wheel => PresenterPlaybackTargetResolver.Resolve(render, wheel.Target, wheel.CardId),
             PresenterPlaybackDragStep drag => PresenterPlaybackTargetResolver.Resolve(render, drag.Target, drag.CardId),
@@ -612,7 +641,119 @@ public sealed class PresenterPlaybackRunner
             return Path.GetFullPath(finalPngPath);
         }
 
-        return Path.GetFullPath(Path.Combine("artifacts", "m16a", "playback", scenarioId, "final.png"));
+        return Path.GetFullPath(Path.Combine("artifacts", "m16b", "playback", scenarioId, "final.png"));
+    }
+
+    private static PresenterPlaybackTargetResolution? BuildTargetResolution(
+        PresenterPlaybackStep step,
+        PresenterPlaybackResolvedTarget? target)
+    {
+        if (target is null)
+        {
+            return null;
+        }
+
+        string? requestedCardId = step switch
+        {
+            PresenterPlaybackClickStep click => click.CardId,
+            PresenterPlaybackWheelStep wheel => wheel.CardId,
+            PresenterPlaybackDragStep drag => drag.CardId,
+            _ => null,
+        };
+
+        return new PresenterPlaybackTargetResolution(
+            SemanticTargetKind: target.Name,
+            RequestedCardId: requestedCardId,
+            ResolvedCardId: target.CardId,
+            ResolvedRegionKind: target.ResolvedRegionKind,
+            ResolvedRegionId: target.ResolvedRegionId,
+            ResolvedPoint: new PresenterPlaybackResolvedPoint(target.Point.X, target.Point.Y),
+            ResolvedRect: new PresenterPlaybackResolvedRect(
+                target.Bounds.X,
+                target.Bounds.Y,
+                target.Bounds.Width,
+                target.Bounds.Height));
+    }
+
+    private static PresenterPlaybackStateDelta BuildStateDelta(
+        PresenterPlaybackStateSnapshot before,
+        PresenterPlaybackStateSnapshot after)
+    {
+        return new PresenterPlaybackStateDelta(
+            MainStackScrollDelta: after.MainStackScrollOffset - before.MainStackScrollOffset,
+            InspectorScrollDelta: after.InspectorScrollOffset - before.InspectorScrollOffset,
+            RawSourceScrollDelta: (after.RawSourceScrollOffset ?? 0) - (before.RawSourceScrollOffset ?? 0),
+            ExpandedBodyScrollDelta: (after.ExpandedBodyScrollOffset ?? 0) - (before.ExpandedBodyScrollOffset ?? 0));
+    }
+
+    private static PresenterPlaybackHitTestResult? BuildFallbackHitTestResult(
+        PresenterNavigationShellRenderResult render,
+        PresenterInputEvent inputEvent,
+        PresenterNavigationInputRoutingResult routed)
+    {
+        if (routed.HitTarget.Kind != PresenterNavigationHitKind.ContentViewport)
+        {
+            return null;
+        }
+
+        return new PresenterPlaybackHitTestResult(
+            RegionKind: "content-viewport",
+            RegionId: $"{render.SelectedTab.PageId}.content-viewport",
+            CardId: null,
+            ScrollRegionId: null,
+            LocalPoint: new PresenterPlaybackResolvedPoint(
+                inputEvent.Position.X - (float)render.ChromeGeometry.ContentViewportRect.X,
+                inputEvent.Position.Y - (float)render.ChromeGeometry.ContentViewportRect.Y));
+    }
+
+    private static string DescribeActionType(UiActionId? actionId)
+    {
+        if (actionId is null)
+        {
+            return "none";
+        }
+
+        if (PresenterNavigationActions.TryParseSetOblivionMainCardStackScrollOffset(actionId.Value, out _, out _))
+        {
+            return "set-oblivion-main-card-stack-scroll-offset";
+        }
+
+        if (PresenterNavigationActions.TryParseSetOblivionRawMarkdownSourceScrollOffset(actionId.Value, out _, out _, out _))
+        {
+            return "set-oblivion-raw-markdown-source-scroll-offset";
+        }
+
+        if (PresenterNavigationActions.TryParseSetOblivionInspectorScrollOffset(actionId.Value, out _, out _))
+        {
+            return "set-oblivion-inspector-scroll-offset";
+        }
+
+        if (PresenterNavigationActions.TryParseSetOblivionCardBodyScrollOffset(actionId.Value, out _, out _, out _))
+        {
+            return "set-oblivion-card-body-scroll-offset";
+        }
+
+        if (PresenterNavigationActions.TryParseSetScrollOffset(actionId.Value, out _, out _))
+        {
+            return "set-scroll-offset";
+        }
+
+        if (PresenterNavigationActions.TryParseToggleOblivionCardExpansion(actionId.Value, out _, out _))
+        {
+            return "toggle-oblivion-card-expansion";
+        }
+
+        if (PresenterNavigationActions.TryParseSelectOblivionCard(actionId.Value, out _, out _))
+        {
+            return "select-oblivion-card";
+        }
+
+        if (PresenterNavigationActions.TryParseCollapseOblivionCard(actionId.Value, out _, out _))
+        {
+            return "collapse-oblivion-card";
+        }
+
+        return "other";
     }
 
     private static double GetScrollOffset(PresenterNavigationShellRenderResult render, string target, string? cardId)
@@ -682,5 +823,7 @@ public sealed class PresenterPlaybackRunner
         PresenterNavigationState NextState,
         PresenterScrollbarInteractionState NextInteractionState,
         PresenterPlaybackEmittedInput? EmittedInput,
+        PresenterPlaybackHitTestResult? HitTestResult,
+        PresenterPlaybackDispatchedAction? DispatchedAction,
         string Result);
 }

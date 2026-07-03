@@ -13,9 +13,13 @@ public sealed record PresenterPlaybackTraceStep(
     string Type,
     string? Target,
     string? CardId,
+    PresenterPlaybackTargetResolution? TargetResolution,
     PresenterPlaybackResolvedPoint? ResolvedPoint,
     PresenterPlaybackResolvedRect? ResolvedRect,
+    PresenterPlaybackHitTestResult? HitTestResult,
     PresenterPlaybackEmittedInput? EmittedInput,
+    PresenterPlaybackDispatchedAction? DispatchedAction,
+    PresenterPlaybackStateDelta? StateDelta,
     PresenterPlaybackStateSnapshot Before,
     PresenterPlaybackStateSnapshot After,
     string Result);
@@ -35,7 +39,36 @@ public sealed record PresenterPlaybackEmittedInput(
     string? Key,
     double? WheelDeltaY,
     string? ActionId,
-    string? PointerCaptureRequest);
+    string? PointerCaptureRequest,
+    bool InputConsumed);
+
+public sealed record PresenterPlaybackTargetResolution(
+    string SemanticTargetKind,
+    string? RequestedCardId,
+    string? ResolvedCardId,
+    string? ResolvedRegionKind,
+    string? ResolvedRegionId,
+    PresenterPlaybackResolvedPoint? ResolvedPoint,
+    PresenterPlaybackResolvedRect? ResolvedRect);
+
+public sealed record PresenterPlaybackHitTestResult(
+    string RegionKind,
+    string? RegionId,
+    string? CardId,
+    string? ScrollRegionId,
+    PresenterPlaybackResolvedPoint LocalPoint);
+
+public sealed record PresenterPlaybackDispatchedAction(
+    string? ActionId,
+    string ActionType,
+    bool ActionHandled,
+    bool WheelConsumed);
+
+public sealed record PresenterPlaybackStateDelta(
+    double MainStackScrollDelta,
+    double InspectorScrollDelta,
+    double RawSourceScrollDelta,
+    double ExpandedBodyScrollDelta);
 
 public sealed record PresenterPlaybackAssertionResult(
     int Index,

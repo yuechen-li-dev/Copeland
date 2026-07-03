@@ -120,7 +120,7 @@ public sealed class PlaybackRunnerM16aTests
         Assert.True(result.FinalState.GetInspectorScrollOffset(OblivionWorkbenchCatalog.ExecutionRoadmapPageId) > 0);
     }
 
-    [Fact(Skip = "Blocked: playback wheel routing for raw-source still leaves the offset at zero even though the underlying presenter has a working raw-source scroll path in M15f coverage.")]
+    [Fact]
     public void PlaybackRunner_WheelRawSource_ChangesRawSourceScroll()
     {
         PresenterPlaybackRunResult result = RunStarterScenario("oblivion-raw-source-scroll.machina-playback.toml");
@@ -174,7 +174,7 @@ public sealed class PlaybackRunnerM16aTests
         Assert.Contains(result.Trace.Assertions, assertion => assertion.Type == "scroll-offset-changed" && assertion.Passed);
     }
 
-    [Fact(Skip = "Blocked: playback wheel routing for main-stack still clamps back to zero even though the direct M15f interaction test passes. Keep this visible until the playback seam matches the legacy reducer path.")]
+    [Fact]
     public void PlaybackAssertion_ScrollOffsetGreaterThan_Passes()
     {
         PresenterPlaybackRunResult result = RunStarterScenario("oblivion-main-stack-scroll.machina-playback.toml");
@@ -342,7 +342,7 @@ public sealed class PlaybackRunnerM16aTests
         AssertStarterScenarioPasses("oblivion-expanded-body-scroll.machina-playback.toml");
     }
 
-    [Fact(Skip = "Blocked: playback wheel routing for main-stack still clamps back to zero even though the direct M15f interaction test passes. Keep this visible until the playback seam matches the legacy reducer path.")]
+    [Fact]
     public void PlaybackScenario_OblivionMainStackScroll_Passes()
     {
         AssertStarterScenarioPasses("oblivion-main-stack-scroll.machina-playback.toml");
@@ -354,7 +354,7 @@ public sealed class PlaybackRunnerM16aTests
         AssertStarterScenarioPasses("oblivion-inspector-scroll.machina-playback.toml");
     }
 
-    [Fact(Skip = "Blocked: playback wheel routing for raw-source still leaves the offset at zero even though the underlying presenter has a working raw-source scroll path in M15f coverage.")]
+    [Fact]
     public void PlaybackScenario_OblivionRawSourceScroll_Passes()
     {
         AssertStarterScenarioPasses("oblivion-raw-source-scroll.machina-playback.toml");

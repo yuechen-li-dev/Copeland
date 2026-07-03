@@ -43,7 +43,9 @@ public static class PresenterPlaybackTargetResolver
             rootBounds,
             Center(rootBounds),
             null,
-            null);
+            null,
+            "card-header",
+            $"{render.SelectedTab.PageId}.{resolvedCardId}.card-header");
     }
 
     private static PresenterPlaybackResolvedTarget ResolveScrollRegion(
@@ -53,15 +55,24 @@ public static class PresenterPlaybackTargetResolver
         string targetName)
     {
         OblivionScrollRegionTarget region = FindScrollRegion(render, kind, cardId, targetName);
-        Rect rootBounds = TranslateToRoot(render, region.Bounds);
-        ScrollbarGeometry rootScrollbarGeometry = TranslateToRoot(render, region.ScrollbarGeometry);
+        Rect rootBounds = TranslateScrollRegionToRoot(render, region.Target, region.Bounds);
+        Rect visibleBounds = Intersect(rootBounds, render.ChromeGeometry.ContentViewportRect);
+        if (visibleBounds.Width <= 0 || visibleBounds.Height <= 0)
+        {
+            throw new InvalidOperationException(
+                $"Playback target '{targetName}' resolves to '{BuildRegionId(region.Target)}', but that region is outside the visible presenter content viewport in the current state.");
+        }
+
+        ScrollbarGeometry rootScrollbarGeometry = TranslateScrollbarGeometryToRoot(render, region.Target, region.ScrollbarGeometry);
         return new PresenterPlaybackResolvedTarget(
             targetName,
             region.Target.CardId,
-            rootBounds,
-            Center(rootBounds),
+            visibleBounds,
+            Center(visibleBounds),
             region.Target,
-            rootScrollbarGeometry);
+            rootScrollbarGeometry,
+            BuildRegionKind(region.Target.Kind),
+            BuildRegionId(region.Target));
     }
 
     private static PresenterPlaybackResolvedTarget ResolveScrollbarThumb(
@@ -76,14 +87,16 @@ public static class PresenterPlaybackTargetResolver
             throw new InvalidOperationException($"Playback target '{targetName}' is unavailable because its scrollbar is not visible.");
         }
 
-        ScrollbarGeometry rootScrollbarGeometry = TranslateToRoot(render, region.ScrollbarGeometry);
+        ScrollbarGeometry rootScrollbarGeometry = TranslateScrollbarGeometryToRoot(render, region.Target, region.ScrollbarGeometry);
         return new PresenterPlaybackResolvedTarget(
             targetName,
             region.Target.CardId,
             rootScrollbarGeometry.ThumbRect,
             Center(rootScrollbarGeometry.ThumbRect),
             region.Target,
-            rootScrollbarGeometry);
+            rootScrollbarGeometry,
+            BuildRegionKind(region.Target.Kind),
+            BuildRegionId(region.Target));
     }
 
     private static OblivionScrollRegionTarget FindScrollRegion(
@@ -143,11 +156,37 @@ public static class PresenterPlaybackTargetResolver
             rect.Height);
     }
 
-    private static ScrollbarGeometry TranslateToRoot(PresenterNavigationShellRenderResult render, ScrollbarGeometry geometry)
+    private static Rect TranslateScrollRegionToRoot(
+        PresenterNavigationShellRenderResult render,
+        PresenterScrollbarTarget target,
+        Rect rect)
+    {
+        double translatedY = rect.Y;
+        if (target.Kind == PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody)
+        {
+            translatedY -= render.NavigationState.GetScrollOffset(render.SelectedTab.PageId);
+        }
+
+        if (target.Kind == PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource)
+        {
+            translatedY -= render.NavigationState.GetInspectorScrollOffset(render.SelectedTab.PageId);
+        }
+
+        return new Rect(
+            render.ChromeGeometry.ContentViewportRect.X + rect.X,
+            render.ChromeGeometry.ContentViewportRect.Y + translatedY,
+            rect.Width,
+            rect.Height);
+    }
+
+    private static ScrollbarGeometry TranslateScrollbarGeometryToRoot(
+        PresenterNavigationShellRenderResult render,
+        PresenterScrollbarTarget target,
+        ScrollbarGeometry geometry)
     {
         return new ScrollbarGeometry(
-            TrackRect: TranslateToRoot(render, geometry.TrackRect),
-            ThumbRect: TranslateToRoot(render, geometry.ThumbRect),
+            TrackRect: TranslateScrollRegionToRoot(render, target, geometry.TrackRect),
+            ThumbRect: TranslateScrollRegionToRoot(render, target, geometry.ThumbRect),
             IsVisible: geometry.IsVisible,
             ScrollOffset: geometry.ScrollOffset,
             MaxScrollOffset: geometry.MaxScrollOffset);
@@ -158,5 +197,42 @@ public static class PresenterPlaybackTargetResolver
         return new PresenterPlaybackPoint(
             rect.X + (rect.Width / 2),
             rect.Y + (rect.Height / 2));
+    }
+
+    private static Rect Intersect(Rect left, Rect right)
+    {
+        double x = Math.Max(left.X, right.X);
+        double y = Math.Max(left.Y, right.Y);
+        double maxX = Math.Min(left.X + left.Width, right.X + right.Width);
+        double maxY = Math.Min(left.Y + left.Height, right.Y + right.Height);
+        double width = Math.Max(0, maxX - x);
+        double height = Math.Max(0, maxY - y);
+        return new Rect(x, y, width, height);
+    }
+
+    private static string BuildRegionKind(PresenterScrollbarTargetKind kind)
+    {
+        return kind switch
+        {
+            PresenterScrollbarTargetKind.OblivionMainCardStack => "oblivion-main-card-stack",
+            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody => "oblivion-expanded-markdown-body",
+            PresenterScrollbarTargetKind.OblivionInspectorPane => "oblivion-inspector-pane",
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource => "oblivion-inspector-raw-markdown-source",
+            PresenterScrollbarTargetKind.Page => "page",
+            _ => "unknown",
+        };
+    }
+
+    private static string BuildRegionId(PresenterScrollbarTarget target)
+    {
+        return target.Kind switch
+        {
+            PresenterScrollbarTargetKind.OblivionMainCardStack => $"{target.PageId}.main-stack",
+            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody => $"{target.PageId}.{target.CardId}.expanded-body",
+            PresenterScrollbarTargetKind.OblivionInspectorPane => $"{target.PageId}.inspector-pane",
+            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource => $"{target.PageId}.{target.CardId}.raw-source",
+            PresenterScrollbarTargetKind.Page => $"{target.PageId}.page",
+            _ => $"{target.PageId}.unknown",
+        };
     }
 }

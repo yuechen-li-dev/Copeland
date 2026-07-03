@@ -342,6 +342,24 @@ Current status is meaningful progression rather than full closure because the pl
 - main-stack wheel playback does not yet match the older direct M15f interaction seam
 - raw-source wheel playback does not yet match the older direct M15f interaction seam
 
+## M16b update
+
+M16b is playback parity stabilization only.
+
+- `main-stack` wheel playback now preserves the dedicated M15f action result through the real render path
+- `raw-source` wheel playback now resolves and routes through the real visible shell path instead of falling back to inspector-pane scrolling
+- starter scenarios now pass under `artifacts/m16b/playback`
+- trace now records deterministic target-resolution, hit-test, dispatched-action, and scroll-delta evidence
+- TOML remains linear data only and now rejects programming-like fields such as `if`, `loop`, `script`, and `eval`
+
+Current M16b status is full closure for the original parity blockers:
+
+- `oblivion-main-stack-scroll` passes through the internal presenter input/routing path
+- `oblivion-raw-source-scroll` passes through the internal presenter input/routing path
+- no direct state mutation is used for interaction steps
+
+M16b still does not add native OS automation, pixel-golden diffing, Markdown editing, notebook execution, Roslyn execution, Aurelian work, or `VD-MIR` work.
+
 This remains bounded:
 
 - no native OS automation

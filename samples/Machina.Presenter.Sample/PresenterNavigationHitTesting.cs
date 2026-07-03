@@ -152,7 +152,9 @@ public sealed record PresenterNavigationInputRoutingResult(
     UiActionId? ActionId,
     PresenterScrollbarInteractionState InteractionState,
     PresenterPointerCaptureRequest PointerCaptureRequest,
-    bool SuppressFurtherRouting);
+    bool SuppressFurtherRouting,
+    bool InputConsumed = false,
+    OblivionInteractionHitResult? ContentHitResult = null);
 
 public static class PresenterNavigationInputRouter
 {
@@ -208,7 +210,9 @@ public static class PresenterNavigationInputRouter
                     routedOblivion.Action?.Id,
                     routedOblivion.InteractionState,
                     routedOblivion.PointerCaptureRequest,
-                    SuppressFurtherRouting: true);
+                    SuppressFurtherRouting: true,
+                    InputConsumed: true,
+                    ContentHitResult: routedOblivion.HitResult);
             }
         }
 
@@ -239,7 +243,9 @@ public static class PresenterNavigationInputRouter
                 interaction.ActionId,
                 interaction.State,
                 interaction.PointerCaptureRequest,
-                SuppressFurtherRouting: true);
+                SuppressFurtherRouting: true,
+                InputConsumed: true,
+                ContentHitResult: null);
         }
 
         if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
@@ -253,7 +259,9 @@ public static class PresenterNavigationInputRouter
                     PresenterNavigationActions.SelectSection(hitTarget.SectionId),
                     interaction.State,
                     interaction.PointerCaptureRequest,
-                    SuppressFurtherRouting: false);
+                    SuppressFurtherRouting: false,
+                    InputConsumed: false,
+                    ContentHitResult: null);
             }
 
             if (hitTarget.Kind == PresenterNavigationHitKind.LocalTab &&
@@ -265,7 +273,9 @@ public static class PresenterNavigationInputRouter
                     PresenterNavigationActions.SelectTab(hitTarget.SectionId, hitTarget.TabId),
                     interaction.State,
                     interaction.PointerCaptureRequest,
-                    SuppressFurtherRouting: false);
+                    SuppressFurtherRouting: false,
+                    InputConsumed: false,
+                    ContentHitResult: null);
             }
         }
 
@@ -274,6 +284,8 @@ public static class PresenterNavigationInputRouter
             interaction.ActionId,
             interaction.State,
             interaction.PointerCaptureRequest,
-            SuppressFurtherRouting: false);
+            SuppressFurtherRouting: false,
+            InputConsumed: false,
+            ContentHitResult: null);
     }
 }

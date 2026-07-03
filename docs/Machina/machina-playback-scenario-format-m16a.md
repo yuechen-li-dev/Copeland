@@ -1,5 +1,11 @@
 # Machina Playback Scenario Format M16a
 
+Follow-up note after M16b:
+
+- playback parity for `main-stack` and `raw-source` is now stabilized
+- trace output now includes deterministic target-resolution, hit-test, dispatched-action, and scroll-delta fields
+- TOML remains linear data only and now explicitly rejects programming-like fields such as `if`, `loop`, `script`, and `eval`
+
 ## Purpose
 
 This document defines the first TOML playback scenario format for internal Machina presenter interaction playback.
