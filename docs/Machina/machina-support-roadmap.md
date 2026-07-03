@@ -398,6 +398,30 @@ M16d is xUnit playback integration only.
 
 M16d still does not add native OS automation, pixel-golden diffing, Markdown editing, notebook execution, Roslyn execution, Aurelian work, or `VD-MIR` work.
 
+## M17a update
+
+M17a is JS parity layout/refactor recon only.
+
+- the external Machina JS audit is now mapped onto current C# repo facts
+- the current C# gap is identified as authoring-surface ergonomics more than missing low-level layout math
+- existing low-level `StackArrange` / `FillFrame` / `GridArrange` / `CellFrame` support remains in place, but current Oblivion authoring still relies heavily on `UI.Anchor(...)`, `Row.Anchor(...)`, manual cursor math, and manual pane math
+- `OblivionCardRenderer`, `OblivionWorkbenchCatalog`, `PresenterCard`, and the presenter shell/document factory are now documented as the highest-value readability and refactor targets
+- StackArrange + FillFrame authoring parity is recorded as the first recommended implementation slice
+- GridArrange + CellFrame authoring parity is recorded as the second implementation slice
+- row variants, proportional lengths, guide frames, and DeusMachine parity remain staged follow-up work rather than one-shot port scope
+- playback xUnit coverage from M16d remains the intended safety net for future authoring refactors
+
+M17a does not change runtime behavior:
+
+- no new layout primitive implementation
+- no Oblivion renderer refactor
+- no page-shell refactor
+- no playback scenario behavior change
+- no Markdown editing
+- no notebook execution
+- no Aurelian work
+- no `VD-MIR` work
+
 | MonoGame presenter | Future presenter | Deferred | None | Future backend.
 | Web presenter | Future presenter | Deferred | None | Future platform milestone.
 

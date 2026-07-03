@@ -254,6 +254,13 @@ Follow-up note after M16c:
 - the suite now writes deterministic per-scenario artifacts plus aggregate suite reports and an M16c milestone manifest
 - playback still does not add native automation, TOML scripting, or pixel-golden screenshot diffing
 
+Follow-up note after M16d and M17a:
+
+- M16d wires those same playback scenarios into normal xUnit execution, so future UI refactors can use the ordinary test loop instead of a separate playback-only path
+- M17a then uses that stabilized playback lane as the safety net for layout-authoring recon and staged parity planning
+- the next recommended implementation step is no longer general navigation polish first; it is targeted layout-authoring cleanup beginning with stack-style authoring parity and card-renderer refactoring
+- M17a still does not change runtime reading-surface behavior
+
 ## What changed
 
 What changed across M15a through M15f:

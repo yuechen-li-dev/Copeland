@@ -49,6 +49,8 @@ M15g is closeout and planning only. The M15 reading-surface arc is now documente
 
 M16a added the internal deterministic playback MVP for the Machina presenter. M16b follows by stabilizing input parity for `main-stack` and `raw-source` wheel playback so starter scenarios now pass through the same internal presenter input/routing path that real user interaction uses. M16c then turns that harness into a regression suite with starter/regression cassette organization, suite manifests, directory/manifest batch runs, deterministic aggregate reports, and milestone manifests. M16d then wires the same playback core into normal xUnit discovery/execution so C# owns scenario selection, loops, guards, and failure formatting while TOML remains a cassette. Playback scenarios remain TOML artifacts with required assertion reasons plus normalized scenario/trace/manifest/final-PNG outputs, and this lane still does not implement native OS automation, TOML scripting, or pixel-golden screenshot diffing.
 
+M17a is recon only. It incorporates an external frontend/design audit against the local C# Machina/Oblivion authoring surface, confirms that the main current gap is readable authoring rather than missing low-level layout primitives, classifies the current bugs and cleanup candidates, and records a staged parity ladder. The recommended next implementation slice is authoring-level StackArrange + FillFrame parity over the existing C# layout engine, followed by an Oblivion card-renderer stack refactor, then authoring-level GridArrange + CellFrame parity and a page-shell grid refactor. M17a does not change runtime behavior, does not refactor the current renderer, and keeps the M16 playback xUnit suite as the safety net for future refactors.
+
 ## Pipeline
 
 ```text
@@ -235,6 +237,8 @@ Machina M11b keeps the normal loop on `Copeland.slnx`, moves fast font-tooling u
 - [Machina Playback Input Parity M16b](docs/Machina/machina-playback-input-parity-m16b.md)
 - [Machina Playback Regression Suite M16c](docs/Machina/machina-playback-regression-suite-m16c.md)
 - [Machina Playback xUnit Integration M16d](docs/Machina/machina-playback-xunit-integration-m16d.md)
+- [Machina JS Parity Layout Recon M17a](docs/Machina/machina-js-parity-layout-recon-m17a.md)
+- [Machina Layout Authoring Backlog M17a](docs/Machina/machina-layout-authoring-backlog-m17a.md)
 - [Oblivion Playback Regression Coverage M16c](docs/Oblivion/oblivion-playback-regression-coverage-m16c.md)
 - [Aurelian SDSL-V Lane Audit M13e](docs/Aurelian/aurelian-sdslv-lane-audit-m13e.md)
 - [Copeland GPU MIR Target Analysis M13e](docs/Copeland/copeland-gpu-mir-target-analysis-m13e.md)

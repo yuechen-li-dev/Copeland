@@ -163,3 +163,13 @@ M16d does not add:
 - opt-in suite traits if future canonical playback volume becomes materially slow
 - richer higher-order suite assertions if a real regression needs them
 - additional environment guards only if a future playback scenario introduces a real dependency beyond the current deterministic internal path
+
+## Follow-up note after M17a
+
+M17a is recon only and does not change playback semantics or UI behavior.
+
+What it does change is planning confidence:
+
+- playback xUnit coverage is now explicitly treated as the regression harness for the upcoming Machina/Oblivion layout-authoring refactor slices
+- the recommended next implementation order is stack-authoring parity first, card-renderer migration second, grid-authoring parity third, and page-shell migration fourth
+- broad JS parity remains staged rather than one-shot
