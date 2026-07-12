@@ -7,16 +7,16 @@ vulkanIntegrationPerformed: false
 sdslvMigrationPerformed: false
 machinaAurelianBridgeImplemented: false
 importedAurelianProjects:
-- src/Aurelian.Actuation
-- src/Aurelian.Assets
-- src/Aurelian.AssetTool
-- src/Aurelian.Core
-- src/Aurelian.Graphics
-- src/Aurelian.Rendering.Contracts
-- src/Aurelian.Rendering.Null
-- src/Aurelian.Runtime
-- src/Aurelian.Shaders
-- src/Aurelian.World
+- src/Aurelian/Aurelian.Actuation
+- src/Aurelian/Aurelian.Assets
+- src/Aurelian/Aurelian.AssetTool
+- src/Aurelian/Aurelian.Core
+- src/Aurelian/Aurelian.Graphics
+- src/Aurelian/Aurelian.Rendering.Contracts
+- src/Aurelian/Aurelian.Rendering.Null
+- src/Aurelian/Aurelian.Runtime
+- src/Aurelian/Aurelian.Shaders
+- src/Aurelian/Aurelian.World
 importedAurelianDocs:
 - docs/Aurelian/docs/architecture
 - docs/Aurelian/docs/audits

@@ -246,9 +246,9 @@ Execution approach (A1+):
 
 Planned docs additions:
 
-- `docs/react-native-adapter.md`
-- `docs/vue-adapter.md`
-- `docs/adapter-packaging-a0-plan.md` (this file)
+- `docs/Copeland/reference/machinalayout-js/react-native-adapter.md`
+- `docs/Copeland/reference/machinalayout-js/vue-adapter.md`
+- `docs/Copeland/reference/machinalayout-js/adapter-packaging-a0-plan.md` (this file)
 - README update to clarify preferred import paths and adapter dependency expectations.
 
 Docs guidance:

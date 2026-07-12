@@ -47,7 +47,7 @@ Dominatus was initially copied from `https://github.com/yuechen-li-dev/Dominatus
 
 ## Aurelian.Shaders module boundary
 
-A3 converted the carried-over `src/StriV.ShaderPipeline/` project identity into the Aurelian-owned `src/Aurelian.Shaders/` module and linked it in `Aurelian.slnx` with matching smoke tests under `tests/Aurelian.Shaders.Tests/`.
+A3 converted the carried-over `src/StriV.ShaderPipeline/` project identity into the Aurelian-owned `src/Aurelian/Aurelian.Shaders/` module and linked it in `Aurelian.slnx` with matching smoke tests under `tests/Aurelian/Aurelian.Shaders.Tests/`.
 
 A4 added the first WyrmCoil-shaped SDSL-V AST contract under `Aurelian.Shaders.Language.Ast`. A5 began parser convergence for the new AST, and A6 expanded the parser to M1 statements/expressions while adding `docs/architecture/sdslv-compatibility-matrix.md`. The legacy carried-over AST/parser/lowerer and artifact emitter remain temporarily in place and keep their existing behavior until parser, validation, and lowerer convergence milestones replace them deliberately.
 
@@ -55,7 +55,7 @@ WyrmCoil remains reference-only: Aurelian compares and copies language semantics
 
 ## Aurelian.Assets and Aurelian.AssetTool module boundary
 
-A11 consumed the remaining carried-over Stri-V asset projects: `src/StriV.AssetPipeline` is now `src/Aurelian.Assets`, and `src/StriV.AssetTool` is now `src/Aurelian.AssetTool`. Both modules are linked in `Aurelian.slnx` with smoke tests under `tests/Aurelian.Assets.Tests/` and `tests/Aurelian.AssetTool.Tests/`.
+A11 consumed the remaining carried-over Stri-V asset projects: `src/StriV.AssetPipeline` is now `src/Aurelian/Aurelian.Assets`, and `src/StriV.AssetTool` is now `src/Aurelian/Aurelian.AssetTool`. Both modules are linked in `Aurelian.slnx` with smoke tests under `tests/Aurelian/Aurelian.Assets.Tests/` and `tests/Aurelian/Aurelian.AssetTool.Tests/`.
 
 `Aurelian.Assets` owns early TOML/manifest-based asset orchestration and may call `Aurelian.Shaders` for shader artifact generation. `Aurelian.AssetTool` is a CLI wrapper over Aurelian asset pipeline functionality. This conversion is identity and solution integration only; asset manifest schema convergence and shader asset bridging remain follow-up work.
 

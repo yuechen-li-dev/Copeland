@@ -9,7 +9,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$projectPath = Join-Path $repoRoot "tests\\Machina.Fonts.Tooling.Tests\\Machina.Fonts.Tooling.Tests.csproj"
+$projectPath = Join-Path $repoRoot "tests\\Machina.UI\\Machina.Fonts.Tooling.Tests\\Machina.Fonts.Tooling.Tests.csproj"
 $filter = "FullyQualifiedName~Machina.Fonts.Tooling.Tests.MsdfAlignmentSmokeTests.ScriptSmoke_M9fWorkflowExportsArtifacts"
 
 if ([System.IO.Path]::IsPathRooted($OutputDir))

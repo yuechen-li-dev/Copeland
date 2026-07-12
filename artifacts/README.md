@@ -144,8 +144,8 @@ From the repo root:
 Manual fallback:
 
 ```powershell
-dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-default
-dotnet run --project samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-interactive --primary-clicks 1 --checkbox on --switch on
+dotnet run --project samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-default
+dotnet run --project samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj -- --export-only --export-dir artifacts\m7e --export-name component-gallery-interactive --primary-clicks 1 --checkbox on --switch on
 ```
 
 Current M7e audit command:
@@ -247,7 +247,7 @@ Current M11b smoke/validation commands:
 
 ```powershell
 dotnet test Copeland.slnx
-dotnet test Copeland.Slow.slnx
+dotnet test Machina.UI.Slow.slnx
 .\tools\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\m11b-smoke-fonts -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean
 .\tools\Export-MachinaPresenter.ps1 -OutputPath artifacts\m11b-smoke\presenter-oblivion-cards.png -SelectedSection oblivion -SelectedTab cards
 ```
@@ -302,8 +302,8 @@ Current M11g Oblivion closeout commands:
 Current M12a Copeland Markdown commands:
 
 ```powershell
-dotnet test tests/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj
-dotnet run --project src/Copeland.Cli -- markdown parse README.md --emit mir --format json
+dotnet test tests/Copeland/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj
+dotnet run --project src/Copeland/Copeland.Cli -- markdown parse README.md --emit mir --format json
 .\tools\Export-CopelandMarkdownCorpus.ps1 -OutputDir artifacts\m12a
 ```
 
@@ -372,7 +372,7 @@ Manual fallback:
 
 ```powershell
 $env:MACHINA_FONT_PROOF_OUTPUT_DIR = (Resolve-Path artifacts\m8l)
-dotnet test tests/Machina.Fonts.Tests/Machina.Fonts.Tests.csproj --filter "FullyQualifiedName~Machina.Fonts.Tests.Rendering.FontProofExporterTests.FontProofExporter_ScriptWorkflowExportsProofSet"
+dotnet test tests/Machina.UI/Machina.Fonts.Tests/Machina.Fonts.Tests.csproj --filter "FullyQualifiedName~Machina.Fonts.Tests.Rendering.FontProofExporterTests.FontProofExporter_ScriptWorkflowExportsProofSet"
 Remove-Item Env:\MACHINA_FONT_PROOF_OUTPUT_DIR
 ```
 

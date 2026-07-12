@@ -1,41 +1,12 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Copeland.Script/Copeland.Script.csproj" />
-    <Project Path="src/Copeland.Markdown/Copeland.Markdown.csproj" />
-    <Project Path="src/Copeland.Cli/Copeland.Cli.csproj" />
-    <Project Path="src/Machina.Layout/Machina.Layout.csproj" />
-    <Project Path="src/Machina.Fonts/Machina.Fonts.csproj" />
-    <Project Path="src/Machina.Fonts.Tooling/Machina.Fonts.Tooling.csproj" />
-    <Project Path="src/Machina.Core/Machina.Core.csproj" />
-    <Project Path="src/Machina.Standard/Machina.Standard.csproj" />
-    <Project Path="src/Machina.Dominatus/Machina.Dominatus.csproj" />
-    <Project Path="src/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
-    <Project Path="src/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
-    <Project Path="src/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
-    <Project Path="src/Machina.Runtime/Machina.Runtime.csproj" />
-    <Project Path="src/Machina.Pipeline/Machina.Pipeline.csproj" />
-  </Folder>
-  <Folder Name="/samples/">
-    <Project Path="samples/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />
-    <Project Path="samples/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
+    <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
+    <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
+    <Project Path="src/Copeland/Copeland.Script/Copeland.Script.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Copeland.Script.Tests/Copeland.Script.Tests.csproj" />
-    <Project Path="tests/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj" />
-    <Project Path="tests/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
-    <Project Path="tests/Machina.Layout.Tests/Machina.Layout.Tests.csproj" />
-    <Project Path="tests/Machina.Fonts.Tests/Machina.Fonts.Tests.csproj" />
-    <Project Path="tests/Machina.Core.Tests/Machina.Core.Tests.csproj" />
-    <Project Path="tests/Machina.Standard.Tests/Machina.Standard.Tests.csproj" />
-    <Project Path="tests/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj" />
-    <Project Path="tests/Machina.Renderer.Raster.Tests/Machina.Renderer.Raster.Tests.csproj" />
-    <Project Path="tests/Machina.Renderer.Raster.Text.Tests/Machina.Renderer.Raster.Text.Tests.csproj" />
-    <Project Path="tests/Machina.Renderer.Raster.Dominatus.Tests/Machina.Renderer.Raster.Dominatus.Tests.csproj" />
-    <Project Path="tests/Machina.Runtime.Tests/Machina.Runtime.Tests.csproj" />
-    <Project Path="tests/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj" />
-    <Project Path="tests/Machina.ComponentGallery.Sample.Tests/Machina.ComponentGallery.Sample.Tests.csproj" />
-    <Project Path="tests/Machina.Presenter.Sample.Tests/Machina.Presenter.Sample.Tests.csproj" />
-    <Project Path="tests/Machina.Fonts.Tooling.Unit.Tests/Machina.Fonts.Tooling.Unit.Tests.csproj" />
-    <Project Path="tests/Machina.Testing/Machina.Testing.csproj" />
+    <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.Script.Tests/Copeland.Script.Tests.csproj" />
   </Folder>
 </Solution>

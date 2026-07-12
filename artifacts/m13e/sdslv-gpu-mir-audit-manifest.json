@@ -1,8 +1,8 @@
 {
   "milestone": "M13e",
   "kind": "sdslv-lane-audit-gpu-mir-target-analysis",
-  "sourceProjectAudited": "src/Aurelian.Shaders",
-  "testsAudited": "tests/Aurelian.Shaders.Tests",
+  "sourceProjectAudited": "src/Aurelian/Aurelian.Shaders",
+  "testsAudited": "tests/Aurelian/Aurelian.Shaders.Tests",
   "currentPipelineDocumented": true,
   "backendNeutralConceptsDocumented": true,
   "hlslDxcSpecificConceptsDocumented": true,

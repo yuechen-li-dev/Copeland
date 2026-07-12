@@ -46,7 +46,7 @@ The two layers communicate through typed contracts. Contracts must be DTOs only:
 Neutral compositor contracts should live under:
 
 ```text
-src/Aurelian.Rendering.Contracts/Compositor/
+src/Aurelian/Aurelian.Rendering.Contracts/Compositor/
 ```
 
 This matches existing renderer-independent render snapshots, command plans, and compiled shader contracts. Both `Aurelian.Runtime` and `Aurelian.Graphics` already depend on `Aurelian.Rendering.Contracts`, so this location allows policy and mechanism to share DTOs without either layer depending on the other.
@@ -137,7 +137,7 @@ M0 keeps this set intentionally small. It names images and targets symbolically 
 Runtime policy should live under:
 
 ```text
-src/Aurelian.Runtime/Compositor/
+src/Aurelian/Aurelian.Runtime/Compositor/
 ```
 
 `Aurelian.Runtime` is the current composition layer: it already references world data, rendering contracts, and Dominatus. That makes it the right place to translate frame facts into policy decisions while keeping graphics backend execution separate.
@@ -157,7 +157,7 @@ The policy session should observe `CompositorFrameFacts`, decide whether all req
 The Vulkan mechanism should live under:
 
 ```text
-src/Aurelian.Graphics/Vulkan/Compositor/
+src/Aurelian/Aurelian.Graphics/Vulkan/Compositor/
 ```
 
 The repository already contains this folder as an empty graphics backend area, and it is a cleaner top-level mechanism home than burying the compositor below presentation. Presentation owns surface/swapchain acquire/present; the compositor will need presentation targets, but it will also need plant output images, command buffers, barriers, pipelines, resource lookup, and submit integration. A top-level Vulkan compositor folder keeps those concerns near Vulkan mechanism code without implying that presentation policy owns composition.
@@ -267,7 +267,7 @@ The A55 tests use a fake Dominatus actuator, not Vulkan, to prove the actuation 
 
 ## 14. A56 integration-test bridge status
 
-A56 composes the split only in `tests/Aurelian.Integration.Tests`. The integration project may reference `Aurelian.Runtime`, `Aurelian.Graphics`, and `Aurelian.Rendering.Contracts` because tests are the temporary host boundary for this proof. It registers Dominatus `CompositorDispatchAct` handlers in test code: one fake handler captures the neutral passthrough request, and one real handler delegates to `VulkanCompositorPassthrough.Dispatch(...)` with Vulkan plant-output and presentation-target wrappers.
+A56 composes the split only in `tests/Aurelian/Aurelian.Integration.Tests`. The integration project may reference `Aurelian.Runtime`, `Aurelian.Graphics`, and `Aurelian.Rendering.Contracts` because tests are the temporary host boundary for this proof. It registers Dominatus `CompositorDispatchAct` handlers in test code: one fake handler captures the neutral passthrough request, and one real handler delegates to `VulkanCompositorPassthrough.Dispatch(...)` with Vulkan plant-output and presentation-target wrappers.
 
 The production split remains unchanged. Runtime policy still emits only neutral compositor requests through a runtime-local act and does not reference graphics/Vulkan. The Vulkan compositor mechanism still consumes neutral requests and backend wrappers and does not reference runtime policy or Dominatus. A56 intentionally defers production host/frame-loop ownership until the frame pump shape is known.
 

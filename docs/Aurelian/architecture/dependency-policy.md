@@ -302,7 +302,7 @@ The draw encoder consumes existing graphics pipeline and buffer objects only. It
 
 ## A46 graphics SPIR-V fixture policy
 
-A46 allows tiny static SPIR-V byte fixtures in `tests/Aurelian.Graphics.Tests` for backend recording proofs. These fixtures are test data, not a production shader compiler integration: they are checked in as source arrays, include generation/validation notes, and are consumed through `Aurelian.Rendering.Contracts.Shaders` DTOs.
+A46 allows tiny static SPIR-V byte fixtures in `tests/Aurelian/Aurelian.Graphics.Tests` for backend recording proofs. These fixtures are test data, not a production shader compiler integration: they are checked in as source arrays, include generation/validation notes, and are consumed through `Aurelian.Rendering.Contracts.Shaders` DTOs.
 
 This does not relax the graphics dependency boundary. `Aurelian.Graphics` must not reference `Aurelian.Shaders`, DXC packages, SDSL-V/HLSL compiler internals, Vortice, VMA/VMASharp, assets, world, Dominatus, vendor code, windows, surfaces, or swapchains as part of the A46 offscreen recording proof. Presentation and visual output remain separate future milestones.
 
@@ -358,7 +358,7 @@ The bridge from runtime acts to graphics compositor mechanism is intentionally d
 
 ## A56 compositor bridge dependency note
 
-A56 uses an integration test project as the only place where runtime compositor policy and graphics compositor mechanism are composed. This is an allowed test-only dependency boundary: `tests/Aurelian.Integration.Tests` references runtime, graphics, and rendering contracts to prove the seam without adding a production bridge assembly.
+A56 uses an integration test project as the only place where runtime compositor policy and graphics compositor mechanism are composed. This is an allowed test-only dependency boundary: `tests/Aurelian/Aurelian.Integration.Tests` references runtime, graphics, and rendering contracts to prove the seam without adding a production bridge assembly.
 
 Production dependency policy remains unchanged. `Aurelian.Runtime` may use Dominatus and neutral rendering contracts but must not reference `Aurelian.Graphics`; `Aurelian.Graphics` may use neutral rendering contracts and Silk.NET Vulkan plumbing but must not reference runtime policy or Dominatus; `Aurelian.Rendering.Contracts` stays neutral. A production host/frame pump is explicitly deferred rather than hidden behind service locators, global singletons, reflection, or new package dependencies.
 
@@ -397,7 +397,7 @@ M0 supports only externally owned prepared graphics. Core validates that `Prepar
 
 ## A62 minimal visible triangle sample dependency note
 
-A62 adds a sample executable under `samples/Aurelian.VisibleTriangle` and does not relax production dependency boundaries. The sample references Core, Graphics, Runtime, and Rendering.Contracts to compose the already-existing prepared-visible path manually; it does not reference test projects, `Aurelian.Shaders`, `Aurelian.Assets`, `Aurelian.AssetTool`, or `Aurelian.World` directly.
+A62 adds a sample executable under `samples/Aurelian/Aurelian.VisibleTriangle` and does not relax production dependency boundaries. The sample references Core, Graphics, Runtime, and Rendering.Contracts to compose the already-existing prepared-visible path manually; it does not reference test projects, `Aurelian.Shaders`, `Aurelian.Assets`, `Aurelian.AssetTool`, or `Aurelian.World` directly.
 
 The only production graphics changes are a hidden-by-default `VulkanSwapchainCreateOptions.Visible` flag and a minimal `AurelianVulkanSurface.PumpEvents()` method so the sample can show and briefly service its window. Defaults remain test/headless-safe. No new packages, service locator, singleton, reflection construction path, `Aurelian.Host`, VMA/VMASharp, Vortice, CodeReferences change, or vendor modification is introduced.
 
@@ -423,7 +423,7 @@ The seam is intentionally not a service locator, singleton, reflection hook, gra
 
 ## A66 visible triangle frame-loop/runtime-session sample note
 
-A66 is a sample conversion only. `samples/Aurelian.VisibleTriangle` keeps its explicit references to Core, Graphics, Runtime, and Rendering.Contracts so the sample can compose already-prepared visible Vulkan resources with `AurelianEngine`, `AurelianRuntimeSession`, the Core runtime ticker adapter, `AurelianFrameLoop`, the runtime compositor policy, the Core compositor bridge, the Vulkan compositor mechanism, and the prepared presentation mechanism.
+A66 is a sample conversion only. `samples/Aurelian/Aurelian.VisibleTriangle` keeps its explicit references to Core, Graphics, Runtime, and Rendering.Contracts so the sample can compose already-prepared visible Vulkan resources with `AurelianEngine`, `AurelianRuntimeSession`, the Core runtime ticker adapter, `AurelianFrameLoop`, the runtime compositor policy, the Core compositor bridge, the Vulkan compositor mechanism, and the prepared presentation mechanism.
 
 No dependency boundary is relaxed: Runtime remains graphics-free, Graphics remains runtime/Dominatus-free, Core remains the high-level integration spine, and the sample does not reference `Aurelian.Shaders`, `Aurelian.Assets`, `Aurelian.AssetTool`, or `Aurelian.World` directly. A66 adds no packages, service locator, singleton, reflection construction path, `Aurelian.Host`, VMA/VMASharp, Vortice, CodeReferences change, or vendor modification. The finite sample is one-frame M0 until a later milestone adds safe per-frame swapchain acquire/present.
 
@@ -436,7 +436,7 @@ The dependency boundaries remain unchanged: Runtime stays graphics-free, Graphic
 
 ## A68 visible-sample event pump boundary
 
-A68 uses the existing Silk.NET Windowing dependency only inside the Vulkan presentation owner and the visible sample. `AurelianVulkanSurface` exposes a narrow close-status property for its owned window in addition to its existing event pump; it does not expose raw `IWindow`, keyboard devices, or a general input abstraction. The sample keeps close handling in `samples/Aurelian.VisibleTriangle` through `VisibleTriangleWindowState`, and Core/Runtime continue to receive only frame input/provider and presentation contracts.
+A68 uses the existing Silk.NET Windowing dependency only inside the Vulkan presentation owner and the visible sample. `AurelianVulkanSurface` exposes a narrow close-status property for its owned window in addition to its existing event pump; it does not expose raw `IWindow`, keyboard devices, or a general input abstraction. The sample keeps close handling in `samples/Aurelian/Aurelian.VisibleTriangle` through `VisibleTriangleWindowState`, and Core/Runtime continue to receive only frame input/provider and presentation contracts.
 
 The dependency boundary remains unchanged: no new package references, no production host/window lifecycle, no service locator or singleton, no runtime shader compiler dependency, and no graphics dependency on `Aurelian.Shaders` or asset tooling.
 

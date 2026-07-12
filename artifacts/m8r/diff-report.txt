@@ -1,6 +1,6 @@
 Machina MSDF browser-vs-Machina diff report
 outputDirectory: C:\Users\yuech\source\repos\Copeland\artifacts\m8r
-fontPath: C:\Users\yuech\source\repos\Copeland\tests\Machina.Fonts.Tests\bin\Debug\net10.0\Fixtures\Fonts\CrimsonText-Regular.ttf
+fontPath: C:\Users\yuech\source\repos\Copeland\tests\Machina.UI\Machina.Fonts.Tests\bin\Debug\net10.0\Fixtures\Fonts\CrimsonText-Regular.ttf
 fontFace: CrimsonText-Regular
 emSize: 32
 canvas: 320x64

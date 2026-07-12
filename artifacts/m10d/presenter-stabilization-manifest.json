@@ -19,10 +19,10 @@
     "presenter-stabilized-legacy-m1e-card.png"
   ],
   "docs": [
-    "docs/machina-presenter-stabilization-m10d.md",
-    "docs/machina-presenter-page-organization-m10c.md",
-    "docs/machina-presenter-navigation-interaction-m10b.md",
-    "docs/machina-presenter-navigation-shell-m10a.md"
+    "docs/Machina.UI/history/machina-presenter-stabilization-m10d.md",
+    "docs/Machina.UI/history/machina-presenter-page-organization-m10c.md",
+    "docs/Machina.UI/history/machina-presenter-navigation-interaction-m10b.md",
+    "docs/Machina.UI/history/machina-presenter-navigation-shell-m10a.md"
   ],
   "notes": [
     "Sample-only stabilization",

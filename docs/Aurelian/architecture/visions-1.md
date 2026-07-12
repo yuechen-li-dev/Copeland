@@ -138,7 +138,7 @@ Aurelian.Assets:
 Aurelian.Rendering.Null:
   backend-independent command-plan proof.
 
-samples/Aurelian.VisibleTriangle:
+samples/Aurelian/Aurelian.VisibleTriangle:
   human-facing integration sample;
   sample-owned window/Vulkan setup;
   current executable proof.

@@ -1,5 +1,5 @@
 scenarioId=m16d-failing-fixture-shell-mode
-scenarioPath=C:\Users\yuech\AppData\Local\Temp\machina-playback-m16d-fixtures\f186413cbb9c41b0a237e898d49f507b\m16d-failing-fixture-shell-mode.machina-playback.toml
+scenarioPath=C:\Users\yuech\AppData\Local\Temp\machina-playback-m16d-fixtures\4955c9421ae0491a80303e9fa1ab8dac\m16d-failing-fixture-shell-mode.machina-playback.toml
 failedAssertionType=shell-mode
 assertionReason=This synthetic failure proves xUnit playback assertions carry scenario reasons.
 expected=Compact

@@ -54,8 +54,8 @@ Observed symptoms in this class of bug included stalled tests and runaway proces
 
 Relevant repo context:
 
-- `src/Machina.Dominatus/Runtime/CounterUiRuntime.cs`
-- `src/Machina.Dominatus/Runtime/UiActionEvent.cs`
+- `src/Machina.UI/Machina.Dominatus/Runtime/CounterUiRuntime.cs`
+- `src/Machina.UI/Machina.Dominatus/Runtime/UiActionEvent.cs`
 - `vendor/Dominatus/src/Dominatus.Core/Nodes/NodeRunner.cs`
 - `vendor/Dominatus/src/Dominatus.Core/Runtime/AiEventBus.cs`
 
@@ -208,7 +208,7 @@ Dominatus:
 - `docs/dominatus-audit-m0a.md`
 - `docs/dominatus-authoring.md`
 - `docs/dominatus-integration.md`
-- `docs/machina-dominatus-runtime.md`
-- `src/Machina.Dominatus/Runtime/CounterUiRuntime.cs`
-- `src/Machina.Dominatus/Runtime/UiActionEvent.cs`
+- `docs/Machina.UI/architecture/machina-dominatus-runtime.md`
+- `src/Machina.UI/Machina.Dominatus/Runtime/CounterUiRuntime.cs`
+- `src/Machina.UI/Machina.Dominatus/Runtime/UiActionEvent.cs`
 - `vendor/Dominatus/src/Ariadne.Console/Scripts/AriadneThreadOfNight.cs`

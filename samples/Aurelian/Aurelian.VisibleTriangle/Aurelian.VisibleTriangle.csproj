@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Aurelian.VisibleTriangle</AssemblyName>
+    <RootNamespace>Aurelian.VisibleTriangle</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Aurelian.VisibleTriangle.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Assets/Aurelian.Assets.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\assets.toml" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Shaders\SmokeTriangle\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

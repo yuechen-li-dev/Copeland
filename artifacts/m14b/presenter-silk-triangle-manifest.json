@@ -6,7 +6,7 @@
   "triangleRenderedLocally": false,
   "triangleRenderedLocallyExplanation": "The agent successfully executed the Vulkan acquire -> compositor passthrough -> present path, but could not visually inspect the desktop window pixels.",
   "runtimeSmokeAttempted": true,
-  "runtimeSmokeResult": "dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 1 --no-hold succeeded with swapchain acquire, compositor dispatch, and Vulkan present.",
+  "runtimeSmokeResult": "dotnet run --project samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 1 --no-hold succeeded with swapchain acquire, compositor dispatch, and Vulkan present.",
   "usesPresenterBackend": true,
   "usesCompositorPassthrough": true,
   "defaultCompilerPathPreserved": true,
@@ -19,7 +19,7 @@
   "shaderKernelSplitIntroduced": false,
   "machinaIntegrationPerformed": false,
   "oblivionIntegrationPerformed": false,
-  "sampleProject": "samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj",
-  "manualVerificationCommand": "dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 120",
+  "sampleProject": "samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj",
+  "manualVerificationCommand": "dotnet run --project samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 120",
   "validationSummary": "Sample build and local runtime smoke succeeded through Presenter/Silk.NET-backed Vulkan presentation. Full solution validation status is recorded in the milestone closeout report."
 }

@@ -1,0 +1,20 @@
+[
+  {
+    "project": "src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj",
+    "package": "Dominatus.Core",
+    "reason": "Existing Machina Dominatus runtime proof remains physically grouped during JTF-M0.",
+    "migration": "JTF-M1 or a later explicitly approved Machina runtime boundary milestone"
+  },
+  {
+    "project": "src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj",
+    "package": "Dominatus.OptFlow",
+    "reason": "Existing Machina Dominatus runtime proof remains physically grouped during JTF-M0.",
+    "migration": "JTF-M1 or a later explicitly approved Machina runtime boundary milestone"
+  },
+  {
+    "project": "src/Machina.UI/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj",
+    "package": "Dominatus.Core",
+    "reason": "Existing Machina renderer/orchestration adapter remains physically grouped during JTF-M0.",
+    "migration": "JTF-M1 or a later renderer/integration ownership milestone"
+  }
+]

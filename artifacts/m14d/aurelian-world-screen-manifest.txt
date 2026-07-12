@@ -15,4 +15,4 @@ M14d Aurelian world screen proof
 - ptxBackendImplemented: false
 - shaderKernelSplitIntroduced: false
 - oblivionIntegrationPerformed: false
-- runtimeCommand: dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 120
+- runtimeCommand: dotnet run --project samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 120

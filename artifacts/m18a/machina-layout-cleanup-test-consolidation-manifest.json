@@ -13,11 +13,11 @@
     "region containment and non-overlap assertions"
   ],
   "testFilesTouched": [
-    "tests/Machina.Presenter.Sample.Tests/MachinaLayoutCleanupTestConsolidationM18aTests.cs",
-    "tests/Machina.Presenter.Sample.Tests/ManifestTestHelper.cs",
-    "tests/Machina.Presenter.Sample.Tests/OblivionPageGridRefactorM17eTests.cs",
-    "tests/Machina.Presenter.Sample.Tests/PresenterRegionAssert.cs",
-    "tests/Machina.Presenter.Sample.Tests/PresenterSampleTestHarness.cs"
+    "tests/Machina.UI/Machina.Presenter.Sample.Tests/MachinaLayoutCleanupTestConsolidationM18aTests.cs",
+    "tests/Machina.UI/Machina.Presenter.Sample.Tests/ManifestTestHelper.cs",
+    "tests/Machina.UI/Machina.Presenter.Sample.Tests/OblivionPageGridRefactorM17eTests.cs",
+    "tests/Machina.UI/Machina.Presenter.Sample.Tests/PresenterRegionAssert.cs",
+    "tests/Machina.UI/Machina.Presenter.Sample.Tests/PresenterSampleTestHarness.cs"
   ],
   "testsDeleted": 0,
   "coverageIntentionallyReduced": false,

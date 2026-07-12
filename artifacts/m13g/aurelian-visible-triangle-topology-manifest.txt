@@ -1,7 +1,7 @@
 M13g
 aurelian-visible-triangle-topology-audit
 
-samplePath=samples/Aurelian.VisibleTriangle
+samplePath=samples/Aurelian/Aurelian.VisibleTriangle
 sampleProjectPresent=true
 sampleIncludedInAurelianSolution=true
 sampleBuildStatus=passed

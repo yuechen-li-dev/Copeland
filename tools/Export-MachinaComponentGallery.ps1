@@ -12,7 +12,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$projectPath = Join-Path $repoRoot "samples\\Machina.ComponentGallery.Sample\\Machina.ComponentGallery.Sample.csproj"
+$projectPath = Join-Path $repoRoot "samples\\Machina.UI\\Machina.ComponentGallery.Sample\\Machina.ComponentGallery.Sample.csproj"
 
 if ([System.IO.Path]::IsPathRooted($OutputDir))
 {

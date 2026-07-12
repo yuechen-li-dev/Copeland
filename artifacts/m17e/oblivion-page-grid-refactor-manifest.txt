@@ -21,5 +21,5 @@ editorImplemented=false
 notebookExecutionImplemented=false
 aurelianWorkPerformed=false
 vdMirWorkPerformed=false
-validationStatus=passed: targeted M17e tests, PlaybackXunit filter, Machina.Presenter.Sample.Tests, Copeland.slnx --no-build, Copeland.Slow.slnx, Aurelian.slnx, boundary checks, git diff --check
+validationStatus=passed: targeted M17e tests, PlaybackXunit filter, Machina.Presenter.Sample.Tests, Copeland.slnx --no-build, Machina.UI.Slow.slnx, Aurelian.slnx, boundary checks, git diff --check
 deferredWork=Proportional or clamped page-width policy beyond the current scalar inspector width | Optional compact-shell grid migration if it later becomes materially useful | Guide frames | Row variants | Pane resizing

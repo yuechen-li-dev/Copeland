@@ -140,10 +140,10 @@ function Build-QueryString {
 }
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$projectPath = Join-Path $repoRoot "tests\\Machina.Fonts.Tests\\Machina.Fonts.Tests.csproj"
+$projectPath = Join-Path $repoRoot "tests\\Machina.UI\\Machina.Fonts.Tests\\Machina.Fonts.Tests.csproj"
 $filter = "FullyQualifiedName~Machina.Fonts.Tests.Rendering.FontReferenceDiffWorkflowTests.ReferenceDiffWorkflow_ScriptWorkflowExportsArtifacts"
 $fixtureHtmlPath = Join-Path $repoRoot "tools\\font-reference\\reference-render.html"
-$fontPath = Join-Path $repoRoot "tests\\Machina.Fonts.Tests\\Fixtures\\Fonts\\CrimsonText-Regular.ttf"
+$fontPath = Join-Path $repoRoot "tests\\Machina.UI\\Machina.Fonts.Tests\\Fixtures\\Fonts\\CrimsonText-Regular.ttf"
 $definitions = @(
     @{ Id = "machina"; Text = "Machina" },
     @{ Id = "hello-machina"; Text = "Hello Machina" },

@@ -27,15 +27,15 @@ A73 links `docs/architecture/visions-1.md` as Aurelian Vision 1, the post-checkp
 The current demo path is the visible triangle sample:
 
 ```bash
-dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -c Debug
+dotnet run --project samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -c Debug
 ```
 
 Useful optional flags:
 
 ```bash
-dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -c Debug -- --validation
-dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -c Debug -- --no-hold
-dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -c Debug -- --frames 10
+dotnet run --project samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -c Debug -- --validation
+dotnet run --project samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -c Debug -- --no-hold
+dotnet run --project samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -c Debug -- --frames 10
 ```
 
 The sample proves the following real path:
@@ -87,7 +87,7 @@ Known environment limitations:
 - `Aurelian.Runtime`: Dominatus-backed policy/runtime layer for sessions, runtime ticks, and compositor policy. It references world and rendering contracts, not graphics.
 - `Aurelian.Core`: engine integration spine. It joins runtime, rendering contracts, and graphics mechanisms through explicit adapters, frame pump, frame loop, runtime tick frame step, and compositor bridge.
 - `Aurelian.AssetTool`: CLI/tooling surface for asset/shader pipeline work.
-- `samples/Aurelian.VisibleTriangle`: human-facing integration sample that owns window/Vulkan preparation and exercises the current real path.
+- `samples/Aurelian/Aurelian.VisibleTriangle`: human-facing integration sample that owns window/Vulkan preparation and exercises the current real path.
 
 ## 4. Current dependency shape
 

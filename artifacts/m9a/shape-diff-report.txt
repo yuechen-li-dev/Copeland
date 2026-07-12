@@ -1,5 +1,5 @@
 Machina Font Toolkit M9a shape diff report
-fontPath: C:\Users\yuech\source\repos\Copeland\tests\Machina.Fonts.Tooling.Tests\bin\Debug\net10.0\Fixtures\Fonts\CrimsonText-Regular.ttf
+fontPath: C:\Users\yuech\source\repos\Copeland\tests\Machina.UI\Machina.Fonts.Tooling.Tests\bin\Debug\net10.0\Fixtures\Fonts\CrimsonText-Regular.ttf
 fontFace: CrimsonText-Regular
 sizes: 32px, 64px
 texts: Machina | Hello Machina | AV To Ta Wa Yo

@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$projectPath = Join-Path $repoRoot "src\\Copeland.Cli\\Copeland.Cli.csproj"
+$projectPath = Join-Path $repoRoot "src\\Copeland\\Copeland.Cli\\Copeland.Cli.csproj"
 
 if ([System.IO.Path]::IsPathRooted($OutputDir))
 {

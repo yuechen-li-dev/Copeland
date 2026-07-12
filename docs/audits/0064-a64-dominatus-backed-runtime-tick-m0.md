@@ -1,6 +1,6 @@
 # A64 — Dominatus-backed Runtime Tick M0
 
-Canonical document: [`docs/Aurelian/audits/0064-a64-dominatus-backed-runtime-tick-m0.md`](../Aurelian/audits/0064-a64-dominatus-backed-runtime-tick-m0.md)
+Canonical document: [`docs/Aurelian/history/audits/0064-a64-dominatus-backed-runtime-tick-m0.md`](../Aurelian/history/audits/0064-a64-dominatus-backed-runtime-tick-m0.md)
 
 ## Compatibility note
 

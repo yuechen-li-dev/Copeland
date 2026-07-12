@@ -15,6 +15,6 @@
   "ptxBackendImplemented": false,
   "shaderKernelSplitIntroduced": false,
   "oblivionIntegrationPerformed": false,
-  "runtimeCommand": "dotnet run --project samples/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 120",
+  "runtimeCommand": "dotnet run --project samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj -- --presenter silk --frames 120",
   "validationSummary": "Visible triangle now registers a Presenter world screen and executes through PresenterScreenStack while preserving the existing Vulkan compositor passthrough and present path."
 }

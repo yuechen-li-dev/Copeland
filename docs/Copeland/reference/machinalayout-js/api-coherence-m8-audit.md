@@ -257,7 +257,7 @@ Emitted paths inspected in parser:
 - no obvious dead diagnostic code found (including `invalid_escape`, previously risky area).
 
 Docs coverage:
-- `docs/machina-text-parser.md` currently emphasizes escape behavior; broader code taxonomy documentation is thin.
+- `docs/Copeland/reference/machinalayout-js/machina-text-parser.md` currently emphasizes escape behavior; broader code taxonomy documentation is thin.
 
 ---
 

@@ -19,8 +19,8 @@ else
 New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
 
 $canonicalCommands = @(
-    "dotnet test Copeland.slnx",
-    "dotnet build Copeland.slnx --no-restore",
+    "dotnet test Machina.UI.slnx",
+    "dotnet build Machina.UI.slnx --no-restore",
     ".\\tools\\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\\font-current -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean",
     ".\\tools\\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\\font-current -IncludeDirectOutlineRenderBridgeProof",
     ".\\tools\\Export-MachinaPresenter.ps1 -OutputPath artifacts\\font-current\\presenter-direct-outline.png -IncludeDirectOutlineRenderBridgeProof"
@@ -99,8 +99,8 @@ $textLines = @(
     "presenterProof.defaultBehaviorChanged=false",
     "productionUi.defaultRendererChanged=false",
     "canonicalCommands:",
-    "  dotnet test Copeland.slnx",
-    "  dotnet build Copeland.slnx --no-restore",
+    "  dotnet test Machina.UI.slnx",
+    "  dotnet build Machina.UI.slnx --no-restore",
     "  .\\tools\\Export-MachinaFontDiagnostics.ps1 -OutputDir artifacts\\font-current -Preset cad-debug -TextBackend DirectOutlineStatic -GridStep 8 -ShowUnitLabels -ShowBounds -Clean",
     "  .\\tools\\Export-MachinaComponentGallery.ps1 -OutputDir artifacts\\font-current -IncludeDirectOutlineRenderBridgeProof",
     "  .\\tools\\Export-MachinaPresenter.ps1 -OutputPath artifacts\\font-current\\presenter-direct-outline.png -IncludeDirectOutlineRenderBridgeProof",

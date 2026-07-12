@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="MSDF-Sharp.Core" />
+    <PackageReference Include="Tomlyn" />
+    <PackageReference Include="WycliffeAssociates.Typography.OpenFont" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\tests\Machina.UI\Machina.Fonts.Tests\Fixtures\Fonts\**\*">
+      <Link>Fixtures\Fonts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

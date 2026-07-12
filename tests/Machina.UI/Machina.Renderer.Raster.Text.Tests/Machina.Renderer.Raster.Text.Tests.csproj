@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Renderer.Raster.Text.Tests</AssemblyName>
+    <RootNamespace>Machina.Renderer.Raster.Text.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Core/Machina.Core.csproj" />
+  </ItemGroup>
+</Project>

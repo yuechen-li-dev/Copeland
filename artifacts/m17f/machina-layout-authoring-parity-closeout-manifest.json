@@ -21,7 +21,7 @@
   "notebookExecutionImplemented": false,
   "aurelianWorkPerformed": false,
   "vdMirWorkPerformed": false,
-  "validationStatus": "passed after one timeout fallback: PlaybackXunit filter, Machina.Presenter.Sample.Tests, Copeland.slnx build, Copeland.slnx tests reran successfully with a longer timeout after a 124s timeout, Copeland.Slow.slnx, Aurelian.slnx, boundary checks, git diff --check",
+  "validationStatus": "passed after one timeout fallback: PlaybackXunit filter, Machina.Presenter.Sample.Tests, Copeland.slnx build, Copeland.slnx tests reran successfully with a longer timeout after a 124s timeout, Machina.UI.Slow.slnx, Aurelian.slnx, boundary checks, git diff --check",
   "deferredWork": [
     "UiLength proportional/clamp authoring",
     "Row variants",

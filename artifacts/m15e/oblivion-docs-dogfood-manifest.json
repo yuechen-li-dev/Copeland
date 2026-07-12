@@ -11,7 +11,7 @@
   "docs": [
     {
       "cardId": "doc-machina-oblivion-phase-closeout-m11g",
-      "sourcePath": "docs/machina-oblivion-phase-closeout-m11g.md",
+      "sourcePath": "docs/Machina.UI/history/machina-oblivion-phase-closeout-m11g.md",
       "diagnosticsCount": 0,
       "firstHeading": "Machina Oblivion Phase Closeout M11g",
       "tags": [
@@ -22,7 +22,7 @@
     },
     {
       "cardId": "doc-machina-oblivion-workspace-persistence-m11d",
-      "sourcePath": "docs/machina-oblivion-workspace-persistence-m11d.md",
+      "sourcePath": "docs/Machina.UI/history/machina-oblivion-workspace-persistence-m11d.md",
       "diagnosticsCount": 0,
       "firstHeading": "Machina Oblivion Workspace Persistence M11d",
       "tags": [
@@ -33,7 +33,7 @@
     },
     {
       "cardId": "doc-machina-presenter-card-hardening-m11e",
-      "sourcePath": "docs/machina-presenter-card-hardening-m11e.md",
+      "sourcePath": "docs/Machina.UI/history/machina-presenter-card-hardening-m11e.md",
       "diagnosticsCount": 0,
       "firstHeading": "Machina Presenter Card Hardening M11e",
       "tags": [
@@ -44,7 +44,7 @@
     },
     {
       "cardId": "doc-machina-test-suite-topology-m11b",
-      "sourcePath": "docs/machina-test-suite-topology-m11b.md",
+      "sourcePath": "docs/Machina.UI/history/machina-test-suite-topology-m11b.md",
       "diagnosticsCount": 0,
       "firstHeading": "Machina Test Suite Topology M11b",
       "tags": [
@@ -55,7 +55,7 @@
     },
     {
       "cardId": "doc-machina-presenter-scrollbar-state-machine-m11c",
-      "sourcePath": "docs/machina-presenter-scrollbar-state-machine-m11c.md",
+      "sourcePath": "docs/Machina.UI/history/machina-presenter-scrollbar-state-machine-m11c.md",
       "diagnosticsCount": 0,
       "firstHeading": "Machina Presenter Scrollbar State Machine M11c",
       "tags": [
@@ -66,7 +66,7 @@
     },
     {
       "cardId": "doc-copeland-markdown-frontend-m12a",
-      "sourcePath": "docs/copeland-markdown-frontend-m12a.md",
+      "sourcePath": "docs/Copeland/history/copeland-markdown-frontend-m12a.md",
       "diagnosticsCount": 0,
       "firstHeading": "Copeland Markdown Frontend M12a",
       "tags": [
@@ -77,7 +77,7 @@
     },
     {
       "cardId": "doc-machina-oblivion-markdown-body-integration-m12b",
-      "sourcePath": "docs/machina-oblivion-markdown-body-integration-m12b.md",
+      "sourcePath": "docs/Machina.UI/history/machina-oblivion-markdown-body-integration-m12b.md",
       "diagnosticsCount": 0,
       "firstHeading": "Machina Oblivion Markdown Body Integration M12b",
       "tags": [
@@ -88,7 +88,7 @@
     },
     {
       "cardId": "doc-machina-oblivion-markdown-rendering-m12c",
-      "sourcePath": "docs/machina-oblivion-markdown-rendering-m12c.md",
+      "sourcePath": "docs/Machina.UI/history/machina-oblivion-markdown-rendering-m12c.md",
       "diagnosticsCount": 0,
       "firstHeading": "Machina Oblivion Markdown Rendering M12c",
       "tags": [
@@ -99,7 +99,7 @@
     },
     {
       "cardId": "doc-aurelian-monorepo-import-audit-m13a",
-      "sourcePath": "docs/Aurelian/aurelian-monorepo-import-audit-m13a.md",
+      "sourcePath": "docs/Aurelian/history/aurelian-monorepo-import-audit-m13a.md",
       "diagnosticsCount": 3,
       "firstHeading": "Aurelian Monorepo Import Audit M13a",
       "tags": [
@@ -111,7 +111,7 @@
     },
     {
       "cardId": "doc-aurelian-build-topology-m13b",
-      "sourcePath": "docs/Aurelian/aurelian-build-topology-m13b.md",
+      "sourcePath": "docs/Aurelian/history/aurelian-build-topology-m13b.md",
       "diagnosticsCount": 2,
       "firstHeading": "Aurelian Build Topology M13b",
       "tags": [

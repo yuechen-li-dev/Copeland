@@ -1,5 +1,5 @@
 Machina MSDF glyph placement report
-fontPath: C:\Users\yuech\source\repos\Copeland\tests\Machina.Fonts.Tests\bin\Debug\net10.0\Fixtures\Fonts\CrimsonText-Regular.ttf
+fontPath: C:\Users\yuech\source\repos\Copeland\tests\Machina.UI\Machina.Fonts.Tests\bin\Debug\net10.0\Fixtures\Fonts\CrimsonText-Regular.ttf
 emSize: 32
 output: 320x64
 originX: 8

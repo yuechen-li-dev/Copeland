@@ -1,8 +1,8 @@
-﻿milestone: M14a
+milestone: M14a
 kind: vd-mir-m0-smoke-triangle-compiler-slice
 vdMirImplemented: true
 vdMirScope: M0 smoke triangle
-implementationLocation: src/Aurelian.Shaders/Language/VdMir
+implementationLocation: src/Aurelian/Aurelian.Shaders/Language/VdMir
 copelandPackageCreated: false
 sdslvMigrationPerformed: false
 directHlslPathPreserved: true
