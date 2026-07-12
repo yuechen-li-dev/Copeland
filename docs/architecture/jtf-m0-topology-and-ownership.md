@@ -2,6 +2,8 @@
 
 This is the authoritative current architecture document for the Joint Task Force monorepo topology. It defines physical ownership and dependency policy; historical milestone documents remain historical records even when their older terminology differs.
 
+The stable semantic ownership and contract directions that refine this physical doctrine are defined by [JTF target semantic boundaries](jtf-target-semantic-boundaries.md). Where a historical document assigns semantic ownership differently, the target-boundaries document governs future migration while this document continues to govern the current physical topology.
+
 ## Subsystem responsibilities
 
 ### Copeland

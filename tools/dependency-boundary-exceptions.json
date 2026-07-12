@@ -3,18 +3,18 @@
     "project": "src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj",
     "package": "Dominatus.Core",
     "reason": "Existing Machina Dominatus runtime proof remains physically grouped during JTF-M0.",
-    "migration": "JTF-M1 or a later explicitly approved Machina runtime boundary milestone"
+    "migration": "JTF-M5 removes this production reference after JTF-M2 establishes Machina UI action/presentation contracts and JTF-M3 establishes the Aurelian CPU renderer home."
   },
   {
     "project": "src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj",
     "package": "Dominatus.OptFlow",
     "reason": "Existing Machina Dominatus runtime proof remains physically grouped during JTF-M0.",
-    "migration": "JTF-M1 or a later explicitly approved Machina runtime boundary milestone"
+    "migration": "JTF-M5 removes this production reference after JTF-M2 establishes Machina UI action/presentation contracts and JTF-M3 establishes the Aurelian CPU renderer home."
   },
   {
     "project": "src/Machina.UI/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj",
     "package": "Dominatus.Core",
     "reason": "Existing Machina renderer/orchestration adapter remains physically grouped during JTF-M0.",
-    "migration": "JTF-M1 or a later renderer/integration ownership milestone"
+    "migration": "JTF-M5 removes this production reference after JTF-M3 relocates the CPU renderer and JTF-M4 separates presenter/input ownership."
   }
 ]
