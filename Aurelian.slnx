@@ -17,12 +17,10 @@
     <Project Path="tests/Aurelian/Aurelian.AssetTool.Tests/Aurelian.AssetTool.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Core.Tests/Aurelian.Core.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Graphics.Tests/Aurelian.Graphics.Tests.csproj" />
-    <Project Path="tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Rendering.Contracts.Tests/Aurelian.Rendering.Contracts.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Rendering.Null.Tests/Aurelian.Rendering.Null.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Runtime.Tests/Aurelian.Runtime.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.Shaders.Tests/Aurelian.Shaders.Tests.csproj" />
-    <Project Path="tests/Aurelian/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.World.Tests/Aurelian.World.Tests.csproj" />
   </Folder>
 </Solution>

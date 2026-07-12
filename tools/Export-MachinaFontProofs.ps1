@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$projectPath = Join-Path $repoRoot "tests\\Machina.UI\\Machina.Fonts.Tests\\Machina.Fonts.Tests.csproj"
+$projectPath = Join-Path $repoRoot "tests\\Machina.UI\\Machina.Fonts.Diagnostics.Tests\\Machina.Fonts.Diagnostics.Tests.csproj"
 $filter = "FullyQualifiedName~Machina.Fonts.Tests.Rendering.FontProofExporterTests.FontProofExporter_ScriptWorkflowExportsProofSet"
 
 if ([System.IO.Path]::IsPathRooted($OutputDir))

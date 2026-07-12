@@ -286,10 +286,23 @@ public sealed class PresenterDirectOutlineRenderBridgeProofTests
             WorkingDirectory = repoRoot,
         };
 
-        using Process process = Process.Start(startInfo)!;
-        string stdout = process.StandardOutput.ReadToEnd();
-        string stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
+        using Process process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start the font phase closeout manifest script.");
+        Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> stderrTask = process.StandardError.ReadToEndAsync();
+
+        if (!process.WaitForExit(milliseconds: 30_000))
+        {
+            process.Kill(entireProcessTree: true);
+            process.WaitForExit();
+            Task.WhenAll(stdoutTask, stderrTask).GetAwaiter().GetResult();
+
+            throw new TimeoutException("Font phase closeout manifest script exceeded the 30 second test timeout.");
+        }
+
+        Task.WhenAll(stdoutTask, stderrTask).GetAwaiter().GetResult();
+        string stdout = stdoutTask.Result;
+        string stderr = stderrTask.Result;
 
         Assert.True(process.ExitCode == 0, $"Manifest script failed.{Environment.NewLine}STDOUT:{Environment.NewLine}{stdout}{Environment.NewLine}STDERR:{Environment.NewLine}{stderr}");
     }

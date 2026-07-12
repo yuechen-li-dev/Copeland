@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/tests/Aurelian/">
+    <Project Path="tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj" />
+    <Project Path="tests/Aurelian/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj" />
+  </Folder>
+</Solution>

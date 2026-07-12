@@ -21,8 +21,6 @@ dotnet test Copeland.slnx --no-build
 
 dotnet build Machina.UI.slnx
 dotnet test Machina.UI.slnx --no-build
-dotnet build Machina.UI.Slow.slnx
-dotnet test Machina.UI.Slow.slnx --no-build
 
 dotnet build Aurelian.slnx
 dotnet test Aurelian.slnx --no-build
@@ -30,10 +28,16 @@ dotnet test Aurelian.slnx --no-build
 dotnet build JointTaskForce.slnx
 dotnet test JointTaskForce.slnx --no-build
 
+# Explicit expensive lanes
+dotnet build Machina.UI.Slow.slnx
+dotnet test Machina.UI.Slow.slnx --no-build --blame-hang-timeout 180s
+dotnet build JointTaskForce.Integration.slnx
+dotnet test JointTaskForce.Integration.slnx --no-build
+
 pwsh ./tools/Validate-DependencyBoundaries.ps1
 ```
 
-`Copeland.slnx`, `Machina.UI.slnx`, and `Aurelian.slnx` are independent reviewer lanes. `JointTaskForce.slnx` is the repository-wide lane and includes production projects, tests, and samples.
+`Copeland.slnx`, `Machina.UI.slnx`, and `Aurelian.slnx` are independent fast reviewer lanes. `JointTaskForce.slnx` is the repository-wide fast lane and includes production projects, contract tests, and samples. `Machina.UI.Slow.slnx` owns visual, artifact, font-diagnostic, gallery, presenter, and playback proofs. `JointTaskForce.Integration.slnx` owns explicit Aurelian integration and visible-sample proofs. See the [test-lane doctrine](docs/architecture/jtf-test-lane-doctrine.md).
 
 ## Compiler pipeline
 

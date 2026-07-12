@@ -1,12 +1,13 @@
 using Xunit;
 using System.Diagnostics;
+using System.Text;
 
 namespace Copeland.Cli.Tests;
 
 public sealed class CliIntegrationTests
 {
     [Fact]
-    public void EmitMirToStdout()
+    public async Task EmitMirToStdout()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", """
@@ -15,7 +16,7 @@ function one(): number {
 }
 """);
 
-        var result = RunCli(temp.Path, "compile", inputPath, "--emit", "mir");
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "mir");
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("module", result.StdOut);
@@ -24,7 +25,7 @@ function one(): number {
     }
 
     [Fact]
-    public void EmitCSharpToStdout()
+    public async Task EmitCSharpToStdout()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", """
@@ -33,7 +34,7 @@ function one(): number {
 }
 """);
 
-        var result = RunCli(temp.Path, "compile", inputPath, "--emit", "csharp");
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "csharp");
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("namespace Copeland.Generated", result.StdOut);
@@ -42,13 +43,13 @@ function one(): number {
     }
 
     [Fact]
-    public void EmitMirToFile()
+    public async Task EmitMirToFile()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", "function one(): number { return 1; }");
         var outputPath = System.IO.Path.Combine(temp.Path, "output.cope");
 
-        var result = RunCli(temp.Path, "compile", inputPath, "--emit", "mir", "--out", outputPath);
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "mir", "--out", outputPath);
 
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(outputPath));
@@ -58,13 +59,13 @@ function one(): number {
     }
 
     [Fact]
-    public void EmitCSharpToFile()
+    public async Task EmitCSharpToFile()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", "function one(): number { return 1; }");
         var outputPath = System.IO.Path.Combine(temp.Path, "output.g.cs");
 
-        var result = RunCli(temp.Path, "compile", inputPath, "--emit", "csharp", "--out", outputPath);
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "csharp", "--out", outputPath);
 
         Assert.Equal(0, result.ExitCode);
         Assert.True(File.Exists(outputPath));
@@ -72,7 +73,7 @@ function one(): number {
     }
 
     [Fact]
-    public void InvalidSourceExitsOneAndDoesNotWriteOutput()
+    public async Task InvalidSourceExitsOneAndDoesNotWriteOutput()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", """
@@ -83,7 +84,7 @@ function main(): number {
 """);
         var outputPath = System.IO.Path.Combine(temp.Path, "output.g.cs");
 
-        var result = RunCli(temp.Path, "compile", inputPath, "--emit", "csharp", "--out", outputPath);
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "csharp", "--out", outputPath);
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("COPE-TYPE", result.StdErr);
@@ -93,7 +94,7 @@ function main(): number {
 
 
     [Fact]
-    public void Ternary_Profile_Ban_ExitsOne_With_Diagnostic()
+    public async Task Ternary_Profile_Ban_ExitsOne_With_Diagnostic()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", """
@@ -102,19 +103,19 @@ function value(flag: boolean): number {
 }
 """);
 
-        var result = RunCli(temp.Path, "compile", inputPath, "--emit", "csharp");
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "csharp");
 
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("COPE-PROFILE-0007", result.StdErr);
     }
 
     [Fact]
-    public void MissingEmitExitsTwo()
+    public async Task MissingEmitExitsTwo()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", "function one(): number { return 1; }");
 
-        var result = RunCli(temp.Path, "compile", inputPath);
+        var result = await RunCliAsync(temp.Path, "compile", inputPath);
 
         Assert.Equal(2, result.ExitCode);
         Assert.Contains("Usage:", result.StdErr);
@@ -122,91 +123,145 @@ function value(flag: boolean): number {
     }
 
     [Fact]
-    public void UnknownEmitExitsTwo()
+    public async Task UnknownEmitExitsTwo()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", "function one(): number { return 1; }");
 
-        var result = RunCli(temp.Path, "compile", inputPath, "--emit", "wasm");
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "wasm");
 
         Assert.Equal(2, result.ExitCode);
         Assert.Contains("COPE-CLI-0002", result.StdErr);
     }
 
     [Fact]
-    public void MissingInputFileExitsThree()
+    public async Task MissingInputFileExitsThree()
     {
         using var temp = new TempDir();
         var missingPath = System.IO.Path.Combine(temp.Path, "missing.ts");
 
-        var result = RunCli(temp.Path, "compile", missingPath, "--emit", "mir");
+        var result = await RunCliAsync(temp.Path, "compile", missingPath, "--emit", "mir");
 
         Assert.Equal(3, result.ExitCode);
         Assert.Contains("COPE-CLI-0008", result.StdErr);
     }
 
     [Fact]
-    public void MarkdownParseMirJsonToStdout()
+    public async Task MarkdownParseMirJsonToStdout()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.md", "# Heading");
 
-        var result = RunCli(temp.Path, "markdown", "parse", inputPath, "--emit", "mir", "--format", "json");
+        var result = await RunCliAsync(temp.Path, "markdown", "parse", inputPath, "--emit", "mir", "--format", "json");
 
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("\"kind\": \"DocumentMir\"", result.StdOut, StringComparison.Ordinal);
         Assert.Contains("\"Heading\"", result.StdOut, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void MarkdownExportCorpusWritesArtifacts()
+    private static async Task<CliResult> RunCliAsync(string workingDirectory, params string[] args)
     {
-        using var temp = new TempDir();
-        var outputPath = System.IO.Path.Combine(temp.Path, "m12a");
-
-        var result = RunCli(temp.Path, "markdown", "export-corpus", "--output-dir", outputPath);
-
-        Assert.Equal(0, result.ExitCode);
-        Assert.True(File.Exists(System.IO.Path.Combine(outputPath, "copeland-markdown-readme.mir.json")));
-        Assert.True(File.Exists(System.IO.Path.Combine(outputPath, "copeland-markdown-closeout.mir.json")));
-        Assert.True(File.Exists(System.IO.Path.Combine(outputPath, "copeland-markdown-corpus-report.json")));
-        Assert.True(File.Exists(System.IO.Path.Combine(outputPath, "copeland-markdown-corpus-report.txt")));
-    }
-
-    private static CliResult RunCli(string workingDirectory, params string[] args)
-    {
-        var psi = new ProcessStartInfo
+        var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
             WorkingDirectory = workingDirectory,
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
         };
 
-        psi.ArgumentList.Add("run");
-        psi.ArgumentList.Add("--project");
-        psi.ArgumentList.Add(GetCliProjectPath());
-        psi.ArgumentList.Add("--");
+        startInfo.ArgumentList.Add(GetCliAssemblyPath());
         foreach (var arg in args)
         {
-            psi.ArgumentList.Add(arg);
+            startInfo.ArgumentList.Add(arg);
         }
 
-        using var process = Process.Start(psi)!;
-        var stdOut = Normalize(process.StandardOutput.ReadToEnd());
-        var stdErr = Normalize(process.StandardError.ReadToEnd());
-        process.WaitForExit();
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start the Copeland CLI process.");
+        process.StandardInput.Close();
+
+        Task<string> stdOutTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> stdErrTask = process.StandardError.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            KillProcessTree(process);
+            await process.WaitForExitAsync();
+
+            string timedOutStdOut = Normalize(await stdOutTask);
+            string timedOutStdErr = Normalize(await stdErrTask);
+            throw new TimeoutException(BuildTimeoutMessage(args, timedOutStdOut, timedOutStdErr));
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                KillProcessTree(process);
+            }
+        }
+
+        string stdOut = Normalize(await stdOutTask);
+        string stdErr = Normalize(await stdErrTask);
 
         return new CliResult(process.ExitCode, stdOut, stdErr);
     }
 
     private static string Normalize(string text) => text.Replace("\r\n", "\n");
 
-    private static string GetCliProjectPath()
+    private static void KillProcessTree(Process process)
+    {
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            // The process exited between HasExited and Kill.
+        }
+    }
+
+    private static string BuildTimeoutMessage(string[] args, string stdOut, string stdErr)
+    {
+        var message = new StringBuilder();
+        message.AppendLine($"Copeland CLI exceeded the 10 second test timeout. Arguments: {string.Join(' ', args)}");
+        message.AppendLine("stdout:");
+        message.AppendLine(stdOut);
+        message.AppendLine("stderr:");
+        message.AppendLine(stdErr);
+        return message.ToString();
+    }
+
+    private static string GetCliAssemblyPath()
     {
         var repoRoot = GetRepoRoot();
-        return System.IO.Path.Combine(repoRoot, "src", "Copeland", "Copeland.Cli", "Copeland.Cli.csproj");
+        var testOutputDirectory = new DirectoryInfo(AppContext.BaseDirectory);
+        string targetFramework = testOutputDirectory.Name;
+        string configuration = testOutputDirectory.Parent?.Name
+            ?? throw new InvalidOperationException("Could not determine the test build configuration.");
+        string cliAssemblyPath = System.IO.Path.Combine(
+            repoRoot,
+            "src",
+            "Copeland",
+            "Copeland.Cli",
+            "bin",
+            configuration,
+            targetFramework,
+            "Copeland.Cli.dll");
+
+        if (!File.Exists(cliAssemblyPath))
+        {
+            throw new FileNotFoundException(
+                "The Copeland CLI must be built before its process contract tests run.",
+                cliAssemblyPath);
+        }
+
+        return cliAssemblyPath;
     }
 
     private static string GetRepoRoot()

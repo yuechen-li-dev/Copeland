@@ -102,7 +102,10 @@ internal static class PlaybackTestEnvironment
 
     public static string GetM16dXunitPlaybackRoot()
     {
-        return Path.Combine(GetArtifactsRoot(), "m16d", "xunit-playback");
+        return Path.Combine(
+            Path.GetTempPath(),
+            "machina-playback-xunit-tests",
+            Environment.ProcessId.ToString());
     }
 
     public static string GetRepoRoot()

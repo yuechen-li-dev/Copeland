@@ -6,6 +6,7 @@ Machina.UI owns the C# UI authoring, document, layout, text/font, presenter, inp
 - [Reference contracts](reference/)
 - [Historical milestone records](history/)
 - [Machina.UI solution](../../Machina.UI.slnx)
-- [Slow font/tooling solution](../../Machina.UI.Slow.slnx)
+- [Slow diagnostic, sample, and font/tooling solution](../../Machina.UI.Slow.slnx)
+- [Repository test-lane doctrine](../architecture/jtf-test-lane-doctrine.md)
 
 Known temporary semantic exceptions are listed in the [current topology doctrine](../architecture/jtf-m0-topology-and-ownership.md). JTF-M0 does not remove Dominatus or move renderer implementations.

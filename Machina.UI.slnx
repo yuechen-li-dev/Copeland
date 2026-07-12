@@ -13,14 +13,12 @@
     <Project Path="src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Machina.UI/Machina.ComponentGallery.Sample.Tests/Machina.ComponentGallery.Sample.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Core.Tests/Machina.Core.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Fonts.Tests/Machina.Fonts.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Fonts.Tooling.Unit.Tests/Machina.Fonts.Tooling.Unit.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Layout.Tests/Machina.Layout.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj" />
-    <Project Path="tests/Machina.UI/Machina.Presenter.Sample.Tests/Machina.Presenter.Sample.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Renderer.Raster.Tests/Machina.Renderer.Raster.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Renderer.Raster.Dominatus.Tests/Machina.Renderer.Raster.Dominatus.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Renderer.Raster.Text.Tests/Machina.Renderer.Raster.Text.Tests.csproj" />

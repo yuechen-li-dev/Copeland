@@ -3,7 +3,7 @@
     <AssemblyName>Machina.Fonts.Tests</AssemblyName>
     <RootNamespace>Machina.Fonts.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
-    <DefaultItemExcludes>$(DefaultItemExcludes);bin-diagnostics/**;obj-diagnostics/**</DefaultItemExcludes>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,14 +18,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Rendering/FontProofExporterTests.cs" />
-    <Compile Remove="Rendering/FontReferenceDiffWorkflowTests.cs" />
-    <Compile Remove="Rendering/FontReferenceOracleWorkflowTests.cs" />
-    <Compile Remove="Rendering/ThreeWayShapeDiffWorkflowTests.cs" />
+    <Compile Include="../Machina.Fonts.Tests/**/*.cs"
+             Exclude="../Machina.Fonts.Tests/bin*/**;../Machina.Fonts.Tests/obj*/**;../Machina.Fonts.Tests/Rendering/ShapeDiffContractTests.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Fixtures\\Fonts\\**\\*">
+    <Content Include="../Machina.Fonts.Tests/Fixtures/Fonts/**/*">
+      <Link>Fixtures/Fonts/%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
