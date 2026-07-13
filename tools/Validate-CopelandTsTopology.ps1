@@ -127,8 +127,41 @@ Require-Condition ($null -eq $oldPaths) "Copeland.Script remains in active sourc
 
 $copeTestFiles = Get-ChildItem -LiteralPath $root -Recurse -File |
     Where-Object { $_.FullName -notmatch '\\(bin|obj|reference)\\' } |
-    Where-Object { $_.Name -match 'cope-test-v0' }
-Require-Condition ($copeTestFiles.Count -eq 0) "An abandoned cope-test-v0 file remains."
+    Where-Object { $_.Name -match 'cope-test' }
+Require-Condition ($copeTestFiles.Count -eq 0) "An abandoned Cope Test fixture convention remains."
+
+$languageRoot = Join-Path $root "tests/Copeland/Copeland.TS.Tests/Language"
+Require-Condition (Test-Path -LiteralPath $languageRoot -PathType Container) "Copeland TS Language fixture root is missing."
+
+$languageAreas = @{
+    Valid = @("conditions", "declarations", "functions", "arrays", "fallibility", "tagged-data")
+    Invalid = @("conditions", "declarations", "dynamic-types", "absence", "coercions", "functions", "fallibility", "tagged-data")
+}
+
+foreach ($category in $languageAreas.Keys) {
+    $categoryRoot = Join-Path $languageRoot $category
+    Require-Condition (Test-Path -LiteralPath $categoryRoot -PathType Container) "Copeland TS Language/$category fixture directory is missing."
+
+    foreach ($area in $languageAreas[$category]) {
+        $areaRoot = Join-Path $categoryRoot $area
+        Require-Condition (Test-Path -LiteralPath $areaRoot -PathType Container) "Copeland TS Language/$category/$area fixture directory is missing."
+    }
+}
+
+$languageFiles = @(Get-ChildItem -LiteralPath $languageRoot -Recurse -File)
+foreach ($fixture in $languageFiles) {
+    $relativePath = $fixture.FullName.Substring($languageRoot.Length).TrimStart([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    Require-Condition (-not ($fixture.Name -match '\.cope$|\.g\.cs$|\.g\.js$')) "Language contains a generated or MIR artifact: $relativePath"
+
+    $isValidFixture = $relativePath -match '^Valid[\\/].*\.cl-valid\.ts$'
+    $isInvalidFixture = $relativePath -match '^Invalid[\\/].*\.cl-invalid\.ts$'
+    Require-Condition ($isValidFixture -or $isInvalidFixture) "Language fixture does not follow the required suffix convention: $relativePath"
+}
+
+$validLanguageFixtures = @($languageFiles | Where-Object { $_.FullName -match '[\\/]Valid[\\/].*\.cl-valid\.ts$' })
+$invalidLanguageFixtures = @($languageFiles | Where-Object { $_.FullName -match '[\\/]Invalid[\\/].*\.cl-invalid\.ts$' })
+Require-Condition ($validLanguageFixtures.Count -gt 0) "Copeland TS Language/Valid must contain at least one .cl-valid.ts fixture."
+Require-Condition ($invalidLanguageFixtures.Count -gt 0) "Copeland TS Language/Invalid must contain at least one .cl-invalid.ts fixture."
 
 $forbiddenAbstractions = Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland") -Recurse -Filter *.cs -File |
     Select-String -Pattern 'IBackend|ICompilerBackend|IIntermediateRepresentation|ICompilerPass'
