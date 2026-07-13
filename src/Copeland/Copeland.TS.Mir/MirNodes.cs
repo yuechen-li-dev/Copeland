@@ -142,6 +142,22 @@ public sealed record MirPropagateExpression : MirExpression
     public MirPropagationTarget Target { get; }
 }
 
+public sealed record MirUnwrapExpression : MirExpression
+{
+    public MirUnwrapExpression(MirExpression operand, MirType type) : base(type)
+    {
+        if (operand.Type is not MirResultType resultType || !MirTypeFacts.AreEquivalent(resultType.SuccessType, type))
+        {
+            throw new ArgumentException("Unwrap must consume a Result and yield its success type.", nameof(operand));
+        }
+
+        Operand = operand;
+    }
+
+    public MirExpression Operand { get; }
+    public MirResultType ResultType => (MirResultType)Operand.Type;
+}
+
 public sealed class MirMatchArm(string caseName, IReadOnlyList<MirMatchPayloadBinding> payloadBindings, MirExpression expression)
 {
     public string CaseName { get; } = caseName; public IReadOnlyList<MirMatchPayloadBinding> PayloadBindings { get; } = payloadBindings; public MirExpression Expression { get; } = expression;

@@ -8,6 +8,23 @@ namespace Copeland.TS.Tests;
 public sealed class BinderTests
 {
     [Fact]
+    public void Binds_Result_Unwrap_Without_A_Fallible_Return_Target()
+    {
+        var bound = Binder.Bind(SyntaxTree.Parse("function unwrap(value: number ! string): number { return value!; }"));
+
+        Assert.DoesNotContain(bound.Diagnostics, diagnostic => diagnostic.Id.StartsWith("COPE-", StringComparison.Ordinal));
+        Assert.Contains("UnwrapExpression ! : number", BoundTreeDumper.Dump(bound.Program), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rejects_Result_Unwrap_On_Non_Result()
+    {
+        var bound = Binder.Bind(SyntaxTree.Parse("function invalid(): number { return 1!; }"));
+
+        Assert.Contains(bound.Diagnostics, diagnostic => diagnostic.Id == "COPE-TYPE-0019");
+    }
+
+    [Fact]
     public void Binds_Typed_Variable_And_Assignment()
     {
         var tree = SyntaxTree.Parse("let x: number = 1; x = 2;");

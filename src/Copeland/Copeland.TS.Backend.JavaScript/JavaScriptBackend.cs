@@ -19,14 +19,15 @@ public static class JavaScriptBackend
         }
 
         ResultCatalog results = ResultCatalog.Create(program);
-        GeneratedNames names = GeneratedNames.Create(program, catalog, results);
+        bool usesUnwrap = ProgramUsesUnwrap(program);
+        GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap);
         var writer = new JavaScriptTextWriter();
         writer.WriteLine("\"use strict\";");
 
         if (catalog.Enums.Count > 0 || results.Types.Count > 0)
         {
             writer.WriteLine();
-            EmitValueRuntime(writer, catalog, results, names);
+            EmitValueRuntime(writer, catalog, results, names, usesUnwrap);
         }
 
         foreach (MirFunction function in program.Functions)
@@ -205,6 +206,9 @@ public static class JavaScriptBackend
                 break;
             case MirPropagateExpression propagate:
                 ValidatePropagation(propagate, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirUnwrapExpression unwrap:
+                ValidateUnwrap(unwrap, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirUnitExpression:
                 break;
@@ -445,6 +449,18 @@ public static class JavaScriptBackend
         RequireMatchingType(functionResult.ErrorType, operandResult.ErrorType, $"propagation error type in {context}", diagnostics);
     }
 
+    private static void ValidateUnwrap(MirUnwrapExpression unwrap, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
+    {
+        ValidateExpression(unwrap.Operand, functionReturnType, context, functions, catalog, diagnostics);
+        if (unwrap.Operand.Type is not MirResultType resultType)
+        {
+            AddInvalid(diagnostics, $"unwrap has non-Result operand '{unwrap.Operand.Type.Name}' in {context}");
+            return;
+        }
+
+        RequireMatchingType(unwrap.Type, resultType.SuccessType, $"unwrap success value in {context}", diagnostics);
+    }
+
     private static void AddUnsupported(List<JavaScriptDiagnostic> diagnostics, string feature)
     {
         diagnostics.Add(new JavaScriptDiagnostic(UnsupportedDiagnosticId, $"Unsupported MIR for JavaScript backend: {feature}."));
@@ -455,7 +471,7 @@ public static class JavaScriptBackend
         diagnostics.Add(new JavaScriptDiagnostic(InvalidDiagnosticId, $"Invalid MIR for JavaScript backend: {message}."));
     }
 
-    private static void EmitValueRuntime(JavaScriptTextWriter writer, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static void EmitValueRuntime(JavaScriptTextWriter writer, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap)
     {
         writer.WriteLine($"function {names.Panic}() {{");
         writer.Indent();
@@ -463,6 +479,17 @@ public static class JavaScriptBackend
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine();
+        if (usesUnwrap)
+        {
+            writer.WriteLine($"function {names.UnwrapPanic}(error) {{");
+            writer.Indent();
+            writer.WriteLine("const panic = new Error(\"COPE-PANIC-UNWRAP: Result unwrap encountered err\");");
+            writer.WriteLine("panic.error = error;");
+            writer.WriteLine("throw panic;");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine();
+        }
         writer.WriteLine($"function {names.MakeValue}(type, tag, payload) {{");
         writer.Indent();
         writer.WriteLine("return Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));");
@@ -651,6 +678,7 @@ public static class JavaScriptBackend
             MirOkExpression ok => EmitResultConstruction(ok.Payload, (MirResultType)ok.Type, "ok", function, catalog, results, names),
             MirErrExpression err => EmitResultConstruction(err.Payload, (MirResultType)err.Type, "err", function, catalog, results, names),
             MirPropagateExpression propagation => EmitPropagation(propagation, function, catalog, results, names),
+            MirUnwrapExpression unwrap => EmitUnwrap(unwrap, function, catalog, results, names),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
     }
@@ -733,6 +761,22 @@ public static class JavaScriptBackend
             new($"{names.Validator(results.Get(operandResult))}({temporary});", 0),
             new($"if ({temporary}.$tag === \"err\") {{", 0),
             new($"return {names.MakeValue}({names.TypeToken(results.Get(functionResult))}, \"err\", [{temporary}.$payload[0]]);", 1),
+            new("}", 0),
+        };
+        return new EmittedExpression(prelude, $"{temporary}.$payload[0]");
+    }
+
+    private static EmittedExpression EmitUnwrap(MirUnwrapExpression unwrap, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        MirResultType resultType = unwrap.ResultType;
+        EmittedExpression operand = EmitExpression(unwrap.Operand, function, catalog, results, names);
+        string temporary = names.NextTemporary("unwrap");
+        var prelude = new List<EmittedLine>(operand.Prelude)
+        {
+            new($"const {temporary} = {operand.Value};", 0),
+            new($"{names.Validator(results.Get(resultType))}({temporary});", 0),
+            new($"if ({temporary}.$tag === \"err\") {{", 0),
+            new($"{names.UnwrapPanic}({temporary}.$payload[0]);", 1),
             new("}", 0),
         };
         return new EmittedExpression(prelude, $"{temporary}.$payload[0]");
@@ -835,7 +879,7 @@ public static class JavaScriptBackend
     {
         return expression switch
         {
-            MirPropagateExpression or MirResultMatchExpression => true,
+            MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression => true,
             MirBinaryExpression binary => ContainsControlFlow(binary.Left) || ContainsControlFlow(binary.Right),
             MirCallExpression call => call.Arguments.Any(ContainsControlFlow),
             MirEnumValueExpression value => value.Arguments.Any(ContainsControlFlow),
@@ -846,6 +890,36 @@ public static class JavaScriptBackend
             _ => false,
         };
     }
+
+    private static bool ProgramUsesUnwrap(MirProgram program)
+        => program.Functions.Any(function => function.Body.Any(StatementUsesUnwrap));
+
+    private static bool StatementUsesUnwrap(MirStatement statement)
+        => statement switch
+        {
+            MirVariableDeclarationStatement declaration => ExpressionUsesUnwrap(declaration.Initializer),
+            MirExpressionStatement expression => ExpressionUsesUnwrap(expression.Expression),
+            MirReturnStatement { Expression: not null } returnStatement => ExpressionUsesUnwrap(returnStatement.Expression),
+            MirIfStatement conditional => ExpressionUsesUnwrap(conditional.Condition) || conditional.ThenStatements.Any(StatementUsesUnwrap) || (conditional.ElseStatements?.Any(StatementUsesUnwrap) ?? false),
+            _ => false,
+        };
+
+    private static bool ExpressionUsesUnwrap(MirExpression expression)
+        => expression switch
+        {
+            MirUnwrapExpression => true,
+            MirBinaryExpression binary => ExpressionUsesUnwrap(binary.Left) || ExpressionUsesUnwrap(binary.Right),
+            MirCallExpression call => call.Arguments.Any(ExpressionUsesUnwrap),
+            MirArrayExpression array => array.Elements.Any(ExpressionUsesUnwrap),
+            MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesUnwrap),
+            MirMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesUnwrap(arm.Expression)),
+            MirResultMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || ExpressionUsesUnwrap(match.OkExpression) || ExpressionUsesUnwrap(match.ErrExpression),
+            MirIfExpression conditional => ExpressionUsesUnwrap(conditional.Condition) || ExpressionUsesUnwrap(conditional.ThenExpression) || ExpressionUsesUnwrap(conditional.ElseExpression),
+            MirOkExpression ok => ExpressionUsesUnwrap(ok.Payload),
+            MirErrExpression err => ExpressionUsesUnwrap(err.Payload),
+            MirPropagateExpression propagation => ExpressionUsesUnwrap(propagation.Operand),
+            _ => false,
+        };
 
     private static void WritePrelude(JavaScriptTextWriter writer, IReadOnlyList<EmittedLine> prelude)
     {
@@ -1148,6 +1222,9 @@ public static class JavaScriptBackend
                 case MirPropagateExpression propagation:
                     Add(propagation.Operand);
                     break;
+                case MirUnwrapExpression unwrap:
+                    Add(unwrap.Operand);
+                    break;
             }
         }
 
@@ -1178,10 +1255,11 @@ public static class JavaScriptBackend
         private readonly Dictionary<ResultInfo, string> resultValidators;
         private readonly NameAllocator allocator;
 
-        private GeneratedNames(NameAllocator allocator, string panic, string makeValue, Dictionary<EnumInfo, string> typeTokens, Dictionary<EnumInfo, string> validators, Dictionary<ResultInfo, string> resultTypeTokens, Dictionary<ResultInfo, string> resultValidators)
+        private GeneratedNames(NameAllocator allocator, string panic, string unwrapPanic, string makeValue, Dictionary<EnumInfo, string> typeTokens, Dictionary<EnumInfo, string> validators, Dictionary<ResultInfo, string> resultTypeTokens, Dictionary<ResultInfo, string> resultValidators)
         {
             this.allocator = allocator;
             Panic = panic;
+            UnwrapPanic = unwrapPanic;
             MakeValue = makeValue;
             this.typeTokens = typeTokens;
             this.validators = validators;
@@ -1190,6 +1268,8 @@ public static class JavaScriptBackend
         }
 
         public string Panic { get; }
+
+        public string UnwrapPanic { get; }
 
         public string MakeValue { get; }
 
@@ -1205,7 +1285,7 @@ public static class JavaScriptBackend
 
         public string NextTemporary(string purpose) => allocator.Allocate(purpose);
 
-        public static GeneratedNames Create(MirProgram program, EnumCatalog catalog, ResultCatalog results)
+        public static GeneratedNames Create(MirProgram program, EnumCatalog catalog, ResultCatalog results, bool usesUnwrap)
         {
             var occupied = new HashSet<string>(StringComparer.Ordinal);
             foreach (MirFunction function in program.Functions)
@@ -1224,6 +1304,7 @@ public static class JavaScriptBackend
 
             var allocator = new NameAllocator(occupied);
             string panic = allocator.Allocate("panic");
+            string unwrapPanic = usesUnwrap ? allocator.Allocate("panic_unwrap") : string.Empty;
             string makeValue = allocator.Allocate("make");
             var typeTokens = new Dictionary<EnumInfo, string>();
             var validators = new Dictionary<EnumInfo, string>();
@@ -1241,7 +1322,7 @@ public static class JavaScriptBackend
                 resultValidators.Add(result, allocator.Allocate("result_validate"));
             }
 
-            return new GeneratedNames(allocator, panic, makeValue, typeTokens, validators, resultTypeTokens, resultValidators);
+            return new GeneratedNames(allocator, panic, unwrapPanic, makeValue, typeTokens, validators, resultTypeTokens, resultValidators);
         }
     }
 

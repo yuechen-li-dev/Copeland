@@ -232,6 +232,7 @@ public static class Binder
                 NameExpressionSyntax n => BindName(n),
                 ParenthesizedExpressionSyntax p => BindExpression(p.Expression, contextualType),
                 PropagateExpressionSyntax p => BindPropagate(p),
+                UnwrapExpressionSyntax u => BindUnwrap(u),
                 UnaryExpressionSyntax u => BindUnary(u),
                 BinaryExpressionSyntax b => BindBinary(b),
                 AssignmentExpressionSyntax a => BindAssignment(a),
@@ -659,6 +660,18 @@ public static class Binder
             return new BoundPropagateExpression(operand, operandResult, BoundPropagationTarget.FunctionReturn);
         }
 
+        private BoundExpression BindUnwrap(UnwrapExpressionSyntax u)
+        {
+            var operand = BindExpression(u.Operand);
+            if (operand.Type is not ResultTypeSymbol resultType)
+            {
+                Report("COPE-TYPE-0019", "'!' can only be applied to a Result expression.", u.BangToken);
+                return new BoundErrorExpression();
+            }
+
+            return new BoundUnwrapExpression(operand, resultType);
+        }
+
         private BoundExpression BindNullLiteral(LiteralExpressionSyntax l)
         {
             Report("COPE-PROFILE-0005", "Null is not supported in Browser TypeScript Profile v1. Use fallible functions or an explicit option type when available.", l.LiteralToken);
@@ -748,6 +761,7 @@ public static class Binder
             AssignmentExpressionSyntax a => a.EqualsToken,
             ParenthesizedExpressionSyntax p => p.OpenParenToken,
             PropagateExpressionSyntax p => p.QuestionToken,
+            UnwrapExpressionSyntax u => u.BangToken,
             NameExpressionSyntax n => n.IdentifierToken,
             LiteralExpressionSyntax l => l.LiteralToken,
             ArrayLiteralExpressionSyntax a => a.OpenBracketToken,

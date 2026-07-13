@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Lowering;
 using Copeland.TS.Mir;
@@ -8,6 +9,18 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 
 public sealed class CSharpBackendTests
 {
+    [Fact]
+    public void Emits_Private_Unwrap_Panic_Only_For_Unwrap()
+    {
+        var unwrap = CSharpBackend.Emit(Lower("function parse(): number ! string { return err(\"bad\"); } function main(): number { return parse()!; }"));
+        var ordinaryResult = CSharpBackend.Emit(Lower("function parse(): number ! string { return err(\"bad\"); }"));
+
+        Assert.Empty(unwrap.Diagnostics);
+        Assert.Contains("COPE-PANIC-UNWRAP: Result unwrap encountered err", unwrap.SourceText, StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(unwrap.SourceText, @"= parse\(\);").Cast<Match>());
+        Assert.DoesNotContain("COPE-PANIC-UNWRAP", ordinaryResult.SourceText, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Deterministic_Emit_Repeats()
     {

@@ -26,6 +26,18 @@ public sealed class ParserTests
     }
 
     [Fact]
+    public void Parses_Postfix_Unwrap_Independently_From_Prefix_And_Result_Type_Bang()
+    {
+        const string source = "function unwrap(value: number ! string, condition: boolean): number { const negated: boolean = !condition; return value!; }";
+        var tree = SyntaxTree.Parse(source);
+        var dump = SyntaxTreeDumper.Dump(tree.Root);
+
+        Assert.Contains("UnaryExpression", dump, StringComparison.Ordinal);
+        Assert.Contains("UnwrapExpression", dump, StringComparison.Ordinal);
+        Assert.DoesNotContain(tree.Diagnostics, diagnostic => diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Parses_Var_Declaration_For_Profile_Validation()
     {
         var tree = SyntaxTree.Parse("var value: number = 1;");

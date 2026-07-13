@@ -101,6 +101,7 @@ public enum SyntaxKind
     MemberAccessExpression,
     ArrayLiteralExpression,
     PropagateExpression,
+    UnwrapExpression,
     ObjectLiteralExpression,
     ObjectProperty,
     MatchExpression,

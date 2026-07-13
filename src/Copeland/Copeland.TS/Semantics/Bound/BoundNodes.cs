@@ -64,6 +64,18 @@ public sealed class BoundPropagateExpression : BoundExpression
     public BoundPropagationTarget Target { get; }
     public override TypeSymbol Type => ResultType.SuccessType;
 }
+public sealed class BoundUnwrapExpression : BoundExpression
+{
+    public BoundUnwrapExpression(BoundExpression operand, ResultTypeSymbol resultType)
+    {
+        Operand = operand;
+        ResultType = resultType;
+    }
+
+    public BoundExpression Operand { get; }
+    public ResultTypeSymbol ResultType { get; }
+    public override TypeSymbol Type => ResultType.SuccessType;
+}
 public sealed class BoundOkExpression : BoundExpression { public BoundOkExpression(BoundExpression payload, ResultTypeSymbol type) { Payload = payload; TypeImpl = type; } public BoundExpression Payload { get; } private ResultTypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundErrExpression : BoundExpression { public BoundErrExpression(BoundExpression payload, ResultTypeSymbol type) { Payload = payload; TypeImpl = type; } public BoundExpression Payload { get; } private ResultTypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundUnitExpression : BoundExpression { public override TypeSymbol Type => PrimitiveTypeSymbol.Void; }

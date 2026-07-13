@@ -555,6 +555,17 @@ public sealed record PropagateExpressionSyntax(ExpressionSyntax Operand, SyntaxT
     }
 }
 
+public sealed record UnwrapExpressionSyntax(ExpressionSyntax Operand, SyntaxToken BangToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.UnwrapExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Operand;
+        yield return BangToken;
+    }
+}
+
 public sealed record ObjectPropertySyntax(
     SyntaxToken NameToken,
     SyntaxToken ColonToken,

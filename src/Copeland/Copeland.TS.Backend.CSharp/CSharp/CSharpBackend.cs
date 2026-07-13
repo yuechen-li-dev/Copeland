@@ -10,6 +10,7 @@ public static class CSharpBackend
         var writer = new CSharpTextWriter();
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var usesResult = ProgramUsesResult(program);
+        var usesUnwrap = ProgramUsesUnwrap(program);
         var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult);
         var errorTypes = CollectErrorNominalTypes(program, enumNames);
 
@@ -22,6 +23,10 @@ public static class CSharpBackend
         foreach (var mirEnum in program.Enums) EmitEnum(writer, mirEnum);
         if (program.Enums.Count > 0) writer.WriteLine();
         writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
+        if (usesUnwrap)
+        {
+            EmitUnwrapPanic(writer);
+        }
         foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, diagnostics);
         writer.Unindent(); writer.WriteLine("}");
         return new CSharpCompilation(writer.ToString(), diagnostics);
@@ -44,6 +49,25 @@ public static class CSharpBackend
         writer.WriteLine("public static CopeResult<TValue, TError> Ok(TValue value) => new(true, value, default!);");
         writer.WriteLine("public static CopeResult<TValue, TError> Err(TError error) => new(false, default!, error);");
         writer.Unindent(); writer.WriteLine("}"); writer.WriteLine();
+    }
+
+    private static void EmitUnwrapPanic(CSharpTextWriter writer)
+    {
+        writer.WriteLine("private sealed class CopeUnwrapPanicException : global::System.Exception");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("public object? Error { get; }");
+        writer.WriteLine();
+        writer.WriteLine("public CopeUnwrapPanicException(object? error)");
+        writer.WriteLine("    : base(\"COPE-PANIC-UNWRAP: Result unwrap encountered err\")");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("Error = error;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
     }
 
     private static void EmitEnum(CSharpTextWriter writer, MirEnum mirEnum)
@@ -106,6 +130,7 @@ public static class CSharpBackend
             MirErrExpression err => $"CopeResult<{MapResultComponentType(((MirResultType)err.Type).SuccessType)}, {MapType(((MirResultType)err.Type).ErrorType)}>.Err({EmitExpression(writer, err.Payload, function, enumNames, ref tempIndex, diagnostics)})",
             MirResultMatchExpression match => EmitResultMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
             MirPropagateExpression propagate => EmitPropagation(writer, propagate, function, enumNames, ref tempIndex, diagnostics),
+            MirUnwrapExpression unwrap => EmitUnwrap(writer, unwrap, function, enumNames, ref tempIndex, diagnostics),
             _ => UnsupportedExpression(expression, diagnostics)
         };
 
@@ -116,6 +141,25 @@ public static class CSharpBackend
             diagnostics.Add(new CSharpDiagnostic("COPE-CS-0002", "Function-return propagation requires compatible Result error types.")); return "default!";
         }
         var temporary = $"__cope_tmp{tempIndex++}"; writer.WriteLine($"var {temporary} = {EmitExpression(writer, propagation.Operand, function, enumNames, ref tempIndex, diagnostics)};"); writer.WriteLine($"if (!{temporary}.IsOk)"); writer.WriteLine("{"); writer.Indent(); writer.WriteLine($"return CopeResult<{MapResultComponentType(functionResult.SuccessType)}, {MapType(functionResult.ErrorType)}>.Err({temporary}.Error);"); writer.Unindent(); writer.WriteLine("}"); return $"{temporary}.Value";
+    }
+
+    private static string EmitUnwrap(CSharpTextWriter writer, MirUnwrapExpression unwrap, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
+    {
+        if (unwrap.Operand.Type is not MirResultType resultType || !MirTypeFacts.AreEquivalent(unwrap.Type, resultType.SuccessType))
+        {
+            diagnostics.Add(new CSharpDiagnostic("COPE-CS-0002", "Result unwrap requires a Result operand and its success type."));
+            return "default!";
+        }
+
+        string temporary = $"__cope_tmp{tempIndex++}";
+        writer.WriteLine($"var {temporary} = {EmitExpression(writer, unwrap.Operand, function, enumNames, ref tempIndex, diagnostics)};");
+        writer.WriteLine($"if (!{temporary}.IsOk)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"throw new CopeUnwrapPanicException({temporary}.Error);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        return $"{temporary}.Value";
     }
 
     private static string EmitResultMatch(CSharpTextWriter writer, MirResultMatchExpression match, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
@@ -150,6 +194,45 @@ public static class CSharpBackend
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
 
     private static bool ProgramUsesResult(MirProgram program) => EnumerateTypes(program).Any(MirTypeFacts.ContainsResult);
+
+    private static bool ProgramUsesUnwrap(MirProgram program)
+        => program.Functions.Any(function => function.Body.Any(StatementUsesUnwrap));
+
+    private static bool StatementUsesUnwrap(MirStatement statement)
+    {
+        return statement switch
+        {
+            MirVariableDeclarationStatement declaration => ExpressionUsesUnwrap(declaration.Initializer),
+            MirExpressionStatement expression => ExpressionUsesUnwrap(expression.Expression),
+            MirReturnStatement { Expression: not null } returnStatement => ExpressionUsesUnwrap(returnStatement.Expression),
+            MirIfStatement conditional =>
+                ExpressionUsesUnwrap(conditional.Condition)
+                || conditional.ThenStatements.Any(StatementUsesUnwrap)
+                || (conditional.ElseStatements?.Any(StatementUsesUnwrap) ?? false),
+            _ => false,
+        };
+    }
+
+    private static bool ExpressionUsesUnwrap(MirExpression expression)
+    {
+        return expression switch
+        {
+            MirUnwrapExpression => true,
+            MirAssignmentExpression assignment => ExpressionUsesUnwrap(assignment.Expression),
+            MirUnaryExpression unary => ExpressionUsesUnwrap(unary.Operand),
+            MirBinaryExpression binary => ExpressionUsesUnwrap(binary.Left) || ExpressionUsesUnwrap(binary.Right),
+            MirCallExpression call => call.Arguments.Any(ExpressionUsesUnwrap),
+            MirArrayExpression array => array.Elements.Any(ExpressionUsesUnwrap),
+            MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesUnwrap),
+            MirMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesUnwrap(arm.Expression)),
+            MirResultMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || ExpressionUsesUnwrap(match.OkExpression) || ExpressionUsesUnwrap(match.ErrExpression),
+            MirIfExpression conditional => ExpressionUsesUnwrap(conditional.Condition) || ExpressionUsesUnwrap(conditional.ThenExpression) || ExpressionUsesUnwrap(conditional.ElseExpression),
+            MirOkExpression ok => ExpressionUsesUnwrap(ok.Payload),
+            MirErrExpression err => ExpressionUsesUnwrap(err.Payload),
+            MirPropagateExpression propagation => ExpressionUsesUnwrap(propagation.Operand),
+            _ => false,
+        };
+    }
     private static IEnumerable<MirType> EnumerateTypes(MirProgram program)
     {
         foreach (var function in program.Functions) { yield return function.ReturnType; foreach (var parameter in function.Parameters) yield return parameter.Type; foreach (var local in function.Locals) yield return local.Type; }

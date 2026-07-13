@@ -10,6 +10,32 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class ResultBackendParityTests
 {
     [Fact]
+    public async Task JavaScript_And_CSharp_Classify_Unwrap_Panic_The_Same_Way()
+    {
+        const string source = """
+            function bad(): number ! string { return err("bad"); }
+            function main(): number { return bad()!; }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.True(javaScript.Success, string.Join(Environment.NewLine, javaScript.Diagnostics));
+        ProcessResult node = await RunNodeAsync(javaScript.SourceText + "try { main(); } catch (error) { console.log(error.message); }\n");
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Exception panic = Assert.ThrowsAny<Exception>(() => GeneratedModuleInvoker.Invoke(generated.Assembly!, "main"));
+
+        Assert.Equal("COPE-PANIC-UNWRAP: Result unwrap encountered err", panic.Message);
+        Assert.Equal("COPE-PANIC-UNWRAP: Result unwrap encountered err\n", node.StdOut);
+        Assert.Equal(string.Empty, node.StdErr);
+    }
+
+    [Fact]
     public async Task JavaScript_And_CSharp_Observe_The_Same_Result_Behavior()
     {
         const string source = """

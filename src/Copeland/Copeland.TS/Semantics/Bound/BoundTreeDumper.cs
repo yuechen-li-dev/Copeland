@@ -106,6 +106,9 @@ public static class BoundTreeDumper
             case BoundPropagateExpression p:
                 sb.Append("PropagateExpression ? : ").Append(p.Type.Name).AppendLine();
                 AppendExpression(sb, p.Operand, i + 1); break;
+            case BoundUnwrapExpression u:
+                sb.Append("UnwrapExpression ! : ").Append(u.Type.Name).AppendLine();
+                AppendExpression(sb, u.Operand, i + 1); break;
             case BoundOkExpression ok:
                 sb.Append("OkExpression : ").Append(ok.Type.Name).AppendLine();
                 AppendExpression(sb, ok.Payload, i + 1); break;

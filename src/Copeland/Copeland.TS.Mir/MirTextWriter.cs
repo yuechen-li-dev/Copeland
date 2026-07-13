@@ -108,6 +108,7 @@ public static class MirTextWriter
         MirErrExpression err => $"err {FormatExpression(err.Payload)}",
         MirResultMatchExpression match => $"result-match {FormatExpression(match.Scrutinee)} : {match.Type.Name} {{ ok({match.OkBinding.Name}: {match.OkBinding.Type.Name}) => {FormatExpression(match.OkExpression)} | err({match.ErrBinding.Name}: {match.ErrBinding.Type.Name}) => {FormatExpression(match.ErrExpression)} }}",
         MirPropagateExpression propagate => $"propagate {FormatExpression(propagate.Operand)} to function-return",
+        MirUnwrapExpression unwrap => $"unwrap {FormatExpression(unwrap.Operand)}",
         _ => expr.ToString() ?? "<expr>"
     };
 

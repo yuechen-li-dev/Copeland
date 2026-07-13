@@ -7,6 +7,21 @@ namespace Copeland.TS.Tests;
 public sealed class MirEvaluationOrderTests
 {
     [Fact]
+    public void Unwrap_Lowers_To_Dedicated_Mir_And_Chains_Left_To_Right()
+    {
+        var program = CompileProgram("""
+function nested(value: (number ! string) ! string): number {
+  return value!!;
+}
+""");
+
+        var outer = Assert.IsType<MirUnwrapExpression>(ReturnExpression(program, "nested"));
+        var inner = Assert.IsType<MirUnwrapExpression>(outer.Operand);
+        Assert.Equal("number", outer.Type.Name);
+        Assert.Equal("number ! string", inner.Type.Name);
+    }
+
+    [Fact]
     public void Binary_Operands_Retain_Left_To_Right_Tree_Order_And_Number_Type()
     {
         var program = CompileProgram("""

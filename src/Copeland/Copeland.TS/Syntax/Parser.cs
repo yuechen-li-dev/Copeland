@@ -490,12 +490,18 @@ public sealed class Parser
                     continue;
                 }
 
-                if (Current.Kind != SyntaxKind.SemicolonToken && Current.Kind != SyntaxKind.CloseParenToken && Current.Kind != SyntaxKind.CommaToken && Current.Kind != SyntaxKind.CloseBraceToken)
+                if (Current.Kind != SyntaxKind.SemicolonToken && Current.Kind != SyntaxKind.CloseParenToken && Current.Kind != SyntaxKind.CommaToken && Current.Kind != SyntaxKind.CloseBraceToken && Current.Kind != SyntaxKind.BangToken)
                 {
                     _diagnostics.Report("COPE-PROFILE-0007", "The ternary operator is not supported. Use if/else expressions.", questionToken.Position, 1);
                 }
 
                 expression = new PropagateExpressionSyntax(expression, questionToken);
+                continue;
+            }
+
+            if (Current.Kind == SyntaxKind.BangToken)
+            {
+                expression = new UnwrapExpressionSyntax(expression, Match(SyntaxKind.BangToken));
                 continue;
             }
 

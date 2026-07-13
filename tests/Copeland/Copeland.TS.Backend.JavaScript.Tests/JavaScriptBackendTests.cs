@@ -11,6 +11,18 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptBackendTests
 {
     [Fact]
+    public void Emits_Private_Unwrap_Panic_Only_For_Unwrap()
+    {
+        JavaScriptCompilation unwrap = Emit("function parse(): number ! string { return err(\"bad\"); } function main(): number { return parse()!; }");
+        JavaScriptCompilation ordinaryResult = Emit("function parse(): number ! string { return err(\"bad\"); }");
+
+        Assert.Contains("COPE-PANIC-UNWRAP: Result unwrap encountered err", unwrap.SourceText, StringComparison.Ordinal);
+        Assert.Contains("$tag === \"err\"", unwrap.SourceText, StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(unwrap.SourceText!, @"= parse\(\);").Cast<Match>());
+        Assert.DoesNotContain("COPE-PANIC-UNWRAP", ordinaryResult.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Emits_Minimal_Void_Function()
     {
         JavaScriptCompilation result = Emit("function noop(): void { return; }");
