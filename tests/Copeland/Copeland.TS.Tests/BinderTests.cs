@@ -34,6 +34,43 @@ public sealed class BinderTests
     }
 
     [Fact]
+    public void Profile_Rejects_Parsed_Var_Declaration()
+    {
+        var tree = SyntaxTree.Parse("var value: number = 1;");
+        var bound = Binder.Bind(tree);
+
+        Assert.DoesNotContain(tree.Diagnostics, diagnostic =>
+            diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+        Assert.Contains(bound.Diagnostics, diagnostic => diagnostic.Id == "COPE-PROFILE-0001");
+    }
+
+    [Theory]
+    [InlineData("===")]
+    [InlineData("!==")]
+    public void Profile_Rejects_Strict_Equality_Spellings(string equalityOperator)
+    {
+        var tree = SyntaxTree.Parse($"function equal(left: number, right: number): boolean {{ return left {equalityOperator} right; }}");
+        var bound = Binder.Bind(tree);
+
+        Assert.DoesNotContain(tree.Diagnostics, diagnostic =>
+            diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+        Assert.Contains(bound.Diagnostics, diagnostic => diagnostic.Id == "COPE-PROFILE-0009");
+    }
+
+    [Theory]
+    [InlineData("function equal(): boolean { return [1] == [1]; }")]
+    [InlineData("""
+enum Choice { Yes, No, }
+function equal(): boolean { return Choice.Yes == Choice.No; }
+""")]
+    public void Equality_Does_Not_Accidentally_Admit_Unsupported_Value_Families(string source)
+    {
+        var bound = Binder.Bind(SyntaxTree.Parse(source));
+
+        Assert.Contains(bound.Diagnostics, diagnostic => diagnostic.Id == "COPE-TYPE-0007");
+    }
+
+    [Fact]
     public void Match_Duplicate_Arm_Report()
     {
         var tree = SyntaxTree.Parse("""

@@ -26,6 +26,29 @@ public sealed class ParserTests
     }
 
     [Fact]
+    public void Parses_Var_Declaration_For_Profile_Validation()
+    {
+        var tree = SyntaxTree.Parse("var value: number = 1;");
+
+        Assert.DoesNotContain(tree.Diagnostics, diagnostic =>
+            diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+        Assert.Contains("VariableDeclaration", SyntaxTreeDumper.Dump(tree.Root), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("==")]
+    [InlineData("!=")]
+    [InlineData("===")]
+    [InlineData("!==")]
+    public void Parses_All_Equality_Spellings_For_Profile_Validation(string equalityOperator)
+    {
+        var tree = SyntaxTree.Parse($"function equal(left: number, right: number): boolean {{ return left {equalityOperator} right; }}");
+
+        Assert.DoesNotContain(tree.Diagnostics, diagnostic =>
+            diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Parses_If_Expression_Syntax()
     {
         const string source = "function choose(flag: boolean): number { return if flag { 1 } else { 2 }; }";

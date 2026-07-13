@@ -199,7 +199,7 @@ public sealed class Parser
         => Current.Kind switch
         {
             SyntaxKind.OpenBraceToken => ParseBlockStatement(),
-            SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword => ParseVariableDeclarationStatement(requireSemicolon: true),
+            SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword => ParseVariableDeclarationStatement(requireSemicolon: true),
             SyntaxKind.IfKeyword => ParseIfStatement(),
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
             SyntaxKind.ForKeyword => ParseForStatement(),
@@ -241,9 +241,13 @@ public sealed class Parser
 
     private VariableDeclarationStatementSyntax ParseVariableDeclarationStatement(bool requireSemicolon)
     {
-        var keyword = Current.Kind == SyntaxKind.ConstKeyword
-            ? Match(SyntaxKind.ConstKeyword)
-            : Match(SyntaxKind.LetKeyword);
+        var keyword = Current.Kind switch
+        {
+            SyntaxKind.ConstKeyword => Match(SyntaxKind.ConstKeyword),
+            SyntaxKind.LetKeyword => Match(SyntaxKind.LetKeyword),
+            SyntaxKind.VarKeyword => Match(SyntaxKind.VarKeyword),
+            _ => throw new InvalidOperationException("Expected a variable declaration keyword."),
+        };
         var identifier = Match(SyntaxKind.IdentifierToken);
         SyntaxToken? typeColonToken = null;
         TypeSyntax? type = null;
@@ -333,7 +337,7 @@ public sealed class Parser
         SyntaxNode? initializer = null;
         if (Current.Kind != SyntaxKind.SemicolonToken)
         {
-            if (Current.Kind is SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword)
+            if (Current.Kind is SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword)
             {
                 initializer = ParseVariableDeclarationStatement(requireSemicolon: false);
             }

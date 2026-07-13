@@ -293,9 +293,17 @@ public static class Binder
             {
                 if (l.Type == PrimitiveTypeSymbol.Boolean && r.Type == PrimitiveTypeSymbol.Boolean) return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Boolean);
             }
-            if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken)
+            if (op is SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken)
             {
-                if (l.Type.Name == r.Type.Name) return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Boolean);
+                Report("COPE-PROFILE-0009", $"Strict equality spelling '{b.OperatorToken.Text}' is reserved and not supported. Use typed '{(op == SyntaxKind.EqualsEqualsEqualsToken ? "==" : "!=")}' equality.", b.OperatorToken);
+                return new BoundErrorExpression();
+            }
+            if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken)
+            {
+                if (l.Type == r.Type && IsPrimitiveEqualityType(l.Type))
+                {
+                    return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Boolean);
+                }
             }
             Report("COPE-TYPE-0007", $"Invalid binary operands for '{b.OperatorToken.Text}'.", b.OperatorToken);
             return new BoundErrorExpression();
@@ -565,6 +573,11 @@ public static class Binder
 
         private static bool IsAssignable(TypeSymbol target, TypeSymbol actual)
             => target == PrimitiveTypeSymbol.Error || actual == PrimitiveTypeSymbol.Error || target.Name == actual.Name;
+
+        private static bool IsPrimitiveEqualityType(TypeSymbol type)
+            => type == PrimitiveTypeSymbol.Number
+                || type == PrimitiveTypeSymbol.String
+                || type == PrimitiveTypeSymbol.Boolean;
 
         private BoundExpression EnsureBoolean(BoundExpression e, SyntaxToken at)
         {

@@ -2,6 +2,8 @@
 
 ## Purpose and authority
 
+**Historical-status note (CTS-M0d):** this M0c record intentionally preserves its original distinction between directives, recommendations awaiting acceptance, and unresolved questions. CTS-M0d accepted the listed core recommendations as canonical language doctrine; see the [canonical language profile](copeland-ts-language-profile.md) and [M0d migration record](../../migrations/cts-m0d-accepted-core-semantic-enforcement.md). That later acceptance does not retroactively change M0c's status at the time it was written, nor does it make unimplemented syntax, MIR, or JavaScript behavior current.
+
 This document defines the semantic decisions and bounded recommendations that must precede a Copeland TS JavaScript backend. It does not change the compiler. The canonical product thesis remains:
 
 > Copeland TS is a TypeScript-shaped, closed-world language. JavaScript is its first target platform and host ABI, not its source-language semantics.
@@ -48,7 +50,7 @@ These limitations are recorded so that proposed semantics are not misreported as
 
 Binding reassignment and value mutation are separate. `const xs: T[]` means that `xs` cannot be rebound; it does not, by itself, decide whether a future `xs[index] = value` is legal. Likewise, freezing a compiler-generated tagged value is a representation guarantee for that value family, not a claim that all `const` references are deeply immutable.
 
-`var` is currently tokenized but falls into parser recovery instead of reaching the binder's existing profile diagnostic. CTS-M0b therefore has no `var-declaration.cl-invalid.ts`. The narrow repair is reserved for CTS-M0d: parse `var` deliberately, reject it with a stable Copeland profile diagnostic, add the fixture, and make no other declaration change.
+At the time of this record, `var` was tokenized but fell into parser recovery instead of reaching the binder's existing profile diagnostic. CTS-M0b therefore had no `var-declaration.cl-invalid.ts`. CTS-M0d completed the narrow repair: it parses `var` deliberately, rejects it with a stable Copeland profile diagnostic, and adds the fixture without changing other declaration behavior.
 
 ## Numeric semantics
 
@@ -406,7 +408,7 @@ CTS-M1 should begin with a deliberately smaller subset than the current frontend
 It should explicitly reject, with backend diagnostics, at least:
 
 - mutable assignment and loops;
-- equality until its recommendation is accepted and frontend spelling is enforced;
+- equality in the originally proposed M1 subset. CTS-M0d later accepted its law and enforced source spellings, while CTS-M1 remains intentionally non-equality;
 - arrays and array operations;
 - payload enums and match, despite their designed later representation;
 - every fallible function/call and `IsPropagated` call;
