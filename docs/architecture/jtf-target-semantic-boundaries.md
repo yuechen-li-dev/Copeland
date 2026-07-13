@@ -40,7 +40,7 @@ JTF-M3a and M3b are complete: Core renderer neutrality is established through Au
 
 JTF-M4a consolidates generic presenter screen composition in `Machina.Presentation.Screens`. The contract carries normalized screen identity, declared layer, and visibility only; it does not add a rendering artifact or an input/lifecycle framework. Aurelian world behavior remains Aurelian-owned and enters a Machina stack only through an integration-owned adapter.
 
-JTF-M4c establishes `UiInputBatch` as the canonical Machina input seam. Machina emits typed frontend resize and close messages; `Aurelian.Machina` consumes those messages to produce Aurelian lifecycle facts and close commands. Platform and playback producers, screen/presentation composition, and backend selection remain integration-host work.
+JTF-M4d completes the presenter/screen/input arc. `UiInputBatch` is the canonical Machina input seam; one integration-host publication fans out in callback order to presenter and frontend lifecycle routing. Machina emits typed resize and close messages; `Aurelian.Machina` translates them into Aurelian lifecycle facts and explicit close commands; Aurelian accepts close before another frame begins and reports a deterministic close stop reason. Platform collection, playback production, screen/presentation composition, backend selection, and native disposal remain integration-host work. InputMan policy is explicitly deferred above this completed foundational seam.
 
 ### Integrations
 

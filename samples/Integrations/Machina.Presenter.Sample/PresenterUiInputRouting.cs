@@ -16,25 +16,49 @@ public static class PresenterUiInputRouter
         UiInputBatch inputBatch,
         PresenterScrollbarInteractionState? interactionState)
     {
+        return Route(render, inputBatch, interactionState, recompose: null);
+    }
+
+    /// <summary>
+    /// Routes a single published batch in callback order. When a resize is
+    /// encountered the host recomposes immediately, before any later
+    /// coordinate-dependent event in that same batch is resolved.
+    /// </summary>
+    public static PresenterUiInputRoutingResult Route(
+        PresenterNavigationShellRenderResult render,
+        UiInputBatch inputBatch,
+        PresenterScrollbarInteractionState? interactionState,
+        Func<UiSurfaceSize, PresenterNavigationShellRenderResult>? recompose)
+    {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(inputBatch);
 
+        PresenterNavigationShellRenderResult currentRender = render;
         PresenterScrollbarInteractionState currentState = interactionState
             ?? PresenterScrollbarInteractionState.Default;
         ImmutableArray<PresenterNavigationInputRoutingResult>.Builder routedEvents =
             ImmutableArray.CreateBuilder<PresenterNavigationInputRoutingResult>();
         MachinaFrontendInputRoutingResult frontendRouting = MachinaFrontendInputRouter.Route(inputBatch);
+        int recompositionCount = 0;
 
         foreach (UiInputEvent inputEvent in inputBatch.Events)
         {
             switch (inputEvent)
             {
-                case UiSurfaceResized or UiCloseRequested:
+                case UiSurfaceResized resized:
+                    if (recompose is not null)
+                    {
+                        currentRender = recompose(resized.Size);
+                        recompositionCount++;
+                    }
+
+                    continue;
+                case UiCloseRequested:
                     continue;
             }
 
             PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
-                render,
+                currentRender,
                 inputEvent,
                 currentState);
             currentState = routed.InteractionState;
@@ -47,7 +71,8 @@ public static class PresenterUiInputRouter
             currentState,
             frontendRouting.FrontendMessages,
             frontendRouting.RequiresRecomposition,
-            frontendRouting.FrontendMessages.OfType<MachinaFrontendCloseRequested>().Any());
+            frontendRouting.FrontendMessages.OfType<MachinaFrontendCloseRequested>().Any(),
+            recompositionCount);
     }
 }
 
@@ -61,7 +86,8 @@ public sealed record PresenterUiInputRoutingResult(
     PresenterScrollbarInteractionState InteractionState,
     ImmutableArray<MachinaFrontendMessage> FrontendMessages,
     bool RequiresRecomposition,
-    bool CloseRequested);
+    bool CloseRequested,
+    int RecompositionCount);
 
 internal static class UiInputEventRoutingExtensions
 {

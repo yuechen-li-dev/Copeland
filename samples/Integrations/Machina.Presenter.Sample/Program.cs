@@ -149,6 +149,7 @@ internal sealed class Program
         private readonly PresenterProofOptions _proofOptions;
         private readonly PresenterNavigationExportOptions _navigationOptions;
         private readonly AvaloniaPresenterInputBackend _inputBackend;
+        private readonly PresenterHostInputCollector _inputCollector;
         private readonly PresenterNavigationRenderSession _renderSession;
         private PresenterNavigationLayout _navigationLayout;
         private PresenterSurfaceSize _surfaceSize;
@@ -157,7 +158,6 @@ internal sealed class Program
         private UiHitTestIndex _hitTestIndex;
         private MachinaComposedFrame _currentFrame;
         private PresenterNavigationShellRenderResult? _navigationShellRender;
-        private ulong _nextInputBatchId;
 
         public PresenterWindow(PresenterProofOptions proofOptions, PresenterNavigationExportOptions navigationOptions)
         {
@@ -190,6 +190,7 @@ internal sealed class Program
             _proofOptions = proofOptions;
             _navigationOptions = navigationOptions;
             _inputBackend = new AvaloniaPresenterInputBackend();
+            _inputCollector = new PresenterHostInputCollector();
             _renderSession = new PresenterNavigationRenderSession();
             _surfaceSize = navigationOptions.RuntimeSizeExplicit
                 ? PresenterSurfaceSize.Compute(navigationOptions.Width, navigationOptions.Height)
@@ -459,8 +460,8 @@ internal sealed class Program
 
         private UiInputBatch CreateInputBatch(UiInputEvent inputEvent)
         {
-            _nextInputBatchId++;
-            return new UiInputBatch(_nextInputBatchId, [inputEvent]);
+            _inputCollector.Record(inputEvent);
+            return _inputCollector.Publish();
         }
 
         private void ApplyAction(UiAction action)

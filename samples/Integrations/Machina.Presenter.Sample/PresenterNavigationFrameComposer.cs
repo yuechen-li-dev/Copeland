@@ -116,13 +116,13 @@ public static class PresenterNavigationFrameComposer
             return;
         }
 
-        int rowWidth = right - left;
-        Rgba32[] rowPixels = new Rgba32[rowWidth];
-        Array.Fill(rowPixels, color);
-
         for (int y = top; y < bottom; y++)
         {
-            Array.Copy(rowPixels, 0, surface.Pixels, (y * surface.Width) + left, rowWidth);
+            int rowStart = (y * surface.Width) + left;
+            for (int x = left; x < right; x++)
+            {
+                surface.Pixels[rowStart + (x - left)] = color;
+            }
         }
     }
 }

@@ -1,14 +1,13 @@
 using Machina.Runtime.Input;
 
-namespace Aurelian.VisibleTriangle;
+namespace Machina.Presenter.Sample;
 
 /// <summary>
-/// Integration-host callback accumulator. Platform callbacks append normalized
-/// values in arrival order; each host iteration atomically publishes and drains
-/// one immutable batch. A callback that arrives after publication starts the
-/// following iteration's batch.
+/// Avalonia-host callback accumulator. It is integration-host machinery: each
+/// UI dispatch iteration publishes one immutable, ordered batch and drains the
+/// accepted callbacks exactly once.
 /// </summary>
-internal sealed class VisibleTriangleHostInputCollector
+internal sealed class PresenterHostInputCollector
 {
     private readonly object gate = new();
     private readonly List<UiInputEvent> pendingEvents = [];
@@ -22,18 +21,6 @@ internal sealed class VisibleTriangleHostInputCollector
         {
             pendingEvents.Add(inputEvent);
         }
-    }
-
-    public void RecordSurfaceResize(uint width, uint height)
-    {
-        Record(new UiSurfaceResized(new UiSurfaceSize(
-            checked((int)width),
-            checked((int)height))));
-    }
-
-    public void RecordCloseRequest()
-    {
-        Record(new UiCloseRequested());
     }
 
     public UiInputBatch Publish()

@@ -1,3 +1,4 @@
+using Aurelian.Core.Engine.Commands;
 using Aurelian.Runtime.Compositor;
 
 namespace Aurelian.Core.Engine.Frames;
@@ -5,7 +6,8 @@ namespace Aurelian.Core.Engine.Frames;
 public sealed record AurelianFrameInput(
     AurelianFrameId FrameId,
     CompositorPolicyFacts CompositorFacts,
-    AurelianHostLifecycleInput? HostLifecycle = null)
+    AurelianHostLifecycleInput? HostLifecycle = null,
+    AurelianCloseRequest? CloseRequest = null)
 {
     public AurelianHostLifecycleInput EffectiveHostLifecycle => HostLifecycle ?? AurelianHostLifecycleInput.None;
 }

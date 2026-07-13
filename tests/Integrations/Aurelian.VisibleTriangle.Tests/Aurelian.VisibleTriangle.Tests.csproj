@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../samples/Integrations/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
+    <ProjectReference Include="../../../samples/Integrations/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
   </ItemGroup>
 </Project>

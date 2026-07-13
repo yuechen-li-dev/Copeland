@@ -10,7 +10,10 @@ $exceptions = @(Get-Content -Raw $exceptionPath | ConvertFrom-Json)
 function Get-RepositoryRelativePath {
     param([string]$Path)
 
-    return ([IO.Path]::GetRelativePath($repositoryRoot, $Path)).Replace("\", "/")
+    $rootWithSeparator = $repositoryRoot.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    $rootUri = [Uri]::new($rootWithSeparator)
+    $pathUri = [Uri]::new([IO.Path]::GetFullPath($Path))
+    return [Uri]::UnescapeDataString($rootUri.MakeRelativeUri($pathUri).ToString()).Replace("\", "/")
 }
 
 function Get-Subsystem {
@@ -321,6 +324,40 @@ function Add-CanonicalInputRoutingViolations {
 
     if ($translatorSource.Contains("UiInputBatch", [StringComparison]::Ordinal)) {
         $violations.Add("Aurelian.Machina lifecycle translation must consume Machina frontend messages, not UiInputBatch.")
+    }
+
+    $hostCollector = Join-Path $repositoryRoot "samples/Integrations/Aurelian.VisibleTriangle/VisibleTriangleHostInputCollector.cs"
+    if (-not (Test-Path $hostCollector -PathType Leaf)) {
+        $violations.Add("The integration-owned visible-triangle host collector is missing.")
+    } else {
+        $collectorSource = Get-Content -Raw $hostCollector
+        foreach ($requiredMember in @("void Record(UiInputEvent inputEvent)", "UiInputBatch Publish()", "pendingEvents.Clear()")) {
+            if (-not $collectorSource.Contains($requiredMember, [StringComparison]::Ordinal)) {
+                $violations.Add("The integration-owned host collector must retain ordered publish-and-drain behavior: missing '$requiredMember'.")
+            }
+        }
+    }
+
+    $frameLoop = Join-Path $repositoryRoot "src/Aurelian/Aurelian.Core/Engine/Frames/AurelianFrameLoop.cs"
+    if (-not (Test-Path $frameLoop -PathType Leaf)) {
+        $violations.Add("Aurelian frame loop is missing the explicit close acceptance boundary.")
+    } else {
+        $frameLoopSource = Get-Content -Raw $frameLoop
+        foreach ($requiredToken in @("input.CloseRequest", "AcceptCloseRequest", "AurelianFrameLoopStopReason.CloseRequested")) {
+            if (-not $frameLoopSource.Contains($requiredToken, [StringComparison]::Ordinal)) {
+                $violations.Add("Aurelian frame loop must accept typed close requests before another frame: missing '$requiredToken'.")
+            }
+        }
+    }
+
+    $visibleHost = Join-Path $repositoryRoot "samples/Integrations/Aurelian.VisibleTriangle/SilkNetFrameInputProvider.cs"
+    if (Test-Path $visibleHost -PathType Leaf) {
+        $visibleHostSource = Get-Content -Raw $visibleHost
+        foreach ($requiredToken in @("inputCollector.Publish()", "MachinaFrontendInputRouter.Route(inputBatch)", "AurelianHostInputTranslator.Translate(")) {
+            if (-not $visibleHostSource.Contains($requiredToken, [StringComparison]::Ordinal)) {
+                $violations.Add("Visible-triangle host must retain the canonical typed close path: missing '$requiredToken'.")
+            }
+        }
     }
 }
 

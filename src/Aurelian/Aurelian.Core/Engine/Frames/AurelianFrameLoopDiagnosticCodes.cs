@@ -12,5 +12,6 @@ public static class AurelianFrameLoopDiagnosticCodes
     public const string RuntimeTickFailed = "ACFL1008";
     public const string RuntimeTickRejected = "ACFL1009";
     public const string RuntimeTickCancelled = "ACFL1010";
+    public const string CloseAccepted = "ACFL1011";
+    public const string CloseRejected = "ACFL1012";
 }
-

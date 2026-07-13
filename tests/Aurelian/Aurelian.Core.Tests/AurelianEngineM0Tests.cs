@@ -6,6 +6,21 @@ namespace Aurelian.Core.Tests;
 public sealed class AurelianEngineM0Tests
 {
     [Fact]
+    public void AcceptCloseRequest_StopsStartedEngineAndIsIdempotent()
+    {
+        var engine = new AurelianEngine();
+        Assert.True(engine.Start().Success);
+
+        AurelianEngineResult first = engine.AcceptCloseRequest(new Aurelian.Core.Engine.Commands.AurelianCloseRequest());
+        AurelianEngineResult repeated = engine.AcceptCloseRequest(new Aurelian.Core.Engine.Commands.AurelianCloseRequest());
+
+        Assert.True(first.Success);
+        Assert.True(repeated.Success);
+        Assert.True(engine.CloseRequestAccepted);
+        Assert.Equal(AurelianEngineStatus.Stopped, engine.Status);
+    }
+
+    [Fact]
     public void AurelianEngine_Start_TransitionsToStarted()
     {
         var engine = new AurelianEngine();

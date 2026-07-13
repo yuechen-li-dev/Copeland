@@ -19,8 +19,9 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
     private readonly Dictionary<AurelianFrameId, VisibleTriangleFrameState> frames = new();
     private readonly int maxFrames;
     private readonly List<string> diagnostics = [];
-    private ulong nextInputBatchId;
+    private readonly VisibleTriangleHostInputCollector inputCollector = new();
     private int suppliedFrames;
+    private bool closeCallbackRecorded;
 
     public SilkNetFrameInputProvider(
         AurelianVulkanSwapchain swapchain,
@@ -65,11 +66,15 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
         }
 
         presenterBackend.PumpEvents();
-        AurelianHostLifecycleInput lifecycle = CollectHostLifecycleInput();
-        if (lifecycle.CloseRequested)
+        HostIterationInput hostInput = CollectHostIterationInput();
+        if (hostInput.CloseRequest is not null)
         {
-            diagnostics.Add($"Frame {frameId.Value} input stopped before acquire because the presenter backend requested close.");
-            return ValueTask.FromResult<AurelianFrameInput?>(null);
+            diagnostics.Add($"Frame {frameId.Value} carries an explicit Aurelian close request before acquire.");
+            return ValueTask.FromResult<AurelianFrameInput?>(new AurelianFrameInput(
+                frameId,
+                Facts(frameId.Value, new PlantOutputRef(plantId, frameId.Value, outputImageId), new PresentationTargetRef(plantId, 0, frameId.Value), PlantOutputReadinessStatus.Pending),
+                hostInput.Lifecycle,
+                hostInput.CloseRequest));
         }
 
         if (suppliedFrames >= maxFrames)
@@ -92,28 +97,35 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
         suppliedFrames++;
 
         CompositorPolicyFacts facts = Facts(frameId.Value, outputRef, target, PlantOutputReadinessStatus.Ready);
-        return ValueTask.FromResult<AurelianFrameInput?>(new AurelianFrameInput(frameId, facts, lifecycle));
+        return ValueTask.FromResult<AurelianFrameInput?>(new AurelianFrameInput(frameId, facts, hostInput.Lifecycle));
     }
 
-    private AurelianHostLifecycleInput CollectHostLifecycleInput()
+    private HostIterationInput CollectHostIterationInput()
     {
-        UiInputBatch inputBatch = VisibleTriangleHostInputCollector.Collect(
-            nextInputBatchId,
-            includeInitialExtent: nextInputBatchId == 0,
-            swapchain.Facts.Width,
-            swapchain.Facts.Height,
-            presenterBackend.CloseRequested);
-        nextInputBatchId++;
+        if (LastNormalizedInput is null)
+        {
+            inputCollector.RecordSurfaceResize(swapchain.Facts.Width, swapchain.Facts.Height);
+        }
+
+        if (presenterBackend.CloseRequested && !closeCallbackRecorded)
+        {
+            inputCollector.RecordCloseRequest();
+            closeCallbackRecorded = true;
+        }
+
+        UiInputBatch inputBatch = inputCollector.Publish();
         LastNormalizedInput = inputBatch;
         MachinaFrontendInputRoutingResult frontendRouting = MachinaFrontendInputRouter.Route(inputBatch);
-        AurelianCloseRequest? closeRequest = frontendRouting.FrontendMessages
-            .OfType<MachinaFrontendCloseRequested>()
-            .Select(AurelianHostInputTranslator.Translate)
-            .FirstOrDefault();
-        AurelianHostLifecycleInput lifecycle = AurelianHostInputTranslator.TranslateLifecycle(
+        AurelianHostInputTranslation translation = AurelianHostInputTranslator.Translate(
             frontendRouting.FrontendMessages);
-        return lifecycle with { CloseRequested = closeRequest is not null };
+        return new HostIterationInput(
+            translation.Lifecycle,
+            translation.CloseRequests.FirstOrDefault());
     }
+
+    private sealed record HostIterationInput(
+        AurelianHostLifecycleInput Lifecycle,
+        AurelianCloseRequest? CloseRequest);
 
     private static CompositorPolicyFacts Facts(
         ulong frameId,

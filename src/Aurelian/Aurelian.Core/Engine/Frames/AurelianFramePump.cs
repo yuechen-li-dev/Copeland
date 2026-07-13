@@ -73,6 +73,15 @@ public sealed class AurelianFramePump
         }
     }
 
+    /// <summary>
+    /// Keeps engine command acceptance behind the same Aurelian-owned frame
+    /// boundary as frame execution; integration hosts never mutate engine state.
+    /// </summary>
+    public AurelianEngineResult AcceptCloseRequest(Aurelian.Core.Engine.Commands.AurelianCloseRequest request)
+    {
+        return engine.AcceptCloseRequest(request);
+    }
+
     private static AurelianFrameResult MapCompositorResult(
         AurelianFrameId frameId,
         CompositorPolicyResult compositorResult)

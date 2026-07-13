@@ -4,6 +4,7 @@ public enum AurelianFrameLoopStopReason
 {
     MaxFramesReached,
     InputProviderCompleted,
+    CloseRequested,
     FrameFailed,
     Cancelled,
     Rejected,

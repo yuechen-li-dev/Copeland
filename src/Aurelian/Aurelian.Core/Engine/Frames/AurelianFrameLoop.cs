@@ -80,6 +80,39 @@ public sealed class AurelianFrameLoop
                         diagnostics);
                 }
 
+                if (input.CloseRequest is not null)
+                {
+                    AurelianEngineResult closeResult = framePump!.AcceptCloseRequest(input.CloseRequest);
+                    if (!closeResult.Success)
+                    {
+                        diagnostics.Add(new AurelianFrameLoopDiagnostic(
+                            AurelianFrameLoopDiagnosticCodes.CloseRejected,
+                            AurelianFrameLoopDiagnosticSeverity.Error,
+                            "Aurelian engine rejected the explicit close request."));
+
+                        return Result(
+                            AurelianFrameLoopStatus.Failed,
+                            AurelianFrameLoopStopReason.FrameFailed,
+                            framesAttempted,
+                            framesCompleted,
+                            iterations,
+                            diagnostics);
+                    }
+
+                    diagnostics.Add(new AurelianFrameLoopDiagnostic(
+                        AurelianFrameLoopDiagnosticCodes.CloseAccepted,
+                        AurelianFrameLoopDiagnosticSeverity.Info,
+                        "Aurelian engine accepted the explicit close request before a new frame began."));
+
+                    return Result(
+                        AurelianFrameLoopStatus.Completed,
+                        AurelianFrameLoopStopReason.CloseRequested,
+                        framesAttempted,
+                        framesCompleted,
+                        iterations,
+                        diagnostics);
+                }
+
                 framesAttempted++;
 
                 AurelianRuntimeTickFrameStepResult? runtimeTickResult = null;

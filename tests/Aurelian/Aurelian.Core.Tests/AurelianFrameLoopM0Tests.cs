@@ -1,5 +1,6 @@
 using Aurelian.Core.Compositor;
 using Aurelian.Core.Engine;
+using Aurelian.Core.Engine.Commands;
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Core.Engine.Graphics;
 using Aurelian.Rendering.Contracts.Compositor;
@@ -92,6 +93,29 @@ public sealed class AurelianFrameLoopM0Tests
         Assert.Equal(AurelianFrameLoopStopReason.InputProviderCompleted, result.StopReason);
         Assert.Equal(0, result.FramesAttempted);
         Assert.Equal(AurelianFrameLoopDiagnosticCodes.FrameInputMissing, Assert.Single(result.Diagnostics).Code);
+    }
+
+    [Fact]
+    public async Task AurelianFrameLoop_RunAsync_AcceptsCloseBeforeBeginningAnotherFrame()
+    {
+        var engine = new AurelianEngine();
+        Assert.True(engine.Start().Success);
+        var provider = new FakeFrameInputProvider(Input(21) with { CloseRequest = new AurelianCloseRequest() });
+        var loop = new AurelianFrameLoop(
+            new AurelianFramePump(engine, new CompositorActuationBridge(new FakeCompositorMechanism())),
+            provider,
+            options: new AurelianFrameLoopOptions(MaxFrames: null));
+
+        AurelianFrameLoopResult result = await loop.RunAsync(new AurelianFrameId(21));
+
+        Assert.True(result.Success, FormatDiagnostics(result));
+        Assert.Equal(AurelianFrameLoopStopReason.CloseRequested, result.StopReason);
+        Assert.Equal(0, result.FramesAttempted);
+        Assert.Equal(0, result.FramesCompleted);
+        Assert.Empty(result.Iterations);
+        Assert.True(engine.CloseRequestAccepted);
+        Assert.Equal(AurelianEngineStatus.Stopped, engine.Status);
+        Assert.Equal(AurelianFrameLoopDiagnosticCodes.CloseAccepted, Assert.Single(result.Diagnostics).Code);
     }
 
     [Fact]
