@@ -220,14 +220,27 @@ Every implementation milestone must run its affected subsystem solution, `JointT
 - **Validation:** contract tests for ordering, clips, viewport, stable IDs, basic/rich text runs; existing pipeline/raster golden behavior remains green; Machina presentation contract has no Dominatus/raster/Aurelian type.
 - **Stop:** one deterministic Machina frame can be produced independently while the compatibility raster path still consumes equivalent data through a temporary internal adapter.
 
-### JTF-M3 — Aurelian backends and backend-neutral Core
+### JTF-M3a — Aurelian Core renderer neutrality
 
-- **Outcome:** establish Aurelian CPU raster ownership and remove Core's concrete Graphics/Vulkan dependency.
-- **In scope:** Machina raster projects, Aurelian Graphics/Core/Rendering.Contracts, affected tests and visible sample wiring.
-- **Non-goals:** no general screen/input migration or production `Aurelian.Machina` golden path.
-- **Prerequisites:** M2 for the stable producer output.
-- **Validation:** CPU pixel/golden parity; Core project/assembly has no Graphics/Vulkan reference/type; headless/fake/null/Vulkan paths pass.
-- **Stop:** all concrete renderer implementations are Aurelian-owned and Core is backend-neutral; temporary Dominatus compatibility may remain isolated.
+**Status: completed.** Core now coordinates only through renderer-neutral compositor and presentation ports. Concrete Vulkan compositor/presentation adapters are owned by Graphics; CPU raster and Machina translation remain deferred. See [JTF-M3a migration record](jtf-m3a-aurelian-core-renderer-neutrality.md).
+
+- **Outcome:** remove Core's concrete Graphics/Vulkan dependency without changing the prepared Vulkan path.
+- **Validation:** Core project/assembly has no Graphics/Vulkan/Silk dependency; ports and contracts remain neutral; fake Core and explicit Vulkan composition paths pass.
+
+### JTF-M3b — Aurelian-owned CPU raster backend
+
+- **Outcome:** move/establish CPU raster realization under Aurelian and prove deterministic pixel parity using established Aurelian renderer vocabulary.
+- **Non-goals:** no Machina dependency or bridge.
+
+### JTF-M3c — `Aurelian.Machina` translation bridge
+
+- **Outcome:** introduce the consumer-owned integration that translates Machina presentation frames to Aurelian renderer vocabulary.
+- **Non-goals:** no direct `MachinaPresentationFrame -> renderer backend` path.
+
+### JTF-M3d — legacy Machina renderer compatibility retirement
+
+- **Outcome:** retire temporary legacy Machina rendering compatibility only after M3b/M3c parity evidence.
+- **Non-goals:** no unrelated screen/input redesign.
 
 ### JTF-M4 — Presenter, screens, and input ownership
 

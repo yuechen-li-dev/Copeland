@@ -1,6 +1,6 @@
 using Aurelian.Rendering.Contracts.Compositor;
 
-namespace Aurelian.Core.Graphics.Vulkan.Compositor;
+namespace Aurelian.Graphics.Vulkan.Compositor;
 
 public sealed record VulkanCompositorMechanismAdapterResult(
     CompositorDispatchResult DispatchResult,

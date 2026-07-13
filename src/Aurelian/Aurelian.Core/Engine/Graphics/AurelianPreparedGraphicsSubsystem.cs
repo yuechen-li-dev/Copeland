@@ -1,4 +1,5 @@
-using Aurelian.Core.Compositor;
+using Aurelian.Rendering.Contracts.Compositor;
+using Aurelian.Rendering.Contracts.Presentation;
 
 namespace Aurelian.Core.Engine.Graphics;
 

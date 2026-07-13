@@ -2,6 +2,7 @@ using Aurelian.Core.Engine;
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Core.Engine.Runtime;
 using Aurelian.Core.Presentation.Screens;
+using Aurelian.Graphics.Vulkan.Presentation;
 using Aurelian.Rendering.Contracts.Compositor;
 using Aurelian.Runtime.Sessions;
 
@@ -226,7 +227,7 @@ internal static class Program
 
     private static void PrintSampleDiagnostics(
         SilkNetFrameInputProvider inputProvider,
-        Aurelian.Core.Graphics.Vulkan.Presentation.VulkanPresentationMechanism presentationMechanism,
+        VulkanPresentationMechanism presentationMechanism,
         IPresenterBackend presenterBackend)
     {
         Console.WriteLine($"Presenter pump count: {presenterBackend.PumpCount}; close requested: {presenterBackend.CloseRequested}.");

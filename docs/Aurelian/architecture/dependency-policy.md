@@ -370,11 +370,9 @@ Core remains graphics-free in A57. It must not reference `Aurelian.Graphics`, Si
 
 The production frame pump and concrete Vulkan compositor adapter are deferred. The next dependency decision should keep the Vulkan mechanism behind an Aurelian-owned adapter seam rather than letting Runtime or neutral contracts depend on backend details.
 
-## A58 dependency note — Core-to-Graphics adapter
+## A58 historical dependency note — superseded by JTF-M3a
 
-A58 intentionally allows `Aurelian.Core -> Aurelian.Graphics` because Core is now the high-level engine integration spine. This exception does not relax lower-level dependency boundaries: `Aurelian.Runtime` must remain graphics-free, `Aurelian.Graphics` must remain Runtime/Dominatus-free, and `Aurelian.Rendering.Contracts` must remain neutral.
-
-The A58 Vulkan compositor adapter depends on prebuilt graphics mechanism objects supplied by the caller. It does not act as a service locator, create global singletons, instantiate windows or swapchains, add packages, or hide frame-loop ownership inside Core.
+A58 temporarily allowed `Aurelian.Core -> Aurelian.Graphics` while its Vulkan adapter was still physically owned by Core. JTF-M3a removes that exception: neutral compositor and presentation ports now live in `Aurelian.Rendering.Contracts`, concrete Vulkan adapters live in `Aurelian.Graphics`, and samples/integration tests compose them explicitly. Core continues to own engine integration policy but never references the concrete backend.
 
 ## A59 frame pump dependency note
 

@@ -2,8 +2,6 @@ using Aurelian.Core.Compositor;
 using Aurelian.Core.Engine;
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Core.Engine.Graphics;
-using Aurelian.Core.Graphics.Vulkan.Compositor;
-using Aurelian.Core.Graphics.Vulkan.Presentation;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Commanding;
 using Aurelian.Graphics.Vulkan.Commanding.Draw;

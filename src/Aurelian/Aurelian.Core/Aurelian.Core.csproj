@@ -5,6 +5,5 @@
   <ItemGroup>
     <ProjectReference Include="../Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <ProjectReference Include="../Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
-    <ProjectReference Include="../Aurelian.Graphics/Aurelian.Graphics.csproj" />
   </ItemGroup>
 </Project>

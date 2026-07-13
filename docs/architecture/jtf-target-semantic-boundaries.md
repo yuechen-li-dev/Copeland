@@ -34,6 +34,10 @@ Aurelian owns engine lifecycle, worlds/game objects, engine actuation, frame loo
 
 `Aurelian.Core` is backend-neutral. It retains engine lifecycle/frame coordination, compositor-policy ports, presentation-mechanism ports, and engine-owned screen/world seams. Concrete Vulkan compositor/presentation adapters and their diagnostics live with `Aurelian.Graphics` (or a narrowly named Aurelian Vulkan backend project if later split). Core never references that concrete backend.
 
+### JTF-M3 subdivision status
+
+JTF-M3a is complete: Core renderer neutrality is established through Aurelian-owned neutral mechanism ports in `Aurelian.Rendering.Contracts`, while the current Vulkan compositor and presentation adapters are owned by `Aurelian.Graphics`. The remaining work is deliberately sequenced as JTF-M3b (Aurelian-owned CPU raster backend), JTF-M3c (`Aurelian.Machina` translation bridge), and JTF-M3d (legacy Machina renderer compatibility retirement). No Aurelian production project references Machina during M3a or M3b.
+
 ### Integrations
 
 `Aurelian.Machina` is consumer-owned and depends on Machina.UI presentation contracts and Aurelian renderer contracts. It translates Machina presentation frames into Aurelian render inputs and connects Machina UI actions/input routing to Aurelian runtime/game behavior. It does not own either side's semantic contracts.

@@ -1,7 +1,8 @@
-using Aurelian.Rendering.Contracts.Compositor;
+namespace Aurelian.Rendering.Contracts.Compositor;
 
-namespace Aurelian.Core.Compositor;
-
+/// <summary>
+/// Executes a renderer-specific compositor mechanism from a neutral dispatch request.
+/// </summary>
 public interface ICompositorMechanism
 {
     Task<CompositorDispatchResult> DispatchAsync(

@@ -1,5 +1,4 @@
 using Aurelian.Core.Compositor;
-using Aurelian.Core.Graphics.Vulkan.Compositor;
 using Aurelian.Graphics.Vulkan.Commanding;
 using Aurelian.Graphics.Vulkan.Commanding.Submit;
 using Aurelian.Graphics.Vulkan.Compositor;

@@ -1,4 +1,4 @@
-namespace Aurelian.Core.Graphics.Vulkan.Compositor;
+namespace Aurelian.Graphics.Vulkan.Compositor;
 
 public static class VulkanCompositorMechanismAdapterDiagnosticCodes
 {

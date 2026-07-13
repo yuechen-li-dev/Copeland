@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using Aurelian.Core.Compositor;
 using Aurelian.Core.Engine;
 using Aurelian.Core.Engine.Frames;
-using Aurelian.Core.Graphics.Vulkan.Compositor;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Tests.Fixtures.Spirv;
 using Aurelian.Graphics.Vulkan.Commanding;

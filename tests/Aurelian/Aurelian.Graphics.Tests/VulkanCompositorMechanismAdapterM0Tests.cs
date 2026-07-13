@@ -1,11 +1,9 @@
-using Aurelian.Core.Compositor;
-using Aurelian.Core.Graphics.Vulkan.Compositor;
 using Aurelian.Graphics.Plants;
 using Aurelian.Graphics.Vulkan.Compositor;
 using Aurelian.Rendering.Contracts.Compositor;
 using Xunit;
 
-namespace Aurelian.Core.Tests;
+namespace Aurelian.Graphics.Tests;
 
 public sealed class VulkanCompositorMechanismAdapterM0Tests
 {
@@ -13,7 +11,7 @@ public sealed class VulkanCompositorMechanismAdapterM0Tests
     private static readonly PresentationTargetRef Target = new(0, 0, 1);
 
     [Fact]
-    public void VulkanCompositorMechanismAdapter_ImplementsICompositorMechanism()
+    public void VulkanCompositorMechanismAdapter_ImplementsNeutralMechanismPort()
     {
         var adapter = Adapter(new FakeVulkanCompositorPassthroughMechanism(Result(CompositorDispatchStatus.Dispatched, 1)));
 
@@ -51,14 +49,14 @@ public sealed class VulkanCompositorMechanismAdapterM0Tests
     }
 
     [Fact]
-    public void VulkanCompositorMechanismAdapter_DoesNotRequireRuntimeOrDominatus()
+    public void VulkanCompositorMechanismAdapter_ProductionProjectsRemainDecoupled()
     {
         string coreProject = File.ReadAllText(ProjectPath("src/Aurelian/Aurelian.Core/Aurelian.Core.csproj"));
         string graphicsProject = File.ReadAllText(ProjectPath("src/Aurelian/Aurelian.Graphics/Aurelian.Graphics.csproj"));
         string contractsProject = File.ReadAllText(ProjectPath("src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj"));
-        string adapterSource = File.ReadAllText(ProjectPath("src/Aurelian/Aurelian.Core/Graphics/Vulkan/Compositor/VulkanCompositorMechanismAdapter.cs"));
+        string adapterSource = File.ReadAllText(ProjectPath("src/Aurelian/Aurelian.Graphics/Vulkan/Compositor/VulkanCompositorMechanismAdapter.cs"));
 
-        Assert.Contains("Aurelian.Graphics", coreProject, StringComparison.Ordinal);
+        Assert.DoesNotContain("Aurelian.Graphics", coreProject, StringComparison.Ordinal);
         Assert.DoesNotContain("Aurelian.Runtime", graphicsProject, StringComparison.Ordinal);
         Assert.DoesNotContain("Dominatus", graphicsProject, StringComparison.Ordinal);
         Assert.DoesNotContain("Aurelian.Runtime", contractsProject, StringComparison.Ordinal);
@@ -75,14 +73,24 @@ public sealed class VulkanCompositorMechanismAdapterM0Tests
         return new VulkanCompositorMechanismAdapter(mechanism, plantOutputs, presentationTargets);
     }
 
-    private static CompositorDispatchRequest Request(ulong frameId) =>
-        new(frameId, CompositorPolicyKind.Passthrough, [Output], Target);
+    private static CompositorDispatchRequest Request(ulong frameId)
+    {
+        return new CompositorDispatchRequest(frameId, CompositorPolicyKind.Passthrough, [Output], Target);
+    }
 
     private static CompositorDispatchResult Result(
         CompositorDispatchStatus status,
         ulong frameId,
-        IReadOnlyList<CompositorDispatchDiagnostic>? dispatchDiagnostics = null) =>
-        new(status, frameId, CompositorPolicyKind.Passthrough, Target, CompositorDiagnostics.Empty, dispatchDiagnostics ?? []);
+        IReadOnlyList<CompositorDispatchDiagnostic>? dispatchDiagnostics = null)
+    {
+        return new CompositorDispatchResult(
+            status,
+            frameId,
+            CompositorPolicyKind.Passthrough,
+            Target,
+            CompositorDiagnostics.Empty,
+            dispatchDiagnostics ?? []);
+    }
 
     private static string ProjectPath(string relativePath)
     {

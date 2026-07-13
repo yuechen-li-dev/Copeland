@@ -3,6 +3,7 @@ using Aurelian.Core.Engine;
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Core.Engine.Graphics;
 using Aurelian.Rendering.Contracts.Compositor;
+using Aurelian.Rendering.Contracts.Presentation;
 using Aurelian.Runtime.Compositor;
 using Xunit;
 

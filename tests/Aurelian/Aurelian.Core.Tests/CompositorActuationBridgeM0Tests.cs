@@ -60,10 +60,11 @@ public sealed class CompositorActuationBridgeM0Tests
         string[] sourceFiles = Directory.GetFiles(ProjectPath("src/Aurelian/Aurelian.Core"), "*.cs", SearchOption.AllDirectories);
         string source = string.Join('\n', sourceFiles.Select(File.ReadAllText));
 
-        Assert.Contains(GraphicsProjectName(), coreProject, StringComparison.Ordinal);
+        Assert.DoesNotContain(GraphicsProjectName(), coreProject, StringComparison.Ordinal);
         Assert.DoesNotContain(GraphicsProjectName(), testProject, StringComparison.Ordinal);
         Assert.Contains("Aurelian.Rendering.Contracts", coreProject, StringComparison.Ordinal);
         Assert.DoesNotContain("Sil" + "k", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Vul" + "kan", source, StringComparison.Ordinal);
     }
 
     private static string GraphicsProjectName() => "Aurelian." + "Gra" + "phics";

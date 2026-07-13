@@ -2,6 +2,7 @@ using Aurelian.Core.Compositor;
 using Aurelian.Core.Engine;
 using Aurelian.Core.Engine.Graphics;
 using Aurelian.Rendering.Contracts.Compositor;
+using Aurelian.Rendering.Contracts.Presentation;
 using Xunit;
 
 namespace Aurelian.Core.Tests;

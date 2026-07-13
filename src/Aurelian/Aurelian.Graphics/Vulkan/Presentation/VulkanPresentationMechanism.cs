@@ -1,7 +1,6 @@
-using Aurelian.Core.Engine.Graphics;
-using Aurelian.Graphics.Vulkan.Presentation;
+using Aurelian.Rendering.Contracts.Presentation;
 
-namespace Aurelian.Core.Graphics.Vulkan.Presentation;
+namespace Aurelian.Graphics.Vulkan.Presentation;
 
 public sealed class VulkanPresentationMechanism : IPresentationMechanism
 {
@@ -54,5 +53,9 @@ public sealed class VulkanPresentationMechanism : IPresentationMechanism
     }
 
     private static string FormatDiagnostics(VulkanSwapchainPresentResult result)
-        => string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+    {
+        return string.Join(
+            Environment.NewLine,
+            result.Diagnostics.Select(static diagnostic => $"{diagnostic.Code}: {diagnostic.Message}"));
+    }
 }
