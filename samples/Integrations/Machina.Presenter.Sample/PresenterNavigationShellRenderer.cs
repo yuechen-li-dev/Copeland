@@ -101,7 +101,7 @@ public sealed record PresenterNavigationShellRenderResult(
         if (PageRender?.OblivionInteraction is not null)
         {
             return PageRender.OblivionInteraction.HitTest(
-                new PresenterInputPoint((float)contentX, (float)(contentY - ScrollbarGeometry.ScrollOffset)),
+                new PointerPoint(contentX, contentY - ScrollbarGeometry.ScrollOffset),
                 ScrollbarGeometry.ScrollOffset);
         }
 

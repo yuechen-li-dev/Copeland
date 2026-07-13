@@ -241,7 +241,7 @@ function Add-ScreenOwnershipViolations {
     $integrationSolution = Get-Content -Raw (Join-Path $repositoryRoot "JointTaskForce.Integration.slnx")
     $crossSystemSamples = @(
         "samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj",
-        "samples/Machina.UI/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj",
+        "samples/Integrations/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj",
         "samples/Integrations/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj")
 
     foreach ($sampleProject in $crossSystemSamples) {
@@ -262,6 +262,65 @@ function Add-ScreenOwnershipViolations {
     $retiredVisibleTriangleRoot = Join-Path $repositoryRoot "samples/Aurelian/Aurelian.VisibleTriangle"
     if (Test-Path $retiredVisibleTriangleRoot -PathType Container) {
         $violations.Add("Cross-system visible-triangle sample must not remain under samples/Aurelian after M4b.")
+    }
+
+    $retiredPresenterRoot = Join-Path $repositoryRoot "samples/Machina.UI/Machina.Presenter.Sample"
+    if (Test-Path $retiredPresenterRoot -PathType Container) {
+        $violations.Add("Cross-system presenter sample must not remain under samples/Machina.UI after M4c.")
+    }
+}
+
+function Add-CanonicalInputRoutingViolations {
+    $retiredInputTokens = @(
+        "PresenterInputEvent",
+        "PresenterInputKind",
+        "PresenterInputButton",
+        "PresenterInputPoint",
+        "PresenterKeyboardInput",
+        "PresenterKeyModifiers")
+    $sourceRoots = @(
+        (Join-Path $repositoryRoot "src"),
+        (Join-Path $repositoryRoot "samples"),
+        (Join-Path $repositoryRoot "tests"))
+
+    foreach ($sourceRoot in $sourceRoots) {
+        foreach ($sourceFile in @(Get-ChildItem $sourceRoot -Recurse -Filter *.cs)) {
+            $source = Get-Content -Raw $sourceFile.FullName
+            foreach ($token in $retiredInputTokens) {
+                if ($source.Contains($token, [StringComparison]::Ordinal)) {
+                    $violations.Add("$(Get-RepositoryRelativePath $sourceFile.FullName) retains retired presenter compatibility input token '$token'.")
+                }
+            }
+        }
+    }
+
+    $frontendRouter = Join-Path $repositoryRoot "src/Machina.UI/Machina.Presentation/Input/MachinaFrontendInputRouter.cs"
+    if (-not (Test-Path $frontendRouter -PathType Leaf)) {
+        $violations.Add("Machina frontend input router is missing; UiInputBatch must remain the canonical lifecycle routing input.")
+    } else {
+        $routerSource = Get-Content -Raw $frontendRouter
+        if (-not $routerSource.Contains("Route(UiInputBatch inputBatch)", [StringComparison]::Ordinal)) {
+            $violations.Add("Machina frontend input router must expose UiInputBatch as its canonical routing input.")
+        }
+    }
+
+    $presenterRouter = Join-Path $repositoryRoot "samples/Integrations/Machina.Presenter.Sample/PresenterUiInputRouting.cs"
+    if (-not (Test-Path $presenterRouter -PathType Leaf)) {
+        $violations.Add("Integration-owned presenter UiInputBatch router is missing.")
+    } else {
+        $routerSource = Get-Content -Raw $presenterRouter
+        if (-not $routerSource.Contains("UiInputBatch inputBatch", [StringComparison]::Ordinal)) {
+            $violations.Add("Presenter routing must consume UiInputBatch directly.")
+        }
+    }
+
+    $translatorSource = Get-Content -Raw (Join-Path $repositoryRoot "src/Integrations/Aurelian.Machina/AurelianHostInputTranslator.cs")
+    if ($translatorSource.Contains("case UiCloseRequested", [StringComparison]::Ordinal)) {
+        $violations.Add("Aurelian lifecycle translation must not consume UiCloseRequested directly; close must cross MachinaFrontendCloseRequested.")
+    }
+
+    if ($translatorSource.Contains("UiInputBatch", [StringComparison]::Ordinal)) {
+        $violations.Add("Aurelian.Machina lifecycle translation must consume Machina frontend messages, not UiInputBatch.")
     }
 }
 
@@ -469,6 +528,7 @@ Add-SolutionTopologyViolations
 Add-IntegrationOwnershipViolations
 Add-MachinaPresentationOnlyViolations
 Add-ScreenOwnershipViolations
+Add-CanonicalInputRoutingViolations
 
 if ($violations.Count -gt 0) {
     Write-Error ("Dependency boundary validation failed:`n- " + ($violations -join "`n- "))

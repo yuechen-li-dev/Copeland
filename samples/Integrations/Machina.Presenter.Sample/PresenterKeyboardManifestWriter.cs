@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Machina.Presenter.Sample;
 
-public static class PresenterKeyboardInputManifestWriter
+public static class PresenterKeyboardManifestWriter
 {
     public const string JsonFileName = "presenter-keyboard-input-manifest.json";
     public const string TextFileName = "presenter-keyboard-input-manifest.txt";
@@ -20,9 +20,9 @@ public static class PresenterKeyboardInputManifestWriter
         string jsonPath = Path.Combine(outputDirectory, JsonFileName);
         string textPath = Path.Combine(outputDirectory, TextFileName);
 
-        string[] supportedKeys = PresenterKeyboardInputSupport.SupportedKeys.ToArray();
-        string[] supportedShortcuts = PresenterKeyboardInputSupport.SupportedShortcuts.ToArray();
-        string[] deferredWork = PresenterKeyboardInputSupport.DeferredWork.ToArray();
+        string[] supportedKeys = PresenterKeyboardSupport.SupportedKeys.ToArray();
+        string[] supportedShortcuts = PresenterKeyboardSupport.SupportedShortcuts.ToArray();
+        string[] deferredWork = PresenterKeyboardSupport.DeferredWork.ToArray();
 
         var manifest = new
         {

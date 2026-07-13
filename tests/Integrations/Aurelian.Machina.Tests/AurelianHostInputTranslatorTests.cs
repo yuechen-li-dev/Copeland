@@ -9,7 +9,7 @@ namespace Aurelian.Machina.Tests;
 public sealed class AurelianHostInputTranslatorTests
 {
     [Fact]
-    public void TranslateLifecycle_ConsumesOnlyAurelianHostFactsFromOrderedUiBatch()
+    public void TranslateLifecycle_ConsumesOnlyTypedFrontendResizeFacts()
     {
         var batch = new UiInputBatch(12,
         [
@@ -19,10 +19,11 @@ public sealed class AurelianHostInputTranslatorTests
             new UiCloseRequested(),
         ]);
 
-        var lifecycle = AurelianHostInputTranslator.TranslateLifecycle(batch);
+        MachinaFrontendInputRoutingResult frontendRouting = MachinaFrontendInputRouter.Route(batch);
+        var lifecycle = AurelianHostInputTranslator.TranslateLifecycle(frontendRouting.FrontendMessages);
 
         Assert.Equal(new Aurelian.Core.Engine.Frames.AurelianHostExtent(800, 600), lifecycle.HostExtent);
-        Assert.True(lifecycle.CloseRequested);
+        Assert.False(lifecycle.CloseRequested);
     }
 
     [Fact]

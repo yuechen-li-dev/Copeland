@@ -1,5 +1,6 @@
 using Machina.Core.Actions;
 using Machina.Layout.Geometry;
+using Machina.Runtime.Input;
 using Machina.Standard.Theme;
 
 namespace Machina.Presenter.Sample.Playback;
@@ -243,42 +244,34 @@ public sealed class PresenterPlaybackRunner
                 render,
                 interactionState,
                 [
-                    new PresenterInputEvent(
-                        PresenterInputKind.PointerPressed,
+                    new UiPointerButtonChanged(
                         GetRequiredPoint(resolvedTarget, "click"),
-                        PresenterInputButton.Primary,
-                        BackendName: "MachinaPlayback"),
-                    new PresenterInputEvent(
-                        PresenterInputKind.PointerReleased,
+                        UiPointerButton.Primary,
+                        IsPressed: true,
+                        UiModifiers.None),
+                    new UiPointerButtonChanged(
                         GetRequiredPoint(resolvedTarget, "click"),
-                        PresenterInputButton.Primary,
-                        BackendName: "MachinaPlayback"),
+                        UiPointerButton.Primary,
+                        IsPressed: false,
+                        UiModifiers.None),
                 ]),
             PresenterPlaybackWheelStep wheel => ExecuteInputSequence(
                 state,
                 render,
                 interactionState,
                 [
-                    new PresenterInputEvent(
-                        PresenterInputKind.Wheel,
+                    new UiPointerWheel(
                         GetRequiredPoint(resolvedTarget, "wheel"),
-                        WheelDeltaY: NormalizeWheelDelta(wheel.DeltaY),
-                        BackendName: "MachinaPlayback"),
+                        DeltaX: 0,
+                        DeltaY: NormalizeWheelDelta(wheel.DeltaY),
+                        UiModifiers.None),
                 ]),
             PresenterPlaybackKeyStep key => ExecuteInputSequence(
                 state,
                 render,
                 interactionState,
                 [
-                    new PresenterInputEvent(
-                        PresenterInputKind.KeyDown,
-                        default,
-                        BackendName: "MachinaPlayback",
-                        Keyboard: new PresenterKeyboardInput(
-                            key.Key,
-                            Text: null,
-                            PresenterKeyModifiers.None,
-                            IsRepeat: false)),
+                    new UiKeyChanged(key.Key, IsPressed: true, IsRepeat: false, UiModifiers.None),
                 ]),
             PresenterPlaybackDragStep drag => ExecuteDragStep(state, render, interactionState, drag, resolvedTarget),
             _ => throw new InvalidOperationException($"Unsupported playback step type '{step.Type}'."),
@@ -316,21 +309,20 @@ public sealed class PresenterPlaybackRunner
                 render,
                 interactionState,
                 [
-                    new PresenterInputEvent(
-                        PresenterInputKind.PointerPressed,
+                    new UiPointerButtonChanged(
                         start.ToInputPoint(),
-                        PresenterInputButton.Primary,
-                        BackendName: "MachinaPlayback"),
-                    new PresenterInputEvent(
-                        PresenterInputKind.PointerMoved,
+                        UiPointerButton.Primary,
+                        IsPressed: true,
+                        UiModifiers.None),
+                    new UiPointerMoved(
                         end.ToInputPoint(),
-                        PresenterInputButton.Primary,
-                        BackendName: "MachinaPlayback"),
-                    new PresenterInputEvent(
-                        PresenterInputKind.PointerReleased,
+                        PreviousPosition: start.ToInputPoint(),
+                        UiModifiers.None),
+                    new UiPointerButtonChanged(
                         end.ToInputPoint(),
-                        PresenterInputButton.Primary,
-                        BackendName: "MachinaPlayback"),
+                        UiPointerButton.Primary,
+                        IsPressed: false,
+                        UiModifiers.None),
                 ]);
         }
 
@@ -341,21 +333,20 @@ public sealed class PresenterPlaybackRunner
                 render,
                 interactionState,
                 [
-                    new PresenterInputEvent(
-                        PresenterInputKind.PointerPressed,
+                    new UiPointerButtonChanged(
                         drag.FromPoint.Value.ToInputPoint(),
-                        PresenterInputButton.Primary,
-                        BackendName: "MachinaPlayback"),
-                    new PresenterInputEvent(
-                        PresenterInputKind.PointerMoved,
+                        UiPointerButton.Primary,
+                        IsPressed: true,
+                        UiModifiers.None),
+                    new UiPointerMoved(
                         drag.ToPoint.Value.ToInputPoint(),
-                        PresenterInputButton.Primary,
-                        BackendName: "MachinaPlayback"),
-                    new PresenterInputEvent(
-                        PresenterInputKind.PointerReleased,
+                        PreviousPosition: drag.FromPoint.Value.ToInputPoint(),
+                        UiModifiers.None),
+                    new UiPointerButtonChanged(
                         drag.ToPoint.Value.ToInputPoint(),
-                        PresenterInputButton.Primary,
-                        BackendName: "MachinaPlayback"),
+                        UiPointerButton.Primary,
+                        IsPressed: false,
+                        UiModifiers.None),
                 ]);
         }
 
@@ -367,7 +358,7 @@ public sealed class PresenterPlaybackRunner
         PresenterNavigationState state,
         PresenterNavigationShellRenderResult initialRender,
         PresenterScrollbarInteractionState initialInteractionState,
-        IReadOnlyList<PresenterInputEvent> events)
+        IReadOnlyList<UiInputEvent> events)
     {
         PresenterNavigationState currentState = state;
         PresenterScrollbarInteractionState currentInteractionState = initialInteractionState;
@@ -376,16 +367,17 @@ public sealed class PresenterPlaybackRunner
         PresenterPlaybackHitTestResult? lastHitTest = null;
         PresenterPlaybackDispatchedAction? lastDispatchedAction = null;
 
-        foreach (PresenterInputEvent inputEvent in events)
+        ulong batchId = 0;
+        foreach (UiInputEvent inputEvent in events)
         {
-            PresenterInputEvent normalizedInput = PresenterInputEvent.FromFoundationalEvent(
-                inputEvent.ToFoundationalEvent(),
-                inputEvent.BackendName);
-            PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
+            batchId++;
+            var inputBatch = new UiInputBatch(batchId, [inputEvent]);
+            PresenterUiInputRoutingResult batchRouting = PresenterUiInputRouter.Route(
                 currentRender,
-                normalizedInput,
+                inputBatch,
                 currentInteractionState);
-            currentInteractionState = routed.InteractionState;
+            PresenterNavigationInputRoutingResult routed = batchRouting.RoutedEvents.Single();
+            currentInteractionState = batchRouting.InteractionState;
 
             UiActionId? actionId = routed.ActionId;
             if (actionId is not null)
@@ -399,15 +391,15 @@ public sealed class PresenterPlaybackRunner
             }
 
             lastInput = new PresenterPlaybackEmittedInput(
-                Kind: normalizedInput.Kind.ToString(),
-                Key: normalizedInput.Keyboard?.Key.ToString(),
-                WheelDeltaY: normalizedInput.Kind == PresenterInputKind.Wheel ? normalizedInput.WheelDeltaY : null,
+                Kind: inputEvent.GetType().Name,
+                Key: inputEvent is UiKeyChanged keyChanged ? keyChanged.Key.ToString() : null,
+                WheelDeltaY: inputEvent.IsWheel(out double wheelDeltaY) ? wheelDeltaY : null,
                 ActionId: actionId?.Value,
                 PointerCaptureRequest: routed.PointerCaptureRequest.ToString(),
                 InputConsumed: routed.InputConsumed);
 
             lastHitTest = routed.ContentHitResult is null
-                ? BuildFallbackHitTestResult(currentRender, normalizedInput, routed)
+                ? BuildFallbackHitTestResult(currentRender, inputEvent, routed)
                 : new PresenterPlaybackHitTestResult(
                     RegionKind: routed.ContentHitResult.RegionKind,
                     RegionId: routed.ContentHitResult.RegionId,
@@ -420,7 +412,7 @@ public sealed class PresenterPlaybackRunner
                 ActionId: actionId?.Value,
                 ActionType: DescribeActionType(actionId),
                 ActionHandled: actionId is not null,
-                WheelConsumed: normalizedInput.Kind == PresenterInputKind.Wheel && routed.InputConsumed);
+                WheelConsumed: inputEvent.IsWheel(out _) && routed.InputConsumed);
 
             currentRender = Render(currentState, currentRender.Layout, currentRender.Session);
         }
@@ -688,7 +680,7 @@ public sealed class PresenterPlaybackRunner
         return PresenterNavigationLayout.Create(viewport.Width, viewport.Height, shellMode);
     }
 
-    private static PresenterInputPoint GetRequiredPoint(PresenterPlaybackResolvedTarget? target, string stepType)
+    private static PointerPoint GetRequiredPoint(PresenterPlaybackResolvedTarget? target, string stepType)
     {
         if (target is null)
         {
@@ -752,10 +744,15 @@ public sealed class PresenterPlaybackRunner
 
     private static PresenterPlaybackHitTestResult? BuildFallbackHitTestResult(
         PresenterNavigationShellRenderResult render,
-        PresenterInputEvent inputEvent,
+        UiInputEvent inputEvent,
         PresenterNavigationInputRoutingResult routed)
     {
         if (routed.HitTarget.Kind != PresenterNavigationHitKind.ContentViewport)
+        {
+            return null;
+        }
+
+        if (!inputEvent.TryGetPointerPosition(out PointerPoint pointerPosition))
         {
             return null;
         }
@@ -766,8 +763,8 @@ public sealed class PresenterPlaybackRunner
             CardId: null,
             ScrollRegionId: null,
             LocalPoint: new PresenterPlaybackResolvedPoint(
-                inputEvent.Position.X - (float)render.ChromeGeometry.ContentViewportRect.X,
-                inputEvent.Position.Y - (float)render.ChromeGeometry.ContentViewportRect.Y));
+                pointerPosition.X - render.ChromeGeometry.ContentViewportRect.X,
+                pointerPosition.Y - render.ChromeGeometry.ContentViewportRect.Y));
     }
 
     private static string DescribeActionType(UiActionId? actionId)

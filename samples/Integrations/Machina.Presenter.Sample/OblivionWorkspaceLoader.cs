@@ -405,8 +405,8 @@ public static class OblivionWorkspacePaths
         yield return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "OblivionSampleWorkspace", "workspace.oblivion.json"));
 
         string repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-        yield return Path.Combine(repoRoot, "samples", "Machina.Presenter.Sample", "OblivionSampleWorkspace", "workspace.oblivion.json");
+        yield return Path.Combine(repoRoot, "samples", "Integrations", "Machina.Presenter.Sample", "OblivionSampleWorkspace", "workspace.oblivion.json");
 
-        yield return Path.Combine(Directory.GetCurrentDirectory(), "samples", "Machina.Presenter.Sample", "OblivionSampleWorkspace", "workspace.oblivion.json");
+        yield return Path.Combine(Directory.GetCurrentDirectory(), "samples", "Integrations", "Machina.Presenter.Sample", "OblivionSampleWorkspace", "workspace.oblivion.json");
     }
 }

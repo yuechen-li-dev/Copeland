@@ -1,4 +1,5 @@
 using Machina.Core.Actions;
+using Machina.Runtime.Input;
 
 namespace Machina.Presenter.Sample;
 
@@ -61,7 +62,7 @@ public static class PresenterScrollbarInteractionStateMachine
         PresenterScrollbarInteractionState? currentState,
         PresenterScrollbarInteractionContext context,
         PresenterScrollbarHitPart hitPart,
-        PresenterInputEvent inputEvent)
+        UiInputEvent inputEvent)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(inputEvent);
@@ -84,17 +85,16 @@ public static class PresenterScrollbarInteractionStateMachine
         PresenterScrollbarInteractionState.Idle idle,
         PresenterScrollbarInteractionContext context,
         PresenterScrollbarHitPart hitPart,
-        PresenterInputEvent inputEvent)
+        UiInputEvent inputEvent)
     {
-        if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
-            inputEvent.Button == PresenterInputButton.Primary &&
+        if (inputEvent.IsPrimaryPressed() &&
             hitPart == PresenterScrollbarHitPart.Thumb &&
             context.ScrollbarGeometry.IsVisible)
         {
             return new PresenterScrollbarInteractionResult(
                 new PresenterScrollbarInteractionState.ThumbDragging(
                     context.Target,
-                    inputEvent.Position.Y,
+                    checked((float)GetPointerPosition(inputEvent).Y),
                     (float)context.ScrollbarGeometry.ScrollOffset,
                     context.ScrollbarGeometry),
                 null,
@@ -102,13 +102,12 @@ public static class PresenterScrollbarInteractionStateMachine
                 SuppressFurtherRouting: true);
         }
 
-        if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
-            inputEvent.Button == PresenterInputButton.Primary &&
+        if (inputEvent.IsPrimaryPressed() &&
             hitPart == PresenterScrollbarHitPart.Track &&
             context.ScrollbarGeometry.IsVisible)
         {
             double pageDelta = context.ViewportHeight * 0.9;
-            double nextOffset = inputEvent.Position.Y < context.ScrollbarGeometry.ThumbRect.Y
+            double nextOffset = GetPointerPosition(inputEvent).Y < context.ScrollbarGeometry.ThumbRect.Y
                 ? context.ScrollbarGeometry.ScrollOffset - pageDelta
                 : context.ScrollbarGeometry.ScrollOffset + pageDelta;
 
@@ -119,11 +118,11 @@ public static class PresenterScrollbarInteractionStateMachine
                 SuppressFurtherRouting: true);
         }
 
-        if (inputEvent.Kind == PresenterInputKind.Wheel &&
+        if (inputEvent.IsWheel(out double wheelDeltaY) &&
             hitPart == PresenterScrollbarHitPart.Viewport &&
             context.ScrollbarGeometry.MaxScrollOffset > 0)
         {
-            double nextOffset = context.ScrollbarGeometry.ScrollOffset - (inputEvent.WheelDeltaY * PresenterNavigationInputRouter.ScrollWheelMultiplier);
+            double nextOffset = context.ScrollbarGeometry.ScrollOffset - (wheelDeltaY * PresenterNavigationInputRouter.ScrollWheelMultiplier);
 
             return new PresenterScrollbarInteractionResult(
                 idle,
@@ -142,11 +141,11 @@ public static class PresenterScrollbarInteractionStateMachine
     private static PresenterScrollbarInteractionResult ReduceThumbDragging(
         PresenterScrollbarInteractionState.ThumbDragging dragging,
         PresenterScrollbarInteractionContext context,
-        PresenterInputEvent inputEvent)
+        UiInputEvent inputEvent)
     {
-        if (inputEvent.Kind == PresenterInputKind.PointerMoved)
+        if (inputEvent.IsPointerMoved())
         {
-            UiActionId? actionId = BuildThumbDragAction(dragging, context, inputEvent.Position);
+            UiActionId? actionId = BuildThumbDragAction(dragging, context, GetPointerPosition(inputEvent));
             return new PresenterScrollbarInteractionResult(
                 dragging,
                 actionId,
@@ -154,7 +153,7 @@ public static class PresenterScrollbarInteractionStateMachine
                 SuppressFurtherRouting: true);
         }
 
-        if (inputEvent.Kind == PresenterInputKind.PointerReleased)
+        if (inputEvent.IsPointerReleased())
         {
             return new PresenterScrollbarInteractionResult(
                 PresenterScrollbarInteractionState.Default,
@@ -173,7 +172,7 @@ public static class PresenterScrollbarInteractionStateMachine
     private static UiActionId? BuildThumbDragAction(
         PresenterScrollbarInteractionState.ThumbDragging dragging,
         PresenterScrollbarInteractionContext context,
-        PresenterInputPoint position)
+        PointerPoint position)
     {
         if (!context.ScrollbarGeometry.IsVisible ||
             !Equals(context.Target, dragging.Target))
@@ -215,5 +214,12 @@ public static class PresenterScrollbarInteractionStateMachine
                     nextOffset),
             _ => throw new ArgumentOutOfRangeException(nameof(target), target, "Unsupported scrollbar target."),
         };
+    }
+
+    private static PointerPoint GetPointerPosition(UiInputEvent inputEvent)
+    {
+        return inputEvent.TryGetPointerPosition(out PointerPoint position)
+            ? position
+            : throw new InvalidOperationException("Scrollbar routing requires pointer input.");
     }
 }

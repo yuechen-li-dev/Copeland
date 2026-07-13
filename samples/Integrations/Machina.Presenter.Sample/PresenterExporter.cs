@@ -170,7 +170,7 @@ public static class PresenterExporter
                     shellRender.NavigationState,
                     proofOptions);
             (keyboardManifestJsonPath, keyboardManifestTextPath) =
-                PresenterKeyboardInputManifestWriter.Write(
+                PresenterKeyboardManifestWriter.Write(
                     outputDirectory,
                     shellRender,
                     navigationOptions.InteractionBackendName);

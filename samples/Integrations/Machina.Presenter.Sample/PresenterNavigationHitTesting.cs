@@ -1,5 +1,6 @@
 using Machina.Core.Actions;
 using Machina.Layout.Geometry;
+using Machina.Runtime.Input;
 
 namespace Machina.Presenter.Sample;
 
@@ -94,7 +95,7 @@ public static class PresenterNavigationHitTesting
 {
     public static PresenterNavigationHitTarget HitTest(
         PresenterNavigationChromeGeometry geometry,
-        PresenterInputPoint point)
+        PointerPoint point)
     {
         ArgumentNullException.ThrowIfNull(geometry);
 
@@ -138,7 +139,7 @@ public static class PresenterNavigationHitTesting
         return PresenterNavigationHitTarget.None;
     }
 
-    private static bool Contains(Rect rect, PresenterInputPoint point)
+    private static bool Contains(Rect rect, PointerPoint point)
     {
         return point.X >= rect.X &&
                point.Y >= rect.Y &&
@@ -162,23 +163,23 @@ public static class PresenterNavigationInputRouter
 
     public static PresenterNavigationInputRoutingResult Route(
         PresenterNavigationShellRenderResult render,
-        PresenterInputEvent inputEvent)
+        UiInputEvent inputEvent)
     {
         return Route(render, inputEvent, PresenterScrollbarInteractionState.Default);
     }
 
     public static PresenterNavigationInputRoutingResult Route(
         PresenterNavigationShellRenderResult render,
-        PresenterInputEvent inputEvent,
+        UiInputEvent inputEvent,
         PresenterScrollbarInteractionState? interactionState)
     {
         ArgumentNullException.ThrowIfNull(render);
 
         PresenterScrollbarInteractionState effectiveInteractionState = interactionState ?? PresenterScrollbarInteractionState.Default;
 
-        if (inputEvent.Keyboard is not null)
+        if (inputEvent is UiKeyChanged or UiTextEntered)
         {
-            return PresenterKeyboardInputRouter.Route(
+            return PresenterKeyboardRouter.Route(
                 render,
                 inputEvent,
                 effectiveInteractionState);
@@ -187,19 +188,17 @@ public static class PresenterNavigationInputRouter
         if (render.PageRender?.OblivionInteraction is not null &&
             render.ChromeGeometry.ContentViewportRect.Width > 0 &&
             render.ChromeGeometry.ContentViewportRect.Height > 0 &&
-            inputEvent.Position.X >= render.ChromeGeometry.ContentViewportRect.X &&
-            inputEvent.Position.Y >= render.ChromeGeometry.ContentViewportRect.Y &&
-            inputEvent.Position.X < render.ChromeGeometry.ContentViewportRect.X + render.ChromeGeometry.ContentViewportRect.Width &&
-            inputEvent.Position.Y < render.ChromeGeometry.ContentViewportRect.Y + render.ChromeGeometry.ContentViewportRect.Height)
+            inputEvent.TryGetPointerPosition(out PointerPoint pointerPosition) &&
+            pointerPosition.X >= render.ChromeGeometry.ContentViewportRect.X &&
+            pointerPosition.Y >= render.ChromeGeometry.ContentViewportRect.Y &&
+            pointerPosition.X < render.ChromeGeometry.ContentViewportRect.X + render.ChromeGeometry.ContentViewportRect.Width &&
+            pointerPosition.Y < render.ChromeGeometry.ContentViewportRect.Y + render.ChromeGeometry.ContentViewportRect.Height)
         {
-            PresenterInputPoint localPoint = new(
-                (float)(inputEvent.Position.X - render.ChromeGeometry.ContentViewportRect.X),
-                (float)(inputEvent.Position.Y - render.ChromeGeometry.ContentViewportRect.Y));
+            PointerPoint localPoint = new(
+                pointerPosition.X - render.ChromeGeometry.ContentViewportRect.X,
+                pointerPosition.Y - render.ChromeGeometry.ContentViewportRect.Y);
             OblivionPageInteractionRoutingResult routedOblivion = render.PageRender.OblivionInteraction.RouteInput(
-                inputEvent with
-                {
-                    Position = localPoint,
-                },
+                TranslatePointerPosition(inputEvent, localPoint),
                 render.ScrollbarGeometry.ScrollOffset,
                 effectiveInteractionState);
 
@@ -216,7 +215,10 @@ public static class PresenterNavigationInputRouter
             }
         }
 
-        PresenterNavigationHitTarget hitTarget = PresenterNavigationHitTesting.HitTest(render.ChromeGeometry, inputEvent.Position);
+        PointerPoint hitTestPosition = inputEvent.TryGetPointerPosition(out PointerPoint position)
+            ? position
+            : default;
+        PresenterNavigationHitTarget hitTarget = PresenterNavigationHitTesting.HitTest(render.ChromeGeometry, hitTestPosition);
         var context = new PresenterScrollbarInteractionContext(
             new PresenterScrollbarTarget(
                 PresenterScrollbarTargetKind.Page,
@@ -248,8 +250,7 @@ public static class PresenterNavigationInputRouter
                 ContentHitResult: null);
         }
 
-        if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
-            inputEvent.Button == PresenterInputButton.Primary)
+        if (inputEvent.IsPrimaryPressed())
         {
             if (hitTarget.Kind == PresenterNavigationHitKind.SidebarSection &&
                 !string.IsNullOrWhiteSpace(hitTarget.SectionId))
@@ -287,5 +288,16 @@ public static class PresenterNavigationInputRouter
             SuppressFurtherRouting: false,
             InputConsumed: false,
             ContentHitResult: null);
+    }
+
+    private static UiInputEvent TranslatePointerPosition(UiInputEvent inputEvent, PointerPoint position)
+    {
+        return inputEvent switch
+        {
+            UiPointerMoved moved => moved with { Position = position },
+            UiPointerButtonChanged button => button with { Position = position },
+            UiPointerWheel wheel => wheel with { Position = position },
+            _ => inputEvent,
+        };
     }
 }

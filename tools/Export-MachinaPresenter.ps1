@@ -31,7 +31,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$projectPath = Join-Path $repoRoot "samples\\Machina.UI\\Machina.Presenter.Sample\\Machina.Presenter.Sample.csproj"
+$projectPath = Join-Path $repoRoot "samples\\Integrations\\Machina.Presenter.Sample\\Machina.Presenter.Sample.csproj"
 
 if ([System.IO.Path]::IsPathRooted($OutputPath))
 {

@@ -1,3 +1,5 @@
+using Machina.Runtime.Input;
+
 namespace Machina.Presentation.Input;
 
 /// <summary>
@@ -11,3 +13,10 @@ public abstract record MachinaFrontendMessage;
 /// close. This is distinct from a raw platform close notification.
 /// </summary>
 public sealed record MachinaFrontendCloseRequested : MachinaFrontendMessage;
+
+/// <summary>
+/// Frontend-observed surface extent. Consumers translate this typed frontend
+/// message into their own lifecycle facts; no platform resize type crosses the
+/// boundary directly.
+/// </summary>
+public sealed record MachinaFrontendSurfaceResized(UiSurfaceSize Size) : MachinaFrontendMessage;

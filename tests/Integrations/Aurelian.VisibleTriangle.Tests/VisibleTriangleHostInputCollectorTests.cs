@@ -1,4 +1,5 @@
 using Aurelian.Machina;
+using Machina.Presentation.Input;
 using Machina.Runtime.Input;
 using Xunit;
 
@@ -21,7 +22,13 @@ public sealed class VisibleTriangleHostInputCollectorTests
             inputEvent => Assert.IsType<UiSurfaceResized>(inputEvent),
             inputEvent => Assert.IsType<UiCloseRequested>(inputEvent));
 
-        var lifecycle = AurelianHostInputTranslator.TranslateLifecycle(batch);
+        var frontendRouting = MachinaFrontendInputRouter.Route(batch);
+        var closeRequest = AurelianHostInputTranslator.Translate(
+            frontendRouting.FrontendMessages.OfType<MachinaFrontendCloseRequested>().Single());
+        var lifecycle = AurelianHostInputTranslator.TranslateLifecycle(frontendRouting.FrontendMessages) with
+        {
+            CloseRequested = closeRequest is not null,
+        };
         Assert.Equal(new Aurelian.Core.Engine.Frames.AurelianHostExtent(640, 480), lifecycle.HostExtent);
         Assert.True(lifecycle.CloseRequested);
     }

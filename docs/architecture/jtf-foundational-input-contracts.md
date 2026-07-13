@@ -29,7 +29,7 @@ Machina alone maps presented-image coordinates to logical viewport coordinates, 
 
 ## UI and playback
 
-Machina routing remains responsible for hit testing, scroll routing, capture, focus, keyboard, and text behavior. The presenter sample's legacy event shape is a short compatibility adapter around `UiInputEvent`; its Avalonia normalization and TOML playback both convert through the same foundational contract before routing. TOML is an input artifact, never the canonical runtime representation.
+Machina routing remains responsible for hit testing, scroll routing, capture, focus, keyboard, and text behavior. Since JTF-M4c, the presenter compatibility event shape has been removed: Avalonia normalization and TOML playback construct foundational records directly and call the same `UiInputBatch` router. TOML is an input artifact, never the canonical runtime representation.
 
 ## Frontend/backend boundary
 

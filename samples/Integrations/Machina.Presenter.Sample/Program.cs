@@ -4,9 +4,11 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Layout;
+using Aurelian.Machina;
 using Machina.Core.Actions;
 using Machina.Core.Styling;
 using Machina.Pipeline;
+using Machina.Presentation.Input;
 using Machina.Runtime.Input;
 using Machina.Presenter.Sample.Playback;
 using Machina.Standard.Theme;
@@ -155,6 +157,7 @@ internal sealed class Program
         private UiHitTestIndex _hitTestIndex;
         private MachinaComposedFrame _currentFrame;
         private PresenterNavigationShellRenderResult? _navigationShellRender;
+        private ulong _nextInputBatchId;
 
         public PresenterWindow(PresenterProofOptions proofOptions, PresenterNavigationExportOptions navigationOptions)
         {
@@ -209,7 +212,8 @@ internal sealed class Program
                 Focus();
                 RefreshRuntimeSurface(forceRender: true);
             };
-            SizeChanged += (_, _) => RefreshRuntimeSurface(forceRender: false);
+            SizeChanged += (_, _) => HandleSurfaceResized();
+            Closing += (_, _) => HandleCloseRequested();
 
             RenderCurrentState();
             Title = BuildTitle("startup");
@@ -268,71 +272,72 @@ internal sealed class Program
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)
         {
             Point position = args.GetPosition(_image);
-            PresenterInputEvent inputEvent = _inputBackend.TranslatePointerPressed(
+            UiInputEvent inputEvent = _inputBackend.TranslatePointerPressed(
                 args.GetCurrentPoint(_image).Properties,
-                new PresenterInputPoint((float)position.X, (float)position.Y));
+                new RuntimePointerPoint(position.X, position.Y));
             ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
         }
 
         private void HandlePointerMoved(object? sender, PointerEventArgs args)
         {
             Point position = args.GetPosition(_image);
-            PresenterInputEvent inputEvent = _inputBackend.TranslatePointerMoved(
+            UiInputEvent inputEvent = _inputBackend.TranslatePointerMoved(
                 args,
-                new PresenterInputPoint((float)position.X, (float)position.Y));
+                new RuntimePointerPoint(position.X, position.Y));
             ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
         }
 
         private void HandlePointerReleased(object? sender, PointerReleasedEventArgs args)
         {
             Point position = args.GetPosition(_image);
-            PresenterInputEvent inputEvent = _inputBackend.TranslatePointerReleased(
+            UiInputEvent inputEvent = _inputBackend.TranslatePointerReleased(
                 args,
-                new PresenterInputPoint((float)position.X, (float)position.Y));
+                new RuntimePointerPoint(position.X, position.Y));
             ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
         }
 
         private void HandlePointerWheelChanged(object? sender, PointerWheelEventArgs args)
         {
             Point position = args.GetPosition(_image);
-            PresenterInputEvent inputEvent = _inputBackend.TranslateWheel(
+            UiInputEvent inputEvent = _inputBackend.TranslateWheel(
                 args,
-                new PresenterInputPoint((float)position.X, (float)position.Y));
+                new RuntimePointerPoint(position.X, position.Y));
             ProcessInput(inputEvent, position.X, position.Y, args.Pointer);
         }
 
         private void HandleKeyDown(object? sender, KeyEventArgs args)
         {
-            PresenterInputEvent inputEvent = _inputBackend.TranslateKeyDown(args);
+            UiInputEvent inputEvent = _inputBackend.TranslateKeyDown(args);
             ProcessInput(inputEvent, double.NaN, double.NaN, pointer: null);
         }
 
         private void HandleKeyUp(object? sender, KeyEventArgs args)
         {
-            PresenterInputEvent inputEvent = _inputBackend.TranslateKeyUp(args);
+            UiInputEvent inputEvent = _inputBackend.TranslateKeyUp(args);
             ProcessInput(inputEvent, double.NaN, double.NaN, pointer: null);
         }
 
         private void HandleTextInput(object? sender, TextInputEventArgs args)
         {
-            PresenterInputEvent inputEvent = _inputBackend.TranslateTextInput(args);
+            UiInputEvent inputEvent = _inputBackend.TranslateTextInput(args);
             ProcessInput(inputEvent, double.NaN, double.NaN, pointer: null);
         }
 
-        private void ProcessInput(PresenterInputEvent inputEvent, double presentedX, double presentedY, IPointer? pointer)
+        private void ProcessInput(UiInputEvent inputEvent, double presentedX, double presentedY, IPointer? pointer)
         {
             UiAction? action = null;
             RuntimePointerPoint? point = null;
 
             if (_navigationOptions.IncludeNavigationShell &&
                 _navigationShellRender is not null &&
-                inputEvent.Keyboard is not null)
+                inputEvent is UiKeyChanged or UiTextEntered)
             {
-                PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
+                PresenterUiInputRoutingResult batchRouting = PresenterUiInputRouter.Route(
                     _navigationShellRender,
-                    inputEvent,
+                    CreateInputBatch(inputEvent),
                     _scrollbarInteractionState);
-                _scrollbarInteractionState = routed.InteractionState;
+                PresenterNavigationInputRoutingResult routed = batchRouting.RoutedEvents.Single();
+                _scrollbarInteractionState = batchRouting.InteractionState;
 
                 if (routed.ActionId is not null)
                 {
@@ -341,23 +346,22 @@ internal sealed class Program
             }
             else
             {
-                point = MapToRootPoint(inputEvent.Position);
+                point = inputEvent.TryGetPointerPosition(out RuntimePointerPoint inputPosition)
+                    ? MapToRootPoint(inputPosition)
+                    : null;
 
                 if (point is not null)
                 {
                     if (_navigationOptions.IncludeNavigationShell && _navigationShellRender is not null)
                     {
-                        PresenterInputEvent rootInput = inputEvent with
-                        {
-                            Position = new PresenterInputPoint((float)point.Value.X, (float)point.Value.Y),
-                        };
-
-                        PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
+                        UiInputEvent rootInput = inputEvent.WithPointerPosition(point.Value);
+                        PresenterUiInputRoutingResult batchRouting = PresenterUiInputRouter.Route(
                             _navigationShellRender,
-                            rootInput,
+                            CreateInputBatch(rootInput),
                             _scrollbarInteractionState);
+                        PresenterNavigationInputRoutingResult routed = batchRouting.RoutedEvents.Single();
                         UiActionId? routedActionId = routed.ActionId;
-                        _scrollbarInteractionState = routed.InteractionState;
+                        _scrollbarInteractionState = batchRouting.InteractionState;
 
                         if (pointer is not null)
                         {
@@ -378,7 +382,7 @@ internal sealed class Program
                         }
                     }
 
-                    if (action is null && inputEvent.Kind == PresenterInputKind.PointerPressed)
+                    if (action is null && inputEvent.IsPrimaryPressed())
                     {
                         UiHitTestResult? hit = _hitTestIndex.HitTest(point.Value);
                         action = hit?.Action;
@@ -400,20 +404,63 @@ internal sealed class Program
 
             Title = BuildTitle(actionName);
             Console.WriteLine(
-                $"Input {inputEvent.Kind} ({presentedX}, {presentedY}) -> root: {(point is null ? "<outside>" : $"{point.Value.X}, {point.Value.Y}")} -> action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}");
+                $"Input {inputEvent.GetType().Name} ({presentedX}, {presentedY}) -> root: {(point is null ? "<outside>" : $"{point.Value.X}, {point.Value.Y}")} -> action: {actionName}, count: {_state.Count}, email: {OnOff(_state.EmailUpdates)}, notifications: {OnOff(_state.Notifications)}");
         }
 
-        private RuntimePointerPoint? MapToRootPoint(PresenterInputPoint position)
+        private void HandleSurfaceResized()
         {
-            var presentedPoint = new RuntimePointerPoint(position.X, position.Y);
+            if (!_navigationOptions.IncludeNavigationShell ||
+                ClientSize.Width <= 0 ||
+                ClientSize.Height <= 0 ||
+                _navigationShellRender is null)
+            {
+                return;
+            }
+
+            int width = Math.Max(1, (int)Math.Round(ClientSize.Width));
+            int height = Math.Max(1, (int)Math.Round(ClientSize.Height));
+            var inputBatch = CreateInputBatch(
+                new UiSurfaceResized(new UiSurfaceSize(width, height)));
+            PresenterUiInputRoutingResult routed = PresenterUiInputRouter.Route(
+                _navigationShellRender,
+                inputBatch,
+                _scrollbarInteractionState);
+            _scrollbarInteractionState = routed.InteractionState;
+
+            if (routed.RequiresRecomposition)
+            {
+                RefreshRuntimeSurface(forceRender: false);
+            }
+        }
+
+        private void HandleCloseRequested()
+        {
+            UiInputBatch inputBatch = CreateInputBatch(new UiCloseRequested());
+            MachinaFrontendInputRoutingResult frontendRouting = MachinaFrontendInputRouter.Route(inputBatch);
+
+            foreach (MachinaFrontendCloseRequested closeMessage in frontendRouting.FrontendMessages
+                         .OfType<MachinaFrontendCloseRequested>())
+            {
+                _ = AurelianHostInputTranslator.Translate(closeMessage);
+            }
+        }
+
+        private RuntimePointerPoint? MapToRootPoint(RuntimePointerPoint position)
+        {
             var destination = new PresentedImageRect(0, 0, _image.Bounds.Width, _image.Bounds.Height);
 
             return PresentedImageMapper.ToRootPoint(
-                presentedPoint,
+                position,
                 _navigationShellRender?.ComposedFrame.Width ?? _currentFrame.RasterFrame.Width,
                 _navigationShellRender?.ComposedFrame.Height ?? _currentFrame.RasterFrame.Height,
                 destination,
                 ImageStretchMode.None);
+        }
+
+        private UiInputBatch CreateInputBatch(UiInputEvent inputEvent)
+        {
+            _nextInputBatchId++;
+            return new UiInputBatch(_nextInputBatchId, [inputEvent]);
         }
 
         private void ApplyAction(UiAction action)

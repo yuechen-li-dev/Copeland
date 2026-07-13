@@ -1,4 +1,5 @@
 using Machina.Layout.Geometry;
+using Machina.Runtime.Input;
 
 namespace Machina.Presenter.Sample.Playback;
 
@@ -46,7 +47,7 @@ public sealed record PresenterPlaybackWheelStep(
     : PresenterPlaybackStep("wheel");
 
 public sealed record PresenterPlaybackKeyStep(
-    PresenterKey Key)
+    UiKey Key)
     : PresenterPlaybackStep("key");
 
 public sealed record PresenterPlaybackDragStep(
@@ -62,9 +63,9 @@ public readonly record struct PresenterPlaybackPoint(
     double X,
     double Y)
 {
-    public PresenterInputPoint ToInputPoint()
+    public PointerPoint ToInputPoint()
     {
-        return new PresenterInputPoint((float)X, (float)Y);
+        return new PointerPoint(X, Y);
     }
 }
 

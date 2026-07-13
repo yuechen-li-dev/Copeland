@@ -8,5 +8,6 @@
     <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
     <ProjectReference Include="../Machina.Layout/Machina.Layout.csproj" />
     <ProjectReference Include="../Machina.Standard/Machina.Standard.csproj" />
+    <ProjectReference Include="../Machina.Runtime/Machina.Runtime.csproj" />
   </ItemGroup>
 </Project>

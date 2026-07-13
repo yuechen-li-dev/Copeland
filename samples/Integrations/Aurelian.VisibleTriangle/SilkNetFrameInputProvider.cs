@@ -1,8 +1,10 @@
+using Aurelian.Core.Engine.Commands;
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Graphics.Vulkan.Presentation;
 using Aurelian.Machina;
 using Aurelian.Rendering.Contracts.Compositor;
 using Aurelian.Runtime.Compositor;
+using Machina.Presentation.Input;
 using Machina.Runtime.Input;
 
 namespace Aurelian.VisibleTriangle;
@@ -103,7 +105,14 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
             presenterBackend.CloseRequested);
         nextInputBatchId++;
         LastNormalizedInput = inputBatch;
-        return AurelianHostInputTranslator.TranslateLifecycle(inputBatch);
+        MachinaFrontendInputRoutingResult frontendRouting = MachinaFrontendInputRouter.Route(inputBatch);
+        AurelianCloseRequest? closeRequest = frontendRouting.FrontendMessages
+            .OfType<MachinaFrontendCloseRequested>()
+            .Select(AurelianHostInputTranslator.Translate)
+            .FirstOrDefault();
+        AurelianHostLifecycleInput lifecycle = AurelianHostInputTranslator.TranslateLifecycle(
+            frontendRouting.FrontendMessages);
+        return lifecycle with { CloseRequested = closeRequest is not null };
     }
 
     private static CompositorPolicyFacts Facts(

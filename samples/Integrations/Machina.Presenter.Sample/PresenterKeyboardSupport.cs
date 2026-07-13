@@ -1,6 +1,6 @@
 namespace Machina.Presenter.Sample;
 
-public static class PresenterKeyboardInputSupport
+public static class PresenterKeyboardSupport
 {
     public static IReadOnlyList<string> SupportedKeys { get; } =
     [

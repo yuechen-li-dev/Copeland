@@ -1,5 +1,6 @@
 using Machina.Core.Actions;
 using Machina.Layout.Geometry;
+using Machina.Runtime.Input;
 
 namespace Machina.Presenter.Sample;
 
@@ -36,7 +37,7 @@ public sealed record OblivionInteractionHitResult(
     string RegionId,
     string? CardId,
     string? ScrollRegionId,
-    PresenterInputPoint LocalPoint);
+    PointerPoint LocalPoint);
 
 public sealed record OblivionPageInteractionMap(
     string PageId,
@@ -44,7 +45,7 @@ public sealed record OblivionPageInteractionMap(
     IReadOnlyList<OblivionCardBodyHitTarget> BodyTargets,
     IReadOnlyList<OblivionScrollRegionTarget> ScrollRegions)
 {
-    public UiAction? HitTest(PresenterInputPoint point, double scrollOffset)
+    public UiAction? HitTest(PointerPoint point, double scrollOffset)
     {
         double contentX = point.X;
         double contentY = point.Y + scrollOffset;
@@ -70,12 +71,22 @@ public sealed record OblivionPageInteractionMap(
     }
 
     public OblivionPageInteractionRoutingResult RouteInput(
-        PresenterInputEvent inputEvent,
+        UiInputEvent inputEvent,
         double pageScrollOffset,
         PresenterScrollbarInteractionState interactionState)
     {
-        double contentX = inputEvent.Position.X;
-        double contentY = inputEvent.Position.Y + pageScrollOffset;
+        if (!inputEvent.TryGetPointerPosition(out PointerPoint pointerPosition))
+        {
+            return new OblivionPageInteractionRoutingResult(
+                null,
+                Consumed: false,
+                interactionState,
+                PresenterPointerCaptureRequest.None,
+                null);
+        }
+
+        double contentX = pointerPosition.X;
+        double contentY = pointerPosition.Y + pageScrollOffset;
 
         if (interactionState is PresenterScrollbarInteractionState.ThumbDragging dragging)
         {
@@ -90,7 +101,7 @@ public sealed record OblivionPageInteractionMap(
             }
         }
 
-        if (inputEvent.Kind == PresenterInputKind.Wheel)
+        if (inputEvent.IsWheel(out _))
         {
             bool hoveredScrollableRegion = false;
             OblivionScrollRegionTarget? hoveredRegion = null;
@@ -121,12 +132,11 @@ public sealed record OblivionPageInteractionMap(
                         RegionId: BuildScrollRegionId(hoveredRegion!.Target),
                         CardId: hoveredRegion.Target.CardId,
                         ScrollRegionId: BuildScrollRegionId(hoveredRegion.Target),
-                        LocalPoint: inputEvent.Position));
+                        LocalPoint: pointerPosition));
             }
         }
 
-        if (inputEvent.Kind == PresenterInputKind.PointerPressed &&
-            inputEvent.Button == PresenterInputButton.Primary)
+        if (inputEvent.IsPrimaryPressed())
         {
             foreach (OblivionScrollRegionTarget target in EnumerateScrollableRegionsByPriority(contentX, contentY, pageScrollOffset))
             {
@@ -157,7 +167,7 @@ public sealed record OblivionPageInteractionMap(
                             RegionId: $"{target.PageId}.{target.CardId}.card-body",
                             CardId: target.CardId,
                             ScrollRegionId: null,
-                            LocalPoint: inputEvent.Position));
+                            LocalPoint: pointerPosition));
                 }
             }
 
@@ -178,7 +188,7 @@ public sealed record OblivionPageInteractionMap(
                                 : $"{target.PageId}.{target.CardId}.card",
                             CardId: target.CardId,
                             ScrollRegionId: null,
-                            LocalPoint: inputEvent.Position));
+                            LocalPoint: pointerPosition));
                 }
             }
         }
@@ -192,7 +202,7 @@ public sealed record OblivionPageInteractionMap(
     }
 
     public OblivionPageInteractionRoutingResult RouteInput(
-        PresenterInputEvent inputEvent,
+        UiInputEvent inputEvent,
         double pageScrollOffset)
     {
         return RouteInput(inputEvent, pageScrollOffset, PresenterScrollbarInteractionState.Default);
@@ -254,7 +264,7 @@ public sealed record OblivionPageInteractionMap(
     private static OblivionPageInteractionRoutingResult ReduceScrollInteraction(
         OblivionScrollRegionTarget target,
         PresenterScrollbarHitPart hitPart,
-        PresenterInputEvent inputEvent,
+        UiInputEvent inputEvent,
         PresenterScrollbarInteractionState interactionState)
     {
         PresenterScrollbarInteractionResult reduced = PresenterScrollbarInteractionStateMachine.Reduce(
@@ -276,7 +286,7 @@ public sealed record OblivionPageInteractionMap(
                 RegionId: BuildScrollRegionId(target.Target),
                 CardId: target.Target.CardId,
                 ScrollRegionId: BuildScrollRegionId(target.Target),
-                LocalPoint: inputEvent.Position));
+                LocalPoint: inputEvent.TryGetPointerPosition(out PointerPoint position) ? position : default));
     }
 
     private static string GetScrollRegionKind(PresenterScrollbarTargetKind kind)

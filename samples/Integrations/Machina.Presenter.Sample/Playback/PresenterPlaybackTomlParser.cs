@@ -1,4 +1,5 @@
 using System.Globalization;
+using Machina.Runtime.Input;
 using Tomlyn.Model;
 
 namespace Machina.Presenter.Sample.Playback;
@@ -186,9 +187,9 @@ public static class PresenterPlaybackTomlParser
         };
     }
 
-    private static PresenterKey ParseKey(string key, string sourcePath)
+    private static UiKey ParseKey(string key, string sourcePath)
     {
-        if (Enum.TryParse<PresenterKey>(key, ignoreCase: true, out PresenterKey value))
+        if (Enum.TryParse<UiKey>(key, ignoreCase: true, out UiKey value))
         {
             return value;
         }

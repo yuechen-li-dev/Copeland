@@ -1,39 +1,34 @@
 using Aurelian.Core.Engine.Commands;
 using Aurelian.Core.Engine.Frames;
 using Machina.Presentation.Input;
-using Machina.Runtime.Input;
 
 namespace Aurelian.Machina;
 
 /// <summary>
-/// Integration-only mapping from Machina's normalized device batch to the
-/// narrow host lifecycle facts Aurelian presently consumes.
+/// Integration-only mapping from explicit Machina frontend lifecycle messages
+/// to the narrow host facts Aurelian presently consumes.
 /// </summary>
 public static class AurelianHostInputTranslator
 {
-    public static AurelianHostLifecycleInput TranslateLifecycle(UiInputBatch inputBatch)
+    public static AurelianHostLifecycleInput TranslateLifecycle(
+        IEnumerable<MachinaFrontendMessage> frontendMessages)
     {
-        ArgumentNullException.ThrowIfNull(inputBatch);
+        ArgumentNullException.ThrowIfNull(frontendMessages);
 
         AurelianHostExtent? latestHostExtent = null;
-        bool closeRequested = false;
-
-        foreach (UiInputEvent inputEvent in inputBatch.Events)
+        foreach (MachinaFrontendMessage frontendMessage in frontendMessages)
         {
-            switch (inputEvent)
+            switch (frontendMessage)
             {
-                case UiSurfaceResized resized:
+                case MachinaFrontendSurfaceResized resized:
                     latestHostExtent = new AurelianHostExtent(
                         checked((uint)resized.Size.Width),
                         checked((uint)resized.Size.Height));
                     break;
-                case UiCloseRequested:
-                    closeRequested = true;
-                    break;
             }
         }
 
-        return new AurelianHostLifecycleInput(latestHostExtent, closeRequested);
+        return new AurelianHostLifecycleInput(latestHostExtent, CloseRequested: false);
     }
 
     public static AurelianCloseRequest Translate(MachinaFrontendCloseRequested message)

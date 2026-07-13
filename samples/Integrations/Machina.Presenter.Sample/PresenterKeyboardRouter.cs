@@ -1,23 +1,23 @@
 using Machina.Core.Actions;
+using Machina.Runtime.Input;
 
 namespace Machina.Presenter.Sample;
 
-public static class PresenterKeyboardInputRouter
+public static class PresenterKeyboardRouter
 {
     public const double SmallScrollDelta = 48;
     public const double PageScrollFactor = 0.9;
 
     public static PresenterNavigationInputRoutingResult Route(
         PresenterNavigationShellRenderResult render,
-        PresenterInputEvent inputEvent,
+        UiInputEvent inputEvent,
         PresenterScrollbarInteractionState interactionState)
     {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(inputEvent);
         ArgumentNullException.ThrowIfNull(interactionState);
 
-        PresenterKeyboardInput? keyboard = inputEvent.Keyboard;
-        if (keyboard is null)
+        if (inputEvent is not UiKeyChanged keyChanged)
         {
             return new PresenterNavigationInputRoutingResult(
                 PresenterNavigationHitTarget.None,
@@ -27,13 +27,9 @@ public static class PresenterKeyboardInputRouter
                 SuppressFurtherRouting: false);
         }
 
-        UiActionId? actionId = inputEvent.Kind switch
-        {
-            PresenterInputKind.KeyDown => RouteKeyDown(render, keyboard),
-            PresenterInputKind.KeyUp => null,
-            PresenterInputKind.TextInput => null,
-            _ => null,
-        };
+        UiActionId? actionId = keyChanged.IsPressed
+            ? RouteKeyDown(render, keyChanged)
+            : null;
 
         return new PresenterNavigationInputRoutingResult(
             PresenterNavigationHitTarget.None,
@@ -45,31 +41,31 @@ public static class PresenterKeyboardInputRouter
 
     private static UiActionId? RouteKeyDown(
         PresenterNavigationShellRenderResult render,
-        PresenterKeyboardInput keyboard)
+        UiKeyChanged keyboard)
     {
         string pageId = render.SelectedTab.PageId;
 
-        if (IsCtrlChord(keyboard, PresenterKey.ArrowDown))
+        if (IsCtrlChord(keyboard, UiKey.ArrowDown))
         {
             return SelectAdjacentSection(render, direction: 1);
         }
 
-        if (IsCtrlChord(keyboard, PresenterKey.ArrowUp))
+        if (IsCtrlChord(keyboard, UiKey.ArrowUp))
         {
             return SelectAdjacentSection(render, direction: -1);
         }
 
-        if (IsCtrlChord(keyboard, PresenterKey.ArrowRight))
+        if (IsCtrlChord(keyboard, UiKey.ArrowRight))
         {
             return SelectAdjacentTab(render, direction: 1);
         }
 
-        if (IsCtrlChord(keyboard, PresenterKey.ArrowLeft))
+        if (IsCtrlChord(keyboard, UiKey.ArrowLeft))
         {
             return SelectAdjacentTab(render, direction: -1);
         }
 
-        if (IsCtrlChord(keyboard, PresenterKey.R))
+        if (IsCtrlChord(keyboard, UiKey.R))
         {
             return InvokeSelectedCardAction(render);
         }
@@ -81,23 +77,23 @@ public static class PresenterKeyboardInputRouter
 
         return keyboard.Key switch
         {
-            PresenterKey.Enter => ToggleSelectedCardExpansion(render),
-            PresenterKey.Space => ToggleSelectedCardExpansion(render),
-            PresenterKey.ArrowDown => PresenterNavigationActions.SetScrollOffset(
+            UiKey.Enter => ToggleSelectedCardExpansion(render),
+            UiKey.Space => ToggleSelectedCardExpansion(render),
+            UiKey.ArrowDown => PresenterNavigationActions.SetScrollOffset(
                 pageId,
                 render.ScrollbarGeometry.ScrollOffset + SmallScrollDelta),
-            PresenterKey.ArrowUp => PresenterNavigationActions.SetScrollOffset(
+            UiKey.ArrowUp => PresenterNavigationActions.SetScrollOffset(
                 pageId,
                 render.ScrollbarGeometry.ScrollOffset - SmallScrollDelta),
-            PresenterKey.PageDown => PresenterNavigationActions.SetScrollOffset(
+            UiKey.PageDown => PresenterNavigationActions.SetScrollOffset(
                 pageId,
                 render.ScrollbarGeometry.ScrollOffset + (render.Layout.ViewportHeight * PageScrollFactor)),
-            PresenterKey.PageUp => PresenterNavigationActions.SetScrollOffset(
+            UiKey.PageUp => PresenterNavigationActions.SetScrollOffset(
                 pageId,
                 render.ScrollbarGeometry.ScrollOffset - (render.Layout.ViewportHeight * PageScrollFactor)),
-            PresenterKey.Home => PresenterNavigationActions.SetScrollOffset(pageId, 0),
-            PresenterKey.End => PresenterNavigationActions.SetScrollOffset(pageId, render.ScrollbarGeometry.MaxScrollOffset),
-            PresenterKey.Escape => RouteEscape(render),
+            UiKey.Home => PresenterNavigationActions.SetScrollOffset(pageId, 0),
+            UiKey.End => PresenterNavigationActions.SetScrollOffset(pageId, render.ScrollbarGeometry.MaxScrollOffset),
+            UiKey.Escape => RouteEscape(render),
             _ => null,
         };
     }
@@ -219,17 +215,17 @@ public static class PresenterKeyboardInputRouter
             : PresenterNavigationActions.InvokeOblivionCardAction(pageId, selectedCardId, action.Id);
     }
 
-    private static bool IsCtrlChord(PresenterKeyboardInput keyboard, PresenterKey key)
+    private static bool IsCtrlChord(UiKeyChanged keyboard, UiKey key)
     {
         return keyboard.Key == key &&
-               keyboard.Modifiers.Ctrl &&
+               keyboard.Modifiers.Control &&
                !keyboard.Modifiers.Alt &&
                !keyboard.Modifiers.Meta;
     }
 
-    private static bool HasNonCtrlModifiers(PresenterKeyModifiers modifiers)
+    private static bool HasNonCtrlModifiers(UiModifiers modifiers)
     {
-        return modifiers.Alt || modifiers.Meta || modifiers.Ctrl || modifiers.Shift;
+        return modifiers.Alt || modifiers.Meta || modifiers.Control || modifiers.Shift;
     }
 
     private static int FindSectionIndex(PresenterNavigationModel model, string sectionId)
