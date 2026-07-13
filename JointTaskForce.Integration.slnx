@@ -3,4 +3,7 @@
     <Project Path="tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj" />
     <Project Path="tests/Aurelian/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/Integrations/">
+    <Project Path="tests/Integrations/Aurelian.Machina.Tests/Aurelian.Machina.Tests.csproj" />
+  </Folder>
 </Solution>

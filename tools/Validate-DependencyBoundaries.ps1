@@ -127,7 +127,8 @@ function Add-SolutionTopologyViolations {
     $fastSolutions = @("Aurelian.slnx", "JointTaskForce.slnx")
     $expensiveProjects = @(
         "tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj",
-        "tests/Aurelian/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj")
+        "tests/Aurelian/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj",
+        "tests/Integrations/Aurelian.Machina.Tests/Aurelian.Machina.Tests.csproj")
 
     foreach ($solutionName in $fastSolutions) {
         $solutionPath = Join-Path $repositoryRoot $solutionName
@@ -140,6 +141,30 @@ function Add-SolutionTopologyViolations {
     }
 }
 
+function Add-IntegrationOwnershipViolations {
+    $aurelianTestProjects = @(Get-ChildItem (Join-Path $repositoryRoot "tests/Aurelian") -Recurse -Filter *.csproj)
+
+    foreach ($testProject in $aurelianTestProjects) {
+        [xml]$project = Get-Content -Raw $testProject.FullName
+        $testProjectPath = Get-RepositoryRelativePath $testProject.FullName
+
+        foreach ($projectReference in @($project.Project.ItemGroup.ProjectReference)) {
+            $targetPath = [IO.Path]::GetFullPath((Join-Path $testProject.DirectoryName ([string]$projectReference.Include)))
+            $targetRelativePath = Get-RepositoryRelativePath $targetPath
+
+            if ($targetRelativePath.StartsWith("src/Machina.UI/") -or
+                $targetRelativePath.StartsWith("src/Integrations/")) {
+                $violations.Add("$testProjectPath is Aurelian-owned test coverage but references cross-system project $targetRelativePath; move the coverage to tests/Integrations.")
+            }
+        }
+    }
+
+    $legacyParityPath = Join-Path $repositoryRoot "tests/Aurelian/Aurelian.Integration.Tests/AurelianCpuRasterParityTests.cs"
+    if (Test-Path $legacyParityPath -PathType Leaf) {
+        $violations.Add("Cross-system AurelianCpuRasterParityTests must live under tests/Integrations, not tests/Aurelian.")
+    }
+}
+
 $violations = [Collections.Generic.List[string]]::new()
 $projects = Get-ChildItem (Join-Path $repositoryRoot "src") -Recurse -Filter *.csproj | Sort-Object FullName
 
@@ -149,6 +174,12 @@ foreach ($projectFile in $projects) {
     if ($null -eq $sourceSubsystem) { continue }
 
     [xml]$project = Get-Content -Raw $projectFile.FullName
+
+    if ($projectPath -eq "src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj") {
+        $allowedBridgeReferences = @(
+            "src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj",
+            "src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj")
+    }
 
     foreach ($packageReference in @($project.Project.ItemGroup.PackageReference)) {
         $package = [string]$packageReference.Include
@@ -166,6 +197,10 @@ foreach ($projectFile in $projects) {
             $violations.Add("$projectPath references prohibited Machina package $package.")
         }
 
+        if ($projectPath -eq "src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj") {
+            $violations.Add("Aurelian.Machina must not reference package $package.")
+        }
+
         if ($projectPath -eq "src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" -and $package -like "Silk.NET*") {
             $violations.Add("Aurelian.Core must not reference Silk.NET package $package.")
         }
@@ -176,6 +211,10 @@ foreach ($projectFile in $projects) {
 
         if ($projectPath -eq "src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj") {
             $violations.Add("Aurelian.Rendering.Contracts must not reference package $package.")
+        }
+
+        if ($projectPath -eq "src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj") {
+            $violations.Add("Aurelian.Rendering.Raster must not reference package $package.")
         }
     }
 
@@ -209,6 +248,16 @@ foreach ($projectFile in $projects) {
             $violations.Add("Aurelian.Rendering.Contracts must not reference production project $targetRelativePath.")
         }
 
+        if ($projectPath -eq "src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" -and
+            $targetRelativePath -ne "src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj") {
+            $violations.Add("Aurelian.Rendering.Raster may reference only Aurelian.Rendering.Contracts; found $targetRelativePath.")
+        }
+
+        if ($projectPath -eq "src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" -and
+            $targetRelativePath -notin $allowedBridgeReferences) {
+            $violations.Add("Aurelian.Machina may reference only Machina.Presentation and Aurelian.Rendering.Contracts; found $targetRelativePath.")
+        }
+
         if ($null -eq $targetSubsystem -or $sourceSubsystem -eq $targetSubsystem) {
             continue
         }
@@ -240,8 +289,31 @@ Add-TextDependencyViolations "src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csp
     "Silk.NET",
     "Vulkan",
     "Windowing")
+Add-TextDependencyViolations "src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" @(
+    "Machina",
+    "Dominatus",
+    "Silk.NET",
+    "Vulkan",
+    "Windowing",
+    "Aurelian.Core",
+    "Aurelian.Runtime",
+    "Aurelian.Graphics")
+Add-TextDependencyViolations "src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" @(
+    "Machina.Dominatus",
+    "Machina.Pipeline",
+    "Machina.Renderer.Raster",
+    "Aurelian.Rendering.Raster",
+    "Aurelian.Core",
+    "Aurelian.Runtime",
+    "Aurelian.Graphics",
+    "Dominatus",
+    "Silk.NET",
+    "Windowing",
+    "samples",
+    "Tests")
 Add-ProjectGraphCycleViolations
 Add-SolutionTopologyViolations
+Add-IntegrationOwnershipViolations
 
 if ($violations.Count -gt 0) {
     Write-Error ("Dependency boundary validation failed:`n- " + ($violations -join "`n- "))

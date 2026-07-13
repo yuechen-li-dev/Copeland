@@ -229,7 +229,10 @@ Every implementation milestone must run its affected subsystem solution, `JointT
 
 ### JTF-M3b — Aurelian-owned CPU raster backend
 
+**Status: completed.** See [JTF-M3b migration record](jtf-m3b-aurelian-cpu-raster-backend.md).
+
 - **Outcome:** move/establish CPU raster realization under Aurelian and prove deterministic pixel parity using established Aurelian renderer vocabulary.
+- **Validation:** Aurelian-owned immutable resolved-2D plan and headless raster tests; exact integration pixel and encoded-byte parity against the retained Machina raster path; enforced no-Machina backend dependency.
 - **Non-goals:** no Machina dependency or bridge.
 
 ### JTF-M3c — `Aurelian.Machina` translation bridge

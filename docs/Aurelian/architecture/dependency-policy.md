@@ -374,6 +374,10 @@ The production frame pump and concrete Vulkan compositor adapter are deferred. T
 
 A58 temporarily allowed `Aurelian.Core -> Aurelian.Graphics` while its Vulkan adapter was still physically owned by Core. JTF-M3a removes that exception: neutral compositor and presentation ports now live in `Aurelian.Rendering.Contracts`, concrete Vulkan adapters live in `Aurelian.Graphics`, and samples/integration tests compose them explicitly. Core continues to own engine integration policy but never references the concrete backend.
 
+## JTF-M3b deterministic raster dependency policy
+
+`Aurelian.Rendering.Raster` is a backend implementation with exactly one production project reference: `Aurelian.Rendering.Contracts`. It has no package references and must remain free of Machina, Dominatus, Core, Runtime, Graphics, Vulkan, Silk.NET, and windowing. Cross-system pixel parity is integration-test composition only; production translation waits for `Aurelian.Machina` in JTF-M3c.
+
 ## A59 frame pump dependency note
 
 A59 keeps high-level frame orchestration in `Aurelian.Core` and keeps mechanism work behind Aurelian-owned contracts. The new frame pump references the existing Runtime compositor policy shell and Dominatus actuator host only to execute one local policy tick; compositor actuation exits Core through `CompositorActuationBridge` and the neutral `ICompositorMechanism` interface.

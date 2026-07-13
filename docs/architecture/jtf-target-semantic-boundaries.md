@@ -36,7 +36,7 @@ Aurelian owns engine lifecycle, worlds/game objects, engine actuation, frame loo
 
 ### JTF-M3 subdivision status
 
-JTF-M3a is complete: Core renderer neutrality is established through Aurelian-owned neutral mechanism ports in `Aurelian.Rendering.Contracts`, while the current Vulkan compositor and presentation adapters are owned by `Aurelian.Graphics`. The remaining work is deliberately sequenced as JTF-M3b (Aurelian-owned CPU raster backend), JTF-M3c (`Aurelian.Machina` translation bridge), and JTF-M3d (legacy Machina renderer compatibility retirement). No Aurelian production project references Machina during M3a or M3b.
+JTF-M3a and M3b are complete: Core renderer neutrality is established through Aurelian-owned neutral mechanism ports in `Aurelian.Rendering.Contracts`, concrete Vulkan compositor and presentation adapters are owned by `Aurelian.Graphics`, and `Aurelian.Rendering.Raster` realizes an Aurelian-owned resolved-2D plan without production Machina dependencies. JTF-M3c establishes `Aurelian.Machina` as the narrow consumer-owned translation bridge from `MachinaPresentationFrame` to `Resolved2DPlan`; it has only the `Machina.Presentation` and `Aurelian.Rendering.Contracts` project edges, while the backend remains separately composable. JTF-M3d remains the legacy Machina renderer compatibility retirement. No Aurelian subsystem production project references Machina or the bridge.
 
 ### Integrations
 

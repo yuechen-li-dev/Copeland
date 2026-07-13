@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Aurelian.Machina</AssemblyName>
+    <RootNamespace>Aurelian.Machina</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
+  </ItemGroup>
+</Project>
