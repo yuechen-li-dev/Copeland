@@ -1,4 +1,6 @@
-# Copeland TypeScript Support Matrix
+# Copeland TypeScript Support Matrix (historical)
+
+> Historical planning matrix. The current authoritative language law and implemented/intended distinction are in the [Copeland TS language profile](../language/copeland-ts-language-profile.md). In particular, proposed C# lowerings in this record do not decide future JavaScript semantics.
 
 ## Purpose
 

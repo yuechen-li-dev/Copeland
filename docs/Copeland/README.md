@@ -4,6 +4,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 
 ## Current docs
 
+- [Copeland TS Language Profile](language/copeland-ts-language-profile.md)
+- [CTS-M0a Copeland TS Language Doctrine Audit](../migrations/cts-m0a-copeland-ts-language-doctrine-audit.md)
 - [Copeland Compiler Workshop Architecture M13d](history/copeland-compiler-workshop-architecture-m13d.md)
 - [Copeland Compiler Lane Taxonomy M13d](history/copeland-compiler-lane-taxonomy-m13d.md)
 - [VD-MIR Architecture Doctrine M13f](history/vd-mir-architecture-doctrine-m13f.md)
@@ -13,7 +15,7 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [Copeland TS Compiler Topology JTF-M6c](architecture/copeland-ts-compiler-topology-jtf-m6c.md)
 - [Copeland TS Mise en Place JTF-M6c](../migrations/jtf-m6c-copeland-ts-mise-en-place.md)
 - [Compiler SDK and JTF Closeout JTF-M6d](../migrations/jtf-m6d-compiler-sdk-and-jtf-closeout.md)
-- [Language Profile](architecture/language-profile.md)
+- [Historical M1 Language Profile](architecture/language-profile.md)
 - [Windows Test Triage M5i](history/copeland-windows-test-triage-m5i.md)
 
 ## Current lane snapshots

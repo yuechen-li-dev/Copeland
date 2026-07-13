@@ -1,4 +1,6 @@
-# Copeland M1 language profile
+# Copeland M1 language profile (historical)
+
+> Historical M1 record. The current authoritative language contract is the [Copeland TS language profile](../language/copeland-ts-language-profile.md). This document preserves the earlier Browser TypeScript-to-CLR framing and must not be read as a claim about current implementation or JavaScript-backend semantics.
 
 Copeland M1 is a Browser TypeScript-to-CLR source profile for a compiler pipeline, not a JavaScript runtime.
 
