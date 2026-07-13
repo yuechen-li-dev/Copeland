@@ -1,5 +1,6 @@
 using Copeland.Markdown;
-using Copeland.Script.Compiler;
+using Copeland.TS.Backend.CSharp;
+using Copeland.TS.Compiler;
 
 namespace Copeland.Cli;
 
@@ -87,9 +88,7 @@ internal static class Program
             return readFailureExitCode;
         }
 
-        CopelandCompilation compilation = string.Equals(emitTarget, "mir", StringComparison.Ordinal)
-            ? CopelandCompiler.CompileToMir(sourceText!)
-            : CopelandCompiler.CompileToCSharp(sourceText!);
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(sourceText!);
 
         if (!compilation.Success)
         {
@@ -101,9 +100,23 @@ internal static class Program
             return CompileFailureExitCode;
         }
 
-        string? artifactText = string.Equals(emitTarget, "mir", StringComparison.Ordinal)
-            ? compilation.MirText
-            : compilation.CSharpText;
+        string? artifactText = compilation.MirText;
+
+        if (string.Equals(emitTarget, "csharp", StringComparison.Ordinal))
+        {
+            var csharpCompilation = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+            if (csharpCompilation.Diagnostics.Count > 0)
+            {
+                foreach (var diagnostic in csharpCompilation.Diagnostics)
+                {
+                    Console.Error.WriteLine($"{diagnostic.Id} error: {diagnostic.Message}");
+                }
+
+                return CompileFailureExitCode;
+            }
+
+            artifactText = csharpCompilation.SourceText;
+        }
 
         if (artifactText is null)
         {

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.Tests</AssemblyName>
+    <RootNamespace>Copeland.TS.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="TestData/**/*.cs" />
+    <None Include="TestData/Corpus/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

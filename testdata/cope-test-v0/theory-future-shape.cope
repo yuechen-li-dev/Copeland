@@ -1,7 +1,0 @@
-// Illustrative only in v0: theory syntax direction for a future milestone.
-theory "addition works" [
-  [1, 2, 3],
-  [5, 7, 12]
-] (a, b, expected) {
-  assert.equal(a + b, expected, "Theory case failed.");
-}

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+    <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.Backend.CSharp.Tests/Copeland.TS.Backend.CSharp.Tests.csproj" />
+  </Folder>
+</Solution>

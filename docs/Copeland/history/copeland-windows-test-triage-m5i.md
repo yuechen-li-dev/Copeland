@@ -8,7 +8,7 @@ M5i removes the unrelated Windows test blockers that were preventing clear full-
 
 ```powershell
 dotnet test Copeland.slnx --logger "console;verbosity=detailed"
-dotnet test tests/Copeland/Copeland.Script.Tests/Copeland.Script.Tests.csproj --logger "console;verbosity=detailed"
+dotnet test tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj --logger "console;verbosity=detailed"
 dotnet test tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj --logger "console;verbosity=detailed"
 ```
 
@@ -23,26 +23,22 @@ dotnet test tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj --logger
 - `Copeland.Cli.Tests.CliIntegrationTests.MissingEmitExitsTwo`
 - `Copeland.Cli.Tests.CliIntegrationTests.UnknownEmitExitsTwo`
 - `Copeland.Cli.Tests.CliIntegrationTests.MissingInputFileExitsThree`
-- `Copeland.Script.Tests.LexerCorpusTests.Lexer_Corpus_Matches_Expected` for `testdata/m0-lex-invalid/unterminated_comment.cope`
-- `Copeland.Script.Tests.ParserCorpusTests.Parser_Corpus_Matches_Expected` for `testdata/m1-enum-parse-invalid/missing_payload_colon.ts`
-- `Copeland.Script.Tests.BinderCorpusTests.Binder_Corpus_Matches_Expected` for `testdata/m1-enum-bind-invalid/unknown_case.ts`
-- `Copeland.Script.Tests.BinderCorpusTests.Binder_Corpus_Matches_Expected` for `testdata/m1-enum-bind-invalid/payload_missing_args.ts`
-- `Copeland.Script.Tests.BinderCorpusTests.Binder_Corpus_Matches_Expected` for `testdata/m0-bind-invalid/assignment_to_const.ts`
-- `Copeland.Script.Tests.BinderCorpusTests.Binder_Corpus_Matches_Expected` for `testdata/m0-bind-invalid/eval_banned.ts`
-- `Copeland.Script.Tests.MirCorpusTests.Mir_Corpus_Matches_Expected` for `testdata/m0-mir-invalid/null_literal.ts`
-- `Copeland.Script.Tests.MirCorpusTests.Mir_Corpus_Matches_Expected` for `testdata/m0-mir-invalid/nested_unhandled_fallible.ts`
+- `Copeland.TS.Tests.LexerCorpusTests.Lexer_Corpus_Matches_Expected` for the former unterminated-comment source fixture
+- `Copeland.TS.Tests.ParserCorpusTests.Parser_Corpus_Matches_Expected` for the enum parser corpus
+- `Copeland.TS.Tests.BinderCorpusTests.Binder_Corpus_Matches_Expected` for the binder corpus
+- `Copeland.TS.Tests.MirCorpusTests.Mir_Corpus_Matches_Expected` for the MIR corpus
 
 ## Failure classification
 
 - `Copeland.Cli.Tests.*`: `A. Windows path separator assumption`
   Exact evidence: the tests launched `dotnet run --project /workspace/Copeland/src/Copeland/Copeland.Cli/Copeland.Cli.csproj`, which is a Unix-only absolute path and caused every CLI invocation to fail before real CLI behavior ran.
-- `Copeland.Script.Tests.*` corpus mismatches: `B. Windows newline assumption`
+- `Copeland.TS.Tests.*` corpus mismatches: `B. Windows newline assumption`
   Exact evidence: failing diagnostics differed only by absolute positions/lengths after CRLF checkout, for example `COPE-PARSE-0004|24|0` vs `25|0` and `COPE-ENUM-0004|65|6` vs `70|6`.
 
 ## Fixes applied
 
 - Updated `tests/Copeland/Copeland.Cli.Tests/CliIntegrationTests.cs` to resolve the CLI project from the real repository root instead of the hardcoded `/workspace/...` path.
-- Added `tests/Copeland/Copeland.Script.Tests/Corpus/CorpusFile.cs` to centralize repository-root lookup and corpus text normalization.
+- Added the frontend test corpus helper to centralize repository-root lookup and corpus text normalization. M6c later moved it with the project-owned corpus.
 - Updated the script corpus tests to read source files with deterministic LF line endings while preserving source content length.
 - Updated corpus expectation normalization to stay shared and explicit across lexer, parser, binder, MIR, and C# corpus tests.
 
@@ -63,7 +59,7 @@ None in the M5i scope. `dotnet test Copeland.slnx` is green on Windows after the
 
 ## Final validation results
 
-- `dotnet test tests/Copeland/Copeland.Script.Tests/Copeland.Script.Tests.csproj` passed.
+- The focused TS test project passed.
 - `dotnet test tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj` passed.
 - `dotnet test tests/Machina.UI/Machina.Core.Tests/Machina.Core.Tests.csproj` passed.
 - `dotnet test tests/Machina.UI/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj` passed.

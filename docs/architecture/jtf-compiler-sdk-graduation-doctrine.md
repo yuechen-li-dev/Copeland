@@ -6,7 +6,7 @@ Copeland is a compiler workshop: small, semantics-free libraries that independen
 
 ```text
 Copeland TS (implemented proof path)
-  TypeScript-shaped text -> SyntaxTree -> BoundCompilation -> MirProgram -> CSharpBackend -> C# text
+  TypeScript-shaped text -> SyntaxTree -> BoundCompilation -> Cope MIR -> C# proof backend -> C# text
 
 Copeland TS (intended product direction)
   TypeScript -> Cope MIR -> JavaScript first -> NativeAOT-compatible C# later
@@ -24,7 +24,7 @@ The document lane is implemented in `src/Copeland/Copeland.Markdown`; its curren
 
 ## Current boundaries
 
-The only current Copeland backend is `CSharpBackend`, exposed by `CopelandCompiler` and `Copeland.Cli --emit mir|csharp`. The intended JavaScript-first product direction is a pivot, not an implemented path. A future multi-backend boundary is `Cope MIR -> lane-owned backend`; M6a implements neither backend.
+The only current Copeland backend is the C# proof backend. `CopelandCompiler` exposes frontend-to-MIR compilation; `Copeland.Cli --emit mir|csharp` composes the selected output path. The intended JavaScript-first product direction is a pivot, not an implemented path. The backend boundary is `Cope MIR -> lane-owned backend`; no universal backend abstraction exists.
 
 The future GPU TypeScript-shaped path remains direct:
 

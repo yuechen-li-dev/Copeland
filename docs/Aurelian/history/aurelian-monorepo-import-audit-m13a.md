@@ -99,7 +99,7 @@ Present in Aurelian now:
 
 Present in Copeland now:
 
-- compiler lexer/parser/AST/binder/MIR/backend: `src/Copeland/Copeland.Script`
+- compiler lexer/parser/AST/binder/MIR/backend: Copeland TS projects (renamed/split in M6c)
 - Markdown lexer/parser/diagnostics/MIR lowering: `src/Copeland/Copeland.Markdown`
 
 ### How it overlaps with Copeland
@@ -265,7 +265,7 @@ M13b resolves those topology issues:
 - `reference/dominatus` remains reference-only and is not project-referenced by Aurelian.
 - central package management now covers the imported Aurelian package set needed for restore/build.
 - `dotnet restore Aurelian.slnx` and `dotnet build Aurelian.slnx --no-restore` pass after stabilization.
-- remaining Aurelian test failures are non-topology issues and are recorded in [aurelian-build-topology-m13b.md](/C:/Users/yuech/source/repos/Copeland/docs/Aurelian/history/aurelian-build-topology-m13b.md).
+- remaining Aurelian test failures are non-topology issues and are recorded in [aurelian-build-topology-m13b.md](aurelian-build-topology-m13b.md).
 
 Validation command results are recorded after the repository docs changes in this milestone's closeout report.
 

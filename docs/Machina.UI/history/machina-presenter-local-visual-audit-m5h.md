@@ -78,7 +78,7 @@
 - `git diff --check`
   - Passed.
 - Full solution test status:
-  - Historical note: during M5h, `dotnet test Machina.UI.slnx` was still blocked by unrelated Windows-sensitive failures in `Copeland.Script.Tests` and `Copeland.Cli.Tests`.
+  - Historical note: during M5h, `dotnet test Machina.UI.slnx` was still blocked by unrelated Windows-sensitive failures in the then-combined Copeland TS tests and `Copeland.Cli.Tests`.
   - Follow-up M5i fixed those repo-wide Windows test issues and restored full solution validation.
   - See [copeland-windows-test-triage-m5i.md](../../Copeland/history/copeland-windows-test-triage-m5i.md).
 

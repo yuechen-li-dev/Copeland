@@ -34,4 +34,4 @@ No IR, diagnostics, parser/token framework, artifact helper, compiler API, `.cop
 
 ## Follow-up
 
-The minimum future prerequisite is a real second consumer that needs Markdown's complete immutable CR/LF/CRLF indexed source and checked source-bound span behavior. The next recommended milestone remains JTF-M6c: the Copeland-only Cope Test source-dialect/parser-verifier work, with no new shared compiler infrastructure.
+M6c superseded the proposed Cope Test source-dialect/parser-verifier work. The future trigger is not Markdown compatibility: reconsider shared source infrastructure when any two real lanes independently need compatible indexed-source behavior.

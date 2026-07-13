@@ -1,6 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <AssemblyName>Copeland.Script</AssemblyName>
-    <RootNamespace>Copeland.Script</RootNamespace>
-  </PropertyGroup>
-</Project>

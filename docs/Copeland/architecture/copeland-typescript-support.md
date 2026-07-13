@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document tracks Copeland language support as a **TypeScript-shaped CLR compiler profile**, not a JavaScript runtime. It is intended as a living implementation matrix so multiple branches can plan and execute compiler work without losing shared status context.
+This document tracks Copeland language support as a **TypeScript-shaped compiler profile**, not a JavaScript runtime. The current C# backend is a proof backend; JavaScript is the planned first product backend.
 
 ## Status Legend
 
@@ -19,7 +19,8 @@ This document tracks Copeland language support as a **TypeScript-shaped CLR comp
 - Parse
 - Bind/Semantics
 - MIR
-- C# Emit
+- Cope MIR text
+- C# proof emit
 - Roslyn Compile
 - Runtime Invoke
 - CLI
@@ -95,7 +96,7 @@ Copeland’s current truth is “safe restricted profile with end-to-end compile
 
 - The implemented core currently centers on explicit typing + deterministic lowering across bound/MIR/C# stages.
 - Fallibility (`! Error` + `?`) and enum/match are first-class language identity features, not add-ons.
-- CLI support is currently artifact-oriented (`mir` and `csharp` emission), with runtime proof mainly exercised in tests.
+- CLI support is currently artifact-oriented (`mir` and `csharp` emission), with runtime proof mainly exercised in tests. `.cope` is emitted Cope MIR text, not source input.
 
 ## Intentional Profile Bans
 

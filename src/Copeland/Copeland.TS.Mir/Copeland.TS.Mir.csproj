@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.Mir</AssemblyName>
+    <RootNamespace>Copeland.TS.Mir</RootNamespace>
+  </PropertyGroup>
+</Project>

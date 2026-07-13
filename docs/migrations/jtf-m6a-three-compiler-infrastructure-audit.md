@@ -6,19 +6,19 @@ M6a is documentation-only reconnaissance. It maps the three lanes and their inco
 
 ## Project and dependency topology
 
-`Copeland.slnx` contains `Copeland.Script`, `Copeland.Markdown`, `Copeland.Cli`, and their tests. `Copeland.Cli` references both libraries; the libraries have no project references. `Aurelian.slnx` contains `Aurelian.Shaders` and tests; the shader project references `Aurelian.Rendering.Contracts` and DXC. `Aurelian.Assets` references shaders and retains its legacy shader asset host. `JointTaskForce.slnx` includes these plus Machina and integration projects. The presenter sample consumes `DocumentMir`; Copeland does not depend on Machina.
+Historical pre-M6c state: `Copeland.slnx` contained the proof-era TS project, `Copeland.Markdown`, `Copeland.Cli`, and their tests. M6c renamed and split that TS project; see `jtf-m6c-copeland-ts-mise-en-place.md`.
 
 ## Inspected evidence
 
 ### Copeland TS / Cope MIR
 
-Inspected `src/Copeland/Copeland.Script/{Compiler,Syntax,Semantics,Mir,Codegen/CSharp}/*`, `src/Copeland/Copeland.Cli/Program.cs`, `tests/Copeland/Copeland.Script.Tests/{Corpus,Runtime}/*` and stage tests, `tests/testdata/*`, and `docs/Copeland/{README.md,architecture/copeland-typescript-support.md,specs/cope-test-v0.md}`.
+Inspected the then-combined TS compiler, CLI, stage tests, root-level corpus, and the then-proposed test-dialect note.
 
 The current accepted source is a restricted TypeScript-shaped string language: typed functions, explicit variables, primitives/arrays, control flow, calls, fallibility/propagation, enums, and matches. It is not broad TypeScript or JavaScript runtime semantics. The parser does not select a language by extension; the CLI reads any source file as text.
 
 `MirProgram` is canonical in-memory Cope MIR. `MirTextWriter` owns deterministic printing. There is no textual MIR parser, verifier, parse/print or parse/verify round trip, nor CLI path consuming `.cope`. Binding owns profile/source validation; lowering carries bound diagnostics. The current production/proof pipeline is TypeScript-shaped source -> AST -> bound model -> MIR -> C# text. The intended product pivot is TypeScript -> Cope MIR -> JavaScript first -> NativeAOT-compatible C# later; JavaScript and NativeAOT are not implemented.
 
-`.cope` has three historical meanings: expected MIR text for `.ts` corpus sources, output filenames in some CLI tests, and a reserved future Cope Test source dialect in `cope-test-v0.md`. It is not a current interchange parser format. Script spans are offsets on tokens/diagnostics, and provenance does not survive to `MirProgram`. Classes, interfaces, modules, async, generics, source maps, JavaScript, and NativeAOT readiness remain unfinished/planned/unknown.
+This historical audit found three former `.cope` meanings. M6c resolved that ambiguity: `.cope` means only Cope MIR text; TSPack owns executable `*.xtest.tsx` declarations. It is not a current interchange parser format.
 
 The `.ts` inputs plus `.tokens.txt`, `.diagnostics.txt`, `.tree.txt`, `.cope`, and `.g.cs` files are canonical stage corpus artifacts. `m0-*` names are historical, not proof of debris. `Runtime/M0hRuntimeTests` is the unique generated-code execution proof; CLI subprocess tests uniquely prove host/file/exit behavior. No test or fixture cleanup was safe: no audited expensive proof was assertion-free or demonstrably duplicated by a focused contract.
 
@@ -49,7 +49,7 @@ Inspected `src/Copeland/Copeland.Markdown/*`, `tests/Copeland/Copeland.Markdown.
 ## Deferred work
 
 - M6b source-contract spike and extraction only if paired consumer contracts agree.
-- Cope text parsing/verification and Cope Test implementation.
+- Cope text parsing/verification only if a real MIR consumer requires it.
 - Aurelian legacy/new shader-host convergence.
 - `.g.ts`, JavaScript backend, NativeAOT-compatible C# backend, and all language features.
 

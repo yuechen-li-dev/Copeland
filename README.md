@@ -16,6 +16,9 @@ The authoritative current doctrine is [JTF-M0 topology and ownership](docs/archi
 ## Build and test lanes
 
 ```powershell
+dotnet build Copeland.TS.slnx
+dotnet test Copeland.TS.slnx --no-build
+
 dotnet build Copeland.slnx
 dotnet test Copeland.slnx --no-build
 
@@ -37,11 +40,11 @@ dotnet test JointTaskForce.Integration.slnx --no-build
 pwsh ./tools/Validate-DependencyBoundaries.ps1
 ```
 
-`Copeland.slnx`, `Machina.UI.slnx`, and `Aurelian.slnx` are independent fast reviewer lanes. `JointTaskForce.slnx` is the repository-wide fast lane and includes production projects, contract tests, and samples. `Machina.UI.Slow.slnx` owns visual, artifact, font-diagnostic, gallery, presenter, and playback proofs. `JointTaskForce.Integration.slnx` owns explicit Aurelian integration and visible-sample proofs. See the [test-lane doctrine](docs/architecture/jtf-test-lane-doctrine.md).
+`Copeland.TS.slnx`, `Copeland.slnx`, `Machina.UI.slnx`, and `Aurelian.slnx` are independent fast reviewer lanes. `JointTaskForce.slnx` is the repository-wide fast lane and includes production projects, contract tests, and samples. `Machina.UI.Slow.slnx` owns visual, artifact, font-diagnostic, gallery, presenter, and playback proofs. `JointTaskForce.Integration.slnx` owns explicit Aurelian integration and visible-sample proofs. See the [test-lane doctrine](docs/architecture/jtf-test-lane-doctrine.md).
 
 ## Compiler pipeline
 
-The Copeland compiler lanes currently include TypeScript-like Script compilation and the bounded Markdown frontend. The implementation remains lane-specific; no universal compiler IR is introduced by JTF-M0.
+The Copeland compiler lanes currently include Copeland TS and the bounded Markdown frontend. The TS lane lowers to independently owned Cope MIR, then uses the C# proof backend; a JavaScript backend remains future work. The implementation remains lane-specific; no universal compiler IR is introduced.
 
 ```text
 source -> frontend/parser -> lane MIR -> lowering -> artifacts or CLR proof

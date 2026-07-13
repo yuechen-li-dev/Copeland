@@ -22,7 +22,7 @@ Project runner times are not additive because solution projects run concurrently
 | --- | ---: | --- |
 | `Copeland.Cli.Tests` | 18.68s | CLI/subprocess plus artifact export; mixed |
 | `Copeland.Markdown.Tests` | 2.21s | fast contract plus historical doctrine proofs |
-| `Copeland.Script.Tests` | 3.41s | fast compiler/runtime contract |
+| `Copeland.TS.Tests` | 3.41s | historical fast compiler/runtime contract; M6c later split the C# proof tests into their backend lane. |
 | `Machina.ComponentGallery.Sample.Tests` | 43.24s | sample integration, artifact/golden, visual proof |
 | `Machina.Core.Tests` | 2.97s | fast unit and subsystem contract |
 | `Machina.Dominatus.Tests` | 3.00s | subsystem contract |

@@ -2,7 +2,9 @@
   <Folder Name="/src/">
     <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
     <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
-    <Project Path="src/Copeland/Copeland.Script/Copeland.Script.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+    <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
     <Project Path="src/Machina.UI/Machina.Core/Machina.Core.csproj" />
     <Project Path="src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <Project Path="src/Machina.UI/Machina.Fonts.Tooling/Machina.Fonts.Tooling.csproj" />
@@ -31,7 +33,8 @@
   <Folder Name="/tests/">
     <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj" />
-    <Project Path="tests/Copeland/Copeland.Script.Tests/Copeland.Script.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.Backend.CSharp.Tests/Copeland.TS.Backend.CSharp.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Core.Tests/Machina.Core.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Fonts.Tests/Machina.Fonts.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Fonts.Tooling.Unit.Tests/Machina.Fonts.Tooling.Unit.Tests.csproj" />

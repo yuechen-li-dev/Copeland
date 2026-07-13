@@ -53,8 +53,8 @@ Inventory command observations:
 | `src/Machina.UI/Machina.Renderer.Raster.Dominatus` | Dominatus actuation handler and recorder that turn render commands into `RasterFrame` artifacts. | `Machina.Core`, `Machina.Layout`, `Machina.Dominatus`, raster projects, vendored `Dominatus.Core`. | Strong deterministic proof path; tightly coupled to current command/actuator bridge. | Keep upstream/reference |
 | `src/Machina.UI/Machina.Pipeline` | End-to-end `UiNode`/`UiDocument` to lowering, layout, hit test, Dominatus render commands, and raster frame. | Most Machina projects plus vendored Dominatus packages through references. | Excellent integration proof; too broad and too coupled for Aurelian core. | Keep upstream/reference |
 | `samples/Machina.UI/Machina.Presenter.Sample` | Avalonia desktop bitmap presenter with pointer click-to-action loop. | Machina pipeline/runtime/standard/raster projects plus `Avalonia` and `Avalonia.Desktop`. | Useful bootstrap host proof; explicitly sample-level, partial presenter maturity. | Defer |
-| `src/Copeland/Copeland.Script` | Separate Copeland language/compiler subsystem. | No project references. | Out of Machina UI vendor scope. | Do not carry |
-| `src/Copeland/Copeland.Cli` | CLI for Copeland script tooling. | `Copeland.Script`. | Out of Machina UI vendor scope. | Do not carry |
+| `src/Copeland/Copeland.TS` | Separate Copeland TS compiler subsystem. | `Copeland.TS.Mir`. | Out of Machina UI vendor scope. | Do not carry |
+| `src/Copeland/Copeland.Cli` | CLI composition host for Copeland tooling. | Copeland TS and Markdown lanes. | Out of Machina UI vendor scope. | Do not carry |
 | `tests/Machina.UI/Machina.*` | Unit, contract, snapshot, presenter sample, and renderer tests for Machina areas. | Test projects reference relevant Machina projects and test SDK packages. | Strong evidence of headless test direction; should guide Aurelian acceptance criteria. | Carry concept only |
 | `docs/machina-*`, `docs/raster-*`, `docs/reference/machinalayout-js/*` | Machina design docs, audits, contracts, reference material, roadmap. | Documentation. | Valuable context; contains both implemented contracts and planned/deferred work. | Keep upstream/reference |
 
@@ -236,7 +236,7 @@ find tests -maxdepth 3 -type d 2>/dev/null | sort || true
 find tests -maxdepth 3 \( -name '*.csproj' -o -name '*.cs' \) 2>/dev/null | sort || true
 find docs -maxdepth 3 -type f 2>/dev/null | sort || true
 rg -n "record|class|interface|struct|enum|UiRow|LayoutDocument|ResolvedLayoutDocument|UiLoweringResult|MachinaFrame|RasterFrame|HitTest|UiAction|UiSemantics|Text|RichText|Avalonia|Window|Input|Dominatus|IActuationCommand|RenderCommand|Raster|Pipeline|Lowering|Measure|Arrange|Style|Theme" src docs tests -g '*.cs' -g '*.md' || true
-rg --files src/Machina.UI/Machina.Core src/Machina.UI/Machina.Layout src/Machina.UI/Machina.Pipeline src/Machina.UI/Machina.Runtime src/Machina.UI/Machina.Dominatus src/Machina.UI/Machina.Renderer.Raster src/Machina.UI/Machina.Renderer.Raster.Dominatus src/Machina.UI/Machina.Renderer.Raster.Text src/Machina.UI/Machina.Standard src/Machina.UI/Machina.Cli src/Copeland/Copeland.Cli src/Copeland/Copeland.Script | sort
+rg --files src/Machina.UI/Machina.Core src/Machina.UI/Machina.Layout src/Machina.UI/Machina.Pipeline src/Machina.UI/Machina.Runtime src/Machina.UI/Machina.Dominatus src/Machina.UI/Machina.Renderer.Raster src/Machina.UI/Machina.Renderer.Raster.Dominatus src/Machina.UI/Machina.Renderer.Raster.Text src/Machina.UI/Machina.Standard src/Machina.UI/Machina.Cli src/Copeland/Copeland.Cli src/Copeland/Copeland.TS | sort
 rg --files -g '*.sln*' -g '*.props' -g '*.targets' -g 'global.json' -g '*.csproj' | sort
 rg -n "Avalonia|Window|PointerPressed|Input|PresentedImageMapper|MachinaRasterPipeline" samples src tests docs -g '*.cs' -g '*.csproj' -g '*.md'
 ```

@@ -744,7 +744,7 @@ Deferred:
 
 ## M5i validation note
 
-M5i fixed the unrelated Windows blockers in `Copeland.Script.Tests` and `Copeland.Cli.Tests`, so `dotnet test Machina.UI.slnx` is green again on Windows. See `docs/Copeland/history/copeland-windows-test-triage-m5i.md`.
+M5i fixed the unrelated Windows blockers in Copeland TS tests and `Copeland.Cli.Tests`, so `dotnet test Machina.UI.slnx` is green again on Windows. See `docs/Copeland/history/copeland-windows-test-triage-m5i.md`.
 
 
 ## M8a font atlas architecture
