@@ -5,11 +5,13 @@
     <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.TS.Backend.CSharp.Tests/Copeland.TS.Backend.CSharp.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/Copeland.TS.Backend.JavaScript.Tests.csproj" />
   </Folder>
 </Solution>

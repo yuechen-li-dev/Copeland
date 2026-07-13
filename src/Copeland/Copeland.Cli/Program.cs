@@ -1,5 +1,6 @@
 using Copeland.Markdown;
 using Copeland.TS.Backend.CSharp;
+using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
 
 namespace Copeland.Cli;
@@ -74,13 +75,14 @@ internal static class Program
 
         if (emitTarget is null)
         {
-            return UsageError("COPE-CLI-0001", "Missing required option '--emit'. Use '--emit mir' or '--emit csharp'.");
+            return UsageError("COPE-CLI-0001", "Missing required option '--emit'. Use '--emit mir', '--emit csharp', or '--emit javascript'.");
         }
 
         if (!string.Equals(emitTarget, "mir", StringComparison.Ordinal) &&
-            !string.Equals(emitTarget, "csharp", StringComparison.Ordinal))
+            !string.Equals(emitTarget, "csharp", StringComparison.Ordinal) &&
+            !string.Equals(emitTarget, "javascript", StringComparison.Ordinal))
         {
-            return UsageError("COPE-CLI-0002", $"Unknown emit target '{emitTarget}'. Use 'mir' or 'csharp'.");
+            return UsageError("COPE-CLI-0002", $"Unknown emit target '{emitTarget}'. Use 'mir', 'csharp', or 'javascript'.");
         }
 
         if (!TryReadAllText(sourcePath, out string? sourceText, out int readFailureExitCode))
@@ -116,6 +118,22 @@ internal static class Program
             }
 
             artifactText = csharpCompilation.SourceText;
+        }
+
+        if (string.Equals(emitTarget, "javascript", StringComparison.Ordinal))
+        {
+            var javaScriptCompilation = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+            if (!javaScriptCompilation.Success)
+            {
+                foreach (var diagnostic in javaScriptCompilation.Diagnostics)
+                {
+                    Console.Error.WriteLine($"{diagnostic.Id} error: {diagnostic.Message}");
+                }
+
+                return CompileFailureExitCode;
+            }
+
+            artifactText = javaScriptCompilation.SourceText;
         }
 
         if (artifactText is null)
@@ -360,7 +378,7 @@ internal static class Program
     private static int UsageError(string id, string message)
     {
         Console.Error.WriteLine("Usage:");
-        Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp [--out <path>]");
+        Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--out <path>]");
         Console.Error.WriteLine("  copeland markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
         Console.Error.WriteLine($"{id} error: {message}");

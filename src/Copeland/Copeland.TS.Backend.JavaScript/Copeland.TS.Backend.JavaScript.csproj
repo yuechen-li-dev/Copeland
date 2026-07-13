@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.Backend.JavaScript</AssemblyName>
+    <RootNamespace>Copeland.TS.Backend.JavaScript</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+  </ItemGroup>
+</Project>

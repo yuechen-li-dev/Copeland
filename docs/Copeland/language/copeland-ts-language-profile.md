@@ -73,7 +73,7 @@ This is a readiness view, not a lowering design. “Unresolved” means no backe
 
 ## Current implementation boundary
 
-The implemented path is source text -> syntax -> binder -> Cope MIR -> deterministic `.cope` text or C# proof emission. The CLI accepts `compile <source> --emit mir|csharp`; it does not emit JavaScript. `.cope` is an expected textual projection of MIR, not source input or a parser contract. The C# backend proves selected behavior but is not authority for JavaScript semantics.
+The implemented path is source text -> syntax -> binder -> Cope MIR -> deterministic `.cope` text, C# proof emission, or the CTS-M1 JavaScript backend's deliberately narrow nonfallible emission. The CLI accepts `compile <source> --emit mir|csharp|javascript`. The Node-backed M1 test proves binary64 arithmetic, direct calls, read-only locals, Boolean `if` expressions, and source-to-MIR-to-JavaScript execution for one closed-world program; it does not prove browser compatibility, interop, enums, equality, arrays, or fallibility. `.cope` is an expected textual projection of MIR, not source input or a parser contract. The C# backend remains implementation evidence rather than authority for JavaScript semantics.
 
 ## Explicit exclusions and planned work
 

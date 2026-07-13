@@ -73,6 +73,34 @@ function one(): number {
     }
 
     [Fact]
+    public async Task EmitJavaScriptToStdout()
+    {
+        using var temp = new TempDir();
+        var inputPath = temp.WriteFile("input.ts", "function one(): number { return 1; }");
+
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("\"use strict\";", result.StdOut, StringComparison.Ordinal);
+        Assert.Contains("function one()", result.StdOut, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task UnsupportedJavaScriptEmission_DoesNotWriteOutput()
+    {
+        using var temp = new TempDir();
+        var inputPath = temp.WriteFile("input.ts", "function values(): number[] { return [1]; }");
+        var outputPath = System.IO.Path.Combine(temp.Path, "output.g.js");
+
+        var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript", "--out", outputPath);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("COPE-JS-0001", result.StdErr);
+        Assert.False(File.Exists(outputPath));
+    }
+
+    [Fact]
     public async Task InvalidSourceExitsOneAndDoesNotWriteOutput()
     {
         using var temp = new TempDir();

@@ -13,6 +13,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [Copeland Markdown Frontend M12a](history/copeland-markdown-frontend-m12a.md)
 - [Copeland TypeScript Support](architecture/copeland-typescript-support.md)
 - [Copeland TS Compiler Topology JTF-M6c](architecture/copeland-ts-compiler-topology-jtf-m6c.md)
+- [Copeland TS JavaScript Backend CTS-M1](architecture/copeland-ts-javascript-backend-cts-m1.md)
+- [CTS-M1 Minimal JavaScript Backend](../migrations/cts-m1-minimal-javascript-backend.md)
 - [Copeland TS Mise en Place JTF-M6c](../migrations/jtf-m6c-copeland-ts-mise-en-place.md)
 - [Compiler SDK and JTF Closeout JTF-M6d](../migrations/jtf-m6d-compiler-sdk-and-jtf-closeout.md)
 - [Historical M1 Language Profile](architecture/language-profile.md)
@@ -21,7 +23,7 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 ## Current lane snapshots
 
 - Markdown/document lane: Markdown source -> Markdown AST -> `DocumentMir`
-- Copeland TS lane: TypeScript-shaped source -> AST -> Cope MIR -> C# proof backend
+- Copeland TS lane: TypeScript-shaped source -> AST -> Cope MIR -> C# proof backend or CTS-M1 JavaScript backend
 - current Aurelian SDSL-V lane: SDSL-V -> Aurelian shader frontend/lowering -> HLSL -> DXC -> SPIR-V
 - future GPU-oriented MIR doctrine: SDSL-V -> VD-MIR -> backend -> tool boundary -> artifacts
 

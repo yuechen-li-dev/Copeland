@@ -89,16 +89,22 @@ $mirPackageReferences = @($mirProjectXml.SelectNodes('//PackageReference'))
 Require-Condition ($mirPackageReferences.Count -eq 0) "Copeland.TS.Mir must remain BCL-only and must not reference NuGet packages."
 
 $frontendProject = Join-Path $root "src/Copeland/Copeland.TS/Copeland.TS.csproj"
-$backendProject = Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj"
+$csharpBackendProject = Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj"
+$javaScriptBackendProject = Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj"
 $cliProject = Join-Path $root "src/Copeland/Copeland.Cli/Copeland.Cli.csproj"
 Require-Condition ($projectReferences[$frontendProject] -contains $mirProject) "Copeland.TS must reference Copeland.TS.Mir."
-Require-Condition ($projectReferences[$backendProject] -contains $mirProject) "Copeland.TS.Backend.CSharp must reference Copeland.TS.Mir."
+Require-Condition ($projectReferences[$csharpBackendProject] -contains $mirProject) "Copeland.TS.Backend.CSharp must reference Copeland.TS.Mir."
+Require-Condition ($projectReferences[$javaScriptBackendProject] -contains $mirProject) "Copeland.TS.Backend.JavaScript must reference Copeland.TS.Mir."
 Require-Condition ($projectReferences[$frontendProject].Count -eq 1) "Copeland.TS may depend only on Copeland.TS.Mir."
-Require-Condition ($projectReferences[$backendProject].Count -eq 1) "Copeland.TS.Backend.CSharp may depend only on Copeland.TS.Mir."
-Require-Condition ($projectReferences[$backendProject] -notcontains $frontendProject) "The C# backend must not reference the frontend."
-Require-Condition ($projectReferences[$frontendProject] -notcontains $backendProject) "Copeland.TS must not reference a concrete backend."
+Require-Condition ($projectReferences[$csharpBackendProject].Count -eq 1) "Copeland.TS.Backend.CSharp may depend only on Copeland.TS.Mir."
+Require-Condition ($projectReferences[$javaScriptBackendProject].Count -eq 1) "Copeland.TS.Backend.JavaScript may depend only on Copeland.TS.Mir."
+Require-Condition ($projectReferences[$csharpBackendProject] -notcontains $frontendProject) "The C# backend must not reference the frontend."
+Require-Condition ($projectReferences[$javaScriptBackendProject] -notcontains $frontendProject) "The JavaScript backend must not reference the frontend."
+Require-Condition ($projectReferences[$frontendProject] -notcontains $csharpBackendProject) "Copeland.TS must not reference a concrete backend."
+Require-Condition ($projectReferences[$frontendProject] -notcontains $javaScriptBackendProject) "Copeland.TS must not reference a concrete backend."
 Require-Condition ($projectReferences[$cliProject] -contains $frontendProject) "Copeland.Cli must compose Copeland.TS."
-Require-Condition ($projectReferences[$cliProject] -contains $backendProject) "Copeland.Cli must compose Copeland.TS.Backend.CSharp."
+Require-Condition ($projectReferences[$cliProject] -contains $csharpBackendProject) "Copeland.Cli must compose Copeland.TS.Backend.CSharp."
+Require-Condition ($projectReferences[$cliProject] -contains $javaScriptBackendProject) "Copeland.Cli must compose Copeland.TS.Backend.JavaScript."
 Require-Condition ($projectReferences[$cliProject] -contains $mirProject) "Copeland.Cli must explicitly compose Copeland.TS.Mir."
 
 $markdownProject = Join-Path $root "src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj"
@@ -171,5 +177,19 @@ $copeFixtures = Get-ChildItem -LiteralPath (Join-Path $root "tests/Copeland/Cope
 foreach ($fixture in $copeFixtures) {
     Require-Condition ($fixture.Directory.Name -match 'mir') ".cope fixture is not owned by a MIR corpus case: $($fixture.FullName)"
 }
+
+$javaScriptFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus"
+Require-Condition (Test-Path -LiteralPath $javaScriptFixtureRoot -PathType Container) "JavaScript backend corpus root is missing."
+$javaScriptArtifacts = @(Get-ChildItem -LiteralPath $javaScriptFixtureRoot -Recurse -Filter *.g.js -File)
+Require-Condition ($javaScriptArtifacts.Count -gt 0) "JavaScript backend corpus must contain at least one .g.js artifact."
+foreach ($artifact in $javaScriptArtifacts) {
+    $sourcePath = [System.IO.Path]::ChangeExtension($artifact.FullName.Substring(0, $artifact.FullName.Length - ".g.js".Length), ".ts")
+    Require-Condition (Test-Path -LiteralPath $sourcePath -PathType Leaf) "JavaScript backend artifact has no sibling source fixture: $($artifact.FullName)"
+}
+
+$misownedJavaScriptArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "tests/Copeland") -Recurse -Filter *.g.js -File |
+    Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
+    Where-Object { -not $_.FullName.StartsWith($javaScriptFixtureRoot, [System.StringComparison]::OrdinalIgnoreCase) }
+Require-Condition ($misownedJavaScriptArtifacts.Count -eq 0) "Generated JavaScript fixtures must be owned by Copeland.TS.Backend.JavaScript.Tests."
 
 Write-Output "Copeland TS topology validation passed."
