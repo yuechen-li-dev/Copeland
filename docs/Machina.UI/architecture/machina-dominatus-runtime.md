@@ -1,5 +1,7 @@
 # Machina Dominatus Runtime (M0a)
 
+> Historical proof status: M5b moved this counter runtime from Machina core to `src/Integrations/Machina.Dominatus`. It remains a bounded integration smoke proof, not the default presenter state model or a component-lifecycle framework. Current ownership doctrine is in [JTF-M5b Dominatus ownership consolidation](../../architecture/jtf-dominatus-ownership-consolidation.md).
+
 ## Goal
 
 M0a introduces a tiny Dominatus-backed runtime for the counter sample.

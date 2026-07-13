@@ -1,5 +1,7 @@
 # Dominatus Authoring Footguns
 
+> Historical integration note: the event-cursor and iterator guidance remains useful, but `vendor/Dominatus` paths and renderer-integration ownership below describe the earlier vendored layout. Current builds use NuGet packages plus the inspection-only `reference/dominatus` submodule. The surviving UI proof is `src/Integrations/Machina.Dominatus`, not a Machina-core project; see [JTF-M5b Dominatus ownership consolidation](architecture/jtf-dominatus-ownership-consolidation.md).
+
 ## Purpose
 
 Dominatus nodes are ordinary C# iterators, which makes them approachable, debuggable, and testable with standard tooling. That same flexibility also means semantic authoring footguns are possible when node lifetime and event-consumption behavior are not modeled explicitly.
@@ -159,16 +161,16 @@ Persistent event consumers, by design, continue advancing over time. Those nodes
 
 ## Machina/Copeland guidance
 
-Keep Dominatus out of pure model/layout/data packages:
+Keep Dominatus out of all Machina-core packages under `src/Machina.UI`, including pure model/layout/data packages:
 
 - `Machina.Layout`
 - `Machina.Core`
 - `Machina.Standard`
 - Pure raster packages
 
-Use Dominatus in runtime/control-plane layers, including:
+Use Dominatus only from a legitimate owner, including `Aurelian.Runtime` for game/runtime behavior and `src/Integrations/Machina.Dominatus` for an approved coarse UI behavioral scope. The following older renderer-oriented examples are historical and do not authorize a new Machina-core dependency:
 
-- Renderer actuation adapters
+- Renderer actuation adapters (retired in JTF-M3d)
 - App runtime scopes
 - Browser host lifecycle
 - Async effects

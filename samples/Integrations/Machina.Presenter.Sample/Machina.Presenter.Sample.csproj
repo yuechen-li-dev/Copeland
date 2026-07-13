@@ -10,7 +10,6 @@
     <ProjectReference Include="../../../src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
-    <ProjectReference Include="../../../src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj" />
     <ProjectReference Include="../../../src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />

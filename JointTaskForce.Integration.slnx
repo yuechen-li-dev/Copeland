@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/src/Integrations/">
+    <Project Path="src/Integrations/Machina.Dominatus/Machina.Dominatus.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />
     <Project Path="samples/Integrations/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
@@ -8,6 +11,7 @@
     <Project Path="tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Integrations/">
+    <Project Path="tests/Integrations/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.Machina.Tests/Aurelian.Machina.Tests.csproj" />
     <Project Path="tests/Integrations/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj" />
   </Folder>

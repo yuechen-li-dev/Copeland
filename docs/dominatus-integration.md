@@ -1,5 +1,7 @@
 # Dominatus Integration M0
 
+> Historical status: this records the original source-vendoring milestone. The current build consumes `Dominatus.Core` and `Dominatus.OptFlow` 0.4.0 from NuGet; `reference/dominatus` is an inspection-only submodule pinned to the package-recorded source commit and is not a project-reference dependency. Current ownership doctrine is in [JTF-M5b Dominatus ownership consolidation](architecture/jtf-dominatus-ownership-consolidation.md).
+
 ## Purpose
 
 Dominatus is vendored as source under `vendor/Dominatus` so Copeland and Machina authors can inspect and integrate against the real implementation patterns instead of recreating approximations.

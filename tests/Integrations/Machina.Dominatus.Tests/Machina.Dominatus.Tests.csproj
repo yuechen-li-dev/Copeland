@@ -13,10 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Machina.Dominatus/Machina.Dominatus.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
-    <PackageReference Include="Dominatus.Core" />
-    <PackageReference Include="Dominatus.OptFlow" />
   </ItemGroup>
 </Project>

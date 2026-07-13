@@ -1,5 +1,7 @@
 # JTF-M0 topology and ownership doctrine
 
+> Historical-status note: the temporary `Machina.Dominatus` exception and its former `src/Machina.UI` location were superseded by JTF-M5b. The adapter now lives under `src/Integrations`, no exception manifest remains, and Machina core is Dominatus-free. See [JTF-M5b Dominatus ownership consolidation](jtf-dominatus-ownership-consolidation.md).
+
 This is the authoritative current architecture document for the Joint Task Force monorepo topology. It defines physical ownership and dependency policy; historical milestone documents remain historical records even when their older terminology differs.
 
 The stable semantic ownership and contract directions that refine this physical doctrine are defined by [JTF target semantic boundaries](jtf-target-semantic-boundaries.md). Where a historical document assigns semantic ownership differently, the target-boundaries document governs future migration while this document continues to govern the current physical topology.
@@ -18,7 +20,7 @@ Machina.UI owns UI authoring and document models, UI elements and standard compo
 
 Existing assemblies and namespaces may remain `Machina.*` during this milestone.
 
-Machina.UI must not depend on Aurelian, Vulkan, concrete renderer backends, game-world concepts, or Dominatus in its general UI core. Existing Dominatus-backed and renderer-named projects are explicitly recorded exceptions below.
+Machina.UI must not depend on Aurelian, Vulkan, concrete renderer backends, game-world concepts, or Dominatus. Optional Dominatus-hosted coarse UI behavior belongs only in an explicitly named integration project.
 
 ### Aurelian
 
@@ -31,7 +33,7 @@ The future `Aurelian.Machina` integration lane will translate Machina.UI-owned p
 ## Allowed dependency directions
 
 - Copeland production projects may depend only on Copeland production projects and ordinary external compiler/tooling packages.
-- Machina.UI production projects may depend on Machina.UI production projects and ordinary UI/font packages, subject to the temporary exceptions below.
+- Machina.UI production projects may depend on Machina.UI production projects and ordinary UI/font packages.
 - Aurelian production projects may depend on Aurelian production projects and the external packages needed for its engine/runtime/backend boundaries.
 - Explicit integration projects under `src/Integrations` may depend on the subsystem contracts they adapt.
 - Tests and samples may compose their owning subsystem and are not production dependency edges. Samples are not valid dependencies of production projects.
@@ -43,26 +45,22 @@ The repository validator rejects:
 
 - Copeland production references to Machina.UI or Aurelian production projects;
 - Machina.UI production references to Aurelian production projects;
-- Copeland or Machina.UI production references to Dominatus packages unless a named exception is recorded;
+- Copeland or Machina.UI production references to Dominatus packages;
 - any production project reference to a sample project;
 - any unrecorded cross-subsystem production reference outside `src/Integrations`.
 
 Run `pwsh ./tools/Validate-DependencyBoundaries.ps1` from the repository root.
 
-## Temporary exceptions
+## M5b ownership closeout
 
-These are retained because JTF-M0 is a physical topology refactor and must not perform semantic project surgery:
-
-- `src/Machina.UI/Machina.Dominatus`: `Dominatus.Core` and `Dominatus.OptFlow` package references remain for the existing Machina Dominatus runtime proof. Intended migration: JTF-M1 or a later explicitly approved Machina runtime boundary milestone.
-
-The exceptions are machine-readable in `tools/dependency-boundary-exceptions.json`. They are narrow project/package entries, not a general waiver.
+There are no dependency exceptions. The optional `src/Integrations/Machina.Dominatus` adapter has explicit `Dominatus.Core` and `Dominatus.OptFlow` package references and may adapt Machina contracts for future coarse event-spanning behavioral scopes. It is not a Machina-core project and it does not make samples or presentation contracts depend on Dominatus.
 
 ## Known deferred semantic migrations
 
 The following are intentionally placed by current project name and build identity, not by the eventual doctrine:
 
 - `Machina.Pipeline` is not split in JTF-M0.
-- `Machina.Dominatus` remains physically under Machina.UI even though Dominatus orchestration is not general UI ownership.
+- `Machina.Dominatus` is now physically integration-owned; its future lifecycle API remains intentionally deferred.
 - JTF-M4a moved generic presenter screens and layer composition from `Aurelian.Core` to `Machina.Presentation`.
 - concrete Vulkan integration currently present in `Aurelian.Core` is not moved in this milestone.
 - generic-looking machinery inside `Aurelian.Shaders` is not migrated into Copeland.

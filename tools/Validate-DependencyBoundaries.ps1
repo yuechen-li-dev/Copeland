@@ -4,8 +4,6 @@ param()
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
-$exceptionPath = Join-Path $PSScriptRoot "dependency-boundary-exceptions.json"
-$exceptions = @(Get-Content -Raw $exceptionPath | ConvertFrom-Json)
 
 function Get-RepositoryRelativePath {
     param([string]$Path)
@@ -26,17 +24,6 @@ function Get-Subsystem {
     return $null
 }
 
-function Test-Exception {
-    param(
-        [string]$Project,
-        [string]$Package
-    )
-
-    return @($exceptions | Where-Object {
-        $_.project -eq $Project -and $_.package -eq $Package
-    }).Count -gt 0
-}
-
 function Add-TextDependencyViolations {
     param(
         [string]$ProjectPath,
@@ -53,6 +40,95 @@ function Add-TextDependencyViolations {
                 $sourcePath = Get-RepositoryRelativePath $sourceFile.FullName
                 $violations.Add("$sourcePath contains prohibited dependency token '$token' for $ProjectPath.")
             }
+        }
+    }
+}
+
+function Add-DominatusOwnershipViolations {
+    $retiredProjectPaths = @(
+        "src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj",
+        "tests/Machina.UI/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj")
+
+    foreach ($retiredProjectPath in $retiredProjectPaths) {
+        if (Test-Path (Join-Path $repositoryRoot $retiredProjectPath)) {
+            $violations.Add("Retired Machina Dominatus path remains: $retiredProjectPath.")
+        }
+    }
+
+    $exceptionManifest = Join-Path $repositoryRoot "tools/dependency-boundary-exceptions.json"
+    if (Test-Path $exceptionManifest -PathType Leaf) {
+        $violations.Add("Dependency-boundary exceptions are retired; remove tools/dependency-boundary-exceptions.json.")
+    }
+
+    $adapterProjectPath = "src/Integrations/Machina.Dominatus/Machina.Dominatus.csproj"
+    $adapterProjectFile = Join-Path $repositoryRoot $adapterProjectPath
+    if (-not (Test-Path $adapterProjectFile -PathType Leaf)) {
+        $violations.Add("The optional Machina Dominatus integration adapter is missing at $adapterProjectPath.")
+    } else {
+        [xml]$adapterProject = Get-Content -Raw $adapterProjectFile
+        $allowedAdapterReferences = @(
+            "src/Machina.UI/Machina.Core/Machina.Core.csproj",
+            "src/Machina.UI/Machina.Layout/Machina.Layout.csproj",
+            "src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj",
+            "src/Machina.UI/Machina.Standard/Machina.Standard.csproj")
+
+        foreach ($projectReference in @($adapterProject.Project.ItemGroup.ProjectReference)) {
+            $targetPath = [IO.Path]::GetFullPath((Join-Path (Split-Path -Parent $adapterProjectFile) ([string]$projectReference.Include)))
+            $targetRelativePath = Get-RepositoryRelativePath $targetPath
+            if ($targetRelativePath -notin $allowedAdapterReferences) {
+                $violations.Add("$adapterProjectPath may reference only Machina contracts; found $targetRelativePath.")
+            }
+        }
+
+        $adapterPackages = @($adapterProject.Project.ItemGroup.PackageReference | ForEach-Object { [string]$_.Include })
+        foreach ($requiredPackage in @("Dominatus.Core", "Dominatus.OptFlow")) {
+            if ($requiredPackage -notin $adapterPackages) {
+                $violations.Add("$adapterProjectPath must retain its explicit $requiredPackage integration dependency.")
+            }
+        }
+    }
+
+    $machinaSourceRoot = Join-Path $repositoryRoot "src/Machina.UI"
+    foreach ($sourceFile in @(Get-ChildItem $machinaSourceRoot -Recurse -Filter *.cs | Where-Object {
+            $_.FullName -notmatch "\\(bin|obj)\\"
+        })) {
+        $source = Get-Content -Raw $sourceFile.FullName
+        if ($source.Contains("Dominatus", [StringComparison]::Ordinal)) {
+            $violations.Add("$(Get-RepositoryRelativePath $sourceFile.FullName) retains a prohibited Dominatus source dependency in Machina production.")
+        }
+    }
+
+    foreach ($projectFile in @(Get-ChildItem (Join-Path $repositoryRoot "src/Machina.UI") -Recurse -Filter *.csproj)) {
+        [xml]$project = Get-Content -Raw $projectFile.FullName
+        foreach ($packageReference in @($project.Project.ItemGroup.PackageReference)) {
+            if ([string]$packageReference.Include -in @("Dominatus.Core", "Dominatus.OptFlow")) {
+                $violations.Add("$(Get-RepositoryRelativePath $projectFile.FullName) references prohibited Dominatus package $([string]$packageReference.Include).")
+            }
+        }
+    }
+
+    foreach ($projectFile in @(Get-ChildItem (Join-Path $repositoryRoot "samples") -Recurse -Filter *.csproj)) {
+        $projectText = Get-Content -Raw $projectFile.FullName
+        if (($projectText.Contains("ProjectReference", [StringComparison]::Ordinal) -and
+                $projectText.Contains("Machina.Dominatus", [StringComparison]::Ordinal)) -or
+            $projectText.Contains("Dominatus.Core", [StringComparison]::Ordinal) -or
+            $projectText.Contains("Dominatus.OptFlow", [StringComparison]::Ordinal)) {
+            $violations.Add("$(Get-RepositoryRelativePath $projectFile.FullName) retains a stale Dominatus sample dependency.")
+        }
+    }
+
+    foreach ($projectFile in @(Get-ChildItem $repositoryRoot -Recurse -Filter *.csproj)) {
+        $projectText = Get-Content -Raw $projectFile.FullName
+        if ($projectText.Contains("src/Machina.UI/Machina.Dominatus", [StringComparison]::Ordinal)) {
+            $violations.Add("$(Get-RepositoryRelativePath $projectFile.FullName) references the retired Machina-owned Dominatus path.")
+        }
+    }
+
+    foreach ($solutionFile in @(Get-ChildItem $repositoryRoot -Filter *.slnx)) {
+        $solutionText = Get-Content -Raw $solutionFile.FullName
+        if ($solutionText.Contains("src/Machina.UI/Machina.Dominatus", [StringComparison]::Ordinal) -or
+            $solutionText.Contains("tests/Machina.UI/Machina.Dominatus.Tests", [StringComparison]::Ordinal)) {
+            $violations.Add("$(Get-RepositoryRelativePath $solutionFile.FullName) retains a retired Machina-owned Dominatus path.")
         }
     }
 }
@@ -396,12 +472,6 @@ function Add-MachinaPresentationOnlyViolations {
         }
     }
 
-    foreach ($exception in $exceptions) {
-        $projectPath = [string]$exception.project
-        if (-not (Test-Path (Join-Path $repositoryRoot $projectPath) -PathType Leaf)) {
-            $violations.Add("Dependency exception references missing project $projectPath.")
-        }
-    }
 }
 
 $violations = [Collections.Generic.List[string]]::new()
@@ -428,9 +498,13 @@ foreach ($projectFile in $projects) {
             continue
         }
 
-        if ($sourceSubsystem -in @("Copeland", "Machina.UI") -and $package -like "Dominatus.*") {
-            if (-not (Test-Exception $projectPath $package)) {
-                $violations.Add("$projectPath references prohibited Dominatus package $package without a recorded exception.")
+        if ($package -like "Dominatus.*") {
+            $approvedDominatusOwners = @(
+                "src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj",
+                "src/Integrations/Machina.Dominatus/Machina.Dominatus.csproj")
+
+            if ($projectPath -notin $approvedDominatusOwners) {
+                $violations.Add("$projectPath references Dominatus package $package outside an approved owner.")
             }
         }
 
@@ -566,6 +640,7 @@ Add-IntegrationOwnershipViolations
 Add-MachinaPresentationOnlyViolations
 Add-ScreenOwnershipViolations
 Add-CanonicalInputRoutingViolations
+Add-DominatusOwnershipViolations
 
 if ($violations.Count -gt 0) {
     Write-Error ("Dependency boundary validation failed:`n- " + ($violations -join "`n- "))
@@ -573,4 +648,4 @@ if ($violations.Count -gt 0) {
 }
 
 Write-Output "Dependency boundary validation passed for $($projects.Count) production projects."
-Write-Output "Recorded temporary exceptions: $($exceptions.Count)."
+Write-Output "No dependency-boundary exceptions are permitted."

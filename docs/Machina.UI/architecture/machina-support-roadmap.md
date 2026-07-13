@@ -26,10 +26,9 @@ This roadmap tracks support status across Machina packages so implementation bra
 - **Machina.Runtime**  
   hit-testing and dispatch-table runtime transitions.
 
-- **Machina.Dominatus**  
-  render command bridge and Dominatus-driven runtime proofs/orchestration.
+- **Integrations/Machina.Dominatus:** optional Dominatus-hosted coarse UI behavioral-scope proof. It is outside Machina core, not used by the general samples, and does not revive the retired render-command bridge.
 
-  Reference-only upstream Dominatus source is available under `reference/dominatus`, especially `src/Dominatus.Assets.Toml` and `src/Dominatus.SpriteForge`. The active build remains pinned to NuGet `Dominatus.Core` and `Dominatus.OptFlow` `0.4.0`.
+  Reference-only upstream Dominatus source is available under `reference/dominatus`. The active adapter remains pinned to NuGet `Dominatus.Core` and `Dominatus.OptFlow` `0.4.0`.
 
 - **Machina.Renderer.Raster**  
   CPU raster surface + primitive pixel operations.
@@ -64,9 +63,9 @@ Current proven path (with some steps still partial depending on scenario breadth
 -> `LayoutDocument`  
 -> `ResolvedLayoutDocument`  
 -> `UiHitTestIndex`  
--> render commands  
--> Dominatus `ActuatorHost`  
--> `RasterFrame`  
+-> `MachinaPresentationFrame`<br>
+-> `Aurelian.Machina` translation<br>
+-> Aurelian resolved-2D backend
 -> Avalonia bitmap window  
 -> pointer hit-test  
 -> `UiAction`  
@@ -166,11 +165,11 @@ M13d then clarifies the compiler-side doctrine that Machina depends on conceptua
 | Hover/pressed state | Runtime/Core | Planned | None | Add pointer state lifecycle.
 | Text editing | Runtime/Standard | Planned | None | Required for real input components.
 | Routing/navigation | Runtime/Presenter | Partial | Presenter shell tests + export proof | M10a adds sample-local sidebar + local tabs + page selection state; M10b adds sample-local hit testing and explicit input-to-action routing; M10c makes the organized shell the default presenter surface; M12h adds top-level wide/compact shell document selection without introducing a generic responsive solver. Generic routing remains deferred.
-| Dominatus runtime scopes | Machina.Dominatus | Partial | Dominatus tests/docs | Baseline proof exists; expand authoring patterns.
+| Dominatus runtime scopes | Integrations/Machina.Dominatus | Partial | Integration smoke tests | Reserved only for coarse event-spanning scopes; no lifecycle API is implemented.
 | Modal stack | Runtime/Dominatus | Planned | None | Coupled with focus/layer routing.
 | Async effects | Dominatus | Planned | None | Needed for richer app behaviors.
-| Render command bridge | Machina.Dominatus | Implemented | Dominatus tests | Active bridge layer.
-| Snapshot backend | Dominatus/Renderer | Implemented | Snapshot/artifact tests | Good for deterministic proofs.
+| Render command bridge | Retired | Historical | M3d migration record | Replaced by Machina presentation and Aurelian backend ownership.
+| Snapshot backend | Retired | Historical | M3d migration record | No active Dominatus renderer path remains.
 | Raster FillRect | Machina.Renderer.Raster | Implemented | Raster tests | Primitive rectangle fill available.
 | Raster DrawText debug | Machina.Renderer.Raster.Text | Implemented | Text raster tests | Debug seam exists.
 | Rectangular clipping | Raster stack | Partial | Renderer tests/docs | Expand clipping edge cases.
@@ -499,12 +498,11 @@ Tiering rule:
 - **DispatchTable**  
   simple deterministic field transitions (`Set`, `Toggle`, `Increment`, namespaced actions).
 
-- **Dominatus**  
-  mount/unmount equivalents, runtime scopes, async effects, orchestration, side effects, replay-oriented flows.
+- **Dominatus integration:** coarse Push/Pop behavioral scopes, async effects, orchestration, side effects, and replay-oriented flows when an explicitly integration-owned host is approved.
 
 React mapping guide:
 
-- mount/unmount -> Dominatus push/pop.
+- coarse screen/dialog/workflow scope -> optional Dominatus push/pop; not per-widget mount/unmount.
 - patch -> imperative update or DispatchTable transition.
 - effect -> Dominatus actuation/effect orchestration.
 

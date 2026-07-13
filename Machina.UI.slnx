@@ -1,7 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Machina.UI/Machina.Core/Machina.Core.csproj" />
-    <Project Path="src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj" />
     <Project Path="src/Machina.UI/Machina.Fonts/Machina.Fonts.csproj" />
     <Project Path="src/Machina.UI/Machina.Fonts.Tooling/Machina.Fonts.Tooling.csproj" />
     <Project Path="src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
@@ -12,7 +11,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Machina.UI/Machina.Core.Tests/Machina.Core.Tests.csproj" />
-    <Project Path="tests/Machina.UI/Machina.Dominatus.Tests/Machina.Dominatus.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Fonts.Tests/Machina.Fonts.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Fonts.Tooling.Unit.Tests/Machina.Fonts.Tooling.Unit.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Layout.Tests/Machina.Layout.Tests.csproj" />

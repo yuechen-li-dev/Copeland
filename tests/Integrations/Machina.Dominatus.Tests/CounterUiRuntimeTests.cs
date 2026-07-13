@@ -4,8 +4,8 @@ using Machina.Dominatus.Runtime;
 using Machina.Layout.Compilation;
 using Machina.Layout.Geometry;
 using Machina.Layout.Resolving;
-using Machina.Runtime.Input;
 using Machina.Layout.Rows;
+using Machina.Runtime.Input;
 using Xunit;
 
 namespace Machina.Dominatus.Tests;
@@ -27,7 +27,7 @@ public sealed class CounterUiRuntimeTests
 
         var lowering = UiLowerer.Lower(runtime.BuildUi());
 
-        Assert.Contains(lowering.Semantics.Values, s => s.Label == "Count: 0");
+        Assert.Contains(lowering.Semantics.Values, semantics => semantics.Label == "Count: 0");
     }
 
     [Fact]
@@ -67,7 +67,6 @@ public sealed class CounterUiRuntimeTests
         Assert.Equal(3, runtime.Count);
     }
 
-
     [Fact]
     public void RepeatedTicks_DoNotReprocessHistoricalIncrement()
     {
@@ -89,7 +88,7 @@ public sealed class CounterUiRuntimeTests
 
         var lowering = UiLowerer.Lower(runtime.BuildUi());
 
-        Assert.Contains(lowering.Semantics.Values, s => s.Label == "Count: 1");
+        Assert.Contains(lowering.Semantics.Values, semantics => semantics.Label == "Count: 1");
     }
 
     [Fact]

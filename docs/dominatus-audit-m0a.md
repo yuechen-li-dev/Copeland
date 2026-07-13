@@ -1,5 +1,7 @@
 # Dominatus Integration M0a Audit
 
+> Historical status: this audit covers the former vendored/render-actuation architecture. JTF-M3d retired the Machina Dominatus renderer path. M5b retains the intended coarse UI lifecycle seam only as `src/Integrations/Machina.Dominatus`; current ownership is recorded in [JTF-M5b Dominatus ownership consolidation](architecture/jtf-dominatus-ownership-consolidation.md).
+
 ## Executive Summary
 
 Dominatus in this vendored snapshot is a deterministic, iterator-node HFSM runtime with:

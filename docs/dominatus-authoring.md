@@ -1,5 +1,7 @@
 # Dominatus Authoring Primer for Machina
 
+> Historical status: this predates the JTF-M3d retirement of Machina's Dominatus renderer route. Dominatus may still host coarse event-spanning UI behavior only through `src/Integrations/Machina.Dominatus`; Machina core remains independent. See [JTF-M5b Dominatus ownership consolidation](architecture/jtf-dominatus-ownership-consolidation.md).
+
 This document is a quick guide for authors integrating future Machina rendering and runtime work with Dominatus.
 
 ## Core Dominatus concepts

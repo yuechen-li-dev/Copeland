@@ -14,30 +14,34 @@ using Machina.Standard.Authoring;
 
 namespace Machina.Dominatus.Runtime;
 
+/// <summary>
+/// Minimal integration smoke proof for Dominatus-hosted UI action ingress.
+/// This is not a general component lifecycle API or a presenter dependency.
+/// </summary>
 public sealed class CounterUiRuntime
 {
     public static readonly BbKey<int> CountKey = new("counter.count");
 
-    private readonly AiWorld _world;
-    private readonly AiAgent _agent;
-    private int _nextActionSequence;
+    private readonly AiWorld world;
+    private readonly AiAgent agent;
+    private int nextActionSequence;
 
     public CounterUiRuntime()
     {
         var graph = new HfsmGraph { Root = new StateId("Counter") }
             .Add(new StateId("Counter"), CounterNode);
 
-        _agent = new AiAgent(new HfsmInstance(graph));
-        _world = new AiWorld(new ActuatorHost());
-        _world.Add(_agent);
-        _agent.Bb.Set(CountKey, 0);
+        agent = new AiAgent(new HfsmInstance(graph));
+        world = new AiWorld(new ActuatorHost());
+        world.Add(agent);
+        agent.Bb.Set(CountKey, 0);
     }
 
-    public int Count => _agent.Bb.GetOrDefault(CountKey, 0);
+    public int Count => agent.Bb.GetOrDefault(CountKey, 0);
 
     public UiNode BuildUi()
     {
-        var count = Count;
+        int count = Count;
 
         return UI.Container(
             id: "root",
@@ -58,36 +62,36 @@ public sealed class CounterUiRuntime
 
     public void SendAction(UiAction action)
     {
-        _nextActionSequence++;
-        _agent.Events.Publish(new UiActionEvent(action.Name, _nextActionSequence));
+        nextActionSequence++;
+        agent.Events.Publish(new UiActionEvent(action.Name, nextActionSequence));
     }
 
     public void TickUntilIdle(int maxTicks = 1)
     {
-        for (var i = 0; i < maxTicks; i++)
+        for (int index = 0; index < maxTicks; index++)
         {
-            _world.Tick(0f);
+            world.Tick(0f);
         }
     }
 
-    private static IEnumerator<AiStep> CounterNode(AiCtx ctx)
+    private static IEnumerator<AiStep> CounterNode(AiCtx context)
     {
         var lastProcessedSequence = 0;
 
         while (true)
         {
             yield return Ai.Event<UiActionEvent>(
-                filter: evt => evt.Sequence > lastProcessedSequence,
-                onConsumed: (agent, evt) =>
+                filter: inputEvent => inputEvent.Sequence > lastProcessedSequence,
+                onConsumed: (agent, inputEvent) =>
                 {
-                    lastProcessedSequence = evt.Sequence;
+                    lastProcessedSequence = inputEvent.Sequence;
 
-                    if (!string.Equals(evt.Name, "increment", StringComparison.Ordinal))
+                    if (!string.Equals(inputEvent.Name, "increment", StringComparison.Ordinal))
                     {
                         return;
                     }
 
-                    var currentCount = agent.Bb.GetOrDefault(CountKey, 0);
+                    int currentCount = agent.Bb.GetOrDefault(CountKey, 0);
                     agent.Bb.Set(CountKey, currentCount + 1);
                 },
                 cursorStart: EventCursorStart.IncludeExisting);

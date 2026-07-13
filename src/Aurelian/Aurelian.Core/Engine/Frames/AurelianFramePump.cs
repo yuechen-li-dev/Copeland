@@ -1,6 +1,5 @@
 using Aurelian.Core.Compositor;
 using Aurelian.Runtime.Compositor;
-using Dominatus.Core.Runtime;
 
 namespace Aurelian.Core.Engine.Frames;
 
@@ -58,11 +57,8 @@ public sealed class AurelianFramePump
 
         try
         {
-            var actuatorHost = new ActuatorHost();
-            actuatorHost.Register(new CompositorBridgeActuationHandler(compositorBridge));
-
             CompositorPolicyResult compositorResult = await CompositorPolicySession
-                .RunOnceAsync(input.CompositorFacts, actuatorHost, cancellationToken)
+                .RunOnceAsync(input.CompositorFacts, compositorBridge.AsHandler(), cancellationToken)
                 .ConfigureAwait(false);
 
             return MapCompositorResult(input.FrameId, compositorResult);
@@ -115,26 +111,4 @@ public sealed class AurelianFramePump
     private static AurelianFrameResult Cancelled(AurelianFrameId frameId, CompositorPolicyResult? compositorResult) =>
         Failed(frameId, compositorResult, AurelianFrameDiagnosticCodes.FrameCancelled, "Aurelian frame pump run was canceled.");
 
-    private sealed class CompositorBridgeActuationHandler : IActuationHandler<CompositorDispatchAct>
-    {
-        private readonly CompositorActuationBridge bridge;
-
-        public CompositorBridgeActuationHandler(CompositorActuationBridge bridge)
-        {
-            this.bridge = bridge;
-        }
-
-        public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, CompositorDispatchAct cmd)
-        {
-            try
-            {
-                var result = bridge.HandleAsync(cmd).GetAwaiter().GetResult();
-                return ActuatorHost.HandlerResult.CompletedWithPayload(result, ok: true);
-            }
-            catch (OperationCanceledException ex)
-            {
-                return ActuatorHost.HandlerResult.CompletedFailure(ex.Message);
-            }
-        }
-    }
 }

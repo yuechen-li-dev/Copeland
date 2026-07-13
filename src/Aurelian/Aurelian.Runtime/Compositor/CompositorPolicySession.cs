@@ -163,6 +163,24 @@ public static class CompositorPolicySession
             []));
     }
 
+    /// <summary>
+    /// Runs compositor policy with an Aurelian-owned dispatch contract.
+    /// The Dominatus actuator composition remains an implementation detail of
+    /// Aurelian.Runtime rather than leaking into Aurelian.Core.
+    /// </summary>
+    public static Task<CompositorPolicyResult> RunOnceAsync(
+        CompositorPolicyFacts facts,
+        Func<CompositorDispatchAct, CancellationToken, Task<CompositorDispatchResult>> dispatch,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dispatch);
+
+        var actuatorHost = new ActuatorHost();
+        actuatorHost.Register(new DelegatingCompositorDispatchHandler(dispatch));
+
+        return RunOnceAsync(facts, actuatorHost, cancellationToken);
+    }
+
     private static IEnumerator<AiStep> PolicyNode(AiCtx ctx)
     {
         var decision = ctx.Agent.Bb.GetOrDefault(CompositorPolicyKeys.Decision, default!);
@@ -188,4 +206,34 @@ public static class CompositorPolicySession
         string message,
         CompositorPolicyDiagnosticSeverity severity = CompositorPolicyDiagnosticSeverity.Error)
         => new(code, severity, message);
+
+    private sealed class DelegatingCompositorDispatchHandler : IActuationHandler<CompositorDispatchAct>
+    {
+        private readonly Func<CompositorDispatchAct, CancellationToken, Task<CompositorDispatchResult>> dispatch;
+
+        public DelegatingCompositorDispatchHandler(
+            Func<CompositorDispatchAct, CancellationToken, Task<CompositorDispatchResult>> dispatch)
+        {
+            this.dispatch = dispatch;
+        }
+
+        public ActuatorHost.HandlerResult Handle(
+            ActuatorHost host,
+            AiCtx context,
+            ActuationId id,
+            CompositorDispatchAct command)
+        {
+            try
+            {
+                CompositorDispatchResult result = dispatch(command, CancellationToken.None)
+                    .GetAwaiter()
+                    .GetResult();
+                return ActuatorHost.HandlerResult.CompletedWithPayload(result, ok: true);
+            }
+            catch (OperationCanceledException exception)
+            {
+                return ActuatorHost.HandlerResult.CompletedFailure(exception.Message);
+            }
+        }
+    }
 }

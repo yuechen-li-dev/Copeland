@@ -26,7 +26,7 @@ Machina owns this vocabulary because it describes what the UI producer requests.
 
 ### JTF-M2 implementation status
 
-JTF-M2 establishes this boundary in `Machina.Presentation`. `MachinaPresentationFrameBuilder` is the canonical lowering traversal, and `MachinaRasterPipeline` exposes the resulting frame beside its hit-test artifact. The retained Dominatus/raster route is reached only through the temporary `LegacyMachinaRenderCommandAdapter`; it is scheduled for retirement in JTF-M5. The frame contract is intentionally limited to a viewport and ordered fill rectangle, stroke rectangle, positioned text, push rectangular clip, and pop clip operations. Its assembly references only Machina Core, Layout, and Standard projects.
+JTF-M2 established this boundary in `Machina.Presentation`, with `MachinaPresentationFrameBuilder` as the canonical lowering traversal. JTF-M3d subsequently retired `MachinaRasterPipeline`, `LegacyMachinaRenderCommandAdapter`, and the legacy Machina raster/Dominatus rendering projects. The frame contract remains intentionally limited to a viewport and ordered fill rectangle, stroke rectangle, positioned text, push rectangular clip, and pop clip operations. Its assembly references only Machina Core, Layout, and Standard projects.
 
 ### Aurelian
 
@@ -80,11 +80,11 @@ Potential Copeland promotions are limited to proven generic source-span/source-f
 
 ## Compatibility and enforcement end state
 
-- Copeland and Machina.UI production projects have no Dominatus package references.
+- Copeland production projects and `src/Machina.UI` have no Dominatus package references. The optional `src/Integrations/Machina.Dominatus` adapter is the only UI-side Dominatus owner and hosts only coarse event-spanning behavioral scopes; it does not make Machina core depend on Dominatus. Ordinary local UI state remains direct C# or existing Machina runtime behavior. See [JTF-M5b Dominatus ownership consolidation](jtf-dominatus-ownership-consolidation.md).
 - Machina.UI production projects have no concrete renderer backend references.
 - `Aurelian.Core` has no reference to `Aurelian.Graphics` and exposes no Vulkan types.
 - Cross-subsystem production composition occurs only under `src/Integrations`.
-- Old Dominatus render commands and snapshot/raster dispatch remain only until replacement tests prove equivalent ordering, clipping, text placement, and artifacts; then they are removed or archived as proof material.
+- Legacy Dominatus render commands and snapshot/raster dispatch were removed in JTF-M3d after replacement tests proved equivalent ordering, clipping, text placement, and artifacts.
 - Every subsystem solution remains independently buildable; integration projects are validated by `JointTaskForce.slnx`.
 
 ## Decision summary
