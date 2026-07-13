@@ -1,6 +1,7 @@
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Lowering;
 using Copeland.TS.Syntax;
+using System.Security.Cryptography;
 using Xunit;
 
 namespace Copeland.TS.Backend.JavaScript.Tests;
@@ -10,17 +11,32 @@ public sealed class JavaScriptCorpusTests
     [Fact]
     public void Corpus_Matches_Expected_JavaScript_Byte_For_Byte()
     {
-        string sourcePath = Path.Combine(GetCorpusRoot(), "main-returns-42.ts");
-        string expectedPath = Path.ChangeExtension(sourcePath, ".g.js");
-        var mir = MirLowerer.Lower(SyntaxTree.Parse(File.ReadAllText(sourcePath)));
+        foreach (string sourcePath in Directory.EnumerateFiles(GetCorpusRoot(), "*.ts", SearchOption.TopDirectoryOnly).OrderBy(path => path, StringComparer.Ordinal))
+        {
+            string expectedPath = Path.ChangeExtension(sourcePath, ".g.js");
+            var mir = MirLowerer.Lower(SyntaxTree.Parse(File.ReadAllText(sourcePath)));
 
-        Assert.Empty(mir.Diagnostics);
-        Assert.NotNull(mir.Program);
+            Assert.Empty(mir.Diagnostics);
+            Assert.NotNull(mir.Program);
 
-        JavaScriptCompilation result = JavaScriptBackend.Emit(mir.Program);
+            JavaScriptCompilation first = JavaScriptBackend.Emit(mir.Program);
+            JavaScriptCompilation second = JavaScriptBackend.Emit(mir.Program);
 
-        Assert.True(result.Success);
-        Assert.Equal(File.ReadAllText(expectedPath).Replace("\r\n", "\n", StringComparison.Ordinal), result.SourceText);
+            Assert.True(first.Success);
+            Assert.Equal(first.SourceText, second.SourceText);
+            Assert.DoesNotContain("\r", first.SourceText, StringComparison.Ordinal);
+            Assert.Equal(File.ReadAllText(expectedPath).Replace("\r\n", "\n", StringComparison.Ordinal), first.SourceText);
+        }
+    }
+
+    [Fact]
+    public void Primitive_Equality_Artifact_Has_Stable_Hash()
+    {
+        string artifactPath = Path.Combine(GetCorpusRoot(), "primitive-equality.g.js");
+        byte[] bytes = File.ReadAllBytes(artifactPath);
+        string hash = Convert.ToHexString(SHA256.HashData(bytes));
+
+        Assert.Equal("AD297686E173C5A30FD9D6CFA030F90DC048D604CFB7808063DED441EC74B5FC", hash);
     }
 
     private static string GetCorpusRoot()

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Lowering;
 using Copeland.TS.Mir;
@@ -92,6 +93,55 @@ public sealed class JavaScriptBackendTests
         }
     }
 
+    [Theory]
+    [InlineData("true", "true", "==", "(true === true)")]
+    [InlineData("true", "false", "!=", "(true !== false)")]
+    [InlineData("42", "42", "==", "(42 === 42)")]
+    [InlineData("42", "41", "!=", "(42 !== 41)")]
+    [InlineData("\"same\"", "\"same\"", "==", "(\"same\" === \"same\")")]
+    [InlineData("\"same\"", "\"different\"", "!=", "(\"same\" !== \"different\")")]
+    public void Emits_Primitive_Equality_As_JavaScript_Strict_Equality(
+        string left,
+        string right,
+        string operation,
+        string expectedExpression)
+    {
+        JavaScriptCompilation result = Emit($"function main(): boolean {{ return {left} {operation} {right}; }}");
+
+        Assert.True(result.Success);
+        Assert.Contains($"return {expectedExpression};", result.SourceText, StringComparison.Ordinal);
+        AssertNoLooseEquality(result.SourceText!);
+    }
+
+    [Fact]
+    public void Emits_String_Literals_With_Deterministic_JavaScript_Escaping()
+    {
+        var program = new MirProgram([], [
+            new MirFunction("main", [], new MirType("string"), null, [], [
+                new MirReturnStatement(new MirLiteralExpression("\"\\\n\r\t\u0001\u2028\u2029\ud800", new MirType("string")))])
+        ]);
+
+        JavaScriptCompilation result = JavaScriptBackend.Emit(program);
+
+        Assert.True(result.Success);
+        Assert.Equal("\"use strict\";\n\nfunction main() {\n    return \"\\\"\\\\\\n\\r\\t\\u0001\\u2028\\u2029\\ud800\";\n}\n", result.SourceText);
+    }
+
+    [Fact]
+    public void Preserves_Equality_Operand_Order_And_Evaluates_Each_Operand_Once()
+    {
+        JavaScriptCompilation result = Emit("""
+            function left(): number { return 1; }
+            function right(): number { return 1; }
+            function main(): boolean { return left() == right(); }
+            """);
+
+        Assert.True(result.Success);
+        Assert.Contains("return (left() === right());", result.SourceText, StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(result.SourceText!, @"return \(left\(\) === right\(\)\);").Cast<Match>());
+        AssertNoLooseEquality(result.SourceText!);
+    }
+
     [Fact]
     public void Rejects_Unsupported_Mir_Without_Partial_Artifact()
     {
@@ -117,7 +167,6 @@ public sealed class JavaScriptBackendTests
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("fallible function 'fallible'", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("enum 'Choice'", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("array expression", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("binary operator '=='", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("match expression", StringComparison.Ordinal));
@@ -143,6 +192,34 @@ public sealed class JavaScriptBackendTests
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("propagated call 'parse'", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("number[]")]
+    [InlineData("Choice")]
+    [InlineData("Result<number, ParseError>")]
+    [InlineData("object")]
+    [InlineData("Closure")]
+    [InlineData("future-value")]
+    public void Rejects_Unsupported_Equality_Families_Without_Partial_Artifact(string typeName)
+    {
+        MirType type = new(typeName);
+        MirType boolean = new("boolean");
+        var program = new MirProgram([], [
+            new MirFunction("main", [], boolean, null, [], [
+                new MirReturnStatement(new MirBinaryExpression(
+                    "==",
+                    new MirVariableExpression("left", type),
+                    new MirVariableExpression("right", type),
+                    boolean))])
+        ]);
+
+        JavaScriptCompilation result = JavaScriptBackend.Emit(program);
+
+        Assert.False(result.Success);
+        Assert.Null(result.SourceText);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0001"
+            && diagnostic.Message.Contains($"equality for type '{typeName}'", StringComparison.Ordinal));
+    }
+
     private static JavaScriptCompilation Emit(string source)
     {
         return JavaScriptBackend.Emit(Lower(source));
@@ -154,5 +231,11 @@ public sealed class JavaScriptBackendTests
         Assert.Empty(mir.Diagnostics);
         Assert.NotNull(mir.Program);
         return mir.Program;
+    }
+
+    private static void AssertNoLooseEquality(string source)
+    {
+        Assert.DoesNotMatch(new Regex(@"(?<![=!])==(?!=)"), source);
+        Assert.DoesNotMatch(new Regex(@"(?<!!)!=(?!=)"), source);
     }
 }

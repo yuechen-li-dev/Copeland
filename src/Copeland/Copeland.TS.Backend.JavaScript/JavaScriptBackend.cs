@@ -141,7 +141,8 @@ public static class JavaScriptBackend
                 break;
             case MirBinaryExpression binary:
                 bool isSupportedArithmetic = binary.Operator is "+" or "-" or "*" or "/" or "%";
-                if (!isSupportedArithmetic)
+                bool isEquality = binary.Operator is "==" or "!=";
+                if (!isSupportedArithmetic && !isEquality)
                 {
                     AddUnsupported(diagnostics, $"binary operator '{binary.Operator}' in {context}");
                 }
@@ -152,6 +153,12 @@ public static class JavaScriptBackend
                     RequireType(binary.Left.Type, "number", $"left operand of binary expression in {context}", diagnostics);
                     RequireType(binary.Right.Type, "number", $"right operand of binary expression in {context}", diagnostics);
                 }
+
+                if (isEquality)
+                {
+                    ValidatePrimitiveEquality(binary, context, diagnostics);
+                }
+
                 ValidateExpression(binary.Left, context, functions, diagnostics);
                 ValidateExpression(binary.Right, context, functions, diagnostics);
                 break;
@@ -196,6 +203,11 @@ public static class JavaScriptBackend
         }
 
         if (literal.Type.Name == "number" && literal.Value is int or long or float or double)
+        {
+            return;
+        }
+
+        if (literal.Type.Name == "string" && literal.Value is string)
         {
             return;
         }
@@ -256,7 +268,7 @@ public static class JavaScriptBackend
 
     private static void ValidateValueType(MirType type, string context, List<JavaScriptDiagnostic> diagnostics, bool allowVoid)
     {
-        if (type.Name is "number" or "boolean" || (allowVoid && type.Name == "void"))
+        if (type.Name is "number" or "boolean" or "string" || (allowVoid && type.Name == "void"))
         {
             return;
         }
@@ -278,6 +290,22 @@ public static class JavaScriptBackend
         {
             AddInvalid(diagnostics, $"expected type '{expected.Name}' for {context}, found '{actual.Name}'");
         }
+    }
+
+    private static void ValidatePrimitiveEquality(
+        MirBinaryExpression binary,
+        string context,
+        List<JavaScriptDiagnostic> diagnostics)
+    {
+        RequireType(binary.Type, "boolean", $"equality expression in {context}", diagnostics);
+        RequireMatchingType(binary.Left.Type, binary.Right.Type, $"operands of equality expression in {context}", diagnostics);
+
+        if (binary.Left.Type.Name is "boolean" or "number" or "string")
+        {
+            return;
+        }
+
+        AddUnsupported(diagnostics, $"equality for type '{binary.Left.Type.Name}' in {context}");
     }
 
     private static void AddUnsupported(List<JavaScriptDiagnostic> diagnostics, string feature)
@@ -330,12 +358,23 @@ public static class JavaScriptBackend
         return expression switch
         {
             MirLiteralExpression { Value: bool boolean } => boolean ? "true" : "false",
+            MirLiteralExpression { Value: string text } => JavaScriptLiteralWriter.WriteString(text),
             MirLiteralExpression { Value: not null } literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
             MirVariableExpression variable => JavaScriptIdentifierEncoder.Encode(variable.Name),
-            MirBinaryExpression binary => $"({EmitExpression(binary.Left)} {binary.Operator} {EmitExpression(binary.Right)})",
+            MirBinaryExpression binary => $"({EmitExpression(binary.Left)} {MapBinaryOperator(binary.Operator)} {EmitExpression(binary.Right)})",
             MirCallExpression call => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(EmitExpression))})",
             MirIfExpression conditional => $"({EmitExpression(conditional.Condition)} ? {EmitExpression(conditional.ThenExpression)} : {EmitExpression(conditional.ElseExpression)})",
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
+        };
+    }
+
+    private static string MapBinaryOperator(string @operator)
+    {
+        return @operator switch
+        {
+            "==" => "===",
+            "!=" => "!==",
+            _ => @operator,
         };
     }
 }

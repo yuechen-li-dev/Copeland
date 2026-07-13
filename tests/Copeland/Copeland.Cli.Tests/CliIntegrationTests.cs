@@ -87,6 +87,35 @@ function one(): number {
     }
 
     [Fact]
+    public async Task EmitJavaScriptEquality_Executes_In_Node()
+    {
+        using var temp = new TempDir();
+        var inputPath = temp.WriteFile("input.ts", """
+            function main(): boolean {
+              const nan: number = 0 / 0;
+              return nan != nan;
+            }
+            """);
+        string outputPath = System.IO.Path.Combine(temp.Path, "output.g.js");
+
+        CliResult compilation = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript", "--out", outputPath);
+
+        Assert.Equal(0, compilation.ExitCode);
+        Assert.True(File.Exists(outputPath));
+        string emitted = Normalize(File.ReadAllText(outputPath));
+        Assert.Contains("nan !== nan", emitted, StringComparison.Ordinal);
+        Assert.DoesNotMatch("(?<![=!])==(?!=)", emitted);
+        Assert.DoesNotMatch("(?<!!)!=(?!=)", emitted);
+
+        File.AppendAllText(outputPath, "console.log(main());\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        CliResult execution = await RunExecutableAsync("node", temp.Path, outputPath);
+
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("true\n", execution.StdOut);
+        Assert.Equal(string.Empty, execution.StdErr);
+    }
+
+    [Fact]
     public async Task UnsupportedJavaScriptEmission_DoesNotWriteOutput()
     {
         using var temp = new TempDir();
@@ -238,6 +267,44 @@ function value(flag: boolean): number {
         string stdErr = Normalize(await stdErrTask);
 
         return new CliResult(process.ExitCode, stdOut, stdErr);
+    }
+
+    private static async Task<CliResult> RunExecutableAsync(string fileName, string workingDirectory, params string[] args)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = fileName,
+            WorkingDirectory = workingDirectory,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+
+        foreach (string argument in args)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException($"Failed to start '{fileName}'.");
+        process.StandardInput.Close();
+        Task<string> stdOutTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> stdErrTask = process.StandardError.ReadToEndAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        try
+        {
+            await process.WaitForExitAsync(timeout.Token);
+        }
+        catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+        {
+            KillProcessTree(process);
+            await process.WaitForExitAsync();
+            throw new TimeoutException(BuildTimeoutMessage(args, Normalize(await stdOutTask), Normalize(await stdErrTask)));
+        }
+
+        return new CliResult(process.ExitCode, Normalize(await stdOutTask), Normalize(await stdErrTask));
     }
 
     private static string Normalize(string text) => text.Replace("\r\n", "\n");
