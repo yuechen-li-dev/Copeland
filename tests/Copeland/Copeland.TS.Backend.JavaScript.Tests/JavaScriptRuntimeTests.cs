@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.RegularExpressions;
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
 using Xunit;
@@ -98,6 +99,133 @@ public sealed class JavaScriptRuntimeTests
         Assert.Equal("true\ntrue\nfalse\ntrue\ntrue\nfalse\ntrue\ntrue\nfalse\ntrue\ntrue\n", first.StdOut);
         Assert.Equal(string.Empty, first.StdErr);
         Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task Node_Executes_Payload_Enum_Match_Repeatedly()
+    {
+        const string source = """
+            enum Inner {
+              None,
+              Number(value: number),
+            }
+
+            enum Outer {
+              Empty,
+              Pair(first: number, second: string),
+              Nested(value: Inner),
+            }
+
+            function main(): string {
+              const outer: Outer = Outer.Nested(Inner.Number(9));
+              return match outer {
+                Empty => "empty",
+                Pair(first, second) => second,
+                Nested(inner) => match inner {
+                  None => "none",
+                  Number(value) => "nested",
+                },
+              };
+            }
+            """;
+
+        JavaScriptCompilation emitted = Emit(source);
+        Assert.True(emitted.Success);
+
+        string script = emitted.SourceText + "console.log(main());\n";
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal("nested\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task Match_Scrutinee_Is_Emitted_Once_And_Invalid_Tag_Panics_Deterministically()
+    {
+        const string source = """
+            enum Choice {
+              A,
+              B(value: number),
+            }
+
+            enum Other {
+              A,
+            }
+
+            function make(): Choice {
+              return Choice.A;
+            }
+
+            function inspect(choice: Choice): number {
+              return match choice {
+                A => 1,
+                B(value) => value,
+              };
+            }
+
+            function other(): Other {
+              return Other.A;
+            }
+
+            function main(): number {
+              return match make() {
+                A => 1,
+                B(value) => value,
+              };
+            }
+            """;
+
+        JavaScriptCompilation emitted = Emit(source);
+        Assert.True(emitted.Success);
+        Assert.Single(Regex.Matches(emitted.SourceText!, @"const __cope_m3_match_\d+ = make\(\);").Cast<Match>());
+        Assert.Contains("default: return __cope_m3_panic_", emitted.SourceText, StringComparison.Ordinal);
+
+        string script = emitted.SourceText + """
+            console.log(main());
+            try {
+              inspect(other());
+            } catch (error) {
+              console.log(error.message);
+            }
+            const valid = make();
+            const invalid = Object.freeze(Object.assign(Object.create(null), {
+              $type: valid.$type,
+              $tag: "Unknown",
+              $payload: Object.freeze([]),
+            }));
+            try {
+              inspect(invalid);
+            } catch (error) {
+              console.log(error.message);
+            }
+            const malformed = Object.freeze(Object.assign(Object.create(null), {
+              $type: valid.$type,
+              $tag: "B",
+              $payload: Object.freeze([]),
+            }));
+            try {
+              inspect(malformed);
+            } catch (error) {
+              console.log(error.message);
+            }
+            """;
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal("1\nCopeland JavaScript backend invariant failure.\nCopeland JavaScript backend invariant failure.\nCopeland JavaScript backend invariant failure.\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    private static JavaScriptCompilation Emit(string source)
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        return emitted;
     }
 
     private static async Task<ProcessResult> RunNodeAsync(string script)

@@ -163,14 +163,83 @@ public sealed class JavaScriptBackendTests
 
         Assert.False(result.Success);
         Assert.Null(result.SourceText);
-        Assert.All(result.Diagnostics, diagnostic => Assert.Equal("COPE-JS-0001", diagnostic.Id));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
+            && diagnostic.Message.Contains("non-exhaustive match", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("fallible function 'fallible'", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("enum 'Choice'", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("array expression", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("match expression", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("binary operator '**'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Emits_Nominal_Frozen_NullPrototype_Enum_Values_And_Exhaustive_Matches()
+    {
+        JavaScriptCompilation result = Emit("""
+            enum Choice {
+              None,
+              Pair(first: number, second: string),
+            }
+
+            function main(choice: Choice): string {
+              return match choice {
+                None => "none",
+                Pair(first, second) => second,
+              };
+            }
+            """);
+
+        Assert.True(result.Success);
+        Assert.Contains("Object.create(null)", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Object.freeze", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("switch (__cope_m3_match_", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("const first = __cope_m3_match_", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("const second = __cope_m3_match_", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("case \"None\"", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("case \"Pair\"", result.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rejects_Malformed_Enum_And_Match_Mir_Without_Partial_Artifact()
+    {
+        MirType number = new("number");
+        MirType choice = new("Choice");
+        var program = new MirProgram(
+            [new MirEnum("Choice", [new MirEnumCase("Some", [new MirEnumPayloadField("value", number)])])],
+            [
+                new MirFunction("main", [], number, null, [], [
+                    new MirReturnStatement(new MirMatchExpression(
+                        new MirVariableExpression("choice", choice),
+                        [new MirMatchArm("Some", [], new MirLiteralExpression(1, number))],
+                        number))]),
+                new MirFunction("bad", [], choice, null, [], [
+                    new MirReturnStatement(new MirEnumValueExpression("Missing", "Some", [], choice))])
+            ]);
+
+        JavaScriptCompilation result = JavaScriptBackend.Emit(program);
+
+        Assert.False(result.Success);
+        Assert.Null(result.SourceText);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
+            && diagnostic.Message.Contains("has 0 bindings but case declares 1 payloads", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
+            && diagnostic.Message.Contains("unknown enum 'Missing'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Preserves_LeftToRight_Payload_Argument_Order()
+    {
+        JavaScriptCompilation result = Emit("""
+            enum Pair {
+              Value(first: number, second: number),
+            }
+
+            function first(): number { return 1; }
+            function second(): number { return 2; }
+            function make(): Pair { return Pair.Value(first(), second()); }
+            """);
+
+        Assert.True(result.Success);
+        Assert.Contains("[first(), second()]", result.SourceText, StringComparison.Ordinal);
     }
 
     [Fact]

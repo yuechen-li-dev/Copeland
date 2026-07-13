@@ -116,6 +116,41 @@ function one(): number {
     }
 
     [Fact]
+    public async Task EmitJavaScriptPayloadEnumMatch_Executes_In_Node()
+    {
+        using var temp = new TempDir();
+        var inputPath = temp.WriteFile("input.ts", """
+            enum Choice {
+              Empty,
+              Pair(first: number, second: string),
+            }
+
+            function main(): string {
+              const choice: Choice = Choice.Pair(1, "ordered");
+              return match choice {
+                Empty => "empty",
+                Pair(first, second) => second,
+              };
+            }
+            """);
+        string outputPath = System.IO.Path.Combine(temp.Path, "output.g.js");
+
+        CliResult compilation = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript", "--out", outputPath);
+
+        Assert.Equal(0, compilation.ExitCode);
+        string emitted = Normalize(File.ReadAllText(outputPath));
+        Assert.Contains("Object.create(null)", emitted, StringComparison.Ordinal);
+        Assert.Contains("switch (__cope_m3_match_", emitted, StringComparison.Ordinal);
+
+        File.AppendAllText(outputPath, "console.log(main());\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        CliResult execution = await RunExecutableAsync("node", temp.Path, outputPath);
+
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("ordered\n", execution.StdOut);
+        Assert.Equal(string.Empty, execution.StdErr);
+    }
+
+    [Fact]
     public async Task UnsupportedJavaScriptEmission_DoesNotWriteOutput()
     {
         using var temp = new TempDir();
