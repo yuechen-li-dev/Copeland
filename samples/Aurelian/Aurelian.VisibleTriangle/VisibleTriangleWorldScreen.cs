@@ -1,23 +1,17 @@
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Core.Engine.Runtime;
-using Aurelian.Core.Presentation.Screens;
 
 namespace Aurelian.VisibleTriangle;
 
-internal sealed class VisibleTriangleWorldScreen : IPresenterScreen
+internal sealed class VisibleTriangleWorldScreen
 {
     private readonly VisibleTriangleSampleFrame sampleFrame;
 
-    public VisibleTriangleWorldScreen(VisibleTriangleSampleFrame sampleFrame, bool isVisible = true)
+    public VisibleTriangleWorldScreen(VisibleTriangleSampleFrame sampleFrame)
     {
         ArgumentNullException.ThrowIfNull(sampleFrame);
         this.sampleFrame = sampleFrame;
-        IsVisible = isVisible;
     }
-
-    public ScreenLayerKey Layer => ScreenLayers.World.Key;
-
-    public bool IsVisible { get; }
 
     public VisibleTriangleSampleFrame SampleFrame => sampleFrame;
 

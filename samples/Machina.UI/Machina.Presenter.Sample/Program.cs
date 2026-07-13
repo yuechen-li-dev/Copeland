@@ -144,7 +144,6 @@ internal sealed class Program
         private readonly Grid _presenterHost;
 
         private DemoState _state;
-        private readonly MachinaRasterPipeline _pipeline;
         private readonly PresenterProofOptions _proofOptions;
         private readonly PresenterNavigationExportOptions _navigationOptions;
         private readonly AvaloniaPresenterInputBackend _inputBackend;
@@ -154,7 +153,7 @@ internal sealed class Program
         private PresenterNavigationState? _navigationState;
         private PresenterScrollbarInteractionState _scrollbarInteractionState;
         private UiHitTestIndex _hitTestIndex;
-        private MachinaFrame _currentFrame;
+        private MachinaComposedFrame _currentFrame;
         private PresenterNavigationShellRenderResult? _navigationShellRender;
 
         public PresenterWindow(PresenterProofOptions proofOptions, PresenterNavigationExportOptions navigationOptions)
@@ -185,7 +184,6 @@ internal sealed class Program
                 Count: 0,
                 EmailUpdates: true,
                 Notifications: false);
-            _pipeline = new MachinaRasterPipeline();
             _proofOptions = proofOptions;
             _navigationOptions = navigationOptions;
             _inputBackend = new AvaloniaPresenterInputBackend();
@@ -251,7 +249,7 @@ internal sealed class Program
             }
 
             var ui = SettingsScreen.Build(_state, AppTheme, _proofOptions);
-            _currentFrame = _pipeline.Render(
+            _currentFrame = MachinaAurelianCpuRasterComposition.Render(
                 ui,
                 SettingsScreen.GetWidth(_proofOptions),
                 SettingsScreen.GetHeight(_proofOptions));

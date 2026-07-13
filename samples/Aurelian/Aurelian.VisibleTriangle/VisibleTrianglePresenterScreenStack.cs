@@ -1,6 +1,6 @@
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Core.Engine.Runtime;
-using Aurelian.Core.Presentation.Screens;
+using Machina.Presentation.Screens;
 
 namespace Aurelian.VisibleTriangle;
 
@@ -13,6 +13,7 @@ internal static class VisibleTrianglePresenterScreenStack
             ScreenLayers.Background,
             ScreenLayers.World,
             ScreenLayers.Hud,
+            ScreenLayers.Overlay,
             ScreenLayers.Debug,
             ScreenLayers.Cursor,
         ];
@@ -20,7 +21,7 @@ internal static class VisibleTrianglePresenterScreenStack
         return order;
     }
 
-    public static PresenterScreenStack CreateStack(VisibleTriangleWorldScreen worldScreen)
+    public static PresenterScreenStack CreateStack(VisibleTriangleMachinaScreen worldScreen)
     {
         ArgumentNullException.ThrowIfNull(worldScreen);
 
@@ -38,11 +39,13 @@ internal static class VisibleTrianglePresenterScreenStack
         ArgumentNullException.ThrowIfNull(runtimeTickStep);
 
         IReadOnlyList<IPresenterScreen> visibleScreens = screenStack.VisibleScreensInCompositionOrder();
-        VisibleTriangleWorldScreen worldScreen = visibleScreens
-            .OfType<VisibleTriangleWorldScreen>()
+        VisibleTriangleMachinaScreen worldScreen = visibleScreens
+            .OfType<VisibleTriangleMachinaScreen>()
             .FirstOrDefault()
             ?? throw new InvalidOperationException("Presenter screen stack does not contain a visible Aurelian world screen.");
 
-        return await worldScreen.RunFrameLoopAsync(runtimeTickStep, cancellationToken).ConfigureAwait(false);
+        return await worldScreen.WorldScreen
+            .RunFrameLoopAsync(runtimeTickStep, cancellationToken)
+            .ConfigureAwait(false);
     }
 }

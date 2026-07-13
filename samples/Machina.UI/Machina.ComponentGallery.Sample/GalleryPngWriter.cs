@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using Machina.Fonts.ReferenceRendering;
-using Machina.Renderer.Raster.Dominatus.Models;
 
 namespace Machina.ComponentGallery.Sample;
 

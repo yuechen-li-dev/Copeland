@@ -1,6 +1,5 @@
 using Machina.Core.Flat;
 using Machina.Pipeline;
-using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Standard.Theme;
 
 namespace Machina.Presenter.Sample;
@@ -64,7 +63,7 @@ public sealed class PresenterNavigationRenderSession
             section,
             scrollbarGeometry);
 
-        MachinaFrame shellFrame = GetOrRenderShellLayer(
+        MachinaComposedFrame shellFrame = GetOrRenderShellLayer(
             model,
             normalizedState,
             chromeGeometry,
@@ -164,7 +163,7 @@ public sealed class PresenterNavigationRenderSession
         return pageRender;
     }
 
-    private MachinaFrame GetOrRenderShellLayer(
+    private MachinaComposedFrame GetOrRenderShellLayer(
         PresenterNavigationModel model,
         PresenterNavigationState navigationState,
         PresenterNavigationChromeGeometry chromeGeometry,
@@ -199,7 +198,10 @@ public sealed class PresenterNavigationRenderSession
             scrollbarGeometry,
             proofOptions);
 
-        MachinaFrame shellFrame = new MachinaRasterPipeline().Render(shellDocument, layout.RootWidth, layout.RootHeight);
+        MachinaComposedFrame shellFrame = MachinaAurelianCpuRasterComposition.Render(
+            shellDocument,
+            layout.RootWidth,
+            layout.RootHeight);
         _cachedShellLayer = new PresenterCachedShellLayer(key, shellFrame);
         _shellRenderCount++;
         return shellFrame;
@@ -237,4 +239,4 @@ internal sealed record PresenterCachedShellLayerKey(
 
 internal sealed record PresenterCachedShellLayer(
     PresenterCachedShellLayerKey Key,
-    MachinaFrame Frame);
+    MachinaComposedFrame Frame);

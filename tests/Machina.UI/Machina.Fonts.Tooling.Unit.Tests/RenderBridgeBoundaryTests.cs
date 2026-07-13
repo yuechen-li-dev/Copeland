@@ -13,7 +13,6 @@ public sealed class RenderBridgeBoundaryTests
             Path.Combine(repoRoot, "src", "Machina.UI", "Machina.Standard"),
             Path.Combine(repoRoot, "src", "Machina.UI", "Machina.Core"),
             Path.Combine(repoRoot, "src", "Machina.UI", "Machina.Dominatus"),
-            Path.Combine(repoRoot, "src", "Machina.UI", "Machina.Renderer.Raster"),
             Path.Combine(repoRoot, "src", "Machina.UI", "Machina.Pipeline"),
         ];
 

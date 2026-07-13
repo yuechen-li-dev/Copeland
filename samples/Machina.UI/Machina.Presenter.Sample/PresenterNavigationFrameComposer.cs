@@ -1,7 +1,4 @@
 using Machina.Layout.Geometry;
-using Machina.Renderer.Raster.Colors;
-using Machina.Renderer.Raster.Dominatus.Models;
-using Machina.Renderer.Raster.Surface;
 
 namespace Machina.Presenter.Sample;
 
@@ -26,7 +23,7 @@ public static class PresenterNavigationFrameComposer
             FillRect(composedSurface, scrollbarGeometry.ThumbRect, ScrollbarThumbColor);
         }
 
-        return new RasterFrame(shellFrame.Width, shellFrame.Height, composedSurface);
+        return new RasterFrame(composedSurface);
     }
 
     public static void BlitPageContent(

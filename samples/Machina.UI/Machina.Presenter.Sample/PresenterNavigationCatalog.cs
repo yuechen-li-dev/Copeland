@@ -380,7 +380,7 @@ public static class PresenterNavigationCatalog
     {
         double contentHeight = GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight, shellMode);
         UiDocument document = BuildPageDocument(pageId, demoState, theme, proofOptions, contentWidth, viewportHeight, navigationState, shellMode);
-        var frame = new Machina.Pipeline.MachinaRasterPipeline().Render(document, contentWidth, (int)Math.Ceiling(contentHeight));
+        var frame = MachinaAurelianCpuRasterComposition.Render(document, contentWidth, (int)Math.Ceiling(contentHeight));
 
         if (pageId == "text.direct-outline" && proofOptions.IncludeDirectOutlineRenderBridgeProof)
         {
@@ -827,7 +827,7 @@ public static class PresenterNavigationCatalog
 public sealed record PresenterPageRenderResult(
     string PageId,
     UiDocument Document,
-    Machina.Pipeline.MachinaFrame Frame,
+    MachinaComposedFrame Frame,
     double ContentHeight)
 {
     public OblivionPageInteractionMap? OblivionInteraction { get; init; }

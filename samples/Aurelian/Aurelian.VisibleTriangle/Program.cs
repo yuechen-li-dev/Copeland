@@ -1,10 +1,10 @@
 using Aurelian.Core.Engine;
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Core.Engine.Runtime;
-using Aurelian.Core.Presentation.Screens;
 using Aurelian.Graphics.Vulkan.Presentation;
 using Aurelian.Rendering.Contracts.Compositor;
 using Aurelian.Runtime.Sessions;
+using Machina.Presentation.Screens;
 
 namespace Aurelian.VisibleTriangle;
 
@@ -63,7 +63,8 @@ internal static class Program
             var runtimeTicker = new AurelianRuntimeSessionTickerAdapter(runtimeSession);
             var runtimeTickStep = new AurelianRuntimeTickFrameStep(runtimeTicker);
             var worldScreen = new VisibleTriangleWorldScreen(sample);
-            PresenterScreenStack screenStack = VisibleTrianglePresenterScreenStack.CreateStack(worldScreen);
+            var machinaWorldScreen = new VisibleTriangleMachinaScreen(worldScreen);
+            PresenterScreenStack screenStack = VisibleTrianglePresenterScreenStack.CreateStack(machinaWorldScreen);
             PrintScreenStack(screenStack);
 
             AurelianFrameLoopResult loopResult = await VisibleTrianglePresenterScreenStack

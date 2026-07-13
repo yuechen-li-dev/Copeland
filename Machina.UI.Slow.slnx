@@ -1,8 +1,6 @@
 <Solution>
   <Folder Name="/tests/">
-    <Project Path="tests/Machina.UI/Machina.ComponentGallery.Sample.Tests/Machina.ComponentGallery.Sample.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Fonts.Diagnostics.Tests/Machina.Fonts.Diagnostics.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Fonts.Tooling.Tests/Machina.Fonts.Tooling.Tests.csproj" />
-    <Project Path="tests/Machina.UI/Machina.Presenter.Sample.Tests/Machina.Presenter.Sample.Tests.csproj" />
   </Folder>
 </Solution>

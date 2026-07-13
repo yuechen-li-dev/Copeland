@@ -54,7 +54,6 @@ Run `pwsh ./tools/Validate-DependencyBoundaries.ps1` from the repository root.
 These are retained because JTF-M0 is a physical topology refactor and must not perform semantic project surgery:
 
 - `src/Machina.UI/Machina.Dominatus`: `Dominatus.Core` and `Dominatus.OptFlow` package references remain for the existing Machina Dominatus runtime proof. Intended migration: JTF-M1 or a later explicitly approved Machina runtime boundary milestone.
-- `src/Machina.UI/Machina.Renderer.Raster.Dominatus`: `Dominatus.Core` remains for the existing renderer/orchestration adapter. Intended migration: JTF-M1 or a later renderer/integration ownership milestone.
 
 The exceptions are machine-readable in `tools/dependency-boundary-exceptions.json`. They are narrow project/package entries, not a general waiver.
 
@@ -64,8 +63,7 @@ The following are intentionally placed by current project name and build identit
 
 - `Machina.Pipeline` is not split in JTF-M0.
 - `Machina.Dominatus` remains physically under Machina.UI even though Dominatus orchestration is not general UI ownership.
-- `Machina.Renderer.Raster`, `Machina.Renderer.Raster.Text`, and `Machina.Renderer.Raster.Dominatus` remain under Machina.UI for now.
-- `Aurelian.Core/Presentation/Screens` remains in Aurelian.Core.
+- JTF-M4a moved generic presenter screens and layer composition from `Aurelian.Core` to `Machina.Presentation`.
 - concrete Vulkan integration currently present in `Aurelian.Core` is not moved in this milestone.
 - generic-looking machinery inside `Aurelian.Shaders` is not migrated into Copeland.
 - SDSL-V and VD-MIR remain in their current Aurelian lane.

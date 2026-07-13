@@ -4,7 +4,6 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Machina.Fonts.ReferenceRendering;
 using Machina.Pipeline;
-using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Standard.Theme;
 
 namespace Machina.ComponentGallery.Sample;
@@ -44,7 +43,7 @@ public static class GalleryExporter
 
         var outputPath = BuildOutputPath(fullOutputDirectory, exportName);
         var galleryHeight = GalleryScreen.GetHeight(proofOptions);
-        var frame = new MachinaRasterPipeline().Render(
+        var frame = MachinaAurelianCpuRasterComposition.Render(
             GalleryScreen.Build(state, proofOptions, StandardTheme.Default),
             GalleryScreen.Width,
             galleryHeight);

@@ -4,7 +4,6 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using Avalonia.Media;
 using Machina.Core.Actions;
-using Machina.Pipeline;
 using Machina.Runtime.Input;
 using Machina.Standard.Theme;
 using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
@@ -71,12 +70,11 @@ internal sealed class Program
         private const string BaseTitle = "Machina Component Gallery M7b";
 
         private readonly Image _image;
-        private readonly MachinaRasterPipeline _pipeline;
         private readonly GalleryProofOptions _proofOptions;
 
         private GalleryState _state;
         private UiHitTestIndex _hitTestIndex;
-        private MachinaFrame _currentFrame;
+        private MachinaComposedFrame _currentFrame;
 
         public GalleryWindow(GalleryState initialState, GalleryProofOptions proofOptions)
         {
@@ -91,7 +89,6 @@ internal sealed class Program
 
             _state = initialState;
             _proofOptions = proofOptions;
-            _pipeline = new MachinaRasterPipeline();
             _hitTestIndex = default!;
             _currentFrame = default!;
 
@@ -104,7 +101,10 @@ internal sealed class Program
         private void RenderCurrentState()
         {
             var document = GalleryScreen.Build(_state, _proofOptions, StandardTheme.Default);
-            _currentFrame = _pipeline.Render(document, GalleryScreen.Width, GalleryScreen.GetHeight(_proofOptions));
+            _currentFrame = MachinaAurelianCpuRasterComposition.Render(
+                document,
+                GalleryScreen.Width,
+                GalleryScreen.GetHeight(_proofOptions));
             _hitTestIndex = _currentFrame.HitTest;
 
             if (_proofOptions.IncludeDirectOutlineTextProof)

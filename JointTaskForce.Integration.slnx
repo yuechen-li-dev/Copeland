@@ -1,9 +1,14 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />
+    <Project Path="samples/Machina.UI/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
+    <Project Path="samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
+  </Folder>
   <Folder Name="/tests/Aurelian/">
     <Project Path="tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj" />
-    <Project Path="tests/Aurelian/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Integrations/">
     <Project Path="tests/Integrations/Aurelian.Machina.Tests/Aurelian.Machina.Tests.csproj" />
+    <Project Path="tests/Integrations/Aurelian.VisibleTriangle.Tests/Aurelian.VisibleTriangle.Tests.csproj" />
   </Folder>
 </Solution>

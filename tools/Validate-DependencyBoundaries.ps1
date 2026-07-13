@@ -163,6 +163,144 @@ function Add-IntegrationOwnershipViolations {
     if (Test-Path $legacyParityPath -PathType Leaf) {
         $violations.Add("Cross-system AurelianCpuRasterParityTests must live under tests/Integrations, not tests/Aurelian.")
     }
+
+    $testProjects = @(Get-ChildItem (Join-Path $repositoryRoot "tests") -Recurse -Filter *.csproj)
+    foreach ($testProject in $testProjects) {
+        [xml]$project = Get-Content -Raw $testProject.FullName
+        $testProjectPath = Get-RepositoryRelativePath $testProject.FullName
+        $referencesMachina = $false
+        $referencesAurelian = $false
+
+        foreach ($projectReference in @($project.Project.ItemGroup.ProjectReference)) {
+            $targetPath = [IO.Path]::GetFullPath((Join-Path $testProject.DirectoryName ([string]$projectReference.Include)))
+            $targetRelativePath = Get-RepositoryRelativePath $targetPath
+            $referencesMachina = $referencesMachina -or $targetRelativePath.StartsWith("src/Machina.UI/")
+            $referencesAurelian = $referencesAurelian -or
+                $targetRelativePath.StartsWith("src/Aurelian/") -or
+                $targetRelativePath.StartsWith("samples/Aurelian/")
+        }
+
+        if ($referencesMachina -and $referencesAurelian -and -not $testProjectPath.StartsWith("tests/Integrations/")) {
+            $violations.Add("$testProjectPath composes Machina and Aurelian coverage; move it under tests/Integrations.")
+        }
+    }
+}
+
+function Add-ScreenOwnershipViolations {
+    $screenRoot = "src/Machina.UI/Machina.Presentation/Screens/"
+    $requiredScreenFiles = @(
+        "IPresenterScreen.cs",
+        "PresenterScreenId.cs",
+        "PresenterScreenStack.cs",
+        "Layer.cs",
+        "ScreenLayerKey.cs",
+        "ScreenLayerOrder.cs",
+        "ScreenLayerSlot.cs",
+        "ScreenLayers.cs")
+
+    foreach ($fileName in $requiredScreenFiles) {
+        if (-not (Test-Path (Join-Path $repositoryRoot "$screenRoot$fileName") -PathType Leaf)) {
+            $violations.Add("Machina presentation screen contract is missing $screenRoot$fileName.")
+        }
+    }
+
+    $genericScreenDeclarations = @(
+        "interface IPresenterScreen",
+        "class PresenterScreenStack",
+        "struct PresenterScreenId",
+        "struct ScreenLayerKey",
+        "class ScreenLayerOrder",
+        "struct ScreenLayerSlot",
+        "class ScreenLayers")
+    $productionSourceFiles = @(Get-ChildItem (Join-Path $repositoryRoot "src") -Recurse -Filter *.cs)
+
+    foreach ($sourceFile in $productionSourceFiles) {
+        $relativePath = Get-RepositoryRelativePath $sourceFile.FullName
+        if ($relativePath.StartsWith($screenRoot)) {
+            continue
+        }
+
+        $source = Get-Content -Raw $sourceFile.FullName
+        foreach ($declaration in $genericScreenDeclarations) {
+            if ($source.Contains($declaration, [StringComparison]::Ordinal)) {
+                $violations.Add("$relativePath declares generic Machina-owned screen type '$declaration' outside $screenRoot.")
+            }
+        }
+    }
+
+    $aurelianScreenDirectory = Join-Path $repositoryRoot "src/Aurelian/Aurelian.Core/Presentation/Screens"
+    $aurelianScreenSourceFiles = @()
+    if (Test-Path $aurelianScreenDirectory -PathType Container) {
+        $aurelianScreenSourceFiles = @(Get-ChildItem $aurelianScreenDirectory -Filter *.cs)
+    }
+
+    if ($aurelianScreenSourceFiles.Count -gt 0) {
+        $violations.Add("Aurelian.Core.Presentation.Screens production namespace remains after screen ownership migration.")
+    }
+
+    $integrationSolution = Get-Content -Raw (Join-Path $repositoryRoot "JointTaskForce.Integration.slnx")
+    $crossSystemSamples = @(
+        "samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj",
+        "samples/Machina.UI/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj",
+        "samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj")
+
+    foreach ($sampleProject in $crossSystemSamples) {
+        if (-not $integrationSolution.Contains($sampleProject, [StringComparison]::Ordinal)) {
+            $violations.Add("Cross-system rasterizing sample $sampleProject must be a JointTaskForce.Integration solution member.")
+        }
+    }
+
+    foreach ($solutionName in @("Machina.UI.slnx", "Machina.UI.Slow.slnx")) {
+        $solutionText = Get-Content -Raw (Join-Path $repositoryRoot $solutionName)
+        foreach ($sampleProject in $crossSystemSamples) {
+            if ($solutionText.Contains($sampleProject, [StringComparison]::Ordinal)) {
+                $violations.Add("Machina-only solution $solutionName includes cross-system rasterizing sample $sampleProject.")
+            }
+        }
+    }
+}
+
+function Add-MachinaPresentationOnlyViolations {
+    $deletedProjectFiles = @(Get-ChildItem (Join-Path $repositoryRoot "src") -Recurse -Filter "Machina.Renderer.Raster*.csproj")
+    foreach ($projectFile in $deletedProjectFiles) {
+        $violations.Add("Legacy Machina renderer project still exists: $(Get-RepositoryRelativePath $projectFile.FullName).")
+    }
+
+    $pipelineProject = Join-Path $repositoryRoot "src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj"
+    [xml]$pipeline = Get-Content -Raw $pipelineProject
+    foreach ($reference in @($pipeline.Project.ItemGroup.ProjectReference)) {
+        $include = [string]$reference.Include
+        if ($include.Contains("Dominatus", [StringComparison]::OrdinalIgnoreCase) -or
+            $include.Contains("Renderer", [StringComparison]::OrdinalIgnoreCase)) {
+            $violations.Add("Machina.Pipeline must be presentation-only; found project reference $include.")
+        }
+    }
+
+    $machinaProjects = @(Get-ChildItem (Join-Path $repositoryRoot "src/Machina.UI") -Recurse -Filter *.csproj)
+    foreach ($projectFile in $machinaProjects) {
+        $projectPath = Get-RepositoryRelativePath $projectFile.FullName
+        Add-TextDependencyViolations $projectPath @(
+            "Aurelian.",
+            "Machina.Renderer.Raster",
+            "RasterFrame",
+            "RasterSurface",
+            "RasterPpmEncoder",
+            "LegacyMachinaRenderCommandAdapter")
+    }
+
+    foreach ($solutionFile in @(Get-ChildItem $repositoryRoot -Filter *.slnx)) {
+        $solutionText = Get-Content -Raw $solutionFile.FullName
+        if ($solutionText.Contains("Machina.Renderer.Raster", [StringComparison]::Ordinal)) {
+            $violations.Add("$(Get-RepositoryRelativePath $solutionFile.FullName) retains a deleted Machina renderer project path.")
+        }
+    }
+
+    foreach ($exception in $exceptions) {
+        $projectPath = [string]$exception.project
+        if (-not (Test-Path (Join-Path $repositoryRoot $projectPath) -PathType Leaf)) {
+            $violations.Add("Dependency exception references missing project $projectPath.")
+        }
+    }
 }
 
 $violations = [Collections.Generic.List[string]]::new()
@@ -314,6 +452,8 @@ Add-TextDependencyViolations "src/Integrations/Aurelian.Machina/Aurelian.Machina
 Add-ProjectGraphCycleViolations
 Add-SolutionTopologyViolations
 Add-IntegrationOwnershipViolations
+Add-MachinaPresentationOnlyViolations
+Add-ScreenOwnershipViolations
 
 if ($violations.Count -gt 0) {
     Write-Error ("Dependency boundary validation failed:`n- " + ($violations -join "`n- "))

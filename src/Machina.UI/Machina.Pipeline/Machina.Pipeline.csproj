@@ -10,9 +10,5 @@
     <ProjectReference Include="../Machina.Core/Machina.Core.csproj" />
     <ProjectReference Include="../Machina.Presentation/Machina.Presentation.csproj" />
     <ProjectReference Include="../Machina.Runtime/Machina.Runtime.csproj" />
-    <ProjectReference Include="../Machina.Dominatus/Machina.Dominatus.csproj" />
-    <ProjectReference Include="../Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
-    <ProjectReference Include="../Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
-    <ProjectReference Include="../Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
   </ItemGroup>
 </Project>

@@ -12,10 +12,10 @@
     <ProjectReference Include="../../../src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Dominatus/Machina.Dominatus.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
-    <ProjectReference Include="../../../src/Machina.UI/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
-    <ProjectReference Include="../../../src/Machina.UI/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
-    <ProjectReference Include="../../../src/Machina.UI/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
-    <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+  <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+  <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+  <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
+  <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -36,7 +36,9 @@ Aurelian owns engine lifecycle, worlds/game objects, engine actuation, frame loo
 
 ### JTF-M3 subdivision status
 
-JTF-M3a and M3b are complete: Core renderer neutrality is established through Aurelian-owned neutral mechanism ports in `Aurelian.Rendering.Contracts`, concrete Vulkan compositor and presentation adapters are owned by `Aurelian.Graphics`, and `Aurelian.Rendering.Raster` realizes an Aurelian-owned resolved-2D plan without production Machina dependencies. JTF-M3c establishes `Aurelian.Machina` as the narrow consumer-owned translation bridge from `MachinaPresentationFrame` to `Resolved2DPlan`; it has only the `Machina.Presentation` and `Aurelian.Rendering.Contracts` project edges, while the backend remains separately composable. JTF-M3d remains the legacy Machina renderer compatibility retirement. No Aurelian subsystem production project references Machina or the bridge.
+JTF-M3a and M3b are complete: Core renderer neutrality is established through Aurelian-owned neutral mechanism ports in `Aurelian.Rendering.Contracts`, concrete Vulkan compositor and presentation adapters are owned by `Aurelian.Graphics`, and `Aurelian.Rendering.Raster` realizes an Aurelian-owned resolved-2D plan without production Machina dependencies. JTF-M3c establishes `Aurelian.Machina` as the narrow consumer-owned translation bridge from `MachinaPresentationFrame` to `Resolved2DPlan`; it has only the `Machina.Presentation` and `Aurelian.Rendering.Contracts` project edges, while the backend remains separately composable. JTF-M3d completes legacy Machina renderer retirement: Machina ends at its presentation frame and the bridge/backend are composed outside Machina. No Aurelian subsystem production project references Machina or the bridge.
+
+JTF-M4a consolidates generic presenter screen composition in `Machina.Presentation.Screens`. The contract carries normalized screen identity, declared layer, and visibility only; it does not add a rendering artifact or an input/lifecycle framework. Aurelian world behavior remains Aurelian-owned and enters a Machina stack only through an integration-owned adapter.
 
 ### Integrations
 
@@ -60,7 +62,7 @@ flowchart LR
 
 Raw platform events belong to the platform host/backend. Neutral UI input, hit testing, routing, and UI actions belong to Machina. Engine frame input and game commands belong to Aurelian. Translation between UI actions and game behavior belongs to `Aurelian.Machina` or the consuming game, never Machina core.
 
-General stack mechanics (`PresenterScreenStack`, layer keys/order, visibility and deterministic composition) are Machina presenter concepts. Generic layer names such as background, HUD, overlay, modal, debug, and cursor follow them. Aurelian owns world-screen semantics and supplies an adapter/content participant for the world layer. Platform present callbacks are not screen semantics.
+General stack mechanics (`PresenterScreenStack`, layer keys/order, visibility and deterministic composition) are Machina presenter concepts. Generic layer names such as background, HUD, overlay, modal, debug, and cursor follow them. Aurelian owns world-screen semantics; an integration adapter exposes that content at the configured world layer. Platform present callbacks are not screen semantics.
 
 ## Text boundary
 

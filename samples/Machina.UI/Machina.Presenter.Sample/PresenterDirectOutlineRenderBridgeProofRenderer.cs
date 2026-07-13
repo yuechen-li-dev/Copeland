@@ -2,9 +2,7 @@ using Machina.Fonts;
 using Machina.Fonts.Generation.Typography;
 using Machina.Fonts.ReferenceRendering;
 using Machina.Layout.Documents;
-using Machina.Renderer.Raster.Dominatus.Models;
-using Machina.Renderer.Raster.Surface;
-using RasterRgba32 = Machina.Renderer.Raster.Colors.Rgba32;
+using RasterRgba32 = Machina.Presenter.Sample.SampleRgba32;
 
 namespace Machina.Presenter.Sample;
 

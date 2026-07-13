@@ -3,7 +3,6 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Machina.Pipeline;
-using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Standard.Theme;
 
 namespace Machina.Presenter.Sample;
@@ -182,9 +181,8 @@ public static class PresenterExporter
         }
         else
         {
-            var pipeline = new MachinaRasterPipeline();
             var document = SettingsScreen.Build(state, effectiveTheme, proofOptions);
-            var frame = pipeline.Render(
+            var frame = MachinaAurelianCpuRasterComposition.Render(
                 document,
                 SettingsScreen.GetWidth(proofOptions),
                 SettingsScreen.GetHeight(proofOptions));
