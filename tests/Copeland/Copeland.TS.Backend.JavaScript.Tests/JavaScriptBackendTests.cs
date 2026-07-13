@@ -165,7 +165,7 @@ public sealed class JavaScriptBackendTests
         Assert.Null(result.SourceText);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
             && diagnostic.Message.Contains("non-exhaustive match", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Result-returning function 'fallible'", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("ParseError", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("array expression", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
@@ -243,22 +243,51 @@ public sealed class JavaScriptBackendTests
     }
 
     [Fact]
-    public void Rejects_Result_Operations()
+    public void Emits_Result_Operations_With_Deduplicated_Structural_Tokens()
     {
         MirType number = new("number");
-        MirType error = new("ParseError");
+        MirType error = new("string");
+        MirResultType resultType = new(number, error);
         var program = new MirProgram([], [
-            new MirFunction("parse", [], new MirResultType(number, error), [], []),
-            new MirFunction("main", [], new MirResultType(number, error), [], [
-                new MirReturnStatement(new MirPropagateExpression(new MirCallExpression("parse", [], new MirResultType(number, error)), MirPropagationTarget.FunctionReturn, number))])
+            new MirFunction("parse", [], resultType, [], [
+                new MirReturnStatement(new MirOkExpression(new MirLiteralExpression(1, number), resultType))]),
+            new MirFunction("forward", [new MirParameter("value", new MirResultType(number, error))], resultType, [], [
+                new MirReturnStatement(new MirVariableExpression("value", resultType))]),
+            new MirFunction("main", [], resultType, [], [
+                new MirReturnStatement(new MirOkExpression(
+                    new MirPropagateExpression(new MirCallExpression("parse", [], resultType), MirPropagationTarget.FunctionReturn, number),
+                    resultType))])
         ]);
 
         JavaScriptCompilation result = JavaScriptBackend.Emit(program);
 
-        Assert.False(result.Success);
-        Assert.Null(result.SourceText);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Result-valued call 'parse'", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Result propagation", StringComparison.Ordinal));
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Single(Regex.Matches(result.SourceText!, @"const __cope_m3_result_type_\d+ =").Cast<Match>());
+        Assert.Contains("$tag === \"err\"", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("return __cope_m3_make_", result.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rejects_Structural_Result_Equality_Without_Partial_Artifact()
+    {
+        MirType number = new("number");
+        MirType stringType = new("string");
+        MirType boolean = new("boolean");
+        MirResultType result = new(number, stringType);
+        var program = new MirProgram([], [
+            new MirFunction("main", [], boolean, [], [
+                new MirReturnStatement(new MirBinaryExpression(
+                    "==",
+                    new MirVariableExpression("left", result),
+                    new MirVariableExpression("right", result),
+                    boolean))])
+        ]);
+
+        JavaScriptCompilation compilation = JavaScriptBackend.Emit(program);
+
+        Assert.False(compilation.Success);
+        Assert.Null(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("equality for type 'number ! string'", StringComparison.Ordinal));
     }
 
     [Theory]

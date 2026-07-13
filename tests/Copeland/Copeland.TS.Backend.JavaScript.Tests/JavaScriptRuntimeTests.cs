@@ -142,6 +142,124 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_Executes_Result_Construction_Matching_Forwarding_And_Propagation_Repeatedly()
+    {
+        const string source = """
+            enum Box {
+              Value(outcome: number ! string),
+            }
+
+            function good(): number ! string { return ok(4); }
+            function bad(): number ! string { return err("bad"); }
+            function forward(value: number ! string): number ! string { return value; }
+
+            function observe(value: number ! string): number {
+              return match value {
+                ok(value) => value,
+                err(error) => 0,
+              };
+            }
+
+            function propagatedGood(): number ! string {
+              const value: number = good()?;
+              return value + 1;
+            }
+
+            function propagatedBad(): number ! string {
+              const value: number = bad()?;
+              return value + 1;
+            }
+
+            function stored(): number ! string {
+              const value: number ! string = good();
+              const numberValue: number = value?;
+              return numberValue + 2;
+            }
+
+            function boxed(): Box { return Box.Value(good()); }
+
+            function inspectBox(value: Box): number {
+              return match value {
+                Value(outcome) => observe(outcome),
+              };
+            }
+
+            function nested(): (number ! string) ! string { return ok(ok(7)); }
+
+            function inspectNested(): number {
+              return match nested() {
+                ok(inner) => observe(inner),
+                err(error) => 0,
+              };
+            }
+
+            function saved(): void ! string { return; }
+
+            function inspectSaved(): number {
+              return match saved() {
+                ok(value) => 1,
+                err(error) => 0,
+              };
+            }
+            """;
+
+        JavaScriptCompilation emitted = Emit(source);
+        string script = emitted.SourceText + """
+            console.log(observe(good()));
+            console.log(observe(bad()));
+            console.log(observe(forward(bad())));
+            console.log(observe(propagatedGood()));
+            console.log(observe(propagatedBad()));
+            console.log(observe(stored()));
+            console.log(inspectBox(boxed()));
+            console.log(inspectNested());
+            console.log(inspectSaved());
+            """;
+
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal("4\n0\n0\n5\n0\n6\n4\n7\n1\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task Result_Match_Panics_Deterministically_For_Malformed_Private_Values()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function good(): number ! string { return ok(1); }
+            function other(): string ! string { return ok("other"); }
+            function inspect(value: number ! string): number {
+              return match value {
+                ok(payload) => payload,
+                err(error) => 0,
+              };
+            }
+            """);
+
+        string script = emitted.SourceText + """
+            const valid = good();
+            const malformedTag = Object.freeze(Object.assign(Object.create(null), {
+              $type: valid.$type, $tag: "unknown", $payload: Object.freeze([1]),
+            }));
+            const malformedPayload = Object.freeze(Object.assign(Object.create(null), {
+              $type: valid.$type, $tag: "ok", $payload: Object.freeze(["wrong"]),
+            }));
+            for (const value of [other(), malformedTag, malformedPayload]) {
+              try { inspect(value); } catch (error) { console.log(error.message); }
+            }
+            """;
+
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal("Copeland JavaScript backend invariant failure.\nCopeland JavaScript backend invariant failure.\nCopeland JavaScript backend invariant failure.\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public async Task Match_Scrutinee_Is_Emitted_Once_And_Invalid_Tag_Panics_Deterministically()
     {
         const string source = """

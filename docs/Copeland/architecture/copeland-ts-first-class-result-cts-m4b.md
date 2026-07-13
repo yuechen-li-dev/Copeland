@@ -1,6 +1,6 @@
 # CTS-M4b first-class Result implementation
 
-**Status:** implemented for the Copeland TS frontend, Cope MIR, and C# proof backend. JavaScript Result emission, postfix unwrap `!`, and `try`/`except` remain unimplemented.
+**Status:** historical CTS-M4b implementation record. Result source/MIR and C# proof emission were implemented here; JavaScript Result emission is implemented by CTS-M4c. Postfix unwrap `!` and `try`/`except` remain unimplemented.
 
 CTS-M4b implements the accepted M4a Result model. `T ! E` is a structural source type at function, parameter, local, array, nested-type, and enum-payload positions. A fallible call has type `T ! E`; it can be stored, passed, returned, matched, or consumed by `?`.
 
@@ -27,8 +27,8 @@ Cope MIR has structural named, array, and Result types. Its text projection prin
 
 The C# proof backend privately emits `CopeResult<TValue,TError>` and `CopeUnit` where needed. It emits explicit constructors, direct forwarding, Result match branches, and function-return propagation without using exceptions as ordinary Result flow. Its representation is not language ABI.
 
-The JavaScript backend remains MIR-only and rejects Result-returning types, Result parameters/locals/payloads, constructors, matches, propagation, and nested Result types with `COPE-JS-0001`; it emits no partial artifact. Existing non-Result JavaScript output remains on the established M1–M3 path.
+At this M4b checkpoint, the MIR-only JavaScript backend rejected Result-returning types, Result parameters/locals/payloads, constructors, matches, propagation, and nested Result types with `COPE-JS-0001`. CTS-M4c removes that historical boundary while preserving the established M1–M3 path; see [CTS-M4c JavaScript Result backend](copeland-ts-javascript-result-cts-m4c.md).
 
 ## Deferred work
 
-CTS-M4b does not parse postfix unwrap `expression!`, add `MirUnwrapExpression`, add lexical handlers, add `try`/`except`, or emit JavaScript Results. CTS-M4c is the appropriate JavaScript Result emission milestone over this settled MIR.
+CTS-M4b does not parse postfix unwrap `expression!`, add `MirUnwrapExpression`, add lexical handlers, or add `try`/`except`. CTS-M4c supplies JavaScript Result emission over this settled MIR.

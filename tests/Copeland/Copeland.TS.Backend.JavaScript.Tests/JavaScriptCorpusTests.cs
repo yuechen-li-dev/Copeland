@@ -42,6 +42,8 @@ public sealed class JavaScriptCorpusTests
     [Theory]
     [InlineData("payload-enum-match.g.js", "C7FAD5A76AB26FF93396BE8038D496B70236B49B6316BCEB43F1ACE8DE59AD79")]
     [InlineData("nominal-enum-types.g.js", "EA992B0D572259A139FE56F785487D67F111AFDBC666FB89ADA097F04B9BE4FD")]
+    [InlineData("result-construction-match.g.js", "E41DADDE7417A84A81F8A20CF22EE849B182703F1743190A89510310D0C32974")]
+    [InlineData("result-propagation.g.js", "63734BDEE21591612CF1D6A1B064CC445F130E5D35DA36C038F5275E8ECDDE3F")]
     public void Payload_Enum_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
     {
         string artifactPath = Path.Combine(GetCorpusRoot(), fileName);

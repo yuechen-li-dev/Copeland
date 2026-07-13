@@ -151,6 +151,40 @@ function one(): number {
     }
 
     [Fact]
+    public async Task EmitResultMir_CSharp_And_JavaScript()
+    {
+        using var temp = new TempDir();
+        var inputPath = temp.WriteFile("result.ts", """
+            function result(): number ! string { return ok(4); }
+            function main(): number {
+              return match result() {
+                ok(value) => value,
+                err(error) => 0,
+              };
+            }
+            """);
+        string outputPath = System.IO.Path.Combine(temp.Path, "result.g.js");
+
+        CliResult mir = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "mir");
+        CliResult csharp = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "csharp");
+        CliResult javascript = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript", "--out", outputPath);
+
+        Assert.Equal(0, mir.ExitCode);
+        Assert.Contains("result-match", mir.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, csharp.ExitCode);
+        Assert.Contains("CopeResult", csharp.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, javascript.ExitCode);
+        Assert.True(File.Exists(outputPath));
+
+        File.AppendAllText(outputPath, "console.log(main());\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        CliResult execution = await RunExecutableAsync("node", temp.Path, outputPath);
+
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("4\n", execution.StdOut);
+        Assert.Equal(string.Empty, execution.StdErr);
+    }
+
+    [Fact]
     public async Task UnsupportedJavaScriptEmission_DoesNotWriteOutput()
     {
         using var temp = new TempDir();
