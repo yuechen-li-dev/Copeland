@@ -25,8 +25,8 @@ The counter proof still verifies typed action ingress, ordered event consumption
 
 See [JTF-M5b Dominatus ownership consolidation](../architecture/jtf-dominatus-ownership-consolidation.md) for the complete pre/post graph and package doctrine.
 
-## Recommended follow-up
+## Historical follow-up
 
-JTF-M5c should be a closeout, not another UI or renderer redesign: record the bounded decision on whether Aurelian Runtime's existing public Dominatus concrete types merit a future Aurelian-owned facade, then close the organizational ladder if no further owner boundary is identified.
+JTF-M5c completed this closeout: it classified the Runtime public surface, established the ordinary Aurelian lifecycle/compositor path, and retained only explicit advanced Dominatus access. See [JTF-M5c — Aurelian Runtime public boundary](jtf-m5c-aurelian-runtime-public-boundary.md). This historical M5b record remains unchanged otherwise.
 
 A later, separately approved Machina-Dominatus lifecycle milestone may define one coarse screen, dialog, modal, or temporary capture scope in the integration adapter. It must prove Push/Pop lifetime, event/wait/effect behavior, and teardown without introducing a per-widget lifecycle model or changing ordinary local state, input, presentation, renderer, or transition ownership.

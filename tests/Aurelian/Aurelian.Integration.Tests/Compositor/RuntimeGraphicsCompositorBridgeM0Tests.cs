@@ -11,7 +11,6 @@ using Aurelian.Graphics.Vulkan.Sync;
 using Aurelian.Integration.Tests.Support;
 using Aurelian.Rendering.Contracts.Compositor;
 using Aurelian.Runtime.Compositor;
-using Dominatus.Core.Runtime;
 using Xunit;
 
 namespace Aurelian.Integration.Tests.Compositor;
@@ -19,30 +18,32 @@ namespace Aurelian.Integration.Tests.Compositor;
 public sealed class RuntimeGraphicsCompositorBridgeM0Tests
 {
     [Fact]
-    public async Task RuntimeGraphicsCompositorBridge_FakeActuator_DispatchesNeutralRequestThroughDominatus()
+    public async Task RuntimeGraphicsCompositorBridge_Delegate_DispatchesNeutralRequestThroughRuntime()
     {
         PlantOutputRef output = new(0, 1, "integration-final");
         PresentationTargetRef target = new(0, 0, 1);
         CompositorPolicyFacts facts = Facts(1, output, target, PlantOutputReadinessStatus.Ready);
-        var handler = new CapturingCompositorDispatchHandler(cmd => new CompositorDispatchResult(
+        var requests = new List<CompositorDispatchRequest>();
+
+        CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(facts, (request, _) =>
+        {
+            requests.Add(request);
+            return Task.FromResult(new CompositorDispatchResult(
             CompositorDispatchStatus.Dispatched,
-            cmd.Request.FrameId,
-            cmd.Request.Policy,
-            cmd.Request.Target,
+            request.FrameId,
+            request.Policy,
+            request.Target,
             CompositorDiagnostics.Empty,
             []));
-        var actuatorHost = new ActuatorHost();
-        actuatorHost.Register(handler);
-
-        CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(facts, actuatorHost);
+        });
 
         Assert.True(result.Success, FormatDiagnostics(result));
         Assert.Equal(CompositorPolicyStatus.Dispatched, result.Status);
-        CompositorDispatchAct act = Assert.Single(handler.Acts);
-        Assert.Equal(1UL, act.Request.FrameId);
-        Assert.Equal(CompositorPolicyKind.Passthrough, act.Request.Policy);
-        Assert.Equal(output, Assert.Single(act.Request.Inputs));
-        Assert.Equal(target, act.Request.Target);
+        CompositorDispatchRequest request = Assert.Single(requests);
+        Assert.Equal(1UL, request.FrameId);
+        Assert.Equal(CompositorPolicyKind.Passthrough, request.Policy);
+        Assert.Equal(output, Assert.Single(request.Inputs));
+        Assert.Equal(target, request.Target);
         Assert.NotNull(result.DispatchResult);
         Assert.Equal(CompositorDispatchStatus.Dispatched, result.DispatchResult.Status);
     }
@@ -115,20 +116,12 @@ public sealed class RuntimeGraphicsCompositorBridgeM0Tests
                 CompositorPolicyFacts facts = Facts(1, output, target, PlantOutputReadinessStatus.Ready);
                 var adapter = new VulkanCompositorMechanismAdapter(compositor, outputs, targets);
                 var bridge = new CompositorActuationBridge(adapter);
-                var handler = new CapturingCompositorDispatchHandler(cmd => bridge.HandleAsync(cmd).GetAwaiter().GetResult());
-                var actuatorHost = new ActuatorHost();
-                actuatorHost.Register(handler);
-
-                CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(facts, actuatorHost);
+                CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(facts, bridge.AsHandler());
 
                 Assert.True(result.Success, FormatDiagnostics(result));
                 Assert.NotNull(result.DispatchResult);
                 Assert.True(result.DispatchResult.Success, FormatDiagnostics(result.DispatchResult));
                 Assert.Equal(VulkanResourceLayout.Present, targets.Images[(int)acquire.ImageIndex.Value].LayoutTracker.Get(0, 0));
-                CompositorDispatchAct act = Assert.Single(handler.Acts);
-                Assert.Equal(output, Assert.Single(act.Request.Inputs));
-                Assert.Equal(target, act.Request.Target);
-
                 VulkanSwapchainPresentResult present = swapchain.Present(acquire.ImageIndex.Value);
                 Assert.Contains(present.Status, new[]
                 {

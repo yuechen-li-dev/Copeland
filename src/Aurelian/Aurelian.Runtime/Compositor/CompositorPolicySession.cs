@@ -60,7 +60,7 @@ public static class CompositorPolicySession
             ReasonDispatchPassthrough);
     }
 
-    public static Task<CompositorPolicyResult> RunOnceAsync(
+    internal static Task<CompositorPolicyResult> RunOnceWithActuatorHostAsync(
         CompositorPolicyFacts facts,
         ActuatorHost actuatorHost,
         CancellationToken cancellationToken = default)
@@ -170,7 +170,7 @@ public static class CompositorPolicySession
     /// </summary>
     public static Task<CompositorPolicyResult> RunOnceAsync(
         CompositorPolicyFacts facts,
-        Func<CompositorDispatchAct, CancellationToken, Task<CompositorDispatchResult>> dispatch,
+        Func<CompositorDispatchRequest, CancellationToken, Task<CompositorDispatchResult>> dispatch,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dispatch);
@@ -178,7 +178,7 @@ public static class CompositorPolicySession
         var actuatorHost = new ActuatorHost();
         actuatorHost.Register(new DelegatingCompositorDispatchHandler(dispatch));
 
-        return RunOnceAsync(facts, actuatorHost, cancellationToken);
+        return RunOnceWithActuatorHostAsync(facts, actuatorHost, cancellationToken);
     }
 
     private static IEnumerator<AiStep> PolicyNode(AiCtx ctx)
@@ -209,10 +209,10 @@ public static class CompositorPolicySession
 
     private sealed class DelegatingCompositorDispatchHandler : IActuationHandler<CompositorDispatchAct>
     {
-        private readonly Func<CompositorDispatchAct, CancellationToken, Task<CompositorDispatchResult>> dispatch;
+        private readonly Func<CompositorDispatchRequest, CancellationToken, Task<CompositorDispatchResult>> dispatch;
 
         public DelegatingCompositorDispatchHandler(
-            Func<CompositorDispatchAct, CancellationToken, Task<CompositorDispatchResult>> dispatch)
+            Func<CompositorDispatchRequest, CancellationToken, Task<CompositorDispatchResult>> dispatch)
         {
             this.dispatch = dispatch;
         }
@@ -225,7 +225,7 @@ public static class CompositorPolicySession
         {
             try
             {
-                CompositorDispatchResult result = dispatch(command, CancellationToken.None)
+                CompositorDispatchResult result = dispatch(command.Request, CancellationToken.None)
                     .GetAwaiter()
                     .GetResult();
                 return ActuatorHost.HandlerResult.CompletedWithPayload(result, ok: true);

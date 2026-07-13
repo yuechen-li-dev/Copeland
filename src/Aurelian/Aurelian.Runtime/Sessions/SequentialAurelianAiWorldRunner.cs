@@ -1,8 +1,12 @@
 using Dominatus.Core.Runtime;
+using Aurelian.Runtime.Sessions;
 
-namespace Aurelian.Runtime.Sessions;
+namespace Aurelian.Runtime.Dominatus;
 
-public sealed class SequentialAurelianAiWorldRunner : IAurelianAiWorldRunner
+/// <summary>
+/// Default advanced-world runner. Ordinary sessions select it internally.
+/// </summary>
+public sealed class SequentialAurelianDominatusWorldRunner : IAurelianDominatusWorldRunner
 {
     public Task RunTickAsync(
         AiWorld world,

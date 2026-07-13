@@ -1,5 +1,4 @@
 using Aurelian.Rendering.Contracts.Compositor;
-using Aurelian.Runtime.Compositor;
 
 namespace Aurelian.Core.Compositor;
 
@@ -14,14 +13,13 @@ public sealed class CompositorActuationBridge
     }
 
     public Task<CompositorDispatchResult> HandleAsync(
-        CompositorDispatchAct act,
+        CompositorDispatchRequest request,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(act);
-        ArgumentNullException.ThrowIfNull(act.Request);
+        ArgumentNullException.ThrowIfNull(request);
 
-        return _mechanism.DispatchAsync(act.Request, cancellationToken);
+        return _mechanism.DispatchAsync(request, cancellationToken);
     }
 
-    public Func<CompositorDispatchAct, CancellationToken, Task<CompositorDispatchResult>> AsHandler() => HandleAsync;
+    public Func<CompositorDispatchRequest, CancellationToken, Task<CompositorDispatchResult>> AsHandler() => HandleAsync;
 }

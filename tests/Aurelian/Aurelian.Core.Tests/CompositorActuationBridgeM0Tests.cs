@@ -17,7 +17,7 @@ public sealed class CompositorActuationBridgeM0Tests
         var bridge = new CompositorActuationBridge(mechanism);
         var request = Request(1);
 
-        await bridge.HandleAsync(new CompositorDispatchAct(request));
+        await bridge.HandleAsync(request);
 
         Assert.Equal(request, mechanism.LastRequest);
     }
@@ -29,7 +29,7 @@ public sealed class CompositorActuationBridgeM0Tests
         var mechanism = new FakeCompositorMechanism(expected);
         var bridge = new CompositorActuationBridge(mechanism);
 
-        CompositorDispatchResult actual = await bridge.HandleAsync(new CompositorDispatchAct(Request(2)));
+        CompositorDispatchResult actual = await bridge.HandleAsync(Request(2));
 
         Assert.Equal(expected, actual);
         Assert.True(actual.Success, FormatDiagnostics(actual));
@@ -45,7 +45,7 @@ public sealed class CompositorActuationBridgeM0Tests
         var mechanism = new FakeCompositorMechanism(failed);
         var bridge = new CompositorActuationBridge(mechanism);
 
-        CompositorDispatchResult actual = await bridge.HandleAsync(new CompositorDispatchAct(Request(3)));
+        CompositorDispatchResult actual = await bridge.HandleAsync(Request(3));
 
         Assert.Equal(failed, actual);
         Assert.False(actual.Success);

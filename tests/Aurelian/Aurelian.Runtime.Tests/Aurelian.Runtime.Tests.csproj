@@ -8,9 +8,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Dominatus.Core" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
+    <ProjectReference Include="../../../src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Null/Aurelian.Rendering.Null.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.World/Aurelian.World.csproj" />

@@ -1,6 +1,5 @@
 using Aurelian.Rendering.Contracts.Compositor;
 using Aurelian.Runtime.Compositor;
-using Dominatus.Core.Runtime;
 using Xunit;
 
 namespace Aurelian.Runtime.Tests;
@@ -57,62 +56,59 @@ public sealed class CompositorPolicyM0Tests
     }
 
     [Fact]
-    public async Task CompositorPolicySession_RunOnce_DispatchesThroughDominatusFakeActuator()
+    public async Task CompositorPolicySession_RunOnce_DispatchesThroughAurelianOwnedDelegate()
     {
-        var handler = new FakeCompositorDispatchHandler();
-        var actuatorHost = new ActuatorHost();
-        actuatorHost.Register(handler);
+        var requests = new List<CompositorDispatchRequest>();
 
-        CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(Facts(PlantOutputReadinessStatus.Ready), actuatorHost);
+        CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(
+            Facts(PlantOutputReadinessStatus.Ready),
+            (request, _) =>
+            {
+                requests.Add(request);
+                return Task.FromResult(DispatchResult(request));
+            });
 
         Assert.True(result.Success);
         Assert.Equal(CompositorPolicyStatus.Dispatched, result.Status);
         Assert.NotNull(result.DispatchResult);
-        CompositorDispatchAct act = Assert.Single(handler.Acts);
-        Assert.Equal(10UL, act.Request.FrameId);
-        Assert.Equal(CompositorPolicyKind.Passthrough, act.Request.Policy);
-        Assert.Equal(Output, Assert.Single(act.Request.Inputs));
-        Assert.Equal(Target, act.Request.Target);
+        CompositorDispatchRequest request = Assert.Single(requests);
+        Assert.Equal(10UL, request.FrameId);
+        Assert.Equal(CompositorPolicyKind.Passthrough, request.Policy);
+        Assert.Equal(Output, Assert.Single(request.Inputs));
+        Assert.Equal(Target, request.Target);
     }
 
     [Fact]
     public async Task CompositorPolicySession_RunOnce_ReturnsWaitingWithoutDispatchWhenOutputPending()
     {
-        var handler = new FakeCompositorDispatchHandler();
-        var actuatorHost = new ActuatorHost();
-        actuatorHost.Register(handler);
+        var requests = new List<CompositorDispatchRequest>();
 
-        CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(Facts(PlantOutputReadinessStatus.Pending), actuatorHost);
+        CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(
+            Facts(PlantOutputReadinessStatus.Pending),
+            (request, _) =>
+            {
+                requests.Add(request);
+                return Task.FromResult(DispatchResult(request));
+            });
 
         Assert.False(result.Success);
         Assert.Equal(CompositorPolicyStatus.WaitingForOutputs, result.Status);
-        Assert.Empty(handler.Acts);
+        Assert.Empty(requests);
         Assert.Equal(CompositorPolicyDiagnosticCodes.RequiredOutputsNotReady, Assert.Single(result.Diagnostics).Code);
     }
 
     [Fact]
     public async Task CompositorPolicySession_RunOnce_PropagatesDispatchFailure()
     {
-        var handler = new FakeCompositorDispatchHandler(success: false);
-        var actuatorHost = new ActuatorHost();
-        actuatorHost.Register(handler);
-
-        CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(Facts(PlantOutputReadinessStatus.Ready), actuatorHost);
+        CompositorPolicyResult result = await CompositorPolicySession.RunOnceAsync(
+            Facts(PlantOutputReadinessStatus.Ready),
+            (request, _) => Task.FromResult(DispatchResult(request, success: false)));
 
         Assert.False(result.Success);
         Assert.Equal(CompositorPolicyStatus.Failed, result.Status);
         Assert.NotNull(result.DispatchResult);
         Assert.Equal(CompositorDispatchStatus.Failed, result.DispatchResult.Status);
         Assert.Equal(CompositorPolicyDiagnosticCodes.DispatchResultFailed, Assert.Single(result.Diagnostics).Code);
-    }
-
-    [Fact]
-    public void CompositorDispatchAct_ContainsNeutralRequestOnly()
-    {
-        var request = new CompositorDispatchRequest(10, CompositorPolicyKind.Passthrough, [Output], Target);
-        var act = new CompositorDispatchAct(request);
-
-        Assert.Equal(request, act.Request);
     }
 
     [Fact]
@@ -158,38 +154,27 @@ public sealed class CompositorPolicyM0Tests
         return new CompositorPolicyFacts(frameFacts, required, Target, policy);
     }
 
-    private sealed class FakeCompositorDispatchHandler : IActuationHandler<CompositorDispatchAct>
+    private static CompositorDispatchResult DispatchResult(
+        CompositorDispatchRequest request,
+        bool success = true)
     {
-        private readonly bool _success;
-
-        public FakeCompositorDispatchHandler(bool success = true)
+        if (success)
         {
-            _success = success;
+            return new CompositorDispatchResult(
+                CompositorDispatchStatus.Dispatched,
+                request.FrameId,
+                request.Policy,
+                request.Target,
+                CompositorDiagnostics.Empty,
+                []);
         }
 
-        public List<CompositorDispatchAct> Acts { get; } = [];
-
-        public ActuatorHost.HandlerResult Handle(ActuatorHost host, AiCtx ctx, ActuationId id, CompositorDispatchAct cmd)
-        {
-            Acts.Add(cmd);
-
-            CompositorDispatchResult result = _success
-                ? new CompositorDispatchResult(
-                    CompositorDispatchStatus.Dispatched,
-                    cmd.Request.FrameId,
-                    cmd.Request.Policy,
-                    cmd.Request.Target,
-                    CompositorDiagnostics.Empty,
-                    [])
-                : new CompositorDispatchResult(
-                    CompositorDispatchStatus.Failed,
-                    cmd.Request.FrameId,
-                    cmd.Request.Policy,
-                    cmd.Request.Target,
-                    CompositorDiagnostics.Empty,
-                    [new CompositorDispatchDiagnostic("ACOMP-FAKE", CompositorDispatchDiagnosticSeverity.Error, "Fake compositor dispatch failure.")]);
-
-            return ActuatorHost.HandlerResult.CompletedWithPayload(result, ok: true);
-        }
+        return new CompositorDispatchResult(
+            CompositorDispatchStatus.Failed,
+            request.FrameId,
+            request.Policy,
+            request.Target,
+            CompositorDiagnostics.Empty,
+            [new CompositorDispatchDiagnostic("ACOMP-FAKE", CompositorDispatchDiagnosticSeverity.Error, "Fake compositor dispatch failure.")]);
     }
 }

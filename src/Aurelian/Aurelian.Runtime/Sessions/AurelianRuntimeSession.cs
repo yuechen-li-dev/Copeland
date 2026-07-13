@@ -3,6 +3,7 @@ using Dominatus.Core.Hfsm;
 using Dominatus.Core.Nodes;
 using Dominatus.Core.Nodes.Steps;
 using Dominatus.Core.Runtime;
+using Aurelian.Runtime.Dominatus;
 
 namespace Aurelian.Runtime.Sessions;
 
@@ -10,45 +11,52 @@ public sealed class AurelianRuntimeSession
 {
     private const string RootStateName = "aurelian.runtime.session.m0.root";
 
-    private readonly AurelianRuntimeSessionOptions _options;
-    private readonly IAurelianAiWorldRunner _runner;
+    private readonly AurelianRuntimeDominatusOptions? _dominatusOptions;
+    private readonly IAurelianDominatusWorldRunner _runner;
     private readonly ActuatorHost _actuatorHost;
     private readonly AiWorld _world;
     private AiAgent? _runtimeAgent;
     private bool _hasStopped;
 
     public AurelianRuntimeSession()
-        : this(new AurelianRuntimeSessionOptions())
+        : this(dominatusOptions: null)
     {
     }
 
-    public AurelianRuntimeSession(AurelianRuntimeSessionOptions? options)
+    /// <summary>
+    /// Creates an explicit advanced session whose world, actuator composition,
+    /// or tick runner is deliberately owned by a Dominatus-aware caller.
+    /// </summary>
+    public AurelianRuntimeSession(AurelianRuntimeDominatusOptions? dominatusOptions)
     {
-        _options = options ?? new AurelianRuntimeSessionOptions();
-        _runner = _options.Runner ?? new SequentialAurelianAiWorldRunner();
+        _dominatusOptions = dominatusOptions;
+        _runner = _dominatusOptions?.WorldRunner ?? new SequentialAurelianDominatusWorldRunner();
 
-        if (_options.World is not null)
+        if (_dominatusOptions?.World is not null)
         {
-            _world = _options.World;
-            _actuatorHost = _options.ActuatorHost
+            _world = _dominatusOptions.World;
+            _actuatorHost = _dominatusOptions.ActuatorHost
                 ?? _world.Actuator as ActuatorHost
-                ?? throw new ArgumentException("A provided AiWorld must use an ActuatorHost or be paired with the same ActuatorHost in options.", nameof(options));
+                ?? throw new ArgumentException("A provided AiWorld must use an ActuatorHost or be paired with the same ActuatorHost in advanced options.", nameof(dominatusOptions));
 
             if (!ReferenceEquals(_world.Actuator, _actuatorHost))
-                throw new ArgumentException("A provided AiWorld must use the same ActuatorHost supplied in options.", nameof(options));
+                throw new ArgumentException("A provided AiWorld must use the same ActuatorHost supplied in advanced options.", nameof(dominatusOptions));
         }
         else
         {
-            _actuatorHost = _options.ActuatorHost ?? new ActuatorHost();
+            _actuatorHost = _dominatusOptions?.ActuatorHost ?? new ActuatorHost();
             _world = new AiWorld(_actuatorHost);
         }
     }
 
     public bool IsStarted { get; private set; }
 
-    public AiWorld World => _world;
-
-    public ActuatorHost ActuatorHost => _actuatorHost;
+    /// <summary>
+    /// Obtains deliberate Dominatus access for advanced orchestration and
+    /// diagnostics. Ordinary lifecycle consumers should use Start, Stop, and
+    /// TickAsync without calling this method.
+    /// </summary>
+    public AurelianRuntimeDominatusAccess GetDominatusAccess() => new(_world, _actuatorHost);
 
     public AurelianRuntimeResult Start()
     {
@@ -67,7 +75,7 @@ public sealed class AurelianRuntimeSession
         }
 
         _actuatorHost.Register(new DefaultRuntimeTickHandler());
-        _options.ConfigureActuatorHost?.Invoke(_actuatorHost);
+        _dominatusOptions?.ConfigureActuatorHost?.Invoke(_actuatorHost);
 
         var root = StateId.Of(RootStateName);
         var graph = new HfsmGraph { Root = root };

@@ -83,6 +83,7 @@ Potential Copeland promotions are limited to proven generic source-span/source-f
 - Copeland production projects and `src/Machina.UI` have no Dominatus package references. The optional `src/Integrations/Machina.Dominatus` adapter is the only UI-side Dominatus owner and hosts only coarse event-spanning behavioral scopes; it does not make Machina core depend on Dominatus. Ordinary local UI state remains direct C# or existing Machina runtime behavior. See [JTF-M5b Dominatus ownership consolidation](jtf-dominatus-ownership-consolidation.md).
 - Machina.UI production projects have no concrete renderer backend references.
 - `Aurelian.Core` has no reference to `Aurelian.Graphics` and exposes no Vulkan types.
+- Ordinary `Aurelian.Runtime` session and compositor APIs expose Aurelian-owned lifecycle, request, result, and diagnostic vocabulary. Direct Dominatus world or actuator composition is an explicit advanced `Aurelian.Runtime.Dominatus` opt-in; `Aurelian.Core` exposes no Dominatus concrete type.
 - Cross-subsystem production composition occurs only under `src/Integrations`.
 - Legacy Dominatus render commands and snapshot/raster dispatch were removed in JTF-M3d after replacement tests proved equivalent ordering, clipping, text placement, and artifacts.
 - Every subsystem solution remains independently buildable; integration projects are validated by `JointTaskForce.slnx`.

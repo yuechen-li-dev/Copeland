@@ -6,6 +6,6 @@ namespace Aurelian.Runtime.Compositor;
 /// <summary>
 /// Runtime-only Dominatus actuation command that asks a compositor actuator to execute a neutral request.
 /// </summary>
-public sealed record CompositorDispatchAct(
+internal sealed record CompositorDispatchAct(
     CompositorDispatchRequest Request)
     : IActuationCommand;
