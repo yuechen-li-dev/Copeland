@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
+    <ProjectReference Include="../../../samples/Integrations/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
   </ItemGroup>
 </Project>

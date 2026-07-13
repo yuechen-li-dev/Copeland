@@ -28,7 +28,7 @@ public sealed class M14aBoundaryTests
     [Fact]
     public void M14a_DoesNotWireVisibleTriangleToVdMir()
     {
-        var sampleRoot = Path.Combine(GetRepoRoot(), "samples", "Aurelian", "Aurelian.VisibleTriangle");
+        var sampleRoot = Path.Combine(GetRepoRoot(), "samples", "Integrations", "Aurelian.VisibleTriangle");
         foreach (var file in Directory.GetFiles(sampleRoot, "*", SearchOption.AllDirectories))
         {
             if (file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||

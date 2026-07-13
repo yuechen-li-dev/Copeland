@@ -199,9 +199,10 @@ public sealed class MachinaPresentationTranslatorTests
             .ToArray();
 
         Assert.Contains("Machina.Presentation", references);
+        Assert.Contains("Machina.Runtime", references);
+        Assert.Contains("Aurelian.Core", references);
         Assert.Contains("Aurelian.Rendering.Contracts", references);
         Assert.DoesNotContain("Aurelian.Rendering.Raster", references);
-        Assert.DoesNotContain("Aurelian.Core", references);
         Assert.DoesNotContain("Aurelian.Runtime", references);
         Assert.DoesNotContain("Aurelian.Graphics", references);
         Assert.DoesNotContain("Machina.Dominatus", references);

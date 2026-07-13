@@ -85,14 +85,14 @@ public sealed class VdMirArchitectureDoctrineM13fTests
     [Fact]
     public void M13f_DoesNotWireVisibleTriangleToVdMir()
     {
-        Assert.True(Directory.Exists(Path.Combine(GetRepositoryRoot(), "samples", "Aurelian", "Aurelian.VisibleTriangle")));
+        Assert.True(Directory.Exists(Path.Combine(GetRepositoryRoot(), "samples", "Integrations", "Aurelian.VisibleTriangle")));
         Assert.False(Directory.Exists(Path.Combine(GetRepositoryRoot(), "src", "Copeland." + "Frontends.Sdslv")));
     }
 
     [Fact]
     public void AurelianVisibleTriangleSample_IsPresent()
     {
-        Assert.True(File.Exists(Path.Combine(GetRepositoryRoot(), "samples", "Aurelian", "Aurelian.VisibleTriangle", "Aurelian.VisibleTriangle.csproj")));
+        Assert.True(File.Exists(Path.Combine(GetRepositoryRoot(), "samples", "Integrations", "Aurelian.VisibleTriangle", "Aurelian.VisibleTriangle.csproj")));
     }
 
     private static JsonDocument LoadManifest()

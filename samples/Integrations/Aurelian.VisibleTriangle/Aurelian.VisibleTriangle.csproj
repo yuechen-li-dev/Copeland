@@ -18,6 +18,8 @@
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Runtime/Aurelian.Runtime.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
   </ItemGroup>
 
   <ItemGroup>

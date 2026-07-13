@@ -242,7 +242,7 @@ function Add-ScreenOwnershipViolations {
     $crossSystemSamples = @(
         "samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj",
         "samples/Machina.UI/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj",
-        "samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj")
+        "samples/Integrations/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj")
 
     foreach ($sampleProject in $crossSystemSamples) {
         if (-not $integrationSolution.Contains($sampleProject, [StringComparison]::Ordinal)) {
@@ -257,6 +257,11 @@ function Add-ScreenOwnershipViolations {
                 $violations.Add("Machina-only solution $solutionName includes cross-system rasterizing sample $sampleProject.")
             }
         }
+    }
+
+    $retiredVisibleTriangleRoot = Join-Path $repositoryRoot "samples/Aurelian/Aurelian.VisibleTriangle"
+    if (Test-Path $retiredVisibleTriangleRoot -PathType Container) {
+        $violations.Add("Cross-system visible-triangle sample must not remain under samples/Aurelian after M4b.")
     }
 }
 
@@ -316,6 +321,8 @@ foreach ($projectFile in $projects) {
     if ($projectPath -eq "src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj") {
         $allowedBridgeReferences = @(
             "src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj",
+            "src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj",
+            "src/Aurelian/Aurelian.Core/Aurelian.Core.csproj",
             "src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj")
     }
 
@@ -436,12 +443,20 @@ Add-TextDependencyViolations "src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Re
     "Aurelian.Core",
     "Aurelian.Runtime",
     "Aurelian.Graphics")
+Add-TextDependencyViolations "src/Machina.UI/Machina.Runtime/Machina.Runtime.csproj" @(
+    "Avalonia.Input",
+    "Silk.NET",
+    "Aurelian.")
+Add-TextDependencyViolations "src/Aurelian/Aurelian.Core/Aurelian.Core.csproj" @(
+    "Machina.",
+    "Avalonia",
+    "Silk.NET",
+    "Windowing")
 Add-TextDependencyViolations "src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" @(
     "Machina.Dominatus",
     "Machina.Pipeline",
     "Machina.Renderer.Raster",
     "Aurelian.Rendering.Raster",
-    "Aurelian.Core",
     "Aurelian.Runtime",
     "Aurelian.Graphics",
     "Dominatus",

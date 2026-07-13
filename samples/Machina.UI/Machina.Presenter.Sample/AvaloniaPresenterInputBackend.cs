@@ -1,4 +1,6 @@
 using Avalonia.Input;
+using Machina.Runtime.Input;
+using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
 
 namespace Machina.Presenter.Sample;
 
@@ -8,45 +10,47 @@ public sealed class AvaloniaPresenterInputBackend
 
     public PresenterInputEvent TranslatePointerPressed(PointerPointProperties properties, PresenterInputPoint position)
     {
-        return new PresenterInputEvent(
-            PresenterInputKind.PointerPressed,
-            position,
+        UiInputEvent normalized = new UiPointerButtonChanged(
+            new RuntimePointerPoint(position.X, position.Y),
             TranslateButton(properties),
-            BackendName: BackendName);
+            IsPressed: true,
+            UiModifiers.None);
+        return PresenterInputEvent.FromFoundationalEvent(normalized, BackendName);
     }
 
     public PresenterInputEvent TranslateWheel(PointerWheelEventArgs args, PresenterInputPoint position)
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        return new PresenterInputEvent(
-            PresenterInputKind.Wheel,
-            position,
-            PresenterInputButton.None,
-            (float)args.Delta.Y,
-            BackendName);
+        UiInputEvent normalized = new UiPointerWheel(
+            new RuntimePointerPoint(position.X, position.Y),
+            DeltaX: args.Delta.X,
+            DeltaY: args.Delta.Y,
+            UiModifiers.None);
+        return PresenterInputEvent.FromFoundationalEvent(normalized, BackendName);
     }
 
     public PresenterInputEvent TranslatePointerMoved(PointerEventArgs args, PresenterInputPoint position)
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        return new PresenterInputEvent(
-            PresenterInputKind.PointerMoved,
-            position,
-            TranslateButton(args.GetCurrentPoint(null).Properties),
-            BackendName: BackendName);
+        UiInputEvent normalized = new UiPointerMoved(
+            new RuntimePointerPoint(position.X, position.Y),
+            PreviousPosition: null,
+            UiModifiers.None);
+        return PresenterInputEvent.FromFoundationalEvent(normalized, BackendName);
     }
 
     public PresenterInputEvent TranslatePointerReleased(PointerReleasedEventArgs args, PresenterInputPoint position)
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        return new PresenterInputEvent(
-            PresenterInputKind.PointerReleased,
-            position,
-            PresenterInputButton.None,
-            BackendName: BackendName);
+        UiInputEvent normalized = new UiPointerButtonChanged(
+            new RuntimePointerPoint(position.X, position.Y),
+            TranslateButton(args.InitialPressMouseButton),
+            IsPressed: false,
+            UiModifiers.None);
+        return PresenterInputEvent.FromFoundationalEvent(normalized, BackendName);
     }
 
     public PresenterInputEvent TranslateKeyDown(KeyEventArgs args)
@@ -84,36 +88,39 @@ public sealed class AvaloniaPresenterInputBackend
 
     public PresenterInputEvent TranslateTextInput(string? text)
     {
-        return new PresenterInputEvent(
-            PresenterInputKind.TextInput,
-            default,
-            PresenterInputButton.None,
-            BackendName: BackendName,
-            Keyboard: new PresenterKeyboardInput(
-                PresenterKey.Unknown,
-                text,
-                PresenterKeyModifiers.None,
-                IsRepeat: false));
+        return PresenterInputEvent.FromFoundationalEvent(new UiTextEntered(text
+            ?? throw new ArgumentException("Text input must not be null.", nameof(text))), BackendName);
     }
 
-    private static PresenterInputButton TranslateButton(PointerPointProperties properties)
+    private static UiPointerButton TranslateButton(PointerPointProperties properties)
     {
         if (properties.IsLeftButtonPressed)
         {
-            return PresenterInputButton.Primary;
+            return UiPointerButton.Primary;
         }
 
         if (properties.IsRightButtonPressed)
         {
-            return PresenterInputButton.Secondary;
+            return UiPointerButton.Secondary;
         }
 
         if (properties.IsMiddleButtonPressed)
         {
-            return PresenterInputButton.Middle;
+            return UiPointerButton.Middle;
         }
 
-        return PresenterInputButton.None;
+        throw new ArgumentException("Pointer button input requires a pressed button.", nameof(properties));
+    }
+
+    private static UiPointerButton TranslateButton(MouseButton button)
+    {
+        return button switch
+        {
+            MouseButton.Left => UiPointerButton.Primary,
+            MouseButton.Right => UiPointerButton.Secondary,
+            MouseButton.Middle => UiPointerButton.Middle,
+            _ => throw new ArgumentOutOfRangeException(nameof(button), button, "Unsupported pointer button."),
+        };
     }
 
     private static PresenterInputEvent TranslateKeyEvent(
@@ -122,46 +129,42 @@ public sealed class AvaloniaPresenterInputBackend
         KeyModifiers modifiers,
         bool isRepeat)
     {
-        return new PresenterInputEvent(
-            kind,
-            default,
-            PresenterInputButton.None,
-            BackendName: BackendName,
-            Keyboard: new PresenterKeyboardInput(
-                TranslateKey(key),
-                Text: null,
-                TranslateModifiers(modifiers),
-                isRepeat));
+        UiInputEvent normalized = new UiKeyChanged(
+            TranslateKey(key),
+            kind == PresenterInputKind.KeyDown,
+            isRepeat,
+            TranslateModifiers(modifiers));
+        return PresenterInputEvent.FromFoundationalEvent(normalized, BackendName);
     }
 
-    private static PresenterKey TranslateKey(Key key)
+    private static UiKey TranslateKey(Key key)
     {
         return key switch
         {
-            Key.Up => PresenterKey.ArrowUp,
-            Key.Down => PresenterKey.ArrowDown,
-            Key.Left => PresenterKey.ArrowLeft,
-            Key.Right => PresenterKey.ArrowRight,
-            Key.PageUp => PresenterKey.PageUp,
-            Key.PageDown => PresenterKey.PageDown,
-            Key.Home => PresenterKey.Home,
-            Key.End => PresenterKey.End,
-            Key.Enter => PresenterKey.Enter,
-            Key.Escape => PresenterKey.Escape,
-            Key.Tab => PresenterKey.Tab,
-            Key.Space => PresenterKey.Space,
-            Key.F => PresenterKey.F,
-            Key.R => PresenterKey.R,
-            Key.O => PresenterKey.O,
-            Key.E => PresenterKey.E,
-            _ => PresenterKey.Unknown,
+            Key.Up => UiKey.ArrowUp,
+            Key.Down => UiKey.ArrowDown,
+            Key.Left => UiKey.ArrowLeft,
+            Key.Right => UiKey.ArrowRight,
+            Key.PageUp => UiKey.PageUp,
+            Key.PageDown => UiKey.PageDown,
+            Key.Home => UiKey.Home,
+            Key.End => UiKey.End,
+            Key.Enter => UiKey.Enter,
+            Key.Escape => UiKey.Escape,
+            Key.Tab => UiKey.Tab,
+            Key.Space => UiKey.Space,
+            Key.F => UiKey.F,
+            Key.R => UiKey.R,
+            Key.O => UiKey.O,
+            Key.E => UiKey.E,
+            _ => UiKey.Unknown,
         };
     }
 
-    private static PresenterKeyModifiers TranslateModifiers(KeyModifiers modifiers)
+    private static UiModifiers TranslateModifiers(KeyModifiers modifiers)
     {
-        return new PresenterKeyModifiers(
-            Ctrl: modifiers.HasFlag(KeyModifiers.Control),
+        return new UiModifiers(
+            Control: modifiers.HasFlag(KeyModifiers.Control),
             Shift: modifiers.HasFlag(KeyModifiers.Shift),
             Alt: modifiers.HasFlag(KeyModifiers.Alt),
             Meta: modifiers.HasFlag(KeyModifiers.Meta));

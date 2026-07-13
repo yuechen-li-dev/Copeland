@@ -17,14 +17,14 @@ public sealed class AurelianVisibleTriangleTopologyM13gTests
     [Fact]
     public void AurelianVisibleTriangleSample_ProjectExists()
     {
-        Assert.True(File.Exists(Path.Combine(GetRepositoryRoot(), "samples", "Aurelian", "Aurelian.VisibleTriangle", "Aurelian.VisibleTriangle.csproj")));
+        Assert.True(File.Exists(Path.Combine(GetRepositoryRoot(), "samples", "Integrations", "Aurelian.VisibleTriangle", "Aurelian.VisibleTriangle.csproj")));
     }
 
     [Fact]
     public void AurelianVisibleTriangleSample_IsExcludedFromAurelianProductionTestSolution()
     {
         string text = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "Aurelian.slnx"));
-        Assert.DoesNotContain("samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Aurelian.VisibleTriangle", text, StringComparison.Ordinal);
     }
 
     [Fact]

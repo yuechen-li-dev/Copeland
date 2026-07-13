@@ -53,7 +53,7 @@ public sealed class AurelianWorldScreenM14dTests
     [Fact]
     public void VisibleTriangleReadme_DocumentsWorldScreenPath()
     {
-        string readme = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "samples", "Aurelian", "Aurelian.VisibleTriangle", "README.md"));
+        string readme = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "samples", "Integrations", "Aurelian.VisibleTriangle", "README.md"));
 
         Assert.Contains("VisibleTriangleWorldScreen", readme, StringComparison.Ordinal);
         Assert.Contains("PresenterScreenStack", readme, StringComparison.Ordinal);

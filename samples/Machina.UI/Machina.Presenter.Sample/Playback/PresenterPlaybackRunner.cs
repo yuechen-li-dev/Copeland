@@ -378,9 +378,12 @@ public sealed class PresenterPlaybackRunner
 
         foreach (PresenterInputEvent inputEvent in events)
         {
+            PresenterInputEvent normalizedInput = PresenterInputEvent.FromFoundationalEvent(
+                inputEvent.ToFoundationalEvent(),
+                inputEvent.BackendName);
             PresenterNavigationInputRoutingResult routed = PresenterNavigationInputRouter.Route(
                 currentRender,
-                inputEvent,
+                normalizedInput,
                 currentInteractionState);
             currentInteractionState = routed.InteractionState;
 
@@ -396,15 +399,15 @@ public sealed class PresenterPlaybackRunner
             }
 
             lastInput = new PresenterPlaybackEmittedInput(
-                Kind: inputEvent.Kind.ToString(),
-                Key: inputEvent.Keyboard?.Key.ToString(),
-                WheelDeltaY: inputEvent.Kind == PresenterInputKind.Wheel ? inputEvent.WheelDeltaY : null,
+                Kind: normalizedInput.Kind.ToString(),
+                Key: normalizedInput.Keyboard?.Key.ToString(),
+                WheelDeltaY: normalizedInput.Kind == PresenterInputKind.Wheel ? normalizedInput.WheelDeltaY : null,
                 ActionId: actionId?.Value,
                 PointerCaptureRequest: routed.PointerCaptureRequest.ToString(),
                 InputConsumed: routed.InputConsumed);
 
             lastHitTest = routed.ContentHitResult is null
-                ? BuildFallbackHitTestResult(currentRender, inputEvent, routed)
+                ? BuildFallbackHitTestResult(currentRender, normalizedInput, routed)
                 : new PresenterPlaybackHitTestResult(
                     RegionKind: routed.ContentHitResult.RegionKind,
                     RegionId: routed.ContentHitResult.RegionId,
@@ -417,7 +420,7 @@ public sealed class PresenterPlaybackRunner
                 ActionId: actionId?.Value,
                 ActionType: DescribeActionType(actionId),
                 ActionHandled: actionId is not null,
-                WheelConsumed: inputEvent.Kind == PresenterInputKind.Wheel && routed.InputConsumed);
+                WheelConsumed: normalizedInput.Kind == PresenterInputKind.Wheel && routed.InputConsumed);
 
             currentRender = Render(currentState, currentRender.Layout, currentRender.Session);
         }

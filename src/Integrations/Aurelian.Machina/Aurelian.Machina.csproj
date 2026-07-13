@@ -5,6 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Core/Aurelian.Core.csproj" />
     <ProjectReference Include="../../Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
   </ItemGroup>
 </Project>

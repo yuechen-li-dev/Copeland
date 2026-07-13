@@ -52,7 +52,7 @@ public sealed class AurelianPresenterScreenStackM14cTests
     [Fact]
     public void VisibleTriangleReadme_NotesFutureScreenStackIntegration()
     {
-        string readme = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "samples", "Aurelian", "Aurelian.VisibleTriangle", "README.md"));
+        string readme = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "samples", "Integrations", "Aurelian.VisibleTriangle", "README.md"));
 
         Assert.Contains("future M14c/M14d layering direction", readme, StringComparison.Ordinal);
         Assert.Contains("world layer", readme, StringComparison.Ordinal);

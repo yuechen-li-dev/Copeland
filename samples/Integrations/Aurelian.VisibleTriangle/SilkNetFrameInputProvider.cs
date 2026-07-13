@@ -1,7 +1,9 @@
 using Aurelian.Core.Engine.Frames;
 using Aurelian.Graphics.Vulkan.Presentation;
+using Aurelian.Machina;
 using Aurelian.Rendering.Contracts.Compositor;
 using Aurelian.Runtime.Compositor;
+using Machina.Runtime.Input;
 
 namespace Aurelian.VisibleTriangle;
 
@@ -15,6 +17,7 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
     private readonly Dictionary<AurelianFrameId, VisibleTriangleFrameState> frames = new();
     private readonly int maxFrames;
     private readonly List<string> diagnostics = [];
+    private ulong nextInputBatchId;
     private int suppliedFrames;
 
     public SilkNetFrameInputProvider(
@@ -48,6 +51,8 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
 
     public int MaxFrames => maxFrames;
 
+    public UiInputBatch? LastNormalizedInput { get; private set; }
+
     public ValueTask<AurelianFrameInput?> GetNextFrameInputAsync(
         AurelianFrameId frameId,
         CancellationToken cancellationToken = default)
@@ -58,7 +63,8 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
         }
 
         presenterBackend.PumpEvents();
-        if (presenterBackend.CloseRequested)
+        AurelianHostLifecycleInput lifecycle = CollectHostLifecycleInput();
+        if (lifecycle.CloseRequested)
         {
             diagnostics.Add($"Frame {frameId.Value} input stopped before acquire because the presenter backend requested close.");
             return ValueTask.FromResult<AurelianFrameInput?>(null);
@@ -84,7 +90,20 @@ internal sealed class SilkNetFrameInputProvider : IAurelianFrameInputProvider
         suppliedFrames++;
 
         CompositorPolicyFacts facts = Facts(frameId.Value, outputRef, target, PlantOutputReadinessStatus.Ready);
-        return ValueTask.FromResult<AurelianFrameInput?>(new AurelianFrameInput(frameId, facts));
+        return ValueTask.FromResult<AurelianFrameInput?>(new AurelianFrameInput(frameId, facts, lifecycle));
+    }
+
+    private AurelianHostLifecycleInput CollectHostLifecycleInput()
+    {
+        UiInputBatch inputBatch = VisibleTriangleHostInputCollector.Collect(
+            nextInputBatchId,
+            includeInitialExtent: nextInputBatchId == 0,
+            swapchain.Facts.Width,
+            swapchain.Facts.Height,
+            presenterBackend.CloseRequested);
+        nextInputBatchId++;
+        LastNormalizedInput = inputBatch;
+        return AurelianHostInputTranslator.TranslateLifecycle(inputBatch);
     }
 
     private static CompositorPolicyFacts Facts(

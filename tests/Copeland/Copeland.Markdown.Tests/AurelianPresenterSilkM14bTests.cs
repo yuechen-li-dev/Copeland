@@ -11,7 +11,7 @@ public sealed class AurelianPresenterSilkM14bTests
         string root = GetRepositoryRoot();
 
         Assert.True(File.Exists(Path.Combine(root, "docs", "Aurelian", "history", "aurelian-presenter-silk-golden-triangle-m14b.md")));
-        Assert.True(File.Exists(Path.Combine(root, "samples", "Aurelian", "Aurelian.VisibleTriangle", "README.md")));
+        Assert.True(File.Exists(Path.Combine(root, "samples", "Integrations", "Aurelian.VisibleTriangle", "README.md")));
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class AurelianPresenterSilkM14bTests
     [Fact]
     public void VisibleTriangleReadme_DocumentsPresenterSilkCommand()
     {
-        string readme = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "samples", "Aurelian", "Aurelian.VisibleTriangle", "README.md"));
+        string readme = File.ReadAllText(Path.Combine(GetRepositoryRoot(), "samples", "Integrations", "Aurelian.VisibleTriangle", "README.md"));
 
         Assert.Contains("--presenter silk", readme, StringComparison.Ordinal);
         Assert.Contains("Presenter/Silk.NET backend", readme, StringComparison.Ordinal);

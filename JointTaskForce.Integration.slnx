@@ -2,7 +2,7 @@
   <Folder Name="/samples/">
     <Project Path="samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />
     <Project Path="samples/Machina.UI/Machina.Presenter.Sample/Machina.Presenter.Sample.csproj" />
-    <Project Path="samples/Aurelian/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
+    <Project Path="samples/Integrations/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
   </Folder>
   <Folder Name="/tests/Aurelian/">
     <Project Path="tests/Aurelian/Aurelian.Integration.Tests/Aurelian.Integration.Tests.csproj" />
