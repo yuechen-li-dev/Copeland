@@ -4,8 +4,10 @@ using Machina.Core.Flat;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
 using Machina.Dominatus.Rendering.Commands;
+using Machina.Dominatus.Rendering.Bridge;
 using Machina.Layout.Frames;
 using Machina.Pipeline;
+using Machina.Presentation;
 using Machina.Runtime.Input;
 using Machina.Standard.Authoring;
 using Machina.Standard.Theme;
@@ -29,6 +31,12 @@ public sealed class MachinaRasterPipelineTests
         Assert.NotNull(frame.Document);
         Assert.NotNull(frame.Resolved);
         Assert.NotNull(frame.HitTest);
+        Assert.NotNull(frame.PresentationFrame);
+        Assert.Equal(80, frame.PresentationFrame.Viewport.Width);
+        Assert.Contains(frame.PresentationFrame.Operations, operation => operation is PositionedTextOperation text && text.SourceId == "hello");
+        Assert.Equal(
+            LegacyMachinaRenderCommandAdapter.ToLegacyCommands(frame.PresentationFrame),
+            frame.RenderCommands);
         Assert.Equal(80, frame.RasterFrame.Width);
         Assert.Equal(40, frame.RasterFrame.Height);
         Assert.True(CountNonTransparentPixels(frame.RasterFrame) > 0);

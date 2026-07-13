@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Machina.Presentation.Tests</AssemblyName>
+    <RootNamespace>Machina.Presentation.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
+    <ProjectReference Include="../../../src/Machina.UI/Machina.Standard/Machina.Standard.csproj" />
+  </ItemGroup>
+</Project>

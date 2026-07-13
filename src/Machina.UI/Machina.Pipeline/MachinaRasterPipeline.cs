@@ -12,6 +12,7 @@ using Machina.Layout.Compilation;
 using Machina.Layout.Documents;
 using Machina.Layout.Geometry;
 using Machina.Layout.Resolving;
+using Machina.Presentation;
 using Machina.Renderer.Raster.Dominatus;
 using Machina.Renderer.Raster.Dominatus.Actuation;
 using Machina.Renderer.Raster.Dominatus.Models;
@@ -42,14 +43,17 @@ public sealed class MachinaRasterPipeline
 
         UiHitTestIndex hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics);
 
-        IReadOnlyList<IActuationCommand> commands = MachinaRenderBridge.BuildCommands(
+        var viewport = new MachinaPresentationViewport(options.Width, options.Height);
+        MachinaPresentationFrame presentationFrame = MachinaPresentationFrameBuilder.Build(
             lowering,
             resolved,
-            new MachinaRenderOptions(options.Width, options.Height));
+            viewport);
+
+        IReadOnlyList<IActuationCommand> commands = LegacyMachinaRenderCommandAdapter.ToLegacyCommands(presentationFrame);
 
         RasterFrame frame = DispatchToRasterFrame(commands, options.TextRasterizer);
 
-        return new MachinaFrame(lowering, layoutDocument, resolved, hitTest, commands, frame);
+        return new MachinaFrame(lowering, layoutDocument, resolved, hitTest, commands, frame, presentationFrame);
     }
 
     public MachinaFrame Render(UiNode ui, int width, int height)
@@ -72,14 +76,17 @@ public sealed class MachinaRasterPipeline
 
         UiHitTestIndex hitTest = UiHitTestIndex.Build(resolved, lowering.Actions, lowering.Semantics);
 
-        IReadOnlyList<IActuationCommand> commands = MachinaRenderBridge.BuildCommands(
+        var viewport = new MachinaPresentationViewport(options.Width, options.Height);
+        MachinaPresentationFrame presentationFrame = MachinaPresentationFrameBuilder.Build(
             lowering,
             resolved,
-            new MachinaRenderOptions(options.Width, options.Height));
+            viewport);
+
+        IReadOnlyList<IActuationCommand> commands = LegacyMachinaRenderCommandAdapter.ToLegacyCommands(presentationFrame);
 
         RasterFrame frame = DispatchToRasterFrame(commands, options.TextRasterizer);
 
-        return new MachinaFrame(lowering, document, resolved, hitTest, commands, frame);
+        return new MachinaFrame(lowering, document, resolved, hitTest, commands, frame, presentationFrame);
     }
 
     private static RasterFrame DispatchToRasterFrame(IReadOnlyList<IActuationCommand> commands, ITextRasterizer? textRasterizer)

@@ -1,6 +1,7 @@
 using Dominatus.Core.Runtime;
 using Machina.Core.Lowering;
 using Machina.Layout.Documents;
+using Machina.Presentation;
 using Machina.Renderer.Raster.Dominatus.Models;
 using Machina.Runtime.Input;
 
@@ -12,4 +13,5 @@ public sealed record MachinaFrame(
     ResolvedLayoutDocument Resolved,
     UiHitTestIndex HitTest,
     IReadOnlyList<IActuationCommand> RenderCommands,
-    RasterFrame RasterFrame);
+    RasterFrame RasterFrame,
+    MachinaPresentationFrame PresentationFrame);

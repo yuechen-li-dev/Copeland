@@ -1,10 +1,13 @@
 using Machina.Core.Styling;
 using Machina.Dominatus.Rendering.Commands;
-using Machina.Layout.Geometry;
+using Machina.Presentation;
 using Machina.Standard.Text;
 
 namespace Machina.Dominatus.Rendering.Bridge;
 
+/// <summary>
+/// Transitional compatibility style for the legacy text-command API. Remove in JTF-M5.
+/// </summary>
 public sealed record MachinaTextRenderStyle(
     TextStyle BaseStyle,
     ColorToken? LinkColor = null,
@@ -15,8 +18,23 @@ public sealed record MachinaTextRenderStyle(
     TextSize MonoSize = TextSize.Sm)
 {
     public static MachinaTextRenderStyle Default { get; } = new(new TextStyle());
+
+    internal MachinaTextPresentationStyle ToPresentationStyle()
+    {
+        return new MachinaTextPresentationStyle(
+            BaseStyle,
+            LinkColor,
+            TitleSize,
+            BodySize,
+            LabelSize,
+            CaptionSize,
+            MonoSize);
+    }
 }
 
+/// <summary>
+/// Transitional compatibility surface. Presentation preparation is owned by Machina.Presentation.
+/// </summary>
 public static class MachinaTextRenderBridge
 {
     public static IReadOnlyList<DrawTextCommand> ToDrawTextCommands(
@@ -24,60 +42,17 @@ public static class MachinaTextRenderBridge
         MachinaTextLayoutResult layout,
         MachinaTextRenderStyle? style = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(idPrefix);
-        ArgumentNullException.ThrowIfNull(layout);
+        IReadOnlyList<PositionedTextOperation> operations = MachinaTextPresentationBuilder.Build(
+            idPrefix,
+            layout,
+            (style ?? MachinaTextRenderStyle.Default).ToPresentationStyle());
 
-        var renderStyle = style ?? MachinaTextRenderStyle.Default;
-        var commands = new List<DrawTextCommand>();
-
-        foreach (var line in layout.Lines)
-        {
-            for (var runIndex = 0; runIndex < line.Runs.Count; runIndex++)
-            {
-                var run = line.Runs[runIndex];
-                if (string.IsNullOrWhiteSpace(run.Text))
-                {
-                    continue;
-                }
-
-                var commandStyle = ResolveTextStyle(run.Style, renderStyle);
-                var rect = new Rect(run.Bounds.X, run.Bounds.Y, run.Bounds.Width, run.Bounds.Height);
-                commands.Add(new DrawTextCommand(
-                    $"{idPrefix}.b{line.BlockIndex}.l{line.LineIndex}.r{runIndex}",
-                    rect,
-                    run.Text,
-                    commandStyle));
-            }
-        }
-
-        return commands;
-    }
-
-    private static TextStyle ResolveTextStyle(MachinaTextRunStyle runStyle, MachinaTextRenderStyle renderStyle)
-    {
-        var color = runStyle.LinkHref is not null && renderStyle.LinkColor is not null
-            ? renderStyle.LinkColor
-            : renderStyle.BaseStyle.Color;
-
-        return renderStyle.BaseStyle with
-        {
-            Color = color,
-            Size = MapTextSize(runStyle.Variant, renderStyle),
-            AlignX = TextAlignX.Left,
-            AlignY = TextAlignY.Top,
-        };
-    }
-
-    private static TextSize MapTextSize(MachinaTextVariant variant, MachinaTextRenderStyle renderStyle)
-    {
-        return variant switch
-        {
-            MachinaTextVariant.Title => renderStyle.TitleSize,
-            MachinaTextVariant.Body => renderStyle.BodySize,
-            MachinaTextVariant.Label => renderStyle.LabelSize,
-            MachinaTextVariant.Caption => renderStyle.CaptionSize,
-            MachinaTextVariant.Mono => renderStyle.MonoSize,
-            _ => throw new ArgumentOutOfRangeException(nameof(variant), variant, "Unsupported Machina text variant."),
-        };
+        return operations
+            .Select(operation => new DrawTextCommand(
+                operation.SourceId,
+                operation.Rect,
+                operation.Text,
+                operation.Style))
+            .ToArray();
     }
 }

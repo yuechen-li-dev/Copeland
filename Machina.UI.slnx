@@ -6,6 +6,7 @@
     <Project Path="src/Machina.UI/Machina.Fonts.Tooling/Machina.Fonts.Tooling.csproj" />
     <Project Path="src/Machina.UI/Machina.Layout/Machina.Layout.csproj" />
     <Project Path="src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <Project Path="src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
     <Project Path="src/Machina.UI/Machina.Renderer.Raster/Machina.Renderer.Raster.csproj" />
     <Project Path="src/Machina.UI/Machina.Renderer.Raster.Dominatus/Machina.Renderer.Raster.Dominatus.csproj" />
     <Project Path="src/Machina.UI/Machina.Renderer.Raster.Text/Machina.Renderer.Raster.Text.csproj" />
@@ -19,6 +20,7 @@
     <Project Path="tests/Machina.UI/Machina.Fonts.Tooling.Unit.Tests/Machina.Fonts.Tooling.Unit.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Layout.Tests/Machina.Layout.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Pipeline.Tests/Machina.Pipeline.Tests.csproj" />
+    <Project Path="tests/Machina.UI/Machina.Presentation.Tests/Machina.Presentation.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Renderer.Raster.Tests/Machina.Renderer.Raster.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Renderer.Raster.Dominatus.Tests/Machina.Renderer.Raster.Dominatus.Tests.csproj" />
     <Project Path="tests/Machina.UI/Machina.Renderer.Raster.Text.Tests/Machina.Renderer.Raster.Text.Tests.csproj" />

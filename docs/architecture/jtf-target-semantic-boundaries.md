@@ -24,6 +24,10 @@ Its narrow renderer-facing output is a **Machina presentation frame**: immutable
 
 Machina owns this vocabulary because it describes what the UI producer requests. A renderer may translate it into its own command vocabulary; the two vocabularies must not be collapsed.
 
+### JTF-M2 implementation status
+
+JTF-M2 establishes this boundary in `Machina.Presentation`. `MachinaPresentationFrameBuilder` is the canonical lowering traversal, and `MachinaRasterPipeline` exposes the resulting frame beside its hit-test artifact. The retained Dominatus/raster route is reached only through the temporary `LegacyMachinaRenderCommandAdapter`; it is scheduled for retirement in JTF-M5. The frame contract is intentionally limited to a viewport and ordered fill rectangle, stroke rectangle, positioned text, push rectangular clip, and pop clip operations. Its assembly references only Machina Core, Layout, and Standard projects.
+
 ### Aurelian
 
 Aurelian owns engine lifecycle, worlds/game objects, engine actuation, frame loop, engine frame input, game-domain commands, renderer-neutral engine snapshots and command plans, compositor policy, presentation mechanism contracts, renderer backends (null, CPU raster, Vulkan), assets, shader-domain compilation and artifacts, and Dominatus engine/runtime integration.

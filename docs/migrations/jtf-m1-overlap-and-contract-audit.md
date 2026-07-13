@@ -211,6 +211,8 @@ Every implementation milestone must run its affected subsystem solution, `JointT
 
 ### JTF-M2 — Machina presentation boundary
 
+**Status: completed.** See [JTF-M2 migration record](jtf-m2-machina-presentation-frame.md) for the implementation and equivalence evidence.
+
 - **Outcome:** add the smallest Dominatus- and backend-free presentation-frame contract and make Machina lowering produce it.
 - **In scope:** Machina Core/Pipeline/Runtime/Standard and their tests; command-building logic currently in `Machina.Dominatus`.
 - **Non-goals:** no raster move, Aurelian adapter, screen move, or old path removal.
