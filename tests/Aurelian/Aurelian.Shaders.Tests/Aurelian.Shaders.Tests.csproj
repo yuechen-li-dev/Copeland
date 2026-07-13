@@ -11,5 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.Script/Copeland.Script.csproj" />
   </ItemGroup>
 </Project>

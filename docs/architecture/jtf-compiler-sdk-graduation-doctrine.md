@@ -47,9 +47,9 @@ A future shared TypeScript syntax package may own lexing, parsing, syntax nodes,
 | Candidate | Evidence and material difference | Status, owner, milestone |
 | --- | --- | --- |
 | Source identity | Script accepts strings; Markdown has no identity; SDSL-V has display name and legacy assets have paths. | Local; no common identity contract. |
-| Source text | `SyntaxTree.Text`, `MarkdownSourceText`, SDSL-V strings. Markdown alone has a reusable indexed map. | Candidate, `Copeland.Compiler.Source`, M6b spike. |
-| Spans/locations | Script offset/length; Markdown start/end locations; SDSL-V start/end/line/column. | Local until range/unknown semantics align. |
-| Line mapping | Markdown cached binary-search map; shader scanners update counters; script exposes offsets only. | Candidate, M6b only after compatible tests. |
+| Source text | M6b measured common UTF-16 offsets, but Markdown alone has an immutable indexed source holder; Script has raw text only and active SDSL-V is LF-only for line advancement. | Rejected in M6b; retain local. See `docs/Copeland/architecture/compiler-source-contract-jtf-m6b.md`. |
+| Spans/locations | M6b found Markdown source-bound spans, unconstrained Script position/length values, and unconstrained SDSL-V start/end/unknown spans. | Local; no two-consumer structural/source-bound contract. |
+| Line mapping | Markdown cached CR/LF/CRLF map; SDSL-V scanner counters advance only on LF; Script exposes offsets only. | Rejected in M6b; no policy flags. |
 | Provenance | Markdown nodes/MIR and VD-MIR retain spans; Cope MIR drops source provenance. | Local. |
 | Diagnostic record | Script `Diagnostic`, Markdown diagnostic records, SDSL-V diagnostics/tool diagnostics. | Candidate only after compatible neutral fields are proven. |
 | Severity/codes | Script observable error-only behavior; Markdown warning/error; SDSL-V severity/phase. | Local. |
@@ -72,15 +72,15 @@ A future shared TypeScript syntax package may own lexing, parsing, syntax nodes,
 
 M6a rejects a universal MIR, instruction/value/type hierarchy, syntax-node base, symbol table, module resolver, compiler pass/backend interface, metadata bags, master pipeline coordinator, universal token stream, and abstractions for imaginary users. VD-MIR and DocumentMir must not route through Cope MIR.
 
-## Proposed topology (not implemented)
+## Proposed topology (not implemented; M6b rejected)
 
 | Project | Responsibility/dependencies | Prohibited vocabulary | First consumers/API | Excluded |
 | --- | --- | --- | --- | --- |
-| `Copeland.Compiler.Source` | BCL-only source text, half-open spans, line mapping. | All domain/IR/backend vocabulary. | Script and SDSL-V; `SourceText`, `SourceLocation`, `SourceSpan`. | Tokens, diagnostics, file I/O. |
+| `Copeland.Compiler.Source` | Rejected in M6b: no two-consumer source/line/span contract exists yet. | All domain/IR/backend vocabulary. | None; no project or API was created. | Tokens, diagnostics, file I/O. |
 | `Copeland.Compiler.Diagnostics` (defer) | Neutral record/list after two severity/order contracts. Depends on Source. | Domain/tool terms. | None in M6b. | Rendering and collection policy. |
 | `Copeland.Compiler.Artifacts` (defer) | Byte hashing/writing only after compatible failure/encoding contracts. | Stage, DXC, SPIR-V, Markdown, C#. | None in M6b. | Manifests/schemas. |
 | `Copeland.Compiler.Testing` (defer) | Test-only normalization helpers after two direct suite contracts. | Production/domain vocabulary. | None in M6b. | Discovery/subprocess orchestration. |
 
-## Recommended M6b
+## M6b outcome
 
-Run a source-contract spike first: compare `MarkdownSourceText` CR/LF behavior against non-public script and SDSL-V adapters; specify half-open offsets, one-based location basis, empty spans, EOF, and unknown-source behavior; add paired consumer tests; extract only `Copeland.Compiler.Source` if the adapters are identical. Do not migrate diagnostics, parsers, tokens, artifacts, or IRs in that milestone.
+M6b ran the source-contract spike against Markdown, Script, and active SDSL-V using test-local adapters. It found shared UTF-16 offsets but not two complete compatible source contracts: Script has no mapping/span contract, and SDSL-V treats bare CR differently from Markdown. `Copeland.Compiler.Source` was not extracted, no production consumer migrated, and no dependency edge was added. Do not migrate diagnostics, parsers, tokens, artifacts, or IRs on this evidence. See `docs/Copeland/architecture/compiler-source-contract-jtf-m6b.md` and `docs/migrations/jtf-m6b-compiler-source-contract.md`.
