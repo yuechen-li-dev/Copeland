@@ -1,6 +1,6 @@
 # CTS-M4a: First-class Result and fallibility MIR design
 
-**Status:** accepted language laws and architecture record. CTS-M4b implements the bounded frontend, dedicated Cope MIR, and C# proof-backend slice; JavaScript Result emission, postfix unwrap, and lexical handlers remain deferred.
+**Status:** accepted language laws and architecture record. CTS-M4b implements the bounded frontend, dedicated Cope MIR, and C# proof-backend slice; CTS-M4c implements JavaScript Result emission; CTS-M5 implements postfix unwrap; and [CTS-M6a](copeland-ts-try-except-design-cts-m6a.md) accepts the lexical-handler design. `try`/`except` remains unimplemented.
 
 ## Decision summary
 
@@ -171,7 +171,7 @@ M4a selects **targeted propagation that survives into MIR**. It uses a discrimin
 MirPropagationTarget = FunctionReturn | LexicalExcept(HandlerId)
 ```
 
-M4b implements only `FunctionReturn`, whose compatibility requires the current function return type to be `T2 ! E` with the same error type. Future `try`/`except` binding allocates a stable lexical `HandlerId`; a `?` in its protected body targets the nearest handler, while a `?` in the handler body targets the next outer target. The handler construct and its region/join representation must be introduced together in its later milestone; an orphan handler id is not valid MIR.
+M4b implements only `FunctionReturn`, whose compatibility requires the current function return type to be `T2 ! E` with the same error type. [CTS-M6a](copeland-ts-try-except-design-cts-m6a.md#lexical-propagation-targeting) now specifies the reserved lexical direction: binding allocates a stable `HandlerId`; a `?` in its protected body targets the nearest handler, while a `?` in the handler body targets the next outer target. The handler construct and its region/join representation must be introduced together; an orphan handler id is not valid MIR.
 
 This choice is preferable to lowering handlers away before MIR: that would require continuation rewriting in a tree IR, risks duplicated expressions and lost evaluation order, and obscures diagnostics. A fully general exception-handler IR is also not justified. A later dedicated `MirTryResultExpression`/handler region may own `HandlerId` and its one error binding; it is structured Result control flow, never JavaScript or .NET exception machinery.
 
@@ -255,4 +255,4 @@ Migrating fallible call typing necessarily migrates existing `?` in the same cha
 
 ## 15. Deferred work
 
-Postfix unwrap needs a panic contract and backend abort implementations. Expression-shaped `try { ... } except (error: E) { ... }` needs syntax, contextual handler typing, lexical handler ids, a structured handler region/join, and evaluation-order tests. Wildcard Result arms, generic Result notation, error conversions/aliases, host interop adapters, async fallibility, Option, generalized sum types, universal effects, CFG/SSA, and universal pattern compilation remain outside this design.
+Postfix unwrap is now implemented by CTS-M5. Expression-shaped `try { ... } except (error) { ... }` is specified by [CTS-M6a](copeland-ts-try-except-design-cts-m6a.md) and still needs its bounded source, binding, MIR, backend, and evaluation-order implementation. Wildcard Result arms, generic Result notation, error conversions/aliases, host interop adapters, async fallibility, Option, generalized sum types, universal effects, CFG/SSA, and universal pattern compilation remain outside this design.

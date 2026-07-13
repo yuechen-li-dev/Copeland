@@ -1,6 +1,6 @@
 # CTS-M4b first-class Result implementation
 
-**Status:** historical CTS-M4b implementation record. Result source/MIR and C# proof emission were implemented here; JavaScript Result emission is implemented by CTS-M4c. Postfix unwrap `!` and `try`/`except` remain unimplemented.
+**Status:** historical CTS-M4b implementation record. Result source/MIR and C# proof emission were implemented here; JavaScript Result emission is implemented by CTS-M4c and postfix unwrap `!` by CTS-M5. `try`/`except` remains unimplemented; its accepted direction is [CTS-M6a](../language/copeland-ts-try-except-design-cts-m6a.md).
 
 CTS-M4b implements the accepted M4a Result model. `T ! E` is a structural source type at function, parameter, local, array, nested-type, and enum-payload positions. A fallible call has type `T ! E`; it can be stored, passed, returned, matched, or consumed by `?`.
 
@@ -31,4 +31,4 @@ At this M4b checkpoint, the MIR-only JavaScript backend rejected Result-returnin
 
 ## Deferred work
 
-CTS-M4b does not parse postfix unwrap `expression!`, add `MirUnwrapExpression`, add lexical handlers, or add `try`/`except`. CTS-M4c supplies JavaScript Result emission over this settled MIR.
+CTS-M4b did not parse postfix unwrap `expression!`, add `MirUnwrapExpression`, add lexical handlers, or add `try`/`except`. CTS-M5 later supplies unwrap, CTS-M4c supplies JavaScript Result emission, and CTS-M6a defines the later lexical-handler boundary.

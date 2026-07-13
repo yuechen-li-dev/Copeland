@@ -62,4 +62,4 @@ This milestone is documentation-only, so builds/tests are not required. Validati
 
 ## Deferred implementation sequence
 
-M4b is limited to first-class Result values, explicit construction/match, function-return propagation, and C# proof parity. Postfix `!` follows only with a defined panic boundary. Paired expression-shaped `try`/`except` follows only with lexical handler targets and structured Result handler MIR. Neither should be smuggled into backend exception handling.
+M4b is limited to first-class Result values, explicit construction/match, function-return propagation, and C# proof parity. CTS-M5 later supplies the defined postfix-unwrap panic boundary. Paired expression-shaped `try`/`except` is now designed by [CTS-M6a](../Copeland/language/copeland-ts-try-except-design-cts-m6a.md) and still requires lexical handler targets plus structured Result handler MIR. Neither should be smuggled into backend exception handling.

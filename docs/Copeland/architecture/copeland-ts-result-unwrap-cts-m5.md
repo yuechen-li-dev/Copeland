@@ -8,4 +8,4 @@ The bound tree has `BoundUnwrapExpression` and Cope MIR has `MirUnwrapExpression
 
 Both emitters inspect their private Result representation after assigning the operand to a temporary. JavaScript throws a private `Error` carrying the original payload; C# throws a private generated exception carrying the original payload. Those host throws are terminal panic machinery only. Ordinary `err`, Result match, and `?` remain explicit Result control flow and do not use host exceptions.
 
-There is no Copeland `try`/`except` in this milestone. Future Result-based handlers will not catch unwrap panic, and test-host interception of the private throw is not source-language recovery.
+There is no Copeland `try`/`except` implementation in this milestone. [CTS-M6a](../language/copeland-ts-try-except-design-cts-m6a.md) accepts the future typed lexical Result-handler design: it will not catch unwrap panic, and test-host interception of the private throw is not source-language recovery.

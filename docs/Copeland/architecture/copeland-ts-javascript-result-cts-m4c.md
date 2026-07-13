@@ -22,7 +22,7 @@ Backend corpus fixtures are `result-construction-match` and `result-propagation`
 
 Node 26.2.0 runtime tests execute Result construction, both match arms, forwarding, direct and stored propagation, nested Result, Result enum payloads, and void success twice. The bounded parity test emits the same canonical MIR to Node and Roslyn-generated C#, observing `21` on both paths. It intentionally compares primitives rather than backend-private Result objects.
 
-Postfix unwrap `!`, `MirUnwrapExpression`, lexical handlers, and `try`/`except` remain unimplemented. CTS-M5 should define unwrap plus backend-neutral panic semantics before a later structured handler milestone.
+Postfix unwrap `!` and `MirUnwrapExpression` are implemented by CTS-M5. Lexical handlers and `try`/`except` remain unimplemented; [CTS-M6a](../language/copeland-ts-try-except-design-cts-m6a.md) selects a future JavaScript private structured-flow lowering and forbids JavaScript exception handling for ordinary Result `err`.
 
 ## Validation and changed scope
 
