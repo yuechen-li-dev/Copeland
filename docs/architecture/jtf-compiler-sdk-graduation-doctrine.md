@@ -9,7 +9,9 @@ Copeland TS (implemented proof path)
   TypeScript-shaped text -> SyntaxTree -> BoundCompilation -> Cope MIR -> C# proof backend -> C# text
 
 Copeland TS (intended product direction)
-  TypeScript -> Cope MIR -> JavaScript first -> NativeAOT-compatible C# later
+  TypeScript 7-shaped source -> Copeland TS frontend -> Cope MIR
+      -> JavaScript backend
+      -> C#/.NET backend
 
 Aurelian shader
   SDSL-V -> SdslvLexer/Parser/Module -> Validator -> HLSL -> DXC -> SPIR-V
@@ -25,6 +27,18 @@ The document lane is implemented in `src/Copeland/Copeland.Markdown`; its curren
 ## Current boundaries
 
 The only current Copeland backend is the C# proof backend. `CopelandCompiler` exposes frontend-to-MIR compilation; `Copeland.Cli --emit mir|csharp` composes the selected output path. The intended JavaScript-first product direction is a pivot, not an implemented path. The backend boundary is `Cope MIR -> lane-owned backend`; no universal backend abstraction exists.
+
+## M6d closeout
+
+JTF-M6d closes this compiler-SDK audit. No universal MIR, shared parser framework, shared source/span abstraction, universal backend interface, or universal pass interface graduated. Cope MIR, `DocumentMir`, and VD-MIR remain subsystem-owned and do not reference one another. Existing mechanics may remain recorded as candidates, but candidate status creates neither a package nor a dependency.
+
+The compiler SDK is a policy and a place for proven reusable equipment, not a mandate to generalize every compiler-shaped subsystem. Future graduation still requires at least two real consumers with compatible semantics and invariants, followed by direct evidence and tests for both consumers.
+
+### Copeland TS direction (not current capability)
+
+Copeland TS is intended to be a TypeScript-shaped, closed-world language that preserves TypeScript’s authoring ergonomics without inheriting JavaScript’s dynamic runtime semantics. TypeScript 7 is the syntax and ecosystem reference point, not a claim of full TypeScript 7 or npm compatibility. Copeland TS intends stricter closed-world semantics; removing JavaScript coercion and dynamic-runtime footguns, null-less semantics, and payload enums for explicit optionality and failure are future language work.
+
+The JavaScript backend is the planned first usable distribution/reference backend. The C# emitter is currently a proof backend and may later mature into the C#/.NET backend. Ordinary managed execution would use RyuJIT; supported native deployments would use NativeAOT; browser/Wasm deployment would use .NET WebAssembly AOT. Browser WebAssembly is not ordinary NativeAOT. No performance superiority is claimed before it is measured and tested.
 
 The future GPU TypeScript-shaped path remains direct:
 

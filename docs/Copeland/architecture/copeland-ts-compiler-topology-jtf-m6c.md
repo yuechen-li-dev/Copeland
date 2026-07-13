@@ -9,13 +9,15 @@ Copeland.TS
         v
 Copeland.TS.Mir
   Cope MIR model and deterministic .cope text writer
-        |
-        +--> Copeland.TS.Backend.CSharp -> generated .g.cs proof output
-        |
-        +--> future Copeland.TS.Backend.JavaScript -> generated .g.js output
+
+Copeland.TS.Backend.CSharp
+  Cope MIR -> generated .g.cs proof output
+
+Copeland.Cli
+  explicit composition of Copeland.TS, Copeland.TS.Mir, and Copeland.TS.Backend.CSharp
 ```
 
-`Copeland.Cli` is the composition host. It obtains Cope MIR from `Copeland.TS`, writes MIR directly for `--emit mir`, and invokes the C# backend for `--emit csharp`. The C# backend does not reference the frontend; it consumes only `Copeland.TS.Mir`.
+`Copeland.Cli` is the composition host. It obtains Cope MIR from `Copeland.TS`, writes MIR directly for `--emit mir`, and invokes the C# backend for `--emit csharp`. The C# backend does not reference the frontend; it consumes only `Copeland.TS.Mir`. `Copeland.TS.Mir` is BCL-only. Backend selection is not owned by the frontend or MIR assembly.
 
 The three-project split is justified by the real boundary: `MirProgram` and `MirTextWriter` have no TypeScript, frontend diagnostic, Roslyn, CLI, Markdown, Aurelian, or Machina dependency. The former `MirType.From(TypeSymbol)` helper and lowering result diagnostics remain frontend-local. The C# backend has its own backend diagnostic record, which avoids a reverse frontend dependency. No universal backend, pass, or IR interface is introduced.
 
@@ -26,10 +28,9 @@ The three-project split is justified by the real boundary: `MirProgram` and `Mir
 | `*.ts` | Copeland TS program source. |
 | `*.cope` | Deterministic textual projection of Cope MIR; currently expected MIR output. |
 | `*.g.cs` | Generated output from the C# proof backend. |
-| `*.g.js` | Reserved future JavaScript output. |
 | `*.xtest.tsx` | TSPack-owned executable test source, including TSX `<Fact>` declarations and related vocabulary. |
 
-`.cope` is neither a source-test dialect nor a universal compiler input. There is no `.cope` parser or verifier. Add one only when a real MIR interchange, debugging, or toolchain consumer requires it.
+`.cope` is neither a source-test dialect nor a parsed production interchange format. There is no `.cope` parser or verifier. No Cope Test dialect remains. TSPack and TSX parsing are not implemented here, and no `.g.js`, `.g.ts`, or JavaScript-backend fixtures are present.
 
 ## Tests and fixtures
 
@@ -40,6 +41,8 @@ Use the focused lane for ordinary compiler work:
 ```powershell
 dotnet build Copeland.TS.slnx
 dotnet test Copeland.TS.slnx --no-build
+pwsh ./tools/Validate-DependencyBoundaries.ps1
+pwsh ./tools/Validate-CopelandTsTopology.ps1
 ```
 
 `Copeland.TS.slnx` intentionally excludes Markdown, Aurelian, Machina, samples, and CLI tests so a future JavaScript backend can iterate independently.

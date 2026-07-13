@@ -84,12 +84,36 @@ foreach ($project in $projects) {
 
 $mirProject = Join-Path $root "src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj"
 Require-Condition ($projectReferences[$mirProject].Count -eq 0) "Copeland.TS.Mir must not reference another project."
+[xml]$mirProjectXml = Get-Content -LiteralPath $mirProject
+$mirPackageReferences = @($mirProjectXml.SelectNodes('//PackageReference'))
+Require-Condition ($mirPackageReferences.Count -eq 0) "Copeland.TS.Mir must remain BCL-only and must not reference NuGet packages."
 
 $frontendProject = Join-Path $root "src/Copeland/Copeland.TS/Copeland.TS.csproj"
 $backendProject = Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj"
+$cliProject = Join-Path $root "src/Copeland/Copeland.Cli/Copeland.Cli.csproj"
 Require-Condition ($projectReferences[$frontendProject] -contains $mirProject) "Copeland.TS must reference Copeland.TS.Mir."
 Require-Condition ($projectReferences[$backendProject] -contains $mirProject) "Copeland.TS.Backend.CSharp must reference Copeland.TS.Mir."
+Require-Condition ($projectReferences[$frontendProject].Count -eq 1) "Copeland.TS may depend only on Copeland.TS.Mir."
+Require-Condition ($projectReferences[$backendProject].Count -eq 1) "Copeland.TS.Backend.CSharp may depend only on Copeland.TS.Mir."
 Require-Condition ($projectReferences[$backendProject] -notcontains $frontendProject) "The C# backend must not reference the frontend."
+Require-Condition ($projectReferences[$frontendProject] -notcontains $backendProject) "Copeland.TS must not reference a concrete backend."
+Require-Condition ($projectReferences[$cliProject] -contains $frontendProject) "Copeland.Cli must compose Copeland.TS."
+Require-Condition ($projectReferences[$cliProject] -contains $backendProject) "Copeland.Cli must compose Copeland.TS.Backend.CSharp."
+Require-Condition ($projectReferences[$cliProject] -contains $mirProject) "Copeland.Cli must explicitly compose Copeland.TS.Mir."
+
+$markdownProject = Join-Path $root "src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj"
+$vdMirProject = Join-Path $root "src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj"
+foreach ($pair in @(
+    @($mirProject, $markdownProject, "Cope MIR and DocumentMir must remain independent."),
+    @($mirProject, $vdMirProject, "Cope MIR and VD-MIR must remain independent."),
+    @($markdownProject, $vdMirProject, "DocumentMir and VD-MIR must remain independent."))) {
+    $left = $pair[0]
+    $right = $pair[1]
+    $message = $pair[2]
+    Require-Condition (-not ($projectReferences[$left] -contains $right)) $message
+    Require-Condition (-not ($projectReferences[$right] -contains $left)) $message
+}
+
 
 $aurelianShaderTests = Join-Path $root "tests/Aurelian/Aurelian.Shaders.Tests/Aurelian.Shaders.Tests.csproj"
 $aurelianReferences = $projectReferences[$aurelianShaderTests]

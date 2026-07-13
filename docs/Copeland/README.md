@@ -12,6 +12,7 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [Copeland TypeScript Support](architecture/copeland-typescript-support.md)
 - [Copeland TS Compiler Topology JTF-M6c](architecture/copeland-ts-compiler-topology-jtf-m6c.md)
 - [Copeland TS Mise en Place JTF-M6c](../migrations/jtf-m6c-copeland-ts-mise-en-place.md)
+- [Compiler SDK and JTF Closeout JTF-M6d](../migrations/jtf-m6d-compiler-sdk-and-jtf-closeout.md)
 - [Language Profile](architecture/language-profile.md)
 - [Windows Test Triage M5i](history/copeland-windows-test-triage-m5i.md)
 
@@ -34,5 +35,6 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 ## Related docs
 
 - [Current JTF-M0 topology and ownership](../architecture/jtf-m0-topology-and-ownership.md)
+- [Compiler SDK graduation doctrine](../architecture/jtf-compiler-sdk-graduation-doctrine.md)
 - [Visionary Monorepo Architecture M13a](../architecture/visionary-monorepo-architecture-m13a.md)
 - [Machina.UI documentation](../Machina.UI/README.md)

@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../Copeland.Markdown/Copeland.Markdown.csproj" />
     <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <ProjectReference Include="../Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
   </ItemGroup>
 </Project>

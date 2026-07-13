@@ -4,7 +4,7 @@ Copeland is a compiler-infrastructure repository with three physically separated
 
 ## Subsystems
 
-- `src/Copeland` and `tests/Copeland`: compiler conventions, diagnostics, source provenance, frontend/parsing/lowering, MIR, artifacts, Script/Markdown lanes, and compiler CLI surfaces.
+- `src/Copeland` and `tests/Copeland`: compiler conventions, diagnostics, source provenance, frontend/parsing/lowering, MIR, artifacts, Copeland TS/Markdown lanes, and compiler CLI surfaces.
 - `src/Machina.UI` and `tests/Machina.UI`: C# UI authoring, layout, text/font work, presenter composition, input routing, hit testing, local UI state, and the existing Machina renderer-facing projects.
 - `src/Aurelian` and `tests/Aurelian`: engine lifecycle, world and game-object models, actuation, frame coordination, renderer-neutral contracts, renderer backends, assets, shaders, and Dominatus-backed engine runtime.
 - `src/Integrations` and `tests/Integrations`: reserved for explicitly named cross-subsystem adapters such as the future `Aurelian.Machina` lane. JTF-M0 adds no production bridge API.
@@ -38,6 +38,7 @@ dotnet build JointTaskForce.Integration.slnx
 dotnet test JointTaskForce.Integration.slnx --no-build
 
 pwsh ./tools/Validate-DependencyBoundaries.ps1
+pwsh ./tools/Validate-CopelandTsTopology.ps1
 ```
 
 `Copeland.TS.slnx`, `Copeland.slnx`, `Machina.UI.slnx`, and `Aurelian.slnx` are independent fast reviewer lanes. `JointTaskForce.slnx` is the repository-wide fast lane and includes production projects, contract tests, and samples. `Machina.UI.Slow.slnx` owns visual, artifact, font-diagnostic, gallery, presenter, and playback proofs. `JointTaskForce.Integration.slnx` owns explicit Aurelian integration and visible-sample proofs. See the [test-lane doctrine](docs/architecture/jtf-test-lane-doctrine.md).

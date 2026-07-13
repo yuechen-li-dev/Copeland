@@ -10,7 +10,7 @@ The stable semantic ownership and contract directions that refine this physical 
 
 ### Copeland
 
-Copeland owns reusable compiler infrastructure, compiler conventions and primitives, diagnostics, source provenance, frontends, parsing, lowering, MIR, artifact infrastructure, explicit Script and Markdown compiler lanes, and compiler CLI surfaces.
+Copeland owns reusable compiler infrastructure, compiler conventions and primitives, diagnostics, source provenance, frontends, parsing, lowering, MIR, artifact infrastructure, explicit Copeland TS and Markdown compiler lanes, and compiler CLI surfaces.
 
 Copeland production code must not depend on Machina.UI, Aurelian, Vulkan, renderer backends, game-runtime concepts, or Dominatus.
 
