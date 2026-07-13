@@ -45,7 +45,6 @@ public static class MirLowerer
             function.Symbol.Name,
             function.Symbol.Parameters.Select(p => new MirParameter(p.Name, ToMirType(p.Type))).ToArray(),
             ToMirType(function.Symbol.ReturnType),
-            function.Symbol.ErrorType is null ? null : ToMirType(function.Symbol.ErrorType),
             locals.Values.OrderBy(l => l.Name, StringComparer.Ordinal).ToArray(),
             body);
     }
@@ -83,17 +82,25 @@ public static class MirLowerer
             BoundAssignmentExpression a => new MirAssignmentExpression(a.Variable.Name, LowerExpression(a.Expression), ToMirType(a.Type)),
             BoundUnaryExpression u => new MirUnaryExpression(OperatorName(u.OperatorKind), LowerExpression(u.Operand), ToMirType(u.Type)),
             BoundBinaryExpression b => new MirBinaryExpression(OperatorName(b.OperatorKind), LowerExpression(b.Left), LowerExpression(b.Right), ToMirType(b.Type)),
-            BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type), c.IsFallible, c.ErrorType is null ? null : ToMirType(c.ErrorType), false),
+            BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type)),
             BoundEnumValueExpression e => new MirEnumValueExpression(e.Case.EnumType.Name, e.Case.Name, e.Arguments.Select(LowerExpression).ToArray(), ToMirType(e.Type)),
             BoundMatchExpression m => new MirMatchExpression(LowerExpression(m.Scrutinee), m.Arms.Select(arm => new MirMatchArm(arm.Case.Name, arm.PayloadVariables.Select(v => new MirMatchPayloadBinding(v.Name, ToMirType(v.Type))).ToArray(), LowerExpression(arm.Expression))).ToArray(), ToMirType(m.Type)),
+            BoundResultMatchExpression m => new MirResultMatchExpression(LowerExpression(m.Scrutinee), new MirResultBinding(m.OkVariable.Name, ToMirType(m.OkVariable.Type)), LowerExpression(m.OkExpression), new MirResultBinding(m.ErrVariable.Name, ToMirType(m.ErrVariable.Type)), LowerExpression(m.ErrExpression), ToMirType(m.Type)),
             BoundIfExpression i => new MirIfExpression(LowerExpression(i.Condition), LowerExpression(i.ThenExpression), LowerExpression(i.ElseExpression), ToMirType(i.Type)),
-            BoundPropagateExpression p when p.Operand is BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type), c.IsFallible, c.ErrorType is null ? null : ToMirType(c.ErrorType), true),
-            BoundPropagateExpression p => LowerExpression(p.Operand),
+            BoundPropagateExpression p => new MirPropagateExpression(LowerExpression(p.Operand), MirPropagationTarget.FunctionReturn, ToMirType(p.Type)),
+            BoundOkExpression ok => new MirOkExpression(LowerExpression(ok.Payload), (MirResultType)ToMirType(ok.Type)),
+            BoundErrExpression err => new MirErrExpression(LowerExpression(err.Payload), (MirResultType)ToMirType(err.Type)),
+            BoundUnitExpression => new MirUnitExpression(),
             BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), ToMirType(a.Type)),
-            _ => new MirLiteralExpression("<error>", new MirType("error"))
+            _ => new MirLiteralExpression("<error>", new MirNamedType("error"))
         };
 
-    private static MirType ToMirType(TypeSymbol type) => new(type.Name);
+    private static MirType ToMirType(TypeSymbol type) => type switch
+    {
+        ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
+        ResultTypeSymbol result => new MirResultType(ToMirType(result.SuccessType), ToMirType(result.ErrorType)),
+        _ => new MirNamedType(type.Name)
+    };
 
     private static string OperatorName(SyntaxKind kind) => kind switch
     {

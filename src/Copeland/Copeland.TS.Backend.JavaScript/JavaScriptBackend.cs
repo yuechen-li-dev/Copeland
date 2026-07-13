@@ -54,9 +54,9 @@ public static class JavaScriptBackend
         foreach (MirFunction function in program.Functions)
         {
             string context = $"function '{function.Name}'";
-            if (function.IsFallible)
+            if (MirTypeFacts.ContainsResult(function.ReturnType))
             {
-                AddUnsupported(diagnostics, $"fallible {context}");
+                AddUnsupported(diagnostics, $"Result-returning {context}");
             }
 
             ValidateValueType(function.ReturnType, context, catalog, diagnostics, allowVoid: true);
@@ -192,6 +192,24 @@ public static class JavaScriptBackend
             case MirMatchExpression match:
                 ValidateMatch(match, context, functions, catalog, diagnostics);
                 break;
+            case MirOkExpression ok:
+                AddUnsupported(diagnostics, $"Result ok construction in {context}");
+                ValidateExpression(ok.Payload, context, functions, catalog, diagnostics);
+                break;
+            case MirErrExpression err:
+                AddUnsupported(diagnostics, $"Result err construction in {context}");
+                ValidateExpression(err.Payload, context, functions, catalog, diagnostics);
+                break;
+            case MirResultMatchExpression resultMatch:
+                AddUnsupported(diagnostics, $"Result match expression in {context}");
+                ValidateExpression(resultMatch.Scrutinee, context, functions, catalog, diagnostics);
+                ValidateExpression(resultMatch.OkExpression, context, functions, catalog, diagnostics);
+                ValidateExpression(resultMatch.ErrExpression, context, functions, catalog, diagnostics);
+                break;
+            case MirPropagateExpression propagate:
+                AddUnsupported(diagnostics, $"Result propagation in {context}");
+                ValidateExpression(propagate.Operand, context, functions, catalog, diagnostics);
+                break;
             default:
                 AddUnsupported(diagnostics, $"unknown MIR expression '{expression.GetType().Name}' in {context}");
                 break;
@@ -228,7 +246,7 @@ public static class JavaScriptBackend
         ValidateExpression(match.Scrutinee, context, functions, catalog, diagnostics);
         ValidateValueType(match.Type, $"match result in {context}", catalog, diagnostics, allowVoid: false);
 
-        if (!catalog.TryGetEnum(match.Scrutinee.Type.Name, out EnumInfo enumInfo))
+        if (match.Scrutinee.Type is not MirType scrutineeType || match.Scrutinee.Type is MirArrayType or MirResultType || !catalog.TryGetEnum(scrutineeType.Identifier, out EnumInfo enumInfo))
         {
             AddUnsupported(diagnostics, $"match expression with non-enum scrutinee type '{match.Scrutinee.Type.Name}' in {context}");
             return;
@@ -294,17 +312,17 @@ public static class JavaScriptBackend
 
     private static void ValidateLiteral(MirLiteralExpression literal, string context, List<JavaScriptDiagnostic> diagnostics)
     {
-        if (literal.Type.Name == "boolean" && literal.Value is bool)
+        if (literal.Type is MirType { Identifier: "boolean" } && literal.Value is bool)
         {
             return;
         }
 
-        if (literal.Type.Name == "number" && literal.Value is int or long or float or double)
+        if (literal.Type is MirType { Identifier: "number" } && literal.Value is int or long or float or double)
         {
             return;
         }
 
-        if (literal.Type.Name == "string" && literal.Value is string)
+        if (literal.Type is MirType { Identifier: "string" } && literal.Value is string)
         {
             return;
         }
@@ -314,15 +332,7 @@ public static class JavaScriptBackend
 
     private static void ValidateCall(MirCallExpression call, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
     {
-        if (call.IsFallible)
-        {
-            AddUnsupported(diagnostics, $"fallible call '{call.FunctionName}' in {context}");
-        }
-
-        if (call.IsPropagated)
-        {
-            AddUnsupported(diagnostics, $"propagated call '{call.FunctionName}' in {context}");
-        }
+        if (MirTypeFacts.ContainsResult(call.Type)) AddUnsupported(diagnostics, $"Result-valued call '{call.FunctionName}' in {context}");
 
         if (!functions.TryGetValue(call.FunctionName, out MirFunction? target))
         {
@@ -330,10 +340,7 @@ public static class JavaScriptBackend
         }
         else
         {
-            if (target.IsFallible)
-            {
-                AddUnsupported(diagnostics, $"call to fallible function '{call.FunctionName}' in {context}");
-            }
+            if (MirTypeFacts.ContainsResult(target.ReturnType)) AddUnsupported(diagnostics, $"call to Result-returning function '{call.FunctionName}' in {context}");
 
             if (target.Parameters.Count != call.Arguments.Count)
             {
@@ -357,17 +364,29 @@ public static class JavaScriptBackend
 
     private static void ValidateValueType(MirType type, string context, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics, bool allowVoid)
     {
-        if (type.Name is "number" or "boolean" or "string" || (allowVoid && type.Name == "void") || catalog.ContainsEnum(type.Name))
+        switch (type)
         {
-            return;
+            case MirResultType:
+                AddUnsupported(diagnostics, $"Result type '{type.Name}' in {context}");
+                return;
+            case MirArrayType:
+                AddUnsupported(diagnostics, $"array type '{type.Name}' in {context}");
+                return;
+            case MirType named when named is not MirArrayType and not MirResultType && named.Identifier is "number" or "boolean" or "string":
+                return;
+            case MirType { Identifier: "void" } when allowVoid:
+                return;
+            case MirType named when named is not MirArrayType and not MirResultType && catalog.ContainsEnum(named.Identifier):
+                return;
+            default:
+                AddUnsupported(diagnostics, $"type '{type.Name}' in {context}");
+                return;
         }
-
-        AddUnsupported(diagnostics, $"type '{type.Name}' in {context}");
     }
 
     private static void RequireType(MirType type, string expected, string context, List<JavaScriptDiagnostic> diagnostics)
     {
-        if (!string.Equals(type.Name, expected, StringComparison.Ordinal))
+        if (type is MirArrayType or MirResultType || !string.Equals(type.Identifier, expected, StringComparison.Ordinal))
         {
             AddInvalid(diagnostics, $"expected {expected} type for {context}, found '{type.Name}'");
         }
@@ -375,7 +394,7 @@ public static class JavaScriptBackend
 
     private static void RequireMatchingType(MirType actual, MirType expected, string context, List<JavaScriptDiagnostic> diagnostics)
     {
-        if (!string.Equals(actual.Name, expected.Name, StringComparison.Ordinal))
+        if (!MirTypeFacts.AreEquivalent(actual, expected))
         {
             AddInvalid(diagnostics, $"expected type '{expected.Name}' for {context}, found '{actual.Name}'");
         }
@@ -386,7 +405,7 @@ public static class JavaScriptBackend
         RequireType(binary.Type, "boolean", $"equality expression in {context}", diagnostics);
         RequireMatchingType(binary.Left.Type, binary.Right.Type, $"operands of equality expression in {context}", diagnostics);
 
-        if (binary.Left.Type.Name is "boolean" or "number" or "string")
+        if (binary.Left.Type is MirType { Identifier: "boolean" or "number" or "string" })
         {
             return;
         }
@@ -483,12 +502,12 @@ public static class JavaScriptBackend
 
     private static string PayloadTypeCondition(string expression, MirType type, EnumCatalog catalog, GeneratedNames names)
     {
-        return type.Name switch
+        return type switch
         {
-            "boolean" => $"typeof {expression} === \"boolean\"",
-            "number" => $"typeof {expression} === \"number\"",
-            "string" => $"typeof {expression} === \"string\"",
-            _ when catalog.TryGetEnum(type.Name, out EnumInfo enumInfo) => $"({names.Validator(enumInfo)}({expression}), true)",
+            MirType { Identifier: "boolean" } => $"typeof {expression} === \"boolean\"",
+            MirType { Identifier: "number" } => $"typeof {expression} === \"number\"",
+            MirType { Identifier: "string" } => $"typeof {expression} === \"string\"",
+            MirType named when named is not MirArrayType and not MirResultType && catalog.TryGetEnum(named.Identifier, out EnumInfo enumInfo) => $"({names.Validator(enumInfo)}({expression}), true)",
             _ => "false",
         };
     }
@@ -554,7 +573,7 @@ public static class JavaScriptBackend
 
     private static string EmitMatchExpression(MirMatchExpression match, EnumCatalog catalog, GeneratedNames names)
     {
-        EnumInfo enumInfo = catalog.GetEnum(match.Scrutinee.Type.Name);
+        EnumInfo enumInfo = catalog.GetEnum(match.Scrutinee.Type.Identifier);
         string scrutinee = names.NextMatchScrutinee();
         var parts = new List<string>
         {

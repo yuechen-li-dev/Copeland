@@ -1,6 +1,6 @@
 # CTS-M4a: First-class Result and fallibility MIR design
 
-**Status:** accepted language laws and proposed compiler architecture. This is a design record only. It does not add source syntax, Cope MIR, a backend representation, runtime helpers, fixtures, or tests.
+**Status:** accepted language laws and architecture record. CTS-M4b implements the bounded frontend, dedicated Cope MIR, and C# proof-backend slice; JavaScript Result emission, postfix unwrap, and lexical handlers remain deferred.
 
 ## Decision summary
 

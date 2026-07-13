@@ -82,6 +82,8 @@ public enum SyntaxKind
     PredefinedType,
     IdentifierType,
     ArrayType,
+    ParenthesizedType,
+    ResultType,
     BlockStatement,
     VariableDeclarationStatement,
     ExpressionStatement,

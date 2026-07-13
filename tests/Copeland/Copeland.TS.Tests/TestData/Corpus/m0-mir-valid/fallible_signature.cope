@@ -2,4 +2,4 @@ module
 
 func parseNumber(text: string) -> number ! ParseError
 entry:
-  return 1
+  return ok 1

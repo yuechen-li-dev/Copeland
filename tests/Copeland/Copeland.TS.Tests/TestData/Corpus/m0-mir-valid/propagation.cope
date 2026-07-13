@@ -2,11 +2,11 @@ module
 
 func parseNumber(text: string) -> number ! ParseError
 entry:
-  return 1
+  return ok 1
 
 func caller(text: string) -> number ! ParseError
 locals:
   const x: number
 entry:
-  store x, call? parseNumber(text) propagate ParseError
-  return x
+  store x, propagate call parseNumber(text) to function-return
+  return ok x

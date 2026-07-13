@@ -16,12 +16,11 @@ public sealed class ParameterSymbol(string name, TypeSymbol type) : Symbol(name)
     public TypeSymbol Type { get; } = type;
 }
 
-public sealed class FunctionSymbol(string name, IReadOnlyList<ParameterSymbol> parameters, TypeSymbol returnType, TypeSymbol? errorType = null) : Symbol(name)
+public sealed class FunctionSymbol(string name, IReadOnlyList<ParameterSymbol> parameters, TypeSymbol returnType) : Symbol(name)
 {
     public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
     public TypeSymbol ReturnType { get; } = returnType;
-    public TypeSymbol? ErrorType { get; } = errorType;
-    public bool IsFallible => ErrorType is not null;
+    public bool IsFallible => ReturnType is ResultTypeSymbol;
 }
 
 public sealed class EnumCaseSymbol(string name, EnumTypeSymbol enumType, IReadOnlyList<EnumPayloadFieldSymbol> payloadFields) : Symbol(name)

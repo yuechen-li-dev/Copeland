@@ -28,10 +28,7 @@ public static class MirTextWriter
             sb.AppendLine();
             sb.Append("func ").Append(function.Name).Append('(');
             sb.Append(string.Join(", ", function.Parameters.Select(p => $"{p.Name}: {p.Type.Name}")));
-            sb.Append(") -> ").Append(function.ReturnType.Name);
-            if (function.IsFallible && function.ErrorType is not null)
-                sb.Append(" ! ").Append(function.ErrorType.Name);
-            sb.AppendLine();
+            sb.Append(") -> ").Append(function.ReturnType.Name).AppendLine();
             if (function.Locals.Count > 0)
             {
                 sb.AppendLine("locals:");
@@ -101,13 +98,16 @@ public static class MirTextWriter
         MirAssignmentExpression a => $"{a.Name} = {FormatExpression(a.Expression)}",
         MirUnaryExpression u => $"({u.Operator}{FormatExpression(u.Operand)})",
         MirBinaryExpression b => $"({FormatExpression(b.Left)} {b.Operator} {FormatExpression(b.Right)})",
-        MirCallExpression c => c.IsFallible && c.IsPropagated && c.ErrorType is not null
-            ? $"call? {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))}) propagate {c.ErrorType.Name}"
-            : $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
+        MirUnitExpression => "unit",
+        MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
         MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
         MirEnumValueExpression e => $"enum {e.EnumName}.{e.CaseName}{(e.Arguments.Count == 0 ? string.Empty : $"({string.Join(", ", e.Arguments.Select(FormatExpression))})")}",
         MirMatchExpression m => $"match {FormatExpression(m.Scrutinee)} : {m.Type.Name} {{ {string.Join(" | ", m.Arms.Select(FormatArm))} }}",
         MirIfExpression i => $"if {FormatExpression(i.Condition)} : {i.Type.Name} {{ then {FormatExpression(i.ThenExpression)} else {FormatExpression(i.ElseExpression)} }}",
+        MirOkExpression ok => $"ok {FormatExpression(ok.Payload)}",
+        MirErrExpression err => $"err {FormatExpression(err.Payload)}",
+        MirResultMatchExpression match => $"result-match {FormatExpression(match.Scrutinee)} : {match.Type.Name} {{ ok({match.OkBinding.Name}: {match.OkBinding.Type.Name}) => {FormatExpression(match.OkExpression)} | err({match.ErrBinding.Name}: {match.ErrBinding.Type.Name}) => {FormatExpression(match.ErrExpression)} }}",
+        MirPropagateExpression propagate => $"propagate {FormatExpression(propagate.Operand)} to function-return",
         _ => expr.ToString() ?? "<expr>"
     };
 

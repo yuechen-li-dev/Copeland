@@ -158,6 +158,32 @@ public sealed class M0hRuntimeTests
     }
 
     [Fact]
+    public void Executes_First_Class_Result_Construction_Match_And_Forwarding()
+    {
+        var assembly = CompileCopelandSource("""
+            function fail(): number ! string {
+              return err("bad");
+            }
+
+            function forward(): number ! string {
+              return fail();
+            }
+
+            function recover(): number {
+              return match fail() {
+                ok(value) => value,
+                err(error) => 42,
+              };
+            }
+            """);
+
+        var forwarded = GeneratedModuleInvoker.Invoke(assembly, "forward");
+        Assert.NotNull(forwarded);
+        CopeResultAssertions.AssertCopeResultErr(forwarded!, "bad");
+        Assert.Equal(42.0, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(assembly, "recover")));
+    }
+
+    [Fact]
     public void Executes_Enum_ZeroPayload_Return()
     {
         var assembly = CompileCopelandSource("""
@@ -471,6 +497,13 @@ internal static class CopeResultAssertions
         var value = GetRequiredProperty(result, "Value").GetValue(result);
         Assert.NotNull(value);
         Assert.Equal("CopeUnit", value.GetType().Name);
+    }
+
+    public static void AssertCopeResultErr(object result, object expectedError)
+    {
+        Assert.False((bool)GetRequiredProperty(result, "IsOk").GetValue(result)!);
+        var error = GetRequiredProperty(result, "Error").GetValue(result);
+        Assert.Equal(expectedError, error);
     }
 
     private static PropertyInfo GetRequiredProperty(object instance, string propertyName)

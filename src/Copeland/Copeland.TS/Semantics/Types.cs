@@ -24,7 +24,15 @@ public sealed class ArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
 {
     public TypeSymbol ElementType { get; } = elementType;
 
-    public override string Name => $"{ElementType.Name}[]";
+    public override string Name => TypeText.FormatArrayElement(ElementType) + "[]";
+}
+
+public sealed class ResultTypeSymbol(TypeSymbol successType, TypeSymbol errorType) : TypeSymbol
+{
+    public TypeSymbol SuccessType { get; } = successType;
+    public TypeSymbol ErrorType { get; } = errorType;
+
+    public override string Name => $"{TypeText.FormatResultComponent(SuccessType)} ! {ErrorType.Name}";
 }
 
 public sealed class ErrorNominalTypeSymbol(string name) : TypeSymbol
@@ -39,4 +47,33 @@ public sealed class EnumTypeSymbol(string name) : TypeSymbol
     public IReadOnlyList<EnumCaseSymbol> Cases => _cases;
 
     public void AddCase(EnumCaseSymbol @case) => _cases.Add(@case);
+}
+
+public static class TypeFacts
+{
+    public static bool AreEquivalent(TypeSymbol left, TypeSymbol right)
+    {
+        if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+
+        return (left, right) switch
+        {
+            (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
+            (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
+                AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)
+                && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
+            _ => left.GetType() == right.GetType() && left.Name == right.Name
+        };
+    }
+}
+
+internal static class TypeText
+{
+    public static string FormatArrayElement(TypeSymbol type)
+        => type is ResultTypeSymbol ? $"({type.Name})" : type.Name;
+
+    public static string FormatResultComponent(TypeSymbol type)
+        => type is ResultTypeSymbol ? $"({type.Name})" : type.Name;
 }

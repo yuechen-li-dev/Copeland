@@ -79,7 +79,7 @@ public sealed class JavaScriptBackendTests
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr-FR");
 
             JavaScriptCompilation result = JavaScriptBackend.Emit(new MirProgram([], [
-                new MirFunction("main", [], new MirType("number"), null, [], [
+                new MirFunction("main", [], new MirType("number"), [], [
                     new MirReturnStatement(new MirLiteralExpression(1.5d, new MirType("number")))])
             ]));
 
@@ -117,7 +117,7 @@ public sealed class JavaScriptBackendTests
     public void Emits_String_Literals_With_Deterministic_JavaScript_Escaping()
     {
         var program = new MirProgram([], [
-            new MirFunction("main", [], new MirType("string"), null, [], [
+            new MirFunction("main", [], new MirType("string"), [], [
                 new MirReturnStatement(new MirLiteralExpression("\"\\\n\r\t\u0001\u2028\u2029\ud800", new MirType("string")))])
         ]);
 
@@ -150,13 +150,13 @@ public sealed class JavaScriptBackendTests
         var program = new MirProgram(
             [new MirEnum("Choice", [new MirEnumCase("Some", [new MirEnumPayloadField("value", number)])])],
             [
-                new MirFunction("fallible", [], number, new MirType("ParseError"), [], []),
-                new MirFunction("array", [], new MirType("number[]"), null, [], [new MirReturnStatement(new MirArrayExpression([], new MirType("number[]")))]),
-                new MirFunction("equality", [], boolean, null, [], [new MirReturnStatement(new MirBinaryExpression("==", new MirLiteralExpression(1, number), new MirLiteralExpression(1, number), boolean))]),
-                new MirFunction("loop", [], number, null, [], [new MirWhileStatement(new MirLiteralExpression(true, boolean), [])]),
-                new MirFunction("assignment", [], number, null, [], [new MirExpressionStatement(new MirAssignmentExpression("value", new MirLiteralExpression(1, number), number))]),
-                new MirFunction("match", [], number, null, [], [new MirReturnStatement(new MirMatchExpression(new MirVariableExpression("choice", new MirType("Choice")), [], number))]),
-                new MirFunction("unknown", [], number, null, [], [new MirReturnStatement(new MirBinaryExpression("**", new MirLiteralExpression(2, number), new MirLiteralExpression(3, number), number))])
+                new MirFunction("fallible", [], new MirResultType(number, new MirType("ParseError")), [], []),
+                new MirFunction("array", [], new MirArrayType(number), [], [new MirReturnStatement(new MirArrayExpression([], new MirArrayType(number)))]),
+                new MirFunction("equality", [], boolean, [], [new MirReturnStatement(new MirBinaryExpression("==", new MirLiteralExpression(1, number), new MirLiteralExpression(1, number), boolean))]),
+                new MirFunction("loop", [], number, [], [new MirWhileStatement(new MirLiteralExpression(true, boolean), [])]),
+                new MirFunction("assignment", [], number, [], [new MirExpressionStatement(new MirAssignmentExpression("value", new MirLiteralExpression(1, number), number))]),
+                new MirFunction("match", [], number, [], [new MirReturnStatement(new MirMatchExpression(new MirVariableExpression("choice", new MirType("Choice")), [], number))]),
+                new MirFunction("unknown", [], number, [], [new MirReturnStatement(new MirBinaryExpression("**", new MirLiteralExpression(2, number), new MirLiteralExpression(3, number), number))])
             ]);
 
         JavaScriptCompilation result = JavaScriptBackend.Emit(program);
@@ -165,7 +165,7 @@ public sealed class JavaScriptBackendTests
         Assert.Null(result.SourceText);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
             && diagnostic.Message.Contains("non-exhaustive match", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("fallible function 'fallible'", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Result-returning function 'fallible'", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("array expression", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
@@ -206,12 +206,12 @@ public sealed class JavaScriptBackendTests
         var program = new MirProgram(
             [new MirEnum("Choice", [new MirEnumCase("Some", [new MirEnumPayloadField("value", number)])])],
             [
-                new MirFunction("main", [], number, null, [], [
+                new MirFunction("main", [], number, [], [
                     new MirReturnStatement(new MirMatchExpression(
                         new MirVariableExpression("choice", choice),
                         [new MirMatchArm("Some", [], new MirLiteralExpression(1, number))],
                         number))]),
-                new MirFunction("bad", [], choice, null, [], [
+                new MirFunction("bad", [], choice, [], [
                     new MirReturnStatement(new MirEnumValueExpression("Missing", "Some", [], choice))])
             ]);
 
@@ -243,22 +243,22 @@ public sealed class JavaScriptBackendTests
     }
 
     [Fact]
-    public void Rejects_Fallible_And_Propagated_Calls()
+    public void Rejects_Result_Operations()
     {
         MirType number = new("number");
         MirType error = new("ParseError");
         var program = new MirProgram([], [
-            new MirFunction("parse", [], number, error, [], []),
-            new MirFunction("main", [], number, null, [], [
-                new MirReturnStatement(new MirCallExpression("parse", [], number, true, error, true))])
+            new MirFunction("parse", [], new MirResultType(number, error), [], []),
+            new MirFunction("main", [], new MirResultType(number, error), [], [
+                new MirReturnStatement(new MirPropagateExpression(new MirCallExpression("parse", [], new MirResultType(number, error)), MirPropagationTarget.FunctionReturn, number))])
         ]);
 
         JavaScriptCompilation result = JavaScriptBackend.Emit(program);
 
         Assert.False(result.Success);
         Assert.Null(result.SourceText);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("fallible call 'parse'", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("propagated call 'parse'", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Result-valued call 'parse'", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Result propagation", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -273,7 +273,7 @@ public sealed class JavaScriptBackendTests
         MirType type = new(typeName);
         MirType boolean = new("boolean");
         var program = new MirProgram([], [
-            new MirFunction("main", [], boolean, null, [], [
+            new MirFunction("main", [], boolean, [], [
                 new MirReturnStatement(new MirBinaryExpression(
                     "==",
                     new MirVariableExpression("left", type),

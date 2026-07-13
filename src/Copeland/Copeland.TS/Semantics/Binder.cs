@@ -65,8 +65,7 @@ public static class Binder
                     ps.Add(new ParameterSymbol(p.Identifier.Text, pt));
                 }
                 var rt = BindType(m.ReturnType, m.Identifier, missingId: "COPE-TYPE-0002", missingPrefix: "function return");
-                var et = BindErrorType(m.ErrorType);
-                var fn = new FunctionSymbol(m.Identifier.Text, ps, rt, et);
+                var fn = new FunctionSymbol(m.Identifier.Text, ps, rt);
                 if (_enumTypes.ContainsKey(fn.Name))
                 {
                     Report("COPE-ENUM-0009", $"Name '{fn.Name}' is already used by an enum.", m.Identifier);
@@ -122,7 +121,7 @@ public static class Binder
         private BoundFunctionDeclaration BindFunction(FunctionDeclarationSyntax s)
         {
             _global.TryLookup(s.Identifier.Text, out var sym);
-            var fn = (FunctionSymbol?)sym ?? new FunctionSymbol(s.Identifier.Text, [], PrimitiveTypeSymbol.Error, null);
+            var fn = (FunctionSymbol?)sym ?? new FunctionSymbol(s.Identifier.Text, [], PrimitiveTypeSymbol.Error);
             var prevFn = _currentFunction; _currentFunction = fn;
             var prev = _scope; _scope = new Scope(_global);
             foreach (var p in fn.Parameters)
@@ -138,7 +137,7 @@ public static class Binder
         {
             BlockStatementSyntax b => BindBlock(b),
             VariableDeclarationStatementSyntax v => BindVariable(v),
-            ExpressionStatementSyntax e => new BoundExpressionStatement(BindExpression(e.Expression)),
+            ExpressionStatementSyntax e => BindExpressionStatement(e),
             IfStatementSyntax i => BindIf(i),
             WhileStatementSyntax w => new BoundWhileStatement(EnsureBoolean(BindExpression(w.Condition), w.WhileKeyword), BindStatement(w.Body)),
             ForStatementSyntax f => BindFor(f),
@@ -152,6 +151,17 @@ public static class Binder
             var list = b.Statements.Select(BindStatement).ToArray();
             _scope = prev;
             return new BoundBlockStatement(list);
+        }
+
+        private BoundStatement BindExpressionStatement(ExpressionStatementSyntax statement)
+        {
+            var expression = BindExpression(statement.Expression);
+            if (expression.Type is ResultTypeSymbol)
+            {
+                Report("COPE-TYPE-0013", "Result expression statements must be handled, stored, returned, matched, propagated, or unwrapped.", AnchorToken(statement.Expression));
+            }
+
+            return new BoundExpressionStatement(expression);
         }
 
         private BoundStatement BindVariable(VariableDeclarationStatementSyntax v)
@@ -186,16 +196,35 @@ public static class Binder
             var expected = _currentFunction?.ReturnType ?? PrimitiveTypeSymbol.Void;
             if (r.Expression is null)
             {
+                if (expected is ResultTypeSymbol result && result.SuccessType == PrimitiveTypeSymbol.Void)
+                {
+                    return new BoundReturnStatement(new BoundOkExpression(new BoundUnitExpression(), result));
+                }
+
                 if (expected != PrimitiveTypeSymbol.Void) Report("COPE-TYPE-0003", $"Type mismatch: expected '{expected.Name}', got 'void'.", r.ReturnKeyword);
                 return new BoundReturnStatement(null);
             }
-            var expr = BindExpression(r.Expression);
+            var expr = BindExpression(r.Expression, expected);
             if (expected == PrimitiveTypeSymbol.Void) Report("COPE-TYPE-0003", "Invalid return expression for void function.", r.ReturnKeyword);
+            else if (expected is ResultTypeSymbol result)
+            {
+                if (IsAssignable(result, expr.Type))
+                {
+                    return new BoundReturnStatement(expr);
+                }
+
+                if (IsAssignable(result.SuccessType, expr.Type))
+                {
+                    return new BoundReturnStatement(new BoundOkExpression(expr, result));
+                }
+
+                Report("COPE-TYPE-0003", $"Type mismatch: expected '{result.Name}', got '{expr.Type.Name}'.", r.ReturnKeyword);
+            }
             else if (!IsAssignable(expected, expr.Type)) Report("COPE-TYPE-0003", $"Type mismatch: expected '{expected.Name}', got '{expr.Type.Name}'.", r.ReturnKeyword);
             return new BoundReturnStatement(expr);
         }
 
-        private BoundExpression BindExpression(ExpressionSyntax s, TypeSymbol? contextualType = null, bool allowUnhandledFallible = false)
+        private BoundExpression BindExpression(ExpressionSyntax s, TypeSymbol? contextualType = null)
         {
             var expression = s switch
             {
@@ -206,30 +235,27 @@ public static class Binder
                 UnaryExpressionSyntax u => BindUnary(u),
                 BinaryExpressionSyntax b => BindBinary(b),
                 AssignmentExpressionSyntax a => BindAssignment(a),
-                CallExpressionSyntax c => BindCall(c),
+                CallExpressionSyntax c => BindCall(c, contextualType),
                 ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
                 ObjectLiteralExpressionSyntax o => BindObject(o),
                 MemberAccessExpressionSyntax m => BindMember(m),
-                IfExpressionSyntax i => BindIfExpression(i),
-                MatchExpressionSyntax m => BindMatch(m),
+                IfExpressionSyntax i => BindIfExpression(i, contextualType),
+                MatchExpressionSyntax m => BindMatch(m, contextualType),
                 _ => new BoundErrorExpression()
             };
-
-            if (!allowUnhandledFallible && expression is BoundCallExpression call && call.IsFallible && s is not PropagateExpressionSyntax)
-                Report("COPE-TYPE-0013", $"Fallible call to '{call.Function.Name}' must be handled or propagated with '?'.", AnchorToken(s));
 
             return expression;
         }
 
 
-        private BoundExpression BindIfExpression(IfExpressionSyntax ifExpression)
+        private BoundExpression BindIfExpression(IfExpressionSyntax ifExpression, TypeSymbol? contextualType)
         {
             var condition = BindExpression(ifExpression.Condition);
             if (condition.Type != PrimitiveTypeSymbol.Boolean)
                 Report("COPE-TYPE-0017", $"If expression condition must be 'boolean', got '{condition.Type.Name}'.", ifExpression.IfKeyword);
 
-            var thenExpression = BindExpression(ifExpression.ThenExpression, allowUnhandledFallible: true);
-            var elseExpression = BindExpression(ifExpression.ElseExpression, allowUnhandledFallible: true);
+            var thenExpression = BindExpression(ifExpression.ThenExpression, contextualType);
+            var elseExpression = BindExpression(ifExpression.ElseExpression, contextualType);
 
             if (thenExpression.Type.Name != elseExpression.Type.Name)
             {
@@ -330,10 +356,21 @@ public static class Binder
             return new BoundAssignmentExpression(variable, expr);
         }
 
-        private BoundExpression BindCall(CallExpressionSyntax c)
+        private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
             if (c.Target is NameExpressionSyntax n && n.IdentifierToken.Text == "eval")
                 Report("COPE-PROFILE-0003", "Dynamic evaluation is not supported by Browser TypeScript Profile v1.", n.IdentifierToken);
+
+            if (c.Target is NameExpressionSyntax intrinsicName && (intrinsicName.IdentifierToken.Text is "ok" or "err"))
+            {
+                if (contextualType is not ResultTypeSymbol resultType)
+                {
+                    Report("COPE-RESULT-0001", $"Result constructor '{intrinsicName.IdentifierToken.Text}' requires an expected Result type.", intrinsicName.IdentifierToken);
+                    return new BoundErrorExpression();
+                }
+
+                return BindResultConstructor(c, intrinsicName, resultType);
+            }
 
             if (c.Target is MemberAccessExpressionSyntax m && m.Target is NameExpressionSyntax enumName)
             {
@@ -344,15 +381,35 @@ public static class Binder
             { Report("COPE-BIND-0001", "Undefined function name.", c.OpenParenToken); return new BoundErrorExpression(); }
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
             if (c.Arguments.Count != fn.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {fn.Parameters.Count}, got {c.Arguments.Count}.", c.OpenParenToken);
-            var args = c.Arguments.Select(a => BindExpression(a)).ToArray();
+            var args = c.Arguments.Select((a, index) => BindExpression(a, index < fn.Parameters.Count ? fn.Parameters[index].Type : null)).ToArray();
             for (var i = 0; i < Math.Min(args.Length, fn.Parameters.Count); i++)
                 if (!IsAssignable(fn.Parameters[i].Type, args[i].Type)) Report("COPE-TYPE-0005", $"Argument {i + 1} expected '{fn.Parameters[i].Type.Name}', got '{args[i].Type.Name}'.", c.Arguments[i] is LiteralExpressionSyntax le ? le.LiteralToken : c.OpenParenToken);
             return new BoundCallExpression(fn, args);
         }
 
+        private BoundExpression BindResultConstructor(CallExpressionSyntax call, NameExpressionSyntax name, ResultTypeSymbol resultType)
+        {
+            if (call.Arguments.Count != 1)
+            {
+                Report("COPE-RESULT-0002", $"Result constructor '{name.IdentifierToken.Text}' expects exactly one payload.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            var expectedPayloadType = name.IdentifierToken.Text == "ok" ? resultType.SuccessType : resultType.ErrorType;
+            var payload = BindExpression(call.Arguments[0], expectedPayloadType);
+            if (!IsAssignable(expectedPayloadType, payload.Type))
+            {
+                Report("COPE-RESULT-0003", $"Result constructor '{name.IdentifierToken.Text}' expected payload type '{expectedPayloadType.Name}', got '{payload.Type.Name}'.", call.OpenParenToken);
+            }
+
+            return name.IdentifierToken.Text == "ok"
+                ? new BoundOkExpression(payload, resultType)
+                : new BoundErrExpression(payload, resultType);
+        }
+
         private BoundExpression BindArray(ArrayLiteralExpressionSyntax a, TypeSymbol? contextual)
         {
-            var elems = a.Elements.Select(e => BindExpression(e)).ToArray();
+            var elems = a.Elements.Select(e => BindExpression(e, contextual is ArrayTypeSymbol context ? context.ElementType : null)).ToArray();
             if (contextual is ArrayTypeSymbol ctx)
             {
                 foreach (var e in elems) if (!IsAssignable(ctx.ElementType, e.Type)) Report("COPE-TYPE-0009", $"Type mismatch: expected '{ctx.ElementType.Name}', got '{e.Type.Name}'.", a.OpenBracketToken);
@@ -360,14 +417,19 @@ public static class Binder
             }
             if (elems.Length == 0) { Report("COPE-TYPE-0010", "Empty array requires contextual type.", a.OpenBracketToken); return new BoundErrorExpression(); }
             var first = elems[0].Type;
-            if (elems.Any(x => x.Type.Name != first.Name)) { Report("COPE-TYPE-0009", "Array element type mismatch.", a.OpenBracketToken); return new BoundErrorExpression(); }
+            if (elems.Any(x => !TypeFacts.AreEquivalent(x.Type, first))) { Report("COPE-TYPE-0009", "Array element type mismatch.", a.OpenBracketToken); return new BoundErrorExpression(); }
             return new BoundArrayExpression(elems, new ArrayTypeSymbol(first));
         }
 
         private BoundExpression BindObject(ObjectLiteralExpressionSyntax o) { Report("COPE-TYPE-0011", "Object literals are not supported in M0e.", o.OpenBraceToken); return new BoundErrorExpression(); }
-        private BoundExpression BindMatch(MatchExpressionSyntax match)
+        private BoundExpression BindMatch(MatchExpressionSyntax match, TypeSymbol? contextualType)
         {
             var scrutinee = BindExpression(match.Expression);
+            if (scrutinee.Type is ResultTypeSymbol resultType)
+            {
+                return BindResultMatch(match, scrutinee, resultType, contextualType);
+            }
+
             if (scrutinee.Type is not EnumTypeSymbol enumType)
             {
                 Report("COPE-MATCH-0001", "Match expression requires an enum value.", match.MatchKeyword);
@@ -417,7 +479,7 @@ public static class Binder
                     payloadVars.Add(symbol);
                 }
 
-                var armExpression = BindExpression(arm.Expression);
+                var armExpression = BindExpression(arm.Expression, contextualType);
                 _scope = prevScope;
 
                 if (expectedArmType is null && armExpression.Type != PrimitiveTypeSymbol.Error)
@@ -439,6 +501,83 @@ public static class Binder
             }
 
             return new BoundMatchExpression(scrutinee, enumType, boundArms, expectedArmType ?? PrimitiveTypeSymbol.Error);
+        }
+
+        private BoundExpression BindResultMatch(MatchExpressionSyntax match, BoundExpression scrutinee, ResultTypeSymbol resultType, TypeSymbol? contextualType)
+        {
+            BoundExpression? okExpression = null;
+            BoundExpression? errExpression = null;
+            VariableSymbol? okVariable = null;
+            VariableSymbol? errVariable = null;
+            TypeSymbol? armType = null;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var arm in match.Arms)
+            {
+                var alternative = arm.Pattern.CaseIdentifier.Text;
+                if (alternative is not "ok" and not "err")
+                {
+                    Report("COPE-RESULT-0004", "Result match arms must be 'ok' or 'err'.", arm.Pattern.CaseIdentifier);
+                    continue;
+                }
+
+                if (!seen.Add(alternative))
+                {
+                    Report("COPE-RESULT-0005", $"Duplicate Result match arm '{alternative}'.", arm.Pattern.CaseIdentifier);
+                }
+
+                if (arm.Pattern.PayloadIdentifiers.Count != 1)
+                {
+                    Report("COPE-RESULT-0006", $"Result match arm '{alternative}' expects exactly one payload binding.", arm.Pattern.CaseIdentifier);
+                }
+
+                var payloadType = alternative == "ok" ? resultType.SuccessType : resultType.ErrorType;
+                var payloadName = arm.Pattern.PayloadIdentifiers.FirstOrDefault();
+                var previousScope = _scope;
+                _scope = new Scope(previousScope);
+                VariableSymbol? payloadVariable = null;
+                if (payloadName is not null)
+                {
+                    payloadVariable = new VariableSymbol(payloadName.Text, payloadType, true);
+                    _scope.TryDeclare(payloadVariable);
+                }
+
+                var expression = BindExpression(arm.Expression, contextualType);
+                _scope = previousScope;
+                if (armType is null && expression.Type != PrimitiveTypeSymbol.Error)
+                {
+                    armType = expression.Type;
+                }
+                else if (armType is not null && expression.Type != PrimitiveTypeSymbol.Error && !IsAssignable(armType, expression.Type))
+                {
+                    Report("COPE-RESULT-0007", $"Result match arm type mismatch: expected '{armType.Name}', got '{expression.Type.Name}'.", arm.ArrowToken);
+                }
+
+                if (alternative == "ok")
+                {
+                    okExpression = expression;
+                    okVariable = payloadVariable;
+                }
+                else
+                {
+                    errExpression = expression;
+                    errVariable = payloadVariable;
+                }
+            }
+
+            if (!seen.Contains("ok") || !seen.Contains("err"))
+            {
+                var missing = new[] { "ok", "err" }.Where(alternative => !seen.Contains(alternative));
+                Report("COPE-RESULT-0008", $"Result match is missing arms: {string.Join(", ", missing)}.", match.MatchKeyword);
+            }
+
+            return new BoundResultMatchExpression(
+                scrutinee,
+                okVariable ?? new VariableSymbol("<ok>", resultType.SuccessType, true),
+                okExpression ?? new BoundErrorExpression(),
+                errVariable ?? new VariableSymbol("<err>", resultType.ErrorType, true),
+                errExpression ?? new BoundErrorExpression(),
+                armType ?? contextualType ?? PrimitiveTypeSymbol.Error);
         }
 
         private BoundExpression BindMember(MemberAccessExpressionSyntax m)
@@ -476,34 +615,48 @@ public static class Binder
                     _ => PrimitiveTypeSymbol.Error
                 },
                 ArrayTypeSyntax a => new ArrayTypeSymbol(BindType(a.ElementType, anchor, missingId, missingPrefix)),
+                ParenthesizedTypeSyntax p => BindType(p.Type, anchor, missingId, missingPrefix),
+                ResultTypeSyntax r => BindResultType(r, anchor, missingId, missingPrefix),
                 IdentifierTypeSyntax i => ResolveIdentifierType(i),
                 _ => PrimitiveTypeSymbol.Error
             };
         }
 
+        private TypeSymbol BindResultType(ResultTypeSyntax type, SyntaxToken anchor, string missingId, string missingPrefix)
+        {
+            if (type.ErrorType is ResultTypeSyntax)
+            {
+                Report("COPE-RESULT-0009", "Repeated '!' in a type requires parentheses around the nested Result type.", type.BangToken);
+            }
+
+            return new ResultTypeSymbol(
+                BindType(type.SuccessType, anchor, missingId, missingPrefix),
+                BindResultErrorType(type.ErrorType, anchor, missingId, missingPrefix));
+        }
+
 
         private BoundExpression BindPropagate(PropagateExpressionSyntax p)
         {
-            var operand = BindExpression(p.Operand, allowUnhandledFallible: true);
-            if (!operand.IsFallible)
+            var operand = BindExpression(p.Operand);
+            if (operand.Type is not ResultTypeSymbol operandResult)
             {
-                Report("COPE-TYPE-0016", "'?' can only be applied to a fallible expression.", p.QuestionToken);
+                Report("COPE-TYPE-0016", "'?' can only be applied to a Result expression.", p.QuestionToken);
                 return new BoundErrorExpression();
             }
 
-            if (_currentFunction is null || !_currentFunction.IsFallible || _currentFunction.ErrorType is null)
+            if (_currentFunction?.ReturnType is not ResultTypeSymbol functionResult)
             {
-                Report("COPE-TYPE-0014", "'?' can only be used inside a fallible function with a compatible error type.", p.QuestionToken);
+                Report("COPE-TYPE-0014", "'?' can only be used inside a function returning a compatible Result type.", p.QuestionToken);
                 return new BoundErrorExpression();
             }
 
-            if (_currentFunction.ErrorType.Name != operand.ErrorType!.Name)
+            if (!TypeFacts.AreEquivalent(functionResult.ErrorType, operandResult.ErrorType))
             {
-                Report("COPE-TYPE-0015", $"Cannot propagate error type '{operand.ErrorType.Name}' from function returning error type '{_currentFunction.ErrorType.Name}'.", p.QuestionToken);
+                Report("COPE-TYPE-0015", $"Cannot propagate error type '{operandResult.ErrorType.Name}' from function returning error type '{functionResult.ErrorType.Name}'.", p.QuestionToken);
                 return new BoundErrorExpression();
             }
 
-            return new BoundPropagateExpression(operand);
+            return new BoundPropagateExpression(operand, operandResult, BoundPropagationTarget.FunctionReturn);
         }
 
         private BoundExpression BindNullLiteral(LiteralExpressionSyntax l)
@@ -512,18 +665,19 @@ public static class Binder
             return new BoundErrorExpression();
         }
 
-        private TypeSymbol? BindErrorType(TypeSyntax? type)
+        private TypeSymbol BindResultErrorType(TypeSyntax type, SyntaxToken anchor, string missingId, string missingPrefix)
         {
-            if (type is null)
-            {
-                return null;
-            }
-
             return type switch
             {
+                IdentifierTypeSyntax i when _enumTypes.TryGetValue(i.Identifier.Text, out var enumType) => enumType,
                 IdentifierTypeSyntax i => new ErrorNominalTypeSymbol(i.Identifier.Text),
-                PredefinedTypeSyntax p => p.Keyword.Kind == SyntaxKind.NullKeyword ? ReportedNullType(p.Keyword) : new ErrorNominalTypeSymbol(p.Keyword.Text),
-                ArrayTypeSyntax a => new ErrorNominalTypeSymbol(BindType(a, a.OpenBracketToken, "COPE-TYPE-0002", "error type").Name),
+                PredefinedTypeSyntax p when p.Keyword.Kind == SyntaxKind.NullKeyword => ReportedNullType(p.Keyword),
+                PredefinedTypeSyntax => BindType(type, anchor, missingId, missingPrefix),
+                ArrayTypeSyntax a => new ArrayTypeSymbol(BindResultErrorType(a.ElementType, anchor, missingId, missingPrefix)),
+                ParenthesizedTypeSyntax p => BindResultErrorType(p.Type, anchor, missingId, missingPrefix),
+                ResultTypeSyntax r => new ResultTypeSymbol(
+                    BindType(r.SuccessType, anchor, missingId, missingPrefix),
+                    BindResultErrorType(r.ErrorType, anchor, missingId, missingPrefix)),
                 _ => PrimitiveTypeSymbol.Error
             };
         }
@@ -562,7 +716,7 @@ public static class Binder
             }
             if (call.Arguments.Count != @case.PayloadFields.Count)
                 Report("COPE-ENUM-0005", $"Enum case '{enumType.Name}.{@case.Name}' expects {@case.PayloadFields.Count} argument{(@case.PayloadFields.Count == 1 ? "" : "s")}, got {call.Arguments.Count}.", call.OpenParenToken);
-            var args = call.Arguments.Select(a => BindExpression(a)).ToArray();
+            var args = call.Arguments.Select((a, index) => BindExpression(a, index < @case.PayloadFields.Count ? @case.PayloadFields[index].Type : null)).ToArray();
             for (var i = 0; i < Math.Min(args.Length, @case.PayloadFields.Count); i++)
             {
                 if (!IsAssignable(@case.PayloadFields[i].Type, args[i].Type))
@@ -572,7 +726,7 @@ public static class Binder
         }
 
         private static bool IsAssignable(TypeSymbol target, TypeSymbol actual)
-            => target == PrimitiveTypeSymbol.Error || actual == PrimitiveTypeSymbol.Error || target.Name == actual.Name;
+            => target == PrimitiveTypeSymbol.Error || actual == PrimitiveTypeSymbol.Error || TypeFacts.AreEquivalent(target, actual);
 
         private static bool IsPrimitiveEqualityType(TypeSymbol type)
             => type == PrimitiveTypeSymbol.Number

@@ -4,7 +4,7 @@ namespace Copeland.TS.Semantics.Bound;
 
 public abstract class BoundNode;
 public abstract class BoundStatement : BoundNode;
-public abstract class BoundExpression : BoundNode { public abstract TypeSymbol Type { get; } public virtual TypeSymbol? ErrorType => null; public bool IsFallible => ErrorType is not null; }
+public abstract class BoundExpression : BoundNode { public abstract TypeSymbol Type { get; } }
 
 public sealed class BoundProgram
 {
@@ -36,7 +36,7 @@ public sealed class BoundVariableExpression : BoundExpression { public BoundVari
 public sealed class BoundAssignmentExpression : BoundExpression { public BoundAssignmentExpression(VariableSymbol variable, BoundExpression expression) { Variable = variable; Expression = expression; } public VariableSymbol Variable { get; } public BoundExpression Expression { get; } public override TypeSymbol Type => Expression.Type; }
 public sealed class BoundUnaryExpression : BoundExpression { public BoundUnaryExpression(SyntaxKind op, BoundExpression operand, TypeSymbol type) { OperatorKind = op; Operand = operand; TypeImpl = type; } public SyntaxKind OperatorKind { get; } public BoundExpression Operand { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundBinaryExpression : BoundExpression { public BoundBinaryExpression(BoundExpression left, SyntaxKind op, BoundExpression right, TypeSymbol type) { Left = left; OperatorKind = op; Right = right; TypeImpl = type; } public BoundExpression Left { get; } public SyntaxKind OperatorKind { get; } public BoundExpression Right { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
-public sealed class BoundCallExpression : BoundExpression { public BoundCallExpression(FunctionSymbol function, IReadOnlyList<BoundExpression> arguments) { Function = function; Arguments = arguments; } public FunctionSymbol Function { get; } public IReadOnlyList<BoundExpression> Arguments { get; } public override TypeSymbol Type => Function.ReturnType; public override TypeSymbol? ErrorType => Function.ErrorType; }
+public sealed class BoundCallExpression : BoundExpression { public BoundCallExpression(FunctionSymbol function, IReadOnlyList<BoundExpression> arguments) { Function = function; Arguments = arguments; } public FunctionSymbol Function { get; } public IReadOnlyList<BoundExpression> Arguments { get; } public override TypeSymbol Type => Function.ReturnType; }
 public sealed class BoundEnumValueExpression : BoundExpression
 {
     public BoundEnumValueExpression(EnumCaseSymbol @case, IReadOnlyList<BoundExpression> arguments)
@@ -49,7 +49,24 @@ public sealed class BoundEnumValueExpression : BoundExpression
     public bool IsConstructor => Arguments.Count > 0;
     public override TypeSymbol Type => Case.EnumType;
 }
-public sealed class BoundPropagateExpression : BoundExpression { public BoundPropagateExpression(BoundExpression operand) => Operand = operand; public BoundExpression Operand { get; } public override TypeSymbol Type => Operand.Type; }
+public enum BoundPropagationTarget { FunctionReturn }
+public sealed class BoundPropagateExpression : BoundExpression
+{
+    public BoundPropagateExpression(BoundExpression operand, ResultTypeSymbol resultType, BoundPropagationTarget target)
+    {
+        Operand = operand;
+        ResultType = resultType;
+        Target = target;
+    }
+
+    public BoundExpression Operand { get; }
+    public ResultTypeSymbol ResultType { get; }
+    public BoundPropagationTarget Target { get; }
+    public override TypeSymbol Type => ResultType.SuccessType;
+}
+public sealed class BoundOkExpression : BoundExpression { public BoundOkExpression(BoundExpression payload, ResultTypeSymbol type) { Payload = payload; TypeImpl = type; } public BoundExpression Payload { get; } private ResultTypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
+public sealed class BoundErrExpression : BoundExpression { public BoundErrExpression(BoundExpression payload, ResultTypeSymbol type) { Payload = payload; TypeImpl = type; } public BoundExpression Payload { get; } private ResultTypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
+public sealed class BoundUnitExpression : BoundExpression { public override TypeSymbol Type => PrimitiveTypeSymbol.Void; }
 public sealed class BoundMatchArm
 {
     public BoundMatchArm(EnumCaseSymbol @case, IReadOnlyList<VariableSymbol> payloadVariables, BoundExpression expression)
@@ -75,6 +92,26 @@ public sealed class BoundMatchExpression : BoundExpression
     public BoundExpression Scrutinee { get; }
     public EnumTypeSymbol EnumType { get; }
     public IReadOnlyList<BoundMatchArm> Arms { get; }
+    private TypeSymbol TypeImpl { get; }
+    public override TypeSymbol Type => TypeImpl;
+}
+public sealed class BoundResultMatchExpression : BoundExpression
+{
+    public BoundResultMatchExpression(BoundExpression scrutinee, VariableSymbol okVariable, BoundExpression okExpression, VariableSymbol errVariable, BoundExpression errExpression, TypeSymbol type)
+    {
+        Scrutinee = scrutinee;
+        OkVariable = okVariable;
+        OkExpression = okExpression;
+        ErrVariable = errVariable;
+        ErrExpression = errExpression;
+        TypeImpl = type;
+    }
+
+    public BoundExpression Scrutinee { get; }
+    public VariableSymbol OkVariable { get; }
+    public BoundExpression OkExpression { get; }
+    public VariableSymbol ErrVariable { get; }
+    public BoundExpression ErrExpression { get; }
     private TypeSymbol TypeImpl { get; }
     public override TypeSymbol Type => TypeImpl;
 }

@@ -71,6 +71,30 @@ public sealed record ArrayTypeSyntax(TypeSyntax ElementType, SyntaxToken OpenBra
     }
 }
 
+public sealed record ParenthesizedTypeSyntax(SyntaxToken OpenParenToken, TypeSyntax Type, SyntaxToken CloseParenToken) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ParenthesizedType;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return OpenParenToken;
+        yield return Type;
+        yield return CloseParenToken;
+    }
+}
+
+public sealed record ResultTypeSyntax(TypeSyntax SuccessType, SyntaxToken BangToken, TypeSyntax ErrorType) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ResultType;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return SuccessType;
+        yield return BangToken;
+        yield return ErrorType;
+    }
+}
+
 public sealed record ParameterSyntax(SyntaxToken Identifier, SyntaxToken? ColonToken, TypeSyntax? Type) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.Parameter;
@@ -99,8 +123,6 @@ public sealed record FunctionDeclarationSyntax(
     SyntaxToken CloseParenToken,
     SyntaxToken? ReturnTypeColonToken,
     TypeSyntax? ReturnType,
-    SyntaxToken? ErrorTypeBangToken,
-    TypeSyntax? ErrorType,
     BlockStatementSyntax Body) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.FunctionDeclaration;
@@ -131,15 +153,6 @@ public sealed record FunctionDeclarationSyntax(
         {
             yield return ReturnType;
         }
-        if (ErrorTypeBangToken is not null)
-        {
-            yield return ErrorTypeBangToken;
-        }
-        if (ErrorType is not null)
-        {
-            yield return ErrorType;
-        }
-
         yield return Body;
     }
 }

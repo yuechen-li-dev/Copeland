@@ -109,16 +109,8 @@ public sealed class Parser
             returnTypeColonToken = Match(SyntaxKind.ColonToken);
             returnType = ParseTypeSyntax();
         }
-        SyntaxToken? errorTypeBangToken = null;
-        TypeSyntax? errorType = null;
-        if (Current.Kind == SyntaxKind.BangToken)
-        {
-            errorTypeBangToken = Match(SyntaxKind.BangToken);
-            errorType = ParseTypeSyntax();
-        }
-
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(functionKeyword, identifier, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, errorTypeBangToken, errorType, body);
+        return new FunctionDeclarationSyntax(functionKeyword, identifier, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
     }
 
     private EnumDeclarationSyntax ParseEnumDeclaration()
@@ -265,12 +257,27 @@ public sealed class Parser
 
     private TypeSyntax ParseTypeSyntax()
     {
+        var type = ParsePostfixTypeSyntax();
+        if (Current.Kind != SyntaxKind.BangToken)
+        {
+            return type;
+        }
+
+        var bangToken = Match(SyntaxKind.BangToken);
+        var errorType = ParseTypeSyntax();
+        return new ResultTypeSyntax(type, bangToken, errorType);
+    }
+
+    private TypeSyntax ParsePostfixTypeSyntax()
+    {
         TypeSyntax type = Current.Kind switch
         {
             SyntaxKind.NumberKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
                 => new PredefinedTypeSyntax(NextToken()),
             SyntaxKind.IdentifierToken
                 => new IdentifierTypeSyntax(NextToken()),
+            SyntaxKind.OpenParenToken
+                => ParseParenthesizedTypeSyntax(),
             _ => ParseMissingTypeSyntax(),
         };
 
@@ -292,6 +299,14 @@ public sealed class Parser
         }
 
         return type;
+    }
+
+    private ParenthesizedTypeSyntax ParseParenthesizedTypeSyntax()
+    {
+        var openParenToken = Match(SyntaxKind.OpenParenToken);
+        var type = ParseTypeSyntax();
+        var closeParenToken = Match(SyntaxKind.CloseParenToken);
+        return new ParenthesizedTypeSyntax(openParenToken, type, closeParenToken);
     }
 
     private TypeSyntax ParseMissingTypeSyntax()
