@@ -219,6 +219,33 @@ public sealed class TsonAssetFeatureTests
         Assert.Contains("[]", compilation.MirText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Array_asset_lowering_succeeds_but_runtime_tson_encoding_remains_deferred()
+    {
+        const string sourceText = """
+            const $schema: string = "copeland://tests/array-encoding-deferral";
+            record Batch { values: number[]; }
+            function encode(): string ! TsonEncodeError {
+                const batch: Batch = tsonAsset("./batch.obj.ts");
+                return tsonEncode(batch);
+            }
+            """;
+        const string asset = """
+            const $schema: string = "copeland://tests/array-encoding-deferral";
+            record Batch { values: number[]; }
+            const $value: Batch = { values: [1, 2], };
+            """;
+        var source = new InMemoryAssetSource(("C:/project/batch.obj.ts", asset));
+
+        CopelandCompilation compilation = Compile(sourceText, source);
+
+        Assert.False(compilation.Success);
+        Assert.Null(compilation.MirCompilation);
+        Assert.Contains(compilation.Diagnostics, diagnostic =>
+            diagnostic.Id == "COPE-TSON-ENCODE-0003"
+            && diagnostic.Message.Contains("number[]", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("function load(): Settings { const x = tsonAsset(\"./settings.obj.ts\"); return x; }", "COPE-TSON-ASSET-0001")]
     [InlineData("function load(): number { const x: number = tsonAsset(\"./settings.obj.ts\"); return x; }", "COPE-TSON-ASSET-0001")]

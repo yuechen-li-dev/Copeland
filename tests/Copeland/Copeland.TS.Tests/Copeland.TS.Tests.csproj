@@ -21,9 +21,11 @@
   <ItemGroup>
     <Compile Remove="TestData/**/*.cs" />
     <Compile Remove="TsonEncoding/**/*.cs" />
+    <Compile Remove="TsonAssets/**/*.cs" />
     <None Include="TestData/Corpus/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Language/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Tson/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TsonEncoding/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="TsonAssets/**/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

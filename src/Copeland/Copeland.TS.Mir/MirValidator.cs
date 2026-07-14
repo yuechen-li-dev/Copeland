@@ -8,6 +8,11 @@ public static class MirValidator
     {
         var diagnostics = new List<MirValidationDiagnostic>();
         ValidateArrayModel(program, diagnostics);
+        if (diagnostics.Count > 0)
+        {
+            return diagnostics;
+        }
+
         ValidateRecordModel(program, diagnostics);
         ValidateTableModel(program, diagnostics);
         ValidateTsonEncodingModel(program, diagnostics);
@@ -25,12 +30,13 @@ public static class MirValidator
     {
         foreach (MirFunction function in program.Functions)
         {
-            ValidateArrayStatements(function.Body, diagnostics);
+            ValidateArrayStatements(function.Body, function.ReturnType, diagnostics);
         }
     }
 
     private static void ValidateArrayStatements(
         IReadOnlyList<MirStatement> statements,
+        MirType functionReturnType,
         List<MirValidationDiagnostic> diagnostics)
     {
         foreach (MirStatement statement in statements)
@@ -39,19 +45,29 @@ public static class MirValidator
             {
                 case MirVariableDeclarationStatement declaration:
                     ValidateArrayExpression(declaration.Initializer, diagnostics);
+                    ValidateArrayBoundaryType(
+                        declaration.Initializer.Type,
+                        declaration.Local.Type,
+                        $"Array initializer for local '{declaration.Local.Name}' does not match the local type.",
+                        diagnostics);
                     break;
                 case MirExpressionStatement expression:
                     ValidateArrayExpression(expression.Expression, diagnostics);
                     break;
                 case MirReturnStatement { Expression: not null } returned:
                     ValidateArrayExpression(returned.Expression, diagnostics);
+                    ValidateArrayBoundaryType(
+                        returned.Expression.Type,
+                        functionReturnType,
+                        "Array return expression does not match the function return type.",
+                        diagnostics);
                     break;
                 case MirIfStatement conditional:
                     ValidateArrayExpression(conditional.Condition, diagnostics);
-                    ValidateArrayStatements(conditional.ThenStatements, diagnostics);
+                    ValidateArrayStatements(conditional.ThenStatements, functionReturnType, diagnostics);
                     if (conditional.ElseStatements is not null)
                     {
-                        ValidateArrayStatements(conditional.ElseStatements, diagnostics);
+                        ValidateArrayStatements(conditional.ElseStatements, functionReturnType, diagnostics);
                     }
 
                     break;
@@ -59,19 +75,51 @@ public static class MirValidator
         }
     }
 
-    private static void ValidateArrayExpression(MirExpression expression, List<MirValidationDiagnostic> diagnostics)
+    private static void ValidateArrayBoundaryType(
+        MirType actual,
+        MirType expected,
+        string message,
+        List<MirValidationDiagnostic> diagnostics)
     {
+        if ((actual is MirArrayType || expected is MirArrayType)
+            && !MirTypeFacts.AreEquivalent(actual, expected))
+        {
+            diagnostics.Add(new MirValidationDiagnostic(message));
+        }
+    }
+
+    private static void ValidateArrayExpression(MirExpression? expression, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (expression is null)
+        {
+            diagnostics.Add(new MirValidationDiagnostic("Array expression is missing."));
+            return;
+        }
+
         if (expression is MirArrayExpression array)
         {
             if (array.Type is not MirArrayType arrayType)
             {
                 diagnostics.Add(new MirValidationDiagnostic("Array expression does not carry a MirArrayType."));
             }
+            else if (arrayType.ElementType is null)
+            {
+                diagnostics.Add(new MirValidationDiagnostic("Array type does not have an element type."));
+            }
             else
             {
                 for (int index = 0; index < array.Elements.Count; index++)
                 {
-                    if (!MirTypeFacts.AreEquivalent(array.Elements[index].Type, arrayType.ElementType))
+                    MirExpression? element = array.Elements[index];
+                    if (element is null)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Array element {index} is missing."));
+                    }
+                    else if (element.Type is null)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Array element {index} does not have a type."));
+                    }
+                    else if (!MirTypeFacts.AreEquivalent(element.Type, arrayType.ElementType))
                     {
                         diagnostics.Add(new MirValidationDiagnostic($"Array element {index} does not match array element type '{arrayType.ElementType.Name}'."));
                     }

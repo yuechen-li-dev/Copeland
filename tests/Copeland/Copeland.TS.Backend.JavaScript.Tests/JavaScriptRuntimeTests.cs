@@ -10,6 +10,52 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_Proves_ordinary_arrays_are_mutable_ordered_and_evaluate_selected_elements_once()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            record Entry { label: string; }
+            enum State { Off, On(value: number), }
+            function first(): number { return 1; }
+            function second(): number { return 2; }
+            function selected(): number { return 3; }
+            function unselected(): number { return 99; }
+            function values(): number[][] {
+                return [[first(), second()], if true { [selected()] } else { [unselected()] }];
+            }
+            function entries(): Entry[] { return [{ label: "first" }, { label: "second" }]; }
+            function states(): State[] { return [State.Off, State.On(4)]; }
+            """);
+
+        string script = emitted.SourceText + """
+            const trace = [];
+            function wrap(original, name) {
+              return (...args) => { trace.push(name); return original(...args); };
+            }
+            first = wrap(first, "first");
+            second = wrap(second, "second");
+            selected = wrap(selected, "selected");
+            unselected = wrap(unselected, "unselected");
+            const rows = values();
+            const entryValues = entries();
+            const stateValues = states();
+            const field = value => value[Object.getOwnPropertySymbols(value)[1]];
+            console.log(trace.join(","));
+            console.log(JSON.stringify(rows));
+            console.log(!Object.isFrozen(rows) && !Object.isFrozen(rows[0]));
+            console.log([field(entryValues[0]), field(entryValues[1])].join(","));
+            console.log(stateValues.map(value => value.$tag).join(","));
+            console.log(stateValues[1].$payload[0]);
+            """;
+
+        ProcessResult firstRun = await RunNodeAsync(script);
+        ProcessResult secondRun = await RunNodeAsync(script);
+
+        Assert.Equal("first,second,selected\n[[1,2],[3]]\ntrue\nfirst,second\nOff,On\n4\n", firstRun.StdOut);
+        Assert.Equal(string.Empty, firstRun.StdErr);
+        Assert.Equal(firstRun, secondRun);
+    }
+
+    [Fact]
     public async Task Node_Proves_Table_Columnar_Immutability_Nominality_And_Bounds()
     {
         JavaScriptCompilation emitted = Emit("""

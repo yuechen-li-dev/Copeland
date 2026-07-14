@@ -63,24 +63,37 @@ public sealed class CliIntegrationTests
         using var temp = new TempDir();
         string inputPath = temp.WriteFile("main.ts", """
             const $schema: string = "copeland://tests/cli-assets";
-            record Settings { value: number; }
-            function main(): number {
+            record Item { label: string; }
+            enum State { Off, On(value: number), }
+            record Settings { empty: number[]; values: number[]; items: Item[]; states: State[]; rows: number[][]; }
+            function main(): Settings {
                 const settings: Settings = tsonAsset("./settings.obj.ts");
-                return settings.value;
+                return settings;
             }
             """);
         temp.WriteFile("settings.obj.ts", """
             const $schema: string = "copeland://tests/cli-assets";
-            record Settings { value: number; }
-            const $value: Settings = { value: 42 };
+            record Item { label: string; }
+            enum State { Off, On(value: number), }
+            record Settings { empty: number[]; values: number[]; items: Item[]; states: State[]; rows: number[][]; }
+            const $value: Settings = {
+                empty: [],
+                values: [1, 2],
+                items: [{ label: "first" }],
+                states: [State.Off, State.On(3)],
+                rows: [[], [4]],
+            };
             """);
 
-        CliResult result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget);
+        CliResult first = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget);
+        CliResult second = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget);
 
-        Assert.Equal(0, result.ExitCode);
-        Assert.DoesNotContain("tsonAsset", result.StdOut, StringComparison.Ordinal);
-        Assert.DoesNotContain("settings.obj.ts", result.StdOut, StringComparison.Ordinal);
-        Assert.Equal(string.Empty, result.StdErr);
+        Assert.Equal(0, first.ExitCode);
+        Assert.DoesNotContain("tsonAsset", first.StdOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("settings.obj.ts", first.StdOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tson", first.StdOut, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
     }
 
     [Fact]
@@ -109,6 +122,38 @@ public sealed class CliIntegrationTests
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("COPE-TSON-ASSET-0002", result.StdErr, StringComparison.Ordinal);
         Assert.Equal("stale-output", File.ReadAllText(outputPath));
+    }
+
+    [Fact]
+    public async Task Invalid_array_asset_preserves_stale_output_without_deleting_unrelated_files()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", """
+            const $schema: string = "copeland://tests/cli-assets";
+            record Settings { values: number[]; }
+            function main(): Settings { const settings: Settings = tsonAsset("./settings.obj.ts"); return settings; }
+            """);
+        temp.WriteFile("settings.obj.ts", """
+            const $schema: string = "copeland://tests/cli-assets";
+            record Settings { values: number[]; }
+            const $value: Settings = { values: ["wrong"], };
+            """);
+        string outputPath = temp.WriteFile("output.g.js", "stale-output");
+        string unrelatedPath = temp.WriteFile("keep.txt", "preserve-me");
+
+        CliResult result = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            "javascript",
+            "--out",
+            outputPath);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("COPE-TSON-0004", result.StdErr, StringComparison.Ordinal);
+        Assert.Equal("stale-output", File.ReadAllText(outputPath));
+        Assert.Equal("preserve-me", File.ReadAllText(unrelatedPath));
     }
 
     [Fact]

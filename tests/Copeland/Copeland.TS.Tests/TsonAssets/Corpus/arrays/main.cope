@@ -1,0 +1,22 @@
+module
+
+enum State
+  case Off
+  case On(value: number)
+
+record Entry [r1]
+  field label [r1.f0]: string
+
+record Batch [r2]
+  field empty [r2.f0]: number[]
+  field values [r2.f1]: number[]
+  field items [r2.f2]: Entry[]
+  field states [r2.f3]: State[]
+  field rows [r2.f4]: number[][]
+
+func load() -> Batch
+locals:
+  const batch: Batch
+entry:
+  store batch, record-new [r2] { [r2.f0]: [], [r2.f1]: [0, -0, 3], [r2.f2]: [record-new [r1] { [r1.f0]: "first" }, record-new [r1] { [r1.f0]: "second" }], [r2.f3]: [enum State.Off, enum State.On(3)], [r2.f4]: [[], [1, 2]] }
+  return batch

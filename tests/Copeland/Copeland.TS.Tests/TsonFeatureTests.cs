@@ -351,6 +351,72 @@ public sealed class TsonFeatureTests
         Assert.Equal(canonical, TsonCanonicalPrinter.Print(reparsed.Document!));
     }
 
+    [Theory]
+    [InlineData(99_999, true)]
+    [InlineData(100_000, true)]
+    [InlineData(100_001, false)]
+    public void Array_length_boundary_is_exact_and_reports_the_array_span(int length, bool succeeds)
+    {
+        string source = CreatePrimitiveArrayDocument(length);
+        var limits = new TsonLimits(maximumValueNodeCount: length + 2);
+
+        TsonReadResult result = TsonDocumentReader.ReadSelfDescribed(
+            source,
+            TsonDocumentProfile.ObjectTypeScript,
+            limits: limits);
+
+        Assert.Equal(succeeds, result.Success);
+        if (!succeeds)
+        {
+            TsonDiagnostic diagnostic = Assert.Single(result.Diagnostics, item =>
+                item.Message.Contains("Array length exceeds", StringComparison.Ordinal));
+            Assert.True(diagnostic.Length > 0);
+            Assert.InRange(diagnostic.Position, 0, source.Length - 1);
+        }
+    }
+
+    [Fact]
+    public void Array_depth_and_total_node_boundaries_are_bounded_without_stack_overflow()
+    {
+        var depthLimits = new TsonLimits(maximumNestingDepth: 64);
+        TsonReadResult deepestAccepted = TsonDocumentReader.ReadSelfDescribed(
+            CreateNestedPrimitiveArrayDocument(62),
+            TsonDocumentProfile.ObjectTypeScript,
+            limits: depthLimits);
+        TsonReadResult firstRejected = TsonDocumentReader.ReadSelfDescribed(
+            CreateNestedPrimitiveArrayDocument(63),
+            TsonDocumentProfile.ObjectTypeScript,
+            limits: depthLimits);
+
+        Assert.True(deepestAccepted.Success, Describe(deepestAccepted));
+        Assert.False(firstRejected.Success);
+        Assert.Contains(firstRejected.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("Semantic nesting", StringComparison.Ordinal)
+            && diagnostic.Length > 0);
+
+        var exactNodeLimit = new TsonLimits(maximumValueNodeCount: 12);
+        TsonReadResult exactNodeCount = TsonDocumentReader.ReadSelfDescribed(
+            CreatePrimitiveArrayDocument(10),
+            TsonDocumentProfile.ObjectTypeScript,
+            limits: exactNodeLimit);
+        TsonReadResult overNodeCount = TsonDocumentReader.ReadSelfDescribed(
+            CreatePrimitiveArrayDocument(11),
+            TsonDocumentProfile.ObjectTypeScript,
+            limits: exactNodeLimit);
+        TsonReadResult emptyArrayCountsAsNode = TsonDocumentReader.ReadSelfDescribed(
+            CreatePrimitiveArrayDocument(0),
+            TsonDocumentProfile.ObjectTypeScript,
+            limits: new TsonLimits(maximumValueNodeCount: 1));
+
+        Assert.True(exactNodeCount.Success, Describe(exactNodeCount));
+        Assert.False(overNodeCount.Success);
+        Assert.Contains(overNodeCount.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("Value-node count", StringComparison.Ordinal));
+        Assert.False(emptyArrayCountsAsNode.Success);
+        Assert.Contains(emptyArrayCountsAsNode.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("Value-node count", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Explicitly_typed_array_root_is_rejected_by_the_root_law()
     {
@@ -383,6 +449,20 @@ public sealed class TsonFeatureTests
     private static string Envelope(string body)
     {
         return $"const $schema: string = \"{SchemaIdentity}\";{Environment.NewLine}{body}";
+    }
+
+    private static string CreatePrimitiveArrayDocument(int length)
+    {
+        return Envelope($"record Batch {{ values: number[]; }} const $value: Batch = {{ values: [{string.Join(',', Enumerable.Repeat("1", length))}], }};");
+    }
+
+    private static string CreateNestedPrimitiveArrayDocument(int arrayDepth)
+    {
+        string type = "number" + string.Concat(Enumerable.Repeat("[]", arrayDepth));
+        string value = string.Concat(Enumerable.Repeat("[", arrayDepth))
+            + "1"
+            + string.Concat(Enumerable.Repeat("]", arrayDepth));
+        return Envelope($"record Batch {{ values: {type}; }} const $value: Batch = {{ values: {value}, }};");
     }
 
     private static string Describe(TsonReadResult result)
