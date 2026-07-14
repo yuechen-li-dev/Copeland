@@ -19,6 +19,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [CTS-TSON-M2b Migration Record](../migrations/cts-tson-m2b-runtime-canonical-encoding.md)
 - [CTS-TSON-M2c Core Fixed-Point Closeout](architecture/copeland-ts-tson-core-closeout-cts-tson-m2c.md)
 - [CTS-TSON-M2c Migration Record](../migrations/cts-tson-m2c-core-fixed-point-closeout.md)
+- [CTS-TSON-ARRAY-M0a Array Integration Design](language/copeland-ts-tson-arrays-design-cts-tson-array-m0a.md)
+- [CTS-TSON-ARRAY-M0a Array Integration Audit](../migrations/cts-tson-array-m0a-array-audit.md)
 - [CTS-M6b Typed Result `try`/`except` implementation](architecture/copeland-ts-typed-try-except-cts-m6b.md)
 - [CTS-M0a Copeland TS Language Doctrine Audit](../migrations/cts-m0a-copeland-ts-language-doctrine-audit.md)
 - [Copeland Compiler Workshop Architecture M13d](history/copeland-compiler-workshop-architecture-m13d.md)

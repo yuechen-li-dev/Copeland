@@ -1,6 +1,6 @@
 # Copeland TS TSON core closeout (CTS-TSON-M2c)
 
-**Status:** complete. This record ratifies the core contract implemented through CTS-TSON-M2c and links the finite evidence ledger in [`cts-tson-m2c-core-fixed-point-closeout.md`](../../../migrations/cts-tson-m2c-core-fixed-point-closeout.md). It does not authorize a new value family or runtime decoding.
+**Status:** complete. This record ratifies the core contract implemented through CTS-TSON-M2c and links the finite evidence ledger in [`cts-tson-m2c-core-fixed-point-closeout.md`](../../migrations/cts-tson-m2c-core-fixed-point-closeout.md). It does not authorize a new value family or runtime decoding.
 
 ## Ratified core
 
@@ -35,7 +35,7 @@ The pre-existing focused suites retain broader M0b/M1b/M2b evidence: parser/prof
 
 ## Boundaries
 
-There is no runtime TSON parsing or decoding, JSON, bytes API, arrays, Results/tables/optionality as TSON data, structural runtime objects, interfaces, aliases, cross-schema/cross-unit encoding, filesystem access, reflection, `dynamic`, property enumeration, or public runtime `TsonValue`. The next separately approved data expansion remains **TSON arrays**; it is not part of M2c.
+There is no runtime TSON parsing or decoding, JSON, bytes API, arrays, Results/tables/optionality as TSON data, structural runtime objects, interfaces, aliases, cross-schema/cross-unit encoding, filesystem access, reflection, `dynamic`, property enumeration, or public runtime `TsonValue`. The next separately approved data expansion is documented by [CTS-TSON-ARRAY-M0a](../language/copeland-ts-tson-arrays-design-cts-tson-array-m0a.md): homogeneous arrays remain outside M2c's implemented core.
 
 ## Closeout
 

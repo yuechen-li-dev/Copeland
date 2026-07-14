@@ -257,7 +257,7 @@ Table, row, and column `==`/`!=` are unsupported. No structural equality, refere
 
 ## Historical default schema-directed JSON proposal
 
-> **Superseded routing:** this section records the table ladder's original unimplemented JSON proposal. CTS-TSON-M0a requires `table value -> TSON extension -> JSON compatibility lowering` and `JSON -> validated untyped JSON -> schema-directed TSON extension -> table value`. The exact table and Result TSON laws, JSON enum tag shape, error family, and codec API must be re-approved in that later work; this section does not authorize direct implementation.
+> **Superseded routing:** this section records the table ladder's original unimplemented JSON proposal. CTS-TSON-M0a requires `table value -> TSON extension -> JSON compatibility lowering` and `JSON -> validated untyped JSON -> schema-directed TSON extension -> table value`. [CTS-TSON-ARRAY-M0a](copeland-ts-tson-arrays-design-cts-tson-array-m0a.md) establishes typed homogeneous arrays only as a prerequisite for a future columnar table document; it does not establish the table or Result TSON law. The exact table and Result TSON laws, JSON enum tag shape, error family, and codec API must be re-approved in that later work; this section does not authorize direct implementation.
 
 The table design accepted the following JSON shape before the native TSON layer was designed. It was never implemented in M0a or the core M0b/M1/M2 access slices. Any future serialization still operates on logical schema and cells, never on a C# container, JavaScript object layout, private token, brand, or frozen storage object.
 
