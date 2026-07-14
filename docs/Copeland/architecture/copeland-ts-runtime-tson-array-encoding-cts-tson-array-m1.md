@@ -58,3 +58,5 @@ The representative checked-in corpus is `tests/Copeland/Copeland.TS.Tests/TsonEn
 The ledger has 13 rows: 12 `Satisfied`, 1 `Satisfied by inspection`, and zero `Missing`. `TsonArray` remains immutable semantic data. Generated C# arrays and JavaScript arrays are private, ordinary mutable runtime carriers; canonical encoding observes their state at the moment `tsonEncode` executes. Array identity, aliasing, and mutation history are not represented. TSON remains a finite immutable tree model.
 
 No root arrays, runtime parsing/decoding/filesystem access, JSON, TSON Results/tables/optionality/interfaces/aliases, collection APIs or mutation syntax, reflection/`dynamic`/property enumeration, public runtime models, direct IL emission, NativeAOT claim, package update, commit, push, or publish was added. ARRAY-M1 is therefore honestly closed.
+
+[CTS-TSON-TABLE-M0a](../language/copeland-ts-tson-tables-design-cts-tson-table-m0a.md) is the next documentation-only integration authority. It reuses array-valued cells but keeps table columns distinct from `TsonArray`, selects a dedicated nominal table root, and does not change ARRAY-M1 behavior.

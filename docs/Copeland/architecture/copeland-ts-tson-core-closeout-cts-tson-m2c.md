@@ -37,6 +37,8 @@ The pre-existing focused suites retain broader M0b/M1b/M2b evidence: parser/prof
 
 There is no runtime TSON parsing or decoding, JSON, bytes API, Results/tables/optionality as TSON data, structural runtime objects, interfaces, aliases, cross-schema/cross-unit encoding, filesystem access, reflection, `dynamic`, property enumeration, or public runtime `TsonValue`. [CTS-TSON-ARRAY-M0b](copeland-ts-tson-arrays-and-assets-cts-tson-array-m0b.md) subsequently implements compiler-host arrays and compile-time asset lowering, and [CTS-TSON-ARRAY-M1](copeland-ts-runtime-tson-array-encoding-cts-tson-array-m1.md) adds only bounded nested runtime array encoding.
 
+[CTS-TSON-TABLE-M0a](../language/copeland-ts-tson-tables-design-cts-tson-table-m0a.md) is the later documentation-only authority for table integration. It selects a dedicated nominal table-root representation but changes none of this core closeout's implemented algebra or exclusions.
+
 ## Closeout
 
 The finite requirement ledger contains no `Missing` rows. It maps every original M2c requirement to direct evidence, stronger combined evidence, or a stated language/MIR construction exclusion. The non-TSON JavaScript runtime regression additionally proves that copied record and enum Symbol slots fail ordinary field access and matching, so the provenance repair is not TSON-specific.

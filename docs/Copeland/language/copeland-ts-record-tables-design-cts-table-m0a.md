@@ -2,6 +2,8 @@
 
 **Status:** accepted design, ratified through CTS-TABLE-M3. CTS-TABLE-M0a was documentation only; M0b–M2 implemented the source/MIR/C#/JavaScript core and M3 closed adversarial parity. See [the M3 closeout](../architecture/copeland-ts-record-tables-closeout-cts-table-m3.md).
 
+> **TSON-table authority:** [CTS-TSON-TABLE-M0a](copeland-ts-tson-tables-design-cts-tson-table-m0a.md) supersedes every future direct JSON construction, codec, `TableJsonError`, and CTS-TABLE-JSON recommendation in this historical design. The accepted route is `record table -> dedicated nominal TSON table -> policy-directed columnar JSON`. This document remains authoritative for the implemented table language and private runtime semantics, not for interchange.
+
 ## Decision
 
 `record table` declares one named immutable authored dataset with closed, declaration-ordered, equal-length columns and one table-owned nominal row type.
@@ -36,7 +38,7 @@ The authored singleton is the only source-constructed value in the core table sl
 
 The source looks columnar because the construct is a table. It provides authored immutable program data with validated shape, stable row order, typed cells, and backend-independent access. It does not reinterpret recursive documents, ASTs, presentation trees, or ownership hierarchies as tables.
 
-The core access feature contains no runtime builder, query system, mutation model, key system, database contract, or host ABI. This design originally accepted direct schema-directed columnar JSON. That JSON shape remains historical design evidence, not an implementation authorization: CTS-TSON-M0a now requires future work to define table/array/Result TSON laws first and lower to JSON only as a compatibility backend. Private backend storage remains outside every interchange contract.
+The core access feature contains no runtime builder, query system, mutation model, key system, database contract, or host ABI. This design originally accepted direct schema-directed columnar JSON. That JSON shape remains historical design evidence, not an implementation authorization: CTS-TSON-TABLE-M0a now selects a dedicated nominal table root, admits array-valued cells, excludes Result-valued columns initially, and permits JSON only as a later compatibility lowering. Private backend storage remains outside every interchange contract.
 
 ## Current repository audit
 
@@ -156,7 +158,7 @@ Aggregate cells requiring context use an explicit column type. A named enum cons
 
 The following are not constants: arithmetic or Boolean folding, ordinary function calls, variables or named `const` references, references to another table, table access, column access, `with`, `match`, `if`, `try`/`except`, propagation, unwrap, assignments, or arbitrary expressions. Unary minus is syntax around one literal, not general folding. No cross-table references means no cross-table initialization cycles. Aggregate containment cycles continue to follow existing record/type rejection and receive a table diagnostic when encountered in authored data.
 
-Backends emit the authored singleton as deterministic static data from MIR definitions. They do not run a hidden module initializer. Schema-directed JSON deserialization is the one accepted future path that may construct another immutable value of an existing nominal table type. Named constants, source constructors, builders, and arbitrary runtime table construction require separate designs.
+Backends emit the authored singleton as deterministic static data from MIR definitions. They do not run a hidden module initializer. This design historically named direct JSON deserialization as a future construction path; that claim is superseded by CTS-TSON-TABLE-M0a's declaration-owned table asset direction. Named constants, source constructors, builders, and arbitrary runtime table construction require separate designs.
 
 ## Identity, row types, and composition
 
@@ -190,7 +192,7 @@ record table WorldPoints {
 
 Table rows are immutable record-like products: closed fields, declaration order, exact field types, stable IDs, and resolved field reads. They are not independently constructible records. Brace construction and `with` are rejected for a table-owned row type so source code cannot manufacture a value that appears retrieved from the dataset. A retrieved row has its table's nominal row type but no persistent row identity, hidden primary key, or source-visible membership token. Equal cell values at two positions are permitted.
 
-The table name itself is also a nominal type. Values of `SampleTable` have the same closed columns, row type, and fixed rectangularity law as the authored singleton, but may contain different validated data after future JSON deserialization. Tables with identical schemas remain nominally incompatible.
+The table name itself is also a nominal type. Values of `SampleTable` have the same closed columns, row type, and fixed rectangularity law as the authored singleton. The core implementation constructs only the authored singleton; any future external value must follow the separately approved TSON-table ownership law. Tables with identical schemas remain nominally incompatible.
 
 The dedicated `TableName.Row` spelling permits rows in:
 
@@ -352,7 +354,7 @@ MirColumnElementAccessExpression
 
 Names should follow existing repository conventions if implementation reveals a clearer prefix, but the responsibilities and distinct stable IDs are required. The table definition owns its row definition. `MirTableRowType` must remain distinct from `MirRecordType`: both are nominal products, but record construction/`with` are valid only for independently declared records. Row field access may use a generalized resolved product-field contract or a row-specific access node; it must preserve the distinction and must not fall back to source text.
 
-`MirTableType` is nominal by table ID. `MirColumnType` is structural in its element type. Table row and column access take a table expression, validate its nominal table ID against the resolved access, and evaluate that receiver once. A first-class column element access likewise takes a column expression so parameters/locals work. The authored singleton lowers as a reference to its definition; a future JSON decoder may produce another value with the same `MirTableType`.
+`MirTableType` is nominal by table ID. `MirColumnType` is structural in its element type. Table row and column access take a table expression, validate its nominal table ID against the resolved access, and evaluate that receiver once. A first-class column element access likewise takes a column expression so parameters/locals work. The authored singleton lowers as a reference to its definition; future external construction is governed by the TSON-table design rather than a direct JSON decoder.
 
 `MirTableCellConstant` is a closed table-owned constant tree with literal, record, enum, and Result variants. Aggregate variants carry stable record/field or enum/case identities plus declaration-ordered typed children. It is not a `MirExpression`, performs no calls, and is not a compiler-wide data IR. Shared MIR validation checks:
 
@@ -384,7 +386,7 @@ Core table MIR contains logical data and operations only. It contains no JS arra
 
 ### C#
 
-Generate one deterministic nominal table value carrier with private readonly per-column storage and a fixed per-value row count, plus one private static readonly authored singleton. Generate a distinct nominal row class/readonly view contract with get-only field access and a private immutable column-view wrapper. Access validates the binary64 index once and constructs the existing ordinary Result representation with the compiler-owned bounds enum. A future JSON decoder constructs the same private value carrier only after complete schema validation.
+Generate one deterministic nominal table value carrier with private readonly per-column storage and a fixed per-value row count, plus one private static readonly authored singleton. Generate a distinct nominal row class/readonly view contract with get-only field access and a private immutable column-view wrapper. Access validates the binary64 index once and constructs the existing ordinary Result representation with the compiler-owned bounds enum. Any future external initializer must publish the same private carrier only after complete TSON schema and table-shape validation.
 
 The storage may use ordinary arrays internally, but it is never returned or typed as the source column. Do not promise `ImmutableArray<T>`, `ReadOnlySpan<T>`, a particular array kind, `DataTable`, LINQ, reflection, `dynamic`, dictionaries, row allocation, or CLR layout. Use ordinary BCL/AOT-compatible code and demand-driven helpers. Invalid table MIR produces no artifact.
 
@@ -444,7 +446,7 @@ M0b also adds focused syntax, bound, MIR text/validator, exactly-once, and delib
 
 The following are explicitly outside the first core table ladder unless a later milestone is separately approved: source constructors and general runtime builders; mutable tables; insertion/deletion; shape change; computed/derived columns; filtering; projection; joins; grouping; aggregation; sorting; indexes; keys; foreign keys; uniqueness; transactions; lazy/reactive query plans; databases; dataframe APIs; LINQ; SQL; iteration; metadata/count APIs; row destructuring/patterns; table patterns; equality/hashing/ordering; general generics; general nested/static types; recursive types; named compile-time constants; module initialization; cross-table references; alternate/schema-envelope/row-oriented JSON; arbitrary JSON inference; Arrow/binary serialization; schema versioning; streaming; DOM binding; public JS/.NET host ABI; and compiler-wide/shared data IR.
 
-The DOM remains a presentation tree derived from application data. Default columnar JSON is an interchange projection of the logical schema and values; it does not determine table storage or mutation law.
+The DOM remains a presentation tree derived from application data. The historical direct columnar JSON proposal is superseded; any future JSON is a compatibility projection from a validated nominal TSON table and does not determine table storage or mutation law.
 
 ## Refined CTS-TABLE ladder
 
@@ -457,12 +459,12 @@ The DOM remains a presentation tree derived from application data. Default colum
 | CTS-TABLE-M2 | Implement JavaScript private frozen columnar realization plus Node brand/privacy/bounds/order proofs. |
 | CTS-TABLE-M3 | Cross-backend parity, exactly-once and binary64-index stress, representation privacy, doctrine ratification, artifact stability, and closeout. |
 
-Default schema-directed JSON should follow as a separately approved **CTS-TABLE-JSON** ladder after the core representation is stable: first source/API and typed-error/MIR design ratification if needed, then C# and JavaScript codec realization, malformed-input and deterministic-order proofs, and cross-backend parity. It must consume logical table definitions/values and must not reopen the private storage boundary.
+The bounded follow-up is the separately approved CTS-TSON-TABLE ladder. Only after it closes may a JSON compatibility milestone choose policy, errors, and backend realization. It must consume logical TSON table definitions/values and must not reopen the private storage boundary.
 
 No smaller M0b split is recommended. Declaration without row/column access would create unusable data; access without stable types and validated MIR would create temporary semantics; parser-only fixtures would falsely claim support. The dedicated type forms, bounds enum, constants, and access nodes are one atomic frontend contract. Backend realization remains separable because M0b can reject validated table MIR explicitly and artifact-free. JSON implementation remains separable because the accepted schema codec consumes stable logical table values after core backend parity.
 
 ## M0a completion boundary
 
-CTS-TABLE-M0a is complete when this document, the [canonical language profile](copeland-ts-language-profile.md), and the [migration audit](../../migrations/cts-table-m0a-record-table-audit.md) agree on the nominal table-schema plus authored-value model, nominal nameable rows, typed immutable columns, deeply constant rectangular data, Result-valued access, backend-private columnar representation, canonical schema-directed columnar JSON direction, dedicated MIR, diagnostics/fixtures, and deferred query/builder/alternate-format boundaries.
+CTS-TABLE-M0a is complete when this document, the [canonical language profile](copeland-ts-language-profile.md), and the [migration audit](../../migrations/cts-table-m0a-record-table-audit.md) agree on the nominal table-schema plus authored-value model, nominal nameable rows, typed immutable columns, deeply constant rectangular data, Result-valued access, backend-private columnar representation, dedicated MIR, diagnostics/fixtures, and deferred query/builder/interchange boundaries. The later [CTS-TSON-TABLE-M0a design](copeland-ts-tson-tables-design-cts-tson-table-m0a.md) is authoritative for interchange.
 
 No table syntax, compiler behavior, MIR node, runtime helper, fixture, backend lowering, project, solution, or tool change follows from this document alone.
