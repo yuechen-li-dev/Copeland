@@ -433,6 +433,82 @@ function one(): number {
     }
 
     [Fact]
+    public async Task Asset_backed_table_cli_emission_is_complete_deterministic_and_preserves_stale_output_on_failure()
+    {
+        using var temp = new TempDir();
+        string source = """
+            const $schema: string = "copeland://tests/cli-table-asset";
+            record table Values from tsonAsset("./values.obj.ts") { value: number; }
+            function main(): number { return Values.value[0]!; }
+            """;
+        string asset = """
+            const $schema: string = "copeland://tests/cli-table-asset";
+            record table Values { value: number = [42]; }
+            const $value = Values;
+            """;
+        string sourcePath = temp.WriteFile("main.ts", source);
+        temp.WriteFile("values.obj.ts", asset);
+        string mirPath = Path.Combine(temp.Path, "main.cope");
+        string csharpPath = Path.Combine(temp.Path, "main.g.cs");
+        string javascriptPath = Path.Combine(temp.Path, "main.g.js");
+
+        foreach ((string emit, string output) in new[]
+                 {
+                     ("mir", mirPath),
+                     ("csharp", csharpPath),
+                     ("javascript", javascriptPath),
+                 })
+        {
+            CliResult first = await RunCliAsync(temp.Path, "compile", sourcePath, "--emit", emit, "--out", output);
+            Assert.Equal(0, first.ExitCode);
+            byte[] firstBytes = await File.ReadAllBytesAsync(output);
+            CliResult second = await RunCliAsync(temp.Path, "compile", sourcePath, "--emit", emit, "--out", output);
+            Assert.Equal(0, second.ExitCode);
+            Assert.Equal(firstBytes, await File.ReadAllBytesAsync(output));
+            string generated = await File.ReadAllTextAsync(output);
+            Assert.DoesNotContain("values.obj.ts", generated, StringComparison.Ordinal);
+            Assert.DoesNotContain("tsonAsset", generated, StringComparison.Ordinal);
+        }
+
+        await File.AppendAllTextAsync(javascriptPath, "console.log(main());\n", new UTF8Encoding(false));
+        CliResult execution = await RunExecutableAsync("node", temp.Path, javascriptPath);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("42\n", execution.StdOut);
+
+        string runnerProject = temp.WriteFile(
+            "runner.csproj",
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+              </PropertyGroup>
+            </Project>
+            """);
+        temp.WriteFile(
+            "Runner.cs",
+            "Console.WriteLine(Copeland.Generated.CopelandModule.main());");
+        CliResult csharpExecution = await RunExecutableAsync(
+            "dotnet",
+            temp.Path,
+            "run",
+            "--project",
+            runnerProject);
+        Assert.Equal(0, csharpExecution.ExitCode);
+        Assert.Equal("42\n", csharpExecution.StdOut);
+
+        byte[] staleBytes = await File.ReadAllBytesAsync(csharpPath);
+        temp.WriteFile("values.obj.ts", asset.Replace("value: number", "value: string", StringComparison.Ordinal));
+        CliResult staleFailure = await RunCliAsync(temp.Path, "compile", sourcePath, "--emit", "csharp", "--out", csharpPath);
+        Assert.Equal(1, staleFailure.ExitCode);
+        Assert.Contains("COPE-TSON-TABLE-0004", staleFailure.StdErr, StringComparison.Ordinal);
+        Assert.DoesNotContain(temp.Path, staleFailure.StdErr, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(staleBytes, await File.ReadAllBytesAsync(csharpPath));
+    }
+
+    [Fact]
     public async Task RecordMirCSharpAndJavaScriptSucceed_AndJavaScriptExecutes()
     {
         using var temp = new TempDir();

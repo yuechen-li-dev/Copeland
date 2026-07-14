@@ -29,6 +29,9 @@ public sealed class MalformedTableConstantValidationTests
         yield return Case("wrong Result error payload", Table(Result(false, Literal(1), Number, String), new MirResultType(Number, String)), "does not match the column element type");
         yield return Case("invalid zero-payload Result", Table(Result(true, Literal(1), Void, String), new MirResultType(Void, String)), "cannot use a void success payload");
         yield return Case("unsupported mutable constant type", Table(new MirTableLiteralConstant(new object(), new MirArrayType(Number)), new MirArrayType(Number)), "not a supported closed constant");
+        yield return Case("heterogeneous closed array", Table(new MirTableArrayConstant(new MirArrayType(Number), [Literal(1), Literal("wrong")]), new MirArrayType(Number)), "heterogeneous element");
+        var aliasedElement = Literal(1);
+        yield return Case("aliased closed array element", Table(new MirTableArrayConstant(new MirArrayType(Number), [aliasedElement, aliasedElement]), new MirArrayType(Number)), "alias or cycle");
         yield return Case("column element type mismatch", Table(Literal("wrong"), Number), "does not match the column element type");
         yield return Case("row count mismatch", Table(Literal(1), Number, rowCount: 2), "has 1 constants but row count is 2");
     }

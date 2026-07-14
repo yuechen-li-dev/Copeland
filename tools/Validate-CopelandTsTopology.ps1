@@ -209,6 +209,16 @@ Require-Condition ($tsonAssetSources.Count -ge 3) "TSON asset fixtures must own 
 Require-Condition ($tsonAssetObjectFiles.Count -gt 0) "TSON asset fixtures must own an Object TypeScript asset."
 Require-Condition ($tsonAssetCanonicalFiles.Count -gt 0) "TSON asset fixtures must own a canonical TSON asset."
 
+$tsonTableAssetFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonTableAssets"
+Require-Condition (Test-Path -LiteralPath (Join-Path $tsonTableAssetFixtureRoot "Valid") -PathType Container) "TSON table-asset Valid fixture ownership is missing."
+Require-Condition (Test-Path -LiteralPath (Join-Path $tsonTableAssetFixtureRoot "Invalid") -PathType Container) "TSON table-asset Invalid fixture ownership is missing."
+Require-Condition (Test-Path -LiteralPath (Join-Path $tsonTableAssetFixtureRoot "Corpus") -PathType Container) "TSON table-asset corpus ownership is missing."
+
+$parserSource = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS/Syntax/Parser.cs")
+$syntaxFactsSource = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS/Syntax/SyntaxFacts.cs")
+Require-Condition ($parserSource.Contains('TableAssetClauseSyntax', [System.StringComparison]::Ordinal)) "Declaration-owned table assets must extend the production table parser."
+Require-Condition (-not $syntaxFactsSource.Contains('["from"]', [System.StringComparison]::Ordinal)) "The table asset 'from' token must remain contextual."
+
 $mirSources = @(Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Mir") -Recurse -Filter *.cs -File |
     Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
 $forbiddenMirTson = $mirSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|TsonDocumentReader|TsonCanonicalPrinter)\b|Copeland\.TS\.Tson'
@@ -220,7 +230,8 @@ Require-Condition ($mirText.Contains('record MirTsonEncodeExpression', [System.S
 Require-Condition ($mirText.Contains('ValidateTsonEncodingModel', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans require shared MIR validation."
 Require-Condition ($mirText.Contains('MirTsonArrayPlan', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans must be owned by Copeland.TS.Mir."
 Require-Condition ($mirText.Contains('MaximumArrayLength', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans require a shared array limit."
-Require-Condition (-not $mirText.Contains('MirTsonTablePlan', [System.StringComparison]::Ordinal)) "TABLE-M0b must not add compiler/MIR table encoding integration."
+Require-Condition ($mirText.Contains('MirTableArrayConstant', [System.StringComparison]::Ordinal)) "TABLE-M1 array-valued cells require a closed MIR table-array constant."
+Require-Condition (-not $mirText.Contains('MirTsonTablePlan', [System.StringComparison]::Ordinal)) "TABLE-M1 must not begin runtime table encoding."
 
 $backendSources = @(
     Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File
@@ -228,6 +239,8 @@ $backendSources = @(
 ) | Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' }
 $forbiddenBackendTson = $backendSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|TsonDocumentReader)\b|Copeland\.TS\.Tson'
 Require-Condition ($null -eq $forbiddenBackendTson) "Backends must not reference compiler-host TSON types."
+$forbiddenBackendAssets = $backendSources | Select-String -Pattern '\bICopelandAssetSource\b|\bCopelandAssetResolver\b|\btsonAsset\b'
+Require-Condition ($null -eq $forbiddenBackendAssets) "Backends must not reference compiler-host asset abstractions or table asset syntax."
 $javaScriptBackendText = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript/JavaScriptBackend.cs")
 Require-Condition ($javaScriptBackendText.Contains('MirArrayExpression array => EmitArrayExpression', [System.StringComparison]::Ordinal)) "JavaScript arrays must be realized through the ordinary backend path."
 Require-Condition ($javaScriptBackendText.Contains('Array.isArray(array)', [System.StringComparison]::Ordinal)) "JavaScript TSON array encoding must validate ordinary array carriers."
@@ -258,6 +271,7 @@ $misownedJavaScriptArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "test
     Where-Object {
         -not $_.FullName.StartsWith($javaScriptFixtureRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
         -not $_.FullName.StartsWith((Join-Path $tsonAssetFixtureRoot "Corpus"), [System.StringComparison]::OrdinalIgnoreCase) -and
+        -not $_.FullName.StartsWith((Join-Path $tsonTableAssetFixtureRoot "Corpus"), [System.StringComparison]::OrdinalIgnoreCase) -and
         -not $_.FullName.StartsWith(
             (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus"),
             [System.StringComparison]::OrdinalIgnoreCase)

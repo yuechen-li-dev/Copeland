@@ -65,6 +65,14 @@ public sealed class BoundTableLiteralConstant(object value, TypeSymbol type) : B
     public object Value { get; } = value;
 }
 
+public sealed class BoundTableArrayConstant(
+    ArrayTypeSymbol arrayType,
+    IReadOnlyList<BoundTableConstant> elements) : BoundTableConstant(arrayType)
+{
+    public ArrayTypeSymbol ArrayType { get; } = arrayType;
+    public IReadOnlyList<BoundTableConstant> Elements { get; } = Array.AsReadOnly(elements.ToArray());
+}
+
 public sealed class BoundTableRecordConstant(RecordTypeSymbol recordType, IReadOnlyList<BoundTableRecordFieldConstant> fields) : BoundTableConstant(recordType)
 {
     public RecordTypeSymbol RecordType { get; } = recordType;

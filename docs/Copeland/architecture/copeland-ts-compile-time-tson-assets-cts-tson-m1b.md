@@ -79,4 +79,6 @@ Runtime parity executes canonical asset values three times in generated C# and t
 
 M1b adds no runtime TSON encode/decode, runtime TSON package, second parser, JSON, TSON array/Result/table/optional variant, `null`, `undefined`, structural runtime object, arbitrary compile-time execution, dynamic path, network/package resolution, import/module system, reflection, dictionary traversal, or package version change.
 
+Declaration-owned table assets are a later, deliberately separate operation implemented by [CTS-TSON-TABLE-M1](copeland-ts-tson-table-assets-cts-tson-table-m1.md). They initialize the one singleton owned by a `record table` declaration; this does not widen expression-valued `tsonAsset` beyond record/enum values.
+
 The documentation-only [CTS-TSON-M2a design](../language/copeland-ts-runtime-tson-encoding-design-cts-tson-m2a.md) now specifies the recommended runtime canonical encoding architecture: a Result-valued string intrinsic, one demand-driven validated MIR plan, and generated type-specific bounded writers. Runtime decoding remains blocked on one parser architecture available to both generated C# and JavaScript.

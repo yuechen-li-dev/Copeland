@@ -207,6 +207,7 @@ public static class MirTextWriter
     private static string FormatTableConstant(MirTableConstant constant) => constant switch
     {
         MirTableLiteralConstant literal => literal.Value switch { string text => $"\"{text}\"", bool boolean => boolean ? "true" : "false", _ => Convert.ToString(literal.Value, System.Globalization.CultureInfo.InvariantCulture) ?? "null" },
+        MirTableArrayConstant array => $"[{string.Join(", ", array.Elements.Select(FormatTableConstant))}]: {array.ArrayType.Name}",
         MirTableRecordConstant record => $"record [{record.RecordTypeId}] {{ {string.Join(", ", record.Fields.Select(field => $"[{field.FieldId}]: {FormatTableConstant(field.Value)}"))} }}",
         MirTableEnumConstant value => $"enum {value.EnumName}.{value.CaseName}{(value.Payloads.Count == 0 ? string.Empty : $"({string.Join(", ", value.Payloads.Select(FormatTableConstant))})")}",
         MirTableResultConstant result => (result.IsOk ? "ok " : "err ") + FormatTableConstant(result.Payload),

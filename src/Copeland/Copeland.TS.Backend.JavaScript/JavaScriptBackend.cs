@@ -846,6 +846,7 @@ public static class JavaScriptBackend
             MirTableLiteralConstant { Value: bool value } => value ? "true" : "false",
             MirTableLiteralConstant { Value: string value } => JavaScriptLiteralWriter.WriteString(value),
             MirTableLiteralConstant literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
+            MirTableArrayConstant array => $"Object.freeze([{string.Join(", ", array.Elements.Select(element => EmitTableConstant(element, catalog, results, names))) }])",
             MirTableRecordConstant record => EmitTableRecordConstant(record, catalog, results, names),
             MirTableEnumConstant value => $"{names.MakeValue}({names.TypeToken(catalog.GetEnum(value.EnumName))}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", value.Payloads.Select(payload => EmitTableConstant(payload, catalog, results, names)))}])",
             MirTableResultConstant result => $"{names.MakeValue}({names.TypeToken(results.Get(result.Type))}, \"{(result.IsOk ? "ok" : "err")}\", [{EmitTableConstant(result.Payload, catalog, results, names)}])",
@@ -1007,6 +1008,7 @@ public static class JavaScriptBackend
             MirTableType table when catalog.ContainsTable(table.TableId) => $"({names.TableValidator(catalog.GetTable(table.TableId))}({expression}), true)",
             MirTableRowType row when catalog.ContainsRow(row.RowTypeId) => $"({names.TableRowValidator(catalog.GetTableByRowType(row.RowTypeId))}({expression}), true)",
             MirColumnType => $"({names.ColumnValidator}({expression}), true)",
+            MirArrayType => $"Array.isArray({expression})",
             MirType named when named is not MirArrayType and not MirResultType && catalog.TryGetEnum(named.Identifier, out EnumInfo enumInfo) => $"({names.Validator(enumInfo)}({expression}), true)",
             _ => "false",
         };
@@ -2669,6 +2671,12 @@ public static class JavaScriptBackend
             Add(constant.Type);
             switch (constant)
             {
+                case MirTableArrayConstant array:
+                    foreach (MirTableConstant element in array.Elements)
+                    {
+                        Add(element);
+                    }
+                    break;
                 case MirTableRecordConstant record:
                     foreach (MirTableRecordFieldConstant field in record.Fields)
                     {

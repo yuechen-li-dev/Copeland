@@ -131,6 +131,20 @@ public sealed class MirTableDefinition(MirTableId id, string name, string rowTyp
 { public MirTableId Id { get; } = id; public string Name { get; } = name; public string RowTypeId { get; } = rowTypeId; public IReadOnlyList<MirTableColumnDefinition> Columns { get; } = columns; public int RowCount { get; } = rowCount; }
 public abstract record MirTableConstant(MirType Type);
 public sealed record MirTableLiteralConstant(object Value, MirType Type) : MirTableConstant(Type);
+public sealed record MirTableArrayConstant : MirTableConstant
+{
+    public MirTableArrayConstant(
+        MirArrayType arrayType,
+        IReadOnlyList<MirTableConstant> elements)
+        : base(arrayType)
+    {
+        ArrayType = arrayType;
+        Elements = Array.AsReadOnly(elements.ToArray());
+    }
+
+    public MirArrayType ArrayType { get; }
+    public IReadOnlyList<MirTableConstant> Elements { get; }
+}
 public sealed class MirTableRecordFieldConstant(MirRecordFieldId fieldId, MirTableConstant value)
 { public MirRecordFieldId FieldId { get; } = fieldId; public MirTableConstant Value { get; } = value; }
 public sealed record MirTableRecordConstant(MirRecordTypeId RecordTypeId, IReadOnlyList<MirTableRecordFieldConstant> Fields, MirType Type) : MirTableConstant(Type);

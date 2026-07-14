@@ -1,6 +1,6 @@
 # Copeland TS TSON tables design (CTS-TSON-TABLE-M0a)
 
-**Status:** accepted design and architecture-audit authority, implemented through the compiler-host semantic/canonical CTS-TSON-TABLE-M0b milestone. Asset integration, MIR plans, backend writers, and runtime behavior remain unimplemented.
+**Status:** accepted design and architecture-audit authority, implemented through compiler-host semantic/canonical M0b and declaration-owned compile-time asset ingestion M1. Runtime table encoding remains deferred to M2.
 
 ## Decision
 
@@ -320,7 +320,7 @@ The smallest coherent future distinction is therefore declaration-owned initiali
 - an asset-backed table declaration supplies the same schema in source but obtains that declaration's one singleton data set from one compile-time asset;
 - the ordinary expression-valued `tsonAsset` remains limited to record and payload-enum values.
 
-A future M1 should ratify one exact source spelling in the production parser. The semantic form should be equivalent to this illustrative shape:
+CTS-TSON-TABLE-M1 ratifies this exact source spelling in the production parser:
 
 ```ts
 record table Samples from tsonAsset("./samples.tson") {
@@ -329,7 +329,7 @@ record table Samples from tsonAsset("./samples.tson") {
 }
 ```
 
-This is not accepted syntax today and M0a does not implement it. It is shown to make the ownership decision unambiguous: the declaration still creates exactly one table type and one singleton, while the source column list is the expected schema. M1 may choose a different readable token arrangement, but it must preserve this declaration-owned meaning and use the existing `Parser`, `TableDeclarationSyntax` family, and table bound/MIR model rather than create a second parser or a general table constructor.
+This form makes ownership unambiguous: the declaration creates exactly one table type and one singleton, while the source column list is the expected schema. M1 implements it through the existing `Parser`, `TableDeclarationSyntax` family, and table bound/MIR model without a second parser or general table constructor.
 
 For an asset-backed declaration, future ingestion must:
 

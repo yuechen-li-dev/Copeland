@@ -1,0 +1,44 @@
+module
+
+enum TableBoundsError
+  case InvalidIndex(index: number)
+  case OutOfBounds(index: number, rowCount: number)
+
+enum State
+  case Missing
+  case Named(label: string)
+
+record Point [r1]
+  field x [r1.f0]: number
+  field label [r1.f1]: string
+
+table Samples [t1] row [t1.row] count 2
+  column active [t1.c0]: boolean = [true, false]
+  column score [t1.c1]: number = [-0, NaN]
+  column label [t1.c2]: string = ["quote " slash \ newline
+", "雪 😀"]
+  column point [t1.c3]: Point = [record [r1] { [r1.f0]: 1, [r1.f1]: "first" }, record [r1] { [r1.f0]: 2, [r1.f1]: "second" }]
+  column state [t1.c4]: State = [enum State.Missing, enum State.Named("ready")]
+  column values [t1.c5]: number[][] = [[[]: number[], [1, 2]: number[]]: number[][], [[3]: number[], []: number[]]: number[][]]
+
+table Empty [t2] row [t2.row] count 0
+  column value [t2.c0]: number = []
+
+func observation() -> string
+locals:
+  const row: Samples.Row
+entry:
+  store row, unwrap table-row [t1] table-ref [t1][1]
+  return match table-row-field [t1.row] row.[t1.c4.f] : string { Missing => "missing" | Named(label: string) => label }
+
+func negativeZero() -> number
+entry:
+  return unwrap column-element table-column [t1] table-ref [t1].[t1.c1][0]
+
+func nested() -> number[][]
+entry:
+  return unwrap column-element table-column [t1] table-ref [t1].[t1.c5][1]
+
+func emptyBounds() -> number
+entry:
+  return result-match column-element table-column [t2] table-ref [t2].[t2.c0][0] : number { ok(value: number) => value | err(error: TableBoundsError) => match error : number { InvalidIndex(index: number) => 1000 | OutOfBounds(index: number, rowCount: number) => 2000 } }

@@ -10,6 +10,90 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class TableCloseoutParityTests
 {
     [Fact]
+    public async Task Asset_backed_table_executes_with_csharp_node_parity_and_one_singleton()
+    {
+        const string source = """
+            const $schema: string = "copeland://tests/table-runtime";
+            record Point { x: number; }
+            enum State { Missing, Named(label: string), }
+            record table Samples from tsonAsset("./samples.obj.ts") {
+                score: number;
+                label: string;
+                point: Point;
+                state: State;
+                values: number[][];
+            }
+            function score(): number { return Samples.score[0]!; }
+            function label(): string { return Samples.label[0]!; }
+            function point(): number { return Samples.point[0]!.x; }
+            function state(): string { return match Samples.state[0]! { Missing => "missing", Named(label) => label, }; }
+            function values(): number[][] { return Samples.values[0]!; }
+            function first(): Samples { return Samples; }
+            function second(): Samples { return Samples; }
+            """;
+        const string asset = """
+            const $schema: string = "copeland://tests/table-runtime";
+            record Point { x: number; }
+            enum State { Missing, Named(label: string), }
+            record table Samples {
+                score: number = [$number("8000000000000000")];
+                label: string = ["雪 😀"];
+                point: Point = [{ x: 42 }];
+                state: State = [State.Named("ready")];
+                values: number[][] = [[[1, 2], [], [3]]];
+            }
+            const $value = Samples;
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(
+            source,
+            new CopelandCompilationOptions
+            {
+                SourcePath = "C:/project/main.ts",
+                ProjectRoot = "C:/project",
+                AssetSource = new RuntimeAssetSource(asset),
+            });
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation javascript = JavaScriptBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        Assert.True(javascript.Success, string.Join(Environment.NewLine, javascript.Diagnostics));
+        Assert.DoesNotContain("samples.obj.ts", csharp.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("samples.obj.ts", javascript.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("tsonAsset", csharp.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("tsonAsset", javascript.SourceText, StringComparison.Ordinal);
+
+        string script = javascript.SourceText + """
+            console.log(Object.is(score(), -0));
+            console.log(label());
+            console.log(point());
+            console.log(state());
+            console.log(JSON.stringify(values()));
+            console.log(first() === second());
+            """;
+        ProcessResult node = await RunNodeAsync(script);
+        Assert.Equal("true\n雪 😀\n42\nready\n[[1,2],[],[3]]\ntrue\n", node.StdOut);
+        Assert.Equal(string.Empty, node.StdErr);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(
+            0x8000000000000000UL,
+            BitConverter.DoubleToUInt64Bits(Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "score"))));
+        Assert.Equal("雪 😀", Assert.IsType<string>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "label")));
+        Assert.Equal(42d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "point")));
+        Assert.Equal("ready", Assert.IsType<string>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "state")));
+        var values = Assert.IsType<double[][]>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "values"));
+        Assert.Equal([1d, 2d], values[0]);
+        Assert.Empty(values[1]);
+        Assert.Equal([3d], values[2]);
+        Assert.Same(
+            GeneratedModuleInvoker.Invoke(generated.Assembly!, "first"),
+            GeneratedModuleInvoker.Invoke(generated.Assembly!, "second"));
+    }
+
+    [Fact]
     public void Csharp_parenthesizes_assignment_when_it_is_an_operand()
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
@@ -210,6 +294,8 @@ public sealed class TableCloseoutParityTests
                 WorkingDirectory = directory,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
                 UseShellExecute = false,
             };
             startInfo.ArgumentList.Add(scriptPath);
@@ -226,6 +312,17 @@ public sealed class TableCloseoutParityTests
             {
                 Directory.Delete(directory, recursive: true);
             }
+        }
+    }
+
+    private sealed class RuntimeAssetSource(string sourceText) : ICopelandAssetSource
+    {
+        public bool TryRead(string normalizedPath, out string? source)
+        {
+            source = normalizedPath.EndsWith("samples.obj.ts", StringComparison.OrdinalIgnoreCase)
+                ? sourceText
+                : null;
+            return source is not null;
         }
     }
 

@@ -644,7 +644,27 @@ public sealed record RecordFieldSyntax(
     }
 }
 
-public sealed record TableColumnSyntax(SyntaxToken Identifier, SyntaxToken ColonToken, TypeSyntax? ExplicitType, SyntaxToken? EqualsToken, ArrayLiteralExpressionSyntax Cells, SyntaxToken SemicolonToken) : SyntaxNode
+public sealed record TableAssetClauseSyntax(
+    SyntaxToken FromToken,
+    CallExpressionSyntax AssetCall) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TableAssetClause;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return FromToken;
+        yield return AssetCall;
+    }
+}
+
+public sealed record TableColumnSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken ColonToken,
+    TypeSyntax? ExplicitType,
+    SyntaxToken? EqualsToken,
+    ArrayLiteralExpressionSyntax Cells,
+    SyntaxToken SemicolonToken,
+    bool HasInlineData = true) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.TableColumn;
     public override IEnumerable<object> GetChildren()
@@ -656,12 +676,26 @@ public sealed record TableColumnSyntax(SyntaxToken Identifier, SyntaxToken Colon
     }
 }
 
-public sealed record TableDeclarationSyntax(SyntaxToken RecordKeyword, SyntaxToken TableKeyword, SyntaxToken Identifier, SyntaxToken OpenBraceToken, IReadOnlyList<TableColumnSyntax> Columns, SyntaxToken CloseBraceToken) : MemberSyntax
+public sealed record TableDeclarationSyntax(
+    SyntaxToken RecordKeyword,
+    SyntaxToken TableKeyword,
+    SyntaxToken Identifier,
+    TableAssetClauseSyntax? AssetClause,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<TableColumnSyntax> Columns,
+    SyntaxToken CloseBraceToken) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.TableDeclaration;
     public override IEnumerable<object> GetChildren()
     {
-        yield return RecordKeyword; yield return TableKeyword; yield return Identifier; yield return OpenBraceToken;
+        yield return RecordKeyword;
+        yield return TableKeyword;
+        yield return Identifier;
+        if (AssetClause is not null)
+        {
+            yield return AssetClause;
+        }
+        yield return OpenBraceToken;
         foreach (var column in Columns) yield return column;
         yield return CloseBraceToken;
     }

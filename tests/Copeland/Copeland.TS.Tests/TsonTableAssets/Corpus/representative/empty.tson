@@ -1,0 +1,7 @@
+const $schema: string = "copeland://corpus/tson-table-m1";
+
+record table Empty {
+    value: number = [];
+}
+
+const $value = Empty;

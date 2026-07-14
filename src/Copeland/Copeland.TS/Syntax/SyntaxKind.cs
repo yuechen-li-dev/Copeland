@@ -88,6 +88,7 @@ public enum SyntaxKind
     RecordDeclaration,
     RecordField,
     TableDeclaration,
+    TableAssetClause,
     TableColumn,
     Parameter,
     PredefinedType,

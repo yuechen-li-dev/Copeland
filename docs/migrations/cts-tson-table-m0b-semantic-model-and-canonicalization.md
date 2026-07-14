@@ -1,5 +1,7 @@
 # CTS-TSON-TABLE-M0b semantic model and canonicalization
 
+> **Implemented follow-up:** [CTS-TSON-TABLE-M1](../Copeland/architecture/copeland-ts-tson-table-assets-cts-tson-table-m1.md) now connects table-root documents to declaration-owned compile-time table initialization. Runtime table encoding remains deferred.
+
 ## Outcome
 
 CTS-TSON-TABLE-M0b implements the M0a-selected dedicated nominal table family in the compiler-host TSON subsystem. Both authoring and canonical text reuse the production parser. Immutable schema-evidenced columns, table-root projection, nominal catalog resolution, exact canonical printing, resource limits, diagnostic families, filesystem fixtures, and a pinned fixed-point corpus are present.

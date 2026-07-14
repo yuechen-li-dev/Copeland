@@ -317,6 +317,7 @@ public static class CSharpBackend
         return constant switch
         {
             MirTableLiteralConstant literal => CSharpLiteralWriter.Write(literal.Value),
+            MirTableArrayConstant array => $"new {MapType(array.ArrayType.ElementType)}[] {{ {string.Join(", ", array.Elements.Select(element => EmitTableConstant(element, records)))} }}",
             MirTableRecordConstant record => EmitTableRecordConstant(record, records),
             MirTableEnumConstant value => $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", value.Payloads.Select(payload => EmitTableConstant(payload, records)))})",
             MirTableResultConstant result => EmitTableResultConstant(result, records),
@@ -1386,6 +1387,15 @@ public static class CSharpBackend
         yield return constant.Type;
         switch (constant)
         {
+            case MirTableArrayConstant array:
+                foreach (var element in array.Elements)
+                {
+                    foreach (var type in EnumerateTableConstantTypes(element))
+                    {
+                        yield return type;
+                    }
+                }
+                break;
             case MirTableRecordConstant record:
                 foreach (var field in record.Fields)
                 {

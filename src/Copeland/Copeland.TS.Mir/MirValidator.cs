@@ -497,6 +497,7 @@ public static class MirValidator
                 diagnostics.Add(new MirValidationDiagnostic($"Table '{table.Name}' has a negative row count."));
 
             var columnNames = new HashSet<string>(StringComparer.Ordinal);
+            var constantValidationState = new TableConstantValidationState();
             foreach (var column in table.Columns)
             {
                 if (string.IsNullOrWhiteSpace(column.Id.Value) || !columns.TryAdd(column.Id, column))
@@ -511,7 +512,13 @@ public static class MirValidator
                 {
                     if (!MirTypeFacts.AreEquivalent(constant.Type, column.ElementType))
                         diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{table.Name}.{column.Name}' does not match the column element type."));
-                    ValidateTableConstant(constant, column.ElementType, program, diagnostics, $"{table.Name}.{column.Name}");
+                    ValidateTableConstant(
+                        constant,
+                        column.ElementType,
+                        program,
+                        diagnostics,
+                        $"{table.Name}.{column.Name}",
+                        constantValidationState);
                 }
             }
         }
@@ -551,8 +558,39 @@ public static class MirValidator
         }
     }
 
-    private static void ValidateTableConstant(MirTableConstant constant, MirType expectedType, MirProgram program, List<MirValidationDiagnostic> diagnostics, string context)
+    private sealed class TableConstantValidationState
     {
+        public int NodeCount { get; set; }
+        public HashSet<MirTableConstant> Seen { get; } = new(ReferenceEqualityComparer.Instance);
+    }
+
+    private static void ValidateTableConstant(
+        MirTableConstant constant,
+        MirType expectedType,
+        MirProgram program,
+        List<MirValidationDiagnostic> diagnostics,
+        string context,
+        TableConstantValidationState? state = null,
+        int depth = 1)
+    {
+        state ??= new TableConstantValidationState();
+        state.NodeCount++;
+        if (state.NodeCount > 100_000)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{context}' exceeds the closed-constant node limit."));
+            return;
+        }
+        if (depth > 64)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{context}' exceeds the nesting-depth limit."));
+            return;
+        }
+        if (!state.Seen.Add(constant))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{context}' contains an alias or cycle."));
+            return;
+        }
+
         if (!MirTypeFacts.AreEquivalent(constant.Type, expectedType))
         {
             diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{context}' does not match the column element type."));
@@ -561,6 +599,33 @@ public static class MirValidator
         switch (constant)
         {
             case MirTableLiteralConstant literal when IsValidTableLiteral(literal):
+                return;
+            case MirTableArrayConstant array:
+                if (array.ArrayType.ElementType is null)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table array constant in '{context}' has no element type."));
+                    return;
+                }
+                if (array.Elements.Count > 100_000)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table array constant in '{context}' exceeds the array-length limit."));
+                    return;
+                }
+                foreach (MirTableConstant element in array.Elements)
+                {
+                    if (!MirTypeFacts.AreEquivalent(element.Type, array.ArrayType.ElementType))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Table array constant in '{context}' has a heterogeneous element."));
+                    }
+                    ValidateTableConstant(
+                        element,
+                        array.ArrayType.ElementType,
+                        program,
+                        diagnostics,
+                        context,
+                        state,
+                        depth + 1);
+                }
                 return;
             case MirTableRecordConstant record:
                 MirRecordDefinition? definition = program.Records.FirstOrDefault(candidate => candidate.Id == record.RecordTypeId);
@@ -580,7 +645,7 @@ public static class MirValidator
                     }
                     MirRecordFieldDefinition? fieldDefinition = definition.Fields.FirstOrDefault(candidate => candidate.Id == field.FieldId);
                     if (fieldDefinition is null) diagnostics.Add(new MirValidationDiagnostic($"Table record constant in '{context}' has an unknown field identity '{field.FieldId}'."));
-                    else ValidateTableConstant(field.Value, fieldDefinition.Type, program, diagnostics, context);
+                    else ValidateTableConstant(field.Value, fieldDefinition.Type, program, diagnostics, context, state, depth + 1);
                 }
                 if (definition.Fields.Any(field => !seenFieldIds.Contains(field.Id)))
                 {
@@ -598,7 +663,7 @@ public static class MirValidator
                 if (value.Payloads.Count != @case.PayloadFields.Count)
                     diagnostics.Add(new MirValidationDiagnostic($"Table enum constant in '{context}' has an invalid payload count."));
                 for (int index = 0; index < Math.Min(value.Payloads.Count, @case.PayloadFields.Count); index++)
-                    ValidateTableConstant(value.Payloads[index], @case.PayloadFields[index].Type, program, diagnostics, context);
+                    ValidateTableConstant(value.Payloads[index], @case.PayloadFields[index].Type, program, diagnostics, context, state, depth + 1);
                 return;
             case MirTableResultConstant result:
                 if (result.Type.SuccessType.Identifier == "void")
@@ -606,7 +671,7 @@ public static class MirValidator
                     diagnostics.Add(new MirValidationDiagnostic($"Table Result constant in '{context}' cannot use a void success payload."));
                     return;
                 }
-                ValidateTableConstant(result.Payload, result.IsOk ? result.Type.SuccessType : result.Type.ErrorType, program, diagnostics, context);
+                ValidateTableConstant(result.Payload, result.IsOk ? result.Type.SuccessType : result.Type.ErrorType, program, diagnostics, context, state, depth + 1);
                 return;
             default:
                 diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{context}' is not a supported closed constant."));

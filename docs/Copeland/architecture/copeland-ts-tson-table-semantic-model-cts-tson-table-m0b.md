@@ -1,6 +1,6 @@
 # Copeland TS TSON table semantic model (CTS-TSON-TABLE-M0b)
 
-**Status:** implemented compiler-host semantic and canonical-text milestone. Compiler asset ingestion, bound/MIR lowering, backend realization, runtime encoding, decoding, and JSON remain excluded.
+**Status:** implemented compiler-host semantic and canonical-text milestone. Declaration-owned compiler asset ingestion and ordinary backend realization are implemented by [CTS-TSON-TABLE-M1](copeland-ts-tson-table-assets-cts-tson-table-m1.md); runtime encoding, decoding, and JSON remain excluded.
 
 ## Implemented path
 
@@ -94,4 +94,4 @@ Filesystem fixtures live under `tests/Copeland/Copeland.TS.Tests/Tson/Valid/tabl
 
 `TsonTable` remains entirely in `Copeland.TS.Tson`. No compiler table asset ingestion, bound table constant, MIR table plan, backend API, generated runtime artifact, CLI mode, Machina dependency, or Aurelian dependency was added.
 
-CTS-TSON-TABLE-M1 should remain limited to declaration-owned compile-time table asset initialization, exact identity/schema/shape validation, and closed table constant lowering. It must not turn expression-valued `tsonAsset` into a general table constructor or add runtime encoding.
+CTS-TSON-TABLE-M1 is closed as declaration-owned compile-time table asset initialization, exact identity/schema/shape validation, and closed table/array constant lowering. It does not turn expression-valued `tsonAsset` into a general table constructor or add runtime encoding.

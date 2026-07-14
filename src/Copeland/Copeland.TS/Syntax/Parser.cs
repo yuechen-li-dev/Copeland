@@ -329,6 +329,14 @@ public sealed class Parser
         var recordKeyword = Match(SyntaxKind.RecordKeyword);
         var tableKeyword = Match(SyntaxKind.TableKeyword);
         var identifier = Match(SyntaxKind.IdentifierToken);
+        TableAssetClauseSyntax? assetClause = null;
+        if (Current.Kind == SyntaxKind.IdentifierToken
+            && string.Equals(Current.Text, "from", StringComparison.Ordinal))
+        {
+            var fromToken = NextToken();
+            var target = new NameExpressionSyntax(Match(SyntaxKind.IdentifierToken));
+            assetClause = new TableAssetClauseSyntax(fromToken, ParseCallExpression(target));
+        }
         var openBrace = Match(SyntaxKind.OpenBraceToken);
         var columns = new List<TableColumnSyntax>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
@@ -337,17 +345,64 @@ public sealed class Parser
             var colon = Match(SyntaxKind.ColonToken);
             TypeSyntax? explicitType = null;
             SyntaxToken? equals = null;
-            if (Current.Kind != SyntaxKind.OpenBracketToken)
+            ArrayLiteralExpressionSyntax cells;
+            bool hasInlineData;
+            if (assetClause is not null)
             {
-                explicitType = ParseTypeSyntax();
-                equals = Match(SyntaxKind.EqualsToken);
+                if (Current.Kind is not SyntaxKind.SemicolonToken
+                    and not SyntaxKind.EqualsToken
+                    and not SyntaxKind.OpenBracketToken)
+                {
+                    explicitType = ParseTypeSyntax();
+                }
+
+                if (Current.Kind == SyntaxKind.EqualsToken)
+                {
+                    equals = Match(SyntaxKind.EqualsToken);
+                }
+
+                hasInlineData = Current.Kind == SyntaxKind.OpenBracketToken;
+                cells = hasInlineData
+                    ? ParseArrayLiteralExpression()
+                    : new ArrayLiteralExpressionSyntax(
+                        MissingToken(SyntaxKind.OpenBracketToken, Current.Position),
+                        [],
+                        [],
+                        MissingToken(SyntaxKind.CloseBracketToken, Current.Position));
             }
-            var cells = Current.Kind == SyntaxKind.OpenBracketToken
-                ? ParseArrayLiteralExpression()
-                : new ArrayLiteralExpressionSyntax(MissingToken(SyntaxKind.OpenBracketToken, Current.Position), [], [], MissingToken(SyntaxKind.CloseBracketToken, Current.Position));
-            columns.Add(new TableColumnSyntax(name, colon, explicitType, equals, cells, Match(SyntaxKind.SemicolonToken)));
+            else
+            {
+                if (Current.Kind != SyntaxKind.OpenBracketToken)
+                {
+                    explicitType = ParseTypeSyntax();
+                    equals = Match(SyntaxKind.EqualsToken);
+                }
+                cells = Current.Kind == SyntaxKind.OpenBracketToken
+                    ? ParseArrayLiteralExpression()
+                    : new ArrayLiteralExpressionSyntax(
+                        MissingToken(SyntaxKind.OpenBracketToken, Current.Position),
+                        [],
+                        [],
+                        MissingToken(SyntaxKind.CloseBracketToken, Current.Position));
+                hasInlineData = true;
+            }
+            columns.Add(new TableColumnSyntax(
+                name,
+                colon,
+                explicitType,
+                equals,
+                cells,
+                Match(SyntaxKind.SemicolonToken),
+                hasInlineData));
         }
-        return new TableDeclarationSyntax(recordKeyword, tableKeyword, identifier, openBrace, columns, Match(SyntaxKind.CloseBraceToken));
+        return new TableDeclarationSyntax(
+            recordKeyword,
+            tableKeyword,
+            identifier,
+            assetClause,
+            openBrace,
+            columns,
+            Match(SyntaxKind.CloseBraceToken));
     }
 
     private TypeSyntax ParsePostfixTypeSyntax()

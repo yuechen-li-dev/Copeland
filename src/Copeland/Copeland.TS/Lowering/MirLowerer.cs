@@ -99,6 +99,9 @@ public static class MirLowerer
         => constant switch
         {
             BoundTableLiteralConstant literal => new MirTableLiteralConstant(literal.Value, ToMirType(literal.Type)),
+            BoundTableArrayConstant array => new MirTableArrayConstant(
+                (MirArrayType)ToMirType(array.ArrayType),
+                array.Elements.Select(LowerTableConstant).ToArray()),
             BoundTableRecordConstant record => new MirTableRecordConstant(
                 ToMirRecordTypeId(record.RecordType.Id),
                 record.Fields.Select(field => new MirTableRecordFieldConstant(ToMirRecordFieldId(field.Field.Id), LowerTableConstant(field.Value))).ToArray(),

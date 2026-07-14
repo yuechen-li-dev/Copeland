@@ -164,6 +164,11 @@ public static class Binder
             {
                 if (!_tableTypes.TryGetValue(declaration.Identifier.Text, out var table)) continue;
                 if (declaration.Columns.Count == 0) Report("COPE-TABLE-0003", "A table requires at least one column.", declaration.Identifier);
+                if (declaration.AssetClause is not null)
+                {
+                    BindAssetTableBody(declaration, table);
+                    continue;
+                }
                 var names = new HashSet<string>(StringComparer.Ordinal);
                 var columns = new List<BoundTableColumnDefinition>();
                 int? rowCount = null;
@@ -203,6 +208,233 @@ public static class Binder
             }
         }
 
+        private void BindAssetTableBody(
+            TableDeclarationSyntax declaration,
+            TableTypeSymbol table)
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            var sourceColumns = new List<(TableColumnSyntax Syntax, TableColumnSymbol Symbol)>();
+            foreach (var columnSyntax in declaration.Columns)
+            {
+                if (!names.Add(columnSyntax.Identifier.Text))
+                {
+                    Report(
+                        "COPE-TABLE-0004",
+                        $"Duplicate column '{columnSyntax.Identifier.Text}'.",
+                        columnSyntax.Identifier);
+                    continue;
+                }
+
+                if (columnSyntax.ExplicitType is null)
+                {
+                    Report(
+                        "COPE-TSON-TABLE-0002",
+                        "An asset-backed table column requires an explicit element type.",
+                        columnSyntax.Identifier);
+                }
+
+                if (columnSyntax.HasInlineData || columnSyntax.EqualsToken is not null)
+                {
+                    Report(
+                        "COPE-TSON-ASSET-0001",
+                        "An asset-backed table declaration cannot also contain inline column data.",
+                        columnSyntax.EqualsToken ?? columnSyntax.Identifier);
+                }
+
+                TypeSymbol elementType = columnSyntax.ExplicitType is null
+                    ? PrimitiveTypeSymbol.Error
+                    : BindType(
+                        columnSyntax.ExplicitType,
+                        columnSyntax.Identifier,
+                        "COPE-TABLE-0019",
+                        "table column");
+                if (!IsEligibleTsonTableCellType(elementType))
+                {
+                    Report(
+                        "COPE-TSON-TABLE-0004",
+                        $"Asset-backed table column type '{elementType.Name}' is not in the supported TSON table cell family.",
+                        columnSyntax.Identifier);
+                }
+
+                var column = new TableColumnSymbol(
+                    columnSyntax.Identifier.Text,
+                    new TableColumnId(table.Id, table.Columns.Count),
+                    elementType);
+                table.AddColumn(column);
+                sourceColumns.Add((columnSyntax, column));
+            }
+
+            if (_diagnostics.Diagnostics.Any(diagnostic =>
+                    diagnostic.Position >= declaration.RecordKeyword.Position
+                    && diagnostic.Position <= declaration.CloseBraceToken.Position))
+            {
+                _tables.Add(new BoundTableDefinition(
+                    table,
+                    sourceColumns.Select(column => new BoundTableColumnDefinition(column.Symbol, [])).ToArray(),
+                    0));
+                return;
+            }
+
+            if (!TryReadTableAsset(declaration, out TsonDocument? document, out SyntaxToken? assetAnchor))
+            {
+                _tables.Add(new BoundTableDefinition(
+                    table,
+                    sourceColumns.Select(column => new BoundTableColumnDefinition(column.Symbol, [])).ToArray(),
+                    0));
+                return;
+            }
+
+            var tsonTable = (TsonTable)document!.Root;
+            if (!ValidateTsonTableSchema(
+                    document.Catalog,
+                    tsonTable,
+                    table,
+                    sourceColumns,
+                    assetAnchor!))
+            {
+                _tables.Add(new BoundTableDefinition(
+                    table,
+                    sourceColumns.Select(column => new BoundTableColumnDefinition(column.Symbol, [])).ToArray(),
+                    0));
+                return;
+            }
+
+            var columns = new List<BoundTableColumnDefinition>(sourceColumns.Count);
+            for (var columnIndex = 0; columnIndex < sourceColumns.Count; columnIndex++)
+            {
+                var sourceColumn = sourceColumns[columnIndex].Symbol;
+                var assetColumn = tsonTable.Columns[columnIndex];
+                var cells = new List<BoundTableConstant>(assetColumn.Cells.Count);
+                foreach (var value in assetColumn.Cells)
+                {
+                    if (!TryLowerTsonValue(
+                            value,
+                            sourceColumn.Type,
+                            "table asset",
+                            assetAnchor!,
+                            out BoundExpression? expression))
+                    {
+                        continue;
+                    }
+
+                    BoundTableConstant? constant = BindTableConstant(expression!);
+                    if (constant is null)
+                    {
+                        Report(
+                            "COPE-TSON-TABLE-0004",
+                            $"Asset cell in column '{sourceColumn.Name}' could not be projected to a closed table constant.",
+                            assetAnchor!);
+                        continue;
+                    }
+
+                    cells.Add(constant);
+                }
+                columns.Add(new BoundTableColumnDefinition(sourceColumn, cells));
+            }
+
+            _tables.Add(new BoundTableDefinition(table, columns, tsonTable.RowCount));
+        }
+
+        private bool TryReadTableAsset(
+            TableDeclarationSyntax declaration,
+            out TsonDocument? document,
+            out SyntaxToken? assetAnchor)
+        {
+            document = null;
+            assetAnchor = declaration.AssetClause?.FromToken;
+            CallExpressionSyntax call = declaration.AssetClause!.AssetCall;
+            if (call.Target is not NameExpressionSyntax intrinsic
+                || intrinsic.IdentifierToken.Text != "tsonAsset")
+            {
+                Report(
+                    "COPE-TSON-ASSET-0001",
+                    "An asset-backed table declaration requires the reserved 'tsonAsset' intrinsic.",
+                    declaration.AssetClause.FromToken);
+                return false;
+            }
+
+            if (call.Arguments.Count != 1
+                || call.Arguments[0] is not LiteralExpressionSyntax pathLiteral
+                || pathLiteral.LiteralToken.Kind != SyntaxKind.StringToken)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0001",
+                    "A table 'tsonAsset' clause requires exactly one string-literal relative path.",
+                    call.OpenParenToken);
+                return false;
+            }
+
+            assetAnchor = pathLiteral.LiteralToken;
+            if (_schemaIdentity is null)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0004",
+                    "An asset-backed table requires one valid top-level '$schema' declaration.",
+                    declaration.AssetClause.FromToken);
+                return false;
+            }
+
+            if (_assetResolver is null)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0002",
+                    "This compilation has no source path, compilation root, and asset source for resolving TSON assets.",
+                    pathLiteral.LiteralToken);
+                return false;
+            }
+
+            string authoredPath = (string)pathLiteral.LiteralToken.Value!;
+            if (!_assetResolver.TryResolve(authoredPath, out var asset, out string? resolutionError))
+            {
+                Report(
+                    "COPE-TSON-ASSET-0002",
+                    resolutionError ?? "The TSON table asset could not be resolved.",
+                    pathLiteral.LiteralToken);
+                return false;
+            }
+
+            TsonDocumentProfile profile = asset!.NormalizedPath.EndsWith(
+                ".obj.ts",
+                StringComparison.OrdinalIgnoreCase)
+                ? TsonDocumentProfile.ObjectTypeScript
+                : TsonDocumentProfile.CanonicalTson;
+            TsonReadResult read = TsonDocumentReader.ReadSelfDescribed(asset.SourceText, profile);
+            if (!read.Success)
+            {
+                foreach (var diagnostic in read.SyntaxDiagnostics)
+                {
+                    _diagnostics.Report(
+                        diagnostic.Id,
+                        $"TSON asset '{asset.NormalizedPath}': {diagnostic.Message}",
+                        diagnostic.Position,
+                        Math.Max(1, diagnostic.Length),
+                        asset.NormalizedPath);
+                }
+                foreach (var diagnostic in read.Diagnostics)
+                {
+                    _diagnostics.Report(
+                        diagnostic.Code,
+                        $"TSON asset '{asset.NormalizedPath}': {diagnostic.Message}",
+                        diagnostic.Position,
+                        Math.Max(1, diagnostic.Length),
+                        asset.NormalizedPath);
+                }
+                return false;
+            }
+
+            if (read.Document!.Root is not TsonTable)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0001",
+                    "An asset-backed record table requires one table-root TSON document.",
+                    pathLiteral.LiteralToken);
+                return false;
+            }
+
+            document = read.Document;
+            return true;
+        }
+
         private static BoundTableConstant? BindTableConstant(BoundExpression expression)
             => expression switch
             {
@@ -210,11 +442,27 @@ public static class Binder
                 BoundUnaryExpression { OperatorKind: SyntaxKind.MinusToken, Operand: BoundLiteralExpression literal }
                     when literal.Type == PrimitiveTypeSymbol.Number && literal.Value is IConvertible number => new BoundTableLiteralConstant(-number.ToDouble(System.Globalization.CultureInfo.InvariantCulture), literal.Type),
                 BoundEnumValueExpression value => BindTableEnumConstant(value),
+                BoundArrayExpression array => BindTableArrayConstant(array),
                 BoundOkExpression ok => BindTableResultConstant(true, ok.Payload, (ResultTypeSymbol)ok.Type),
                 BoundErrExpression err => BindTableResultConstant(false, err.Payload, (ResultTypeSymbol)err.Type),
                 BoundRecordConstructionExpression record => BindTableRecordConstant(record),
                 _ => null,
             };
+
+        private static BoundTableConstant? BindTableArrayConstant(BoundArrayExpression array)
+        {
+            if (array.Type is not ArrayTypeSymbol arrayType)
+            {
+                return null;
+            }
+
+            var elements = array.Elements.Select(BindTableConstant).ToArray();
+            return elements.Any(element => element is null)
+                ? null
+                : new BoundTableArrayConstant(
+                    arrayType,
+                    elements.Select(element => element!).ToArray());
+        }
 
         private static BoundTableConstant? BindTableEnumConstant(BoundEnumValueExpression value)
         {
@@ -263,6 +511,102 @@ public static class Binder
             isCyclic = !eligible && ContainsCyclicTableCellType(type, []);
             visiting.Remove(type);
             return eligible;
+        }
+
+        private static bool IsEligibleTsonTableCellType(TypeSymbol type)
+        {
+            var visiting = new HashSet<TypeSymbol>();
+            return IsEligibleTsonTableCellType(type, visiting);
+        }
+
+        private static bool IsEligibleTsonTableCellType(
+            TypeSymbol type,
+            HashSet<TypeSymbol> visiting)
+        {
+            if (!visiting.Add(type))
+            {
+                return false;
+            }
+
+            bool eligible = type switch
+            {
+                PrimitiveTypeSymbol primitive => primitive == PrimitiveTypeSymbol.Number
+                    || primitive == PrimitiveTypeSymbol.String
+                    || primitive == PrimitiveTypeSymbol.Boolean,
+                ArrayTypeSymbol array => IsEligibleTsonTableCellType(array.ElementType, visiting),
+                EnumTypeSymbol @enum => @enum.Cases.All(@case =>
+                    @case.PayloadFields.All(field =>
+                        IsEligibleTsonTableCellType(field.Type, visiting))),
+                RecordTypeSymbol record => record.Fields.All(field =>
+                    IsEligibleTsonTableCellType(field.Type, visiting)),
+                _ => false,
+            };
+            visiting.Remove(type);
+            return eligible;
+        }
+
+        private bool ValidateTsonTableSchema(
+            TsonCatalog catalog,
+            TsonTable assetTable,
+            TableTypeSymbol sourceTable,
+            IReadOnlyList<(TableColumnSyntax Syntax, TableColumnSymbol Symbol)> sourceColumns,
+            SyntaxToken anchor)
+        {
+            string expectedTableIdentity = $"{_schemaIdentity}#{sourceTable.Name}";
+            if (!string.Equals(catalog.SchemaIdentity, _schemaIdentity, StringComparison.Ordinal)
+                || !string.Equals(
+                    assetTable.Schema.IdentityValue.Value,
+                    expectedTableIdentity,
+                    StringComparison.Ordinal))
+            {
+                Report(
+                    "COPE-TSON-ASSET-0003",
+                    $"Table asset identity must be exactly '{expectedTableIdentity}'.",
+                    anchor);
+                return false;
+            }
+
+            if (assetTable.Columns.Count != sourceColumns.Count)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0003",
+                    $"Table asset '{expectedTableIdentity}' does not have the exact source-declared column count.",
+                    anchor);
+                return false;
+            }
+
+            var visited = new HashSet<TypeSymbol>();
+            for (var index = 0; index < sourceColumns.Count; index++)
+            {
+                TableColumnSymbol sourceColumn = sourceColumns[index].Symbol;
+                TsonTableColumn assetColumn = assetTable.Columns[index];
+                string expectedColumnIdentity = $"{expectedTableIdentity}.{sourceColumn.Name}";
+                if (assetColumn.Schema.Name != sourceColumn.Name
+                    || assetColumn.Schema.Identity.Value != expectedColumnIdentity
+                    || !TsonTypeMatches(assetColumn.Schema.ElementType, sourceColumn.Type))
+                {
+                    Report(
+                        "COPE-TSON-ASSET-0003",
+                        $"Table asset column {index} must be exactly '{expectedColumnIdentity}: {sourceColumn.Type.Name}'.",
+                        sourceColumns[index].Syntax.Identifier);
+                    return false;
+                }
+
+                if (!ValidateTsonSchemaType(
+                        catalog,
+                        sourceColumn.Type,
+                        visited,
+                        out string? mismatch))
+                {
+                    Report(
+                        "COPE-TSON-ASSET-0003",
+                        mismatch ?? $"Reachable schema mismatch for '{expectedColumnIdentity}'.",
+                        sourceColumns[index].Syntax.Identifier);
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool ContainsCyclicTableCellType(TypeSymbol type, HashSet<TypeSymbol> visiting)

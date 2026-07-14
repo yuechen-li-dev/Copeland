@@ -303,6 +303,14 @@ public static class TsonDocumentReader
             }
 
             var declaration = declarations[0];
+            if (declaration.AssetClause is not null)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0001",
+                    "A TSON document table declaration must contain authored column data, not an asset clause.",
+                    declaration.AssetClause);
+                return null;
+            }
             if (rootBinding.Type is not null
                 || rootBinding.Initializer is not NameExpressionSyntax rootName
                 || rootName.IdentifierToken.Text != declaration.Identifier.Text)
