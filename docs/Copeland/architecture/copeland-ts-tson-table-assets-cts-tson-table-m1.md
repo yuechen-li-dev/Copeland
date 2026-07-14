@@ -1,6 +1,6 @@
 # Copeland TS declaration-owned TSON table assets (CTS-TSON-TABLE-M1)
 
-**Status:** implemented and closed for compile-time ingestion. CTS-TSON-TABLE-M2 subsequently adds demand-created runtime encoding of this declaration-owned singleton.
+**Status:** implemented and closed for compile-time ingestion. CTS-TSON-TABLE-M2 subsequently adds demand-created runtime encoding of this declaration-owned singleton, and [CTS-TSON-TABLE-M3](copeland-ts-tson-table-closeout-cts-tson-table-m3.md) closes the full table ladder.
 
 ## Accepted source contract
 

@@ -93,7 +93,7 @@ The bounded ladder is:
 3. CTS-JS-EMIT-M2: Release printer, description/dead-helper removal, mapping foundation, and independent size/performance baselines.
 4. CTS-JS-EMIT-M3: measured helper/runtime deduplication, multi-module packaging audit, cross-profile parity, and closeout.
 
-Only design belongs between CTS-TSON-TABLE-M1 and TABLE-M2. TABLE-M2/M3 should finish before M0b changes production emission. This preserves the active table ladder and lets its runtime writer family enter the complete emission audit. JavaScript corpus regeneration should occur later in one explicitly approved migration.
+Only design belongs between CTS-TSON-TABLE-M1 and TABLE-M2. [CTS-TSON-TABLE-M3](../Copeland/architecture/copeland-ts-tson-table-closeout-cts-tson-table-m3.md) is now closed; it retained the 62,425-byte Diagnostic artifact unchanged. CTS-JS-EMIT-M0b may therefore begin only under separately approved scope. JavaScript corpus regeneration remains a later explicitly approved migration.
 
 ## Files changed
 

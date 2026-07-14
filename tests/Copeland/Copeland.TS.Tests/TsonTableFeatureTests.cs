@@ -91,6 +91,44 @@ public sealed class TsonTableFeatureTests
     }
 
     [Fact]
+    public void Canonical_table_data_is_columnar_and_has_no_row_representation()
+    {
+        const string source = """
+            const $schema: string = "copeland://example/columnar";
+            record table Samples {
+                second: number = [4, 5];
+                first: number = [1, 2];
+            }
+            const $value = Samples;
+            """;
+
+        TsonReadResult result = TsonDocumentReader.ReadSelfDescribed(
+            source,
+            TsonDocumentProfile.ObjectTypeScript);
+
+        Assert.True(result.Success, Describe(result));
+        TsonTable table = Assert.IsType<TsonTable>(result.Document!.Root);
+        Assert.Equal(["second", "first"], table.Columns.Select(column => column.Schema.Name));
+        Assert.Equal([4d, 5d], table.Columns[0].Cells
+            .Select(cell => Assert.IsType<TsonNumber>(cell).Value));
+        Assert.Equal([1d, 2d], table.Columns[1].Cells
+            .Select(cell => Assert.IsType<TsonNumber>(cell).Value));
+        Assert.Equal(2, table.RowCount);
+        Assert.Null(typeof(TsonTable).GetProperty("Rows"));
+        Assert.DoesNotContain(
+            typeof(TsonTable).Assembly.GetTypes(),
+            type => type.Name.Contains("TsonTableRow", StringComparison.Ordinal));
+
+        string canonical = TsonCanonicalPrinter.Print(result.Document);
+        int secondColumn = canonical.IndexOf("second: number", StringComparison.Ordinal);
+        int firstColumn = canonical.IndexOf("first: number", StringComparison.Ordinal);
+        Assert.True(secondColumn >= 0 && firstColumn > secondColumn);
+        Assert.Contains("second: number = [\n        $number(\"4010000000000000\"),", canonical, StringComparison.Ordinal);
+        Assert.Contains("first: number = [\n        $number(\"3FF0000000000000\"),", canonical, StringComparison.Ordinal);
+        Assert.DoesNotContain("[{", canonical, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Empty_columns_retain_types_and_same_shape_tables_are_nominally_distinct()
     {
         TsonTable first = ReadTable("copeland://example/one", "record table Empty { value: number = []; }");

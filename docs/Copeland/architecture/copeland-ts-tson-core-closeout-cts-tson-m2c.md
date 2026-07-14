@@ -37,7 +37,7 @@ The pre-existing focused suites retain broader M0b/M1b/M2b evidence: parser/prof
 
 There is no runtime TSON parsing or decoding, JSON, bytes API, Results/tables/optionality as TSON data, structural runtime objects, interfaces, aliases, cross-schema/cross-unit encoding, filesystem access, reflection, `dynamic`, property enumeration, or public runtime `TsonValue`. [CTS-TSON-ARRAY-M0b](copeland-ts-tson-arrays-and-assets-cts-tson-array-m0b.md) subsequently implements compiler-host arrays and compile-time asset lowering, and [CTS-TSON-ARRAY-M1](copeland-ts-runtime-tson-array-encoding-cts-tson-array-m1.md) adds only bounded nested runtime array encoding.
 
-[CTS-TSON-TABLE-M0a](../language/copeland-ts-tson-tables-design-cts-tson-table-m0a.md) is the later documentation-only authority for table integration. It selects a dedicated nominal table-root representation but changes none of this core closeout's implemented algebra or exclusions.
+[CTS-TSON-TABLE-M0a](../language/copeland-ts-tson-tables-design-cts-tson-table-m0a.md) selected the later nominal table-root integration; [CTS-TSON-TABLE-M3](copeland-ts-tson-table-closeout-cts-tson-table-m3.md) now closes that separate table ladder without changing this core closeout's historical algebra or exclusions.
 
 ## Closeout
 

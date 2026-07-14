@@ -59,4 +59,4 @@ The ledger has 13 rows: 12 `Satisfied`, 1 `Satisfied by inspection`, and zero `M
 
 No root arrays, runtime parsing/decoding/filesystem access, JSON, TSON Results/tables/optionality/interfaces/aliases, collection APIs or mutation syntax, reflection/`dynamic`/property enumeration, public runtime models, direct IL emission, NativeAOT claim, package update, commit, push, or publish was added. ARRAY-M1 is therefore honestly closed.
 
-[CTS-TSON-TABLE-M0a](../language/copeland-ts-tson-tables-design-cts-tson-table-m0a.md) is the next documentation-only integration authority. It reuses array-valued cells but keeps table columns distinct from `TsonArray`, selects a dedicated nominal table root, and does not change ARRAY-M1 behavior.
+[CTS-TSON-TABLE-M3](copeland-ts-tson-table-closeout-cts-tson-table-m3.md) closes the later table ladder. It reuses array-valued cells but keeps table columns distinct from `TsonArray`; it does not change ARRAY-M1 behavior.

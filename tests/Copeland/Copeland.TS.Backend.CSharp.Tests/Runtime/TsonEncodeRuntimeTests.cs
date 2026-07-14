@@ -320,6 +320,57 @@ public sealed class TsonEncodeRuntimeTests
         Assert.Equal(expected, TsonCanonicalPrinter.Print(read.Document!));
         Assert.True(TsonDocumentReader.ReadSelfDescribed(emptyText, TsonDocumentProfile.CanonicalTson).Success);
 
+        const string generationTwoSource = """
+            const $schema: string = "copeland://corpus/runtime-table-encoding";
+
+            record Point {
+                name: string;
+            }
+
+            enum State {
+                Off,
+                Named(label: string),
+            }
+
+            record table Samples from tsonAsset("./generation-1.tson") {
+                active: boolean;
+                score: number;
+                point: Point;
+                state: State;
+                values: number[][];
+            }
+
+            function encode(): string ! TsonEncodeError {
+                return tsonEncode(Samples);
+            }
+            """;
+        var generationTwoOptions = new CopelandCompilationOptions
+        {
+            SourcePath = "C:/generation-two/main.ts",
+            ProjectRoot = "C:/generation-two",
+            AssetSource = new InMemoryAssetSource(("C:/generation-two/generation-1.tson", expected)),
+        };
+        CopelandCompilation generationTwoCompilation = CopelandCompiler.CompileToMir(
+            generationTwoSource,
+            generationTwoOptions);
+        Assert.True(generationTwoCompilation.Success, string.Join(Environment.NewLine, generationTwoCompilation.Diagnostics));
+        CSharpCompilation generationTwoCSharp = CSharpBackend.Emit(generationTwoCompilation.MirCompilation!.Program!);
+        JavaScriptCompilation generationTwoJavaScript = JavaScriptBackend.Emit(generationTwoCompilation.MirCompilation.Program!);
+        RoslynCompileResult generationTwoGenerated = RoslynCompileHelper.CompileGeneratedSource(generationTwoCSharp.SourceText);
+        Assert.True(generationTwoGenerated.Success, string.Join(Environment.NewLine, generationTwoGenerated.Diagnostics));
+        string generationTwoCsharpText = ResultValue(Invoke(generationTwoGenerated, "encode"));
+        ProcessResult generationTwoNode = await RunNodeAsync(
+            generationTwoJavaScript.SourceText + "process.stdout.write(encode().$payload[0]);\n");
+        Assert.Equal(expected, generationTwoCsharpText);
+        Assert.Equal(expected, generationTwoNode.StdOut);
+        foreach (string forbidden in new[] { "generation-1.tson", "C:/generation-two", "authoring comment" })
+        {
+            Assert.DoesNotContain(forbidden, generationTwoCompilation.MirText!, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, generationTwoCSharp.SourceText, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, generationTwoJavaScript.SourceText!, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, generationTwoCsharpText, StringComparison.Ordinal);
+        }
+
         foreach (string forbidden in new[] { "empty.obj.ts", "authoring comment", "TsonDocument", "TsonValue", "System.IO", "Object.keys", "Object.getOwnPropertySymbols" })
         {
             Assert.DoesNotContain(forbidden, firstCompilation.MirText!, StringComparison.Ordinal);

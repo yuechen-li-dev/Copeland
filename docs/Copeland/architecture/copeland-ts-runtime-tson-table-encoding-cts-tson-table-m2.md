@@ -1,6 +1,6 @@
 # Copeland TS runtime TSON table encoding (CTS-TSON-TABLE-M2)
 
-**Status:** implemented runtime milestone. CTS-TSON-TABLE-M3 remains responsible for exhaustive two-generation closeout, broader adversarial matrices, retained-hash doctrine ratification, and final doctrine cleanup.
+**Status:** implemented runtime milestone, closed and ratified by [CTS-TSON-TABLE-M3](copeland-ts-tson-table-closeout-cts-tson-table-m3.md). M2 remains the implementation record; M3 supplies the two-generation closeout, adversarial matrix, retained-hash doctrine, and final routing cleanup.
 
 `tsonEncode(Samples)` is accepted only when `Samples` is the declaration-owned singleton of a statically known table in the current compilation unit. Row and column views, locals or parameters with a table type, nested tables, and Result-valued columns are not encoding roots. The unit must have a valid `$schema`; the returned type remains `string ! TsonEncodeError` with only `InvalidUnicode` and `OutputLimitExceeded` as ordinary errors.
 

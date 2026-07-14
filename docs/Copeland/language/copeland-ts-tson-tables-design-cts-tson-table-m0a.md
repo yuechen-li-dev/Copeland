@@ -1,6 +1,6 @@
 # Copeland TS TSON tables design (CTS-TSON-TABLE-M0a)
 
-**Status:** accepted design and architecture-audit authority, implemented through compiler-host semantic/canonical M0b and declaration-owned compile-time asset ingestion M1. Runtime table encoding remains deferred to M2.
+**Status:** accepted design and architecture-audit authority, implemented through compiler-host semantic/canonical M0b, declaration-owned compile-time asset ingestion M1, and runtime encoding M2. [CTS-TSON-TABLE-M3](../architecture/copeland-ts-tson-table-closeout-cts-tson-table-m3.md) closes the ladder; decoding and JSON remain deferred.
 
 ## Decision
 

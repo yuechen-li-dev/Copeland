@@ -231,7 +231,7 @@ Require-Condition ($mirText.Contains('ValidateTsonEncodingModel', [System.String
 Require-Condition ($mirText.Contains('MirTsonArrayPlan', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans must be owned by Copeland.TS.Mir."
 Require-Condition ($mirText.Contains('MaximumArrayLength', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans require a shared array limit."
 Require-Condition ($mirText.Contains('MirTableArrayConstant', [System.StringComparison]::Ordinal)) "TABLE-M1 array-valued cells require a closed MIR table-array constant."
-Require-Condition (-not $mirText.Contains('MirTsonTablePlan', [System.StringComparison]::Ordinal)) "TABLE-M1 must not begin runtime table encoding."
+Require-Condition ($mirText.Contains('class MirTsonTablePlan', [System.StringComparison]::Ordinal)) "TABLE-M2 runtime table encoding plans must be owned by Copeland.TS.Mir."
 
 $backendSources = @(
     Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File
