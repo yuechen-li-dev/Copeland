@@ -73,6 +73,35 @@ public sealed class RecordTypeSymbol(string name, RecordTypeId id) : TypeSymbol
     }
 }
 
+public readonly record struct TableTypeId(int Value) { public override string ToString() => $"t{Value}"; }
+public readonly record struct TableColumnId(TableTypeId TableTypeId, int Ordinal) { public override string ToString() => $"{TableTypeId}.c{Ordinal}"; }
+public readonly record struct TableRowFieldId(TableColumnId ColumnId) { public override string ToString() => $"{ColumnId}.f"; }
+
+public sealed class TableTypeSymbol(string name, TableTypeId id) : TypeSymbol
+{
+    private readonly List<TableColumnSymbol> _columns = [];
+    public override string Name { get; } = name;
+    public TableTypeId Id { get; } = id;
+    public TableRowTypeSymbol RowType { get; } = new(name + ".Row", id);
+    public IReadOnlyList<TableColumnSymbol> Columns => _columns;
+    public void AddColumn(TableColumnSymbol column) { _columns.Add(column); RowType.AddField(new TableRowFieldSymbol(column.Name, new TableRowFieldId(column.Id), column.Type)); }
+}
+
+public sealed class TableRowTypeSymbol(string name, TableTypeId tableId) : TypeSymbol
+{
+    private readonly List<TableRowFieldSymbol> _fields = [];
+    public override string Name { get; } = name;
+    public TableTypeId TableId { get; } = tableId;
+    public IReadOnlyList<TableRowFieldSymbol> Fields => _fields;
+    public void AddField(TableRowFieldSymbol field) => _fields.Add(field);
+}
+
+public sealed class ColumnTypeSymbol(TypeSymbol elementType) : TypeSymbol
+{
+    public TypeSymbol ElementType { get; } = elementType;
+    public override string Name => "column " + TypeText.FormatResultComponent(ElementType);
+}
+
 public static class TypeFacts
 {
     public static bool AreEquivalent(TypeSymbol left, TypeSymbol right)
@@ -85,6 +114,9 @@ public static class TypeFacts
         return (left, right) switch
         {
             (RecordTypeSymbol, RecordTypeSymbol) => false,
+            (TableTypeSymbol, TableTypeSymbol) => false,
+            (TableRowTypeSymbol, TableRowTypeSymbol) => false,
+            (ColumnTypeSymbol leftColumn, ColumnTypeSymbol rightColumn) => AreEquivalent(leftColumn.ElementType, rightColumn.ElementType),
             (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
                 AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)

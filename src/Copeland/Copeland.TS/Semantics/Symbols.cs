@@ -40,3 +40,15 @@ public sealed class RecordFieldSymbol(string name, RecordFieldId id, TypeSymbol 
     public RecordFieldId Id { get; } = id;
     public TypeSymbol Type { get; } = type;
 }
+
+public sealed class TableColumnSymbol(string name, TableColumnId id, TypeSymbol type) : Symbol(name)
+{
+    public TableColumnId Id { get; } = id;
+    public TypeSymbol Type { get; } = type;
+}
+
+public sealed class TableRowFieldSymbol(string name, TableRowFieldId id, TypeSymbol type) : Symbol(name)
+{
+    public TableRowFieldId Id { get; } = id;
+    public TypeSymbol Type { get; } = type;
+}

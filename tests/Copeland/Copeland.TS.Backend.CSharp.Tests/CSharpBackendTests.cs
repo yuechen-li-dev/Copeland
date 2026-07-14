@@ -12,6 +12,17 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
+    public void Valid_table_mir_is_rejected_without_a_partial_artifact()
+    {
+        var program = Lower("record table Samples { x: [1]; }");
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.SourceText);
+        Assert.Collection(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-CS-TABLE-0001", diagnostic.Id));
+    }
+
+    [Fact]
     public void Emits_record_mir_deterministically()
     {
         var program = Lower("record Point { x: number; } function main(): Point { return { x: 1 }; }");

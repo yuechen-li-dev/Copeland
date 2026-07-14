@@ -18,6 +18,10 @@ public static class JavaScriptBackend
         {
             return new JavaScriptCompilation(null, diagnostics);
         }
+        if (program.Tables.Count > 0)
+        {
+            return new JavaScriptCompilation(null, [new JavaScriptDiagnostic("COPE-JS-TABLE-0001", "Record table MIR is not supported by the JavaScript backend.")]);
+        }
         EnumCatalog catalog = ValidateProgram(program, diagnostics);
         if (diagnostics.Count > 0)
         {

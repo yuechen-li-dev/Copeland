@@ -75,6 +75,10 @@ public sealed class Parser
         }
         if (Current.Kind == SyntaxKind.RecordKeyword)
         {
+            if (Peek(1).Kind == SyntaxKind.TableKeyword)
+            {
+                return ParseTableDeclaration();
+            }
             return ParseRecordDeclaration(null);
         }
 
@@ -205,6 +209,7 @@ public sealed class Parser
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
             SyntaxKind.ForKeyword => ParseForStatement(),
             SyntaxKind.ReturnKeyword => ParseReturnStatement(),
+            SyntaxKind.RecordKeyword when Peek(1).Kind == SyntaxKind.TableKeyword => new NestedTableDeclarationStatementSyntax(ParseTableDeclaration()),
             SyntaxKind.RecordKeyword => new NestedRecordDeclarationStatementSyntax(ParseRecordDeclaration(null)),
             _ => ParseExpressionStatementOrRecovery(),
         };
@@ -319,14 +324,40 @@ public sealed class Parser
         return new RecordDeclarationSyntax(constKeyword, recordKeyword, identifier, openBraceToken, fields, closeBraceToken);
     }
 
+    private TableDeclarationSyntax ParseTableDeclaration()
+    {
+        var recordKeyword = Match(SyntaxKind.RecordKeyword);
+        var tableKeyword = Match(SyntaxKind.TableKeyword);
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        var openBrace = Match(SyntaxKind.OpenBraceToken);
+        var columns = new List<TableColumnSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            var name = Match(SyntaxKind.IdentifierToken);
+            var colon = Match(SyntaxKind.ColonToken);
+            TypeSyntax? explicitType = null;
+            SyntaxToken? equals = null;
+            if (Current.Kind != SyntaxKind.OpenBracketToken)
+            {
+                explicitType = ParseTypeSyntax();
+                equals = Match(SyntaxKind.EqualsToken);
+            }
+            var cells = Current.Kind == SyntaxKind.OpenBracketToken
+                ? ParseArrayLiteralExpression()
+                : new ArrayLiteralExpressionSyntax(MissingToken(SyntaxKind.OpenBracketToken, Current.Position), [], [], MissingToken(SyntaxKind.CloseBracketToken, Current.Position));
+            columns.Add(new TableColumnSyntax(name, colon, explicitType, equals, cells, Match(SyntaxKind.SemicolonToken)));
+        }
+        return new TableDeclarationSyntax(recordKeyword, tableKeyword, identifier, openBrace, columns, Match(SyntaxKind.CloseBraceToken));
+    }
+
     private TypeSyntax ParsePostfixTypeSyntax()
     {
         TypeSyntax type = Current.Kind switch
         {
             SyntaxKind.NumberKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
                 => new PredefinedTypeSyntax(NextToken()),
-            SyntaxKind.IdentifierToken
-                => new IdentifierTypeSyntax(NextToken()),
+            SyntaxKind.IdentifierToken => ParseIdentifierOrQualifiedRowType(),
+            SyntaxKind.ColumnKeyword => new ColumnTypeSyntax(NextToken(), ParsePostfixTypeSyntax()),
             SyntaxKind.OpenParenToken
                 => ParseParenthesizedTypeSyntax(),
             _ => ParseMissingTypeSyntax(),
@@ -350,6 +381,17 @@ public sealed class Parser
         }
 
         return type;
+    }
+
+    private TypeSyntax ParseIdentifierOrQualifiedRowType()
+    {
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        if (Current.Kind == SyntaxKind.DotToken && Peek(1).Kind == SyntaxKind.IdentifierToken)
+        {
+            var dot = Match(SyntaxKind.DotToken);
+            return new QualifiedRowTypeSyntax(identifier, dot, Match(SyntaxKind.IdentifierToken));
+        }
+        return new IdentifierTypeSyntax(identifier);
     }
 
     private ParenthesizedTypeSyntax ParseParenthesizedTypeSyntax()
@@ -466,7 +508,7 @@ public sealed class Parser
         if (Current.Kind == SyntaxKind.EqualsToken)
         {
             var equalsToken = Match(SyntaxKind.EqualsToken);
-            if (left is not NameExpressionSyntax and not MemberAccessExpressionSyntax)
+            if (left is not NameExpressionSyntax and not MemberAccessExpressionSyntax and not IndexExpressionSyntax)
             {
                 _diagnostics.Report("COPE-PARSE-0005", "Invalid assignment target.", left is MissingExpressionSyntax ? equalsToken.Position : equalsToken.Position - 1, 1);
             }
@@ -547,6 +589,13 @@ public sealed class Parser
                 }
 
                 expression = new PropagateExpressionSyntax(expression, questionToken);
+                continue;
+            }
+            if (Current.Kind == SyntaxKind.OpenBracketToken)
+            {
+                var open = Match(SyntaxKind.OpenBracketToken);
+                var index = ParseExpression();
+                expression = new IndexExpressionSyntax(expression, open, index, Match(SyntaxKind.CloseBracketToken));
                 continue;
             }
 

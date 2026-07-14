@@ -28,6 +28,10 @@ public static class CSharpBackend
         {
             return new CSharpCompilation(string.Empty, diagnostics);
         }
+        if (program.Tables.Count > 0)
+        {
+            return new CSharpCompilation(string.Empty, [new CSharpDiagnostic("COPE-CS-TABLE-0001", "Record table MIR is not supported by the C# backend.")]);
+        }
         var writer = new CSharpTextWriter();
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var recordsById = program.Records.ToDictionary(record => record.Id);

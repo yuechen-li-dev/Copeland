@@ -1,6 +1,6 @@
 # Copeland TS immutable record tables design (CTS-TABLE-M0a)
 
-**Status:** accepted implementation design. CTS-TABLE-M0a is documentation only; no table syntax or behavior is implemented by this milestone.
+**Status:** accepted implementation design. CTS-TABLE-M0a was documentation only; CTS-TABLE-M0b implements the source-to-canonical-MIR slice described here. See [the M0b frontend and MIR architecture note](../architecture/copeland-ts-record-table-frontend-and-mir-cts-table-m0b.md).
 
 ## Decision
 

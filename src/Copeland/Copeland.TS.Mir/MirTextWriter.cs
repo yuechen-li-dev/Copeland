@@ -33,6 +33,14 @@ public static class MirTextWriter
             }
         }
 
+        foreach (var table in program.Tables)
+        {
+            sb.AppendLine();
+            sb.Append("table ").Append(table.Name).Append(" [").Append(table.Id).Append("] row [").Append(table.RowTypeId).Append("] count ").AppendLine(table.RowCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (var column in table.Columns)
+                sb.Append("  column ").Append(column.Name).Append(" [").Append(column.Id).Append("]: ").Append(column.ElementType.Name).Append(" = [").Append(string.Join(", ", column.Constants.Select(FormatTableConstant))).AppendLine("]");
+        }
+
         foreach (var function in program.Functions)
         {
             sb.AppendLine();
@@ -113,6 +121,11 @@ public static class MirTextWriter
         MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
         MirRecordConstructionExpression construction => $"record-new [{construction.RecordTypeId}] {{ {string.Join(", ", construction.Initializers.Select(FormatRecordFieldValue))} }}",
         MirRecordFieldAccessExpression access => $"record-get [{access.RecordTypeId}] {FormatExpression(access.Receiver)}.[{access.FieldId}]",
+        MirTableReferenceExpression table => $"table-ref [{table.TableId}]",
+        MirTableColumnAccessExpression access => $"table-column [{access.TableId}] {FormatExpression(access.Receiver)}.[{access.ColumnId}]",
+        MirTableRowAccessExpression access => $"table-row [{access.TableId}] {FormatExpression(access.Receiver)}[{FormatExpression(access.Index)}]",
+        MirColumnElementAccessExpression access => $"column-element {FormatExpression(access.Receiver)}[{FormatExpression(access.Index)}]",
+        MirTableRowFieldAccessExpression access => $"table-row-field [{access.RowTypeId}] {FormatExpression(access.Receiver)}.[{access.FieldId}]",
         MirRecordWithExpression withExpression => $"record-with [{withExpression.RecordTypeId}] {FormatExpression(withExpression.Source)} {{ {string.Join(", ", withExpression.Replacements.Select(FormatRecordFieldValue))} }}",
         MirEnumValueExpression e => $"enum {e.EnumName}.{e.CaseName}{(e.Arguments.Count == 0 ? string.Empty : $"({string.Join(", ", e.Arguments.Select(FormatExpression))})")}",
         MirMatchExpression m => $"match {FormatExpression(m.Scrutinee)} : {m.Type.Name} {{ {string.Join(" | ", m.Arms.Select(FormatArm))} }}",
@@ -124,6 +137,15 @@ public static class MirTextWriter
         MirUnwrapExpression unwrap => $"unwrap {FormatExpression(unwrap.Operand)}",
         MirTryExpression tryExpression => FormatTryExpression(tryExpression),
         _ => expr.ToString() ?? "<expr>"
+    };
+
+    private static string FormatTableConstant(MirTableConstant constant) => constant switch
+    {
+        MirTableLiteralConstant literal => literal.Value switch { string text => $"\"{text}\"", bool boolean => boolean ? "true" : "false", _ => Convert.ToString(literal.Value, System.Globalization.CultureInfo.InvariantCulture) ?? "null" },
+        MirTableRecordConstant record => $"record [{record.RecordTypeId}] {{ {string.Join(", ", record.Fields.Select(field => $"[{field.FieldId}]: {FormatTableConstant(field.Value)}"))} }}",
+        MirTableEnumConstant value => $"enum {value.EnumName}.{value.CaseName}{(value.Payloads.Count == 0 ? string.Empty : $"({string.Join(", ", value.Payloads.Select(FormatTableConstant))})")}",
+        MirTableResultConstant result => (result.IsOk ? "ok " : "err ") + FormatTableConstant(result.Payload),
+        _ => "<table-constant>",
     };
 
     private static string FormatRecordFieldValue(MirRecordFieldValue fieldValue)

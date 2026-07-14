@@ -8,11 +8,12 @@ public abstract class BoundExpression : BoundNode { public abstract TypeSymbol T
 
 public sealed class BoundProgram
 {
-    public BoundProgram(IReadOnlyList<BoundFunctionDeclaration> functions, IReadOnlyList<BoundEnumDeclaration> enums, IReadOnlyList<BoundRecordDeclaration> records, IReadOnlyList<BoundStatement> globalStatements) { Functions = functions; Enums = enums; Records = records; GlobalStatements = globalStatements; }
+    public BoundProgram(IReadOnlyList<BoundFunctionDeclaration> functions, IReadOnlyList<BoundEnumDeclaration> enums, IReadOnlyList<BoundRecordDeclaration> records, IReadOnlyList<BoundStatement> globalStatements, IReadOnlyList<BoundTableDefinition>? tables = null) { Functions = functions; Enums = enums; Records = records; GlobalStatements = globalStatements; Tables = tables ?? []; }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
     public IReadOnlyList<BoundRecordDeclaration> Records { get; }
     public IReadOnlyList<BoundStatement> GlobalStatements { get; }
+    public IReadOnlyList<BoundTableDefinition> Tables { get; }
 }
 public sealed class BoundCompilation
 {
@@ -25,6 +26,44 @@ public sealed class BoundCompilation
 public sealed class BoundFunctionDeclaration : BoundNode { public BoundFunctionDeclaration(FunctionSymbol symbol, BoundBlockStatement body) { Symbol = symbol; Body = body; } public FunctionSymbol Symbol { get; } public BoundBlockStatement Body { get; } }
 public sealed class BoundEnumDeclaration : BoundNode { public BoundEnumDeclaration(EnumTypeSymbol enumType) => EnumType = enumType; public EnumTypeSymbol EnumType { get; } }
 public sealed class BoundRecordDeclaration : BoundNode { public BoundRecordDeclaration(RecordTypeSymbol recordType) => RecordType = recordType; public RecordTypeSymbol RecordType { get; } }
+public sealed class BoundTableDefinition(TableTypeSymbol tableType, IReadOnlyList<BoundTableColumnDefinition> columns, int rowCount) : BoundNode
+{ public TableTypeSymbol TableType { get; } = tableType; public IReadOnlyList<BoundTableColumnDefinition> Columns { get; } = columns; public int RowCount { get; } = rowCount; }
+public abstract class BoundTableConstant(TypeSymbol type) : BoundNode
+{
+    public TypeSymbol Type { get; } = type;
+}
+
+public sealed class BoundTableLiteralConstant(object value, TypeSymbol type) : BoundTableConstant(type)
+{
+    public object Value { get; } = value;
+}
+
+public sealed class BoundTableRecordConstant(RecordTypeSymbol recordType, IReadOnlyList<BoundTableRecordFieldConstant> fields) : BoundTableConstant(recordType)
+{
+    public RecordTypeSymbol RecordType { get; } = recordType;
+    public IReadOnlyList<BoundTableRecordFieldConstant> Fields { get; } = fields;
+}
+
+public sealed class BoundTableRecordFieldConstant(RecordFieldSymbol field, BoundTableConstant value) : BoundNode
+{
+    public RecordFieldSymbol Field { get; } = field;
+    public BoundTableConstant Value { get; } = value;
+}
+
+public sealed class BoundTableEnumConstant(EnumCaseSymbol @case, IReadOnlyList<BoundTableConstant> payloads) : BoundTableConstant(@case.EnumType)
+{
+    public EnumCaseSymbol Case { get; } = @case;
+    public IReadOnlyList<BoundTableConstant> Payloads { get; } = payloads;
+}
+
+public sealed class BoundTableResultConstant(bool isOk, BoundTableConstant payload, ResultTypeSymbol type) : BoundTableConstant(type)
+{
+    public bool IsOk { get; } = isOk;
+    public BoundTableConstant Payload { get; } = payload;
+}
+
+public sealed class BoundTableColumnDefinition(TableColumnSymbol column, IReadOnlyList<BoundTableConstant> cells) : BoundNode
+{ public TableColumnSymbol Column { get; } = column; public IReadOnlyList<BoundTableConstant> Cells { get; } = cells; }
 public sealed class BoundBlockStatement : BoundStatement { public BoundBlockStatement(IReadOnlyList<BoundStatement> statements) => Statements = statements; public IReadOnlyList<BoundStatement> Statements { get; } }
 public sealed class BoundVariableDeclaration : BoundStatement { public BoundVariableDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
 public sealed class BoundExpressionStatement : BoundStatement { public BoundExpressionStatement(BoundExpression expression) => Expression = expression; public BoundExpression Expression { get; } }
@@ -196,6 +235,11 @@ public sealed class BoundRecordFieldAccessExpression(BoundExpression receiver, R
     public RecordFieldSymbol Field { get; } = field;
     public override TypeSymbol Type => Field.Type;
 }
+public sealed class BoundTableReferenceExpression(TableTypeSymbol tableType) : BoundExpression { public TableTypeSymbol TableType { get; } = tableType; public override TypeSymbol Type => TableType; }
+public sealed class BoundTableColumnAccessExpression(BoundExpression receiver, TableTypeSymbol tableType, TableColumnSymbol column) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public TableTypeSymbol TableType { get; } = tableType; public TableColumnSymbol Column { get; } = column; public override TypeSymbol Type => new ColumnTypeSymbol(Column.Type); }
+public sealed class BoundTableRowAccessExpression(BoundExpression receiver, BoundExpression index, TableTypeSymbol tableType, ResultTypeSymbol type) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public BoundExpression Index { get; } = index; public TableTypeSymbol TableType { get; } = tableType; private ResultTypeSymbol TypeImpl { get; } = type; public override TypeSymbol Type => TypeImpl; }
+public sealed class BoundColumnElementAccessExpression(BoundExpression receiver, BoundExpression index, ResultTypeSymbol type) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public BoundExpression Index { get; } = index; private ResultTypeSymbol TypeImpl { get; } = type; public override TypeSymbol Type => TypeImpl; }
+public sealed class BoundTableRowFieldAccessExpression(BoundExpression receiver, TableRowTypeSymbol rowType, TableRowFieldSymbol field) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public TableRowTypeSymbol RowType { get; } = rowType; public TableRowFieldSymbol Field { get; } = field; public override TypeSymbol Type => Field.Type; }
 public sealed class BoundRecordWithExpression(BoundExpression source, RecordTypeSymbol recordType, IReadOnlyList<BoundRecordFieldInitializer> replacements) : BoundExpression
 {
     public BoundExpression Source { get; } = source;

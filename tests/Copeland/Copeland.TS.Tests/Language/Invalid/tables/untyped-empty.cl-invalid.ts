@@ -1,0 +1,3 @@
+record table Empty {
+    x: [];
+}

@@ -11,6 +11,17 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptBackendTests
 {
     [Fact]
+    public void Valid_table_mir_is_rejected_without_a_partial_artifact()
+    {
+        MirProgram program = Lower("record table Samples { x: [1]; }");
+
+        JavaScriptCompilation compilation = JavaScriptBackend.Emit(program);
+
+        Assert.Null(compilation.SourceText);
+        Assert.Collection(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-JS-TABLE-0001", diagnostic.Id));
+    }
+
+    [Fact]
     public void Emits_Private_Nominal_Frozen_Record_Representation_Deterministically()
     {
         MirProgram program = Lower("record Point { x: number; } function main(): Point { return { x: 1 }; }");

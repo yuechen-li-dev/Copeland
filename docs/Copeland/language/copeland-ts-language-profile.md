@@ -1,6 +1,6 @@
 # Copeland TS language profile
 
-**Status:** canonical product-language profile through CTS-TABLE-M0a. Immutable nominal records are implemented and closed; immutable record tables have an accepted documentation-only design and remain unimplemented.
+**Status:** canonical product-language profile through CTS-TABLE-M0b. Immutable nominal records are implemented and closed; immutable record tables have a source-to-canonical-MIR frontend and deliberate executable-backend rejection.
 
 ## Position
 

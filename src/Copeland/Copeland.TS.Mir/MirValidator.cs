@@ -8,6 +8,7 @@ public static class MirValidator
     {
         var diagnostics = new List<MirValidationDiagnostic>();
         ValidateRecordModel(program, diagnostics);
+        ValidateTableModel(program, diagnostics);
         foreach (var function in program.Functions)
         {
             var handlerIds = new HashSet<MirHandlerId>();
@@ -17,6 +18,242 @@ public static class MirValidator
 
         return diagnostics;
     }
+
+    private static void ValidateTableModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (program.Tables.Count > 0)
+        {
+            ValidateTableBoundsErrorDefinition(program.Enums, diagnostics);
+        }
+        var tables = new Dictionary<MirTableId, MirTableDefinition>();
+        var tableNames = new HashSet<string>(StringComparer.Ordinal);
+        var rowTypeIds = new HashSet<string>(StringComparer.Ordinal);
+        var columns = new Dictionary<MirTableColumnId, MirTableColumnDefinition>();
+        foreach (var table in program.Tables)
+        {
+            if (string.IsNullOrWhiteSpace(table.Id.Value) || !tables.TryAdd(table.Id, table))
+                diagnostics.Add(new MirValidationDiagnostic($"Table has a blank or duplicate identity '{table.Id}'."));
+            if (string.IsNullOrWhiteSpace(table.Name) || !tableNames.Add(table.Name))
+                diagnostics.Add(new MirValidationDiagnostic($"Table has a blank or duplicate name '{table.Name}'."));
+            if (string.IsNullOrWhiteSpace(table.RowTypeId) || !rowTypeIds.Add(table.RowTypeId))
+                diagnostics.Add(new MirValidationDiagnostic($"Table '{table.Name}' has a blank or duplicate row type identity '{table.RowTypeId}'."));
+            if (table.Columns.Count == 0)
+                diagnostics.Add(new MirValidationDiagnostic($"Table '{table.Name}' must have at least one column."));
+            if (table.RowCount < 0)
+                diagnostics.Add(new MirValidationDiagnostic($"Table '{table.Name}' has a negative row count."));
+
+            var columnNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var column in table.Columns)
+            {
+                if (string.IsNullOrWhiteSpace(column.Id.Value) || !columns.TryAdd(column.Id, column))
+                    diagnostics.Add(new MirValidationDiagnostic($"Table '{table.Name}' has a blank or duplicate column identity '{column.Id}'."));
+                if (string.IsNullOrWhiteSpace(column.Name) || !columnNames.Add(column.Name))
+                    diagnostics.Add(new MirValidationDiagnostic($"Table '{table.Name}' has a blank or duplicate column name '{column.Name}'."));
+                if (column.ElementType.Identifier is "error" or "void")
+                    diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' has an invalid element type."));
+                if (column.Constants.Count != table.RowCount)
+                    diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' has {column.Constants.Count} constants but row count is {table.RowCount}."));
+                foreach (var constant in column.Constants)
+                {
+                    if (!MirTypeFacts.AreEquivalent(constant.Type, column.ElementType))
+                        diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{table.Name}.{column.Name}' does not match the column element type."));
+                    ValidateTableConstant(constant, column.ElementType, program, diagnostics, $"{table.Name}.{column.Name}");
+                }
+            }
+        }
+
+        foreach (var function in program.Functions)
+        {
+            ValidateTableType(function.ReturnType, tables, rowTypeIds, diagnostics, $"function '{function.Name}' return");
+            foreach (var parameter in function.Parameters) ValidateTableType(parameter.Type, tables, rowTypeIds, diagnostics, $"parameter '{parameter.Name}'");
+            foreach (var local in function.Locals) ValidateTableType(local.Type, tables, rowTypeIds, diagnostics, $"local '{local.Name}'");
+            ValidateTableStatements(function.Body, tables, rowTypeIds, columns, diagnostics);
+        }
+    }
+
+    private static void ValidateTableBoundsErrorDefinition(IReadOnlyList<MirEnum> enums, List<MirValidationDiagnostic> diagnostics)
+    {
+        MirEnum[] matchingDefinitions = enums.Where(@enum => @enum.Name == "TableBoundsError").ToArray();
+        if (matchingDefinitions.Length != 1)
+        {
+            diagnostics.Add(new MirValidationDiagnostic("Table MIR requires the compiler-owned TableBoundsError enum."));
+            return;
+        }
+        MirEnum boundsError = matchingDefinitions[0];
+
+        bool hasInvalidIndex = boundsError.Cases.Any(@case => @case.Name == "InvalidIndex"
+            && @case.PayloadFields.Count == 1
+            && @case.PayloadFields[0].Name == "index"
+            && @case.PayloadFields[0].Type.Identifier == "number");
+        bool hasOutOfBounds = boundsError.Cases.Any(@case => @case.Name == "OutOfBounds"
+            && @case.PayloadFields.Count == 2
+            && @case.PayloadFields[0].Name == "index"
+            && @case.PayloadFields[0].Type.Identifier == "number"
+            && @case.PayloadFields[1].Name == "rowCount"
+            && @case.PayloadFields[1].Type.Identifier == "number");
+        if (!hasInvalidIndex || !hasOutOfBounds || boundsError.Cases.Count != 2)
+        {
+            diagnostics.Add(new MirValidationDiagnostic("TableBoundsError does not have its required compiler-owned cases and payload types."));
+        }
+    }
+
+    private static void ValidateTableConstant(MirTableConstant constant, MirType expectedType, MirProgram program, List<MirValidationDiagnostic> diagnostics, string context)
+    {
+        if (!MirTypeFacts.AreEquivalent(constant.Type, expectedType))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{context}' does not match the column element type."));
+        }
+
+        switch (constant)
+        {
+            case MirTableLiteralConstant literal when literal.Type.Identifier is "number" or "string" or "boolean":
+                return;
+            case MirTableRecordConstant record:
+                MirRecordDefinition? definition = program.Records.FirstOrDefault(candidate => candidate.Id == record.RecordTypeId);
+                if (definition is null || record.Type is not MirRecordType type || type.RecordTypeId != record.RecordTypeId)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table record constant in '{context}' has an unknown record identity."));
+                    return;
+                }
+                if (record.Fields.Count != definition.Fields.Count)
+                    diagnostics.Add(new MirValidationDiagnostic($"Table record constant in '{context}' does not provide every record field."));
+                foreach (var field in record.Fields)
+                {
+                    MirRecordFieldDefinition? fieldDefinition = definition.Fields.FirstOrDefault(candidate => candidate.Id == field.FieldId);
+                    if (fieldDefinition is null) diagnostics.Add(new MirValidationDiagnostic($"Table record constant in '{context}' has an unknown field identity '{field.FieldId}'."));
+                    else ValidateTableConstant(field.Value, fieldDefinition.Type, program, diagnostics, context);
+                }
+                return;
+            case MirTableEnumConstant value:
+                MirEnum? enumDefinition = program.Enums.FirstOrDefault(candidate => candidate.Name == value.EnumName);
+                MirEnumCase? @case = enumDefinition?.Cases.FirstOrDefault(candidate => candidate.Name == value.CaseName);
+                if (enumDefinition is null || @case is null || value.Type.Identifier != value.EnumName)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table enum constant in '{context}' has an unknown enum or case."));
+                    return;
+                }
+                if (value.Payloads.Count != @case.PayloadFields.Count)
+                    diagnostics.Add(new MirValidationDiagnostic($"Table enum constant in '{context}' has an invalid payload count."));
+                for (int index = 0; index < Math.Min(value.Payloads.Count, @case.PayloadFields.Count); index++)
+                    ValidateTableConstant(value.Payloads[index], @case.PayloadFields[index].Type, program, diagnostics, context);
+                return;
+            case MirTableResultConstant result:
+                ValidateTableConstant(result.Payload, result.IsOk ? result.Type.SuccessType : result.Type.ErrorType, program, diagnostics, context);
+                return;
+            default:
+                diagnostics.Add(new MirValidationDiagnostic($"Table constant in '{context}' is not a supported closed constant."));
+                return;
+        }
+    }
+
+    private static void ValidateTableType(MirType type, IReadOnlyDictionary<MirTableId, MirTableDefinition> tables, IReadOnlySet<string> rowTypeIds, List<MirValidationDiagnostic> diagnostics, string context)
+    {
+        switch (type)
+        {
+            case MirTableType table when !tables.ContainsKey(table.TableId):
+                diagnostics.Add(new MirValidationDiagnostic($"Table type '{table.TableId}' used by {context} has no definition."));
+                break;
+            case MirTableRowType row when !rowTypeIds.Contains(row.RowTypeId):
+                diagnostics.Add(new MirValidationDiagnostic($"Table row type '{row.RowTypeId}' used by {context} has no definition."));
+                break;
+            case MirColumnType column:
+                ValidateTableType(column.ElementType, tables, rowTypeIds, diagnostics, context);
+                break;
+            case MirArrayType array:
+                ValidateTableType(array.ElementType, tables, rowTypeIds, diagnostics, context);
+                break;
+            case MirResultType result:
+                ValidateTableType(result.SuccessType, tables, rowTypeIds, diagnostics, context);
+                ValidateTableType(result.ErrorType, tables, rowTypeIds, diagnostics, context);
+                break;
+        }
+    }
+
+    private static void ValidateTableStatements(IReadOnlyList<MirStatement> statements, IReadOnlyDictionary<MirTableId, MirTableDefinition> tables, IReadOnlySet<string> rowTypeIds, IReadOnlyDictionary<MirTableColumnId, MirTableColumnDefinition> columns, List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (var statement in statements)
+        {
+            switch (statement)
+            {
+                case MirVariableDeclarationStatement declaration: ValidateTableExpression(declaration.Initializer, tables, rowTypeIds, columns, diagnostics); break;
+                case MirExpressionStatement expression: ValidateTableExpression(expression.Expression, tables, rowTypeIds, columns, diagnostics); break;
+                case MirReturnStatement { Expression: not null } returned: ValidateTableExpression(returned.Expression, tables, rowTypeIds, columns, diagnostics); break;
+                case MirIfStatement conditional:
+                    ValidateTableExpression(conditional.Condition, tables, rowTypeIds, columns, diagnostics);
+                    ValidateTableStatements(conditional.ThenStatements, tables, rowTypeIds, columns, diagnostics);
+                    if (conditional.ElseStatements is not null) ValidateTableStatements(conditional.ElseStatements, tables, rowTypeIds, columns, diagnostics);
+                    break;
+            }
+        }
+    }
+
+    private static void ValidateTableExpression(MirExpression expression, IReadOnlyDictionary<MirTableId, MirTableDefinition> tables, IReadOnlySet<string> rowTypeIds, IReadOnlyDictionary<MirTableColumnId, MirTableColumnDefinition> columns, List<MirValidationDiagnostic> diagnostics)
+    {
+        ValidateTableType(expression.Type, tables, rowTypeIds, diagnostics, "expression");
+        switch (expression)
+        {
+            case MirTableReferenceExpression reference:
+                if (!tables.TryGetValue(reference.TableId, out var table) || reference.Type is not MirTableType type || type.TableId != reference.TableId)
+                    diagnostics.Add(new MirValidationDiagnostic($"Table reference '{reference.TableId}' has an unknown identity or incorrect type."));
+                break;
+            case MirTableColumnAccessExpression access:
+                ValidateTableExpression(access.Receiver, tables, rowTypeIds, columns, diagnostics);
+                if (!tables.TryGetValue(access.TableId, out var owner) || !columns.TryGetValue(access.ColumnId, out var column) || !owner.Columns.Contains(column)
+                    || access.Receiver.Type is not MirTableType receiverType || receiverType.TableId != access.TableId
+                    || access.Type is not MirColumnType columnType || !MirTypeFacts.AreEquivalent(columnType.ElementType, column.ElementType))
+                    diagnostics.Add(new MirValidationDiagnostic($"Table column access '{access.ColumnId}' has an invalid table identity, receiver, or type."));
+                break;
+            case MirTableRowAccessExpression access:
+                ValidateTableExpression(access.Receiver, tables, rowTypeIds, columns, diagnostics);
+                ValidateTableExpression(access.Index, tables, rowTypeIds, columns, diagnostics);
+                if (!tables.TryGetValue(access.TableId, out var indexedTable)
+                    || access.Receiver.Type is not MirTableType tableReceiver || tableReceiver.TableId != access.TableId
+                    || access.Index.Type.Identifier != "number"
+                    || access.Type is not MirResultType { SuccessType: MirTableRowType row, ErrorType: MirNamedType rowError }
+                    || row.RowTypeId != indexedTable.RowTypeId || rowError.Identifier != "TableBoundsError")
+                    diagnostics.Add(new MirValidationDiagnostic($"Table row access '{access.TableId}' has an invalid receiver, index, or Result bounds type."));
+                break;
+            case MirColumnElementAccessExpression access:
+                ValidateTableExpression(access.Receiver, tables, rowTypeIds, columns, diagnostics);
+                ValidateTableExpression(access.Index, tables, rowTypeIds, columns, diagnostics);
+                if (access.Receiver.Type is not MirColumnType columnReceiver || access.Index.Type.Identifier != "number"
+                    || access.Type is not MirResultType { ErrorType: MirNamedType columnError } result
+                    || !MirTypeFacts.AreEquivalent(result.SuccessType, columnReceiver.ElementType) || columnError.Identifier != "TableBoundsError")
+                    diagnostics.Add(new MirValidationDiagnostic("Column element access has an invalid receiver, index, or Result bounds type."));
+                break;
+            case MirTableRowFieldAccessExpression access:
+                ValidateTableExpression(access.Receiver, tables, rowTypeIds, columns, diagnostics);
+                if (access.Receiver.Type is not MirTableRowType rowReceiver || rowReceiver.RowTypeId != access.RowTypeId || !rowTypeIds.Contains(access.RowTypeId))
+                    diagnostics.Add(new MirValidationDiagnostic($"Table row field access '{access.FieldId}' has an invalid row receiver or row type."));
+                break;
+            default:
+                foreach (var child in EnumerateTableExpressionChildren(expression)) ValidateTableExpression(child, tables, rowTypeIds, columns, diagnostics);
+                break;
+        }
+    }
+
+    private static IEnumerable<MirExpression> EnumerateTableExpressionChildren(MirExpression expression)
+        => expression switch
+        {
+            MirUnaryExpression unary => [unary.Operand],
+            MirBinaryExpression binary => [binary.Left, binary.Right],
+            MirAssignmentExpression assignment => [assignment.Expression],
+            MirCallExpression call => call.Arguments,
+            MirArrayExpression array => array.Elements,
+            MirRecordConstructionExpression record => record.Initializers.Select(value => value.Value),
+            MirRecordFieldAccessExpression access => [access.Receiver],
+            MirRecordWithExpression update => update.Replacements.Select(value => value.Value).Prepend(update.Source),
+            MirEnumValueExpression value => value.Arguments,
+            MirMatchExpression match => match.Arms.Select(arm => arm.Expression).Prepend(match.Scrutinee),
+            MirResultMatchExpression match => [match.Scrutinee, match.OkExpression, match.ErrExpression],
+            MirIfExpression conditional => [conditional.Condition, conditional.ThenExpression, conditional.ElseExpression],
+            MirOkExpression ok => [ok.Payload],
+            MirErrExpression err => [err.Payload],
+            MirPropagateExpression propagate => [propagate.Operand],
+            MirUnwrapExpression unwrap => [unwrap.Operand],
+            MirTryExpression value => value.Protected.PrefixStatements.OfType<MirExpressionStatement>().Select(statement => statement.Expression).Append(value.Protected.ValueExpression).Append(value.Handler.ValueExpression),
+            _ => [],
+        };
 
     private static void ValidateRecordModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
     {

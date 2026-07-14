@@ -25,9 +25,42 @@ public static class MirLowerer
     {
         var enums = program.Enums.Select(LowerEnum).ToArray();
         var records = program.Records.Select(LowerRecord).ToArray();
+        var tables = program.Tables.Select(LowerTable).ToArray();
         var functions = program.Functions.Select(LowerFunction).ToArray();
-        return new MirProgram(enums, records, functions);
+        return new MirProgram(enums, records, tables, functions);
     }
+
+    private static MirTableDefinition LowerTable(BoundTableDefinition definition)
+        => new(
+            new MirTableId(definition.TableType.Id.ToString()),
+            definition.TableType.Name,
+            definition.TableType.RowType.TableId + ".row",
+            definition.Columns.Select(column => new MirTableColumnDefinition(
+                new MirTableColumnId(column.Column.Id.ToString()),
+                column.Column.Name,
+                ToMirType(column.Column.Type),
+                column.Cells.Select(LowerTableConstant).ToArray())).ToArray(),
+            definition.RowCount);
+
+    private static MirTableConstant LowerTableConstant(BoundTableConstant constant)
+        => constant switch
+        {
+            BoundTableLiteralConstant literal => new MirTableLiteralConstant(literal.Value, ToMirType(literal.Type)),
+            BoundTableRecordConstant record => new MirTableRecordConstant(
+                ToMirRecordTypeId(record.RecordType.Id),
+                record.Fields.Select(field => new MirTableRecordFieldConstant(ToMirRecordFieldId(field.Field.Id), LowerTableConstant(field.Value))).ToArray(),
+                ToMirType(record.Type)),
+            BoundTableEnumConstant value => new MirTableEnumConstant(
+                value.Case.EnumType.Name,
+                value.Case.Name,
+                value.Payloads.Select(LowerTableConstant).ToArray(),
+                ToMirType(value.Type)),
+            BoundTableResultConstant result => new MirTableResultConstant(
+                result.IsOk,
+                LowerTableConstant(result.Payload),
+                (MirResultType)ToMirType(result.Type)),
+            _ => throw new InvalidOperationException($"Unsupported table constant {constant.GetType().Name}."),
+        };
 
     private static MirRecordDefinition LowerRecord(BoundRecordDeclaration declaration)
     {
@@ -122,6 +155,11 @@ public static class MirLowerer
                 ToMirRecordTypeId(access.RecordType.Id),
                 ToMirRecordFieldId(access.Field.Id),
                 ToMirType(access.Type)),
+            BoundTableReferenceExpression table => new MirTableReferenceExpression(new MirTableId(table.TableType.Id.ToString()), ToMirType(table.Type)),
+            BoundTableColumnAccessExpression access => new MirTableColumnAccessExpression(LowerExpression(access.Receiver), new MirTableId(access.TableType.Id.ToString()), new MirTableColumnId(access.Column.Id.ToString()), ToMirType(access.Type)),
+            BoundTableRowAccessExpression access => new MirTableRowAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), new MirTableId(access.TableType.Id.ToString()), ToMirType(access.Type)),
+            BoundColumnElementAccessExpression access => new MirColumnElementAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), ToMirType(access.Type)),
+            BoundTableRowFieldAccessExpression access => new MirTableRowFieldAccessExpression(LowerExpression(access.Receiver), access.RowType.TableId + ".row", access.Field.Id.ToString(), ToMirType(access.Type)),
             BoundRecordWithExpression withExpression => new MirRecordWithExpression(
                 LowerExpression(withExpression.Source),
                 ToMirRecordTypeId(withExpression.RecordType.Id),
@@ -152,6 +190,9 @@ public static class MirLowerer
         ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
         ResultTypeSymbol result => new MirResultType(ToMirType(result.SuccessType), ToMirType(result.ErrorType)),
         RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.Name),
+        TableTypeSymbol table => new MirTableType(new MirTableId(table.Id.ToString()), table.Name),
+        TableRowTypeSymbol row => new MirTableRowType(row.TableId + ".row", row.Name),
+        ColumnTypeSymbol column => new MirColumnType(ToMirType(column.ElementType)),
         _ => new MirNamedType(type.Name)
     };
 

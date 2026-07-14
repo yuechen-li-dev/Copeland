@@ -35,12 +35,16 @@ public static class Binder
         private readonly List<BoundFunctionDeclaration> _functions = [];
         private readonly List<BoundEnumDeclaration> _enums = [];
         private readonly List<BoundRecordDeclaration> _records = [];
+        private readonly List<BoundTableDefinition> _tables = [];
         private readonly List<BoundStatement> _globals = [];
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, TableTypeSymbol> _tableTypes = new(StringComparer.Ordinal);
+        private EnumTypeSymbol? _tableBoundsErrorType;
         private readonly List<PropagationTargetContext> _propagationTargets = [];
         private int _nextHandlerId = 1;
         private int _nextRecordTypeId = 1;
+        private int _nextTableTypeId = 1;
 
         private sealed class PropagationTargetContext(BoundHandlerId handlerId)
         {
@@ -52,20 +56,157 @@ public static class Binder
         public BoundCompilation Bind()
         {
             _scope = _global;
+            PredeclareTableBoundsError();
             PredeclareRecords(_tree.Root);
+            PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
             PredeclareFunctions(_tree.Root);
             BindRecordBodies(_tree.Root);
+            BindTableBodies(_tree.Root);
             BindEnumBodies(_tree.Root);
             ValidateRecordCycles();
             foreach (var m in _tree.Root.Members)
             {
                 if (m is FunctionDeclarationSyntax f) _functions.Add(BindFunction(f));
-                else if (m is EnumDeclarationSyntax e && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
+                else if (m is EnumDeclarationSyntax e && e.Identifier.Text != "TableBoundsError" && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
                 else if (m is RecordDeclarationSyntax r && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
                 else if (m is GlobalStatementMemberSyntax g) _globals.Add(BindStatement(g.Statement));
             }
-            return new BoundCompilation(_tree, new BoundProgram(_functions, _enums, _records, _globals), _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
+            if (_tables.Count > 0 && _tableBoundsErrorType is not null)
+            {
+                _enums.Insert(0, new BoundEnumDeclaration(_tableBoundsErrorType));
+            }
+            return new BoundCompilation(_tree, new BoundProgram(_functions, _enums, _records, _globals, _tables), _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
+        }
+
+        private void PredeclareTableBoundsError()
+        {
+            var tableBoundsError = new EnumTypeSymbol("TableBoundsError");
+            tableBoundsError.AddCase(new EnumCaseSymbol(
+                "InvalidIndex",
+                tableBoundsError,
+                [new EnumPayloadFieldSymbol("index", PrimitiveTypeSymbol.Number)]));
+            tableBoundsError.AddCase(new EnumCaseSymbol(
+                "OutOfBounds",
+                tableBoundsError,
+                [
+                    new EnumPayloadFieldSymbol("index", PrimitiveTypeSymbol.Number),
+                    new EnumPayloadFieldSymbol("rowCount", PrimitiveTypeSymbol.Number),
+                ]));
+            _tableBoundsErrorType = tableBoundsError;
+            _enumTypes.Add(tableBoundsError.Name, tableBoundsError);
+            _global.TryDeclare(new VariableSymbol(tableBoundsError.Name, tableBoundsError, true));
+        }
+
+        private void PredeclareTables(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<TableDeclarationSyntax>())
+            {
+                var table = new TableTypeSymbol(declaration.Identifier.Text, new TableTypeId(_nextTableTypeId++));
+                if (!_global.TryDeclare(new VariableSymbol(table.Name, table, true)) || _tableTypes.ContainsKey(table.Name))
+                {
+                    Report("COPE-TABLE-0002", $"Duplicate table declaration '{table.Name}'.", declaration.Identifier);
+                    continue;
+                }
+                _tableTypes.Add(table.Name, table);
+            }
+        }
+
+        private void BindTableBodies(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<TableDeclarationSyntax>())
+            {
+                if (!_tableTypes.TryGetValue(declaration.Identifier.Text, out var table)) continue;
+                if (declaration.Columns.Count == 0) Report("COPE-TABLE-0003", "A table requires at least one column.", declaration.Identifier);
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                var columns = new List<BoundTableColumnDefinition>();
+                int? rowCount = null;
+                foreach (var columnSyntax in declaration.Columns)
+                {
+                    if (!names.Add(columnSyntax.Identifier.Text)) { Report("COPE-TABLE-0004", $"Duplicate column '{columnSyntax.Identifier.Text}'.", columnSyntax.Identifier); continue; }
+                    TypeSymbol? explicitType = columnSyntax.ExplicitType is null ? null : BindType(columnSyntax.ExplicitType, columnSyntax.Identifier, "COPE-TABLE-0019", "table column");
+                    if (columnSyntax.ExplicitType is null && columnSyntax.Cells.Elements.Count == 0)
+                    {
+                        Report("COPE-TABLE-0005", "An empty table column requires an explicit element type.", columnSyntax.Identifier);
+                    }
+                    var boundCells = columnSyntax.Cells.Elements.Select(cell => BindExpression(cell, explicitType)).ToArray();
+                    var elementType = explicitType ?? boundCells.FirstOrDefault()?.Type ?? PrimitiveTypeSymbol.Error;
+                    if (!IsEligibleTableCellType(elementType, []))
+                    {
+                        Report("COPE-TABLE-0009", "Table column element types must be deeply immutable.", columnSyntax.Identifier);
+                    }
+                    var cells = new List<BoundTableConstant>();
+                    foreach (var cell in boundCells)
+                    {
+                        var constant = BindTableConstant(cell);
+                        if (constant is null) Report("COPE-TABLE-0009", "Table cells must be static deeply immutable constants.", columnSyntax.Identifier);
+                        else cells.Add(constant);
+                        if (!TypeFacts.AreEquivalent(elementType, cell.Type)) Report(explicitType is null ? "COPE-TABLE-0006" : "COPE-TABLE-0007", $"Table column '{columnSyntax.Identifier.Text}' has an incompatible cell type.", columnSyntax.Identifier);
+                    }
+                    if (rowCount is null) rowCount = boundCells.Length;
+                    else if (rowCount != boundCells.Length) Report("COPE-TABLE-0008", "Table columns must have equal lengths.", columnSyntax.Identifier);
+                    var column = new TableColumnSymbol(columnSyntax.Identifier.Text, new TableColumnId(table.Id, table.Columns.Count), elementType);
+                    table.AddColumn(column);
+                    columns.Add(new BoundTableColumnDefinition(column, cells));
+                }
+                _tables.Add(new BoundTableDefinition(table, columns, rowCount ?? 0));
+            }
+        }
+
+        private static BoundTableConstant? BindTableConstant(BoundExpression expression)
+            => expression switch
+            {
+                BoundLiteralExpression literal when literal.Value is not null => new BoundTableLiteralConstant(literal.Value, literal.Type),
+                BoundUnaryExpression { OperatorKind: SyntaxKind.MinusToken, Operand: BoundLiteralExpression literal }
+                    when literal.Type == PrimitiveTypeSymbol.Number && literal.Value is IConvertible number => new BoundTableLiteralConstant(-number.ToDouble(System.Globalization.CultureInfo.InvariantCulture), literal.Type),
+                BoundEnumValueExpression value => BindTableEnumConstant(value),
+                BoundOkExpression ok => BindTableResultConstant(true, ok.Payload, (ResultTypeSymbol)ok.Type),
+                BoundErrExpression err => BindTableResultConstant(false, err.Payload, (ResultTypeSymbol)err.Type),
+                BoundRecordConstructionExpression record => BindTableRecordConstant(record),
+                _ => null,
+            };
+
+        private static BoundTableConstant? BindTableEnumConstant(BoundEnumValueExpression value)
+        {
+            var payloads = value.Arguments.Select(BindTableConstant).ToArray();
+            return payloads.Any(payload => payload is null)
+                ? null
+                : new BoundTableEnumConstant(value.Case, payloads.Select(payload => payload!).ToArray());
+        }
+
+        private static BoundTableConstant? BindTableResultConstant(bool isOk, BoundExpression payload, ResultTypeSymbol type)
+        {
+            var constant = BindTableConstant(payload);
+            return constant is null ? null : new BoundTableResultConstant(isOk, constant, type);
+        }
+
+        private static BoundTableConstant? BindTableRecordConstant(BoundRecordConstructionExpression record)
+        {
+            var fields = new List<BoundTableRecordFieldConstant>();
+            foreach (var initializer in record.Initializers)
+            {
+                var constant = BindTableConstant(initializer.Value);
+                if (constant is null) return null;
+                fields.Add(new BoundTableRecordFieldConstant(initializer.Field, constant));
+            }
+            return new BoundTableRecordConstant(record.RecordType, fields);
+        }
+
+        private static bool IsEligibleTableCellType(TypeSymbol type, HashSet<TypeSymbol> visiting)
+        {
+            if (!visiting.Add(type)) return false;
+            bool eligible = type switch
+            {
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Number
+                    || primitive == PrimitiveTypeSymbol.String
+                    || primitive == PrimitiveTypeSymbol.Boolean => true,
+                EnumTypeSymbol @enum => @enum.Cases.All(@case => @case.PayloadFields.All(field => IsEligibleTableCellType(field.Type, visiting))),
+                RecordTypeSymbol record => record.Fields.All(field => IsEligibleTableCellType(field.Type, visiting)),
+                ResultTypeSymbol result => IsEligibleTableCellType(result.SuccessType, visiting) && IsEligibleTableCellType(result.ErrorType, visiting),
+                _ => false,
+            };
+            visiting.Remove(type);
+            return eligible;
         }
 
         private void PredeclareRecords(CompilationUnitSyntax root)
@@ -204,7 +345,17 @@ public static class Binder
         {
             foreach (var m in root.Members.OfType<EnumDeclarationSyntax>())
             {
+                if (m.Identifier.Text == "TableBoundsError")
+                {
+                    Report("COPE-TABLE-0002", "'TableBoundsError' is a compiler-owned table bounds enum.", m.Identifier);
+                    continue;
+                }
                 var enumType = new EnumTypeSymbol(m.Identifier.Text);
+                if (_tableTypes.ContainsKey(m.Identifier.Text))
+                {
+                    Report("COPE-TABLE-0002", $"Name '{m.Identifier.Text}' is already used by a record table.", m.Identifier);
+                    continue;
+                }
                 if (!_global.TryDeclare(new VariableSymbol(m.Identifier.Text, enumType, true)) || _enumTypes.ContainsKey(m.Identifier.Text))
                 {
                     Report("COPE-ENUM-0001", $"Duplicate enum declaration '{m.Identifier.Text}'.", m.Identifier);
@@ -218,6 +369,10 @@ public static class Binder
         {
             foreach (var decl in root.Members.OfType<EnumDeclarationSyntax>())
             {
+                if (decl.Identifier.Text == "TableBoundsError")
+                {
+                    continue;
+                }
                 if (!_enumTypes.TryGetValue(decl.Identifier.Text, out var enumType))
                     continue;
                 var seenCases = new HashSet<string>(StringComparer.Ordinal);
@@ -269,12 +424,19 @@ public static class Binder
             ForStatementSyntax f => BindFor(f),
             ReturnStatementSyntax r => BindReturn(r),
             NestedRecordDeclarationStatementSyntax nested => BindNestedRecord(nested),
+            NestedTableDeclarationStatementSyntax nested => BindNestedTable(nested),
             _ => new BoundExpressionStatement(new BoundErrorExpression())
         };
 
         private BoundStatement BindNestedRecord(NestedRecordDeclarationStatementSyntax nested)
         {
             Report("COPE-REC-0001", "Record declarations are allowed only at module scope.", nested.Declaration.RecordKeyword);
+            return new BoundExpressionStatement(new BoundErrorExpression());
+        }
+
+        private BoundStatement BindNestedTable(NestedTableDeclarationStatementSyntax nested)
+        {
+            Report("COPE-TABLE-0001", "Record table declarations are allowed only at module scope.", nested.Declaration.RecordKeyword);
             return new BoundExpressionStatement(new BoundErrorExpression());
         }
 
@@ -374,6 +536,7 @@ public static class Binder
                 ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
                 ObjectLiteralExpressionSyntax o => BindObject(o, contextualType),
                 MemberAccessExpressionSyntax m => BindMember(m),
+                IndexExpressionSyntax i => BindIndex(i),
                 WithExpressionSyntax w => BindWith(w),
                 IfExpressionSyntax i => BindIfExpression(i, contextualType),
                 MatchExpressionSyntax m => BindMatch(m, contextualType),
@@ -411,6 +574,7 @@ public static class Binder
             }
             return symbol switch
             {
+                VariableSymbol v when v.Type is TableTypeSymbol table => new BoundTableReferenceExpression(table),
                 VariableSymbol v => new BoundVariableExpression(v),
                 ParameterSymbol p => new BoundVariableExpression(new VariableSymbol(p.Name, p.Type, true)),
                 _ => new BoundErrorExpression()
@@ -443,6 +607,15 @@ public static class Binder
         private BoundExpression BindBinary(BinaryExpressionSyntax b)
         {
             var l = BindExpression(b.Left); var r = BindExpression(b.Right); var op = b.OperatorToken.Kind;
+            if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken)
+            {
+                if (l.Type is TableTypeSymbol or TableRowTypeSymbol or ColumnTypeSymbol
+                    || r.Type is TableTypeSymbol or TableRowTypeSymbol or ColumnTypeSymbol)
+                {
+                    Report("COPE-TABLE-0017", "Equality is not supported for table values, table rows, or columns.", b.OperatorToken);
+                    return new BoundErrorExpression();
+                }
+            }
             if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken
                 && (l.Type is RecordTypeSymbol || r.Type is RecordTypeSymbol))
             {
@@ -479,9 +652,27 @@ public static class Binder
 
         private BoundExpression BindAssignment(AssignmentExpressionSyntax a)
         {
+            if (a.Left is IndexExpressionSyntax indexed)
+            {
+                var receiver = BindExpression(indexed.Target);
+                _ = BindExpression(indexed.Index);
+                string diagnosticId = receiver.Type is ColumnTypeSymbol ? "COPE-TABLE-0015" : "COPE-TABLE-0016";
+                Report(diagnosticId, "Table columns and table rows are immutable.", a.EqualsToken);
+                return new BoundErrorExpression();
+            }
             if (a.Left is MemberAccessExpressionSyntax member)
             {
                 var receiver = BindExpression(member.Target);
+                if (receiver.Type is TableTypeSymbol)
+                {
+                    Report("COPE-TABLE-0014", "Table members are immutable.", member.NameToken);
+                    return new BoundErrorExpression();
+                }
+                if (receiver.Type is TableRowTypeSymbol)
+                {
+                    Report("COPE-TABLE-0016", "Table row fields are immutable.", member.NameToken);
+                    return new BoundErrorExpression();
+                }
                 if (receiver.Type is RecordTypeSymbol recordType)
                 {
                     var field = recordType.Fields.FirstOrDefault(candidate => candidate.Name == member.NameToken.Text);
@@ -509,6 +700,11 @@ public static class Binder
             }
             var variable = symbol as VariableSymbol ?? (symbol is ParameterSymbol p ? new VariableSymbol(p.Name, p.Type, true) : null);
             if (variable is null) { Report("COPE-BIND-0007", "Invalid assignment target.", n.IdentifierToken); return new BoundErrorExpression(); }
+            if (variable.Type is TableTypeSymbol && variable.IsReadOnly)
+            {
+                Report("COPE-TABLE-0014", "The authored table singleton is immutable.", n.IdentifierToken);
+                return new BoundErrorExpression();
+            }
             if (variable.IsReadOnly) Report("COPE-BIND-0003", $"Cannot assign to const variable '{variable.Name}'.", n.IdentifierToken);
             var expr = BindExpression(a.Right, variable.Type);
             if (!IsAssignable(variable.Type, expr.Type)) ReportTypeMismatch("COPE-TYPE-0001", variable.Type, expr.Type, a.EqualsToken);
@@ -633,6 +829,11 @@ public static class Binder
 
         private BoundExpression BindObject(ObjectLiteralExpressionSyntax literal, TypeSymbol? contextualType)
         {
+            if (contextualType is TableRowTypeSymbol)
+            {
+                Report("COPE-TABLE-0016", "Table-owned rows cannot be constructed from object literals.", literal.OpenBraceToken);
+                return new BoundErrorExpression();
+            }
             if (contextualType is not RecordTypeSymbol recordType)
             {
                 Report("COPE-REC-0005", "A record literal requires one expected nominal record type.", literal.OpenBraceToken);
@@ -846,6 +1047,18 @@ public static class Binder
                 return new BoundEnumValueExpression(@case, []);
             }
             var receiver = BindExpression(m.Target);
+            if (receiver.Type is TableTypeSymbol tableType)
+            {
+                var column = tableType.Columns.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
+                if (column is null) { Report("COPE-TABLE-0012", $"Table '{tableType.Name}' has no column '{m.NameToken.Text}'.", m.NameToken); return new BoundErrorExpression(); }
+                return new BoundTableColumnAccessExpression(receiver, tableType, column);
+            }
+            if (receiver.Type is TableRowTypeSymbol rowType)
+            {
+                var field = rowType.Fields.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
+                if (field is null) { Report("COPE-TABLE-0012", $"Row '{rowType.Name}' has no field '{m.NameToken.Text}'.", m.NameToken); return new BoundErrorExpression(); }
+                return new BoundTableRowFieldAccessExpression(receiver, rowType, field);
+            }
             if (receiver.Type is RecordTypeSymbol recordType)
             {
                 var field = recordType.Fields.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
@@ -860,9 +1073,43 @@ public static class Binder
             return new BoundErrorExpression();
         }
 
+        private BoundExpression BindIndex(IndexExpressionSyntax index)
+        {
+            var receiver = BindExpression(index.Target);
+            var boundIndex = BindExpression(index.Index);
+            if (!TypeFacts.AreEquivalent(boundIndex.Type, PrimitiveTypeSymbol.Number))
+            {
+                Report("COPE-TABLE-0013", "Table and column indexes must have type 'number'.", index.OpenBracketToken);
+                return new BoundErrorExpression();
+            }
+            TypeSymbol errorType = _tableBoundsErrorType as TypeSymbol ?? PrimitiveTypeSymbol.Error;
+            return receiver.Type switch
+            {
+                TableTypeSymbol table => new BoundTableRowAccessExpression(receiver, boundIndex, table, new ResultTypeSymbol(table.RowType, errorType)),
+                ColumnTypeSymbol column => new BoundColumnElementAccessExpression(receiver, boundIndex, new ResultTypeSymbol(column.ElementType, errorType)),
+                _ => ReportInvalidIndex(index)
+            };
+        }
+
+        private BoundExpression ReportInvalidIndex(IndexExpressionSyntax index)
+        {
+            Report("COPE-TABLE-0011", "Indexing is currently supported only for record tables and columns.", index.OpenBracketToken);
+            return new BoundErrorExpression();
+        }
+
         private BoundExpression BindWith(WithExpressionSyntax withExpression)
         {
             var source = BindExpression(withExpression.Source);
+            if (source.Type is TableRowTypeSymbol)
+            {
+                Report("COPE-TABLE-0016", "Table-owned rows cannot be updated with 'with'.", withExpression.WithKeyword);
+                return new BoundErrorExpression();
+            }
+            if (source.Type is TableTypeSymbol or ColumnTypeSymbol)
+            {
+                Report("COPE-TABLE-0014", "Table values and columns cannot be updated with 'with'.", withExpression.WithKeyword);
+                return new BoundErrorExpression();
+            }
             if (source.Type is not RecordTypeSymbol recordType)
             {
                 Report("COPE-REC-0012", $"A 'with' expression requires a record source, got '{source.Type.Name}'.", withExpression.WithKeyword);
@@ -913,11 +1160,20 @@ public static class Binder
                     _ => PrimitiveTypeSymbol.Error
                 },
                 ArrayTypeSyntax a => new ArrayTypeSymbol(BindType(a.ElementType, anchor, missingId, missingPrefix)),
+                ColumnTypeSyntax c => new ColumnTypeSymbol(BindType(c.ElementType, anchor, "COPE-TABLE-0019", "column element")),
+                QualifiedRowTypeSyntax q => ResolveQualifiedRowType(q),
                 ParenthesizedTypeSyntax p => BindType(p.Type, anchor, missingId, missingPrefix),
                 ResultTypeSyntax r => BindResultType(r, anchor, missingId, missingPrefix),
                 IdentifierTypeSyntax i => ResolveIdentifierType(i),
                 _ => PrimitiveTypeSymbol.Error
             };
+        }
+
+        private TypeSymbol ResolveQualifiedRowType(QualifiedRowTypeSyntax type)
+        {
+            if (_tableTypes.TryGetValue(type.TableIdentifier.Text, out var table) && type.RowIdentifier.Text == "Row") return table.RowType;
+            Report("COPE-TABLE-0019", $"Unknown table row type '{type.TableIdentifier.Text}.{type.RowIdentifier.Text}'.", type.TableIdentifier);
+            return PrimitiveTypeSymbol.Error;
         }
 
         private TypeSymbol BindResultType(ResultTypeSyntax type, SyntaxToken anchor, string missingId, string missingPrefix)
@@ -1067,6 +1323,11 @@ public static class Binder
             if (expected is RecordTypeSymbol && actual is RecordTypeSymbol)
             {
                 Report("COPE-REC-0015", $"Nominal record type mismatch: expected '{expected.Name}', got '{actual.Name}'.", anchor);
+                return;
+            }
+            if (expected is TableRowTypeSymbol && actual is TableRowTypeSymbol)
+            {
+                Report("COPE-TABLE-0018", $"Nominal table row type mismatch: expected '{expected.Name}', got '{actual.Name}'.", anchor);
                 return;
             }
             Report(fallbackId, $"Type mismatch: expected '{expected.Name}', got '{actual.Name}'.", anchor);

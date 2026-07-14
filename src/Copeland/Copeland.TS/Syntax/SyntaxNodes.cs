@@ -95,6 +95,18 @@ public sealed record ResultTypeSyntax(TypeSyntax SuccessType, SyntaxToken BangTo
     }
 }
 
+public sealed record QualifiedRowTypeSyntax(SyntaxToken TableIdentifier, SyntaxToken DotToken, SyntaxToken RowIdentifier) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.QualifiedRowType;
+    public override IEnumerable<object> GetChildren() { yield return TableIdentifier; yield return DotToken; yield return RowIdentifier; }
+}
+
+public sealed record ColumnTypeSyntax(SyntaxToken ColumnKeyword, TypeSyntax ElementType) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ColumnType;
+    public override IEnumerable<object> GetChildren() { yield return ColumnKeyword; yield return ElementType; }
+}
+
 public sealed record ParameterSyntax(SyntaxToken Identifier, SyntaxToken? ColonToken, TypeSyntax? Type) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.Parameter;
@@ -555,9 +567,25 @@ public sealed record PropagateExpressionSyntax(ExpressionSyntax Operand, SyntaxT
     }
 }
 
+public sealed record IndexExpressionSyntax(ExpressionSyntax Target, SyntaxToken OpenBracketToken, ExpressionSyntax Index, SyntaxToken CloseBracketToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.IndexExpression;
+    public override IEnumerable<object> GetChildren() { yield return Target; yield return OpenBracketToken; yield return Index; yield return CloseBracketToken; }
+}
+
 public sealed record NestedRecordDeclarationStatementSyntax(RecordDeclarationSyntax Declaration) : StatementSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.NestedRecordDeclarationStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Declaration;
+    }
+}
+
+public sealed record NestedTableDeclarationStatementSyntax(TableDeclarationSyntax Declaration) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.NestedTableDeclarationStatement;
 
     public override IEnumerable<object> GetChildren()
     {
@@ -613,6 +641,29 @@ public sealed record RecordFieldSyntax(
             yield return token;
         }
         yield return SemicolonToken;
+    }
+}
+
+public sealed record TableColumnSyntax(SyntaxToken Identifier, SyntaxToken ColonToken, TypeSyntax? ExplicitType, SyntaxToken? EqualsToken, ArrayLiteralExpressionSyntax Cells, SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TableColumn;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier; yield return ColonToken;
+        if (ExplicitType is not null) yield return ExplicitType;
+        if (EqualsToken is not null) yield return EqualsToken;
+        yield return Cells; yield return SemicolonToken;
+    }
+}
+
+public sealed record TableDeclarationSyntax(SyntaxToken RecordKeyword, SyntaxToken TableKeyword, SyntaxToken Identifier, SyntaxToken OpenBraceToken, IReadOnlyList<TableColumnSyntax> Columns, SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TableDeclaration;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return RecordKeyword; yield return TableKeyword; yield return Identifier; yield return OpenBraceToken;
+        foreach (var column in Columns) yield return column;
+        yield return CloseBraceToken;
     }
 }
 
