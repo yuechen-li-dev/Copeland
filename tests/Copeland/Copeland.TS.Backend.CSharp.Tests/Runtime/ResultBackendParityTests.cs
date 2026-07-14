@@ -10,6 +10,81 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class ResultBackendParityTests
 {
     [Fact]
+    public async Task JavaScript_And_CSharp_Record_Closeout_Matrix_Preserves_Control_Flow_And_Exactly_Once_Order()
+    {
+        const string source = """
+            record Point { x: number; y: number; }
+            record Box { point: Point; }
+            enum Choice { Some(point: Point), None, }
+
+            function make(x: number, y: number): Point { return { x: x, y: y }; }
+            function good(): Point ! string { return ok({ x: 40, y: 2 }); }
+            function bad(): Point ! string { return err("bad"); }
+            function consume(point: Point, later: number): number { return point.x + point.y + later; }
+
+            function main(): number {
+              let trace: number = 0;
+              const nested: Box = {
+                point: {
+                  y: trace = trace * 10 + 2,
+                  x: trace = trace * 10 + 1,
+                },
+              };
+              const argumentOrder: number = consume(
+                { x: trace = trace * 10 + 3, y: 0 },
+                trace = trace * 10 + 4
+              );
+              const conditionalAccess: number = (if true { make(5, 0) } else { bad()! }).x;
+              const enumAccess: number = (match Choice.Some(make(6, 0)) {
+                Some(point) => point,
+                None => bad()!,
+              }).x;
+              const resultAccess: number = (match good() {
+                ok(point) => point,
+                err(error) => bad()!,
+              }).x;
+              const unwrapAccess: number = good()!.y;
+              const handlerAccess: number = (try { good()? } except (error) { bad()! }).x;
+              const original: Point = { x: 7, y: 8 };
+              const updated: Point = (original with { x: 9 }) with { y: 10 };
+              const withArgument: number = consume(updated, 1);
+              const shortCircuited: boolean = false && bad()!.x == 0;
+              const branchValue: number = if shortCircuited { bad()!.x } else { 0 };
+              return trace
+                + nested.point.x + nested.point.y
+                + argumentOrder
+                + conditionalAccess
+                + enumAccess
+                + resultAccess
+                + unwrapAccess
+                + handlerAccess
+                + original.x + original.y
+                + updated.x + updated.y
+                + withArgument
+                + branchValue;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.True(javaScript.Success, string.Join(Environment.NewLine, javaScript.Diagnostics));
+        Assert.Empty(csharp.Diagnostics);
+
+        ProcessResult firstNode = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+        ProcessResult secondNode = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        Assert.Equal("4651\n", firstNode.StdOut);
+        Assert.Equal(firstNode, secondNode);
+        Assert.Equal(4651d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+        Assert.Equal(4651d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
     public async Task JavaScript_And_CSharp_Record_Vertical_Program_Returns_42_Repeatedly()
     {
         const string source = """

@@ -1,6 +1,6 @@
 # CTS-REC-M0b record frontend and language contracts
 
-> Historical milestone boundary: CTS-REC-M1 subsequently implemented C# realization and retired `COPE-CS-REC-0001` for valid MIR. JavaScript still retains its M0b rejection boundary.
+> Historical milestone boundary: CTS-REC-M1 and M2 subsequently implemented both backend realizations and retired the valid-record rejection diagnostics. CTS-REC-M3 now closes the ladder.
 
 CTS-REC-M0b consolidates the originally proposed syntax-only M0b, frontend/MIR M1, and source/bound/MIR portion of `with` from M4. The filesystem valid-fixture contract made a syntax-only stopping point untruthful: accepted fixtures must lower to canonical MIR, while contextual construction, field access, immutability, and `with` all require binding and type identity.
 
@@ -33,6 +33,6 @@ The remaining ladder is now:
 2. **CTS-REC-M0b:** complete source-to-bound-to-MIR contract, fixtures, diagnostics, `with`, and backend rejection (this milestone).
 3. **CTS-REC-M1:** C# backend realization and runtime/order evidence — implemented.
 4. **CTS-REC-M2:** JavaScript backend realization and Node/privacy evidence.
-5. **CTS-REC-M3:** cross-backend parity and closeout.
+5. **CTS-REC-M3:** cross-backend parity and closeout — implemented and closed.
 
 There is no future redundant frontend/MIR or `with`-frontend milestone. Equality, hashing, ordering, patterns, serialization, interop, recursion, defaults, methods, structural objects, and general object semantics remain excluded.

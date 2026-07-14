@@ -1,6 +1,6 @@
 # Copeland TS C# immutable records (CTS-REC-M1)
 
-**Status:** implemented C# backend realization and semantic oracle. [CTS-REC-M2](copeland-ts-javascript-records-cts-rec-m2.md) now supplies the JavaScript realization and parity evidence.
+**Status:** implemented C# backend realization and semantic oracle, ratified by [CTS-REC-M3](copeland-ts-immutable-records-closeout-cts-rec-m3.md). CTS-REC-M2 supplies the JavaScript realization.
 
 ## Representation
 
@@ -62,6 +62,6 @@ The representation is ordinary ahead-of-time-friendly C#: sealed classes, constr
 2. CTS-REC-M0b: frontend, type system, canonical MIR, validation, fixtures — implemented.
 3. CTS-REC-M1: C# backend — implemented here.
 4. CTS-REC-M2: JavaScript backend — complete after validation.
-5. CTS-REC-M3: cross-backend stress, diagnostic/doctrine ratification, and closeout.
+5. CTS-REC-M3: cross-backend stress, diagnostic/doctrine ratification, and closeout — implemented and closed.
 
 Equality, patterns, and serialization require separate approval. Tables and `record table` belong only to a separately deferred future ladder.

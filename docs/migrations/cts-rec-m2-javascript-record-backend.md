@@ -19,4 +19,4 @@ CTS-REC-M2 retires the valid-record `COPE-JS-REC-0001` gate and realizes canonic
 
 Record equality, hashing, ordering, patterns, destructuring, methods, classes, interfaces, inheritance, optional/default fields, mutable variants, spread, dictionaries, JSON, reflection, public JavaScript ABI, generic or recursive records, runtime packages, C# representation, and compiler-wide representation unification remain excluded. A record freezes its own shape and slots; contained values keep their own mutability law.
 
-CTS-REC-M3 remains the cross-backend stress, diagnostics/doctrine ratification, and closeout milestone. Record tables are not part of this ladder.
+CTS-REC-M3 completed the cross-backend stress, diagnostics/doctrine ratification, and closeout milestone. Record tables are not part of this ladder; CTS-TABLE-M0a is the recommended separate design/audit milestone.

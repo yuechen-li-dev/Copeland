@@ -143,7 +143,8 @@ public static class JavaScriptBackend
             case MirBinaryExpression binary:
                 bool isSupportedArithmetic = binary.Operator is "+" or "-" or "*" or "/" or "%";
                 bool isEquality = binary.Operator is "==" or "!=";
-                if (!isSupportedArithmetic && !isEquality)
+                bool isLogical = binary.Operator is "&&" or "||";
+                if (!isSupportedArithmetic && !isEquality && !isLogical)
                 {
                     AddUnsupported(diagnostics, $"binary operator '{binary.Operator}' in {context}");
                 }
@@ -158,6 +159,13 @@ public static class JavaScriptBackend
                 if (isEquality)
                 {
                     ValidatePrimitiveEquality(binary, context, diagnostics);
+                }
+
+                if (isLogical)
+                {
+                    RequireType(binary.Type, "boolean", $"logical expression in {context}", diagnostics);
+                    RequireType(binary.Left.Type, "boolean", $"left operand of logical expression in {context}", diagnostics);
+                    RequireType(binary.Right.Type, "boolean", $"right operand of logical expression in {context}", diagnostics);
                 }
 
                 ValidateExpression(binary.Left, functionReturnType, context, functions, catalog, diagnostics);
@@ -927,10 +935,44 @@ public static class JavaScriptBackend
     {
         EmittedExpression left = EmitExpression(binary.Left, function, catalog, results, names, flowEnabled);
         EmittedExpression right = EmitExpression(binary.Right, function, catalog, results, names, flowEnabled);
+        if (binary.Operator is "&&" or "||")
+        {
+            return EmitLogicalBinary(binary.Operator, left, right, names);
+        }
+
         return CombineOrdered(
             [left, right],
             names,
             values => $"({values[0]} {MapBinaryOperator(binary.Operator)} {values[1]})");
+    }
+
+    private static EmittedExpression EmitLogicalBinary(
+        string binaryOperator,
+        EmittedExpression left,
+        EmittedExpression right,
+        GeneratedNames names)
+    {
+        if (right.Prelude.Count == 0)
+        {
+            return new EmittedExpression(
+                left.Prelude,
+                $"({left.Value} {binaryOperator} {right.Value})");
+        }
+
+        string resultTemporary = names.NextTemporary("logical_result");
+        string branchCondition = binaryOperator == "&&" ? left.Value : $"!({left.Value})";
+        string shortCircuitValue = binaryOperator == "&&" ? "false" : "true";
+        var prelude = new List<EmittedLine>(left.Prelude)
+        {
+            new($"let {resultTemporary};", 0),
+            new($"if ({branchCondition}) {{", 0),
+        };
+        prelude.AddRange(right.Prelude.Select(line => line.OffsetBy(1)));
+        prelude.Add(new EmittedLine($"{resultTemporary} = {right.Value};", 1));
+        prelude.Add(new EmittedLine("} else {", 0));
+        prelude.Add(new EmittedLine($"{resultTemporary} = {shortCircuitValue};", 1));
+        prelude.Add(new EmittedLine("}", 0));
+        return new EmittedExpression(prelude, resultTemporary);
     }
 
     private static EmittedExpression EmitAssignment(MirAssignmentExpression assignment, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)

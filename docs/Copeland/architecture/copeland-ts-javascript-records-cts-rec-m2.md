@@ -1,6 +1,6 @@
 # Copeland TS JavaScript immutable records (CTS-REC-M2)
 
-**Status:** implemented JavaScript backend realization. CTS-REC-M0a, M0b, M1, and M2 are complete; CTS-REC-M3 owns final stress and doctrine closeout.
+**Status:** implemented JavaScript backend realization, ratified and closed by [CTS-REC-M3](copeland-ts-immutable-records-closeout-cts-rec-m3.md).
 
 ## Representation
 
@@ -60,6 +60,6 @@ Programs without record MIR retain their existing text and emit no record helper
 2. CTS-REC-M0b: frontend/MIR — complete.
 3. CTS-REC-M1: C# backend — complete.
 4. CTS-REC-M2: JavaScript backend — complete after validation.
-5. CTS-REC-M3: cross-backend stress, diagnostic/doctrine ratification, and closeout.
+5. CTS-REC-M3: cross-backend stress, diagnostic/doctrine ratification, and closeout — implemented and closed.
 
 Record tables and `record table` belong only to a separately deferred future ladder.

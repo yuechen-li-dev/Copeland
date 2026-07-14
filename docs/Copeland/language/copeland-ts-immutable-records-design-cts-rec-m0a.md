@@ -1,6 +1,6 @@
 # Copeland TS immutable nominal records design (CTS-REC-M0a)
 
-**Status:** accepted design authority. CTS-REC-M0b implements source through canonical MIR, CTS-REC-M1 implements C#, and [CTS-REC-M2](../architecture/copeland-ts-javascript-records-cts-rec-m2.md) implements deterministic JavaScript and C#/Node parity.
+**Status:** accepted design authority, ratified and closed by [CTS-REC-M3](../architecture/copeland-ts-immutable-records-closeout-cts-rec-m3.md). CTS-REC-M0b implements source through canonical MIR, CTS-REC-M1 implements C#, and CTS-REC-M2 implements deterministic JavaScript.
 
 ## Decision
 
@@ -32,7 +32,7 @@ const origin: Point = {
 
 This is not a JavaScript object literal with a structural type. The expected `Point` type selects one declared nominal record, and binding produces a dedicated record-construction node. A brace literal without an expected record type is rejected and never creates an anonymous type.
 
-M0a itself deliberately excluded production code, fixtures, and compiler behavior changes. CTS-REC-M0b subsequently made the source-to-MIR examples in this document accepted programs; backend realization examples remain design-only.
+M0a itself deliberately excluded production code, fixtures, and compiler behavior changes. CTS-REC-M0b subsequently made the source-to-MIR examples accepted programs, M1/M2 implemented both backend realizations, and M3 ratified their adversarial and parity evidence.
 
 ## Product boundary
 
@@ -398,7 +398,7 @@ Parser, bound-tree, `.cope`, C#, and JavaScript snapshot corpus files remain und
 | CTS-REC-M0b | Frontend and canonical MIR — complete. |
 | CTS-REC-M1 | C# backend — complete. |
 | CTS-REC-M2 | Private nominal frozen JavaScript representation, validators, isolation proofs, deterministic artifacts, and Node evidence — complete after validation. |
-| CTS-REC-M3 | Close out cross-backend parity, diagnostics, stress coverage, representation privacy, and artifact stability. Equality, hashing, ordering, destructuring/patterns, serialization, and interop require separately approved follow-ups. |
+| CTS-REC-M3 | Implemented closeout of cross-backend parity, diagnostics, stress coverage, representation privacy, and artifact stability. Equality, hashing, ordering, destructuring/patterns, serialization, and interop require separately approved follow-ups. |
 
 M1 and M2 may be combined only if implementation shows that the compiler facade cannot report an explicit unsupported-backend result without accepting a silently wrong artifact. Temporary JavaScript objects, C# anonymous types, structural type equality, or mutation-based `with` are not acceptable milestone bridges.
 

@@ -26,6 +26,6 @@ The representation deliberately adds no C# `record`, C# `with`, setters, equalit
 
 Complex record field receivers exposed a precedence defect in naive direct formatting: an assignment receiver required parentheses or C# parsed the field read as part of the assignment right-hand side. Field lowering now parenthesizes the single emitted receiver. C# reserved-keyword mangling was also completed so valid source identities such as `event` cannot break generated compilation; existing identifiers and corpus text remain stable.
 
-## Deferred
+## Closeout status
 
-CTS-REC-M2 owns JavaScript realization. CTS-REC-M3 owns cross-backend parity and closeout. Equality, patterns, serialization, recursive/generic records, interop, tables, and `record table` remain separately deferred.
+CTS-REC-M2 implemented JavaScript realization and CTS-REC-M3 closed cross-backend parity and doctrine. Equality, patterns, serialization, recursive/generic records, interop, tables, and `record table` remain separately deferred.

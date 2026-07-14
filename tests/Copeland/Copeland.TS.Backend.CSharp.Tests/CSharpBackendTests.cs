@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Copeland.TS.Backend.CSharp;
+using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Lowering;
 using Copeland.TS.Mir;
 using Copeland.TS.Syntax;
@@ -29,6 +30,20 @@ public sealed class CSharpBackendTests
 
         var generated = RoslynCompileHelper.CompileGeneratedSource(first.SourceText);
         Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+    }
+
+    [Fact]
+    public void Record_Support_Is_Demand_Driven_And_Does_Not_Pull_In_Result_Helpers()
+    {
+        string withoutRecords = Emit("function main(): number { return 42; }");
+        string recordsOnly = Emit(
+            "record Point { x: number; } function main(): Point { return { x: 42 }; }");
+
+        Assert.DoesNotContain("__CopeRecord_", withoutRecords, StringComparison.Ordinal);
+        Assert.Contains("__CopeRecord_r1", recordsOnly, StringComparison.Ordinal);
+        Assert.DoesNotContain("CopeResult<", recordsOnly, StringComparison.Ordinal);
+        Assert.DoesNotContain("CopeUnit", recordsOnly, StringComparison.Ordinal);
+        Assert.DoesNotContain("COPE-PANIC-UNWRAP", recordsOnly, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -72,6 +87,143 @@ public sealed class CSharpBackendTests
 
         Assert.Empty(compilation.SourceText);
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("unknown field identity", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Shared_Record_Mir_Closeout_Matrix_Rejects_Before_Either_Backend_Emits()
+    {
+        var number = new MirNamedType("number");
+        var text = new MirNamedType("string");
+        var firstId = new MirRecordTypeId("r1");
+        var secondId = new MirRecordTypeId("r2");
+        var missingId = new MirRecordTypeId("missing");
+        var xId = new MirRecordFieldId("r1.f0");
+        var yId = new MirRecordFieldId("r1.f1");
+        var otherXId = new MirRecordFieldId("r2.f0");
+        var unknownFieldId = new MirRecordFieldId("r1.f9");
+        var firstType = new MirRecordType(firstId, "First");
+        var secondType = new MirRecordType(secondId, "Second");
+        var missingType = new MirRecordType(missingId, "Missing");
+        var first = new MirRecordDefinition(firstId, "First", [
+            new MirRecordFieldDefinition(xId, "x", number),
+            new MirRecordFieldDefinition(yId, "y", number),
+        ]);
+        var second = new MirRecordDefinition(secondId, "Second", [
+            new MirRecordFieldDefinition(otherXId, "x", number),
+        ]);
+
+        MirRecordConstructionExpression CompleteFirst() => new(
+            firstId,
+            [
+                new MirRecordFieldValue(xId, new MirLiteralExpression(1, number)),
+                new MirRecordFieldValue(yId, new MirLiteralExpression(2, number)),
+            ],
+            firstType);
+
+        MirRecordConstructionExpression CompleteSecond() => new(
+            secondId,
+            [new MirRecordFieldValue(otherXId, new MirLiteralExpression(1, number))],
+            secondType);
+
+        MirProgram Returning(
+            MirExpression expression,
+            IReadOnlyList<MirRecordDefinition>? records = null,
+            IReadOnlyList<MirEnum>? enums = null)
+            => new(
+                enums ?? [],
+                records ?? [first, second],
+                [new MirFunction("main", [], expression.Type, [], [new MirReturnStatement(expression)])]);
+
+        var cases = new (string Expected, MirProgram Program)[]
+        {
+            (
+                "has no definition",
+                new MirProgram([], [], [
+                    new MirFunction("main", [], new MirResultType(missingType, text), [], []),
+                ])),
+            (
+                "enum 'Envelope' payload",
+                new MirProgram(
+                    [new MirEnum("Envelope", [new MirEnumCase("Value", [new MirEnumPayloadField("value", missingType)])])],
+                    [],
+                    [])),
+            (
+                "Duplicate record identity",
+                new MirProgram([], [first, new MirRecordDefinition(firstId, "Other", [])], [])),
+            (
+                "duplicate field name",
+                new MirProgram([], [new MirRecordDefinition(firstId, "First", [
+                    new MirRecordFieldDefinition(xId, "x", number),
+                    new MirRecordFieldDefinition(yId, "x", number),
+                ])], [])),
+            (
+                "missing field identity",
+                Returning(new MirRecordConstructionExpression(
+                    firstId,
+                    [new MirRecordFieldValue(xId, new MirLiteralExpression(1, number))],
+                    firstType))),
+            (
+                "unknown field identity",
+                Returning(new MirRecordConstructionExpression(
+                    firstId,
+                    [
+                        new MirRecordFieldValue(xId, new MirLiteralExpression(1, number)),
+                        new MirRecordFieldValue(yId, new MirLiteralExpression(2, number)),
+                        new MirRecordFieldValue(unknownFieldId, new MirLiteralExpression(3, number)),
+                    ],
+                    firstType))),
+            (
+                "duplicates field identity",
+                Returning(new MirRecordConstructionExpression(
+                    firstId,
+                    [
+                        new MirRecordFieldValue(xId, new MirLiteralExpression(1, number)),
+                        new MirRecordFieldValue(xId, new MirLiteralExpression(2, number)),
+                    ],
+                    firstType))),
+            (
+                "value type does not match",
+                Returning(new MirRecordConstructionExpression(
+                    firstId,
+                    [
+                        new MirRecordFieldValue(xId, new MirLiteralExpression("wrong", text)),
+                        new MirRecordFieldValue(yId, new MirLiteralExpression(2, number)),
+                    ],
+                    firstType))),
+            (
+                "access receiver type does not match",
+                Returning(new MirRecordFieldAccessExpression(CompleteSecond(), firstId, xId, number))),
+            (
+                "source or result type does not match",
+                Returning(new MirRecordWithExpression(
+                    CompleteSecond(),
+                    firstId,
+                    [new MirRecordFieldValue(xId, new MirLiteralExpression(2, number))],
+                    firstType))),
+            (
+                "replacements must not be empty",
+                Returning(new MirRecordWithExpression(CompleteFirst(), firstId, [], firstType))),
+            (
+                "Recursive record definition",
+                new MirProgram([], [new MirRecordDefinition(firstId, "First", [
+                    new MirRecordFieldDefinition(xId, "self", firstType),
+                ])], [])),
+        };
+
+        foreach ((string expected, MirProgram program) in cases)
+        {
+            CSharpCompilation csharp = CSharpBackend.Emit(program);
+            JavaScriptCompilation javaScript = JavaScriptBackend.Emit(program);
+
+            Assert.Empty(csharp.SourceText);
+            Assert.Null(javaScript.SourceText);
+            Assert.Contains(csharp.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains(expected, StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(javaScript.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains(expected, StringComparison.OrdinalIgnoreCase));
+            Assert.All(csharp.Diagnostics, diagnostic => Assert.Equal("COPE-CS-0002", diagnostic.Id));
+            Assert.All(javaScript.Diagnostics, diagnostic => Assert.Equal("COPE-JS-0002", diagnostic.Id));
+        }
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 # Copeland TS record frontend and MIR (CTS-REC-M0b)
 
-**Status:** implemented frontend-to-MIR contract. CTS-REC-M1 realizes this MIR in C# and [CTS-REC-M2](copeland-ts-javascript-records-cts-rec-m2.md) realizes it in JavaScript.
+**Status:** implemented frontend-to-MIR contract, ratified by [CTS-REC-M3](copeland-ts-immutable-records-closeout-cts-rec-m3.md). CTS-REC-M1 realizes this MIR in C# and CTS-REC-M2 realizes it in JavaScript.
 
 ## Source contract
 
@@ -18,11 +18,11 @@ There is no `const record`, constructor call, `new`, structural object type, sho
 
 Record declarations are predeclared in source order. `RecordTypeId` values are `rN`; field IDs are `rN.fM`, where `N` is the one-based record declaration allocation and `M` is the zero-based field declaration ordinal. These compilation-local IDs are deterministic for identical input but intentionally change when declarations are edited. Type equivalence compares record identity, never field shape or display name.
 
-Containment through records, arrays, either Result component, and payload-enum fields participates in the first-slice cycle check. This is the deliberately conservative rule: any such path back to a record is rejected with `COPE-REC-0004`, even when a future backend representation might add indirection.
+Containment through records, arrays, either Result component, and payload-enum fields participates in the first-slice cycle check. This is the deliberately conservative implemented rule: any such path back to a record is rejected with `COPE-REC-0004`, regardless of backend indirection.
 
 ## Ordering and immutability
 
-The record definition preserves field declaration order. Construction and `with` nodes independently preserve authored initializer/replacement order. Therefore `{ y: second(), x: first() }` retains `second()` then `first()` in bound nodes and MIR even though canonical field order is `x`, `y`. A future backend must capture source and replacement values once before assembling declaration-order storage.
+The record definition preserves field declaration order. Construction and `with` nodes independently preserve authored initializer/replacement order. Therefore `{ y: second(), x: first() }` retains `second()` then `first()` in bound nodes and MIR even though canonical field order is `x`, `y`. Both implemented backends capture source and replacement values once before assembling declaration-order storage.
 
 Fields are intrinsically immutable. `let` changes only whether a binding may be replaced:
 

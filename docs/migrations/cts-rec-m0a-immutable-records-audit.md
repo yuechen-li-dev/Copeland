@@ -60,7 +60,7 @@ The JavaScript backend should use private per-record tokens, frozen null-prototy
 2. **CTS-REC-M0b:** complete source-to-bound-to-MIR contract, including `with`, fixtures, diagnostics, validation, deterministic `.cope`, and explicit no-artifact backend rejection.
 3. **CTS-REC-M1:** sealed-class C# representation and runtime/order proof.
 4. **CTS-REC-M2:** private nominal frozen JavaScript representation and Node/privacy proof.
-5. **CTS-REC-M3:** cross-backend parity and closeout; separately approve any equality or pattern follow-up.
+5. **CTS-REC-M3:** cross-backend parity and closeout — subsequently implemented and closed; separately approve any equality or pattern follow-up.
 
 CTS-REC-M0b consolidated the earlier M0b/M1 boundary and the frontend portion of `with`: valid filesystem fixtures cannot stop truthfully before MIR. Backend realization remains separate, and the canonical MIR rejection prevents silent or partial emission.
 

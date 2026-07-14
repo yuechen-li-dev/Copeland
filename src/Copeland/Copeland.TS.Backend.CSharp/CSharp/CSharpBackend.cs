@@ -553,7 +553,7 @@ public static class CSharpBackend
         string scrutineeValue = EmitExpression(writer, match.Scrutinee, function, enumNames, ref tempIndex, diagnostics);
         string scrutineeTemporary = $"__cope_match_scrutinee_{tempIndex++}";
         string resultTemporary = $"__cope_match_result_{tempIndex++}";
-        writer.WriteLine($"var {scrutineeTemporary} = {scrutineeValue};");
+        writer.WriteLine($"{MapType(enumType)} {scrutineeTemporary} = {scrutineeValue};");
         writer.WriteLine($"{MapValueStorageType(match.Type)} {resultTemporary};");
         writer.WriteLine($"switch ({scrutineeTemporary})");
         writer.WriteLine("{");

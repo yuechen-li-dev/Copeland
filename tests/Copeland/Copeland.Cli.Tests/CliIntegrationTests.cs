@@ -231,6 +231,49 @@ function one(): number {
         Assert.Equal(string.Empty, execution.StdErr);
     }
 
+    [Theory]
+    [InlineData("mir", "record.cope")]
+    [InlineData("csharp", "record.g.cs")]
+    [InlineData("javascript", "record.g.js")]
+    public async Task Rejected_Record_Source_Does_Not_Overwrite_Or_Masquerade_An_Earlier_Artifact(
+        string emitTarget,
+        string outputName)
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile(
+            "record.ts",
+            "record Point { x: number; } function main(): Point { return { x: 42 }; }");
+        string outputPath = System.IO.Path.Combine(temp.Path, outputName);
+
+        CliResult accepted = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            emitTarget,
+            "--out",
+            outputPath);
+        Assert.Equal(0, accepted.ExitCode);
+        string retainedArtifact = await File.ReadAllTextAsync(outputPath);
+
+        temp.WriteFile(
+            "record.ts",
+            "record Point { x: number; } function main(): Point { return { y: 42 }; }");
+        CliResult rejected = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            emitTarget,
+            "--out",
+            outputPath);
+
+        Assert.Equal(1, rejected.ExitCode);
+        Assert.Contains("COPE-REC-0007", rejected.StdErr, StringComparison.Ordinal);
+        Assert.DoesNotContain("wrote", rejected.StdOut, StringComparison.Ordinal);
+        Assert.Equal(retainedArtifact, await File.ReadAllTextAsync(outputPath));
+    }
+
     [Fact]
     public async Task InvalidSourceExitsOneAndDoesNotWriteOutput()
     {

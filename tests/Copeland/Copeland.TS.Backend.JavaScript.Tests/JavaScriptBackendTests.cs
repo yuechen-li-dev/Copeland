@@ -32,6 +32,36 @@ public sealed class JavaScriptBackendTests
     }
 
     [Fact]
+    public void Record_Helpers_Are_Demand_Driven_And_Do_Not_Pull_In_Unrelated_Value_Families()
+    {
+        JavaScriptCompilation withoutRecords = Emit("function main(): number { return 42; }");
+        JavaScriptCompilation recordsOnly = Emit(
+            "record Point { x: number; } function main(): Point { return { x: 42 }; }");
+
+        Assert.DoesNotContain("_record_", withoutRecords.SourceText, StringComparison.Ordinal);
+        Assert.Contains("_record_type_", recordsOnly.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain(".$tag", recordsOnly.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain(".$payload", recordsOnly.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("_flow_", recordsOnly.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Logical_Short_Circuit_Keeps_A_Statementful_Right_Operand_Inside_The_Selected_Branch()
+    {
+        JavaScriptCompilation result = Emit("""
+            function bad(): boolean ! string { return err("bad"); }
+            function main(): boolean { return false && bad()!; }
+            """);
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
+        int branchStart = result.SourceText!.IndexOf("if (false) {", StringComparison.Ordinal);
+        int badCall = result.SourceText.IndexOf("= bad();", StringComparison.Ordinal);
+        Assert.True(branchStart >= 0, result.SourceText);
+        Assert.True(badCall > branchStart, result.SourceText);
+        Assert.Single(Regex.Matches(result.SourceText, @"= bad\(\);").Cast<Match>());
+    }
+
+    [Fact]
     public void Emits_Private_Unwrap_Panic_Only_For_Unwrap()
     {
         JavaScriptCompilation unwrap = Emit("function parse(): number ! string { return err(\"bad\"); } function main(): number { return parse()!; }");
