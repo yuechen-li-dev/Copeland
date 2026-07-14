@@ -199,10 +199,10 @@ function one(): number {
     }
 
     [Fact]
-    public async Task RecordMirAndCSharpSucceed_WhileJavaScriptRejectsWithoutArtifact()
+    public async Task RecordMirCSharpAndJavaScriptSucceed_AndJavaScriptExecutes()
     {
         using var temp = new TempDir();
-        var inputPath = temp.WriteFile("record.ts", "record Point { x: number; } function main(): Point { return { x: 1 }; }");
+        var inputPath = temp.WriteFile("record.ts", "record Point { x: number; } function main(): number { const point: Point = { x: 42 }; return point.x; }");
         var csharpPath = System.IO.Path.Combine(temp.Path, "record.g.cs");
         var javaScriptPath = System.IO.Path.Combine(temp.Path, "record.g.js");
 
@@ -217,9 +217,18 @@ function one(): number {
         string generatedCSharp = await File.ReadAllTextAsync(csharpPath);
         Assert.Contains("public sealed class __CopeRecord_r1", generatedCSharp, StringComparison.Ordinal);
         Assert.DoesNotContain("record __CopeRecord", generatedCSharp, StringComparison.Ordinal);
-        Assert.Equal(1, javaScript.ExitCode);
-        Assert.Contains("COPE-JS-REC-0001", javaScript.StdErr, StringComparison.Ordinal);
-        Assert.False(File.Exists(javaScriptPath));
+        Assert.Equal(0, javaScript.ExitCode);
+        Assert.Equal(string.Empty, javaScript.StdErr);
+        Assert.True(File.Exists(javaScriptPath));
+        string generatedJavaScript = await File.ReadAllTextAsync(javaScriptPath);
+        Assert.Contains("Symbol(\"r1\")", generatedJavaScript, StringComparison.Ordinal);
+        Assert.DoesNotContain("COPE-JS-REC-0001", generatedJavaScript, StringComparison.Ordinal);
+
+        await File.AppendAllTextAsync(javaScriptPath, "console.log(main());\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        CliResult execution = await RunExecutableAsync("node", temp.Path, javaScriptPath);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("42\n", execution.StdOut);
+        Assert.Equal(string.Empty, execution.StdErr);
     }
 
     [Fact]

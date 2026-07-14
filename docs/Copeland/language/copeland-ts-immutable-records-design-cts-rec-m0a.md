@@ -1,6 +1,6 @@
 # Copeland TS immutable nominal records design (CTS-REC-M0a)
 
-**Status:** accepted design authority. CTS-REC-M0b implements source through canonical MIR and CTS-REC-M1 implements the C# backend; JavaScript realization remains deferred. See [the M0b architecture](../architecture/copeland-ts-record-frontend-and-mir-cts-rec-m0b.md) and [the M1 C# architecture](../architecture/copeland-ts-csharp-records-cts-rec-m1.md).
+**Status:** accepted design authority. CTS-REC-M0b implements source through canonical MIR, CTS-REC-M1 implements C#, and [CTS-REC-M2](../architecture/copeland-ts-javascript-records-cts-rec-m2.md) implements deterministic JavaScript and C#/Node parity.
 
 ## Decision
 
@@ -394,10 +394,10 @@ Parser, bound-tree, `.cope`, C#, and JavaScript snapshot corpus files remain und
 
 | Milestone | Scope and convergence condition |
 | --- | --- |
-| CTS-REC-M0a | This documentation-only audit and accepted language/MIR/backend design. No behavior or fixture change. |
-| CTS-REC-M0b | Implement the complete source-to-bound-to-MIR contract, including contextual construction, access, `with`, identities, validation, deterministic `.cope`, fixtures, and deliberate backend rejection. |
-| CTS-REC-M1 | Implement the ordinary sealed generated C# representation, runtime/order proofs, NativeAOT-safe emission, and deterministic artifacts. |
-| CTS-REC-M2 | Implement the private nominal frozen JavaScript representation, validators, corruption/impersonation proofs, demand-driven helpers, and Node evidence. |
+| CTS-REC-M0a | Design — complete. |
+| CTS-REC-M0b | Frontend and canonical MIR — complete. |
+| CTS-REC-M1 | C# backend — complete. |
+| CTS-REC-M2 | Private nominal frozen JavaScript representation, validators, isolation proofs, deterministic artifacts, and Node evidence — complete after validation. |
 | CTS-REC-M3 | Close out cross-backend parity, diagnostics, stress coverage, representation privacy, and artifact stability. Equality, hashing, ordering, destructuring/patterns, serialization, and interop require separately approved follow-ups. |
 
 M1 and M2 may be combined only if implementation shows that the compiler facade cannot report an explicit unsupported-backend result without accepting a silently wrong artifact. Temporary JavaScript objects, C# anonymous types, structural type equality, or mutation-based `with` are not acceptable milestone bridges.
@@ -406,7 +406,7 @@ M1 and M2 may be combined only if implementation shows that the compiler facade 
 
 The following are outside this design beyond establishing the boundary: general structural or anonymous object/record types; TypeScript interfaces and type aliases; classes; methods; inheritance; prototypes; executable constructors; getters/setters; visibility; index signatures; computed properties; object spread; mutable structs; dictionaries/maps; generics; equality/hashing/ordering; record destructuring or patterns; reflection; decorators; JSON; JavaScript interop ABI; recursive type solving; compiler-wide IR unification; and shared source infrastructure.
 
-Record equality, record patterns, serialization, and interop remain unresolved. Recursive records are deliberately unsupported in the first slice. Backend optimization may be considered only after the laws and parity evidence are stable.
+Record equality, record patterns, serialization, and interop remain unresolved. Recursive records are deliberately unsupported in the first slice. Backend optimization may be considered only after the laws and parity evidence are stable. Record tables and `record table` belong to a separately deferred future ladder.
 
 ## M0a completion boundary
 

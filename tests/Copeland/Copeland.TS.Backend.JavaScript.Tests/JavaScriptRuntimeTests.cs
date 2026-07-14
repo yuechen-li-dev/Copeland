@@ -10,6 +10,129 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_Proves_Record_Nominality_Immutability_And_Representation_Isolation()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            record First { x: number; y: number; }
+            record Second { x: number; y: number; }
+            record Nested { value: First; }
+            enum Box { Value(value: First), }
+            function makeFirst(): First { return { x: 40, y: 2 }; }
+            function makeSecond(): Second { return { x: 40, y: 2 }; }
+            function makeNested(): Nested { return { value: { x: 40, y: 2 } }; }
+            function makeBox(): Box { return Box.Value({ x: 40, y: 2 }); }
+            function makeResult(): First ! string { return ok({ x: 40, y: 2 }); }
+            function bad(): First ! string { return err("bad"); }
+            function fallback(): First { return { x: 40, y: 2 }; }
+            function handled(): First { return try { bad()? } except (error) { fallback() }; }
+            function goodNumber(): number ! string { return ok(1); }
+            function guarded(value: First): number { return try { goodNumber()?; value.x } except (error) { 0 }; }
+            function readFirst(value: First): number { return value.x + value.y; }
+            function readBox(value: Box): number { return match value { Value(item) => item.x, }; }
+            function readResult(value: First ! string): number { return match value { ok(item) => item.x, err(error) => 0, }; }
+            """);
+
+        Match flowFactory = Regex.Match(emitted.SourceText!, @"function (?<name>__cope_m3_flow_value_\d+)\(");
+        Assert.True(flowFactory.Success, emitted.SourceText);
+        string script = (emitted.SourceText + """
+            const first = makeFirst();
+            const second = makeSecond();
+            const nested = makeNested();
+            const symbols = Object.getOwnPropertySymbols(first);
+            const descriptorsAreFixed = symbols.every((symbol) => {
+              const descriptor = Object.getOwnPropertyDescriptor(first, symbol);
+              return descriptor.writable === false && descriptor.configurable === false;
+            });
+            function category(action) {
+              try { action(); return "accepted"; } catch (error) { return error.message; }
+            }
+            const ordinary = { x: 40, y: 2 };
+            const frozen = Object.freeze({ x: 40, y: 2 });
+            const nullPrototype = Object.freeze(Object.assign(Object.create(null), { "$record": "r1", "$field": 40 }));
+            console.log(Object.getPrototypeOf(first) === null);
+            console.log(Object.isFrozen(first));
+            console.log(descriptorsAreFixed);
+            console.log(Object.isFrozen(nested) && Object.isFrozen(nested[Object.getOwnPropertySymbols(nested)[1]]));
+            console.log(category(() => readFirst(second)));
+            console.log(category(() => readFirst(ordinary)));
+            console.log(category(() => readFirst(frozen)));
+            console.log(category(() => readFirst(nullPrototype)));
+            console.log(category(() => readFirst(makeBox())));
+            console.log(category(() => readFirst(makeResult())));
+            console.log(category(() => readFirst(__FLOW_FACTORY__(first))));
+            console.log(category(() => guarded(second)));
+            console.log(category(() => readBox(first)));
+            console.log(category(() => readResult(first)));
+            try { first[symbols[1]] = 0; } catch (error) {}
+            try { first.extra = 1; } catch (error) {}
+            try { delete first[symbols[1]]; } catch (error) {}
+            console.log(readFirst(first));
+            """).Replace("__FLOW_FACTORY__", flowFactory.Groups["name"].Value, StringComparison.Ordinal);
+
+        ProcessResult firstRun = await RunNodeAsync(script);
+        ProcessResult secondRun = await RunNodeAsync(script);
+        string invariant = "Copeland JavaScript backend invariant failure.\n";
+        Assert.Equal("true\ntrue\ntrue\ntrue\n" + string.Concat(Enumerable.Repeat(invariant, 10)) + "42\n", firstRun.StdOut);
+        Assert.Equal(string.Empty, firstRun.StdErr);
+        Assert.Equal(firstRun, secondRun);
+    }
+
+    [Fact]
+    public async Task Node_Proves_Record_Order_ExactlyOnce_With_And_Selected_Branches()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            record Point { x: number; y: number; }
+            function first(): number { return 40; }
+            function second(): number { return 2; }
+            function source(): Point { return { x: 1, y: 1 }; }
+            function receiver(): Point { return { x: 42, y: 0 }; }
+            function selected(): Point { return { x: 42, y: 0 }; }
+            function unselected(): Point { return { x: 0, y: 0 }; }
+            function construct(): Point { return { y: second(), x: first() }; }
+            function update(): Point { return source() with { y: second(), x: first() }; }
+            function read(): number { return receiver().x; }
+            function choose(): Point { return if true { selected() } else { unselected() }; }
+            function main(): number {
+              let point: Point = construct();
+              point = point with { y: 2, x: 40 };
+              return point.x + point.y;
+            }
+            """);
+
+        string script = emitted.SourceText + """
+            const trace = [];
+            function wrap(original, name) {
+              return (...args) => { trace.push(name); return original(...args); };
+            }
+            first = wrap(first, "first");
+            second = wrap(second, "second");
+            source = wrap(source, "source");
+            receiver = wrap(receiver, "receiver");
+            selected = wrap(selected, "selected");
+            unselected = wrap(unselected, "unselected");
+            const original = source();
+            trace.length = 0;
+            const changed = update();
+            console.log(trace.join(","));
+            trace.length = 0;
+            console.log(read());
+            console.log(trace.join(","));
+            trace.length = 0;
+            const choice = choose();
+            console.log(choice[Object.getOwnPropertySymbols(choice)[1]]);
+            console.log(trace.join(","));
+            console.log(original !== changed);
+            console.log(main());
+            """;
+
+        ProcessResult firstRun = await RunNodeAsync(script);
+        ProcessResult secondRun = await RunNodeAsync(script);
+        Assert.Equal("source,second,first\n42\nreceiver\n42\nselected\ntrue\n42\n", firstRun.StdOut);
+        Assert.Equal(string.Empty, firstRun.StdErr);
+        Assert.Equal(firstRun, secondRun);
+    }
+
+    [Fact]
     public async Task Node_Proves_Propagation_Unwrap_And_Selected_Handler_Operands_Run_Exactly_Once()
     {
         JavaScriptCompilation emitted = Emit("""

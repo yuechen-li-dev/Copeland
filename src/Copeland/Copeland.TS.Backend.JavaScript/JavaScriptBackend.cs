@@ -18,12 +18,6 @@ public static class JavaScriptBackend
         {
             return new JavaScriptCompilation(null, diagnostics);
         }
-        if (program.Records.Count > 0)
-        {
-            return new JavaScriptCompilation(
-                null,
-                [new JavaScriptDiagnostic("COPE-JS-REC-0001", "Immutable records are not supported by the JavaScript backend in CTS-REC-M0b.")]);
-        }
         EnumCatalog catalog = ValidateProgram(program, diagnostics);
         if (diagnostics.Count > 0)
         {
@@ -37,7 +31,7 @@ public static class JavaScriptBackend
         var writer = new JavaScriptTextWriter();
         writer.WriteLine("\"use strict\";");
 
-        if (catalog.Enums.Count > 0 || results.Types.Count > 0 || usesTryExcept)
+        if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || results.Types.Count > 0 || usesTryExcept)
         {
             writer.WriteLine();
             EmitValueRuntime(writer, catalog, results, names, usesUnwrap, usesTryExcept);
@@ -54,7 +48,7 @@ public static class JavaScriptBackend
 
     private static EnumCatalog ValidateProgram(MirProgram program, List<JavaScriptDiagnostic> diagnostics)
     {
-        var catalog = new EnumCatalog(program.Enums, diagnostics);
+        var catalog = new EnumCatalog(program.Enums, program.Records, diagnostics);
         catalog.ValidateDefinitions(diagnostics);
 
         var functions = new Dictionary<string, MirFunction>(StringComparer.Ordinal);
@@ -77,11 +71,6 @@ public static class JavaScriptBackend
 
             foreach (MirLocal local in function.Locals)
             {
-                if (!local.IsReadOnly)
-                {
-                    AddUnsupported(diagnostics, $"mutable local '{local.Name}' in {context}");
-                }
-
                 ValidateValueType(local.Type, $"local '{local.Name}' in {context}", catalog, diagnostics, allowVoid: false);
             }
 
@@ -105,11 +94,6 @@ public static class JavaScriptBackend
         switch (statement)
         {
             case MirVariableDeclarationStatement declaration:
-                if (!declaration.Local.IsReadOnly)
-                {
-                    AddUnsupported(diagnostics, $"mutable declaration '{declaration.Local.Name}' in {context}");
-                }
-
                 ValidateExpression(declaration.Initializer, functionReturnType, context, functions, catalog, diagnostics);
                 RequireMatchingType(declaration.Initializer.Type, declaration.Local.Type, $"initializer for local '{declaration.Local.Name}' in {context}", diagnostics);
                 break;
@@ -192,13 +176,28 @@ public static class JavaScriptBackend
                 RequireMatchingType(conditional.ElseExpression.Type, conditional.Type, $"else branch of if expression in {context}", diagnostics);
                 break;
             case MirAssignmentExpression assignment:
-                AddUnsupported(diagnostics, $"assignment to '{assignment.Name}' in {context}");
+                ValidateExpression(assignment.Expression, functionReturnType, context, functions, catalog, diagnostics);
+                RequireMatchingType(assignment.Expression.Type, assignment.Type, $"assignment to '{assignment.Name}' in {context}", diagnostics);
                 break;
             case MirUnaryExpression unary:
                 AddUnsupported(diagnostics, $"unary operator '{unary.Operator}' in {context}");
                 break;
             case MirArrayExpression:
                 AddUnsupported(diagnostics, $"array expression in {context}");
+                break;
+            case MirRecordConstructionExpression construction:
+                ValidateRecordConstruction(construction, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirRecordFieldAccessExpression access:
+                ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateValueType(access.Type, $"record field access in {context}", catalog, diagnostics, allowVoid: false);
+                break;
+            case MirRecordWithExpression withExpression:
+                ValidateExpression(withExpression.Source, functionReturnType, context, functions, catalog, diagnostics);
+                foreach (MirRecordFieldValue replacement in withExpression.Replacements)
+                {
+                    ValidateExpression(replacement.Value, functionReturnType, context, functions, catalog, diagnostics);
+                }
                 break;
             case MirEnumValueExpression enumValue:
                 ValidateEnumValue(enumValue, functionReturnType, context, functions, catalog, diagnostics);
@@ -256,6 +255,25 @@ public static class JavaScriptBackend
         foreach (MirExpression argument in value.Arguments)
         {
             ValidateExpression(argument, functionReturnType, context, functions, catalog, diagnostics);
+        }
+    }
+
+    private static void ValidateRecordConstruction(
+        MirRecordConstructionExpression construction,
+        MirType functionReturnType,
+        string context,
+        IReadOnlyDictionary<string, MirFunction> functions,
+        EnumCatalog catalog,
+        List<JavaScriptDiagnostic> diagnostics)
+    {
+        if (!catalog.TryGetRecord(construction.RecordTypeId, out _))
+        {
+            AddInvalid(diagnostics, $"unknown record '{construction.RecordTypeId}' for construction in {context}");
+        }
+
+        foreach (MirRecordFieldValue initializer in construction.Initializers)
+        {
+            ValidateExpression(initializer.Value, functionReturnType, context, functions, catalog, diagnostics);
         }
     }
 
@@ -392,6 +410,8 @@ public static class JavaScriptBackend
             case MirType { Identifier: "void" } when allowVoid:
                 return;
             case MirType named when named is not MirArrayType and not MirResultType && catalog.ContainsEnum(named.Identifier):
+                return;
+            case MirRecordType record when catalog.ContainsRecord(record.RecordTypeId):
                 return;
             default:
                 AddUnsupported(diagnostics, $"type '{type.Name}' in {context}");
@@ -541,16 +561,26 @@ public static class JavaScriptBackend
             writer.WriteLine("}");
             writer.WriteLine();
         }
-        writer.WriteLine($"function {names.MakeValue}(type, tag, payload) {{");
-        writer.Indent();
-        writer.WriteLine("return Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));");
-        writer.Unindent();
-        writer.WriteLine("}");
+        bool usesTaggedValues = catalog.Enums.Count > 0 || results.Types.Count > 0 || usesTryExcept;
+        if (usesTaggedValues)
+        {
+            writer.WriteLine($"function {names.MakeValue}(type, tag, payload) {{");
+            writer.Indent();
+            writer.WriteLine("return Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));");
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
 
         if (usesTryExcept)
         {
             writer.WriteLine();
             EmitFlowRuntime(writer, names);
+        }
+
+        foreach (MirRecordDefinition record in catalog.Records)
+        {
+            writer.WriteLine();
+            EmitRecordRuntime(writer, record, names);
         }
 
         foreach (EnumInfo enumInfo in catalog.Enums)
@@ -576,6 +606,56 @@ public static class JavaScriptBackend
             writer.WriteLine();
             EmitResultValidator(writer, result, catalog, results, names);
         }
+    }
+
+    private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, GeneratedNames names)
+    {
+        string typeToken = names.RecordTypeToken(record);
+        writer.WriteLine($"const {typeToken} = Symbol({JavaScriptLiteralWriter.WriteString(record.Id.Value)});");
+        foreach (MirRecordFieldDefinition field in record.Fields)
+        {
+            writer.WriteLine($"const {names.RecordFieldSlot(field)} = Symbol({JavaScriptLiteralWriter.WriteString(field.Id.Value)});");
+        }
+
+        writer.WriteLine();
+        string parameters = string.Join(", ", record.Fields.Select((_, index) => $"field{index}"));
+        writer.WriteLine($"function {names.RecordConstructor(record)}({parameters}) {{");
+        writer.Indent();
+        writer.WriteLine("const value = Object.create(null);");
+        writer.WriteLine("Object.defineProperties(value, {");
+        writer.Indent();
+        writer.WriteLine($"[{typeToken}]: {{ value: {typeToken}, writable: false, enumerable: false, configurable: false }},");
+        for (int index = 0; index < record.Fields.Count; index += 1)
+        {
+            writer.WriteLine($"[{names.RecordFieldSlot(record.Fields[index])}]: {{ value: field{index}, writable: false, enumerable: false, configurable: false }},");
+        }
+        writer.Unindent();
+        writer.WriteLine("});");
+        writer.WriteLine("return Object.freeze(value);");
+        writer.Unindent();
+        writer.WriteLine("}");
+
+        writer.WriteLine();
+        writer.WriteLine($"function {names.RecordValidator(record)}(value) {{");
+        writer.Indent();
+        var conditions = new List<string>
+        {
+            "typeof value !== \"object\"",
+            "value === null",
+            "Object.getPrototypeOf(value) !== null",
+            "!Object.isFrozen(value)",
+            $"!Object.prototype.hasOwnProperty.call(value, {typeToken})",
+            $"value[{typeToken}] !== {typeToken}",
+            $"Object.getOwnPropertySymbols(value).length !== {record.Fields.Count + 1}",
+        };
+        conditions.AddRange(record.Fields.Select(field => $"!Object.prototype.hasOwnProperty.call(value, {names.RecordFieldSlot(field)})"));
+        writer.WriteLine($"if ({string.Join(" || ", conditions)}) {{");
+        writer.Indent();
+        writer.WriteLine($"{names.Panic}();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
     }
 
     private static void EmitValidator(JavaScriptTextWriter writer, EnumInfo enumInfo, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
@@ -668,6 +748,7 @@ public static class JavaScriptBackend
             MirType { Identifier: "string" } => $"typeof {expression} === \"string\"",
             MirType { Identifier: "void" } => $"{expression} === null",
             MirResultType result => $"({names.Validator(results.Get(result))}({expression}), true)",
+            MirRecordType record when catalog.TryGetRecord(record.RecordTypeId, out MirRecordDefinition definition) => $"({names.RecordValidator(definition)}({expression}), true)",
             MirType named when named is not MirArrayType and not MirResultType && catalog.TryGetEnum(named.Identifier, out EnumInfo enumInfo) => $"({names.Validator(enumInfo)}({expression}), true)",
             _ => "false",
         };
@@ -788,7 +869,8 @@ public static class JavaScriptBackend
             case MirVariableDeclarationStatement declaration:
                 EmittedExpression initializer = EmitExpression(declaration.Initializer, function, catalog, results, names, flowEnabled);
                 WritePrelude(writer, initializer.Prelude);
-                writer.WriteLine($"const {JavaScriptIdentifierEncoder.Encode(declaration.Local.Name)} = {initializer.Value};");
+                string declarationKeyword = declaration.Local.IsReadOnly ? "const" : "let";
+                writer.WriteLine($"{declarationKeyword} {JavaScriptIdentifierEncoder.Encode(declaration.Local.Name)} = {initializer.Value};");
                 break;
             case MirReturnStatement { Expression: null } when function.ReturnType is MirResultType result && result.SuccessType is MirType { Identifier: "void" }:
                 writer.WriteLine(flowEnabled
@@ -822,8 +904,12 @@ public static class JavaScriptBackend
             MirLiteralExpression { Value: not null } literal => EmittedExpression.ValueOnly(JavaScriptLiteralWriter.WriteNumber(literal.Value)),
             MirUnitExpression => EmittedExpression.ValueOnly("null"),
             MirVariableExpression variable => EmittedExpression.ValueOnly(JavaScriptIdentifierEncoder.Encode(variable.Name)),
+            MirAssignmentExpression assignment => EmitAssignment(assignment, function, catalog, results, names, flowEnabled),
             MirBinaryExpression binary => EmitBinary(binary, function, catalog, results, names, flowEnabled),
             MirCallExpression call => EmitCall(call, function, catalog, results, names, flowEnabled),
+            MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
+            MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
+            MirRecordWithExpression withExpression => EmitRecordWith(withExpression, function, catalog, results, names, flowEnabled),
             MirEnumValueExpression value => EmitEnumValueExpression(value, function, catalog, results, names, flowEnabled),
             MirMatchExpression match => EmitEnumMatchExpression(match, function, catalog, results, names, flowEnabled),
             MirResultMatchExpression match => EmitResultMatchExpression(match, function, catalog, results, names, flowEnabled),
@@ -841,20 +927,147 @@ public static class JavaScriptBackend
     {
         EmittedExpression left = EmitExpression(binary.Left, function, catalog, results, names, flowEnabled);
         EmittedExpression right = EmitExpression(binary.Right, function, catalog, results, names, flowEnabled);
-        return EmittedExpression.Combine($"({left.Value} {MapBinaryOperator(binary.Operator)} {right.Value})", left, right);
+        return CombineOrdered(
+            [left, right],
+            names,
+            values => $"({values[0]} {MapBinaryOperator(binary.Operator)} {values[1]})");
+    }
+
+    private static EmittedExpression EmitAssignment(MirAssignmentExpression assignment, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        EmittedExpression value = EmitExpression(assignment.Expression, function, catalog, results, names, flowEnabled);
+        return new EmittedExpression(value.Prelude, $"({JavaScriptIdentifierEncoder.Encode(assignment.Name)} = {value.Value})");
     }
 
     private static EmittedExpression EmitCall(MirCallExpression call, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         var emittedArguments = call.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)).ToList();
-        return EmittedExpression.Combine($"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", emittedArguments.Select(argument => argument.Value))})", emittedArguments);
+        return CombineOrdered(
+            emittedArguments,
+            names,
+            values => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", values)})");
+    }
+
+    private static EmittedExpression EmitRecordConstruction(
+        MirRecordConstructionExpression construction,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        MirRecordDefinition record = catalog.GetRecord(construction.RecordTypeId);
+        var prelude = new List<EmittedLine>();
+        var valuesByField = new Dictionary<MirRecordFieldId, string>();
+        foreach (MirRecordFieldValue initializer in construction.Initializers)
+        {
+            EmittedExpression value = EmitExpression(initializer.Value, function, catalog, results, names, flowEnabled);
+            prelude.AddRange(value.Prelude);
+            string temporary = names.NextTemporary("record_init");
+            prelude.Add(new EmittedLine($"const {temporary} = {value.Value};", 0));
+            valuesByField.Add(initializer.FieldId, temporary);
+        }
+
+        string arguments = string.Join(", ", record.Fields.Select(field => valuesByField[field.Id]));
+        return new EmittedExpression(prelude, $"{names.RecordConstructor(record)}({arguments})");
+    }
+
+    private static EmittedExpression EmitRecordFieldAccess(
+        MirRecordFieldAccessExpression access,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        MirRecordDefinition record = catalog.GetRecord(access.RecordTypeId);
+        MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == access.FieldId);
+        EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
+        string temporary = names.NextTemporary("record_receiver");
+        var prelude = new List<EmittedLine>(receiver.Prelude)
+        {
+            new($"const {temporary} = {receiver.Value};", 0),
+            new($"{names.RecordValidator(record)}({temporary});", 0),
+        };
+        return new EmittedExpression(prelude, $"{temporary}[{names.RecordFieldSlot(field)}]");
+    }
+
+    private static EmittedExpression EmitRecordWith(
+        MirRecordWithExpression withExpression,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        MirRecordDefinition record = catalog.GetRecord(withExpression.RecordTypeId);
+        EmittedExpression source = EmitExpression(withExpression.Source, function, catalog, results, names, flowEnabled);
+        string sourceTemporary = names.NextTemporary("record_source");
+        var prelude = new List<EmittedLine>(source.Prelude)
+        {
+            new($"const {sourceTemporary} = {source.Value};", 0),
+            new($"{names.RecordValidator(record)}({sourceTemporary});", 0),
+        };
+        var replacementsByField = new Dictionary<MirRecordFieldId, string>();
+        foreach (MirRecordFieldValue replacement in withExpression.Replacements)
+        {
+            EmittedExpression value = EmitExpression(replacement.Value, function, catalog, results, names, flowEnabled);
+            prelude.AddRange(value.Prelude);
+            string temporary = names.NextTemporary("record_replacement");
+            prelude.Add(new EmittedLine($"const {temporary} = {value.Value};", 0));
+            replacementsByField.Add(replacement.FieldId, temporary);
+        }
+
+        string arguments = string.Join(", ", record.Fields.Select(field =>
+            replacementsByField.TryGetValue(field.Id, out string? replacement)
+                ? replacement
+                : $"{sourceTemporary}[{names.RecordFieldSlot(field)}]"));
+        return new EmittedExpression(prelude, $"{names.RecordConstructor(record)}({arguments})");
+    }
+
+    private static EmittedExpression CombineOrdered(
+        IReadOnlyList<EmittedExpression> expressions,
+        GeneratedNames names,
+        Func<IReadOnlyList<string>, string> buildValue)
+    {
+        int lastPreludeIndex = -1;
+        for (int index = 0; index < expressions.Count; index += 1)
+        {
+            if (expressions[index].Prelude.Count > 0)
+            {
+                lastPreludeIndex = index;
+            }
+        }
+
+        var prelude = new List<EmittedLine>();
+        var values = new List<string>(expressions.Count);
+        for (int index = 0; index < expressions.Count; index += 1)
+        {
+            EmittedExpression expression = expressions[index];
+            prelude.AddRange(expression.Prelude);
+            if (index < lastPreludeIndex)
+            {
+                string temporary = names.NextTemporary("ordered");
+                prelude.Add(new EmittedLine($"const {temporary} = {expression.Value};", 0));
+                values.Add(temporary);
+            }
+            else
+            {
+                values.Add(expression.Value);
+            }
+        }
+
+        return new EmittedExpression(prelude, buildValue(values));
     }
 
     private static EmittedExpression EmitEnumValueExpression(MirEnumValueExpression value, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         EnumInfo enumInfo = catalog.GetEnum(value.EnumName);
         var payloads = value.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)).ToList();
-        return EmittedExpression.Combine($"{names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", payloads.Select(payload => payload.Value))}])", payloads);
+        return CombineOrdered(
+            payloads,
+            names,
+            values => $"{names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", values)}])");
     }
 
     private static EmittedExpression EmitEnumMatchExpression(MirMatchExpression match, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
@@ -987,7 +1200,8 @@ public static class JavaScriptBackend
                 case MirVariableDeclarationStatement declaration:
                     EmittedExpression initializer = EmitExpression(declaration.Initializer, function, catalog, results, names, flowEnabled: true);
                     lines.AddRange(initializer.Prelude);
-                    lines.Add(new EmittedLine($"const {JavaScriptIdentifierEncoder.Encode(declaration.Local.Name)} = {initializer.Value};", 0));
+                    string declarationKeyword = declaration.Local.IsReadOnly ? "const" : "let";
+                    lines.Add(new EmittedLine($"{declarationKeyword} {JavaScriptIdentifierEncoder.Encode(declaration.Local.Name)} = {initializer.Value};", 0));
                     break;
                 case MirExpressionStatement expression:
                     EmittedExpression emitted = EmitExpression(expression.Expression, function, catalog, results, names, flowEnabled: true);
@@ -1119,8 +1333,10 @@ public static class JavaScriptBackend
         return expression switch
         {
             MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression or MirTryExpression => true,
+            MirRecordConstructionExpression or MirRecordFieldAccessExpression or MirRecordWithExpression => true,
             MirBinaryExpression binary => ContainsControlFlow(binary.Left) || ContainsControlFlow(binary.Right),
             MirCallExpression call => call.Arguments.Any(ContainsControlFlow),
+            MirAssignmentExpression assignment => ContainsControlFlow(assignment.Expression),
             MirEnumValueExpression value => value.Arguments.Any(ContainsControlFlow),
             MirMatchExpression match => ContainsControlFlow(match.Scrutinee) || match.Arms.Any(arm => ContainsControlFlow(arm.Expression)),
             MirIfExpression conditional => ContainsControlFlow(conditional.Condition) || ContainsControlFlow(conditional.ThenExpression) || ContainsControlFlow(conditional.ElseExpression),
@@ -1152,7 +1368,11 @@ public static class JavaScriptBackend
             MirTryExpression => true,
             MirBinaryExpression binary => ExpressionUsesTryExcept(binary.Left) || ExpressionUsesTryExcept(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionUsesTryExcept),
+            MirAssignmentExpression assignment => ExpressionUsesTryExcept(assignment.Expression),
             MirArrayExpression array => array.Elements.Any(ExpressionUsesTryExcept),
+            MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesTryExcept(initializer.Value)),
+            MirRecordFieldAccessExpression access => ExpressionUsesTryExcept(access.Receiver),
+            MirRecordWithExpression withExpression => ExpressionUsesTryExcept(withExpression.Source) || withExpression.Replacements.Any(replacement => ExpressionUsesTryExcept(replacement.Value)),
             MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesTryExcept),
             MirMatchExpression match => ExpressionUsesTryExcept(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesTryExcept(arm.Expression)),
             MirResultMatchExpression match => ExpressionUsesTryExcept(match.Scrutinee) || ExpressionUsesTryExcept(match.OkExpression) || ExpressionUsesTryExcept(match.ErrExpression),
@@ -1183,7 +1403,11 @@ public static class JavaScriptBackend
             MirUnwrapExpression => true,
             MirBinaryExpression binary => ExpressionUsesUnwrap(binary.Left) || ExpressionUsesUnwrap(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionUsesUnwrap),
+            MirAssignmentExpression assignment => ExpressionUsesUnwrap(assignment.Expression),
             MirArrayExpression array => array.Elements.Any(ExpressionUsesUnwrap),
+            MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesUnwrap(initializer.Value)),
+            MirRecordFieldAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
+            MirRecordWithExpression withExpression => ExpressionUsesUnwrap(withExpression.Source) || withExpression.Replacements.Any(replacement => ExpressionUsesUnwrap(replacement.Value)),
             MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesUnwrap),
             MirMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesUnwrap(arm.Expression)),
             MirResultMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || ExpressionUsesUnwrap(match.OkExpression) || ExpressionUsesUnwrap(match.ErrExpression),
@@ -1236,26 +1460,14 @@ public static class JavaScriptBackend
         public string Value { get; } = value;
 
         public static EmittedExpression ValueOnly(string value) => new([], value);
-
-        public static EmittedExpression Combine(string value, params EmittedExpression[] expressions) => Combine(value, (IEnumerable<EmittedExpression>)expressions);
-
-        public static EmittedExpression Combine(string value, IEnumerable<EmittedExpression> expressions)
-        {
-            var prelude = new List<EmittedLine>();
-            foreach (EmittedExpression expression in expressions)
-            {
-                prelude.AddRange(expression.Prelude);
-            }
-
-            return new EmittedExpression(prelude, value);
-        }
     }
 
     private sealed class EnumCatalog
     {
         private readonly Dictionary<string, EnumInfo> byName = new(StringComparer.Ordinal);
+        private readonly Dictionary<MirRecordTypeId, MirRecordDefinition> recordsById = [];
 
-        public EnumCatalog(IReadOnlyList<MirEnum> enums, List<JavaScriptDiagnostic> diagnostics)
+        public EnumCatalog(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, List<JavaScriptDiagnostic> diagnostics)
         {
             var values = new List<EnumInfo>(enums.Count);
             for (int index = 0; index < enums.Count; index += 1)
@@ -1269,9 +1481,16 @@ public static class JavaScriptBackend
             }
 
             Enums = values;
+            Records = records;
+            foreach (MirRecordDefinition record in records)
+            {
+                recordsById.TryAdd(record.Id, record);
+            }
         }
 
         public IReadOnlyList<EnumInfo> Enums { get; }
+
+        public IReadOnlyList<MirRecordDefinition> Records { get; }
 
         public bool ContainsEnum(string name) => byName.ContainsKey(name);
 
@@ -1279,8 +1498,22 @@ public static class JavaScriptBackend
 
         public EnumInfo GetEnum(string name) => byName[name];
 
+        public bool ContainsRecord(MirRecordTypeId id) => recordsById.ContainsKey(id);
+
+        public bool TryGetRecord(MirRecordTypeId id, out MirRecordDefinition definition) => recordsById.TryGetValue(id, out definition!);
+
+        public MirRecordDefinition GetRecord(MirRecordTypeId id) => recordsById[id];
+
         public void ValidateDefinitions(List<JavaScriptDiagnostic> diagnostics)
         {
+            foreach (MirRecordDefinition record in Records)
+            {
+                foreach (MirRecordFieldDefinition field in record.Fields)
+                {
+                    ValidateValueType(field.Type, $"field '{record.Name}.{field.Name}'", this, diagnostics, allowVoid: false);
+                }
+            }
+
             foreach (EnumInfo enumInfo in Enums)
             {
                 if (enumInfo.Definition.Cases.Count == 0)
@@ -1389,6 +1622,14 @@ public static class JavaScriptBackend
         public static ResultCatalog Create(MirProgram program)
         {
             var catalog = new ResultCatalog();
+            foreach (MirRecordDefinition record in program.Records)
+            {
+                foreach (MirRecordFieldDefinition field in record.Fields)
+                {
+                    catalog.Add(field.Type);
+                }
+            }
+
             foreach (MirEnum @enum in program.Enums)
             {
                 foreach (MirEnumCase @case in @enum.Cases)
@@ -1457,6 +1698,9 @@ public static class JavaScriptBackend
             Add(expression.Type);
             switch (expression)
             {
+                case MirAssignmentExpression assignment:
+                    Add(assignment.Expression);
+                    break;
                 case MirBinaryExpression binary:
                     Add(binary.Left);
                     Add(binary.Right);
@@ -1465,6 +1709,22 @@ public static class JavaScriptBackend
                     foreach (MirExpression argument in call.Arguments)
                     {
                         Add(argument);
+                    }
+                    break;
+                case MirRecordConstructionExpression construction:
+                    foreach (MirRecordFieldValue initializer in construction.Initializers)
+                    {
+                        Add(initializer.Value);
+                    }
+                    break;
+                case MirRecordFieldAccessExpression access:
+                    Add(access.Receiver);
+                    break;
+                case MirRecordWithExpression withExpression:
+                    Add(withExpression.Source);
+                    foreach (MirRecordFieldValue replacement in withExpression.Replacements)
+                    {
+                        Add(replacement.Value);
                     }
                     break;
                 case MirEnumValueExpression value:
@@ -1502,7 +1762,20 @@ public static class JavaScriptBackend
                 case MirUnwrapExpression unwrap:
                     Add(unwrap.Operand);
                     break;
+                case MirTryExpression tryExpression:
+                    Add(tryExpression.Protected);
+                    Add(tryExpression.Handler);
+                    break;
             }
+        }
+
+        private void Add(MirValueBlock block)
+        {
+            foreach (MirStatement statement in block.PrefixStatements)
+            {
+                Add(statement);
+            }
+            Add(block.ValueExpression);
         }
 
         private void Add(MirType type)
@@ -1530,9 +1803,30 @@ public static class JavaScriptBackend
         private readonly Dictionary<EnumInfo, string> validators;
         private readonly Dictionary<ResultInfo, string> resultTypeTokens;
         private readonly Dictionary<ResultInfo, string> resultValidators;
+        private readonly Dictionary<MirRecordDefinition, string> recordTypeTokens;
+        private readonly Dictionary<MirRecordDefinition, string> recordConstructors;
+        private readonly Dictionary<MirRecordDefinition, string> recordValidators;
+        private readonly Dictionary<MirRecordFieldDefinition, string> recordFieldSlots;
         private readonly NameAllocator allocator;
 
-        private GeneratedNames(NameAllocator allocator, string panic, string unwrapPanic, string makeValue, string flowToken, string flowValue, string flowToHandler, string flowToFunction, string validateFlow, Dictionary<EnumInfo, string> typeTokens, Dictionary<EnumInfo, string> validators, Dictionary<ResultInfo, string> resultTypeTokens, Dictionary<ResultInfo, string> resultValidators)
+        private GeneratedNames(
+            NameAllocator allocator,
+            string panic,
+            string unwrapPanic,
+            string makeValue,
+            string flowToken,
+            string flowValue,
+            string flowToHandler,
+            string flowToFunction,
+            string validateFlow,
+            Dictionary<EnumInfo, string> typeTokens,
+            Dictionary<EnumInfo, string> validators,
+            Dictionary<ResultInfo, string> resultTypeTokens,
+            Dictionary<ResultInfo, string> resultValidators,
+            Dictionary<MirRecordDefinition, string> recordTypeTokens,
+            Dictionary<MirRecordDefinition, string> recordConstructors,
+            Dictionary<MirRecordDefinition, string> recordValidators,
+            Dictionary<MirRecordFieldDefinition, string> recordFieldSlots)
         {
             this.allocator = allocator;
             Panic = panic;
@@ -1547,6 +1841,10 @@ public static class JavaScriptBackend
             this.validators = validators;
             this.resultTypeTokens = resultTypeTokens;
             this.resultValidators = resultValidators;
+            this.recordTypeTokens = recordTypeTokens;
+            this.recordConstructors = recordConstructors;
+            this.recordValidators = recordValidators;
+            this.recordFieldSlots = recordFieldSlots;
         }
 
         public string Panic { get; }
@@ -1573,6 +1871,14 @@ public static class JavaScriptBackend
 
         public string Validator(ResultInfo result) => resultValidators[result];
 
+        public string RecordTypeToken(MirRecordDefinition record) => recordTypeTokens[record];
+
+        public string RecordConstructor(MirRecordDefinition record) => recordConstructors[record];
+
+        public string RecordValidator(MirRecordDefinition record) => recordValidators[record];
+
+        public string RecordFieldSlot(MirRecordFieldDefinition field) => recordFieldSlots[field];
+
         public string NextMatchScrutinee() => allocator.Allocate("match");
 
         public string NextTemporary(string purpose) => allocator.Allocate(purpose);
@@ -1597,12 +1903,30 @@ public static class JavaScriptBackend
             var allocator = new NameAllocator(occupied);
             string panic = allocator.Allocate("panic");
             string unwrapPanic = usesUnwrap ? allocator.Allocate("panic_unwrap") : string.Empty;
-            string makeValue = allocator.Allocate("make");
+            bool usesTaggedValues = catalog.Enums.Count > 0 || results.Types.Count > 0 || usesTryExcept;
+            string makeValue = usesTaggedValues ? allocator.Allocate("make") : string.Empty;
             string flowToken = usesTryExcept ? allocator.Allocate("flow_token") : string.Empty;
             string flowValue = usesTryExcept ? allocator.Allocate("flow_value") : string.Empty;
             string flowToHandler = usesTryExcept ? allocator.Allocate("flow_handler") : string.Empty;
             string flowToFunction = usesTryExcept ? allocator.Allocate("flow_function") : string.Empty;
             string validateFlow = usesTryExcept ? allocator.Allocate("flow_validate") : string.Empty;
+            var recordTypeTokens = new Dictionary<MirRecordDefinition, string>();
+            var recordConstructors = new Dictionary<MirRecordDefinition, string>();
+            var recordValidators = new Dictionary<MirRecordDefinition, string>();
+            var recordFieldSlots = new Dictionary<MirRecordFieldDefinition, string>();
+            foreach (MirRecordDefinition record in catalog.Records)
+            {
+                string recordIdentity = JavaScriptIdentifierEncoder.Encode(record.Id.Value);
+                recordTypeTokens.Add(record, allocator.Allocate($"record_type_{recordIdentity}"));
+                recordConstructors.Add(record, allocator.Allocate($"record_make_{recordIdentity}"));
+                recordValidators.Add(record, allocator.Allocate($"record_require_{recordIdentity}"));
+                foreach (MirRecordFieldDefinition field in record.Fields)
+                {
+                    string fieldIdentity = JavaScriptIdentifierEncoder.Encode(field.Id.Value);
+                    recordFieldSlots.Add(field, allocator.Allocate($"record_field_{fieldIdentity}"));
+                }
+            }
+
             var typeTokens = new Dictionary<EnumInfo, string>();
             var validators = new Dictionary<EnumInfo, string>();
             foreach (EnumInfo enumInfo in catalog.Enums)
@@ -1619,7 +1943,24 @@ public static class JavaScriptBackend
                 resultValidators.Add(result, allocator.Allocate("result_validate"));
             }
 
-            return new GeneratedNames(allocator, panic, unwrapPanic, makeValue, flowToken, flowValue, flowToHandler, flowToFunction, validateFlow, typeTokens, validators, resultTypeTokens, resultValidators);
+            return new GeneratedNames(
+                allocator,
+                panic,
+                unwrapPanic,
+                makeValue,
+                flowToken,
+                flowValue,
+                flowToHandler,
+                flowToFunction,
+                validateFlow,
+                typeTokens,
+                validators,
+                resultTypeTokens,
+                resultValidators,
+                recordTypeTokens,
+                recordConstructors,
+                recordValidators,
+                recordFieldSlots);
         }
     }
 

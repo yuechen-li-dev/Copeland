@@ -11,18 +11,24 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptBackendTests
 {
     [Fact]
-    public void Rejects_record_mir_once_without_partial_artifact()
+    public void Emits_Private_Nominal_Frozen_Record_Representation_Deterministically()
     {
         MirProgram program = Lower("record Point { x: number; } function main(): Point { return { x: 1 }; }");
 
         JavaScriptCompilation first = JavaScriptBackend.Emit(program);
         JavaScriptCompilation second = JavaScriptBackend.Emit(program);
 
-        JavaScriptDiagnostic diagnostic = Assert.Single(first.Diagnostics);
-        Assert.Equal("COPE-JS-REC-0001", diagnostic.Id);
-        Assert.Null(first.SourceText);
-        Assert.Equal(first.Diagnostics, second.Diagnostics);
-        Assert.Null(second.SourceText);
+        Assert.True(first.Success, string.Join(Environment.NewLine, first.Diagnostics));
+        Assert.Equal(first.SourceText, second.SourceText);
+        Assert.Contains("Symbol(\"r1\")", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Symbol(\"r1.f0\")", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Object.create(null)", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Object.defineProperties", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("writable: false", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("configurable: false", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("return Object.freeze(value);", first.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("class ", first.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("COPE-JS-REC-0001", first.SourceText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -195,7 +201,51 @@ public sealed class JavaScriptBackendTests
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("ParseError", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("array expression", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Rejects_Malformed_Record_Mir_Through_Shared_Validation_Without_Partial_Artifact()
+    {
+        var missingRecord = new MirRecordType(new MirRecordTypeId("missing"), "Missing");
+        var program = new MirProgram([], [], [
+            new MirFunction(
+                "main",
+                [],
+                missingRecord,
+                [],
+                [new MirReturnStatement(new MirVariableExpression("value", missingRecord))]),
+        ]);
+
+        JavaScriptCompilation result = JavaScriptBackend.Emit(program);
+
+        Assert.False(result.Success);
+        Assert.Null(result.SourceText);
+        Assert.NotEmpty(result.Diagnostics);
+        Assert.All(result.Diagnostics, diagnostic => Assert.Equal("COPE-JS-0002", diagnostic.Id));
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("Invalid MIR", StringComparison.Ordinal) &&
+            diagnostic.Message.Contains("has no definition", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Stages_Earlier_Arguments_Before_Later_Record_Preludes()
+    {
+        JavaScriptCompilation result = Emit("""
+            record Point { x: number; y: number; }
+            function first(): number { return 1; }
+            function second(): number { return 2; }
+            function consume(value: number, point: Point): number { return value + point.x + point.y; }
+            function main(): number { return consume(first(), { y: second(), x: 39 }); }
+            """);
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
+        int firstCall = result.SourceText!.IndexOf("= first();", StringComparison.Ordinal);
+        int secondCall = result.SourceText.IndexOf("= second();", StringComparison.Ordinal);
+        Assert.True(firstCall >= 0, result.SourceText);
+        Assert.True(secondCall > firstCall, result.SourceText);
+        Assert.Single(Regex.Matches(result.SourceText, @"= first\(\);").Cast<Match>());
+        Assert.Single(Regex.Matches(result.SourceText, @"= second\(\);").Cast<Match>());
     }
 
     [Fact]

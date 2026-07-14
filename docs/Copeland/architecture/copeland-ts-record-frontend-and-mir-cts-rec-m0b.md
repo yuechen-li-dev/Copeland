@@ -1,6 +1,6 @@
 # Copeland TS record frontend and MIR (CTS-REC-M0b)
 
-**Status:** implemented frontend-to-MIR contract. CTS-REC-M1 now realizes this MIR in C#; JavaScript remains deliberately unsupported.
+**Status:** implemented frontend-to-MIR contract. CTS-REC-M1 realizes this MIR in C# and [CTS-REC-M2](copeland-ts-javascript-records-cts-rec-m2.md) realizes it in JavaScript.
 
 ## Source contract
 
@@ -48,8 +48,8 @@ Shared MIR validation indexes definitions and rejects blank/duplicate IDs and na
 
 Frontend diagnostics are the bounded `COPE-REC-0001` through `COPE-REC-0016` family: invalid declaration, duplicate declaration/field, recursion, missing context, incomplete construction, unknown field, duplicate initializer/replacement, initializer mismatch, invalid access, immutable mutation, invalid/empty `with`, replacement mismatch, nominal mismatch, and equality rejection.
 
-Valid record source emits canonical MIR. [CTS-REC-M1](copeland-ts-csharp-records-cts-rec-m1.md) maps it to deterministic sealed C# classes and executable direct construction/access/update. JavaScript still returns exactly `COPE-JS-REC-0001` with no artifact. Shared validation rejects malformed MIR before either backend emits output. Equality remains unsupported.
+Valid record source emits canonical MIR. [CTS-REC-M1](copeland-ts-csharp-records-cts-rec-m1.md) maps it to deterministic sealed C# classes, and [CTS-REC-M2](copeland-ts-javascript-records-cts-rec-m2.md) maps it to private token-branded frozen null-prototype values. Shared validation rejects malformed MIR before either backend emits output. Equality remains unsupported.
 
 ## Evidence
 
-The filesystem language contract is under `Language/Valid/records` and `Language/Invalid/records`. Focused tests cover syntax shape, IDs, nominal binding, authored order, MIR text stability and malformed MIR. M1 adds C# corpus and runtime proofs while retaining the JavaScript/CLI no-artifact rejection boundary. Existing non-record corpus snapshots remain unchanged.
+The filesystem language contract is under `Language/Valid/records` and `Language/Invalid/records`. Focused tests cover syntax shape, IDs, nominal binding, authored order, MIR text stability and malformed MIR. M1 adds C# corpus and runtime proofs; M2 adds JavaScript corpus, Node representation/order proofs, CLI success, and C#/Node parity. Existing non-record corpus snapshots remain unchanged.

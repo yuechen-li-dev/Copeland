@@ -10,6 +10,81 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class ResultBackendParityTests
 {
     [Fact]
+    public async Task JavaScript_And_CSharp_Record_Vertical_Program_Returns_42_Repeatedly()
+    {
+        const string source = """
+            record ScreenPoint { x: number; y: number; }
+            record WorldPoint { x: number; y: number; }
+            record Envelope { point: ScreenPoint; }
+            enum Event { Moved(point: ScreenPoint), }
+            function bad(): ScreenPoint ! string { return err("bad"); }
+            function fallback(): ScreenPoint { return { x: 40, y: 2 }; }
+            function recovered(): ScreenPoint { return try { bad()? } except (error) { fallback() }; }
+            function moved(point: ScreenPoint): ScreenPoint {
+              let updated: ScreenPoint = point;
+              updated = updated with { y: 2, x: 40 };
+              return updated;
+            }
+            function main(): number {
+              const other: WorldPoint = { x: 40, y: 2 };
+              const envelope: Envelope = { point: moved({ x: 1, y: 1 }) };
+              const event: Event = Event.Moved(recovered());
+              const recoveredPoint: ScreenPoint = match event { Moved(point) => point, };
+              return envelope.point.x + recoveredPoint.y;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.True(javaScript.Success, string.Join(Environment.NewLine, javaScript.Diagnostics));
+        ProcessResult firstNode = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+        ProcessResult secondNode = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        Assert.Equal("42\n", firstNode.StdOut);
+        Assert.Equal(firstNode, secondNode);
+        Assert.Equal(42d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+        Assert.Equal(42d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
+    public async Task JavaScript_And_CSharp_Preserve_Argument_And_Record_Initializer_Order()
+    {
+        const string source = """
+            record Point { x: number; }
+            function combine(first: number, point: Point): number { return first * 1000 + point.x * 10; }
+            function main(): number {
+              let trace: number = 0;
+              const result: number = combine(
+                trace = trace * 10 + 1,
+                { x: trace = trace * 10 + 2 }
+              );
+              return result + trace;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.True(javaScript.Success, string.Join(Environment.NewLine, javaScript.Diagnostics));
+        ProcessResult node = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        Assert.Equal("1132\n", node.StdOut);
+        Assert.Equal(1132d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
     public async Task JavaScript_And_CSharp_Repeat_The_Ratified_Fallibility_Matrix_Deterministically()
     {
         const string source = """

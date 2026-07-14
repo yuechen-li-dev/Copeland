@@ -63,6 +63,20 @@ public sealed class JavaScriptCorpusTests
         Assert.Equal("DD678A23F507736CE1E54FFAA0124158EF2F5A5B833B441F87B1705F02FF4BA7", hash);
     }
 
+    [Theory]
+    [InlineData("record-basic.g.js", "AA91167AF8D33B45731748BF5D0861FBCE4EF7D195E96E2ADFFB7C77F62EB8A0")]
+    [InlineData("record-order-with.g.js", "EC92548B37415D888B02ACB6C9D163096DD2D46FF66C23767E5BE0E43DA56060")]
+    [InlineData("record-result-enum.g.js", "DDACF318CB2777D5A4E5A138B8875F3AB3752F8AD93D6C64DD185EF55B56BB24")]
+    [InlineData("record-try-except.g.js", "859A7CD39986AC6D3410943A529AAA0222E320240FFE96D36A2E2883DC733F7D")]
+    public void Record_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
+    {
+        string artifactPath = Path.Combine(GetCorpusRoot(), fileName);
+        byte[] bytes = File.ReadAllBytes(artifactPath);
+        string hash = Convert.ToHexString(SHA256.HashData(bytes));
+
+        Assert.Equal(expectedHash, hash);
+    }
+
     private static string GetCorpusRoot()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

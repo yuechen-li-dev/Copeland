@@ -21,11 +21,11 @@ The conservative recursive-type boundary follows record containment through arra
 
 ## Diagnostic inventory
 
-`COPE-REC-0001`–`0016` cover invalid declaration, duplicate declaration/field, recursion, required context, incomplete construction, unknown field, duplicate entry, initializer type, access, mutation, `with` receiver/empty/type, nominal mismatch, and equality. At the M0b boundary backend ownership was explicit through `COPE-CS-REC-0001` and `COPE-JS-REC-0001`; M1 retired the former while the latter remains active.
+`COPE-REC-0001`–`0016` cover invalid declaration, duplicate declaration/field, recursion, required context, incomplete construction, unknown field, duplicate entry, initializer type, access, mutation, `with` receiver/empty/type, nominal mismatch, and equality. At the M0b boundary backend ownership was explicit through `COPE-CS-REC-0001` and `COPE-JS-REC-0001`; M1 retired the former and M2 retired the latter for valid canonical MIR.
 
 ## Backend and ladder boundary
 
-No C# or JavaScript record representation existed at the M0b checkpoint. CTS-REC-M1 now provides C# representation and execution. JavaScript continues to validate MIR, return `COPE-JS-REC-0001`, and expose no artifact; its CLI target fails before creating an output path.
+No C# or JavaScript record representation existed at the M0b checkpoint. CTS-REC-M1 subsequently provided C# representation and execution, and CTS-REC-M2 provided deterministic JavaScript representation and Node execution.
 
 The remaining ladder is now:
 

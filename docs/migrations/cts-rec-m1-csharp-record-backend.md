@@ -14,7 +14,7 @@ CTS-REC-M1 retires the C# blanket diagnostic `COPE-CS-REC-0001` for valid canoni
 - Result success/error, match, propagation, handler, and unwrap composition;
 - payload-enum field/payload/match composition;
 - backend corpus and repeated compile/execute proofs, including final result `42`;
-- CLI C# success and retained JavaScript `COPE-JS-REC-0001` no-output behavior.
+- CLI C# success and the then-current JavaScript `COPE-JS-REC-0001` no-output behavior, subsequently retired by CTS-REC-M2.
 
 ## Compatibility
 

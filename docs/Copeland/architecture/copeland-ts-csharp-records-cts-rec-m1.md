@@ -1,6 +1,6 @@
 # Copeland TS C# immutable records (CTS-REC-M1)
 
-**Status:** implemented C# backend realization. JavaScript realization remains deferred to CTS-REC-M2.
+**Status:** implemented C# backend realization and semantic oracle. [CTS-REC-M2](copeland-ts-javascript-records-cts-rec-m2.md) now supplies the JavaScript realization and parity evidence.
 
 ## Representation
 
@@ -39,7 +39,7 @@ The generated-C# proof harness compiles and executes record construction, nested
 
 Record `==` and `!=` remain frontend errors. The backend emits no `Equals`, `GetHashCode`, comparison, deconstruction, or clone implementation and does not use C# record equality. Unavoidable `object` members do not create a Copeland source operation.
 
-JavaScript continues to return `COPE-JS-REC-0001` with no artifact, including through the CLI. CTS-REC-M2 owns that realization. Existing non-record `.g.cs`, `.cope`, and `.g.js` artifacts are unchanged.
+CTS-REC-M2 emits private nominal frozen JavaScript values through the CLI and compares their observable behavior with this C# oracle. Existing non-record `.g.cs`, `.cope`, and `.g.js` artifacts remain unchanged.
 
 ## Artifact evidence
 
@@ -61,7 +61,7 @@ The representation is ordinary ahead-of-time-friendly C#: sealed classes, constr
 1. CTS-REC-M0a: immutable nominal record design — accepted.
 2. CTS-REC-M0b: frontend, type system, canonical MIR, validation, fixtures — implemented.
 3. CTS-REC-M1: C# backend — implemented here.
-4. CTS-REC-M2: JavaScript backend.
-5. CTS-REC-M3: cross-backend parity and closeout.
+4. CTS-REC-M2: JavaScript backend — complete after validation.
+5. CTS-REC-M3: cross-backend stress, diagnostic/doctrine ratification, and closeout.
 
-Equality, patterns, serialization, tables, and any `record table` direction require separate approval and ladders.
+Equality, patterns, and serialization require separate approval. Tables and `record table` belong only to a separately deferred future ladder.
