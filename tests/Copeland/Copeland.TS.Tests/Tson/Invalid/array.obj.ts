@@ -1,3 +1,3 @@
-// expected: COPE-TSON-0002
+// expected: COPE-TSON-0004
 const $schema: string = "copeland://fixtures/invalid";
-const $value = [1, 2];
+const $value: number[] = [1, 2];

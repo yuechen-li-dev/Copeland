@@ -20,7 +20,8 @@ public sealed class TsonLimits
         int maximumEnumCases = 256,
         int maximumPayloadsPerCase = 64,
         int maximumValueNodeCount = 100_000,
-        int maximumStringLength = 262_144)
+        int maximumStringLength = 262_144,
+        int maximumArrayLength = 100_000)
     {
         MaximumSourceLength = RequirePositive(maximumSourceLength, nameof(maximumSourceLength));
         MaximumNestingDepth = RequirePositive(maximumNestingDepth, nameof(maximumNestingDepth));
@@ -30,6 +31,7 @@ public sealed class TsonLimits
         MaximumPayloadsPerCase = RequirePositive(maximumPayloadsPerCase, nameof(maximumPayloadsPerCase));
         MaximumValueNodeCount = RequirePositive(maximumValueNodeCount, nameof(maximumValueNodeCount));
         MaximumStringLength = RequirePositive(maximumStringLength, nameof(maximumStringLength));
+        MaximumArrayLength = RequirePositive(maximumArrayLength, nameof(maximumArrayLength));
     }
 
     public int MaximumSourceLength { get; }
@@ -47,6 +49,8 @@ public sealed class TsonLimits
     public int MaximumValueNodeCount { get; }
 
     public int MaximumStringLength { get; }
+
+    public int MaximumArrayLength { get; }
 
     private static int RequirePositive(int value, string parameterName)
     {

@@ -192,8 +192,10 @@ Require-Condition (-not $readerSource.Contains('new Parser(', [System.StringComp
 $forbiddenTsonDependencies = $tsonSources | Select-String -Pattern 'Copeland\.TS\.Backend|Copeland\.Cli|Machina|Aurelian|Dominatus|Microsoft\.CodeAnalysis|System\.Reflection|System\.Text\.Json|Newtonsoft'
 Require-Condition ($null -eq $forbiddenTsonDependencies) "TSON contains a prohibited backend, CLI, product, Roslyn, reflection, or serializer dependency."
 
-$forbiddenTsonVariants = $tsonSources | Select-String -Pattern 'class\s+Tson(Array|Result|Table|Json)\b|record\s+Tson(Array|Result|Table|Json)\b'
-Require-Condition ($null -eq $forbiddenTsonVariants) "TSON M0b must not implement array, Result, table, or JSON variants."
+$forbiddenTsonVariants = $tsonSources | Select-String -Pattern 'class\s+Tson(Result|Table|Json)\b|record\s+Tson(Result|Table|Json)\b'
+Require-Condition ($null -eq $forbiddenTsonVariants) "TSON ARRAY-M0b must not implement Result, table, or JSON variants."
+Require-Condition ($readerSource.Contains('ArrayLiteralExpressionSyntax', [System.StringComparison]::Ordinal)) "TSON arrays must reuse the production ArrayLiteralExpressionSyntax."
+Require-Condition (-not $readerSource.Contains('$array(', [System.StringComparison]::Ordinal)) "TSON must not define a parallel array grammar."
 
 $tsonAssetFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonAssets"
 Require-Condition (Test-Path -LiteralPath (Join-Path $tsonAssetFixtureRoot "Valid") -PathType Container) "TSON asset Valid fixture ownership is missing."
@@ -214,6 +216,7 @@ $mirText = ($mirSources | Get-Content -Raw) -join "`n"
 Require-Condition ($mirText.Contains('class MirTsonEncodingPlan', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans must be owned by Copeland.TS.Mir."
 Require-Condition ($mirText.Contains('record MirTsonEncodeExpression', [System.StringComparison]::Ordinal)) "Runtime TSON encoding requires a dedicated MIR expression."
 Require-Condition ($mirText.Contains('ValidateTsonEncodingModel', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans require shared MIR validation."
+Require-Condition (-not $mirText.Contains('MirTsonArrayPlan', [System.StringComparison]::Ordinal)) "ARRAY-M0b must not add a runtime TSON array encoding plan."
 
 $backendSources = @(
     Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File
@@ -221,6 +224,8 @@ $backendSources = @(
 ) | Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' }
 $forbiddenBackendTson = $backendSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|TsonDocumentReader)\b|Copeland\.TS\.Tson'
 Require-Condition ($null -eq $forbiddenBackendTson) "Backends must not reference compiler-host TSON types."
+$javaScriptBackendText = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript/JavaScriptBackend.cs")
+Require-Condition ($javaScriptBackendText.Contains('MirArrayExpression array => EmitArrayExpression', [System.StringComparison]::Ordinal)) "JavaScript arrays must be realized through the ordinary backend path."
 
 $forbiddenRuntimeEncodingApis = $backendSources | Select-String -Pattern 'System\.Text\.Json|JSON\.stringify|System\.Reflection|System\.IO\.File|File\.(Read|Write)|\breflection\b|\bdynamic\b'
 Require-Condition ($null -eq $forbiddenRuntimeEncodingApis) "Generated backends must not add JSON, reflection, dynamic, or runtime filesystem dependencies for TSON encoding."

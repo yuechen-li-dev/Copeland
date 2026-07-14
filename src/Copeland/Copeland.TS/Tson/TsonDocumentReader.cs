@@ -198,6 +198,15 @@ public static class TsonDocumentReader
                 return null;
             }
 
+            if (value is TsonArray)
+            {
+                Report(
+                    "COPE-TSON-0004",
+                    "A TSON array cannot be the document root; arrays must be nested beneath a nominal record or enum value.",
+                    rootBinding.Initializer);
+                return null;
+            }
+
             var orderedDefinitions = _definitions.Values
                 .OrderBy(definition => definition.Name, StringComparer.Ordinal)
                 .ToArray();
@@ -589,12 +598,25 @@ public static class TsonDocumentReader
         private static IEnumerable<TsonTypeReference> GetReferencedTypes(
             TsonNominalDefinition definition)
         {
-            return definition switch
+            IEnumerable<TsonTypeReference> roots = definition switch
             {
                 TsonRecordDefinition record => record.Fields.Select(field => field.Type),
                 TsonEnumDefinition @enum => @enum.Cases.SelectMany(item => item.Payloads).Select(payload => payload.Type),
                 _ => [],
             };
+
+            var pending = new Stack<TsonTypeReference>(roots.Reverse());
+            while (pending.Count > 0)
+            {
+                var type = pending.Pop();
+                if (type.Kind == TsonTypeKind.Array)
+                {
+                    pending.Push(type.ElementType!);
+                    continue;
+                }
+
+                yield return type;
+            }
         }
 
         private TsonTypeReference? ReadType(TypeSyntax syntax, bool reportErrors)
@@ -621,6 +643,7 @@ public static class TsonDocumentReader
                     => kind == TsonTypeKind.Record
                         ? TsonTypeReference.Record(identifier.Identifier.Text)
                         : TsonTypeReference.Enum(identifier.Identifier.Text),
+                ArrayTypeSyntax array => ReadArrayType(array, declaredKinds, reportErrors),
                 _ => null,
             };
 
@@ -633,6 +656,43 @@ public static class TsonDocumentReader
             }
 
             return type;
+        }
+
+        private TsonTypeReference? ReadArrayType(
+            ArrayTypeSyntax syntax,
+            IReadOnlyDictionary<string, TsonTypeKind> declaredKinds,
+            bool reportErrors)
+        {
+            var elementType = ReadType(syntax.ElementType, declaredKinds, reportErrors);
+            if (elementType is null)
+            {
+                return null;
+            }
+
+            if (!IsSupportedArrayElementType(elementType))
+            {
+                if (reportErrors)
+                {
+                    Report(
+                        "COPE-TSON-0003",
+                        $"Array element type '{DisplayType(elementType)}' is outside the ARRAY-M0b TSON type grammar.",
+                        syntax);
+                }
+
+                return null;
+            }
+
+            return TsonTypeReference.Array(elementType);
+        }
+
+        private static bool IsSupportedArrayElementType(TsonTypeReference type)
+        {
+            return type.Kind is TsonTypeKind.Boolean
+                or TsonTypeKind.Number
+                or TsonTypeKind.String
+                or TsonTypeKind.Record
+                or TsonTypeKind.Enum
+                or TsonTypeKind.Array;
         }
 
         private TsonValue? ProjectValue(
@@ -664,6 +724,7 @@ public static class TsonDocumentReader
                 LiteralExpressionSyntax literal => ProjectLiteral(literal),
                 UnaryExpressionSyntax unary => ProjectUnaryNumber(unary),
                 ObjectLiteralExpressionSyntax objectLiteral => ProjectObject(objectLiteral, expectedType, depth),
+                ArrayLiteralExpressionSyntax arrayLiteral => ProjectArray(arrayLiteral, expectedType, depth),
                 CallExpressionSyntax call => ProjectCall(call, expectedType, depth),
                 MemberAccessExpressionSyntax member => ProjectZeroPayloadEnum(member, expectedType),
                 ParenthesizedExpressionSyntax parenthesized => ProjectValue(parenthesized.Expression, expectedType, depth),
@@ -680,6 +741,44 @@ public static class TsonDocumentReader
             }
 
             return value;
+        }
+
+        private TsonValue? ProjectArray(
+            ArrayLiteralExpressionSyntax syntax,
+            TsonTypeReference? expectedType,
+            int depth)
+        {
+            if (expectedType?.Kind != TsonTypeKind.Array || expectedType.ElementType is null)
+            {
+                Report(
+                    "COPE-TSON-0004",
+                    "A TSON array requires an authoritative array element type from its enclosing schema context.",
+                    syntax);
+                return null;
+            }
+
+            if (syntax.Elements.Count > _limits.MaximumArrayLength)
+            {
+                Report(
+                    "COPE-TSON-0005",
+                    $"Array length exceeds the TSON limit of {_limits.MaximumArrayLength}.",
+                    syntax);
+                return null;
+            }
+
+            var elements = new List<TsonValue>(syntax.Elements.Count);
+            for (var index = 0; index < syntax.Elements.Count; index++)
+            {
+                var element = ProjectValue(syntax.Elements[index], expectedType.ElementType, depth + 1);
+                if (element is not null)
+                {
+                    elements.Add(element);
+                }
+            }
+
+            return _diagnostics.Count == 0
+                ? new TsonArray(new TsonArraySchema(expectedType.ElementType), elements)
+                : null;
         }
 
         private TsonValue? ProjectLiteral(LiteralExpressionSyntax literal)
@@ -1037,8 +1136,38 @@ public static class TsonDocumentReader
                 TsonTypeKind.Enum => value is TsonEnum @enum
                     && _definitions.TryGetValue(expectedType.NominalName!, out var enumDefinition)
                     && @enum.EnumIdentity == enumDefinition.Identity,
+                TsonTypeKind.Array => value is TsonArray array
+                    && expectedType.ElementType is not null
+                    && TypeReferencesMatch(array.Schema.ElementType, expectedType.ElementType),
                 _ => false,
             };
+        }
+
+        private static bool TypeReferencesMatch(TsonTypeReference left, TsonTypeReference right)
+        {
+            var pairs = new Stack<(TsonTypeReference Left, TsonTypeReference Right)>();
+            pairs.Push((left, right));
+            while (pairs.Count > 0)
+            {
+                var pair = pairs.Pop();
+                if (pair.Left.Kind != pair.Right.Kind
+                    || !string.Equals(pair.Left.NominalName, pair.Right.NominalName, StringComparison.Ordinal))
+                {
+                    return false;
+                }
+
+                if (pair.Left.Kind == TsonTypeKind.Array)
+                {
+                    if (pair.Left.ElementType is null || pair.Right.ElementType is null)
+                    {
+                        return false;
+                    }
+
+                    pairs.Push((pair.Left.ElementType, pair.Right.ElementType));
+                }
+            }
+
+            return true;
         }
 
         private static bool MatchesExpectedEnum(
@@ -1287,7 +1416,9 @@ public static class TsonDocumentReader
 
         private static string DisplayType(TsonTypeReference type)
         {
-            return type.NominalName ?? type.Kind.ToString().ToLowerInvariant();
+            return type.Kind == TsonTypeKind.Array
+                ? DisplayType(type.ElementType!) + "[]"
+                : type.NominalName ?? type.Kind.ToString().ToLowerInvariant();
         }
 
         private string Slice(SyntaxNode syntax)

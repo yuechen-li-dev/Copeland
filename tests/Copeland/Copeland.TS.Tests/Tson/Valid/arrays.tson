@@ -1,0 +1,47 @@
+const $schema: string = "copeland://fixtures/arrays";
+
+record Batch {
+    flags: boolean[];
+    names: string[];
+    entries: Entry[];
+    states: State[];
+    rows: number[][];
+}
+
+record Entry {
+    label: string;
+}
+
+enum State {
+    Off,
+    On(value: number),
+}
+
+const $value = $record.Batch({
+    "flags": [
+        true,
+        false,
+    ],
+    "names": [],
+    "entries": [
+        $record.Entry({
+            "label": "first",
+        }),
+        $record.Entry({
+            "label": "second",
+        }),
+    ],
+    "states": [
+        State.Off,
+        State.On(
+            $number("4000000000000000")
+        ),
+    ],
+    "rows": [
+        [],
+        [
+            $number("3FF0000000000000"),
+            $number("4000000000000000"),
+        ],
+    ],
+});

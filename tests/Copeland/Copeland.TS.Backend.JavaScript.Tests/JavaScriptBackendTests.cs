@@ -94,6 +94,24 @@ public sealed class JavaScriptBackendTests
     }
 
     [Fact]
+    public void Ordinary_arrays_emit_as_ordered_javascript_array_literals()
+    {
+        JavaScriptCompilation compilation = Emit("""
+            record Item { label: string; }
+            enum State { Off, On(value: number), }
+            function numbers(): number[] { return [1, 2]; }
+            function nested(): number[][] { return [[], [3]]; }
+            function items(): Item[] { return [{ label: "first" }, { label: "second" }]; }
+            function states(): State[] { return [State.Off, State.On(4)]; }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("return [1, 2];", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("return [[], [3]];", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Object.freeze([1, 2])", compilation.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Logical_Short_Circuit_Keeps_A_Statementful_Right_Operand_Inside_The_Selected_Branch()
     {
         JavaScriptCompilation result = Emit("""
@@ -293,7 +311,6 @@ public sealed class JavaScriptBackendTests
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
             && diagnostic.Message.Contains("non-exhaustive match", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("ParseError", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("array expression", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
     }

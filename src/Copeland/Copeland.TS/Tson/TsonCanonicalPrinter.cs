@@ -117,8 +117,33 @@ public static class TsonCanonicalPrinter
                 TsonTypeKind.String => "string",
                 TsonTypeKind.Object => "$object",
                 TsonTypeKind.Record or TsonTypeKind.Enum => type.NominalName,
+                TsonTypeKind.Array => FormatArrayType(type),
                 _ => throw new InvalidOperationException("Unknown TSON type kind."),
             });
+        }
+
+        private static string FormatArrayType(TsonTypeReference type)
+        {
+            if (type.ElementType is null)
+            {
+                throw new InvalidOperationException("A TSON array type requires an element type.");
+            }
+
+            return FormatType(type.ElementType) + "[]";
+        }
+
+        private static string FormatType(TsonTypeReference type)
+        {
+            return type.Kind switch
+            {
+                TsonTypeKind.Boolean => "boolean",
+                TsonTypeKind.Number => "number",
+                TsonTypeKind.String => "string",
+                TsonTypeKind.Object => "$object",
+                TsonTypeKind.Record or TsonTypeKind.Enum => type.NominalName!,
+                TsonTypeKind.Array => FormatArrayType(type),
+                _ => throw new InvalidOperationException("Unknown TSON type kind."),
+            };
         }
 
         private void AppendValue(TsonValue value, int indentation)
@@ -136,6 +161,9 @@ public static class TsonCanonicalPrinter
                 case TsonString text:
                     AppendString(text.Value);
                     break;
+                case TsonArray array:
+                    AppendArray(array, indentation);
+                    break;
                 case TsonObject @object:
                     AppendFields(@object.Fields, indentation);
                     break;
@@ -148,6 +176,26 @@ public static class TsonCanonicalPrinter
                 default:
                     throw new InvalidOperationException("Unknown TSON value variant.");
             }
+        }
+
+        private void AppendArray(TsonArray array, int indentation)
+        {
+            if (array.Elements.Count == 0)
+            {
+                _builder.Append("[]");
+                return;
+            }
+
+            AppendLine("[");
+            for (var index = 0; index < array.Elements.Count; index++)
+            {
+                AppendIndent(indentation + 1);
+                AppendValue(array.Elements[index], indentation + 1);
+                AppendLine(",");
+            }
+
+            AppendIndent(indentation);
+            _builder.Append(']');
         }
 
         private void AppendRecord(TsonRecord record, int indentation)

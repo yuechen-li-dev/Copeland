@@ -1,6 +1,6 @@
 # Copeland TS TSON arrays design (CTS-TSON-ARRAY-M0a)
 
-**Status:** design and repository audit only. This document selects the next TSON value-family direction after the completed core through CTS-TSON-M2c. It changes no language, parser, semantic value, MIR, backend, runtime, asset, CLI, JSON, or table behavior.
+**Status:** design/audit accepted and implemented by [CTS-TSON-ARRAY-M0b](../architecture/copeland-ts-tson-arrays-and-assets-cts-tson-array-m0b.md). Historical implementation findings below describe the pre-M0b baseline.
 
 ## Executive decision
 

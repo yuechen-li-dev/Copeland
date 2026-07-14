@@ -7,6 +7,7 @@ public static class MirValidator
     public static IReadOnlyList<MirValidationDiagnostic> Validate(MirProgram program)
     {
         var diagnostics = new List<MirValidationDiagnostic>();
+        ValidateArrayModel(program, diagnostics);
         ValidateRecordModel(program, diagnostics);
         ValidateTableModel(program, diagnostics);
         ValidateTsonEncodingModel(program, diagnostics);
@@ -18,6 +19,70 @@ public static class MirValidator
         }
 
         return diagnostics;
+    }
+
+    private static void ValidateArrayModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (MirFunction function in program.Functions)
+        {
+            ValidateArrayStatements(function.Body, diagnostics);
+        }
+    }
+
+    private static void ValidateArrayStatements(
+        IReadOnlyList<MirStatement> statements,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (MirStatement statement in statements)
+        {
+            switch (statement)
+            {
+                case MirVariableDeclarationStatement declaration:
+                    ValidateArrayExpression(declaration.Initializer, diagnostics);
+                    break;
+                case MirExpressionStatement expression:
+                    ValidateArrayExpression(expression.Expression, diagnostics);
+                    break;
+                case MirReturnStatement { Expression: not null } returned:
+                    ValidateArrayExpression(returned.Expression, diagnostics);
+                    break;
+                case MirIfStatement conditional:
+                    ValidateArrayExpression(conditional.Condition, diagnostics);
+                    ValidateArrayStatements(conditional.ThenStatements, diagnostics);
+                    if (conditional.ElseStatements is not null)
+                    {
+                        ValidateArrayStatements(conditional.ElseStatements, diagnostics);
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    private static void ValidateArrayExpression(MirExpression expression, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (expression is MirArrayExpression array)
+        {
+            if (array.Type is not MirArrayType arrayType)
+            {
+                diagnostics.Add(new MirValidationDiagnostic("Array expression does not carry a MirArrayType."));
+            }
+            else
+            {
+                for (int index = 0; index < array.Elements.Count; index++)
+                {
+                    if (!MirTypeFacts.AreEquivalent(array.Elements[index].Type, arrayType.ElementType))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Array element {index} does not match array element type '{arrayType.ElementType.Name}'."));
+                    }
+                }
+            }
+        }
+
+        foreach (MirExpression child in EnumerateTsonExpressionChildren(expression))
+        {
+            ValidateArrayExpression(child, diagnostics);
+        }
     }
 
     private static void ValidateTsonEncodingModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)

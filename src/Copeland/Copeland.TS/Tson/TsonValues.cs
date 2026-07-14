@@ -95,6 +95,72 @@ public sealed class TsonString : TsonValue
     public string Value { get; }
 }
 
+public sealed class TsonArray : TsonValue
+{
+    public TsonArray(TsonArraySchema schema, IEnumerable<TsonValue> elements)
+    {
+        ArgumentNullException.ThrowIfNull(schema);
+        Schema = schema;
+        Elements = TsonCollection.Copy(elements, nameof(elements));
+        for (var index = 0; index < Elements.Count; index++)
+        {
+            if (!MatchesSchemaFamily(Elements[index], Schema.ElementType))
+            {
+                throw new ArgumentException(
+                    $"TSON array element {index} does not match its schema family.",
+                    nameof(elements));
+            }
+        }
+    }
+
+    public TsonArraySchema Schema { get; }
+
+    public IReadOnlyList<TsonValue> Elements { get; }
+
+    private static bool MatchesSchemaFamily(TsonValue value, TsonTypeReference type)
+    {
+        return type.Kind switch
+        {
+            TsonTypeKind.Boolean => value is TsonBoolean,
+            TsonTypeKind.Number => value is TsonNumber,
+            TsonTypeKind.String => value is TsonString,
+            TsonTypeKind.Record => value is TsonRecord,
+            TsonTypeKind.Enum => value is TsonEnum,
+            TsonTypeKind.Array => value is TsonArray array
+                && type.ElementType is not null
+                && SameType(array.Schema.ElementType, type.ElementType),
+            _ => false,
+        };
+    }
+
+    private static bool SameType(TsonTypeReference left, TsonTypeReference right)
+    {
+        var pending = new Stack<(TsonTypeReference Left, TsonTypeReference Right)>();
+        pending.Push((left, right));
+        while (pending.Count > 0)
+        {
+            var pair = pending.Pop();
+            if (pair.Left.Kind != pair.Right.Kind
+                || !string.Equals(pair.Left.NominalName, pair.Right.NominalName, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (pair.Left.Kind == TsonTypeKind.Array)
+            {
+                if (pair.Left.ElementType is null || pair.Right.ElementType is null)
+                {
+                    return false;
+                }
+
+                pending.Push((pair.Left.ElementType, pair.Right.ElementType));
+            }
+        }
+
+        return true;
+    }
+}
+
 public sealed class TsonField
 {
     public TsonField(string name, TsonValue value, string? identity = null)

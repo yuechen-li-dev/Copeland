@@ -183,6 +183,42 @@ public sealed class TsonAssetFeatureTests
             .Count(statement => statement.Initializer is BoundRecordConstructionExpression));
     }
 
+    [Fact]
+    public void Nested_asset_arrays_lower_to_existing_bound_arrays_with_explicit_types()
+    {
+        const string program = """
+            const $schema: string = "copeland://tests/array-assets";
+            record Item { label: string; }
+            enum State { Off, On(value: number), }
+            record Batch { names: string[]; items: Item[]; states: State[]; rows: number[][]; }
+            function load(): Batch {
+                const batch: Batch = tsonAsset("./batch.obj.ts");
+                return batch;
+            }
+            """;
+        const string asset = """
+            const $schema: string = "copeland://tests/array-assets";
+            record Item { label: string; }
+            enum State { Off, On(value: number), }
+            record Batch { names: string[]; items: Item[]; states: State[]; rows: number[][]; }
+            const $value: Batch = {
+                names: [],
+                items: [{ label: "first" }],
+                states: [State.Off, State.On(2)],
+                rows: [[], [1, 2]],
+            };
+            """;
+        var source = new InMemoryAssetSource(("C:/project/batch.obj.ts", asset));
+
+        CopelandCompilation compilation = Compile(program, source);
+
+        Assert.True(compilation.Success, Describe(compilation));
+        var declaration = Assert.IsType<BoundVariableDeclaration>(compilation.BoundCompilation!.Program.Functions[0].Body.Statements[0]);
+        var batch = Assert.IsType<BoundRecordConstructionExpression>(declaration.Initializer);
+        Assert.All(batch.Initializers, initializer => Assert.IsType<BoundArrayExpression>(initializer.Value));
+        Assert.Contains("[]", compilation.MirText, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("function load(): Settings { const x = tsonAsset(\"./settings.obj.ts\"); return x; }", "COPE-TSON-ASSET-0001")]
     [InlineData("function load(): number { const x: number = tsonAsset(\"./settings.obj.ts\"); return x; }", "COPE-TSON-ASSET-0001")]

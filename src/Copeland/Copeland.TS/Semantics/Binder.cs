@@ -1382,6 +1382,17 @@ public static class Binder
                 return true;
             }
 
+            if (type is ArrayTypeSymbol array)
+            {
+                if (!IsSupportedTsonArrayElementType(array.ElementType))
+                {
+                    mismatch = $"Array element type '{array.ElementType.Name}' is unsupported in TSON assets.";
+                    return false;
+                }
+
+                return ValidateTsonSchemaType(catalog, array.ElementType, visited, out mismatch);
+            }
+
             if (type is PrimitiveTypeSymbol primitive
                 && primitive != PrimitiveTypeSymbol.Boolean
                 && primitive != PrimitiveTypeSymbol.Number
@@ -1402,13 +1413,47 @@ public static class Binder
 
         private static bool TsonTypeMatches(TsonTypeReference authored, TypeSymbol compiled)
         {
-            return (authored.Kind, compiled) switch
+            var pending = new Stack<(TsonTypeReference Authored, TypeSymbol Compiled)>();
+            pending.Push((authored, compiled));
+            while (pending.Count > 0)
             {
-                (TsonTypeKind.Boolean, PrimitiveTypeSymbol primitive) => primitive == PrimitiveTypeSymbol.Boolean,
-                (TsonTypeKind.Number, PrimitiveTypeSymbol primitive) => primitive == PrimitiveTypeSymbol.Number,
-                (TsonTypeKind.String, PrimitiveTypeSymbol primitive) => primitive == PrimitiveTypeSymbol.String,
-                (TsonTypeKind.Record, RecordTypeSymbol record) => authored.NominalName == record.Name,
-                (TsonTypeKind.Enum, EnumTypeSymbol enumType) => authored.NominalName == enumType.Name,
+                var pair = pending.Pop();
+                switch (pair.Authored.Kind, pair.Compiled)
+                {
+                    case (TsonTypeKind.Boolean, PrimitiveTypeSymbol boolean)
+                        when boolean == PrimitiveTypeSymbol.Boolean:
+                    case (TsonTypeKind.Number, PrimitiveTypeSymbol number)
+                        when number == PrimitiveTypeSymbol.Number:
+                    case (TsonTypeKind.String, PrimitiveTypeSymbol text)
+                        when text == PrimitiveTypeSymbol.String:
+                        break;
+                    case (TsonTypeKind.Record, RecordTypeSymbol record)
+                        when pair.Authored.NominalName == record.Name:
+                    case (TsonTypeKind.Enum, EnumTypeSymbol enumType)
+                        when pair.Authored.NominalName == enumType.Name:
+                        break;
+                    case (TsonTypeKind.Array, ArrayTypeSymbol array)
+                        when pair.Authored.ElementType is not null:
+                        pending.Push((pair.Authored.ElementType, array.ElementType));
+                        break;
+                    default:
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsSupportedTsonArrayElementType(TypeSymbol type)
+        {
+            return type switch
+            {
+                PrimitiveTypeSymbol primitive => primitive == PrimitiveTypeSymbol.Boolean
+                    || primitive == PrimitiveTypeSymbol.Number
+                    || primitive == PrimitiveTypeSymbol.String,
+                RecordTypeSymbol => true,
+                EnumTypeSymbol => true,
+                ArrayTypeSymbol nested => IsSupportedTsonArrayElementType(nested.ElementType),
                 _ => false,
             };
         }
@@ -1436,6 +1481,8 @@ public static class Binder
                     return TryLowerTsonRecord(value, record, assetPath, callSite, out expression);
                 case EnumTypeSymbol @enum:
                     return TryLowerTsonEnum(value, @enum, assetPath, callSite, out expression);
+                case ArrayTypeSymbol array:
+                    return TryLowerTsonArray(value, array, assetPath, callSite, out expression);
                 case PrimitiveTypeSymbol primitive
                     when primitive == PrimitiveTypeSymbol.Boolean
                         || primitive == PrimitiveTypeSymbol.Number
@@ -1452,6 +1499,52 @@ public static class Binder
                         callSite);
                     return false;
             }
+        }
+
+        private bool TryLowerTsonArray(
+            TsonValue value,
+            ArrayTypeSymbol arrayType,
+            string assetPath,
+            SyntaxToken callSite,
+            out BoundExpression? expression)
+        {
+            expression = null;
+            if (value is not TsonArray tsonArray)
+            {
+                ReportAssetMismatch(
+                    assetPath,
+                    $"TSON value type mismatch: expected '{arrayType.Name}', actual '{DescribeTsonValue(value)}'.",
+                    callSite);
+                return false;
+            }
+
+            if (!TsonTypeMatches(tsonArray.Schema.ElementType, arrayType.ElementType))
+            {
+                ReportAssetMismatch(
+                    assetPath,
+                    $"TSON array element schema does not match expected '{arrayType.ElementType.Name}'.",
+                    callSite);
+                return false;
+            }
+
+            var elements = new List<BoundExpression>(tsonArray.Elements.Count);
+            for (var index = 0; index < tsonArray.Elements.Count; index++)
+            {
+                if (!TryLowerTsonValue(
+                        tsonArray.Elements[index],
+                        arrayType.ElementType,
+                        assetPath,
+                        callSite,
+                        out BoundExpression? element))
+                {
+                    return false;
+                }
+
+                elements.Add(element!);
+            }
+
+            expression = new BoundArrayExpression(elements, arrayType);
+            return true;
         }
 
         private bool TryLowerTsonRecord(
@@ -1584,8 +1677,18 @@ public static class Binder
                 TsonBoolean => "boolean",
                 TsonNumber => "number",
                 TsonString => "string",
+                TsonArray array => array.Schema.ElementType.Kind == TsonTypeKind.Array
+                    ? "array"
+                    : DisplayTsonArrayType(array.Schema.ElementType) + "[]",
                 _ => "unsupported value",
             };
+        }
+
+        private static string DisplayTsonArrayType(TsonTypeReference type)
+        {
+            return type.Kind == TsonTypeKind.Array
+                ? DisplayTsonArrayType(type.ElementType!) + "[]"
+                : type.NominalName ?? type.Kind.ToString().ToLowerInvariant();
         }
 
         private void ReportAssetMismatch(string assetPath, string message, SyntaxToken callSite)

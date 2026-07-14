@@ -290,7 +290,7 @@ function one(): number {
     }
 
     [Fact]
-    public async Task UnsupportedJavaScriptEmission_DoesNotWriteOutput()
+    public async Task JavaScriptArrayEmission_WritesOrdinaryArrayOutput()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", "function values(): number[] { return [1]; }");
@@ -298,9 +298,9 @@ function one(): number {
 
         var result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript", "--out", outputPath);
 
-        Assert.Equal(1, result.ExitCode);
-        Assert.Contains("COPE-JS-0001", result.StdErr);
-        Assert.False(File.Exists(outputPath));
+        Assert.Equal(0, result.ExitCode);
+        Assert.True(File.Exists(outputPath));
+        Assert.Contains("return [1];", File.ReadAllText(outputPath), StringComparison.Ordinal);
     }
 
     [Fact]

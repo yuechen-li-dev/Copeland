@@ -10,14 +10,16 @@ public enum TsonTypeKind
     Object,
     Record,
     Enum,
+    Array,
 }
 
 public sealed class TsonTypeReference
 {
-    private TsonTypeReference(TsonTypeKind kind, string? nominalName)
+    private TsonTypeReference(TsonTypeKind kind, string? nominalName, TsonTypeReference? elementType = null)
     {
         Kind = kind;
         NominalName = nominalName;
+        ElementType = elementType;
     }
 
     public static TsonTypeReference Boolean { get; } = new(TsonTypeKind.Boolean, null);
@@ -32,6 +34,8 @@ public sealed class TsonTypeReference
 
     public string? NominalName { get; }
 
+    public TsonTypeReference? ElementType { get; }
+
     public static TsonTypeReference Record(string name)
     {
         return Nominal(TsonTypeKind.Record, name);
@@ -40,6 +44,12 @@ public sealed class TsonTypeReference
     public static TsonTypeReference Enum(string name)
     {
         return Nominal(TsonTypeKind.Enum, name);
+    }
+
+    public static TsonTypeReference Array(TsonTypeReference elementType)
+    {
+        ArgumentNullException.ThrowIfNull(elementType);
+        return new TsonTypeReference(TsonTypeKind.Array, null, elementType);
     }
 
     private static TsonTypeReference Nominal(TsonTypeKind kind, string name)
@@ -51,6 +61,21 @@ public sealed class TsonTypeReference
 
         return new TsonTypeReference(kind, name);
     }
+}
+
+/// <summary>
+/// Structural evidence for a TSON array's homogeneous element schema.
+/// Arrays themselves have no nominal identity; nominal element references retain theirs.
+/// </summary>
+public sealed class TsonArraySchema
+{
+    public TsonArraySchema(TsonTypeReference elementType)
+    {
+        ArgumentNullException.ThrowIfNull(elementType);
+        ElementType = elementType;
+    }
+
+    public TsonTypeReference ElementType { get; }
 }
 
 public sealed class TsonFieldDefinition

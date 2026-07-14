@@ -193,8 +193,18 @@ public static class JavaScriptBackend
             case MirUnaryExpression unary:
                 AddUnsupported(diagnostics, $"unary operator '{unary.Operator}' in {context}");
                 break;
-            case MirArrayExpression:
-                AddUnsupported(diagnostics, $"array expression in {context}");
+            case MirArrayExpression array:
+                if (array.Type is not MirArrayType arrayType)
+                {
+                    AddUnsupported(diagnostics, $"array expression without an array type in {context}");
+                    break;
+                }
+
+                foreach (MirExpression element in array.Elements)
+                {
+                    ValidateExpression(element, functionReturnType, context, functions, catalog, diagnostics);
+                    RequireMatchingType(element.Type, arrayType.ElementType, $"array element in {context}", diagnostics);
+                }
                 break;
             case MirRecordConstructionExpression construction:
                 ValidateRecordConstruction(construction, functionReturnType, context, functions, catalog, diagnostics);
@@ -437,8 +447,8 @@ public static class JavaScriptBackend
                 ValidateValueType(result.SuccessType, $"Result success component of '{type.Name}' in {context}", catalog, diagnostics, allowVoid: true);
                 ValidateValueType(result.ErrorType, $"Result error component of '{type.Name}' in {context}", catalog, diagnostics, allowVoid: false);
                 return;
-            case MirArrayType:
-                AddUnsupported(diagnostics, $"array type '{type.Name}' in {context}");
+            case MirArrayType array:
+                ValidateValueType(array.ElementType, $"array element type in {context}", catalog, diagnostics, allowVoid: false);
                 return;
             case MirType named when named is not MirArrayType and not MirResultType && named.Identifier is "number" or "boolean" or "string":
                 return;
@@ -1156,6 +1166,7 @@ public static class JavaScriptBackend
             MirUnaryExpression unary => EmitUnary(unary, function, catalog, results, names, flowEnabled),
             MirBinaryExpression binary => EmitBinary(binary, function, catalog, results, names, flowEnabled),
             MirCallExpression call => EmitCall(call, function, catalog, results, names, flowEnabled),
+            MirArrayExpression array => EmitArrayExpression(array, function, catalog, results, names, flowEnabled),
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
             MirTableReferenceExpression reference => EmittedExpression.ValueOnly(names.TableSingleton(catalog.GetTable(reference.TableId))),
@@ -1510,6 +1521,26 @@ public static class JavaScriptBackend
             emittedArguments,
             names,
             values => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", values)})");
+    }
+
+    private static EmittedExpression EmitArrayExpression(
+        MirArrayExpression array,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        var elements = new List<EmittedExpression>(array.Elements.Count);
+        for (int index = 0; index < array.Elements.Count; index++)
+        {
+            elements.Add(EmitExpression(array.Elements[index], function, catalog, results, names, flowEnabled));
+        }
+
+        return CombineOrdered(
+            elements,
+            names,
+            values => "[" + string.Join(", ", values) + "]");
     }
 
     private static EmittedExpression EmitRecordConstruction(

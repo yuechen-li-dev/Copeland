@@ -124,7 +124,7 @@ public sealed class TsonFeatureTests
     [InlineData("const $value = value;", "COPE-TSON-0002")]
     [InlineData("const $value = null;", "COPE-TSON-0004")]
     [InlineData("const $value = undefined;", "COPE-TSON-0002")]
-    [InlineData("const $value = [1];", "COPE-TSON-0002")]
+    [InlineData("const $value = [1];", "COPE-TSON-0004")]
     [InlineData("const $value: number ! string = 1;", "COPE-TSON-0003")]
     [InlineData("record table Values { items: [1]; } const $value = 1;", "COPE-TSON-0002")]
     [InlineData("const $value = 1 + 2;", "COPE-TSON-0002")]
@@ -302,6 +302,9 @@ public sealed class TsonFeatureTests
             new TsonField("duplicate", TsonBoolean.True),
             new TsonField("duplicate", TsonBoolean.False),
         ]));
+        Assert.Throws<ArgumentException>(() => new TsonArray(
+            new TsonArraySchema(TsonTypeReference.Number),
+            [TsonBoolean.True]));
         Assert.Throws<ArgumentException>(() => new TsonString("\uD800"));
     }
 
@@ -316,6 +319,65 @@ public sealed class TsonFeatureTests
         Assert.Equal("😀", Assert.IsType<TsonString>(result.Document!.Root).Value);
         var canonical = TsonCanonicalPrinter.Print(result.Document);
         Assert.True(TsonDocumentReader.ReadSelfDescribed(canonical, TsonDocumentProfile.CanonicalTson).Success);
+    }
+
+    [Fact]
+    public void Arrays_are_homogeneous_contextual_and_canonical()
+    {
+        var result = TsonDocumentReader.ReadSelfDescribed(
+            Envelope("""
+                record Item { label: string; }
+                record Batch { names: string[]; rows: number[][]; items: Item[]; }
+                const $value: Batch = {
+                    names: [],
+                    rows: [[], [1, 2]],
+                    items: [{ label: "first" }],
+                };
+                """),
+            TsonDocumentProfile.ObjectTypeScript);
+
+        Assert.True(result.Success, Describe(result));
+        var batch = Assert.IsType<TsonRecord>(result.Document!.Root);
+        var names = Assert.IsType<TsonArray>(batch.Fields[0].Value);
+        var rows = Assert.IsType<TsonArray>(batch.Fields[1].Value);
+        Assert.Empty(names.Elements);
+        Assert.Equal(TsonTypeKind.String, names.Schema.ElementType.Kind);
+        Assert.Equal(2, rows.Elements.Count);
+        Assert.Equal(TsonTypeKind.Array, rows.Schema.ElementType.Kind);
+
+        string canonical = TsonCanonicalPrinter.Print(result.Document);
+        var reparsed = TsonDocumentReader.ReadSelfDescribed(canonical, TsonDocumentProfile.CanonicalTson);
+        Assert.True(reparsed.Success, Describe(reparsed));
+        Assert.Equal(canonical, TsonCanonicalPrinter.Print(reparsed.Document!));
+    }
+
+    [Fact]
+    public void Explicitly_typed_array_root_is_rejected_by_the_root_law()
+    {
+        var result = TsonDocumentReader.ReadSelfDescribed(
+            Envelope("const $value: number[] = [1, 2];"),
+            TsonDocumentProfile.ObjectTypeScript);
+
+        Assert.False(result.Success);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "COPE-TSON-0004"
+            && diagnostic.Message.Contains("cannot be the document root", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("record Batch { names: string[]; } const $value: Batch = { names: [\"Ada\", 1] };", "does not match")]
+    [InlineData("const $value = [];", "requires an authoritative")]
+    [InlineData("record Item { label: string; } record Other { label: string; } record Batch { items: Item[]; } const $value: Batch = { items: [{ label: \"ok\" }, $record.Other({ label: \"wrong\" })] };", "does not match")]
+    [InlineData("record Batch { rows: number[][]; } const $value: Batch = { rows: [[1], [\"wrong\"]] };", "does not match")]
+    public void Array_validation_preserves_exact_schema_evidence(string body, string message)
+    {
+        var result = TsonDocumentReader.ReadSelfDescribed(Envelope(body), TsonDocumentProfile.ObjectTypeScript);
+
+        Assert.False(result.Success);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "COPE-TSON-0004"
+            && diagnostic.Message.Contains(message, StringComparison.Ordinal)
+            && diagnostic.Length > 0);
     }
 
     private static string Envelope(string body)
@@ -353,6 +415,16 @@ public sealed class TsonFeatureTests
                 break;
             case TsonString text:
                 Assert.Equal(text.Value, Assert.IsType<TsonString>(actual).Value);
+                break;
+            case TsonArray array:
+                var actualArray = Assert.IsType<TsonArray>(actual);
+                Assert.Equal(array.Schema.ElementType.Kind, actualArray.Schema.ElementType.Kind);
+                Assert.Equal(array.Elements.Count, actualArray.Elements.Count);
+                for (var index = 0; index < array.Elements.Count; index++)
+                {
+                    AssertEquivalent(array.Elements[index], actualArray.Elements[index]);
+                }
+
                 break;
             case TsonObject @object:
                 AssertFieldsEquivalent(@object.Fields, Assert.IsType<TsonObject>(actual).Fields);
