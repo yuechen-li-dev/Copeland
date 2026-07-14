@@ -200,7 +200,6 @@ function one(): number {
     }
 
     [Theory]
-    [InlineData("csharp", "table.g.cs", "COPE-CS-TABLE-0001")]
     [InlineData("javascript", "table.g.js", "COPE-JS-TABLE-0001")]
     public async Task Table_backend_rejection_preserves_a_preexisting_output(
         string emitTarget,
@@ -225,6 +224,31 @@ function one(): number {
         byte[] retained = await File.ReadAllBytesAsync(outputPath);
         Assert.Equal(sentinelHash, SHA256.HashData(retained));
         Assert.Equal(sentinel, retained);
+    }
+
+    [Fact]
+    public async Task Table_mir_and_csharp_emission_succeed_while_javascript_remains_unsupported()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("table.ts", "record table Values { value: [1, 2]; } function main(): number { const row: Values.Row = Values[1]!; return row.value; }");
+        string mirPath = Path.Combine(temp.Path, "table.cope");
+        string csharpPath = Path.Combine(temp.Path, "table.g.cs");
+        string javaScriptPath = temp.WriteFile("table.g.js", "sentinel-table-artifact");
+        byte[] javaScriptSentinel = await File.ReadAllBytesAsync(javaScriptPath);
+
+        CliResult mir = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "mir", "--out", mirPath);
+        CliResult csharp = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "csharp", "--out", csharpPath);
+        CliResult javaScript = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript", "--out", javaScriptPath);
+
+        Assert.Equal(0, mir.ExitCode);
+        Assert.True(File.Exists(mirPath));
+        Assert.Equal(0, csharp.ExitCode);
+        Assert.True(File.Exists(csharpPath));
+        string generated = await File.ReadAllTextAsync(csharpPath);
+        Assert.Contains("__CopeTable_t1", generated, StringComparison.Ordinal);
+        Assert.Equal(1, javaScript.ExitCode);
+        Assert.Contains("COPE-JS-TABLE-0001", javaScript.StdErr, StringComparison.Ordinal);
+        Assert.Equal(javaScriptSentinel, await File.ReadAllBytesAsync(javaScriptPath));
     }
 
     [Fact]

@@ -28,14 +28,10 @@ public static class CSharpBackend
         {
             return new CSharpCompilation(string.Empty, diagnostics);
         }
-        if (program.Tables.Count > 0)
-        {
-            return new CSharpCompilation(string.Empty, [new CSharpDiagnostic("COPE-CS-TABLE-0001", "Record table MIR is not supported by the C# backend.")]);
-        }
         var writer = new CSharpTextWriter();
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var recordsById = program.Records.ToDictionary(record => record.Id);
-        var usesResult = ProgramUsesResult(program);
+        var usesResult = ProgramUsesResult(program) || program.Tables.Count > 0;
         var usesUnwrap = ProgramUsesUnwrap(program);
         var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult);
         var errorTypes = CollectErrorNominalTypes(program, enumNames);
@@ -50,7 +46,23 @@ public static class CSharpBackend
         if (program.Records.Count > 0) writer.WriteLine();
         foreach (var mirEnum in program.Enums) EmitEnum(writer, mirEnum);
         if (program.Enums.Count > 0) writer.WriteLine();
+        if (program.Tables.Count > 0)
+        {
+            EmitColumnSupport(writer);
+            foreach (var table in program.Tables)
+            {
+                EmitTable(writer, table, recordsById);
+            }
+        }
         writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
+        foreach (var table in program.Tables)
+        {
+            writer.WriteLine($"private static readonly {TableTypeName(table.Id)} {TableSingletonName(table.Id)} = {TableTypeName(table.Id)}.Create();");
+        }
+        if (program.Tables.Count > 0)
+        {
+            writer.WriteLine();
+        }
         if (usesUnwrap)
         {
             EmitUnwrapPanic(writer);
@@ -145,6 +157,184 @@ public static class CSharpBackend
         writer.Unindent(); writer.WriteLine("}");
     }
 
+    private static void EmitColumnSupport(CSharpTextWriter writer)
+    {
+        writer.WriteLine("public abstract class CopeColumn<T>");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("internal abstract CopeResult<T, TableBoundsError> Get(double index);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+    }
+
+    private static void EmitTable(
+        CSharpTextWriter writer,
+        MirTableDefinition table,
+        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    {
+        string tableType = TableTypeName(table.Id);
+        string rowType = TableRowTypeName(table.RowTypeId);
+
+        foreach (var column in table.Columns)
+        {
+            writer.WriteLine($"public sealed class {TableColumnTypeName(column.Id)} : CopeColumn<{MapType(column.ElementType)}>");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"private readonly {MapType(column.ElementType)}[] _values;");
+            writer.WriteLine();
+            writer.WriteLine($"internal {TableColumnTypeName(column.Id)}({MapType(column.ElementType)}[] values)");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine("_values = values;");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine();
+            EmitBoundsCheckedElementAccess(writer, column.ElementType, "_values", table.RowCount);
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine();
+        }
+
+        writer.WriteLine($"public sealed class {rowType}");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"private readonly {tableType} _table;");
+        writer.WriteLine("private readonly int _index;");
+        writer.WriteLine();
+        writer.WriteLine($"internal {rowType}({tableType} table, int index)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("_table = table;");
+        writer.WriteLine("_index = index;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        foreach (var column in table.Columns)
+        {
+            writer.WriteLine();
+            writer.WriteLine($"internal {MapType(column.ElementType)} {TableRowFieldName(column.Id)} => _table.{TableReadMethodName(column.Id)}(_index);");
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+
+        writer.WriteLine($"public sealed class {tableType}");
+        writer.WriteLine("{");
+        writer.Indent();
+        foreach (var column in table.Columns)
+        {
+            writer.WriteLine($"private readonly {MapType(column.ElementType)}[] {TableStorageName(column.Id)};");
+        }
+        writer.WriteLine();
+        writer.WriteLine($"private {tableType}({string.Join(", ", table.Columns.Select((column, index) => $"{MapType(column.ElementType)}[] values{index}"))})");
+        writer.WriteLine("{");
+        writer.Indent();
+        for (int index = 0; index < table.Columns.Count; index++)
+        {
+            MirTableColumnDefinition column = table.Columns[index];
+            writer.WriteLine($"{TableStorageName(column.Id)} = values{index};");
+            writer.WriteLine($"{TableColumnPropertyName(column.Id)} = new {TableColumnTypeName(column.Id)}(values{index});");
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine($"internal static {tableType} Create()");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"return new {tableType}(");
+        writer.Indent();
+        for (int index = 0; index < table.Columns.Count; index++)
+        {
+            MirTableColumnDefinition column = table.Columns[index];
+            string values = string.Join(", ", column.Constants.Select(constant => EmitTableConstant(constant, records)));
+            string comma = index == table.Columns.Count - 1 ? string.Empty : ",";
+            writer.WriteLine($"new {MapType(column.ElementType)}[] {{ {values} }}{comma}");
+        }
+        writer.Unindent();
+        writer.WriteLine(");");
+        writer.Unindent();
+        writer.WriteLine("}");
+        foreach (var column in table.Columns)
+        {
+            writer.WriteLine();
+            writer.WriteLine($"internal {TableColumnTypeName(column.Id)} {TableColumnPropertyName(column.Id)} {{ get; }}");
+            writer.WriteLine();
+            writer.WriteLine($"internal {MapType(column.ElementType)} {TableReadMethodName(column.Id)}(int index) => {TableStorageName(column.Id)}[index];");
+        }
+        writer.WriteLine();
+        writer.WriteLine($"internal CopeResult<{rowType}, TableBoundsError> GetRow(double index)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (double.IsNaN(index) || double.IsInfinity(index) || index != global::System.Math.Truncate(index))");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("return CopeResult<" + rowType + ", TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"if (index < 0 || index >= {table.RowCount.ToString(global::System.Globalization.CultureInfo.InvariantCulture)})");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("return CopeResult<" + rowType + ", TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, " + table.RowCount.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".0));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("return CopeResult<" + rowType + ", TableBoundsError>.Ok(new " + rowType + "(this, (int)index));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+    }
+
+    private static void EmitBoundsCheckedElementAccess(CSharpTextWriter writer, MirType elementType, string storage, int rowCount)
+    {
+        string elementTypeName = MapType(elementType);
+        writer.WriteLine($"internal override CopeResult<{elementTypeName}, TableBoundsError> Get(double index)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (double.IsNaN(index) || double.IsInfinity(index) || index != global::System.Math.Truncate(index))");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"return CopeResult<{elementTypeName}, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"if (index < 0 || index >= {rowCount.ToString(global::System.Globalization.CultureInfo.InvariantCulture)})");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"return CopeResult<{elementTypeName}, TableBoundsError>.Err(new TableBoundsError.OutOfBounds(index, {rowCount.ToString(global::System.Globalization.CultureInfo.InvariantCulture)}.0));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"return CopeResult<{elementTypeName}, TableBoundsError>.Ok({storage}[(int)index]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static string EmitTableConstant(MirTableConstant constant, IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    {
+        return constant switch
+        {
+            MirTableLiteralConstant literal => CSharpLiteralWriter.Write(literal.Value),
+            MirTableRecordConstant record => EmitTableRecordConstant(record, records),
+            MirTableEnumConstant value => $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", value.Payloads.Select(payload => EmitTableConstant(payload, records)))})",
+            MirTableResultConstant result => EmitTableResultConstant(result, records),
+            _ => throw new InvalidOperationException($"Unsupported validated table constant {constant.GetType().Name}."),
+        };
+    }
+
+    private static string EmitTableRecordConstant(MirTableRecordConstant constant, IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    {
+        MirRecordDefinition definition = records[constant.RecordTypeId];
+        var values = constant.Fields.ToDictionary(field => field.FieldId, field => field.Value);
+        return $"new {RecordTypeName(constant.RecordTypeId)}({string.Join(", ", definition.Fields.Select(field => EmitTableConstant(values[field.Id], records)))})";
+    }
+
+    private static string EmitTableResultConstant(MirTableResultConstant constant, IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    {
+        string successType = MapResultComponentType(constant.Type.SuccessType);
+        string errorType = MapType(constant.Type.ErrorType);
+        string factory = constant.IsOk ? "Ok" : "Err";
+        return $"CopeResult<{successType}, {errorType}>.{factory}({EmitTableConstant(constant.Payload, records)})";
+    }
+
     private static void EmitFunction(
         CSharpTextWriter writer,
         MirFunction function,
@@ -210,6 +400,11 @@ public static class CSharpBackend
             MirRecordConstructionExpression construction => EmitRecordConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(writer, access, function, enumNames, ref tempIndex, diagnostics),
             MirRecordWithExpression withExpression => EmitRecordWith(writer, withExpression, function, enumNames, ref tempIndex, diagnostics),
+            MirTableReferenceExpression reference => TableSingletonName(reference.TableId),
+            MirTableColumnAccessExpression access => $"{EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}.{TableColumnPropertyName(access.ColumnId)}",
+            MirTableRowAccessExpression access => $"{EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}.GetRow({EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
+            MirColumnElementAccessExpression access => $"{EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}.Get({EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
+            MirTableRowFieldAccessExpression access => $"{EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}.{TableRowFieldName(access.FieldId)}",
             MirEnumValueExpression value => $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", EmitArguments(value.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirMatchExpression match => EmitEnumMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
             MirIfExpression conditional => EmitIfExpression(writer, conditional, function, enumNames, ref tempIndex, diagnostics),
@@ -610,7 +805,7 @@ public static class CSharpBackend
     }
 
     private static string UnsupportedExpression(MirExpression expression, List<CSharpDiagnostic> diagnostics) { diagnostics.Add(new CSharpDiagnostic("COPE-CS-0001", $"Unsupported MIR expression: {expression.GetType().Name}")); return "default!"; }
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirRecordType record => RecordTypeName(record.RecordTypeId), MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
     private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
 
@@ -647,6 +842,10 @@ public static class CSharpBackend
             MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesUnwrap(initializer.Value)),
             MirRecordFieldAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
             MirRecordWithExpression withExpression => ExpressionUsesUnwrap(withExpression.Source) || withExpression.Replacements.Any(replacement => ExpressionUsesUnwrap(replacement.Value)),
+            MirTableColumnAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
+            MirTableRowAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
+            MirColumnElementAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
+            MirTableRowFieldAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
             MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesUnwrap),
             MirMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesUnwrap(arm.Expression)),
             MirResultMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || ExpressionUsesUnwrap(match.OkExpression) || ExpressionUsesUnwrap(match.ErrExpression),
@@ -667,6 +866,20 @@ public static class CSharpBackend
         foreach (var function in program.Functions) { yield return function.ReturnType; foreach (var parameter in function.Parameters) yield return parameter.Type; foreach (var local in function.Locals) yield return local.Type; }
         foreach (var @enum in program.Enums) foreach (var @case in @enum.Cases) foreach (var field in @case.PayloadFields) yield return field.Type;
         foreach (var record in program.Records) foreach (var field in record.Fields) yield return field.Type;
+        foreach (var table in program.Tables)
+        {
+            foreach (var column in table.Columns)
+            {
+                yield return column.ElementType;
+                foreach (var constant in column.Constants)
+                {
+                    foreach (var type in EnumerateTableConstantTypes(constant))
+                    {
+                        yield return type;
+                    }
+                }
+            }
+        }
     }
 
     private static bool ExpressionRequiresStatements(MirExpression expression)
@@ -685,6 +898,10 @@ public static class CSharpBackend
             MirCallExpression call => call.Arguments.Any(ExpressionRequiresStatements),
             MirArrayExpression array => array.Elements.Any(ExpressionRequiresStatements),
             MirRecordFieldAccessExpression access => ExpressionRequiresStatements(access.Receiver),
+            MirTableColumnAccessExpression access => ExpressionRequiresStatements(access.Receiver),
+            MirTableRowAccessExpression access => ExpressionRequiresStatements(access.Receiver) || ExpressionRequiresStatements(access.Index),
+            MirColumnElementAccessExpression access => ExpressionRequiresStatements(access.Receiver) || ExpressionRequiresStatements(access.Index),
+            MirTableRowFieldAccessExpression access => ExpressionRequiresStatements(access.Receiver),
             MirEnumValueExpression value => value.Arguments.Any(ExpressionRequiresStatements),
             MirMatchExpression match => ExpressionRequiresStatements(match.Scrutinee) || match.Arms.Any(arm => ExpressionRequiresStatements(arm.Expression)),
             MirIfExpression conditional => ExpressionRequiresStatements(conditional.Condition) || ExpressionRequiresStatements(conditional.ThenExpression) || ExpressionRequiresStatements(conditional.ElseExpression),
@@ -699,6 +916,65 @@ public static class CSharpBackend
 
     private static string RecordFieldName(MirRecordFieldId id)
         => "__field_" + EncodeStableIdentity(id.Value);
+
+    private static string TableTypeName(MirTableId id)
+        => "__CopeTable_" + EncodeStableIdentity(id.Value);
+
+    private static string TableRowTypeName(string rowTypeId)
+        => "__CopeTableRow_" + EncodeStableIdentity(rowTypeId);
+
+    private static string TableColumnTypeName(MirTableColumnId id)
+        => "__CopeTableColumn_" + EncodeStableIdentity(id.Value);
+
+    private static string TableSingletonName(MirTableId id)
+        => "__cope_table_" + EncodeStableIdentity(id.Value);
+
+    private static string TableStorageName(MirTableColumnId id)
+        => "_column_" + EncodeStableIdentity(id.Value);
+
+    private static string TableColumnPropertyName(MirTableColumnId id)
+        => "__column_" + EncodeStableIdentity(id.Value);
+
+    private static string TableReadMethodName(MirTableColumnId id)
+        => "__read_" + EncodeStableIdentity(id.Value);
+
+    private static string TableRowFieldName(MirTableColumnId id)
+        => "__row_field_" + EncodeStableIdentity(id.Value);
+
+    private static string TableRowFieldName(string fieldId)
+        => "__row_field_" + EncodeStableIdentity(fieldId.Replace(".f", string.Empty, StringComparison.Ordinal));
+
+    private static IEnumerable<MirType> EnumerateTableConstantTypes(MirTableConstant constant)
+    {
+        yield return constant.Type;
+        switch (constant)
+        {
+            case MirTableRecordConstant record:
+                foreach (var field in record.Fields)
+                {
+                    foreach (var type in EnumerateTableConstantTypes(field.Value))
+                    {
+                        yield return type;
+                    }
+                }
+                break;
+            case MirTableEnumConstant value:
+                foreach (var payload in value.Payloads)
+                {
+                    foreach (var type in EnumerateTableConstantTypes(payload))
+                    {
+                        yield return type;
+                    }
+                }
+                break;
+            case MirTableResultConstant result:
+                foreach (var type in EnumerateTableConstantTypes(result.Payload))
+                {
+                    yield return type;
+                }
+                break;
+        }
+    }
 
     private static string EncodeStableIdentity(string identity)
     {

@@ -1,0 +1,15 @@
+# Copeland TS C# record tables (CTS-TABLE-M1)
+
+CTS-TABLE-M1 realizes validated canonical record-table MIR in the C# backend. It does not alter source syntax, frontend diagnostics, canonical MIR, or the JavaScript boundary.
+
+Each MIR table identity emits a distinct sealed table class, and each table row identity emits a distinct sealed row class. The table owns one private declaration-ordered CLR array per column. A generated `CopeColumn<T>` carrier and a distinct generated column class expose only the Result-returning element operation used by MIR; no generated table surface exposes a backing array or a setter. A row carries its table and validated integer position, then projects each field from that table's corresponding column. There is no authoritative row-oriented storage.
+
+The authored singleton is a private static field of `CopelandModule`. Its private table constructor completes every column array and every column view before the singleton is assigned, so no partially initialized table is published. Names use canonical table, row, and column identities encoded with the established deterministic C# identity encoding; source spelling does not determine helper identity.
+
+These classes and helper names are C# backend details, not Copeland public API or ABI. The language laws are nominal table and row identity, immutable columns and rows, declaration-ordered column association, singleton publication, and Result-valued access. M1 makes no allocation, zero-copy, layout, ABI, or public-generated-API claim. It uses ordinary C# classes, arrays kept private, and direct calls only; it uses no reflection, `dynamic`, dictionaries in generated code, expression compilation, or serialization metadata. This is compatible with the existing ordinary-C#/NativeAOT posture, but no publish proof was run.
+
+`table[index]` and `column[index]` first reject non-finite or non-integral numeric indexes with `TableBoundsError.InvalidIndex(index)`. Finite integral indexes below zero or at/above the fixed row count return `TableBoundsError.OutOfBounds(index, rowCount)`. Valid table indexes return the table-specific row; valid column indexes return the element. The returned values are ordinary `CopeResult` values, so existing match, propagation, unwrap, and typed handler lowering remains unchanged.
+
+Closed table constants are emitted recursively in canonical order: primitive literals (including signed zero as represented by the literal writer), immutable nominal records in record-field order, payload enums in payload order, and non-void Result successes/errors. Constants remain data-only `MirTableConstant` trees. The shared MIR validator remains the sole malformed-MIR gate. M1 additionally verifies a row-field access references a declared field of the matching table row and has its declared type.
+
+C# now accepts valid table MIR. JavaScript deliberately continues to emit `COPE-JS-TABLE-0001` with no artifact for valid table MIR; malformed MIR still fails shared validation before either backend's table boundary.

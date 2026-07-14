@@ -248,6 +248,15 @@ public static class MirValidator
                 ValidateTableExpression(access.Receiver, tables, rowTypeIds, columns, diagnostics);
                 if (access.Receiver.Type is not MirTableRowType rowReceiver || rowReceiver.RowTypeId != access.RowTypeId || !rowTypeIds.Contains(access.RowTypeId))
                     diagnostics.Add(new MirValidationDiagnostic($"Table row field access '{access.FieldId}' has an invalid row receiver or row type."));
+                else
+                {
+                    MirTableDefinition? rowOwner = tables.Values.FirstOrDefault(table => table.RowTypeId == access.RowTypeId);
+                    MirTableColumnDefinition? field = rowOwner?.Columns.FirstOrDefault(column => access.FieldId == column.Id.Value + ".f");
+                    if (field is null)
+                        diagnostics.Add(new MirValidationDiagnostic($"Table row field access '{access.FieldId}' has an unknown field identity."));
+                    else if (!MirTypeFacts.AreEquivalent(field.ElementType, access.Type))
+                        diagnostics.Add(new MirValidationDiagnostic($"Table row field access type does not match field '{access.FieldId}'."));
+                }
                 break;
             default:
                 foreach (var child in EnumerateTableExpressionChildren(expression)) ValidateTableExpression(child, tables, rowTypeIds, columns, diagnostics);

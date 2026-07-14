@@ -436,7 +436,7 @@ Valid fixtures cover inferred nonempty columns; explicitly typed nonempty column
 
 Invalid fixtures cover duplicate/zero columns; ragged lengths; heterogeneous cells; untyped empty columns; explicit mismatch; unsupported expressions and mutable/array cells; sparse/spread/missing cells; invalid index types; unknown columns; bare/general table values; table/column/row mutation; row construction/`with`; nominal row mismatch; equality; reserved `TableBoundsError` collision; invalid qualified types; and every alternative/conflicting declaration spelling.
 
-M0b also adds focused syntax, bound, MIR text/validator, exactly-once, and deliberate C#/JavaScript no-artifact rejection evidence in existing stage-specific corpus/test locations. It must not mark a `.cl-valid.ts` table accepted until the complete source-to-validated-MIR contract exists. M1/M2 add backend/runtime corpora and constant/dynamic invalid-index, boundary, nominal-brand, immutability, and repeated determinism proofs.
+M0b also adds focused syntax, bound, MIR text/validator, exactly-once, and deliberate backend rejection evidence in existing stage-specific corpus/test locations. It must not mark a `.cl-valid.ts` table accepted until the complete source-to-validated-MIR contract exists. CTS-TABLE-M1 now adds C# backend/runtime corpus and constant, boundary, nominal, immutability, and deterministic emission proofs; JavaScript realization and its corresponding proofs remain CTS-TABLE-M2.
 
 ## Deferred boundaries
 

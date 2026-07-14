@@ -13,14 +13,93 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
-    public void Valid_table_mir_is_rejected_without_a_partial_artifact()
+    public void Valid_table_mir_emits_a_complete_csharp_artifact()
     {
         var program = Lower("record table Samples { x: [1]; }");
 
         CSharpCompilation compilation = CSharpBackend.Emit(program);
 
-        Assert.Empty(compilation.SourceText);
-        Assert.Collection(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-CS-TABLE-0001", diagnostic.Id));
+        Assert.Empty(compilation.Diagnostics);
+        Assert.Contains("public sealed class __CopeTable_t1", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("private readonly double[] _column_t1_002Ec0;", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("COPE-CS-TABLE-0001", compilation.SourceText, StringComparison.Ordinal);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(compilation.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+    }
+
+    [Fact]
+    public void Tables_execute_with_columnar_rows_closed_constants_and_bounds_results()
+    {
+        var program = Lower("""
+            record Point { x: number; }
+            enum State { Empty, Value(value: number), }
+            record table Values {
+                x: [-0, 2];
+                name: string = ["zero", "two"];
+                enabled: boolean = [true, false];
+                point: Point = [{ x: 3 }, { x: 4 }];
+                state: State = [State.Value(5), State.Empty];
+                result: number ! string = [ok(6), err("bad")];
+                nested: State ! string = [ok(State.Value(7)), err("no")];
+            }
+            function main(): number {
+                const row: Values.Row = Values[1]!;
+                const value: number ! string = Values.result[0]!;
+                return row.x + match value { ok(payload) => payload, err(error) => 0, };
+            }
+            function invalid(): number {
+                return match Values.x[-1] { ok(value) => 0, err(error) => match error { InvalidIndex(index) => 1, OutOfBounds(index, rowCount) => 2, }, };
+            }
+            function upper(): number {
+                return match Values[2] { ok(row) => 0, err(error) => match error { InvalidIndex(index) => 1, OutOfBounds(index, rowCount) => rowCount, }, };
+            }
+            function negativeZero(): number {
+                return Values.x[0]!;
+            }
+            """);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.Diagnostics);
+        Assert.Contains("private readonly double[] _column_t1_002Ec0;", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("CopeResult<double, TableBoundsError>.Err(new TableBoundsError.InvalidIndex(index))", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("new __CopeRecord_r1(3.0)", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("CopeResult<State, string>.Ok", compilation.SourceText, StringComparison.Ordinal);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(compilation.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(8d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+        Assert.Equal(2d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "invalid")));
+        Assert.Equal(2d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "upper")));
+        Assert.Equal(long.MinValue, BitConverter.DoubleToInt64Bits(Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "negativeZero"))));
+    }
+
+    [Fact]
+    public void Empty_and_same_shaped_tables_remain_nominal_and_immutable()
+    {
+        var program = Lower("""
+            record table Empty { value: number = []; }
+            record table First { value: [1]; }
+            record table Second { value: [1]; }
+            function first(): First { return First; }
+            function again(): First { return First; }
+            function empty(): number {
+                return match Empty[0] { ok(row) => 1, err(error) => match error { InvalidIndex(index) => 2, OutOfBounds(index, rowCount) => rowCount, }, };
+            }
+            """);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.Diagnostics);
+        Assert.Contains("public sealed class __CopeTable_t2", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("public sealed class __CopeTable_t3", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain(" set;", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("public double[]", compilation.SourceText, StringComparison.Ordinal);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(compilation.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Same(
+            GeneratedModuleInvoker.Invoke(generated.Assembly!, "first"),
+            GeneratedModuleInvoker.Invoke(generated.Assembly!, "again"));
+        Assert.Equal(0d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "empty")));
     }
 
     [Fact]
@@ -35,6 +114,42 @@ public sealed class CSharpBackendTests
         Assert.All(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-CS-0002", diagnostic.Id));
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("not a supported closed constant", StringComparison.Ordinal));
         Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CS-TABLE-0001");
+    }
+
+    [Fact]
+    public void Malformed_table_row_field_identity_is_rejected_by_shared_validation()
+    {
+        var number = new MirNamedType("number");
+        var tableId = new MirTableId("t1");
+        var table = new MirTableDefinition(
+            tableId,
+            "Values",
+            "t1.row",
+            [new MirTableColumnDefinition(new MirTableColumnId("t1.c0"), "value", number, [new MirTableLiteralConstant(1, number)])],
+            1);
+        var row = new MirTableRowType("t1.row", "Values.Row");
+        var access = new MirTableRowFieldAccessExpression(
+            new MirVariableExpression("row", row),
+            "t1.row",
+            "t1.c9.f",
+            number);
+        var program = new MirProgram(
+            [new MirEnum("TableBoundsError", [
+                new MirEnumCase("InvalidIndex", [new MirEnumPayloadField("index", number)]),
+                new MirEnumCase("OutOfBounds", [
+                    new MirEnumPayloadField("index", number),
+                    new MirEnumPayloadField("rowCount", number),
+                ]),
+            ])],
+            [],
+            [table],
+            [new MirFunction("main", [], number, [], [new MirReturnStatement(access)])]);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CS-0002"
+            && diagnostic.Message.Contains("unknown field identity", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -425,7 +540,7 @@ public sealed class CSharpBackendTests
     private static MirProgram Lower(string source)
     {
         var mir = MirLowerer.Lower(SyntaxTree.Parse(source));
-        Assert.NotNull(mir.Program);
+        Assert.True(mir.Program is not null, string.Join(Environment.NewLine, mir.Diagnostics.Select(diagnostic => $"{diagnostic.Id}: {diagnostic.Message}")));
         return mir.Program!;
     }
 }
