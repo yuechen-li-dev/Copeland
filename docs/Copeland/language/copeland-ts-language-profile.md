@@ -1,6 +1,6 @@
 # Copeland TS language profile
 
-**Status:** canonical product-language profile through CTS-TABLE-M1. Immutable nominal records are implemented and closed; immutable record tables have a source-to-canonical-MIR frontend and C# realization, while JavaScript realization remains deferred.
+**Status:** canonical product-language profile through CTS-TABLE-M2. Immutable nominal records are implemented and closed; immutable record tables have source-to-canonical-MIR, C#, and JavaScript realizations. M3 parity/serialization closeout remains deferred.
 
 ## Position
 
@@ -85,7 +85,7 @@ Current exclusions include `var`, `===`, `!==`, `eval`, `null`, general object l
 
 ## Unresolved decision surface
 
-CTS-REC-M0b implements immutable nominal records through MIR without weakening the rejection of general objects; CTS-REC-M1 realizes them in C#, CTS-REC-M2 realizes them in JavaScript, and CTS-REC-M3 closes cross-backend stress, diagnostics, doctrine, and artifact stability. Record equality, patterns, serialization, interop, and recursive types remain deferred. **CTS-TABLE-M0b** implements the separately scoped table frontend-to-validated-MIR contract, and **CTS-TABLE-M1** realizes its canonical tables in C#. The default JSON codec follows only after stable core representation; alternate/schema-envelope/row-oriented formats, queries, general builders, mutation, metadata/iteration, equality, keys, database/dataframe behavior, host APIs, and shared table IR remain deferred. JavaScript realization is CTS-TABLE-M2.
+CTS-REC-M0b implements immutable nominal records through MIR without weakening the rejection of general objects; CTS-REC-M1 realizes them in C#, CTS-REC-M2 realizes them in JavaScript, and CTS-REC-M3 closes cross-backend stress, diagnostics, doctrine, and artifact stability. Record equality, patterns, serialization, interop, and recursive types remain deferred. **CTS-TABLE-M0b** implements the separately scoped table frontend-to-validated-MIR contract, **CTS-TABLE-M1** realizes canonical tables in C#, and **CTS-TABLE-M2** realizes them in JavaScript. The default JSON codec and M3 parity closeout remain deferred, as do alternate/schema-envelope/row-oriented formats, queries, general builders, mutation, metadata/iteration, equality, keys, database/dataframe behavior, host APIs, and shared table IR.
 
 ## CTS-M0b fixture contract
 

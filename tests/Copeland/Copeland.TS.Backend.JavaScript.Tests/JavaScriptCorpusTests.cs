@@ -64,6 +64,17 @@ public sealed class JavaScriptCorpusTests
     }
 
     [Theory]
+    [InlineData("m2-table-basic.g.js", "B9AEA6132233229C4F594E9AB34F89F9D4E8F906B160CC1485CE2706436E3C26")]
+    [InlineData("m2-table-nested.g.js", "7D72CC23337D65B4F1841D01B5E7E7ED04BD65794109F3D43FB54EEDF3856145")]
+    public void Table_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
+    {
+        string artifactPath = Path.Combine(GetCorpusRoot(), fileName);
+        string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(artifactPath)));
+
+        Assert.Equal(expectedHash, hash);
+    }
+
+    [Theory]
     [InlineData("record-basic.g.js", "AA91167AF8D33B45731748BF5D0861FBCE4EF7D195E96E2ADFFB7C77F62EB8A0")]
     [InlineData("record-order-with.g.js", "EC92548B37415D888B02ACB6C9D163096DD2D46FF66C23767E5BE0E43DA56060")]
     [InlineData("record-result-enum.g.js", "DDACF318CB2777D5A4E5A138B8875F3AB3752F8AD93D6C64DD185EF55B56BB24")]

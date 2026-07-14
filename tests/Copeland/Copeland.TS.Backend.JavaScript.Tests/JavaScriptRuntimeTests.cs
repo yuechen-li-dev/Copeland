@@ -10,6 +10,76 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_Proves_Table_Columnar_Immutability_Nominality_And_Bounds()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            record table First {
+                x: [-0, 2];
+                label: string = ["zero", "two"];
+            }
+            record table Second {
+                x: [-0, 2];
+                label: string = ["zero", "two"];
+            }
+            function first(): First { return First; }
+            function again(): First { return First; }
+            function getColumn(): column number { return First.x; }
+            function read(index: number): number ! TableBoundsError { return First.x[index]; }
+            function row(index: number): First.Row ! TableBoundsError { return First[index]; }
+            function field(): number { const value: First.Row = First[1]!; return value.x; }
+            function other(): Second.Row ! TableBoundsError { return Second[0]; }
+            function readFirst(value: First.Row): number { return value.x; }
+            """);
+
+        string script = emitted.SourceText + """
+            const table = first();
+            const same = again();
+            const columnValue = getColumn();
+            const tableSymbols = Object.getOwnPropertySymbols(table);
+            const columnSymbols = Object.getOwnPropertySymbols(columnValue);
+            function category(action) {
+              try { action(); return "accepted"; } catch (error) { return error.message; }
+            }
+            console.log(table === same);
+            console.log(Object.getPrototypeOf(table) === null && Object.isFrozen(table));
+            console.log(Object.getPrototypeOf(columnValue) === null && Object.isFrozen(columnValue));
+            console.log(Array.isArray(columnValue));
+            console.log(tableSymbols.every((symbol) => {
+              const descriptor = Object.getOwnPropertyDescriptor(table, symbol);
+              return descriptor.writable === false && descriptor.configurable === false;
+            }));
+            console.log(columnSymbols.every((symbol) => {
+              const descriptor = Object.getOwnPropertyDescriptor(columnValue, symbol);
+              return descriptor.writable === false && descriptor.configurable === false;
+            }));
+            console.log(read(0).$payload[0]);
+            console.log(Object.is(read(-0).$payload[0], -0));
+            console.log(read(NaN).$payload[0].$tag);
+            console.log(read(Infinity).$payload[0].$tag);
+            console.log(read(0.5).$payload[0].$tag);
+            console.log(read(-1).$payload[0].$tag);
+            console.log(read(2).$payload[0].$tag);
+            console.log(field());
+            try { table.extra = 1; } catch (error) {}
+            try { columnValue.extra = 1; } catch (error) {}
+            console.log(!Object.prototype.hasOwnProperty.call(table, "extra"));
+            console.log(!Object.prototype.hasOwnProperty.call(columnValue, "extra"));
+            console.log(category(() => readFirst(other(0).$payload[0])));
+            """;
+
+        ProcessResult firstRun = await RunNodeAsync(script);
+        ProcessResult secondRun = await RunNodeAsync(script);
+
+        string invariant = "Copeland JavaScript backend invariant failure.\n";
+        Assert.Equal(
+            "true\ntrue\ntrue\nfalse\ntrue\ntrue\n-0\ntrue\nInvalidIndex\nInvalidIndex\nInvalidIndex\nOutOfBounds\nOutOfBounds\n2\ntrue\ntrue\n"
+            + invariant,
+            firstRun.StdOut);
+        Assert.Equal(string.Empty, firstRun.StdErr);
+        Assert.Equal(firstRun, secondRun);
+    }
+
+    [Fact]
     public async Task Node_Proves_Record_Nominality_Immutability_And_Representation_Isolation()
     {
         JavaScriptCompilation emitted = Emit("""

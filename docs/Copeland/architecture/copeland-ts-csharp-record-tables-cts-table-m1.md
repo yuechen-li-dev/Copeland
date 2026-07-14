@@ -12,4 +12,4 @@ These classes and helper names are C# backend details, not Copeland public API o
 
 Closed table constants are emitted recursively in canonical order: primitive literals (including signed zero as represented by the literal writer), immutable nominal records in record-field order, payload enums in payload order, and non-void Result successes/errors. Constants remain data-only `MirTableConstant` trees. The shared MIR validator remains the sole malformed-MIR gate. M1 additionally verifies a row-field access references a declared field of the matching table row and has its declared type.
 
-C# now accepts valid table MIR. JavaScript deliberately continues to emit `COPE-JS-TABLE-0001` with no artifact for valid table MIR; malformed MIR still fails shared validation before either backend's table boundary.
+C# accepts valid table MIR. CTS-TABLE-M2 adds the corresponding JavaScript realization; malformed MIR still fails shared validation before either backend realizes it.

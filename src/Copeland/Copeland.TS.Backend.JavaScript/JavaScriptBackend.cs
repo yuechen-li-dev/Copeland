@@ -18,10 +18,6 @@ public static class JavaScriptBackend
         {
             return new JavaScriptCompilation(null, diagnostics);
         }
-        if (program.Tables.Count > 0)
-        {
-            return new JavaScriptCompilation(null, [new JavaScriptDiagnostic("COPE-JS-TABLE-0001", "Record table MIR is not supported by the JavaScript backend.")]);
-        }
         EnumCatalog catalog = ValidateProgram(program, diagnostics);
         if (diagnostics.Count > 0)
         {
@@ -35,7 +31,7 @@ public static class JavaScriptBackend
         var writer = new JavaScriptTextWriter();
         writer.WriteLine("\"use strict\";");
 
-        if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || results.Types.Count > 0 || usesTryExcept)
+        if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
         {
             writer.WriteLine();
             EmitValueRuntime(writer, catalog, results, names, usesUnwrap, usesTryExcept);
@@ -52,7 +48,7 @@ public static class JavaScriptBackend
 
     private static EnumCatalog ValidateProgram(MirProgram program, List<JavaScriptDiagnostic> diagnostics)
     {
-        var catalog = new EnumCatalog(program.Enums, program.Records, diagnostics);
+        var catalog = new EnumCatalog(program.Enums, program.Records, program.Tables, diagnostics);
         catalog.ValidateDefinitions(diagnostics);
 
         var functions = new Dictionary<string, MirFunction>(StringComparer.Ordinal);
@@ -203,6 +199,27 @@ public static class JavaScriptBackend
             case MirRecordFieldAccessExpression access:
                 ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
                 ValidateValueType(access.Type, $"record field access in {context}", catalog, diagnostics, allowVoid: false);
+                break;
+            case MirTableReferenceExpression reference:
+                ValidateValueType(reference.Type, $"table reference in {context}", catalog, diagnostics, allowVoid: false);
+                break;
+            case MirTableColumnAccessExpression access:
+                ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateValueType(access.Type, $"table column access in {context}", catalog, diagnostics, allowVoid: false);
+                break;
+            case MirTableRowAccessExpression access:
+                ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(access.Index, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateValueType(access.Type, $"table row access in {context}", catalog, diagnostics, allowVoid: false);
+                break;
+            case MirColumnElementAccessExpression access:
+                ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(access.Index, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateValueType(access.Type, $"column element access in {context}", catalog, diagnostics, allowVoid: false);
+                break;
+            case MirTableRowFieldAccessExpression access:
+                ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateValueType(access.Type, $"table row field access in {context}", catalog, diagnostics, allowVoid: false);
                 break;
             case MirRecordWithExpression withExpression:
                 ValidateExpression(withExpression.Source, functionReturnType, context, functions, catalog, diagnostics);
@@ -425,6 +442,13 @@ public static class JavaScriptBackend
                 return;
             case MirRecordType record when catalog.ContainsRecord(record.RecordTypeId):
                 return;
+            case MirTableType table when catalog.ContainsTable(table.TableId):
+                return;
+            case MirTableRowType row when catalog.ContainsRow(row.RowTypeId):
+                return;
+            case MirColumnType column:
+                ValidateValueType(column.ElementType, $"column element type in {context}", catalog, diagnostics, allowVoid: false);
+                return;
             default:
                 AddUnsupported(diagnostics, $"type '{type.Name}' in {context}");
                 return;
@@ -618,6 +642,194 @@ public static class JavaScriptBackend
             writer.WriteLine();
             EmitResultValidator(writer, result, catalog, results, names);
         }
+
+        if (catalog.Tables.Count > 0)
+        {
+            writer.WriteLine();
+            EmitColumnRuntime(writer, names);
+        }
+
+        foreach (MirTableDefinition table in catalog.Tables)
+        {
+            writer.WriteLine();
+            EmitTableRuntime(writer, table, catalog, results, names);
+        }
+    }
+
+    private static void EmitColumnRuntime(JavaScriptTextWriter writer, GeneratedNames names)
+    {
+        writer.WriteLine($"const {names.ColumnCarrierToken} = Symbol(\"cope.column\");");
+        writer.WriteLine($"const {names.ColumnReadSlot} = Symbol(\"cope.column.read\");");
+        writer.WriteLine($"const {names.TableRowTableSlot} = Symbol(\"cope.table.row.table\");");
+        writer.WriteLine($"const {names.TableRowIndexSlot} = Symbol(\"cope.table.row.index\");");
+        writer.WriteLine();
+        writer.WriteLine($"function {names.ColumnValidator}(value) {{");
+        writer.Indent();
+        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.ColumnCarrierToken}) || value[{names.ColumnCarrierToken}] !== {names.ColumnCarrierToken} || !Object.prototype.hasOwnProperty.call(value, {names.ColumnReadSlot}) || typeof value[{names.ColumnReadSlot}] !== \"function\" || Object.getOwnPropertySymbols(value).length !== 3) {{");
+        writer.Indent();
+        writer.WriteLine($"{names.Panic}();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitTableRuntime(
+        JavaScriptTextWriter writer,
+        MirTableDefinition table,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names)
+    {
+        string boundsErrorToken = names.TypeToken(catalog.GetEnum("TableBoundsError"));
+        writer.WriteLine($"const {names.TableTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.Id.Value)});");
+        writer.WriteLine($"const {names.TableRowTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.RowTypeId)});");
+        writer.WriteLine($"const {names.TableRowReadSlot(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.Id.Value + ".rows")});");
+        foreach (MirTableColumnDefinition column in table.Columns)
+        {
+            writer.WriteLine($"const {names.TableColumnSlot(column)} = Symbol({JavaScriptLiteralWriter.WriteString(column.Id.Value)});");
+            writer.WriteLine($"const {names.TableColumnToken(column)} = Symbol({JavaScriptLiteralWriter.WriteString(column.Id.Value + ".column")});");
+        }
+
+        writer.WriteLine();
+        EmitTableValidator(writer, table, names);
+        writer.WriteLine();
+        EmitTableRowValidator(writer, table, names);
+        writer.WriteLine();
+        writer.WriteLine($"function {names.TableCreateRow(table)}(tableValue, index) {{");
+        writer.Indent();
+        writer.WriteLine("const row = Object.create(null);");
+        writer.WriteLine("Object.defineProperties(row, {");
+        writer.Indent();
+        writer.WriteLine($"[{names.TableRowTypeToken(table)}]: {{ value: {names.TableRowTypeToken(table)}, writable: false, enumerable: false, configurable: false }},");
+        writer.WriteLine($"[{names.TableRowTableSlot}]: {{ value: tableValue, writable: false, enumerable: false, configurable: false }},");
+        writer.WriteLine($"[{names.TableRowIndexSlot}]: {{ value: index, writable: false, enumerable: false, configurable: false }},");
+        writer.Unindent();
+        writer.WriteLine("});");
+        writer.WriteLine("return Object.freeze(row);");
+        writer.Unindent();
+        writer.WriteLine("}");
+
+        writer.WriteLine();
+        writer.WriteLine($"function {names.TableCreate(table)}() {{");
+        writer.Indent();
+        foreach (MirTableColumnDefinition column in table.Columns)
+        {
+            string values = string.Join(", ", column.Constants.Select(constant => EmitTableConstant(constant, catalog, results, names)));
+            writer.WriteLine($"const {names.TableStorage(column)} = Object.freeze([{values}]);");
+            writer.WriteLine($"const {names.TableColumnValue(column)} = Object.create(null);");
+            writer.WriteLine($"Object.defineProperties({names.TableColumnValue(column)}, {{");
+            writer.Indent();
+            writer.WriteLine($"[{names.ColumnCarrierToken}]: {{ value: {names.ColumnCarrierToken}, writable: false, enumerable: false, configurable: false }},");
+            writer.WriteLine($"[{names.TableColumnToken(column)}]: {{ value: {names.TableColumnToken(column)}, writable: false, enumerable: false, configurable: false }},");
+            writer.WriteLine($"[{names.ColumnReadSlot}]: {{ value: (index) => {{");
+            writer.Indent();
+            EmitBoundsCheckedResult(writer, "index", table.RowCount, column.ElementType, results, names, boundsErrorToken, $"{names.TableStorage(column)}[index]");
+            writer.Unindent();
+            writer.WriteLine("}, writable: false, enumerable: false, configurable: false },");
+            writer.Unindent();
+            writer.WriteLine("});");
+            writer.WriteLine($"Object.freeze({names.TableColumnValue(column)});");
+        }
+
+        writer.WriteLine("const value = Object.create(null);");
+        writer.WriteLine("Object.defineProperties(value, {");
+        writer.Indent();
+        writer.WriteLine($"[{names.TableTypeToken(table)}]: {{ value: {names.TableTypeToken(table)}, writable: false, enumerable: false, configurable: false }},");
+        writer.WriteLine($"[{names.TableRowReadSlot(table)}]: {{ value: (index) => {{");
+        writer.Indent();
+        MirResultType rowResult = new(new MirTableRowType(table.RowTypeId, table.Name + ".Row"), new MirNamedType("TableBoundsError"));
+        EmitBoundsCheckedResult(writer, "index", table.RowCount, rowResult.SuccessType, results, names, boundsErrorToken, $"{names.TableCreateRow(table)}(value, index)");
+        writer.Unindent();
+        writer.WriteLine("}, writable: false, enumerable: false, configurable: false },");
+        foreach (MirTableColumnDefinition column in table.Columns)
+        {
+            writer.WriteLine($"[{names.TableColumnSlot(column)}]: {{ value: {names.TableColumnValue(column)}, writable: false, enumerable: false, configurable: false }},");
+        }
+        writer.Unindent();
+        writer.WriteLine("});");
+        writer.WriteLine("return Object.freeze(value);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine($"const {names.TableSingleton(table)} = {names.TableCreate(table)}();");
+    }
+
+    private static void EmitTableValidator(JavaScriptTextWriter writer, MirTableDefinition table, GeneratedNames names)
+    {
+        writer.WriteLine($"function {names.TableValidator(table)}(value) {{");
+        writer.Indent();
+        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableTypeToken(table)}) || value[{names.TableTypeToken(table)}] !== {names.TableTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowReadSlot(table)}) || typeof value[{names.TableRowReadSlot(table)}] !== \"function\" || Object.getOwnPropertySymbols(value).length !== {table.Columns.Count + 2}) {{");
+        writer.Indent();
+        writer.WriteLine($"{names.Panic}();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        foreach (MirTableColumnDefinition column in table.Columns)
+        {
+            writer.WriteLine($"if (!Object.prototype.hasOwnProperty.call(value, {names.TableColumnSlot(column)})) {{ {names.Panic}(); }}");
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitTableRowValidator(JavaScriptTextWriter writer, MirTableDefinition table, GeneratedNames names)
+    {
+        writer.WriteLine($"function {names.TableRowValidator(table)}(value) {{");
+        writer.Indent();
+        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableRowTypeToken(table)}) || value[{names.TableRowTypeToken(table)}] !== {names.TableRowTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowTableSlot}) || !Object.prototype.hasOwnProperty.call(value, {names.TableRowIndexSlot}) || !Number.isInteger(value[{names.TableRowIndexSlot}]) || Object.getOwnPropertySymbols(value).length !== 3) {{");
+        writer.Indent();
+        writer.WriteLine($"{names.Panic}();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"{names.TableValidator(table)}(value[{names.TableRowTableSlot}]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitBoundsCheckedResult(
+        JavaScriptTextWriter writer,
+        string index,
+        int rowCount,
+        MirType successType,
+        ResultCatalog results,
+        GeneratedNames names,
+        string boundsErrorToken,
+        string successValue)
+    {
+        MirResultType resultType = new(successType, new MirNamedType("TableBoundsError"));
+        string resultToken = names.TypeToken(results.Get(resultType));
+        writer.WriteLine($"if (!Number.isFinite({index}) || !Number.isInteger({index})) {{");
+        writer.Indent();
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [{names.MakeValue}({boundsErrorToken}, \"InvalidIndex\", [{index}])]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"if ({index} < 0 || {index} >= {rowCount}) {{");
+        writer.Indent();
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [{names.MakeValue}({boundsErrorToken}, \"OutOfBounds\", [{index}, {rowCount}])]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"ok\", [{successValue}]);");
+    }
+
+    private static string EmitTableConstant(MirTableConstant constant, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        return constant switch
+        {
+            MirTableLiteralConstant { Value: bool value } => value ? "true" : "false",
+            MirTableLiteralConstant { Value: string value } => JavaScriptLiteralWriter.WriteString(value),
+            MirTableLiteralConstant literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
+            MirTableRecordConstant record => EmitTableRecordConstant(record, catalog, results, names),
+            MirTableEnumConstant value => $"{names.MakeValue}({names.TypeToken(catalog.GetEnum(value.EnumName))}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", value.Payloads.Select(payload => EmitTableConstant(payload, catalog, results, names)))}])",
+            MirTableResultConstant result => $"{names.MakeValue}({names.TypeToken(results.Get(result.Type))}, \"{(result.IsOk ? "ok" : "err")}\", [{EmitTableConstant(result.Payload, catalog, results, names)}])",
+            _ => throw new InvalidOperationException($"Unsupported validated table constant {constant.GetType().Name}."),
+        };
+    }
+
+    private static string EmitTableRecordConstant(MirTableRecordConstant constant, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        MirRecordDefinition record = catalog.GetRecord(constant.RecordTypeId);
+        var values = constant.Fields.ToDictionary(field => field.FieldId, field => field.Value);
+        return $"{names.RecordConstructor(record)}({string.Join(", ", record.Fields.Select(field => EmitTableConstant(values[field.Id], catalog, results, names)))})";
     }
 
     private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, GeneratedNames names)
@@ -761,6 +973,9 @@ public static class JavaScriptBackend
             MirType { Identifier: "void" } => $"{expression} === null",
             MirResultType result => $"({names.Validator(results.Get(result))}({expression}), true)",
             MirRecordType record when catalog.TryGetRecord(record.RecordTypeId, out MirRecordDefinition definition) => $"({names.RecordValidator(definition)}({expression}), true)",
+            MirTableType table when catalog.ContainsTable(table.TableId) => $"({names.TableValidator(catalog.GetTable(table.TableId))}({expression}), true)",
+            MirTableRowType row when catalog.ContainsRow(row.RowTypeId) => $"({names.TableRowValidator(catalog.GetTableByRowType(row.RowTypeId))}({expression}), true)",
+            MirColumnType => $"({names.ColumnValidator}({expression}), true)",
             MirType named when named is not MirArrayType and not MirResultType && catalog.TryGetEnum(named.Identifier, out EnumInfo enumInfo) => $"({names.Validator(enumInfo)}({expression}), true)",
             _ => "false",
         };
@@ -921,6 +1136,11 @@ public static class JavaScriptBackend
             MirCallExpression call => EmitCall(call, function, catalog, results, names, flowEnabled),
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
+            MirTableReferenceExpression reference => EmittedExpression.ValueOnly(names.TableSingleton(catalog.GetTable(reference.TableId))),
+            MirTableColumnAccessExpression access => EmitTableColumnAccess(access, function, catalog, results, names, flowEnabled),
+            MirTableRowAccessExpression access => EmitTableRowAccess(access, function, catalog, results, names, flowEnabled),
+            MirColumnElementAccessExpression access => EmitColumnElementAccess(access, function, catalog, results, names, flowEnabled),
+            MirTableRowFieldAccessExpression access => EmitTableRowFieldAccess(access, function, catalog, results, names, flowEnabled),
             MirRecordWithExpression withExpression => EmitRecordWith(withExpression, function, catalog, results, names, flowEnabled),
             MirEnumValueExpression value => EmitEnumValueExpression(value, function, catalog, results, names, flowEnabled),
             MirMatchExpression match => EmitEnumMatchExpression(match, function, catalog, results, names, flowEnabled),
@@ -1036,6 +1256,106 @@ public static class JavaScriptBackend
             new($"{names.RecordValidator(record)}({temporary});", 0),
         };
         return new EmittedExpression(prelude, $"{temporary}[{names.RecordFieldSlot(field)}]");
+    }
+
+    private static EmittedExpression EmitTableColumnAccess(
+        MirTableColumnAccessExpression access,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        MirTableDefinition table = catalog.GetTable(access.TableId);
+        MirTableColumnDefinition column = catalog.GetTableColumn(access.ColumnId);
+        EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
+        string temporary = names.NextTemporary("table_receiver");
+        var prelude = new List<EmittedLine>(receiver.Prelude)
+        {
+            new($"const {temporary} = {receiver.Value};", 0),
+            new($"{names.TableValidator(table)}({temporary});", 0),
+        };
+        return new EmittedExpression(prelude, $"{temporary}[{names.TableColumnSlot(column)}]");
+    }
+
+    private static EmittedExpression EmitTableRowAccess(
+        MirTableRowAccessExpression access,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        MirTableDefinition table = catalog.GetTable(access.TableId);
+        MirResultType resultType = (MirResultType)access.Type;
+        EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
+        EmittedExpression index = EmitExpression(access.Index, function, catalog, results, names, flowEnabled);
+        string receiverTemporary = names.NextTemporary("table_receiver");
+        string indexTemporary = names.NextTemporary("table_index");
+        string resultTemporary = names.NextTemporary("table_row");
+        var prelude = new List<EmittedLine>(receiver.Prelude)
+        {
+            new($"const {receiverTemporary} = {receiver.Value};", 0),
+        };
+        prelude.AddRange(index.Prelude);
+        prelude.Add(new EmittedLine($"const {indexTemporary} = {index.Value};", 0));
+        prelude.Add(new EmittedLine($"{names.TableValidator(table)}({receiverTemporary});", 0));
+        prelude.Add(new EmittedLine($"const {resultTemporary} = {receiverTemporary}[{names.TableRowReadSlot(table)}]({indexTemporary});", 0));
+        prelude.Add(new EmittedLine($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0));
+        return new EmittedExpression(prelude, resultTemporary);
+    }
+
+    private static EmittedExpression EmitColumnElementAccess(
+        MirColumnElementAccessExpression access,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        MirResultType resultType = (MirResultType)access.Type;
+        EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
+        EmittedExpression index = EmitExpression(access.Index, function, catalog, results, names, flowEnabled);
+        string receiverTemporary = names.NextTemporary("column_receiver");
+        string indexTemporary = names.NextTemporary("column_index");
+        string resultTemporary = names.NextTemporary("column_element");
+        var prelude = new List<EmittedLine>(receiver.Prelude)
+        {
+            new($"const {receiverTemporary} = {receiver.Value};", 0),
+        };
+        prelude.AddRange(index.Prelude);
+        prelude.Add(new EmittedLine($"const {indexTemporary} = {index.Value};", 0));
+        prelude.Add(new EmittedLine($"{names.ColumnValidator}({receiverTemporary});", 0));
+        prelude.Add(new EmittedLine($"const {resultTemporary} = {receiverTemporary}[{names.ColumnReadSlot}]({indexTemporary});", 0));
+        prelude.Add(new EmittedLine($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0));
+        return new EmittedExpression(prelude, resultTemporary);
+    }
+
+    private static EmittedExpression EmitTableRowFieldAccess(
+        MirTableRowFieldAccessExpression access,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        MirTableDefinition table = catalog.GetTableByRowType(access.RowTypeId);
+        MirTableColumnDefinition column = table.Columns.Single(candidate => candidate.Id.Value + ".f" == access.FieldId);
+        MirResultType resultType = new(access.Type, new MirNamedType("TableBoundsError"));
+        EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
+        string rowTemporary = names.NextTemporary("table_row");
+        string tableTemporary = names.NextTemporary("row_table");
+        string resultTemporary = names.NextTemporary("row_field");
+        var prelude = new List<EmittedLine>(receiver.Prelude)
+        {
+            new($"const {rowTemporary} = {receiver.Value};", 0),
+            new($"{names.TableRowValidator(table)}({rowTemporary});", 0),
+            new($"const {tableTemporary} = {rowTemporary}[{names.TableRowTableSlot}];", 0),
+            new($"const {resultTemporary} = {tableTemporary}[{names.TableColumnSlot(column)}][{names.ColumnReadSlot}]({rowTemporary}[{names.TableRowIndexSlot}]);", 0),
+            new($"{names.Validator(results.Get(resultType))}({resultTemporary});", 0),
+            new($"if ({resultTemporary}.$tag !== \"ok\") {{ {names.Panic}(); }}", 0),
+        };
+        return new EmittedExpression(prelude, $"{resultTemporary}.$payload[0]");
     }
 
     private static EmittedExpression EmitRecordWith(
@@ -1380,6 +1700,7 @@ public static class JavaScriptBackend
         {
             MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression or MirTryExpression => true,
             MirRecordConstructionExpression or MirRecordFieldAccessExpression or MirRecordWithExpression => true,
+            MirTableColumnAccessExpression or MirTableRowAccessExpression or MirColumnElementAccessExpression or MirTableRowFieldAccessExpression => true,
             MirBinaryExpression binary => ContainsControlFlow(binary.Left) || ContainsControlFlow(binary.Right),
             MirCallExpression call => call.Arguments.Any(ContainsControlFlow),
             MirAssignmentExpression assignment => ContainsControlFlow(assignment.Expression),
@@ -1418,6 +1739,10 @@ public static class JavaScriptBackend
             MirArrayExpression array => array.Elements.Any(ExpressionUsesTryExcept),
             MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesTryExcept(initializer.Value)),
             MirRecordFieldAccessExpression access => ExpressionUsesTryExcept(access.Receiver),
+            MirTableColumnAccessExpression access => ExpressionUsesTryExcept(access.Receiver),
+            MirTableRowAccessExpression access => ExpressionUsesTryExcept(access.Receiver) || ExpressionUsesTryExcept(access.Index),
+            MirColumnElementAccessExpression access => ExpressionUsesTryExcept(access.Receiver) || ExpressionUsesTryExcept(access.Index),
+            MirTableRowFieldAccessExpression access => ExpressionUsesTryExcept(access.Receiver),
             MirRecordWithExpression withExpression => ExpressionUsesTryExcept(withExpression.Source) || withExpression.Replacements.Any(replacement => ExpressionUsesTryExcept(replacement.Value)),
             MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesTryExcept),
             MirMatchExpression match => ExpressionUsesTryExcept(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesTryExcept(arm.Expression)),
@@ -1453,6 +1778,10 @@ public static class JavaScriptBackend
             MirArrayExpression array => array.Elements.Any(ExpressionUsesUnwrap),
             MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesUnwrap(initializer.Value)),
             MirRecordFieldAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
+            MirTableColumnAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
+            MirTableRowAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
+            MirColumnElementAccessExpression access => ExpressionUsesUnwrap(access.Receiver) || ExpressionUsesUnwrap(access.Index),
+            MirTableRowFieldAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
             MirRecordWithExpression withExpression => ExpressionUsesUnwrap(withExpression.Source) || withExpression.Replacements.Any(replacement => ExpressionUsesUnwrap(replacement.Value)),
             MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesUnwrap),
             MirMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesUnwrap(arm.Expression)),
@@ -1512,8 +1841,11 @@ public static class JavaScriptBackend
     {
         private readonly Dictionary<string, EnumInfo> byName = new(StringComparer.Ordinal);
         private readonly Dictionary<MirRecordTypeId, MirRecordDefinition> recordsById = [];
+        private readonly Dictionary<MirTableId, MirTableDefinition> tablesById = [];
+        private readonly Dictionary<MirTableColumnId, MirTableColumnDefinition> columnsById = [];
+        private readonly Dictionary<string, MirTableDefinition> tablesByRowType = new(StringComparer.Ordinal);
 
-        public EnumCatalog(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, List<JavaScriptDiagnostic> diagnostics)
+        public EnumCatalog(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, List<JavaScriptDiagnostic> diagnostics)
         {
             var values = new List<EnumInfo>(enums.Count);
             for (int index = 0; index < enums.Count; index += 1)
@@ -1532,11 +1864,24 @@ public static class JavaScriptBackend
             {
                 recordsById.TryAdd(record.Id, record);
             }
+
+            Tables = tables;
+            foreach (MirTableDefinition table in tables)
+            {
+                tablesById.TryAdd(table.Id, table);
+                tablesByRowType.TryAdd(table.RowTypeId, table);
+                foreach (MirTableColumnDefinition column in table.Columns)
+                {
+                    columnsById.TryAdd(column.Id, column);
+                }
+            }
         }
 
         public IReadOnlyList<EnumInfo> Enums { get; }
 
         public IReadOnlyList<MirRecordDefinition> Records { get; }
+
+        public IReadOnlyList<MirTableDefinition> Tables { get; }
 
         public bool ContainsEnum(string name) => byName.ContainsKey(name);
 
@@ -1550,6 +1895,16 @@ public static class JavaScriptBackend
 
         public MirRecordDefinition GetRecord(MirRecordTypeId id) => recordsById[id];
 
+        public bool ContainsTable(MirTableId id) => tablesById.ContainsKey(id);
+
+        public bool ContainsRow(string rowTypeId) => tablesByRowType.ContainsKey(rowTypeId);
+
+        public MirTableDefinition GetTable(MirTableId id) => tablesById[id];
+
+        public MirTableDefinition GetTableByRowType(string rowTypeId) => tablesByRowType[rowTypeId];
+
+        public MirTableColumnDefinition GetTableColumn(MirTableColumnId id) => columnsById[id];
+
         public void ValidateDefinitions(List<JavaScriptDiagnostic> diagnostics)
         {
             foreach (MirRecordDefinition record in Records)
@@ -1557,6 +1912,14 @@ public static class JavaScriptBackend
                 foreach (MirRecordFieldDefinition field in record.Fields)
                 {
                     ValidateValueType(field.Type, $"field '{record.Name}.{field.Name}'", this, diagnostics, allowVoid: false);
+                }
+            }
+
+            foreach (MirTableDefinition table in Tables)
+            {
+                foreach (MirTableColumnDefinition column in table.Columns)
+                {
+                    ValidateValueType(column.ElementType, $"column '{table.Name}.{column.Name}'", this, diagnostics, allowVoid: false);
                 }
             }
 
@@ -1687,6 +2050,21 @@ public static class JavaScriptBackend
                 }
             }
 
+            foreach (MirTableDefinition table in program.Tables)
+            {
+                foreach (MirTableColumnDefinition column in table.Columns)
+                {
+                    catalog.Add(column.ElementType);
+                    catalog.Add(new MirResultType(column.ElementType, new MirNamedType("TableBoundsError")));
+                    foreach (MirTableConstant constant in column.Constants)
+                    {
+                        catalog.Add(constant);
+                    }
+                }
+
+                catalog.Add(new MirResultType(new MirTableRowType(table.RowTypeId, table.Name + ".Row"), new MirNamedType("TableBoundsError")));
+            }
+
             foreach (MirFunction function in program.Functions)
             {
                 catalog.Add(function.ReturnType);
@@ -1766,6 +2144,20 @@ public static class JavaScriptBackend
                 case MirRecordFieldAccessExpression access:
                     Add(access.Receiver);
                     break;
+                case MirTableColumnAccessExpression access:
+                    Add(access.Receiver);
+                    break;
+                case MirTableRowAccessExpression access:
+                    Add(access.Receiver);
+                    Add(access.Index);
+                    break;
+                case MirColumnElementAccessExpression access:
+                    Add(access.Receiver);
+                    Add(access.Index);
+                    break;
+                case MirTableRowFieldAccessExpression access:
+                    Add(access.Receiver);
+                    break;
                 case MirRecordWithExpression withExpression:
                     Add(withExpression.Source);
                     foreach (MirRecordFieldValue replacement in withExpression.Replacements)
@@ -1815,6 +2207,29 @@ public static class JavaScriptBackend
             }
         }
 
+        private void Add(MirTableConstant constant)
+        {
+            Add(constant.Type);
+            switch (constant)
+            {
+                case MirTableRecordConstant record:
+                    foreach (MirTableRecordFieldConstant field in record.Fields)
+                    {
+                        Add(field.Value);
+                    }
+                    break;
+                case MirTableEnumConstant value:
+                    foreach (MirTableConstant payload in value.Payloads)
+                    {
+                        Add(payload);
+                    }
+                    break;
+                case MirTableResultConstant result:
+                    Add(result.Payload);
+                    break;
+            }
+        }
+
         private void Add(MirValueBlock block)
         {
             foreach (MirStatement statement in block.PrefixStatements)
@@ -1853,6 +2268,18 @@ public static class JavaScriptBackend
         private readonly Dictionary<MirRecordDefinition, string> recordConstructors;
         private readonly Dictionary<MirRecordDefinition, string> recordValidators;
         private readonly Dictionary<MirRecordFieldDefinition, string> recordFieldSlots;
+        private readonly Dictionary<MirTableDefinition, string> tableTypeTokens;
+        private readonly Dictionary<MirTableDefinition, string> tableRowTypeTokens;
+        private readonly Dictionary<MirTableDefinition, string> tableValidators;
+        private readonly Dictionary<MirTableDefinition, string> tableRowValidators;
+        private readonly Dictionary<MirTableDefinition, string> tableCreates;
+        private readonly Dictionary<MirTableDefinition, string> tableCreateRows;
+        private readonly Dictionary<MirTableDefinition, string> tableSingletons;
+        private readonly Dictionary<MirTableDefinition, string> tableRowReadSlots;
+        private readonly Dictionary<MirTableColumnDefinition, string> tableColumnSlots;
+        private readonly Dictionary<MirTableColumnDefinition, string> tableColumnTokens;
+        private readonly Dictionary<MirTableColumnDefinition, string> tableStorages;
+        private readonly Dictionary<MirTableColumnDefinition, string> tableColumnValues;
         private readonly NameAllocator allocator;
 
         private GeneratedNames(
@@ -1872,7 +2299,24 @@ public static class JavaScriptBackend
             Dictionary<MirRecordDefinition, string> recordTypeTokens,
             Dictionary<MirRecordDefinition, string> recordConstructors,
             Dictionary<MirRecordDefinition, string> recordValidators,
-            Dictionary<MirRecordFieldDefinition, string> recordFieldSlots)
+            Dictionary<MirRecordFieldDefinition, string> recordFieldSlots,
+            string columnCarrierToken,
+            string columnReadSlot,
+            string columnValidator,
+            string tableRowTableSlot,
+            string tableRowIndexSlot,
+            Dictionary<MirTableDefinition, string> tableTypeTokens,
+            Dictionary<MirTableDefinition, string> tableRowTypeTokens,
+            Dictionary<MirTableDefinition, string> tableValidators,
+            Dictionary<MirTableDefinition, string> tableRowValidators,
+            Dictionary<MirTableDefinition, string> tableCreates,
+            Dictionary<MirTableDefinition, string> tableCreateRows,
+            Dictionary<MirTableDefinition, string> tableSingletons,
+            Dictionary<MirTableDefinition, string> tableRowReadSlots,
+            Dictionary<MirTableColumnDefinition, string> tableColumnSlots,
+            Dictionary<MirTableColumnDefinition, string> tableColumnTokens,
+            Dictionary<MirTableColumnDefinition, string> tableStorages,
+            Dictionary<MirTableColumnDefinition, string> tableColumnValues)
         {
             this.allocator = allocator;
             Panic = panic;
@@ -1891,6 +2335,23 @@ public static class JavaScriptBackend
             this.recordConstructors = recordConstructors;
             this.recordValidators = recordValidators;
             this.recordFieldSlots = recordFieldSlots;
+            ColumnCarrierToken = columnCarrierToken;
+            ColumnReadSlot = columnReadSlot;
+            ColumnValidator = columnValidator;
+            TableRowTableSlot = tableRowTableSlot;
+            TableRowIndexSlot = tableRowIndexSlot;
+            this.tableTypeTokens = tableTypeTokens;
+            this.tableRowTypeTokens = tableRowTypeTokens;
+            this.tableValidators = tableValidators;
+            this.tableRowValidators = tableRowValidators;
+            this.tableCreates = tableCreates;
+            this.tableCreateRows = tableCreateRows;
+            this.tableSingletons = tableSingletons;
+            this.tableRowReadSlots = tableRowReadSlots;
+            this.tableColumnSlots = tableColumnSlots;
+            this.tableColumnTokens = tableColumnTokens;
+            this.tableStorages = tableStorages;
+            this.tableColumnValues = tableColumnValues;
         }
 
         public string Panic { get; }
@@ -1909,6 +2370,16 @@ public static class JavaScriptBackend
 
         public string ValidateFlow { get; }
 
+        public string ColumnCarrierToken { get; }
+
+        public string ColumnReadSlot { get; }
+
+        public string ColumnValidator { get; }
+
+        public string TableRowTableSlot { get; }
+
+        public string TableRowIndexSlot { get; }
+
         public string TypeToken(EnumInfo enumInfo) => typeTokens[enumInfo];
 
         public string Validator(EnumInfo enumInfo) => validators[enumInfo];
@@ -1924,6 +2395,30 @@ public static class JavaScriptBackend
         public string RecordValidator(MirRecordDefinition record) => recordValidators[record];
 
         public string RecordFieldSlot(MirRecordFieldDefinition field) => recordFieldSlots[field];
+
+        public string TableTypeToken(MirTableDefinition table) => tableTypeTokens[table];
+
+        public string TableRowTypeToken(MirTableDefinition table) => tableRowTypeTokens[table];
+
+        public string TableValidator(MirTableDefinition table) => tableValidators[table];
+
+        public string TableRowValidator(MirTableDefinition table) => tableRowValidators[table];
+
+        public string TableCreate(MirTableDefinition table) => tableCreates[table];
+
+        public string TableCreateRow(MirTableDefinition table) => tableCreateRows[table];
+
+        public string TableSingleton(MirTableDefinition table) => tableSingletons[table];
+
+        public string TableRowReadSlot(MirTableDefinition table) => tableRowReadSlots[table];
+
+        public string TableColumnSlot(MirTableColumnDefinition column) => tableColumnSlots[column];
+
+        public string TableColumnToken(MirTableColumnDefinition column) => tableColumnTokens[column];
+
+        public string TableStorage(MirTableColumnDefinition column) => tableStorages[column];
+
+        public string TableColumnValue(MirTableColumnDefinition column) => tableColumnValues[column];
 
         public string NextMatchScrutinee() => allocator.Allocate("match");
 
@@ -1989,6 +2484,45 @@ public static class JavaScriptBackend
                 resultValidators.Add(result, allocator.Allocate("result_validate"));
             }
 
+            bool usesTables = catalog.Tables.Count > 0;
+            string columnCarrierToken = usesTables ? allocator.Allocate("column_type") : string.Empty;
+            string columnReadSlot = usesTables ? allocator.Allocate("column_read") : string.Empty;
+            string columnValidator = usesTables ? allocator.Allocate("column_require") : string.Empty;
+            string tableRowTableSlot = usesTables ? allocator.Allocate("table_row_table") : string.Empty;
+            string tableRowIndexSlot = usesTables ? allocator.Allocate("table_row_index") : string.Empty;
+            var tableTypeTokens = new Dictionary<MirTableDefinition, string>();
+            var tableRowTypeTokens = new Dictionary<MirTableDefinition, string>();
+            var tableValidators = new Dictionary<MirTableDefinition, string>();
+            var tableRowValidators = new Dictionary<MirTableDefinition, string>();
+            var tableCreates = new Dictionary<MirTableDefinition, string>();
+            var tableCreateRows = new Dictionary<MirTableDefinition, string>();
+            var tableSingletons = new Dictionary<MirTableDefinition, string>();
+            var tableRowReadSlots = new Dictionary<MirTableDefinition, string>();
+            var tableColumnSlots = new Dictionary<MirTableColumnDefinition, string>();
+            var tableColumnTokens = new Dictionary<MirTableColumnDefinition, string>();
+            var tableStorages = new Dictionary<MirTableColumnDefinition, string>();
+            var tableColumnValues = new Dictionary<MirTableColumnDefinition, string>();
+            foreach (MirTableDefinition table in catalog.Tables)
+            {
+                string identity = JavaScriptIdentifierEncoder.Encode(table.Id.Value);
+                tableTypeTokens.Add(table, allocator.Allocate($"table_type_{identity}"));
+                tableRowTypeTokens.Add(table, allocator.Allocate($"table_row_type_{identity}"));
+                tableValidators.Add(table, allocator.Allocate($"table_require_{identity}"));
+                tableRowValidators.Add(table, allocator.Allocate($"table_row_require_{identity}"));
+                tableCreates.Add(table, allocator.Allocate($"table_create_{identity}"));
+                tableCreateRows.Add(table, allocator.Allocate($"table_row_create_{identity}"));
+                tableSingletons.Add(table, allocator.Allocate($"table_value_{identity}"));
+                tableRowReadSlots.Add(table, allocator.Allocate($"table_rows_{identity}"));
+                foreach (MirTableColumnDefinition column in table.Columns)
+                {
+                    string columnIdentity = JavaScriptIdentifierEncoder.Encode(column.Id.Value);
+                    tableColumnSlots.Add(column, allocator.Allocate($"table_column_{columnIdentity}"));
+                    tableColumnTokens.Add(column, allocator.Allocate($"column_type_{columnIdentity}"));
+                    tableStorages.Add(column, allocator.Allocate($"table_storage_{columnIdentity}"));
+                    tableColumnValues.Add(column, allocator.Allocate($"table_column_value_{columnIdentity}"));
+                }
+            }
+
             return new GeneratedNames(
                 allocator,
                 panic,
@@ -2006,7 +2540,24 @@ public static class JavaScriptBackend
                 recordTypeTokens,
                 recordConstructors,
                 recordValidators,
-                recordFieldSlots);
+                recordFieldSlots,
+                columnCarrierToken,
+                columnReadSlot,
+                columnValidator,
+                tableRowTableSlot,
+                tableRowIndexSlot,
+                tableTypeTokens,
+                tableRowTypeTokens,
+                tableValidators,
+                tableRowValidators,
+                tableCreates,
+                tableCreateRows,
+                tableSingletons,
+                tableRowReadSlots,
+                tableColumnSlots,
+                tableColumnTokens,
+                tableStorages,
+                tableColumnValues);
         }
     }
 

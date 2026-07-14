@@ -12,18 +12,21 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptBackendTests
 {
     [Fact]
-    public void Valid_table_mir_is_rejected_without_a_partial_artifact()
+    public void Valid_table_mir_emits_private_nominal_columnar_runtime()
     {
         MirProgram program = Lower("record table Samples { x: [1]; }");
 
         JavaScriptCompilation compilation = JavaScriptBackend.Emit(program);
 
-        Assert.Null(compilation.SourceText);
-        Assert.Collection(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-JS-TABLE-0001", diagnostic.Id));
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("Symbol(\"t1\")", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Object.freeze([1])", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Number.isFinite(index)", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("COPE-JS-TABLE-0001", compilation.SourceText, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Malformed_table_mir_is_rejected_by_shared_validation_before_backend_table_rejection()
+    public void Malformed_table_mir_is_rejected_by_shared_validation_before_backend_realization()
     {
         MirProgram program = CreateMalformedTableProgram();
 
@@ -34,12 +37,11 @@ public sealed class JavaScriptBackendTests
         Assert.NotEmpty(compilation.Diagnostics);
         Assert.All(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-JS-0002", diagnostic.Id));
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("not a supported closed constant", StringComparison.Ordinal));
-        Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-TABLE-0001");
     }
 
     [Theory]
     [MemberData(nameof(TableMirValidationCases.Cases), MemberType = typeof(TableMirValidationCases))]
-    public void Every_malformed_table_constant_is_rejected_before_javascript_table_backend_dispatch(
+    public void Every_malformed_table_constant_is_rejected_before_javascript_table_realization(
         string _,
         MirProgram program,
         string expectedMessage)
@@ -51,7 +53,6 @@ public sealed class JavaScriptBackendTests
         Assert.NotEmpty(compilation.Diagnostics);
         Assert.All(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-JS-0002", diagnostic.Id));
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains(expectedMessage, StringComparison.Ordinal));
-        Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-TABLE-0001");
     }
 
     [Fact]

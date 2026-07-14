@@ -15,7 +15,7 @@ Table bodies are static definitions, not global executable statements. Their col
 
 `table[index]` has type `Table.Row ! TableBoundsError`; `column[index]` has type `T ! TableBoundsError`. `TableBoundsError` is compiler owned and has `InvalidIndex(index: number)` and `OutOfBounds(index: number, rowCount: number)` cases. The future runtime law distinguishes invalid finite-integral indexes from bounds failures; M0b represents, but does not execute, that contract.
 
-Canonical MIR has table definitions, table/row/column types, resolved table references and access operations, and deterministic text output. Table cells use a closed constant hierarchy (literal, record, enum, and Result); a table definition cannot store an executable MIR expression. Shared validation runs before every backend. CTS-TABLE-M1 realizes valid table MIR through C#; JavaScript continues to reject it without an artifact using `COPE-JS-TABLE-0001` until CTS-TABLE-M2.
+Canonical MIR has table definitions, table/row/column types, resolved table references and access operations, and deterministic text output. Table cells use a closed constant hierarchy (literal, record, enum, and Result); a table definition cannot store an executable MIR expression. Shared validation runs before every backend. CTS-TABLE-M1 realizes valid table MIR through C# and CTS-TABLE-M2 realizes it through JavaScript.
 
 Tables, rows, and columns have no equality, construction (except the authored definition), update, mutation, methods, iteration, or host-container semantics.
 

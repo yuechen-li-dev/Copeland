@@ -436,7 +436,7 @@ Valid fixtures cover inferred nonempty columns; explicitly typed nonempty column
 
 Invalid fixtures cover duplicate/zero columns; ragged lengths; heterogeneous cells; untyped empty columns; explicit mismatch; unsupported expressions and mutable/array cells; sparse/spread/missing cells; invalid index types; unknown columns; bare/general table values; table/column/row mutation; row construction/`with`; nominal row mismatch; equality; reserved `TableBoundsError` collision; invalid qualified types; and every alternative/conflicting declaration spelling.
 
-M0b also adds focused syntax, bound, MIR text/validator, exactly-once, and deliberate backend rejection evidence in existing stage-specific corpus/test locations. It must not mark a `.cl-valid.ts` table accepted until the complete source-to-validated-MIR contract exists. CTS-TABLE-M1 now adds C# backend/runtime corpus and constant, boundary, nominal, immutability, and deterministic emission proofs; JavaScript realization and its corresponding proofs remain CTS-TABLE-M2.
+M0b also adds focused syntax, bound, MIR text/validator, exactly-once, and deliberate backend-boundary evidence in existing stage-specific corpus/test locations. It must not mark a `.cl-valid.ts` table accepted until the complete source-to-validated-MIR contract exists. CTS-TABLE-M1 adds C# backend/runtime corpus and constant, boundary, nominal, immutability, and deterministic emission proofs; CTS-TABLE-M2 adds the corresponding JavaScript realization and Node evidence. M3 parity/serialization closeout remains deferred.
 
 ## Deferred boundaries
 
@@ -451,6 +451,7 @@ The DOM remains a presentation tree derived from application data. Default colum
 | CTS-TABLE-M0a | Documentation-only audit and implementation-ready language/MIR/backend design. |
 | CTS-TABLE-M0b | Atomically implement declaration grammar, constant validation, rectangularity, stable table/row/column identity, `Table.Row`, `column T`, Result-valued row/column indexing, `TableBoundsError`, diagnostics, filesystem fixtures, canonical MIR/text/validation, CLI integration, and deliberate no-artifact rejection from both backends. |
 | CTS-TABLE-M1 | Implement C# private columnar realization plus runtime, bounds, order, nominality, immutability, and deterministic artifact proofs. |
+| CTS-TABLE-M2 | Implement JavaScript private columnar realization, Result-valued access, closed constants, and Node/runtime evidence. |
 | CTS-TABLE-M2 | Implement JavaScript private frozen columnar realization plus Node brand/privacy/bounds/order proofs. |
 | CTS-TABLE-M3 | Cross-backend parity, exactly-once and binary64-index stress, representation privacy, doctrine ratification, artifact stability, and closeout. |
 

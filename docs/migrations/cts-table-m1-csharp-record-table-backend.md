@@ -1,6 +1,6 @@
 # CTS-TABLE-M1 C# record-table backend migration
 
-CTS-TABLE-M1 replaces the C# valid-table rejection boundary with deterministic code generation. It preserves CTS-TABLE-M0a/M0b source, semantic, diagnostic, and MIR contracts. JavaScript remains deferred to CTS-TABLE-M2.
+CTS-TABLE-M1 replaces the C# valid-table rejection boundary with deterministic code generation. It preserves CTS-TABLE-M0a/M0b source, semantic, diagnostic, and MIR contracts. CTS-TABLE-M2 subsequently adds the JavaScript realization.
 
 Generated tables use one private typed array for each canonical column, in declaration order. The generated table constructor creates immutable column carriers after assigning its arrays. The module owns exactly one initialized singleton per authored table. Generated row objects retain the owning table and index and read their fields through the table's private columnar representation. Generated tables, rows, and columns are ordinary sealed classes rather than C# records, avoiding accidental record value equality.
 

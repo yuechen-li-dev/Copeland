@@ -10,6 +10,44 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class ResultBackendParityTests
 {
     [Fact]
+    public async Task JavaScript_And_CSharp_Table_Vertical_Program_Returns_8_Repeatedly()
+    {
+        const string source = """
+            record Point { x: number; }
+            enum State { Value(point: Point), Empty, }
+            record table Values {
+                point: Point = [{ x: 2 }];
+                state: State = [State.Value({ x: 3 })];
+                result: number ! string = [ok(6)];
+            }
+            function main(): number {
+                const cell: number ! string = Values.result[0]!;
+                const value: number = match cell { ok(payload) => payload, err(error) => 0, };
+                const row: Values.Row = Values[0]!;
+                return value + row.point.x;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.True(javaScript.Success, string.Join(Environment.NewLine, javaScript.Diagnostics));
+        Assert.Empty(csharp.Diagnostics);
+
+        ProcessResult firstNode = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+        ProcessResult secondNode = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        Assert.Equal("8\n", firstNode.StdOut);
+        Assert.Equal(firstNode, secondNode);
+        Assert.Equal(8d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+        Assert.Equal(8d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
     public async Task JavaScript_And_CSharp_Record_Closeout_Matrix_Preserves_Control_Flow_And_Exactly_Once_Order()
     {
         const string source = """

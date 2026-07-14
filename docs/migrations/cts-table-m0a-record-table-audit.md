@@ -77,12 +77,12 @@ Core MIR contains no CLR/JS storage objects, JSON DOM, SQL, database schemas, or
 
 The design allocates `COPE-TABLE-0001` through `COPE-TABLE-0019` for declaration/syntax, duplicate names/columns, zero columns, empty inference, heterogeneity/mismatch, raggedness, unsupported/cyclic constants, invalid table/column/index access, table/column/row mutation, equality, nominal mismatch, and unsupported annotations.
 
-M0b adds filesystem-backed `Language/Valid/tables/*.cl-valid.ts` and `Language/Invalid/tables/*.cl-invalid.ts` coverage plus focused syntax/bound/MIR/validator and backend no-artifact rejection evidence. M0a adds no fixtures or tests.
+M0b adds filesystem-backed `Language/Valid/tables/*.cl-valid.ts` and `Language/Invalid/tables/*.cl-invalid.ts` coverage plus focused syntax/bound/MIR/validator evidence. M1 and M2 add C# and JavaScript backend realization evidence. M0a adds no fixtures or tests.
 
 ## Refined ladder
 
 1. **CTS-TABLE-M0a:** documentation-only design and audit.
-2. **CTS-TABLE-M0b:** atomic source-to-validated-MIR implementation, including constants, rectangularity, nominal rows, nameable columns, Result bounds behavior, diagnostics, fixtures, CLI path, and deliberate artifact-free backend rejection.
+2. **CTS-TABLE-M0b:** atomic source-to-validated-MIR implementation, including constants, rectangularity, nominal rows, nameable columns, Result bounds behavior, diagnostics, fixtures, and CLI path.
 3. **CTS-TABLE-M1:** private columnar C# realization and runtime proofs.
 4. **CTS-TABLE-M2:** private frozen columnar JavaScript realization and Node proofs.
 5. **CTS-TABLE-M3:** cross-backend parity, exactly-once/bounds stress, privacy, doctrine, deterministic artifacts, and closeout.
