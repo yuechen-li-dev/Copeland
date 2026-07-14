@@ -1,0 +1,231 @@
+using System.Collections.ObjectModel;
+
+namespace Copeland.TS.Tson;
+
+public abstract class TsonValue
+{
+    private protected TsonValue()
+    {
+    }
+}
+
+public sealed class TsonBoolean : TsonValue
+{
+    private TsonBoolean(bool value)
+    {
+        Value = value;
+    }
+
+    public static TsonBoolean False { get; } = new(false);
+
+    public static TsonBoolean True { get; } = new(true);
+
+    public bool Value { get; }
+
+    public static TsonBoolean FromBoolean(bool value)
+    {
+        return value ? True : False;
+    }
+}
+
+public sealed class TsonNumber : TsonValue
+{
+    private const ulong CanonicalNaNBits = 0x7FF8000000000000;
+
+    private TsonNumber(ulong bits)
+    {
+        Bits = NormalizeNaN(bits);
+    }
+
+    public ulong Bits { get; }
+
+    public double Value => BitConverter.UInt64BitsToDouble(Bits);
+
+    public bool IsNegativeZero => Bits == 0x8000000000000000;
+
+    public bool IsNaN => double.IsNaN(Value);
+
+    public static TsonNumber FromDouble(double value)
+    {
+        return FromBits(BitConverter.DoubleToUInt64Bits(value));
+    }
+
+    public static TsonNumber FromBits(ulong bits)
+    {
+        return new TsonNumber(bits);
+    }
+
+    private static ulong NormalizeNaN(ulong bits)
+    {
+        var exponent = bits & 0x7FF0000000000000;
+        var fraction = bits & 0x000FFFFFFFFFFFFF;
+        return exponent == 0x7FF0000000000000 && fraction != 0
+            ? CanonicalNaNBits
+            : bits;
+    }
+}
+
+public sealed class TsonString : TsonValue
+{
+    public TsonString(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        for (var index = 0; index < value.Length; index++)
+        {
+            if (!char.IsSurrogate(value[index]))
+            {
+                continue;
+            }
+
+            if (!char.IsHighSurrogate(value[index])
+                || index + 1 >= value.Length
+                || !char.IsLowSurrogate(value[index + 1]))
+            {
+                throw new ArgumentException(
+                    "A TSON string cannot contain an isolated UTF-16 surrogate.",
+                    nameof(value));
+            }
+
+            index++;
+        }
+
+        Value = value;
+    }
+
+    public string Value { get; }
+}
+
+public sealed class TsonField
+{
+    public TsonField(string name, TsonValue value, string? identity = null)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            throw new ArgumentException("A TSON field name cannot be empty.", nameof(name));
+        }
+
+        ArgumentNullException.ThrowIfNull(value);
+        Name = name;
+        Value = value;
+        Identity = identity;
+    }
+
+    public string Name { get; }
+
+    public string? Identity { get; }
+
+    public TsonValue Value { get; }
+}
+
+public sealed class TsonObject : TsonValue
+{
+    public TsonObject(IEnumerable<TsonField> fields)
+    {
+        Fields = TsonCollection.CopyUniqueFields(fields, requireIdentity: false);
+    }
+
+    public IReadOnlyList<TsonField> Fields { get; }
+}
+
+public sealed class TsonRecord : TsonValue
+{
+    public TsonRecord(string identity, IEnumerable<TsonField> fields)
+    {
+        if (string.IsNullOrWhiteSpace(identity))
+        {
+            throw new ArgumentException("A TSON record identity cannot be empty.", nameof(identity));
+        }
+
+        Identity = identity;
+        Fields = TsonCollection.CopyUniqueFields(fields, requireIdentity: true);
+    }
+
+    public string Identity { get; }
+
+    public IReadOnlyList<TsonField> Fields { get; }
+}
+
+public sealed class TsonEnum : TsonValue
+{
+    public TsonEnum(
+        string enumIdentity,
+        string caseIdentity,
+        string caseName,
+        IEnumerable<TsonField> payloads)
+    {
+        if (string.IsNullOrWhiteSpace(enumIdentity))
+        {
+            throw new ArgumentException("A TSON enum identity cannot be empty.", nameof(enumIdentity));
+        }
+
+        if (string.IsNullOrWhiteSpace(caseIdentity))
+        {
+            throw new ArgumentException("A TSON enum case identity cannot be empty.", nameof(caseIdentity));
+        }
+
+        if (string.IsNullOrEmpty(caseName))
+        {
+            throw new ArgumentException("A TSON enum case name cannot be empty.", nameof(caseName));
+        }
+
+        EnumIdentity = enumIdentity;
+        CaseIdentity = caseIdentity;
+        CaseName = caseName;
+        Payloads = TsonCollection.CopyUniqueFields(payloads, requireIdentity: true);
+    }
+
+    public string EnumIdentity { get; }
+
+    public string CaseIdentity { get; }
+
+    public string CaseName { get; }
+
+    public IReadOnlyList<TsonField> Payloads { get; }
+}
+
+internal static class TsonCollection
+{
+    public static IReadOnlyList<T> Copy<T>(IEnumerable<T> values, string parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(values, parameterName);
+        var copy = values.ToArray();
+        if (copy.Any(value => value is null))
+        {
+            throw new ArgumentException("TSON collections cannot contain null elements.", parameterName);
+        }
+
+        return new ReadOnlyCollection<T>(copy);
+    }
+
+    public static IReadOnlyList<TsonField> CopyUniqueFields(
+        IEnumerable<TsonField> fields,
+        bool requireIdentity)
+    {
+        var copy = Copy(fields, nameof(fields));
+        var names = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var field in copy)
+        {
+            if (!names.Add(field.Name))
+            {
+                throw new ArgumentException($"Duplicate TSON field '{field.Name}'.", nameof(fields));
+            }
+
+            if (requireIdentity && string.IsNullOrWhiteSpace(field.Identity))
+            {
+                throw new ArgumentException(
+                    $"Nominal TSON field '{field.Name}' requires a stable identity.",
+                    nameof(fields));
+            }
+
+            if (!requireIdentity && field.Identity is not null)
+            {
+                throw new ArgumentException(
+                    $"Structural TSON field '{field.Name}' cannot carry a nominal identity.",
+                    nameof(fields));
+            }
+        }
+
+        return copy;
+    }
+}

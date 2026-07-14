@@ -169,6 +169,32 @@ $invalidLanguageFixtures = @($languageFiles | Where-Object { $_.FullName -match 
 Require-Condition ($validLanguageFixtures.Count -gt 0) "Copeland TS Language/Valid must contain at least one .cl-valid.ts fixture."
 Require-Condition ($invalidLanguageFixtures.Count -gt 0) "Copeland TS Language/Invalid must contain at least one .cl-invalid.ts fixture."
 
+$tsonSourceRoot = Join-Path $root "src/Copeland/Copeland.TS/Tson"
+$tsonFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Tests/Tson"
+Require-Condition (Test-Path -LiteralPath $tsonSourceRoot -PathType Container) "The colocated TSON semantic-pass source root is missing."
+Require-Condition (Test-Path -LiteralPath $tsonFixtureRoot -PathType Container) "The TSON fixture root is missing."
+Require-Condition (Test-Path -LiteralPath (Join-Path $tsonFixtureRoot "Valid") -PathType Container) "TSON/Valid fixture ownership is missing."
+Require-Condition (Test-Path -LiteralPath (Join-Path $tsonFixtureRoot "Invalid") -PathType Container) "TSON/Invalid fixture ownership is missing."
+
+$tsonObjectFixtures = @(Get-ChildItem -LiteralPath $tsonFixtureRoot -Recurse -Filter *.obj.ts -File)
+$tsonCanonicalFixtures = @(Get-ChildItem -LiteralPath $tsonFixtureRoot -Recurse -Filter *.tson -File)
+Require-Condition ($tsonObjectFixtures.Count -gt 0) "TSON fixtures must include the .obj.ts authoring profile."
+Require-Condition ($tsonCanonicalFixtures.Count -gt 0) "TSON fixtures must include the canonical .tson profile."
+
+$tsonSources = @(Get-ChildItem -LiteralPath $tsonSourceRoot -Recurse -Filter *.cs -File)
+$duplicateFrontendDeclarations = $tsonSources | Select-String -Pattern 'class\s+Tson(Lexer|Parser)\b|enum\s+TsonSyntaxKind\b|enum\s+TsonTokenKind\b'
+Require-Condition ($null -eq $duplicateFrontendDeclarations) "TSON must not define a second lexer, parser, token-kind table, or syntax-kind hierarchy."
+
+$readerSource = Get-Content -Raw -LiteralPath (Join-Path $tsonSourceRoot "TsonDocumentReader.cs")
+Require-Condition ($readerSource.Contains('SyntaxTree.Parse(source)', [System.StringComparison]::Ordinal)) "Both TSON profiles must invoke the production SyntaxTree.Parse entry point."
+Require-Condition (-not $readerSource.Contains('new Parser(', [System.StringComparison]::Ordinal)) "TSON must enter parsing only through the production SyntaxTree facade."
+
+$forbiddenTsonDependencies = $tsonSources | Select-String -Pattern 'Copeland\.TS\.Backend|Copeland\.Cli|Machina|Aurelian|Dominatus|Microsoft\.CodeAnalysis|System\.Reflection|System\.Text\.Json|Newtonsoft'
+Require-Condition ($null -eq $forbiddenTsonDependencies) "TSON contains a prohibited backend, CLI, product, Roslyn, reflection, or serializer dependency."
+
+$forbiddenTsonVariants = $tsonSources | Select-String -Pattern 'class\s+Tson(Array|Result|Table|Json)\b|record\s+Tson(Array|Result|Table|Json)\b'
+Require-Condition ($null -eq $forbiddenTsonVariants) "TSON M0b must not implement array, Result, table, or JSON variants."
+
 $forbiddenAbstractions = Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland") -Recurse -Filter *.cs -File |
     Select-String -Pattern 'IBackend|ICompilerBackend|IIntermediateRepresentation|ICompilerPass'
 Require-Condition ($null -eq $forbiddenAbstractions) "A forbidden universal compiler abstraction was introduced."

@@ -22,5 +22,6 @@
     <Compile Remove="TestData/**/*.cs" />
     <None Include="TestData/Corpus/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Language/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Tson/**/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

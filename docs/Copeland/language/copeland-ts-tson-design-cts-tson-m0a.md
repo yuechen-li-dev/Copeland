@@ -2,6 +2,8 @@
 
 **Status:** accepted documentation-only design and repository audit. No TSON production surface exists at this milestone.
 
+> **M0b correction:** The recommendation in this historical design for a dedicated TSON parser, parallel canonical grammar, external-only schemas, and independent `Copeland.TS.Tson` parser project is superseded by [CTS-TSON-M0b](../architecture/copeland-ts-tson-shared-parser-and-semantic-model-cts-tson-m0b.md). TSON is a restricted semantic projection of ordinary Copeland syntax. M0b reuses `SyntaxTree.Parse`, embeds restricted record/enum declarations plus `$schema` and `$value` bindings, and emits only syntax accepted by that parser. The six-value algebra and JSON-after-TSON direction remain ratified.
+
 ## Executive decision
 
 TSON is one backend-neutral semantic data model with one canonical textual form. Its name expands to **TypeScript Object Notation** inside the Copeland project. The repository contains no earlier TSON contract, and this document does not claim that TSON is an external TypeScript standard.
@@ -315,7 +317,7 @@ It must reject duplicate keys before a host DOM erases them, apply explicit nume
 
 ## Project and ownership topology
 
-The recommended future project is a BCL-only `src/Copeland/Copeland.TS.Tson/Copeland.TS.Tson.csproj`, but this milestone does not create it. It is justified in M0b because canonical text parsing/printing and semantic values form one independently testable contract with no frontend dependency.
+The original recommendation was a BCL-only `src/Copeland/Copeland.TS.Tson/Copeland.TS.Tson.csproj` with a dedicated parser. M0b superseded that recommendation after auditing parser ownership: public syntax contracts already exist in `Copeland.TS`, while extracting them would be broad and a separate parser would violate the one-frontend law. M0b therefore uses a bounded colocated `Copeland.TS.Tson` namespace. See the M0b architecture record for the later extraction criterion.
 
 ```text
 Copeland.TS.Tson       (BCL only)

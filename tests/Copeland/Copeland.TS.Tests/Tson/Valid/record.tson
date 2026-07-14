@@ -1,0 +1,11 @@
+const $schema: string = "copeland://fixtures/record";
+
+record Point {
+    x: number;
+    y: number;
+}
+
+const $value = $record.Point({
+    "x": $number("3FF0000000000000"),
+    "y": $number("8000000000000000"),
+});

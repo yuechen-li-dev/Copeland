@@ -1,5 +1,7 @@
 # CTS-TSON-M0a native typed-data audit
 
+> **Superseded architecture note:** M0a's dedicated-parser, parallel-grammar, external-schema, and independent-project recommendations were corrected by [CTS-TSON-M0b](../Copeland/architecture/copeland-ts-tson-shared-parser-and-semantic-model-cts-tson-m0b.md). The value algebra and TSON-before-JSON direction remain historical input to M0b.
+
 ## Outcome
 
 CTS-TSON-M0a is a documentation-only success. The authoritative design is [Copeland TS native typed data: CTS-TSON-M0a design](../Copeland/language/copeland-ts-tson-design-cts-tson-m0a.md).
@@ -70,9 +72,9 @@ The complete required matrix and architecture comparisons are in the [authoritat
 
 ## CTS-TSON-M0b
 
-The next milestone is narrowly bounded to a BCL-only `Copeland.TS.Tson` project and focused tests implementing exactly the six immutable semantic variants, opaque stable nominal identity, schema/catalog validation, resource-bounded self-described parsing, canonical printing, spans/diagnostics, canonical round-trip fixtures, and a distinctly named schema-directed decode entry point.
+The implemented next milestone is narrowly bounded to the isolated `Copeland.TS.Tson` namespace colocated in the frontend assembly. It implements exactly the six immutable semantic variants, stable schema-derived nominal identity, schema/catalog validation, resource-bounded projection from the production syntax tree, canonical printing, spans/diagnostics, canonical round-trip fixtures, and distinctly named self-described and authoring decode entry points.
 
-M0b must add no frontend/MIR lowering, backend carrier conversion, JSON, tables, arrays, Results, optionality, CLI command, generalized serializer, reflection, or package. This is smaller and safer than compiler integration because the current repository has no stable module/schema identity contract, while parsing and printing can prove TSON's structural-versus-nominal identity independently.
+M0b adds no MIR lowering, backend carrier conversion, JSON, tables, arrays, Results, optionality, CLI command, generalized serializer, reflection, or package. Colocation is the smallest safe shared-parser boundary because the public `SyntaxTree.Parse` facade and syntax nodes already supply everything the restriction pass needs; syntax extraction is deferred until another consumer requires an assembly boundary.
 
 ## Documentation routing
 
