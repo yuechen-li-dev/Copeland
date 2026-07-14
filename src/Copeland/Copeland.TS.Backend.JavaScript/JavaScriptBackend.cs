@@ -187,6 +187,9 @@ public static class JavaScriptBackend
                 ValidateExpression(assignment.Expression, functionReturnType, context, functions, catalog, diagnostics);
                 RequireMatchingType(assignment.Expression.Type, assignment.Type, $"assignment to '{assignment.Name}' in {context}", diagnostics);
                 break;
+            case MirUnaryExpression unary when unary.Operator is "-" or "!":
+                ValidateExpression(unary.Operand, functionReturnType, context, functions, catalog, diagnostics);
+                break;
             case MirUnaryExpression unary:
                 AddUnsupported(diagnostics, $"unary operator '{unary.Operator}' in {context}");
                 break;
@@ -1132,6 +1135,7 @@ public static class JavaScriptBackend
             MirUnitExpression => EmittedExpression.ValueOnly("null"),
             MirVariableExpression variable => EmittedExpression.ValueOnly(JavaScriptIdentifierEncoder.Encode(variable.Name)),
             MirAssignmentExpression assignment => EmitAssignment(assignment, function, catalog, results, names, flowEnabled),
+            MirUnaryExpression unary => EmitUnary(unary, function, catalog, results, names, flowEnabled),
             MirBinaryExpression binary => EmitBinary(binary, function, catalog, results, names, flowEnabled),
             MirCallExpression call => EmitCall(call, function, catalog, results, names, flowEnabled),
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
@@ -1153,6 +1157,18 @@ public static class JavaScriptBackend
             MirTryExpression tryExpression => EmitTryExcept(tryExpression, function, catalog, results, names, flowEnabled),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
+    }
+
+    private static EmittedExpression EmitUnary(
+        MirUnaryExpression unary,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression operand = EmitExpression(unary.Operand, function, catalog, results, names, flowEnabled);
+        return new EmittedExpression(operand.Prelude, $"({unary.Operator}{operand.Value})");
     }
 
     private static EmittedExpression EmitBinary(MirBinaryExpression binary, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
@@ -1699,6 +1715,7 @@ public static class JavaScriptBackend
         return expression switch
         {
             MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression or MirTryExpression => true,
+            MirUnaryExpression unary => ContainsControlFlow(unary.Operand),
             MirRecordConstructionExpression or MirRecordFieldAccessExpression or MirRecordWithExpression => true,
             MirTableColumnAccessExpression or MirTableRowAccessExpression or MirColumnElementAccessExpression or MirTableRowFieldAccessExpression => true,
             MirBinaryExpression binary => ContainsControlFlow(binary.Left) || ContainsControlFlow(binary.Right),
@@ -1751,6 +1768,7 @@ public static class JavaScriptBackend
             MirOkExpression ok => ExpressionUsesTryExcept(ok.Payload),
             MirErrExpression err => ExpressionUsesTryExcept(err.Payload),
             MirPropagateExpression propagation => ExpressionUsesTryExcept(propagation.Operand),
+            MirUnaryExpression unary => ExpressionUsesTryExcept(unary.Operand),
             MirUnwrapExpression unwrap => ExpressionUsesTryExcept(unwrap.Operand),
             _ => false,
         };
@@ -1790,6 +1808,7 @@ public static class JavaScriptBackend
             MirOkExpression ok => ExpressionUsesUnwrap(ok.Payload),
             MirErrExpression err => ExpressionUsesUnwrap(err.Payload),
             MirPropagateExpression propagation => ExpressionUsesUnwrap(propagation.Operand),
+            MirUnaryExpression unary => ExpressionUsesUnwrap(unary.Operand),
             MirTryExpression tryExpression => ValueBlockUsesUnwrap(tryExpression.Protected) || ValueBlockUsesUnwrap(tryExpression.Handler),
             _ => false,
         };
@@ -2124,6 +2143,9 @@ public static class JavaScriptBackend
             {
                 case MirAssignmentExpression assignment:
                     Add(assignment.Expression);
+                    break;
+                case MirUnaryExpression unary:
+                    Add(unary.Operand);
                     break;
                 case MirBinaryExpression binary:
                     Add(binary.Left);

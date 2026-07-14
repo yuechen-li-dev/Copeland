@@ -393,7 +393,7 @@ public static class CSharpBackend
             MirUnitExpression => "CopeUnit.Value",
             MirVariableExpression variable => CSharpNameMangler.Mangle(variable.Name),
             MirAssignmentExpression assignment => $"{CSharpNameMangler.Mangle(assignment.Name)} = {EmitExpression(writer, assignment.Expression, function, enumNames, ref tempIndex, diagnostics)}",
-            MirUnaryExpression unary => unary.Operator + EmitExpression(writer, unary.Operand, function, enumNames, ref tempIndex, diagnostics),
+            MirUnaryExpression unary => unary.Operator + ParenthesizeAssignmentOperand(unary.Operand, EmitExpression(writer, unary.Operand, function, enumNames, ref tempIndex, diagnostics)),
             MirBinaryExpression binary => EmitBinary(writer, binary, function, enumNames, ref tempIndex, diagnostics),
             MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", EmitArguments(call.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirArrayExpression array => $"new {MapType(array.Type)} {{ {string.Join(", ", EmitArguments(array.Elements, writer, function, enumNames, ref tempIndex, diagnostics))} }}",
@@ -447,15 +447,15 @@ public static class CSharpBackend
 
         if (!ExpressionRequiresStatements(binary.Left) && !ExpressionRequiresStatements(binary.Right))
         {
-            string simpleLeft = EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics);
-            string simpleRight = EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics);
+            string simpleLeft = ParenthesizeAssignmentOperand(binary.Left, EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics));
+            string simpleRight = ParenthesizeAssignmentOperand(binary.Right, EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics));
             return $"({simpleLeft} {binaryOperator} {simpleRight})";
         }
 
-        string left = EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics);
+        string left = ParenthesizeAssignmentOperand(binary.Left, EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics));
         string leftTemporary = $"__cope_operand_{tempIndex++}";
         writer.WriteLine($"var {leftTemporary} = {left};");
-        string right = EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics);
+        string right = ParenthesizeAssignmentOperand(binary.Right, EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics));
         string rightTemporary = $"__cope_operand_{tempIndex++}";
         writer.WriteLine($"var {rightTemporary} = {right};");
         return $"({leftTemporary} {binaryOperator} {rightTemporary})";
@@ -470,14 +470,14 @@ public static class CSharpBackend
         List<CSharpDiagnostic> diagnostics,
         string binaryOperator)
     {
-        string left = EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics);
+        string left = ParenthesizeAssignmentOperand(binary.Left, EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics));
         string resultTemporary = $"__cope_logical_result_{tempIndex++}";
         writer.WriteLine($"bool {resultTemporary};");
         string branchCondition = binaryOperator == "&&" ? left : $"!({left})";
         writer.WriteLine($"if ({branchCondition})");
         writer.WriteLine("{");
         writer.Indent();
-        string right = EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics);
+        string right = ParenthesizeAssignmentOperand(binary.Right, EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics));
         writer.WriteLine($"{resultTemporary} = {right};");
         writer.Unindent();
         writer.WriteLine("}");
@@ -489,6 +489,9 @@ public static class CSharpBackend
         writer.WriteLine("}");
         return resultTemporary;
     }
+
+    private static string ParenthesizeAssignmentOperand(MirExpression expression, string emitted)
+        => expression is MirAssignmentExpression ? $"({emitted})" : emitted;
 
     private static string EmitIfExpression(
         CSharpTextWriter writer,

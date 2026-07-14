@@ -22,4 +22,4 @@ Focused JavaScript backend tests prove valid emission, deterministic repeated em
 
 Closure validation used `dotnet build/test Copeland.TS.slnx` (282 frontend, 77 JavaScript, and 101 C# tests; each backend lane completed in about 3 seconds), `Copeland.slnx` (including 20 CLI tests), and `JointTaskForce.slnx`; all passed. Both topology and dependency-boundary checks passed. The Machina slow lane and NativeAOT publish were intentionally omitted because no shared/Machina infrastructure changed and no publish lane was requested.
 
-M3 remains responsible for table-ladder parity closeout and serialization work. No JSON, public host ABI, builders, queries, table equality, row construction, or mutable table operation is introduced here.
+CTS-TABLE-M3 closes the core table ladder with adversarial parity and staging evidence. JSON/serialization remains unimplemented and requires a separately approved CTS-TABLE-JSON ladder; no public host ABI, builders, queries, table equality, row construction, or mutable table operation is introduced here.

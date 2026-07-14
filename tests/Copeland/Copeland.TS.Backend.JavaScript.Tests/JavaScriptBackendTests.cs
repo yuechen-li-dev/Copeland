@@ -107,6 +107,22 @@ public sealed class JavaScriptBackendTests
     }
 
     [Fact]
+    public void Emits_supported_unary_expressions_including_a_negative_table_index()
+    {
+        JavaScriptCompilation result = Emit("""
+            record table Values { value: [1]; }
+            function negative(): number ! TableBoundsError { return Values.value[-1]; }
+            function negate(value: number): number { return -value; }
+            function invert(value: boolean): boolean { return !value; }
+            """);
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("(-1)", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("(-value)", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("(!value)", result.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Emits_Private_Unwrap_Panic_Only_For_Unwrap()
     {
         JavaScriptCompilation unwrap = Emit("function parse(): number ! string { return err(\"bad\"); } function main(): number { return parse()!; }");
