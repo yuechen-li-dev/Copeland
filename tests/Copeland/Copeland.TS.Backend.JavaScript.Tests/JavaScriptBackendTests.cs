@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Copeland.TS.Backend.JavaScript;
+using Copeland.TS.Compiler;
 using Copeland.TS.Lowering;
 using Copeland.TS.Mir;
 using Copeland.TS.Syntax;
@@ -208,6 +209,63 @@ public sealed class JavaScriptBackendTests
         Assert.Contains("function __cope_m3_panic_0()", result.SourceText, StringComparison.Ordinal);
         Assert.Contains("function __cope_m3_panic_1()", result.SourceText, StringComparison.Ordinal);
         Assert.DoesNotContain("const __cope_m3_panic_0 =", result.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Symbolic_profile_uses_semantic_bindings_and_preserves_user_names()
+    {
+        MirProgram program = Lower("record Point { x: number; } function main(): Point { return { x: 42 }; }");
+
+        JavaScriptCompilation diagnostic = JavaScriptBackend.Emit(program);
+        JavaScriptCompilation symbolic = JavaScriptBackend.Emit(
+            program,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
+
+        Assert.True(symbolic.Success, string.Join(Environment.NewLine, symbolic.Diagnostics));
+        Assert.Contains("const $录型甲 = Symbol(\"$录型甲\");", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.Contains("function $录造甲", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.Contains("function main()", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("__cope_m3_", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.NotEqual(diagnostic.SourceText, symbolic.SourceText);
+        Assert.DoesNotContain("\r", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.EndsWith("\n", symbolic.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Symbolic_profile_uses_typed_names_for_tson_runtime_helpers()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(
+            """
+            const $schema: string = "copeland://tests/symbolic";
+            record Root { value: number; }
+            function encode(value: Root): string ! TsonEncodeError { return tsonEncode(value); }
+            """,
+            new CopelandCompilationOptions
+            {
+                SourcePath = Path.Combine(Environment.CurrentDirectory, "symbolic-tson.ts"),
+                ProjectRoot = Environment.CurrentDirectory,
+                AssetSource = EmptyAssetSource.Instance,
+            });
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(static diagnostic => diagnostic.ToString())));
+        Assert.NotNull(compilation.MirCompilation);
+        MirProgram program = compilation.MirCompilation!.Program!;
+
+        JavaScriptCompilation symbolic = JavaScriptBackend.Emit(
+            program,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
+
+        Assert.True(symbolic.Success, string.Join(Environment.NewLine, symbolic.Diagnostics));
+        Assert.Contains("const $运编甲", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.Contains("function $写造甲", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.Contains("function $录写甲", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.Contains("function $编甲", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("function writeBoolean(", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("function writeNumber(", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("function writeString(", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("function makeWriter(", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("function writeP0R0(", symbolic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("function encode0(", symbolic.SourceText, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -592,5 +650,16 @@ public sealed class JavaScriptBackendTests
     {
         Assert.DoesNotMatch(new Regex(@"(?<![=!])==(?!=)"), source);
         Assert.DoesNotMatch(new Regex(@"(?<!!)!=(?!=)"), source);
+    }
+
+    private sealed class EmptyAssetSource : ICopelandAssetSource
+    {
+        public static EmptyAssetSource Instance { get; } = new();
+
+        public bool TryRead(string normalizedPath, out string? sourceText)
+        {
+            sourceText = null;
+            return false;
+        }
     }
 }

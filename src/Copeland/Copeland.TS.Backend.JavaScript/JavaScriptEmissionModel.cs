@@ -57,7 +57,8 @@ internal sealed record JavaScriptBinding(
     string? CompilerOrigin,
     bool IsUserVisible,
     bool MayBeMangled,
-    int AllocationOrdinal)
+    int AllocationOrdinal,
+    JavaScriptSymbolicBindingRole? SymbolicRole)
 {
     public string? AssignedName { get; set; }
 
@@ -92,25 +93,30 @@ internal sealed class JavaScriptNameAllocator
     private readonly JavaScriptEmissionDocument document;
     private readonly JavaScriptScopeId defaultScope;
     private readonly HashSet<string> occupied;
+    private readonly JavaScriptEmissionProfile profile;
+    private readonly Dictionary<(JavaScriptScopeId Scope, JavaScriptSymbolicBindingRole Role), int> symbolicOrdinals = [];
     private int nextIndex;
 
     public JavaScriptNameAllocator(
         JavaScriptEmissionDocument document,
         JavaScriptScopeId scope,
-        IEnumerable<string> reservedNames)
+        IEnumerable<string> reservedNames,
+        JavaScriptEmissionProfile profile = JavaScriptEmissionProfile.Diagnostic)
     {
         this.document = document;
         defaultScope = scope;
         occupied = new HashSet<string>(reservedNames, StringComparer.Ordinal);
+        this.profile = profile;
     }
 
     public JavaScriptAllocatedBinding Allocate(
         JavaScriptBindingRole role,
         string diagnosticBaseName,
         JavaScriptDeclarationKind declarationKind = JavaScriptDeclarationKind.Const,
-        string? compilerOrigin = null)
+        string? compilerOrigin = null,
+        JavaScriptSymbolicBindingRole? symbolicRole = null)
     {
-        return Allocate(defaultScope, role, diagnosticBaseName, declarationKind, compilerOrigin);
+        return Allocate(defaultScope, role, diagnosticBaseName, declarationKind, compilerOrigin, symbolicRole);
     }
 
     public JavaScriptAllocatedBinding Allocate(
@@ -118,12 +124,27 @@ internal sealed class JavaScriptNameAllocator
         JavaScriptBindingRole role,
         string diagnosticBaseName,
         JavaScriptDeclarationKind declarationKind = JavaScriptDeclarationKind.Const,
-        string? compilerOrigin = null)
+        string? compilerOrigin = null,
+        JavaScriptSymbolicBindingRole? symbolicRole = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(diagnosticBaseName);
         while (true)
         {
-            string candidate = $"__cope_m3_{diagnosticBaseName}_{nextIndex++}";
+            string candidate;
+            if (profile == JavaScriptEmissionProfile.Symbolic)
+            {
+                JavaScriptSymbolicBindingRole resolvedRole = symbolicRole
+                    ?? throw new InvalidOperationException($"No Symbolic role was supplied for generated binding '{diagnosticBaseName}'.");
+                int ordinal = symbolicOrdinals.TryGetValue((scope, resolvedRole), out int previous)
+                    ? previous + 1
+                    : 1;
+                symbolicOrdinals[(scope, resolvedRole)] = ordinal;
+                candidate = SymbolicJavaScriptVocabulary.Name(resolvedRole, ordinal);
+            }
+            else
+            {
+                candidate = $"__cope_m3_{diagnosticBaseName}_{nextIndex++}";
+            }
             if (!occupied.Add(candidate))
             {
                 continue;
@@ -136,7 +157,8 @@ internal sealed class JavaScriptNameAllocator
                 declarationKind,
                 compilerOrigin ?? diagnosticBaseName,
                 isUserVisible: false,
-                mayBeMangled: true);
+                mayBeMangled: true,
+                symbolicRole: symbolicRole);
             document.Declare(binding);
             document.AssignName(binding, candidate);
             return new JavaScriptAllocatedBinding(new JavaScriptBindingReference(binding, candidate));
@@ -181,7 +203,8 @@ internal sealed class JavaScriptEmissionDocument
         JavaScriptDeclarationKind declarationKind,
         string? compilerOrigin = null,
         bool isUserVisible = false,
-        bool mayBeMangled = true)
+        bool mayBeMangled = true,
+        JavaScriptSymbolicBindingRole? symbolicRole = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(diagnosticBaseName);
         GetScope(scope);
@@ -196,7 +219,8 @@ internal sealed class JavaScriptEmissionDocument
             compilerOrigin,
             isUserVisible,
             mayBeMangled,
-            bindings.Count));
+            bindings.Count,
+            symbolicRole));
         return id;
     }
 
@@ -261,7 +285,8 @@ internal sealed class JavaScriptEmissionDocument
 
     public void AssignName(JavaScriptBindingId binding, string name)
     {
-        if (!JavaScriptIdentifierEncoder.IsValidGeneratedIdentifier(name))
+        if (!JavaScriptIdentifierEncoder.IsValidGeneratedIdentifier(name)
+            && !IsValidSymbolicIdentifier(name))
         {
             throw new InvalidOperationException($"Generated JavaScript binding '{name}' is not a valid identifier.");
         }
@@ -284,7 +309,8 @@ internal sealed class JavaScriptEmissionDocument
                 throw new InvalidOperationException($"JavaScript binding '{binding.Id}' was referenced or allocated without a declaration.");
             }
 
-            if (binding.AssignedName is null || !JavaScriptIdentifierEncoder.IsValidGeneratedIdentifier(binding.AssignedName))
+            if (binding.AssignedName is null || (!JavaScriptIdentifierEncoder.IsValidGeneratedIdentifier(binding.AssignedName)
+                && !IsValidSymbolicIdentifier(binding.AssignedName)))
             {
                 throw new InvalidOperationException($"JavaScript binding '{binding.Id}' has no valid assigned name.");
             }
@@ -300,6 +326,19 @@ internal sealed class JavaScriptEmissionDocument
                     throw new InvalidOperationException($"JavaScript scope '{scope.Id}' has duplicate final names.");
                 }
             }
+        }
+    }
+
+    private static bool IsValidSymbolicIdentifier(string name)
+    {
+        try
+        {
+            SymbolicJavaScriptVocabulary.ValidateIdentifier(name);
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
         }
     }
 

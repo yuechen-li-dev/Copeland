@@ -14,13 +14,15 @@ internal sealed class JavaScriptTextWriter
 {
     private readonly List<LineEvent> events = [];
     private readonly JavaScriptEmissionDocument document;
+    private readonly JavaScriptEmissionProfile profile;
     private JavaScriptScopeId currentScope;
     private int indent;
     private bool completed;
 
-    public JavaScriptTextWriter(JavaScriptEmissionDocument document)
+    public JavaScriptTextWriter(JavaScriptEmissionDocument document, JavaScriptEmissionProfile profile = JavaScriptEmissionProfile.Diagnostic)
     {
         this.document = document;
+        this.profile = profile;
         currentScope = document.ProgramScope;
     }
 
@@ -73,9 +75,14 @@ internal sealed class JavaScriptTextWriter
         {
             bool hasContent = line.Parts.Any(part => part is BindingPart
                 || part is TextPart { Value.Length: > 0 });
+            if (profile == JavaScriptEmissionProfile.Symbolic && !hasContent)
+            {
+                continue;
+            }
+
             if (hasContent)
             {
-                builder.Append(' ', line.Indent * 4);
+                builder.Append(' ', line.Indent * (profile == JavaScriptEmissionProfile.Symbolic ? 2 : 4));
             }
 
             foreach (LinePart part in line.Parts)

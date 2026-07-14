@@ -5,6 +5,43 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 
 public sealed class JavaScriptStructuredEmissionTests
 {
+    [Theory]
+    [InlineData(1, "甲")]
+    [InlineData(2, "乙")]
+    [InlineData(9, "壬")]
+    [InlineData(10, "癸")]
+    [InlineData(11, "甲甲")]
+    [InlineData(12, "甲乙")]
+    [InlineData(19, "甲壬")]
+    [InlineData(20, "乙癸")]
+    [InlineData(21, "乙甲")]
+    [InlineData(99, "壬壬")]
+    [InlineData(100, "甲癸癸")]
+    [InlineData(101, "甲癸甲")]
+    public void Heavenly_stem_ordinals_are_bijective_base_ten(int value, string expected)
+    {
+        Assert.Equal(expected, SymbolicJavaScriptVocabulary.HeavenlyStemOrdinal(value));
+    }
+
+    [Fact]
+    public void Symbolic_allocator_uses_closed_vocabulary_and_advances_on_collision()
+    {
+        var document = new JavaScriptEmissionDocument();
+        var allocator = new JavaScriptNameAllocator(
+            document,
+            document.ProgramScope,
+            ["$录型甲"],
+            JavaScriptEmissionProfile.Symbolic);
+
+        JavaScriptAllocatedBinding record = allocator.Allocate(
+            JavaScriptBindingRole.TypeToken,
+            "record_type_r1",
+            symbolicRole: JavaScriptSymbolicBindingRole.RecordType);
+
+        Assert.Equal("$录型乙", record.Name);
+        document.Validate();
+    }
+
     [Fact]
     public void Diagnostic_allocator_preserves_stable_ordinals_and_hostile_user_names()
     {

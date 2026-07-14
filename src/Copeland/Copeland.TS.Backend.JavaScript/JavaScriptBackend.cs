@@ -9,7 +9,17 @@ public static class JavaScriptBackend
 
     public static JavaScriptCompilation Emit(MirProgram program)
     {
+        return Emit(program, options: null);
+    }
+
+    public static JavaScriptCompilation Emit(MirProgram program, JavaScriptEmissionOptions? options)
+    {
         ArgumentNullException.ThrowIfNull(program);
+        JavaScriptEmissionOptions effectiveOptions = options ?? new JavaScriptEmissionOptions();
+        if (!Enum.IsDefined(effectiveOptions.Profile))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Unsupported JavaScript emission profile.");
+        }
 
         var diagnostics = MirValidator.Validate(program)
             .Select(diagnostic => new JavaScriptDiagnostic(InvalidDiagnosticId, $"Invalid MIR: {diagnostic.Message}"))
@@ -27,8 +37,8 @@ public static class JavaScriptBackend
         ResultCatalog results = ResultCatalog.Create(program);
         bool usesUnwrap = ProgramUsesUnwrap(program);
         bool usesTryExcept = ProgramUsesTryExcept(program);
-        GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept);
-        var writer = new JavaScriptTextWriter(names.Document);
+        GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept, effectiveOptions.Profile);
+        var writer = new JavaScriptTextWriter(names.Document, effectiveOptions.Profile);
         writer.WriteLine("\"use strict\";");
 
         if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
@@ -43,7 +53,13 @@ public static class JavaScriptBackend
             EmitFunction(writer, function, catalog, results, names);
         }
 
-        return new JavaScriptCompilation(writer.ToString(), []);
+        string sourceText = writer.ToString();
+        if (effectiveOptions.Profile == JavaScriptEmissionProfile.Symbolic)
+        {
+            SymbolicJavaScriptVocabulary.ValidateIdentifierFile(sourceText);
+        }
+
+        return new JavaScriptCompilation(sourceText, []);
     }
 
     private static EnumCatalog ValidateProgram(MirProgram program, List<JavaScriptDiagnostic> diagnostics)
@@ -686,15 +702,15 @@ public static class JavaScriptBackend
 
     private static void EmitColumnRuntime(JavaScriptTextWriter writer, GeneratedNames names)
     {
-        writer.WriteLine($"const {names.ColumnCarrierToken} = Symbol(\"cope.column\");");
-        writer.WriteLine($"const {names.ColumnReadSlot} = Symbol(\"cope.column.read\");");
+        writer.WriteLine($"const {names.ColumnCarrierToken} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.ColumnCarrierToken, "cope.column"))});");
+        writer.WriteLine($"const {names.ColumnReadSlot} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.ColumnReadSlot, "cope.column.read"))});");
         if (names.UsesTsonTableEncoding)
         {
             writer.WriteLine($"const {names.ColumnInstances} = new WeakSet();");
-            writer.WriteLine($"const {names.ColumnValuesSlot} = Symbol(\"cope.column.values\");");
+            writer.WriteLine($"const {names.ColumnValuesSlot} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.ColumnValuesSlot, "cope.column.values"))});");
         }
-        writer.WriteLine($"const {names.TableRowTableSlot} = Symbol(\"cope.table.row.table\");");
-        writer.WriteLine($"const {names.TableRowIndexSlot} = Symbol(\"cope.table.row.index\");");
+        writer.WriteLine($"const {names.TableRowTableSlot} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableRowTableSlot, "cope.table.row.table"))});");
+        writer.WriteLine($"const {names.TableRowIndexSlot} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableRowIndexSlot, "cope.table.row.index"))});");
         writer.WriteLine();
         writer.WriteLine($"function {names.ColumnValidator}(value) {{");
         writer.Indent();
@@ -718,17 +734,17 @@ public static class JavaScriptBackend
         GeneratedNames names)
     {
         var boundsErrorToken = names.TypeToken(catalog.GetEnum("TableBoundsError"));
-        writer.WriteLine($"const {names.TableTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.Id.Value)});");
+        writer.WriteLine($"const {names.TableTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableTypeToken(table), table.Id.Value))});");
         if (names.UsesTsonTableEncoding)
         {
             writer.WriteLine($"const {names.TableInstances(table)} = new WeakSet();");
         }
-        writer.WriteLine($"const {names.TableRowTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.RowTypeId)});");
-        writer.WriteLine($"const {names.TableRowReadSlot(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.Id.Value + ".rows")});");
+        writer.WriteLine($"const {names.TableRowTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableRowTypeToken(table), table.RowTypeId))});");
+        writer.WriteLine($"const {names.TableRowReadSlot(table)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableRowReadSlot(table), table.Id.Value + ".rows"))});");
         foreach (MirTableColumnDefinition column in table.Columns)
         {
-            writer.WriteLine($"const {names.TableColumnSlot(column)} = Symbol({JavaScriptLiteralWriter.WriteString(column.Id.Value)});");
-            writer.WriteLine($"const {names.TableColumnToken(column)} = Symbol({JavaScriptLiteralWriter.WriteString(column.Id.Value + ".column")});");
+            writer.WriteLine($"const {names.TableColumnSlot(column)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableColumnSlot(column), column.Id.Value))});");
+            writer.WriteLine($"const {names.TableColumnToken(column)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TableColumnToken(column), column.Id.Value + ".column"))});");
         }
 
         writer.WriteLine();
@@ -897,11 +913,11 @@ public static class JavaScriptBackend
     private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, GeneratedNames names)
     {
         var typeToken = names.RecordTypeToken(record);
-        writer.WriteLine($"const {typeToken} = Symbol({JavaScriptLiteralWriter.WriteString(record.Id.Value)});");
+        writer.WriteLine($"const {typeToken} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(typeToken, record.Id.Value))});");
         writer.WriteLine($"const {names.RecordInstances(record)} = new WeakSet();");
         foreach (MirRecordFieldDefinition field in record.Fields)
         {
-            writer.WriteLine($"const {names.RecordFieldSlot(field)} = Symbol({JavaScriptLiteralWriter.WriteString(field.Id.Value)});");
+            writer.WriteLine($"const {names.RecordFieldSlot(field)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.RecordFieldSlot(field), field.Id.Value))});");
         }
 
         writer.WriteLine();
@@ -1262,43 +1278,44 @@ public static class JavaScriptBackend
         ResultCatalog results,
         GeneratedNames names)
     {
+        var tsonNames = TsonGeneratedNames.Create(plans, names);
         writer.WriteLine($"const {names.TsonRuntime} = (() => {{");
         writer.Indent();
         bool needsArrayWriter = plans.Any(plan => CollectTsonArrayPlans(plan).Count > 0);
-        EmitJavaScriptTsonWriter(writer, needsArrayWriter);
+        EmitJavaScriptTsonWriter(writer, needsArrayWriter, tsonNames);
         writer.WriteLine();
-        writer.WriteLine("function writeBoolean(writer, value, indentation) { return writer.static(value ? \"true\" : \"false\"); }");
-        writer.WriteLine("function writeNumber(writer, value, indentation) { return writer.number(value); }");
-        writer.WriteLine("function writeString(writer, value, indentation) { return writer.string(value); }");
+        writer.WriteLine($"function {tsonNames.BooleanWriter}(writer, value, indentation) {{ return writer.static(value ? \"true\" : \"false\"); }}");
+        writer.WriteLine($"function {tsonNames.NumberWriter}(writer, value, indentation) {{ return writer.number(value); }}");
+        writer.WriteLine($"function {tsonNames.StringWriter}(writer, value, indentation) {{ return writer.string(value); }}");
 
         for (int planIndex = 0; planIndex < plans.Count; planIndex++)
         {
             writer.WriteLine();
-            EmitJavaScriptTsonPlan(writer, plans[planIndex], planIndex, catalog, results, names);
+            EmitJavaScriptTsonPlan(writer, plans[planIndex], planIndex, catalog, results, names, tsonNames);
         }
 
         writer.WriteLine();
         writer.WriteLine("const api = Object.create(null);");
         for (int planIndex = 0; planIndex < plans.Count; planIndex++)
         {
-            writer.WriteLine($"Object.defineProperty(api, {JavaScriptLiteralWriter.WriteString(plans[planIndex].Id.Value)}, {{ value: encode{planIndex}, writable: false, enumerable: false, configurable: false }});");
+            writer.WriteLine($"Object.defineProperty(api, {JavaScriptLiteralWriter.WriteString(plans[planIndex].Id.Value)}, {{ value: {tsonNames.Encoder(planIndex)}, writable: false, enumerable: false, configurable: false }});");
         }
         writer.WriteLine("return Object.freeze(api);");
         writer.Unindent();
         writer.WriteLine("})();");
     }
 
-    private static void EmitJavaScriptTsonWriter(JavaScriptTextWriter writer, bool needsArrayWriter)
+    private static void EmitJavaScriptTsonWriter(JavaScriptTextWriter writer, bool needsArrayWriter, TsonGeneratedNames tsonNames)
     {
-        writer.WriteLine("function makeWriter(maximumBytes, maximumStringCodeUnits) {");
+        writer.WriteLine($"function {tsonNames.MakeWriter}(maximumBytes, maximumStringCodeUnits) {{");
         writer.Indent();
         writer.WriteLine("const parts = [];");
         writer.WriteLine("const bitsBuffer = new ArrayBuffer(8);");
         writer.WriteLine("const bitsView = new DataView(bitsBuffer);");
         writer.WriteLine("let byteCount = 0;");
         writer.WriteLine("let error = null;");
-        writer.WriteLine("function fail(kind) { if (error === null) error = kind; return false; }");
-        writer.WriteLine("function appendRaw(value) {");
+        writer.WriteLine($"function {tsonNames.WriterFail}(kind) {{ if (error === null) error = kind; return false; }}");
+        writer.WriteLine($"function {tsonNames.WriterAppend}(value) {{");
         writer.Indent();
         writer.WriteLine("let added = 0;");
         writer.WriteLine("for (let index = 0; index < value.length; index += 1) {");
@@ -1308,81 +1325,81 @@ public static class JavaScriptBackend
         writer.WriteLine("else if (code <= 0x7FF) added += 2;");
         writer.WriteLine("else if (code >= 0xD800 && code <= 0xDBFF) {");
         writer.Indent();
-        writer.WriteLine("if (index + 1 >= value.length) return fail(\"invalid\");");
+        writer.WriteLine($"if (index + 1 >= value.length) return {tsonNames.WriterFail}(\"invalid\");");
         writer.WriteLine("const low = value.charCodeAt(index + 1);");
-        writer.WriteLine("if (low < 0xDC00 || low > 0xDFFF) return fail(\"invalid\");");
+        writer.WriteLine($"if (low < 0xDC00 || low > 0xDFFF) return {tsonNames.WriterFail}(\"invalid\");");
         writer.WriteLine("added += 4;");
         writer.WriteLine("index += 1;");
         writer.Unindent();
-        writer.WriteLine("} else if (code >= 0xDC00 && code <= 0xDFFF) return fail(\"invalid\");");
+        writer.WriteLine($"}} else if (code >= 0xDC00 && code <= 0xDFFF) return {tsonNames.WriterFail}(\"invalid\");");
         writer.WriteLine("else added += 3;");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("if (byteCount > maximumBytes - added) return fail(\"limit\");");
+        writer.WriteLine($"if (byteCount > maximumBytes - added) return {tsonNames.WriterFail}(\"limit\");");
         writer.WriteLine("byteCount += added;");
         writer.WriteLine("parts.push(value);");
         writer.WriteLine("return true;");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("function unicodeEscape(code) { return appendRaw(\"\\\\u\" + code.toString(16).toUpperCase().padStart(4, \"0\")); }");
-        writer.WriteLine("function writeString(value) {");
+        writer.WriteLine($"function {tsonNames.UnicodeEscape}(code) {{ return {tsonNames.WriterAppend}(\"\\\\u\" + code.toString(16).toUpperCase().padStart(4, \"0\")); }}");
+        writer.WriteLine($"function {tsonNames.StringWriterValue}(value) {{");
         writer.Indent();
-        writer.WriteLine("if (value.length > maximumStringCodeUnits) return fail(\"limit\");");
+        writer.WriteLine($"if (value.length > maximumStringCodeUnits) return {tsonNames.WriterFail}(\"limit\");");
         writer.WriteLine("for (let index = 0; index < value.length; index += 1) {");
         writer.Indent();
         writer.WriteLine("const code = value.charCodeAt(index);");
         writer.WriteLine("if (code >= 0xD800 && code <= 0xDBFF) {");
         writer.Indent();
-        writer.WriteLine("if (index + 1 >= value.length) return fail(\"invalid\");");
+        writer.WriteLine($"if (index + 1 >= value.length) return {tsonNames.WriterFail}(\"invalid\");");
         writer.WriteLine("const low = value.charCodeAt(index + 1);");
-        writer.WriteLine("if (low < 0xDC00 || low > 0xDFFF) return fail(\"invalid\");");
+        writer.WriteLine($"if (low < 0xDC00 || low > 0xDFFF) return {tsonNames.WriterFail}(\"invalid\");");
         writer.WriteLine("index += 1;");
         writer.Unindent();
-        writer.WriteLine("} else if (code >= 0xDC00 && code <= 0xDFFF) return fail(\"invalid\");");
+        writer.WriteLine($"}} else if (code >= 0xDC00 && code <= 0xDFFF) return {tsonNames.WriterFail}(\"invalid\");");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("if (!appendRaw(\"\\\"\")) return false;");
+        writer.WriteLine($"if (!{tsonNames.WriterAppend}(\"\\\"\")) return false;");
         writer.WriteLine("for (let index = 0; index < value.length; index += 1) {");
         writer.Indent();
         writer.WriteLine("const code = value.charCodeAt(index);");
-        writer.WriteLine("if (code === 0x22) { if (!appendRaw(\"\\\\\\\"\")) return false; }");
-        writer.WriteLine("else if (code === 0x5C) { if (!appendRaw(\"\\\\\\\\\")) return false; }");
-        writer.WriteLine("else if (code === 0x08) { if (!appendRaw(\"\\\\b\")) return false; }");
-        writer.WriteLine("else if (code === 0x0C) { if (!appendRaw(\"\\\\f\")) return false; }");
-        writer.WriteLine("else if (code === 0x0A) { if (!appendRaw(\"\\\\n\")) return false; }");
-        writer.WriteLine("else if (code === 0x0D) { if (!appendRaw(\"\\\\r\")) return false; }");
-        writer.WriteLine("else if (code === 0x09) { if (!appendRaw(\"\\\\t\")) return false; }");
-        writer.WriteLine("else if (code < 0x20 || code === 0x2028 || code === 0x2029) { if (!unicodeEscape(code)) return false; }");
+        writer.WriteLine($"if (code === 0x22) {{ if (!{tsonNames.WriterAppend}(\"\\\\\\\"\")) return false; }}");
+        writer.WriteLine($"else if (code === 0x5C) {{ if (!{tsonNames.WriterAppend}(\"\\\\\\\\\")) return false; }}");
+        writer.WriteLine($"else if (code === 0x08) {{ if (!{tsonNames.WriterAppend}(\"\\\\b\")) return false; }}");
+        writer.WriteLine($"else if (code === 0x0C) {{ if (!{tsonNames.WriterAppend}(\"\\\\f\")) return false; }}");
+        writer.WriteLine($"else if (code === 0x0A) {{ if (!{tsonNames.WriterAppend}(\"\\\\n\")) return false; }}");
+        writer.WriteLine($"else if (code === 0x0D) {{ if (!{tsonNames.WriterAppend}(\"\\\\r\")) return false; }}");
+        writer.WriteLine($"else if (code === 0x09) {{ if (!{tsonNames.WriterAppend}(\"\\\\t\")) return false; }}");
+        writer.WriteLine($"else if (code < 0x20 || code === 0x2028 || code === 0x2029) {{ if (!{tsonNames.UnicodeEscape}(code)) return false; }}");
         writer.WriteLine("else if (code >= 0xD800 && code <= 0xDBFF) {");
         writer.Indent();
-        writer.WriteLine("if (!appendRaw(value.slice(index, index + 2))) return false;");
+        writer.WriteLine($"if (!{tsonNames.WriterAppend}(value.slice(index, index + 2))) return false;");
         writer.WriteLine("index += 1;");
         writer.Unindent();
-        writer.WriteLine("} else if (!appendRaw(value[index])) return false;");
+        writer.WriteLine($"}} else if (!{tsonNames.WriterAppend}(value[index])) return false;");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("return appendRaw(\"\\\"\");");
+        writer.WriteLine($"return {tsonNames.WriterAppend}(\"\\\"\");");
         writer.Unindent();
         writer.WriteLine("}");
-        writer.WriteLine("function writeNumber(value) {");
+        writer.WriteLine($"function {tsonNames.NumberWriterValue}(value) {{");
         writer.Indent();
         writer.WriteLine("bitsView.setFloat64(0, value, false);");
         writer.WriteLine("let high = bitsView.getUint32(0, false);");
         writer.WriteLine("let low = bitsView.getUint32(4, false);");
         writer.WriteLine("if ((high & 0x7FF00000) === 0x7FF00000 && ((high & 0x000FFFFF) !== 0 || low !== 0)) { high = 0x7FF80000; low = 0; }");
         writer.WriteLine("const hexadecimal = high.toString(16).toUpperCase().padStart(8, \"0\") + low.toString(16).toUpperCase().padStart(8, \"0\");");
-        writer.WriteLine("return appendRaw(\"$number(\\\"\" + hexadecimal + \"\\\")\");");
+        writer.WriteLine($"return {tsonNames.WriterAppend}(\"$number(\\\"\" + hexadecimal + \"\\\")\");");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine("return Object.freeze({");
         writer.Indent();
-        writer.WriteLine("static: appendRaw,");
-        writer.WriteLine("indent: level => appendRaw(\" \".repeat(level * 4)),");
-        writer.WriteLine("string: writeString,");
-        writer.WriteLine("number: writeNumber,");
+        writer.WriteLine($"static: {tsonNames.WriterAppend},");
+        writer.WriteLine($"indent: level => {tsonNames.WriterAppend}(\" \".repeat(level * 4)),");
+        writer.WriteLine($"string: {tsonNames.StringWriterValue},");
+        writer.WriteLine($"number: {tsonNames.NumberWriterValue},");
         if (needsArrayWriter)
         {
-            writer.WriteLine("outputLimit: () => fail(\"limit\"),");
+            writer.WriteLine($"outputLimit: () => {tsonNames.WriterFail}(\"limit\"),");
         }
         writer.WriteLine("error: () => error,");
         writer.WriteLine("finish: () => parts.join(\"\"),");
@@ -1398,7 +1415,8 @@ public static class JavaScriptBackend
         int planIndex,
         EnumCatalog catalog,
         ResultCatalog results,
-        GeneratedNames names)
+        GeneratedNames names,
+        TsonGeneratedNames tsonNames)
     {
         IReadOnlyList<MirTsonArrayPlan> arrayPlans = CollectTsonArrayPlans(plan);
         var recordIndexes = plan.Definitions.OfType<MirTsonRecordPlan>().Select((item, index) => (item, index)).ToDictionary(pair => pair.item.RecordTypeId, pair => pair.index);
@@ -1406,7 +1424,7 @@ public static class JavaScriptBackend
         foreach (MirTsonRecordPlan record in plan.Definitions.OfType<MirTsonRecordPlan>())
         {
             MirRecordDefinition carrier = catalog.GetRecord(record.RecordTypeId);
-            writer.WriteLine($"function writeP{planIndex}R{recordIndexes[record.RecordTypeId]}(writer, value, indentation) {{");
+            writer.WriteLine($"function {tsonNames.RecordWriter(planIndex, recordIndexes[record.RecordTypeId])}(writer, value, indentation) {{");
             writer.Indent();
             writer.WriteLine($"{names.RecordValidator(carrier)}(value);");
             if (record.Fields.Count == 0)
@@ -1422,7 +1440,7 @@ public static class JavaScriptBackend
                     MirRecordFieldDefinition carrierField = carrier.Fields[index];
                     writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
                     writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString($"\"{field.Name}\": ")})) return false;");
-                    writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, field.ValuePlan, recordIndexes, enumIndexes, arrayPlans)}(writer, value[{names.RecordFieldSlot(carrierField)}], indentation + 1)) return false;");
+                    writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, field.ValuePlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, value[{names.RecordFieldSlot(carrierField)}], indentation + 1)) return false;");
                     writer.WriteLine("if (!writer.static(\",\\n\")) return false;");
                 }
                 writer.WriteLine("if (!writer.indent(indentation)) return false;");
@@ -1434,7 +1452,7 @@ public static class JavaScriptBackend
         foreach (MirTsonEnumPlan @enum in plan.Definitions.OfType<MirTsonEnumPlan>())
         {
             EnumInfo carrier = catalog.GetEnum(@enum.Name);
-            writer.WriteLine($"function writeP{planIndex}E{enumIndexes[@enum.Name]}(writer, value, indentation) {{");
+            writer.WriteLine($"function {tsonNames.EnumWriter(planIndex, enumIndexes[@enum.Name])}(writer, value, indentation) {{");
             writer.Indent();
             writer.WriteLine($"{names.Validator(carrier)}(value);");
             writer.WriteLine("switch (value.$tag) {");
@@ -1454,7 +1472,7 @@ public static class JavaScriptBackend
                     {
                         MirTsonEnumPayloadPlan payload = @case.Payloads[index];
                         writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
-                        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, payload.ValuePlan, recordIndexes, enumIndexes, arrayPlans)}(writer, value.$payload[{index}], indentation + 1)) return false;");
+                        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, payload.ValuePlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, value.$payload[{index}], indentation + 1)) return false;");
                         writer.WriteLine(index + 1 < @case.Payloads.Count
                             ? "if (!writer.static(\",\\n\")) return false;"
                             : "if (!writer.static(\"\\n\")) return false;");
@@ -1476,24 +1494,24 @@ public static class JavaScriptBackend
 
         foreach (MirTsonArrayPlan arrayPlan in arrayPlans)
         {
-            EmitJavaScriptTsonArrayWriter(writer, plan, planIndex, arrayPlan, recordIndexes, enumIndexes, arrayPlans, names);
+            EmitJavaScriptTsonArrayWriter(writer, plan, planIndex, arrayPlan, recordIndexes, enumIndexes, arrayPlans, names, tsonNames);
         }
 
         if (plan.TablePlan is not null)
         {
-            EmitJavaScriptTsonTablePlan(writer, plan, planIndex, catalog, results, names, recordIndexes, enumIndexes, arrayPlans);
+            EmitJavaScriptTsonTablePlan(writer, plan, planIndex, catalog, results, names, recordIndexes, enumIndexes, arrayPlans, tsonNames);
             return;
         }
 
         MirResultType resultType = new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));
         var resultToken = names.TypeToken(results.Get(resultType));
         var errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
-        writer.WriteLine($"function encode{planIndex}(value) {{");
+        writer.WriteLine($"function {tsonNames.Encoder(planIndex)}(value) {{");
         writer.Indent();
-        writer.WriteLine($"const writer = makeWriter({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
+        writer.WriteLine($"const writer = {tsonNames.MakeWriter}({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
         writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString(MirTsonCanonicalText.BuildDocumentPrefix(plan))})");
         writer.Indent();
-        writer.WriteLine($"|| !{JavaScriptTsonValueWriter(planIndex, plan.RootValuePlan, recordIndexes, enumIndexes, arrayPlans)}(writer, value, 0)");
+        writer.WriteLine($"|| !{JavaScriptTsonValueWriter(planIndex, plan.RootValuePlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, value, 0)");
         writer.WriteLine("|| !writer.static(\";\\n\")) {");
         writer.Unindent();
         writer.Indent();
@@ -1516,14 +1534,15 @@ public static class JavaScriptBackend
         GeneratedNames names,
         IReadOnlyDictionary<MirRecordTypeId, int> recordIndexes,
         IReadOnlyDictionary<string, int> enumIndexes,
-        IReadOnlyList<MirTsonArrayPlan> arrayPlans)
+        IReadOnlyList<MirTsonArrayPlan> arrayPlans,
+        TsonGeneratedNames tsonNames)
     {
         MirTsonTablePlan tablePlan = plan.TablePlan!;
         MirTableDefinition table = catalog.GetTable(tablePlan.TableId);
         MirResultType resultType = new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));
         var resultToken = names.TypeToken(results.Get(resultType));
         var errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
-        writer.WriteLine($"function encode{planIndex}(value) {{");
+        writer.WriteLine($"function {tsonNames.Encoder(planIndex)}(value) {{");
         writer.Indent();
         writer.WriteLine($"{names.TableValidator(table)}(value);");
         for (int index = 0; index < tablePlan.Columns.Count; index++)
@@ -1537,7 +1556,7 @@ public static class JavaScriptBackend
             writer.WriteLine($"const length{index} = cells{index}.length;");
             writer.WriteLine($"if (length{index} !== {column.ExpectedElementCount}) {{ {names.Panic}(); }}");
         }
-        writer.WriteLine($"const writer = makeWriter({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
+        writer.WriteLine($"const writer = {tsonNames.MakeWriter}({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
         writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString(MirTsonCanonicalText.BuildDocumentPrefix(plan))})) {{");
         writer.Indent();
         EmitJavaScriptTsonFailure(writer, resultToken, errorToken, names);
@@ -1565,7 +1584,7 @@ public static class JavaScriptBackend
             writer.Indent();
             writer.WriteLine($"if (!Object.prototype.hasOwnProperty.call(cells{columnIndex}, index)) {{ {names.Panic}(); }}");
             writer.WriteLine($"const cell = cells{columnIndex}[index];");
-            writer.WriteLine($"if (!writer.indent(2) || !{JavaScriptTsonValueWriter(planIndex, column.ElementPlan, recordIndexes, enumIndexes, arrayPlans)}(writer, cell, 2) || !writer.static(\",\\n\")) {{");
+            writer.WriteLine($"if (!writer.indent(2) || !{JavaScriptTsonValueWriter(planIndex, column.ElementPlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, cell, 2) || !writer.static(\",\\n\")) {{");
             writer.Indent();
             EmitJavaScriptTsonFailure(writer, resultToken, errorToken, names);
             writer.Unindent();
@@ -1606,15 +1625,16 @@ public static class JavaScriptBackend
         MirTsonValuePlan valuePlan,
         IReadOnlyDictionary<MirRecordTypeId, int> recordIndexes,
         IReadOnlyDictionary<string, int> enumIndexes,
-        IReadOnlyList<MirTsonArrayPlan>? arrayPlans = null)
+        IReadOnlyList<MirTsonArrayPlan>? arrayPlans = null,
+        TsonGeneratedNames? tsonNames = null)
         => valuePlan switch
         {
-            MirTsonBooleanPlan => "writeBoolean",
-            MirTsonNumberPlan => "writeNumber",
-            MirTsonStringPlan => "writeString",
-            MirTsonRecordValuePlan record => $"writeP{planIndex}R{recordIndexes[record.RecordTypeId]}",
-            MirTsonEnumValuePlan @enum => $"writeP{planIndex}E{enumIndexes[@enum.EnumName]}",
-            MirTsonArrayPlan array when arrayPlans is not null => JavaScriptTsonArrayWriterName(planIndex, array, arrayPlans),
+            MirTsonBooleanPlan => tsonNames?.BooleanWriter ?? "writeBoolean",
+            MirTsonNumberPlan => tsonNames?.NumberWriter ?? "writeNumber",
+            MirTsonStringPlan => tsonNames?.StringWriter ?? "writeString",
+            MirTsonRecordValuePlan record => tsonNames?.RecordWriter(planIndex, recordIndexes[record.RecordTypeId]) ?? $"writeP{planIndex}R{recordIndexes[record.RecordTypeId]}",
+            MirTsonEnumValuePlan @enum => tsonNames?.EnumWriter(planIndex, enumIndexes[@enum.EnumName]) ?? $"writeP{planIndex}E{enumIndexes[@enum.EnumName]}",
+            MirTsonArrayPlan array when arrayPlans is not null => tsonNames?.ArrayWriter(planIndex, JavaScriptTsonArrayPlanIndex(array, arrayPlans)) ?? JavaScriptTsonArrayWriterName(planIndex, array, arrayPlans),
             _ => throw new InvalidOperationException("Unsupported validated TSON value plan."),
         };
 
@@ -1626,9 +1646,10 @@ public static class JavaScriptBackend
         IReadOnlyDictionary<MirRecordTypeId, int> recordIndexes,
         IReadOnlyDictionary<string, int> enumIndexes,
         IReadOnlyList<MirTsonArrayPlan> arrayPlans,
-        GeneratedNames names)
+        GeneratedNames names,
+        TsonGeneratedNames tsonNames)
     {
-        writer.WriteLine($"function {JavaScriptTsonArrayWriterName(planIndex, arrayPlan, arrayPlans)}(writer, value, indentation) {{");
+        writer.WriteLine($"function {tsonNames.ArrayWriter(planIndex, JavaScriptTsonArrayPlanIndex(arrayPlan, arrayPlans))}(writer, value, indentation) {{");
         writer.Indent();
         writer.WriteLine("const array = value;");
         writer.WriteLine($"if (!Array.isArray(array)) {{ {names.Panic}(); }}");
@@ -1642,7 +1663,7 @@ public static class JavaScriptBackend
         writer.WriteLine("const element = array[index];");
         EmitJavaScriptTsonArrayElementValidation(writer, arrayPlan.ElementPlan, "element", names);
         writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
-        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, arrayPlan.ElementPlan, recordIndexes, enumIndexes, arrayPlans)}(writer, element, indentation + 1)) return false;");
+        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, arrayPlan.ElementPlan, recordIndexes, enumIndexes, arrayPlans, tsonNames)}(writer, element, indentation + 1)) return false;");
         writer.WriteLine("if (!writer.static(\",\\n\")) return false;");
         writer.Unindent();
         writer.WriteLine("}");
@@ -2869,6 +2890,175 @@ public static class JavaScriptBackend
         }
     }
 
+    private sealed class TsonGeneratedNames
+    {
+        private readonly JavaScriptEmissionProfile profile;
+        private readonly ScopedSymbolicNameAllocator? symbolic;
+        private readonly Dictionary<(int PlanIndex, int RecordIndex), string> recordWriters = [];
+        private readonly Dictionary<(int PlanIndex, int EnumIndex), string> enumWriters = [];
+        private readonly Dictionary<(int PlanIndex, int ArrayIndex), string> arrayWriters = [];
+        private readonly Dictionary<int, string> encoders = [];
+
+        private TsonGeneratedNames(JavaScriptEmissionProfile profile, ScopedSymbolicNameAllocator? symbolic)
+        {
+            this.profile = profile;
+            this.symbolic = symbolic;
+
+            if (profile == JavaScriptEmissionProfile.Symbolic)
+            {
+                BooleanWriter = symbolic!.Allocate(symbolic.RuntimeScope, JavaScriptSymbolicBindingRole.TsonBooleanWriter, "writeBoolean");
+                NumberWriter = symbolic.Allocate(symbolic.RuntimeScope, JavaScriptSymbolicBindingRole.TsonNumberWriter, "writeNumber");
+                StringWriter = symbolic.Allocate(symbolic.RuntimeScope, JavaScriptSymbolicBindingRole.TsonStringWriter, "writeString");
+                MakeWriter = symbolic.Allocate(symbolic.RuntimeScope, JavaScriptSymbolicBindingRole.TsonWriterFactory, "makeWriter");
+                WriterFail = symbolic.Allocate(symbolic.WriterScope, JavaScriptSymbolicBindingRole.TsonWriterFail, "fail");
+                WriterAppend = symbolic.Allocate(symbolic.WriterScope, JavaScriptSymbolicBindingRole.TsonWriterAppend, "appendRaw");
+                UnicodeEscape = symbolic.Allocate(symbolic.WriterScope, JavaScriptSymbolicBindingRole.TsonUnicodeEscape, "unicodeEscape");
+                StringWriterValue = symbolic.Allocate(symbolic.WriterScope, JavaScriptSymbolicBindingRole.TsonStringWriter, "writeString");
+                NumberWriterValue = symbolic.Allocate(symbolic.WriterScope, JavaScriptSymbolicBindingRole.TsonNumberWriter, "writeNumber");
+            }
+            else
+            {
+                BooleanWriter = "writeBoolean";
+                NumberWriter = "writeNumber";
+                StringWriter = "writeString";
+                MakeWriter = "makeWriter";
+                WriterFail = "fail";
+                WriterAppend = "appendRaw";
+                UnicodeEscape = "unicodeEscape";
+                StringWriterValue = "writeString";
+                NumberWriterValue = "writeNumber";
+            }
+        }
+
+        public string BooleanWriter { get; }
+
+        public string NumberWriter { get; }
+
+        public string StringWriter { get; }
+
+        public string MakeWriter { get; }
+
+        public string WriterFail { get; }
+
+        public string WriterAppend { get; }
+
+        public string UnicodeEscape { get; }
+
+        public string StringWriterValue { get; }
+
+        public string NumberWriterValue { get; }
+
+        public string RecordWriter(int planIndex, int recordIndex)
+        {
+            return GetOrAdd(recordWriters, (planIndex, recordIndex), JavaScriptSymbolicBindingRole.TsonRecordWriter, $"writeP{planIndex}R{recordIndex}");
+        }
+
+        public string EnumWriter(int planIndex, int enumIndex)
+        {
+            return GetOrAdd(enumWriters, (planIndex, enumIndex), JavaScriptSymbolicBindingRole.TsonEnumWriter, $"writeP{planIndex}E{enumIndex}");
+        }
+
+        public string ArrayWriter(int planIndex, int arrayIndex)
+        {
+            return GetOrAdd(arrayWriters, (planIndex, arrayIndex), JavaScriptSymbolicBindingRole.TsonArrayWriter, $"writeP{planIndex}A{arrayIndex}");
+        }
+
+        public string Encoder(int planIndex)
+        {
+            if (encoders.TryGetValue(planIndex, out string? existing))
+            {
+                return existing;
+            }
+
+            string name = profile == JavaScriptEmissionProfile.Symbolic
+                ? symbolic!.Allocate(symbolic.RuntimeScope, JavaScriptSymbolicBindingRole.TsonEncoder, $"encode{planIndex}")
+                : $"encode{planIndex}";
+            encoders.Add(planIndex, name);
+            return name;
+        }
+
+        public static TsonGeneratedNames Create(IReadOnlyList<MirTsonEncodingPlan> plans, GeneratedNames names)
+        {
+            if (names.Profile != JavaScriptEmissionProfile.Symbolic)
+            {
+                return new TsonGeneratedNames(names.Profile, symbolic: null);
+            }
+
+            var reserved = names.Document.Bindings
+                .Select(binding => binding.AssignedName)
+                .Where(static name => !string.IsNullOrEmpty(name))
+                .Cast<string>();
+            var symbolic = new ScopedSymbolicNameAllocator(reserved);
+            var tsonNames = new TsonGeneratedNames(names.Profile, symbolic);
+            for (int planIndex = 0; planIndex < plans.Count; planIndex += 1)
+            {
+                MirTsonEncodingPlan plan = plans[planIndex];
+                foreach ((MirTsonRecordPlan record, int recordIndex) in plan.Definitions.OfType<MirTsonRecordPlan>().Select((item, index) => (item, index)))
+                {
+                    _ = tsonNames.RecordWriter(planIndex, recordIndex);
+                }
+
+                foreach ((MirTsonEnumPlan @enum, int enumIndex) in plan.Definitions.OfType<MirTsonEnumPlan>().Select((item, index) => (item, index)))
+                {
+                    _ = tsonNames.EnumWriter(planIndex, enumIndex);
+                }
+
+                IReadOnlyList<MirTsonArrayPlan> arrays = CollectTsonArrayPlans(plan);
+                for (int arrayIndex = 0; arrayIndex < arrays.Count; arrayIndex += 1)
+                {
+                    _ = tsonNames.ArrayWriter(planIndex, arrayIndex);
+                }
+
+                _ = tsonNames.Encoder(planIndex);
+            }
+
+            symbolic.Validate();
+            return tsonNames;
+        }
+
+        private string GetOrAdd<TKey>(Dictionary<TKey, string> namesByKey, TKey key, JavaScriptSymbolicBindingRole role, string diagnosticName)
+            where TKey : notnull
+        {
+            if (namesByKey.TryGetValue(key, out string? existing))
+            {
+                return existing;
+            }
+
+            string name = profile == JavaScriptEmissionProfile.Symbolic
+                ? symbolic!.Allocate(symbolic.RuntimeScope, role, diagnosticName)
+                : diagnosticName;
+            namesByKey.Add(key, name);
+            return name;
+        }
+    }
+
+    private sealed class ScopedSymbolicNameAllocator
+    {
+        private readonly JavaScriptEmissionDocument document = new();
+        private readonly JavaScriptNameAllocator allocator;
+
+        public ScopedSymbolicNameAllocator(IEnumerable<string> reservedNames)
+        {
+            allocator = new JavaScriptNameAllocator(document, document.ProgramScope, reservedNames, JavaScriptEmissionProfile.Symbolic);
+            RuntimeScope = document.CreateScope(JavaScriptScopeKind.Block, document.ProgramScope);
+            WriterScope = document.CreateScope(JavaScriptScopeKind.Block, RuntimeScope);
+        }
+
+        public JavaScriptScopeId RuntimeScope { get; }
+
+        public JavaScriptScopeId WriterScope { get; }
+
+        public string Allocate(JavaScriptScopeId scope, JavaScriptSymbolicBindingRole role, string diagnosticPurpose)
+        {
+            return allocator.Allocate(scope, JavaScriptBindingRole.RuntimeHelper, diagnosticPurpose, JavaScriptDeclarationKind.Function, symbolicRole: role).Name;
+        }
+
+        public void Validate()
+        {
+            document.Validate();
+        }
+    }
+
     private sealed class GeneratedNames
     {
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> typeTokens;
@@ -2939,7 +3129,8 @@ public static class JavaScriptBackend
             Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnTokens,
             Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableStorages,
             Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnValues,
-            Dictionary<MirFunction, JavaScriptScopeId> functionScopes)
+            Dictionary<MirFunction, JavaScriptScopeId> functionScopes,
+            JavaScriptEmissionProfile profile)
         {
             this.allocator = allocator;
             Panic = panic;
@@ -2983,6 +3174,7 @@ public static class JavaScriptBackend
             this.tableStorages = tableStorages;
             this.tableColumnValues = tableColumnValues;
             this.functionScopes = functionScopes;
+            Profile = profile;
         }
 
         public JavaScriptBindingReference Panic { get; }
@@ -3004,6 +3196,8 @@ public static class JavaScriptBackend
         public JavaScriptBindingReference TsonRuntime { get; }
 
         public bool UsesTsonTableEncoding { get; }
+
+        public JavaScriptEmissionProfile Profile { get; }
 
         public JavaScriptEmissionDocument Document => allocator.Document;
 
@@ -3067,9 +3261,22 @@ public static class JavaScriptBackend
 
         public JavaScriptBindingReference TableColumnValue(MirTableColumnDefinition column) => tableColumnValues[column];
 
-        public JavaScriptBindingReference NextMatchScrutinee() => allocator.Allocate("match");
+        public string SymbolDescription(JavaScriptBindingReference binding, string diagnosticDescription)
+        {
+            return Profile == JavaScriptEmissionProfile.Symbolic
+                ? binding.Name
+                : diagnosticDescription;
+        }
 
-        public JavaScriptBindingReference NextTemporary(string purpose) => allocator.Allocate(purpose);
+        public JavaScriptBindingReference NextMatchScrutinee() => allocator.Allocate(
+            JavaScriptBindingRole.Temporary,
+            JavaScriptSymbolicBindingRole.MatchTemporary,
+            "match");
+
+        public JavaScriptBindingReference NextTemporary(string purpose) => allocator.Allocate(
+            JavaScriptBindingRole.Temporary,
+            JavaScriptSymbolicBindingRole.Temporary,
+            purpose);
 
         public JavaScriptScopeId EnterFunction(MirFunction function)
         {
@@ -3083,7 +3290,7 @@ public static class JavaScriptBackend
             allocator.EnterScope(Document.ProgramScope);
         }
 
-        public static GeneratedNames Create(MirProgram program, EnumCatalog catalog, ResultCatalog results, bool usesUnwrap, bool usesTryExcept)
+        public static GeneratedNames Create(MirProgram program, EnumCatalog catalog, ResultCatalog results, bool usesUnwrap, bool usesTryExcept, JavaScriptEmissionProfile profile)
         {
             var occupied = new HashSet<string>(StringComparer.Ordinal);
             foreach (MirFunction function in program.Functions)
@@ -3100,23 +3307,23 @@ public static class JavaScriptBackend
                 }
             }
 
-            var allocator = new NameAllocator(occupied);
+            var allocator = new NameAllocator(occupied, profile);
             var functionScopes = new Dictionary<MirFunction, JavaScriptScopeId>();
             foreach (MirFunction function in program.Functions)
             {
                 functionScopes.Add(function, allocator.CreateFunctionScope());
             }
-            var panic = allocator.Allocate("panic");
-            var unwrapPanic = usesUnwrap ? allocator.Allocate("panic_unwrap") : JavaScriptBindingReference.Empty;
+            var panic = allocator.Allocate(JavaScriptBindingRole.RuntimeHelper, JavaScriptSymbolicBindingRole.Panic, "panic");
+            var unwrapPanic = usesUnwrap ? allocator.Allocate(JavaScriptBindingRole.RuntimeHelper, JavaScriptSymbolicBindingRole.UnwrapPanic, "panic_unwrap") : JavaScriptBindingReference.Empty;
             bool usesTaggedValues = catalog.Enums.Count > 0 || results.Types.Count > 0 || usesTryExcept;
-            var makeValue = usesTaggedValues ? allocator.Allocate("make") : JavaScriptBindingReference.Empty;
-            var flowToken = usesTryExcept ? allocator.Allocate("flow_token") : JavaScriptBindingReference.Empty;
-            var flowValue = usesTryExcept ? allocator.Allocate("flow_value") : JavaScriptBindingReference.Empty;
-            var flowToHandler = usesTryExcept ? allocator.Allocate("flow_handler") : JavaScriptBindingReference.Empty;
-            var flowToFunction = usesTryExcept ? allocator.Allocate("flow_function") : JavaScriptBindingReference.Empty;
-            var validateFlow = usesTryExcept ? allocator.Allocate("flow_validate") : JavaScriptBindingReference.Empty;
+            var makeValue = usesTaggedValues ? allocator.Allocate(JavaScriptBindingRole.Constructor, JavaScriptSymbolicBindingRole.ValueConstructor, "make") : JavaScriptBindingReference.Empty;
+            var flowToken = usesTryExcept ? allocator.Allocate(JavaScriptBindingRole.Flow, JavaScriptSymbolicBindingRole.FlowToken, "flow_token") : JavaScriptBindingReference.Empty;
+            var flowValue = usesTryExcept ? allocator.Allocate(JavaScriptBindingRole.Flow, JavaScriptSymbolicBindingRole.FlowValue, "flow_value") : JavaScriptBindingReference.Empty;
+            var flowToHandler = usesTryExcept ? allocator.Allocate(JavaScriptBindingRole.Flow, JavaScriptSymbolicBindingRole.FlowHandler, "flow_handler") : JavaScriptBindingReference.Empty;
+            var flowToFunction = usesTryExcept ? allocator.Allocate(JavaScriptBindingRole.Flow, JavaScriptSymbolicBindingRole.FlowFunction, "flow_function") : JavaScriptBindingReference.Empty;
+            var validateFlow = usesTryExcept ? allocator.Allocate(JavaScriptBindingRole.Flow, JavaScriptSymbolicBindingRole.FlowValidator, "flow_validate") : JavaScriptBindingReference.Empty;
             var tsonRuntime = program.TsonEncodingPlans.Count > 0
-                ? allocator.Allocate("tson")
+                ? allocator.Allocate(JavaScriptBindingRole.RuntimeHelper, JavaScriptSymbolicBindingRole.TsonRuntime, "tson")
                 : JavaScriptBindingReference.Empty;
             bool usesTsonTableEncoding = program.TsonEncodingPlans.Any(plan => plan.TablePlan is not null);
             var recordTypeTokens = new Dictionary<MirRecordDefinition, JavaScriptBindingReference>();
@@ -3127,14 +3334,14 @@ public static class JavaScriptBackend
             foreach (MirRecordDefinition record in catalog.Records)
             {
                 string recordIdentity = JavaScriptIdentifierEncoder.Encode(record.Id.Value);
-                recordTypeTokens.Add(record, allocator.Allocate($"record_type_{recordIdentity}"));
-                recordInstances.Add(record, allocator.Allocate($"record_instances_{recordIdentity}"));
-                recordConstructors.Add(record, allocator.Allocate($"record_make_{recordIdentity}"));
-                recordValidators.Add(record, allocator.Allocate($"record_require_{recordIdentity}"));
+                recordTypeTokens.Add(record, allocator.Allocate(JavaScriptBindingRole.TypeToken, JavaScriptSymbolicBindingRole.RecordType, $"record_type_{recordIdentity}"));
+                recordInstances.Add(record, allocator.Allocate(JavaScriptBindingRole.ProvenanceSet, JavaScriptSymbolicBindingRole.RecordInstances, $"record_instances_{recordIdentity}"));
+                recordConstructors.Add(record, allocator.Allocate(JavaScriptBindingRole.Constructor, JavaScriptSymbolicBindingRole.RecordConstructor, $"record_make_{recordIdentity}"));
+                recordValidators.Add(record, allocator.Allocate(JavaScriptBindingRole.Validator, JavaScriptSymbolicBindingRole.RecordValidator, $"record_require_{recordIdentity}"));
                 foreach (MirRecordFieldDefinition field in record.Fields)
                 {
                     string fieldIdentity = JavaScriptIdentifierEncoder.Encode(field.Id.Value);
-                    recordFieldSlots.Add(field, allocator.Allocate($"record_field_{fieldIdentity}"));
+                    recordFieldSlots.Add(field, allocator.Allocate(JavaScriptBindingRole.SymbolSlot, JavaScriptSymbolicBindingRole.RecordField, $"record_field_{fieldIdentity}"));
                 }
             }
 
@@ -3143,27 +3350,27 @@ public static class JavaScriptBackend
             var validators = new Dictionary<EnumInfo, JavaScriptBindingReference>();
             foreach (EnumInfo enumInfo in catalog.Enums)
             {
-                typeTokens.Add(enumInfo, allocator.Allocate("type"));
-                enumInstances.Add(enumInfo, allocator.Allocate("instances"));
-                validators.Add(enumInfo, allocator.Allocate("validate"));
+                typeTokens.Add(enumInfo, allocator.Allocate(JavaScriptBindingRole.TypeToken, JavaScriptSymbolicBindingRole.EnumType, "type"));
+                enumInstances.Add(enumInfo, allocator.Allocate(JavaScriptBindingRole.ProvenanceSet, JavaScriptSymbolicBindingRole.EnumInstances, "instances"));
+                validators.Add(enumInfo, allocator.Allocate(JavaScriptBindingRole.Validator, JavaScriptSymbolicBindingRole.EnumValidator, "validate"));
             }
 
             var resultTypeTokens = new Dictionary<ResultInfo, JavaScriptBindingReference>();
             var resultValidators = new Dictionary<ResultInfo, JavaScriptBindingReference>();
             foreach (ResultInfo result in results.Types)
             {
-                resultTypeTokens.Add(result, allocator.Allocate("result_type"));
-                resultValidators.Add(result, allocator.Allocate("result_validate"));
+                resultTypeTokens.Add(result, allocator.Allocate(JavaScriptBindingRole.TypeToken, JavaScriptSymbolicBindingRole.ResultType, "result_type"));
+                resultValidators.Add(result, allocator.Allocate(JavaScriptBindingRole.Validator, JavaScriptSymbolicBindingRole.ResultValidator, "result_validate"));
             }
 
             bool usesTables = catalog.Tables.Count > 0;
-            var columnCarrierToken = usesTables ? allocator.Allocate("column_type") : JavaScriptBindingReference.Empty;
-            var columnReadSlot = usesTables ? allocator.Allocate("column_read") : JavaScriptBindingReference.Empty;
-            var columnInstances = usesTsonTableEncoding ? allocator.Allocate("column_instances") : JavaScriptBindingReference.Empty;
-            var columnValuesSlot = usesTsonTableEncoding ? allocator.Allocate("column_values") : JavaScriptBindingReference.Empty;
-            var columnValidator = usesTables ? allocator.Allocate("column_require") : JavaScriptBindingReference.Empty;
-            var tableRowTableSlot = usesTables ? allocator.Allocate("table_row_table") : JavaScriptBindingReference.Empty;
-            var tableRowIndexSlot = usesTables ? allocator.Allocate("table_row_index") : JavaScriptBindingReference.Empty;
+            var columnCarrierToken = usesTables ? allocator.Allocate(JavaScriptBindingRole.TypeToken, JavaScriptSymbolicBindingRole.ColumnType, "column_type") : JavaScriptBindingReference.Empty;
+            var columnReadSlot = usesTables ? allocator.Allocate(JavaScriptBindingRole.SymbolSlot, JavaScriptSymbolicBindingRole.ColumnRead, "column_read") : JavaScriptBindingReference.Empty;
+            var columnInstances = usesTsonTableEncoding ? allocator.Allocate(JavaScriptBindingRole.ProvenanceSet, JavaScriptSymbolicBindingRole.ColumnInstances, "column_instances") : JavaScriptBindingReference.Empty;
+            var columnValuesSlot = usesTsonTableEncoding ? allocator.Allocate(JavaScriptBindingRole.SymbolSlot, JavaScriptSymbolicBindingRole.ColumnValues, "column_values") : JavaScriptBindingReference.Empty;
+            var columnValidator = usesTables ? allocator.Allocate(JavaScriptBindingRole.Validator, JavaScriptSymbolicBindingRole.ColumnValidator, "column_require") : JavaScriptBindingReference.Empty;
+            var tableRowTableSlot = usesTables ? allocator.Allocate(JavaScriptBindingRole.SymbolSlot, JavaScriptSymbolicBindingRole.TableRowTable, "table_row_table") : JavaScriptBindingReference.Empty;
+            var tableRowIndexSlot = usesTables ? allocator.Allocate(JavaScriptBindingRole.SymbolSlot, JavaScriptSymbolicBindingRole.TableRowIndex, "table_row_index") : JavaScriptBindingReference.Empty;
             var tableTypeTokens = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
             var tableInstances = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
             var tableRowTypeTokens = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
@@ -3180,22 +3387,22 @@ public static class JavaScriptBackend
             foreach (MirTableDefinition table in catalog.Tables)
             {
                 string identity = JavaScriptIdentifierEncoder.Encode(table.Id.Value);
-                tableTypeTokens.Add(table, allocator.Allocate($"table_type_{identity}"));
-                tableInstances.Add(table, usesTsonTableEncoding ? allocator.Allocate($"table_instances_{identity}") : JavaScriptBindingReference.Empty);
-                tableRowTypeTokens.Add(table, allocator.Allocate($"table_row_type_{identity}"));
-                tableValidators.Add(table, allocator.Allocate($"table_require_{identity}"));
-                tableRowValidators.Add(table, allocator.Allocate($"table_row_require_{identity}"));
-                tableCreates.Add(table, allocator.Allocate($"table_create_{identity}"));
-                tableCreateRows.Add(table, allocator.Allocate($"table_row_create_{identity}"));
-                tableSingletons.Add(table, allocator.Allocate($"table_value_{identity}"));
-                tableRowReadSlots.Add(table, allocator.Allocate($"table_rows_{identity}"));
+                tableTypeTokens.Add(table, allocator.Allocate(JavaScriptBindingRole.TypeToken, JavaScriptSymbolicBindingRole.TableType, $"table_type_{identity}"));
+                tableInstances.Add(table, usesTsonTableEncoding ? allocator.Allocate(JavaScriptBindingRole.ProvenanceSet, JavaScriptSymbolicBindingRole.TableInstances, $"table_instances_{identity}") : JavaScriptBindingReference.Empty);
+                tableRowTypeTokens.Add(table, allocator.Allocate(JavaScriptBindingRole.TypeToken, JavaScriptSymbolicBindingRole.TableRowType, $"table_row_type_{identity}"));
+                tableValidators.Add(table, allocator.Allocate(JavaScriptBindingRole.Validator, JavaScriptSymbolicBindingRole.TableValidator, $"table_require_{identity}"));
+                tableRowValidators.Add(table, allocator.Allocate(JavaScriptBindingRole.Validator, JavaScriptSymbolicBindingRole.TableRowValidator, $"table_row_require_{identity}"));
+                tableCreates.Add(table, allocator.Allocate(JavaScriptBindingRole.Constructor, JavaScriptSymbolicBindingRole.TableConstructor, $"table_create_{identity}"));
+                tableCreateRows.Add(table, allocator.Allocate(JavaScriptBindingRole.Constructor, JavaScriptSymbolicBindingRole.TableRowConstructor, $"table_row_create_{identity}"));
+                tableSingletons.Add(table, allocator.Allocate(JavaScriptBindingRole.Singleton, JavaScriptSymbolicBindingRole.TableValue, $"table_value_{identity}"));
+                tableRowReadSlots.Add(table, allocator.Allocate(JavaScriptBindingRole.SymbolSlot, JavaScriptSymbolicBindingRole.TableRowSlot, $"table_rows_{identity}"));
                 foreach (MirTableColumnDefinition column in table.Columns)
                 {
                     string columnIdentity = JavaScriptIdentifierEncoder.Encode(column.Id.Value);
-                    tableColumnSlots.Add(column, allocator.Allocate($"table_column_{columnIdentity}"));
-                    tableColumnTokens.Add(column, allocator.Allocate($"column_type_{columnIdentity}"));
-                    tableStorages.Add(column, allocator.Allocate($"table_storage_{columnIdentity}"));
-                    tableColumnValues.Add(column, allocator.Allocate($"table_column_value_{columnIdentity}"));
+                    tableColumnSlots.Add(column, allocator.Allocate(JavaScriptBindingRole.SymbolSlot, JavaScriptSymbolicBindingRole.TableColumnSlot, $"table_column_{columnIdentity}"));
+                    tableColumnTokens.Add(column, allocator.Allocate(JavaScriptBindingRole.TypeToken, JavaScriptSymbolicBindingRole.TableColumnToken, $"column_type_{columnIdentity}"));
+                    tableStorages.Add(column, allocator.Allocate(JavaScriptBindingRole.Storage, JavaScriptSymbolicBindingRole.TableStorage, $"table_storage_{columnIdentity}"));
+                    tableColumnValues.Add(column, allocator.Allocate(JavaScriptBindingRole.Storage, JavaScriptSymbolicBindingRole.TableColumnValue, $"table_column_value_{columnIdentity}"));
                 }
             }
 
@@ -3241,7 +3448,8 @@ public static class JavaScriptBackend
                 tableColumnTokens,
                 tableStorages,
                 tableColumnValues,
-                functionScopes);
+                functionScopes,
+                profile);
             allocator.Validate();
             return names;
         }
@@ -3253,9 +3461,9 @@ public static class JavaScriptBackend
         private readonly JavaScriptNameAllocator allocator;
         private JavaScriptScopeId currentScope;
 
-        public NameAllocator(HashSet<string> occupied)
+        public NameAllocator(HashSet<string> occupied, JavaScriptEmissionProfile profile)
         {
-            allocator = new JavaScriptNameAllocator(document, document.ProgramScope, occupied);
+            allocator = new JavaScriptNameAllocator(document, document.ProgramScope, occupied, profile);
             currentScope = document.ProgramScope;
         }
 
@@ -3271,13 +3479,12 @@ public static class JavaScriptBackend
             currentScope = scope;
         }
 
-        public JavaScriptBindingReference Allocate(string purpose)
+        public JavaScriptBindingReference Allocate(
+            JavaScriptBindingRole role,
+            JavaScriptSymbolicBindingRole symbolicRole,
+            string diagnosticPurpose)
         {
-            JavaScriptBindingRole role = purpose.Contains("temporary", StringComparison.Ordinal)
-                || purpose is "match" or "ordered" or "propagate" or "unwrap"
-                ? JavaScriptBindingRole.Temporary
-                : JavaScriptBindingRole.RuntimeHelper;
-            return allocator.Allocate(currentScope, role, purpose).Reference;
+            return allocator.Allocate(currentScope, role, diagnosticPurpose, symbolicRole: symbolicRole).Reference;
         }
 
         public void Validate()

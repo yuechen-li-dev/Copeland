@@ -255,13 +255,18 @@ Require-Condition ($javaScriptBackendText.Contains('Dictionary<EnumInfo, JavaScr
 $javaScriptWriterText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "JavaScriptTextWriter.cs")
 Require-Condition ($javaScriptWriterText.Contains('BindingPart(JavaScriptBindingReference', [System.StringComparison]::Ordinal)) "Diagnostic writer binding references must be structured events."
 Require-Condition ($javaScriptWriterText.Contains('document.Reference(line.Scope', [System.StringComparison]::Ordinal)) "Diagnostic writer binding references must validate lexical scope."
+$javaScriptProfilesText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "JavaScriptEmissionProfile.cs")
+$javaScriptSymbolicText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "SymbolicJavaScriptVocabulary.cs")
 
 $javaScriptProductionSources = @(Get-ChildItem -LiteralPath $javaScriptBackendRoot -Recurse -Filter *.cs -File |
     Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
 $forbiddenJavaScriptTooling = $javaScriptProductionSources | Select-String -Pattern 'Terser|esbuild|SWC|Babel|Uglify|sourceMappingURL|\.map\b'
 Require-Condition ($null -eq $forbiddenJavaScriptTooling) "The JavaScript backend must not add an external minifier, parser, or source-map output path."
-$prematureJavaScriptProfiles = $javaScriptProductionSources | Select-String -Pattern 'Chinese codebook|Heavenly Stem|Release allocator|Symbolic allocator'
-Require-Condition ($null -eq $prematureJavaScriptProfiles) "Symbolic and Release allocator behavior remains outside M0b production code."
+Require-Condition ($javaScriptProfilesText.Contains('enum JavaScriptEmissionProfile', [System.StringComparison]::Ordinal)) "JavaScript emission profiles must remain an explicit backend contract."
+Require-Condition ($javaScriptProfilesText.Contains('Symbolic', [System.StringComparison]::Ordinal)) "The executable Symbolic JavaScript profile must remain available."
+Require-Condition ($javaScriptSymbolicText.Contains('CTS-JS-EMIT-M1', [System.StringComparison]::Ordinal)) "Symbolic JavaScript vocabulary must remain versioned and closed."
+$forbiddenReleaseProfile = $javaScriptProductionSources | Select-String -Pattern 'JavaScriptEmissionProfile\.Release|enum JavaScriptEmissionProfile[^{]*{[^}]*Release|Release allocator'
+Require-Condition ($null -eq $forbiddenReleaseProfile) "Release JavaScript emission remains outside M1 production code."
 
 $forbiddenRuntimeEncodingApis = $backendSources | Select-String -Pattern 'System\.Text\.Json|JSON\.stringify|System\.Reflection|System\.IO\.File|File\.(Read|Write)|\breflection\b|\bdynamic\b'
 Require-Condition ($null -eq $forbiddenRuntimeEncodingApis) "Generated backends must not add JSON, reflection, dynamic, or runtime filesystem dependencies for TSON encoding."
@@ -295,5 +300,22 @@ $misownedJavaScriptArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "test
             [System.StringComparison]::OrdinalIgnoreCase)
     }
 Require-Condition ($misownedJavaScriptArtifacts.Count -eq 0) "Generated JavaScript fixtures must be owned by Copeland.TS.Backend.JavaScript.Tests."
+
+$symbolicArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "tests/Copeland") -Recurse -Filter *.sym.js -File |
+    Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' }
+foreach ($artifact in $symbolicArtifacts) {
+    $sourcePath = [System.IO.Path]::ChangeExtension($artifact.FullName.Substring(0, $artifact.FullName.Length - ".sym.js".Length), ".ts")
+    Require-Condition (Test-Path -LiteralPath $sourcePath -PathType Leaf) "Symbolic JavaScript artifact has no sibling source fixture: $($artifact.FullName)"
+}
+$misownedSymbolicArtifacts = $symbolicArtifacts |
+    Where-Object {
+        -not $_.FullName.StartsWith($javaScriptFixtureRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
+        -not $_.FullName.StartsWith((Join-Path $tsonAssetFixtureRoot "Corpus"), [System.StringComparison]::OrdinalIgnoreCase) -and
+        -not $_.FullName.StartsWith((Join-Path $tsonTableAssetFixtureRoot "Corpus"), [System.StringComparison]::OrdinalIgnoreCase) -and
+        -not $_.FullName.StartsWith(
+            (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus"),
+            [System.StringComparison]::OrdinalIgnoreCase)
+    }
+Require-Condition ($misownedSymbolicArtifacts.Count -eq 0) "Generated Symbolic JavaScript fixtures must be owned by the JavaScript or TSON corpus roots."
 
 Write-Output "Copeland TS topology validation passed."

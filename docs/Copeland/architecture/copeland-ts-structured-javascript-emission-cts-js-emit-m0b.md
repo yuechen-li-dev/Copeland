@@ -1,6 +1,6 @@
 # Copeland TS structured JavaScript emission (CTS-JS-EMIT-M0b)
 
-**Status:** implemented Diagnostic-preservation foundation. The public JavaScript contract remains `--emit javascript` with the existing Diagnostic text, layout, filenames, and corpus ownership. Symbolic, Release, source maps, helper deduplication, and runtime packaging are not implemented.
+**Status:** implemented Diagnostic-preservation foundation. The public JavaScript contract remains `--emit javascript` with the existing Diagnostic text, layout, filenames, and corpus ownership. [CTS-JS-EMIT-M1](copeland-ts-symbolic-javascript-emission-cts-js-emit-m1.md) now adds explicit Symbolic allocation and rendering on this foundation; Release, source maps, helper deduplication, and runtime packaging remain unimplemented.
 
 ## Architecture
 

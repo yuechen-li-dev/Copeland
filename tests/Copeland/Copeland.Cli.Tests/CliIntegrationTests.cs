@@ -401,6 +401,83 @@ function one(): number {
     }
 
     [Fact]
+    public async Task JavaScriptSymbolicProfile_Emits_Executable_Symbolic_Artifact()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("input.ts", "record Point { x: number; } function main(): number { const point: Point = { x: 42 }; return point.x; }");
+        string outputPath = Path.Combine(temp.Path, "output.sym.js");
+
+        CliResult compilation = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            "javascript",
+            "--javascript-profile",
+            "symbolic",
+            "--out",
+            outputPath);
+
+        Assert.Equal(0, compilation.ExitCode);
+        string emitted = Normalize(await File.ReadAllTextAsync(outputPath));
+        Assert.Contains("$录型甲", emitted, StringComparison.Ordinal);
+        Assert.DoesNotContain("__cope_m3_", emitted, StringComparison.Ordinal);
+
+        CliResult parsed = await RunExecutableAsync("node", temp.Path, "--check", outputPath);
+        Assert.Equal(0, parsed.ExitCode);
+        Assert.Equal(string.Empty, parsed.StdErr);
+
+        await File.AppendAllTextAsync(outputPath, "console.log(main());\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        CliResult executed = await RunExecutableAsync("node", temp.Path, outputPath);
+        Assert.Equal(0, executed.ExitCode);
+        Assert.Equal("42\n", executed.StdOut);
+    }
+
+    [Fact]
+    public async Task JavaScriptProfile_Rejected_For_NonJavaScript_Emit_Target()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("input.ts", "function main(): number { return 42; }");
+
+        CliResult result = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            "mir",
+            "--javascript-profile",
+            "symbolic");
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.Contains("valid only with '--emit javascript'", result.StdErr, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("release")]
+    [InlineData("unknown")]
+    public async Task Unsupported_JavaScriptProfile_Fails_Before_Artifact_Output(string profile)
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("input.ts", "function main(): number { return 42; }");
+        string outputPath = Path.Combine(temp.Path, "output.js");
+
+        CliResult result = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            "javascript",
+            "--javascript-profile",
+            profile,
+            "--out",
+            outputPath);
+
+        Assert.Equal(2, result.ExitCode);
+        Assert.False(File.Exists(outputPath));
+        Assert.Contains("Unsupported JavaScript profile", result.StdErr, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task EmitJavaScriptEquality_Executes_In_Node()
     {
         using var temp = new TempDir();

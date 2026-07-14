@@ -37,6 +37,7 @@ internal static class Program
         string sourcePath = args[1];
         string? emitTarget = null;
         string? outPath = null;
+        string? javaScriptProfile = null;
 
         for (int index = 2; index < args.Length; index += 1)
         {
@@ -65,6 +66,18 @@ internal static class Program
                 continue;
             }
 
+            if (argument == "--javascript-profile")
+            {
+                if (index + 1 >= args.Length)
+                {
+                    return UsageError("COPE-CLI-0006", "Option '--javascript-profile' requires a value.");
+                }
+
+                javaScriptProfile = args[index + 1];
+                index += 1;
+                continue;
+            }
+
             if (argument.StartsWith("--", StringComparison.Ordinal))
             {
                 return UsageError("COPE-CLI-0005", $"Unknown option '{argument}'.");
@@ -83,6 +96,27 @@ internal static class Program
             !string.Equals(emitTarget, "javascript", StringComparison.Ordinal))
         {
             return UsageError("COPE-CLI-0002", $"Unknown emit target '{emitTarget}'. Use 'mir', 'csharp', or 'javascript'.");
+        }
+
+        if (javaScriptProfile is not null && !string.Equals(emitTarget, "javascript", StringComparison.Ordinal))
+        {
+            return UsageError("COPE-CLI-0022", "Option '--javascript-profile' is valid only with '--emit javascript'.");
+        }
+
+        JavaScriptEmissionProfile profile = JavaScriptEmissionProfile.Diagnostic;
+        if (javaScriptProfile is not null)
+        {
+            profile = javaScriptProfile switch
+            {
+                "diagnostic" => JavaScriptEmissionProfile.Diagnostic,
+                "symbolic" => JavaScriptEmissionProfile.Symbolic,
+                "release" => (JavaScriptEmissionProfile)(-1),
+                _ => (JavaScriptEmissionProfile)(-1),
+            };
+            if (!Enum.IsDefined(profile))
+            {
+                return UsageError("COPE-CLI-0023", $"Unsupported JavaScript profile '{javaScriptProfile}'. Use 'diagnostic' or 'symbolic'; Release is deferred.");
+            }
         }
 
         if (!TryReadAllText(sourcePath, out string? sourceText, out int readFailureExitCode))
@@ -130,7 +164,9 @@ internal static class Program
 
         if (string.Equals(emitTarget, "javascript", StringComparison.Ordinal))
         {
-            var javaScriptCompilation = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+            var javaScriptCompilation = JavaScriptBackend.Emit(
+                compilation.MirCompilation!.Program!,
+                new JavaScriptEmissionOptions { Profile = profile });
             if (!javaScriptCompilation.Success)
             {
                 foreach (var diagnostic in javaScriptCompilation.Diagnostics)
@@ -386,7 +422,7 @@ internal static class Program
     private static int UsageError(string id, string message)
     {
         Console.Error.WriteLine("Usage:");
-        Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--out <path>]");
+        Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
         Console.Error.WriteLine($"{id} error: {message}");

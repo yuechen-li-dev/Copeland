@@ -1,5 +1,7 @@
 # Copeland TS JavaScript emission profiles design (CTS-JS-EMIT-M0a)
 
+> **Routing update:** CTS-JS-EMIT-M1 implements the approved Diagnostic/Symbolic profile slice on the M0b scoped allocator. This design remains the vocabulary and measurement authority; Release remains deferred. See [the M1 architecture record](../architecture/copeland-ts-symbolic-javascript-emission-cts-js-emit-m1.md).
+
 **Status:** accepted documentation, architecture-audit, and temporary-experiment design. This milestone changes no production emitter, generated artifact, corpus hash, CLI behavior, dependency, or runtime law. The current `--emit javascript` output remains the Diagnostic authority.
 
 ## Decision
