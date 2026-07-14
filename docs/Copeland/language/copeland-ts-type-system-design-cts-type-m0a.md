@@ -1,6 +1,6 @@
 # Copeland TS user-authored type-system design (CTS-TYPE-M0a)
 
-**Status:** accepted architecture recommendation. M0a itself changed documentation only; its first implementation milestone, [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md), now implements transparent non-generic compilation-unit aliases. Interfaces, generics, and static evaluation remain unimplemented.
+**Status:** accepted architecture recommendation. M0a itself changed documentation only; its first implementation milestone, [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md), now implements transparent non-generic compilation-unit aliases. [CTS-TYPE-M1a](copeland-ts-interface-requirements-design-cts-type-m1a.md) is the accepted documentation-only architecture for erased field-only interface requirements. Interfaces, generics, and static evaluation remain unimplemented.
 
 ## Decision
 
@@ -166,7 +166,7 @@ Aliases, interfaces, open type parameters, and open generics are not new TSON va
 
 ### Fixtures, corpus, and historical evidence
 
-The current language-law tree contains 28 valid and 67 invalid fixtures: valid coverage includes arrays, conditions, control flow, declarations, equality, fallibility, functions, records, tables, and tagged data; invalid coverage adds absence, coercion, and dynamic-type rejection. There is no valid alias/interface/generic fixture. `TestData/Corpus`, `MirCorpusTests`, focused record/table/TSON suites, C# corpus/runtime tests, JavaScript Diagnostic/Symbolic corpora, and Node runtime tests separately cover syntax-to-artifact and runtime behavior.
+The current language-law tree contains 31 valid and 83 invalid fixtures: M0b adds valid and invalid alias coverage alongside arrays, conditions, control flow, declarations, equality, fallibility, functions, records, tables, and tagged data. No fixture accepts interfaces or generics. `TestData/Corpus`, `MirCorpusTests`, focused record/table/TSON suites, C# corpus/runtime tests, JavaScript Diagnostic/Symbolic corpora, and Node runtime tests separately cover syntax-to-artifact and runtime behavior.
 
 Historical evidence is deliberately subordinate:
 

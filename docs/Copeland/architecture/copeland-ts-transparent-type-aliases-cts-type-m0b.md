@@ -2,6 +2,8 @@
 
 **Status:** implemented and closed for non-generic compilation-unit aliases. This record implements the first code milestone selected by [CTS-TYPE-M0a](../language/copeland-ts-type-system-design-cts-type-m0a.md); it does not reopen M0a's accepted type, record, interface, generic, static-evaluation, or backend doctrine.
 
+> **Later design authority:** [CTS-TYPE-M1a](../language/copeland-ts-interface-requirements-design-cts-type-m1a.md) selects erased field-only interfaces as generic-constraint requirement sets. It does not implement or widen this M0b alias boundary.
+
 ## Source and scope
 
 The grammar is:
