@@ -6,8 +6,8 @@ public sealed class DiagnosticBag
 
     public IReadOnlyList<Diagnostic> Diagnostics => _diagnostics;
 
-    public void Report(string id, string message, int position, int length)
+    public void Report(string id, string message, int position, int length, string? sourcePath = null)
     {
-        _diagnostics.Add(new Diagnostic(id, message, position, length));
+        _diagnostics.Add(new Diagnostic(id, message, position, length, sourcePath));
     }
 }

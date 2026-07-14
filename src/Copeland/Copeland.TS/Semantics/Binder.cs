@@ -1,6 +1,8 @@
 using Copeland.TS.Diagnostics;
+using Copeland.TS.Compiler;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
+using Copeland.TS.Tson;
 
 namespace Copeland.TS.Semantics;
 
@@ -8,7 +10,13 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree);
+        var impl = new BinderImpl(tree, null);
+        return impl.Bind();
+    }
+
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver)
+    {
+        var impl = new BinderImpl(tree, assetResolver);
         return impl.Bind();
     }
 
@@ -25,9 +33,10 @@ public static class Binder
         }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree)
+    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver)
     {
         private readonly SyntaxTree _tree = tree;
+        private readonly CopelandAssetResolver? _assetResolver = assetResolver;
         private readonly DiagnosticBag _diagnostics = new();
         private readonly Scope _global = new(null);
         private Scope _scope = null!;
@@ -45,6 +54,7 @@ public static class Binder
         private int _nextHandlerId = 1;
         private int _nextRecordTypeId = 1;
         private int _nextTableTypeId = 1;
+        private string? _schemaIdentity;
 
         private sealed class PropagationTargetContext(BoundHandlerId handlerId)
         {
@@ -56,6 +66,7 @@ public static class Binder
         public BoundCompilation Bind()
         {
             _scope = _global;
+            BindSchemaMetadata(_tree.Root);
             PredeclareTableBoundsError();
             PredeclareRecords(_tree.Root);
             PredeclareTables(_tree.Root);
@@ -70,7 +81,7 @@ public static class Binder
                 if (m is FunctionDeclarationSyntax f) _functions.Add(BindFunction(f));
                 else if (m is EnumDeclarationSyntax e && e.Identifier.Text != "TableBoundsError" && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
                 else if (m is RecordDeclarationSyntax r && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
-                else if (m is GlobalStatementMemberSyntax g) _globals.Add(BindStatement(g.Statement));
+                else if (m is GlobalStatementMemberSyntax g && !IsSchemaDeclaration(g.Statement)) _globals.Add(BindStatement(g.Statement));
             }
             if (_tables.Count > 0 && _tableBoundsErrorType is not null)
             {
@@ -234,16 +245,90 @@ public static class Binder
             return cyclic;
         }
 
+        private void BindSchemaMetadata(CompilationUnitSyntax root)
+        {
+            var declarations = root.Members
+                .OfType<GlobalStatementMemberSyntax>()
+                .Select(member => member.Statement)
+                .OfType<VariableDeclarationStatementSyntax>()
+                .Where(declaration => declaration.Identifier.Text == "$schema")
+                .ToArray();
+
+            if (declarations.Length > 1)
+            {
+                foreach (var duplicate in declarations.Skip(1))
+                {
+                    Report("COPE-TSON-ASSET-0004", "A compilation unit can declare '$schema' only once.", duplicate.Identifier);
+                }
+            }
+
+            if (declarations.Length == 0)
+            {
+                return;
+            }
+
+            var declaration = declarations[0];
+            bool exactForm = declaration.Keyword.Kind == SyntaxKind.ConstKeyword
+                && declaration.Type is PredefinedTypeSyntax predefined
+                && predefined.Keyword.Kind == SyntaxKind.StringKeyword
+                && declaration.Initializer is LiteralExpressionSyntax literal
+                && literal.LiteralToken.Kind == SyntaxKind.StringToken;
+            if (!exactForm)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0004",
+                    "Schema metadata must use exactly 'const $schema: string = \"copeland://...\";'.",
+                    declaration.Identifier);
+                return;
+            }
+
+            var schemaLiteral = (LiteralExpressionSyntax)declaration.Initializer;
+            string identity = (string)schemaLiteral.LiteralToken.Value!;
+            if (!IsValidSchemaIdentity(identity))
+            {
+                Report(
+                    "COPE-TSON-ASSET-0004",
+                    "Schema identity must be a nonblank whitespace-free 'copeland://...' value without '#'.",
+                    schemaLiteral.LiteralToken);
+                return;
+            }
+
+            _schemaIdentity = identity;
+        }
+
+        private static bool IsSchemaDeclaration(StatementSyntax statement)
+        {
+            return statement is VariableDeclarationStatementSyntax declaration
+                && declaration.Identifier.Text == "$schema";
+        }
+
+        private static bool IsValidSchemaIdentity(string identity)
+        {
+            return identity.StartsWith("copeland://", StringComparison.Ordinal)
+                && identity.Length > "copeland://".Length
+                && !identity.Any(char.IsWhiteSpace)
+                && !identity.Contains('#', StringComparison.Ordinal);
+        }
+
         private void PredeclareRecords(CompilationUnitSyntax root)
         {
             foreach (var declaration in root.Members.OfType<RecordDeclarationSyntax>())
             {
+                if (declaration.Identifier.Text == "tsonAsset")
+                {
+                    Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be redefined.", declaration.Identifier);
+                    continue;
+                }
                 if (declaration.ConstKeyword is not null)
                 {
                     Report("COPE-REC-0001", "Record declarations use 'record', not 'const record'.", declaration.ConstKeyword);
                 }
 
-                var recordType = new RecordTypeSymbol(declaration.Identifier.Text, new RecordTypeId(_nextRecordTypeId++));
+                string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{declaration.Identifier.Text}";
+                var recordType = new RecordTypeSymbol(
+                    declaration.Identifier.Text,
+                    new RecordTypeId(_nextRecordTypeId++),
+                    identity);
                 if (!_global.TryDeclare(new VariableSymbol(recordType.Name, recordType, true)) || _recordTypes.ContainsKey(recordType.Name))
                 {
                     Report("COPE-REC-0002", $"Duplicate record declaration '{recordType.Name}'.", declaration.Identifier);
@@ -348,6 +433,11 @@ public static class Binder
         {
             foreach (var m in root.Members.OfType<FunctionDeclarationSyntax>())
             {
+                if (m.Identifier.Text == "tsonAsset")
+                {
+                    Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be redefined.", m.Identifier);
+                    continue;
+                }
                 var ps = new List<ParameterSymbol>();
                 var seen = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var p in m.Parameters)
@@ -370,12 +460,18 @@ public static class Binder
         {
             foreach (var m in root.Members.OfType<EnumDeclarationSyntax>())
             {
+                if (m.Identifier.Text == "tsonAsset")
+                {
+                    Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be redefined.", m.Identifier);
+                    continue;
+                }
                 if (m.Identifier.Text == "TableBoundsError")
                 {
                     Report("COPE-TABLE-0002", "'TableBoundsError' is a compiler-owned table bounds enum.", m.Identifier);
                     continue;
                 }
-                var enumType = new EnumTypeSymbol(m.Identifier.Text);
+                string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{m.Identifier.Text}";
+                var enumType = new EnumTypeSymbol(m.Identifier.Text, identity);
                 if (_tableTypes.ContainsKey(m.Identifier.Text))
                 {
                     Report("COPE-TABLE-0002", $"Name '{m.Identifier.Text}' is already used by a record table.", m.Identifier);
@@ -487,8 +583,26 @@ public static class Binder
         private BoundStatement BindVariable(VariableDeclarationStatementSyntax v)
         {
             if (v.Keyword.Kind == SyntaxKind.VarKeyword) Report("COPE-PROFILE-0001", "'var' is not supported by Browser TypeScript Profile v1.", v.Keyword);
+            if (v.Identifier.Text is "$schema" or "tsonAsset")
+            {
+                string message = v.Identifier.Text == "$schema"
+                    ? "'$schema' is reserved compilation-unit metadata and cannot be declared here."
+                    : "'tsonAsset' is a compiler intrinsic and cannot be declared or shadowed.";
+                Report("COPE-TSON-ASSET-0001", message, v.Identifier);
+            }
             var type = BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
-            var init = BindExpression(v.Initializer, type);
+            BoundExpression init;
+            if (IsTsonAssetCall(v.Initializer))
+            {
+                bool isSupportedPosition = !ReferenceEquals(_scope, _global)
+                    && v.Keyword.Kind == SyntaxKind.ConstKeyword
+                    && v.Type is not null;
+                init = BindTsonAsset((CallExpressionSyntax)v.Initializer, type, isSupportedPosition);
+            }
+            else
+            {
+                init = BindExpression(v.Initializer, type);
+            }
             if (!IsAssignable(type, init.Type)) ReportTypeMismatch("COPE-TYPE-0001", type, init.Type, v.Identifier);
             var varSym = new VariableSymbol(v.Identifier.Text, type, v.Keyword.Kind == SyntaxKind.ConstKeyword);
             if (!_scope.TryDeclare(varSym)) Report("COPE-BIND-0002", $"Duplicate declaration '{varSym.Name}'.", v.Identifier);
@@ -592,6 +706,11 @@ public static class Binder
 
         private BoundExpression BindName(NameExpressionSyntax n)
         {
+            if (n.IdentifierToken.Text == "tsonAsset")
+            {
+                Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be used as a value.", n.IdentifierToken);
+                return new BoundErrorExpression();
+            }
             if (!_scope.TryLookup(n.IdentifierToken.Text, out var symbol) || symbol is null)
             {
                 Report("COPE-BIND-0001", $"Undefined name '{n.IdentifierToken.Text}'.", n.IdentifierToken);
@@ -738,6 +857,14 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (IsTsonAssetCall(c))
+            {
+                Report(
+                    "COPE-TSON-ASSET-0001",
+                    "'tsonAsset' is supported only as the initializer of an explicitly typed local const.",
+                    ((NameExpressionSyntax)c.Target).IdentifierToken);
+                return new BoundErrorExpression();
+            }
             if (c.Target is NameExpressionSyntax n && n.IdentifierToken.Text == "eval")
                 Report("COPE-PROFILE-0003", "Dynamic evaluation is not supported by Browser TypeScript Profile v1.", n.IdentifierToken);
 
@@ -765,6 +892,480 @@ public static class Binder
             for (var i = 0; i < Math.Min(args.Length, fn.Parameters.Count); i++)
                 if (!IsAssignable(fn.Parameters[i].Type, args[i].Type)) ReportTypeMismatch("COPE-TYPE-0005", fn.Parameters[i].Type, args[i].Type, c.Arguments[i] is LiteralExpressionSyntax le ? le.LiteralToken : c.OpenParenToken);
             return new BoundCallExpression(fn, args);
+        }
+
+        private static bool IsTsonAssetCall(ExpressionSyntax expression)
+        {
+            return expression is CallExpressionSyntax call
+                && call.Target is NameExpressionSyntax name
+                && name.IdentifierToken.Text == "tsonAsset";
+        }
+
+        private BoundExpression BindTsonAsset(
+            CallExpressionSyntax call,
+            TypeSymbol expectedType,
+            bool isSupportedPosition)
+        {
+            var intrinsicName = (NameExpressionSyntax)call.Target;
+            if (!isSupportedPosition)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0001",
+                    "'tsonAsset' requires an explicitly typed local const initializer.",
+                    intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
+            if (expectedType is not RecordTypeSymbol && expectedType is not EnumTypeSymbol)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0001",
+                    $"'tsonAsset' expected type must be one nominal record or payload enum, not '{expectedType.Name}'.",
+                    intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
+            if (call.Arguments.Count != 1
+                || call.Arguments[0] is not LiteralExpressionSyntax pathLiteral
+                || pathLiteral.LiteralToken.Kind != SyntaxKind.StringToken)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0001",
+                    "'tsonAsset' requires exactly one string-literal relative path.",
+                    call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            string? expectedIdentity = expectedType switch
+            {
+                RecordTypeSymbol record => record.StableIdentity,
+                EnumTypeSymbol @enum => @enum.StableIdentity,
+                _ => null,
+            };
+            if (_schemaIdentity is null || expectedIdentity is null)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0004",
+                    "A compilation unit using 'tsonAsset' requires one valid top-level '$schema' declaration.",
+                    intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
+            if (_assetResolver is null)
+            {
+                Report(
+                    "COPE-TSON-ASSET-0002",
+                    "This compilation has no source path, compilation root, and asset source for resolving TSON assets.",
+                    pathLiteral.LiteralToken);
+                return new BoundErrorExpression();
+            }
+
+            string authoredPath = (string)pathLiteral.LiteralToken.Value!;
+            if (!_assetResolver.TryResolve(authoredPath, out var asset, out string? resolutionError))
+            {
+                Report(
+                    "COPE-TSON-ASSET-0002",
+                    resolutionError ?? "The TSON asset could not be resolved.",
+                    pathLiteral.LiteralToken);
+                return new BoundErrorExpression();
+            }
+
+            TsonDocumentProfile profile = asset!.NormalizedPath.EndsWith(".obj.ts", StringComparison.OrdinalIgnoreCase)
+                ? TsonDocumentProfile.ObjectTypeScript
+                : TsonDocumentProfile.CanonicalTson;
+            TsonReadResult read = TsonDocumentReader.ReadSelfDescribed(asset.SourceText, profile);
+            if (!read.Success)
+            {
+                foreach (var diagnostic in read.SyntaxDiagnostics)
+                {
+                    _diagnostics.Report(
+                        diagnostic.Id,
+                        $"TSON asset '{asset.NormalizedPath}': {diagnostic.Message}",
+                        diagnostic.Position,
+                        Math.Max(1, diagnostic.Length),
+                        asset.NormalizedPath);
+                }
+
+                foreach (var diagnostic in read.Diagnostics)
+                {
+                    _diagnostics.Report(
+                        diagnostic.Code,
+                        $"TSON asset '{asset.NormalizedPath}': {diagnostic.Message}",
+                        diagnostic.Position,
+                        diagnostic.Length,
+                        asset.NormalizedPath);
+                }
+
+                return new BoundErrorExpression();
+            }
+
+            if (read.Document!.Root is not TsonRecord && read.Document.Root is not TsonEnum)
+            {
+                ReportAssetUnsupported(
+                    asset.NormalizedPath,
+                    $"M1b requires one nominal record or payload-enum root; actual root is '{DescribeTsonValue(read.Document.Root)}'.",
+                    pathLiteral.LiteralToken);
+                return new BoundErrorExpression();
+            }
+
+            if (!ValidateTsonSchema(read.Document.Catalog, expectedType, asset.NormalizedPath, pathLiteral.LiteralToken))
+            {
+                return new BoundErrorExpression();
+            }
+
+            if (!TryLowerTsonValue(
+                    read.Document.Root,
+                    expectedType,
+                    asset.NormalizedPath,
+                    pathLiteral.LiteralToken,
+                    out BoundExpression? expression))
+            {
+                return new BoundErrorExpression();
+            }
+
+            return expression!;
+        }
+
+        private bool ValidateTsonSchema(
+            TsonCatalog catalog,
+            TypeSymbol expectedType,
+            string assetPath,
+            SyntaxToken callSite)
+        {
+            var visited = new HashSet<TypeSymbol>();
+            if (ValidateTsonSchemaType(catalog, expectedType, visited, out string? mismatch))
+            {
+                return true;
+            }
+
+            ReportAssetMismatch(assetPath, mismatch ?? "The asset schema does not match the compiled declaration graph.", callSite);
+            return false;
+        }
+
+        private static bool ValidateTsonSchemaType(
+            TsonCatalog catalog,
+            TypeSymbol type,
+            HashSet<TypeSymbol> visited,
+            out string? mismatch)
+        {
+            mismatch = null;
+            if (!visited.Add(type))
+            {
+                return true;
+            }
+
+            if (type is RecordTypeSymbol record)
+            {
+                if (!catalog.TryGetDefinition(record.Name, out TsonNominalDefinition? nominal)
+                    || nominal is not TsonRecordDefinition definition
+                    || definition.Identity != record.StableIdentity)
+                {
+                    mismatch = $"Expected record schema '{record.StableIdentity}' was not declared exactly by the asset.";
+                    return false;
+                }
+
+                if (definition.Fields.Count != record.Fields.Count)
+                {
+                    mismatch = $"Record schema '{record.StableIdentity}' has a different field count.";
+                    return false;
+                }
+
+                for (int index = 0; index < record.Fields.Count; index++)
+                {
+                    RecordFieldSymbol field = record.Fields[index];
+                    TsonFieldDefinition authored = definition.Fields[index];
+                    string identity = $"{record.StableIdentity}.{field.Name}";
+                    if (authored.Name != field.Name
+                        || authored.Identity != identity
+                        || !TsonTypeMatches(authored.Type, field.Type))
+                    {
+                        mismatch = $"Record field schema mismatch: expected '{identity}'.";
+                        return false;
+                    }
+
+                    if (!ValidateTsonSchemaType(catalog, field.Type, visited, out mismatch))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            if (type is EnumTypeSymbol enumType)
+            {
+                if (!catalog.TryGetDefinition(enumType.Name, out TsonNominalDefinition? nominal)
+                    || nominal is not TsonEnumDefinition definition
+                    || definition.Identity != enumType.StableIdentity)
+                {
+                    mismatch = $"Expected enum schema '{enumType.StableIdentity}' was not declared exactly by the asset.";
+                    return false;
+                }
+
+                if (definition.Cases.Count != enumType.Cases.Count)
+                {
+                    mismatch = $"Enum schema '{enumType.StableIdentity}' has a different case count.";
+                    return false;
+                }
+
+                for (int caseIndex = 0; caseIndex < enumType.Cases.Count; caseIndex++)
+                {
+                    EnumCaseSymbol enumCase = enumType.Cases[caseIndex];
+                    TsonEnumCaseDefinition authoredCase = definition.Cases[caseIndex];
+                    string caseIdentity = $"{enumType.StableIdentity}.{enumCase.Name}";
+                    if (authoredCase.Name != enumCase.Name
+                        || authoredCase.Identity != caseIdentity
+                        || authoredCase.Payloads.Count != enumCase.PayloadFields.Count)
+                    {
+                        mismatch = $"Enum case schema mismatch: expected '{caseIdentity}'.";
+                        return false;
+                    }
+
+                    for (int payloadIndex = 0; payloadIndex < enumCase.PayloadFields.Count; payloadIndex++)
+                    {
+                        EnumPayloadFieldSymbol payload = enumCase.PayloadFields[payloadIndex];
+                        TsonFieldDefinition authoredPayload = authoredCase.Payloads[payloadIndex];
+                        string payloadIdentity = $"{caseIdentity}.{payload.Name}";
+                        if (authoredPayload.Name != payload.Name
+                            || authoredPayload.Identity != payloadIdentity
+                            || !TsonTypeMatches(authoredPayload.Type, payload.Type))
+                        {
+                            mismatch = $"Enum payload schema mismatch: expected '{payloadIdentity}'.";
+                            return false;
+                        }
+
+                        if (!ValidateTsonSchemaType(catalog, payload.Type, visited, out mismatch))
+                        {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            if (type is PrimitiveTypeSymbol primitive
+                && primitive != PrimitiveTypeSymbol.Boolean
+                && primitive != PrimitiveTypeSymbol.Number
+                && primitive != PrimitiveTypeSymbol.String)
+            {
+                mismatch = $"Type '{type.Name}' is unsupported in TSON assets.";
+                return false;
+            }
+
+            if (type is not PrimitiveTypeSymbol)
+            {
+                mismatch = $"Type '{type.Name}' is unsupported in TSON assets.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TsonTypeMatches(TsonTypeReference authored, TypeSymbol compiled)
+        {
+            return (authored.Kind, compiled) switch
+            {
+                (TsonTypeKind.Boolean, PrimitiveTypeSymbol primitive) => primitive == PrimitiveTypeSymbol.Boolean,
+                (TsonTypeKind.Number, PrimitiveTypeSymbol primitive) => primitive == PrimitiveTypeSymbol.Number,
+                (TsonTypeKind.String, PrimitiveTypeSymbol primitive) => primitive == PrimitiveTypeSymbol.String,
+                (TsonTypeKind.Record, RecordTypeSymbol record) => authored.NominalName == record.Name,
+                (TsonTypeKind.Enum, EnumTypeSymbol enumType) => authored.NominalName == enumType.Name,
+                _ => false,
+            };
+        }
+
+        private bool TryLowerTsonValue(
+            TsonValue value,
+            TypeSymbol expectedType,
+            string assetPath,
+            SyntaxToken callSite,
+            out BoundExpression? expression)
+        {
+            expression = null;
+            switch (expectedType)
+            {
+                case PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Boolean && value is TsonBoolean boolean:
+                    expression = new BoundLiteralExpression(boolean.Value, primitive);
+                    return true;
+                case PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Number && value is TsonNumber number:
+                    expression = new BoundLiteralExpression(number.Value, primitive);
+                    return true;
+                case PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.String && value is TsonString text:
+                    expression = new BoundLiteralExpression(text.Value, primitive);
+                    return true;
+                case RecordTypeSymbol record:
+                    return TryLowerTsonRecord(value, record, assetPath, callSite, out expression);
+                case EnumTypeSymbol @enum:
+                    return TryLowerTsonEnum(value, @enum, assetPath, callSite, out expression);
+                case PrimitiveTypeSymbol primitive
+                    when primitive == PrimitiveTypeSymbol.Boolean
+                        || primitive == PrimitiveTypeSymbol.Number
+                        || primitive == PrimitiveTypeSymbol.String:
+                    ReportAssetMismatch(
+                        assetPath,
+                        $"TSON value type mismatch: expected '{expectedType.Name}', actual '{DescribeTsonValue(value)}'.",
+                        callSite);
+                    return false;
+                default:
+                    ReportAssetUnsupported(
+                        assetPath,
+                        $"TSON asset value type is unsupported in M1b; expected '{expectedType.Name}'.",
+                        callSite);
+                    return false;
+            }
+        }
+
+        private bool TryLowerTsonRecord(
+            TsonValue value,
+            RecordTypeSymbol record,
+            string assetPath,
+            SyntaxToken callSite,
+            out BoundExpression? expression)
+        {
+            expression = null;
+            if (value is not TsonRecord tsonRecord)
+            {
+                if (value is TsonObject)
+                {
+                    ReportAssetUnsupported(assetPath, "A structural TSON object cannot become a compiled runtime record or root.", callSite);
+                    return false;
+                }
+
+                ReportAssetMismatch(assetPath, $"Expected nominal record identity '{record.StableIdentity}', but the asset root/value is '{DescribeTsonValue(value)}'.", callSite);
+                return false;
+            }
+
+            if (!string.Equals(record.StableIdentity, tsonRecord.Identity, StringComparison.Ordinal))
+            {
+                ReportAssetMismatch(assetPath, $"Stable identity mismatch: expected '{record.StableIdentity}', actual '{tsonRecord.Identity}'.", callSite);
+                return false;
+            }
+
+            if (record.Fields.Count != tsonRecord.Fields.Count)
+            {
+                ReportAssetMismatch(assetPath, $"Record '{record.StableIdentity}' field count does not match the compiled declaration.", callSite);
+                return false;
+            }
+
+            var initializers = new List<BoundRecordFieldInitializer>();
+            for (int index = 0; index < record.Fields.Count; index++)
+            {
+                RecordFieldSymbol field = record.Fields[index];
+                TsonField tsonField = tsonRecord.Fields[index];
+                string fieldIdentity = $"{record.StableIdentity}.{field.Name}";
+                if (field.Name != tsonField.Name || tsonField.Identity != fieldIdentity)
+                {
+                    ReportAssetMismatch(assetPath, $"Record field mismatch: expected '{fieldIdentity}', actual '{tsonField.Identity ?? tsonField.Name}'.", callSite);
+                    return false;
+                }
+
+                if (!TryLowerTsonValue(tsonField.Value, field.Type, assetPath, callSite, out BoundExpression? child))
+                {
+                    return false;
+                }
+
+                initializers.Add(new BoundRecordFieldInitializer(field, child!));
+            }
+
+            expression = new BoundRecordConstructionExpression(record, initializers);
+            return true;
+        }
+
+        private bool TryLowerTsonEnum(
+            TsonValue value,
+            EnumTypeSymbol enumType,
+            string assetPath,
+            SyntaxToken callSite,
+            out BoundExpression? expression)
+        {
+            expression = null;
+            if (value is not TsonEnum tsonEnum)
+            {
+                if (value is TsonObject)
+                {
+                    ReportAssetUnsupported(assetPath, "A structural TSON object cannot become a compiled runtime enum or root.", callSite);
+                    return false;
+                }
+
+                ReportAssetMismatch(assetPath, $"Expected nominal enum identity '{enumType.StableIdentity}', but the asset root/value is '{DescribeTsonValue(value)}'.", callSite);
+                return false;
+            }
+
+            if (!string.Equals(enumType.StableIdentity, tsonEnum.EnumIdentity, StringComparison.Ordinal))
+            {
+                ReportAssetMismatch(assetPath, $"Stable identity mismatch: expected '{enumType.StableIdentity}', actual '{tsonEnum.EnumIdentity}'.", callSite);
+                return false;
+            }
+
+            EnumCaseSymbol? enumCase = enumType.Cases.FirstOrDefault(candidate => candidate.Name == tsonEnum.CaseName);
+            string expectedCaseIdentity = $"{enumType.StableIdentity}.{tsonEnum.CaseName}";
+            if (enumCase is null || tsonEnum.CaseIdentity != expectedCaseIdentity)
+            {
+                ReportAssetMismatch(assetPath, $"Enum case mismatch for '{enumType.StableIdentity}': actual '{tsonEnum.CaseIdentity}'.", callSite);
+                return false;
+            }
+
+            if (enumCase.PayloadFields.Count != tsonEnum.Payloads.Count)
+            {
+                ReportAssetMismatch(assetPath, $"Enum case '{expectedCaseIdentity}' payload count does not match the compiled declaration.", callSite);
+                return false;
+            }
+
+            var arguments = new List<BoundExpression>();
+            for (int index = 0; index < enumCase.PayloadFields.Count; index++)
+            {
+                EnumPayloadFieldSymbol payload = enumCase.PayloadFields[index];
+                TsonField tsonPayload = tsonEnum.Payloads[index];
+                string payloadIdentity = $"{expectedCaseIdentity}.{payload.Name}";
+                if (payload.Name != tsonPayload.Name || tsonPayload.Identity != payloadIdentity)
+                {
+                    ReportAssetMismatch(assetPath, $"Enum payload mismatch: expected '{payloadIdentity}', actual '{tsonPayload.Identity ?? tsonPayload.Name}'.", callSite);
+                    return false;
+                }
+
+                if (!TryLowerTsonValue(tsonPayload.Value, payload.Type, assetPath, callSite, out BoundExpression? child))
+                {
+                    return false;
+                }
+
+                arguments.Add(child!);
+            }
+
+            expression = new BoundEnumValueExpression(enumCase, arguments);
+            return true;
+        }
+
+        private static string DescribeTsonValue(TsonValue value)
+        {
+            return value switch
+            {
+                TsonRecord record => record.Identity,
+                TsonEnum @enum => @enum.EnumIdentity,
+                TsonObject => "structural object",
+                TsonBoolean => "boolean",
+                TsonNumber => "number",
+                TsonString => "string",
+                _ => "unsupported value",
+            };
+        }
+
+        private void ReportAssetMismatch(string assetPath, string message, SyntaxToken callSite)
+        {
+            _diagnostics.Report(
+                "COPE-TSON-ASSET-0003",
+                $"TSON asset '{assetPath}': {message}",
+                callSite.Position,
+                Math.Max(1, callSite.Text.Length));
+        }
+
+        private void ReportAssetUnsupported(string assetPath, string message, SyntaxToken callSite)
+        {
+            _diagnostics.Report(
+                "COPE-TSON-ASSET-0005",
+                $"TSON asset '{assetPath}': {message}",
+                callSite.Position,
+                Math.Max(1, callSite.Text.Length));
         }
 
         private BoundExpression BindTryExcept(TryExceptExpressionSyntax tryExcept, TypeSymbol? contextualType)

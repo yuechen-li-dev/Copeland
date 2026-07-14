@@ -90,7 +90,15 @@ internal static class Program
             return readFailureExitCode;
         }
 
-        CopelandCompilation compilation = CopelandCompiler.CompileToMir(sourceText!);
+        string fullSourcePath = Path.GetFullPath(sourcePath);
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(
+            sourceText!,
+            new CopelandCompilationOptions
+            {
+                SourcePath = fullSourcePath,
+                ProjectRoot = Path.GetDirectoryName(fullSourcePath),
+                AssetSource = FileSystemAssetSource.Instance,
+            });
 
         if (!compilation.Success)
         {
@@ -383,5 +391,24 @@ internal static class Program
         Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
         Console.Error.WriteLine($"{id} error: {message}");
         return UsageErrorExitCode;
+    }
+
+    private sealed class FileSystemAssetSource : ICopelandAssetSource
+    {
+        public static FileSystemAssetSource Instance { get; } = new();
+
+        public bool TryRead(string normalizedPath, out string? sourceText)
+        {
+            try
+            {
+                sourceText = File.ReadAllText(normalizedPath);
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                sourceText = null;
+                return false;
+            }
+        }
     }
 }

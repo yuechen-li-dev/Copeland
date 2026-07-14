@@ -1,6 +1,6 @@
 # Copeland TS TSON value projection: CTS-TSON-M1a design audit
 
-**Status:** accepted documentation-only architecture milestone. CTS-TSON-M1a changes no production code, tests, fixtures, projects, packages, CLI behavior, parser behavior, MIR, backend emission, runtime library, import behavior, codec, or JSON behavior.
+**Status:** accepted documentation-only architecture milestone; its selected compile-time operation is implemented by [CTS-TSON-M1b](../architecture/copeland-ts-compile-time-tson-assets-cts-tson-m1b.md). M1a itself changed no production code.
 
 ## Executive decision
 

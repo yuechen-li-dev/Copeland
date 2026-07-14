@@ -13,7 +13,8 @@ public sealed class CopelandCompilation
         SyntaxTree? syntaxTree,
         BoundCompilation? boundCompilation,
         MirCompilation? mirCompilation,
-        string? mirText)
+        string? mirText,
+        IReadOnlyList<CopelandAssetDependency>? assetDependencies = null)
     {
         TargetStage = targetStage;
         Diagnostics = diagnostics;
@@ -21,6 +22,7 @@ public sealed class CopelandCompilation
         BoundCompilation = boundCompilation;
         MirCompilation = mirCompilation;
         MirText = mirText;
+        AssetDependencies = assetDependencies ?? [];
     }
 
     public CopelandCompilationStage TargetStage { get; }
@@ -36,6 +38,8 @@ public sealed class CopelandCompilation
     public MirCompilation? MirCompilation { get; }
 
     public string? MirText { get; }
+
+    public IReadOnlyList<CopelandAssetDependency> AssetDependencies { get; }
 
     private bool ReachedTargetStage => TargetStage switch
     {

@@ -195,6 +195,27 @@ Require-Condition ($null -eq $forbiddenTsonDependencies) "TSON contains a prohib
 $forbiddenTsonVariants = $tsonSources | Select-String -Pattern 'class\s+Tson(Array|Result|Table|Json)\b|record\s+Tson(Array|Result|Table|Json)\b'
 Require-Condition ($null -eq $forbiddenTsonVariants) "TSON M0b must not implement array, Result, table, or JSON variants."
 
+$tsonAssetFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonAssets"
+Require-Condition (Test-Path -LiteralPath (Join-Path $tsonAssetFixtureRoot "Valid") -PathType Container) "TSON asset Valid fixture ownership is missing."
+Require-Condition (Test-Path -LiteralPath (Join-Path $tsonAssetFixtureRoot "Invalid") -PathType Container) "TSON asset Invalid fixture ownership is missing."
+$tsonAssetSources = @(Get-ChildItem -LiteralPath $tsonAssetFixtureRoot -Recurse -Filter *.asset-*.ts -File)
+$tsonAssetObjectFiles = @(Get-ChildItem -LiteralPath $tsonAssetFixtureRoot -Recurse -Filter *.obj.ts -File)
+$tsonAssetCanonicalFiles = @(Get-ChildItem -LiteralPath $tsonAssetFixtureRoot -Recurse -Filter *.tson -File)
+Require-Condition ($tsonAssetSources.Count -ge 3) "TSON asset fixtures must own valid and invalid source cases."
+Require-Condition ($tsonAssetObjectFiles.Count -gt 0) "TSON asset fixtures must own an Object TypeScript asset."
+Require-Condition ($tsonAssetCanonicalFiles.Count -gt 0) "TSON asset fixtures must own a canonical TSON asset."
+
+$mirSources = @(Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Mir") -Recurse -Filter *.cs -File)
+$forbiddenMirTson = $mirSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|MirTson[A-Za-z]*)\b|Copeland\.TS\.Tson'
+Require-Condition ($null -eq $forbiddenMirTson) "Cope MIR must not contain or reference TSON compiler-host types or TSON-specific nodes."
+
+$backendSources = @(
+    Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File
+    Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript") -Recurse -Filter *.cs -File
+)
+$forbiddenBackendTson = $backendSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|TsonDocumentReader)\b|Copeland\.TS\.Tson'
+Require-Condition ($null -eq $forbiddenBackendTson) "Backends must not reference compiler-host TSON types."
+
 $forbiddenAbstractions = Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland") -Recurse -Filter *.cs -File |
     Select-String -Pattern 'IBackend|ICompilerBackend|IIntermediateRepresentation|ICompilerPass'
 Require-Condition ($null -eq $forbiddenAbstractions) "A forbidden universal compiler abstraction was introduced."
@@ -215,7 +236,10 @@ foreach ($artifact in $javaScriptArtifacts) {
 
 $misownedJavaScriptArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "tests/Copeland") -Recurse -Filter *.g.js -File |
     Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
-    Where-Object { -not $_.FullName.StartsWith($javaScriptFixtureRoot, [System.StringComparison]::OrdinalIgnoreCase) }
+    Where-Object {
+        -not $_.FullName.StartsWith($javaScriptFixtureRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
+        -not $_.FullName.StartsWith((Join-Path $tsonAssetFixtureRoot "Corpus"), [System.StringComparison]::OrdinalIgnoreCase)
+    }
 Require-Condition ($misownedJavaScriptArtifacts.Count -eq 0) "Generated JavaScript fixtures must be owned by Copeland.TS.Backend.JavaScript.Tests."
 
 Write-Output "Copeland TS topology validation passed."

@@ -40,11 +40,12 @@ public sealed class ErrorNominalTypeSymbol(string name) : TypeSymbol
     public override string Name { get; } = name;
 }
 
-public sealed class EnumTypeSymbol(string name) : TypeSymbol
+public sealed class EnumTypeSymbol(string name, string? stableIdentity = null) : TypeSymbol
 {
     private readonly List<EnumCaseSymbol> _cases = [];
     public override string Name { get; } = name;
     public IReadOnlyList<EnumCaseSymbol> Cases => _cases;
+    public string? StableIdentity { get; } = stableIdentity;
 
     public void AddCase(EnumCaseSymbol @case) => _cases.Add(@case);
 }
@@ -59,13 +60,14 @@ public readonly record struct RecordFieldId(RecordTypeId RecordTypeId, int Ordin
     public override string ToString() => $"{RecordTypeId}.f{Ordinal}";
 }
 
-public sealed class RecordTypeSymbol(string name, RecordTypeId id) : TypeSymbol
+public sealed class RecordTypeSymbol(string name, RecordTypeId id, string? stableIdentity = null) : TypeSymbol
 {
     private readonly List<RecordFieldSymbol> _fields = [];
 
     public override string Name { get; } = name;
     public RecordTypeId Id { get; } = id;
     public IReadOnlyList<RecordFieldSymbol> Fields => _fields;
+    public string? StableIdentity { get; } = stableIdentity;
 
     public void AddField(RecordFieldSymbol field)
     {

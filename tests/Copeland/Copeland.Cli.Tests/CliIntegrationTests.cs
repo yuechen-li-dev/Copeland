@@ -7,6 +7,63 @@ namespace Copeland.Cli.Tests;
 
 public sealed class CliIntegrationTests
 {
+    [Theory]
+    [InlineData("mir")]
+    [InlineData("csharp")]
+    [InlineData("javascript")]
+    public async Task Compile_resolves_Tson_asset_relative_to_source_for_every_emit_target(string emitTarget)
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", """
+            const $schema: string = "copeland://tests/cli-assets";
+            record Settings { value: number; }
+            function main(): number {
+                const settings: Settings = tsonAsset("./settings.obj.ts");
+                return settings.value;
+            }
+            """);
+        temp.WriteFile("settings.obj.ts", """
+            const $schema: string = "copeland://tests/cli-assets";
+            record Settings { value: number; }
+            const $value: Settings = { value: 42 };
+            """);
+
+        CliResult result = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.DoesNotContain("tsonAsset", result.StdOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("settings.obj.ts", result.StdOut, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Failed_Tson_asset_compilation_preserves_stale_output()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", """
+            const $schema: string = "copeland://tests/cli-assets";
+            record Settings { value: number; }
+            function main(): number {
+                const settings: Settings = tsonAsset("./missing.tson");
+                return settings.value;
+            }
+            """);
+        string outputPath = temp.WriteFile("output.g.js", "stale-output");
+
+        CliResult result = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            "javascript",
+            "--out",
+            outputPath);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("COPE-TSON-ASSET-0002", result.StdErr, StringComparison.Ordinal);
+        Assert.Equal("stale-output", File.ReadAllText(outputPath));
+    }
+
     [Fact]
     public async Task EmitMirToStdout()
     {

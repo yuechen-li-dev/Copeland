@@ -1,0 +1,12 @@
+module
+
+record Settings [r1]
+  field title [r1.f0]: string
+  field enabled [r1.f1]: boolean
+
+func load() -> Settings
+locals:
+  const settings: Settings
+entry:
+  store settings, record-new [r1] { [r1.f0]: "fixture", [r1.f1]: true }
+  return settings

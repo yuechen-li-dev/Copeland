@@ -20,12 +20,13 @@ public static class CopelandCompiler
         BoundCompilation? boundCompilation = null;
         MirCompilation? mirCompilation = null;
         string? mirText = null;
+        CopelandAssetResolver? assetResolver = CreateAssetResolver(effectiveOptions);
 
         if (effectiveOptions.TargetStage >= CopelandCompilationStage.Bound)
         {
             if (diagnostics.Count == 0)
             {
-                boundCompilation = Binder.Bind(syntaxTree);
+                boundCompilation = Binder.Bind(syntaxTree, assetResolver);
                 diagnostics.AddRange(boundCompilation.Diagnostics);
             }
         }
@@ -46,7 +47,8 @@ public static class CopelandCompiler
             syntaxTree,
             boundCompilation,
             mirCompilation,
-            mirText);
+            mirText,
+            assetResolver?.Dependencies);
     }
 
     public static CopelandCompilation CompileToMir(string sourceText, CopelandCompilationOptions? options = null)
@@ -56,7 +58,20 @@ public static class CopelandCompiler
         {
             TargetStage = CopelandCompilationStage.Mir,
             ModuleName = effectiveOptions.ModuleName,
+            SourcePath = effectiveOptions.SourcePath,
+            ProjectRoot = effectiveOptions.ProjectRoot,
+            AssetSource = effectiveOptions.AssetSource,
         });
+    }
+
+    private static CopelandAssetResolver? CreateAssetResolver(CopelandCompilationOptions options)
+    {
+        if (options.SourcePath is null || options.ProjectRoot is null || options.AssetSource is null)
+        {
+            return null;
+        }
+
+        return new CopelandAssetResolver(options.SourcePath, options.ProjectRoot, options.AssetSource);
     }
 
 }

@@ -1,0 +1,10 @@
+const $schema: string = "copeland://fixtures/assets-enum";
+
+enum Choice {
+    None,
+    Some(value: string),
+}
+
+const $value = Choice.Some(
+    "fixture"
+);

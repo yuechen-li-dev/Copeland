@@ -15,9 +15,42 @@ internal static class CSharpLiteralWriter
             int i => i.ToString("0.0", CultureInfo.InvariantCulture),
             long l => l.ToString("0.0", CultureInfo.InvariantCulture),
             float f => f.ToString("0.0###############", CultureInfo.InvariantCulture),
-            double d => d.ToString("0.0###############", CultureInfo.InvariantCulture),
+            double d => WriteDouble(d),
             _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null"
         };
+    }
+
+    private static string WriteDouble(double value)
+    {
+        if (double.IsNaN(value))
+        {
+            string bits = BitConverter.DoubleToUInt64Bits(value).ToString("X16", CultureInfo.InvariantCulture);
+            return $"global::System.BitConverter.UInt64BitsToDouble(0x{bits}UL)";
+        }
+
+        if (double.IsPositiveInfinity(value))
+        {
+            return "global::System.Double.PositiveInfinity";
+        }
+
+        if (double.IsNegativeInfinity(value))
+        {
+            return "global::System.Double.NegativeInfinity";
+        }
+
+        if (BitConverter.DoubleToUInt64Bits(value) == 0x8000000000000000)
+        {
+            return "-0.0";
+        }
+
+        string text = value.ToString("R", CultureInfo.InvariantCulture);
+        if (!text.Contains('.', StringComparison.Ordinal)
+            && !text.Contains('E', StringComparison.OrdinalIgnoreCase))
+        {
+            text += ".0";
+        }
+
+        return text;
     }
 
     private static string WriteString(string value)

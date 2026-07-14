@@ -111,7 +111,13 @@ public static class MirTextWriter
 
     private static string FormatExpression(MirExpression expr) => expr switch
     {
-        MirLiteralExpression l => l.Value switch { string s => $"\"{s}\"", bool b => b ? "true" : "false", _ => l.Value?.ToString() ?? "null" },
+        MirLiteralExpression l => l.Value switch
+        {
+            string s => $"\"{s}\"",
+            bool b => b ? "true" : "false",
+            IFormattable value => value.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+            _ => l.Value?.ToString() ?? "null",
+        },
         MirVariableExpression v => v.Name,
         MirAssignmentExpression a => $"{a.Name} = {FormatExpression(a.Expression)}",
         MirUnaryExpression u => $"({u.Operator}{FormatExpression(u.Operand)})",

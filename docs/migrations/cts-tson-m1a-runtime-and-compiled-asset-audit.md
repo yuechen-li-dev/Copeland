@@ -4,6 +4,8 @@
 
 CTS-TSON-M1a is a documentation-only architecture success. The authoritative design is [Copeland TS TSON value projection: CTS-TSON-M1a design audit](../Copeland/language/copeland-ts-tson-value-projection-design-cts-tson-m1a.md).
 
+> **Implemented follow-up:** [CTS-TSON-M1b](../Copeland/architecture/copeland-ts-compile-time-tson-assets-cts-tson-m1b.md) now implements the selected compile-time asset operation. Runtime encoding and decoding remain deferred exactly as M1a specifies.
+
 The selected next product operation is compile-time ingestion of one self-described `.obj.ts` or canonical `.tson` root into an explicitly typed nominal Copeland record or payload enum. Runtime encoding has an accepted reflection-free generated-projector direction but is deferred. Runtime text/byte decoding is blocked until one parser architecture exists for both generated C# and JavaScript; “reuse the parser” is not an implementation answer because the only production parser is in the compiler-host .NET assembly.
 
 ## Baseline
