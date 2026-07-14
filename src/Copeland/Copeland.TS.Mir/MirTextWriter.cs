@@ -134,6 +134,12 @@ public static class MirTextWriter
                 sb.AppendLine();
                 foreach (var s in f.BodyStatements) WriteStatement(sb, s, indent + 1);
                 break;
+            case MirBreakStatement:
+                sb.Append(i).AppendLine("break");
+                break;
+            case MirContinueStatement:
+                sb.Append(i).AppendLine("continue");
+                break;
         }
     }
 

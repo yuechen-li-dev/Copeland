@@ -13,6 +13,44 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptBackendTests
 {
     [Fact]
+    public void Control_flow_emits_structured_if_while_for_and_transfers()
+    {
+        JavaScriptCompilation compilation = Emit("""
+            function main(): number {
+                let total: number = 0;
+                for (let index: number = 0; index < 5; index = index + 1) {
+                    if (index == 2) { continue; }
+                    total = total + index;
+                }
+                while (total < 8) { total = total + 1; }
+                return total;
+            }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("if (", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("while (", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("for (;", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("continue;", compilation.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Malformed_loop_transfer_mir_is_rejected_before_javascript_emission()
+    {
+        var program = new MirProgram([], [
+            new MirFunction("main", [], new MirNamedType("void"), [], [new MirBreakStatement()]),
+        ]);
+
+        JavaScriptCompilation compilation = JavaScriptBackend.Emit(program);
+
+        Assert.False(compilation.Success);
+        Assert.Null(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
+            && diagnostic.Message.Contains("outside a loop", StringComparison.Ordinal));
+    }
+
+
+    [Fact]
     public void Valid_table_mir_emits_private_nominal_columnar_runtime()
     {
         MirProgram program = Lower("record table Samples { x: [1]; }");
@@ -380,7 +418,7 @@ public sealed class JavaScriptBackendTests
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
             && diagnostic.Message.Contains("non-exhaustive match", StringComparison.Ordinal));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("ParseError", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
     }
 

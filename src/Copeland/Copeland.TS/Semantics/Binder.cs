@@ -35,6 +35,7 @@ public static class Binder
 
     private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver)
     {
+        private int _loopDepth;
         private readonly SyntaxTree _tree = tree;
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
         private readonly DiagnosticBag _diagnostics = new();
@@ -955,9 +956,11 @@ public static class Binder
             VariableDeclarationStatementSyntax v => BindVariable(v),
             ExpressionStatementSyntax e => BindExpressionStatement(e),
             IfStatementSyntax i => BindIf(i),
-            WhileStatementSyntax w => new BoundWhileStatement(EnsureBoolean(BindExpression(w.Condition), w.WhileKeyword), BindStatement(w.Body)),
+            WhileStatementSyntax w => BindWhile(w),
             ForStatementSyntax f => BindFor(f),
             ReturnStatementSyntax r => BindReturn(r),
+            BreakStatementSyntax b => BindBreak(b),
+            ContinueStatementSyntax c => BindContinue(c),
             NestedRecordDeclarationStatementSyntax nested => BindNestedRecord(nested),
             NestedTableDeclarationStatementSyntax nested => BindNestedTable(nested),
             _ => new BoundExpressionStatement(new BoundErrorExpression())
@@ -1035,15 +1038,60 @@ public static class Binder
 
         private BoundStatement BindFor(ForStatementSyntax f)
         {
-            BoundStatement? init = f.Initializer switch
+            var previousScope = _scope;
+            _scope = new Scope(previousScope);
+            _loopDepth++;
+            try
             {
-                VariableDeclarationStatementSyntax v => BindVariable(v),
-                ExpressionSyntax e => new BoundExpressionStatement(BindExpression(e)),
-                _ => null
-            };
-            var c = f.Condition is null ? null : EnsureBoolean(BindExpression(f.Condition), f.ForKeyword);
-            var inc = f.Increment is null ? null : BindExpression(f.Increment);
-            return new BoundForStatement(init, c, inc, BindStatement(f.Body));
+                BoundStatement? initializer = f.Initializer switch
+                {
+                    VariableDeclarationStatementSyntax v => BindVariable(v),
+                    ExpressionSyntax e => new BoundExpressionStatement(BindExpression(e)),
+                    _ => null
+                };
+                var condition = f.Condition is null ? null : EnsureBoolean(BindExpression(f.Condition), f.ForKeyword);
+                var increment = f.Increment is null ? null : BindExpression(f.Increment);
+                return new BoundForStatement(initializer, condition, increment, BindStatement(f.Body));
+            }
+            finally
+            {
+                _loopDepth--;
+                _scope = previousScope;
+            }
+        }
+
+        private BoundStatement BindWhile(WhileStatementSyntax statement)
+        {
+            var condition = EnsureBoolean(BindExpression(statement.Condition), statement.WhileKeyword);
+            _loopDepth++;
+            try
+            {
+                return new BoundWhileStatement(condition, BindStatement(statement.Body));
+            }
+            finally
+            {
+                _loopDepth--;
+            }
+        }
+
+        private BoundStatement BindBreak(BreakStatementSyntax statement)
+        {
+            if (_loopDepth == 0)
+            {
+                Report("COPE-CFLOW-0001", "'break' is valid only inside a loop.", statement.BreakKeyword);
+            }
+
+            return new BoundBreakStatement();
+        }
+
+        private BoundStatement BindContinue(ContinueStatementSyntax statement)
+        {
+            if (_loopDepth == 0)
+            {
+                Report("COPE-CFLOW-0002", "'continue' is valid only inside a loop.", statement.ContinueKeyword);
+            }
+
+            return new BoundContinueStatement();
         }
 
         private BoundStatement BindReturn(ReturnStatementSyntax r)

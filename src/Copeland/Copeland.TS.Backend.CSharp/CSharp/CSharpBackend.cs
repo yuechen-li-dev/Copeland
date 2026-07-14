@@ -13,6 +13,7 @@ public static class CSharpBackend
     private sealed class CSharpEmissionState(IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
     {
         public Dictionary<MirHandlerId, HandlerTransfer> Handlers { get; } = [];
+        public Stack<MirExpression?> ContinueIncrements { get; } = new();
         public IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> Records { get; } = records;
         public int TryIndex { get; set; }
     }
@@ -396,7 +397,170 @@ public static class CSharpBackend
             case MirIfStatement conditional:
                 writer.WriteLine($"if ({EmitExpression(writer, conditional.Condition, function, enumNames, ref tempIndex, diagnostics)})"); writer.WriteLine("{"); writer.Indent(); foreach (var nested in conditional.ThenStatements) EmitStatement(writer, nested, function, enumNames, ref tempIndex, diagnostics); writer.Unindent(); writer.WriteLine("}");
                 if (conditional.ElseStatements is not null) { writer.WriteLine("else"); writer.WriteLine("{"); writer.Indent(); foreach (var nested in conditional.ElseStatements) EmitStatement(writer, nested, function, enumNames, ref tempIndex, diagnostics); writer.Unindent(); writer.WriteLine("}"); } break;
+            case MirWhileStatement loop:
+                EmitWhileStatement(writer, loop, function, enumNames, ref tempIndex, diagnostics);
+                break;
+            case MirForStatement loop:
+                EmitForStatement(writer, loop, function, enumNames, ref tempIndex, diagnostics);
+                break;
+            case MirBreakStatement:
+                writer.WriteLine("break;");
+                break;
+            case MirContinueStatement:
+                MirExpression? increment = CurrentEmissionState.Value?.ContinueIncrements.TryPeek(out MirExpression? currentIncrement) == true
+                    ? currentIncrement
+                    : null;
+                if (increment is not null)
+                {
+                    writer.WriteLine($"{EmitExpression(writer, increment, function, enumNames, ref tempIndex, diagnostics)};");
+                }
+                writer.WriteLine("continue;");
+                break;
             default: diagnostics.Add(new CSharpDiagnostic("COPE-CS-0001", $"Unsupported MIR statement: {statement.GetType().Name}")); break;
+        }
+    }
+
+    private static void EmitWhileStatement(
+        CSharpTextWriter writer,
+        MirWhileStatement loop,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        if (!ExpressionRequiresStatements(loop.Condition))
+        {
+            writer.WriteLine($"while ({EmitExpression(writer, loop.Condition, function, enumNames, ref tempIndex, diagnostics)})");
+            EmitStatementBlock(writer, loop.BodyStatements, function, enumNames, ref tempIndex, diagnostics);
+            return;
+        }
+
+        writer.WriteLine("while (true)");
+        writer.WriteLine("{");
+        writer.Indent();
+        string condition = EmitExpression(writer, loop.Condition, function, enumNames, ref tempIndex, diagnostics);
+        writer.WriteLine($"if (!({condition}))");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("break;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        EmitLoopBody(writer, loop.BodyStatements, null, function, enumNames, ref tempIndex, diagnostics);
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitForStatement(
+        CSharpTextWriter writer,
+        MirForStatement loop,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        writer.WriteLine("{");
+        writer.Indent();
+        if (loop.Initializer is not null)
+        {
+            EmitStatement(writer, loop.Initializer, function, enumNames, ref tempIndex, diagnostics);
+        }
+
+        bool requiresStaging = (loop.Condition is not null && ExpressionRequiresStatements(loop.Condition))
+            || (loop.Increment is not null && ExpressionRequiresStatements(loop.Increment));
+        if (!requiresStaging)
+        {
+            string condition = loop.Condition is null
+                ? string.Empty
+                : EmitExpression(writer, loop.Condition, function, enumNames, ref tempIndex, diagnostics);
+            string increment = loop.Increment is null
+                ? string.Empty
+                : EmitExpression(writer, loop.Increment, function, enumNames, ref tempIndex, diagnostics);
+            writer.WriteLine($"for (; {condition}; {increment})");
+            EmitLoopBodyBlock(writer, loop.BodyStatements, null, function, enumNames, ref tempIndex, diagnostics);
+        }
+        else
+        {
+            writer.WriteLine("while (true)");
+            writer.WriteLine("{");
+            writer.Indent();
+            if (loop.Condition is not null)
+            {
+                string condition = EmitExpression(writer, loop.Condition, function, enumNames, ref tempIndex, diagnostics);
+                writer.WriteLine($"if (!({condition}))");
+                writer.WriteLine("{");
+                writer.Indent();
+                writer.WriteLine("break;");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+            EmitLoopBody(writer, loop.BodyStatements, loop.Increment, function, enumNames, ref tempIndex, diagnostics);
+            if (loop.Increment is not null)
+            {
+                writer.WriteLine($"{EmitExpression(writer, loop.Increment, function, enumNames, ref tempIndex, diagnostics)};");
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitStatementBlock(
+        CSharpTextWriter writer,
+        IReadOnlyList<MirStatement> statements,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        writer.WriteLine("{");
+        writer.Indent();
+        foreach (MirStatement nested in statements)
+        {
+            EmitStatement(writer, nested, function, enumNames, ref tempIndex, diagnostics);
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitLoopBodyBlock(
+        CSharpTextWriter writer,
+        IReadOnlyList<MirStatement> statements,
+        MirExpression? continueIncrement,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        writer.WriteLine("{");
+        writer.Indent();
+        EmitLoopBody(writer, statements, continueIncrement, function, enumNames, ref tempIndex, diagnostics);
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitLoopBody(
+        CSharpTextWriter writer,
+        IReadOnlyList<MirStatement> statements,
+        MirExpression? continueIncrement,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        CSharpEmissionState state = CurrentEmissionState.Value
+            ?? throw new InvalidOperationException("C# loop emission requires function emission state.");
+        state.ContinueIncrements.Push(continueIncrement);
+        try
+        {
+            foreach (MirStatement nested in statements)
+            {
+                EmitStatement(writer, nested, function, enumNames, ref tempIndex, diagnostics);
+            }
+        }
+        finally
+        {
+            state.ContinueIncrements.Pop();
         }
     }
 
@@ -1366,6 +1530,14 @@ public static class CSharpBackend
                 ExpressionUsesUnwrap(conditional.Condition)
                 || conditional.ThenStatements.Any(StatementUsesUnwrap)
                 || (conditional.ElseStatements?.Any(StatementUsesUnwrap) ?? false),
+            MirWhileStatement loop =>
+                ExpressionUsesUnwrap(loop.Condition)
+                || loop.BodyStatements.Any(StatementUsesUnwrap),
+            MirForStatement loop =>
+                (loop.Initializer is not null && StatementUsesUnwrap(loop.Initializer))
+                || (loop.Condition is not null && ExpressionUsesUnwrap(loop.Condition))
+                || (loop.Increment is not null && ExpressionUsesUnwrap(loop.Increment))
+                || loop.BodyStatements.Any(StatementUsesUnwrap),
             _ => false,
         };
     }

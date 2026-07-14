@@ -36,7 +36,7 @@ function Add-TextDependencyViolations {
     foreach ($sourceFile in $sourceFiles) {
         $source = Get-Content -Raw $sourceFile.FullName
         foreach ($token in $ProhibitedTokens) {
-            if ($source.Contains($token, [StringComparison]::Ordinal)) {
+            if ($source.IndexOf($token, [StringComparison]::Ordinal) -ge 0) {
                 $sourcePath = Get-RepositoryRelativePath $sourceFile.FullName
                 $violations.Add("$sourcePath contains prohibited dependency token '$token' for $ProjectPath.")
             }
@@ -93,7 +93,7 @@ function Add-DominatusOwnershipViolations {
             $_.FullName -notmatch "\\(bin|obj)\\"
         })) {
         $source = Get-Content -Raw $sourceFile.FullName
-        if ($source.Contains("Dominatus", [StringComparison]::Ordinal)) {
+        if ($source.IndexOf("Dominatus", [StringComparison]::Ordinal) -ge 0) {
             $violations.Add("$(Get-RepositoryRelativePath $sourceFile.FullName) retains a prohibited Dominatus source dependency in Machina production.")
         }
     }
@@ -109,25 +109,25 @@ function Add-DominatusOwnershipViolations {
 
     foreach ($projectFile in @(Get-ChildItem (Join-Path $repositoryRoot "samples") -Recurse -Filter *.csproj)) {
         $projectText = Get-Content -Raw $projectFile.FullName
-        if (($projectText.Contains("ProjectReference", [StringComparison]::Ordinal) -and
-                $projectText.Contains("Machina.Dominatus", [StringComparison]::Ordinal)) -or
-            $projectText.Contains("Dominatus.Core", [StringComparison]::Ordinal) -or
-            $projectText.Contains("Dominatus.OptFlow", [StringComparison]::Ordinal)) {
+        if (($projectText.IndexOf("ProjectReference", [StringComparison]::Ordinal) -ge 0 -and
+                $projectText.IndexOf("Machina.Dominatus", [StringComparison]::Ordinal) -ge 0) -or
+            $projectText.IndexOf("Dominatus.Core", [StringComparison]::Ordinal) -ge 0 -or
+            $projectText.IndexOf("Dominatus.OptFlow", [StringComparison]::Ordinal) -ge 0) {
             $violations.Add("$(Get-RepositoryRelativePath $projectFile.FullName) retains a stale Dominatus sample dependency.")
         }
     }
 
     foreach ($projectFile in @(Get-ChildItem $repositoryRoot -Recurse -Filter *.csproj)) {
         $projectText = Get-Content -Raw $projectFile.FullName
-        if ($projectText.Contains("src/Machina.UI/Machina.Dominatus", [StringComparison]::Ordinal)) {
+        if ($projectText.IndexOf("src/Machina.UI/Machina.Dominatus", [StringComparison]::Ordinal) -ge 0) {
             $violations.Add("$(Get-RepositoryRelativePath $projectFile.FullName) references the retired Machina-owned Dominatus path.")
         }
     }
 
     foreach ($solutionFile in @(Get-ChildItem $repositoryRoot -Filter *.slnx)) {
         $solutionText = Get-Content -Raw $solutionFile.FullName
-        if ($solutionText.Contains("src/Machina.UI/Machina.Dominatus", [StringComparison]::Ordinal) -or
-            $solutionText.Contains("tests/Machina.UI/Machina.Dominatus.Tests", [StringComparison]::Ordinal)) {
+        if ($solutionText.IndexOf("src/Machina.UI/Machina.Dominatus", [StringComparison]::Ordinal) -ge 0 -or
+            $solutionText.IndexOf("tests/Machina.UI/Machina.Dominatus.Tests", [StringComparison]::Ordinal) -ge 0) {
             $violations.Add("$(Get-RepositoryRelativePath $solutionFile.FullName) retains a retired Machina-owned Dominatus path.")
         }
     }
@@ -213,7 +213,7 @@ function Add-SolutionTopologyViolations {
         $solutionPath = Join-Path $repositoryRoot $solutionName
         $solutionText = Get-Content -Raw $solutionPath
         foreach ($expensiveProject in $expensiveProjects) {
-            if ($solutionText.Contains($expensiveProject, [StringComparison]::Ordinal)) {
+            if ($solutionText.IndexOf($expensiveProject, [StringComparison]::Ordinal) -ge 0) {
                 $violations.Add("$solutionName includes expensive integration project $expensiveProject.")
             }
         }
@@ -301,7 +301,7 @@ function Add-ScreenOwnershipViolations {
 
         $source = Get-Content -Raw $sourceFile.FullName
         foreach ($declaration in $genericScreenDeclarations) {
-            if ($source.Contains($declaration, [StringComparison]::Ordinal)) {
+            if ($source.IndexOf($declaration, [StringComparison]::Ordinal) -ge 0) {
                 $violations.Add("$relativePath declares generic Machina-owned screen type '$declaration' outside $screenRoot.")
             }
         }
@@ -324,7 +324,7 @@ function Add-ScreenOwnershipViolations {
         "samples/Integrations/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj")
 
     foreach ($sampleProject in $crossSystemSamples) {
-        if (-not $integrationSolution.Contains($sampleProject, [StringComparison]::Ordinal)) {
+        if (-not ($integrationSolution.IndexOf($sampleProject, [StringComparison]::Ordinal) -ge 0)) {
             $violations.Add("Cross-system rasterizing sample $sampleProject must be a JointTaskForce.Integration solution member.")
         }
     }
@@ -332,7 +332,7 @@ function Add-ScreenOwnershipViolations {
     foreach ($solutionName in @("Machina.UI.slnx", "Machina.UI.Slow.slnx")) {
         $solutionText = Get-Content -Raw (Join-Path $repositoryRoot $solutionName)
         foreach ($sampleProject in $crossSystemSamples) {
-            if ($solutionText.Contains($sampleProject, [StringComparison]::Ordinal)) {
+            if ($solutionText.IndexOf($sampleProject, [StringComparison]::Ordinal) -ge 0) {
                 $violations.Add("Machina-only solution $solutionName includes cross-system rasterizing sample $sampleProject.")
             }
         }
@@ -366,7 +366,7 @@ function Add-CanonicalInputRoutingViolations {
         foreach ($sourceFile in @(Get-ChildItem $sourceRoot -Recurse -Filter *.cs)) {
             $source = Get-Content -Raw $sourceFile.FullName
             foreach ($token in $retiredInputTokens) {
-                if ($source.Contains($token, [StringComparison]::Ordinal)) {
+                if ($source.IndexOf($token, [StringComparison]::Ordinal) -ge 0) {
                     $violations.Add("$(Get-RepositoryRelativePath $sourceFile.FullName) retains retired presenter compatibility input token '$token'.")
                 }
             }
@@ -378,7 +378,7 @@ function Add-CanonicalInputRoutingViolations {
         $violations.Add("Machina frontend input router is missing; UiInputBatch must remain the canonical lifecycle routing input.")
     } else {
         $routerSource = Get-Content -Raw $frontendRouter
-        if (-not $routerSource.Contains("Route(UiInputBatch inputBatch)", [StringComparison]::Ordinal)) {
+        if (-not ($routerSource.IndexOf("Route(UiInputBatch inputBatch)", [StringComparison]::Ordinal) -ge 0)) {
             $violations.Add("Machina frontend input router must expose UiInputBatch as its canonical routing input.")
         }
     }
@@ -388,17 +388,17 @@ function Add-CanonicalInputRoutingViolations {
         $violations.Add("Integration-owned presenter UiInputBatch router is missing.")
     } else {
         $routerSource = Get-Content -Raw $presenterRouter
-        if (-not $routerSource.Contains("UiInputBatch inputBatch", [StringComparison]::Ordinal)) {
+        if (-not ($routerSource.IndexOf("UiInputBatch inputBatch", [StringComparison]::Ordinal) -ge 0)) {
             $violations.Add("Presenter routing must consume UiInputBatch directly.")
         }
     }
 
     $translatorSource = Get-Content -Raw (Join-Path $repositoryRoot "src/Integrations/Aurelian.Machina/AurelianHostInputTranslator.cs")
-    if ($translatorSource.Contains("case UiCloseRequested", [StringComparison]::Ordinal)) {
+    if ($translatorSource.IndexOf("case UiCloseRequested", [StringComparison]::Ordinal) -ge 0) {
         $violations.Add("Aurelian lifecycle translation must not consume UiCloseRequested directly; close must cross MachinaFrontendCloseRequested.")
     }
 
-    if ($translatorSource.Contains("UiInputBatch", [StringComparison]::Ordinal)) {
+    if ($translatorSource.IndexOf("UiInputBatch", [StringComparison]::Ordinal) -ge 0) {
         $violations.Add("Aurelian.Machina lifecycle translation must consume Machina frontend messages, not UiInputBatch.")
     }
 
@@ -408,7 +408,7 @@ function Add-CanonicalInputRoutingViolations {
     } else {
         $collectorSource = Get-Content -Raw $hostCollector
         foreach ($requiredMember in @("void Record(UiInputEvent inputEvent)", "UiInputBatch Publish()", "pendingEvents.Clear()")) {
-            if (-not $collectorSource.Contains($requiredMember, [StringComparison]::Ordinal)) {
+            if (-not ($collectorSource.IndexOf($requiredMember, [StringComparison]::Ordinal) -ge 0)) {
                 $violations.Add("The integration-owned host collector must retain ordered publish-and-drain behavior: missing '$requiredMember'.")
             }
         }
@@ -420,7 +420,7 @@ function Add-CanonicalInputRoutingViolations {
     } else {
         $frameLoopSource = Get-Content -Raw $frameLoop
         foreach ($requiredToken in @("input.CloseRequest", "AcceptCloseRequest", "AurelianFrameLoopStopReason.CloseRequested")) {
-            if (-not $frameLoopSource.Contains($requiredToken, [StringComparison]::Ordinal)) {
+            if (-not ($frameLoopSource.IndexOf($requiredToken, [StringComparison]::Ordinal) -ge 0)) {
                 $violations.Add("Aurelian frame loop must accept typed close requests before another frame: missing '$requiredToken'.")
             }
         }
@@ -430,7 +430,7 @@ function Add-CanonicalInputRoutingViolations {
     if (Test-Path $visibleHost -PathType Leaf) {
         $visibleHostSource = Get-Content -Raw $visibleHost
         foreach ($requiredToken in @("inputCollector.Publish()", "MachinaFrontendInputRouter.Route(inputBatch)", "AurelianHostInputTranslator.Translate(")) {
-            if (-not $visibleHostSource.Contains($requiredToken, [StringComparison]::Ordinal)) {
+            if (-not ($visibleHostSource.IndexOf($requiredToken, [StringComparison]::Ordinal) -ge 0)) {
                 $violations.Add("Visible-triangle host must retain the canonical typed close path: missing '$requiredToken'.")
             }
         }
@@ -447,8 +447,8 @@ function Add-MachinaPresentationOnlyViolations {
     [xml]$pipeline = Get-Content -Raw $pipelineProject
     foreach ($reference in @($pipeline.Project.ItemGroup.ProjectReference)) {
         $include = [string]$reference.Include
-        if ($include.Contains("Dominatus", [StringComparison]::OrdinalIgnoreCase) -or
-            $include.Contains("Renderer", [StringComparison]::OrdinalIgnoreCase)) {
+        if ($include.IndexOf("Dominatus", [StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+            $include.IndexOf("Renderer", [StringComparison]::OrdinalIgnoreCase) -ge 0) {
             $violations.Add("Machina.Pipeline must be presentation-only; found project reference $include.")
         }
     }
@@ -467,7 +467,7 @@ function Add-MachinaPresentationOnlyViolations {
 
     foreach ($solutionFile in @(Get-ChildItem $repositoryRoot -Filter *.slnx)) {
         $solutionText = Get-Content -Raw $solutionFile.FullName
-        if ($solutionText.Contains("Machina.Renderer.Raster", [StringComparison]::Ordinal)) {
+        if ($solutionText.IndexOf("Machina.Renderer.Raster", [StringComparison]::Ordinal) -ge 0) {
             $violations.Add("$(Get-RepositoryRelativePath $solutionFile.FullName) retains a deleted Machina renderer project path.")
         }
     }

@@ -186,18 +186,18 @@ $duplicateFrontendDeclarations = $tsonSources | Select-String -Pattern 'class\s+
 Require-Condition ($null -eq $duplicateFrontendDeclarations) "TSON must not define a second lexer, parser, token-kind table, or syntax-kind hierarchy."
 
 $readerSource = Get-Content -Raw -LiteralPath (Join-Path $tsonSourceRoot "TsonDocumentReader.cs")
-Require-Condition ($readerSource.Contains('SyntaxTree.Parse(source)', [System.StringComparison]::Ordinal)) "Both TSON profiles must invoke the production SyntaxTree.Parse entry point."
-Require-Condition (-not $readerSource.Contains('new Parser(', [System.StringComparison]::Ordinal)) "TSON must enter parsing only through the production SyntaxTree facade."
+Require-Condition ($readerSource.IndexOf('SyntaxTree.Parse(source)', [System.StringComparison]::Ordinal) -ge 0) "Both TSON profiles must invoke the production SyntaxTree.Parse entry point."
+Require-Condition (-not ($readerSource.IndexOf('new Parser(', [System.StringComparison]::Ordinal) -ge 0)) "TSON must enter parsing only through the production SyntaxTree facade."
 
 $forbiddenTsonDependencies = $tsonSources | Select-String -Pattern 'Copeland\.TS\.Backend|Copeland\.Cli|Machina|Aurelian|Dominatus|Microsoft\.CodeAnalysis|System\.Reflection|System\.Text\.Json|Newtonsoft'
 Require-Condition ($null -eq $forbiddenTsonDependencies) "TSON contains a prohibited backend, CLI, product, Roslyn, reflection, or serializer dependency."
 
 $forbiddenTsonVariants = $tsonSources | Select-String -Pattern 'class\s+Tson(Result|Json)\b|record\s+Tson(Result|Json)\b'
 Require-Condition ($null -eq $forbiddenTsonVariants) "TSON must not implement Result or JSON variants."
-Require-Condition ($readerSource.Contains('ArrayLiteralExpressionSyntax', [System.StringComparison]::Ordinal)) "TSON arrays must reuse the production ArrayLiteralExpressionSyntax."
-Require-Condition (-not $readerSource.Contains('$array(', [System.StringComparison]::Ordinal)) "TSON must not define a parallel array grammar."
-Require-Condition ($readerSource.Contains('TableDeclarationSyntax', [System.StringComparison]::Ordinal)) "TSON table projection must reuse production TableDeclarationSyntax."
-Require-Condition (-not $readerSource.Contains('TsonTableParser', [System.StringComparison]::Ordinal)) "TSON tables must not define a parallel parser."
+Require-Condition ($readerSource.IndexOf('ArrayLiteralExpressionSyntax', [System.StringComparison]::Ordinal) -ge 0) "TSON arrays must reuse the production ArrayLiteralExpressionSyntax."
+Require-Condition (-not ($readerSource.IndexOf('$array(', [System.StringComparison]::Ordinal) -ge 0)) "TSON must not define a parallel array grammar."
+Require-Condition ($readerSource.IndexOf('TableDeclarationSyntax', [System.StringComparison]::Ordinal) -ge 0) "TSON table projection must reuse production TableDeclarationSyntax."
+Require-Condition (-not ($readerSource.IndexOf('TsonTableParser', [System.StringComparison]::Ordinal) -ge 0)) "TSON tables must not define a parallel parser."
 
 $tsonAssetFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonAssets"
 Require-Condition (Test-Path -LiteralPath (Join-Path $tsonAssetFixtureRoot "Valid") -PathType Container) "TSON asset Valid fixture ownership is missing."
@@ -216,8 +216,8 @@ Require-Condition (Test-Path -LiteralPath (Join-Path $tsonTableAssetFixtureRoot 
 
 $parserSource = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS/Syntax/Parser.cs")
 $syntaxFactsSource = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS/Syntax/SyntaxFacts.cs")
-Require-Condition ($parserSource.Contains('TableAssetClauseSyntax', [System.StringComparison]::Ordinal)) "Declaration-owned table assets must extend the production table parser."
-Require-Condition (-not $syntaxFactsSource.Contains('["from"]', [System.StringComparison]::Ordinal)) "The table asset 'from' token must remain contextual."
+Require-Condition ($parserSource.IndexOf('TableAssetClauseSyntax', [System.StringComparison]::Ordinal) -ge 0) "Declaration-owned table assets must extend the production table parser."
+Require-Condition (-not ($syntaxFactsSource.IndexOf('["from"]', [System.StringComparison]::Ordinal) -ge 0)) "The table asset 'from' token must remain contextual."
 
 $mirSources = @(Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Mir") -Recurse -Filter *.cs -File |
     Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
@@ -225,13 +225,13 @@ $forbiddenMirTson = $mirSources | Select-String -Pattern '\b(TsonValue|TsonDocum
 Require-Condition ($null -eq $forbiddenMirTson) "Cope MIR must not contain or reference compiler-host TSON types."
 
 $mirText = ($mirSources | Get-Content -Raw) -join "`n"
-Require-Condition ($mirText.Contains('class MirTsonEncodingPlan', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans must be owned by Copeland.TS.Mir."
-Require-Condition ($mirText.Contains('record MirTsonEncodeExpression', [System.StringComparison]::Ordinal)) "Runtime TSON encoding requires a dedicated MIR expression."
-Require-Condition ($mirText.Contains('ValidateTsonEncodingModel', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans require shared MIR validation."
-Require-Condition ($mirText.Contains('MirTsonArrayPlan', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans must be owned by Copeland.TS.Mir."
-Require-Condition ($mirText.Contains('MaximumArrayLength', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans require a shared array limit."
-Require-Condition ($mirText.Contains('MirTableArrayConstant', [System.StringComparison]::Ordinal)) "TABLE-M1 array-valued cells require a closed MIR table-array constant."
-Require-Condition ($mirText.Contains('class MirTsonTablePlan', [System.StringComparison]::Ordinal)) "TABLE-M2 runtime table encoding plans must be owned by Copeland.TS.Mir."
+Require-Condition ($mirText.IndexOf('class MirTsonEncodingPlan', [System.StringComparison]::Ordinal) -ge 0) "Runtime TSON encoding plans must be owned by Copeland.TS.Mir."
+Require-Condition ($mirText.IndexOf('record MirTsonEncodeExpression', [System.StringComparison]::Ordinal) -ge 0) "Runtime TSON encoding requires a dedicated MIR expression."
+Require-Condition ($mirText.IndexOf('ValidateTsonEncodingModel', [System.StringComparison]::Ordinal) -ge 0) "Runtime TSON encoding plans require shared MIR validation."
+Require-Condition ($mirText.IndexOf('MirTsonArrayPlan', [System.StringComparison]::Ordinal) -ge 0) "ARRAY-M1 runtime array encoding plans must be owned by Copeland.TS.Mir."
+Require-Condition ($mirText.IndexOf('MaximumArrayLength', [System.StringComparison]::Ordinal) -ge 0) "ARRAY-M1 runtime array encoding plans require a shared array limit."
+Require-Condition ($mirText.IndexOf('MirTableArrayConstant', [System.StringComparison]::Ordinal) -ge 0) "TABLE-M1 array-valued cells require a closed MIR table-array constant."
+Require-Condition ($mirText.IndexOf('class MirTsonTablePlan', [System.StringComparison]::Ordinal) -ge 0) "TABLE-M2 runtime table encoding plans must be owned by Copeland.TS.Mir."
 
 $backendSources = @(
     Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File
@@ -242,19 +242,19 @@ Require-Condition ($null -eq $forbiddenBackendTson) "Backends must not reference
 $forbiddenBackendAssets = $backendSources | Select-String -Pattern '\bICopelandAssetSource\b|\bCopelandAssetResolver\b|\btsonAsset\b'
 Require-Condition ($null -eq $forbiddenBackendAssets) "Backends must not reference compiler-host asset abstractions or table asset syntax."
 $javaScriptBackendText = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript/JavaScriptBackend.cs")
-Require-Condition ($javaScriptBackendText.Contains('MirArrayExpression array => EmitArrayExpression', [System.StringComparison]::Ordinal)) "JavaScript arrays must be realized through the ordinary backend path."
-Require-Condition ($javaScriptBackendText.Contains('Array.isArray(array)', [System.StringComparison]::Ordinal)) "JavaScript TSON array encoding must validate ordinary array carriers."
+Require-Condition ($javaScriptBackendText.IndexOf('MirArrayExpression array => EmitArrayExpression', [System.StringComparison]::Ordinal) -ge 0) "JavaScript arrays must be realized through the ordinary backend path."
+Require-Condition ($javaScriptBackendText.IndexOf('Array.isArray(array)', [System.StringComparison]::Ordinal) -ge 0) "JavaScript TSON array encoding must validate ordinary array carriers."
 
 $javaScriptBackendRoot = Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript"
 $javaScriptEmissionModel = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "JavaScriptEmissionModel.cs")
-Require-Condition ($javaScriptEmissionModel.Contains('record struct JavaScriptBindingId', [System.StringComparison]::Ordinal)) "Generated JavaScript bindings must retain backend-local typed identities."
-Require-Condition ($javaScriptEmissionModel.Contains('class JavaScriptNameAllocator', [System.StringComparison]::Ordinal)) "Generated JavaScript names must originate from the scoped backend allocator."
-Require-Condition ($javaScriptEmissionModel.Contains('class JavaScriptTokenWriter', [System.StringComparison]::Ordinal)) "JavaScript emission must retain its backend-local token writer."
-Require-Condition ($javaScriptBackendText.Contains('new JavaScriptNameAllocator', [System.StringComparison]::Ordinal)) "The Diagnostic backend must use the backend-local JavaScript name allocator."
-Require-Condition ($javaScriptBackendText.Contains('Dictionary<EnumInfo, JavaScriptBindingReference>', [System.StringComparison]::Ordinal)) "Generated-name catalogs must retain typed binding references instead of string names."
+Require-Condition ($javaScriptEmissionModel.IndexOf('record struct JavaScriptBindingId', [System.StringComparison]::Ordinal) -ge 0) "Generated JavaScript bindings must retain backend-local typed identities."
+Require-Condition ($javaScriptEmissionModel.IndexOf('class JavaScriptNameAllocator', [System.StringComparison]::Ordinal) -ge 0) "Generated JavaScript names must originate from the scoped backend allocator."
+Require-Condition ($javaScriptEmissionModel.IndexOf('class JavaScriptTokenWriter', [System.StringComparison]::Ordinal) -ge 0) "JavaScript emission must retain its backend-local token writer."
+Require-Condition ($javaScriptBackendText.IndexOf('new JavaScriptNameAllocator', [System.StringComparison]::Ordinal) -ge 0) "The Diagnostic backend must use the backend-local JavaScript name allocator."
+Require-Condition ($javaScriptBackendText.IndexOf('Dictionary<EnumInfo, JavaScriptBindingReference>', [System.StringComparison]::Ordinal) -ge 0) "Generated-name catalogs must retain typed binding references instead of string names."
 $javaScriptWriterText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "JavaScriptTextWriter.cs")
-Require-Condition ($javaScriptWriterText.Contains('BindingPart(JavaScriptBindingReference', [System.StringComparison]::Ordinal)) "Diagnostic writer binding references must be structured events."
-Require-Condition ($javaScriptWriterText.Contains('document.Reference(line.Scope', [System.StringComparison]::Ordinal)) "Diagnostic writer binding references must validate lexical scope."
+Require-Condition ($javaScriptWriterText.IndexOf('BindingPart(JavaScriptBindingReference', [System.StringComparison]::Ordinal) -ge 0) "Diagnostic writer binding references must be structured events."
+Require-Condition ($javaScriptWriterText.IndexOf('document.Reference(line.Scope', [System.StringComparison]::Ordinal) -ge 0) "Diagnostic writer binding references must validate lexical scope."
 $javaScriptProfilesText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "JavaScriptEmissionProfile.cs")
 $javaScriptSymbolicText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "SymbolicJavaScriptVocabulary.cs")
 
@@ -262,9 +262,9 @@ $javaScriptProductionSources = @(Get-ChildItem -LiteralPath $javaScriptBackendRo
     Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
 $forbiddenJavaScriptTooling = $javaScriptProductionSources | Select-String -Pattern 'Terser|esbuild|SWC|Babel|Uglify|sourceMappingURL|\.map\b'
 Require-Condition ($null -eq $forbiddenJavaScriptTooling) "The JavaScript backend must not add an external minifier, parser, or source-map output path."
-Require-Condition ($javaScriptProfilesText.Contains('enum JavaScriptEmissionProfile', [System.StringComparison]::Ordinal)) "JavaScript emission profiles must remain an explicit backend contract."
-Require-Condition ($javaScriptProfilesText.Contains('Symbolic', [System.StringComparison]::Ordinal)) "The executable Symbolic JavaScript profile must remain available."
-Require-Condition ($javaScriptSymbolicText.Contains('CTS-JS-EMIT-M1', [System.StringComparison]::Ordinal)) "Symbolic JavaScript vocabulary must remain versioned and closed."
+Require-Condition ($javaScriptProfilesText.IndexOf('enum JavaScriptEmissionProfile', [System.StringComparison]::Ordinal) -ge 0) "JavaScript emission profiles must remain an explicit backend contract."
+Require-Condition ($javaScriptProfilesText.IndexOf('Symbolic', [System.StringComparison]::Ordinal) -ge 0) "The executable Symbolic JavaScript profile must remain available."
+Require-Condition ($javaScriptSymbolicText.IndexOf('CTS-JS-EMIT-M1', [System.StringComparison]::Ordinal) -ge 0) "Symbolic JavaScript vocabulary must remain versioned and closed."
 $forbiddenReleaseProfile = $javaScriptProductionSources | Select-String -Pattern 'JavaScriptEmissionProfile\.Release|enum JavaScriptEmissionProfile[^{]*{[^}]*Release|Release allocator'
 Require-Condition ($null -eq $forbiddenReleaseProfile) "Release JavaScript emission remains outside M1 production code."
 

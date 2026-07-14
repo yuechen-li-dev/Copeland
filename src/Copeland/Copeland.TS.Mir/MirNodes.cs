@@ -271,6 +271,8 @@ public sealed record MirReturnStatement(MirExpression? Expression) : MirStatemen
 public sealed record MirIfStatement(MirExpression Condition, IReadOnlyList<MirStatement> ThenStatements, IReadOnlyList<MirStatement>? ElseStatements) : MirStatement;
 public sealed record MirWhileStatement(MirExpression Condition, IReadOnlyList<MirStatement> BodyStatements) : MirStatement;
 public sealed record MirForStatement(MirStatement? Initializer, MirExpression? Condition, MirExpression? Increment, IReadOnlyList<MirStatement> BodyStatements) : MirStatement;
+public sealed record MirBreakStatement : MirStatement;
+public sealed record MirContinueStatement : MirStatement;
 
 public record MirType(string Identifier)
 {

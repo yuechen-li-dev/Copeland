@@ -19,7 +19,7 @@ public static class MirValidator
         foreach (var function in program.Functions)
         {
             var handlerIds = new HashSet<MirHandlerId>();
-            ValidateStatements(function.Body, [], handlerIds, diagnostics);
+            ValidateStatements(function.Body, [], handlerIds, diagnostics, loopDepth: 0);
             ValidateFunctionPropagationTargets(function.Body, function.ReturnType, diagnostics);
         }
 
@@ -70,6 +70,25 @@ public static class MirValidator
                         ValidateArrayStatements(conditional.ElseStatements, functionReturnType, diagnostics);
                     }
 
+                    break;
+                case MirWhileStatement loop:
+                    ValidateArrayExpression(loop.Condition, diagnostics);
+                    ValidateArrayStatements(loop.BodyStatements, functionReturnType, diagnostics);
+                    break;
+                case MirForStatement loop:
+                    if (loop.Initializer is not null)
+                    {
+                        ValidateArrayStatements([loop.Initializer], functionReturnType, diagnostics);
+                    }
+                    if (loop.Condition is not null)
+                    {
+                        ValidateArrayExpression(loop.Condition, diagnostics);
+                    }
+                    if (loop.Increment is not null)
+                    {
+                        ValidateArrayExpression(loop.Increment, diagnostics);
+                    }
+                    ValidateArrayStatements(loop.BodyStatements, functionReturnType, diagnostics);
                     break;
             }
         }
@@ -513,6 +532,16 @@ public static class MirValidator
                 foreach (MirStatement nested in conditional.ThenStatements) ValidateTsonEncodingExpression(nested, plans, diagnostics);
                 if (conditional.ElseStatements is not null) foreach (MirStatement nested in conditional.ElseStatements) ValidateTsonEncodingExpression(nested, plans, diagnostics);
                 break;
+            case MirWhileStatement loop:
+                ValidateTsonEncodingExpression(loop.Condition, plans, diagnostics);
+                foreach (MirStatement nested in loop.BodyStatements) ValidateTsonEncodingExpression(nested, plans, diagnostics);
+                break;
+            case MirForStatement loop:
+                if (loop.Initializer is not null) ValidateTsonEncodingExpression(loop.Initializer, plans, diagnostics);
+                if (loop.Condition is not null) ValidateTsonEncodingExpression(loop.Condition, plans, diagnostics);
+                if (loop.Increment is not null) ValidateTsonEncodingExpression(loop.Increment, plans, diagnostics);
+                foreach (MirStatement nested in loop.BodyStatements) ValidateTsonEncodingExpression(nested, plans, diagnostics);
+                break;
         }
     }
 
@@ -818,6 +847,16 @@ public static class MirValidator
                     ValidateTableExpression(conditional.Condition, tables, rowTypeIds, columns, diagnostics);
                     ValidateTableStatements(conditional.ThenStatements, tables, rowTypeIds, columns, diagnostics);
                     if (conditional.ElseStatements is not null) ValidateTableStatements(conditional.ElseStatements, tables, rowTypeIds, columns, diagnostics);
+                    break;
+                case MirWhileStatement loop:
+                    ValidateTableExpression(loop.Condition, tables, rowTypeIds, columns, diagnostics);
+                    ValidateTableStatements(loop.BodyStatements, tables, rowTypeIds, columns, diagnostics);
+                    break;
+                case MirForStatement loop:
+                    if (loop.Initializer is not null) ValidateTableStatements([loop.Initializer], tables, rowTypeIds, columns, diagnostics);
+                    if (loop.Condition is not null) ValidateTableExpression(loop.Condition, tables, rowTypeIds, columns, diagnostics);
+                    if (loop.Increment is not null) ValidateTableExpression(loop.Increment, tables, rowTypeIds, columns, diagnostics);
+                    ValidateTableStatements(loop.BodyStatements, tables, rowTypeIds, columns, diagnostics);
                     break;
             }
         }
@@ -1147,7 +1186,7 @@ public static class MirValidator
         }
     }
 
-    private static void ValidateStatements(IReadOnlyList<MirStatement> statements, List<HandlerScope> activeHandlers, HashSet<MirHandlerId> handlerIds, List<MirValidationDiagnostic> diagnostics)
+    private static void ValidateStatements(IReadOnlyList<MirStatement> statements, List<HandlerScope> activeHandlers, HashSet<MirHandlerId> handlerIds, List<MirValidationDiagnostic> diagnostics, int loopDepth)
     {
         foreach (var statement in statements)
         {
@@ -1164,13 +1203,49 @@ public static class MirValidator
                     break;
                 case MirIfStatement conditional:
                     ValidateExpression(conditional.Condition, activeHandlers, handlerIds, diagnostics);
-                    ValidateStatements(conditional.ThenStatements, activeHandlers, handlerIds, diagnostics);
+                    RequireBooleanCondition(conditional.Condition, "if statement", diagnostics);
+                    ValidateStatements(conditional.ThenStatements, activeHandlers, handlerIds, diagnostics, loopDepth);
                     if (conditional.ElseStatements is not null)
                     {
-                        ValidateStatements(conditional.ElseStatements, activeHandlers, handlerIds, diagnostics);
+                        ValidateStatements(conditional.ElseStatements, activeHandlers, handlerIds, diagnostics, loopDepth);
                     }
                     break;
+                case MirWhileStatement loop:
+                    ValidateExpression(loop.Condition, activeHandlers, handlerIds, diagnostics);
+                    RequireBooleanCondition(loop.Condition, "while loop", diagnostics);
+                    ValidateStatements(loop.BodyStatements, activeHandlers, handlerIds, diagnostics, loopDepth + 1);
+                    break;
+                case MirForStatement loop:
+                    if (loop.Initializer is not null)
+                    {
+                        ValidateStatements([loop.Initializer], activeHandlers, handlerIds, diagnostics, loopDepth);
+                    }
+                    if (loop.Condition is not null)
+                    {
+                        ValidateExpression(loop.Condition, activeHandlers, handlerIds, diagnostics);
+                        RequireBooleanCondition(loop.Condition, "for loop", diagnostics);
+                    }
+                    if (loop.Increment is not null)
+                    {
+                        ValidateExpression(loop.Increment, activeHandlers, handlerIds, diagnostics);
+                    }
+                    ValidateStatements(loop.BodyStatements, activeHandlers, handlerIds, diagnostics, loopDepth + 1);
+                    break;
+                case MirBreakStatement when loopDepth == 0:
+                    diagnostics.Add(new MirValidationDiagnostic("Break statement is outside a loop."));
+                    break;
+                case MirContinueStatement when loopDepth == 0:
+                    diagnostics.Add(new MirValidationDiagnostic("Continue statement is outside a loop."));
+                    break;
             }
+        }
+    }
+
+    private static void RequireBooleanCondition(MirExpression condition, string context, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (condition.Type.Identifier != "boolean")
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"{context} condition must have type 'boolean'."));
         }
     }
 
@@ -1272,7 +1347,7 @@ public static class MirValidator
                 diagnostics.Add(new MirValidationDiagnostic("Try value blocks may contain only variable declarations and expression statements before their final value."));
             }
 
-            ValidateStatements([statement], activeHandlers, handlerIds, diagnostics);
+            ValidateStatements([statement], activeHandlers, handlerIds, diagnostics, loopDepth: 0);
         }
 
         ValidateExpression(block.ValueExpression, activeHandlers, handlerIds, diagnostics);
@@ -1332,6 +1407,25 @@ public static class MirValidator
                     {
                         ValidateFunctionPropagationTargets(conditional.ElseStatements, functionReturnType, diagnostics);
                     }
+                    break;
+                case MirWhileStatement loop:
+                    ValidateFunctionPropagationTarget(loop.Condition, functionReturnType, diagnostics);
+                    ValidateFunctionPropagationTargets(loop.BodyStatements, functionReturnType, diagnostics);
+                    break;
+                case MirForStatement loop:
+                    if (loop.Initializer is not null)
+                    {
+                        ValidateFunctionPropagationTargets([loop.Initializer], functionReturnType, diagnostics);
+                    }
+                    if (loop.Condition is not null)
+                    {
+                        ValidateFunctionPropagationTarget(loop.Condition, functionReturnType, diagnostics);
+                    }
+                    if (loop.Increment is not null)
+                    {
+                        ValidateFunctionPropagationTarget(loop.Increment, functionReturnType, diagnostics);
+                    }
+                    ValidateFunctionPropagationTargets(loop.BodyStatements, functionReturnType, diagnostics);
                     break;
             }
         }

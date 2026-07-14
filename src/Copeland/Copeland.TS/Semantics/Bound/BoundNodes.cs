@@ -126,6 +126,8 @@ public sealed class BoundIfStatement : BoundStatement { public BoundIfStatement(
 public sealed class BoundWhileStatement : BoundStatement { public BoundWhileStatement(BoundExpression condition, BoundStatement body) { Condition = condition; Body = body; } public BoundExpression Condition { get; } public BoundStatement Body { get; } }
 public sealed class BoundForStatement : BoundStatement { public BoundForStatement(BoundStatement? initializer, BoundExpression? condition, BoundExpression? increment, BoundStatement body) { Initializer = initializer; Condition = condition; Increment = increment; Body = body; } public BoundStatement? Initializer { get; } public BoundExpression? Condition { get; } public BoundExpression? Increment { get; } public BoundStatement Body { get; } }
 public sealed class BoundReturnStatement : BoundStatement { public BoundReturnStatement(BoundExpression? expression) => Expression = expression; public BoundExpression? Expression { get; } }
+public sealed class BoundBreakStatement : BoundStatement;
+public sealed class BoundContinueStatement : BoundStatement;
 
 public sealed class BoundLiteralExpression : BoundExpression { public BoundLiteralExpression(object? value, TypeSymbol type) { Value = value; TypeImpl = type; } public object? Value { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundVariableExpression : BoundExpression { public BoundVariableExpression(VariableSymbol variable) => Variable = variable; public VariableSymbol Variable { get; } public override TypeSymbol Type => Variable.Type; }

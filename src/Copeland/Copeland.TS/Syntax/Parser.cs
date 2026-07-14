@@ -209,6 +209,8 @@ public sealed class Parser
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
             SyntaxKind.ForKeyword => ParseForStatement(),
             SyntaxKind.ReturnKeyword => ParseReturnStatement(),
+            SyntaxKind.BreakKeyword => ParseBreakStatement(),
+            SyntaxKind.ContinueKeyword => ParseContinueStatement(),
             SyntaxKind.RecordKeyword when Peek(1).Kind == SyntaxKind.TableKeyword => new NestedTableDeclarationStatementSyntax(ParseTableDeclaration()),
             SyntaxKind.RecordKeyword => new NestedRecordDeclarationStatementSyntax(ParseRecordDeclaration(null)),
             _ => ParseExpressionStatementOrRecovery(),
@@ -544,6 +546,18 @@ public sealed class Parser
 
         var semicolonToken = Match(SyntaxKind.SemicolonToken);
         return new ReturnStatementSyntax(returnKeyword, expression, semicolonToken);
+    }
+
+    private BreakStatementSyntax ParseBreakStatement()
+    {
+        var breakKeyword = Match(SyntaxKind.BreakKeyword);
+        return new BreakStatementSyntax(breakKeyword, Match(SyntaxKind.SemicolonToken));
+    }
+
+    private ContinueStatementSyntax ParseContinueStatement()
+    {
+        var continueKeyword = Match(SyntaxKind.ContinueKeyword);
+        return new ContinueStatementSyntax(continueKeyword, Match(SyntaxKind.SemicolonToken));
     }
 
     private ExpressionStatementSyntax ParseExpressionStatement()

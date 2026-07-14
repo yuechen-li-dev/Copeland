@@ -71,6 +71,19 @@ public sealed class ParserTests
     }
 
     [Fact]
+    public void Parses_Loop_Transfers_As_Dedicated_Statements()
+    {
+        var tree = SyntaxTree.Parse("function main(): void { while (true) { break; } for (;;) { continue; } }");
+        var dump = SyntaxTreeDumper.Dump(tree.Root);
+
+        Assert.Contains("WhileStatement", dump, StringComparison.Ordinal);
+        Assert.Contains("ForStatement", dump, StringComparison.Ordinal);
+        Assert.Contains("BreakStatement", dump, StringComparison.Ordinal);
+        Assert.Contains("ContinueStatement", dump, StringComparison.Ordinal);
+        Assert.DoesNotContain(tree.Diagnostics, diagnostic => diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Parses_Try_Except_Value_Blocks_And_Postfix_Propagation()
     {
         var tree = SyntaxTree.Parse("function read(): number ! string { return ok(1); } function main(): number { return try { const value: number = read()?; value } except (error) { 0 }; }");

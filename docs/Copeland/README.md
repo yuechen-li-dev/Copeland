@@ -34,6 +34,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [CTS-TSON-TABLE-M0b Migration Record](../migrations/cts-tson-table-m0b-semantic-model-and-canonicalization.md)
 - [CTS-TSON-TABLE-M3 Migration Record](../migrations/cts-tson-table-m3-fixed-point-and-columnar-closeout.md)
 - [CTS-M6b Typed Result `try`/`except` implementation](architecture/copeland-ts-typed-try-except-cts-m6b.md)
+- [CTS-CF-M0 Foundational Control-Flow Parity and Closeout](architecture/copeland-ts-foundational-control-flow-cts-cf-m0.md)
+- [CTS-CF-M0 Migration Record](../migrations/cts-cf-m0-control-flow-parity-and-closeout.md)
 - [CTS-M0a Copeland TS Language Doctrine Audit](../migrations/cts-m0a-copeland-ts-language-doctrine-audit.md)
 - [Copeland Compiler Workshop Architecture M13d](history/copeland-compiler-workshop-architecture-m13d.md)
 - [Copeland Compiler Lane Taxonomy M13d](history/copeland-compiler-lane-taxonomy-m13d.md)

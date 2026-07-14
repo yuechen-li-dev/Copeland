@@ -6,6 +6,7 @@ public static class JavaScriptBackend
 {
     private const string UnsupportedDiagnosticId = "COPE-JS-0001";
     private const string InvalidDiagnosticId = "COPE-JS-0002";
+    private static readonly AsyncLocal<Stack<EmittedExpression?>?> ContinueIncrements = new();
 
     public static JavaScriptCompilation Emit(MirProgram program)
     {
@@ -125,14 +126,50 @@ public static class JavaScriptBackend
             case MirExpressionStatement expressionStatement:
                 ValidateExpression(expressionStatement.Expression, functionReturnType, context, functions, catalog, diagnostics);
                 break;
-            case MirIfStatement:
-                AddUnsupported(diagnostics, $"if statement in {context}; CTS-M1 supports if expressions only");
+            case MirIfStatement conditional:
+                RequireType(conditional.Condition.Type, "boolean", $"if condition in {context}", diagnostics);
+                ValidateExpression(conditional.Condition, functionReturnType, context, functions, catalog, diagnostics);
+                foreach (MirStatement nested in conditional.ThenStatements)
+                {
+                    ValidateStatement(nested, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                if (conditional.ElseStatements is not null)
+                {
+                    foreach (MirStatement nested in conditional.ElseStatements)
+                    {
+                        ValidateStatement(nested, functionReturnType, context, functions, catalog, diagnostics);
+                    }
+                }
                 break;
-            case MirWhileStatement:
-                AddUnsupported(diagnostics, $"while loop in {context}");
+            case MirWhileStatement loop:
+                RequireType(loop.Condition.Type, "boolean", $"while condition in {context}", diagnostics);
+                ValidateExpression(loop.Condition, functionReturnType, context, functions, catalog, diagnostics);
+                foreach (MirStatement nested in loop.BodyStatements)
+                {
+                    ValidateStatement(nested, functionReturnType, context, functions, catalog, diagnostics);
+                }
                 break;
-            case MirForStatement:
-                AddUnsupported(diagnostics, $"for loop in {context}");
+            case MirForStatement loop:
+                if (loop.Initializer is not null)
+                {
+                    ValidateStatement(loop.Initializer, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                if (loop.Condition is not null)
+                {
+                    RequireType(loop.Condition.Type, "boolean", $"for condition in {context}", diagnostics);
+                    ValidateExpression(loop.Condition, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                if (loop.Increment is not null)
+                {
+                    ValidateExpression(loop.Increment, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                foreach (MirStatement nested in loop.BodyStatements)
+                {
+                    ValidateStatement(nested, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                break;
+            case MirBreakStatement:
+            case MirContinueStatement:
                 break;
             default:
                 AddUnsupported(diagnostics, $"unknown MIR statement '{statement.GetType().Name}' in {context}");
@@ -160,7 +197,8 @@ public static class JavaScriptBackend
                 bool isSupportedArithmetic = binary.Operator is "+" or "-" or "*" or "/" or "%";
                 bool isEquality = binary.Operator is "==" or "!=";
                 bool isLogical = binary.Operator is "&&" or "||";
-                if (!isSupportedArithmetic && !isEquality && !isLogical)
+                bool isRelational = binary.Operator is "<" or "<=" or ">" or ">=";
+                if (!isSupportedArithmetic && !isEquality && !isLogical && !isRelational)
                 {
                     AddUnsupported(diagnostics, $"binary operator '{binary.Operator}' in {context}");
                 }
@@ -182,6 +220,13 @@ public static class JavaScriptBackend
                     RequireType(binary.Type, "boolean", $"logical expression in {context}", diagnostics);
                     RequireType(binary.Left.Type, "boolean", $"left operand of logical expression in {context}", diagnostics);
                     RequireType(binary.Right.Type, "boolean", $"right operand of logical expression in {context}", diagnostics);
+                }
+
+                if (isRelational)
+                {
+                    RequireType(binary.Type, "boolean", $"relational expression in {context}", diagnostics);
+                    RequireType(binary.Left.Type, "number", $"left operand of relational expression in {context}", diagnostics);
+                    RequireType(binary.Right.Type, "number", $"right operand of relational expression in {context}", diagnostics);
                 }
 
                 ValidateExpression(binary.Left, functionReturnType, context, functions, catalog, diagnostics);
@@ -1205,8 +1250,153 @@ public static class JavaScriptBackend
                 WritePrelude(writer, expression.Prelude);
                 writer.WriteLine($"{expression.Value};");
                 break;
+            case MirIfStatement conditional:
+                EmitIfStatement(writer, conditional, function, catalog, results, names, flowEnabled);
+                break;
+            case MirWhileStatement loop:
+                EmitWhileStatement(writer, loop, function, catalog, results, names, flowEnabled);
+                break;
+            case MirForStatement loop:
+                EmitForStatement(writer, loop, function, catalog, results, names, flowEnabled);
+                break;
+            case MirBreakStatement:
+                writer.WriteLine("break;");
+                break;
+            case MirContinueStatement:
+                Stack<EmittedExpression?>? continueIncrements = ContinueIncrements.Value;
+                if (continueIncrements is not null
+                    && continueIncrements.TryPeek(out EmittedExpression? increment)
+                    && increment is not null)
+                {
+                    WritePrelude(writer, increment.Prelude);
+                    writer.WriteLine($"{increment.Value};");
+                }
+                writer.WriteLine("continue;");
+                break;
             default:
                 throw new InvalidOperationException($"Validated JavaScript emission received unsupported statement {statement.GetType().Name}.");
+        }
+    }
+
+    private static void EmitIfStatement(JavaScriptTextWriter writer, MirIfStatement conditional, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        EmittedExpression condition = EmitExpression(conditional.Condition, function, catalog, results, names, flowEnabled);
+        WritePrelude(writer, condition.Prelude);
+        writer.WriteLine($"if ({condition.Value}) {{");
+        writer.Indent();
+        foreach (MirStatement nested in conditional.ThenStatements)
+        {
+            EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+        if (conditional.ElseStatements is null)
+        {
+            return;
+        }
+        writer.WriteLine("else {");
+        writer.Indent();
+        foreach (MirStatement nested in conditional.ElseStatements)
+        {
+            EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitWhileStatement(JavaScriptTextWriter writer, MirWhileStatement loop, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        EmittedExpression condition = EmitExpression(loop.Condition, function, catalog, results, names, flowEnabled);
+        if (condition.Prelude.Count == 0)
+        {
+            writer.WriteLine($"while ({condition.Value}) {{");
+        }
+        else
+        {
+            writer.WriteLine("while (true) {");
+        }
+        writer.Indent();
+        if (condition.Prelude.Count > 0)
+        {
+            WritePrelude(writer, condition.Prelude);
+            writer.WriteLine($"if (!({condition.Value})) {{");
+            writer.Indent();
+            writer.WriteLine("break;");
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+        EmitLoopBody(writer, loop.BodyStatements, null, function, catalog, results, names, flowEnabled);
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitForStatement(JavaScriptTextWriter writer, MirForStatement loop, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        writer.WriteLine("{");
+        writer.Indent();
+        if (loop.Initializer is not null)
+        {
+            EmitStatement(writer, loop.Initializer, function, catalog, results, names, flowEnabled);
+        }
+        EmittedExpression? condition = loop.Condition is null ? null : EmitExpression(loop.Condition, function, catalog, results, names, flowEnabled);
+        EmittedExpression? increment = loop.Increment is null ? null : EmitExpression(loop.Increment, function, catalog, results, names, flowEnabled);
+        bool requiresStaging = (condition?.Prelude.Count ?? 0) > 0 || (increment?.Prelude.Count ?? 0) > 0;
+        if (!requiresStaging)
+        {
+            writer.WriteLine($"for (; {condition?.Value ?? string.Empty}; {increment?.Value ?? string.Empty}) {{");
+            writer.Indent();
+            EmitLoopBody(writer, loop.BodyStatements, null, function, catalog, results, names, flowEnabled);
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+        else
+        {
+            writer.WriteLine("while (true) {");
+            writer.Indent();
+            if (condition is not null)
+            {
+                WritePrelude(writer, condition.Prelude);
+                writer.WriteLine($"if (!({condition.Value})) {{");
+                writer.Indent();
+                writer.WriteLine("break;");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
+            EmitLoopBody(writer, loop.BodyStatements, increment, function, catalog, results, names, flowEnabled);
+            if (increment is not null)
+            {
+                WritePrelude(writer, increment.Prelude);
+                writer.WriteLine($"{increment.Value};");
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitLoopBody(
+        JavaScriptTextWriter writer,
+        IReadOnlyList<MirStatement> statements,
+        EmittedExpression? continueIncrement,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        Stack<EmittedExpression?> stack = ContinueIncrements.Value ??= new Stack<EmittedExpression?>();
+        stack.Push(continueIncrement);
+        try
+        {
+            foreach (MirStatement nested in statements)
+            {
+                EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
+            }
+        }
+        finally
+        {
+            stack.Pop();
         }
     }
 
@@ -2342,6 +2532,8 @@ public static class JavaScriptBackend
             MirExpressionStatement expression => ExpressionUsesTryExcept(expression.Expression),
             MirReturnStatement { Expression: not null } returned => ExpressionUsesTryExcept(returned.Expression),
             MirIfStatement conditional => ExpressionUsesTryExcept(conditional.Condition) || conditional.ThenStatements.Any(StatementUsesTryExcept) || (conditional.ElseStatements?.Any(StatementUsesTryExcept) ?? false),
+            MirWhileStatement loop => ExpressionUsesTryExcept(loop.Condition) || loop.BodyStatements.Any(StatementUsesTryExcept),
+            MirForStatement loop => (loop.Initializer is not null && StatementUsesTryExcept(loop.Initializer)) || (loop.Condition is not null && ExpressionUsesTryExcept(loop.Condition)) || (loop.Increment is not null && ExpressionUsesTryExcept(loop.Increment)) || loop.BodyStatements.Any(StatementUsesTryExcept),
             _ => false,
         };
 
@@ -2383,6 +2575,8 @@ public static class JavaScriptBackend
             MirExpressionStatement expression => ExpressionUsesUnwrap(expression.Expression),
             MirReturnStatement { Expression: not null } returnStatement => ExpressionUsesUnwrap(returnStatement.Expression),
             MirIfStatement conditional => ExpressionUsesUnwrap(conditional.Condition) || conditional.ThenStatements.Any(StatementUsesUnwrap) || (conditional.ElseStatements?.Any(StatementUsesUnwrap) ?? false),
+            MirWhileStatement loop => ExpressionUsesUnwrap(loop.Condition) || loop.BodyStatements.Any(StatementUsesUnwrap),
+            MirForStatement loop => (loop.Initializer is not null && StatementUsesUnwrap(loop.Initializer)) || (loop.Condition is not null && ExpressionUsesUnwrap(loop.Condition)) || (loop.Increment is not null && ExpressionUsesUnwrap(loop.Increment)) || loop.BodyStatements.Any(StatementUsesUnwrap),
             _ => false,
         };
 
@@ -2732,6 +2926,31 @@ public static class JavaScriptBackend
                         {
                             Add(nested);
                         }
+                    }
+                    break;
+                case MirWhileStatement loop:
+                    Add(loop.Condition);
+                    foreach (MirStatement nested in loop.BodyStatements)
+                    {
+                        Add(nested);
+                    }
+                    break;
+                case MirForStatement loop:
+                    if (loop.Initializer is not null)
+                    {
+                        Add(loop.Initializer);
+                    }
+                    if (loop.Condition is not null)
+                    {
+                        Add(loop.Condition);
+                    }
+                    if (loop.Increment is not null)
+                    {
+                        Add(loop.Increment);
+                    }
+                    foreach (MirStatement nested in loop.BodyStatements)
+                    {
+                        Add(nested);
                     }
                     break;
             }

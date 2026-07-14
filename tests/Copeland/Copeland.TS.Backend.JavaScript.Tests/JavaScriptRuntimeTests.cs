@@ -10,6 +10,36 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_Executes_Foundational_Control_Flow_Repeatedly()
+    {
+        const string source = """
+            function main(): number {
+                let total: number = 0;
+                for (let index: number = 0; index < 5; index = index + 1) {
+                    if (index == 2) { continue; }
+                    total = total + index;
+                }
+                while (total < 8) { total = total + 1; }
+                return total;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+
+        string script = emitted.SourceText + "console.log(main());\n";
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal("8\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public async Task Node_Proves_ordinary_arrays_are_mutable_ordered_and_evaluate_selected_elements_once()
     {
         JavaScriptCompilation emitted = Emit("""

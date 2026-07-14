@@ -567,6 +567,32 @@ public sealed record PropagateExpressionSyntax(ExpressionSyntax Operand, SyntaxT
     }
 }
 
+public sealed record BreakStatementSyntax(
+    SyntaxToken BreakKeyword,
+    SyntaxToken SemicolonToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.BreakStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return BreakKeyword;
+        yield return SemicolonToken;
+    }
+}
+
+public sealed record ContinueStatementSyntax(
+    SyntaxToken ContinueKeyword,
+    SyntaxToken SemicolonToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ContinueStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return ContinueKeyword;
+        yield return SemicolonToken;
+    }
+}
+
 public sealed record IndexExpressionSyntax(ExpressionSyntax Target, SyntaxToken OpenBracketToken, ExpressionSyntax Index, SyntaxToken CloseBracketToken) : ExpressionSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.IndexExpression;

@@ -13,6 +13,47 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
+    public void Control_flow_emits_structured_loops_and_executes_continue_before_for_increment()
+    {
+        var program = Lower("""
+            function main(): number {
+                let total: number = 0;
+                for (let index: number = 0; index < 5; index = index + 1) {
+                    if (index == 2) { continue; }
+                    total = total + index;
+                }
+                while (total < 8) { total = total + 1; }
+                return total;
+            }
+            """);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.Diagnostics);
+        Assert.Contains("for (;", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("while (", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("continue;", compilation.SourceText, StringComparison.Ordinal);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(compilation.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(8d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
+    public void Malformed_loop_transfer_mir_is_rejected_before_csharp_emission()
+    {
+        var program = new MirProgram([], [
+            new MirFunction("main", [], new MirNamedType("void"), [], [new MirContinueStatement()]),
+        ]);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CS-0002"
+            && diagnostic.Message.Contains("outside a loop", StringComparison.Ordinal));
+    }
+
+
+    [Fact]
     public void Valid_table_mir_emits_a_complete_csharp_artifact()
     {
         var program = Lower("record table Samples { x: [1]; }");

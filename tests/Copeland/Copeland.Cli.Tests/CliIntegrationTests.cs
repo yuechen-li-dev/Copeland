@@ -222,6 +222,35 @@ public sealed class CliIntegrationTests
     [InlineData("mir")]
     [InlineData("csharp")]
     [InlineData("javascript")]
+    public async Task Rejected_Control_Flow_Source_Preserves_A_Fresh_Artifact(string emitTarget)
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", """
+            function main(): number {
+                let value: number = 0;
+                for (; value < 2; value = value + 1) { }
+                return value;
+            }
+            """);
+        string outputPath = Path.Combine(temp.Path, "main.generated");
+
+        CliResult accepted = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget, "--out", outputPath);
+        Assert.Equal(0, accepted.ExitCode);
+        string retainedArtifact = await File.ReadAllTextAsync(outputPath);
+
+        temp.WriteFile("main.ts", "function main(): void { break; }");
+        CliResult rejected = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget, "--out", outputPath);
+
+        Assert.Equal(1, rejected.ExitCode);
+        Assert.Contains("COPE-CFLOW-0001", rejected.StdErr, StringComparison.Ordinal);
+        Assert.DoesNotContain("wrote", rejected.StdOut, StringComparison.Ordinal);
+        Assert.Equal(retainedArtifact, await File.ReadAllTextAsync(outputPath));
+    }
+
+    [Theory]
+    [InlineData("mir")]
+    [InlineData("csharp")]
+    [InlineData("javascript")]
     public async Task Compile_resolves_Tson_asset_relative_to_source_for_every_emit_target(string emitTarget)
     {
         using var temp = new TempDir();

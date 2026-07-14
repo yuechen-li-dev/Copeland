@@ -97,6 +97,10 @@ public static class BoundTreeDumper
                 I(sb, i); sb.AppendLine("ForStatement"); if (f.Initializer is not null) AppendStatement(sb, f.Initializer, i + 1); if (f.Condition is not null) AppendExpression(sb, f.Condition, i + 1); if (f.Increment is not null) AppendExpression(sb, f.Increment, i + 1); AppendStatement(sb, f.Body, i + 1); break;
             case BoundReturnStatement r:
                 I(sb, i); sb.AppendLine("ReturnStatement"); if (r.Expression is not null) AppendExpression(sb, r.Expression, i + 1); break;
+            case BoundBreakStatement:
+                I(sb, i); sb.AppendLine("BreakStatement"); break;
+            case BoundContinueStatement:
+                I(sb, i); sb.AppendLine("ContinueStatement"); break;
         }
     }
 

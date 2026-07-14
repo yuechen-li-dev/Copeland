@@ -105,6 +105,8 @@ public enum SyntaxKind
     WhileStatement,
     ForStatement,
     ReturnStatement,
+    BreakStatement,
+    ContinueStatement,
     NestedRecordDeclarationStatement,
     NestedTableDeclarationStatement,
     NameExpression,
