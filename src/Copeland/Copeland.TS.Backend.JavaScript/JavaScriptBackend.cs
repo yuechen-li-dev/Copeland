@@ -26,14 +26,15 @@ public static class JavaScriptBackend
 
         ResultCatalog results = ResultCatalog.Create(program);
         bool usesUnwrap = ProgramUsesUnwrap(program);
-        GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap);
+        bool usesTryExcept = ProgramUsesTryExcept(program);
+        GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept);
         var writer = new JavaScriptTextWriter();
         writer.WriteLine("\"use strict\";");
 
-        if (catalog.Enums.Count > 0 || results.Types.Count > 0)
+        if (catalog.Enums.Count > 0 || results.Types.Count > 0 || usesTryExcept)
         {
             writer.WriteLine();
-            EmitValueRuntime(writer, catalog, results, names, usesUnwrap);
+            EmitValueRuntime(writer, catalog, results, names, usesUnwrap, usesTryExcept);
         }
 
         foreach (MirFunction function in program.Functions)
@@ -210,8 +211,8 @@ public static class JavaScriptBackend
             case MirResultMatchExpression resultMatch:
                 ValidateResultMatch(resultMatch, functionReturnType, context, functions, catalog, diagnostics);
                 break;
-            case MirTryExpression:
-                AddUnsupported(diagnostics, $"try/except handler expression in {context}; CTS-M6b defers JavaScript handler lowering to CTS-M6c");
+            case MirTryExpression tryExpression:
+                ValidateTryExcept(tryExpression, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirPropagateExpression propagate:
                 ValidatePropagation(propagate, functionReturnType, context, functions, catalog, diagnostics);
@@ -442,20 +443,55 @@ public static class JavaScriptBackend
     private static void ValidatePropagation(MirPropagateExpression propagation, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
     {
         ValidateExpression(propagation.Operand, functionReturnType, context, functions, catalog, diagnostics);
-        if (propagation.Target is not MirPropagationTarget.FunctionReturn)
+        if (propagation.Operand.Type is not MirResultType operandResult)
         {
-            AddUnsupported(diagnostics, $"propagation target '{propagation.Target}' in {context}");
-            return;
-        }
-
-        if (functionReturnType is not MirResultType functionResult || propagation.Operand.Type is not MirResultType operandResult)
-        {
-            AddInvalid(diagnostics, $"function-return propagation requires Result operand and Result return type in {context}");
+            AddInvalid(diagnostics, $"propagation requires a Result operand in {context}");
             return;
         }
 
         RequireMatchingType(propagation.Type, operandResult.SuccessType, $"propagation success value in {context}", diagnostics);
-        RequireMatchingType(functionResult.ErrorType, operandResult.ErrorType, $"propagation error type in {context}", diagnostics);
+        if (propagation.Target is MirPropagationTarget.FunctionReturn)
+        {
+            if (functionReturnType is not MirResultType functionResult)
+            {
+                AddInvalid(diagnostics, $"function-return propagation requires a Result return type in {context}");
+                return;
+            }
+
+            RequireMatchingType(functionResult.ErrorType, operandResult.ErrorType, $"propagation error type in {context}", diagnostics);
+            return;
+        }
+
+        if (propagation.Target is not MirPropagationTarget.LexicalExcept)
+        {
+            AddUnsupported(diagnostics, $"propagation target '{propagation.Target}' in {context}");
+        }
+    }
+
+    private static void ValidateTryExcept(MirTryExpression tryExpression, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
+    {
+        RequireMatchingType(tryExpression.Protected.Type, tryExpression.Type, $"protected value of try/except in {context}", diagnostics);
+        RequireMatchingType(tryExpression.Handler.Type, tryExpression.Type, $"handler value of try/except in {context}", diagnostics);
+        RequireMatchingType(tryExpression.HandlerBinding.Type, tryExpression.HandledErrorType, $"handler binding of try/except in {context}", diagnostics);
+        ValidateValueType(tryExpression.Type, $"try/except result in {context}", catalog, diagnostics, allowVoid: true);
+        ValidateValueType(tryExpression.HandledErrorType, $"try/except handled error in {context}", catalog, diagnostics, allowVoid: false);
+        ValidateValueBlock(tryExpression.Protected, functionReturnType, context, functions, catalog, diagnostics);
+        ValidateValueBlock(tryExpression.Handler, functionReturnType, context, functions, catalog, diagnostics);
+    }
+
+    private static void ValidateValueBlock(MirValueBlock block, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
+    {
+        foreach (MirStatement statement in block.PrefixStatements)
+        {
+            if (statement is not MirVariableDeclarationStatement and not MirExpressionStatement)
+            {
+                AddInvalid(diagnostics, $"try value block contains unsupported prefix statement '{statement.GetType().Name}' in {context}");
+            }
+
+            ValidateStatement(statement, functionReturnType, context, functions, catalog, diagnostics);
+        }
+
+        ValidateExpression(block.ValueExpression, functionReturnType, context, functions, catalog, diagnostics);
     }
 
     private static void ValidateUnwrap(MirUnwrapExpression unwrap, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
@@ -480,7 +516,7 @@ public static class JavaScriptBackend
         diagnostics.Add(new JavaScriptDiagnostic(InvalidDiagnosticId, $"Invalid MIR for JavaScript backend: {message}."));
     }
 
-    private static void EmitValueRuntime(JavaScriptTextWriter writer, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap)
+    private static void EmitValueRuntime(JavaScriptTextWriter writer, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap, bool usesTryExcept)
     {
         writer.WriteLine($"function {names.Panic}() {{");
         writer.Indent();
@@ -504,6 +540,12 @@ public static class JavaScriptBackend
         writer.WriteLine("return Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));");
         writer.Unindent();
         writer.WriteLine("}");
+
+        if (usesTryExcept)
+        {
+            writer.WriteLine();
+            EmitFlowRuntime(writer, names);
+        }
 
         foreach (EnumInfo enumInfo in catalog.Enums)
         {
@@ -625,42 +667,138 @@ public static class JavaScriptBackend
         };
     }
 
+    private static void EmitFlowRuntime(JavaScriptTextWriter writer, GeneratedNames names)
+    {
+        writer.WriteLine($"const {names.FlowToken} = Object.freeze(Object.create(null));");
+        writer.WriteLine();
+        writer.WriteLine($"function {names.FlowValue}(value) {{");
+        writer.Indent();
+        writer.WriteLine($"return Object.freeze(Object.assign(Object.create(null), {{ $flow: {names.FlowToken}, $kind: \"value\", $value: value }}));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine($"function {names.FlowToHandler}(handler, error) {{");
+        writer.Indent();
+        writer.WriteLine($"return Object.freeze(Object.assign(Object.create(null), {{ $flow: {names.FlowToken}, $kind: \"handler\", $handler: handler, $error: error }}));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine($"function {names.FlowToFunction}(error) {{");
+        writer.Indent();
+        writer.WriteLine($"return Object.freeze(Object.assign(Object.create(null), {{ $flow: {names.FlowToken}, $kind: \"function\", $error: error }}));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine($"function {names.ValidateFlow}(flow) {{");
+        writer.Indent();
+        writer.WriteLine($"if (typeof flow !== \"object\" || flow === null || Object.getPrototypeOf(flow) !== null || !Object.isFrozen(flow) || flow.$flow !== {names.FlowToken} || typeof flow.$kind !== \"string\") {{");
+        writer.Indent();
+        writer.WriteLine($"{names.Panic}();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("switch (flow.$kind) {");
+        writer.Indent();
+        writer.WriteLine("case \"value\":");
+        writer.Indent();
+        writer.WriteLine("if (!Object.prototype.hasOwnProperty.call(flow, \"$value\")) { " + names.Panic + "(); }");
+        writer.WriteLine("return;");
+        writer.Unindent();
+        writer.WriteLine("case \"handler\":");
+        writer.Indent();
+        writer.WriteLine("if (!Number.isInteger(flow.$handler) || !Object.prototype.hasOwnProperty.call(flow, \"$error\")) { " + names.Panic + "(); }");
+        writer.WriteLine("return;");
+        writer.Unindent();
+        writer.WriteLine("case \"function\":");
+        writer.Indent();
+        writer.WriteLine("if (!Object.prototype.hasOwnProperty.call(flow, \"$error\")) { " + names.Panic + "(); }");
+        writer.WriteLine("return;");
+        writer.Unindent();
+        writer.WriteLine("default:");
+        writer.Indent();
+        writer.WriteLine($"{names.Panic}();");
+        writer.Unindent();
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
     private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         string parameters = string.Join(", ", function.Parameters.Select(parameter => JavaScriptIdentifierEncoder.Encode(parameter.Name)));
         writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
+
+        bool usesTryExcept = FunctionUsesTryExcept(function);
+        if (usesTryExcept)
+        {
+            string flow = names.NextTemporary("function_flow");
+            writer.WriteLine($"const {flow} = (() => {{");
+            writer.Indent();
+            foreach (MirStatement statement in function.Body)
+            {
+                EmitStatement(writer, statement, function, catalog, results, names, flowEnabled: true);
+            }
+            writer.WriteLine($"return {names.FlowValue}(undefined);");
+            writer.Unindent();
+            writer.WriteLine("})();");
+            writer.WriteLine($"{names.ValidateFlow}({flow});");
+            writer.WriteLine($"if ({flow}.$kind === \"value\") {{");
+            writer.Indent();
+            writer.WriteLine($"return {flow}.$value;");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine($"if ({flow}.$kind === \"function\") {{");
+            writer.Indent();
+            if (function.ReturnType is MirResultType functionResult)
+            {
+                writer.WriteLine($"return {names.MakeValue}({names.TypeToken(results.Get(functionResult))}, \"err\", [{flow}.$error]);");
+            }
+            else
+            {
+                writer.WriteLine($"{names.Panic}();");
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine($"{names.Panic}();");
+            writer.Unindent();
+            writer.WriteLine("}");
+            return;
+        }
+
         foreach (MirStatement statement in function.Body)
         {
-            EmitStatement(writer, statement, function, catalog, results, names);
+            EmitStatement(writer, statement, function, catalog, results, names, flowEnabled: false);
         }
 
         writer.Unindent();
         writer.WriteLine("}");
     }
 
-    private static void EmitStatement(JavaScriptTextWriter writer, MirStatement statement, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static void EmitStatement(JavaScriptTextWriter writer, MirStatement statement, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         switch (statement)
         {
             case MirVariableDeclarationStatement declaration:
-                EmittedExpression initializer = EmitExpression(declaration.Initializer, function, catalog, results, names);
+                EmittedExpression initializer = EmitExpression(declaration.Initializer, function, catalog, results, names, flowEnabled);
                 WritePrelude(writer, initializer.Prelude);
                 writer.WriteLine($"const {JavaScriptIdentifierEncoder.Encode(declaration.Local.Name)} = {initializer.Value};");
                 break;
             case MirReturnStatement { Expression: null } when function.ReturnType is MirResultType result && result.SuccessType is MirType { Identifier: "void" }:
-                writer.WriteLine($"return {names.MakeValue}({names.TypeToken(results.Get(result))}, \"ok\", [null]);");
+                writer.WriteLine(flowEnabled
+                    ? $"return {names.FlowValue}({names.MakeValue}({names.TypeToken(results.Get(result))}, \"ok\", [null]));"
+                    : $"return {names.MakeValue}({names.TypeToken(results.Get(result))}, \"ok\", [null]);");
                 break;
             case MirReturnStatement returnStatement when returnStatement.Expression is null:
-                writer.WriteLine("return;");
+                writer.WriteLine(flowEnabled ? $"return {names.FlowValue}(undefined);" : "return;");
                 break;
             case MirReturnStatement returnStatement:
-                EmittedExpression returned = EmitExpression(returnStatement.Expression!, function, catalog, results, names);
+                EmittedExpression returned = EmitExpression(returnStatement.Expression!, function, catalog, results, names, flowEnabled);
                 WritePrelude(writer, returned.Prelude);
-                writer.WriteLine($"return {returned.Value};");
+                writer.WriteLine(flowEnabled ? $"return {names.FlowValue}({returned.Value});" : $"return {returned.Value};");
                 break;
             case MirExpressionStatement expressionStatement:
-                EmittedExpression expression = EmitExpression(expressionStatement.Expression, function, catalog, results, names);
+                EmittedExpression expression = EmitExpression(expressionStatement.Expression, function, catalog, results, names, flowEnabled);
                 WritePrelude(writer, expression.Prelude);
                 writer.WriteLine($"{expression.Value};");
                 break;
@@ -669,7 +807,7 @@ public static class JavaScriptBackend
         }
     }
 
-    private static EmittedExpression EmitExpression(MirExpression expression, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitExpression(MirExpression expression, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         return expression switch
         {
@@ -678,45 +816,46 @@ public static class JavaScriptBackend
             MirLiteralExpression { Value: not null } literal => EmittedExpression.ValueOnly(JavaScriptLiteralWriter.WriteNumber(literal.Value)),
             MirUnitExpression => EmittedExpression.ValueOnly("null"),
             MirVariableExpression variable => EmittedExpression.ValueOnly(JavaScriptIdentifierEncoder.Encode(variable.Name)),
-            MirBinaryExpression binary => EmitBinary(binary, function, catalog, results, names),
-            MirCallExpression call => EmitCall(call, function, catalog, results, names),
-            MirEnumValueExpression value => EmitEnumValueExpression(value, function, catalog, results, names),
-            MirMatchExpression match => EmitEnumMatchExpression(match, function, catalog, results, names),
-            MirResultMatchExpression match => EmitResultMatchExpression(match, function, catalog, results, names),
-            MirIfExpression conditional => EmitIfExpression(conditional, function, catalog, results, names),
-            MirOkExpression ok => EmitResultConstruction(ok.Payload, (MirResultType)ok.Type, "ok", function, catalog, results, names),
-            MirErrExpression err => EmitResultConstruction(err.Payload, (MirResultType)err.Type, "err", function, catalog, results, names),
-            MirPropagateExpression propagation => EmitPropagation(propagation, function, catalog, results, names),
-            MirUnwrapExpression unwrap => EmitUnwrap(unwrap, function, catalog, results, names),
+            MirBinaryExpression binary => EmitBinary(binary, function, catalog, results, names, flowEnabled),
+            MirCallExpression call => EmitCall(call, function, catalog, results, names, flowEnabled),
+            MirEnumValueExpression value => EmitEnumValueExpression(value, function, catalog, results, names, flowEnabled),
+            MirMatchExpression match => EmitEnumMatchExpression(match, function, catalog, results, names, flowEnabled),
+            MirResultMatchExpression match => EmitResultMatchExpression(match, function, catalog, results, names, flowEnabled),
+            MirIfExpression conditional => EmitIfExpression(conditional, function, catalog, results, names, flowEnabled),
+            MirOkExpression ok => EmitResultConstruction(ok.Payload, (MirResultType)ok.Type, "ok", function, catalog, results, names, flowEnabled),
+            MirErrExpression err => EmitResultConstruction(err.Payload, (MirResultType)err.Type, "err", function, catalog, results, names, flowEnabled),
+            MirPropagateExpression propagation => EmitPropagation(propagation, function, catalog, results, names, flowEnabled),
+            MirUnwrapExpression unwrap => EmitUnwrap(unwrap, function, catalog, results, names, flowEnabled),
+            MirTryExpression tryExpression => EmitTryExcept(tryExpression, function, catalog, results, names, flowEnabled),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
     }
 
-    private static EmittedExpression EmitBinary(MirBinaryExpression binary, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitBinary(MirBinaryExpression binary, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
-        EmittedExpression left = EmitExpression(binary.Left, function, catalog, results, names);
-        EmittedExpression right = EmitExpression(binary.Right, function, catalog, results, names);
+        EmittedExpression left = EmitExpression(binary.Left, function, catalog, results, names, flowEnabled);
+        EmittedExpression right = EmitExpression(binary.Right, function, catalog, results, names, flowEnabled);
         return EmittedExpression.Combine($"({left.Value} {MapBinaryOperator(binary.Operator)} {right.Value})", left, right);
     }
 
-    private static EmittedExpression EmitCall(MirCallExpression call, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitCall(MirCallExpression call, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
-        var emittedArguments = call.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names)).ToList();
+        var emittedArguments = call.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)).ToList();
         return EmittedExpression.Combine($"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", emittedArguments.Select(argument => argument.Value))})", emittedArguments);
     }
 
-    private static EmittedExpression EmitEnumValueExpression(MirEnumValueExpression value, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitEnumValueExpression(MirEnumValueExpression value, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         EnumInfo enumInfo = catalog.GetEnum(value.EnumName);
-        var payloads = value.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names)).ToList();
+        var payloads = value.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)).ToList();
         return EmittedExpression.Combine($"{names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", payloads.Select(payload => payload.Value))}])", payloads);
     }
 
-    private static EmittedExpression EmitEnumMatchExpression(MirMatchExpression match, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitEnumMatchExpression(MirMatchExpression match, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         if (ContainsControlFlow(match))
         {
-            return EmitStructuredEnumMatch(match, function, catalog, results, names);
+            return EmitStructuredEnumMatch(match, function, catalog, results, names, flowEnabled);
         }
 
         EnumInfo enumInfo = catalog.GetEnum(match.Scrutinee.Type.Identifier);
@@ -724,7 +863,7 @@ public static class JavaScriptBackend
         var parts = new List<string>
         {
             "(() => {",
-            $"const {scrutinee} = {EmitExpression(match.Scrutinee, function, catalog, results, names).Value};",
+            $"const {scrutinee} = {EmitExpression(match.Scrutinee, function, catalog, results, names, flowEnabled).Value};",
             $"{names.Validator(enumInfo)}({scrutinee});",
             $"switch ({scrutinee}.$tag) {{",
         };
@@ -738,7 +877,7 @@ public static class JavaScriptBackend
                 parts.Add($"const {binding} = {scrutinee}.$payload[{index}];");
             }
 
-            parts.Add($"return {EmitExpression(arm.Expression, function, catalog, results, names).Value};");
+            parts.Add($"return {EmitExpression(arm.Expression, function, catalog, results, names, flowEnabled).Value};");
             parts.Add("}");
         }
 
@@ -749,36 +888,121 @@ public static class JavaScriptBackend
         return EmittedExpression.ValueOnly(string.Join(" ", parts));
     }
 
-    private static EmittedExpression EmitResultConstruction(MirExpression payload, MirResultType type, string tag, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitResultConstruction(MirExpression payload, MirResultType type, string tag, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
-        EmittedExpression emittedPayload = EmitExpression(payload, function, catalog, results, names);
+        EmittedExpression emittedPayload = EmitExpression(payload, function, catalog, results, names, flowEnabled);
         return new EmittedExpression(emittedPayload.Prelude, $"{names.MakeValue}({names.TypeToken(results.Get(type))}, \"{tag}\", [{emittedPayload.Value}])");
     }
 
-    private static EmittedExpression EmitPropagation(MirPropagateExpression propagation, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitPropagation(MirPropagateExpression propagation, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
-        if (propagation.Target is not MirPropagationTarget.FunctionReturn || function.ReturnType is not MirResultType functionResult || propagation.Operand.Type is not MirResultType operandResult)
+        if (propagation.Operand.Type is not MirResultType operandResult)
         {
             throw new InvalidOperationException("Validated JavaScript emission received an unsupported Result propagation target.");
         }
 
-        EmittedExpression operand = EmitExpression(propagation.Operand, function, catalog, results, names);
+        EmittedExpression operand = EmitExpression(propagation.Operand, function, catalog, results, names, flowEnabled);
         string temporary = names.NextTemporary("propagate");
         var prelude = new List<EmittedLine>(operand.Prelude)
         {
             new($"const {temporary} = {operand.Value};", 0),
             new($"{names.Validator(results.Get(operandResult))}({temporary});", 0),
             new($"if ({temporary}.$tag === \"err\") {{", 0),
-            new($"return {names.MakeValue}({names.TypeToken(results.Get(functionResult))}, \"err\", [{temporary}.$payload[0]]);", 1),
+            new(EmitPropagationReturn(propagation.Target, function, results, names, temporary, flowEnabled), 1),
             new("}", 0),
         };
         return new EmittedExpression(prelude, $"{temporary}.$payload[0]");
     }
 
-    private static EmittedExpression EmitUnwrap(MirUnwrapExpression unwrap, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static string EmitPropagationReturn(MirPropagationTarget target, MirFunction function, ResultCatalog results, GeneratedNames names, string temporary, bool flowEnabled)
+    {
+        if (flowEnabled)
+        {
+            return target switch
+            {
+                MirPropagationTarget.FunctionReturn => $"return {names.FlowToFunction}({temporary}.$payload[0]);",
+                MirPropagationTarget.LexicalExcept lexical => $"return {names.FlowToHandler}({lexical.HandlerId.Value}, {temporary}.$payload[0]);",
+                _ => throw new InvalidOperationException("Validated JavaScript emission received an unknown propagation target."),
+            };
+        }
+
+        if (target is not MirPropagationTarget.FunctionReturn || function.ReturnType is not MirResultType functionResult)
+        {
+            throw new InvalidOperationException("Validated JavaScript emission received a lexical propagation outside a flow function.");
+        }
+
+        return $"return {names.MakeValue}({names.TypeToken(results.Get(functionResult))}, \"err\", [{temporary}.$payload[0]]);";
+    }
+
+    private static EmittedExpression EmitTryExcept(MirTryExpression tryExpression, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        if (!flowEnabled)
+        {
+            throw new InvalidOperationException("Validated JavaScript emission received a try/except expression outside a flow function.");
+        }
+
+        string protectedFlow = names.NextTemporary("try_protected");
+        string handlerFlow = names.NextTemporary("try_handler");
+        string value = names.NextTemporary("try_value");
+        string error = JavaScriptIdentifierEncoder.Encode(tryExpression.HandlerBinding.Name);
+        var prelude = new List<EmittedLine>
+        {
+            new($"const {protectedFlow} = (() => {{", 0),
+        };
+        prelude.AddRange(EmitValueBlock(tryExpression.Protected, function, catalog, results, names).Select(line => line.OffsetBy(1)));
+        prelude.Add(new EmittedLine("})();", 0));
+        prelude.Add(new EmittedLine($"{names.ValidateFlow}({protectedFlow});", 0));
+        prelude.Add(new EmittedLine($"let {value};", 0));
+        prelude.Add(new EmittedLine($"if ({protectedFlow}.$kind === \"handler\" && {protectedFlow}.$handler === {tryExpression.HandlerId.Value}) {{", 0));
+        prelude.Add(new EmittedLine($"const {error} = {protectedFlow}.$error;", 1));
+        prelude.Add(new EmittedLine($"const {handlerFlow} = (() => {{", 1));
+        prelude.AddRange(EmitValueBlock(tryExpression.Handler, function, catalog, results, names).Select(line => line.OffsetBy(2)));
+        prelude.Add(new EmittedLine("})();", 1));
+        prelude.Add(new EmittedLine($"{names.ValidateFlow}({handlerFlow});", 1));
+        prelude.Add(new EmittedLine($"if ({handlerFlow}.$kind !== \"value\") {{", 1));
+        prelude.Add(new EmittedLine($"return {handlerFlow};", 2));
+        prelude.Add(new EmittedLine("}", 1));
+        prelude.Add(new EmittedLine($"{value} = {handlerFlow}.$value;", 1));
+        prelude.Add(new EmittedLine($"}} else if ({protectedFlow}.$kind === \"value\") {{", 0));
+        prelude.Add(new EmittedLine($"{value} = {protectedFlow}.$value;", 1));
+        prelude.Add(new EmittedLine("} else {", 0));
+        prelude.Add(new EmittedLine($"return {protectedFlow};", 1));
+        prelude.Add(new EmittedLine("}", 0));
+        return new EmittedExpression(prelude, value);
+    }
+
+    private static IReadOnlyList<EmittedLine> EmitValueBlock(MirValueBlock block, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        var lines = new List<EmittedLine>();
+        foreach (MirStatement statement in block.PrefixStatements)
+        {
+            switch (statement)
+            {
+                case MirVariableDeclarationStatement declaration:
+                    EmittedExpression initializer = EmitExpression(declaration.Initializer, function, catalog, results, names, flowEnabled: true);
+                    lines.AddRange(initializer.Prelude);
+                    lines.Add(new EmittedLine($"const {JavaScriptIdentifierEncoder.Encode(declaration.Local.Name)} = {initializer.Value};", 0));
+                    break;
+                case MirExpressionStatement expression:
+                    EmittedExpression emitted = EmitExpression(expression.Expression, function, catalog, results, names, flowEnabled: true);
+                    lines.AddRange(emitted.Prelude);
+                    lines.Add(new EmittedLine($"{emitted.Value};", 0));
+                    break;
+                default:
+                    throw new InvalidOperationException("Validated JavaScript emission received an unsupported try value block statement.");
+            }
+        }
+
+        EmittedExpression value = EmitExpression(block.ValueExpression, function, catalog, results, names, flowEnabled: true);
+        lines.AddRange(value.Prelude);
+        lines.Add(new EmittedLine($"return {names.FlowValue}({value.Value});", 0));
+        return lines;
+    }
+
+    private static EmittedExpression EmitUnwrap(MirUnwrapExpression unwrap, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         MirResultType resultType = unwrap.ResultType;
-        EmittedExpression operand = EmitExpression(unwrap.Operand, function, catalog, results, names);
+        EmittedExpression operand = EmitExpression(unwrap.Operand, function, catalog, results, names, flowEnabled);
         string temporary = names.NextTemporary("unwrap");
         var prelude = new List<EmittedLine>(operand.Prelude)
         {
@@ -791,12 +1015,12 @@ public static class JavaScriptBackend
         return new EmittedExpression(prelude, $"{temporary}.$payload[0]");
     }
 
-    private static EmittedExpression EmitResultMatchExpression(MirResultMatchExpression match, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitResultMatchExpression(MirResultMatchExpression match, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         MirResultType resultType = (MirResultType)match.Scrutinee.Type;
-        EmittedExpression scrutinee = EmitExpression(match.Scrutinee, function, catalog, results, names);
-        EmittedExpression ok = EmitExpression(match.OkExpression, function, catalog, results, names);
-        EmittedExpression err = EmitExpression(match.ErrExpression, function, catalog, results, names);
+        EmittedExpression scrutinee = EmitExpression(match.Scrutinee, function, catalog, results, names, flowEnabled);
+        EmittedExpression ok = EmitExpression(match.OkExpression, function, catalog, results, names, flowEnabled);
+        EmittedExpression err = EmitExpression(match.ErrExpression, function, catalog, results, names, flowEnabled);
         string scrutineeTemporary = names.NextTemporary("result_match");
         string valueTemporary = names.NextTemporary("result_value");
         string okBinding = JavaScriptIdentifierEncoder.Encode(match.OkBinding.Name);
@@ -826,11 +1050,11 @@ public static class JavaScriptBackend
         return new EmittedExpression(prelude, valueTemporary);
     }
 
-    private static EmittedExpression EmitIfExpression(MirIfExpression conditional, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitIfExpression(MirIfExpression conditional, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
-        EmittedExpression condition = EmitExpression(conditional.Condition, function, catalog, results, names);
-        EmittedExpression thenExpression = EmitExpression(conditional.ThenExpression, function, catalog, results, names);
-        EmittedExpression elseExpression = EmitExpression(conditional.ElseExpression, function, catalog, results, names);
+        EmittedExpression condition = EmitExpression(conditional.Condition, function, catalog, results, names, flowEnabled);
+        EmittedExpression thenExpression = EmitExpression(conditional.ThenExpression, function, catalog, results, names, flowEnabled);
+        EmittedExpression elseExpression = EmitExpression(conditional.ElseExpression, function, catalog, results, names, flowEnabled);
         if (thenExpression.Prelude.Count == 0 && elseExpression.Prelude.Count == 0)
         {
             return new EmittedExpression(condition.Prelude, $"({condition.Value} ? {thenExpression.Value} : {elseExpression.Value})");
@@ -851,10 +1075,10 @@ public static class JavaScriptBackend
         return new EmittedExpression(prelude, valueTemporary);
     }
 
-    private static EmittedExpression EmitStructuredEnumMatch(MirMatchExpression match, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static EmittedExpression EmitStructuredEnumMatch(MirMatchExpression match, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         EnumInfo enumInfo = catalog.GetEnum(match.Scrutinee.Type.Identifier);
-        EmittedExpression scrutinee = EmitExpression(match.Scrutinee, function, catalog, results, names);
+        EmittedExpression scrutinee = EmitExpression(match.Scrutinee, function, catalog, results, names, flowEnabled);
         string scrutineeTemporary = names.NextTemporary("match");
         string valueTemporary = names.NextTemporary("match_value");
         var prelude = new List<EmittedLine>(scrutinee.Prelude)
@@ -866,7 +1090,7 @@ public static class JavaScriptBackend
         };
         foreach (MirMatchArm arm in match.Arms)
         {
-            EmittedExpression armExpression = EmitExpression(arm.Expression, function, catalog, results, names);
+            EmittedExpression armExpression = EmitExpression(arm.Expression, function, catalog, results, names, flowEnabled);
             prelude.Add(new EmittedLine($"case {JavaScriptLiteralWriter.WriteString(arm.CaseName)}:", 1));
             prelude.Add(new EmittedLine("{", 1));
             for (int index = 0; index < arm.PayloadBindings.Count; index += 1)
@@ -888,7 +1112,7 @@ public static class JavaScriptBackend
     {
         return expression switch
         {
-            MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression => true,
+            MirPropagateExpression or MirUnwrapExpression or MirResultMatchExpression or MirTryExpression => true,
             MirBinaryExpression binary => ContainsControlFlow(binary.Left) || ContainsControlFlow(binary.Right),
             MirCallExpression call => call.Arguments.Any(ContainsControlFlow),
             MirEnumValueExpression value => value.Arguments.Any(ContainsControlFlow),
@@ -899,6 +1123,40 @@ public static class JavaScriptBackend
             _ => false,
         };
     }
+
+    private static bool ProgramUsesTryExcept(MirProgram program)
+        => program.Functions.Any(FunctionUsesTryExcept);
+
+    private static bool FunctionUsesTryExcept(MirFunction function)
+        => function.Body.Any(StatementUsesTryExcept);
+
+    private static bool StatementUsesTryExcept(MirStatement statement)
+        => statement switch
+        {
+            MirVariableDeclarationStatement declaration => ExpressionUsesTryExcept(declaration.Initializer),
+            MirExpressionStatement expression => ExpressionUsesTryExcept(expression.Expression),
+            MirReturnStatement { Expression: not null } returned => ExpressionUsesTryExcept(returned.Expression),
+            MirIfStatement conditional => ExpressionUsesTryExcept(conditional.Condition) || conditional.ThenStatements.Any(StatementUsesTryExcept) || (conditional.ElseStatements?.Any(StatementUsesTryExcept) ?? false),
+            _ => false,
+        };
+
+    private static bool ExpressionUsesTryExcept(MirExpression expression)
+        => expression switch
+        {
+            MirTryExpression => true,
+            MirBinaryExpression binary => ExpressionUsesTryExcept(binary.Left) || ExpressionUsesTryExcept(binary.Right),
+            MirCallExpression call => call.Arguments.Any(ExpressionUsesTryExcept),
+            MirArrayExpression array => array.Elements.Any(ExpressionUsesTryExcept),
+            MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesTryExcept),
+            MirMatchExpression match => ExpressionUsesTryExcept(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesTryExcept(arm.Expression)),
+            MirResultMatchExpression match => ExpressionUsesTryExcept(match.Scrutinee) || ExpressionUsesTryExcept(match.OkExpression) || ExpressionUsesTryExcept(match.ErrExpression),
+            MirIfExpression conditional => ExpressionUsesTryExcept(conditional.Condition) || ExpressionUsesTryExcept(conditional.ThenExpression) || ExpressionUsesTryExcept(conditional.ElseExpression),
+            MirOkExpression ok => ExpressionUsesTryExcept(ok.Payload),
+            MirErrExpression err => ExpressionUsesTryExcept(err.Payload),
+            MirPropagateExpression propagation => ExpressionUsesTryExcept(propagation.Operand),
+            MirUnwrapExpression unwrap => ExpressionUsesTryExcept(unwrap.Operand),
+            _ => false,
+        };
 
     private static bool ProgramUsesUnwrap(MirProgram program)
         => program.Functions.Any(function => function.Body.Any(StatementUsesUnwrap));
@@ -927,8 +1185,12 @@ public static class JavaScriptBackend
             MirOkExpression ok => ExpressionUsesUnwrap(ok.Payload),
             MirErrExpression err => ExpressionUsesUnwrap(err.Payload),
             MirPropagateExpression propagation => ExpressionUsesUnwrap(propagation.Operand),
+            MirTryExpression tryExpression => ValueBlockUsesUnwrap(tryExpression.Protected) || ValueBlockUsesUnwrap(tryExpression.Handler),
             _ => false,
         };
+
+    private static bool ValueBlockUsesUnwrap(MirValueBlock block)
+        => block.PrefixStatements.Any(StatementUsesUnwrap) || ExpressionUsesUnwrap(block.ValueExpression);
 
     private static void WritePrelude(JavaScriptTextWriter writer, IReadOnlyList<EmittedLine> prelude)
     {
@@ -1264,12 +1526,17 @@ public static class JavaScriptBackend
         private readonly Dictionary<ResultInfo, string> resultValidators;
         private readonly NameAllocator allocator;
 
-        private GeneratedNames(NameAllocator allocator, string panic, string unwrapPanic, string makeValue, Dictionary<EnumInfo, string> typeTokens, Dictionary<EnumInfo, string> validators, Dictionary<ResultInfo, string> resultTypeTokens, Dictionary<ResultInfo, string> resultValidators)
+        private GeneratedNames(NameAllocator allocator, string panic, string unwrapPanic, string makeValue, string flowToken, string flowValue, string flowToHandler, string flowToFunction, string validateFlow, Dictionary<EnumInfo, string> typeTokens, Dictionary<EnumInfo, string> validators, Dictionary<ResultInfo, string> resultTypeTokens, Dictionary<ResultInfo, string> resultValidators)
         {
             this.allocator = allocator;
             Panic = panic;
             UnwrapPanic = unwrapPanic;
             MakeValue = makeValue;
+            FlowToken = flowToken;
+            FlowValue = flowValue;
+            FlowToHandler = flowToHandler;
+            FlowToFunction = flowToFunction;
+            ValidateFlow = validateFlow;
             this.typeTokens = typeTokens;
             this.validators = validators;
             this.resultTypeTokens = resultTypeTokens;
@@ -1281,6 +1548,16 @@ public static class JavaScriptBackend
         public string UnwrapPanic { get; }
 
         public string MakeValue { get; }
+
+        public string FlowToken { get; }
+
+        public string FlowValue { get; }
+
+        public string FlowToHandler { get; }
+
+        public string FlowToFunction { get; }
+
+        public string ValidateFlow { get; }
 
         public string TypeToken(EnumInfo enumInfo) => typeTokens[enumInfo];
 
@@ -1294,7 +1571,7 @@ public static class JavaScriptBackend
 
         public string NextTemporary(string purpose) => allocator.Allocate(purpose);
 
-        public static GeneratedNames Create(MirProgram program, EnumCatalog catalog, ResultCatalog results, bool usesUnwrap)
+        public static GeneratedNames Create(MirProgram program, EnumCatalog catalog, ResultCatalog results, bool usesUnwrap, bool usesTryExcept)
         {
             var occupied = new HashSet<string>(StringComparer.Ordinal);
             foreach (MirFunction function in program.Functions)
@@ -1315,6 +1592,11 @@ public static class JavaScriptBackend
             string panic = allocator.Allocate("panic");
             string unwrapPanic = usesUnwrap ? allocator.Allocate("panic_unwrap") : string.Empty;
             string makeValue = allocator.Allocate("make");
+            string flowToken = usesTryExcept ? allocator.Allocate("flow_token") : string.Empty;
+            string flowValue = usesTryExcept ? allocator.Allocate("flow_value") : string.Empty;
+            string flowToHandler = usesTryExcept ? allocator.Allocate("flow_handler") : string.Empty;
+            string flowToFunction = usesTryExcept ? allocator.Allocate("flow_function") : string.Empty;
+            string validateFlow = usesTryExcept ? allocator.Allocate("flow_validate") : string.Empty;
             var typeTokens = new Dictionary<EnumInfo, string>();
             var validators = new Dictionary<EnumInfo, string>();
             foreach (EnumInfo enumInfo in catalog.Enums)
@@ -1331,7 +1613,7 @@ public static class JavaScriptBackend
                 resultValidators.Add(result, allocator.Allocate("result_validate"));
             }
 
-            return new GeneratedNames(allocator, panic, unwrapPanic, makeValue, typeTokens, validators, resultTypeTokens, resultValidators);
+            return new GeneratedNames(allocator, panic, unwrapPanic, makeValue, flowToken, flowValue, flowToHandler, flowToFunction, validateFlow, typeTokens, validators, resultTypeTokens, resultValidators);
         }
     }
 

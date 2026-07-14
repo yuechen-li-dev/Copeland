@@ -10,6 +10,69 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_Executes_Typed_Try_Except_And_Nested_Bubbling_Repeatedly()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function good(): number ! string { return ok(4); }
+            function bad(): number ! string { return err("bad"); }
+            function badText(): string ! string { return err("bad"); }
+
+            function success(): number {
+              return try {
+                const value: number = good()?;
+                value + 1
+              } except (error) {
+                0
+              };
+            }
+
+            function handled(): string {
+              return try {
+                badText()?
+              } except (error) {
+                error
+              };
+            }
+
+            function nested(): number {
+              return try {
+                try {
+                  bad()?
+                } except (inner) {
+                  bad()?
+                }
+              } except (outer) {
+                7
+              };
+            }
+
+            function toFunction(): number ! string {
+              return try {
+                good()?;
+                bad()?
+              } except (error) {
+                bad()?
+              };
+            }
+
+            function inspect(value: number ! string): string {
+              return match value {
+                ok(numberValue) => "ok",
+                err(error) => error,
+              };
+            }
+            """);
+
+        string script = emitted.SourceText + "console.log(success());\nconsole.log(handled());\nconsole.log(nested());\nconsole.log(inspect(toFunction()));\n";
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal("5\nbad\n7\nbad\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public async Task Node_Executes_Main_Returning_42_Repeatedly()
     {
         const string source = """

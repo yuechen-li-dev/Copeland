@@ -53,6 +53,16 @@ public sealed class JavaScriptCorpusTests
         Assert.Equal(expectedHash, hash);
     }
 
+    [Fact]
+    public void Try_Except_Artifact_Has_Stable_Hash()
+    {
+        string artifactPath = Path.Combine(GetCorpusRoot(), "try-except-success.g.js");
+        byte[] bytes = File.ReadAllBytes(artifactPath);
+        string hash = Convert.ToHexString(SHA256.HashData(bytes));
+
+        Assert.Equal("DD678A23F507736CE1E54FFAA0124158EF2F5A5B833B441F87B1705F02FF4BA7", hash);
+    }
+
     private static string GetCorpusRoot()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

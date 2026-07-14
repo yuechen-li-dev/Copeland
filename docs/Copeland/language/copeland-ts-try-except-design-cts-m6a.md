@@ -1,6 +1,6 @@
 # CTS-M6a: Typed Result `try`/`except` design
 
-**Status:** accepted language and architecture design. CTS-M6b implements the frontend, binding, Cope MIR, C# proof backend, fixtures, and focused tests described here; JavaScript handler lowering remains deferred to CTS-M6c.
+**Status:** accepted language and architecture design. CTS-M6b implements the frontend, binding, Cope MIR, C# proof backend, fixtures, and focused tests described here; CTS-M6c implements JavaScript private-flow lowering and Node evidence.
 
 ## Outcome
 

@@ -303,14 +303,15 @@ public sealed class JavaScriptBackendTests
     }
 
     [Fact]
-    public void Rejects_Try_Except_Mir_Without_Partial_JavaScript_Artifact()
+    public void Emits_Try_Except_Mir_With_Private_Branded_Flow()
     {
         JavaScriptCompilation compilation = Emit("function read(): number ! string { return err(\"bad\"); } function main(): number { return try { read()? } except (error) { 0 }; }");
 
-        Assert.False(compilation.Success);
-        Assert.Null(compilation.SourceText);
-        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0001"
-            && diagnostic.Message.Contains("try/except handler expression", StringComparison.Ordinal));
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("flow_token", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("flow_handler", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Matches(@"\$handler === \d+", compilation.SourceText!);
+        Assert.DoesNotContain("catch", compilation.SourceText, StringComparison.Ordinal);
     }
 
     [Theory]

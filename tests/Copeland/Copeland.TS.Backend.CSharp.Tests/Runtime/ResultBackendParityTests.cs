@@ -10,6 +10,38 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class ResultBackendParityTests
 {
     [Fact]
+    public async Task JavaScript_And_CSharp_Observe_The_Same_Typed_Try_Except_Behavior()
+    {
+        const string source = """
+            function bad(): number ! string { return err("bad"); }
+            function main(): number {
+              return try {
+                try { bad()? } except (inner) { bad()? }
+              } except (outer) {
+                7
+              };
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.True(javaScript.Success, string.Join(Environment.NewLine, javaScript.Diagnostics));
+        ProcessResult node = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        object? csharpResult = GeneratedModuleInvoker.Invoke(generated.Assembly!, "main");
+
+        Assert.Equal(7d, Assert.IsType<double>(csharpResult));
+        Assert.Equal("7\n", node.StdOut);
+        Assert.Equal(string.Empty, node.StdErr);
+    }
+
+    [Fact]
     public async Task JavaScript_And_CSharp_Classify_Unwrap_Panic_The_Same_Way()
     {
         const string source = """
