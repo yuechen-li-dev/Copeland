@@ -81,6 +81,7 @@ public enum SyntaxKind
     // Nodes
     CompilationUnit,
     GlobalStatementMember,
+    TypeAliasDeclaration,
     FunctionDeclaration,
     EnumDeclaration,
     EnumCase,

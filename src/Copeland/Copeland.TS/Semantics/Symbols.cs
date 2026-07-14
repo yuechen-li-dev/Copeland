@@ -5,22 +5,39 @@ public abstract class Symbol(string name)
     public string Name { get; } = name;
 }
 
-public sealed class VariableSymbol(string name, TypeSymbol type, bool isReadOnly) : Symbol(name)
+public sealed class VariableSymbol(
+    string name,
+    TypeSymbol type,
+    bool isReadOnly,
+    string? authoredAliasName = null) : Symbol(name)
 {
     public TypeSymbol Type { get; } = type;
     public bool IsReadOnly { get; } = isReadOnly;
+    public string? AuthoredAliasName { get; } = authoredAliasName;
 }
 
-public sealed class ParameterSymbol(string name, TypeSymbol type) : Symbol(name)
+public sealed class ParameterSymbol(string name, TypeSymbol type, string? authoredAliasName = null) : Symbol(name)
 {
     public TypeSymbol Type { get; } = type;
+    public string? AuthoredAliasName { get; } = authoredAliasName;
 }
 
-public sealed class FunctionSymbol(string name, IReadOnlyList<ParameterSymbol> parameters, TypeSymbol returnType) : Symbol(name)
+public sealed class FunctionSymbol(
+    string name,
+    IReadOnlyList<ParameterSymbol> parameters,
+    TypeSymbol returnType,
+    string? authoredReturnAliasName = null) : Symbol(name)
 {
     public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
     public TypeSymbol ReturnType { get; } = returnType;
+    public string? AuthoredReturnAliasName { get; } = authoredReturnAliasName;
     public bool IsFallible => ReturnType is ResultTypeSymbol;
+}
+
+public sealed class TypeAliasSymbol(string name) : Symbol(name)
+{
+    public TypeSymbol CanonicalType { get; internal set; } = PrimitiveTypeSymbol.Error;
+    public bool IsResolved { get; internal set; }
 }
 
 public sealed class EnumCaseSymbol(string name, EnumTypeSymbol enumType, IReadOnlyList<EnumPayloadFieldSymbol> payloadFields) : Symbol(name)

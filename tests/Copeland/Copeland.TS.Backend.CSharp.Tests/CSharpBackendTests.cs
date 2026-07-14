@@ -13,6 +13,35 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
+    public void Transparent_aliases_are_erased_identically_by_both_backends()
+    {
+        const string aliasSource = """
+type Count = number;
+type Counts = Count[];
+function retain(values: Counts): Counts {
+    return values;
+}
+""";
+        const string directSource = """
+function retain(values: number[]): number[] {
+    return values;
+}
+""";
+
+        MirProgram aliasProgram = Lower(aliasSource);
+        MirProgram directProgram = Lower(directSource);
+        var aliasCSharp = CSharpBackend.Emit(aliasProgram).SourceText;
+        var directCSharp = CSharpBackend.Emit(directProgram).SourceText;
+        var aliasJavaScript = JavaScriptBackend.Emit(aliasProgram).SourceText;
+        var directJavaScript = JavaScriptBackend.Emit(directProgram).SourceText;
+
+        Assert.Equal(directCSharp, aliasCSharp);
+        Assert.Equal(directJavaScript, aliasJavaScript);
+        Assert.DoesNotContain("Count", aliasCSharp, StringComparison.Ordinal);
+        Assert.DoesNotContain("Count", aliasJavaScript, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Control_flow_emits_structured_loops_and_executes_continue_before_for_increment()
     {
         var program = Lower("""

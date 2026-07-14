@@ -71,6 +71,37 @@ public sealed record ArrayTypeSyntax(TypeSyntax ElementType, SyntaxToken OpenBra
     }
 }
 
+public sealed record TypeAliasDeclarationSyntax(
+    SyntaxToken TypeKeyword,
+    SyntaxToken Identifier,
+    IReadOnlyList<SyntaxToken> TypeParameterTokens,
+    SyntaxToken EqualsToken,
+    TypeSyntax TargetType,
+    IReadOnlyList<SyntaxToken> UnsupportedTokens,
+    SyntaxToken SemicolonToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TypeAliasDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return TypeKeyword;
+        yield return Identifier;
+        foreach (var token in TypeParameterTokens)
+        {
+            yield return token;
+        }
+
+        yield return EqualsToken;
+        yield return TargetType;
+        foreach (var token in UnsupportedTokens)
+        {
+            yield return token;
+        }
+
+        yield return SemicolonToken;
+    }
+}
+
 public sealed record ParenthesizedTypeSyntax(SyntaxToken OpenParenToken, TypeSyntax Type, SyntaxToken CloseParenToken) : TypeSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.ParenthesizedType;

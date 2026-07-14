@@ -1,6 +1,6 @@
 # Copeland TS user-authored type-system design (CTS-TYPE-M0a)
 
-**Status:** accepted documentation-only architecture recommendation. No syntax or compiler behavior is implemented by M0a. The current implemented law remains the [Copeland TS language profile](copeland-ts-language-profile.md); the first authorized implementation milestone is CTS-TYPE-M0b after owner approval of the decisions called out below.
+**Status:** accepted architecture recommendation. M0a itself changed documentation only; its first implementation milestone, [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md), now implements transparent non-generic compilation-unit aliases. Interfaces, generics, and static evaluation remain unimplemented.
 
 ## Decision
 
@@ -29,7 +29,7 @@ T extends Positioned
 
 This notation explains the model; it is not source syntax or a request for a runtime `Requires` value. Ordinary aliases, field-only interfaces, and bounded generic functions should look familiar to a TypeScript programmer. Type-level programs, ambient merging, runtime interface carriers, and C++-template-style execution are not part of the model.
 
-M0a changes documentation only. All examples in this document that use `type`, `interface`, type parameters, or explicit type arguments are proposed syntax and are rejected or misparsed by the current compiler.
+M0a changed documentation only. M0b now implements the non-generic `type` alias examples in this document. Examples using `interface`, type parameters, explicit type arguments, or general type-level programming remain proposed syntax and are rejected.
 
 ## Evidence and status vocabulary
 
@@ -46,7 +46,9 @@ This record uses six classifications:
 
 Backend output is evidence, not source-language authority. In particular, a C# declaration or JavaScript carrier does not decide Copeland identity, assignability, reflection, layout, or generic representation.
 
-## Current implementation inventory
+## M0a baseline implementation inventory
+
+This inventory records the repository audited by M0a. CTS-TYPE-M0b supersedes only its alias-specific findings; the linked M0b architecture record is current implementation law.
 
 ### Syntax and tokens
 
@@ -54,7 +56,7 @@ Backend output is evidence, not source-language authority. In particular, a C# d
 | --- | --- | --- |
 | Lexer | [`Lexer.NextToken`](../../../src/Copeland/Copeland.TS/Syntax/Lexer.cs) and `LexIdentifierOrKeyword` | Identifiers are classified through `SyntaxFacts`. `<`, `<=`, `>`, and `>=` are implemented operator tokens. There is no angle-bracket/type-argument lexical mode. **Implemented law.** |
 | Keyword inventory | [`SyntaxKind`](../../../src/Copeland/Copeland.TS/Syntax/SyntaxKind.cs), [`SyntaxFacts.KeywordKinds`](../../../src/Copeland/Copeland.TS/Syntax/SyntaxFacts.cs) | `type`, `interface`, `extends`, and `implements` have no keyword kinds and currently lex as `IdentifierToken`. `column` is reserved; table asset `from` is deliberately contextual. **Implemented law/current rejection.** |
-| Declaration parsing | [`Parser.ParseMember`](../../../src/Copeland/Copeland.TS/Syntax/Parser.cs) | Top-level declarations are functions, enums, records, and `record table`; no alias, interface, class, or generic declaration production exists. **Implemented law/current rejection.** |
+| Declaration parsing | [`Parser.ParseMember`](../../../src/Copeland/Copeland.TS/Syntax/Parser.cs) | At the M0a audit baseline, top-level declarations were functions, enums, records, and `record table`. M0b adds contextual compilation-unit aliases; interface, class, and generic declaration productions remain absent. **M0a baseline, superseded for aliases by M0b.** |
 | Type grammar | `Parser.ParseTypeSyntax`, `ParsePostfixTypeSyntax`, `ParseIdentifierOrQualifiedRowType` | Result `!` is right-recursive; postfix `[]` is supported; parentheses group types; `Table.Row` and prefix `column T` are dedicated forms. `<` and `>` are never consumed in a type. **Implemented law.** |
 | Type syntax hierarchy | [`TypeSyntax`](../../../src/Copeland/Copeland.TS/Syntax/SyntaxNodes.cs) | The complete current set is `PredefinedTypeSyntax`, `IdentifierTypeSyntax`, `ArrayTypeSyntax`, `ParenthesizedTypeSyntax`, `ResultTypeSyntax`, `QualifiedRowTypeSyntax`, and `ColumnTypeSyntax`. There is no function-type, alias-reference-specific, interface, type-parameter, union, intersection, indexed-access, conditional, mapped, or type-query node. **Implemented law.** |
 | Type positions | `FunctionDeclarationSyntax`, `ParameterSyntax`, `RecordFieldSyntax`, `EnumPayloadFieldSyntax`, `VariableDeclarationStatementSyntax`, `TableColumnSyntax` | Types occur in named function signatures, variables, record fields, payload fields, and explicit table columns. Functions themselves are not first-class type expressions. **Implemented law.** |
@@ -242,7 +244,7 @@ record StoredUserId {
 
 | Question | M0a recommendation |
 | --- | --- |
-| Scope | M0b permits module/compilation-unit aliases only. Block aliases wait for a demonstrated use and a separate shadowing law. |
+| Scope | M0b permits compilation-unit aliases only. Copeland has no module system; block aliases wait for a demonstrated use and a separate shadowing law. |
 | Forward references | Permit same-unit forward references by predeclaring all alias names, matching current named-type declarations. |
 | Namespace and duplicates | Use one declaration type-name namespace for aliases, records, enums, tables, interfaces, and later type parameters in their lexical owner. Reject duplicate or colliding type declarations; do not merge. The implementation may stop installing type declarations as value-shaped `VariableSymbol` entries, but that refactor is not required by M0a. |
 | Cycles | Reject every direct/transitive alias expansion cycle with a stable diagnostic naming the alias and a deterministic declaration-order cycle path. No lazy recursive alias. |
@@ -410,7 +412,7 @@ Aliases, requirement satisfaction, substitution, and bounded inference are compi
 
 | Milestone | Bounded result |
 | --- | --- |
-| CTS-TYPE-M0b | Module-scoped transparent non-generic aliases; forward references; duplicates/cycles; canonical expansion; diagnostics; no MIR alias nodes or emitted declarations. |
+| CTS-TYPE-M0b | Compilation-unit transparent non-generic aliases; forward references; duplicates/cycles; canonical expansion; diagnostics; no MIR alias nodes or emitted declarations. **Implemented and closed.** |
 | CTS-TYPE-M1a | Confirm requirement grammar, field compatibility, table-row evidence, multiple-constraint spelling, diagnostics, and illegal interface positions against parser/member evidence. Documentation/tests may be designed, but behavior changes wait for M1b. |
 | CTS-TYPE-M1b | Field-only erased interfaces/requirement sets and implicit satisfaction for nominal records and table rows; constraint positions only; no methods, interface values, composition, `implements`, or runtime carrier. |
 | CTS-TYPE-M2a | Generic-function bound/MIR/backend design, stable closed identities, resource limits, recursive-instantiation policy, C#/JS/NativeAOT/code-size measurements. |
@@ -425,7 +427,7 @@ M1a is retained because current member access is nominally resolved and generic 
 
 The following require explicit owner approval before their named implementation milestone:
 
-1. Approve the single declaration type-name namespace and module-only alias scope for M0b.
+1. The single compilation-unit type-name namespace and compilation-unit alias scope are implemented by M0b.
 2. Approve aliases of interfaces as requirement-position-only transparency once M1b exists.
 3. Confirm `T extends A, B` or select another explicit multiple-requirement spelling in M1a.
 4. Confirm table rows as satisfying candidates and exact/invariant field compatibility in M1b.

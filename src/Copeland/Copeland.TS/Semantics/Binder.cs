@@ -50,6 +50,10 @@ public static class Binder
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TableTypeSymbol> _tableTypes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, TypeAliasSymbol> _aliases = new(StringComparer.Ordinal);
+        private readonly Dictionary<TypeAliasSymbol, TypeAliasDeclarationSyntax> _aliasDeclarations = [];
+        private readonly List<TypeAliasSymbol> _aliasesInDeclarationOrder = [];
+        private readonly HashSet<MemberSyntax> _rejectedTypeDeclarations = [];
         private readonly HashSet<VariableSymbol> _tableSingletonVariables = [];
         private EnumTypeSymbol? _tableBoundsErrorType;
         private EnumTypeSymbol? _tsonEncodeErrorType;
@@ -60,6 +64,7 @@ public static class Binder
         private int _nextRecordTypeId = 1;
         private int _nextTableTypeId = 1;
         private string? _schemaIdentity;
+        private TypeAliasDeclarationSyntax? _currentAliasDeclaration;
 
         private sealed class PropagationTargetContext(BoundHandlerId handlerId)
         {
@@ -74,9 +79,12 @@ public static class Binder
             BindSchemaMetadata(_tree.Root);
             PredeclareTableBoundsError();
             PredeclareTsonEncodeError();
+            AnalyzeAliasTypeNameCollisions(_tree.Root);
+            PredeclareAliases(_tree.Root);
             PredeclareRecords(_tree.Root);
             PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
+            ResolveAliases();
             PredeclareFunctions(_tree.Root);
             BindRecordBodies(_tree.Root);
             BindEnumBodies(_tree.Root);
@@ -107,6 +115,305 @@ public static class Binder
                     _tables,
                     _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray()),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
+        }
+
+        private void AnalyzeAliasTypeNameCollisions(CompilationUnitSyntax root)
+        {
+            var owners = new Dictionary<string, MemberSyntax>(StringComparer.Ordinal);
+            foreach (var member in root.Members)
+            {
+                string? name = member switch
+                {
+                    TypeAliasDeclarationSyntax alias => alias.Identifier.Text,
+                    RecordDeclarationSyntax record => record.Identifier.Text,
+                    EnumDeclarationSyntax @enum => @enum.Identifier.Text,
+                    TableDeclarationSyntax table => table.Identifier.Text,
+                    _ => null
+                };
+
+                if (string.IsNullOrEmpty(name))
+                {
+                    continue;
+                }
+
+                if (!owners.TryGetValue(name, out var owner))
+                {
+                    owners.Add(name, member);
+                    continue;
+                }
+
+                if (member is TypeAliasDeclarationSyntax || owner is TypeAliasDeclarationSyntax)
+                {
+                    SyntaxToken anchor = GetTypeDeclarationName(member);
+                    Report(
+                        "COPE-ALIAS-0003",
+                        $"Type name '{name}' is already declared in this compilation unit.",
+                        anchor);
+                    _rejectedTypeDeclarations.Add(member);
+                }
+            }
+        }
+
+        private static SyntaxToken GetTypeDeclarationName(MemberSyntax declaration)
+        {
+            return declaration switch
+            {
+                TypeAliasDeclarationSyntax alias => alias.Identifier,
+                RecordDeclarationSyntax record => record.Identifier,
+                EnumDeclarationSyntax @enum => @enum.Identifier,
+                TableDeclarationSyntax table => table.Identifier,
+                _ => throw new InvalidOperationException("Expected a type declaration.")
+            };
+        }
+
+        private void PredeclareAliases(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<TypeAliasDeclarationSyntax>())
+            {
+                if (_rejectedTypeDeclarations.Contains(declaration)
+                    || string.IsNullOrEmpty(declaration.Identifier.Text))
+                {
+                    continue;
+                }
+
+                if (_enumTypes.ContainsKey(declaration.Identifier.Text))
+                {
+                    Report(
+                        "COPE-ALIAS-0003",
+                        $"Type name '{declaration.Identifier.Text}' is compiler-owned or already declared.",
+                        declaration.Identifier);
+                    continue;
+                }
+
+                var alias = new TypeAliasSymbol(declaration.Identifier.Text);
+                _aliases.Add(alias.Name, alias);
+                _aliasDeclarations.Add(alias, declaration);
+                _aliasesInDeclarationOrder.Add(alias);
+            }
+        }
+
+        private void ResolveAliases()
+        {
+            var declarationIndices = _aliasesInDeclarationOrder
+                .Select((alias, index) => (alias, index))
+                .ToDictionary(item => item.alias, item => item.index);
+            var dependencies = new Dictionary<TypeAliasSymbol, IReadOnlyList<TypeAliasSymbol>>();
+            var dependents = new Dictionary<TypeAliasSymbol, List<TypeAliasSymbol>>();
+
+            foreach (var alias in _aliasesInDeclarationOrder)
+            {
+                var aliasDependencies = CollectAliasDependencies(_aliasDeclarations[alias].TargetType)
+                    .Distinct()
+                    .OrderBy(dependency => declarationIndices[dependency])
+                    .ToArray();
+                dependencies.Add(alias, aliasDependencies);
+                dependents.Add(alias, []);
+            }
+
+            foreach (var alias in _aliasesInDeclarationOrder)
+            {
+                foreach (var dependency in dependencies[alias])
+                {
+                    dependents[dependency].Add(alias);
+                }
+            }
+
+            DetectAliasCycles(dependencies, declarationIndices);
+
+            var remainingDependencies = dependencies.ToDictionary(
+                item => item.Key,
+                item => item.Value.Count);
+            var ready = new SortedSet<int>();
+            for (var index = 0; index < _aliasesInDeclarationOrder.Count; index++)
+            {
+                if (remainingDependencies[_aliasesInDeclarationOrder[index]] == 0)
+                {
+                    ready.Add(index);
+                }
+            }
+
+            while (ready.Count > 0)
+            {
+                int index = ready.Min;
+                ready.Remove(index);
+                TypeAliasSymbol alias = _aliasesInDeclarationOrder[index];
+                ResolveAliasTarget(alias);
+
+                foreach (var dependent in dependents[alias])
+                {
+                    remainingDependencies[dependent]--;
+                    if (remainingDependencies[dependent] == 0)
+                    {
+                        ready.Add(declarationIndices[dependent]);
+                    }
+                }
+            }
+
+            foreach (var alias in _aliasesInDeclarationOrder)
+            {
+                if (!alias.IsResolved)
+                {
+                    alias.CanonicalType = PrimitiveTypeSymbol.Error;
+                    alias.IsResolved = true;
+                }
+            }
+        }
+
+        private IReadOnlyList<TypeAliasSymbol> CollectAliasDependencies(TypeSyntax root)
+        {
+            var dependencies = new List<TypeAliasSymbol>();
+            var pending = new Stack<TypeSyntax>();
+            pending.Push(root);
+
+            while (pending.Count > 0)
+            {
+                TypeSyntax type = pending.Pop();
+                switch (type)
+                {
+                    case IdentifierTypeSyntax identifier
+                        when _aliases.TryGetValue(identifier.Identifier.Text, out var alias):
+                        dependencies.Add(alias);
+                        break;
+                    case QualifiedRowTypeSyntax qualified
+                        when _aliases.TryGetValue(qualified.TableIdentifier.Text, out var alias):
+                        dependencies.Add(alias);
+                        break;
+                    case ArrayTypeSyntax array:
+                        pending.Push(array.ElementType);
+                        break;
+                    case ColumnTypeSyntax column:
+                        pending.Push(column.ElementType);
+                        break;
+                    case ParenthesizedTypeSyntax parenthesized:
+                        pending.Push(parenthesized.Type);
+                        break;
+                    case ResultTypeSyntax result:
+                        pending.Push(result.ErrorType);
+                        pending.Push(result.SuccessType);
+                        break;
+                }
+            }
+
+            return dependencies;
+        }
+
+        private void DetectAliasCycles(
+            IReadOnlyDictionary<TypeAliasSymbol, IReadOnlyList<TypeAliasSymbol>> dependencies,
+            IReadOnlyDictionary<TypeAliasSymbol, int> declarationIndices)
+        {
+            var states = _aliasesInDeclarationOrder.ToDictionary(alias => alias, _ => 0);
+            var reportedCycleAliases = new HashSet<TypeAliasSymbol>();
+
+            foreach (var start in _aliasesInDeclarationOrder)
+            {
+                if (states[start] != 0)
+                {
+                    continue;
+                }
+
+                var stack = new List<AliasVisitFrame>();
+                states[start] = 1;
+                stack.Add(new AliasVisitFrame(start));
+
+                while (stack.Count > 0)
+                {
+                    AliasVisitFrame frame = stack[^1];
+                    IReadOnlyList<TypeAliasSymbol> aliasDependencies = dependencies[frame.Alias];
+                    if (frame.NextDependencyIndex >= aliasDependencies.Count)
+                    {
+                        states[frame.Alias] = 2;
+                        stack.RemoveAt(stack.Count - 1);
+                        continue;
+                    }
+
+                    TypeAliasSymbol dependency = aliasDependencies[frame.NextDependencyIndex];
+                    frame.NextDependencyIndex++;
+                    if (states[dependency] == 0)
+                    {
+                        states[dependency] = 1;
+                        stack.Add(new AliasVisitFrame(dependency));
+                        continue;
+                    }
+
+                    if (states[dependency] != 1)
+                    {
+                        continue;
+                    }
+
+                    int cycleStart = stack.FindIndex(item => ReferenceEquals(item.Alias, dependency));
+                    if (cycleStart < 0)
+                    {
+                        continue;
+                    }
+
+                    var cycle = stack
+                        .Skip(cycleStart)
+                        .Select(item => item.Alias)
+                        .ToList();
+                    if (cycle.Any(reportedCycleAliases.Contains))
+                    {
+                        continue;
+                    }
+
+                    foreach (var cycleAlias in cycle)
+                    {
+                        reportedCycleAliases.Add(cycleAlias);
+                    }
+
+                    int primaryIndex = cycle
+                        .Select((alias, index) => (alias, index))
+                        .MinBy(item => declarationIndices[item.alias])
+                        .index;
+                    var orderedCycle = cycle
+                        .Skip(primaryIndex)
+                        .Concat(cycle.Take(primaryIndex))
+                        .ToArray();
+                    TypeAliasSymbol primary = orderedCycle[0];
+                    string path = FormatAliasCyclePath(orderedCycle);
+                    Report(
+                        "COPE-ALIAS-0005",
+                        $"Type alias cycle for '{primary.Name}': {path}.",
+                        _aliasDeclarations[primary].Identifier);
+                }
+            }
+        }
+
+        private static string FormatAliasCyclePath(IReadOnlyList<TypeAliasSymbol> cycle)
+        {
+            const int maximumDisplayedAliases = 16;
+            if (cycle.Count <= maximumDisplayedAliases)
+            {
+                return string.Join(" -> ", cycle.Select(alias => alias.Name).Append(cycle[0].Name));
+            }
+
+            return string.Join(" -> ", cycle.Take(maximumDisplayedAliases).Select(alias => alias.Name))
+                + " -> ... -> "
+                + cycle[0].Name;
+        }
+
+        private void ResolveAliasTarget(TypeAliasSymbol alias)
+        {
+            TypeAliasDeclarationSyntax declaration = _aliasDeclarations[alias];
+            _currentAliasDeclaration = declaration;
+            try
+            {
+                alias.CanonicalType = BindType(
+                    declaration.TargetType,
+                    declaration.Identifier,
+                    "COPE-ALIAS-0004",
+                    "type alias");
+                alias.IsResolved = true;
+            }
+            finally
+            {
+                _currentAliasDeclaration = null;
+            }
+        }
+
+        private sealed class AliasVisitFrame(TypeAliasSymbol alias)
+        {
+            public TypeAliasSymbol Alias { get; } = alias;
+            public int NextDependencyIndex { get; set; }
         }
 
         private void PredeclareTsonEncodeError()
@@ -142,6 +449,11 @@ public static class Binder
         {
             foreach (var declaration in root.Members.OfType<TableDeclarationSyntax>())
             {
+                if (_rejectedTypeDeclarations.Contains(declaration))
+                {
+                    continue;
+                }
+
                 if (declaration.Identifier.Text == "TsonEncodeError")
                 {
                     Report(
@@ -698,6 +1010,11 @@ public static class Binder
         {
             foreach (var declaration in root.Members.OfType<RecordDeclarationSyntax>())
             {
+                if (_rejectedTypeDeclarations.Contains(declaration))
+                {
+                    continue;
+                }
+
                 if (declaration.Identifier.Text is "tsonAsset" or "tsonEncode")
                 {
                     string name = declaration.Identifier.Text;
@@ -758,6 +1075,7 @@ public static class Binder
                     var fieldType = !fieldSyntax.HasExplicitType
                         ? PrimitiveTypeSymbol.Error
                         : BindType(fieldSyntax.Type, fieldSyntax.Identifier, "COPE-REC-0001", "record field");
+                    ValidateRuntimeValueType(fieldType, fieldSyntax.Identifier, "record field");
                     var fieldId = new RecordFieldId(recordType.Id, recordType.Fields.Count);
                     recordType.AddField(new RecordFieldSymbol(fieldSyntax.Identifier.Text, fieldId, fieldType));
                 }
@@ -852,11 +1170,13 @@ public static class Binder
                             p.Identifier);
                     }
                     var pt = BindType(p.Type, p.Identifier, missingId: "COPE-TYPE-0002", missingPrefix: "parameter");
+                    ValidateRuntimeValueType(pt, p.Identifier, "parameter");
                     if (!seen.Add(p.Identifier.Text)) Report("COPE-BIND-0005", $"Duplicate parameter '{p.Identifier.Text}'.", p.Identifier);
-                    ps.Add(new ParameterSymbol(p.Identifier.Text, pt));
+                    ps.Add(new ParameterSymbol(p.Identifier.Text, pt, GetAuthoredAliasName(p.Type)));
                 }
                 var rt = BindType(m.ReturnType, m.Identifier, missingId: "COPE-TYPE-0002", missingPrefix: "function return");
-                var fn = new FunctionSymbol(m.Identifier.Text, ps, rt);
+                ValidateFunctionReturnType(rt, m.Identifier);
+                var fn = new FunctionSymbol(m.Identifier.Text, ps, rt, GetAuthoredAliasName(m.ReturnType));
                 if (_enumTypes.ContainsKey(fn.Name) || _recordTypes.ContainsKey(fn.Name))
                 {
                     Report("COPE-BIND-0002", $"Name '{fn.Name}' is already used by a named type.", m.Identifier);
@@ -869,6 +1189,11 @@ public static class Binder
         {
             foreach (var m in root.Members.OfType<EnumDeclarationSyntax>())
             {
+                if (_rejectedTypeDeclarations.Contains(m))
+                {
+                    continue;
+                }
+
                 if (m.Identifier.Text is "tsonAsset" or "tsonEncode")
                 {
                     string name = m.Identifier.Text;
@@ -928,7 +1253,9 @@ public static class Binder
                             Report("COPE-ENUM-0003", $"Duplicate payload field '{field.Identifier.Text}' in enum case '{@case.Identifier.Text}'.", field.Identifier);
                             continue;
                         }
-                        payloadFields.Add(new EnumPayloadFieldSymbol(field.Identifier.Text, BindType(field.Type, field.Identifier, "COPE-TYPE-0002", "enum payload")));
+                        TypeSymbol payloadType = BindType(field.Type, field.Identifier, "COPE-TYPE-0002", "enum payload");
+                        ValidateRuntimeValueType(payloadType, field.Identifier, "enum payload");
+                        payloadFields.Add(new EnumPayloadFieldSymbol(field.Identifier.Text, payloadType));
                     }
                     enumType.AddCase(new EnumCaseSymbol(@case.Identifier.Text, enumType, payloadFields));
                 }
@@ -1015,6 +1342,7 @@ public static class Binder
                 Report(id, message, v.Identifier);
             }
             var type = BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
+            ValidateRuntimeValueType(type, v.Identifier, "variable");
             BoundExpression init;
             if (IsTsonAssetCall(v.Initializer))
             {
@@ -1027,8 +1355,16 @@ public static class Binder
             {
                 init = BindExpression(v.Initializer, type);
             }
-            if (!IsAssignable(type, init.Type)) ReportTypeMismatch("COPE-TYPE-0001", type, init.Type, v.Identifier);
-            var varSym = new VariableSymbol(v.Identifier.Text, type, v.Keyword.Kind == SyntaxKind.ConstKeyword);
+            string? authoredAliasName = GetAuthoredAliasName(v.Type);
+            if (!IsAssignable(type, init.Type))
+            {
+                ReportTypeMismatch("COPE-TYPE-0001", type, init.Type, v.Identifier, authoredAliasName);
+            }
+            var varSym = new VariableSymbol(
+                v.Identifier.Text,
+                type,
+                v.Keyword.Kind == SyntaxKind.ConstKeyword,
+                authoredAliasName);
             if (!_scope.TryDeclare(varSym)) Report("COPE-BIND-0002", $"Duplicate declaration '{varSym.Name}'.", v.Identifier);
             return new BoundVariableDeclaration(varSym, init);
         }
@@ -1123,7 +1459,15 @@ public static class Binder
 
                 Report("COPE-TYPE-0003", $"Type mismatch: expected '{result.Name}', got '{expr.Type.Name}'.", r.ReturnKeyword);
             }
-            else if (!IsAssignable(expected, expr.Type)) ReportTypeMismatch("COPE-TYPE-0003", expected, expr.Type, r.ReturnKeyword);
+            else if (!IsAssignable(expected, expr.Type))
+            {
+                ReportTypeMismatch(
+                    "COPE-TYPE-0003",
+                    expected,
+                    expr.Type,
+                    r.ReturnKeyword,
+                    _currentFunction?.AuthoredReturnAliasName);
+            }
             return new BoundReturnStatement(expr);
         }
 
@@ -1187,6 +1531,15 @@ public static class Binder
             }
             if (!_scope.TryLookup(n.IdentifierToken.Text, out var symbol) || symbol is null)
             {
+                if (_aliases.ContainsKey(n.IdentifierToken.Text))
+                {
+                    Report(
+                        "COPE-ALIAS-0006",
+                        $"Type alias '{n.IdentifierToken.Text}' cannot be used as a runtime value or constructor.",
+                        n.IdentifierToken);
+                    return new BoundErrorExpression();
+                }
+
                 Report("COPE-BIND-0001", $"Undefined name '{n.IdentifierToken.Text}'.", n.IdentifierToken);
                 return new BoundErrorExpression();
             }
@@ -1325,7 +1678,15 @@ public static class Binder
             }
             if (variable.IsReadOnly) Report("COPE-BIND-0003", $"Cannot assign to const variable '{variable.Name}'.", n.IdentifierToken);
             var expr = BindExpression(a.Right, variable.Type);
-            if (!IsAssignable(variable.Type, expr.Type)) ReportTypeMismatch("COPE-TYPE-0001", variable.Type, expr.Type, a.EqualsToken);
+            if (!IsAssignable(variable.Type, expr.Type))
+            {
+                ReportTypeMismatch(
+                    "COPE-TYPE-0001",
+                    variable.Type,
+                    expr.Type,
+                    a.EqualsToken,
+                    variable.AuthoredAliasName);
+            }
             return new BoundAssignmentExpression(variable, expr);
         }
 
@@ -1358,18 +1719,53 @@ public static class Binder
                 return BindResultConstructor(c, intrinsicName, resultType);
             }
 
+            if (c.Target is MemberAccessExpressionSyntax aliasMember
+                && aliasMember.Target is NameExpressionSyntax aliasName
+                && _aliases.ContainsKey(aliasName.IdentifierToken.Text)
+                && !_scope.TryLookup(aliasName.IdentifierToken.Text, out _))
+            {
+                Report(
+                    "COPE-ALIAS-0006",
+                    $"Type alias '{aliasName.IdentifierToken.Text}' cannot be used as a runtime value or constructor.",
+                    aliasName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
             if (c.Target is MemberAccessExpressionSyntax m && m.Target is NameExpressionSyntax enumName)
             {
                 return BindEnumConstructorCall(c, m, enumName);
             }
 
-            if (c.Target is not NameExpressionSyntax name || !_scope.TryLookup(name.IdentifierToken.Text, out var s) || s is null)
-            { Report("COPE-BIND-0001", "Undefined function name.", c.OpenParenToken); return new BoundErrorExpression(); }
+            if (c.Target is not NameExpressionSyntax name
+                || !_scope.TryLookup(name.IdentifierToken.Text, out var s)
+                || s is null)
+            {
+                if (c.Target is NameExpressionSyntax aliasConstructor
+                    && _aliases.ContainsKey(aliasConstructor.IdentifierToken.Text))
+                {
+                    Report(
+                        "COPE-ALIAS-0006",
+                        $"Type alias '{aliasConstructor.IdentifierToken.Text}' cannot be used as a runtime value or constructor.",
+                        aliasConstructor.IdentifierToken);
+                    return new BoundErrorExpression();
+                }
+
+                Report("COPE-BIND-0001", "Undefined function name.", c.OpenParenToken);
+                return new BoundErrorExpression();
+            }
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
             if (c.Arguments.Count != fn.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {fn.Parameters.Count}, got {c.Arguments.Count}.", c.OpenParenToken);
             var args = c.Arguments.Select((a, index) => BindExpression(a, index < fn.Parameters.Count ? fn.Parameters[index].Type : null)).ToArray();
             for (var i = 0; i < Math.Min(args.Length, fn.Parameters.Count); i++)
-                if (!IsAssignable(fn.Parameters[i].Type, args[i].Type)) ReportTypeMismatch("COPE-TYPE-0005", fn.Parameters[i].Type, args[i].Type, c.Arguments[i] is LiteralExpressionSyntax le ? le.LiteralToken : c.OpenParenToken);
+                if (!IsAssignable(fn.Parameters[i].Type, args[i].Type))
+                {
+                    ReportTypeMismatch(
+                        "COPE-TYPE-0005",
+                        fn.Parameters[i].Type,
+                        args[i].Type,
+                        c.Arguments[i] is LiteralExpressionSyntax literal ? literal.LiteralToken : c.OpenParenToken,
+                        fn.Parameters[i].AuthoredAliasName);
+                }
             return new BoundCallExpression(fn, args);
         }
 
@@ -2577,6 +2973,12 @@ public static class Binder
         private TypeSymbol ResolveQualifiedRowType(QualifiedRowTypeSyntax type)
         {
             if (_tableTypes.TryGetValue(type.TableIdentifier.Text, out var table) && type.RowIdentifier.Text == "Row") return table.RowType;
+            if (_aliases.TryGetValue(type.TableIdentifier.Text, out var alias)
+                && alias.CanonicalType is TableTypeSymbol aliasedTable
+                && type.RowIdentifier.Text == "Row")
+            {
+                return aliasedTable.RowType;
+            }
             Report("COPE-TABLE-0019", $"Unknown table row type '{type.TableIdentifier.Text}.{type.RowIdentifier.Text}'.", type.TableIdentifier);
             return PrimitiveTypeSymbol.Error;
         }
@@ -2656,6 +3058,7 @@ public static class Binder
         {
             return type switch
             {
+                IdentifierTypeSyntax i when _aliases.TryGetValue(i.Identifier.Text, out var alias) => alias.CanonicalType,
                 IdentifierTypeSyntax i when _enumTypes.TryGetValue(i.Identifier.Text, out var enumType) => enumType,
                 IdentifierTypeSyntax i when _recordTypes.TryGetValue(i.Identifier.Text, out var recordType) => recordType,
                 IdentifierTypeSyntax i => new ErrorNominalTypeSymbol(i.Identifier.Text),
@@ -2678,13 +3081,25 @@ public static class Binder
 
         private TypeSymbol ResolveIdentifierType(IdentifierTypeSyntax i)
         {
+            if (_aliases.TryGetValue(i.Identifier.Text, out var alias))
+                return alias.CanonicalType;
             if (_enumTypes.TryGetValue(i.Identifier.Text, out var enumType))
                 return enumType;
             if (_recordTypes.TryGetValue(i.Identifier.Text, out var recordType))
                 return recordType;
             if (_tableTypes.TryGetValue(i.Identifier.Text, out var tableType))
                 return tableType;
-            Report("COPE-BIND-0004", $"Unknown type '{i.Identifier.Text}'.", i.Identifier);
+            if (_currentAliasDeclaration is not null)
+            {
+                Report(
+                    "COPE-ALIAS-0004",
+                    $"Unknown type '{i.Identifier.Text}' in alias '{_currentAliasDeclaration.Identifier.Text}'.",
+                    i.Identifier);
+            }
+            else
+            {
+                Report("COPE-BIND-0004", $"Unknown type '{i.Identifier.Text}'.", i.Identifier);
+            }
             return PrimitiveTypeSymbol.Error;
         }
 
@@ -2720,12 +3135,82 @@ public static class Binder
         private static bool IsAssignable(TypeSymbol target, TypeSymbol actual)
             => target == PrimitiveTypeSymbol.Error || actual == PrimitiveTypeSymbol.Error || TypeFacts.AreEquivalent(target, actual);
 
+        private void ValidateRuntimeValueType(TypeSymbol type, SyntaxToken anchor, string position)
+        {
+            if (!IsLegalTypeForPosition(type, allowDirectVoid: false))
+            {
+                Report(
+                    "COPE-TYPE-0020",
+                    $"Type 'void' is not legal in a {position} position.",
+                    anchor);
+            }
+        }
+
+        private void ValidateFunctionReturnType(TypeSymbol type, SyntaxToken anchor)
+        {
+            if (!IsLegalTypeForPosition(type, allowDirectVoid: true))
+            {
+                Report(
+                    "COPE-TYPE-0020",
+                    "Type 'void' is legal only as a direct function return or Result success type.",
+                    anchor);
+            }
+        }
+
+        private static bool IsLegalTypeForPosition(TypeSymbol root, bool allowDirectVoid)
+        {
+            var pending = new Stack<(TypeSymbol Type, bool AllowDirectVoid)>();
+            pending.Push((root, allowDirectVoid));
+            while (pending.Count > 0)
+            {
+                (TypeSymbol type, bool allowVoid) = pending.Pop();
+                if (type == PrimitiveTypeSymbol.Void)
+                {
+                    if (!allowVoid)
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                switch (type)
+                {
+                    case ArrayTypeSymbol array:
+                        pending.Push((array.ElementType, false));
+                        break;
+                    case ColumnTypeSymbol column:
+                        pending.Push((column.ElementType, false));
+                        break;
+                    case ResultTypeSymbol result:
+                        pending.Push((result.ErrorType, false));
+                        pending.Push((result.SuccessType, true));
+                        break;
+                }
+            }
+
+            return true;
+        }
+
         private static bool IsPrimitiveEqualityType(TypeSymbol type)
             => type == PrimitiveTypeSymbol.Number
                 || type == PrimitiveTypeSymbol.String
                 || type == PrimitiveTypeSymbol.Boolean;
 
-        private void ReportTypeMismatch(string fallbackId, TypeSymbol expected, TypeSymbol actual, SyntaxToken anchor)
+        private string? GetAuthoredAliasName(TypeSyntax? syntax)
+        {
+            return syntax is IdentifierTypeSyntax identifier
+                && _aliases.ContainsKey(identifier.Identifier.Text)
+                    ? identifier.Identifier.Text
+                    : null;
+        }
+
+        private void ReportTypeMismatch(
+            string fallbackId,
+            TypeSymbol expected,
+            TypeSymbol actual,
+            SyntaxToken anchor,
+            string? authoredAliasName = null)
         {
             if (expected is RecordTypeSymbol && actual is RecordTypeSymbol)
             {
@@ -2737,7 +3222,10 @@ public static class Binder
                 Report("COPE-TABLE-0018", $"Nominal table row type mismatch: expected '{expected.Name}', got '{actual.Name}'.", anchor);
                 return;
             }
-            Report(fallbackId, $"Type mismatch: expected '{expected.Name}', got '{actual.Name}'.", anchor);
+            string expectedText = authoredAliasName is null
+                ? $"'{expected.Name}'"
+                : $"'{authoredAliasName}' (alias of '{expected.Name}')";
+            Report(fallbackId, $"Type mismatch: expected {expectedText}, got '{actual.Name}'.", anchor);
         }
 
         private BoundExpression EnsureBoolean(BoundExpression e, SyntaxToken at)

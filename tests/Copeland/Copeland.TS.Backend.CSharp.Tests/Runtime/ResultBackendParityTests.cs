@@ -10,6 +10,32 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class ResultBackendParityTests
 {
     [Fact]
+    public async Task Transparent_alias_program_has_csharp_and_node_runtime_parity()
+    {
+        const string source = """
+            type Count = number;
+            type Counter = Count;
+            function add(left: Count, right: Counter): number { return left + right; }
+            function main(): Count { return add(40, 2); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.True(javaScript.Success, string.Join(Environment.NewLine, javaScript.Diagnostics));
+        Assert.Empty(csharp.Diagnostics);
+
+        ProcessResult node = await RunNodeAsync(javaScript.SourceText + "console.log(main());\n");
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        Assert.Equal("42\n", node.StdOut);
+        Assert.Equal(42d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
     public async Task JavaScript_And_CSharp_Table_Vertical_Program_Returns_8_Repeatedly()
     {
         const string source = """

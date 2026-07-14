@@ -8,6 +8,63 @@ namespace Copeland.Cli.Tests;
 
 public sealed class CliIntegrationTests
 {
+    [Fact]
+    public async Task Transparent_alias_cli_emission_is_erased_repeatable_and_preserves_artifact_policy_on_failure()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("alias.ts", """
+            type UserId = number;
+            type UserIds = UserId[];
+            function retain(values: UserIds): number[] { return values; }
+            """);
+
+        foreach ((string emit, string fileName) in new[]
+        {
+            ("mir", "alias.cope"),
+            ("csharp", "alias.g.cs"),
+            ("javascript", "alias.g.js"),
+        })
+        {
+            string outputPath = Path.Combine(temp.Path, fileName);
+            CliResult first = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emit, "--out", outputPath);
+            byte[] firstBytes = await File.ReadAllBytesAsync(outputPath);
+            CliResult second = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emit, "--out", outputPath);
+            byte[] secondBytes = await File.ReadAllBytesAsync(outputPath);
+
+            Assert.Equal(0, first.ExitCode);
+            Assert.Equal(0, second.ExitCode);
+            Assert.Equal(firstBytes, secondBytes);
+            Assert.DoesNotContain("UserId", Encoding.UTF8.GetString(firstBytes), StringComparison.Ordinal);
+        }
+
+        string stalePath = Path.Combine(temp.Path, "alias.g.js");
+        byte[] staleBytes = await File.ReadAllBytesAsync(stalePath);
+        string invalidPath = temp.WriteFile("invalid.ts", "type A = B; type B = A;");
+        CliResult staleFailure = await RunCliAsync(
+            temp.Path,
+            "compile",
+            invalidPath,
+            "--emit",
+            "javascript",
+            "--out",
+            stalePath);
+        string freshPath = Path.Combine(temp.Path, "fresh.cope");
+        CliResult freshFailure = await RunCliAsync(
+            temp.Path,
+            "compile",
+            invalidPath,
+            "--emit",
+            "mir",
+            "--out",
+            freshPath);
+
+        Assert.Equal(1, staleFailure.ExitCode);
+        Assert.Contains("COPE-ALIAS-0005", staleFailure.StdErr, StringComparison.Ordinal);
+        Assert.Equal(staleBytes, await File.ReadAllBytesAsync(stalePath));
+        Assert.Equal(1, freshFailure.ExitCode);
+        Assert.False(File.Exists(freshPath));
+    }
+
     [Theory]
     [InlineData("mir", "tson-plan tson0")]
     [InlineData("csharp", "__TsonWriter")]

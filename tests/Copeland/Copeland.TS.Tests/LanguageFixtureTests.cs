@@ -34,9 +34,10 @@ public sealed class LanguageFixtureTests
         Assert.DoesNotContain(compilation.Diagnostics, diagnostic =>
             diagnostic.Id.StartsWith("COPE-LEX", StringComparison.Ordinal)
             || diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
-        bool hasTrySyntaxDiagnostic = compilation.Diagnostics.Any(diagnostic =>
-            diagnostic.Id.StartsWith("COPE-TRY", StringComparison.Ordinal));
-        if (!hasTrySyntaxDiagnostic)
+        bool hasFamilyOwnedSyntaxDiagnostic = compilation.Diagnostics.Any(diagnostic =>
+            diagnostic.Id.StartsWith("COPE-TRY", StringComparison.Ordinal)
+            || diagnostic.Id is "COPE-ALIAS-0001" or "COPE-ALIAS-0002");
+        if (!hasFamilyOwnedSyntaxDiagnostic)
         {
             Assert.NotNull(compilation.BoundCompilation);
         }

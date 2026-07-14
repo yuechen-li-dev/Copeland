@@ -60,6 +60,12 @@ public sealed class Parser
 
     private MemberSyntax ParseMember()
     {
+        if (Current.Kind == SyntaxKind.IdentifierToken
+            && Current.Text == "type")
+        {
+            return ParseTypeAliasDeclaration();
+        }
+
         if (Current.Kind == SyntaxKind.ConstKeyword && Peek(1).Kind == SyntaxKind.RecordKeyword)
         {
             var constKeyword = Match(SyntaxKind.ConstKeyword);
@@ -83,6 +89,104 @@ public sealed class Parser
         }
 
         return new GlobalStatementMemberSyntax(ParseStatement());
+    }
+
+    private TypeAliasDeclarationSyntax ParseTypeAliasDeclaration()
+    {
+        var typeKeyword = NextToken();
+        SyntaxToken identifier;
+        if (Current.Kind == SyntaxKind.IdentifierToken)
+        {
+            identifier = NextToken();
+        }
+        else
+        {
+            ReportAliasSyntax("Expected an alias name after 'type'.", Current);
+            identifier = MissingToken(SyntaxKind.IdentifierToken, Current.Position);
+        }
+
+        var typeParameterTokens = new List<SyntaxToken>();
+        if (Current.Kind == SyntaxKind.LessToken)
+        {
+            ReportAliasSyntax("Generic type aliases are not supported.", Current, "COPE-ALIAS-0002");
+            while (Current.Kind is not SyntaxKind.GreaterToken
+                   and not SyntaxKind.EqualsToken
+                   and not SyntaxKind.SemicolonToken
+                   and not SyntaxKind.EndOfFileToken)
+            {
+                typeParameterTokens.Add(NextToken());
+            }
+
+            if (Current.Kind == SyntaxKind.GreaterToken)
+            {
+                typeParameterTokens.Add(NextToken());
+            }
+        }
+
+        SyntaxToken equalsToken;
+        if (Current.Kind == SyntaxKind.EqualsToken)
+        {
+            equalsToken = NextToken();
+        }
+        else
+        {
+            ReportAliasSyntax("Expected '=' in type alias declaration.", Current);
+            equalsToken = MissingToken(SyntaxKind.EqualsToken, Current.Position);
+        }
+
+        TypeSyntax targetType;
+        if (Current.Kind is SyntaxKind.SemicolonToken or SyntaxKind.EndOfFileToken)
+        {
+            ReportAliasSyntax("Expected a type alias target.", Current);
+            targetType = new IdentifierTypeSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position));
+        }
+        else
+        {
+            targetType = ParseTypeSyntax();
+        }
+
+        var unsupportedTokens = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.EndOfFileToken)
+        {
+            unsupportedTokens.Add(NextToken());
+        }
+
+        if (unsupportedTokens.Count > 0)
+        {
+            ReportAliasSyntax("Unsupported type-level syntax in type alias declaration.", unsupportedTokens[0]);
+        }
+
+        SyntaxToken semicolonToken;
+        if (Current.Kind == SyntaxKind.SemicolonToken)
+        {
+            semicolonToken = NextToken();
+        }
+        else
+        {
+            ReportAliasSyntax("Type alias declarations require a terminating semicolon.", Current);
+            semicolonToken = MissingToken(SyntaxKind.SemicolonToken, Current.Position);
+        }
+
+        return new TypeAliasDeclarationSyntax(
+            typeKeyword,
+            identifier,
+            typeParameterTokens,
+            equalsToken,
+            targetType,
+            unsupportedTokens,
+            semicolonToken);
+    }
+
+    private void ReportAliasSyntax(
+        string message,
+        SyntaxToken token,
+        string diagnosticId = "COPE-ALIAS-0001")
+    {
+        _diagnostics.Report(
+            diagnosticId,
+            message,
+            token.Position,
+            Math.Max(1, token.Text.Length));
     }
 
     private FunctionDeclarationSyntax ParseFunctionDeclaration()
