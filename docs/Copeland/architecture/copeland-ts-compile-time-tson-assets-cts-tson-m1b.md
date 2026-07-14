@@ -1,6 +1,6 @@
 # Copeland TS compile-time TSON assets (CTS-TSON-M1b)
 
-**Status:** implemented compiler-to-runtime vertical slice.
+**Status:** implemented compiler-to-runtime vertical slice. Its ordinary projected values can now be canonically encoded by [CTS-TSON-M2b](copeland-ts-runtime-tson-encoding-cts-tson-m2b.md) without retaining asset paths or source formatting.
 
 ## Source and identity contract
 
@@ -79,4 +79,4 @@ Runtime parity executes canonical asset values three times in generated C# and t
 
 M1b adds no runtime TSON encode/decode, runtime TSON package, second parser, JSON, TSON array/Result/table/optional variant, `null`, `undefined`, structural runtime object, arbitrary compile-time execution, dynamic path, network/package resolution, import/module system, reflection, dictionary traversal, or package version change.
 
-The recommended next milestone is runtime canonical encoding through generated type-specific projectors and a demand-emitted bounded writer. Runtime decoding remains blocked on one parser architecture available to both generated C# and JavaScript.
+The documentation-only [CTS-TSON-M2a design](../language/copeland-ts-runtime-tson-encoding-design-cts-tson-m2a.md) now specifies the recommended runtime canonical encoding architecture: a Result-valued string intrinsic, one demand-driven validated MIR plan, and generated type-specific bounded writers. Runtime decoding remains blocked on one parser architecture available to both generated C# and JavaScript.

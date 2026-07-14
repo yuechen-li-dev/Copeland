@@ -8,12 +8,39 @@ public abstract class BoundExpression : BoundNode { public abstract TypeSymbol T
 
 public sealed class BoundProgram
 {
-    public BoundProgram(IReadOnlyList<BoundFunctionDeclaration> functions, IReadOnlyList<BoundEnumDeclaration> enums, IReadOnlyList<BoundRecordDeclaration> records, IReadOnlyList<BoundStatement> globalStatements, IReadOnlyList<BoundTableDefinition>? tables = null) { Functions = functions; Enums = enums; Records = records; GlobalStatements = globalStatements; Tables = tables ?? []; }
+    public BoundProgram(
+        IReadOnlyList<BoundFunctionDeclaration> functions,
+        IReadOnlyList<BoundEnumDeclaration> enums,
+        IReadOnlyList<BoundRecordDeclaration> records,
+        IReadOnlyList<BoundStatement> globalStatements,
+        IReadOnlyList<BoundTableDefinition>? tables = null,
+        IReadOnlyList<BoundTsonEncodingPlan>? tsonEncodingPlans = null)
+    {
+        Functions = functions;
+        Enums = enums;
+        Records = records;
+        GlobalStatements = globalStatements;
+        Tables = tables ?? [];
+        TsonEncodingPlans = tsonEncodingPlans ?? [];
+    }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
     public IReadOnlyList<BoundRecordDeclaration> Records { get; }
     public IReadOnlyList<BoundStatement> GlobalStatements { get; }
     public IReadOnlyList<BoundTableDefinition> Tables { get; }
+    public IReadOnlyList<BoundTsonEncodingPlan> TsonEncodingPlans { get; }
+}
+
+public sealed class BoundTsonEncodingPlan(
+    string id,
+    string schemaIdentity,
+    TypeSymbol rootType,
+    IReadOnlyList<TypeSymbol> definitions)
+{
+    public string Id { get; } = id;
+    public string SchemaIdentity { get; } = schemaIdentity;
+    public TypeSymbol RootType { get; } = rootType;
+    public IReadOnlyList<TypeSymbol> Definitions { get; } = definitions;
 }
 public sealed class BoundCompilation
 {
@@ -181,6 +208,13 @@ public sealed class BoundMatchArm
     public BoundExpression Expression { get; }
 }
 public sealed class BoundIfExpression : BoundExpression { public BoundIfExpression(BoundExpression condition, BoundExpression thenExpression, BoundExpression elseExpression, TypeSymbol type) { Condition = condition; ThenExpression = thenExpression; ElseExpression = elseExpression; TypeImpl = type; } public BoundExpression Condition { get; } public BoundExpression ThenExpression { get; } public BoundExpression ElseExpression { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
+public sealed class BoundTsonEncodeExpression(BoundExpression operand, BoundTsonEncodingPlan plan, ResultTypeSymbol resultType) : BoundExpression
+{
+    public BoundExpression Operand { get; } = operand;
+    public BoundTsonEncodingPlan Plan { get; } = plan;
+    public ResultTypeSymbol ResultType { get; } = resultType;
+    public override TypeSymbol Type => ResultType;
+}
 public sealed class BoundMatchExpression : BoundExpression
 {
     public BoundMatchExpression(BoundExpression scrutinee, EnumTypeSymbol enumType, IReadOnlyList<BoundMatchArm> arms, TypeSymbol type)

@@ -1,6 +1,6 @@
 # Copeland TS TSON value projection: CTS-TSON-M1a design audit
 
-**Status:** accepted documentation-only architecture milestone; its selected compile-time operation is implemented by [CTS-TSON-M1b](../architecture/copeland-ts-compile-time-tson-assets-cts-tson-m1b.md). M1a itself changed no production code.
+**Status:** accepted documentation-only architecture milestone; its selected compile-time operation is implemented by [CTS-TSON-M1b](../architecture/copeland-ts-compile-time-tson-assets-cts-tson-m1b.md), and those ordinary values participate in [CTS-TSON-M2b](../architecture/copeland-ts-runtime-tson-encoding-cts-tson-m2b.md). M1a itself changed no production code.
 
 ## Executive decision
 

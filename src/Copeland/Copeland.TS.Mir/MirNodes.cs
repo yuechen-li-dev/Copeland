@@ -13,17 +13,114 @@ public sealed class MirProgram
     }
 
     public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirFunction> functions)
+        : this(enums, records, tables, [], functions)
+    {
+    }
+
+    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirFunction> functions)
     {
         Enums = enums;
         Records = records;
         Tables = tables;
+        TsonEncodingPlans = tsonEncodingPlans;
         Functions = functions;
     }
 
     public IReadOnlyList<MirEnum> Enums { get; }
     public IReadOnlyList<MirRecordDefinition> Records { get; }
     public IReadOnlyList<MirTableDefinition> Tables { get; }
+    public IReadOnlyList<MirTsonEncodingPlan> TsonEncodingPlans { get; }
     public IReadOnlyList<MirFunction> Functions { get; }
+}
+
+public readonly record struct MirTsonEncodingPlanId(string Value)
+{
+    public override string ToString() => Value;
+}
+
+public sealed class MirTsonEncodingLimits(int maximumUtf8Bytes, int maximumStringCodeUnits)
+{
+    public int MaximumUtf8Bytes { get; } = maximumUtf8Bytes;
+    public int MaximumStringCodeUnits { get; } = maximumStringCodeUnits;
+}
+
+public abstract record MirTsonValuePlan;
+public sealed record MirTsonBooleanPlan : MirTsonValuePlan;
+public sealed record MirTsonNumberPlan : MirTsonValuePlan;
+public sealed record MirTsonStringPlan : MirTsonValuePlan;
+public sealed record MirTsonRecordValuePlan(MirRecordTypeId RecordTypeId) : MirTsonValuePlan;
+public sealed record MirTsonEnumValuePlan(string EnumName) : MirTsonValuePlan;
+
+public abstract class MirTsonNominalPlan(string name, string stableIdentity)
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+}
+
+public sealed class MirTsonRecordPlan(
+    MirRecordTypeId recordTypeId,
+    string name,
+    string stableIdentity,
+    IReadOnlyList<MirTsonRecordFieldPlan> fields) : MirTsonNominalPlan(name, stableIdentity)
+{
+    public MirRecordTypeId RecordTypeId { get; } = recordTypeId;
+    public IReadOnlyList<MirTsonRecordFieldPlan> Fields { get; } = Array.AsReadOnly(fields.ToArray());
+}
+
+public sealed class MirTsonRecordFieldPlan(
+    MirRecordFieldId fieldId,
+    string name,
+    string stableIdentity,
+    MirTsonValuePlan valuePlan)
+{
+    public MirRecordFieldId FieldId { get; } = fieldId;
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public MirTsonValuePlan ValuePlan { get; } = valuePlan;
+}
+
+public sealed class MirTsonEnumPlan(
+    string name,
+    string stableIdentity,
+    IReadOnlyList<MirTsonEnumCasePlan> cases) : MirTsonNominalPlan(name, stableIdentity)
+{
+    public IReadOnlyList<MirTsonEnumCasePlan> Cases { get; } = Array.AsReadOnly(cases.ToArray());
+}
+
+public sealed class MirTsonEnumCasePlan(
+    string name,
+    string stableIdentity,
+    IReadOnlyList<MirTsonEnumPayloadPlan> payloads)
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public IReadOnlyList<MirTsonEnumPayloadPlan> Payloads { get; } = Array.AsReadOnly(payloads.ToArray());
+}
+
+public sealed class MirTsonEnumPayloadPlan(
+    string name,
+    string stableIdentity,
+    MirTsonValuePlan valuePlan)
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public MirTsonValuePlan ValuePlan { get; } = valuePlan;
+}
+
+public sealed class MirTsonEncodingPlan(
+    MirTsonEncodingPlanId id,
+    string schemaIdentity,
+    MirType rootType,
+    MirTsonValuePlan rootValuePlan,
+    IReadOnlyList<MirTsonNominalPlan> definitions,
+    MirTsonEncodingLimits limits)
+{
+    public MirTsonEncodingPlanId Id { get; } = id;
+    public string SchemaIdentity { get; } = schemaIdentity;
+    public MirType RootType { get; } = rootType;
+    public MirTsonValuePlan RootValuePlan { get; } = rootValuePlan;
+    public IReadOnlyList<MirTsonNominalPlan> Definitions { get; } = Array.AsReadOnly(definitions.ToArray());
+    public MirTsonEncodingLimits Limits { get; } = limits;
 }
 
 public readonly record struct MirTableId(string Value) { public override string ToString() => Value; }
@@ -187,6 +284,7 @@ public sealed record MirRecordWithExpression(MirExpression Source, MirRecordType
 public sealed record MirEnumValueExpression(string EnumName, string CaseName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirMatchExpression(MirExpression Scrutinee, IReadOnlyList<MirMatchArm> Arms, MirType Type) : MirExpression(Type);
 public sealed record MirIfExpression(MirExpression Condition, MirExpression ThenExpression, MirExpression ElseExpression, MirType Type) : MirExpression(Type);
+public sealed record MirTsonEncodeExpression(MirExpression Operand, MirTsonEncodingPlanId PlanId, MirResultType ResultType) : MirExpression(ResultType);
 
 public sealed record MirOkExpression : MirExpression
 {

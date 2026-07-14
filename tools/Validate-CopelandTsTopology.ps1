@@ -205,16 +205,25 @@ Require-Condition ($tsonAssetSources.Count -ge 3) "TSON asset fixtures must own 
 Require-Condition ($tsonAssetObjectFiles.Count -gt 0) "TSON asset fixtures must own an Object TypeScript asset."
 Require-Condition ($tsonAssetCanonicalFiles.Count -gt 0) "TSON asset fixtures must own a canonical TSON asset."
 
-$mirSources = @(Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Mir") -Recurse -Filter *.cs -File)
-$forbiddenMirTson = $mirSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|MirTson[A-Za-z]*)\b|Copeland\.TS\.Tson'
-Require-Condition ($null -eq $forbiddenMirTson) "Cope MIR must not contain or reference TSON compiler-host types or TSON-specific nodes."
+$mirSources = @(Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Mir") -Recurse -Filter *.cs -File |
+    Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
+$forbiddenMirTson = $mirSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|TsonDocumentReader|TsonCanonicalPrinter)\b|Copeland\.TS\.Tson'
+Require-Condition ($null -eq $forbiddenMirTson) "Cope MIR must not contain or reference compiler-host TSON types."
+
+$mirText = ($mirSources | Get-Content -Raw) -join "`n"
+Require-Condition ($mirText.Contains('class MirTsonEncodingPlan', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans must be owned by Copeland.TS.Mir."
+Require-Condition ($mirText.Contains('record MirTsonEncodeExpression', [System.StringComparison]::Ordinal)) "Runtime TSON encoding requires a dedicated MIR expression."
+Require-Condition ($mirText.Contains('ValidateTsonEncodingModel', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans require shared MIR validation."
 
 $backendSources = @(
     Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File
     Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript") -Recurse -Filter *.cs -File
-)
+) | Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' }
 $forbiddenBackendTson = $backendSources | Select-String -Pattern '\b(TsonValue|TsonDocument|TsonCatalog|TsonDocumentReader)\b|Copeland\.TS\.Tson'
 Require-Condition ($null -eq $forbiddenBackendTson) "Backends must not reference compiler-host TSON types."
+
+$forbiddenRuntimeEncodingApis = $backendSources | Select-String -Pattern 'System\.Text\.Json|JSON\.stringify|System\.Reflection|System\.IO\.File|File\.(Read|Write)|\breflection\b|\bdynamic\b'
+Require-Condition ($null -eq $forbiddenRuntimeEncodingApis) "Generated backends must not add JSON, reflection, dynamic, or runtime filesystem dependencies for TSON encoding."
 
 $forbiddenAbstractions = Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland") -Recurse -Filter *.cs -File |
     Select-String -Pattern 'IBackend|ICompilerBackend|IIntermediateRepresentation|ICompilerPass'
@@ -238,7 +247,10 @@ $misownedJavaScriptArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "test
     Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } |
     Where-Object {
         -not $_.FullName.StartsWith($javaScriptFixtureRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
-        -not $_.FullName.StartsWith((Join-Path $tsonAssetFixtureRoot "Corpus"), [System.StringComparison]::OrdinalIgnoreCase)
+        -not $_.FullName.StartsWith((Join-Path $tsonAssetFixtureRoot "Corpus"), [System.StringComparison]::OrdinalIgnoreCase) -and
+        -not $_.FullName.StartsWith(
+            (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus"),
+            [System.StringComparison]::OrdinalIgnoreCase)
     }
 Require-Condition ($misownedJavaScriptArtifacts.Count -eq 0) "Generated JavaScript fixtures must be owned by Copeland.TS.Backend.JavaScript.Tests."
 

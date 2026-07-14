@@ -41,6 +41,35 @@ public static class MirTextWriter
                 sb.Append("  column ").Append(column.Name).Append(" [").Append(column.Id).Append("]: ").Append(column.ElementType.Name).Append(" = [").Append(string.Join(", ", column.Constants.Select(FormatTableConstant))).AppendLine("]");
         }
 
+        foreach (var plan in program.TsonEncodingPlans)
+        {
+            sb.AppendLine();
+            sb.Append("tson-plan ").Append(plan.Id).Append(" schema ").Append(plan.SchemaIdentity)
+                .Append(" root ").Append(plan.RootType.Name)
+                .Append(" limits utf8=").Append(plan.Limits.MaximumUtf8Bytes)
+                .Append(" string-utf16=").AppendLine(plan.Limits.MaximumStringCodeUnits.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (var definition in plan.Definitions)
+            {
+                switch (definition)
+                {
+                    case MirTsonRecordPlan record:
+                        sb.Append("  record ").Append(record.Name).Append(" [").Append(record.RecordTypeId).Append("] identity ").AppendLine(record.StableIdentity);
+                        foreach (var field in record.Fields)
+                            sb.Append("    field ").Append(field.Name).Append(" [").Append(field.FieldId).Append("] identity ").Append(field.StableIdentity).Append(": ").AppendLine(FormatTsonValuePlan(field.ValuePlan));
+                        break;
+                    case MirTsonEnumPlan @enum:
+                        sb.Append("  enum ").Append(@enum.Name).Append(" identity ").AppendLine(@enum.StableIdentity);
+                        foreach (var @case in @enum.Cases)
+                        {
+                            sb.Append("    case ").Append(@case.Name).Append(" identity ").AppendLine(@case.StableIdentity);
+                            foreach (var payload in @case.Payloads)
+                                sb.Append("      payload ").Append(payload.Name).Append(" identity ").Append(payload.StableIdentity).Append(": ").AppendLine(FormatTsonValuePlan(payload.ValuePlan));
+                        }
+                        break;
+                }
+            }
+        }
+
         foreach (var function in program.Functions)
         {
             sb.AppendLine();
@@ -136,6 +165,7 @@ public static class MirTextWriter
         MirEnumValueExpression e => $"enum {e.EnumName}.{e.CaseName}{(e.Arguments.Count == 0 ? string.Empty : $"({string.Join(", ", e.Arguments.Select(FormatExpression))})")}",
         MirMatchExpression m => $"match {FormatExpression(m.Scrutinee)} : {m.Type.Name} {{ {string.Join(" | ", m.Arms.Select(FormatArm))} }}",
         MirIfExpression i => $"if {FormatExpression(i.Condition)} : {i.Type.Name} {{ then {FormatExpression(i.ThenExpression)} else {FormatExpression(i.ElseExpression)} }}",
+        MirTsonEncodeExpression encode => $"tson-encode [{encode.PlanId}] {FormatExpression(encode.Operand)} : {encode.ResultType.Name}",
         MirOkExpression ok => $"ok {FormatExpression(ok.Payload)}",
         MirErrExpression err => $"err {FormatExpression(err.Payload)}",
         MirResultMatchExpression match => $"result-match {FormatExpression(match.Scrutinee)} : {match.Type.Name} {{ ok({match.OkBinding.Name}: {match.OkBinding.Type.Name}) => {FormatExpression(match.OkExpression)} | err({match.ErrBinding.Name}: {match.ErrBinding.Type.Name}) => {FormatExpression(match.ErrExpression)} }}",
@@ -144,6 +174,17 @@ public static class MirTextWriter
         MirTryExpression tryExpression => FormatTryExpression(tryExpression),
         _ => expr.ToString() ?? "<expr>"
     };
+
+    private static string FormatTsonValuePlan(MirTsonValuePlan plan)
+        => plan switch
+        {
+            MirTsonBooleanPlan => "boolean",
+            MirTsonNumberPlan => "number",
+            MirTsonStringPlan => "string",
+            MirTsonRecordValuePlan record => $"record [{record.RecordTypeId}]",
+            MirTsonEnumValuePlan @enum => $"enum {@enum.EnumName}",
+            _ => "<unsupported>",
+        };
 
     private static string FormatTableConstant(MirTableConstant constant) => constant switch
     {

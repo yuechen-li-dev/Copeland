@@ -9,6 +9,7 @@ public static class MirValidator
         var diagnostics = new List<MirValidationDiagnostic>();
         ValidateRecordModel(program, diagnostics);
         ValidateTableModel(program, diagnostics);
+        ValidateTsonEncodingModel(program, diagnostics);
         foreach (var function in program.Functions)
         {
             var handlerIds = new HashSet<MirHandlerId>();
@@ -18,6 +19,332 @@ public static class MirValidator
 
         return diagnostics;
     }
+
+    private static void ValidateTsonEncodingModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        var plans = new Dictionary<MirTsonEncodingPlanId, MirTsonEncodingPlan>();
+        foreach (MirTsonEncodingPlan plan in program.TsonEncodingPlans)
+        {
+            if (string.IsNullOrWhiteSpace(plan.Id.Value) || !plans.TryAdd(plan.Id, plan))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan has a blank or duplicate identity '{plan.Id}'."));
+                continue;
+            }
+            ValidateTsonEncodingPlan(plan, program, diagnostics);
+        }
+
+        if (program.TsonEncodingPlans.Count > 0)
+        {
+            MirEnum[] errors = program.Enums.Where(@enum => @enum.Name == "TsonEncodeError").ToArray();
+            bool validError = errors.Length == 1
+                && errors[0].Cases.Count == 2
+                && errors[0].Cases[0].Name == "InvalidUnicode"
+                && errors[0].Cases[0].PayloadFields.Count == 0
+                && errors[0].Cases[1].Name == "OutputLimitExceeded"
+                && errors[0].Cases[1].PayloadFields.Count == 0;
+            if (!validError)
+            {
+                diagnostics.Add(new MirValidationDiagnostic("TSON encoding MIR requires the compiler-owned TsonEncodeError enum."));
+            }
+        }
+
+        foreach (MirFunction function in program.Functions)
+        {
+            foreach (MirStatement statement in function.Body)
+            {
+                ValidateTsonEncodingExpression(statement, plans, diagnostics);
+            }
+        }
+    }
+
+    private static void ValidateTsonEncodingPlan(
+        MirTsonEncodingPlan plan,
+        MirProgram program,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        if (!IsValidTsonSchemaIdentity(plan.SchemaIdentity))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has malformed schema identity '{plan.SchemaIdentity}'."));
+        }
+        if (plan.Limits.MaximumUtf8Bytes != 1_048_576
+            || plan.Limits.MaximumStringCodeUnits != 262_144)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has invalid fixed limits."));
+        }
+        try
+        {
+            string prefix = MirTsonCanonicalText.BuildDocumentPrefix(plan);
+            int staticBytes = MirTsonCanonicalText.CountUtf8Bytes(prefix) + 2;
+            if (staticBytes > plan.Limits.MaximumUtf8Bytes)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' static document text exceeds the output limit."));
+            }
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has malformed canonical static text."));
+        }
+        if (plan.RootType is not MirRecordType
+            && !program.Enums.Any(@enum => @enum.Name == plan.RootType.Identifier))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' root is not a nominal record or enum."));
+        }
+        if (!TsonPlanMatchesType(plan.RootValuePlan, plan.RootType))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' root value plan does not match its root type."));
+        }
+
+        string[] orderedNames = plan.Definitions.Select(definition => definition.Name).ToArray();
+        if (!orderedNames.SequenceEqual(orderedNames.OrderBy(name => name, StringComparer.Ordinal)))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' declarations are not in ordinal name order."));
+        }
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var identities = new HashSet<string>(StringComparer.Ordinal);
+        foreach (MirTsonNominalPlan definition in plan.Definitions)
+        {
+            if (!names.Add(definition.Name) || !identities.Add(definition.StableIdentity))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has a duplicate nominal name or identity '{definition.StableIdentity}'."));
+            }
+            if (definition.StableIdentity != $"{plan.SchemaIdentity}#{definition.Name}")
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"TSON encoding definition '{definition.Name}' has malformed or cross-schema identity '{definition.StableIdentity}'."));
+            }
+            ValidateTsonNominalPlan(definition, plan, program, identities, diagnostics);
+        }
+
+        var definitionKeys = plan.Definitions.Select(TsonDefinitionKey).ToHashSet(StringComparer.Ordinal);
+        var reachable = new HashSet<string>(StringComparer.Ordinal);
+        VisitTsonValuePlan(plan.RootValuePlan, plan, reachable, [], diagnostics);
+        if (!definitionKeys.SetEquals(reachable))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' contains missing or extraneous declarations."));
+        }
+    }
+
+    private static void ValidateTsonNominalPlan(
+        MirTsonNominalPlan definition,
+        MirTsonEncodingPlan plan,
+        MirProgram program,
+        HashSet<string> identities,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        switch (definition)
+        {
+            case MirTsonRecordPlan recordPlan:
+            {
+                MirRecordDefinition? record = program.Records.FirstOrDefault(candidate => candidate.Id == recordPlan.RecordTypeId);
+                if (record is null || record.Name != recordPlan.Name || record.Fields.Count != recordPlan.Fields.Count)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"TSON record plan '{recordPlan.Name}' does not match its MIR record definition."));
+                    return;
+                }
+                for (int index = 0; index < record.Fields.Count; index++)
+                {
+                    MirRecordFieldDefinition field = record.Fields[index];
+                    MirTsonRecordFieldPlan fieldPlan = recordPlan.Fields[index];
+                    if (field.Id != fieldPlan.FieldId
+                        || field.Name != fieldPlan.Name
+                        || fieldPlan.StableIdentity != $"{recordPlan.StableIdentity}.{field.Name}"
+                        || !TsonPlanMatchesType(fieldPlan.ValuePlan, field.Type))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"TSON record field plan '{recordPlan.Name}.{fieldPlan.Name}' does not match declaration order, identity, or type."));
+                    }
+                    if (!identities.Add(fieldPlan.StableIdentity))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan has duplicate field identity '{fieldPlan.StableIdentity}'."));
+                    }
+                }
+                break;
+            }
+            case MirTsonEnumPlan enumPlan:
+            {
+                MirEnum? @enum = program.Enums.FirstOrDefault(candidate => candidate.Name == enumPlan.Name);
+                if (@enum is null || @enum.Cases.Count != enumPlan.Cases.Count)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"TSON enum plan '{enumPlan.Name}' does not match its MIR enum definition."));
+                    return;
+                }
+                for (int caseIndex = 0; caseIndex < @enum.Cases.Count; caseIndex++)
+                {
+                    MirEnumCase @case = @enum.Cases[caseIndex];
+                    MirTsonEnumCasePlan casePlan = enumPlan.Cases[caseIndex];
+                    if (@case.Name != casePlan.Name
+                        || casePlan.StableIdentity != $"{enumPlan.StableIdentity}.{@case.Name}"
+                        || @case.PayloadFields.Count != casePlan.Payloads.Count)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"TSON enum case plan '{enumPlan.Name}.{casePlan.Name}' does not match declaration order or identity."));
+                        continue;
+                    }
+                    if (!identities.Add(casePlan.StableIdentity))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan has duplicate enum case identity '{casePlan.StableIdentity}'."));
+                    }
+                    for (int payloadIndex = 0; payloadIndex < @case.PayloadFields.Count; payloadIndex++)
+                    {
+                        MirEnumPayloadField payload = @case.PayloadFields[payloadIndex];
+                        MirTsonEnumPayloadPlan payloadPlan = casePlan.Payloads[payloadIndex];
+                        if (payload.Name != payloadPlan.Name
+                            || payloadPlan.StableIdentity != $"{casePlan.StableIdentity}.{payload.Name}"
+                            || !TsonPlanMatchesType(payloadPlan.ValuePlan, payload.Type))
+                        {
+                            diagnostics.Add(new MirValidationDiagnostic($"TSON enum payload plan '{enumPlan.Name}.{casePlan.Name}.{payloadPlan.Name}' does not match declaration order, identity, or type."));
+                        }
+                        if (!identities.Add(payloadPlan.StableIdentity))
+                        {
+                            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan has duplicate enum payload identity '{payloadPlan.StableIdentity}'."));
+                        }
+                    }
+                }
+                break;
+            }
+            default:
+                diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has an unsupported nominal definition."));
+                break;
+        }
+    }
+
+    private static void VisitTsonValuePlan(
+        MirTsonValuePlan valuePlan,
+        MirTsonEncodingPlan plan,
+        HashSet<string> reachable,
+        HashSet<string> visiting,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        string? key = valuePlan switch
+        {
+            MirTsonRecordValuePlan record => "record:" + record.RecordTypeId.Value,
+            MirTsonEnumValuePlan @enum => "enum:" + @enum.EnumName,
+            MirTsonBooleanPlan or MirTsonNumberPlan or MirTsonStringPlan => null,
+            _ => "unsupported",
+        };
+        if (key is null) return;
+        if (key == "unsupported")
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' contains an unsupported value family."));
+            return;
+        }
+        if (reachable.Contains(key)) return;
+        if (!visiting.Add(key))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' contains a schema cycle at '{key}'."));
+            return;
+        }
+        MirTsonNominalPlan? definition = plan.Definitions.FirstOrDefault(candidate => TsonDefinitionKey(candidate) == key);
+        if (definition is null)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' references missing declaration '{key}'."));
+            visiting.Remove(key);
+            return;
+        }
+        IEnumerable<MirTsonValuePlan> children = definition switch
+        {
+            MirTsonRecordPlan record => record.Fields.Select(field => field.ValuePlan),
+            MirTsonEnumPlan @enum => @enum.Cases.SelectMany(@case => @case.Payloads.Select(payload => payload.ValuePlan)),
+            _ => [],
+        };
+        foreach (MirTsonValuePlan child in children)
+        {
+            VisitTsonValuePlan(child, plan, reachable, visiting, diagnostics);
+        }
+        visiting.Remove(key);
+        reachable.Add(key);
+    }
+
+    private static string TsonDefinitionKey(MirTsonNominalPlan definition)
+        => definition switch
+        {
+            MirTsonRecordPlan record => "record:" + record.RecordTypeId.Value,
+            MirTsonEnumPlan @enum => "enum:" + @enum.Name,
+            _ => "unsupported",
+        };
+
+    private static bool TsonPlanMatchesType(MirTsonValuePlan plan, MirType type)
+        => (plan, type) switch
+        {
+            (MirTsonBooleanPlan, MirType { Identifier: "boolean" }) => true,
+            (MirTsonNumberPlan, MirType { Identifier: "number" }) => true,
+            (MirTsonStringPlan, MirType { Identifier: "string" }) => true,
+            (MirTsonRecordValuePlan value, MirRecordType record) => value.RecordTypeId == record.RecordTypeId,
+            (MirTsonEnumValuePlan value, MirType named) when named is not MirArrayType and not MirResultType => value.EnumName == named.Identifier,
+            _ => false,
+        };
+
+    private static bool IsValidTsonSchemaIdentity(string identity)
+        => identity.StartsWith("copeland://", StringComparison.Ordinal)
+            && identity.Length > "copeland://".Length
+            && !identity.Any(char.IsWhiteSpace)
+            && !identity.Contains('#', StringComparison.Ordinal);
+
+    private static void ValidateTsonEncodingExpression(
+        MirStatement statement,
+        IReadOnlyDictionary<MirTsonEncodingPlanId, MirTsonEncodingPlan> plans,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        switch (statement)
+        {
+            case MirVariableDeclarationStatement declaration: ValidateTsonEncodingExpression(declaration.Initializer, plans, diagnostics); break;
+            case MirExpressionStatement expression: ValidateTsonEncodingExpression(expression.Expression, plans, diagnostics); break;
+            case MirReturnStatement { Expression: not null } returned: ValidateTsonEncodingExpression(returned.Expression, plans, diagnostics); break;
+            case MirIfStatement conditional:
+                ValidateTsonEncodingExpression(conditional.Condition, plans, diagnostics);
+                foreach (MirStatement nested in conditional.ThenStatements) ValidateTsonEncodingExpression(nested, plans, diagnostics);
+                if (conditional.ElseStatements is not null) foreach (MirStatement nested in conditional.ElseStatements) ValidateTsonEncodingExpression(nested, plans, diagnostics);
+                break;
+        }
+    }
+
+    private static void ValidateTsonEncodingExpression(
+        MirExpression expression,
+        IReadOnlyDictionary<MirTsonEncodingPlanId, MirTsonEncodingPlan> plans,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        if (expression is MirTsonEncodeExpression encode)
+        {
+            if (!plans.TryGetValue(encode.PlanId, out MirTsonEncodingPlan? plan))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"TSON encode expression references missing plan '{encode.PlanId}'."));
+            }
+            else
+            {
+                if (!MirTypeFacts.AreEquivalent(encode.Operand.Type, plan.RootType))
+                    diagnostics.Add(new MirValidationDiagnostic($"TSON encode expression operand does not match plan '{encode.PlanId}' root type."));
+                bool validResult = encode.ResultType.SuccessType.Identifier == "string"
+                    && encode.ResultType.ErrorType.Identifier == "TsonEncodeError";
+                if (!validResult)
+                    diagnostics.Add(new MirValidationDiagnostic($"TSON encode expression for plan '{encode.PlanId}' has the wrong Result type."));
+            }
+        }
+        foreach (MirExpression child in EnumerateTsonExpressionChildren(expression))
+        {
+            ValidateTsonEncodingExpression(child, plans, diagnostics);
+        }
+    }
+
+    private static IEnumerable<MirExpression> EnumerateTsonExpressionChildren(MirExpression expression)
+        => expression switch
+        {
+            MirTsonEncodeExpression encode => [encode.Operand],
+            MirAssignmentExpression assignment => [assignment.Expression],
+            MirUnaryExpression unary => [unary.Operand],
+            MirBinaryExpression binary => [binary.Left, binary.Right],
+            MirCallExpression call => call.Arguments,
+            MirArrayExpression array => array.Elements,
+            MirRecordConstructionExpression record => record.Initializers.Select(value => value.Value),
+            MirRecordFieldAccessExpression access => [access.Receiver],
+            MirRecordWithExpression update => update.Replacements.Select(value => value.Value).Prepend(update.Source),
+            MirEnumValueExpression value => value.Arguments,
+            MirMatchExpression match => match.Arms.Select(arm => arm.Expression).Prepend(match.Scrutinee),
+            MirResultMatchExpression match => [match.Scrutinee, match.OkExpression, match.ErrExpression],
+            MirIfExpression conditional => [conditional.Condition, conditional.ThenExpression, conditional.ElseExpression],
+            MirOkExpression ok => [ok.Payload],
+            MirErrExpression err => [err.Payload],
+            MirPropagateExpression propagate => [propagate.Operand],
+            MirUnwrapExpression unwrap => [unwrap.Operand],
+            MirTryExpression value => value.Protected.PrefixStatements.OfType<MirExpressionStatement>().Select(statement => statement.Expression).Append(value.Protected.ValueExpression).Append(value.Handler.ValueExpression),
+            _ => [],
+        };
 
     private static void ValidateTableModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
     {
@@ -624,6 +951,9 @@ public static class MirValidator
             case MirUnwrapExpression unwrap:
                 ValidateExpression(unwrap.Operand, activeHandlers, handlerIds, diagnostics);
                 return;
+            case MirTsonEncodeExpression encode:
+                ValidateExpression(encode.Operand, activeHandlers, handlerIds, diagnostics);
+                return;
         }
     }
 
@@ -812,6 +1142,9 @@ public static class MirValidator
                 return;
             case MirUnwrapExpression unwrap:
                 ValidateFunctionPropagationTarget(unwrap.Operand, functionReturnType, diagnostics);
+                return;
+            case MirTsonEncodeExpression encode:
+                ValidateFunctionPropagationTarget(encode.Operand, functionReturnType, diagnostics);
                 return;
         }
     }

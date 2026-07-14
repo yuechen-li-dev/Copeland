@@ -8,6 +8,53 @@ namespace Copeland.Cli.Tests;
 public sealed class CliIntegrationTests
 {
     [Theory]
+    [InlineData("mir", "tson-plan tson0")]
+    [InlineData("csharp", "__TsonWriter")]
+    [InlineData("javascript", "function makeWriter(")]
+    public async Task Compile_emits_runtime_Tson_encoding_for_every_target(string emitTarget, string expectedToken)
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", """
+            const $schema: string = "copeland://tests/cli-encoding";
+            record Settings { value: string; }
+            function encode(value: Settings): string ! TsonEncodeError { return tsonEncode(value); }
+            """);
+
+        CliResult first = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget);
+        CliResult second = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Contains(expectedToken, first.StdOut, StringComparison.Ordinal);
+        Assert.DoesNotContain("tsonEncode(", first.StdOut, StringComparison.Ordinal);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task Failed_Tson_encoding_compilation_preserves_stale_output()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", """
+            const $schema: string = "copeland://tests/cli-encoding";
+            record Unsupported { values: number[]; }
+            function encode(value: Unsupported): string ! TsonEncodeError { return tsonEncode(value); }
+            """);
+        string outputPath = temp.WriteFile("output.g.js", "stale-output");
+
+        CliResult result = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            "javascript",
+            "--out",
+            outputPath);
+
+        Assert.Equal(1, result.ExitCode);
+        Assert.Contains("COPE-TSON-ENCODE-0003", result.StdErr, StringComparison.Ordinal);
+        Assert.Equal("stale-output", File.ReadAllText(outputPath));
+    }
+
+    [Theory]
     [InlineData("mir")]
     [InlineData("csharp")]
     [InlineData("javascript")]

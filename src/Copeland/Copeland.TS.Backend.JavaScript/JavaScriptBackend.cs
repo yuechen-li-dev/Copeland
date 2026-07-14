@@ -34,7 +34,7 @@ public static class JavaScriptBackend
         if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
         {
             writer.WriteLine();
-            EmitValueRuntime(writer, catalog, results, names, usesUnwrap, usesTryExcept);
+            EmitValueRuntime(writer, program.TsonEncodingPlans, catalog, results, names, usesUnwrap, usesTryExcept);
         }
 
         foreach (MirFunction function in program.Functions)
@@ -202,6 +202,9 @@ public static class JavaScriptBackend
             case MirRecordFieldAccessExpression access:
                 ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
                 ValidateValueType(access.Type, $"record field access in {context}", catalog, diagnostics, allowVoid: false);
+                break;
+            case MirTsonEncodeExpression encode:
+                ValidateExpression(encode.Operand, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirTableReferenceExpression reference:
                 ValidateValueType(reference.Type, $"table reference in {context}", catalog, diagnostics, allowVoid: false);
@@ -581,7 +584,7 @@ public static class JavaScriptBackend
         diagnostics.Add(new JavaScriptDiagnostic(InvalidDiagnosticId, $"Invalid MIR for JavaScript backend: {message}."));
     }
 
-    private static void EmitValueRuntime(JavaScriptTextWriter writer, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap, bool usesTryExcept)
+    private static void EmitValueRuntime(JavaScriptTextWriter writer, IReadOnlyList<MirTsonEncodingPlan> tsonPlans, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap, bool usesTryExcept)
     {
         writer.WriteLine($"function {names.Panic}() {{");
         writer.Indent();
@@ -656,6 +659,12 @@ public static class JavaScriptBackend
         {
             writer.WriteLine();
             EmitTableRuntime(writer, table, catalog, results, names);
+        }
+
+        if (tsonPlans.Count > 0)
+        {
+            writer.WriteLine();
+            EmitTsonEncodingRuntime(writer, tsonPlans, catalog, results, names);
         }
     }
 
@@ -1155,6 +1164,7 @@ public static class JavaScriptBackend
             MirPropagateExpression propagation => EmitPropagation(propagation, function, catalog, results, names, flowEnabled),
             MirUnwrapExpression unwrap => EmitUnwrap(unwrap, function, catalog, results, names, flowEnabled),
             MirTryExpression tryExpression => EmitTryExcept(tryExpression, function, catalog, results, names, flowEnabled),
+            MirTsonEncodeExpression encode => EmitTsonEncode(encode, function, catalog, results, names, flowEnabled),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
     }
@@ -1170,6 +1180,269 @@ public static class JavaScriptBackend
         EmittedExpression operand = EmitExpression(unary.Operand, function, catalog, results, names, flowEnabled);
         return new EmittedExpression(operand.Prelude, $"({unary.Operator}{operand.Value})");
     }
+
+    private static EmittedExpression EmitTsonEncode(
+        MirTsonEncodeExpression encode,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression operand = EmitExpression(encode.Operand, function, catalog, results, names, flowEnabled);
+        string property = JavaScriptLiteralWriter.WriteString(encode.PlanId.Value);
+        return new EmittedExpression(operand.Prelude, $"{names.TsonRuntime}[{property}]({operand.Value})");
+    }
+
+    private static void EmitTsonEncodingRuntime(
+        JavaScriptTextWriter writer,
+        IReadOnlyList<MirTsonEncodingPlan> plans,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names)
+    {
+        writer.WriteLine($"const {names.TsonRuntime} = (() => {{");
+        writer.Indent();
+        EmitJavaScriptTsonWriter(writer);
+        writer.WriteLine();
+        writer.WriteLine("function writeBoolean(writer, value, indentation) { return writer.static(value ? \"true\" : \"false\"); }");
+        writer.WriteLine("function writeNumber(writer, value, indentation) { return writer.number(value); }");
+        writer.WriteLine("function writeString(writer, value, indentation) { return writer.string(value); }");
+
+        for (int planIndex = 0; planIndex < plans.Count; planIndex++)
+        {
+            writer.WriteLine();
+            EmitJavaScriptTsonPlan(writer, plans[planIndex], planIndex, catalog, results, names);
+        }
+
+        writer.WriteLine();
+        writer.WriteLine("const api = Object.create(null);");
+        for (int planIndex = 0; planIndex < plans.Count; planIndex++)
+        {
+            writer.WriteLine($"Object.defineProperty(api, {JavaScriptLiteralWriter.WriteString(plans[planIndex].Id.Value)}, {{ value: encode{planIndex}, writable: false, enumerable: false, configurable: false }});");
+        }
+        writer.WriteLine("return Object.freeze(api);");
+        writer.Unindent();
+        writer.WriteLine("})();");
+    }
+
+    private static void EmitJavaScriptTsonWriter(JavaScriptTextWriter writer)
+    {
+        writer.WriteLine("function makeWriter(maximumBytes, maximumStringCodeUnits) {");
+        writer.Indent();
+        writer.WriteLine("const parts = [];");
+        writer.WriteLine("const bitsBuffer = new ArrayBuffer(8);");
+        writer.WriteLine("const bitsView = new DataView(bitsBuffer);");
+        writer.WriteLine("let byteCount = 0;");
+        writer.WriteLine("let error = null;");
+        writer.WriteLine("function fail(kind) { if (error === null) error = kind; return false; }");
+        writer.WriteLine("function appendRaw(value) {");
+        writer.Indent();
+        writer.WriteLine("let added = 0;");
+        writer.WriteLine("for (let index = 0; index < value.length; index += 1) {");
+        writer.Indent();
+        writer.WriteLine("const code = value.charCodeAt(index);");
+        writer.WriteLine("if (code <= 0x7F) added += 1;");
+        writer.WriteLine("else if (code <= 0x7FF) added += 2;");
+        writer.WriteLine("else if (code >= 0xD800 && code <= 0xDBFF) {");
+        writer.Indent();
+        writer.WriteLine("if (index + 1 >= value.length) return fail(\"invalid\");");
+        writer.WriteLine("const low = value.charCodeAt(index + 1);");
+        writer.WriteLine("if (low < 0xDC00 || low > 0xDFFF) return fail(\"invalid\");");
+        writer.WriteLine("added += 4;");
+        writer.WriteLine("index += 1;");
+        writer.Unindent();
+        writer.WriteLine("} else if (code >= 0xDC00 && code <= 0xDFFF) return fail(\"invalid\");");
+        writer.WriteLine("else added += 3;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("if (byteCount > maximumBytes - added) return fail(\"limit\");");
+        writer.WriteLine("byteCount += added;");
+        writer.WriteLine("parts.push(value);");
+        writer.WriteLine("return true;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function unicodeEscape(code) { return appendRaw(\"\\\\u\" + code.toString(16).toUpperCase().padStart(4, \"0\")); }");
+        writer.WriteLine("function writeString(value) {");
+        writer.Indent();
+        writer.WriteLine("if (value.length > maximumStringCodeUnits) return fail(\"limit\");");
+        writer.WriteLine("for (let index = 0; index < value.length; index += 1) {");
+        writer.Indent();
+        writer.WriteLine("const code = value.charCodeAt(index);");
+        writer.WriteLine("if (code >= 0xD800 && code <= 0xDBFF) {");
+        writer.Indent();
+        writer.WriteLine("if (index + 1 >= value.length) return fail(\"invalid\");");
+        writer.WriteLine("const low = value.charCodeAt(index + 1);");
+        writer.WriteLine("if (low < 0xDC00 || low > 0xDFFF) return fail(\"invalid\");");
+        writer.WriteLine("index += 1;");
+        writer.Unindent();
+        writer.WriteLine("} else if (code >= 0xDC00 && code <= 0xDFFF) return fail(\"invalid\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("if (!appendRaw(\"\\\"\")) return false;");
+        writer.WriteLine("for (let index = 0; index < value.length; index += 1) {");
+        writer.Indent();
+        writer.WriteLine("const code = value.charCodeAt(index);");
+        writer.WriteLine("if (code === 0x22) { if (!appendRaw(\"\\\\\\\"\")) return false; }");
+        writer.WriteLine("else if (code === 0x5C) { if (!appendRaw(\"\\\\\\\\\")) return false; }");
+        writer.WriteLine("else if (code === 0x08) { if (!appendRaw(\"\\\\b\")) return false; }");
+        writer.WriteLine("else if (code === 0x0C) { if (!appendRaw(\"\\\\f\")) return false; }");
+        writer.WriteLine("else if (code === 0x0A) { if (!appendRaw(\"\\\\n\")) return false; }");
+        writer.WriteLine("else if (code === 0x0D) { if (!appendRaw(\"\\\\r\")) return false; }");
+        writer.WriteLine("else if (code === 0x09) { if (!appendRaw(\"\\\\t\")) return false; }");
+        writer.WriteLine("else if (code < 0x20 || code === 0x2028 || code === 0x2029) { if (!unicodeEscape(code)) return false; }");
+        writer.WriteLine("else if (code >= 0xD800 && code <= 0xDBFF) {");
+        writer.Indent();
+        writer.WriteLine("if (!appendRaw(value.slice(index, index + 2))) return false;");
+        writer.WriteLine("index += 1;");
+        writer.Unindent();
+        writer.WriteLine("} else if (!appendRaw(value[index])) return false;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("return appendRaw(\"\\\"\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function writeNumber(value) {");
+        writer.Indent();
+        writer.WriteLine("bitsView.setFloat64(0, value, false);");
+        writer.WriteLine("let high = bitsView.getUint32(0, false);");
+        writer.WriteLine("let low = bitsView.getUint32(4, false);");
+        writer.WriteLine("if ((high & 0x7FF00000) === 0x7FF00000 && ((high & 0x000FFFFF) !== 0 || low !== 0)) { high = 0x7FF80000; low = 0; }");
+        writer.WriteLine("const hexadecimal = high.toString(16).toUpperCase().padStart(8, \"0\") + low.toString(16).toUpperCase().padStart(8, \"0\");");
+        writer.WriteLine("return appendRaw(\"$number(\\\"\" + hexadecimal + \"\\\")\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("return Object.freeze({");
+        writer.Indent();
+        writer.WriteLine("static: appendRaw,");
+        writer.WriteLine("indent: level => appendRaw(\" \".repeat(level * 4)),");
+        writer.WriteLine("string: writeString,");
+        writer.WriteLine("number: writeNumber,");
+        writer.WriteLine("error: () => error,");
+        writer.WriteLine("finish: () => parts.join(\"\"),");
+        writer.Unindent();
+        writer.WriteLine("});");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitJavaScriptTsonPlan(
+        JavaScriptTextWriter writer,
+        MirTsonEncodingPlan plan,
+        int planIndex,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names)
+    {
+        var recordIndexes = plan.Definitions.OfType<MirTsonRecordPlan>().Select((item, index) => (item, index)).ToDictionary(pair => pair.item.RecordTypeId, pair => pair.index);
+        var enumIndexes = plan.Definitions.OfType<MirTsonEnumPlan>().Select((item, index) => (item, index)).ToDictionary(pair => pair.item.Name, pair => pair.index);
+        foreach (MirTsonRecordPlan record in plan.Definitions.OfType<MirTsonRecordPlan>())
+        {
+            MirRecordDefinition carrier = catalog.GetRecord(record.RecordTypeId);
+            writer.WriteLine($"function writeP{planIndex}R{recordIndexes[record.RecordTypeId]}(writer, value, indentation) {{");
+            writer.Indent();
+            writer.WriteLine($"{names.RecordValidator(carrier)}(value);");
+            if (record.Fields.Count == 0)
+            {
+                writer.WriteLine($"return writer.static({JavaScriptLiteralWriter.WriteString($"$record.{record.Name}({{}})")});");
+            }
+            else
+            {
+                writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString($"$record.{record.Name}({{\n")})) return false;");
+                for (int index = 0; index < record.Fields.Count; index++)
+                {
+                    MirTsonRecordFieldPlan field = record.Fields[index];
+                    MirRecordFieldDefinition carrierField = carrier.Fields[index];
+                    writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
+                    writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString($"\"{field.Name}\": ")})) return false;");
+                    writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, field.ValuePlan, recordIndexes, enumIndexes)}(writer, value[{names.RecordFieldSlot(carrierField)}], indentation + 1)) return false;");
+                    writer.WriteLine("if (!writer.static(\",\\n\")) return false;");
+                }
+                writer.WriteLine("if (!writer.indent(indentation)) return false;");
+                writer.WriteLine("return writer.static(\"})\");");
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+        foreach (MirTsonEnumPlan @enum in plan.Definitions.OfType<MirTsonEnumPlan>())
+        {
+            EnumInfo carrier = catalog.GetEnum(@enum.Name);
+            writer.WriteLine($"function writeP{planIndex}E{enumIndexes[@enum.Name]}(writer, value, indentation) {{");
+            writer.Indent();
+            writer.WriteLine($"{names.Validator(carrier)}(value);");
+            writer.WriteLine("switch (value.$tag) {");
+            writer.Indent();
+            foreach (MirTsonEnumCasePlan @case in @enum.Cases)
+            {
+                writer.WriteLine($"case {JavaScriptLiteralWriter.WriteString(@case.Name)}:");
+                writer.Indent();
+                if (@case.Payloads.Count == 0)
+                {
+                    writer.WriteLine($"return writer.static({JavaScriptLiteralWriter.WriteString($"{@enum.Name}.{@case.Name}")});");
+                }
+                else
+                {
+                    writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString($"{@enum.Name}.{@case.Name}(\n")})) return false;");
+                    for (int index = 0; index < @case.Payloads.Count; index++)
+                    {
+                        MirTsonEnumPayloadPlan payload = @case.Payloads[index];
+                        writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
+                        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, payload.ValuePlan, recordIndexes, enumIndexes)}(writer, value.$payload[{index}], indentation + 1)) return false;");
+                        writer.WriteLine(index + 1 < @case.Payloads.Count
+                            ? "if (!writer.static(\",\\n\")) return false;"
+                            : "if (!writer.static(\"\\n\")) return false;");
+                    }
+                    writer.WriteLine("if (!writer.indent(indentation)) return false;");
+                    writer.WriteLine("return writer.static(\")\");");
+                }
+                writer.Unindent();
+            }
+            writer.WriteLine("default:");
+            writer.Indent();
+            writer.WriteLine($"{names.Panic}();");
+            writer.Unindent();
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+
+        MirResultType resultType = new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));
+        string resultToken = names.TypeToken(results.Get(resultType));
+        string errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
+        writer.WriteLine($"function encode{planIndex}(value) {{");
+        writer.Indent();
+        writer.WriteLine($"const writer = makeWriter({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
+        writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString(MirTsonCanonicalText.BuildDocumentPrefix(plan))})");
+        writer.Indent();
+        writer.WriteLine($"|| !{JavaScriptTsonValueWriter(planIndex, plan.RootValuePlan, recordIndexes, enumIndexes)}(writer, value, 0)");
+        writer.WriteLine("|| !writer.static(\";\\n\")) {");
+        writer.Unindent();
+        writer.Indent();
+        writer.WriteLine("const tag = writer.error() === \"invalid\" ? \"InvalidUnicode\" : \"OutputLimitExceeded\";");
+        writer.WriteLine($"const error = {names.MakeValue}({errorToken}, tag, []);");
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [error]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"ok\", [writer.finish()]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static string JavaScriptTsonValueWriter(
+        int planIndex,
+        MirTsonValuePlan valuePlan,
+        IReadOnlyDictionary<MirRecordTypeId, int> recordIndexes,
+        IReadOnlyDictionary<string, int> enumIndexes)
+        => valuePlan switch
+        {
+            MirTsonBooleanPlan => "writeBoolean",
+            MirTsonNumberPlan => "writeNumber",
+            MirTsonStringPlan => "writeString",
+            MirTsonRecordValuePlan record => $"writeP{planIndex}R{recordIndexes[record.RecordTypeId]}",
+            MirTsonEnumValuePlan @enum => $"writeP{planIndex}E{enumIndexes[@enum.EnumName]}",
+            _ => throw new InvalidOperationException("Unsupported validated TSON value plan."),
+        };
 
     private static EmittedExpression EmitBinary(MirBinaryExpression binary, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
@@ -1726,6 +1999,7 @@ public static class JavaScriptBackend
             MirIfExpression conditional => ContainsControlFlow(conditional.Condition) || ContainsControlFlow(conditional.ThenExpression) || ContainsControlFlow(conditional.ElseExpression),
             MirOkExpression ok => ContainsControlFlow(ok.Payload),
             MirErrExpression err => ContainsControlFlow(err.Payload),
+            MirTsonEncodeExpression encode => ContainsControlFlow(encode.Operand),
             _ => false,
         };
     }
@@ -1770,6 +2044,7 @@ public static class JavaScriptBackend
             MirPropagateExpression propagation => ExpressionUsesTryExcept(propagation.Operand),
             MirUnaryExpression unary => ExpressionUsesTryExcept(unary.Operand),
             MirUnwrapExpression unwrap => ExpressionUsesTryExcept(unwrap.Operand),
+            MirTsonEncodeExpression encode => ExpressionUsesTryExcept(encode.Operand),
             _ => false,
         };
 
@@ -1810,6 +2085,7 @@ public static class JavaScriptBackend
             MirPropagateExpression propagation => ExpressionUsesUnwrap(propagation.Operand),
             MirUnaryExpression unary => ExpressionUsesUnwrap(unary.Operand),
             MirTryExpression tryExpression => ValueBlockUsesUnwrap(tryExpression.Protected) || ValueBlockUsesUnwrap(tryExpression.Handler),
+            MirTsonEncodeExpression encode => ExpressionUsesUnwrap(encode.Operand),
             _ => false,
         };
 
@@ -2226,6 +2502,9 @@ public static class JavaScriptBackend
                     Add(tryExpression.Protected);
                     Add(tryExpression.Handler);
                     break;
+                case MirTsonEncodeExpression encode:
+                    Add(encode.Operand);
+                    break;
             }
         }
 
@@ -2314,6 +2593,7 @@ public static class JavaScriptBackend
             string flowToHandler,
             string flowToFunction,
             string validateFlow,
+            string tsonRuntime,
             Dictionary<EnumInfo, string> typeTokens,
             Dictionary<EnumInfo, string> validators,
             Dictionary<ResultInfo, string> resultTypeTokens,
@@ -2349,6 +2629,7 @@ public static class JavaScriptBackend
             FlowToHandler = flowToHandler;
             FlowToFunction = flowToFunction;
             ValidateFlow = validateFlow;
+            TsonRuntime = tsonRuntime;
             this.typeTokens = typeTokens;
             this.validators = validators;
             this.resultTypeTokens = resultTypeTokens;
@@ -2391,6 +2672,8 @@ public static class JavaScriptBackend
         public string FlowToFunction { get; }
 
         public string ValidateFlow { get; }
+
+        public string TsonRuntime { get; }
 
         public string ColumnCarrierToken { get; }
 
@@ -2473,6 +2756,9 @@ public static class JavaScriptBackend
             string flowToHandler = usesTryExcept ? allocator.Allocate("flow_handler") : string.Empty;
             string flowToFunction = usesTryExcept ? allocator.Allocate("flow_function") : string.Empty;
             string validateFlow = usesTryExcept ? allocator.Allocate("flow_validate") : string.Empty;
+            string tsonRuntime = program.TsonEncodingPlans.Count > 0
+                ? allocator.Allocate("tson")
+                : string.Empty;
             var recordTypeTokens = new Dictionary<MirRecordDefinition, string>();
             var recordConstructors = new Dictionary<MirRecordDefinition, string>();
             var recordValidators = new Dictionary<MirRecordDefinition, string>();
@@ -2555,6 +2841,7 @@ public static class JavaScriptBackend
                 flowToHandler,
                 flowToFunction,
                 validateFlow,
+                tsonRuntime,
                 typeTokens,
                 validators,
                 resultTypeTokens,

@@ -4,6 +4,8 @@
 
 > **M0b correction:** The recommendation in this historical design for a dedicated TSON parser, parallel canonical grammar, external-only schemas, and independent `Copeland.TS.Tson` parser project is superseded by [CTS-TSON-M0b](../architecture/copeland-ts-tson-shared-parser-and-semantic-model-cts-tson-m0b.md). TSON is a restricted semantic projection of ordinary Copeland syntax. M0b reuses `SyntaxTree.Parse`, embeds restricted record/enum declarations plus `$schema` and `$value` bindings, and emits only syntax accepted by that parser. The six-value algebra and JSON-after-TSON direction remain ratified.
 
+> **M2b routing:** [CTS-TSON-M2b](../architecture/copeland-ts-runtime-tson-encoding-cts-tson-m2b.md) implements canonical runtime encoding for the nominal Boolean/Number/String/record/payload-enum subset without adding runtime parsing or a public runtime TSON value.
+
 ## Executive decision
 
 TSON is one backend-neutral semantic data model with one canonical textual form. Its name expands to **TypeScript Object Notation** inside the Copeland project. The repository contains no earlier TSON contract, and this document does not claim that TSON is an external TypeScript standard.

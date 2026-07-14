@@ -1,0 +1,36 @@
+module
+
+enum TsonEncodeError
+  case InvalidUnicode
+  case OutputLimitExceeded
+
+enum Mode
+  case Off
+  case Named(detail: Detail)
+
+record Detail [r1]
+  field label [r1.f0]: string
+
+record Settings [r2]
+  field enabled [r2.f0]: boolean
+  field count [r2.f1]: number
+  field mode [r2.f2]: Mode
+
+tson-plan tson0 schema copeland://corpus/runtime-encoding root Settings limits utf8=1048576 string-utf16=262144
+  record Detail [r1] identity copeland://corpus/runtime-encoding#Detail
+    field label [r1.f0] identity copeland://corpus/runtime-encoding#Detail.label: string
+  enum Mode identity copeland://corpus/runtime-encoding#Mode
+    case Off identity copeland://corpus/runtime-encoding#Mode.Off
+    case Named identity copeland://corpus/runtime-encoding#Mode.Named
+      payload detail identity copeland://corpus/runtime-encoding#Mode.Named.detail: record [r1]
+  record Settings [r2] identity copeland://corpus/runtime-encoding#Settings
+    field enabled [r2.f0] identity copeland://corpus/runtime-encoding#Settings.enabled: boolean
+    field count [r2.f1] identity copeland://corpus/runtime-encoding#Settings.count: number
+    field mode [r2.f2] identity copeland://corpus/runtime-encoding#Settings.mode: enum Mode
+
+func encode() -> string ! TsonEncodeError
+locals:
+  const loaded: Settings
+entry:
+  store loaded, record-new [r2] { [r2.f0]: true, [r2.f1]: -0, [r2.f2]: enum Mode.Named(record-new [r1] { [r1.f0]: "snow 雪 😀" }) }
+  return tson-encode [tson0] loaded : string ! TsonEncodeError

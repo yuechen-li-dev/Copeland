@@ -50,6 +50,9 @@ public static class Binder
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TableTypeSymbol> _tableTypes = new(StringComparer.Ordinal);
         private EnumTypeSymbol? _tableBoundsErrorType;
+        private EnumTypeSymbol? _tsonEncodeErrorType;
+        private readonly Dictionary<TypeSymbol, BoundTsonEncodingPlan> _tsonEncodingPlans = [];
+        private bool _usesTsonEncode;
         private readonly List<PropagationTargetContext> _propagationTargets = [];
         private int _nextHandlerId = 1;
         private int _nextRecordTypeId = 1;
@@ -68,6 +71,7 @@ public static class Binder
             _scope = _global;
             BindSchemaMetadata(_tree.Root);
             PredeclareTableBoundsError();
+            PredeclareTsonEncodeError();
             PredeclareRecords(_tree.Root);
             PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
@@ -87,7 +91,30 @@ public static class Binder
             {
                 _enums.Insert(0, new BoundEnumDeclaration(_tableBoundsErrorType));
             }
-            return new BoundCompilation(_tree, new BoundProgram(_functions, _enums, _records, _globals, _tables), _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
+            if (_usesTsonEncode && _tsonEncodeErrorType is not null)
+            {
+                _enums.Insert(0, new BoundEnumDeclaration(_tsonEncodeErrorType));
+            }
+            return new BoundCompilation(
+                _tree,
+                new BoundProgram(
+                    _functions,
+                    _enums,
+                    _records,
+                    _globals,
+                    _tables,
+                    _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray()),
+                _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
+        }
+
+        private void PredeclareTsonEncodeError()
+        {
+            var errorType = new EnumTypeSymbol("TsonEncodeError");
+            errorType.AddCase(new EnumCaseSymbol("InvalidUnicode", errorType, []));
+            errorType.AddCase(new EnumCaseSymbol("OutputLimitExceeded", errorType, []));
+            _tsonEncodeErrorType = errorType;
+            _enumTypes.Add(errorType.Name, errorType);
+            _global.TryDeclare(new VariableSymbol(errorType.Name, errorType, true));
         }
 
         private void PredeclareTableBoundsError()
@@ -113,6 +140,14 @@ public static class Binder
         {
             foreach (var declaration in root.Members.OfType<TableDeclarationSyntax>())
             {
+                if (declaration.Identifier.Text == "TsonEncodeError")
+                {
+                    Report(
+                        "COPE-TSON-ENCODE-0001",
+                        "'TsonEncodeError' is a compiler-owned TSON encoding error enum.",
+                        declaration.Identifier);
+                    continue;
+                }
                 var table = new TableTypeSymbol(declaration.Identifier.Text, new TableTypeId(_nextTableTypeId++));
                 if (!_global.TryDeclare(new VariableSymbol(table.Name, table, true)) || _tableTypes.ContainsKey(table.Name))
                 {
@@ -314,9 +349,18 @@ public static class Binder
         {
             foreach (var declaration in root.Members.OfType<RecordDeclarationSyntax>())
             {
-                if (declaration.Identifier.Text == "tsonAsset")
+                if (declaration.Identifier.Text is "tsonAsset" or "tsonEncode")
                 {
-                    Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be redefined.", declaration.Identifier);
+                    string name = declaration.Identifier.Text;
+                    Report(name == "tsonEncode" ? "COPE-TSON-ENCODE-0001" : "COPE-TSON-ASSET-0001", $"'{name}' is a compiler intrinsic and cannot be redefined.", declaration.Identifier);
+                    continue;
+                }
+                if (declaration.Identifier.Text == "TsonEncodeError")
+                {
+                    Report(
+                        "COPE-TSON-ENCODE-0001",
+                        "'TsonEncodeError' is a compiler-owned TSON encoding error enum.",
+                        declaration.Identifier);
                     continue;
                 }
                 if (declaration.ConstKeyword is not null)
@@ -433,15 +477,31 @@ public static class Binder
         {
             foreach (var m in root.Members.OfType<FunctionDeclarationSyntax>())
             {
-                if (m.Identifier.Text == "tsonAsset")
+                if (m.Identifier.Text is "tsonAsset" or "tsonEncode")
                 {
-                    Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be redefined.", m.Identifier);
+                    string name = m.Identifier.Text;
+                    Report(name == "tsonEncode" ? "COPE-TSON-ENCODE-0001" : "COPE-TSON-ASSET-0001", $"'{name}' is a compiler intrinsic and cannot be redefined.", m.Identifier);
+                    continue;
+                }
+                if (m.Identifier.Text == "TsonEncodeError")
+                {
+                    Report(
+                        "COPE-TSON-ENCODE-0001",
+                        "'TsonEncodeError' is a compiler-owned TSON encoding error enum.",
+                        m.Identifier);
                     continue;
                 }
                 var ps = new List<ParameterSymbol>();
                 var seen = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var p in m.Parameters)
                 {
+                    if (p.Identifier.Text is "tsonEncode" or "TsonEncodeError")
+                    {
+                        Report(
+                            "COPE-TSON-ENCODE-0001",
+                            $"'{p.Identifier.Text}' is compiler-owned and cannot be declared or shadowed.",
+                            p.Identifier);
+                    }
                     var pt = BindType(p.Type, p.Identifier, missingId: "COPE-TYPE-0002", missingPrefix: "parameter");
                     if (!seen.Add(p.Identifier.Text)) Report("COPE-BIND-0005", $"Duplicate parameter '{p.Identifier.Text}'.", p.Identifier);
                     ps.Add(new ParameterSymbol(p.Identifier.Text, pt));
@@ -460,14 +520,20 @@ public static class Binder
         {
             foreach (var m in root.Members.OfType<EnumDeclarationSyntax>())
             {
-                if (m.Identifier.Text == "tsonAsset")
+                if (m.Identifier.Text is "tsonAsset" or "tsonEncode")
                 {
-                    Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be redefined.", m.Identifier);
+                    string name = m.Identifier.Text;
+                    Report(name == "tsonEncode" ? "COPE-TSON-ENCODE-0001" : "COPE-TSON-ASSET-0001", $"'{name}' is a compiler intrinsic and cannot be redefined.", m.Identifier);
                     continue;
                 }
                 if (m.Identifier.Text == "TableBoundsError")
                 {
                     Report("COPE-TABLE-0002", "'TableBoundsError' is a compiler-owned table bounds enum.", m.Identifier);
+                    continue;
+                }
+                if (m.Identifier.Text == "TsonEncodeError")
+                {
+                    Report("COPE-TSON-ENCODE-0001", "'TsonEncodeError' is a compiler-owned TSON encoding error enum.", m.Identifier);
                     continue;
                 }
                 string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{m.Identifier.Text}";
@@ -583,12 +649,19 @@ public static class Binder
         private BoundStatement BindVariable(VariableDeclarationStatementSyntax v)
         {
             if (v.Keyword.Kind == SyntaxKind.VarKeyword) Report("COPE-PROFILE-0001", "'var' is not supported by Browser TypeScript Profile v1.", v.Keyword);
-            if (v.Identifier.Text is "$schema" or "tsonAsset")
+            if (v.Identifier.Text is "$schema" or "tsonAsset" or "tsonEncode" or "TsonEncodeError")
             {
-                string message = v.Identifier.Text == "$schema"
-                    ? "'$schema' is reserved compilation-unit metadata and cannot be declared here."
-                    : "'tsonAsset' is a compiler intrinsic and cannot be declared or shadowed.";
-                Report("COPE-TSON-ASSET-0001", message, v.Identifier);
+                string message = v.Identifier.Text switch
+                {
+                    "$schema" => "'$schema' is reserved compilation-unit metadata and cannot be declared here.",
+                    "tsonAsset" => "'tsonAsset' is a compiler intrinsic and cannot be declared or shadowed.",
+                    "tsonEncode" => "'tsonEncode' is a compiler intrinsic and cannot be declared or shadowed.",
+                    _ => "'TsonEncodeError' is a compiler-owned type and cannot be shadowed.",
+                };
+                string id = v.Identifier.Text is "tsonEncode" or "TsonEncodeError"
+                    ? "COPE-TSON-ENCODE-0001"
+                    : "COPE-TSON-ASSET-0001";
+                Report(id, message, v.Identifier);
             }
             var type = BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
             BoundExpression init;
@@ -709,6 +782,11 @@ public static class Binder
             if (n.IdentifierToken.Text == "tsonAsset")
             {
                 Report("COPE-TSON-ASSET-0001", "'tsonAsset' is a compiler intrinsic and cannot be used as a value.", n.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+            if (n.IdentifierToken.Text == "tsonEncode")
+            {
+                Report("COPE-TSON-ENCODE-0001", "'tsonEncode' is a compiler intrinsic and cannot be used as a value.", n.IdentifierToken);
                 return new BoundErrorExpression();
             }
             if (!_scope.TryLookup(n.IdentifierToken.Text, out var symbol) || symbol is null)
@@ -857,6 +935,11 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (c.Target is NameExpressionSyntax tsonEncodeName
+                && tsonEncodeName.IdentifierToken.Text == "tsonEncode")
+            {
+                return BindTsonEncode(c, tsonEncodeName);
+            }
             if (IsTsonAssetCall(c))
             {
                 Report(
@@ -893,6 +976,161 @@ public static class Binder
                 if (!IsAssignable(fn.Parameters[i].Type, args[i].Type)) ReportTypeMismatch("COPE-TYPE-0005", fn.Parameters[i].Type, args[i].Type, c.Arguments[i] is LiteralExpressionSyntax le ? le.LiteralToken : c.OpenParenToken);
             return new BoundCallExpression(fn, args);
         }
+
+        private BoundExpression BindTsonEncode(CallExpressionSyntax call, NameExpressionSyntax intrinsicName)
+        {
+            if (call.Arguments.Count != 1)
+            {
+                foreach (ExpressionSyntax argument in call.Arguments)
+                {
+                    _ = BindExpression(argument);
+                }
+                Report("COPE-TSON-ENCODE-0001", "'tsonEncode' requires exactly one argument.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            BoundExpression operand = BindExpression(call.Arguments[0]);
+            if (operand.Type is not RecordTypeSymbol and not EnumTypeSymbol)
+            {
+                Report(
+                    "COPE-TSON-ENCODE-0001",
+                    $"'tsonEncode' requires one nominal record or payload enum root, not '{operand.Type.Name}'.",
+                    intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
+            if (_schemaIdentity is null)
+            {
+                Report(
+                    "COPE-TSON-ENCODE-0002",
+                    "A compilation unit using 'tsonEncode' requires one valid top-level '$schema' declaration.",
+                    intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
+            if (!TryGetOrCreateTsonEncodingPlan(operand.Type, intrinsicName.IdentifierToken, out BoundTsonEncodingPlan? plan))
+            {
+                return new BoundErrorExpression();
+            }
+
+            if (_tsonEncodeErrorType is null)
+            {
+                throw new InvalidOperationException("Compiler-owned TsonEncodeError was not predeclared.");
+            }
+
+            _usesTsonEncode = true;
+            var resultType = new ResultTypeSymbol(PrimitiveTypeSymbol.String, _tsonEncodeErrorType);
+            return new BoundTsonEncodeExpression(operand, plan!, resultType);
+        }
+
+        private bool TryGetOrCreateTsonEncodingPlan(
+            TypeSymbol rootType,
+            SyntaxToken anchor,
+            out BoundTsonEncodingPlan? plan)
+        {
+            if (_tsonEncodingPlans.TryGetValue(rootType, out plan))
+            {
+                return true;
+            }
+
+            string schemaIdentity = _schemaIdentity
+                ?? throw new InvalidOperationException("TSON encoding plan creation requires validated schema metadata.");
+
+            var reachable = new HashSet<TypeSymbol>();
+            var visiting = new HashSet<TypeSymbol>();
+            bool valid = VisitTsonType(rootType, rootType.Name, anchor, reachable, visiting);
+            if (!valid)
+            {
+                plan = null;
+                return false;
+            }
+
+            TypeSymbol[] definitions = reachable
+                .Where(type => type is RecordTypeSymbol or EnumTypeSymbol)
+                .OrderBy(type => type.Name, StringComparer.Ordinal)
+                .ToArray();
+            var identities = new HashSet<string>(StringComparer.Ordinal);
+            foreach (TypeSymbol definition in definitions)
+            {
+                string? identity = GetStableIdentity(definition);
+                if (identity is null || !identity.StartsWith(schemaIdentity + "#", StringComparison.Ordinal))
+                {
+                    Report("COPE-TSON-ENCODE-0005", $"Reachable type '{definition.Name}' does not belong to schema '{schemaIdentity}'.", anchor);
+                    valid = false;
+                    continue;
+                }
+                if (!identities.Add(identity))
+                {
+                    Report("COPE-TSON-ENCODE-0004", $"Stable TSON identity collision at '{identity}'.", anchor);
+                    valid = false;
+                }
+            }
+            if (!valid)
+            {
+                plan = null;
+                return false;
+            }
+
+            plan = new BoundTsonEncodingPlan(
+                $"tson{_tsonEncodingPlans.Count}",
+                schemaIdentity,
+                rootType,
+                definitions);
+            _tsonEncodingPlans.Add(rootType, plan);
+            return true;
+        }
+
+        private bool VisitTsonType(
+            TypeSymbol type,
+            string path,
+            SyntaxToken anchor,
+            HashSet<TypeSymbol> reachable,
+            HashSet<TypeSymbol> visiting)
+        {
+            if (type == PrimitiveTypeSymbol.Boolean
+                || type == PrimitiveTypeSymbol.Number
+                || type == PrimitiveTypeSymbol.String)
+            {
+                return true;
+            }
+            if (type is not RecordTypeSymbol and not EnumTypeSymbol)
+            {
+                Report("COPE-TSON-ENCODE-0003", $"TSON encoding does not support reachable type '{type.Name}' at '{path}'.", anchor);
+                return false;
+            }
+            if (reachable.Contains(type))
+            {
+                return true;
+            }
+            if (!visiting.Add(type))
+            {
+                Report("COPE-TSON-ENCODE-0004", $"TSON encoding schema cycle involves '{type.Name}'.", anchor);
+                return false;
+            }
+
+            bool valid = true;
+            IEnumerable<(string Name, TypeSymbol Type)> children = type switch
+            {
+                RecordTypeSymbol record => record.Fields.Select(field => (field.Name, field.Type)),
+                EnumTypeSymbol @enum => @enum.Cases.SelectMany(@case => @case.PayloadFields.Select(field => ($"{@case.Name}.{field.Name}", field.Type))),
+                _ => [],
+            };
+            foreach ((string name, TypeSymbol childType) in children)
+            {
+                valid &= VisitTsonType(childType, $"{path}.{name}", anchor, reachable, visiting);
+            }
+            visiting.Remove(type);
+            reachable.Add(type);
+            return valid;
+        }
+
+        private static string? GetStableIdentity(TypeSymbol type)
+            => type switch
+            {
+                RecordTypeSymbol record => record.StableIdentity,
+                EnumTypeSymbol @enum => @enum.StableIdentity,
+                _ => null,
+            };
 
         private static bool IsTsonAssetCall(ExpressionSyntax expression)
         {

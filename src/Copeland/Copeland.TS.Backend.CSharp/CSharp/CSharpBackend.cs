@@ -67,6 +67,10 @@ public static class CSharpBackend
         {
             EmitUnwrapPanic(writer);
         }
+        if (program.TsonEncodingPlans.Count > 0)
+        {
+            EmitTsonEncodingRuntime(writer, program.TsonEncodingPlans, recordsById);
+        }
         foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
         writer.Unindent(); writer.WriteLine("}");
         return diagnostics.Count == 0
@@ -408,6 +412,7 @@ public static class CSharpBackend
             MirEnumValueExpression value => $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", EmitArguments(value.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirMatchExpression match => EmitEnumMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
             MirIfExpression conditional => EmitIfExpression(writer, conditional, function, enumNames, ref tempIndex, diagnostics),
+            MirTsonEncodeExpression encode => $"{TsonEncodeMethodName(encode.PlanId)}({EmitExpression(writer, encode.Operand, function, enumNames, ref tempIndex, diagnostics)})",
             MirOkExpression ok => $"CopeResult<{MapResultComponentType(((MirResultType)ok.Type).SuccessType)}, {MapType(((MirResultType)ok.Type).ErrorType)}>.Ok({EmitExpression(writer, ok.Payload, function, enumNames, ref tempIndex, diagnostics)})",
             MirErrExpression err => $"CopeResult<{MapResultComponentType(((MirResultType)err.Type).SuccessType)}, {MapType(((MirResultType)err.Type).ErrorType)}>.Err({EmitExpression(writer, err.Payload, function, enumNames, ref tempIndex, diagnostics)})",
             MirResultMatchExpression match => EmitResultMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
@@ -808,6 +813,323 @@ public static class CSharpBackend
     }
 
     private static string UnsupportedExpression(MirExpression expression, List<CSharpDiagnostic> diagnostics) { diagnostics.Add(new CSharpDiagnostic("COPE-CS-0001", $"Unsupported MIR expression: {expression.GetType().Name}")); return "default!"; }
+
+    private static void EmitTsonEncodingRuntime(
+        CSharpTextWriter writer,
+        IReadOnlyList<MirTsonEncodingPlan> plans,
+        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    {
+        EmitTsonWriter(writer);
+        foreach (MirTsonEncodingPlan plan in plans)
+        {
+            EmitTsonEncodingPlan(writer, plan, records);
+        }
+    }
+
+    private static void EmitTsonWriter(CSharpTextWriter writer)
+    {
+        writer.WriteLine("private sealed class __TsonWriter");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("private readonly global::System.Text.StringBuilder _builder = new();");
+        writer.WriteLine("private readonly int _maximumBytes;");
+        writer.WriteLine("private readonly int _maximumStringCodeUnits;");
+        writer.WriteLine("private int _bytes;");
+        writer.WriteLine("internal TsonEncodeError? Error { get; private set; }");
+        writer.WriteLine();
+        writer.WriteLine("internal __TsonWriter(int maximumBytes, int maximumStringCodeUnits)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("_maximumBytes = maximumBytes;");
+        writer.WriteLine("_maximumStringCodeUnits = maximumStringCodeUnits;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("internal bool Static(string value) => AppendRaw(value, false);");
+        writer.WriteLine();
+        writer.WriteLine("internal bool Indent(int level)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("return Static(new string(' ', level * 4));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("internal bool String(string value)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (value.Length > _maximumStringCodeUnits)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("return FailOutputLimit();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("for (int index = 0; index < value.Length; index++)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("char character = value[index];");
+        writer.WriteLine("if (char.IsHighSurrogate(character))");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (index + 1 >= value.Length || !char.IsLowSurrogate(value[index + 1])) return FailInvalidUnicode();");
+        writer.WriteLine("index++;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("else if (char.IsLowSurrogate(character)) return FailInvalidUnicode();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("if (!Static(\"\\\"\")) return false;");
+        writer.WriteLine("for (int index = 0; index < value.Length; index++)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("char character = value[index];");
+        writer.WriteLine("switch (character)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("case '\"': if (!Static(\"\\\\\\\"\")) return false; break;");
+        writer.WriteLine("case '\\\\': if (!Static(\"\\\\\\\\\")) return false; break;");
+        writer.WriteLine("case '\\b': if (!Static(\"\\\\b\")) return false; break;");
+        writer.WriteLine("case '\\f': if (!Static(\"\\\\f\")) return false; break;");
+        writer.WriteLine("case '\\n': if (!Static(\"\\\\n\")) return false; break;");
+        writer.WriteLine("case '\\r': if (!Static(\"\\\\r\")) return false; break;");
+        writer.WriteLine("case '\\t': if (!Static(\"\\\\t\")) return false; break;");
+        writer.WriteLine("case '\\u2028': if (!UnicodeEscape(character)) return false; break;");
+        writer.WriteLine("case '\\u2029': if (!UnicodeEscape(character)) return false; break;");
+        writer.WriteLine("default:");
+        writer.Indent();
+        writer.WriteLine("if (character < ' ') { if (!UnicodeEscape(character)) return false; }");
+        writer.WriteLine("else if (char.IsHighSurrogate(character))");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (index + 1 >= value.Length || !char.IsLowSurrogate(value[index + 1])) return FailInvalidUnicode();");
+        writer.WriteLine("if (!AppendScalar(character, value[++index])) return false;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("else if (char.IsLowSurrogate(character)) return FailInvalidUnicode();");
+        writer.WriteLine("else if (!AppendRaw(character.ToString(), false)) return false;");
+        writer.WriteLine("break;");
+        writer.Unindent();
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("return Static(\"\\\"\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("internal bool Number(double value)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("ulong bits = global::System.BitConverter.DoubleToUInt64Bits(value);");
+        writer.WriteLine("if ((bits & 0x7FF0000000000000UL) == 0x7FF0000000000000UL && (bits & 0x000FFFFFFFFFFFFFUL) != 0) bits = 0x7FF8000000000000UL;");
+        writer.WriteLine("return Static(\"$number(\\\"\" + bits.ToString(\"X16\", global::System.Globalization.CultureInfo.InvariantCulture) + \"\\\")\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("internal string Finish() => _builder.ToString();");
+        writer.WriteLine();
+        writer.WriteLine("private bool UnicodeEscape(char value)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("return Static(\"\\\\u\" + ((int)value).ToString(\"X4\", global::System.Globalization.CultureInfo.InvariantCulture));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("private bool AppendScalar(char high, char low)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (_bytes > _maximumBytes - 4) return FailOutputLimit();");
+        writer.WriteLine("_bytes += 4;");
+        writer.WriteLine("_builder.Append(high);");
+        writer.WriteLine("_builder.Append(low);");
+        writer.WriteLine("return true;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("private bool AppendRaw(string value, bool enforceStringLimit)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (enforceStringLimit && value.Length > _maximumStringCodeUnits) return FailOutputLimit();");
+        writer.WriteLine("int byteCount = 0;");
+        writer.WriteLine("for (int index = 0; index < value.Length; index++)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("char character = value[index];");
+        writer.WriteLine("if (character <= 0x7F) byteCount += 1;");
+        writer.WriteLine("else if (character <= 0x7FF) byteCount += 2;");
+        writer.WriteLine("else if (char.IsHighSurrogate(character))");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (index + 1 >= value.Length || !char.IsLowSurrogate(value[index + 1])) return FailInvalidUnicode();");
+        writer.WriteLine("byteCount += 4;");
+        writer.WriteLine("index++;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("else if (char.IsLowSurrogate(character)) return FailInvalidUnicode();");
+        writer.WriteLine("else byteCount += 3;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("if (_bytes > _maximumBytes - byteCount) return FailOutputLimit();");
+        writer.WriteLine("_bytes += byteCount;");
+        writer.WriteLine("_builder.Append(value);");
+        writer.WriteLine("return true;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("private bool FailInvalidUnicode()");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("Error = new TsonEncodeError.InvalidUnicode();");
+        writer.WriteLine("return false;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("private bool FailOutputLimit()");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("Error = new TsonEncodeError.OutputLimitExceeded();");
+        writer.WriteLine("return false;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+        writer.WriteLine("private static bool __tson_write_boolean(__TsonWriter writer, bool value, int indentation) => writer.Static(value ? \"true\" : \"false\");");
+        writer.WriteLine("private static bool __tson_write_number(__TsonWriter writer, double value, int indentation) => writer.Number(value);");
+        writer.WriteLine("private static bool __tson_write_string(__TsonWriter writer, string value, int indentation) => writer.String(value);");
+        writer.WriteLine();
+    }
+
+    private static void EmitTsonEncodingPlan(
+        CSharpTextWriter writer,
+        MirTsonEncodingPlan plan,
+        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    {
+        string resultType = $"CopeResult<string, TsonEncodeError>";
+        writer.WriteLine($"private static {resultType} {TsonEncodeMethodName(plan.Id)}({MapType(plan.RootType)} value)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"var writer = new __TsonWriter({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
+        string prefix = MirTsonCanonicalText.BuildDocumentPrefix(plan);
+        writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write(prefix)})");
+        writer.Indent();
+        writer.WriteLine($"|| !{TsonValueWriterName(plan.Id, plan.RootValuePlan)}(writer, value, 0)");
+        writer.WriteLine("|| !writer.Static(\";\\n\"))");
+        writer.Unindent();
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"return {resultType}.Err(writer.Error ?? new TsonEncodeError.OutputLimitExceeded());");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"return {resultType}.Ok(writer.Finish());");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+
+        foreach (MirTsonNominalPlan definition in plan.Definitions)
+        {
+            switch (definition)
+            {
+                case MirTsonRecordPlan record:
+                    EmitTsonRecordWriter(writer, plan, record, records);
+                    break;
+                case MirTsonEnumPlan @enum:
+                    EmitTsonEnumWriter(writer, plan, @enum);
+                    break;
+            }
+        }
+    }
+
+    private static void EmitTsonRecordWriter(CSharpTextWriter writer, MirTsonEncodingPlan plan, MirTsonRecordPlan record, IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    {
+        writer.WriteLine($"private static bool {TsonValueWriterName(plan.Id, new MirTsonRecordValuePlan(record.RecordTypeId))}(__TsonWriter writer, {RecordTypeName(record.RecordTypeId)} value, int indentation)");
+        writer.WriteLine("{");
+        writer.Indent();
+        if (record.Fields.Count == 0)
+        {
+            writer.WriteLine($"return writer.Static({CSharpLiteralWriter.Write($"$record.{record.Name}({{}})")});");
+        }
+        else
+        {
+            writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write($"$record.{record.Name}({{\n")}) ) return false;");
+            MirRecordDefinition carrier = records[record.RecordTypeId];
+            for (int index = 0; index < record.Fields.Count; index++)
+            {
+                MirTsonRecordFieldPlan field = record.Fields[index];
+                MirRecordFieldDefinition carrierField = carrier.Fields[index];
+                writer.WriteLine("if (!writer.Indent(indentation + 1)) return false;");
+                writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write($"\"{field.Name}\": ")})) return false;");
+                writer.WriteLine($"if (!{TsonValueWriterName(plan.Id, field.ValuePlan)}(writer, value.{RecordFieldName(carrierField.Id)}, indentation + 1)) return false;");
+                writer.WriteLine("if (!writer.Static(\",\\n\")) return false;");
+            }
+            writer.WriteLine("if (!writer.Indent(indentation)) return false;");
+            writer.WriteLine("return writer.Static(\"})\");");
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+    }
+
+    private static void EmitTsonEnumWriter(CSharpTextWriter writer, MirTsonEncodingPlan plan, MirTsonEnumPlan @enum)
+    {
+        string methodName = TsonValueWriterName(plan.Id, new MirTsonEnumValuePlan(@enum.Name));
+        string typeName = CSharpNameMangler.Mangle(@enum.Name);
+        writer.WriteLine($"private static bool {methodName}(__TsonWriter writer, {typeName} value, int indentation)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("switch (value)");
+        writer.WriteLine("{");
+        writer.Indent();
+        foreach (MirTsonEnumCasePlan @case in @enum.Cases)
+        {
+            string caseType = $"{typeName}.{CSharpNameMangler.Mangle(@case.Name)}";
+            string variable = @case.Payloads.Count == 0 ? "" : " item";
+            writer.WriteLine($"case {caseType}{variable}:");
+            writer.Indent();
+            if (@case.Payloads.Count == 0)
+            {
+                writer.WriteLine($"return writer.Static({CSharpLiteralWriter.Write($"{@enum.Name}.{@case.Name}")});");
+            }
+            else
+            {
+                writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write($"{@enum.Name}.{@case.Name}(\n")})) return false;");
+                for (int index = 0; index < @case.Payloads.Count; index++)
+                {
+                    MirTsonEnumPayloadPlan payload = @case.Payloads[index];
+                    writer.WriteLine("if (!writer.Indent(indentation + 1)) return false;");
+                    writer.WriteLine($"if (!{TsonValueWriterName(plan.Id, payload.ValuePlan)}(writer, item.{CSharpNameMangler.Mangle(payload.Name)}, indentation + 1)) return false;");
+                    writer.WriteLine(index + 1 < @case.Payloads.Count
+                        ? "if (!writer.Static(\",\\n\")) return false;"
+                        : "if (!writer.Static(\"\\n\")) return false;");
+                }
+                writer.WriteLine("if (!writer.Indent(indentation)) return false;");
+                writer.WriteLine("return writer.Static(\")\");");
+            }
+            writer.Unindent();
+        }
+        writer.WriteLine("default:");
+        writer.Indent();
+        writer.WriteLine("throw new global::System.InvalidOperationException(\"Copeland C# backend invariant failure.\");");
+        writer.Unindent();
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+    }
+
+    private static string TsonEncodeMethodName(MirTsonEncodingPlanId id)
+        => "__tson_encode_" + EncodeStableIdentity(id.Value);
+
+    private static string TsonValueWriterName(MirTsonEncodingPlanId id, MirTsonValuePlan valuePlan)
+        => valuePlan switch
+        {
+            MirTsonBooleanPlan => "__tson_write_boolean",
+            MirTsonNumberPlan => "__tson_write_number",
+            MirTsonStringPlan => "__tson_write_string",
+            MirTsonRecordValuePlan record => "__tson_write_" + EncodeStableIdentity(id.Value + "_record_" + record.RecordTypeId.Value),
+            MirTsonEnumValuePlan @enum => "__tson_write_" + EncodeStableIdentity(id.Value + "_enum_" + @enum.EnumName),
+            _ => throw new InvalidOperationException("Unsupported validated TSON value plan."),
+        };
     private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
     private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
@@ -857,6 +1179,7 @@ public static class CSharpBackend
             MirErrExpression err => ExpressionUsesUnwrap(err.Payload),
             MirPropagateExpression propagation => ExpressionUsesUnwrap(propagation.Operand),
             MirTryExpression tryExpression => ValueBlockUsesUnwrap(tryExpression.Protected) || ValueBlockUsesUnwrap(tryExpression.Handler),
+            MirTsonEncodeExpression encode => ExpressionUsesUnwrap(encode.Operand),
             _ => false,
         };
     }
@@ -910,6 +1233,7 @@ public static class CSharpBackend
             MirIfExpression conditional => ExpressionRequiresStatements(conditional.Condition) || ExpressionRequiresStatements(conditional.ThenExpression) || ExpressionRequiresStatements(conditional.ElseExpression),
             MirOkExpression ok => ExpressionRequiresStatements(ok.Payload),
             MirErrExpression err => ExpressionRequiresStatements(err.Payload),
+            MirTsonEncodeExpression encode => ExpressionRequiresStatements(encode.Operand),
             _ => false,
         };
     }

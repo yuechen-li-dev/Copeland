@@ -26,8 +26,60 @@ public static class MirLowerer
         var enums = program.Enums.Select(LowerEnum).ToArray();
         var records = program.Records.Select(LowerRecord).ToArray();
         var tables = program.Tables.Select(LowerTable).ToArray();
+        var tsonEncodingPlans = program.TsonEncodingPlans.Select(LowerTsonEncodingPlan).ToArray();
         var functions = program.Functions.Select(LowerFunction).ToArray();
-        return new MirProgram(enums, records, tables, functions);
+        return new MirProgram(enums, records, tables, tsonEncodingPlans, functions);
+    }
+
+    private static MirTsonEncodingPlan LowerTsonEncodingPlan(BoundTsonEncodingPlan plan)
+    {
+        return new MirTsonEncodingPlan(
+            new MirTsonEncodingPlanId(plan.Id),
+            plan.SchemaIdentity,
+            ToMirType(plan.RootType),
+            LowerTsonValuePlan(plan.RootType),
+            plan.Definitions.Select(LowerTsonNominalPlan).ToArray(),
+            new MirTsonEncodingLimits(1_048_576, 262_144));
+    }
+
+    private static MirTsonNominalPlan LowerTsonNominalPlan(TypeSymbol type)
+    {
+        return type switch
+        {
+            RecordTypeSymbol record => new MirTsonRecordPlan(
+                ToMirRecordTypeId(record.Id),
+                record.Name,
+                record.StableIdentity ?? throw new InvalidOperationException("TSON record plan has no stable identity."),
+                record.Fields.Select(field => new MirTsonRecordFieldPlan(
+                    ToMirRecordFieldId(field.Id),
+                    field.Name,
+                    $"{record.StableIdentity}.{field.Name}",
+                    LowerTsonValuePlan(field.Type))).ToArray()),
+            EnumTypeSymbol @enum => new MirTsonEnumPlan(
+                @enum.Name,
+                @enum.StableIdentity ?? throw new InvalidOperationException("TSON enum plan has no stable identity."),
+                @enum.Cases.Select(@case => new MirTsonEnumCasePlan(
+                    @case.Name,
+                    $"{@enum.StableIdentity}.{@case.Name}",
+                    @case.PayloadFields.Select(field => new MirTsonEnumPayloadPlan(
+                        field.Name,
+                        $"{@enum.StableIdentity}.{@case.Name}.{field.Name}",
+                        LowerTsonValuePlan(field.Type))).ToArray())).ToArray()),
+            _ => throw new InvalidOperationException($"Unsupported TSON nominal plan type '{type.Name}'."),
+        };
+    }
+
+    private static MirTsonValuePlan LowerTsonValuePlan(TypeSymbol type)
+    {
+        if (type == PrimitiveTypeSymbol.Boolean) return new MirTsonBooleanPlan();
+        if (type == PrimitiveTypeSymbol.Number) return new MirTsonNumberPlan();
+        if (type == PrimitiveTypeSymbol.String) return new MirTsonStringPlan();
+        return type switch
+        {
+            RecordTypeSymbol record => new MirTsonRecordValuePlan(ToMirRecordTypeId(record.Id)),
+            EnumTypeSymbol @enum => new MirTsonEnumValuePlan(@enum.Name),
+            _ => throw new InvalidOperationException($"Unsupported TSON value plan type '{type.Name}'."),
+        };
     }
 
     private static MirTableDefinition LowerTable(BoundTableDefinition definition)
@@ -133,6 +185,10 @@ public static class MirLowerer
             BoundMatchExpression m => new MirMatchExpression(LowerExpression(m.Scrutinee), m.Arms.Select(arm => new MirMatchArm(arm.Case.Name, arm.PayloadVariables.Select(v => new MirMatchPayloadBinding(v.Name, ToMirType(v.Type))).ToArray(), LowerExpression(arm.Expression))).ToArray(), ToMirType(m.Type)),
             BoundResultMatchExpression m => new MirResultMatchExpression(LowerExpression(m.Scrutinee), new MirResultBinding(m.OkVariable.Name, ToMirType(m.OkVariable.Type)), LowerExpression(m.OkExpression), new MirResultBinding(m.ErrVariable.Name, ToMirType(m.ErrVariable.Type)), LowerExpression(m.ErrExpression), ToMirType(m.Type)),
             BoundIfExpression i => new MirIfExpression(LowerExpression(i.Condition), LowerExpression(i.ThenExpression), LowerExpression(i.ElseExpression), ToMirType(i.Type)),
+            BoundTsonEncodeExpression encode => new MirTsonEncodeExpression(
+                LowerExpression(encode.Operand),
+                new MirTsonEncodingPlanId(encode.Plan.Id),
+                (MirResultType)ToMirType(encode.ResultType)),
             BoundPropagateExpression p => new MirPropagateExpression(LowerExpression(p.Operand), LowerPropagationTarget(p.Target), ToMirType(p.Type)),
             BoundUnwrapExpression u => new MirUnwrapExpression(LowerExpression(u.Operand), ToMirType(u.Type)),
             BoundTryExceptExpression t => new MirTryExpression(

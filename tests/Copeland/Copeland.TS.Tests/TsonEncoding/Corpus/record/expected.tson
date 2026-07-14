@@ -1,0 +1,26 @@
+const $schema: string = "copeland://corpus/runtime-encoding";
+
+record Detail {
+    label: string;
+}
+
+enum Mode {
+    Off,
+    Named(detail: Detail),
+}
+
+record Settings {
+    enabled: boolean;
+    count: number;
+    mode: Mode;
+}
+
+const $value = $record.Settings({
+    "enabled": true,
+    "count": $number("8000000000000000"),
+    "mode": Mode.Named(
+        $record.Detail({
+            "label": "snow 雪 😀",
+        })
+    ),
+});

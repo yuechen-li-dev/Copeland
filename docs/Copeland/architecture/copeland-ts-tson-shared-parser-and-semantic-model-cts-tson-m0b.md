@@ -1,6 +1,6 @@
 # Copeland TS TSON shared parser and semantic model (CTS-TSON-M0b)
 
-**Status:** implemented foundation at revision lineage beginning from `0733e2a50af16e369a50d02f5f0d6c420abb40d6`.
+**Status:** implemented foundation at revision lineage beginning from `0733e2a50af16e369a50d02f5f0d6c420abb40d6`. Its canonical reader/printer contract is the acceptance oracle for [CTS-TSON-M2b runtime encoding](copeland-ts-runtime-tson-encoding-cts-tson-m2b.md).
 
 ## Outcome and corrected architecture
 
