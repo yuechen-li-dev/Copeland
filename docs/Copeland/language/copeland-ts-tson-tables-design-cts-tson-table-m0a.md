@@ -1,6 +1,6 @@
 # Copeland TS TSON tables design (CTS-TSON-TABLE-M0a)
 
-**Status:** accepted documentation-only design and architecture-audit milestone. No table TSON value, parser projection, asset integration, MIR plan, backend writer, fixture, or runtime behavior is implemented by M0a.
+**Status:** accepted design and architecture-audit authority, implemented through the compiler-host semantic/canonical CTS-TSON-TABLE-M0b milestone. Asset integration, MIR plans, backend writers, and runtime behavior remain unimplemented.
 
 ## Decision
 

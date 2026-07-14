@@ -11,6 +11,7 @@ public enum TsonTypeKind
     Record,
     Enum,
     Array,
+    Table,
 }
 
 public sealed class TsonTypeReference
@@ -76,6 +77,173 @@ public sealed class TsonArraySchema
     }
 
     public TsonTypeReference ElementType { get; }
+}
+
+public sealed class TsonTableIdentity : IEquatable<TsonTableIdentity>
+{
+    private TsonTableIdentity(string schemaIdentity, string tableName)
+    {
+        TableName = tableName;
+        Value = $"{schemaIdentity}#{tableName}";
+    }
+
+    public string Value { get; }
+
+    public string TableName { get; }
+
+    public static TsonTableIdentity Create(string schemaIdentity, string tableName)
+    {
+        if (string.IsNullOrWhiteSpace(schemaIdentity)
+            || !schemaIdentity.StartsWith("copeland://", StringComparison.Ordinal)
+            || schemaIdentity.Length == "copeland://".Length
+            || schemaIdentity.Contains('#', StringComparison.Ordinal)
+            || schemaIdentity.Any(char.IsWhiteSpace))
+        {
+            throw new ArgumentException("A TSON table schema identity must be an absolute 'copeland://' identity without '#'.", nameof(schemaIdentity));
+        }
+
+        if (!IsIdentifier(tableName))
+        {
+            throw new ArgumentException("A TSON table name must be an identifier.", nameof(tableName));
+        }
+
+        return new TsonTableIdentity(schemaIdentity, tableName);
+    }
+
+    internal static bool IsIdentifier(string value)
+    {
+        if (string.IsNullOrEmpty(value)
+            || !(char.IsLetter(value[0]) || value[0] is '_' or '$'))
+        {
+            return false;
+        }
+
+        return value.Skip(1).All(character => char.IsLetterOrDigit(character) || character is '_' or '$');
+    }
+
+    public bool Equals(TsonTableIdentity? other)
+    {
+        return other is not null && string.Equals(Value, other.Value, StringComparison.Ordinal);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is TsonTableIdentity other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return StringComparer.Ordinal.GetHashCode(Value);
+    }
+
+    public override string ToString()
+    {
+        return Value;
+    }
+}
+
+public sealed class TsonTableColumnIdentity : IEquatable<TsonTableColumnIdentity>
+{
+    private TsonTableColumnIdentity(TsonTableIdentity tableIdentity, string columnName)
+    {
+        TableIdentity = tableIdentity;
+        ColumnName = columnName;
+        Value = $"{tableIdentity.Value}.{columnName}";
+    }
+
+    public string Value { get; }
+
+    public TsonTableIdentity TableIdentity { get; }
+
+    public string ColumnName { get; }
+
+    public static TsonTableColumnIdentity Create(TsonTableIdentity tableIdentity, string columnName)
+    {
+        ArgumentNullException.ThrowIfNull(tableIdentity);
+        if (!TsonTableIdentity.IsIdentifier(columnName))
+        {
+            throw new ArgumentException("A TSON table column name must be an identifier.", nameof(columnName));
+        }
+
+        return new TsonTableColumnIdentity(tableIdentity, columnName);
+    }
+
+    public bool Equals(TsonTableColumnIdentity? other)
+    {
+        return other is not null && string.Equals(Value, other.Value, StringComparison.Ordinal);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is TsonTableColumnIdentity other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return StringComparer.Ordinal.GetHashCode(Value);
+    }
+
+    public override string ToString()
+    {
+        return Value;
+    }
+}
+
+public sealed class TsonTableColumnSchema
+{
+    public TsonTableColumnSchema(
+        string name,
+        TsonTableColumnIdentity identity,
+        TsonTypeReference elementType)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            throw new ArgumentException("A TSON table column name cannot be empty.", nameof(name));
+        }
+
+        ArgumentNullException.ThrowIfNull(identity);
+        ArgumentNullException.ThrowIfNull(elementType);
+        if (identity.ColumnName != name)
+        {
+            throw new ArgumentException("A TSON table column identity must derive from its authored name.", nameof(identity));
+        }
+        if (!IsSupportedCellType(elementType))
+        {
+            throw new ArgumentException("A TSON table column type must belong to the supported cell algebra.", nameof(elementType));
+        }
+
+        Name = name;
+        Identity = identity;
+        ElementType = elementType;
+    }
+
+    public string Name { get; }
+
+    public TsonTableColumnIdentity Identity { get; }
+
+    public TsonTypeReference ElementType { get; }
+
+    private static bool IsSupportedCellType(TsonTypeReference type)
+    {
+        var current = type;
+        var depth = 0;
+        while (current.Kind == TsonTypeKind.Array)
+        {
+            depth++;
+            if (depth > TsonLimits.Default.MaximumNestingDepth || current.ElementType is null)
+            {
+                return false;
+            }
+
+            current = current.ElementType;
+        }
+
+        return current.Kind is TsonTypeKind.Boolean
+            or TsonTypeKind.Number
+            or TsonTypeKind.String
+            or TsonTypeKind.Record
+            or TsonTypeKind.Enum;
+    }
 }
 
 public sealed class TsonFieldDefinition
@@ -209,6 +377,47 @@ public sealed class TsonEnumDefinition : TsonNominalDefinition
     }
 
     public IReadOnlyList<TsonEnumCaseDefinition> Cases { get; }
+}
+
+public sealed class TsonTableSchema : TsonNominalDefinition
+{
+    public TsonTableSchema(
+        string name,
+        TsonTableIdentity identity,
+        IEnumerable<TsonTableColumnSchema> columns)
+        : base(name, identity?.Value ?? throw new ArgumentNullException(nameof(identity)))
+    {
+        if (identity.TableName != name)
+        {
+            throw new ArgumentException("A TSON table identity must derive from its authored name.", nameof(identity));
+        }
+
+        IdentityValue = identity;
+        Columns = TsonCollection.Copy(columns, nameof(columns));
+        if (Columns.Count == 0)
+        {
+            throw new ArgumentException("A TSON table schema requires at least one typed column.", nameof(columns));
+        }
+
+        if (Columns.Count > TsonLimits.Default.MaximumTableColumnCount)
+        {
+            throw new ArgumentException("A TSON table schema exceeds the column limit.", nameof(columns));
+        }
+
+        if (Columns.Select(column => column.Name).Distinct(StringComparer.Ordinal).Count() != Columns.Count)
+        {
+            throw new ArgumentException("A TSON table schema cannot contain duplicate column names.", nameof(columns));
+        }
+
+        if (Columns.Select(column => column.Identity.Value).Distinct(StringComparer.Ordinal).Count() != Columns.Count)
+        {
+            throw new ArgumentException("A TSON table schema cannot contain duplicate column identities.", nameof(columns));
+        }
+    }
+
+    public TsonTableIdentity IdentityValue { get; }
+
+    public IReadOnlyList<TsonTableColumnSchema> Columns { get; }
 }
 
 public sealed class TsonCatalog

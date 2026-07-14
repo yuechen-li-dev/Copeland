@@ -45,11 +45,25 @@ public static class TsonDocumentReader
 
         if (profile == TsonDocumentProfile.CanonicalTson)
         {
-            var canonical = TsonCanonicalPrinter.Print(document);
+            string canonical;
+            try
+            {
+                canonical = TsonCanonicalPrinter.Print(document, limits);
+            }
+            catch (TsonCanonicalLimitException)
+            {
+                var code = document.Root is TsonTable ? "COPE-TSON-TABLE-0005" : "COPE-TSON-0005";
+                return Failure(
+                    code,
+                    $"Canonical output exceeds the TSON limit of {limits.MaximumCanonicalUtf8ByteCount} UTF-8 bytes.",
+                    0,
+                    Math.Max(1, source.Length));
+            }
+
             if (!string.Equals(source, canonical, StringComparison.Ordinal))
             {
                 var diagnostic = new TsonDiagnostic(
-                    "COPE-TSON-0005",
+                    document.Root is TsonTable ? "COPE-TSON-TABLE-0005" : "COPE-TSON-0005",
                     "Canonical TSON input does not use the canonical byte spelling.",
                     0,
                     Math.Max(1, source.Length));
@@ -131,6 +145,8 @@ public static class TsonDocumentReader
         private readonly List<TsonDiagnostic> _diagnostics = [];
         private readonly Dictionary<string, TsonNominalDefinition> _definitions = new(StringComparer.Ordinal);
         private int _valueNodeCount;
+        private bool _insideTableCell;
+        private bool _hasTableDeclarations;
 
         public Projector(
             string source,
@@ -150,7 +166,9 @@ public static class TsonDocumentReader
         {
             var recordDeclarations = root.Members.OfType<RecordDeclarationSyntax>().ToArray();
             var enumDeclarations = root.Members.OfType<EnumDeclarationSyntax>().ToArray();
-            var declarations = recordDeclarations.Length + enumDeclarations.Length;
+            var tableDeclarations = root.Members.OfType<TableDeclarationSyntax>().ToArray();
+            _hasTableDeclarations = tableDeclarations.Length > 0;
+            var declarations = recordDeclarations.Length + enumDeclarations.Length + tableDeclarations.Length;
             if (declarations > _limits.MaximumDeclarationCount)
             {
                 Report(
@@ -171,7 +189,7 @@ public static class TsonDocumentReader
                 return null;
             }
 
-            BuildCatalog(schemaIdentity, recordDeclarations, enumDeclarations);
+            BuildCatalog(schemaIdentity, recordDeclarations, enumDeclarations, tableDeclarations);
             ValidateTypeReferencesAndCycles();
 
             if (_diagnostics.Count > 0)
@@ -189,6 +207,11 @@ public static class TsonDocumentReader
             }
 
             var rootBinding = rootBindings[0];
+            if (tableDeclarations.Length > 0)
+            {
+                return ProjectTableDocument(schemaIdentity, rootBinding, tableDeclarations);
+            }
+
             var expectedType = rootBinding.Type is null
                 ? null
                 : ReadType(rootBinding.Type, reportErrors: true);
@@ -220,7 +243,7 @@ public static class TsonDocumentReader
         {
             foreach (var member in root.Members)
             {
-                if (member is RecordDeclarationSyntax or EnumDeclarationSyntax)
+                if (member is RecordDeclarationSyntax or EnumDeclarationSyntax or TableDeclarationSyntax)
                 {
                     continue;
                 }
@@ -263,6 +286,146 @@ public static class TsonDocumentReader
                     $"Syntax '{member.Kind}' is executable or unsupported in a TSON document.",
                     member);
             }
+        }
+
+        private TsonDocument? ProjectTableDocument(
+            string schemaIdentity,
+            VariableDeclarationStatementSyntax rootBinding,
+            IReadOnlyList<TableDeclarationSyntax> declarations)
+        {
+            if (declarations.Count != 1)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0001",
+                    $"A table-root TSON document requires exactly one table declaration; found {declarations.Count}.",
+                    declarations.Count > 1 ? declarations[1] : rootBinding);
+                return null;
+            }
+
+            var declaration = declarations[0];
+            if (rootBinding.Type is not null
+                || rootBinding.Initializer is not NameExpressionSyntax rootName
+                || rootName.IdentifierToken.Text != declaration.Identifier.Text)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0001",
+                    $"A table-root TSON document requires the exact root form 'const $value = {declaration.Identifier.Text};'.",
+                    rootBinding);
+                return null;
+            }
+
+            if (!_definitions.TryGetValue(declaration.Identifier.Text, out var definition)
+                || definition is not TsonTableSchema tableSchema)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0002",
+                    $"Table schema '{schemaIdentity}#{declaration.Identifier.Text}' is unavailable.",
+                    declaration);
+                return null;
+            }
+
+            var rowCount = declaration.Columns[0].Cells.Elements.Count;
+            for (var index = 0; index < declaration.Columns.Count; index++)
+            {
+                if (declaration.Columns[index].Identifier.Text != tableSchema.Columns[index].Name)
+                {
+                    Report(
+                        "COPE-TSON-TABLE-0003",
+                        "Table columns do not match schema declaration order.",
+                        declaration.Columns[index]);
+                    return null;
+                }
+
+                if (declaration.Columns[index].Cells.Elements.Count != rowCount)
+                {
+                    Report(
+                        "COPE-TSON-TABLE-0003",
+                        $"Table column '{declaration.Columns[index].Identifier.Text}' is ragged; expected {rowCount} cells.",
+                        declaration.Columns[index]);
+                    return null;
+                }
+            }
+
+            if (rowCount > _limits.MaximumTableRowCount)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0005",
+                    $"Table row count exceeds the limit of {_limits.MaximumTableRowCount}.",
+                    declaration);
+                return null;
+            }
+
+            var totalCells = (long)declaration.Columns.Count * rowCount;
+            if (totalCells > _limits.MaximumTableCellCount)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0005",
+                    $"Table cell count {totalCells} exceeds the limit of {_limits.MaximumTableCellCount}.",
+                    declaration);
+                return null;
+            }
+
+            if (!TryAddValueNodes(1L + declaration.Columns.Count, declaration))
+            {
+                return null;
+            }
+
+            var columns = new List<TsonTableColumn>(declaration.Columns.Count);
+            for (var columnIndex = 0; columnIndex < declaration.Columns.Count; columnIndex++)
+            {
+                var columnSyntax = declaration.Columns[columnIndex];
+                var columnSchema = tableSchema.Columns[columnIndex];
+                var cells = new List<TsonValue>(rowCount);
+                foreach (var cellSyntax in columnSyntax.Cells.Elements)
+                {
+                    _insideTableCell = true;
+                    TsonValue? cell;
+                    try
+                    {
+                        cell = ProjectValue(cellSyntax, columnSchema.ElementType, depth: 2);
+                    }
+                    finally
+                    {
+                        _insideTableCell = false;
+                    }
+
+                    if (cell is not null)
+                    {
+                        cells.Add(cell);
+                    }
+                }
+
+                if (_diagnostics.Count == 0)
+                {
+                    columns.Add(new TsonTableColumn(columnSchema, cells));
+                }
+            }
+
+            if (_diagnostics.Count > 0)
+            {
+                return null;
+            }
+
+            var table = new TsonTable(tableSchema, columns, _limits);
+            var orderedDefinitions = _definitions.Values
+                .OrderBy(item => item.Name, StringComparer.Ordinal)
+                .ToArray();
+            return new TsonDocument(new TsonCatalog(schemaIdentity, orderedDefinitions), table);
+        }
+
+        private bool TryAddValueNodes(long count, SyntaxNode syntax)
+        {
+            if (count > int.MaxValue || _valueNodeCount > _limits.MaximumValueNodeCount - count)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0005",
+                    $"Value-node count exceeds the TSON limit of {_limits.MaximumValueNodeCount}.",
+                    syntax);
+                return false;
+            }
+
+            _valueNodeCount += (int)count;
+            return true;
         }
 
         private string? ReadEmbeddedSchemaIdentity(
@@ -358,7 +521,8 @@ public static class TsonDocumentReader
         private void BuildCatalog(
             string schemaIdentity,
             IReadOnlyList<RecordDeclarationSyntax> records,
-            IReadOnlyList<EnumDeclarationSyntax> enums)
+            IReadOnlyList<EnumDeclarationSyntax> enums,
+            IReadOnlyList<TableDeclarationSyntax> tables)
         {
             var declaredKinds = new Dictionary<string, TsonTypeKind>(StringComparer.Ordinal);
             foreach (var declaration in records)
@@ -369,6 +533,11 @@ public static class TsonDocumentReader
             foreach (var declaration in enums)
             {
                 AddDeclaredKind(declaration.Identifier, TsonTypeKind.Enum, declaredKinds);
+            }
+
+            foreach (var declaration in tables)
+            {
+                AddDeclaredKind(declaration.Identifier, TsonTypeKind.Table, declaredKinds);
             }
 
             foreach (var declaration in records)
@@ -500,6 +669,140 @@ public static class TsonDocumentReader
                     TypeIdentity(schemaIdentity, declaration.Identifier.Text),
                     cases), declaration);
             }
+
+            foreach (var declaration in tables)
+            {
+                BuildTableSchema(schemaIdentity, declaration, declaredKinds);
+            }
+        }
+
+        private void BuildTableSchema(
+            string schemaIdentity,
+            TableDeclarationSyntax declaration,
+            IReadOnlyDictionary<string, TsonTypeKind> declaredKinds)
+        {
+            var diagnosticCountBefore = _diagnostics.Count;
+            if (declaration.Columns.Count == 0)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0003",
+                    "A TSON table requires at least one typed column because a zero-column row count is not serializable.",
+                    declaration);
+                return;
+            }
+
+            if (declaration.Columns.Count > _limits.MaximumTableColumnCount)
+            {
+                Report(
+                    "COPE-TSON-TABLE-0005",
+                    $"Table '{declaration.Identifier.Text}' exceeds the column limit of {_limits.MaximumTableColumnCount}.",
+                    declaration);
+                return;
+            }
+
+            var tableIdentity = TsonTableIdentity.Create(schemaIdentity, declaration.Identifier.Text);
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            var columns = new List<TsonTableColumnSchema>();
+            foreach (var column in declaration.Columns)
+            {
+                if (!names.Add(column.Identifier.Text))
+                {
+                    Report(
+                        "COPE-TSON-TABLE-0003",
+                        $"Duplicate column '{column.Identifier.Text}' in table '{declaration.Identifier.Text}'.",
+                        column);
+                    continue;
+                }
+
+                var type = column.ExplicitType is null
+                    ? InferColumnType(column)
+                    : ReadType(column.ExplicitType, declaredKinds, reportErrors: false);
+                if (type is null || !IsSupportedArrayElementType(type))
+                {
+                    Report(
+                        "COPE-TSON-TABLE-0002",
+                        $"Column '{column.Identifier.Text}' requires an explicit or inferable supported cell type.",
+                        column);
+                    continue;
+                }
+
+                columns.Add(new TsonTableColumnSchema(
+                    column.Identifier.Text,
+                    TsonTableColumnIdentity.Create(tableIdentity, column.Identifier.Text),
+                    type));
+            }
+
+            if (_diagnostics.Count == diagnosticCountBefore)
+            {
+                AddDefinition(
+                    new TsonTableSchema(declaration.Identifier.Text, tableIdentity, columns),
+                    declaration);
+            }
+        }
+
+        private TsonTypeReference? InferColumnType(TableColumnSyntax column)
+        {
+            if (column.Cells.Elements.Count == 0)
+            {
+                return null;
+            }
+
+            return InferValueType(column.Cells.Elements[0]);
+        }
+
+        private TsonTypeReference? InferValueType(ExpressionSyntax syntax)
+        {
+            if (syntax is LiteralExpressionSyntax literal)
+            {
+                return literal.LiteralToken.Kind switch
+                {
+                    SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword => TsonTypeReference.Boolean,
+                    SyntaxKind.NumberToken => TsonTypeReference.Number,
+                    SyntaxKind.StringToken => TsonTypeReference.String,
+                    _ => null,
+                };
+            }
+
+            if (syntax is UnaryExpressionSyntax
+                {
+                    OperatorToken.Kind: SyntaxKind.MinusToken,
+                    Operand: LiteralExpressionSyntax { LiteralToken.Kind: SyntaxKind.NumberToken },
+                })
+            {
+                return TsonTypeReference.Number;
+            }
+
+            if (syntax is CallExpressionSyntax call)
+            {
+                if (call.Target is NameExpressionSyntax { IdentifierToken.Text: "$number" })
+                {
+                    return TsonTypeReference.Number;
+                }
+
+                if (TryReadRecordConstructor(call.Target, out var recordName))
+                {
+                    return TsonTypeReference.Record(recordName!);
+                }
+
+                if (TryReadEnumConstructor(call.Target, out var enumName, out _))
+                {
+                    return TsonTypeReference.Enum(enumName!);
+                }
+            }
+
+            if (syntax is MemberAccessExpressionSyntax member
+                && TryReadEnumConstructor(member, out var zeroPayloadEnumName, out _))
+            {
+                return TsonTypeReference.Enum(zeroPayloadEnumName!);
+            }
+
+            if (syntax is ArrayLiteralExpressionSyntax array && array.Elements.Count > 0)
+            {
+                var elementType = InferValueType(array.Elements[0]);
+                return elementType is null ? null : TsonTypeReference.Array(elementType);
+            }
+
+            return null;
         }
 
         private void AddDeclaredKind(
@@ -602,6 +905,7 @@ public static class TsonDocumentReader
             {
                 TsonRecordDefinition record => record.Fields.Select(field => field.Type),
                 TsonEnumDefinition @enum => @enum.Cases.SelectMany(item => item.Payloads).Select(payload => payload.Type),
+                TsonTableSchema table => table.Columns.Select(column => column.ElementType),
                 _ => [],
             };
 
@@ -623,7 +927,13 @@ public static class TsonDocumentReader
         {
             var declaredKinds = _definitions.ToDictionary(
                 pair => pair.Key,
-                pair => pair.Value is TsonRecordDefinition ? TsonTypeKind.Record : TsonTypeKind.Enum,
+                pair => pair.Value switch
+                {
+                    TsonRecordDefinition => TsonTypeKind.Record,
+                    TsonEnumDefinition => TsonTypeKind.Enum,
+                    TsonTableSchema => TsonTypeKind.Table,
+                    _ => throw new InvalidOperationException("Unknown TSON nominal definition."),
+                },
                 StringComparer.Ordinal);
             return ReadType(syntax, declaredKinds, reportErrors);
         }
@@ -640,9 +950,12 @@ public static class TsonDocumentReader
                 PredefinedTypeSyntax { Keyword.Kind: SyntaxKind.StringKeyword } => TsonTypeReference.String,
                 IdentifierTypeSyntax { Identifier.Text: "$object" } => TsonTypeReference.Object,
                 IdentifierTypeSyntax identifier when declaredKinds.TryGetValue(identifier.Identifier.Text, out var kind)
-                    => kind == TsonTypeKind.Record
-                        ? TsonTypeReference.Record(identifier.Identifier.Text)
-                        : TsonTypeReference.Enum(identifier.Identifier.Text),
+                    => kind switch
+                    {
+                        TsonTypeKind.Record => TsonTypeReference.Record(identifier.Identifier.Text),
+                        TsonTypeKind.Enum => TsonTypeReference.Enum(identifier.Identifier.Text),
+                        _ => null,
+                    },
                 ArrayTypeSyntax array => ReadArrayType(array, declaredKinds, reportErrors),
                 _ => null,
             };
@@ -1429,6 +1742,27 @@ public static class TsonDocumentReader
 
         private void Report(string code, string message, object? syntax)
         {
+            if (_insideTableCell)
+            {
+                code = code switch
+                {
+                    "COPE-TSON-0003" => "COPE-TSON-TABLE-0002",
+                    "COPE-TSON-0005" => "COPE-TSON-TABLE-0005",
+                    _ => "COPE-TSON-TABLE-0004",
+                };
+            }
+            else if (_hasTableDeclarations && code.StartsWith("COPE-TSON-", StringComparison.Ordinal))
+            {
+                code = code switch
+                {
+                    "COPE-TSON-0001" or "COPE-TSON-0002" => "COPE-TSON-TABLE-0001",
+                    "COPE-TSON-0003" => "COPE-TSON-TABLE-0002",
+                    "COPE-TSON-0004" => "COPE-TSON-TABLE-0004",
+                    "COPE-TSON-0005" => "COPE-TSON-TABLE-0005",
+                    _ => code,
+                };
+            }
+
             var span = syntax switch
             {
                 SyntaxToken token => (token.Position, Math.Max(1, token.Text.Length)),

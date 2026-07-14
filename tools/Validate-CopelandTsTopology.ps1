@@ -192,10 +192,12 @@ Require-Condition (-not $readerSource.Contains('new Parser(', [System.StringComp
 $forbiddenTsonDependencies = $tsonSources | Select-String -Pattern 'Copeland\.TS\.Backend|Copeland\.Cli|Machina|Aurelian|Dominatus|Microsoft\.CodeAnalysis|System\.Reflection|System\.Text\.Json|Newtonsoft'
 Require-Condition ($null -eq $forbiddenTsonDependencies) "TSON contains a prohibited backend, CLI, product, Roslyn, reflection, or serializer dependency."
 
-$forbiddenTsonVariants = $tsonSources | Select-String -Pattern 'class\s+Tson(Result|Table|Json)\b|record\s+Tson(Result|Table|Json)\b'
-Require-Condition ($null -eq $forbiddenTsonVariants) "TSON ARRAY-M0b must not implement Result, table, or JSON variants."
+$forbiddenTsonVariants = $tsonSources | Select-String -Pattern 'class\s+Tson(Result|Json)\b|record\s+Tson(Result|Json)\b'
+Require-Condition ($null -eq $forbiddenTsonVariants) "TSON must not implement Result or JSON variants."
 Require-Condition ($readerSource.Contains('ArrayLiteralExpressionSyntax', [System.StringComparison]::Ordinal)) "TSON arrays must reuse the production ArrayLiteralExpressionSyntax."
 Require-Condition (-not $readerSource.Contains('$array(', [System.StringComparison]::Ordinal)) "TSON must not define a parallel array grammar."
+Require-Condition ($readerSource.Contains('TableDeclarationSyntax', [System.StringComparison]::Ordinal)) "TSON table projection must reuse production TableDeclarationSyntax."
+Require-Condition (-not $readerSource.Contains('TsonTableParser', [System.StringComparison]::Ordinal)) "TSON tables must not define a parallel parser."
 
 $tsonAssetFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonAssets"
 Require-Condition (Test-Path -LiteralPath (Join-Path $tsonAssetFixtureRoot "Valid") -PathType Container) "TSON asset Valid fixture ownership is missing."
@@ -218,6 +220,7 @@ Require-Condition ($mirText.Contains('record MirTsonEncodeExpression', [System.S
 Require-Condition ($mirText.Contains('ValidateTsonEncodingModel', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans require shared MIR validation."
 Require-Condition ($mirText.Contains('MirTsonArrayPlan', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans must be owned by Copeland.TS.Mir."
 Require-Condition ($mirText.Contains('MaximumArrayLength', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans require a shared array limit."
+Require-Condition (-not $mirText.Contains('MirTsonTablePlan', [System.StringComparison]::Ordinal)) "TABLE-M0b must not add compiler/MIR table encoding integration."
 
 $backendSources = @(
     Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File

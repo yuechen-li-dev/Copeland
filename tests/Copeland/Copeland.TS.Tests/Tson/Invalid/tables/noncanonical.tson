@@ -1,0 +1,4 @@
+// expected: COPE-TSON-TABLE-0005
+const $schema: string = "copeland://fixtures/table/noncanonical";
+record table Values { x: number = [$number("3FF0000000000000")]; }
+const $value = Values;

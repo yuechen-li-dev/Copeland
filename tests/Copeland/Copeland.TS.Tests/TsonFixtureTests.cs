@@ -36,9 +36,10 @@ public sealed class TsonFixtureTests
     [MemberData(nameof(InvalidFixtures))]
     public void Invalid_filesystem_fixture_has_expected_diagnostic(string path, string expectedCode)
     {
-        var result = TsonDocumentReader.ReadSelfDescribed(
-            File.ReadAllText(path),
-            TsonDocumentProfile.ObjectTypeScript);
+        var profile = path.EndsWith(".tson", StringComparison.Ordinal)
+            ? TsonDocumentProfile.CanonicalTson
+            : TsonDocumentProfile.ObjectTypeScript;
+        var result = TsonDocumentReader.ReadSelfDescribed(File.ReadAllText(path), profile);
 
         Assert.False(result.Success);
         if (expectedCode.StartsWith("COPE-PARSE", StringComparison.Ordinal)
@@ -63,7 +64,9 @@ public sealed class TsonFixtureTests
 
     public static IEnumerable<object[]> InvalidFixtures()
     {
-        return Directory.GetFiles(Path.Combine(GetFixtureRoot(), "Invalid"), "*.obj.ts", SearchOption.AllDirectories)
+        return Directory.GetFiles(Path.Combine(GetFixtureRoot(), "Invalid"), "*", SearchOption.AllDirectories)
+            .Where(path => path.EndsWith(".obj.ts", StringComparison.Ordinal)
+                || path.EndsWith(".tson", StringComparison.Ordinal))
             .OrderBy(path => path, StringComparer.Ordinal)
             .Select(path => new object[] { path, ReadExpectedCode(path) });
     }

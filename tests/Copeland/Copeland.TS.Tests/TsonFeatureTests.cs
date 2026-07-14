@@ -126,7 +126,7 @@ public sealed class TsonFeatureTests
     [InlineData("const $value = undefined;", "COPE-TSON-0002")]
     [InlineData("const $value = [1];", "COPE-TSON-0004")]
     [InlineData("const $value: number ! string = 1;", "COPE-TSON-0003")]
-    [InlineData("record table Values { items: [1]; } const $value = 1;", "COPE-TSON-0002")]
+    [InlineData("record table Values { items: [1]; } const $value = 1;", "COPE-TSON-TABLE-0001")]
     [InlineData("const $value = 1 + 2;", "COPE-TSON-0002")]
     [InlineData("const $value = { x: 1, x: 2 };", "COPE-TSON-0004")]
     public void Restriction_pass_rejects_non_data_syntax(string body, string expectedCode)

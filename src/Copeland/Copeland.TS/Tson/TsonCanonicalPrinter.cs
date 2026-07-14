@@ -5,27 +5,29 @@ namespace Copeland.TS.Tson;
 
 public static class TsonCanonicalPrinter
 {
-    public static string Print(TsonDocument document)
+    public static string Print(TsonDocument document, TsonLimits? limits = null)
     {
         ArgumentNullException.ThrowIfNull(document);
-        var writer = new Writer(document.Catalog);
+        limits ??= TsonLimits.Default;
+        var writer = new Writer(document.Catalog, limits.MaximumCanonicalUtf8ByteCount);
         return writer.Print(document);
     }
 
-    public static byte[] PrintUtf8(TsonDocument document)
+    public static byte[] PrintUtf8(TsonDocument document, TsonLimits? limits = null)
     {
-        return Encoding.UTF8.GetBytes(Print(document));
+        return Encoding.UTF8.GetBytes(Print(document, limits));
     }
 
     private sealed class Writer
     {
         private readonly TsonCatalog _catalog;
         private readonly Dictionary<string, TsonNominalDefinition> _definitionsByIdentity;
-        private readonly StringBuilder _builder = new();
+        private readonly CanonicalBuffer _builder;
 
-        public Writer(TsonCatalog catalog)
+        public Writer(TsonCatalog catalog, int maximumUtf8ByteCount)
         {
             _catalog = catalog;
+            _builder = new CanonicalBuffer(maximumUtf8ByteCount);
             _definitionsByIdentity = catalog.Definitions.ToDictionary(
                 definition => definition.Identity,
                 StringComparer.Ordinal);
@@ -48,13 +50,53 @@ public static class TsonCanonicalPrinter
                 {
                     AppendEnumDefinition(@enum);
                 }
+                else if (definition is TsonTableSchema tableSchema)
+                {
+                    if (document.Root is not TsonTable table
+                        || !table.Schema.IdentityValue.Equals(tableSchema.IdentityValue))
+                    {
+                        throw new ArgumentException(
+                            "A TSON table definition requires the matching table document root.",
+                            nameof(document));
+                    }
+
+                    AppendTableDefinition(tableSchema, table);
+                }
             }
 
             AppendLine();
             _builder.Append("const $value = ");
-            AppendValue(document.Root, 0);
+            if (document.Root is TsonTable rootTable)
+            {
+                _builder.Append(rootTable.Schema.Name);
+            }
+            else
+            {
+                AppendValue(document.Root, 0);
+            }
             AppendLine(";");
             return _builder.ToString();
+        }
+
+        private void AppendTableDefinition(TsonTableSchema schema, TsonTable table)
+        {
+            _builder.Append("record table ");
+            _builder.Append(schema.Name);
+            AppendLine(" {");
+            for (var columnIndex = 0; columnIndex < schema.Columns.Count; columnIndex++)
+            {
+                var columnSchema = schema.Columns[columnIndex];
+                var column = table.Columns[columnIndex];
+                _builder.Append("    ");
+                _builder.Append(columnSchema.Name);
+                _builder.Append(": ");
+                AppendType(columnSchema.ElementType);
+                _builder.Append(" = ");
+                AppendValues(column.Cells, indentation: 1);
+                AppendLine(";");
+            }
+
+            AppendLine("}");
         }
 
         private void AppendRecordDefinition(TsonRecordDefinition definition)
@@ -173,6 +215,8 @@ public static class TsonCanonicalPrinter
                 case TsonEnum @enum:
                     AppendEnum(@enum, indentation);
                     break;
+                case TsonTable:
+                    throw new InvalidOperationException("A TSON table can only be printed as the document root.");
                 default:
                     throw new InvalidOperationException("Unknown TSON value variant.");
             }
@@ -180,17 +224,22 @@ public static class TsonCanonicalPrinter
 
         private void AppendArray(TsonArray array, int indentation)
         {
-            if (array.Elements.Count == 0)
+            AppendValues(array.Elements, indentation);
+        }
+
+        private void AppendValues(IReadOnlyList<TsonValue> values, int indentation)
+        {
+            if (values.Count == 0)
             {
                 _builder.Append("[]");
                 return;
             }
 
             AppendLine("[");
-            for (var index = 0; index < array.Elements.Count; index++)
+            for (var index = 0; index < values.Count; index++)
             {
                 AppendIndent(indentation + 1);
-                AppendValue(array.Elements[index], indentation + 1);
+                AppendValue(values[index], indentation + 1);
                 AppendLine(",");
             }
 
@@ -375,5 +424,96 @@ public static class TsonCanonicalPrinter
             _builder.Append(text);
             _builder.Append('\n');
         }
+    }
+
+    private sealed class CanonicalBuffer
+    {
+        private readonly int _maximumUtf8ByteCount;
+        private readonly StringBuilder _builder = new();
+        private int _utf8ByteCount;
+        private bool _pendingHighSurrogate;
+
+        public CanonicalBuffer(int maximumUtf8ByteCount)
+        {
+            _maximumUtf8ByteCount = maximumUtf8ByteCount;
+        }
+
+        public void Append(string? text)
+        {
+            if (text is null)
+            {
+                return;
+            }
+
+            foreach (var character in text)
+            {
+                Append(character);
+            }
+        }
+
+        public void Append(char character)
+        {
+            if (_pendingHighSurrogate)
+            {
+                if (char.IsLowSurrogate(character))
+                {
+                    AddBytes(4);
+                    _pendingHighSurrogate = false;
+                    _builder.Append(character);
+                    return;
+                }
+
+                AddBytes(3);
+                _pendingHighSurrogate = false;
+            }
+
+            if (char.IsHighSurrogate(character))
+            {
+                _pendingHighSurrogate = true;
+            }
+            else
+            {
+                AddBytes(character <= 0x7F ? 1 : character <= 0x7FF ? 2 : 3);
+            }
+
+            _builder.Append(character);
+        }
+
+        public void Append(char character, int repeatCount)
+        {
+            for (var index = 0; index < repeatCount; index++)
+            {
+                Append(character);
+            }
+        }
+
+        public override string ToString()
+        {
+            if (_pendingHighSurrogate)
+            {
+                AddBytes(3);
+                _pendingHighSurrogate = false;
+            }
+
+            return _builder.ToString();
+        }
+
+        private void AddBytes(int count)
+        {
+            if (_utf8ByteCount > _maximumUtf8ByteCount - count)
+            {
+                throw new TsonCanonicalLimitException(_maximumUtf8ByteCount);
+            }
+
+            _utf8ByteCount += count;
+        }
+    }
+}
+
+public sealed class TsonCanonicalLimitException : InvalidOperationException
+{
+    internal TsonCanonicalLimitException(int maximumUtf8ByteCount)
+        : base($"Canonical TSON exceeds {maximumUtf8ByteCount} UTF-8 bytes.")
+    {
     }
 }

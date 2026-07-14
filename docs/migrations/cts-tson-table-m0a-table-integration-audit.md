@@ -2,7 +2,7 @@
 
 ## Result
 
-CTS-TSON-TABLE-M0a is a documentation-only architecture success. The authoritative design is [Copeland TS TSON tables design](../Copeland/language/copeland-ts-tson-tables-design-cts-tson-table-m0a.md).
+CTS-TSON-TABLE-M0a is the accepted documentation-only architecture authority. Its compiler-host semantic and canonical slice is now implemented by [CTS-TSON-TABLE-M0b](../Copeland/architecture/copeland-ts-tson-table-semantic-model-cts-tson-table-m0b.md); compiler asset and runtime integration remain deferred.
 
 The selected representation is a dedicated nominal `TsonTable` with declaration-ordered, schema-evidenced `TsonTableColumn` nodes. A column is not a `TsonArray`; array-valued cells use the existing `TsonArray`. The first slice is table-root-only and excludes Result-valued columns.
 
@@ -177,7 +177,7 @@ Table TSON should extend this proof shape, not create a parallel encoder or a JS
 - no compiler-host TSON semantic dependencies in backends; and
 - no JSON, reflection, `dynamic`, or runtime filesystem dependency in generated encoding.
 
-`tools/Validate-DependencyBoundaries.ps1` independently checks repository project and subsystem boundaries. Future M0b must update the deliberate `TsonTable` prohibition only when the semantic implementation and its replacement topology assertions land together.
+`tools/Validate-DependencyBoundaries.ps1` independently checks repository project and subsystem boundaries. M0b replaced the deliberate `TsonTable` prohibition with assertions for shared-parser table projection, compiler-host-only ownership, and the continued absence of `MirTsonTablePlan`.
 
 ## Architecture decisions
 

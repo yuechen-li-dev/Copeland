@@ -21,7 +21,11 @@ public sealed class TsonLimits
         int maximumPayloadsPerCase = 64,
         int maximumValueNodeCount = 100_000,
         int maximumStringLength = 262_144,
-        int maximumArrayLength = 100_000)
+        int maximumArrayLength = 100_000,
+        int maximumTableColumnCount = 256,
+        int maximumTableRowCount = 100_000,
+        int maximumTableCellCount = 100_000,
+        int maximumCanonicalUtf8ByteCount = 1_048_576)
     {
         MaximumSourceLength = RequirePositive(maximumSourceLength, nameof(maximumSourceLength));
         MaximumNestingDepth = RequirePositive(maximumNestingDepth, nameof(maximumNestingDepth));
@@ -32,6 +36,10 @@ public sealed class TsonLimits
         MaximumValueNodeCount = RequirePositive(maximumValueNodeCount, nameof(maximumValueNodeCount));
         MaximumStringLength = RequirePositive(maximumStringLength, nameof(maximumStringLength));
         MaximumArrayLength = RequirePositive(maximumArrayLength, nameof(maximumArrayLength));
+        MaximumTableColumnCount = RequirePositive(maximumTableColumnCount, nameof(maximumTableColumnCount));
+        MaximumTableRowCount = RequirePositive(maximumTableRowCount, nameof(maximumTableRowCount));
+        MaximumTableCellCount = RequirePositive(maximumTableCellCount, nameof(maximumTableCellCount));
+        MaximumCanonicalUtf8ByteCount = RequirePositive(maximumCanonicalUtf8ByteCount, nameof(maximumCanonicalUtf8ByteCount));
     }
 
     public int MaximumSourceLength { get; }
@@ -51,6 +59,14 @@ public sealed class TsonLimits
     public int MaximumStringLength { get; }
 
     public int MaximumArrayLength { get; }
+
+    public int MaximumTableColumnCount { get; }
+
+    public int MaximumTableRowCount { get; }
+
+    public int MaximumTableCellCount { get; }
+
+    public int MaximumCanonicalUtf8ByteCount { get; }
 
     private static int RequirePositive(int value, string parameterName)
     {
