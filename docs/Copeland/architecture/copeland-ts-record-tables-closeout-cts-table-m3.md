@@ -36,7 +36,7 @@ The audit found two production defects. JavaScript rejected validated general un
 
 ## Scope retained outside the ladder
 
-JSON, `toJSON`, `fromJSON`, parsing, stringification, codecs, serialization, and host interop are **unimplemented**. In particular, `JSON.stringify` of a private JavaScript carrier is neither canonical nor supported. A canonical columnar JSON codec remains a separately approved future CTS-TABLE-JSON ladder. Builders, mutation, row construction, queries, row-oriented storage, equality/hashing, keys, metadata/iteration, relational/dataframe operations, and all alternate formats remain excluded.
+JSON, `toJSON`, `fromJSON`, parsing, stringification, codecs, serialization, and host interop are **unimplemented**. In particular, `JSON.stringify` of a private JavaScript carrier is neither canonical nor supported. [CTS-TSON-M0a](../language/copeland-ts-tson-design-cts-tson-m0a.md) supersedes the old direct CTS-TABLE-JSON routing: a future table compatibility ladder must first approve table/array/Result TSON laws, translate logical table values through TSON, and only then lower to or decode from JSON. Builders, mutation, row construction, queries, row-oriented storage, equality/hashing, keys, metadata/iteration, relational/dataframe operations, and all alternate formats remain excluded.
 
 The frontend fixture inventory remains 3 valid and 13 invalid table programs. `COPE-TABLE-0001` through `0019` each retain focused non-empty-span coverage. Shared malformed table-MIR cases are rejected as `COPE-CS-0002`/`COPE-JS-0002` with no artifact; no production `COPE-CS-TABLE-0001` or `COPE-JS-TABLE-0001` remains.
 

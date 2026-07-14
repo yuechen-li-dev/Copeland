@@ -21,7 +21,7 @@ function first(): SampleTable.Row ! TableBoundsError {
 }
 ```
 
-The authored singleton is the only source-constructed value in the core table slice. A later schema-directed JSON deserializer may construct additional immutable values of the same nominal table type. Consequently `SampleTable` is permitted in type annotations and table values may compose through functions, locals, Results, payload enums, and records. This does not create a general constructor or mutable builder.
+The authored singleton is the only source-constructed value in the core table slice. This document historically anticipated a schema-directed JSON deserializer constructing additional immutable values. [CTS-TSON-M0a](copeland-ts-tson-design-cts-tson-m0a.md) supersedes that direct routing: any future external construction must validate through an explicitly approved TSON table extension before compatibility decoding can publish a table. Consequently `SampleTable` is permitted in type annotations and table values may compose through functions, locals, Results, payload enums, and records. This does not create a general constructor or mutable builder.
 
 | Construct         | Shape                       | Identity              | Mutability         | Purpose                  |
 | ----------------- | --------------------------- | --------------------- | ------------------ | ------------------------ |
@@ -36,7 +36,7 @@ The authored singleton is the only source-constructed value in the core table sl
 
 The source looks columnar because the construct is a table. It provides authored immutable program data with validated shape, stable row order, typed cells, and backend-independent access. It does not reinterpret recursive documents, ASTs, presentation trees, or ownership hierarchies as tables.
 
-The core access feature contains no runtime builder, query system, mutation model, key system, database contract, or host ABI. This design does accept one future serialization contract: default schema-directed JSON is a plain object of declaration-ordered column arrays. It is a logical codec over table values and never serializes private backend storage. Its implementation is separate from M0a and from the source-to-MIR M0b slice.
+The core access feature contains no runtime builder, query system, mutation model, key system, database contract, or host ABI. This design originally accepted direct schema-directed columnar JSON. That JSON shape remains historical design evidence, not an implementation authorization: CTS-TSON-M0a now requires future work to define table/array/Result TSON laws first and lower to JSON only as a compatibility backend. Private backend storage remains outside every interchange contract.
 
 ## Current repository audit
 
@@ -255,9 +255,11 @@ Row position is an access coordinate, not an entity identity. Duplicate rows are
 
 Table, row, and column `==`/`!=` are unsupported. No structural equality, reference identity, hashing, ordering, or deduplication leaks from either backend. A future equality design must explicitly address table and row nominal identity, row/column order, binary64 NaN and signed zero, nested records, enums, Results, future absence values, and dataset size.
 
-## Default schema-directed JSON
+## Historical default schema-directed JSON proposal
 
-Default JSON is accepted product direction but is not implemented in M0a or required by the core M0b/M1/M2 access slices. Serialization operates on the logical table schema and cells, never on a C# container, JavaScript object layout, private token, brand, or frozen storage object.
+> **Superseded routing:** this section records the table ladder's original unimplemented JSON proposal. CTS-TSON-M0a requires `table value -> TSON extension -> JSON compatibility lowering` and `JSON -> validated untyped JSON -> schema-directed TSON extension -> table value`. The exact table and Result TSON laws, JSON enum tag shape, error family, and codec API must be re-approved in that later work; this section does not authorize direct implementation.
+
+The table design accepted the following JSON shape before the native TSON layer was designed. It was never implemented in M0a or the core M0b/M1/M2 access slices. Any future serialization still operates on logical schema and cells, never on a C# container, JavaScript object layout, private token, brand, or frozen storage object.
 
 For a table whose declared columns are `x`, then `y`, the canonical JSON shape is:
 

@@ -4,6 +4,8 @@
 
 CTS-TABLE-M0a establishes the documentation-only design for immutable authored columnar record tables after the closed CTS-REC immutable-record ladder. The implementation-ready authority is [Copeland TS immutable record tables design](../Copeland/language/copeland-ts-record-tables-design-cts-table-m0a.md), and the [canonical language profile](../Copeland/language/copeland-ts-language-profile.md) records the accepted direction without claiming implementation.
 
+**Later routing note:** [CTS-TSON-M0a](../Copeland/language/copeland-ts-tson-design-cts-tson-m0a.md) preserves this audit as historical table evidence but supersedes its direct JSON implementation path. Future table interchange must first approve table/array/Result TSON laws and then treat JSON as a compatibility lowering; the JSON enum shape and codec/error surface below are not current implementation authorization.
+
 No parser, compiler, Cope MIR, backend, runtime, fixture, test, project, solution, CLI, or tooling behavior changes in this milestone.
 
 ## Starting state and method

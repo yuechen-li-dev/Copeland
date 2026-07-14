@@ -19,7 +19,7 @@ The representative parity trace is `28755,true,10,20,true,1000,1000,1000,1000,20
 
 The retained hashes are M0b representative `.cope` `62897D4142128179A9036545CBA4A0BDB4E3EB74ACF9D722E71E90A0EF93234F`, `empty-table.g.cs` `B83CAA6470B05E46947F8F66591E9C0428377C642C0555BE1E1F62526FDE955A`, `m2-table-basic.g.js` `B9AEA6132233229C4F594E9AB34F89F9D4E8F906B160CC1485CE2706436E3C26`, and `m2-table-nested.g.js` `7D72CC23337D65B4F1841D01B5E7E7ED04BD65794109F3D43FB54EEDF3856145`.
 
-JSON and every serializer/codec/host interop surface remain unimplemented. Canonical columnar JSON needs a separately approved ladder; private JavaScript carriers are not JSON.
+JSON and every serializer/codec/host interop surface remain unimplemented. [CTS-TSON-M0a](../Copeland/language/copeland-ts-tson-design-cts-tson-m0a.md) supersedes direct table-to-JSON implementation: a separately approved table TSON extension must precede any JSON compatibility lowering, and private JavaScript carriers are neither TSON nor JSON.
 
 ## Validation record
 
