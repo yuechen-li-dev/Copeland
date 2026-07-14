@@ -49,7 +49,16 @@ public sealed class BoundEnumValueExpression : BoundExpression
     public bool IsConstructor => Arguments.Count > 0;
     public override TypeSymbol Type => Case.EnumType;
 }
-public enum BoundPropagationTarget { FunctionReturn }
+public readonly record struct BoundHandlerId(int Value)
+{
+    public override string ToString() => $"h{Value}";
+}
+
+public abstract record BoundPropagationTarget
+{
+    public sealed record FunctionReturn : BoundPropagationTarget;
+    public sealed record LexicalExcept(BoundHandlerId HandlerId) : BoundPropagationTarget;
+}
 public sealed class BoundPropagateExpression : BoundExpression
 {
     public BoundPropagateExpression(BoundExpression operand, ResultTypeSymbol resultType, BoundPropagationTarget target)
@@ -75,6 +84,45 @@ public sealed class BoundUnwrapExpression : BoundExpression
     public BoundExpression Operand { get; }
     public ResultTypeSymbol ResultType { get; }
     public override TypeSymbol Type => ResultType.SuccessType;
+}
+public sealed class BoundValueBlock
+{
+    public BoundValueBlock(IReadOnlyList<BoundStatement> prefixStatements, BoundExpression valueExpression)
+    {
+        PrefixStatements = prefixStatements;
+        ValueExpression = valueExpression;
+    }
+
+    public IReadOnlyList<BoundStatement> PrefixStatements { get; }
+    public BoundExpression ValueExpression { get; }
+    public TypeSymbol Type => ValueExpression.Type;
+}
+
+public sealed class BoundTryExceptExpression : BoundExpression
+{
+    public BoundTryExceptExpression(
+        BoundHandlerId handlerId,
+        BoundValueBlock protectedBlock,
+        VariableSymbol handlerBinding,
+        TypeSymbol handledErrorType,
+        BoundValueBlock handlerBlock,
+        TypeSymbol type)
+    {
+        HandlerId = handlerId;
+        Protected = protectedBlock;
+        HandlerBinding = handlerBinding;
+        HandledErrorType = handledErrorType;
+        Handler = handlerBlock;
+        TypeImpl = type;
+    }
+
+    public BoundHandlerId HandlerId { get; }
+    public BoundValueBlock Protected { get; }
+    public VariableSymbol HandlerBinding { get; }
+    public TypeSymbol HandledErrorType { get; }
+    public BoundValueBlock Handler { get; }
+    private TypeSymbol TypeImpl { get; }
+    public override TypeSymbol Type => TypeImpl;
 }
 public sealed class BoundOkExpression : BoundExpression { public BoundOkExpression(BoundExpression payload, ResultTypeSymbol type) { Payload = payload; TypeImpl = type; } public BoundExpression Payload { get; } private ResultTypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundErrExpression : BoundExpression { public BoundErrExpression(BoundExpression payload, ResultTypeSymbol type) { Payload = payload; TypeImpl = type; } public BoundExpression Payload { get; } private ResultTypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }

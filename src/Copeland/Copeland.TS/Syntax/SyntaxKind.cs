@@ -70,6 +70,10 @@ public enum SyntaxKind
     VoidKeyword,
     VarKeyword,
     WithKeyword,
+    TryKeyword,
+    ExceptKeyword,
+    BreakKeyword,
+    ContinueKeyword,
 
     // Nodes
     CompilationUnit,
@@ -106,6 +110,8 @@ public enum SyntaxKind
     ObjectProperty,
     MatchExpression,
     IfExpression,
+    TryExceptExpression,
+    TryValueBlock,
     MatchArm,
     MatchPattern,
     MissingExpression,

@@ -11,7 +11,13 @@ public static class JavaScriptBackend
     {
         ArgumentNullException.ThrowIfNull(program);
 
-        var diagnostics = new List<JavaScriptDiagnostic>();
+        var diagnostics = MirValidator.Validate(program)
+            .Select(diagnostic => new JavaScriptDiagnostic(InvalidDiagnosticId, $"Invalid MIR: {diagnostic.Message}"))
+            .ToList();
+        if (diagnostics.Count > 0)
+        {
+            return new JavaScriptCompilation(null, diagnostics);
+        }
         EnumCatalog catalog = ValidateProgram(program, diagnostics);
         if (diagnostics.Count > 0)
         {
@@ -203,6 +209,9 @@ public static class JavaScriptBackend
                 break;
             case MirResultMatchExpression resultMatch:
                 ValidateResultMatch(resultMatch, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirTryExpression:
+                AddUnsupported(diagnostics, $"try/except handler expression in {context}; CTS-M6b defers JavaScript handler lowering to CTS-M6c");
                 break;
             case MirPropagateExpression propagate:
                 ValidatePropagation(propagate, functionReturnType, context, functions, catalog, diagnostics);
@@ -433,7 +442,7 @@ public static class JavaScriptBackend
     private static void ValidatePropagation(MirPropagateExpression propagation, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
     {
         ValidateExpression(propagation.Operand, functionReturnType, context, functions, catalog, diagnostics);
-        if (propagation.Target != MirPropagationTarget.FunctionReturn)
+        if (propagation.Target is not MirPropagationTarget.FunctionReturn)
         {
             AddUnsupported(diagnostics, $"propagation target '{propagation.Target}' in {context}");
             return;
@@ -748,7 +757,7 @@ public static class JavaScriptBackend
 
     private static EmittedExpression EmitPropagation(MirPropagateExpression propagation, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
-        if (propagation.Target != MirPropagationTarget.FunctionReturn || function.ReturnType is not MirResultType functionResult || propagation.Operand.Type is not MirResultType operandResult)
+        if (propagation.Target is not MirPropagationTarget.FunctionReturn || function.ReturnType is not MirResultType functionResult || propagation.Operand.Type is not MirResultType operandResult)
         {
             throw new InvalidOperationException("Validated JavaScript emission received an unsupported Result propagation target.");
         }

@@ -87,13 +87,34 @@ public static class MirLowerer
             BoundMatchExpression m => new MirMatchExpression(LowerExpression(m.Scrutinee), m.Arms.Select(arm => new MirMatchArm(arm.Case.Name, arm.PayloadVariables.Select(v => new MirMatchPayloadBinding(v.Name, ToMirType(v.Type))).ToArray(), LowerExpression(arm.Expression))).ToArray(), ToMirType(m.Type)),
             BoundResultMatchExpression m => new MirResultMatchExpression(LowerExpression(m.Scrutinee), new MirResultBinding(m.OkVariable.Name, ToMirType(m.OkVariable.Type)), LowerExpression(m.OkExpression), new MirResultBinding(m.ErrVariable.Name, ToMirType(m.ErrVariable.Type)), LowerExpression(m.ErrExpression), ToMirType(m.Type)),
             BoundIfExpression i => new MirIfExpression(LowerExpression(i.Condition), LowerExpression(i.ThenExpression), LowerExpression(i.ElseExpression), ToMirType(i.Type)),
-            BoundPropagateExpression p => new MirPropagateExpression(LowerExpression(p.Operand), MirPropagationTarget.FunctionReturn, ToMirType(p.Type)),
+            BoundPropagateExpression p => new MirPropagateExpression(LowerExpression(p.Operand), LowerPropagationTarget(p.Target), ToMirType(p.Type)),
             BoundUnwrapExpression u => new MirUnwrapExpression(LowerExpression(u.Operand), ToMirType(u.Type)),
+            BoundTryExceptExpression t => new MirTryExpression(
+                new MirHandlerId(t.HandlerId.Value),
+                LowerValueBlock(t.Protected),
+                new MirTryBinding(t.HandlerBinding.Name, ToMirType(t.HandlerBinding.Type)),
+                ToMirType(t.HandledErrorType),
+                LowerValueBlock(t.Handler),
+                ToMirType(t.Type)),
             BoundOkExpression ok => new MirOkExpression(LowerExpression(ok.Payload), (MirResultType)ToMirType(ok.Type)),
             BoundErrExpression err => new MirErrExpression(LowerExpression(err.Payload), (MirResultType)ToMirType(err.Type)),
             BoundUnitExpression => new MirUnitExpression(),
             BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), ToMirType(a.Type)),
             _ => new MirLiteralExpression("<error>", new MirNamedType("error"))
+        };
+
+    private static MirValueBlock LowerValueBlock(BoundValueBlock block)
+    {
+        var locals = new Dictionary<string, MirLocal>(StringComparer.Ordinal);
+        return new MirValueBlock(LowerStatements(block.PrefixStatements, locals), LowerExpression(block.ValueExpression));
+    }
+
+    private static MirPropagationTarget LowerPropagationTarget(BoundPropagationTarget target)
+        => target switch
+        {
+            BoundPropagationTarget.FunctionReturn => new MirPropagationTarget.FunctionReturn(),
+            BoundPropagationTarget.LexicalExcept lexical => new MirPropagationTarget.LexicalExcept(new MirHandlerId(lexical.HandlerId.Value)),
+            _ => throw new InvalidOperationException($"Unsupported propagation target {target.GetType().Name}.")
         };
 
     private static MirType ToMirType(TypeSymbol type) => type switch

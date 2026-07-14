@@ -5,6 +5,7 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 ## Current docs
 
 - [Copeland TS Language Profile](language/copeland-ts-language-profile.md)
+- [CTS-M6b Typed Result `try`/`except` implementation](architecture/copeland-ts-typed-try-except-cts-m6b.md)
 - [CTS-M0a Copeland TS Language Doctrine Audit](../migrations/cts-m0a-copeland-ts-language-doctrine-audit.md)
 - [Copeland Compiler Workshop Architecture M13d](history/copeland-compiler-workshop-architecture-m13d.md)
 - [Copeland Compiler Lane Taxonomy M13d](history/copeland-compiler-lane-taxonomy-m13d.md)

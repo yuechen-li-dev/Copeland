@@ -104,11 +104,18 @@ public static class BoundTreeDumper
                     .Append(" : ").Append(eev.Type.Name).AppendLine();
                 foreach (var a in eev.Arguments) AppendExpression(sb, a, i + 1); break;
             case BoundPropagateExpression p:
-                sb.Append("PropagateExpression ? : ").Append(p.Type.Name).AppendLine();
+                sb.Append("PropagateExpression ? to ").Append(p.Target).Append(" : ").Append(p.Type.Name).AppendLine();
                 AppendExpression(sb, p.Operand, i + 1); break;
             case BoundUnwrapExpression u:
                 sb.Append("UnwrapExpression ! : ").Append(u.Type.Name).AppendLine();
                 AppendExpression(sb, u.Operand, i + 1); break;
+            case BoundTryExceptExpression t:
+                sb.Append("TryExceptExpression ").Append(t.HandlerId).Append(" error ").Append(t.HandledErrorType.Name).Append(" : ").Append(t.Type.Name).AppendLine();
+                I(sb, i + 1); sb.AppendLine("Protected");
+                AppendValueBlock(sb, t.Protected, i + 2);
+                I(sb, i + 1); sb.Append("Except ").Append(t.HandlerBinding.Name).Append(": ").Append(t.HandlerBinding.Type.Name).AppendLine();
+                AppendValueBlock(sb, t.Handler, i + 2);
+                break;
             case BoundOkExpression ok:
                 sb.Append("OkExpression : ").Append(ok.Type.Name).AppendLine();
                 AppendExpression(sb, ok.Payload, i + 1); break;
@@ -156,5 +163,15 @@ public static class BoundTreeDumper
                 break;
             default: sb.Append("ErrorExpression : error").AppendLine(); break;
         }
+    }
+
+    private static void AppendValueBlock(StringBuilder sb, BoundValueBlock block, int indent)
+    {
+        foreach (var statement in block.PrefixStatements)
+        {
+            AppendStatement(sb, statement, indent);
+        }
+
+        AppendExpression(sb, block.ValueExpression, indent);
     }
 }

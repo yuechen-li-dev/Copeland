@@ -542,8 +542,75 @@ public sealed class Parser
             SyntaxKind.OpenBraceToken => ParseObjectLiteralExpression(),
             SyntaxKind.MatchKeyword => ParseMatchExpression(),
             SyntaxKind.IfKeyword => ParseIfExpression(),
+            SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+
+    private TryExceptExpressionSyntax ParseTryExceptExpression()
+    {
+        var tryKeyword = Match(SyntaxKind.TryKeyword);
+        var protectedBlock = ParseTryValueBlock();
+        var exceptKeyword = MatchTryToken(SyntaxKind.ExceptKeyword, "Expected 'except' after the protected try value block.");
+        var openParen = MatchTryToken(SyntaxKind.OpenParenToken, "Expected '(' after 'except'.");
+        var binding = MatchTryToken(SyntaxKind.IdentifierToken, "Expected exactly one handler binding name in 'except (...)'.");
+        var closeParen = MatchTryToken(SyntaxKind.CloseParenToken, "Expected ')' after the handler binding name.");
+        var handlerBlock = ParseTryValueBlock();
+        return new TryExceptExpressionSyntax(tryKeyword, protectedBlock, exceptKeyword, openParen, binding, closeParen, handlerBlock);
+    }
+
+    private TryValueBlockSyntax ParseTryValueBlock()
+    {
+        var openBrace = MatchTryToken(SyntaxKind.OpenBraceToken, "Expected '{' to begin a try value block.");
+        var prefixStatements = new List<StatementSyntax>();
+
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            if (Current.Kind is SyntaxKind.ReturnKeyword
+                or SyntaxKind.IfKeyword
+                or SyntaxKind.WhileKeyword
+                or SyntaxKind.ForKeyword
+                or SyntaxKind.BreakKeyword
+                or SyntaxKind.ContinueKeyword
+                or SyntaxKind.OpenBraceToken)
+            {
+                _diagnostics.Report("COPE-TRY-0005", "Try value blocks support only declarations, expression statements, and one final expression.", Current.Position, Math.Max(1, Current.Text.Length));
+                prefixStatements.Add(ParseStatement());
+                continue;
+            }
+
+            if (Current.Kind is SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword)
+            {
+                prefixStatements.Add(ParseVariableDeclarationStatement(requireSemicolon: true));
+                continue;
+            }
+
+            var expression = ParseExpression();
+            if (Current.Kind == SyntaxKind.SemicolonToken)
+            {
+                prefixStatements.Add(new ExpressionStatementSyntax(expression, Match(SyntaxKind.SemicolonToken)));
+                continue;
+            }
+
+            var closeBrace = MatchTryToken(SyntaxKind.CloseBraceToken, "Expected '}' after the final try value expression.");
+            return new TryValueBlockSyntax(openBrace, prefixStatements, expression, closeBrace);
+        }
+
+        _diagnostics.Report("COPE-TRY-0001", "Try value blocks require one final expression without a semicolon.", openBrace.Position, Math.Max(1, openBrace.Text.Length));
+        var missing = new MissingExpressionSyntax(openBrace);
+        var close = MatchTryToken(SyntaxKind.CloseBraceToken, "Expected '}' to close a try value block.");
+        return new TryValueBlockSyntax(openBrace, prefixStatements, missing, close);
+    }
+
+    private SyntaxToken MatchTryToken(SyntaxKind kind, string message)
+    {
+        if (Current.Kind == kind)
+        {
+            return NextToken();
+        }
+
+        _diagnostics.Report("COPE-TRY-0001", message, Current.Position, Math.Max(1, Current.Text.Length));
+        return MissingToken(kind, Current.Position);
+    }
 
 
     private IfExpressionSyntax ParseIfExpression()

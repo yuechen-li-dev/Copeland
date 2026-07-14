@@ -34,7 +34,12 @@ public sealed class LanguageFixtureTests
         Assert.DoesNotContain(compilation.Diagnostics, diagnostic =>
             diagnostic.Id.StartsWith("COPE-LEX", StringComparison.Ordinal)
             || diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
-        Assert.NotNull(compilation.BoundCompilation);
+        bool hasTrySyntaxDiagnostic = compilation.Diagnostics.Any(diagnostic =>
+            diagnostic.Id.StartsWith("COPE-TRY", StringComparison.Ordinal));
+        if (!hasTrySyntaxDiagnostic)
+        {
+            Assert.NotNull(compilation.BoundCompilation);
+        }
         Assert.False(compilation.Success);
         Assert.Null(compilation.MirCompilation);
         Assert.Null(compilation.MirText);

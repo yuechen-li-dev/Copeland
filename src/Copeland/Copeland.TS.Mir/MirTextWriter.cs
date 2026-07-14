@@ -107,10 +107,32 @@ public static class MirTextWriter
         MirOkExpression ok => $"ok {FormatExpression(ok.Payload)}",
         MirErrExpression err => $"err {FormatExpression(err.Payload)}",
         MirResultMatchExpression match => $"result-match {FormatExpression(match.Scrutinee)} : {match.Type.Name} {{ ok({match.OkBinding.Name}: {match.OkBinding.Type.Name}) => {FormatExpression(match.OkExpression)} | err({match.ErrBinding.Name}: {match.ErrBinding.Type.Name}) => {FormatExpression(match.ErrExpression)} }}",
-        MirPropagateExpression propagate => $"propagate {FormatExpression(propagate.Operand)} to function-return",
+        MirPropagateExpression propagate => $"propagate {FormatExpression(propagate.Operand)} to {FormatPropagationTarget(propagate.Target)}",
         MirUnwrapExpression unwrap => $"unwrap {FormatExpression(unwrap.Operand)}",
+        MirTryExpression tryExpression => FormatTryExpression(tryExpression),
         _ => expr.ToString() ?? "<expr>"
     };
+
+    private static string FormatPropagationTarget(MirPropagationTarget target)
+        => target switch
+        {
+            MirPropagationTarget.FunctionReturn => "function-return",
+            MirPropagationTarget.LexicalExcept lexical => $"except {lexical.HandlerId}",
+            _ => target.ToString() ?? "<target>"
+        };
+
+    private static string FormatTryExpression(MirTryExpression tryExpression)
+    {
+        var protectedLines = FormatValueBlock(tryExpression.Protected);
+        var handlerLines = FormatValueBlock(tryExpression.Handler);
+        return $"try-result {tryExpression.HandlerId} error {tryExpression.HandledErrorType.Name} -> {tryExpression.Type.Name} {{ protected {{ {protectedLines} }} except {tryExpression.HandlerBinding.Name}: {tryExpression.HandlerBinding.Type.Name} {{ {handlerLines} }} }}";
+    }
+
+    private static string FormatValueBlock(MirValueBlock block)
+    {
+        var prefixes = block.PrefixStatements.Select(StatementInline);
+        return string.Join("; ", prefixes.Append(FormatExpression(block.ValueExpression)));
+    }
 
     private static string FormatArm(MirMatchArm arm)
     {

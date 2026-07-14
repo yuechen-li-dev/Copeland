@@ -635,6 +635,50 @@ public sealed record IfExpressionSyntax(
     }
 }
 
+public sealed record TryValueBlockSyntax(
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<StatementSyntax> PrefixStatements,
+    ExpressionSyntax ValueExpression,
+    SyntaxToken CloseBraceToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TryValueBlock;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return OpenBraceToken;
+        foreach (var statement in PrefixStatements)
+        {
+            yield return statement;
+        }
+
+        yield return ValueExpression;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record TryExceptExpressionSyntax(
+    SyntaxToken TryKeyword,
+    TryValueBlockSyntax Protected,
+    SyntaxToken ExceptKeyword,
+    SyntaxToken OpenParenToken,
+    SyntaxToken BindingIdentifier,
+    SyntaxToken CloseParenToken,
+    TryValueBlockSyntax Handler) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TryExceptExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return TryKeyword;
+        yield return Protected;
+        yield return ExceptKeyword;
+        yield return OpenParenToken;
+        yield return BindingIdentifier;
+        yield return CloseParenToken;
+        yield return Handler;
+    }
+}
+
 public sealed record MatchPatternSyntax(
     SyntaxToken CaseIdentifier,
     SyntaxToken? OpenParenToken,

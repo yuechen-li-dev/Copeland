@@ -26,6 +26,10 @@ public static class SyntaxFacts
             ["void"] = SyntaxKind.VoidKeyword,
             ["var"] = SyntaxKind.VarKeyword,
             ["with"] = SyntaxKind.WithKeyword,
+            ["try"] = SyntaxKind.TryKeyword,
+            ["except"] = SyntaxKind.ExceptKeyword,
+            ["break"] = SyntaxKind.BreakKeyword,
+            ["continue"] = SyntaxKind.ContinueKeyword,
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     public static SyntaxKind GetKeywordKind(string text)
@@ -101,6 +105,10 @@ public static class SyntaxFacts
             SyntaxKind.VoidKeyword => "void",
             SyntaxKind.VarKeyword => "var",
             SyntaxKind.WithKeyword => "with",
+            SyntaxKind.TryKeyword => "try",
+            SyntaxKind.ExceptKeyword => "except",
+            SyntaxKind.BreakKeyword => "break",
+            SyntaxKind.ContinueKeyword => "continue",
             _ => null,
         };
 }

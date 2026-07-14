@@ -17,6 +17,27 @@ public sealed class BinderTests
     }
 
     [Fact]
+    public void Binds_Try_Except_With_Inferred_Handler_Error_And_Lexical_Target()
+    {
+        var bound = Binder.Bind(SyntaxTree.Parse("function read(): number ! string { return err(\"bad\"); } function main(): number { return try { read()? } except (error) { 42 }; }"));
+
+        Assert.DoesNotContain(bound.Diagnostics, diagnostic => diagnostic.Id.StartsWith("COPE-", StringComparison.Ordinal));
+        var dump = BoundTreeDumper.Dump(bound.Program);
+        Assert.Contains("TryExceptExpression h1 error string : number", dump, StringComparison.Ordinal);
+        Assert.Contains("LexicalExcept", dump, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Try_Except_Requires_A_Targeted_Propagation_And_Agrees_On_Error_Type()
+    {
+        var empty = Binder.Bind(SyntaxTree.Parse("function main(): number { return try { 1 } except (error) { 2 }; }"));
+        var mismatch = Binder.Bind(SyntaxTree.Parse("function one(): number ! string { return err(\"x\"); } function two(): number ! number { return err(2); } function main(): number { return try { one()?; two()? } except (error) { 0 }; }"));
+
+        Assert.Contains(empty.Diagnostics, diagnostic => diagnostic.Id == "COPE-TRY-0004");
+        Assert.Contains(mismatch.Diagnostics, diagnostic => diagnostic.Id == "COPE-TRY-0003");
+    }
+
+    [Fact]
     public void Rejects_Result_Unwrap_On_Non_Result()
     {
         var bound = Binder.Bind(SyntaxTree.Parse("function invalid(): number { return 1!; }"));

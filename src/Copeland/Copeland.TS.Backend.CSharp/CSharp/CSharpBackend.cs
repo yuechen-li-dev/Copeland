@@ -4,9 +4,29 @@ namespace Copeland.TS.Backend.CSharp;
 
 public static class CSharpBackend
 {
+    private sealed class HandlerTransfer(string errorTemporary, string label)
+    {
+        public string ErrorTemporary { get; } = errorTemporary;
+        public string Label { get; } = label;
+    }
+
+    private sealed class CSharpEmissionState
+    {
+        public Dictionary<MirHandlerId, HandlerTransfer> Handlers { get; } = [];
+        public int TryIndex { get; set; }
+    }
+
+    private static readonly AsyncLocal<CSharpEmissionState?> CurrentEmissionState = new();
+
     public static CSharpCompilation Emit(MirProgram program)
     {
-        var diagnostics = new List<CSharpDiagnostic>();
+        var diagnostics = MirValidator.Validate(program)
+            .Select(diagnostic => new CSharpDiagnostic("COPE-CS-0002", $"Invalid MIR: {diagnostic.Message}"))
+            .ToList();
+        if (diagnostics.Count > 0)
+        {
+            return new CSharpCompilation(string.Empty, diagnostics);
+        }
         var writer = new CSharpTextWriter();
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var usesResult = ProgramUsesResult(program);
@@ -89,7 +109,16 @@ public static class CSharpBackend
         var returnType = MapType(function.ReturnType); var parameters = string.Join(", ", function.Parameters.Select(parameter => $"{MapType(parameter.Type)} {CSharpNameMangler.Mangle(parameter.Name)}"));
         writer.WriteLine($"public static {returnType} {CSharpNameMangler.Mangle(function.Name)}({parameters})"); writer.WriteLine("{"); writer.Indent();
         var tempIndex = 0;
-        foreach (var statement in function.Body) EmitStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
+        var previousState = CurrentEmissionState.Value;
+        CurrentEmissionState.Value = new CSharpEmissionState();
+        try
+        {
+            foreach (var statement in function.Body) EmitStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
+        }
+        finally
+        {
+            CurrentEmissionState.Value = previousState;
+        }
         writer.Unindent(); writer.WriteLine("}"); writer.WriteLine();
     }
 
@@ -98,13 +127,22 @@ public static class CSharpBackend
         switch (statement)
         {
             case MirVariableDeclarationStatement declaration:
-                writer.WriteLine($"{MapType(declaration.Local.Type)} {CSharpNameMangler.Mangle(declaration.Local.Name)} = {EmitExpression(writer, declaration.Initializer, function, enumNames, ref tempIndex, diagnostics)};"); break;
+                writer.WriteLine($"{MapValueStorageType(declaration.Local.Type)} {CSharpNameMangler.Mangle(declaration.Local.Name)} = {EmitExpression(writer, declaration.Initializer, function, enumNames, ref tempIndex, diagnostics)};"); break;
             case MirExpressionStatement expression:
                 writer.WriteLine($"{EmitExpression(writer, expression.Expression, function, enumNames, ref tempIndex, diagnostics)};"); break;
             case MirReturnStatement { Expression: null }:
                 writer.WriteLine("return;"); break;
             case MirReturnStatement returnStatement:
-                writer.WriteLine($"return {EmitExpression(writer, returnStatement.Expression!, function, enumNames, ref tempIndex, diagnostics)};"); break;
+                if (function.ReturnType.Identifier == "void")
+                {
+                    writer.WriteLine($"{EmitExpression(writer, returnStatement.Expression!, function, enumNames, ref tempIndex, diagnostics)};");
+                    writer.WriteLine("return;");
+                }
+                else
+                {
+                    writer.WriteLine($"return {EmitExpression(writer, returnStatement.Expression!, function, enumNames, ref tempIndex, diagnostics)};");
+                }
+                break;
             case MirIfStatement conditional:
                 writer.WriteLine($"if ({EmitExpression(writer, conditional.Condition, function, enumNames, ref tempIndex, diagnostics)})"); writer.WriteLine("{"); writer.Indent(); foreach (var nested in conditional.ThenStatements) EmitStatement(writer, nested, function, enumNames, ref tempIndex, diagnostics); writer.Unindent(); writer.WriteLine("}");
                 if (conditional.ElseStatements is not null) { writer.WriteLine("else"); writer.WriteLine("{"); writer.Indent(); foreach (var nested in conditional.ElseStatements) EmitStatement(writer, nested, function, enumNames, ref tempIndex, diagnostics); writer.Unindent(); writer.WriteLine("}"); } break;
@@ -131,16 +169,38 @@ public static class CSharpBackend
             MirResultMatchExpression match => EmitResultMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
             MirPropagateExpression propagate => EmitPropagation(writer, propagate, function, enumNames, ref tempIndex, diagnostics),
             MirUnwrapExpression unwrap => EmitUnwrap(writer, unwrap, function, enumNames, ref tempIndex, diagnostics),
+            MirTryExpression tryExpression => EmitTryExcept(writer, tryExpression, function, enumNames, ref tempIndex, diagnostics),
             _ => UnsupportedExpression(expression, diagnostics)
         };
 
     private static string EmitPropagation(CSharpTextWriter writer, MirPropagateExpression propagation, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
     {
+        if (propagation.Target is MirPropagationTarget.LexicalExcept lexical)
+        {
+            var state = CurrentEmissionState.Value;
+            if (state is null || !state.Handlers.TryGetValue(lexical.HandlerId, out var handler))
+            {
+                diagnostics.Add(new CSharpDiagnostic("COPE-CS-0002", $"Lexical except propagation target '{lexical.HandlerId}' is not active."));
+                return "default!";
+            }
+
+            var temporary = $"__cope_tmp{tempIndex++}";
+            writer.WriteLine($"var {temporary} = {EmitExpression(writer, propagation.Operand, function, enumNames, ref tempIndex, diagnostics)};");
+            writer.WriteLine($"if (!{temporary}.IsOk)");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"{handler.ErrorTemporary} = {temporary}.Error;");
+            writer.WriteLine($"goto {handler.Label};");
+            writer.Unindent();
+            writer.WriteLine("}");
+            return $"{temporary}.Value";
+        }
+
         if (function.ReturnType is not MirResultType functionResult || propagation.Operand.Type is not MirResultType operandResult || !MirTypeFacts.AreEquivalent(functionResult.ErrorType, operandResult.ErrorType))
         {
             diagnostics.Add(new CSharpDiagnostic("COPE-CS-0002", "Function-return propagation requires compatible Result error types.")); return "default!";
         }
-        var temporary = $"__cope_tmp{tempIndex++}"; writer.WriteLine($"var {temporary} = {EmitExpression(writer, propagation.Operand, function, enumNames, ref tempIndex, diagnostics)};"); writer.WriteLine($"if (!{temporary}.IsOk)"); writer.WriteLine("{"); writer.Indent(); writer.WriteLine($"return CopeResult<{MapResultComponentType(functionResult.SuccessType)}, {MapType(functionResult.ErrorType)}>.Err({temporary}.Error);"); writer.Unindent(); writer.WriteLine("}"); return $"{temporary}.Value";
+        var functionTemporary = $"__cope_tmp{tempIndex++}"; writer.WriteLine($"var {functionTemporary} = {EmitExpression(writer, propagation.Operand, function, enumNames, ref tempIndex, diagnostics)};"); writer.WriteLine($"if (!{functionTemporary}.IsOk)"); writer.WriteLine("{"); writer.Indent(); writer.WriteLine($"return CopeResult<{MapResultComponentType(functionResult.SuccessType)}, {MapType(functionResult.ErrorType)}>.Err({functionTemporary}.Error);"); writer.Unindent(); writer.WriteLine("}"); return $"{functionTemporary}.Value";
     }
 
     private static string EmitUnwrap(CSharpTextWriter writer, MirUnwrapExpression unwrap, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
@@ -160,6 +220,66 @@ public static class CSharpBackend
         writer.Unindent();
         writer.WriteLine("}");
         return $"{temporary}.Value";
+    }
+
+    private static string EmitTryExcept(CSharpTextWriter writer, MirTryExpression tryExpression, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
+    {
+        var state = CurrentEmissionState.Value;
+        if (state is null)
+        {
+            diagnostics.Add(new CSharpDiagnostic("COPE-CS-0002", "Try/except emission requires a function-local emission state."));
+            return "default!";
+        }
+
+        if (state.Handlers.ContainsKey(tryExpression.HandlerId))
+        {
+            diagnostics.Add(new CSharpDiagnostic("COPE-CS-0002", $"Duplicate active try handler identity '{tryExpression.HandlerId}'."));
+            return "default!";
+        }
+
+        var index = state.TryIndex++;
+        var suffix = $"h{tryExpression.HandlerId.Value}_{index}";
+        var resultTemporary = $"__cope_try_result_{suffix}";
+        var errorTemporary = $"__cope_try_error_{suffix}";
+        var handlerLabel = $"__cope_try_handler_{suffix}";
+        var joinLabel = $"__cope_try_join_{suffix}";
+
+        writer.WriteLine($"{MapValueStorageType(tryExpression.Type)} {resultTemporary};");
+        writer.WriteLine($"{MapType(tryExpression.HandledErrorType)} {errorTemporary} = default!;");
+        state.Handlers.Add(tryExpression.HandlerId, new HandlerTransfer(errorTemporary, handlerLabel));
+        EmitTryValueBlock(writer, tryExpression.Protected, resultTemporary, joinLabel, function, enumNames, ref tempIndex, diagnostics);
+        state.Handlers.Remove(tryExpression.HandlerId);
+        writer.WriteLine($"{handlerLabel}:");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"var {CSharpNameMangler.Mangle(tryExpression.HandlerBinding.Name)} = {errorTemporary};");
+        EmitTryValueBlock(writer, tryExpression.Handler, resultTemporary, joinLabel, function, enumNames, ref tempIndex, diagnostics);
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"{joinLabel}:");
+        return resultTemporary;
+    }
+
+    private static void EmitTryValueBlock(CSharpTextWriter writer, MirValueBlock block, string resultTemporary, string joinLabel, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
+    {
+        writer.WriteLine("{");
+        writer.Indent();
+        foreach (var statement in block.PrefixStatements)
+        {
+            if (statement is MirExpressionStatement expressionStatement)
+            {
+                writer.WriteLine($"_ = {EmitExpression(writer, expressionStatement.Expression, function, enumNames, ref tempIndex, diagnostics)};");
+            }
+            else
+            {
+                EmitStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
+            }
+        }
+
+        writer.WriteLine($"{resultTemporary} = {EmitExpression(writer, block.ValueExpression, function, enumNames, ref tempIndex, diagnostics)};");
+        writer.WriteLine($"goto {joinLabel};");
+        writer.Unindent();
+        writer.WriteLine("}");
     }
 
     private static string EmitResultMatch(CSharpTextWriter writer, MirResultMatchExpression match, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
@@ -191,6 +311,7 @@ public static class CSharpBackend
 
     private static string UnsupportedExpression(MirExpression expression, List<CSharpDiagnostic> diagnostics) { diagnostics.Add(new CSharpDiagnostic("COPE-CS-0001", $"Unsupported MIR expression: {expression.GetType().Name}")); return "default!"; }
     private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
 
     private static bool ProgramUsesResult(MirProgram program) => EnumerateTypes(program).Any(MirTypeFacts.ContainsResult);
@@ -230,9 +351,14 @@ public static class CSharpBackend
             MirOkExpression ok => ExpressionUsesUnwrap(ok.Payload),
             MirErrExpression err => ExpressionUsesUnwrap(err.Payload),
             MirPropagateExpression propagation => ExpressionUsesUnwrap(propagation.Operand),
+            MirTryExpression tryExpression => ValueBlockUsesUnwrap(tryExpression.Protected) || ValueBlockUsesUnwrap(tryExpression.Handler),
             _ => false,
         };
     }
+
+    private static bool ValueBlockUsesUnwrap(MirValueBlock block)
+        => block.PrefixStatements.Any(StatementUsesUnwrap)
+            || ExpressionUsesUnwrap(block.ValueExpression);
     private static IEnumerable<MirType> EnumerateTypes(MirProgram program)
     {
         foreach (var function in program.Functions) { yield return function.ReturnType; foreach (var parameter in function.Parameters) yield return parameter.Type; foreach (var local in function.Locals) yield return local.Type; }

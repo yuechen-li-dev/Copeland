@@ -70,6 +70,25 @@ public sealed class ParserTests
         Assert.DoesNotContain(tree.Diagnostics, d => d.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Parses_Try_Except_Value_Blocks_And_Postfix_Propagation()
+    {
+        var tree = SyntaxTree.Parse("function read(): number ! string { return ok(1); } function main(): number { return try { const value: number = read()?; value } except (error) { 0 }; }");
+
+        Assert.DoesNotContain(tree.Diagnostics, diagnostic => diagnostic.Id.StartsWith("COPE-", StringComparison.Ordinal));
+        var dump = SyntaxTreeDumper.Dump(tree.Root);
+        Assert.Contains("TryExceptExpression", dump, StringComparison.Ordinal);
+        Assert.Contains("TryValueBlock", dump, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rejects_Control_Flow_In_Try_Value_Block()
+    {
+        var tree = SyntaxTree.Parse("function main(): number { return try { return 1; } except (error) { 0 }; }");
+
+        Assert.Contains(tree.Diagnostics, diagnostic => diagnostic.Id == "COPE-TRY-0005");
+    }
+
     [Theory]
     [InlineData("let x: = 1;", "COPE-PARSE-0006")]
     [InlineData("let xs: number[ = [1];", "COPE-PARSE-0008")]

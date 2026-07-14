@@ -130,7 +130,16 @@ public sealed record MirResultMatchExpression : MirExpression
     public MirExpression ErrExpression { get; }
 }
 
-public enum MirPropagationTarget { FunctionReturn }
+public readonly record struct MirHandlerId(int Value)
+{
+    public override string ToString() => $"h{Value}";
+}
+
+public abstract record MirPropagationTarget
+{
+    public sealed record FunctionReturn : MirPropagationTarget;
+    public sealed record LexicalExcept(MirHandlerId HandlerId) : MirPropagationTarget;
+}
 public sealed record MirPropagateExpression : MirExpression
 {
     public MirPropagateExpression(MirExpression operand, MirPropagationTarget target, MirType type) : base(type)
@@ -156,6 +165,60 @@ public sealed record MirUnwrapExpression : MirExpression
 
     public MirExpression Operand { get; }
     public MirResultType ResultType => (MirResultType)Operand.Type;
+}
+
+public sealed class MirValueBlock
+{
+    public MirValueBlock(IReadOnlyList<MirStatement> prefixStatements, MirExpression valueExpression)
+    {
+        PrefixStatements = prefixStatements;
+        ValueExpression = valueExpression;
+    }
+
+    public IReadOnlyList<MirStatement> PrefixStatements { get; }
+    public MirExpression ValueExpression { get; }
+    public MirType Type => ValueExpression.Type;
+}
+
+public sealed class MirTryBinding(string name, MirType type)
+{
+    public string Name { get; } = name;
+    public MirType Type { get; } = type;
+}
+
+public sealed record MirTryExpression : MirExpression
+{
+    public MirTryExpression(
+        MirHandlerId handlerId,
+        MirValueBlock protectedBlock,
+        MirTryBinding handlerBinding,
+        MirType handledErrorType,
+        MirValueBlock handlerBlock,
+        MirType type) : base(type)
+    {
+        if (!MirTypeFacts.AreEquivalent(protectedBlock.Type, type)
+            || !MirTypeFacts.AreEquivalent(handlerBlock.Type, type))
+        {
+            throw new ArgumentException("Try protected and handler value blocks must match the try expression type.");
+        }
+
+        if (!MirTypeFacts.AreEquivalent(handlerBinding.Type, handledErrorType))
+        {
+            throw new ArgumentException("Try handler binding type must match the handled error type.");
+        }
+
+        HandlerId = handlerId;
+        Protected = protectedBlock;
+        HandlerBinding = handlerBinding;
+        HandledErrorType = handledErrorType;
+        Handler = handlerBlock;
+    }
+
+    public MirHandlerId HandlerId { get; }
+    public MirValueBlock Protected { get; }
+    public MirTryBinding HandlerBinding { get; }
+    public MirType HandledErrorType { get; }
+    public MirValueBlock Handler { get; }
 }
 
 public sealed class MirMatchArm(string caseName, IReadOnlyList<MirMatchPayloadBinding> payloadBindings, MirExpression expression)

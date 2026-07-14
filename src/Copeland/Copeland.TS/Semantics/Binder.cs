@@ -36,6 +36,15 @@ public static class Binder
         private readonly List<BoundEnumDeclaration> _enums = [];
         private readonly List<BoundStatement> _globals = [];
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
+        private readonly List<PropagationTargetContext> _propagationTargets = [];
+        private int _nextHandlerId = 1;
+
+        private sealed class PropagationTargetContext(BoundHandlerId handlerId)
+        {
+            public BoundHandlerId HandlerId { get; } = handlerId;
+            public TypeSymbol? ErrorType { get; set; }
+            public bool WasTargeted { get; set; }
+        }
 
         public BoundCompilation Bind()
         {
@@ -233,6 +242,7 @@ public static class Binder
                 ParenthesizedExpressionSyntax p => BindExpression(p.Expression, contextualType),
                 PropagateExpressionSyntax p => BindPropagate(p),
                 UnwrapExpressionSyntax u => BindUnwrap(u),
+                TryExceptExpressionSyntax t => BindTryExcept(t, contextualType),
                 UnaryExpressionSyntax u => BindUnary(u),
                 BinaryExpressionSyntax b => BindBinary(b),
                 AssignmentExpressionSyntax a => BindAssignment(a),
@@ -387,6 +397,57 @@ public static class Binder
                 if (!IsAssignable(fn.Parameters[i].Type, args[i].Type)) Report("COPE-TYPE-0005", $"Argument {i + 1} expected '{fn.Parameters[i].Type.Name}', got '{args[i].Type.Name}'.", c.Arguments[i] is LiteralExpressionSyntax le ? le.LiteralToken : c.OpenParenToken);
             return new BoundCallExpression(fn, args);
         }
+
+        private BoundExpression BindTryExcept(TryExceptExpressionSyntax tryExcept, TypeSymbol? contextualType)
+        {
+            var handlerId = new BoundHandlerId(_nextHandlerId++);
+            var target = new PropagationTargetContext(handlerId);
+            var previousScope = _scope;
+
+            _scope = new Scope(previousScope);
+            _propagationTargets.Add(target);
+            var protectedBlock = BindValueBlock(tryExcept.Protected, contextualType);
+            _propagationTargets.RemoveAt(_propagationTargets.Count - 1);
+            _scope = previousScope;
+
+            if (!target.WasTargeted)
+            {
+                Report("COPE-TRY-0004", "A try protected block must contain at least one '?' targeting its own except handler.", tryExcept.TryKeyword);
+            }
+
+            var handledErrorType = target.ErrorType ?? PrimitiveTypeSymbol.Error;
+            var handlerBinding = new VariableSymbol(tryExcept.BindingIdentifier.Text, handledErrorType, true);
+            _scope = new Scope(previousScope);
+            if (!IsUsableHandlerBinding(tryExcept.BindingIdentifier) || !_scope.TryDeclare(handlerBinding))
+            {
+                Report("COPE-TRY-0006", "The except binding must form one read-only inferred error binding.", tryExcept.BindingIdentifier);
+            }
+
+            var handlerBlock = BindValueBlock(tryExcept.Handler, contextualType ?? protectedBlock.Type);
+            _scope = previousScope;
+
+            if (protectedBlock.Type != PrimitiveTypeSymbol.Error
+                && handlerBlock.Type != PrimitiveTypeSymbol.Error
+                && !TypeFacts.AreEquivalent(protectedBlock.Type, handlerBlock.Type))
+            {
+                Report("COPE-TRY-0002", $"Try protected value type '{protectedBlock.Type.Name}' does not match handler value type '{handlerBlock.Type.Name}'.", tryExcept.ExceptKeyword);
+            }
+
+            var resultType = protectedBlock.Type != PrimitiveTypeSymbol.Error
+                ? protectedBlock.Type
+                : handlerBlock.Type;
+            return new BoundTryExceptExpression(handlerId, protectedBlock, handlerBinding, handledErrorType, handlerBlock, resultType);
+        }
+
+        private BoundValueBlock BindValueBlock(TryValueBlockSyntax block, TypeSymbol? contextualType)
+        {
+            var prefix = block.PrefixStatements.Select(BindStatement).ToArray();
+            var value = BindExpression(block.ValueExpression, contextualType);
+            return new BoundValueBlock(prefix, value);
+        }
+
+        private static bool IsUsableHandlerBinding(SyntaxToken binding)
+            => binding.Kind == SyntaxKind.IdentifierToken && !string.IsNullOrWhiteSpace(binding.Text);
 
         private BoundExpression BindResultConstructor(CallExpressionSyntax call, NameExpressionSyntax name, ResultTypeSymbol resultType)
         {
@@ -645,19 +706,35 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
-            if (_currentFunction?.ReturnType is not ResultTypeSymbol functionResult)
+            if (_propagationTargets.Count > 0)
             {
-                Report("COPE-TYPE-0014", "'?' can only be used inside a function returning a compatible Result type.", p.QuestionToken);
-                return new BoundErrorExpression();
+                var handler = _propagationTargets[^1];
+                if (handler.ErrorType is null)
+                {
+                    handler.ErrorType = operandResult.ErrorType;
+                }
+                else if (!TypeFacts.AreEquivalent(handler.ErrorType, operandResult.ErrorType))
+                {
+                    Report("COPE-TRY-0003", $"Propagation error type '{operandResult.ErrorType.Name}' does not match inferred except error type '{handler.ErrorType.Name}'.", p.QuestionToken);
+                    return new BoundErrorExpression();
+                }
+
+                handler.WasTargeted = true;
+                return new BoundPropagateExpression(operand, operandResult, new BoundPropagationTarget.LexicalExcept(handler.HandlerId));
             }
 
+            if (_currentFunction?.ReturnType is not ResultTypeSymbol functionResult)
+            {
+                Report("COPE-TYPE-0014", "'?' can only be used inside a function returning a compatible Result type or a protected try block.", p.QuestionToken);
+                return new BoundErrorExpression();
+            }
             if (!TypeFacts.AreEquivalent(functionResult.ErrorType, operandResult.ErrorType))
             {
                 Report("COPE-TYPE-0015", $"Cannot propagate error type '{operandResult.ErrorType.Name}' from function returning error type '{functionResult.ErrorType.Name}'.", p.QuestionToken);
                 return new BoundErrorExpression();
             }
 
-            return new BoundPropagateExpression(operand, operandResult, BoundPropagationTarget.FunctionReturn);
+            return new BoundPropagateExpression(operand, operandResult, new BoundPropagationTarget.FunctionReturn());
         }
 
         private BoundExpression BindUnwrap(UnwrapExpressionSyntax u)
@@ -766,6 +843,7 @@ public static class Binder
             LiteralExpressionSyntax l => l.LiteralToken,
             ArrayLiteralExpressionSyntax a => a.OpenBracketToken,
             MatchExpressionSyntax m => m.MatchKeyword,
+            TryExceptExpressionSyntax t => t.TryKeyword,
             _ => throw new InvalidOperationException("No anchor token for expression kind.")
         };
 

@@ -10,6 +10,7 @@ Copeland diagnostics are deterministic and ID-based. Common families:
 - `COPE-MATCH-*`: match analysis diagnostics
 - `COPE-CS-*`: C# backend diagnostics
 - `COPE-CLI-*`: CLI command/usage diagnostics
+- `COPE-TRY-*`: typed lexical `try`/`except` shape, type, target, and bounded-block diagnostics
 
 ## Key M1 profile and hardening diagnostics
 
@@ -26,3 +27,4 @@ Copeland diagnostics are deterministic and ID-based. Common families:
 - `COPE-MATCH-0005` — enum payload arity mismatch in a match arm.
 - `COPE-MATCH-0007` — match arm expression type mismatch.
 - `COPE-ENUM-0007`/`COPE-ENUM-0008` — enum constructor misuse.
+- `COPE-TRY-0001` through `COPE-TRY-0006` — malformed handler shape, protected/handler value mismatch, incompatible handler error sites, missing targeted propagation, unsupported value-block control flow, and invalid handler binding.

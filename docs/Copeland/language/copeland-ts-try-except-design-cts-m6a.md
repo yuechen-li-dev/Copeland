@@ -1,6 +1,6 @@
 # CTS-M6a: Typed Result `try`/`except` design
 
-**Status:** accepted language and architecture design; documentation-only. CTS-M6a specifies lexical handling of propagated `Result<T, E>` errors. It does not add syntax, binding, MIR, backend, fixture, or test implementation.
+**Status:** accepted language and architecture design. CTS-M6b implements the frontend, binding, Cope MIR, C# proof backend, fixtures, and focused tests described here; JavaScript handler lowering remains deferred to CTS-M6c.
 
 ## Outcome
 

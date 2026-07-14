@@ -267,7 +267,7 @@ public sealed class JavaScriptBackendTests
                 new MirReturnStatement(new MirVariableExpression("value", resultType))]),
             new MirFunction("main", [], resultType, [], [
                 new MirReturnStatement(new MirOkExpression(
-                    new MirPropagateExpression(new MirCallExpression("parse", [], resultType), MirPropagationTarget.FunctionReturn, number),
+                    new MirPropagateExpression(new MirCallExpression("parse", [], resultType), new MirPropagationTarget.FunctionReturn(), number),
                     resultType))])
         ]);
 
@@ -300,6 +300,17 @@ public sealed class JavaScriptBackendTests
         Assert.False(compilation.Success);
         Assert.Null(compilation.SourceText);
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("equality for type 'number ! string'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Rejects_Try_Except_Mir_Without_Partial_JavaScript_Artifact()
+    {
+        JavaScriptCompilation compilation = Emit("function read(): number ! string { return err(\"bad\"); } function main(): number { return try { read()? } except (error) { 0 }; }");
+
+        Assert.False(compilation.Success);
+        Assert.Null(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0001"
+            && diagnostic.Message.Contains("try/except handler expression", StringComparison.Ordinal));
     }
 
     [Theory]
