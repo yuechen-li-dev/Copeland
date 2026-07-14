@@ -608,7 +608,12 @@ public static class JavaScriptBackend
         {
             writer.WriteLine($"function {names.MakeValue}(type, tag, payload) {{");
             writer.Indent();
-            writer.WriteLine("return Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));");
+            writer.WriteLine("const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));");
+            foreach (EnumInfo enumInfo in catalog.Enums)
+            {
+                writer.WriteLine($"if (type === {names.TypeToken(enumInfo)}) {names.EnumInstances(enumInfo)}.add(value);");
+            }
+            writer.WriteLine("return value;");
             writer.Unindent();
             writer.WriteLine("}");
         }
@@ -629,6 +634,7 @@ public static class JavaScriptBackend
         {
             writer.WriteLine();
             writer.WriteLine($"const {names.TypeToken(enumInfo)} = Object.freeze(Object.create(null));");
+            writer.WriteLine($"const {names.EnumInstances(enumInfo)} = new WeakSet();");
         }
 
         foreach (EnumInfo enumInfo in catalog.Enums)
@@ -848,6 +854,7 @@ public static class JavaScriptBackend
     {
         string typeToken = names.RecordTypeToken(record);
         writer.WriteLine($"const {typeToken} = Symbol({JavaScriptLiteralWriter.WriteString(record.Id.Value)});");
+        writer.WriteLine($"const {names.RecordInstances(record)} = new WeakSet();");
         foreach (MirRecordFieldDefinition field in record.Fields)
         {
             writer.WriteLine($"const {names.RecordFieldSlot(field)} = Symbol({JavaScriptLiteralWriter.WriteString(field.Id.Value)});");
@@ -867,7 +874,9 @@ public static class JavaScriptBackend
         }
         writer.Unindent();
         writer.WriteLine("});");
-        writer.WriteLine("return Object.freeze(value);");
+        writer.WriteLine("Object.freeze(value);");
+        writer.WriteLine($"{names.RecordInstances(record)}.add(value);");
+        writer.WriteLine("return value;");
         writer.Unindent();
         writer.WriteLine("}");
 
@@ -880,9 +889,9 @@ public static class JavaScriptBackend
             "value === null",
             "Object.getPrototypeOf(value) !== null",
             "!Object.isFrozen(value)",
+            $"!{names.RecordInstances(record)}.has(value)",
             $"!Object.prototype.hasOwnProperty.call(value, {typeToken})",
             $"value[{typeToken}] !== {typeToken}",
-            $"Object.getOwnPropertySymbols(value).length !== {record.Fields.Count + 1}",
         };
         conditions.AddRange(record.Fields.Select(field => $"!Object.prototype.hasOwnProperty.call(value, {names.RecordFieldSlot(field)})"));
         writer.WriteLine($"if ({string.Join(" || ", conditions)}) {{");
@@ -898,7 +907,7 @@ public static class JavaScriptBackend
     {
         writer.WriteLine($"function {names.Validator(enumInfo)}(value) {{");
         writer.Indent();
-        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, \"$type\") || !Object.prototype.hasOwnProperty.call(value, \"$tag\") || !Object.prototype.hasOwnProperty.call(value, \"$payload\") || value.$type !== {names.TypeToken(enumInfo)} || typeof value.$tag !== \"string\" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {{");
+        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !{names.EnumInstances(enumInfo)}.has(value) || !Object.prototype.hasOwnProperty.call(value, \"$type\") || !Object.prototype.hasOwnProperty.call(value, \"$tag\") || !Object.prototype.hasOwnProperty.call(value, \"$payload\") || value.$type !== {names.TypeToken(enumInfo)} || typeof value.$tag !== \"string\" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {{");
         writer.Indent();
         writer.WriteLine($"{names.Panic}();");
         writer.Unindent();
@@ -2562,10 +2571,12 @@ public static class JavaScriptBackend
     private sealed class GeneratedNames
     {
         private readonly Dictionary<EnumInfo, string> typeTokens;
+        private readonly Dictionary<EnumInfo, string> enumInstances;
         private readonly Dictionary<EnumInfo, string> validators;
         private readonly Dictionary<ResultInfo, string> resultTypeTokens;
         private readonly Dictionary<ResultInfo, string> resultValidators;
         private readonly Dictionary<MirRecordDefinition, string> recordTypeTokens;
+        private readonly Dictionary<MirRecordDefinition, string> recordInstances;
         private readonly Dictionary<MirRecordDefinition, string> recordConstructors;
         private readonly Dictionary<MirRecordDefinition, string> recordValidators;
         private readonly Dictionary<MirRecordFieldDefinition, string> recordFieldSlots;
@@ -2595,10 +2606,12 @@ public static class JavaScriptBackend
             string validateFlow,
             string tsonRuntime,
             Dictionary<EnumInfo, string> typeTokens,
+            Dictionary<EnumInfo, string> enumInstances,
             Dictionary<EnumInfo, string> validators,
             Dictionary<ResultInfo, string> resultTypeTokens,
             Dictionary<ResultInfo, string> resultValidators,
             Dictionary<MirRecordDefinition, string> recordTypeTokens,
+            Dictionary<MirRecordDefinition, string> recordInstances,
             Dictionary<MirRecordDefinition, string> recordConstructors,
             Dictionary<MirRecordDefinition, string> recordValidators,
             Dictionary<MirRecordFieldDefinition, string> recordFieldSlots,
@@ -2631,10 +2644,12 @@ public static class JavaScriptBackend
             ValidateFlow = validateFlow;
             TsonRuntime = tsonRuntime;
             this.typeTokens = typeTokens;
+            this.enumInstances = enumInstances;
             this.validators = validators;
             this.resultTypeTokens = resultTypeTokens;
             this.resultValidators = resultValidators;
             this.recordTypeTokens = recordTypeTokens;
+            this.recordInstances = recordInstances;
             this.recordConstructors = recordConstructors;
             this.recordValidators = recordValidators;
             this.recordFieldSlots = recordFieldSlots;
@@ -2687,6 +2702,8 @@ public static class JavaScriptBackend
 
         public string TypeToken(EnumInfo enumInfo) => typeTokens[enumInfo];
 
+        public string EnumInstances(EnumInfo enumInfo) => enumInstances[enumInfo];
+
         public string Validator(EnumInfo enumInfo) => validators[enumInfo];
 
         public string TypeToken(ResultInfo result) => resultTypeTokens[result];
@@ -2694,6 +2711,8 @@ public static class JavaScriptBackend
         public string Validator(ResultInfo result) => resultValidators[result];
 
         public string RecordTypeToken(MirRecordDefinition record) => recordTypeTokens[record];
+
+        public string RecordInstances(MirRecordDefinition record) => recordInstances[record];
 
         public string RecordConstructor(MirRecordDefinition record) => recordConstructors[record];
 
@@ -2760,6 +2779,7 @@ public static class JavaScriptBackend
                 ? allocator.Allocate("tson")
                 : string.Empty;
             var recordTypeTokens = new Dictionary<MirRecordDefinition, string>();
+            var recordInstances = new Dictionary<MirRecordDefinition, string>();
             var recordConstructors = new Dictionary<MirRecordDefinition, string>();
             var recordValidators = new Dictionary<MirRecordDefinition, string>();
             var recordFieldSlots = new Dictionary<MirRecordFieldDefinition, string>();
@@ -2767,6 +2787,7 @@ public static class JavaScriptBackend
             {
                 string recordIdentity = JavaScriptIdentifierEncoder.Encode(record.Id.Value);
                 recordTypeTokens.Add(record, allocator.Allocate($"record_type_{recordIdentity}"));
+                recordInstances.Add(record, allocator.Allocate($"record_instances_{recordIdentity}"));
                 recordConstructors.Add(record, allocator.Allocate($"record_make_{recordIdentity}"));
                 recordValidators.Add(record, allocator.Allocate($"record_require_{recordIdentity}"));
                 foreach (MirRecordFieldDefinition field in record.Fields)
@@ -2777,10 +2798,12 @@ public static class JavaScriptBackend
             }
 
             var typeTokens = new Dictionary<EnumInfo, string>();
+            var enumInstances = new Dictionary<EnumInfo, string>();
             var validators = new Dictionary<EnumInfo, string>();
             foreach (EnumInfo enumInfo in catalog.Enums)
             {
                 typeTokens.Add(enumInfo, allocator.Allocate("type"));
+                enumInstances.Add(enumInfo, allocator.Allocate("instances"));
                 validators.Add(enumInfo, allocator.Allocate("validate"));
             }
 
@@ -2843,10 +2866,12 @@ public static class JavaScriptBackend
                 validateFlow,
                 tsonRuntime,
                 typeTokens,
+                enumInstances,
                 validators,
                 resultTypeTokens,
                 resultValidators,
                 recordTypeTokens,
+                recordInstances,
                 recordConstructors,
                 recordValidators,
                 recordFieldSlots,

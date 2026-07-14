@@ -5,15 +5,20 @@ function __cope_m3_panic_0() {
 }
 
 function __cope_m3_make_1(type, tag, payload) {
-    return Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));
+    const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));
+    if (type === __cope_m3_type_2) __cope_m3_instances_3.add(value);
+    if (type === __cope_m3_type_5) __cope_m3_instances_6.add(value);
+    return value;
 }
 
 const __cope_m3_type_2 = Object.freeze(Object.create(null));
+const __cope_m3_instances_3 = new WeakSet();
 
-const __cope_m3_type_4 = Object.freeze(Object.create(null));
+const __cope_m3_type_5 = Object.freeze(Object.create(null));
+const __cope_m3_instances_6 = new WeakSet();
 
-function __cope_m3_validate_3(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_type_2 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {
+function __cope_m3_validate_4(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_3.has(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_type_2 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {
         __cope_m3_panic_0();
     }
     switch (value.$tag) {
@@ -35,8 +40,8 @@ function __cope_m3_validate_3(value) {
     }
 }
 
-function __cope_m3_validate_5(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_type_4 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {
+function __cope_m3_validate_7(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_6.has(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_type_5 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {
         __cope_m3_panic_0();
     }
     switch (value.$tag) {
@@ -68,7 +73,7 @@ function __cope_m3_validate_5(value) {
             if (value.$payload.length !== 1) {
                 __cope_m3_panic_0();
             }
-            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !((__cope_m3_validate_3(value.$payload[0]), true))) {
+            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !((__cope_m3_validate_4(value.$payload[0]), true))) {
                 __cope_m3_panic_0();
             }
             return;
@@ -78,6 +83,6 @@ function __cope_m3_validate_5(value) {
 }
 
 function main() {
-    const outer = __cope_m3_make_1(__cope_m3_type_4, "Nested", [__cope_m3_make_1(__cope_m3_type_2, "Number", [9])]);
-    return (() => { const __cope_m3_match_6 = outer; __cope_m3_validate_5(__cope_m3_match_6); switch (__cope_m3_match_6.$tag) { case "Empty": { return "empty"; } case "Single": { const value = __cope_m3_match_6.$payload[0]; return "single"; } case "Pair": { const first = __cope_m3_match_6.$payload[0]; const second = __cope_m3_match_6.$payload[1]; return second; } case "Nested": { const inner = __cope_m3_match_6.$payload[0]; return (() => { const __cope_m3_match_7 = inner; __cope_m3_validate_3(__cope_m3_match_7); switch (__cope_m3_match_7.$tag) { case "None": { return "none"; } case "Number": { const value = __cope_m3_match_7.$payload[0]; return "nested"; } default: return __cope_m3_panic_0(); } })(); } default: return __cope_m3_panic_0(); } })();
+    const outer = __cope_m3_make_1(__cope_m3_type_5, "Nested", [__cope_m3_make_1(__cope_m3_type_2, "Number", [9])]);
+    return (() => { const __cope_m3_match_8 = outer; __cope_m3_validate_7(__cope_m3_match_8); switch (__cope_m3_match_8.$tag) { case "Empty": { return "empty"; } case "Single": { const value = __cope_m3_match_8.$payload[0]; return "single"; } case "Pair": { const first = __cope_m3_match_8.$payload[0]; const second = __cope_m3_match_8.$payload[1]; return second; } case "Nested": { const inner = __cope_m3_match_8.$payload[0]; return (() => { const __cope_m3_match_9 = inner; __cope_m3_validate_4(__cope_m3_match_9); switch (__cope_m3_match_9.$tag) { case "None": { return "none"; } case "Number": { const value = __cope_m3_match_9.$payload[0]; return "nested"; } default: return __cope_m3_panic_0(); } })(); } default: return __cope_m3_panic_0(); } })();
 }

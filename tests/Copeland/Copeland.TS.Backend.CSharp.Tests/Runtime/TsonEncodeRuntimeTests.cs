@@ -76,6 +76,7 @@ public sealed class TsonEncodeRuntimeTests
             "JSON.stringify",
             "System.Reflection",
             "Object.keys",
+            "Object.getOwnPropertySymbols",
             "for...in",
             "System.IO",
         })
@@ -117,7 +118,7 @@ public sealed class TsonEncodeRuntimeTests
             ["expected.tson"] = "F7754A6EBDFF2D2429EAF8AF06479F855043EF70911DBF2AF964CDA1815D5647",
             ["main.cope"] = "CD02076AB1D5D53860643FBBB11235AAE1087E506E9372D78A733F291F787119",
             ["main.g.cs"] = "F0C0A6BF3B9546C2D575E762B7E3AA8C90F1153A96C25DCB81ACF3288F78AB37",
-            ["main.g.js"] = "6FE85C34DE3FDBAD1C4917AE08AE94D8F752F0828EEB0642BD535EB7D25E69D9",
+            ["main.g.js"] = "0E88DFEBF8D3588F44CB0B1AD59A3554BC81BD6343DAB47546750926F5E66553",
         };
         foreach ((string fileName, string expectedHash) in expectedHashes)
         {
@@ -181,12 +182,18 @@ public sealed class TsonEncodeRuntimeTests
             try { legitimate.text = "changed"; } catch (error) {}
             let counterfeit = "accepted";
             try { encodeValue(Object.freeze(Object.create(null))); } catch (error) { counterfeit = error.message; }
+            const copied = Object.create(null);
+            for (const symbol of Object.getOwnPropertySymbols(legitimate)) { copied[symbol] = legitimate[symbol]; }
+            Object.freeze(copied);
+            let copiedCounterfeit = "accepted";
+            try { encodeValue(copied); } catch (error) { copiedCounterfeit = error.message; }
             const after = encodeValue(legitimate).$payload[0];
             console.log(before === after);
             console.log(counterfeit);
+            console.log(copiedCounterfeit);
             """;
         ProcessResult node = await RunNodeAsync(script);
-        Assert.Equal("true\nCopeland JavaScript backend invariant failure.\n", node.StdOut);
+        Assert.Equal("true\nCopeland JavaScript backend invariant failure.\nCopeland JavaScript backend invariant failure.\n", node.StdOut);
     }
 
     [Fact]
@@ -215,12 +222,19 @@ public sealed class TsonEncodeRuntimeTests
         string exactText = ResultValue(exactResult);
         Assert.Equal(1_048_576, Encoding.UTF8.GetByteCount(exactText));
 
+        Assert.NotEmpty(ResultValue(Invoke(generated, "encodeLimit", new string('a', 262_143), "", "", "")));
+        Assert.NotEmpty(ResultValue(Invoke(generated, "encodeLimit", new string('a', 262_144), "", "", "")));
+        Assert.NotEmpty(ResultValue(Invoke(generated, "encodeLimit", new string('a', 262_142) + "😀", "", "", "")));
         string[] overValues = exactValues.ToArray();
         overValues[3] += "a";
         Assert.Equal("OutputLimitExceeded", ResultErrorName(Invoke(generated, "encodeLimit", overValues)));
         Assert.Equal("OutputLimitExceeded", ResultErrorName(Invoke(generated, "encodeLimit", new string('a', 262_145), "", "", "")));
         Assert.Equal("OutputLimitExceeded", ResultErrorName(Invoke(generated, "encodeLimit", new string('a', 262_144) + "\uD800", "", "", "")));
         Assert.Equal("InvalidUnicode", ResultErrorName(Invoke(generated, "encodeLimit", "\uD800", "", "", "")));
+        Assert.Equal("InvalidUnicode", ResultErrorName(Invoke(generated, "encodeLimit", "\uDC00", "", "", "")));
+        string[] invalidOverLimit = overValues.ToArray();
+        invalidOverLimit[0] = invalidOverLimit[0][..^1] + "\uD800";
+        Assert.Equal("InvalidUnicode", ResultErrorName(Invoke(generated, "encodeLimit", invalidOverLimit)));
 
         string script = javaScript.SourceText + $$"""
             const overhead = new TextEncoder().encode(encodeLimit("", "", "", "").$payload[0]).length;
@@ -238,9 +252,12 @@ public sealed class TsonEncodeRuntimeTests
             console.log(encodeLimit(...values).$payload[0].$tag);
             console.log(encodeLimit("a".repeat(262145), "", "", "").$payload[0].$tag);
             console.log(encodeLimit("\uD800", "", "", "").$payload[0].$tag);
+            console.log(encodeLimit("\uDC00", "", "", "").$payload[0].$tag);
+            values[0] = values[0].slice(0, -1) + "\uD800";
+            console.log(encodeLimit(...values).$payload[0].$tag);
             """;
         ProcessResult node = await RunNodeAsync(script);
-        Assert.Equal("ok:1048576\nOutputLimitExceeded\nOutputLimitExceeded\nInvalidUnicode\n", node.StdOut);
+        Assert.Equal("ok:1048576\nOutputLimitExceeded\nOutputLimitExceeded\nInvalidUnicode\nInvalidUnicode\nInvalidUnicode\n", node.StdOut);
     }
 
     [Fact]
@@ -357,6 +374,232 @@ public sealed class TsonEncodeRuntimeTests
         string script = javaScript.SourceText + "process.stdout.write(encodeEmpty().$payload[0] + \"---\\n\" + encodeState().$payload[0]);\n";
         ProcessResult node = await RunNodeAsync(script);
         Assert.Equal(empty + "---\n" + state, node.StdOut);
+    }
+
+    [Fact]
+    public async Task Fixed_point_matrix_preserves_nominal_identity_and_erases_authoring_trivia()
+    {
+        const string source = """
+            const $schema: string = "copeland://tests/m2c-fixed-point";
+
+            // Declaration layout is authoring-only; canonical order is ordinal by name.
+            record Zed { text: string; }
+            enum Second { Same, Wrap(value: Zed), }
+            record Alpha { value: Zed; }
+            enum First { Same, Wrap(value: Zed), }
+            record Root {
+                enabled: boolean;
+                amount: number;
+                text: string;
+                alpha: Alpha;
+                first: First;
+                second: Second;
+            }
+
+            function encodeRoot(text: string, amount: number): string ! TsonEncodeError {
+                const value: Root = {
+                    enabled: true,
+                    amount: amount,
+                    text: text,
+                    alpha: { value: { text: "nested" } },
+                    first: First.Wrap({ text: "first" }),
+                    second: Second.Wrap({ text: "second" }),
+                };
+                return tsonEncode(value);
+            }
+            function encodeFirst(): string ! TsonEncodeError { return tsonEncode(First.Same); }
+            function encodeSecond(): string ! TsonEncodeError { return tsonEncode(Second.Same); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Equal(3, compilation.MirCompilation!.Program!.TsonEncodingPlans.Count);
+        Assert.Equal(new[] { "Alpha", "First", "Root", "Second", "Zed" },
+            compilation.MirCompilation.Program.TsonEncodingPlans[0].Definitions.Select(definition => definition.Name));
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program);
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation.Program);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        string[] csharpTexts =
+        [
+            ResultValue(Invoke(generated, "encodeRoot", "snow 雪 😀\\\"\\n", -0.0)),
+            ResultValue(Invoke(generated, "encodeFirst")),
+            ResultValue(Invoke(generated, "encodeSecond")),
+        ];
+        foreach (string text in csharpTexts)
+        {
+            TsonReadResult read = TsonDocumentReader.ReadSelfDescribed(text, TsonDocumentProfile.CanonicalTson);
+            Assert.True(read.Success, string.Join(Environment.NewLine, read.Diagnostics.Select(diagnostic => diagnostic.Message)));
+            Assert.Equal(text, TsonCanonicalPrinter.Print(read.Document!));
+            Assert.EndsWith("\n", text, StringComparison.Ordinal);
+            Assert.False(text.EndsWith("\n\n", StringComparison.Ordinal));
+        }
+
+        string script = javaScript.SourceText + """
+            for (const text of [encodeRoot("snow 雪 😀\\\"\\n", -0).$payload[0], encodeFirst().$payload[0], encodeSecond().$payload[0]]) {
+                process.stdout.write("@" + Buffer.from(text, "utf8").toString("base64") + "\n");
+            }
+            """;
+        ProcessResult node = await RunNodeAsync(script);
+        string[] javaScriptTexts = node.StdOut.Split('\n')
+            .Where(line => line.StartsWith('@'))
+            .Select(line => line[1..])
+            .Select(Convert.FromBase64String)
+            .Select(Encoding.UTF8.GetString)
+            .ToArray();
+        Assert.Equal(csharpTexts, javaScriptTexts);
+
+        Assert.Contains("First.Same", csharpTexts[1], StringComparison.Ordinal);
+        Assert.DoesNotContain("Second", csharpTexts[1], StringComparison.Ordinal);
+        Assert.Contains("Second.Same", csharpTexts[2], StringComparison.Ordinal);
+        Assert.DoesNotContain("First", csharpTexts[2], StringComparison.Ordinal);
+        Assert.DoesNotContain("Declaration layout", csharpTexts[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("authoring-only", csharpTexts[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Encoding_uses_existing_staging_for_once_order_and_result_flow()
+    {
+        const string source = """
+            const $schema: string = "copeland://tests/m2c-evaluation";
+            record Root { value: number; }
+
+            function make(value: number): Root { return { value: value }; }
+            function inspect(value: string ! TsonEncodeError): number {
+                return match value { ok(text) => 1, err(error) => 0, };
+            }
+            function select(first: number, encoded: string ! TsonEncodeError): number {
+                return match encoded { ok(text) => first, err(error) => 0, };
+            }
+            function operandOnce(): number {
+                let trace: number = 0;
+                const encoded: string ! TsonEncodeError = tsonEncode(make(trace = trace + 1));
+                return match encoded { ok(text) => trace, err(error) => 0, };
+            }
+            function argumentOrder(): number {
+                let trace: number = 0;
+                return select(trace = trace * 10 + 1, tsonEncode(make(trace = trace * 10 + 2))) + trace;
+            }
+            function conditionalOrder(): number {
+                let trace: number = 0;
+                const encoded: string ! TsonEncodeError = if ((trace = trace + 1) == 1) {
+                    tsonEncode(make(trace = trace + 1))
+                } else {
+                    tsonEncode(make(trace = trace + 100))
+                };
+                return match encoded { ok(text) => trace, err(error) => 0, };
+            }
+            function logicalOrder(): number {
+                let trace: number = 0;
+                const selected: boolean = false && (match tsonEncode(make(trace = trace + 1)) { ok(text) => true, err(error) => false, });
+                return if selected { 100 } else { trace };
+            }
+            function matchOnce(): number {
+                let trace: number = 0;
+                return match tsonEncode(make(trace = trace + 1)) { ok(text) => trace, err(error) => 0, };
+            }
+            function forwarded(): string ! TsonEncodeError { return tsonEncode(make(4)); }
+            function propagated(): number ! TsonEncodeError {
+                const text: string = forwarded()?;
+                return 7;
+            }
+            function handled(): number {
+                let trace: number = 0;
+                return try {
+                    const text: string = tsonEncode(make(trace = trace + 1))?;
+                    trace
+                } except (error) {
+                    0
+                };
+            }
+            function repeated(): number {
+                return inspect(tsonEncode(make(1))) + inspect(tsonEncode(make(2)));
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Single(compilation.MirCompilation!.Program!.TsonEncodingPlans);
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program);
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation.Program);
+        Assert.DoesNotMatch(@"\btry\s*\{", csharp.SourceText);
+        Assert.DoesNotMatch(@"\bcatch\s*\(", csharp.SourceText);
+        Assert.DoesNotContain("catch", javaScript.SourceText, StringComparison.Ordinal);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        string[] methods = ["operandOnce", "argumentOrder", "conditionalOrder", "logicalOrder", "matchOnce", "handled", "repeated"];
+        double[] expected = [1, 13, 2, 0, 1, 1, 2];
+        Assert.Equal(expected, methods.Select(method => Assert.IsType<double>(Invoke(generated, method))));
+        object propagated = Invoke(generated, "propagated");
+        Assert.True((bool)propagated.GetType().GetProperty("IsOk")!.GetValue(propagated)!);
+        Assert.Equal(7d, Assert.IsType<double>(propagated.GetType().GetProperty("Value")!.GetValue(propagated)));
+
+        string script = javaScript.SourceText + """
+            console.log([operandOnce(), argumentOrder(), conditionalOrder(), logicalOrder(), matchOnce(), handled(), repeated()].join(","));
+            console.log(propagated().$payload[0]);
+            """;
+        ProcessResult node = await RunNodeAsync(script);
+        Assert.Equal("1,13,2,0,1,1,2\n7\n", node.StdOut);
+        Assert.Equal(string.Empty, node.StdErr);
+    }
+
+    [Fact]
+    public async Task Runtime_canonical_output_recompiles_as_a_canonical_asset_without_byte_changes()
+    {
+        const string firstSource = """
+            const $schema: string = "copeland://tests/m2c-recompile";
+            enum State { Ready, Named(text: string), }
+            record Root { title: string; state: State; }
+            function encode(): string ! TsonEncodeError {
+                const value: Root = { title: "round trip 雪", state: State.Named("payload") };
+                return tsonEncode(value);
+            }
+            """;
+        const string secondSource = """
+            const $schema: string = "copeland://tests/m2c-recompile";
+            enum State { Ready, Named(text: string), }
+            record Root { title: string; state: State; }
+            function encode(): string ! TsonEncodeError {
+                const value: Root = tsonAsset("./canonical.tson");
+                return tsonEncode(value);
+            }
+            """;
+
+        CopelandCompilation firstCompilation = CopelandCompiler.CompileToMir(firstSource);
+        Assert.True(firstCompilation.Success, string.Join(Environment.NewLine, firstCompilation.Diagnostics));
+        CSharpCompilation firstCSharp = CSharpBackend.Emit(firstCompilation.MirCompilation!.Program!);
+        JavaScriptCompilation firstJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation.Program!);
+        RoslynCompileResult firstGenerated = RoslynCompileHelper.CompileGeneratedSource(firstCSharp.SourceText);
+        Assert.True(firstGenerated.Success, string.Join(Environment.NewLine, firstGenerated.Diagnostics));
+
+        string canonical = ResultValue(Invoke(firstGenerated, "encode"));
+        ProcessResult firstNode = await RunNodeAsync(firstJavaScript.SourceText + "process.stdout.write(encode().$payload[0]);\n");
+        Assert.Equal(canonical, firstNode.StdOut);
+        Assert.True(TsonDocumentReader.ReadSelfDescribed(canonical, TsonDocumentProfile.CanonicalTson).Success);
+
+        var options = new CopelandCompilationOptions
+        {
+            SourcePath = "C:/project/main.ts",
+            ProjectRoot = "C:/project",
+            AssetSource = new InMemoryAssetSource(("C:/project/canonical.tson", canonical)),
+        };
+        CopelandCompilation secondCompilation = CopelandCompiler.CompileToMir(secondSource, options);
+        Assert.True(secondCompilation.Success, string.Join(Environment.NewLine, secondCompilation.Diagnostics));
+        CSharpCompilation secondCSharp = CSharpBackend.Emit(secondCompilation.MirCompilation!.Program!);
+        JavaScriptCompilation secondJavaScript = JavaScriptBackend.Emit(secondCompilation.MirCompilation.Program!);
+        Assert.DoesNotContain("canonical.tson", secondCSharp.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("canonical.tson", secondJavaScript.SourceText, StringComparison.Ordinal);
+
+        RoslynCompileResult secondGenerated = RoslynCompileHelper.CompileGeneratedSource(secondCSharp.SourceText);
+        Assert.True(secondGenerated.Success, string.Join(Environment.NewLine, secondGenerated.Diagnostics));
+        Assert.Equal(canonical, ResultValue(Invoke(secondGenerated, "encode")));
+        ProcessResult secondNode = await RunNodeAsync(secondJavaScript.SourceText + "process.stdout.write(encode().$payload[0]);\n");
+        Assert.Equal(canonical, secondNode.StdOut);
+        Assert.Equal(firstNode, secondNode);
     }
 
     private static object Invoke(RoslynCompileResult generated, string name, params object[] arguments)

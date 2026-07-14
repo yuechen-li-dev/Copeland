@@ -1,6 +1,6 @@
 # CTS-TSON-M2b runtime canonical TSON encoding
 
-**Status:** implemented. This milestone implements the accepted CTS-TSON-M2a design for reflection-free runtime encoding in the C# and JavaScript backends.
+**Status:** implemented. This milestone implements the accepted CTS-TSON-M2a design for reflection-free runtime encoding in the C# and JavaScript backends. [CTS-TSON-M2c](copeland-ts-tson-core-closeout-cts-tson-m2c.md) records the subsequent core fixed-point audit and its remaining closeout evidence.
 
 ## Source contract
 
@@ -86,4 +86,3 @@ This milestone adds no runtime parsing/decoding, filesystem access, runtime comp
 Focused source, MIR, malformed-plan, backend/runtime, Unicode/limit, binary64, adversarial JavaScript, asset-round-trip, CLI, and corpus tests live beside the existing Copeland TS suites. The representative corpus is `tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/record`.
 
 The next TSON milestone should remain separate: runtime decoding requires an explicitly accepted parser/runtime architecture and must not be inferred from this closed writer.
-

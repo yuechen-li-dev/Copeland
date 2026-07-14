@@ -40,10 +40,10 @@ public sealed class JavaScriptCorpusTests
     }
 
     [Theory]
-    [InlineData("payload-enum-match.g.js", "C7FAD5A76AB26FF93396BE8038D496B70236B49B6316BCEB43F1ACE8DE59AD79")]
-    [InlineData("nominal-enum-types.g.js", "EA992B0D572259A139FE56F785487D67F111AFDBC666FB89ADA097F04B9BE4FD")]
-    [InlineData("result-construction-match.g.js", "E41DADDE7417A84A81F8A20CF22EE849B182703F1743190A89510310D0C32974")]
-    [InlineData("result-propagation.g.js", "63734BDEE21591612CF1D6A1B064CC445F130E5D35DA36C038F5275E8ECDDE3F")]
+    [InlineData("payload-enum-match.g.js", "C62AF03259B14E94A41B5D6F58696E0E25F0E5CAA76DA31C63531934EE9FE1EC")]
+    [InlineData("nominal-enum-types.g.js", "242874B3B43AB5A206FDDFF81748B1BE3F80A19AD62864C74A99A0FF4E7B36A3")]
+    [InlineData("result-construction-match.g.js", "37CDB992A39F0EE1E983DB4A7684766A22713492166F5DC56E4453F2DCEF0E59")]
+    [InlineData("result-propagation.g.js", "B87568C95250D9415E1FDBB2DC46D4CD6FA893F8C8320D642E4E53B595607865")]
     public void Payload_Enum_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
     {
         string artifactPath = Path.Combine(GetCorpusRoot(), fileName);
@@ -60,12 +60,12 @@ public sealed class JavaScriptCorpusTests
         byte[] bytes = File.ReadAllBytes(artifactPath);
         string hash = Convert.ToHexString(SHA256.HashData(bytes));
 
-        Assert.Equal("DD678A23F507736CE1E54FFAA0124158EF2F5A5B833B441F87B1705F02FF4BA7", hash);
+        Assert.Equal("5F29CFB51D5119BF71F44F580FFAEEA3B5D451246A7A1FF42AB425F8D0803248", hash);
     }
 
     [Theory]
-    [InlineData("m2-table-basic.g.js", "B9AEA6132233229C4F594E9AB34F89F9D4E8F906B160CC1485CE2706436E3C26")]
-    [InlineData("m2-table-nested.g.js", "7D72CC23337D65B4F1841D01B5E7E7ED04BD65794109F3D43FB54EEDF3856145")]
+    [InlineData("m2-table-basic.g.js", "29FB270F855AC7A704C9A4ABD00105EFB152EAA210DEBED850402E31DBBA9C81")]
+    [InlineData("m2-table-nested.g.js", "215EC9852AA6F18E6651897DEE375182B5F6F64675AD0A25617AF8C90CBBAA54")]
     public void Table_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
     {
         string artifactPath = Path.Combine(GetCorpusRoot(), fileName);
@@ -75,10 +75,10 @@ public sealed class JavaScriptCorpusTests
     }
 
     [Theory]
-    [InlineData("record-basic.g.js", "AA91167AF8D33B45731748BF5D0861FBCE4EF7D195E96E2ADFFB7C77F62EB8A0")]
-    [InlineData("record-order-with.g.js", "EC92548B37415D888B02ACB6C9D163096DD2D46FF66C23767E5BE0E43DA56060")]
-    [InlineData("record-result-enum.g.js", "DDACF318CB2777D5A4E5A138B8875F3AB3752F8AD93D6C64DD185EF55B56BB24")]
-    [InlineData("record-try-except.g.js", "859A7CD39986AC6D3410943A529AAA0222E320240FFE96D36A2E2883DC733F7D")]
+    [InlineData("record-basic.g.js", "3B67FE70D2912123FCF6BEF4D5D1ADA0C9B1D21F3F931335CD1405589BA473D0")]
+    [InlineData("record-order-with.g.js", "A2A34C7F2CFEF31AA2186740C799249770D7050BE3C7FDD9052F8FE99D7BE146")]
+    [InlineData("record-result-enum.g.js", "8DEACC0FE023E665B4C777CBA364D2262673DB6F65EACDC9C548EA7014A64732")]
+    [InlineData("record-try-except.g.js", "E246048D818F5F6FF7DF932C546F112D7E4889C9A6CDB49EAB238BE47F0D7903")]
     public void Record_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
     {
         string artifactPath = Path.Combine(GetCorpusRoot(), fileName);

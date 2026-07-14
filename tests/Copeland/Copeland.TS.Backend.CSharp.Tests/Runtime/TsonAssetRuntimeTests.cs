@@ -217,7 +217,7 @@ public sealed class TsonAssetRuntimeTests
         {
             ["main.cope"] = "9e6bd14910ebbc0862138cd15a000f836b047fedf5e86ab24102e117d09c8d95",
             ["main.g.cs"] = "bbb11645f4f3c00ef6e5c82023d0831b268fe4df791ea063924d32a472f8185d",
-            ["main.g.js"] = "fdcbc7acc01ecf3b290227be15babdba28bb6c480f44158eedc4427d5c5a4290",
+            ["main.g.js"] = "647c473707eab2665fc931732b33357ab0c7779f9d55d88958e76ffe5aa7dc7b",
             ["main.ts"] = "662e4abf48cb939fae86ab9a28ce2377f84e917c3440be2bc9d45140f1d3e63f",
             ["settings.obj.ts"] = "d2565ff75f6199ee14444ee607eacabd6d2f0e35c0dc2b3df60436ba05655310",
         };

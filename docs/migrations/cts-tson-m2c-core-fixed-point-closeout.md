@@ -1,0 +1,11 @@
+# CTS-TSON-M2c core fixed-point closeout
+
+**Status:** meaningful progression; not yet a completed closeout.
+
+This audit began from `aacdb9524fc46c2e677a63d0873605d281755384` on `main`, tracking `origin/main`, with a clean worktree. It preserved all existing CTS-TSON-M0a through M2b artifacts and made no package, commit, push, or publication change.
+
+The M2c fixed-point regression adds full-document C#/Node parity for nested nominal records/enums, exact canonical reader/printer re-emission, stable distinct same-named enum cases, ordinal schema ordering, Unicode escaping, signed zero, final-LF behavior, and authoring-trivia removal. A second regression proves ordinary staging and Result flow around encoding. The shared malformed-plan matrix now has nineteen no-artifact backend cases. Exact limit coverage includes both per-string boundaries, valid/invalid surrogate boundaries, total UTF-8 capacity, and error precedence. Existing M0b/M1b/M2b coverage remains the supporting evidence for parser sharing, assets, binary64, demand emission, counterfeit nominal values, and corpus hashes.
+
+One production defect was found and fixed in the owning JavaScript nominal-carrier mechanism. A copied frozen record with all discoverable symbol slots could pass structural validation. Generated record and enum values now receive `WeakSet` provenance registration; validation requires membership and record validation no longer enumerates symbols. The representative JavaScript corpus and both TSON JavaScript artifacts were regenerated, and their pinned hashes were updated solely for this hardening change.
+
+This is not yet the completion report required for CTS-TSON-M2c. The exhaustive fixed-point matrix and remaining malformed-plan inventory still need implementation and record. The existing CLI TSON fresh/stale-artifact tests were audited and the runtime-output-to-canonical-asset second-compilation proof now runs in the backend suite. `Copeland.TS.slnx`, `Copeland.slnx`, and `JointTaskForce.slnx` builds/tests and both Copeland TS topology/dependency checks have passed in this worktree. Runtime decoding, JSON, TSON arrays/Results/tables/optionality/interfaces/type aliases, runtime parser/filesystem/compiler-host TSON dependencies, reflection, dynamic traversal, package changes, commits, pushes, and publishing remain absent.

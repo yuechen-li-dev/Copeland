@@ -71,7 +71,10 @@ public sealed class JavaScriptBackendTests
         Assert.Contains("Object.defineProperties", first.SourceText, StringComparison.Ordinal);
         Assert.Contains("writable: false", first.SourceText, StringComparison.Ordinal);
         Assert.Contains("configurable: false", first.SourceText, StringComparison.Ordinal);
-        Assert.Contains("return Object.freeze(value);", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("new WeakSet()", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Object.freeze(value);", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains(".add(value);", first.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Object.getOwnPropertySymbols", first.SourceText, StringComparison.Ordinal);
         Assert.DoesNotContain("class ", first.SourceText, StringComparison.Ordinal);
         Assert.DoesNotContain("COPE-JS-REC-0001", first.SourceText, StringComparison.Ordinal);
     }

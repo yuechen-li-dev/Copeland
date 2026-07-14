@@ -5,55 +5,66 @@ function __cope_m3_panic_0() {
 }
 
 function __cope_m3_make_1(type, tag, payload) {
-    return Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));
+    const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));
+    if (type === __cope_m3_type_15) __cope_m3_instances_16.add(value);
+    if (type === __cope_m3_type_18) __cope_m3_instances_19.add(value);
+    return value;
 }
 
 const __cope_m3_record_type_r1_3 = Symbol("r1");
-const __cope_m3_record_field___cope_00720031002e00660030_6 = Symbol("r1.f0");
+const __cope_m3_record_instances_r1_4 = new WeakSet();
+const __cope_m3_record_field___cope_00720031002e00660030_7 = Symbol("r1.f0");
 
-function __cope_m3_record_make_r1_4(field0) {
+function __cope_m3_record_make_r1_5(field0) {
     const value = Object.create(null);
     Object.defineProperties(value, {
         [__cope_m3_record_type_r1_3]: { value: __cope_m3_record_type_r1_3, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720031002e00660030_6]: { value: field0, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720031002e00660030_7]: { value: field0, writable: false, enumerable: false, configurable: false },
     });
-    return Object.freeze(value);
+    Object.freeze(value);
+    __cope_m3_record_instances_r1_4.add(value);
+    return value;
 }
 
-function __cope_m3_record_require_r1_5(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r1_3) || value[__cope_m3_record_type_r1_3] !== __cope_m3_record_type_r1_3 || Object.getOwnPropertySymbols(value).length !== 2 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660030_6)) {
+function __cope_m3_record_require_r1_6(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r1_4.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r1_3) || value[__cope_m3_record_type_r1_3] !== __cope_m3_record_type_r1_3 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720031002e00660030_7)) {
         __cope_m3_panic_0();
     }
 }
 
-const __cope_m3_record_type_r2_7 = Symbol("r2");
-const __cope_m3_record_field___cope_00720032002e00660030_10 = Symbol("r2.f0");
-const __cope_m3_record_field___cope_00720032002e00660031_11 = Symbol("r2.f1");
-const __cope_m3_record_field___cope_00720032002e00660032_12 = Symbol("r2.f2");
+const __cope_m3_record_type_r2_8 = Symbol("r2");
+const __cope_m3_record_instances_r2_9 = new WeakSet();
+const __cope_m3_record_field___cope_00720032002e00660030_12 = Symbol("r2.f0");
+const __cope_m3_record_field___cope_00720032002e00660031_13 = Symbol("r2.f1");
+const __cope_m3_record_field___cope_00720032002e00660032_14 = Symbol("r2.f2");
 
-function __cope_m3_record_make_r2_8(field0, field1, field2) {
+function __cope_m3_record_make_r2_10(field0, field1, field2) {
     const value = Object.create(null);
     Object.defineProperties(value, {
-        [__cope_m3_record_type_r2_7]: { value: __cope_m3_record_type_r2_7, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720032002e00660030_10]: { value: field0, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720032002e00660031_11]: { value: field1, writable: false, enumerable: false, configurable: false },
-        [__cope_m3_record_field___cope_00720032002e00660032_12]: { value: field2, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_type_r2_8]: { value: __cope_m3_record_type_r2_8, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720032002e00660030_12]: { value: field0, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720032002e00660031_13]: { value: field1, writable: false, enumerable: false, configurable: false },
+        [__cope_m3_record_field___cope_00720032002e00660032_14]: { value: field2, writable: false, enumerable: false, configurable: false },
     });
-    return Object.freeze(value);
+    Object.freeze(value);
+    __cope_m3_record_instances_r2_9.add(value);
+    return value;
 }
 
-function __cope_m3_record_require_r2_9(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r2_7) || value[__cope_m3_record_type_r2_7] !== __cope_m3_record_type_r2_7 || Object.getOwnPropertySymbols(value).length !== 4 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660030_10) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660031_11) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660032_12)) {
+function __cope_m3_record_require_r2_11(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_record_instances_r2_9.has(value) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_type_r2_8) || value[__cope_m3_record_type_r2_8] !== __cope_m3_record_type_r2_8 || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660030_12) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660031_13) || !Object.prototype.hasOwnProperty.call(value, __cope_m3_record_field___cope_00720032002e00660032_14)) {
         __cope_m3_panic_0();
     }
 }
 
-const __cope_m3_type_13 = Object.freeze(Object.create(null));
-
 const __cope_m3_type_15 = Object.freeze(Object.create(null));
+const __cope_m3_instances_16 = new WeakSet();
 
-function __cope_m3_validate_14(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_type_13 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {
+const __cope_m3_type_18 = Object.freeze(Object.create(null));
+const __cope_m3_instances_19 = new WeakSet();
+
+function __cope_m3_validate_17(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_16.has(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_type_15 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {
         __cope_m3_panic_0();
     }
     switch (value.$tag) {
@@ -72,8 +83,8 @@ function __cope_m3_validate_14(value) {
     }
 }
 
-function __cope_m3_validate_16(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_type_15 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {
+function __cope_m3_validate_20(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !__cope_m3_instances_19.has(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_type_18 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {
         __cope_m3_panic_0();
     }
     switch (value.$tag) {
@@ -86,7 +97,7 @@ function __cope_m3_validate_16(value) {
             if (value.$payload.length !== 1) {
                 __cope_m3_panic_0();
             }
-            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !((__cope_m3_record_require_r1_5(value.$payload[0]), true))) {
+            if (!Object.prototype.hasOwnProperty.call(value.$payload, 0) || !((__cope_m3_record_require_r1_6(value.$payload[0]), true))) {
                 __cope_m3_panic_0();
             }
             return;
@@ -95,10 +106,10 @@ function __cope_m3_validate_16(value) {
     }
 }
 
-const __cope_m3_result_type_17 = Object.freeze(Object.create(null));
+const __cope_m3_result_type_21 = Object.freeze(Object.create(null));
 
-function __cope_m3_result_validate_18(value) {
-    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_result_type_17 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
+function __cope_m3_result_validate_22(value) {
+    if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, "$type") || !Object.prototype.hasOwnProperty.call(value, "$tag") || !Object.prototype.hasOwnProperty.call(value, "$payload") || value.$type !== __cope_m3_result_type_21 || typeof value.$tag !== "string" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload) || value.$payload.length !== 1 || !Object.prototype.hasOwnProperty.call(value.$payload, 0)) {
         __cope_m3_panic_0();
     }
     switch (value.$tag) {
@@ -106,7 +117,7 @@ function __cope_m3_result_validate_18(value) {
             if (!(typeof value.$payload[0] === "string")) { __cope_m3_panic_0(); }
             return;
         case "err":
-            if (!((__cope_m3_validate_14(value.$payload[0]), true))) { __cope_m3_panic_0(); }
+            if (!((__cope_m3_validate_17(value.$payload[0]), true))) { __cope_m3_panic_0(); }
             return;
         default:
             __cope_m3_panic_0();
@@ -194,35 +205,35 @@ const __cope_m3_tson_2 = (() => {
     function writeString(writer, value, indentation) { return writer.string(value); }
 
     function writeP0R0(writer, value, indentation) {
-        __cope_m3_record_require_r1_5(value);
+        __cope_m3_record_require_r1_6(value);
         if (!writer.static("$record.Detail({\n")) return false;
         if (!writer.indent(indentation + 1)) return false;
         if (!writer.static("\"label\": ")) return false;
-        if (!writeString(writer, value[__cope_m3_record_field___cope_00720031002e00660030_6], indentation + 1)) return false;
+        if (!writeString(writer, value[__cope_m3_record_field___cope_00720031002e00660030_7], indentation + 1)) return false;
         if (!writer.static(",\n")) return false;
         if (!writer.indent(indentation)) return false;
         return writer.static("})");
     }
     function writeP0R1(writer, value, indentation) {
-        __cope_m3_record_require_r2_9(value);
+        __cope_m3_record_require_r2_11(value);
         if (!writer.static("$record.Settings({\n")) return false;
         if (!writer.indent(indentation + 1)) return false;
         if (!writer.static("\"enabled\": ")) return false;
-        if (!writeBoolean(writer, value[__cope_m3_record_field___cope_00720032002e00660030_10], indentation + 1)) return false;
+        if (!writeBoolean(writer, value[__cope_m3_record_field___cope_00720032002e00660030_12], indentation + 1)) return false;
         if (!writer.static(",\n")) return false;
         if (!writer.indent(indentation + 1)) return false;
         if (!writer.static("\"count\": ")) return false;
-        if (!writeNumber(writer, value[__cope_m3_record_field___cope_00720032002e00660031_11], indentation + 1)) return false;
+        if (!writeNumber(writer, value[__cope_m3_record_field___cope_00720032002e00660031_13], indentation + 1)) return false;
         if (!writer.static(",\n")) return false;
         if (!writer.indent(indentation + 1)) return false;
         if (!writer.static("\"mode\": ")) return false;
-        if (!writeP0E0(writer, value[__cope_m3_record_field___cope_00720032002e00660032_12], indentation + 1)) return false;
+        if (!writeP0E0(writer, value[__cope_m3_record_field___cope_00720032002e00660032_14], indentation + 1)) return false;
         if (!writer.static(",\n")) return false;
         if (!writer.indent(indentation)) return false;
         return writer.static("})");
     }
     function writeP0E0(writer, value, indentation) {
-        __cope_m3_validate_16(value);
+        __cope_m3_validate_20(value);
         switch (value.$tag) {
             case "Off":
                 return writer.static("Mode.Off");
@@ -243,10 +254,10 @@ const __cope_m3_tson_2 = (() => {
             || !writeP0R1(writer, value, 0)
             || !writer.static(";\n")) {
             const tag = writer.error() === "invalid" ? "InvalidUnicode" : "OutputLimitExceeded";
-            const error = __cope_m3_make_1(__cope_m3_type_13, tag, []);
-            return __cope_m3_make_1(__cope_m3_result_type_17, "err", [error]);
+            const error = __cope_m3_make_1(__cope_m3_type_15, tag, []);
+            return __cope_m3_make_1(__cope_m3_result_type_21, "err", [error]);
         }
-        return __cope_m3_make_1(__cope_m3_result_type_17, "ok", [writer.finish()]);
+        return __cope_m3_make_1(__cope_m3_result_type_21, "ok", [writer.finish()]);
     }
 
     const api = Object.create(null);
@@ -255,10 +266,10 @@ const __cope_m3_tson_2 = (() => {
 })();
 
 function encode() {
-    const __cope_m3_record_init_19 = true;
-    const __cope_m3_record_init_20 = -0;
-    const __cope_m3_record_init_21 = "snow 雪 \ud83d\ude00";
-    const __cope_m3_record_init_22 = __cope_m3_make_1(__cope_m3_type_15, "Named", [__cope_m3_record_make_r1_4(__cope_m3_record_init_21)]);
-    const loaded = __cope_m3_record_make_r2_8(__cope_m3_record_init_19, __cope_m3_record_init_20, __cope_m3_record_init_22);
+    const __cope_m3_record_init_23 = true;
+    const __cope_m3_record_init_24 = -0;
+    const __cope_m3_record_init_25 = "snow 雪 \ud83d\ude00";
+    const __cope_m3_record_init_26 = __cope_m3_make_1(__cope_m3_type_18, "Named", [__cope_m3_record_make_r1_5(__cope_m3_record_init_25)]);
+    const loaded = __cope_m3_record_make_r2_10(__cope_m3_record_init_23, __cope_m3_record_init_24, __cope_m3_record_init_26);
     return __cope_m3_tson_2["tson0"](loaded);
 }

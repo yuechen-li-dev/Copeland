@@ -5,7 +5,8 @@ function __cope_m3_panic_0() {
 }
 
 function __cope_m3_make_1(type, tag, payload) {
-    return Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));
+    const value = Object.freeze(Object.assign(Object.create(null), { $type: type, $tag: tag, $payload: Object.freeze(payload) }));
+    return value;
 }
 
 const __cope_m3_result_type_2 = Object.freeze(Object.create(null));

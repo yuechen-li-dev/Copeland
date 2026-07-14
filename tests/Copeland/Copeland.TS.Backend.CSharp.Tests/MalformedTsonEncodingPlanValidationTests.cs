@@ -17,6 +17,15 @@ public sealed class MalformedTsonEncodingPlanValidationTests
         yield return Case("missing referenced plan", Program([], function));
         yield return Case("malformed schema", Program([Plan(schema: "bad")], function));
         yield return Case("invalid limits", Program([Plan(limits: new MirTsonEncodingLimits(1, 1))], function));
+        yield return Case("malformed static canonical text", Program([Plan(schema: Schema + "\uD800")], function));
+        yield return Case(
+            "cross-schema definition identity",
+            Program([Plan(definitions: [new MirTsonRecordPlan(
+                RootId,
+                "Root",
+                "copeland://other#Root",
+                [new MirTsonRecordFieldPlan(FieldId, "text", "copeland://other#Root.text", new MirTsonStringPlan())])])],
+                function));
         yield return Case(
             "wrong expression root",
             Program(
@@ -64,6 +73,61 @@ public sealed class MalformedTsonEncodingPlanValidationTests
                         new MirTsonRecordFieldPlan(FieldId, "text", Schema + "#Root.text", new MirTsonEnumValuePlan("Missing")),
                     ])])],
                 function));
+        yield return Case(
+            "structural root type",
+            Program(
+                [Plan(rootType: new MirNamedType("object"))],
+                Function(new MirTsonEncodeExpression(
+                    new MirVariableExpression("value", new MirNamedType("object")),
+                    new MirTsonEncodingPlanId("tson0"),
+                    ResultType()))));
+        yield return Case(
+            "array root type",
+            Program(
+                [Plan(rootType: new MirArrayType(new MirNamedType("string")))],
+                Function(new MirTsonEncodeExpression(
+                    new MirVariableExpression("value", new MirArrayType(new MirNamedType("string"))),
+                    new MirTsonEncodingPlanId("tson0"),
+                    ResultType()))));
+        yield return Case(
+            "result root type",
+            Program(
+                [Plan(rootType: new MirResultType(new MirNamedType("string"), new MirNamedType("string")))],
+                Function(new MirTsonEncodeExpression(
+                    new MirVariableExpression("value", new MirResultType(new MirNamedType("string"), new MirNamedType("string"))),
+                    new MirTsonEncodingPlanId("tson0"),
+                    ResultType()))));
+        yield return Case(
+            "schema cycle",
+            Program(
+                [Plan(definitions: [new MirTsonRecordPlan(
+                    RootId,
+                    "Root",
+                    Schema + "#Root",
+                    [new MirTsonRecordFieldPlan(FieldId, "text", Schema + "#Root.text", new MirTsonRecordValuePlan(RootId))])])],
+                function));
+        yield return Case(
+            "duplicate enum case identity",
+            EnumProgram(
+                new MirTsonEnumPlan("Choice", Schema + "#Choice",
+                [
+                    new MirTsonEnumCasePlan("Left", Schema + "#Choice.Left", []),
+                    new MirTsonEnumCasePlan("Right", Schema + "#Choice.Left", []),
+                ]),
+                new MirEnum("Choice", [new MirEnumCase("Left", []), new MirEnumCase("Right", [])])));
+        yield return Case(
+            "duplicate enum payload identity",
+            EnumProgram(
+                new MirTsonEnumPlan("Choice", Schema + "#Choice",
+                [new MirTsonEnumCasePlan("Value", Schema + "#Choice.Value",
+                [
+                    new MirTsonEnumPayloadPlan("left", Schema + "#Choice.Value.left", new MirTsonStringPlan()),
+                    new MirTsonEnumPayloadPlan("right", Schema + "#Choice.Value.left", new MirTsonStringPlan()),
+                ])]),
+                new MirEnum("Choice", [new MirEnumCase("Value", [
+                    new MirEnumPayloadField("left", new MirNamedType("string")),
+                    new MirEnumPayloadField("right", new MirNamedType("string")),
+                ])])));
         yield return Case(
             "noncanonical ordering",
             Program(
@@ -142,6 +206,25 @@ public sealed class MalformedTsonEncodingPlanValidationTests
             expression.Type,
             [],
             [new MirReturnStatement(expression)]);
+
+    private static MirProgram EnumProgram(MirTsonEnumPlan definition, MirEnum @enum)
+    {
+        MirType rootType = new MirNamedType(@enum.Name);
+        var plan = new MirTsonEncodingPlan(
+            new MirTsonEncodingPlanId("tson0"),
+            Schema,
+            rootType,
+            new MirTsonEnumValuePlan(@enum.Name),
+            [definition],
+            new MirTsonEncodingLimits(1_048_576, 262_144));
+        return Program(
+            [plan],
+            Function(new MirTsonEncodeExpression(
+                new MirVariableExpression("value", rootType),
+                plan.Id,
+                ResultType())),
+            extraEnums: [@enum]);
+    }
 
     private static MirTsonEncodingPlan Plan(
         string? schema = null,
