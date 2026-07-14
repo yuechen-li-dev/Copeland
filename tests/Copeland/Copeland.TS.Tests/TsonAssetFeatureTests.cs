@@ -220,7 +220,7 @@ public sealed class TsonAssetFeatureTests
     }
 
     [Fact]
-    public void Array_asset_lowering_succeeds_but_runtime_tson_encoding_remains_deferred()
+    public void Array_asset_lowering_flows_to_runtime_tson_encoding_plan()
     {
         const string sourceText = """
             const $schema: string = "copeland://tests/array-encoding-deferral";
@@ -239,11 +239,9 @@ public sealed class TsonAssetFeatureTests
 
         CopelandCompilation compilation = Compile(sourceText, source);
 
-        Assert.False(compilation.Success);
-        Assert.Null(compilation.MirCompilation);
-        Assert.Contains(compilation.Diagnostics, diagnostic =>
-            diagnostic.Id == "COPE-TSON-ENCODE-0003"
-            && diagnostic.Message.Contains("number[]", StringComparison.Ordinal));
+        Assert.True(compilation.Success, Describe(compilation));
+        Assert.Single(compilation.MirCompilation!.Program!.TsonEncodingPlans);
+        Assert.Contains("number[]", compilation.MirText, StringComparison.Ordinal);
     }
 
     [Theory]

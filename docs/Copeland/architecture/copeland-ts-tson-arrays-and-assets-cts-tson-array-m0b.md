@@ -14,7 +14,7 @@ Compile-time `tsonAsset` lowering validates the array schema against the expecte
 
 JavaScript now realizes valid ordinary array MIR as normal JavaScript array literals, using the existing ordered staging helper so elements are evaluated once, left-to-right. Arrays are deliberately not frozen: they are ordinary Copeland runtime carriers, while only `TsonArray` is immutable semantic data. C# continues to use its existing `T[]` realization.
 
-Runtime `tsonEncode` remains unchanged and rejects reachable arrays before a runtime plan or writer is generated. This milestone adds no `MirTsonArrayPlan`, runtime decoder, JSON use, second parser, or array writer helper. ARRAY-M1 should define bounded runtime array encoding only after this ordinary-carrier parity has further corpus coverage.
+At M0b closeout, runtime `tsonEncode` remained array-free. [CTS-TSON-ARRAY-M1](copeland-ts-runtime-tson-array-encoding-cts-tson-array-m1.md) now implements the bounded shared runtime array plan and direct indexed writers without changing this asset carrier law.
 
 ## Completion evidence
 
@@ -36,4 +36,4 @@ The representative corpus is `tests/Copeland/Copeland.TS.Tests/TsonAssets/Corpus
 | `main.g.cs` | `a3b97b999c7bc529fd40ac7b38bc860a89a664d6cf5639952f8123f562777015` |
 | `main.g.js` | `de884da8fdaacd96ba8ac92e75076df0df268298f29da65df0c74b7af56f5873` |
 
-The existing record corpus stays byte-identical under its pre-existing pinned hashes. ARRAY-M1 remains the exact next recommendation: design a bounded, shared runtime array encoding plan and direct indexed writers without JSON, reflection, root arrays, decoding, Results, tables, optionality, interfaces, or aliases.
+The existing record corpus stays byte-identical under its pre-existing pinned hashes. ARRAY-M1 subsequently implements bounded shared runtime array encoding while retaining the exclusions on JSON, reflection, root arrays, decoding, Results, tables, optionality, interfaces, and aliases.

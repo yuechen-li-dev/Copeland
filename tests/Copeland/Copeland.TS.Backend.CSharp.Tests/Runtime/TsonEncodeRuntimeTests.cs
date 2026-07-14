@@ -172,6 +172,59 @@ public sealed class TsonEncodeRuntimeTests
     }
 
     [Fact]
+    public async Task Both_backends_encode_nested_arrays_with_canonical_schema_evidence()
+    {
+        const string source = """
+            const $schema: string = "copeland://tests/runtime-arrays";
+            record Item { name: string; score: number; }
+            enum Choice { None, Some(item: Item), }
+            record Batch {
+                flags: boolean[];
+                names: string[];
+                items: Item[];
+                choices: Choice[];
+                matrix: number[][];
+                empty: Item[];
+            }
+            function encode(): string ! TsonEncodeError {
+                const value: Batch = {
+                    flags: [true, false],
+                    names: ["Ada", "雪😀"],
+                    items: [{ name: "one", score: 0 }],
+                    choices: [Choice.None],
+                    matrix: [[1, 0], []],
+                    empty: [],
+                };
+                return tsonEncode(value);
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("number[][]", compilation.MirText, StringComparison.Ordinal);
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        Assert.Contains("var length = array.Length;", csharp.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Array.isArray(array)", javaScript.SourceText, StringComparison.Ordinal);
+        Assert.Contains("const length = array.length;", javaScript.SourceText, StringComparison.Ordinal);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        string csharpText = ResultValue(Invoke(generated, "encode"));
+        ProcessResult node = await RunNodeAsync(javaScript.SourceText + "process.stdout.write(encode().$payload[0]);\n");
+        Assert.Equal(csharpText, node.StdOut);
+
+        TsonReadResult read = TsonDocumentReader.ReadSelfDescribed(csharpText, TsonDocumentProfile.CanonicalTson);
+        Assert.True(read.Success, string.Join(Environment.NewLine, read.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(csharpText, TsonCanonicalPrinter.Print(read.Document!));
+        Assert.Contains("matrix: number[][];", csharpText, StringComparison.Ordinal);
+        Assert.Contains("empty: Item[];", csharpText, StringComparison.Ordinal);
+        Assert.Contains("        [],", csharpText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task JavaScript_encoder_rejects_counterfeits_and_observes_frozen_nominal_values()
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(Source);

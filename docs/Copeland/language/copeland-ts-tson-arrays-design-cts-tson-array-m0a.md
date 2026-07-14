@@ -1,6 +1,6 @@
 # Copeland TS TSON arrays design (CTS-TSON-ARRAY-M0a)
 
-**Status:** design/audit accepted and implemented by [CTS-TSON-ARRAY-M0b](../architecture/copeland-ts-tson-arrays-and-assets-cts-tson-array-m0b.md). Historical implementation findings below describe the pre-M0b baseline.
+**Status:** design/audit accepted and implemented by [CTS-TSON-ARRAY-M0b](../architecture/copeland-ts-tson-arrays-and-assets-cts-tson-array-m0b.md); bounded runtime encoding is subsequently implemented by [CTS-TSON-ARRAY-M1](../architecture/copeland-ts-runtime-tson-array-encoding-cts-tson-array-m1.md). Historical implementation findings below describe the pre-M0b baseline.
 
 ## Executive decision
 

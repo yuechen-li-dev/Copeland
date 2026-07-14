@@ -35,7 +35,7 @@ public sealed class CliIntegrationTests
         using var temp = new TempDir();
         string inputPath = temp.WriteFile("main.ts", """
             const $schema: string = "copeland://tests/cli-encoding";
-            record Unsupported { values: number[]; }
+            record Unsupported { values: number ! string; }
             function encode(value: Unsupported): string ! TsonEncodeError { return tsonEncode(value); }
             """);
         string outputPath = temp.WriteFile("output.g.js", "stale-output");

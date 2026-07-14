@@ -78,6 +78,7 @@ public static class MirLowerer
         {
             RecordTypeSymbol record => new MirTsonRecordValuePlan(ToMirRecordTypeId(record.Id)),
             EnumTypeSymbol @enum => new MirTsonEnumValuePlan(@enum.Name),
+            ArrayTypeSymbol array => new MirTsonArrayPlan(LowerTsonValuePlan(array.ElementType)),
             _ => throw new InvalidOperationException($"Unsupported TSON value plan type '{type.Name}'."),
         };
     }

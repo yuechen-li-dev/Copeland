@@ -819,14 +819,15 @@ public static class CSharpBackend
         IReadOnlyList<MirTsonEncodingPlan> plans,
         IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
     {
-        EmitTsonWriter(writer);
+        bool needsArrayWriter = plans.Any(plan => CollectTsonArrayPlans(plan).Count > 0);
+        EmitTsonWriter(writer, needsArrayWriter);
         foreach (MirTsonEncodingPlan plan in plans)
         {
             EmitTsonEncodingPlan(writer, plan, records);
         }
     }
 
-    private static void EmitTsonWriter(CSharpTextWriter writer)
+    private static void EmitTsonWriter(CSharpTextWriter writer, bool needsArrayWriter)
     {
         writer.WriteLine("private sealed class __TsonWriter");
         writer.WriteLine("{");
@@ -990,6 +991,11 @@ public static class CSharpBackend
         writer.WriteLine("return false;");
         writer.Unindent();
         writer.WriteLine("}");
+        if (needsArrayWriter)
+        {
+            writer.WriteLine();
+            writer.WriteLine("internal bool OutputLimit() => FailOutputLimit();");
+        }
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine();
@@ -1004,6 +1010,7 @@ public static class CSharpBackend
         MirTsonEncodingPlan plan,
         IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
     {
+        IReadOnlyList<MirTsonArrayPlan> arrayPlans = CollectTsonArrayPlans(plan);
         string resultType = $"CopeResult<string, TsonEncodeError>";
         writer.WriteLine($"private static {resultType} {TsonEncodeMethodName(plan.Id)}({MapType(plan.RootType)} value)");
         writer.WriteLine("{");
@@ -1012,7 +1019,7 @@ public static class CSharpBackend
         string prefix = MirTsonCanonicalText.BuildDocumentPrefix(plan);
         writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write(prefix)})");
         writer.Indent();
-        writer.WriteLine($"|| !{TsonValueWriterName(plan.Id, plan.RootValuePlan)}(writer, value, 0)");
+        writer.WriteLine($"|| !{TsonValueWriterName(plan.Id, plan.RootValuePlan, arrayPlans)}(writer, value, 0)");
         writer.WriteLine("|| !writer.Static(\";\\n\"))");
         writer.Unindent();
         writer.WriteLine("{");
@@ -1030,16 +1037,21 @@ public static class CSharpBackend
             switch (definition)
             {
                 case MirTsonRecordPlan record:
-                    EmitTsonRecordWriter(writer, plan, record, records);
+                    EmitTsonRecordWriter(writer, plan, record, records, arrayPlans);
                     break;
                 case MirTsonEnumPlan @enum:
-                    EmitTsonEnumWriter(writer, plan, @enum);
+                    EmitTsonEnumWriter(writer, plan, @enum, arrayPlans);
                     break;
             }
         }
+
+        foreach (MirTsonArrayPlan arrayPlan in arrayPlans)
+        {
+            EmitTsonArrayWriter(writer, plan, arrayPlan, arrayPlans);
+        }
     }
 
-    private static void EmitTsonRecordWriter(CSharpTextWriter writer, MirTsonEncodingPlan plan, MirTsonRecordPlan record, IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+    private static void EmitTsonRecordWriter(CSharpTextWriter writer, MirTsonEncodingPlan plan, MirTsonRecordPlan record, IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records, IReadOnlyList<MirTsonArrayPlan> arrayPlans)
     {
         writer.WriteLine($"private static bool {TsonValueWriterName(plan.Id, new MirTsonRecordValuePlan(record.RecordTypeId))}(__TsonWriter writer, {RecordTypeName(record.RecordTypeId)} value, int indentation)");
         writer.WriteLine("{");
@@ -1058,7 +1070,7 @@ public static class CSharpBackend
                 MirRecordFieldDefinition carrierField = carrier.Fields[index];
                 writer.WriteLine("if (!writer.Indent(indentation + 1)) return false;");
                 writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write($"\"{field.Name}\": ")})) return false;");
-                writer.WriteLine($"if (!{TsonValueWriterName(plan.Id, field.ValuePlan)}(writer, value.{RecordFieldName(carrierField.Id)}, indentation + 1)) return false;");
+                writer.WriteLine($"if (!{TsonValueWriterName(plan.Id, field.ValuePlan, arrayPlans)}(writer, value.{RecordFieldName(carrierField.Id)}, indentation + 1)) return false;");
                 writer.WriteLine("if (!writer.Static(\",\\n\")) return false;");
             }
             writer.WriteLine("if (!writer.Indent(indentation)) return false;");
@@ -1069,7 +1081,7 @@ public static class CSharpBackend
         writer.WriteLine();
     }
 
-    private static void EmitTsonEnumWriter(CSharpTextWriter writer, MirTsonEncodingPlan plan, MirTsonEnumPlan @enum)
+    private static void EmitTsonEnumWriter(CSharpTextWriter writer, MirTsonEncodingPlan plan, MirTsonEnumPlan @enum, IReadOnlyList<MirTsonArrayPlan> arrayPlans)
     {
         string methodName = TsonValueWriterName(plan.Id, new MirTsonEnumValuePlan(@enum.Name));
         string typeName = CSharpNameMangler.Mangle(@enum.Name);
@@ -1096,7 +1108,7 @@ public static class CSharpBackend
                 {
                     MirTsonEnumPayloadPlan payload = @case.Payloads[index];
                     writer.WriteLine("if (!writer.Indent(indentation + 1)) return false;");
-                    writer.WriteLine($"if (!{TsonValueWriterName(plan.Id, payload.ValuePlan)}(writer, item.{CSharpNameMangler.Mangle(payload.Name)}, indentation + 1)) return false;");
+                    writer.WriteLine($"if (!{TsonValueWriterName(plan.Id, payload.ValuePlan, arrayPlans)}(writer, item.{CSharpNameMangler.Mangle(payload.Name)}, indentation + 1)) return false;");
                     writer.WriteLine(index + 1 < @case.Payloads.Count
                         ? "if (!writer.Static(\",\\n\")) return false;"
                         : "if (!writer.Static(\"\\n\")) return false;");
@@ -1117,6 +1129,38 @@ public static class CSharpBackend
         writer.WriteLine();
     }
 
+    private static void EmitTsonArrayWriter(
+        CSharpTextWriter writer,
+        MirTsonEncodingPlan plan,
+        MirTsonArrayPlan arrayPlan,
+        IReadOnlyList<MirTsonArrayPlan> arrayPlans)
+    {
+        string elementType = TsonValuePlanType(arrayPlan.ElementPlan);
+        writer.WriteLine($"private static bool {TsonArrayWriterName(plan.Id, arrayPlan, arrayPlans)}(__TsonWriter writer, {elementType}[] value, int indentation)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (value is null) throw new global::System.InvalidOperationException(\"Copeland C# backend invariant failure.\");");
+        writer.WriteLine("var array = value;");
+        writer.WriteLine("var length = array.Length;");
+        writer.WriteLine($"if (length > {plan.Limits.MaximumArrayLength}) return writer.OutputLimit();");
+        writer.WriteLine("if (length == 0) return writer.Static(\"[]\");");
+        writer.WriteLine("if (!writer.Static(\"[\\n\")) return false;");
+        writer.WriteLine("for (var index = 0; index < length; index++)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("var element = array[index];");
+        writer.WriteLine("if (!writer.Indent(indentation + 1)) return false;");
+        writer.WriteLine($"if (!{TsonValueWriterName(plan.Id, arrayPlan.ElementPlan, arrayPlans)}(writer, element, indentation + 1)) return false;");
+        writer.WriteLine("if (!writer.Static(\",\\n\")) return false;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("if (!writer.Indent(indentation)) return false;");
+        writer.WriteLine("return writer.Static(\"]\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+    }
+
     private static string TsonEncodeMethodName(MirTsonEncodingPlanId id)
         => "__tson_encode_" + EncodeStableIdentity(id.Value);
 
@@ -1130,6 +1174,72 @@ public static class CSharpBackend
             MirTsonEnumValuePlan @enum => "__tson_write_" + EncodeStableIdentity(id.Value + "_enum_" + @enum.EnumName),
             _ => throw new InvalidOperationException("Unsupported validated TSON value plan."),
         };
+
+    private static string TsonValueWriterName(MirTsonEncodingPlanId id, MirTsonValuePlan valuePlan, IReadOnlyList<MirTsonArrayPlan> arrayPlans)
+        => valuePlan is MirTsonArrayPlan array
+            ? TsonArrayWriterName(id, array, arrayPlans)
+            : TsonValueWriterName(id, valuePlan);
+
+    private static string TsonArrayWriterName(MirTsonEncodingPlanId id, MirTsonArrayPlan arrayPlan, IReadOnlyList<MirTsonArrayPlan> arrayPlans)
+        => "__tson_write_" + EncodeStableIdentity(id.Value + "_array_" + TsonArrayPlanIndex(arrayPlan, arrayPlans));
+
+    private static int TsonArrayPlanIndex(MirTsonArrayPlan arrayPlan, IReadOnlyList<MirTsonArrayPlan> arrayPlans)
+    {
+        for (int index = 0; index < arrayPlans.Count; index++)
+        {
+            if (arrayPlans[index].Equals(arrayPlan))
+            {
+                return index;
+            }
+        }
+
+        throw new InvalidOperationException("Validated TSON array plan was not collected.");
+    }
+
+    private static string TsonValuePlanType(MirTsonValuePlan valuePlan)
+        => valuePlan switch
+        {
+            MirTsonBooleanPlan => "bool",
+            MirTsonNumberPlan => "double",
+            MirTsonStringPlan => "string",
+            MirTsonRecordValuePlan record => RecordTypeName(record.RecordTypeId),
+            MirTsonEnumValuePlan @enum => CSharpNameMangler.Mangle(@enum.EnumName),
+            MirTsonArrayPlan array => TsonValuePlanType(array.ElementPlan) + "[]",
+            _ => throw new InvalidOperationException("Unsupported validated TSON value plan."),
+        };
+
+    private static IReadOnlyList<MirTsonArrayPlan> CollectTsonArrayPlans(MirTsonEncodingPlan plan)
+    {
+        var arrays = new List<MirTsonArrayPlan>();
+
+        void Visit(MirTsonValuePlan valuePlan)
+        {
+            if (valuePlan is not MirTsonArrayPlan array || arrays.Contains(array))
+            {
+                return;
+            }
+
+            arrays.Add(array);
+            Visit(array.ElementPlan);
+        }
+
+        Visit(plan.RootValuePlan);
+        foreach (MirTsonNominalPlan definition in plan.Definitions)
+        {
+            IEnumerable<MirTsonValuePlan> values = definition switch
+            {
+                MirTsonRecordPlan record => record.Fields.Select(field => field.ValuePlan),
+                MirTsonEnumPlan @enum => @enum.Cases.SelectMany(@case => @case.Payloads.Select(payload => payload.ValuePlan)),
+                _ => [],
+            };
+            foreach (MirTsonValuePlan value in values)
+            {
+                Visit(value);
+            }
+        }
+
+        return arrays;
+    }
     private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
     private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);

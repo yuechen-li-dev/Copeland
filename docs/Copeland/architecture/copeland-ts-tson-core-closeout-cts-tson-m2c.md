@@ -35,7 +35,7 @@ The pre-existing focused suites retain broader M0b/M1b/M2b evidence: parser/prof
 
 ## Boundaries
 
-There is no runtime TSON parsing or decoding, JSON, bytes API, runtime array encoding, Results/tables/optionality as TSON data, structural runtime objects, interfaces, aliases, cross-schema/cross-unit encoding, filesystem access, reflection, `dynamic`, property enumeration, or public runtime `TsonValue`. [CTS-TSON-ARRAY-M0b](copeland-ts-tson-arrays-and-assets-cts-tson-array-m0b.md) subsequently implements compiler-host arrays and compile-time asset lowering while retaining these runtime exclusions.
+There is no runtime TSON parsing or decoding, JSON, bytes API, Results/tables/optionality as TSON data, structural runtime objects, interfaces, aliases, cross-schema/cross-unit encoding, filesystem access, reflection, `dynamic`, property enumeration, or public runtime `TsonValue`. [CTS-TSON-ARRAY-M0b](copeland-ts-tson-arrays-and-assets-cts-tson-array-m0b.md) subsequently implements compiler-host arrays and compile-time asset lowering, and [CTS-TSON-ARRAY-M1](copeland-ts-runtime-tson-array-encoding-cts-tson-array-m1.md) adds only bounded nested runtime array encoding.
 
 ## Closeout
 

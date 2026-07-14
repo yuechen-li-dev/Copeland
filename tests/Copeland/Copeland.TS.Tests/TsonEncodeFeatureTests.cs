@@ -78,7 +78,6 @@ public sealed class TsonEncodeFeatureTests
     }
 
     [Theory]
-    [InlineData("record Bad { values: number[]; } function bad(value: Bad): string ! TsonEncodeError { return tsonEncode(value); }")]
     [InlineData("record Bad { value: number ! string; } function bad(value: Bad): string ! TsonEncodeError { return tsonEncode(value); }")]
     [InlineData("record table Values { value: [1]; } record Bad { value: Values.Row; } function bad(value: Bad): string ! TsonEncodeError { return tsonEncode(value); }")]
     public void Unsupported_reachable_types_are_compile_time_errors(string source)
@@ -88,6 +87,24 @@ public sealed class TsonEncodeFeatureTests
 
         Assert.False(compilation.Success);
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-TSON-ENCODE-0003");
+    }
+
+    [Fact]
+    public void Supported_nested_arrays_build_one_structural_plan()
+    {
+        CopelandCompilation compilation = Compile("""
+            const $schema: string = "copeland://tests/arrays";
+            record Item { name: string; }
+            enum Choice { None, Some(item: Item), }
+            record Batch { names: string[]; items: Item[]; choices: Choice[]; matrix: number[][]; }
+            function encode(value: Batch): string ! TsonEncodeError { return tsonEncode(value); }
+            """);
+
+        Assert.True(compilation.Success, Describe(compilation));
+        string mir = compilation.MirText!;
+        Assert.Contains("string[]", mir, StringComparison.Ordinal);
+        Assert.Contains("number[][]", mir, StringComparison.Ordinal);
+        Assert.Single(compilation.MirCompilation!.Program!.TsonEncodingPlans);
     }
 
     [Fact]

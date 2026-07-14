@@ -180,7 +180,8 @@ public static class MirValidator
             diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has malformed schema identity '{plan.SchemaIdentity}'."));
         }
         if (plan.Limits.MaximumUtf8Bytes != 1_048_576
-            || plan.Limits.MaximumStringCodeUnits != 262_144)
+            || plan.Limits.MaximumStringCodeUnits != 262_144
+            || plan.Limits.MaximumArrayLength != 100_000)
         {
             diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has invalid fixed limits."));
         }
@@ -325,6 +326,18 @@ public static class MirValidator
         HashSet<string> visiting,
         List<MirValidationDiagnostic> diagnostics)
     {
+        if (valuePlan is MirTsonArrayPlan array)
+        {
+            if (array.ElementPlan is null)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' contains an array without an element plan."));
+                return;
+            }
+
+            VisitTsonValuePlan(array.ElementPlan, plan, reachable, visiting, diagnostics);
+            return;
+        }
+
         string? key = valuePlan switch
         {
             MirTsonRecordValuePlan record => "record:" + record.RecordTypeId.Value,
@@ -381,6 +394,7 @@ public static class MirValidator
             (MirTsonStringPlan, MirType { Identifier: "string" }) => true,
             (MirTsonRecordValuePlan value, MirRecordType record) => value.RecordTypeId == record.RecordTypeId,
             (MirTsonEnumValuePlan value, MirType named) when named is not MirArrayType and not MirResultType => value.EnumName == named.Identifier,
+            (MirTsonArrayPlan array, MirArrayType arrayType) when array.ElementPlan is not null => TsonPlanMatchesType(array.ElementPlan, arrayType.ElementType),
             _ => false,
         };
 

@@ -216,7 +216,8 @@ $mirText = ($mirSources | Get-Content -Raw) -join "`n"
 Require-Condition ($mirText.Contains('class MirTsonEncodingPlan', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans must be owned by Copeland.TS.Mir."
 Require-Condition ($mirText.Contains('record MirTsonEncodeExpression', [System.StringComparison]::Ordinal)) "Runtime TSON encoding requires a dedicated MIR expression."
 Require-Condition ($mirText.Contains('ValidateTsonEncodingModel', [System.StringComparison]::Ordinal)) "Runtime TSON encoding plans require shared MIR validation."
-Require-Condition (-not $mirText.Contains('MirTsonArrayPlan', [System.StringComparison]::Ordinal)) "ARRAY-M0b must not add a runtime TSON array encoding plan."
+Require-Condition ($mirText.Contains('MirTsonArrayPlan', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans must be owned by Copeland.TS.Mir."
+Require-Condition ($mirText.Contains('MaximumArrayLength', [System.StringComparison]::Ordinal)) "ARRAY-M1 runtime array encoding plans require a shared array limit."
 
 $backendSources = @(
     Get-ChildItem -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.CSharp") -Recurse -Filter *.cs -File
@@ -226,6 +227,7 @@ $forbiddenBackendTson = $backendSources | Select-String -Pattern '\b(TsonValue|T
 Require-Condition ($null -eq $forbiddenBackendTson) "Backends must not reference compiler-host TSON types."
 $javaScriptBackendText = Get-Content -Raw -LiteralPath (Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript/JavaScriptBackend.cs")
 Require-Condition ($javaScriptBackendText.Contains('MirArrayExpression array => EmitArrayExpression', [System.StringComparison]::Ordinal)) "JavaScript arrays must be realized through the ordinary backend path."
+Require-Condition ($javaScriptBackendText.Contains('Array.isArray(array)', [System.StringComparison]::Ordinal)) "JavaScript TSON array encoding must validate ordinary array carriers."
 
 $forbiddenRuntimeEncodingApis = $backendSources | Select-String -Pattern 'System\.Text\.Json|JSON\.stringify|System\.Reflection|System\.IO\.File|File\.(Read|Write)|\breflection\b|\bdynamic\b'
 Require-Condition ($null -eq $forbiddenRuntimeEncodingApis) "Generated backends must not add JSON, reflection, dynamic, or runtime filesystem dependencies for TSON encoding."

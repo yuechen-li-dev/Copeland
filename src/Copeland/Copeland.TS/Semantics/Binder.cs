@@ -1093,6 +1093,10 @@ public static class Binder
             {
                 return true;
             }
+            if (type is ArrayTypeSymbol array)
+            {
+                return VisitTsonType(array.ElementType, path + "[]", anchor, reachable, visiting);
+            }
             if (type is not RecordTypeSymbol and not EnumTypeSymbol)
             {
                 Report("COPE-TSON-ENCODE-0003", $"TSON encoding does not support reachable type '{type.Name}' at '{path}'.", anchor);

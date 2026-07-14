@@ -47,7 +47,13 @@ public static class MirTextWriter
             sb.Append("tson-plan ").Append(plan.Id).Append(" schema ").Append(plan.SchemaIdentity)
                 .Append(" root ").Append(plan.RootType.Name)
                 .Append(" limits utf8=").Append(plan.Limits.MaximumUtf8Bytes)
-                .Append(" string-utf16=").AppendLine(plan.Limits.MaximumStringCodeUnits.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                .Append(" string-utf16=").Append(plan.Limits.MaximumStringCodeUnits);
+            if (TsonPlanContainsArray(plan.RootValuePlan)
+                || plan.Definitions.Any(TsonDefinitionContainsArray))
+            {
+                sb.Append(" array-length=").Append(plan.Limits.MaximumArrayLength);
+            }
+            sb.AppendLine();
             foreach (var definition in plan.Definitions)
             {
                 switch (definition)
@@ -183,8 +189,20 @@ public static class MirTextWriter
             MirTsonStringPlan => "string",
             MirTsonRecordValuePlan record => $"record [{record.RecordTypeId}]",
             MirTsonEnumValuePlan @enum => $"enum {@enum.EnumName}",
+            MirTsonArrayPlan array => FormatTsonValuePlan(array.ElementPlan) + "[]",
             _ => "<unsupported>",
         };
+
+    private static bool TsonDefinitionContainsArray(MirTsonNominalPlan definition)
+        => definition switch
+        {
+            MirTsonRecordPlan record => record.Fields.Any(field => TsonPlanContainsArray(field.ValuePlan)),
+            MirTsonEnumPlan @enum => @enum.Cases.Any(@case => @case.Payloads.Any(payload => TsonPlanContainsArray(payload.ValuePlan))),
+            _ => false,
+        };
+
+    private static bool TsonPlanContainsArray(MirTsonValuePlan plan)
+        => plan is MirTsonArrayPlan;
 
     private static string FormatTableConstant(MirTableConstant constant) => constant switch
     {

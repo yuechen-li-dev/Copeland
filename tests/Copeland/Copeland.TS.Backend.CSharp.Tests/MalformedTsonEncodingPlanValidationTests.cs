@@ -17,6 +17,7 @@ public sealed class MalformedTsonEncodingPlanValidationTests
         yield return Case("missing referenced plan", Program([], function));
         yield return Case("malformed schema", Program([Plan(schema: "bad")], function));
         yield return Case("invalid limits", Program([Plan(limits: new MirTsonEncodingLimits(1, 1))], function));
+        yield return Case("invalid array limit", Program([Plan(limits: new MirTsonEncodingLimits(1_048_576, 262_144, 99_999))], function));
         yield return Case("malformed static canonical text", Program([Plan(schema: Schema + "\uD800")], function));
         yield return Case(
             "cross-schema definition identity",
@@ -72,6 +73,22 @@ public sealed class MalformedTsonEncodingPlanValidationTests
                     [
                         new MirTsonRecordFieldPlan(FieldId, "text", Schema + "#Root.text", new MirTsonEnumValuePlan("Missing")),
                     ])])],
+                function));
+        yield return Case(
+            "array field type mismatch",
+            Program([Plan(definitions: [new MirTsonRecordPlan(
+                RootId,
+                "Root",
+                Schema + "#Root",
+                [new MirTsonRecordFieldPlan(FieldId, "text", Schema + "#Root.text", new MirTsonArrayPlan(new MirTsonStringPlan()))])])],
+                function));
+        yield return Case(
+            "array missing element plan",
+            Program([Plan(definitions: [new MirTsonRecordPlan(
+                RootId,
+                "Root",
+                Schema + "#Root",
+                [new MirTsonRecordFieldPlan(FieldId, "text", Schema + "#Root.text", new MirTsonArrayPlan(null!))])])],
                 function));
         yield return Case(
             "structural root type",

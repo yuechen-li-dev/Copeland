@@ -38,10 +38,11 @@ public readonly record struct MirTsonEncodingPlanId(string Value)
     public override string ToString() => Value;
 }
 
-public sealed class MirTsonEncodingLimits(int maximumUtf8Bytes, int maximumStringCodeUnits)
+public sealed class MirTsonEncodingLimits(int maximumUtf8Bytes, int maximumStringCodeUnits, int maximumArrayLength = 100_000)
 {
     public int MaximumUtf8Bytes { get; } = maximumUtf8Bytes;
     public int MaximumStringCodeUnits { get; } = maximumStringCodeUnits;
+    public int MaximumArrayLength { get; } = maximumArrayLength;
 }
 
 public abstract record MirTsonValuePlan;
@@ -50,6 +51,7 @@ public sealed record MirTsonNumberPlan : MirTsonValuePlan;
 public sealed record MirTsonStringPlan : MirTsonValuePlan;
 public sealed record MirTsonRecordValuePlan(MirRecordTypeId RecordTypeId) : MirTsonValuePlan;
 public sealed record MirTsonEnumValuePlan(string EnumName) : MirTsonValuePlan;
+public sealed record MirTsonArrayPlan(MirTsonValuePlan ElementPlan) : MirTsonValuePlan;
 
 public abstract class MirTsonNominalPlan(string name, string stableIdentity)
 {

@@ -117,6 +117,7 @@ public static class MirTsonCanonicalText
                 .Single(item => item.RecordTypeId == record.RecordTypeId)
                 .Name,
             MirTsonEnumValuePlan @enum => @enum.EnumName,
+            MirTsonArrayPlan array => ValueTypeName(array.ElementPlan, plan) + "[]",
             _ => throw new InvalidOperationException("Unsupported validated TSON value plan."),
         };
     }

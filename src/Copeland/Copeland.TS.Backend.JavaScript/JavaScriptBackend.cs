@@ -1223,7 +1223,8 @@ public static class JavaScriptBackend
     {
         writer.WriteLine($"const {names.TsonRuntime} = (() => {{");
         writer.Indent();
-        EmitJavaScriptTsonWriter(writer);
+        bool needsArrayWriter = plans.Any(plan => CollectTsonArrayPlans(plan).Count > 0);
+        EmitJavaScriptTsonWriter(writer, needsArrayWriter);
         writer.WriteLine();
         writer.WriteLine("function writeBoolean(writer, value, indentation) { return writer.static(value ? \"true\" : \"false\"); }");
         writer.WriteLine("function writeNumber(writer, value, indentation) { return writer.number(value); }");
@@ -1246,7 +1247,7 @@ public static class JavaScriptBackend
         writer.WriteLine("})();");
     }
 
-    private static void EmitJavaScriptTsonWriter(JavaScriptTextWriter writer)
+    private static void EmitJavaScriptTsonWriter(JavaScriptTextWriter writer, bool needsArrayWriter)
     {
         writer.WriteLine("function makeWriter(maximumBytes, maximumStringCodeUnits) {");
         writer.Indent();
@@ -1338,6 +1339,10 @@ public static class JavaScriptBackend
         writer.WriteLine("indent: level => appendRaw(\" \".repeat(level * 4)),");
         writer.WriteLine("string: writeString,");
         writer.WriteLine("number: writeNumber,");
+        if (needsArrayWriter)
+        {
+            writer.WriteLine("outputLimit: () => fail(\"limit\"),");
+        }
         writer.WriteLine("error: () => error,");
         writer.WriteLine("finish: () => parts.join(\"\"),");
         writer.Unindent();
@@ -1354,6 +1359,7 @@ public static class JavaScriptBackend
         ResultCatalog results,
         GeneratedNames names)
     {
+        IReadOnlyList<MirTsonArrayPlan> arrayPlans = CollectTsonArrayPlans(plan);
         var recordIndexes = plan.Definitions.OfType<MirTsonRecordPlan>().Select((item, index) => (item, index)).ToDictionary(pair => pair.item.RecordTypeId, pair => pair.index);
         var enumIndexes = plan.Definitions.OfType<MirTsonEnumPlan>().Select((item, index) => (item, index)).ToDictionary(pair => pair.item.Name, pair => pair.index);
         foreach (MirTsonRecordPlan record in plan.Definitions.OfType<MirTsonRecordPlan>())
@@ -1375,7 +1381,7 @@ public static class JavaScriptBackend
                     MirRecordFieldDefinition carrierField = carrier.Fields[index];
                     writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
                     writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString($"\"{field.Name}\": ")})) return false;");
-                    writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, field.ValuePlan, recordIndexes, enumIndexes)}(writer, value[{names.RecordFieldSlot(carrierField)}], indentation + 1)) return false;");
+                    writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, field.ValuePlan, recordIndexes, enumIndexes, arrayPlans)}(writer, value[{names.RecordFieldSlot(carrierField)}], indentation + 1)) return false;");
                     writer.WriteLine("if (!writer.static(\",\\n\")) return false;");
                 }
                 writer.WriteLine("if (!writer.indent(indentation)) return false;");
@@ -1407,7 +1413,7 @@ public static class JavaScriptBackend
                     {
                         MirTsonEnumPayloadPlan payload = @case.Payloads[index];
                         writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
-                        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, payload.ValuePlan, recordIndexes, enumIndexes)}(writer, value.$payload[{index}], indentation + 1)) return false;");
+                        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, payload.ValuePlan, recordIndexes, enumIndexes, arrayPlans)}(writer, value.$payload[{index}], indentation + 1)) return false;");
                         writer.WriteLine(index + 1 < @case.Payloads.Count
                             ? "if (!writer.static(\",\\n\")) return false;"
                             : "if (!writer.static(\"\\n\")) return false;");
@@ -1427,6 +1433,11 @@ public static class JavaScriptBackend
             writer.WriteLine("}");
         }
 
+        foreach (MirTsonArrayPlan arrayPlan in arrayPlans)
+        {
+            EmitJavaScriptTsonArrayWriter(writer, plan, planIndex, arrayPlan, recordIndexes, enumIndexes, arrayPlans, names);
+        }
+
         MirResultType resultType = new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));
         string resultToken = names.TypeToken(results.Get(resultType));
         string errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
@@ -1435,7 +1446,7 @@ public static class JavaScriptBackend
         writer.WriteLine($"const writer = makeWriter({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
         writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString(MirTsonCanonicalText.BuildDocumentPrefix(plan))})");
         writer.Indent();
-        writer.WriteLine($"|| !{JavaScriptTsonValueWriter(planIndex, plan.RootValuePlan, recordIndexes, enumIndexes)}(writer, value, 0)");
+        writer.WriteLine($"|| !{JavaScriptTsonValueWriter(planIndex, plan.RootValuePlan, recordIndexes, enumIndexes, arrayPlans)}(writer, value, 0)");
         writer.WriteLine("|| !writer.static(\";\\n\")) {");
         writer.Unindent();
         writer.Indent();
@@ -1453,7 +1464,8 @@ public static class JavaScriptBackend
         int planIndex,
         MirTsonValuePlan valuePlan,
         IReadOnlyDictionary<MirRecordTypeId, int> recordIndexes,
-        IReadOnlyDictionary<string, int> enumIndexes)
+        IReadOnlyDictionary<string, int> enumIndexes,
+        IReadOnlyList<MirTsonArrayPlan>? arrayPlans = null)
         => valuePlan switch
         {
             MirTsonBooleanPlan => "writeBoolean",
@@ -1461,8 +1473,112 @@ public static class JavaScriptBackend
             MirTsonStringPlan => "writeString",
             MirTsonRecordValuePlan record => $"writeP{planIndex}R{recordIndexes[record.RecordTypeId]}",
             MirTsonEnumValuePlan @enum => $"writeP{planIndex}E{enumIndexes[@enum.EnumName]}",
+            MirTsonArrayPlan array when arrayPlans is not null => JavaScriptTsonArrayWriterName(planIndex, array, arrayPlans),
             _ => throw new InvalidOperationException("Unsupported validated TSON value plan."),
         };
+
+    private static void EmitJavaScriptTsonArrayWriter(
+        JavaScriptTextWriter writer,
+        MirTsonEncodingPlan plan,
+        int planIndex,
+        MirTsonArrayPlan arrayPlan,
+        IReadOnlyDictionary<MirRecordTypeId, int> recordIndexes,
+        IReadOnlyDictionary<string, int> enumIndexes,
+        IReadOnlyList<MirTsonArrayPlan> arrayPlans,
+        GeneratedNames names)
+    {
+        writer.WriteLine($"function {JavaScriptTsonArrayWriterName(planIndex, arrayPlan, arrayPlans)}(writer, value, indentation) {{");
+        writer.Indent();
+        writer.WriteLine("const array = value;");
+        writer.WriteLine($"if (!Array.isArray(array)) {{ {names.Panic}(); }}");
+        writer.WriteLine("const length = array.length;");
+        writer.WriteLine($"if (length > {plan.Limits.MaximumArrayLength}) return writer.outputLimit();");
+        writer.WriteLine("if (length === 0) return writer.static(\"[]\");");
+        writer.WriteLine("if (!writer.static(\"[\\n\")) return false;");
+        writer.WriteLine("for (let index = 0; index < length; index += 1) {");
+        writer.Indent();
+        writer.WriteLine("if (!Object.prototype.hasOwnProperty.call(array, index)) { " + names.Panic + "(); }");
+        writer.WriteLine("const element = array[index];");
+        EmitJavaScriptTsonArrayElementValidation(writer, arrayPlan.ElementPlan, "element", names);
+        writer.WriteLine("if (!writer.indent(indentation + 1)) return false;");
+        writer.WriteLine($"if (!{JavaScriptTsonValueWriter(planIndex, arrayPlan.ElementPlan, recordIndexes, enumIndexes, arrayPlans)}(writer, element, indentation + 1)) return false;");
+        writer.WriteLine("if (!writer.static(\",\\n\")) return false;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("if (!writer.indent(indentation)) return false;");
+        writer.WriteLine("return writer.static(\"]\");");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitJavaScriptTsonArrayElementValidation(
+        JavaScriptTextWriter writer,
+        MirTsonValuePlan valuePlan,
+        string value,
+        GeneratedNames names)
+    {
+        string? condition = valuePlan switch
+        {
+            MirTsonBooleanPlan => $"typeof {value} !== \"boolean\"",
+            MirTsonNumberPlan => $"typeof {value} !== \"number\"",
+            MirTsonStringPlan => $"typeof {value} !== \"string\"",
+            MirTsonArrayPlan => $"!Array.isArray({value})",
+            _ => null,
+        };
+        if (condition is not null)
+        {
+            writer.WriteLine($"if ({condition}) {{ {names.Panic}(); }}");
+        }
+    }
+
+    private static string JavaScriptTsonArrayWriterName(int planIndex, MirTsonArrayPlan arrayPlan, IReadOnlyList<MirTsonArrayPlan> arrayPlans)
+        => $"writeP{planIndex}A{JavaScriptTsonArrayPlanIndex(arrayPlan, arrayPlans)}";
+
+    private static int JavaScriptTsonArrayPlanIndex(MirTsonArrayPlan arrayPlan, IReadOnlyList<MirTsonArrayPlan> arrayPlans)
+    {
+        for (int index = 0; index < arrayPlans.Count; index++)
+        {
+            if (arrayPlans[index].Equals(arrayPlan))
+            {
+                return index;
+            }
+        }
+
+        throw new InvalidOperationException("Validated TSON array plan was not collected.");
+    }
+
+    private static IReadOnlyList<MirTsonArrayPlan> CollectTsonArrayPlans(MirTsonEncodingPlan plan)
+    {
+        var arrays = new List<MirTsonArrayPlan>();
+
+        void Visit(MirTsonValuePlan valuePlan)
+        {
+            if (valuePlan is not MirTsonArrayPlan array || arrays.Contains(array))
+            {
+                return;
+            }
+
+            arrays.Add(array);
+            Visit(array.ElementPlan);
+        }
+
+        Visit(plan.RootValuePlan);
+        foreach (MirTsonNominalPlan definition in plan.Definitions)
+        {
+            IEnumerable<MirTsonValuePlan> values = definition switch
+            {
+                MirTsonRecordPlan record => record.Fields.Select(field => field.ValuePlan),
+                MirTsonEnumPlan @enum => @enum.Cases.SelectMany(@case => @case.Payloads.Select(payload => payload.ValuePlan)),
+                _ => [],
+            };
+            foreach (MirTsonValuePlan value in values)
+            {
+                Visit(value);
+            }
+        }
+
+        return arrays;
+    }
 
     private static EmittedExpression EmitBinary(MirBinaryExpression binary, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
