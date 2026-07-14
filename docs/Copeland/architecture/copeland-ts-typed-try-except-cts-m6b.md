@@ -1,6 +1,6 @@
 # CTS-M6b: Typed `try`/`except` implementation
 
-**Status:** implemented through frontend, Cope MIR, C# proof backend, CLI, language fixtures, and focused tests. JavaScript handler lowering is deliberately deferred to CTS-M6c.
+**Status:** historical CTS-M6b implementation record. It implemented frontend, Cope MIR, C# proof backend, CLI, language fixtures, and focused tests. JavaScript handler lowering is implemented by CTS-M6c; the complete contract is closed by CTS-M6d.
 
 `try { ... value } except (error) { ... value }` is a dedicated expression, not a CLR or JavaScript exception construct. Its bounded value blocks accept `const`/`let` declarations, ordinary expression statements, and one final expression without a semicolon. `return`, statement control flow, and nested ordinary blocks are rejected with `COPE-TRY-0005`.
 
@@ -12,6 +12,6 @@ Cope MIR preserves this with `MirTryExpression`, `MirValueBlock`, `MirTryBinding
 
 The C# backend lowers handlers to typed result/error temporaries, labels, and `goto` branches. Normal success goes to a join label; an `err` assigned to a lexical target transfers to that target's error temporary and handler label. It uses no C# `try`, `catch`, or ordinary Result exception. The existing unwrap panic still throws only on unwrap failure and is not intercepted.
 
-The JavaScript backend validates this MIR but returns `COPE-JS-0001` with no source artifact for `MirTryExpression`; CTS-M6c owns private structured-flow lowering. Existing Result construction, function-return propagation, and unwrap JavaScript emission remain supported.
+At this checkpoint the JavaScript backend rejected `MirTryExpression`; CTS-M6c later replaced that historical boundary with private structured-flow lowering. Existing Result construction, function-return propagation, and unwrap JavaScript emission remain supported.
 
 Relevant source contracts are under `tests/Copeland/Copeland.TS.Tests/Language/*/fallibility/try-except-*.cl-*.ts`; C# branch/runtime and JavaScript rejection proofs are backend-owned focused tests.

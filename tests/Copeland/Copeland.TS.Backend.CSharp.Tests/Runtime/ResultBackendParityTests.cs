@@ -10,6 +10,69 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class ResultBackendParityTests
 {
     [Fact]
+    public async Task JavaScript_And_CSharp_Repeat_The_Ratified_Fallibility_Matrix_Deterministically()
+    {
+        const string source = """
+            function good(): number ! string { return ok(4); }
+            function bad(): number ! string { return err("bad"); }
+            function forward(value: number ! string): number ! string { return value; }
+            function inspect(value: number ! string): number {
+              return match value { ok(resultValue) => resultValue, err(error) => 0, };
+            }
+            function successWithoutRecovery(): number {
+              return try { good()? } except (error) { 90 };
+            }
+            function localRecovery(): number {
+              return try { bad()? } except (error) { 5 };
+            }
+            function nestedInnerRecovery(): number {
+              return try { good()?; try { bad()? } except (inner) { 6 } } except (outer) { 91 };
+            }
+            function outerRecovery(): number {
+              return try { try { bad()? } except (inner) { bad()? } } except (outer) { 7 };
+            }
+            function handlerToFunction(): number ! string {
+              return try { bad()? } except (error) { bad()? };
+            }
+            function main(): number {
+              const matched: number = match good() { ok(value) => value, err(error) => 0, };
+              return successWithoutRecovery() + localRecovery() + nestedInnerRecovery() + outerRecovery() + inspect(handlerToFunction()) + inspect(forward(bad())) + matched + good()!;
+            }
+            """;
+
+        CopelandCompilation firstCompilation = CopelandCompiler.CompileToMir(source);
+        CopelandCompilation secondCompilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(firstCompilation.Success, string.Join(Environment.NewLine, firstCompilation.Diagnostics));
+        Assert.True(secondCompilation.Success, string.Join(Environment.NewLine, secondCompilation.Diagnostics));
+        Assert.Equal(firstCompilation.MirText, secondCompilation.MirText);
+
+        JavaScriptCompilation firstJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation!.Program!);
+        JavaScriptCompilation secondJavaScript = JavaScriptBackend.Emit(secondCompilation.MirCompilation!.Program!);
+        Assert.True(firstJavaScript.Success, string.Join(Environment.NewLine, firstJavaScript.Diagnostics));
+        Assert.Equal(firstJavaScript.SourceText, secondJavaScript.SourceText);
+        Assert.DoesNotContain("catch", firstJavaScript.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("export ", firstJavaScript.SourceText, StringComparison.Ordinal);
+
+        ProcessResult firstNode = await RunNodeAsync(firstJavaScript.SourceText + "console.log(main());\n");
+        ProcessResult secondNode = await RunNodeAsync(firstJavaScript.SourceText + "console.log(main());\n");
+        Assert.Equal("30\n", firstNode.StdOut);
+        Assert.Equal(string.Empty, firstNode.StdErr);
+        Assert.Equal(firstNode, secondNode);
+
+        CSharpCompilation firstCSharp = CSharpBackend.Emit(firstCompilation.MirCompilation.Program!);
+        CSharpCompilation secondCSharp = CSharpBackend.Emit(secondCompilation.MirCompilation.Program!);
+        Assert.Empty(firstCSharp.Diagnostics);
+        Assert.Equal(firstCSharp.SourceText, secondCSharp.SourceText);
+        Assert.DoesNotMatch(@"\btry\s*\{", firstCSharp.SourceText);
+        Assert.DoesNotMatch(@"\bcatch\s*\(", firstCSharp.SourceText);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(firstCSharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(30d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+        Assert.Equal(30d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
     public async Task JavaScript_And_CSharp_Observe_The_Same_Typed_Try_Except_Behavior()
     {
         const string source = """

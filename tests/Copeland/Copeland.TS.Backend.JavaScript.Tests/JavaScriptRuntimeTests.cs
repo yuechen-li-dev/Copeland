@@ -10,6 +10,46 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_Proves_Propagation_Unwrap_And_Selected_Handler_Operands_Run_Exactly_Once()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function good(): number ! string { return ok(4); }
+            function bad(): number ! string { return err("bad"); }
+            function recover(): number { return 5; }
+            function success(): number {
+              return try { good()? } except (error) { recover() };
+            }
+            function handled(): number {
+              return try { bad()? } except (error) { recover() };
+            }
+            function unwrap(): number { return good()!; }
+            """);
+
+        string script = emitted.SourceText + """
+            let goodCalls = 0;
+            let badCalls = 0;
+            let recoverCalls = 0;
+            const originalGood = good;
+            const originalBad = bad;
+            const originalRecover = recover;
+            good = () => { goodCalls += 1; return originalGood(); };
+            bad = () => { badCalls += 1; return originalBad(); };
+            recover = () => { recoverCalls += 1; return originalRecover(); };
+            console.log(success());
+            console.log(handled());
+            console.log(unwrap());
+            console.log(`${goodCalls},${badCalls},${recoverCalls}`);
+            """;
+
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal("4\n5\n4\n2,1,1\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public async Task Node_Executes_Typed_Try_Except_And_Nested_Bubbling_Repeatedly()
     {
         JavaScriptCompilation emitted = Emit("""

@@ -1,6 +1,6 @@
 # CTS-M4a: First-class Result and fallibility MIR design
 
-**Status:** accepted language laws and architecture record. CTS-M4b implements the bounded frontend, dedicated Cope MIR, and C# proof-backend slice; CTS-M4c implements JavaScript Result emission; CTS-M5 implements postfix unwrap; and [CTS-M6a](copeland-ts-try-except-design-cts-m6a.md) accepts the lexical-handler design. `try`/`except` remains unimplemented.
+**Status:** historical accepted language-law and architecture record. CTS-M4b implements the bounded frontend, dedicated Cope MIR, and C# proof-backend slice; CTS-M4c implements JavaScript Result emission; CTS-M5 implements postfix unwrap; CTS-M6b/M6c implement lexical `try`/`except`; and CTS-M6d ratifies the complete subsystem.
 
 ## Decision summary
 

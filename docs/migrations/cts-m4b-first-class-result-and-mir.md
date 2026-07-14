@@ -16,7 +16,7 @@ CTS-M4b completes the M4a frontend-to-MIR migration. The authoritative design re
 
 Updated MIR corpus artifacts are limited to the old fallibility cases: `fallible_signature.cope` now contains `ok`, and `propagation.cope` contains dedicated propagation plus explicit return construction. Existing nonfallible MIR/C# and JavaScript `.g.js` artifacts are unchanged. New curated language fixtures cover first-class construction, matching, forwarding, storage, enum payloads, nested Result, void Result, and invalid contextual/error cases.
 
-The C# runtime proof covers existing success propagation and void Result behavior, plus explicit `err`, direct forwarding, and Result match recovery. JavaScript tests prove canonical Result MIR produces diagnostics and no source artifact.
+The C# runtime proof covers existing success propagation and void Result behavior, plus explicit `err`, direct forwarding, and Result match recovery. At this historical checkpoint JavaScript Result MIR was still rejected; CTS-M4c later implements that backend path, and CTS-M6d closes the complete fallibility sequence.
 
 ## Validation
 

@@ -1,12 +1,12 @@
 # CTS-M4a first-class Result MIR design
 
-**Status:** documentation-only design milestone. No compiler, test, fixture, project, solution, tooling, or runtime file is changed by this record.
+**Status:** historical documentation-only design milestone. No compiler, test, fixture, project, solution, tooling, or runtime file changed in CTS-M4a; CTS-M4b through CTS-M6d later implement and close the design.
 
 ## Outcome
 
 CTS-M4a records the accepted first-class Result laws and the smallest backend-neutral Cope MIR direction needed to implement them. The detailed design is [CTS-M4a: First-class Result and fallibility MIR design](../Copeland/language/copeland-ts-first-class-result-design-cts-m4a.md).
 
-The accepted language law remains `Result<T,E> = ok(T) | err(E)`, with `T ! E` as Copeland source spelling. A fallible call must become a Result value, not a success-typed call annotated with fallibility metadata. This does not claim that `T ! E` value annotations, `ok`, `err`, Result matching, postfix unwrap, or `try`/`except` parse or run today.
+The accepted language law remains `Result<T,E> = ok(T) | err(E)`, with `T ! E` as Copeland source spelling. A fallible call must become a Result value, not a success-typed call annotated with fallibility metadata. At this historical checkpoint it did not claim that `T ! E` value annotations, `ok`, `err`, Result matching, postfix unwrap, or `try`/`except` parsed or ran; CTS-M6d records their final implemented boundary.
 
 ## Required implementation migration inventory
 

@@ -14,4 +14,4 @@ Diagnostics reserved by CTS-M6a are now implemented: `COPE-TRY-0001` malformed s
 
 The historical JavaScript rejection boundary is retired for valid CTS-M6b handler MIR by [CTS-M6c JavaScript typed `try`/`except`](../Copeland/architecture/copeland-ts-javascript-try-except-cts-m6c.md). Invalid MIR remains artifact-free, and ordinary Result transfer still must not use JavaScript `throw`/`catch`.
 
-Validation covers parser/binder semantics, language fixtures, MIR validation, C# generated-source compilation/runtime recovery, nested outer transfer, JavaScript rejection, and existing Result/unwrap suites. Unwrap remains terminal and bypasses every handler.
+Validation at this checkpoint covered parser/binder semantics, language fixtures, MIR validation, C# generated-source compilation/runtime recovery, nested outer transfer, JavaScript rejection, and existing Result/unwrap suites. CTS-M6c retires that JavaScript rejection; unwrap remains terminal and bypasses every handler.

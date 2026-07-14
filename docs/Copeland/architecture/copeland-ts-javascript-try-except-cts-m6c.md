@@ -1,5 +1,7 @@
 # CTS-M6c: JavaScript typed `try`/`except`
 
+**Status:** historical implementation record. CTS-M6d closes and ratifies this backend path with shared MIR validation and expanded parity evidence.
+
 CTS-M6c enables the canonical CTS-M6b `MirTryExpression` and `MirValueBlock` in the MIR-only JavaScript backend. It changes neither source syntax, binding, handler allocation, canonical MIR, nor C# emission.
 
 Each generated program that uses a handler declares a compiler-private frozen null-prototype flow token and records for `value`, `handler`, and `function` completion. These records are distinct from private Result values: Result records retain their result token and `ok`/`err` tag, while flow records retain the flow token and completion kind. They are generated implementation detail, not source ABI.

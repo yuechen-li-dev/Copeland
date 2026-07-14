@@ -11,6 +11,7 @@ public static class MirValidator
         {
             var handlerIds = new HashSet<MirHandlerId>();
             ValidateStatements(function.Body, [], handlerIds, diagnostics);
+            ValidateFunctionPropagationTargets(function.Body, function.ReturnType, diagnostics);
         }
 
         return diagnostics;
@@ -161,6 +162,130 @@ public static class MirValidator
         }
 
         scope.WasTargeted = true;
+    }
+
+    private static void ValidateFunctionPropagationTargets(
+        IReadOnlyList<MirStatement> statements,
+        MirType functionReturnType,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (var statement in statements)
+        {
+            switch (statement)
+            {
+                case MirVariableDeclarationStatement declaration:
+                    ValidateFunctionPropagationTarget(declaration.Initializer, functionReturnType, diagnostics);
+                    break;
+                case MirExpressionStatement expression:
+                    ValidateFunctionPropagationTarget(expression.Expression, functionReturnType, diagnostics);
+                    break;
+                case MirReturnStatement { Expression: not null } returnStatement:
+                    ValidateFunctionPropagationTarget(returnStatement.Expression, functionReturnType, diagnostics);
+                    break;
+                case MirIfStatement conditional:
+                    ValidateFunctionPropagationTarget(conditional.Condition, functionReturnType, diagnostics);
+                    ValidateFunctionPropagationTargets(conditional.ThenStatements, functionReturnType, diagnostics);
+                    if (conditional.ElseStatements is not null)
+                    {
+                        ValidateFunctionPropagationTargets(conditional.ElseStatements, functionReturnType, diagnostics);
+                    }
+                    break;
+            }
+        }
+    }
+
+    private static void ValidateFunctionPropagationTarget(
+        MirExpression expression,
+        MirType functionReturnType,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        switch (expression)
+        {
+            case MirPropagateExpression propagation:
+                if (propagation.Target is MirPropagationTarget.FunctionReturn)
+                {
+                    if (functionReturnType is not MirResultType functionResult)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic("Function-return propagation requires a Result function return type."));
+                    }
+                    else if (propagation.Operand.Type is MirResultType operandResult
+                        && !MirTypeFacts.AreEquivalent(functionResult.ErrorType, operandResult.ErrorType))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic(
+                            $"Function-return propagation error type '{operandResult.ErrorType.Name}' does not match function Result error type '{functionResult.ErrorType.Name}'."));
+                    }
+                }
+
+                ValidateFunctionPropagationTarget(propagation.Operand, functionReturnType, diagnostics);
+                return;
+            case MirTryExpression tryExpression:
+                ValidateValueBlockFunctionPropagationTargets(tryExpression.Protected, functionReturnType, diagnostics);
+                ValidateValueBlockFunctionPropagationTargets(tryExpression.Handler, functionReturnType, diagnostics);
+                return;
+            case MirAssignmentExpression assignment:
+                ValidateFunctionPropagationTarget(assignment.Expression, functionReturnType, diagnostics);
+                return;
+            case MirUnaryExpression unary:
+                ValidateFunctionPropagationTarget(unary.Operand, functionReturnType, diagnostics);
+                return;
+            case MirBinaryExpression binary:
+                ValidateFunctionPropagationTarget(binary.Left, functionReturnType, diagnostics);
+                ValidateFunctionPropagationTarget(binary.Right, functionReturnType, diagnostics);
+                return;
+            case MirCallExpression call:
+                foreach (var argument in call.Arguments)
+                {
+                    ValidateFunctionPropagationTarget(argument, functionReturnType, diagnostics);
+                }
+                return;
+            case MirArrayExpression array:
+                foreach (var element in array.Elements)
+                {
+                    ValidateFunctionPropagationTarget(element, functionReturnType, diagnostics);
+                }
+                return;
+            case MirEnumValueExpression value:
+                foreach (var argument in value.Arguments)
+                {
+                    ValidateFunctionPropagationTarget(argument, functionReturnType, diagnostics);
+                }
+                return;
+            case MirMatchExpression match:
+                ValidateFunctionPropagationTarget(match.Scrutinee, functionReturnType, diagnostics);
+                foreach (var arm in match.Arms)
+                {
+                    ValidateFunctionPropagationTarget(arm.Expression, functionReturnType, diagnostics);
+                }
+                return;
+            case MirResultMatchExpression resultMatch:
+                ValidateFunctionPropagationTarget(resultMatch.Scrutinee, functionReturnType, diagnostics);
+                ValidateFunctionPropagationTarget(resultMatch.OkExpression, functionReturnType, diagnostics);
+                ValidateFunctionPropagationTarget(resultMatch.ErrExpression, functionReturnType, diagnostics);
+                return;
+            case MirIfExpression conditional:
+                ValidateFunctionPropagationTarget(conditional.Condition, functionReturnType, diagnostics);
+                ValidateFunctionPropagationTarget(conditional.ThenExpression, functionReturnType, diagnostics);
+                ValidateFunctionPropagationTarget(conditional.ElseExpression, functionReturnType, diagnostics);
+                return;
+            case MirOkExpression ok:
+                ValidateFunctionPropagationTarget(ok.Payload, functionReturnType, diagnostics);
+                return;
+            case MirErrExpression err:
+                ValidateFunctionPropagationTarget(err.Payload, functionReturnType, diagnostics);
+                return;
+            case MirUnwrapExpression unwrap:
+                ValidateFunctionPropagationTarget(unwrap.Operand, functionReturnType, diagnostics);
+                return;
+        }
+    }
+
+    private static void ValidateValueBlockFunctionPropagationTargets(
+        MirValueBlock block,
+        MirType functionReturnType,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        ValidateFunctionPropagationTargets(block.PrefixStatements, functionReturnType, diagnostics);
+        ValidateFunctionPropagationTarget(block.ValueExpression, functionReturnType, diagnostics);
     }
 
     private sealed class HandlerScope(MirHandlerId handlerId, MirType errorType)

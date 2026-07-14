@@ -117,6 +117,28 @@ public sealed class CSharpBackendTests
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("Lexical propagation target 'h2'", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Rejects_Incompatible_Function_Return_Propagation_At_The_Mir_Boundary()
+    {
+        var number = new MirNamedType("number");
+        var stringType = new MirNamedType("string");
+        var result = new MirResultType(number, stringType);
+        var propagation = new MirPropagateExpression(
+            new MirCallExpression("read", [], result),
+            new MirPropagationTarget.FunctionReturn(),
+            number);
+        var program = new MirProgram([], [
+            new MirFunction("main", [], number, [], [new MirReturnStatement(propagation)]),
+        ]);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains(
+            "Function-return propagation requires a Result function return type.",
+            StringComparison.Ordinal));
+    }
+
     private static string Emit(string source) => CSharpBackend.Emit(Lower(source)).SourceText;
 
     private static MirProgram Lower(string source)

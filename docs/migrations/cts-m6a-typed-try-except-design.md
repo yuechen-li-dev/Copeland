@@ -1,6 +1,6 @@
 # CTS-M6a: Typed `try`/`except` design audit
 
-**Status:** documentation-only architecture and semantic-design milestone. No implementation is claimed.
+**Status:** historical documentation-only architecture and semantic-design milestone. CTS-M6b/M6c implement the selected direction, and CTS-M6d closes it.
 
 ## Outcome
 
@@ -12,7 +12,7 @@ try/except    handles only that selected typed transfer and yields a value
 !             terminally panics; it is not a transfer and bypasses every handler
 ```
 
-The audit confirms that the current implementation already has the Result foundation: structural `ResultTypeSymbol`/`MirResultType`, `BoundPropagateExpression`/`MirPropagateExpression`, Result matches, both explicit-Result backends, and `MirUnwrapExpression`. It also confirms the deliberately incomplete part: both propagation-target enums contain only `FunctionReturn`, and there is no `try`, `except`, or expression value-block syntax.
+The audit confirmed that the implementation then had the Result foundation: structural `ResultTypeSymbol`/`MirResultType`, `BoundPropagateExpression`/`MirPropagateExpression`, Result matches, both explicit-Result backends, and `MirUnwrapExpression`. The deliberately incomplete part at that time was that propagation-target enums contained only `FunctionReturn`, with no `try`, `except`, or expression value-block syntax.
 
 ## Selected design
 

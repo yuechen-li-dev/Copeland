@@ -314,6 +314,29 @@ public sealed class JavaScriptBackendTests
         Assert.DoesNotContain("catch", compilation.SourceText, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Rejects_Invalid_Function_Return_Propagation_At_The_Mir_Boundary()
+    {
+        MirType number = new("number");
+        MirType stringType = new("string");
+        MirResultType result = new(number, stringType);
+        var propagation = new MirPropagateExpression(
+            new MirCallExpression("read", [], result),
+            new MirPropagationTarget.FunctionReturn(),
+            number);
+        var program = new MirProgram([], [
+            new MirFunction("main", [], number, [], [new MirReturnStatement(propagation)]),
+        ]);
+
+        JavaScriptCompilation compilation = JavaScriptBackend.Emit(program);
+
+        Assert.False(compilation.Success);
+        Assert.Null(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains(
+            "Function-return propagation requires a Result function return type.",
+            StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("number[]")]
     [InlineData("Choice")]

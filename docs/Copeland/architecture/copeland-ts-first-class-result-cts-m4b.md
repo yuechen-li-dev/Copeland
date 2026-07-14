@@ -1,6 +1,6 @@
 # CTS-M4b first-class Result implementation
 
-**Status:** historical CTS-M4b implementation record. Result source/MIR and C# proof emission were implemented here; JavaScript Result emission is implemented by CTS-M4c and postfix unwrap `!` by CTS-M5. `try`/`except` remains unimplemented; its accepted direction is [CTS-M6a](../language/copeland-ts-try-except-design-cts-m6a.md).
+**Status:** historical CTS-M4b implementation record. Result source/MIR and C# proof emission were implemented here; JavaScript Result emission is implemented by CTS-M4c, postfix unwrap `!` by CTS-M5, and lexical `try`/`except` by CTS-M6b/M6c. The final contract is ratified by [CTS-M6d](copeland-ts-typed-fallibility-closeout-cts-m6d.md).
 
 CTS-M4b implements the accepted M4a Result model. `T ! E` is a structural source type at function, parameter, local, array, nested-type, and enum-payload positions. A fallible call has type `T ! E`; it can be stored, passed, returned, matched, or consumed by `?`.
 
