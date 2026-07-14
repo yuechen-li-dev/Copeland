@@ -119,6 +119,13 @@ public sealed class JavaScriptRuntimeTests
             const ordinary = { x: 40, y: 2 };
             const frozen = Object.freeze({ x: 40, y: 2 });
             const nullPrototype = Object.freeze(Object.assign(Object.create(null), { "$record": "r1", "$field": 40 }));
+            const copiedRecord = Object.create(null);
+            for (const symbol of Object.getOwnPropertySymbols(first)) { copiedRecord[symbol] = first[symbol]; }
+            Object.freeze(copiedRecord);
+            const box = makeBox();
+            const copiedEnum = Object.create(null);
+            for (const symbol of Object.getOwnPropertySymbols(box)) { copiedEnum[symbol] = box[symbol]; }
+            Object.freeze(copiedEnum);
             console.log(Object.getPrototypeOf(first) === null);
             console.log(Object.isFrozen(first));
             console.log(descriptorsAreFixed);
@@ -130,8 +137,10 @@ public sealed class JavaScriptRuntimeTests
             console.log(category(() => readFirst(makeBox())));
             console.log(category(() => readFirst(makeResult())));
             console.log(category(() => readFirst(__FLOW_FACTORY__(first))));
+            console.log(category(() => readFirst(copiedRecord)));
             console.log(category(() => guarded(second)));
             console.log(category(() => readBox(first)));
+            console.log(category(() => readBox(copiedEnum)));
             console.log(category(() => readResult(first)));
             try { first[symbols[1]] = 0; } catch (error) {}
             try { first.extra = 1; } catch (error) {}
@@ -142,7 +151,7 @@ public sealed class JavaScriptRuntimeTests
         ProcessResult firstRun = await RunNodeAsync(script);
         ProcessResult secondRun = await RunNodeAsync(script);
         string invariant = "Copeland JavaScript backend invariant failure.\n";
-        Assert.Equal("true\ntrue\ntrue\ntrue\n" + string.Concat(Enumerable.Repeat(invariant, 10)) + "42\n", firstRun.StdOut);
+        Assert.Equal("true\ntrue\ntrue\ntrue\n" + string.Concat(Enumerable.Repeat(invariant, 12)) + "42\n", firstRun.StdOut);
         Assert.Equal(string.Empty, firstRun.StdErr);
         Assert.Equal(firstRun, secondRun);
     }

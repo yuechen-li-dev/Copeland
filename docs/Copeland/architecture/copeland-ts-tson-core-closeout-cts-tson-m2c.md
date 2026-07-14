@@ -1,6 +1,6 @@
 # Copeland TS TSON core closeout (CTS-TSON-M2c)
 
-**Status:** closeout audit in progress. This record ratifies the core contract already implemented through CTS-TSON-M2b and records the fixed-point evidence added during M2c work. It does not authorize a new value family or runtime decoding.
+**Status:** complete. This record ratifies the core contract implemented through CTS-TSON-M2c and links the finite evidence ledger in [`cts-tson-m2c-core-fixed-point-closeout.md`](../../../migrations/cts-tson-m2c-core-fixed-point-closeout.md). It does not authorize a new value family or runtime decoding.
 
 ## Ratified core
 
@@ -27,7 +27,7 @@ Asset loading remains compile-time-only: an explicitly typed `tsonAsset("./relat
 
 M2c exposed one production defect in the JavaScript nominal-carrier validator: a hostile caller could copy discoverable symbol slots from a frozen record to a new null-prototype object. The shared carrier runtime now registers legitimate records and enums in private generated `WeakSet` provenance registries and requires membership before access or TSON encoding. Record validation no longer enumerates symbols. The adversarial clone regression and regenerated JavaScript corpus prove the repair; the resulting JavaScript artifact hash changes are intentional and limited to carrier hardening.
 
-`MalformedTsonEncodingPlanValidationTests` now has nineteen malformed-plan cases. Both backend entry points reject each through shared MIR validation and return no source artifact, including duplicate/missing plans, bad schema/static text/limits, expression root and Result mismatches, structural/array/Result roots, identity violations, missing/extraneous declarations, unsupported references, cycles, enum case/payload identity collisions, and declaration order.
+`MalformedTsonEncodingPlanValidationTests` has nineteen representable malformed-plan cases. Both backend entry points reject each through shared MIR validation and return no source artifact, including duplicate/missing plans, bad schema/static text/limits, expression root and Result mismatches, structural/array/Result roots, identity violations, missing/extraneous declarations, unsupported references, cycles, enum case/payload identity collisions, and declaration order. The linked ledger maps every production validator branch; optionality and cross-unit malformed references are inapplicable by MIR construction.
 
 The pre-existing focused suites retain broader M0b/M1b/M2b evidence: parser/profile fixtures, compile-time asset resolution, canonical corpus hashes, Unicode and exact-size limits, binary64 categories, generated-artifact isolation, counterfeit nominal JavaScript values, and asset-to-runtime encoding. The M2c limit regression additionally covers 262,143/262,144/262,145 UTF-16 units, a valid supplementary pair at the boundary, both lone-surrogate directions, exact total UTF-8 capacity, and invalid-Unicode precedence over a simultaneous total overflow.
 
@@ -37,6 +37,6 @@ The pre-existing focused suites retain broader M0b/M1b/M2b evidence: parser/prof
 
 There is no runtime TSON parsing or decoding, JSON, bytes API, arrays, Results/tables/optionality as TSON data, structural runtime objects, interfaces, aliases, cross-schema/cross-unit encoding, filesystem access, reflection, `dynamic`, property enumeration, or public runtime `TsonValue`. The next separately approved data expansion remains **TSON arrays**; it is not part of M2c.
 
-## Remaining closeout evidence
+## Closeout
 
-Before the ladder can be declared complete, the test inventory still needs the requested exhaustive adversarial matrix: every listed fixed-point shape/primitive and the remaining malformed-plan categories. This document intentionally records that boundary rather than claiming those checks from the compact matrix.
+The finite requirement ledger contains no `Missing` rows. It maps every original M2c requirement to direct evidence, stronger combined evidence, or a stated language/MIR construction exclusion. The non-TSON JavaScript runtime regression additionally proves that copied record and enum Symbol slots fail ordinary field access and matching, so the provenance repair is not TSON-specific.
