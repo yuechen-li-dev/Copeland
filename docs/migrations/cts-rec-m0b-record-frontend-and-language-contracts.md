@@ -1,5 +1,7 @@
 # CTS-REC-M0b record frontend and language contracts
 
+> Historical milestone boundary: CTS-REC-M1 subsequently implemented C# realization and retired `COPE-CS-REC-0001` for valid MIR. JavaScript still retains its M0b rejection boundary.
+
 CTS-REC-M0b consolidates the originally proposed syntax-only M0b, frontend/MIR M1, and source/bound/MIR portion of `with` from M4. The filesystem valid-fixture contract made a syntax-only stopping point untruthful: accepted fixtures must lower to canonical MIR, while contextual construction, field access, immutability, and `with` all require binding and type identity.
 
 ## Delivered
@@ -19,17 +21,17 @@ The conservative recursive-type boundary follows record containment through arra
 
 ## Diagnostic inventory
 
-`COPE-REC-0001`–`0016` cover invalid declaration, duplicate declaration/field, recursion, required context, incomplete construction, unknown field, duplicate entry, initializer type, access, mutation, `with` receiver/empty/type, nominal mismatch, and equality. Backend ownership is explicit through `COPE-CS-REC-0001` and `COPE-JS-REC-0001`.
+`COPE-REC-0001`–`0016` cover invalid declaration, duplicate declaration/field, recursion, required context, incomplete construction, unknown field, duplicate entry, initializer type, access, mutation, `with` receiver/empty/type, nominal mismatch, and equality. At the M0b boundary backend ownership was explicit through `COPE-CS-REC-0001` and `COPE-JS-REC-0001`; M1 retired the former while the latter remains active.
 
 ## Backend and ladder boundary
 
-No C# or JavaScript record representation exists in M0b. Both backends validate MIR, detect record definitions, return their one record-specific unsupported diagnostic, and expose an empty/null artifact. The CLI can write `.cope`; executable targets fail before an output path is created.
+No C# or JavaScript record representation existed at the M0b checkpoint. CTS-REC-M1 now provides C# representation and execution. JavaScript continues to validate MIR, return `COPE-JS-REC-0001`, and expose no artifact; its CLI target fails before creating an output path.
 
 The remaining ladder is now:
 
 1. **CTS-REC-M0a:** accepted design/audit.
 2. **CTS-REC-M0b:** complete source-to-bound-to-MIR contract, fixtures, diagnostics, `with`, and backend rejection (this milestone).
-3. **CTS-REC-M1:** C# backend realization and runtime/order evidence.
+3. **CTS-REC-M1:** C# backend realization and runtime/order evidence — implemented.
 4. **CTS-REC-M2:** JavaScript backend realization and Node/privacy evidence.
 5. **CTS-REC-M3:** cross-backend parity and closeout.
 

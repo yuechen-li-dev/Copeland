@@ -1,6 +1,6 @@
 # Copeland TS immutable nominal records design (CTS-REC-M0a)
 
-**Status:** accepted design authority. CTS-REC-M0b now implements its source-to-bound-to-MIR slice; C# and JavaScript realization remain deferred. See [the M0b architecture](../architecture/copeland-ts-record-frontend-and-mir-cts-rec-m0b.md).
+**Status:** accepted design authority. CTS-REC-M0b implements source through canonical MIR and CTS-REC-M1 implements the C# backend; JavaScript realization remains deferred. See [the M0b architecture](../architecture/copeland-ts-record-frontend-and-mir-cts-rec-m0b.md) and [the M1 C# architecture](../architecture/copeland-ts-csharp-records-cts-rec-m1.md).
 
 ## Decision
 

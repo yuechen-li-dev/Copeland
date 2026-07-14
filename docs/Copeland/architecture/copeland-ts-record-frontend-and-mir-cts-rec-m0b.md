@@ -1,6 +1,6 @@
 # Copeland TS record frontend and MIR (CTS-REC-M0b)
 
-**Status:** implemented frontend-to-MIR contract. C# and JavaScript realization remain deliberately unsupported.
+**Status:** implemented frontend-to-MIR contract. CTS-REC-M1 now realizes this MIR in C#; JavaScript remains deliberately unsupported.
 
 ## Source contract
 
@@ -48,8 +48,8 @@ Shared MIR validation indexes definitions and rejects blank/duplicate IDs and na
 
 Frontend diagnostics are the bounded `COPE-REC-0001` through `COPE-REC-0016` family: invalid declaration, duplicate declaration/field, recursion, missing context, incomplete construction, unknown field, duplicate initializer/replacement, initializer mismatch, invalid access, immutable mutation, invalid/empty `with`, replacement mismatch, nominal mismatch, and equality rejection.
 
-Valid record source emits canonical MIR. The C# backend returns exactly `COPE-CS-REC-0001`; JavaScript returns exactly `COPE-JS-REC-0001`. Both return no artifact and do so before writing headers, helpers, definitions, or functions. Backend representation, runtime helpers, equality, and execution tests are intentionally absent.
+Valid record source emits canonical MIR. [CTS-REC-M1](copeland-ts-csharp-records-cts-rec-m1.md) maps it to deterministic sealed C# classes and executable direct construction/access/update. JavaScript still returns exactly `COPE-JS-REC-0001` with no artifact. Shared validation rejects malformed MIR before either backend emits output. Equality remains unsupported.
 
 ## Evidence
 
-The filesystem language contract is under `Language/Valid/records` and `Language/Invalid/records`. Focused tests cover syntax shape, IDs, nominal binding, authored order, MIR text stability and malformed MIR, backend rejection, and CLI MIR success/no-artifact executable rejection. Existing non-record corpus snapshots remain the artifact oracle.
+The filesystem language contract is under `Language/Valid/records` and `Language/Invalid/records`. Focused tests cover syntax shape, IDs, nominal binding, authored order, MIR text stability and malformed MIR. M1 adds C# corpus and runtime proofs while retaining the JavaScript/CLI no-artifact rejection boundary. Existing non-record corpus snapshots remain unchanged.

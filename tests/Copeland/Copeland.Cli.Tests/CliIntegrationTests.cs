@@ -199,7 +199,7 @@ function one(): number {
     }
 
     [Fact]
-    public async Task RecordMirSucceeds_AndExecutableBackendsRejectWithoutArtifacts()
+    public async Task RecordMirAndCSharpSucceed_WhileJavaScriptRejectsWithoutArtifact()
     {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("record.ts", "record Point { x: number; } function main(): Point { return { x: 1 }; }");
@@ -212,9 +212,11 @@ function one(): number {
 
         Assert.Equal(0, mir.ExitCode);
         Assert.Contains("record Point [r1]", mir.StdOut, StringComparison.Ordinal);
-        Assert.Equal(1, csharp.ExitCode);
-        Assert.Contains("COPE-CS-REC-0001", csharp.StdErr, StringComparison.Ordinal);
-        Assert.False(File.Exists(csharpPath));
+        Assert.Equal(0, csharp.ExitCode);
+        Assert.True(File.Exists(csharpPath));
+        string generatedCSharp = await File.ReadAllTextAsync(csharpPath);
+        Assert.Contains("public sealed class __CopeRecord_r1", generatedCSharp, StringComparison.Ordinal);
+        Assert.DoesNotContain("record __CopeRecord", generatedCSharp, StringComparison.Ordinal);
         Assert.Equal(1, javaScript.ExitCode);
         Assert.Contains("COPE-JS-REC-0001", javaScript.StdErr, StringComparison.Ordinal);
         Assert.False(File.Exists(javaScriptPath));

@@ -10,9 +10,10 @@ public static class CSharpBackend
         public string Label { get; } = label;
     }
 
-    private sealed class CSharpEmissionState
+    private sealed class CSharpEmissionState(IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
     {
         public Dictionary<MirHandlerId, HandlerTransfer> Handlers { get; } = [];
+        public IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> Records { get; } = records;
         public int TryIndex { get; set; }
     }
 
@@ -27,14 +28,9 @@ public static class CSharpBackend
         {
             return new CSharpCompilation(string.Empty, diagnostics);
         }
-        if (program.Records.Count > 0)
-        {
-            return new CSharpCompilation(
-                string.Empty,
-                [new CSharpDiagnostic("COPE-CS-REC-0001", "Immutable records are not supported by the C# backend in CTS-REC-M0b.")]);
-        }
         var writer = new CSharpTextWriter();
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
+        var recordsById = program.Records.ToDictionary(record => record.Id);
         var usesResult = ProgramUsesResult(program);
         var usesUnwrap = ProgramUsesUnwrap(program);
         var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult);
@@ -46,6 +42,8 @@ public static class CSharpBackend
         if (usesResult) EmitResult(writer);
         foreach (var errorType in errorTypes) writer.WriteLine($"public readonly record struct {CSharpNameMangler.Mangle(errorType)};");
         if (errorTypes.Count > 0) writer.WriteLine();
+        foreach (var record in program.Records) EmitRecord(writer, record);
+        if (program.Records.Count > 0) writer.WriteLine();
         foreach (var mirEnum in program.Enums) EmitEnum(writer, mirEnum);
         if (program.Enums.Count > 0) writer.WriteLine();
         writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
@@ -53,9 +51,42 @@ public static class CSharpBackend
         {
             EmitUnwrapPanic(writer);
         }
-        foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, diagnostics);
+        foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
         writer.Unindent(); writer.WriteLine("}");
-        return new CSharpCompilation(writer.ToString(), diagnostics);
+        return diagnostics.Count == 0
+            ? new CSharpCompilation(writer.ToString(), diagnostics)
+            : new CSharpCompilation(string.Empty, diagnostics);
+    }
+
+    private static void EmitRecord(CSharpTextWriter writer, MirRecordDefinition record)
+    {
+        string typeName = RecordTypeName(record.Id);
+        string parameters = string.Join(
+            ", ",
+            record.Fields.Select((field, index) => $"{MapType(field.Type)} value{index}"));
+
+        writer.WriteLine($"public sealed class {typeName}");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"internal {typeName}({parameters})");
+        writer.WriteLine("{");
+        writer.Indent();
+        for (int index = 0; index < record.Fields.Count; index++)
+        {
+            writer.WriteLine($"{RecordFieldName(record.Fields[index].Id)} = value{index};");
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+
+        foreach (var field in record.Fields)
+        {
+            writer.WriteLine();
+            writer.WriteLine($"internal {MapType(field.Type)} {RecordFieldName(field.Id)} {{ get; }}");
+        }
+
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
     }
 
     private static void EmitUnit(CSharpTextWriter writer)
@@ -110,13 +141,18 @@ public static class CSharpBackend
         writer.Unindent(); writer.WriteLine("}");
     }
 
-    private static void EmitFunction(CSharpTextWriter writer, MirFunction function, IReadOnlySet<string> enumNames, List<CSharpDiagnostic> diagnostics)
+    private static void EmitFunction(
+        CSharpTextWriter writer,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
+        List<CSharpDiagnostic> diagnostics)
     {
         var returnType = MapType(function.ReturnType); var parameters = string.Join(", ", function.Parameters.Select(parameter => $"{MapType(parameter.Type)} {CSharpNameMangler.Mangle(parameter.Name)}"));
         writer.WriteLine($"public static {returnType} {CSharpNameMangler.Mangle(function.Name)}({parameters})"); writer.WriteLine("{"); writer.Indent();
         var tempIndex = 0;
         var previousState = CurrentEmissionState.Value;
-        CurrentEmissionState.Value = new CSharpEmissionState();
+        CurrentEmissionState.Value = new CSharpEmissionState(records);
         try
         {
             foreach (var statement in function.Body) EmitStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
@@ -164,12 +200,15 @@ public static class CSharpBackend
             MirVariableExpression variable => CSharpNameMangler.Mangle(variable.Name),
             MirAssignmentExpression assignment => $"{CSharpNameMangler.Mangle(assignment.Name)} = {EmitExpression(writer, assignment.Expression, function, enumNames, ref tempIndex, diagnostics)}",
             MirUnaryExpression unary => unary.Operator + EmitExpression(writer, unary.Operand, function, enumNames, ref tempIndex, diagnostics),
-            MirBinaryExpression binary => $"({EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics)} {(binary.Operator is "===" ? "==" : binary.Operator is "!==" ? "!=" : binary.Operator)} {EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics)})",
+            MirBinaryExpression binary => EmitBinary(writer, binary, function, enumNames, ref tempIndex, diagnostics),
             MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", EmitArguments(call.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirArrayExpression array => $"new {MapType(array.Type)} {{ {string.Join(", ", EmitArguments(array.Elements, writer, function, enumNames, ref tempIndex, diagnostics))} }}",
+            MirRecordConstructionExpression construction => EmitRecordConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
+            MirRecordFieldAccessExpression access => EmitRecordFieldAccess(writer, access, function, enumNames, ref tempIndex, diagnostics),
+            MirRecordWithExpression withExpression => EmitRecordWith(writer, withExpression, function, enumNames, ref tempIndex, diagnostics),
             MirEnumValueExpression value => $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", EmitArguments(value.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirMatchExpression match => EmitEnumMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
-            MirIfExpression conditional => $"({EmitExpression(writer, conditional.Condition, function, enumNames, ref tempIndex, diagnostics)} ? {EmitExpression(writer, conditional.ThenExpression, function, enumNames, ref tempIndex, diagnostics)} : {EmitExpression(writer, conditional.ElseExpression, function, enumNames, ref tempIndex, diagnostics)})",
+            MirIfExpression conditional => EmitIfExpression(writer, conditional, function, enumNames, ref tempIndex, diagnostics),
             MirOkExpression ok => $"CopeResult<{MapResultComponentType(((MirResultType)ok.Type).SuccessType)}, {MapType(((MirResultType)ok.Type).ErrorType)}>.Ok({EmitExpression(writer, ok.Payload, function, enumNames, ref tempIndex, diagnostics)})",
             MirErrExpression err => $"CopeResult<{MapResultComponentType(((MirResultType)err.Type).SuccessType)}, {MapType(((MirResultType)err.Type).ErrorType)}>.Err({EmitExpression(writer, err.Payload, function, enumNames, ref tempIndex, diagnostics)})",
             MirResultMatchExpression match => EmitResultMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
@@ -178,6 +217,196 @@ public static class CSharpBackend
             MirTryExpression tryExpression => EmitTryExcept(writer, tryExpression, function, enumNames, ref tempIndex, diagnostics),
             _ => UnsupportedExpression(expression, diagnostics)
         };
+
+    private static string EmitBinary(
+        CSharpTextWriter writer,
+        MirBinaryExpression binary,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        string binaryOperator = binary.Operator switch
+        {
+            "===" => "==",
+            "!==" => "!=",
+            _ => binary.Operator,
+        };
+
+        if (binaryOperator is "&&" or "||"
+            && (ExpressionRequiresStatements(binary.Left) || ExpressionRequiresStatements(binary.Right)))
+        {
+            return EmitStatementfulLogicalBinary(
+                writer,
+                binary,
+                function,
+                enumNames,
+                ref tempIndex,
+                diagnostics,
+                binaryOperator);
+        }
+
+        if (!ExpressionRequiresStatements(binary.Left) && !ExpressionRequiresStatements(binary.Right))
+        {
+            string simpleLeft = EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics);
+            string simpleRight = EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics);
+            return $"({simpleLeft} {binaryOperator} {simpleRight})";
+        }
+
+        string left = EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics);
+        string leftTemporary = $"__cope_operand_{tempIndex++}";
+        writer.WriteLine($"var {leftTemporary} = {left};");
+        string right = EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics);
+        string rightTemporary = $"__cope_operand_{tempIndex++}";
+        writer.WriteLine($"var {rightTemporary} = {right};");
+        return $"({leftTemporary} {binaryOperator} {rightTemporary})";
+    }
+
+    private static string EmitStatementfulLogicalBinary(
+        CSharpTextWriter writer,
+        MirBinaryExpression binary,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics,
+        string binaryOperator)
+    {
+        string left = EmitExpression(writer, binary.Left, function, enumNames, ref tempIndex, diagnostics);
+        string resultTemporary = $"__cope_logical_result_{tempIndex++}";
+        writer.WriteLine($"bool {resultTemporary};");
+        string branchCondition = binaryOperator == "&&" ? left : $"!({left})";
+        writer.WriteLine($"if ({branchCondition})");
+        writer.WriteLine("{");
+        writer.Indent();
+        string right = EmitExpression(writer, binary.Right, function, enumNames, ref tempIndex, diagnostics);
+        writer.WriteLine($"{resultTemporary} = {right};");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("else");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"{resultTemporary} = {(binaryOperator == "&&" ? "false" : "true")};");
+        writer.Unindent();
+        writer.WriteLine("}");
+        return resultTemporary;
+    }
+
+    private static string EmitIfExpression(
+        CSharpTextWriter writer,
+        MirIfExpression conditional,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        if (!ExpressionRequiresStatements(conditional.ThenExpression)
+            && !ExpressionRequiresStatements(conditional.ElseExpression))
+        {
+            string condition = EmitExpression(writer, conditional.Condition, function, enumNames, ref tempIndex, diagnostics);
+            string thenExpression = EmitExpression(writer, conditional.ThenExpression, function, enumNames, ref tempIndex, diagnostics);
+            string elseExpression = EmitExpression(writer, conditional.ElseExpression, function, enumNames, ref tempIndex, diagnostics);
+            return $"({condition} ? {thenExpression} : {elseExpression})";
+        }
+
+        string conditionValue = EmitExpression(writer, conditional.Condition, function, enumNames, ref tempIndex, diagnostics);
+        string resultTemporary = $"__cope_if_result_{tempIndex++}";
+        writer.WriteLine($"{MapValueStorageType(conditional.Type)} {resultTemporary};");
+        writer.WriteLine($"if ({conditionValue})");
+        writer.WriteLine("{");
+        writer.Indent();
+        string thenValue = EmitExpression(writer, conditional.ThenExpression, function, enumNames, ref tempIndex, diagnostics);
+        writer.WriteLine($"{resultTemporary} = {thenValue};");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("else");
+        writer.WriteLine("{");
+        writer.Indent();
+        string elseValue = EmitExpression(writer, conditional.ElseExpression, function, enumNames, ref tempIndex, diagnostics);
+        writer.WriteLine($"{resultTemporary} = {elseValue};");
+        writer.Unindent();
+        writer.WriteLine("}");
+        return resultTemporary;
+    }
+
+    private static string EmitRecordConstruction(
+        CSharpTextWriter writer,
+        MirRecordConstructionExpression construction,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        MirRecordDefinition record = GetRecordDefinition(construction.RecordTypeId);
+        var valuesByField = new Dictionary<MirRecordFieldId, string>();
+
+        foreach (var initializer in construction.Initializers)
+        {
+            string value = EmitExpression(writer, initializer.Value, function, enumNames, ref tempIndex, diagnostics);
+            string temporary = $"__cope_record_init_{tempIndex++}";
+            writer.WriteLine($"var {temporary} = {value};");
+            valuesByField.Add(initializer.FieldId, temporary);
+        }
+
+        string arguments = string.Join(", ", record.Fields.Select(field => valuesByField[field.Id]));
+        return $"new {RecordTypeName(record.Id)}({arguments})";
+    }
+
+    private static string EmitRecordFieldAccess(
+        CSharpTextWriter writer,
+        MirRecordFieldAccessExpression access,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        string receiver = EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics);
+        return $"({receiver}).{RecordFieldName(access.FieldId)}";
+    }
+
+    private static string EmitRecordWith(
+        CSharpTextWriter writer,
+        MirRecordWithExpression withExpression,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        MirRecordDefinition record = GetRecordDefinition(withExpression.RecordTypeId);
+        string sourceValue = EmitExpression(writer, withExpression.Source, function, enumNames, ref tempIndex, diagnostics);
+        string sourceTemporary = $"__cope_record_source_{tempIndex++}";
+        writer.WriteLine($"var {sourceTemporary} = {sourceValue};");
+
+        var replacementsByField = new Dictionary<MirRecordFieldId, string>();
+        foreach (var replacement in withExpression.Replacements)
+        {
+            string replacementValue = EmitExpression(writer, replacement.Value, function, enumNames, ref tempIndex, diagnostics);
+            string replacementTemporary = $"__cope_record_replacement_{tempIndex++}";
+            writer.WriteLine($"var {replacementTemporary} = {replacementValue};");
+            replacementsByField.Add(replacement.FieldId, replacementTemporary);
+        }
+
+        var arguments = new List<string>(record.Fields.Count);
+        foreach (var field in record.Fields)
+        {
+            if (replacementsByField.TryGetValue(field.Id, out string? replacement))
+            {
+                arguments.Add(replacement);
+            }
+            else
+            {
+                arguments.Add($"{sourceTemporary}.{RecordFieldName(field.Id)}");
+            }
+        }
+
+        return $"new {RecordTypeName(record.Id)}({string.Join(", ", arguments)})";
+    }
+
+    private static MirRecordDefinition GetRecordDefinition(MirRecordTypeId id)
+    {
+        CSharpEmissionState state = CurrentEmissionState.Value
+            ?? throw new InvalidOperationException("Record emission requires function-local state.");
+        return state.Records[id];
+    }
 
     private static string EmitPropagation(CSharpTextWriter writer, MirPropagateExpression propagation, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
     {
@@ -297,6 +526,10 @@ public static class CSharpBackend
     private static string EmitEnumMatch(CSharpTextWriter writer, MirMatchExpression match, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
     {
         if (match.Scrutinee.Type is not MirType enumType || match.Scrutinee.Type is MirArrayType or MirResultType || !enumNames.Contains(enumType.Identifier)) return UnsupportedExpression(match, diagnostics);
+        if (match.Arms.Any(arm => ExpressionRequiresStatements(arm.Expression)))
+        {
+            return EmitStatementfulEnumMatch(writer, match, function, enumNames, ref tempIndex, diagnostics, enumType);
+        }
         var scrutinee = EmitExpression(writer, match.Scrutinee, function, enumNames, ref tempIndex, diagnostics);
         var arms = new List<string>();
         foreach (var arm in match.Arms)
@@ -308,15 +541,72 @@ public static class CSharpBackend
         return $"{scrutinee} switch {{ {string.Join(", ", arms)} }}";
     }
 
+    private static string EmitStatementfulEnumMatch(
+        CSharpTextWriter writer,
+        MirMatchExpression match,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics,
+        MirType enumType)
+    {
+        string scrutineeValue = EmitExpression(writer, match.Scrutinee, function, enumNames, ref tempIndex, diagnostics);
+        string scrutineeTemporary = $"__cope_match_scrutinee_{tempIndex++}";
+        string resultTemporary = $"__cope_match_result_{tempIndex++}";
+        writer.WriteLine($"var {scrutineeTemporary} = {scrutineeValue};");
+        writer.WriteLine($"{MapValueStorageType(match.Type)} {resultTemporary};");
+        writer.WriteLine($"switch ({scrutineeTemporary})");
+        writer.WriteLine("{");
+        writer.Indent();
+
+        foreach (var arm in match.Arms)
+        {
+            string enumName = CSharpNameMangler.Mangle(enumType.Identifier);
+            string caseName = CSharpNameMangler.Mangle(arm.CaseName);
+            string pattern = arm.PayloadBindings.Count == 0
+                ? $"{enumName}.{caseName} _"
+                : $"{enumName}.{caseName}({string.Join(", ", arm.PayloadBindings.Select(binding => $"var {CSharpNameMangler.Mangle(binding.Name)}"))})";
+            writer.WriteLine($"case {pattern}:");
+            writer.WriteLine("{");
+            writer.Indent();
+            string armValue = EmitExpression(writer, arm.Expression, function, enumNames, ref tempIndex, diagnostics);
+            writer.WriteLine($"{resultTemporary} = {armValue};");
+            writer.WriteLine("break;");
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+
+        writer.WriteLine("default:");
+        writer.Indent();
+        writer.WriteLine("throw new global::System.InvalidOperationException(\"Non-exhaustive match.\");");
+        writer.Unindent();
+        writer.Unindent();
+        writer.WriteLine("}");
+        return resultTemporary;
+    }
+
     private static List<string> EmitArguments(IReadOnlyList<MirExpression> expressions, CSharpTextWriter writer, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
     {
         var values = new List<string>(expressions.Count);
-        foreach (var expression in expressions) values.Add(EmitExpression(writer, expression, function, enumNames, ref tempIndex, diagnostics));
+        bool requiresOrderedStaging = expressions.Any(ExpressionRequiresStatements);
+        foreach (var expression in expressions)
+        {
+            string value = EmitExpression(writer, expression, function, enumNames, ref tempIndex, diagnostics);
+            if (!requiresOrderedStaging)
+            {
+                values.Add(value);
+                continue;
+            }
+
+            string temporary = $"__cope_argument_{tempIndex++}";
+            writer.WriteLine($"var {temporary} = {value};");
+            values.Add(temporary);
+        }
         return values;
     }
 
     private static string UnsupportedExpression(MirExpression expression, List<CSharpDiagnostic> diagnostics) { diagnostics.Add(new CSharpDiagnostic("COPE-CS-0001", $"Unsupported MIR expression: {expression.GetType().Name}")); return "default!"; }
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirRecordType record => RecordTypeName(record.RecordTypeId), MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
     private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
 
@@ -350,6 +640,9 @@ public static class CSharpBackend
             MirBinaryExpression binary => ExpressionUsesUnwrap(binary.Left) || ExpressionUsesUnwrap(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionUsesUnwrap),
             MirArrayExpression array => array.Elements.Any(ExpressionUsesUnwrap),
+            MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesUnwrap(initializer.Value)),
+            MirRecordFieldAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
+            MirRecordWithExpression withExpression => ExpressionUsesUnwrap(withExpression.Source) || withExpression.Replacements.Any(replacement => ExpressionUsesUnwrap(replacement.Value)),
             MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesUnwrap),
             MirMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesUnwrap(arm.Expression)),
             MirResultMatchExpression match => ExpressionUsesUnwrap(match.Scrutinee) || ExpressionUsesUnwrap(match.OkExpression) || ExpressionUsesUnwrap(match.ErrExpression),
@@ -369,6 +662,59 @@ public static class CSharpBackend
     {
         foreach (var function in program.Functions) { yield return function.ReturnType; foreach (var parameter in function.Parameters) yield return parameter.Type; foreach (var local in function.Locals) yield return local.Type; }
         foreach (var @enum in program.Enums) foreach (var @case in @enum.Cases) foreach (var field in @case.PayloadFields) yield return field.Type;
+        foreach (var record in program.Records) foreach (var field in record.Fields) yield return field.Type;
+    }
+
+    private static bool ExpressionRequiresStatements(MirExpression expression)
+    {
+        return expression switch
+        {
+            MirRecordConstructionExpression => true,
+            MirRecordWithExpression => true,
+            MirResultMatchExpression => true,
+            MirPropagateExpression => true,
+            MirUnwrapExpression => true,
+            MirTryExpression => true,
+            MirAssignmentExpression assignment => ExpressionRequiresStatements(assignment.Expression),
+            MirUnaryExpression unary => ExpressionRequiresStatements(unary.Operand),
+            MirBinaryExpression binary => ExpressionRequiresStatements(binary.Left) || ExpressionRequiresStatements(binary.Right),
+            MirCallExpression call => call.Arguments.Any(ExpressionRequiresStatements),
+            MirArrayExpression array => array.Elements.Any(ExpressionRequiresStatements),
+            MirRecordFieldAccessExpression access => ExpressionRequiresStatements(access.Receiver),
+            MirEnumValueExpression value => value.Arguments.Any(ExpressionRequiresStatements),
+            MirMatchExpression match => ExpressionRequiresStatements(match.Scrutinee) || match.Arms.Any(arm => ExpressionRequiresStatements(arm.Expression)),
+            MirIfExpression conditional => ExpressionRequiresStatements(conditional.Condition) || ExpressionRequiresStatements(conditional.ThenExpression) || ExpressionRequiresStatements(conditional.ElseExpression),
+            MirOkExpression ok => ExpressionRequiresStatements(ok.Payload),
+            MirErrExpression err => ExpressionRequiresStatements(err.Payload),
+            _ => false,
+        };
+    }
+
+    private static string RecordTypeName(MirRecordTypeId id)
+        => "__CopeRecord_" + EncodeStableIdentity(id.Value);
+
+    private static string RecordFieldName(MirRecordFieldId id)
+        => "__field_" + EncodeStableIdentity(id.Value);
+
+    private static string EncodeStableIdentity(string identity)
+    {
+        var encoded = new global::System.Text.StringBuilder(identity.Length);
+        foreach (char character in identity)
+        {
+            if ((character >= 'a' && character <= 'z')
+                || (character >= 'A' && character <= 'Z')
+                || (character >= '0' && character <= '9'))
+            {
+                encoded.Append(character);
+            }
+            else
+            {
+                encoded.Append('_');
+                encoded.Append(((int)character).ToString("X4", global::System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
+
+        return encoded.ToString();
     }
     private static bool ContainsVoidResult(MirType type) => type switch { MirResultType result => result.SuccessType is MirNamedType { Identifier: "void" } || ContainsVoidResult(result.SuccessType) || ContainsVoidResult(result.ErrorType), MirArrayType array => ContainsVoidResult(array.ElementType), _ => false };
     private static List<string> CollectErrorNominalTypes(MirProgram program, IReadOnlySet<string> enumNames)

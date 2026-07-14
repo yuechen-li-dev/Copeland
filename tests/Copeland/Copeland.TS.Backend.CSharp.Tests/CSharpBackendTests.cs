@@ -11,18 +11,67 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
-    public void Rejects_record_mir_once_without_partial_artifact()
+    public void Emits_record_mir_deterministically()
     {
         var program = Lower("record Point { x: number; } function main(): Point { return { x: 1 }; }");
 
         var first = CSharpBackend.Emit(program);
         var second = CSharpBackend.Emit(program);
 
-        var diagnostic = Assert.Single(first.Diagnostics);
-        Assert.Equal("COPE-CS-REC-0001", diagnostic.Id);
-        Assert.Equal(string.Empty, first.SourceText);
-        Assert.Equal(first.Diagnostics, second.Diagnostics);
-        Assert.Equal(string.Empty, second.SourceText);
+        Assert.Empty(first.Diagnostics);
+        Assert.Equal(first.SourceText, second.SourceText);
+        Assert.Contains("public sealed class __CopeRecord_r1", first.SourceText, StringComparison.Ordinal);
+        Assert.Contains("internal double __field_r1_002Ef0 { get; }", first.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("record __CopeRecord", first.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain(" with ", first.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Equals(", first.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetHashCode(", first.SourceText, StringComparison.Ordinal);
+
+        var generated = RoslynCompileHelper.CompileGeneratedSource(first.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+    }
+
+    [Fact]
+    public void Invalid_record_mir_is_rejected_before_emission()
+    {
+        var unknownRecord = new MirRecordType(new MirRecordTypeId("missing"), "Missing");
+        var program = new MirProgram(
+            [],
+            [],
+            [new MirFunction("main", [], unknownRecord, [], [new MirReturnStatement(new MirVariableExpression("value", unknownRecord))])]);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("has no definition", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Unknown_record_field_identity_is_rejected_before_emission()
+    {
+        var recordId = new MirRecordTypeId("r1");
+        var knownFieldId = new MirRecordFieldId("r1.f0");
+        var unknownFieldId = new MirRecordFieldId("r1.f9");
+        var number = new MirNamedType("number");
+        var recordType = new MirRecordType(recordId, "Point");
+        var definition = new MirRecordDefinition(
+            recordId,
+            "Point",
+            [new MirRecordFieldDefinition(knownFieldId, "x", number)]);
+        var receiver = new MirRecordConstructionExpression(
+            recordId,
+            [new MirRecordFieldValue(knownFieldId, new MirLiteralExpression(1, number))],
+            recordType);
+        var access = new MirRecordFieldAccessExpression(receiver, recordId, unknownFieldId, number);
+        var program = new MirProgram(
+            [],
+            [definition],
+            [new MirFunction("main", [], number, [], [new MirReturnStatement(access)])]);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.SourceText);
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("unknown field identity", StringComparison.Ordinal));
     }
 
     [Fact]
