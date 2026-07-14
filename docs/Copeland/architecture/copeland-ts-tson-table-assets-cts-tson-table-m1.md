@@ -85,4 +85,4 @@ Repeated compiler and CLI emission is byte-identical. Generated artifacts contai
 
 ## Explicit M2 boundary
 
-CTS-TSON-TABLE-M1 does not add expression-valued table construction, multiple values of one nominal table type, table mutation, runtime parsing/decoding, JSON, runtime table encoding, `tsonEncode` table support, or `MirTsonTablePlan`. CTS-TSON-TABLE-M2 remains the demand-created runtime table encoding milestone.
+CTS-TSON-TABLE-M1 does not add expression-valued table construction, multiple values of one nominal table type, table mutation, runtime parsing/decoding, JSON, runtime table encoding, `tsonEncode` table support, or `MirTsonTablePlan`. CTS-TSON-TABLE-M2 remains the demand-created runtime table encoding milestone. The documentation-only [CTS-JS-EMIT-M0a audit](../language/copeland-ts-javascript-emission-profiles-design-cts-js-emit-m0a.md) occurs between M1 and M2 without changing this ladder; JavaScript emission implementation and artifact regeneration wait until TABLE-M2/M3 close.

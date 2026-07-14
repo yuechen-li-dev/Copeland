@@ -50,3 +50,7 @@ pwsh -NoProfile -File tools/Validate-DependencyBoundaries.ps1
 ```
 
 The CTS-M1 migration record contains the completed validation commands, engine version, test counts, timings, artifact hash, and broader-lane scope decision.
+
+## Post-M1 output-profile routing
+
+[CTS-JS-EMIT-M0a](../language/copeland-ts-javascript-emission-profiles-design-cts-js-emit-m0a.md) audits the backend after Results, typed handlers, records, tables, and TSON encoding and designs future Diagnostic, Chinese Symbolic, and Release output profiles. It preserves this architecture's current strict-mode Diagnostic text, exact corpus authority, CLI default, standalone behavior, and BCL-only compile-time boundary. Production profile work is deferred until CTS-TSON-TABLE-M2/M3 close; the next emission step is a backend-local scope/binding/token-event writer, not a general JavaScript AST or required external minifier.

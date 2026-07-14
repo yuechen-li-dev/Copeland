@@ -41,6 +41,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [Copeland TS Compiler Topology JTF-M6c](architecture/copeland-ts-compiler-topology-jtf-m6c.md)
 - [Copeland TS JavaScript Backend CTS-M1](architecture/copeland-ts-javascript-backend-cts-m1.md)
 - [CTS-M1 Minimal JavaScript Backend](../migrations/cts-m1-minimal-javascript-backend.md)
+- [CTS-JS-EMIT-M0a JavaScript Emission Profiles Design](language/copeland-ts-javascript-emission-profiles-design-cts-js-emit-m0a.md)
+- [CTS-JS-EMIT-M0a JavaScript Output and Symbolic Dialect Audit](../migrations/cts-js-emit-m0a-javascript-output-and-symbolic-dialect-audit.md)
 - [Copeland TS Mise en Place JTF-M6c](../migrations/jtf-m6c-copeland-ts-mise-en-place.md)
 - [Compiler SDK and JTF Closeout JTF-M6d](../migrations/jtf-m6d-compiler-sdk-and-jtf-closeout.md)
 - [Historical M1 Language Profile](architecture/language-profile.md)
