@@ -2,6 +2,8 @@
 
 > Historical planning matrix. The current authoritative language law and implemented/intended distinction are in the [Copeland TS language profile](../language/copeland-ts-language-profile.md). In particular, proposed C# lowerings in this record do not decide future JavaScript semantics.
 
+> **Current doctrine correction (CTS-TYPE-M0a):** the proposals below for nominal/direct-C# interfaces and direct-C# generic lowering are preserved as history, not current direction. The accepted architecture recommendation treats interfaces as erased structural requirement sets, aliases as transparent, and backend generic representation as private. See [CTS-TYPE-M0a](../language/copeland-ts-type-system-design-cts-type-m0a.md).
+
 ## Purpose
 
 This document tracks Copeland language support as a **TypeScript-shaped compiler profile**, not a JavaScript runtime. The current C# backend is a proof backend; JavaScript is the planned first product backend.
