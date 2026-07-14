@@ -1,6 +1,6 @@
 # Copeland TS immutable nominal records design (CTS-REC-M0a)
 
-**Status:** accepted product direction and implementation-ready design; documentation only. Immutable nominal records are not implemented by CTS-REC-M0a. The current compiler continues to reject ordinary object literals and non-enum member access.
+**Status:** accepted design authority. CTS-REC-M0b now implements its source-to-bound-to-MIR slice; C# and JavaScript realization remain deferred. See [the M0b architecture](../architecture/copeland-ts-record-frontend-and-mir-cts-rec-m0b.md).
 
 ## Decision
 
@@ -32,7 +32,7 @@ const origin: Point = {
 
 This is not a JavaScript object literal with a structural type. The expected `Point` type selects one declared nominal record, and binding produces a dedicated record-construction node. A brace literal without an expected record type is rejected and never creates an anonymous type.
 
-The design deliberately excludes production code, fixtures, and compiler behavior changes from M0a. Until a later CTS-REC implementation milestone lands, the examples in this document are design examples rather than accepted programs.
+M0a itself deliberately excluded production code, fixtures, and compiler behavior changes. CTS-REC-M0b subsequently made the source-to-MIR examples in this document accepted programs; backend realization examples remain design-only.
 
 ## Product boundary
 
@@ -348,7 +348,7 @@ Tokens, factories, validators, and any common record-value helper are emitted on
 
 ## Diagnostics plan
 
-Diagnostic numbers should be allocated with the repository's existing stable family convention during M0b/M1. Use a coherent record family (for example `COPE-RECORD-*`) and keep parser recovery diagnostics separate from language rejection. Required diagnostic contracts are:
+CTS-REC-M0b allocated `COPE-REC-0001` through `COPE-REC-0016` using the repository's stable family convention and keeps parser recovery diagnostics separate from language rejection. The required diagnostic contracts are:
 
 | Family | Required condition |
 | --- | --- |
@@ -360,7 +360,7 @@ Diagnostic numbers should be allocated with the repository's existing stable fam
 | `with` receiver | source is not a record; empty replacement set |
 | `with` fields | unknown replacement; duplicate replacement; replacement type mismatch |
 | unsupported operation | record equality/inequality before equality is defined |
-| feature status | in M0b only, recognized record declaration/construction/access/`with` syntax is rejected as not yet implemented without relying on parser accidents |
+| feature status | retired by the consolidated M0b implementation; valid record syntax now reaches MIR and executable backends own deliberate rejection |
 
 Diagnostics should identify the record and field where useful, anchor the offending declaration/name/expression, and avoid promising exact backend representation names.
 
@@ -395,12 +395,10 @@ Parser, bound-tree, `.cope`, C#, and JavaScript snapshot corpus files remain und
 | Milestone | Scope and convergence condition |
 | --- | --- |
 | CTS-REC-M0a | This documentation-only audit and accepted language/MIR/backend design. No behavior or fixture change. |
-| CTS-REC-M0b | Add `record` keyword/declaration recognition, deliberate contextual-literal and `with` syntax recognition, stable rejection diagnostics, and invalid language-law fixtures that prove intended feature-status validation rather than parser accidents. Do not add valid record fixtures or accept programs through MIR. |
-| CTS-REC-M1 | Implement declarations, contextual construction, field access, symbols/bound nodes, stable IDs, dedicated MIR, shared validation, deterministic `.cope`, and frontend fixtures. Both backends must explicitly reject record MIR until their milestones; accepted programs must never be silently miscompiled. The current separate backend corpus/runtime topology makes C# proof substantial enough for M2 rather than an artificial tail of M1. |
-| CTS-REC-M2 | Implement the ordinary sealed generated C# representation, complete construction/access, runtime proofs, NativeAOT-safe emission, and deterministic artifacts. |
-| CTS-REC-M3 | Implement the private nominal frozen JavaScript representation, validators, corruption/impersonation proofs, demand-driven helpers, Node execution, and C#/Node parity for construction/access. |
-| CTS-REC-M4 | Implement dedicated source/bound/MIR `with`, empty-update rejection, exactly-once/order temporaries, new-value semantics, both backends, and parity proofs. Keeping this separate is justified because it adds observable sequencing and copy semantics after record values are proven; it must not be emulated with spread or mutation in earlier milestones. |
-| CTS-REC-M5 | Close out doctrine, diagnostics, stress coverage, representation privacy, artifact stability, recursive-declaration rejection, and cross-backend evidence. Equality, hashing, ordering, destructuring/patterns, serialization, and interop require separately approved follow-ups. |
+| CTS-REC-M0b | Implement the complete source-to-bound-to-MIR contract, including contextual construction, access, `with`, identities, validation, deterministic `.cope`, fixtures, and deliberate backend rejection. |
+| CTS-REC-M1 | Implement the ordinary sealed generated C# representation, runtime/order proofs, NativeAOT-safe emission, and deterministic artifacts. |
+| CTS-REC-M2 | Implement the private nominal frozen JavaScript representation, validators, corruption/impersonation proofs, demand-driven helpers, and Node evidence. |
+| CTS-REC-M3 | Close out cross-backend parity, diagnostics, stress coverage, representation privacy, and artifact stability. Equality, hashing, ordering, destructuring/patterns, serialization, and interop require separately approved follow-ups. |
 
 M1 and M2 may be combined only if implementation shows that the compiler facade cannot report an explicit unsupported-backend result without accepting a silently wrong artifact. Temporary JavaScript objects, C# anonymous types, structural type equality, or mutation-based `with` are not acceptable milestone bridges.
 

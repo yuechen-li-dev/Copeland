@@ -49,6 +49,30 @@ public sealed class EnumTypeSymbol(string name) : TypeSymbol
     public void AddCase(EnumCaseSymbol @case) => _cases.Add(@case);
 }
 
+public readonly record struct RecordTypeId(int Value)
+{
+    public override string ToString() => $"r{Value}";
+}
+
+public readonly record struct RecordFieldId(RecordTypeId RecordTypeId, int Ordinal)
+{
+    public override string ToString() => $"{RecordTypeId}.f{Ordinal}";
+}
+
+public sealed class RecordTypeSymbol(string name, RecordTypeId id) : TypeSymbol
+{
+    private readonly List<RecordFieldSymbol> _fields = [];
+
+    public override string Name { get; } = name;
+    public RecordTypeId Id { get; } = id;
+    public IReadOnlyList<RecordFieldSymbol> Fields => _fields;
+
+    public void AddField(RecordFieldSymbol field)
+    {
+        _fields.Add(field);
+    }
+}
+
 public static class TypeFacts
 {
     public static bool AreEquivalent(TypeSymbol left, TypeSymbol right)
@@ -60,6 +84,7 @@ public static class TypeFacts
 
         return (left, right) switch
         {
+            (RecordTypeSymbol, RecordTypeSymbol) => false,
             (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
                 AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)

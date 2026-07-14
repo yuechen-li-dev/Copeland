@@ -8,9 +8,10 @@ public abstract class BoundExpression : BoundNode { public abstract TypeSymbol T
 
 public sealed class BoundProgram
 {
-    public BoundProgram(IReadOnlyList<BoundFunctionDeclaration> functions, IReadOnlyList<BoundEnumDeclaration> enums, IReadOnlyList<BoundStatement> globalStatements) { Functions = functions; Enums = enums; GlobalStatements = globalStatements; }
+    public BoundProgram(IReadOnlyList<BoundFunctionDeclaration> functions, IReadOnlyList<BoundEnumDeclaration> enums, IReadOnlyList<BoundRecordDeclaration> records, IReadOnlyList<BoundStatement> globalStatements) { Functions = functions; Enums = enums; Records = records; GlobalStatements = globalStatements; }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
+    public IReadOnlyList<BoundRecordDeclaration> Records { get; }
     public IReadOnlyList<BoundStatement> GlobalStatements { get; }
 }
 public sealed class BoundCompilation
@@ -23,6 +24,7 @@ public sealed class BoundCompilation
 
 public sealed class BoundFunctionDeclaration : BoundNode { public BoundFunctionDeclaration(FunctionSymbol symbol, BoundBlockStatement body) { Symbol = symbol; Body = body; } public FunctionSymbol Symbol { get; } public BoundBlockStatement Body { get; } }
 public sealed class BoundEnumDeclaration : BoundNode { public BoundEnumDeclaration(EnumTypeSymbol enumType) => EnumType = enumType; public EnumTypeSymbol EnumType { get; } }
+public sealed class BoundRecordDeclaration : BoundNode { public BoundRecordDeclaration(RecordTypeSymbol recordType) => RecordType = recordType; public RecordTypeSymbol RecordType { get; } }
 public sealed class BoundBlockStatement : BoundStatement { public BoundBlockStatement(IReadOnlyList<BoundStatement> statements) => Statements = statements; public IReadOnlyList<BoundStatement> Statements { get; } }
 public sealed class BoundVariableDeclaration : BoundStatement { public BoundVariableDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
 public sealed class BoundExpressionStatement : BoundStatement { public BoundExpressionStatement(BoundExpression expression) => Expression = expression; public BoundExpression Expression { get; } }
@@ -176,4 +178,29 @@ public sealed class BoundResultMatchExpression : BoundExpression
     public override TypeSymbol Type => TypeImpl;
 }
 public sealed class BoundArrayExpression : BoundExpression { public BoundArrayExpression(IReadOnlyList<BoundExpression> elements, TypeSymbol type) { Elements = elements; TypeImpl = type; } public IReadOnlyList<BoundExpression> Elements { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
+public sealed class BoundRecordFieldInitializer(RecordFieldSymbol field, BoundExpression value)
+{
+    public RecordFieldSymbol Field { get; } = field;
+    public BoundExpression Value { get; } = value;
+}
+public sealed class BoundRecordConstructionExpression(RecordTypeSymbol recordType, IReadOnlyList<BoundRecordFieldInitializer> initializers) : BoundExpression
+{
+    public RecordTypeSymbol RecordType { get; } = recordType;
+    public IReadOnlyList<BoundRecordFieldInitializer> Initializers { get; } = initializers;
+    public override TypeSymbol Type => RecordType;
+}
+public sealed class BoundRecordFieldAccessExpression(BoundExpression receiver, RecordTypeSymbol recordType, RecordFieldSymbol field) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public RecordTypeSymbol RecordType { get; } = recordType;
+    public RecordFieldSymbol Field { get; } = field;
+    public override TypeSymbol Type => Field.Type;
+}
+public sealed class BoundRecordWithExpression(BoundExpression source, RecordTypeSymbol recordType, IReadOnlyList<BoundRecordFieldInitializer> replacements) : BoundExpression
+{
+    public BoundExpression Source { get; } = source;
+    public RecordTypeSymbol RecordType { get; } = recordType;
+    public IReadOnlyList<BoundRecordFieldInitializer> Replacements { get; } = replacements;
+    public override TypeSymbol Type => RecordType;
+}
 public sealed class BoundErrorExpression : BoundExpression { public override TypeSymbol Type => PrimitiveTypeSymbol.Error; }

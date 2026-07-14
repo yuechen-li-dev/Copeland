@@ -60,6 +60,11 @@ public sealed class Parser
 
     private MemberSyntax ParseMember()
     {
+        if (Current.Kind == SyntaxKind.ConstKeyword && Peek(1).Kind == SyntaxKind.RecordKeyword)
+        {
+            var constKeyword = Match(SyntaxKind.ConstKeyword);
+            return ParseRecordDeclaration(constKeyword);
+        }
         if (Current.Kind == SyntaxKind.FunctionKeyword)
         {
             return ParseFunctionDeclaration();
@@ -67,6 +72,10 @@ public sealed class Parser
         if (Current.Kind == SyntaxKind.EnumKeyword)
         {
             return ParseEnumDeclaration();
+        }
+        if (Current.Kind == SyntaxKind.RecordKeyword)
+        {
+            return ParseRecordDeclaration(null);
         }
 
         return new GlobalStatementMemberSyntax(ParseStatement());
@@ -196,6 +205,7 @@ public sealed class Parser
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
             SyntaxKind.ForKeyword => ParseForStatement(),
             SyntaxKind.ReturnKeyword => ParseReturnStatement(),
+            SyntaxKind.RecordKeyword => new NestedRecordDeclarationStatementSyntax(ParseRecordDeclaration(null)),
             _ => ParseExpressionStatementOrRecovery(),
         };
 
@@ -266,6 +276,47 @@ public sealed class Parser
         var bangToken = Match(SyntaxKind.BangToken);
         var errorType = ParseTypeSyntax();
         return new ResultTypeSyntax(type, bangToken, errorType);
+    }
+
+    private RecordDeclarationSyntax ParseRecordDeclaration(SyntaxToken? constKeyword)
+    {
+        var recordKeyword = Match(SyntaxKind.RecordKeyword);
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        var openBraceToken = Match(SyntaxKind.OpenBraceToken);
+        var fields = new List<RecordFieldSyntax>();
+
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            var fieldIdentifier = Match(SyntaxKind.IdentifierToken);
+            var hasColon = Current.Kind == SyntaxKind.ColonToken;
+            var colonToken = hasColon
+                ? NextToken()
+                : MissingToken(SyntaxKind.ColonToken, Current.Position);
+            TypeSyntax type;
+            var hasExplicitType = hasColon && Current.Kind != SyntaxKind.SemicolonToken;
+            if (!hasExplicitType)
+            {
+                type = new IdentifierTypeSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position));
+            }
+            else
+            {
+                type = ParseTypeSyntax();
+            }
+
+            var unsupportedTokens = new List<SyntaxToken>();
+            while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+            {
+                unsupportedTokens.Add(NextToken());
+            }
+            var hasTerminator = Current.Kind == SyntaxKind.SemicolonToken;
+            var semicolonToken = hasTerminator
+                ? NextToken()
+                : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
+            fields.Add(new RecordFieldSyntax(fieldIdentifier, colonToken, type, unsupportedTokens, semicolonToken, hasExplicitType, hasTerminator));
+        }
+
+        var closeBraceToken = Match(SyntaxKind.CloseBraceToken);
+        return new RecordDeclarationSyntax(constKeyword, recordKeyword, identifier, openBraceToken, fields, closeBraceToken);
     }
 
     private TypeSyntax ParsePostfixTypeSyntax()
@@ -502,6 +553,14 @@ public sealed class Parser
             if (Current.Kind == SyntaxKind.BangToken)
             {
                 expression = new UnwrapExpressionSyntax(expression, Match(SyntaxKind.BangToken));
+                continue;
+            }
+
+            if (Current.Kind == SyntaxKind.WithKeyword)
+            {
+                var withKeyword = Match(SyntaxKind.WithKeyword);
+                var replacements = ParseObjectLiteralExpression();
+                expression = new WithExpressionSyntax(expression, withKeyword, replacements);
                 continue;
             }
 

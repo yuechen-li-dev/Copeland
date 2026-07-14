@@ -27,6 +27,12 @@ public static class CSharpBackend
         {
             return new CSharpCompilation(string.Empty, diagnostics);
         }
+        if (program.Records.Count > 0)
+        {
+            return new CSharpCompilation(
+                string.Empty,
+                [new CSharpDiagnostic("COPE-CS-REC-0001", "Immutable records are not supported by the C# backend in CTS-REC-M0b.")]);
+        }
         var writer = new CSharpTextWriter();
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var usesResult = ProgramUsesResult(program);

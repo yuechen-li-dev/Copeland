@@ -24,8 +24,21 @@ public static class MirLowerer
     public static MirProgram LowerProgram(BoundProgram program)
     {
         var enums = program.Enums.Select(LowerEnum).ToArray();
+        var records = program.Records.Select(LowerRecord).ToArray();
         var functions = program.Functions.Select(LowerFunction).ToArray();
-        return new MirProgram(enums, functions);
+        return new MirProgram(enums, records, functions);
+    }
+
+    private static MirRecordDefinition LowerRecord(BoundRecordDeclaration declaration)
+    {
+        var recordType = declaration.RecordType;
+        return new MirRecordDefinition(
+            ToMirRecordTypeId(recordType.Id),
+            recordType.Name,
+            recordType.Fields.Select(field => new MirRecordFieldDefinition(
+                ToMirRecordFieldId(field.Id),
+                field.Name,
+                ToMirType(field.Type))).ToArray());
     }
 
     private static MirEnum LowerEnum(BoundEnumDeclaration declaration)
@@ -100,8 +113,25 @@ public static class MirLowerer
             BoundErrExpression err => new MirErrExpression(LowerExpression(err.Payload), (MirResultType)ToMirType(err.Type)),
             BoundUnitExpression => new MirUnitExpression(),
             BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), ToMirType(a.Type)),
+            BoundRecordConstructionExpression construction => new MirRecordConstructionExpression(
+                ToMirRecordTypeId(construction.RecordType.Id),
+                construction.Initializers.Select(LowerRecordFieldValue).ToArray(),
+                (MirRecordType)ToMirType(construction.Type)),
+            BoundRecordFieldAccessExpression access => new MirRecordFieldAccessExpression(
+                LowerExpression(access.Receiver),
+                ToMirRecordTypeId(access.RecordType.Id),
+                ToMirRecordFieldId(access.Field.Id),
+                ToMirType(access.Type)),
+            BoundRecordWithExpression withExpression => new MirRecordWithExpression(
+                LowerExpression(withExpression.Source),
+                ToMirRecordTypeId(withExpression.RecordType.Id),
+                withExpression.Replacements.Select(LowerRecordFieldValue).ToArray(),
+                (MirRecordType)ToMirType(withExpression.Type)),
             _ => new MirLiteralExpression("<error>", new MirNamedType("error"))
         };
+
+    private static MirRecordFieldValue LowerRecordFieldValue(BoundRecordFieldInitializer initializer)
+        => new(ToMirRecordFieldId(initializer.Field.Id), LowerExpression(initializer.Value));
 
     private static MirValueBlock LowerValueBlock(BoundValueBlock block)
     {
@@ -121,8 +151,13 @@ public static class MirLowerer
     {
         ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
         ResultTypeSymbol result => new MirResultType(ToMirType(result.SuccessType), ToMirType(result.ErrorType)),
+        RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.Name),
         _ => new MirNamedType(type.Name)
     };
+
+    private static MirRecordTypeId ToMirRecordTypeId(RecordTypeId id) => new(id.ToString());
+
+    private static MirRecordFieldId ToMirRecordFieldId(RecordFieldId id) => new(id.ToString());
 
     private static string OperatorName(SyntaxKind kind) => kind switch
     {

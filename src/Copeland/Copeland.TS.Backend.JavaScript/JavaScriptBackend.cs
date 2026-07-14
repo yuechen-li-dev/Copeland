@@ -18,6 +18,12 @@ public static class JavaScriptBackend
         {
             return new JavaScriptCompilation(null, diagnostics);
         }
+        if (program.Records.Count > 0)
+        {
+            return new JavaScriptCompilation(
+                null,
+                [new JavaScriptDiagnostic("COPE-JS-REC-0001", "Immutable records are not supported by the JavaScript backend in CTS-REC-M0b.")]);
+        }
         EnumCatalog catalog = ValidateProgram(program, diagnostics);
         if (diagnostics.Count > 0)
         {

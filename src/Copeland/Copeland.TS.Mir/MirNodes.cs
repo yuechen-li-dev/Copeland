@@ -1,9 +1,46 @@
 namespace Copeland.TS.Mir;
 
-public sealed class MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirFunction> functions)
+public sealed class MirProgram
 {
-    public IReadOnlyList<MirEnum> Enums { get; } = enums;
-    public IReadOnlyList<MirFunction> Functions { get; } = functions;
+    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirFunction> functions)
+        : this(enums, [], functions)
+    {
+    }
+
+    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirFunction> functions)
+    {
+        Enums = enums;
+        Records = records;
+        Functions = functions;
+    }
+
+    public IReadOnlyList<MirEnum> Enums { get; }
+    public IReadOnlyList<MirRecordDefinition> Records { get; }
+    public IReadOnlyList<MirFunction> Functions { get; }
+}
+
+public readonly record struct MirRecordTypeId(string Value)
+{
+    public override string ToString() => Value;
+}
+
+public readonly record struct MirRecordFieldId(string Value)
+{
+    public override string ToString() => Value;
+}
+
+public sealed class MirRecordDefinition(MirRecordTypeId id, string name, IReadOnlyList<MirRecordFieldDefinition> fields)
+{
+    public MirRecordTypeId Id { get; } = id;
+    public string Name { get; } = name;
+    public IReadOnlyList<MirRecordFieldDefinition> Fields { get; } = fields;
+}
+
+public sealed class MirRecordFieldDefinition(MirRecordFieldId id, string name, MirType type)
+{
+    public MirRecordFieldId Id { get; } = id;
+    public string Name { get; } = name;
+    public MirType Type { get; } = type;
 }
 
 public sealed class MirEnum(string name, IReadOnlyList<MirEnumCase> cases)
@@ -51,6 +88,10 @@ public record MirType(string Identifier)
 }
 
 public sealed record MirNamedType(string Identifier) : MirType(Identifier);
+public sealed record MirRecordType(MirRecordTypeId RecordTypeId, string DisplayName) : MirType(RecordTypeId.Value)
+{
+    public override string Name => DisplayName;
+}
 public sealed record MirArrayType(MirType ElementType) : MirType("array") { public override string Name => MirTypeText.FormatArrayElement(ElementType) + "[]"; }
 public sealed record MirResultType(MirType SuccessType, MirType ErrorType) : MirType("result") { public override string Name => $"{MirTypeText.FormatResultComponent(SuccessType)} ! {ErrorType.Name}"; }
 
@@ -59,6 +100,8 @@ public static class MirTypeFacts
     public static bool AreEquivalent(MirType left, MirType right)
         => (left, right) switch
         {
+            (MirRecordType leftRecord, MirRecordType rightRecord) => leftRecord.RecordTypeId == rightRecord.RecordTypeId,
+            (MirRecordType, _) or (_, MirRecordType) => false,
             (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType && right is not MirArrayType and not MirResultType => leftNamed.Identifier == rightNamed.Identifier,
             (MirArrayType leftArray, MirArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (MirResultType leftResult, MirResultType rightResult) => AreEquivalent(leftResult.SuccessType, rightResult.SuccessType) && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
@@ -89,6 +132,14 @@ public sealed record MirUnaryExpression(string Operator, MirExpression Operand, 
 public sealed record MirBinaryExpression(string Operator, MirExpression Left, MirExpression Right, MirType Type) : MirExpression(Type);
 public sealed record MirCallExpression(string FunctionName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirArrayExpression(IReadOnlyList<MirExpression> Elements, MirType Type) : MirExpression(Type);
+public sealed class MirRecordFieldValue(MirRecordFieldId fieldId, MirExpression value)
+{
+    public MirRecordFieldId FieldId { get; } = fieldId;
+    public MirExpression Value { get; } = value;
+}
+public sealed record MirRecordConstructionExpression(MirRecordTypeId RecordTypeId, IReadOnlyList<MirRecordFieldValue> Initializers, MirType Type) : MirExpression(Type);
+public sealed record MirRecordFieldAccessExpression(MirExpression Receiver, MirRecordTypeId RecordTypeId, MirRecordFieldId FieldId, MirType Type) : MirExpression(Type);
+public sealed record MirRecordWithExpression(MirExpression Source, MirRecordTypeId RecordTypeId, IReadOnlyList<MirRecordFieldValue> Replacements, MirType Type) : MirExpression(Type);
 public sealed record MirEnumValueExpression(string EnumName, string CaseName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirMatchExpression(MirExpression Scrutinee, IReadOnlyList<MirMatchArm> Arms, MirType Type) : MirExpression(Type);
 public sealed record MirIfExpression(MirExpression Condition, MirExpression ThenExpression, MirExpression ElseExpression, MirType Type) : MirExpression(Type);

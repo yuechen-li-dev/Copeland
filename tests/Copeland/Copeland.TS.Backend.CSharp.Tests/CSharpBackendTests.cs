@@ -11,6 +11,21 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
+    public void Rejects_record_mir_once_without_partial_artifact()
+    {
+        var program = Lower("record Point { x: number; } function main(): Point { return { x: 1 }; }");
+
+        var first = CSharpBackend.Emit(program);
+        var second = CSharpBackend.Emit(program);
+
+        var diagnostic = Assert.Single(first.Diagnostics);
+        Assert.Equal("COPE-CS-REC-0001", diagnostic.Id);
+        Assert.Equal(string.Empty, first.SourceText);
+        Assert.Equal(first.Diagnostics, second.Diagnostics);
+        Assert.Equal(string.Empty, second.SourceText);
+    }
+
+    [Fact]
     public void Emits_Private_Unwrap_Panic_Only_For_Unwrap()
     {
         var unwrap = CSharpBackend.Emit(Lower("function parse(): number ! string { return err(\"bad\"); } function main(): number { return parse()!; }"));

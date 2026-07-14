@@ -555,6 +555,67 @@ public sealed record PropagateExpressionSyntax(ExpressionSyntax Operand, SyntaxT
     }
 }
 
+public sealed record NestedRecordDeclarationStatementSyntax(RecordDeclarationSyntax Declaration) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.NestedRecordDeclarationStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Declaration;
+    }
+}
+
+public sealed record RecordDeclarationSyntax(
+    SyntaxToken? ConstKeyword,
+    SyntaxToken RecordKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<RecordFieldSyntax> Fields,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.RecordDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        if (ConstKeyword is not null)
+        {
+            yield return ConstKeyword;
+        }
+        yield return RecordKeyword;
+        yield return Identifier;
+        yield return OpenBraceToken;
+        foreach (var field in Fields)
+        {
+            yield return field;
+        }
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record RecordFieldSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken ColonToken,
+    TypeSyntax Type,
+    IReadOnlyList<SyntaxToken> UnsupportedTokens,
+    SyntaxToken SemicolonToken,
+    bool HasExplicitType,
+    bool HasTerminator) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.RecordField;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        yield return ColonToken;
+        yield return Type;
+        foreach (var token in UnsupportedTokens)
+        {
+            yield return token;
+        }
+        yield return SemicolonToken;
+    }
+}
+
 public sealed record UnwrapExpressionSyntax(ExpressionSyntax Operand, SyntaxToken BangToken) : ExpressionSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.UnwrapExpression;
@@ -632,6 +693,21 @@ public sealed record IfExpressionSyntax(
         yield return ElseOpenBraceToken;
         yield return ElseExpression;
         yield return ElseCloseBraceToken;
+    }
+}
+
+public sealed record WithExpressionSyntax(
+    ExpressionSyntax Source,
+    SyntaxToken WithKeyword,
+    ObjectLiteralExpressionSyntax Replacements) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.WithExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Source;
+        yield return WithKeyword;
+        yield return Replacements;
     }
 }
 

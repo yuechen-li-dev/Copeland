@@ -23,6 +23,16 @@ public static class MirTextWriter
             }
         }
 
+        foreach (var record in program.Records)
+        {
+            sb.AppendLine();
+            sb.Append("record ").Append(record.Name).Append(" [").Append(record.Id).AppendLine("]");
+            foreach (var field in record.Fields)
+            {
+                sb.Append("  field ").Append(field.Name).Append(" [").Append(field.Id).Append("]: ").Append(field.Type.Name).AppendLine();
+            }
+        }
+
         foreach (var function in program.Functions)
         {
             sb.AppendLine();
@@ -101,6 +111,9 @@ public static class MirTextWriter
         MirUnitExpression => "unit",
         MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
         MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
+        MirRecordConstructionExpression construction => $"record-new [{construction.RecordTypeId}] {{ {string.Join(", ", construction.Initializers.Select(FormatRecordFieldValue))} }}",
+        MirRecordFieldAccessExpression access => $"record-get [{access.RecordTypeId}] {FormatExpression(access.Receiver)}.[{access.FieldId}]",
+        MirRecordWithExpression withExpression => $"record-with [{withExpression.RecordTypeId}] {FormatExpression(withExpression.Source)} {{ {string.Join(", ", withExpression.Replacements.Select(FormatRecordFieldValue))} }}",
         MirEnumValueExpression e => $"enum {e.EnumName}.{e.CaseName}{(e.Arguments.Count == 0 ? string.Empty : $"({string.Join(", ", e.Arguments.Select(FormatExpression))})")}",
         MirMatchExpression m => $"match {FormatExpression(m.Scrutinee)} : {m.Type.Name} {{ {string.Join(" | ", m.Arms.Select(FormatArm))} }}",
         MirIfExpression i => $"if {FormatExpression(i.Condition)} : {i.Type.Name} {{ then {FormatExpression(i.ThenExpression)} else {FormatExpression(i.ElseExpression)} }}",
@@ -112,6 +125,9 @@ public static class MirTextWriter
         MirTryExpression tryExpression => FormatTryExpression(tryExpression),
         _ => expr.ToString() ?? "<expr>"
     };
+
+    private static string FormatRecordFieldValue(MirRecordFieldValue fieldValue)
+        => $"[{fieldValue.FieldId}]: {FormatExpression(fieldValue.Value)}";
 
     private static string FormatPropagationTarget(MirPropagationTarget target)
         => target switch

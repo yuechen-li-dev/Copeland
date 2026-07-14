@@ -57,14 +57,12 @@ The JavaScript backend should use private per-record tokens, frozen null-prototy
 ## Refined ladder
 
 1. **CTS-REC-M0a:** documentation-only audit/design.
-2. **CTS-REC-M0b:** deliberate syntax recognition, stable feature rejection, and invalid language-law fixtures without acceptance through MIR.
-3. **CTS-REC-M1:** declarations, contextual construction, access, bound/MIR identities and nodes, validation, deterministic `.cope`; explicit backend rejection remains mandatory.
-4. **CTS-REC-M2:** sealed-class C# representation and runtime proof.
-5. **CTS-REC-M3:** private nominal frozen JavaScript representation and Node/C# parity.
-6. **CTS-REC-M4:** dedicated `with` implementation and exactly-once/order parity.
-7. **CTS-REC-M5:** closeout, diagnostics, stress/privacy/artifact stability; separately approve any equality or pattern follow-up.
+2. **CTS-REC-M0b:** complete source-to-bound-to-MIR contract, including `with`, fixtures, diagnostics, validation, deterministic `.cope`, and explicit no-artifact backend rejection.
+3. **CTS-REC-M1:** sealed-class C# representation and runtime/order proof.
+4. **CTS-REC-M2:** private nominal frozen JavaScript representation and Node/privacy proof.
+5. **CTS-REC-M3:** cross-backend parity and closeout; separately approve any equality or pattern follow-up.
 
-Keeping C# in M2 matches the repository's separate frontend/MIR and backend corpus/runtime topology. It is not permission for silent miscompilation: M1 must make unsupported record MIR an explicit backend diagnostic. Keeping `with` in M4 isolates genuinely observable copy/update sequencing after both record representations exist and forbids temporary spread/mutation emulation.
+CTS-REC-M0b consolidated the earlier M0b/M1 boundary and the frontend portion of `with`: valid filesystem fixtures cannot stop truthfully before MIR. Backend realization remains separate, and the canonical MIR rejection prevents silent or partial emission.
 
 ## Files changed
 

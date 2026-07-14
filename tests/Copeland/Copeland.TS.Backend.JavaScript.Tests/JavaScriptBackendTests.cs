@@ -11,6 +11,21 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptBackendTests
 {
     [Fact]
+    public void Rejects_record_mir_once_without_partial_artifact()
+    {
+        MirProgram program = Lower("record Point { x: number; } function main(): Point { return { x: 1 }; }");
+
+        JavaScriptCompilation first = JavaScriptBackend.Emit(program);
+        JavaScriptCompilation second = JavaScriptBackend.Emit(program);
+
+        JavaScriptDiagnostic diagnostic = Assert.Single(first.Diagnostics);
+        Assert.Equal("COPE-JS-REC-0001", diagnostic.Id);
+        Assert.Null(first.SourceText);
+        Assert.Equal(first.Diagnostics, second.Diagnostics);
+        Assert.Null(second.SourceText);
+    }
+
+    [Fact]
     public void Emits_Private_Unwrap_Panic_Only_For_Unwrap()
     {
         JavaScriptCompilation unwrap = Emit("function parse(): number ! string { return err(\"bad\"); } function main(): number { return parse()!; }");

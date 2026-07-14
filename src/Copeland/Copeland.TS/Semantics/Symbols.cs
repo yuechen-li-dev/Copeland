@@ -34,3 +34,9 @@ public sealed class EnumPayloadFieldSymbol(string name, TypeSymbol type) : Symbo
 {
     public TypeSymbol Type { get; } = type;
 }
+
+public sealed class RecordFieldSymbol(string name, RecordFieldId id, TypeSymbol type) : Symbol(name)
+{
+    public RecordFieldId Id { get; } = id;
+    public TypeSymbol Type { get; } = type;
+}

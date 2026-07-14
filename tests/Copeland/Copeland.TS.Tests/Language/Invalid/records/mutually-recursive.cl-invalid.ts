@@ -1,0 +1,2 @@
+record A { b: B; }
+record B { a: A; }

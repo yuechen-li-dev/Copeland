@@ -16,11 +16,26 @@ public static class BoundTreeDumper
         {
             AppendEnum(sb, en, 0);
         }
+        foreach (var record in program.Records)
+        {
+            AppendRecord(sb, record, 0);
+        }
         foreach (var stmt in program.GlobalStatements)
         {
             AppendStatement(sb, stmt, 0);
         }
         return sb.ToString();
+    }
+
+    private static void AppendRecord(StringBuilder sb, BoundRecordDeclaration declaration, int indent)
+    {
+        I(sb, indent);
+        sb.Append("RecordDeclaration ").Append(declaration.RecordType.Name).Append(" [").Append(declaration.RecordType.Id).AppendLine("]");
+        foreach (var field in declaration.RecordType.Fields)
+        {
+            I(sb, indent + 1);
+            sb.Append("Field ").Append(field.Name).Append(" [").Append(field.Id).Append("]: ").Append(field.Type.Name).AppendLine();
+        }
     }
     private static void AppendEnum(StringBuilder sb, BoundEnumDeclaration en, int i)
     {
@@ -125,6 +140,29 @@ public static class BoundTreeDumper
             case BoundUnitExpression:
                 sb.AppendLine("UnitExpression : void"); break;
             case BoundArrayExpression a: sb.Append("ArrayExpression : ").Append(a.Type.Name).AppendLine(); foreach (var x in a.Elements) AppendExpression(sb, x, i + 1); break;
+            case BoundRecordConstructionExpression construction:
+                sb.Append("RecordConstruction ").Append(construction.RecordType.Name).Append(" [").Append(construction.RecordType.Id).AppendLine("]");
+                foreach (var initializer in construction.Initializers)
+                {
+                    I(sb, i + 1);
+                    sb.Append("Initializer ").Append(initializer.Field.Name).Append(" [").Append(initializer.Field.Id).AppendLine("]");
+                    AppendExpression(sb, initializer.Value, i + 2);
+                }
+                break;
+            case BoundRecordFieldAccessExpression access:
+                sb.Append("RecordFieldAccess ").Append(access.RecordType.Name).Append('.').Append(access.Field.Name).Append(" [").Append(access.Field.Id).Append("] : ").Append(access.Type.Name).AppendLine();
+                AppendExpression(sb, access.Receiver, i + 1);
+                break;
+            case BoundRecordWithExpression withExpression:
+                sb.Append("RecordWith ").Append(withExpression.RecordType.Name).Append(" [").Append(withExpression.RecordType.Id).AppendLine("]");
+                AppendExpression(sb, withExpression.Source, i + 1);
+                foreach (var replacement in withExpression.Replacements)
+                {
+                    I(sb, i + 1);
+                    sb.Append("Replacement ").Append(replacement.Field.Name).Append(" [").Append(replacement.Field.Id).AppendLine("]");
+                    AppendExpression(sb, replacement.Value, i + 2);
+                }
+                break;
             case BoundIfExpression ie:
                 sb.Append("IfExpression : ").Append(ie.Type.Name).AppendLine();
                 AppendExpression(sb, ie.Condition, i + 1);

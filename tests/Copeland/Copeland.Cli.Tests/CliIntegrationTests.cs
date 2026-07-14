@@ -199,6 +199,28 @@ function one(): number {
     }
 
     [Fact]
+    public async Task RecordMirSucceeds_AndExecutableBackendsRejectWithoutArtifacts()
+    {
+        using var temp = new TempDir();
+        var inputPath = temp.WriteFile("record.ts", "record Point { x: number; } function main(): Point { return { x: 1 }; }");
+        var csharpPath = System.IO.Path.Combine(temp.Path, "record.g.cs");
+        var javaScriptPath = System.IO.Path.Combine(temp.Path, "record.g.js");
+
+        CliResult mir = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "mir");
+        CliResult csharp = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "csharp", "--out", csharpPath);
+        CliResult javaScript = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript", "--out", javaScriptPath);
+
+        Assert.Equal(0, mir.ExitCode);
+        Assert.Contains("record Point [r1]", mir.StdOut, StringComparison.Ordinal);
+        Assert.Equal(1, csharp.ExitCode);
+        Assert.Contains("COPE-CS-REC-0001", csharp.StdErr, StringComparison.Ordinal);
+        Assert.False(File.Exists(csharpPath));
+        Assert.Equal(1, javaScript.ExitCode);
+        Assert.Contains("COPE-JS-REC-0001", javaScript.StdErr, StringComparison.Ordinal);
+        Assert.False(File.Exists(javaScriptPath));
+    }
+
+    [Fact]
     public async Task InvalidSourceExitsOneAndDoesNotWriteOutput()
     {
         using var temp = new TempDir();
