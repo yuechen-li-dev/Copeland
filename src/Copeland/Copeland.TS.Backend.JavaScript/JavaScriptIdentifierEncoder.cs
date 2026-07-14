@@ -27,6 +27,11 @@ internal static class JavaScriptIdentifierEncoder
         return encoded.ToString();
     }
 
+    public static bool IsValidGeneratedIdentifier(string name)
+    {
+        return IsSafeIdentifier(name) && !ReservedWords.Contains(name);
+    }
+
     private static bool IsSafeIdentifier(string name)
     {
         if (string.IsNullOrEmpty(name) || !(char.IsAsciiLetter(name[0]) || name[0] == '_' || name[0] == '$'))

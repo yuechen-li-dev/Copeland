@@ -199,6 +199,17 @@ public sealed class JavaScriptBackendTests
             """.Replace("\r\n", "\n", StringComparison.Ordinal), first.SourceText);
     }
 
+    [Fact]
+    public void Generated_bindings_avoid_hostile_user_authored_names()
+    {
+        JavaScriptCompilation result = Emit("function __cope_m3_panic_0(): number { return 42; } enum Choice { Value, } function main(): number { return __cope_m3_panic_0(); }");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("function __cope_m3_panic_0()", result.SourceText, StringComparison.Ordinal);
+        Assert.Contains("function __cope_m3_panic_1()", result.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("const __cope_m3_panic_0 =", result.SourceText, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("+", "(left + right)")]
     [InlineData("-", "(left - right)")]

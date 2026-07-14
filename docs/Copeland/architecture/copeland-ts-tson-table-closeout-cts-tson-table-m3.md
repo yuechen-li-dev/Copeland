@@ -43,7 +43,7 @@ Ordinary failures remain exactly `InvalidUnicode` and `OutputLimitExceeded`; the
 
 `TsonEncodeFeatureTests` proves demand creation and plan reuse: no intrinsic means no plan or error enum, row/column/cell views are rejected, repeated singleton encoding reuses one plan, and asset-backed singletons use the same path. `TsonEncodeRuntimeTests.Writer_helpers_are_demand_emitted_and_forbidden_runtime_apis_are_absent` proves non-table encoding does not demand a table writer and searches emitted artifacts for parser, filesystem, reflection, property enumeration, host serialization, and row-object serialization routes. Existing CLI integration tests own fresh-output, repeatability, invalid-source/no-partial-output, invalid-MIR/no-artifact, stale-output SHA-256 preservation, and path-safe diagnostics.
 
-The Diagnostic JavaScript emitter remains authoritative. CTS-JS-EMIT-M0a is recorded only as a future benchmark and sequencing constraint; M3 neither changes helper naming/deduplication nor regenerates its corpus.
+The Diagnostic JavaScript emitter remains authoritative. CTS-JS-EMIT-M0a supplied the benchmark and sequencing constraint; CTS-JS-EMIT-M0b now adds a byte-preserving scoped allocation/token-writer foundation. Neither milestone changes helper naming/deduplication or regenerates this corpus.
 
 ## Retained artifact inventory
 

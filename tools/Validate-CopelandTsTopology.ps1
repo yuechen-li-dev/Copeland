@@ -245,6 +245,24 @@ $javaScriptBackendText = Get-Content -Raw -LiteralPath (Join-Path $root "src/Cop
 Require-Condition ($javaScriptBackendText.Contains('MirArrayExpression array => EmitArrayExpression', [System.StringComparison]::Ordinal)) "JavaScript arrays must be realized through the ordinary backend path."
 Require-Condition ($javaScriptBackendText.Contains('Array.isArray(array)', [System.StringComparison]::Ordinal)) "JavaScript TSON array encoding must validate ordinary array carriers."
 
+$javaScriptBackendRoot = Join-Path $root "src/Copeland/Copeland.TS.Backend.JavaScript"
+$javaScriptEmissionModel = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "JavaScriptEmissionModel.cs")
+Require-Condition ($javaScriptEmissionModel.Contains('record struct JavaScriptBindingId', [System.StringComparison]::Ordinal)) "Generated JavaScript bindings must retain backend-local typed identities."
+Require-Condition ($javaScriptEmissionModel.Contains('class JavaScriptNameAllocator', [System.StringComparison]::Ordinal)) "Generated JavaScript names must originate from the scoped backend allocator."
+Require-Condition ($javaScriptEmissionModel.Contains('class JavaScriptTokenWriter', [System.StringComparison]::Ordinal)) "JavaScript emission must retain its backend-local token writer."
+Require-Condition ($javaScriptBackendText.Contains('new JavaScriptNameAllocator', [System.StringComparison]::Ordinal)) "The Diagnostic backend must use the backend-local JavaScript name allocator."
+Require-Condition ($javaScriptBackendText.Contains('Dictionary<EnumInfo, JavaScriptBindingReference>', [System.StringComparison]::Ordinal)) "Generated-name catalogs must retain typed binding references instead of string names."
+$javaScriptWriterText = Get-Content -Raw -LiteralPath (Join-Path $javaScriptBackendRoot "JavaScriptTextWriter.cs")
+Require-Condition ($javaScriptWriterText.Contains('BindingPart(JavaScriptBindingReference', [System.StringComparison]::Ordinal)) "Diagnostic writer binding references must be structured events."
+Require-Condition ($javaScriptWriterText.Contains('document.Reference(line.Scope', [System.StringComparison]::Ordinal)) "Diagnostic writer binding references must validate lexical scope."
+
+$javaScriptProductionSources = @(Get-ChildItem -LiteralPath $javaScriptBackendRoot -Recurse -Filter *.cs -File |
+    Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' })
+$forbiddenJavaScriptTooling = $javaScriptProductionSources | Select-String -Pattern 'Terser|esbuild|SWC|Babel|Uglify|sourceMappingURL|\.map\b'
+Require-Condition ($null -eq $forbiddenJavaScriptTooling) "The JavaScript backend must not add an external minifier, parser, or source-map output path."
+$prematureJavaScriptProfiles = $javaScriptProductionSources | Select-String -Pattern 'Chinese codebook|Heavenly Stem|Release allocator|Symbolic allocator'
+Require-Condition ($null -eq $prematureJavaScriptProfiles) "Symbolic and Release allocator behavior remains outside M0b production code."
+
 $forbiddenRuntimeEncodingApis = $backendSources | Select-String -Pattern 'System\.Text\.Json|JSON\.stringify|System\.Reflection|System\.IO\.File|File\.(Read|Write)|\breflection\b|\bdynamic\b'
 Require-Condition ($null -eq $forbiddenRuntimeEncodingApis) "Generated backends must not add JSON, reflection, dynamic, or runtime filesystem dependencies for TSON encoding."
 

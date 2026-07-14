@@ -2,7 +2,7 @@
 
 ## Outcome
 
-CTS-JS-EMIT-M0a is a documentation-only architecture audit for future Diagnostic, Symbolic, and Release JavaScript emission. It selects a backend-local scope/binding/token-event writer, keeps current Diagnostic output and `--emit javascript` behavior authoritative, proposes a Chinese semantic codebook and Heavenly-Stem ordinal candidate, records bounded Node/compression experiments, and defers all production emission work until CTS-TSON-TABLE-M2/M3 close.
+CTS-JS-EMIT-M0a is a documentation-only architecture audit for future Diagnostic, Symbolic, and Release JavaScript emission. It selects a backend-local scope/binding/token-event writer, keeps current Diagnostic output and `--emit javascript` behavior authoritative, proposes a Chinese semantic codebook and Heavenly-Stem ordinal candidate, records bounded Node/compression experiments, and defers all production emission work until CTS-TSON-TABLE-M2/M3 close. That sequencing condition is now met: [CTS-JS-EMIT-M0b](cts-js-emit-m0b-scoped-writer-and-diagnostic-preservation.md) implements the byte-preserving scoped allocation/token-writer foundation while retaining this audit as the Symbolic/Release design authority.
 
 No production source, test, fixture, generated corpus artifact, hash, CLI behavior, MIR, runtime behavior, package manifest, lockfile, dependency, project, solution, build target, package version, or source map changed.
 

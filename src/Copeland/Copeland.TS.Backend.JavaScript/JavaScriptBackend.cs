@@ -28,7 +28,7 @@ public static class JavaScriptBackend
         bool usesUnwrap = ProgramUsesUnwrap(program);
         bool usesTryExcept = ProgramUsesTryExcept(program);
         GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept);
-        var writer = new JavaScriptTextWriter();
+        var writer = new JavaScriptTextWriter(names.Document);
         writer.WriteLine("\"use strict\";");
 
         if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
@@ -717,7 +717,7 @@ public static class JavaScriptBackend
         ResultCatalog results,
         GeneratedNames names)
     {
-        string boundsErrorToken = names.TypeToken(catalog.GetEnum("TableBoundsError"));
+        var boundsErrorToken = names.TypeToken(catalog.GetEnum("TableBoundsError"));
         writer.WriteLine($"const {names.TableTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.Id.Value)});");
         if (names.UsesTsonTableEncoding)
         {
@@ -858,7 +858,7 @@ public static class JavaScriptBackend
         string successValue)
     {
         MirResultType resultType = new(successType, new MirNamedType("TableBoundsError"));
-        string resultToken = names.TypeToken(results.Get(resultType));
+        var resultToken = names.TypeToken(results.Get(resultType));
         writer.WriteLine($"if (!Number.isFinite({index}) || !Number.isInteger({index})) {{");
         writer.Indent();
         writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [{names.MakeValue}({boundsErrorToken}, \"InvalidIndex\", [{index}])]);");
@@ -896,7 +896,7 @@ public static class JavaScriptBackend
 
     private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, GeneratedNames names)
     {
-        string typeToken = names.RecordTypeToken(record);
+        var typeToken = names.RecordTypeToken(record);
         writer.WriteLine($"const {typeToken} = Symbol({JavaScriptLiteralWriter.WriteString(record.Id.Value)});");
         writer.WriteLine($"const {names.RecordInstances(record)} = new WeakSet();");
         foreach (MirRecordFieldDefinition field in record.Fields)
@@ -1105,6 +1105,8 @@ public static class JavaScriptBackend
 
     private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
+        JavaScriptScopeId functionScope = names.EnterFunction(function);
+        writer.EnterScope(functionScope);
         string parameters = string.Join(", ", function.Parameters.Select(parameter => JavaScriptIdentifierEncoder.Encode(parameter.Name)));
         writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
@@ -1112,7 +1114,7 @@ public static class JavaScriptBackend
         bool usesTryExcept = FunctionUsesTryExcept(function);
         if (usesTryExcept)
         {
-            string flow = names.NextTemporary("function_flow");
+            var flow = names.NextTemporary("function_flow");
             writer.WriteLine($"const {flow} = (() => {{");
             writer.Indent();
             foreach (MirStatement statement in function.Body)
@@ -1143,6 +1145,8 @@ public static class JavaScriptBackend
             writer.WriteLine($"{names.Panic}();");
             writer.Unindent();
             writer.WriteLine("}");
+            names.LeaveFunction();
+            writer.EnterScope(names.Document.ProgramScope);
             return;
         }
 
@@ -1153,6 +1157,8 @@ public static class JavaScriptBackend
 
         writer.Unindent();
         writer.WriteLine("}");
+        names.LeaveFunction();
+        writer.EnterScope(names.Document.ProgramScope);
     }
 
     private static void EmitStatement(JavaScriptTextWriter writer, MirStatement statement, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
@@ -1480,8 +1486,8 @@ public static class JavaScriptBackend
         }
 
         MirResultType resultType = new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));
-        string resultToken = names.TypeToken(results.Get(resultType));
-        string errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
+        var resultToken = names.TypeToken(results.Get(resultType));
+        var errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
         writer.WriteLine($"function encode{planIndex}(value) {{");
         writer.Indent();
         writer.WriteLine($"const writer = makeWriter({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
@@ -1515,8 +1521,8 @@ public static class JavaScriptBackend
         MirTsonTablePlan tablePlan = plan.TablePlan!;
         MirTableDefinition table = catalog.GetTable(tablePlan.TableId);
         MirResultType resultType = new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));
-        string resultToken = names.TypeToken(results.Get(resultType));
-        string errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
+        var resultToken = names.TypeToken(results.Get(resultType));
+        var errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
         writer.WriteLine($"function encode{planIndex}(value) {{");
         writer.Indent();
         writer.WriteLine($"{names.TableValidator(table)}(value);");
@@ -1750,7 +1756,7 @@ public static class JavaScriptBackend
                 $"({left.Value} {binaryOperator} {right.Value})");
         }
 
-        string resultTemporary = names.NextTemporary("logical_result");
+        var resultTemporary = names.NextTemporary("logical_result");
         string branchCondition = binaryOperator == "&&" ? left.Value : $"!({left.Value})";
         string shortCircuitValue = binaryOperator == "&&" ? "false" : "true";
         var prelude = new List<EmittedLine>(left.Prelude)
@@ -1816,7 +1822,7 @@ public static class JavaScriptBackend
         {
             EmittedExpression value = EmitExpression(initializer.Value, function, catalog, results, names, flowEnabled);
             prelude.AddRange(value.Prelude);
-            string temporary = names.NextTemporary("record_init");
+            var temporary = names.NextTemporary("record_init");
             prelude.Add(new EmittedLine($"const {temporary} = {value.Value};", 0));
             valuesByField.Add(initializer.FieldId, temporary);
         }
@@ -1836,7 +1842,7 @@ public static class JavaScriptBackend
         MirRecordDefinition record = catalog.GetRecord(access.RecordTypeId);
         MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == access.FieldId);
         EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
-        string temporary = names.NextTemporary("record_receiver");
+        var temporary = names.NextTemporary("record_receiver");
         var prelude = new List<EmittedLine>(receiver.Prelude)
         {
             new($"const {temporary} = {receiver.Value};", 0),
@@ -1856,7 +1862,7 @@ public static class JavaScriptBackend
         MirTableDefinition table = catalog.GetTable(access.TableId);
         MirTableColumnDefinition column = catalog.GetTableColumn(access.ColumnId);
         EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
-        string temporary = names.NextTemporary("table_receiver");
+        var temporary = names.NextTemporary("table_receiver");
         var prelude = new List<EmittedLine>(receiver.Prelude)
         {
             new($"const {temporary} = {receiver.Value};", 0),
@@ -1877,9 +1883,9 @@ public static class JavaScriptBackend
         MirResultType resultType = (MirResultType)access.Type;
         EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
         EmittedExpression index = EmitExpression(access.Index, function, catalog, results, names, flowEnabled);
-        string receiverTemporary = names.NextTemporary("table_receiver");
-        string indexTemporary = names.NextTemporary("table_index");
-        string resultTemporary = names.NextTemporary("table_row");
+        var receiverTemporary = names.NextTemporary("table_receiver");
+        var indexTemporary = names.NextTemporary("table_index");
+        var resultTemporary = names.NextTemporary("table_row");
         var prelude = new List<EmittedLine>(receiver.Prelude)
         {
             new($"const {receiverTemporary} = {receiver.Value};", 0),
@@ -1903,9 +1909,9 @@ public static class JavaScriptBackend
         MirResultType resultType = (MirResultType)access.Type;
         EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
         EmittedExpression index = EmitExpression(access.Index, function, catalog, results, names, flowEnabled);
-        string receiverTemporary = names.NextTemporary("column_receiver");
-        string indexTemporary = names.NextTemporary("column_index");
-        string resultTemporary = names.NextTemporary("column_element");
+        var receiverTemporary = names.NextTemporary("column_receiver");
+        var indexTemporary = names.NextTemporary("column_index");
+        var resultTemporary = names.NextTemporary("column_element");
         var prelude = new List<EmittedLine>(receiver.Prelude)
         {
             new($"const {receiverTemporary} = {receiver.Value};", 0),
@@ -1930,9 +1936,9 @@ public static class JavaScriptBackend
         MirTableColumnDefinition column = table.Columns.Single(candidate => candidate.Id.Value + ".f" == access.FieldId);
         MirResultType resultType = new(access.Type, new MirNamedType("TableBoundsError"));
         EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
-        string rowTemporary = names.NextTemporary("table_row");
-        string tableTemporary = names.NextTemporary("row_table");
-        string resultTemporary = names.NextTemporary("row_field");
+        var rowTemporary = names.NextTemporary("table_row");
+        var tableTemporary = names.NextTemporary("row_table");
+        var resultTemporary = names.NextTemporary("row_field");
         var prelude = new List<EmittedLine>(receiver.Prelude)
         {
             new($"const {rowTemporary} = {receiver.Value};", 0),
@@ -1955,7 +1961,7 @@ public static class JavaScriptBackend
     {
         MirRecordDefinition record = catalog.GetRecord(withExpression.RecordTypeId);
         EmittedExpression source = EmitExpression(withExpression.Source, function, catalog, results, names, flowEnabled);
-        string sourceTemporary = names.NextTemporary("record_source");
+        var sourceTemporary = names.NextTemporary("record_source");
         var prelude = new List<EmittedLine>(source.Prelude)
         {
             new($"const {sourceTemporary} = {source.Value};", 0),
@@ -1966,7 +1972,7 @@ public static class JavaScriptBackend
         {
             EmittedExpression value = EmitExpression(replacement.Value, function, catalog, results, names, flowEnabled);
             prelude.AddRange(value.Prelude);
-            string temporary = names.NextTemporary("record_replacement");
+            var temporary = names.NextTemporary("record_replacement");
             prelude.Add(new EmittedLine($"const {temporary} = {value.Value};", 0));
             replacementsByField.Add(replacement.FieldId, temporary);
         }
@@ -2000,7 +2006,7 @@ public static class JavaScriptBackend
             prelude.AddRange(expression.Prelude);
             if (index < lastPreludeIndex)
             {
-                string temporary = names.NextTemporary("ordered");
+                var temporary = names.NextTemporary("ordered");
                 prelude.Add(new EmittedLine($"const {temporary} = {expression.Value};", 0));
                 values.Add(temporary);
             }
@@ -2031,7 +2037,7 @@ public static class JavaScriptBackend
         }
 
         EnumInfo enumInfo = catalog.GetEnum(match.Scrutinee.Type.Identifier);
-        string scrutinee = names.NextMatchScrutinee();
+        var scrutinee = names.NextMatchScrutinee();
         var parts = new List<string>
         {
             "(() => {",
@@ -2074,7 +2080,7 @@ public static class JavaScriptBackend
         }
 
         EmittedExpression operand = EmitExpression(propagation.Operand, function, catalog, results, names, flowEnabled);
-        string temporary = names.NextTemporary("propagate");
+        var temporary = names.NextTemporary("propagate");
         var prelude = new List<EmittedLine>(operand.Prelude)
         {
             new($"const {temporary} = {operand.Value};", 0),
@@ -2113,9 +2119,9 @@ public static class JavaScriptBackend
             throw new InvalidOperationException("Validated JavaScript emission received a try/except expression outside a flow function.");
         }
 
-        string protectedFlow = names.NextTemporary("try_protected");
-        string handlerFlow = names.NextTemporary("try_handler");
-        string value = names.NextTemporary("try_value");
+        var protectedFlow = names.NextTemporary("try_protected");
+        var handlerFlow = names.NextTemporary("try_handler");
+        var value = names.NextTemporary("try_value");
         string error = JavaScriptIdentifierEncoder.Encode(tryExpression.HandlerBinding.Name);
         var prelude = new List<EmittedLine>
         {
@@ -2176,7 +2182,7 @@ public static class JavaScriptBackend
     {
         MirResultType resultType = unwrap.ResultType;
         EmittedExpression operand = EmitExpression(unwrap.Operand, function, catalog, results, names, flowEnabled);
-        string temporary = names.NextTemporary("unwrap");
+        var temporary = names.NextTemporary("unwrap");
         var prelude = new List<EmittedLine>(operand.Prelude)
         {
             new($"const {temporary} = {operand.Value};", 0),
@@ -2194,8 +2200,8 @@ public static class JavaScriptBackend
         EmittedExpression scrutinee = EmitExpression(match.Scrutinee, function, catalog, results, names, flowEnabled);
         EmittedExpression ok = EmitExpression(match.OkExpression, function, catalog, results, names, flowEnabled);
         EmittedExpression err = EmitExpression(match.ErrExpression, function, catalog, results, names, flowEnabled);
-        string scrutineeTemporary = names.NextTemporary("result_match");
-        string valueTemporary = names.NextTemporary("result_value");
+        var scrutineeTemporary = names.NextTemporary("result_match");
+        var valueTemporary = names.NextTemporary("result_value");
         string okBinding = JavaScriptIdentifierEncoder.Encode(match.OkBinding.Name);
         string errBinding = JavaScriptIdentifierEncoder.Encode(match.ErrBinding.Name);
         var prelude = new List<EmittedLine>(scrutinee.Prelude)
@@ -2233,7 +2239,7 @@ public static class JavaScriptBackend
             return new EmittedExpression(condition.Prelude, $"({condition.Value} ? {thenExpression.Value} : {elseExpression.Value})");
         }
 
-        string valueTemporary = names.NextTemporary("if_value");
+        var valueTemporary = names.NextTemporary("if_value");
         var prelude = new List<EmittedLine>(condition.Prelude)
         {
             new($"let {valueTemporary};", 0),
@@ -2252,8 +2258,8 @@ public static class JavaScriptBackend
     {
         EnumInfo enumInfo = catalog.GetEnum(match.Scrutinee.Type.Identifier);
         EmittedExpression scrutinee = EmitExpression(match.Scrutinee, function, catalog, results, names, flowEnabled);
-        string scrutineeTemporary = names.NextTemporary("match");
-        string valueTemporary = names.NextTemporary("match_value");
+        var scrutineeTemporary = names.NextTemporary("match");
+        var valueTemporary = names.NextTemporary("match_value");
         var prelude = new List<EmittedLine>(scrutinee.Prelude)
         {
             new($"const {scrutineeTemporary} = {scrutinee.Value};", 0),
@@ -2865,73 +2871,75 @@ public static class JavaScriptBackend
 
     private sealed class GeneratedNames
     {
-        private readonly Dictionary<EnumInfo, string> typeTokens;
-        private readonly Dictionary<EnumInfo, string> enumInstances;
-        private readonly Dictionary<EnumInfo, string> validators;
-        private readonly Dictionary<ResultInfo, string> resultTypeTokens;
-        private readonly Dictionary<ResultInfo, string> resultValidators;
-        private readonly Dictionary<MirRecordDefinition, string> recordTypeTokens;
-        private readonly Dictionary<MirRecordDefinition, string> recordInstances;
-        private readonly Dictionary<MirRecordDefinition, string> recordConstructors;
-        private readonly Dictionary<MirRecordDefinition, string> recordValidators;
-        private readonly Dictionary<MirRecordFieldDefinition, string> recordFieldSlots;
-        private readonly Dictionary<MirTableDefinition, string> tableTypeTokens;
-        private readonly Dictionary<MirTableDefinition, string> tableInstances;
-        private readonly Dictionary<MirTableDefinition, string> tableRowTypeTokens;
-        private readonly Dictionary<MirTableDefinition, string> tableValidators;
-        private readonly Dictionary<MirTableDefinition, string> tableRowValidators;
-        private readonly Dictionary<MirTableDefinition, string> tableCreates;
-        private readonly Dictionary<MirTableDefinition, string> tableCreateRows;
-        private readonly Dictionary<MirTableDefinition, string> tableSingletons;
-        private readonly Dictionary<MirTableDefinition, string> tableRowReadSlots;
-        private readonly Dictionary<MirTableColumnDefinition, string> tableColumnSlots;
-        private readonly Dictionary<MirTableColumnDefinition, string> tableColumnTokens;
-        private readonly Dictionary<MirTableColumnDefinition, string> tableStorages;
-        private readonly Dictionary<MirTableColumnDefinition, string> tableColumnValues;
+        private readonly Dictionary<EnumInfo, JavaScriptBindingReference> typeTokens;
+        private readonly Dictionary<EnumInfo, JavaScriptBindingReference> enumInstances;
+        private readonly Dictionary<EnumInfo, JavaScriptBindingReference> validators;
+        private readonly Dictionary<ResultInfo, JavaScriptBindingReference> resultTypeTokens;
+        private readonly Dictionary<ResultInfo, JavaScriptBindingReference> resultValidators;
+        private readonly Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordTypeTokens;
+        private readonly Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordInstances;
+        private readonly Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordConstructors;
+        private readonly Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordValidators;
+        private readonly Dictionary<MirRecordFieldDefinition, JavaScriptBindingReference> recordFieldSlots;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableTypeTokens;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableInstances;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableRowTypeTokens;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableValidators;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableRowValidators;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableCreates;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableCreateRows;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableSingletons;
+        private readonly Dictionary<MirTableDefinition, JavaScriptBindingReference> tableRowReadSlots;
+        private readonly Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnSlots;
+        private readonly Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnTokens;
+        private readonly Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableStorages;
+        private readonly Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnValues;
+        private readonly Dictionary<MirFunction, JavaScriptScopeId> functionScopes;
         private readonly NameAllocator allocator;
 
         private GeneratedNames(
             NameAllocator allocator,
-            string panic,
-            string unwrapPanic,
-            string makeValue,
-            string flowToken,
-            string flowValue,
-            string flowToHandler,
-            string flowToFunction,
-            string validateFlow,
-            string tsonRuntime,
+            JavaScriptBindingReference panic,
+            JavaScriptBindingReference unwrapPanic,
+            JavaScriptBindingReference makeValue,
+            JavaScriptBindingReference flowToken,
+            JavaScriptBindingReference flowValue,
+            JavaScriptBindingReference flowToHandler,
+            JavaScriptBindingReference flowToFunction,
+            JavaScriptBindingReference validateFlow,
+            JavaScriptBindingReference tsonRuntime,
             bool usesTsonTableEncoding,
-            Dictionary<EnumInfo, string> typeTokens,
-            Dictionary<EnumInfo, string> enumInstances,
-            Dictionary<EnumInfo, string> validators,
-            Dictionary<ResultInfo, string> resultTypeTokens,
-            Dictionary<ResultInfo, string> resultValidators,
-            Dictionary<MirRecordDefinition, string> recordTypeTokens,
-            Dictionary<MirRecordDefinition, string> recordInstances,
-            Dictionary<MirRecordDefinition, string> recordConstructors,
-            Dictionary<MirRecordDefinition, string> recordValidators,
-            Dictionary<MirRecordFieldDefinition, string> recordFieldSlots,
-            string columnCarrierToken,
-            string columnInstances,
-            string columnReadSlot,
-            string columnValuesSlot,
-            string columnValidator,
-            string tableRowTableSlot,
-            string tableRowIndexSlot,
-            Dictionary<MirTableDefinition, string> tableTypeTokens,
-            Dictionary<MirTableDefinition, string> tableInstances,
-            Dictionary<MirTableDefinition, string> tableRowTypeTokens,
-            Dictionary<MirTableDefinition, string> tableValidators,
-            Dictionary<MirTableDefinition, string> tableRowValidators,
-            Dictionary<MirTableDefinition, string> tableCreates,
-            Dictionary<MirTableDefinition, string> tableCreateRows,
-            Dictionary<MirTableDefinition, string> tableSingletons,
-            Dictionary<MirTableDefinition, string> tableRowReadSlots,
-            Dictionary<MirTableColumnDefinition, string> tableColumnSlots,
-            Dictionary<MirTableColumnDefinition, string> tableColumnTokens,
-            Dictionary<MirTableColumnDefinition, string> tableStorages,
-            Dictionary<MirTableColumnDefinition, string> tableColumnValues)
+            Dictionary<EnumInfo, JavaScriptBindingReference> typeTokens,
+            Dictionary<EnumInfo, JavaScriptBindingReference> enumInstances,
+            Dictionary<EnumInfo, JavaScriptBindingReference> validators,
+            Dictionary<ResultInfo, JavaScriptBindingReference> resultTypeTokens,
+            Dictionary<ResultInfo, JavaScriptBindingReference> resultValidators,
+            Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordTypeTokens,
+            Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordInstances,
+            Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordConstructors,
+            Dictionary<MirRecordDefinition, JavaScriptBindingReference> recordValidators,
+            Dictionary<MirRecordFieldDefinition, JavaScriptBindingReference> recordFieldSlots,
+            JavaScriptBindingReference columnCarrierToken,
+            JavaScriptBindingReference columnInstances,
+            JavaScriptBindingReference columnReadSlot,
+            JavaScriptBindingReference columnValuesSlot,
+            JavaScriptBindingReference columnValidator,
+            JavaScriptBindingReference tableRowTableSlot,
+            JavaScriptBindingReference tableRowIndexSlot,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableTypeTokens,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableInstances,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableRowTypeTokens,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableValidators,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableRowValidators,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableCreates,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableCreateRows,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableSingletons,
+            Dictionary<MirTableDefinition, JavaScriptBindingReference> tableRowReadSlots,
+            Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnSlots,
+            Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnTokens,
+            Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableStorages,
+            Dictionary<MirTableColumnDefinition, JavaScriptBindingReference> tableColumnValues,
+            Dictionary<MirFunction, JavaScriptScopeId> functionScopes)
         {
             this.allocator = allocator;
             Panic = panic;
@@ -2974,91 +2982,106 @@ public static class JavaScriptBackend
             this.tableColumnTokens = tableColumnTokens;
             this.tableStorages = tableStorages;
             this.tableColumnValues = tableColumnValues;
+            this.functionScopes = functionScopes;
         }
 
-        public string Panic { get; }
+        public JavaScriptBindingReference Panic { get; }
 
-        public string UnwrapPanic { get; }
+        public JavaScriptBindingReference UnwrapPanic { get; }
 
-        public string MakeValue { get; }
+        public JavaScriptBindingReference MakeValue { get; }
 
-        public string FlowToken { get; }
+        public JavaScriptBindingReference FlowToken { get; }
 
-        public string FlowValue { get; }
+        public JavaScriptBindingReference FlowValue { get; }
 
-        public string FlowToHandler { get; }
+        public JavaScriptBindingReference FlowToHandler { get; }
 
-        public string FlowToFunction { get; }
+        public JavaScriptBindingReference FlowToFunction { get; }
 
-        public string ValidateFlow { get; }
+        public JavaScriptBindingReference ValidateFlow { get; }
 
-        public string TsonRuntime { get; }
+        public JavaScriptBindingReference TsonRuntime { get; }
 
         public bool UsesTsonTableEncoding { get; }
 
-        public string ColumnCarrierToken { get; }
+        public JavaScriptEmissionDocument Document => allocator.Document;
 
-        public string ColumnInstances { get; }
+        public JavaScriptBindingReference ColumnCarrierToken { get; }
 
-        public string ColumnReadSlot { get; }
+        public JavaScriptBindingReference ColumnInstances { get; }
 
-        public string ColumnValuesSlot { get; }
+        public JavaScriptBindingReference ColumnReadSlot { get; }
 
-        public string ColumnValidator { get; }
+        public JavaScriptBindingReference ColumnValuesSlot { get; }
 
-        public string TableRowTableSlot { get; }
+        public JavaScriptBindingReference ColumnValidator { get; }
 
-        public string TableRowIndexSlot { get; }
+        public JavaScriptBindingReference TableRowTableSlot { get; }
 
-        public string TypeToken(EnumInfo enumInfo) => typeTokens[enumInfo];
+        public JavaScriptBindingReference TableRowIndexSlot { get; }
 
-        public string EnumInstances(EnumInfo enumInfo) => enumInstances[enumInfo];
+        public JavaScriptBindingReference TypeToken(EnumInfo enumInfo) => typeTokens[enumInfo];
 
-        public string Validator(EnumInfo enumInfo) => validators[enumInfo];
+        public JavaScriptBindingReference EnumInstances(EnumInfo enumInfo) => enumInstances[enumInfo];
 
-        public string TypeToken(ResultInfo result) => resultTypeTokens[result];
+        public JavaScriptBindingReference Validator(EnumInfo enumInfo) => validators[enumInfo];
 
-        public string Validator(ResultInfo result) => resultValidators[result];
+        public JavaScriptBindingReference TypeToken(ResultInfo result) => resultTypeTokens[result];
 
-        public string RecordTypeToken(MirRecordDefinition record) => recordTypeTokens[record];
+        public JavaScriptBindingReference Validator(ResultInfo result) => resultValidators[result];
 
-        public string RecordInstances(MirRecordDefinition record) => recordInstances[record];
+        public JavaScriptBindingReference RecordTypeToken(MirRecordDefinition record) => recordTypeTokens[record];
 
-        public string RecordConstructor(MirRecordDefinition record) => recordConstructors[record];
+        public JavaScriptBindingReference RecordInstances(MirRecordDefinition record) => recordInstances[record];
 
-        public string RecordValidator(MirRecordDefinition record) => recordValidators[record];
+        public JavaScriptBindingReference RecordConstructor(MirRecordDefinition record) => recordConstructors[record];
 
-        public string RecordFieldSlot(MirRecordFieldDefinition field) => recordFieldSlots[field];
+        public JavaScriptBindingReference RecordValidator(MirRecordDefinition record) => recordValidators[record];
 
-        public string TableTypeToken(MirTableDefinition table) => tableTypeTokens[table];
+        public JavaScriptBindingReference RecordFieldSlot(MirRecordFieldDefinition field) => recordFieldSlots[field];
 
-        public string TableInstances(MirTableDefinition table) => tableInstances[table];
+        public JavaScriptBindingReference TableTypeToken(MirTableDefinition table) => tableTypeTokens[table];
 
-        public string TableRowTypeToken(MirTableDefinition table) => tableRowTypeTokens[table];
+        public JavaScriptBindingReference TableInstances(MirTableDefinition table) => tableInstances[table];
 
-        public string TableValidator(MirTableDefinition table) => tableValidators[table];
+        public JavaScriptBindingReference TableRowTypeToken(MirTableDefinition table) => tableRowTypeTokens[table];
 
-        public string TableRowValidator(MirTableDefinition table) => tableRowValidators[table];
+        public JavaScriptBindingReference TableValidator(MirTableDefinition table) => tableValidators[table];
 
-        public string TableCreate(MirTableDefinition table) => tableCreates[table];
+        public JavaScriptBindingReference TableRowValidator(MirTableDefinition table) => tableRowValidators[table];
 
-        public string TableCreateRow(MirTableDefinition table) => tableCreateRows[table];
+        public JavaScriptBindingReference TableCreate(MirTableDefinition table) => tableCreates[table];
 
-        public string TableSingleton(MirTableDefinition table) => tableSingletons[table];
+        public JavaScriptBindingReference TableCreateRow(MirTableDefinition table) => tableCreateRows[table];
 
-        public string TableRowReadSlot(MirTableDefinition table) => tableRowReadSlots[table];
+        public JavaScriptBindingReference TableSingleton(MirTableDefinition table) => tableSingletons[table];
 
-        public string TableColumnSlot(MirTableColumnDefinition column) => tableColumnSlots[column];
+        public JavaScriptBindingReference TableRowReadSlot(MirTableDefinition table) => tableRowReadSlots[table];
 
-        public string TableColumnToken(MirTableColumnDefinition column) => tableColumnTokens[column];
+        public JavaScriptBindingReference TableColumnSlot(MirTableColumnDefinition column) => tableColumnSlots[column];
 
-        public string TableStorage(MirTableColumnDefinition column) => tableStorages[column];
+        public JavaScriptBindingReference TableColumnToken(MirTableColumnDefinition column) => tableColumnTokens[column];
 
-        public string TableColumnValue(MirTableColumnDefinition column) => tableColumnValues[column];
+        public JavaScriptBindingReference TableStorage(MirTableColumnDefinition column) => tableStorages[column];
 
-        public string NextMatchScrutinee() => allocator.Allocate("match");
+        public JavaScriptBindingReference TableColumnValue(MirTableColumnDefinition column) => tableColumnValues[column];
 
-        public string NextTemporary(string purpose) => allocator.Allocate(purpose);
+        public JavaScriptBindingReference NextMatchScrutinee() => allocator.Allocate("match");
+
+        public JavaScriptBindingReference NextTemporary(string purpose) => allocator.Allocate(purpose);
+
+        public JavaScriptScopeId EnterFunction(MirFunction function)
+        {
+            JavaScriptScopeId scope = functionScopes[function];
+            allocator.EnterScope(scope);
+            return scope;
+        }
+
+        public void LeaveFunction()
+        {
+            allocator.EnterScope(Document.ProgramScope);
+        }
 
         public static GeneratedNames Create(MirProgram program, EnumCatalog catalog, ResultCatalog results, bool usesUnwrap, bool usesTryExcept)
         {
@@ -3078,24 +3101,29 @@ public static class JavaScriptBackend
             }
 
             var allocator = new NameAllocator(occupied);
-            string panic = allocator.Allocate("panic");
-            string unwrapPanic = usesUnwrap ? allocator.Allocate("panic_unwrap") : string.Empty;
+            var functionScopes = new Dictionary<MirFunction, JavaScriptScopeId>();
+            foreach (MirFunction function in program.Functions)
+            {
+                functionScopes.Add(function, allocator.CreateFunctionScope());
+            }
+            var panic = allocator.Allocate("panic");
+            var unwrapPanic = usesUnwrap ? allocator.Allocate("panic_unwrap") : JavaScriptBindingReference.Empty;
             bool usesTaggedValues = catalog.Enums.Count > 0 || results.Types.Count > 0 || usesTryExcept;
-            string makeValue = usesTaggedValues ? allocator.Allocate("make") : string.Empty;
-            string flowToken = usesTryExcept ? allocator.Allocate("flow_token") : string.Empty;
-            string flowValue = usesTryExcept ? allocator.Allocate("flow_value") : string.Empty;
-            string flowToHandler = usesTryExcept ? allocator.Allocate("flow_handler") : string.Empty;
-            string flowToFunction = usesTryExcept ? allocator.Allocate("flow_function") : string.Empty;
-            string validateFlow = usesTryExcept ? allocator.Allocate("flow_validate") : string.Empty;
-            string tsonRuntime = program.TsonEncodingPlans.Count > 0
+            var makeValue = usesTaggedValues ? allocator.Allocate("make") : JavaScriptBindingReference.Empty;
+            var flowToken = usesTryExcept ? allocator.Allocate("flow_token") : JavaScriptBindingReference.Empty;
+            var flowValue = usesTryExcept ? allocator.Allocate("flow_value") : JavaScriptBindingReference.Empty;
+            var flowToHandler = usesTryExcept ? allocator.Allocate("flow_handler") : JavaScriptBindingReference.Empty;
+            var flowToFunction = usesTryExcept ? allocator.Allocate("flow_function") : JavaScriptBindingReference.Empty;
+            var validateFlow = usesTryExcept ? allocator.Allocate("flow_validate") : JavaScriptBindingReference.Empty;
+            var tsonRuntime = program.TsonEncodingPlans.Count > 0
                 ? allocator.Allocate("tson")
-                : string.Empty;
+                : JavaScriptBindingReference.Empty;
             bool usesTsonTableEncoding = program.TsonEncodingPlans.Any(plan => plan.TablePlan is not null);
-            var recordTypeTokens = new Dictionary<MirRecordDefinition, string>();
-            var recordInstances = new Dictionary<MirRecordDefinition, string>();
-            var recordConstructors = new Dictionary<MirRecordDefinition, string>();
-            var recordValidators = new Dictionary<MirRecordDefinition, string>();
-            var recordFieldSlots = new Dictionary<MirRecordFieldDefinition, string>();
+            var recordTypeTokens = new Dictionary<MirRecordDefinition, JavaScriptBindingReference>();
+            var recordInstances = new Dictionary<MirRecordDefinition, JavaScriptBindingReference>();
+            var recordConstructors = new Dictionary<MirRecordDefinition, JavaScriptBindingReference>();
+            var recordValidators = new Dictionary<MirRecordDefinition, JavaScriptBindingReference>();
+            var recordFieldSlots = new Dictionary<MirRecordFieldDefinition, JavaScriptBindingReference>();
             foreach (MirRecordDefinition record in catalog.Records)
             {
                 string recordIdentity = JavaScriptIdentifierEncoder.Encode(record.Id.Value);
@@ -3110,9 +3138,9 @@ public static class JavaScriptBackend
                 }
             }
 
-            var typeTokens = new Dictionary<EnumInfo, string>();
-            var enumInstances = new Dictionary<EnumInfo, string>();
-            var validators = new Dictionary<EnumInfo, string>();
+            var typeTokens = new Dictionary<EnumInfo, JavaScriptBindingReference>();
+            var enumInstances = new Dictionary<EnumInfo, JavaScriptBindingReference>();
+            var validators = new Dictionary<EnumInfo, JavaScriptBindingReference>();
             foreach (EnumInfo enumInfo in catalog.Enums)
             {
                 typeTokens.Add(enumInfo, allocator.Allocate("type"));
@@ -3120,8 +3148,8 @@ public static class JavaScriptBackend
                 validators.Add(enumInfo, allocator.Allocate("validate"));
             }
 
-            var resultTypeTokens = new Dictionary<ResultInfo, string>();
-            var resultValidators = new Dictionary<ResultInfo, string>();
+            var resultTypeTokens = new Dictionary<ResultInfo, JavaScriptBindingReference>();
+            var resultValidators = new Dictionary<ResultInfo, JavaScriptBindingReference>();
             foreach (ResultInfo result in results.Types)
             {
                 resultTypeTokens.Add(result, allocator.Allocate("result_type"));
@@ -3129,31 +3157,31 @@ public static class JavaScriptBackend
             }
 
             bool usesTables = catalog.Tables.Count > 0;
-            string columnCarrierToken = usesTables ? allocator.Allocate("column_type") : string.Empty;
-            string columnReadSlot = usesTables ? allocator.Allocate("column_read") : string.Empty;
-            string columnInstances = usesTsonTableEncoding ? allocator.Allocate("column_instances") : string.Empty;
-            string columnValuesSlot = usesTsonTableEncoding ? allocator.Allocate("column_values") : string.Empty;
-            string columnValidator = usesTables ? allocator.Allocate("column_require") : string.Empty;
-            string tableRowTableSlot = usesTables ? allocator.Allocate("table_row_table") : string.Empty;
-            string tableRowIndexSlot = usesTables ? allocator.Allocate("table_row_index") : string.Empty;
-            var tableTypeTokens = new Dictionary<MirTableDefinition, string>();
-            var tableInstances = new Dictionary<MirTableDefinition, string>();
-            var tableRowTypeTokens = new Dictionary<MirTableDefinition, string>();
-            var tableValidators = new Dictionary<MirTableDefinition, string>();
-            var tableRowValidators = new Dictionary<MirTableDefinition, string>();
-            var tableCreates = new Dictionary<MirTableDefinition, string>();
-            var tableCreateRows = new Dictionary<MirTableDefinition, string>();
-            var tableSingletons = new Dictionary<MirTableDefinition, string>();
-            var tableRowReadSlots = new Dictionary<MirTableDefinition, string>();
-            var tableColumnSlots = new Dictionary<MirTableColumnDefinition, string>();
-            var tableColumnTokens = new Dictionary<MirTableColumnDefinition, string>();
-            var tableStorages = new Dictionary<MirTableColumnDefinition, string>();
-            var tableColumnValues = new Dictionary<MirTableColumnDefinition, string>();
+            var columnCarrierToken = usesTables ? allocator.Allocate("column_type") : JavaScriptBindingReference.Empty;
+            var columnReadSlot = usesTables ? allocator.Allocate("column_read") : JavaScriptBindingReference.Empty;
+            var columnInstances = usesTsonTableEncoding ? allocator.Allocate("column_instances") : JavaScriptBindingReference.Empty;
+            var columnValuesSlot = usesTsonTableEncoding ? allocator.Allocate("column_values") : JavaScriptBindingReference.Empty;
+            var columnValidator = usesTables ? allocator.Allocate("column_require") : JavaScriptBindingReference.Empty;
+            var tableRowTableSlot = usesTables ? allocator.Allocate("table_row_table") : JavaScriptBindingReference.Empty;
+            var tableRowIndexSlot = usesTables ? allocator.Allocate("table_row_index") : JavaScriptBindingReference.Empty;
+            var tableTypeTokens = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableInstances = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableRowTypeTokens = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableValidators = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableRowValidators = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableCreates = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableCreateRows = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableSingletons = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableRowReadSlots = new Dictionary<MirTableDefinition, JavaScriptBindingReference>();
+            var tableColumnSlots = new Dictionary<MirTableColumnDefinition, JavaScriptBindingReference>();
+            var tableColumnTokens = new Dictionary<MirTableColumnDefinition, JavaScriptBindingReference>();
+            var tableStorages = new Dictionary<MirTableColumnDefinition, JavaScriptBindingReference>();
+            var tableColumnValues = new Dictionary<MirTableColumnDefinition, JavaScriptBindingReference>();
             foreach (MirTableDefinition table in catalog.Tables)
             {
                 string identity = JavaScriptIdentifierEncoder.Encode(table.Id.Value);
                 tableTypeTokens.Add(table, allocator.Allocate($"table_type_{identity}"));
-                tableInstances.Add(table, usesTsonTableEncoding ? allocator.Allocate($"table_instances_{identity}") : string.Empty);
+                tableInstances.Add(table, usesTsonTableEncoding ? allocator.Allocate($"table_instances_{identity}") : JavaScriptBindingReference.Empty);
                 tableRowTypeTokens.Add(table, allocator.Allocate($"table_row_type_{identity}"));
                 tableValidators.Add(table, allocator.Allocate($"table_require_{identity}"));
                 tableRowValidators.Add(table, allocator.Allocate($"table_row_require_{identity}"));
@@ -3171,7 +3199,7 @@ public static class JavaScriptBackend
                 }
             }
 
-            return new GeneratedNames(
+            var names = new GeneratedNames(
                 allocator,
                 panic,
                 unwrapPanic,
@@ -3212,24 +3240,49 @@ public static class JavaScriptBackend
                 tableColumnSlots,
                 tableColumnTokens,
                 tableStorages,
-                tableColumnValues);
+                tableColumnValues,
+                functionScopes);
+            allocator.Validate();
+            return names;
         }
     }
 
-    private sealed class NameAllocator(HashSet<string> occupied)
+    private sealed class NameAllocator
     {
-        private int nextIndex;
+        private readonly JavaScriptEmissionDocument document = new();
+        private readonly JavaScriptNameAllocator allocator;
+        private JavaScriptScopeId currentScope;
 
-        public string Allocate(string purpose)
+        public NameAllocator(HashSet<string> occupied)
         {
-            while (true)
-            {
-                string candidate = $"__cope_m3_{purpose}_{nextIndex++}";
-                if (occupied.Add(candidate))
-                {
-                    return candidate;
-                }
-            }
+            allocator = new JavaScriptNameAllocator(document, document.ProgramScope, occupied);
+            currentScope = document.ProgramScope;
+        }
+
+        public JavaScriptEmissionDocument Document => document;
+
+        public JavaScriptScopeId CreateFunctionScope()
+        {
+            return document.CreateScope(JavaScriptScopeKind.Function, document.ProgramScope);
+        }
+
+        public void EnterScope(JavaScriptScopeId scope)
+        {
+            currentScope = scope;
+        }
+
+        public JavaScriptBindingReference Allocate(string purpose)
+        {
+            JavaScriptBindingRole role = purpose.Contains("temporary", StringComparison.Ordinal)
+                || purpose is "match" or "ordered" or "propagate" or "unwrap"
+                ? JavaScriptBindingRole.Temporary
+                : JavaScriptBindingRole.RuntimeHelper;
+            return allocator.Allocate(currentScope, role, purpose).Reference;
+        }
+
+        public void Validate()
+        {
+            document.Validate();
         }
     }
 }
