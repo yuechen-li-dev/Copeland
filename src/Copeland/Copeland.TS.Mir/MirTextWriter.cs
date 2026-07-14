@@ -190,6 +190,7 @@ public static class MirTextWriter
             MirTsonRecordValuePlan record => $"record [{record.RecordTypeId}]",
             MirTsonEnumValuePlan @enum => $"enum {@enum.EnumName}",
             MirTsonArrayPlan array => FormatTsonValuePlan(array.ElementPlan) + "[]",
+            MirTsonTableValuePlan table => $"table [{table.TableId}]",
             _ => "<unsupported>",
         };
 

@@ -2,6 +2,7 @@ using Xunit;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using Copeland.TS.Tson;
 
 namespace Copeland.Cli.Tests;
 
@@ -81,6 +82,113 @@ public sealed class CliIntegrationTests
 
         Assert.Equal(1, staleFailure.ExitCode);
         Assert.Equal(1, freshFailure.ExitCode);
+        Assert.Equal(staleHash, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath))));
+        Assert.False(File.Exists(freshFailurePath));
+    }
+
+    [Fact]
+    public async Task Table_m2_corpus_cli_emission_is_fresh_repeatable_executable_and_preserves_stale_artifacts_on_failure()
+    {
+        string corpus = Path.Combine(
+            GetRepoRoot(),
+            "tests",
+            "Copeland",
+            "Copeland.TS.Tests",
+            "TsonEncoding",
+            "Corpus",
+            "tables-m2");
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", await File.ReadAllTextAsync(Path.Combine(corpus, "main.ts")));
+        temp.WriteFile("samples.obj.ts", await File.ReadAllTextAsync(Path.Combine(corpus, "samples.obj.ts")));
+        temp.WriteFile("empty.obj.ts", await File.ReadAllTextAsync(Path.Combine(corpus, "empty.obj.ts")));
+
+        var emissions = new[]
+        {
+            (Emit: "mir", File: "main.cope"),
+            (Emit: "csharp", File: "main.g.cs"),
+            (Emit: "javascript", File: "main.g.js"),
+        };
+        foreach ((string emit, string fileName) in emissions)
+        {
+            string outputPath = Path.Combine(temp.Path, fileName);
+            CliResult first = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emit, "--out", outputPath);
+            byte[] firstBytes = await File.ReadAllBytesAsync(outputPath);
+            CliResult second = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emit, "--out", outputPath);
+            byte[] secondBytes = await File.ReadAllBytesAsync(outputPath);
+
+            Assert.Equal(0, first.ExitCode);
+            Assert.Equal(0, second.ExitCode);
+            Assert.Equal(firstBytes, secondBytes);
+            Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(corpus, fileName)), firstBytes);
+            string emitted = Encoding.UTF8.GetString(firstBytes);
+            Assert.DoesNotContain("samples.obj.ts", emitted, StringComparison.Ordinal);
+            Assert.DoesNotContain("empty.obj.ts", emitted, StringComparison.Ordinal);
+            Assert.DoesNotContain(temp.Path, emitted, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string javascriptPath = Path.Combine(temp.Path, "main.g.js");
+        await File.AppendAllTextAsync(
+            javascriptPath,
+            "process.stdout.write(encode().$payload[0] + \"---\\n\" + encodeEmpty().$payload[0]);\n",
+            new UTF8Encoding(false));
+        CliResult javaScriptExecution = await RunExecutableAsync("node", temp.Path, javascriptPath);
+        Assert.Equal(0, javaScriptExecution.ExitCode);
+        string expectedEmpty = TsonCanonicalPrinter.Print(
+            TsonDocumentReader.ReadSelfDescribed(
+                await File.ReadAllTextAsync(Path.Combine(corpus, "empty.obj.ts")),
+                TsonDocumentProfile.ObjectTypeScript).Document!);
+        Assert.Equal(
+            await File.ReadAllTextAsync(Path.Combine(corpus, "expected.tson"))
+            + "---\n"
+            + expectedEmpty,
+            javaScriptExecution.StdOut);
+
+        string runnerProject = temp.WriteFile(
+            "runner.csproj",
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+                <NoWarn>CS8602</NoWarn>
+              </PropertyGroup>
+              <ItemGroup>
+                <Compile Include="main.g.cs" />
+                <Compile Include="Runner.cs" />
+              </ItemGroup>
+            </Project>
+            """);
+        temp.WriteFile(
+            "Runner.cs",
+            """
+            Console.OutputEncoding = new System.Text.UTF8Encoding(false);
+            Console.Write(Copeland.Generated.CopelandModule.encode().Value);
+            Console.Write("---\n");
+            Console.Write(Copeland.Generated.CopelandModule.encodeEmpty().Value);
+            """);
+        CliResult csharpExecution = await RunExecutableAsync("dotnet", temp.Path, "run", "--project", runnerProject);
+        Assert.Equal(0, csharpExecution.ExitCode);
+        Assert.Equal(javaScriptExecution.StdOut, csharpExecution.StdOut);
+
+        string stalePath = Path.Combine(temp.Path, "main.g.js");
+        string staleHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath)));
+        string invalidPath = temp.WriteFile("invalid.ts", """
+            const $schema: string = "copeland://corpus/runtime-table-encoding";
+            record table Samples from tsonAsset("./samples.obj.ts") {
+                active: string;
+            }
+            function encode(): string ! TsonEncodeError { return tsonEncode(Samples); }
+            """);
+        CliResult staleFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "javascript", "--out", stalePath);
+        string freshFailurePath = Path.Combine(temp.Path, "fresh-failure.cope");
+        CliResult freshFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "mir", "--out", freshFailurePath);
+
+        Assert.Equal(1, staleFailure.ExitCode);
+        Assert.Equal(1, freshFailure.ExitCode);
+        Assert.DoesNotContain(temp.Path, staleFailure.StdErr, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(staleHash, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath))));
         Assert.False(File.Exists(freshFailurePath));
     }
@@ -734,6 +842,8 @@ function value(flag: boolean): number {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
         };
 
         foreach (string argument in args)

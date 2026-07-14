@@ -38,11 +38,24 @@ public readonly record struct MirTsonEncodingPlanId(string Value)
     public override string ToString() => Value;
 }
 
-public sealed class MirTsonEncodingLimits(int maximumUtf8Bytes, int maximumStringCodeUnits, int maximumArrayLength = 100_000)
+public sealed class MirTsonEncodingLimits(
+    int maximumUtf8Bytes,
+    int maximumStringCodeUnits,
+    int maximumArrayLength = 100_000,
+    int maximumColumns = 256,
+    int maximumRows = 100_000,
+    int maximumCells = 100_000,
+    int maximumValueNodes = 100_000,
+    int maximumNestingDepth = 64)
 {
     public int MaximumUtf8Bytes { get; } = maximumUtf8Bytes;
     public int MaximumStringCodeUnits { get; } = maximumStringCodeUnits;
     public int MaximumArrayLength { get; } = maximumArrayLength;
+    public int MaximumColumns { get; } = maximumColumns;
+    public int MaximumRows { get; } = maximumRows;
+    public int MaximumCells { get; } = maximumCells;
+    public int MaximumValueNodes { get; } = maximumValueNodes;
+    public int MaximumNestingDepth { get; } = maximumNestingDepth;
 }
 
 public abstract record MirTsonValuePlan;
@@ -52,6 +65,7 @@ public sealed record MirTsonStringPlan : MirTsonValuePlan;
 public sealed record MirTsonRecordValuePlan(MirRecordTypeId RecordTypeId) : MirTsonValuePlan;
 public sealed record MirTsonEnumValuePlan(string EnumName) : MirTsonValuePlan;
 public sealed record MirTsonArrayPlan(MirTsonValuePlan ElementPlan) : MirTsonValuePlan;
+public sealed record MirTsonTableValuePlan(MirTableId TableId) : MirTsonValuePlan;
 
 public abstract class MirTsonNominalPlan(string name, string stableIdentity)
 {
@@ -115,7 +129,8 @@ public sealed class MirTsonEncodingPlan(
     MirType rootType,
     MirTsonValuePlan rootValuePlan,
     IReadOnlyList<MirTsonNominalPlan> definitions,
-    MirTsonEncodingLimits limits)
+    MirTsonEncodingLimits limits,
+    MirTsonTablePlan? tablePlan = null)
 {
     public MirTsonEncodingPlanId Id { get; } = id;
     public string SchemaIdentity { get; } = schemaIdentity;
@@ -123,6 +138,35 @@ public sealed class MirTsonEncodingPlan(
     public MirTsonValuePlan RootValuePlan { get; } = rootValuePlan;
     public IReadOnlyList<MirTsonNominalPlan> Definitions { get; } = Array.AsReadOnly(definitions.ToArray());
     public MirTsonEncodingLimits Limits { get; } = limits;
+    public MirTsonTablePlan? TablePlan { get; } = tablePlan;
+}
+
+public sealed class MirTsonTablePlan(
+    MirTableId tableId,
+    string name,
+    string stableIdentity,
+    int expectedRowCount,
+    IReadOnlyList<MirTsonTableColumnPlan> columns)
+{
+    public MirTableId TableId { get; } = tableId;
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public int ExpectedRowCount { get; } = expectedRowCount;
+    public IReadOnlyList<MirTsonTableColumnPlan> Columns { get; } = Array.AsReadOnly(columns.ToArray());
+}
+
+public sealed class MirTsonTableColumnPlan(
+    MirTableColumnId columnId,
+    string name,
+    string stableIdentity,
+    MirTsonValuePlan elementPlan,
+    int expectedElementCount)
+{
+    public MirTableColumnId ColumnId { get; } = columnId;
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public MirTsonValuePlan ElementPlan { get; } = elementPlan;
+    public int ExpectedElementCount { get; } = expectedElementCount;
 }
 
 public readonly record struct MirTableId(string Value) { public override string ToString() => Value; }

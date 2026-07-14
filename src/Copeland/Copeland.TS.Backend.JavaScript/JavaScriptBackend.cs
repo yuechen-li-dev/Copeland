@@ -688,12 +688,20 @@ public static class JavaScriptBackend
     {
         writer.WriteLine($"const {names.ColumnCarrierToken} = Symbol(\"cope.column\");");
         writer.WriteLine($"const {names.ColumnReadSlot} = Symbol(\"cope.column.read\");");
+        if (names.UsesTsonTableEncoding)
+        {
+            writer.WriteLine($"const {names.ColumnInstances} = new WeakSet();");
+            writer.WriteLine($"const {names.ColumnValuesSlot} = Symbol(\"cope.column.values\");");
+        }
         writer.WriteLine($"const {names.TableRowTableSlot} = Symbol(\"cope.table.row.table\");");
         writer.WriteLine($"const {names.TableRowIndexSlot} = Symbol(\"cope.table.row.index\");");
         writer.WriteLine();
         writer.WriteLine($"function {names.ColumnValidator}(value) {{");
         writer.Indent();
-        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.ColumnCarrierToken}) || value[{names.ColumnCarrierToken}] !== {names.ColumnCarrierToken} || !Object.prototype.hasOwnProperty.call(value, {names.ColumnReadSlot}) || typeof value[{names.ColumnReadSlot}] !== \"function\" || Object.getOwnPropertySymbols(value).length !== 3) {{");
+        string tsonValidation = names.UsesTsonTableEncoding
+            ? $" || !{names.ColumnInstances}.has(value) || !Object.prototype.hasOwnProperty.call(value, {names.ColumnValuesSlot}) || !Array.isArray(value[{names.ColumnValuesSlot}]) || !Object.isFrozen(value[{names.ColumnValuesSlot}])"
+            : " || Object.getOwnPropertySymbols(value).length !== 3";
+        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.ColumnCarrierToken}) || value[{names.ColumnCarrierToken}] !== {names.ColumnCarrierToken} || !Object.prototype.hasOwnProperty.call(value, {names.ColumnReadSlot}) || typeof value[{names.ColumnReadSlot}] !== \"function\"{tsonValidation}) {{");
         writer.Indent();
         writer.WriteLine($"{names.Panic}();");
         writer.Unindent();
@@ -711,6 +719,10 @@ public static class JavaScriptBackend
     {
         string boundsErrorToken = names.TypeToken(catalog.GetEnum("TableBoundsError"));
         writer.WriteLine($"const {names.TableTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.Id.Value)});");
+        if (names.UsesTsonTableEncoding)
+        {
+            writer.WriteLine($"const {names.TableInstances(table)} = new WeakSet();");
+        }
         writer.WriteLine($"const {names.TableRowTypeToken(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.RowTypeId)});");
         writer.WriteLine($"const {names.TableRowReadSlot(table)} = Symbol({JavaScriptLiteralWriter.WriteString(table.Id.Value + ".rows")});");
         foreach (MirTableColumnDefinition column in table.Columns)
@@ -750,6 +762,10 @@ public static class JavaScriptBackend
             writer.Indent();
             writer.WriteLine($"[{names.ColumnCarrierToken}]: {{ value: {names.ColumnCarrierToken}, writable: false, enumerable: false, configurable: false }},");
             writer.WriteLine($"[{names.TableColumnToken(column)}]: {{ value: {names.TableColumnToken(column)}, writable: false, enumerable: false, configurable: false }},");
+            if (names.UsesTsonTableEncoding)
+            {
+                writer.WriteLine($"[{names.ColumnValuesSlot}]: {{ value: {names.TableStorage(column)}, writable: false, enumerable: false, configurable: false }},");
+            }
             writer.WriteLine($"[{names.ColumnReadSlot}]: {{ value: (index) => {{");
             writer.Indent();
             EmitBoundsCheckedResult(writer, "index", table.RowCount, column.ElementType, results, names, boundsErrorToken, $"{names.TableStorage(column)}[index]");
@@ -758,6 +774,10 @@ public static class JavaScriptBackend
             writer.Unindent();
             writer.WriteLine("});");
             writer.WriteLine($"Object.freeze({names.TableColumnValue(column)});");
+            if (names.UsesTsonTableEncoding)
+            {
+                writer.WriteLine($"{names.ColumnInstances}.add({names.TableColumnValue(column)});");
+            }
         }
 
         writer.WriteLine("const value = Object.create(null);");
@@ -776,7 +796,16 @@ public static class JavaScriptBackend
         }
         writer.Unindent();
         writer.WriteLine("});");
-        writer.WriteLine("return Object.freeze(value);");
+        if (names.UsesTsonTableEncoding)
+        {
+            writer.WriteLine("Object.freeze(value);");
+            writer.WriteLine($"{names.TableInstances(table)}.add(value);");
+            writer.WriteLine("return value;");
+        }
+        else
+        {
+            writer.WriteLine("return Object.freeze(value);");
+        }
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine();
@@ -787,7 +816,10 @@ public static class JavaScriptBackend
     {
         writer.WriteLine($"function {names.TableValidator(table)}(value) {{");
         writer.Indent();
-        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableTypeToken(table)}) || value[{names.TableTypeToken(table)}] !== {names.TableTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowReadSlot(table)}) || typeof value[{names.TableRowReadSlot(table)}] !== \"function\" || Object.getOwnPropertySymbols(value).length !== {table.Columns.Count + 2}) {{");
+        string tableValidation = names.UsesTsonTableEncoding
+            ? $"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !{names.TableInstances(table)}.has(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableTypeToken(table)}) || value[{names.TableTypeToken(table)}] !== {names.TableTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowReadSlot(table)}) || typeof value[{names.TableRowReadSlot(table)}] !== \"function\") {{"
+            : $"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableTypeToken(table)}) || value[{names.TableTypeToken(table)}] !== {names.TableTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowReadSlot(table)}) || typeof value[{names.TableRowReadSlot(table)}] !== \"function\" || Object.getOwnPropertySymbols(value).length !== {table.Columns.Count + 2}) {{";
+        writer.WriteLine(tableValidation);
         writer.Indent();
         writer.WriteLine($"{names.Panic}();");
         writer.Unindent();
@@ -804,7 +836,8 @@ public static class JavaScriptBackend
     {
         writer.WriteLine($"function {names.TableRowValidator(table)}(value) {{");
         writer.Indent();
-        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableRowTypeToken(table)}) || value[{names.TableRowTypeToken(table)}] !== {names.TableRowTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowTableSlot}) || !Object.prototype.hasOwnProperty.call(value, {names.TableRowIndexSlot}) || !Number.isInteger(value[{names.TableRowIndexSlot}]) || Object.getOwnPropertySymbols(value).length !== 3) {{");
+        string rowSymbolValidation = names.UsesTsonTableEncoding ? string.Empty : " || Object.getOwnPropertySymbols(value).length !== 3";
+        writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !Object.prototype.hasOwnProperty.call(value, {names.TableRowTypeToken(table)}) || value[{names.TableRowTypeToken(table)}] !== {names.TableRowTypeToken(table)} || !Object.prototype.hasOwnProperty.call(value, {names.TableRowTableSlot}) || !Object.prototype.hasOwnProperty.call(value, {names.TableRowIndexSlot}) || !Number.isInteger(value[{names.TableRowIndexSlot}]){rowSymbolValidation}) {{");
         writer.Indent();
         writer.WriteLine($"{names.Panic}();");
         writer.Unindent();
@@ -1440,6 +1473,12 @@ public static class JavaScriptBackend
             EmitJavaScriptTsonArrayWriter(writer, plan, planIndex, arrayPlan, recordIndexes, enumIndexes, arrayPlans, names);
         }
 
+        if (plan.TablePlan is not null)
+        {
+            EmitJavaScriptTsonTablePlan(writer, plan, planIndex, catalog, results, names, recordIndexes, enumIndexes, arrayPlans);
+            return;
+        }
+
         MirResultType resultType = new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));
         string resultToken = names.TypeToken(results.Get(resultType));
         string errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
@@ -1460,6 +1499,100 @@ public static class JavaScriptBackend
         writer.WriteLine($"return {names.MakeValue}({resultToken}, \"ok\", [writer.finish()]);");
         writer.Unindent();
         writer.WriteLine("}");
+    }
+
+    private static void EmitJavaScriptTsonTablePlan(
+        JavaScriptTextWriter writer,
+        MirTsonEncodingPlan plan,
+        int planIndex,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        IReadOnlyDictionary<MirRecordTypeId, int> recordIndexes,
+        IReadOnlyDictionary<string, int> enumIndexes,
+        IReadOnlyList<MirTsonArrayPlan> arrayPlans)
+    {
+        MirTsonTablePlan tablePlan = plan.TablePlan!;
+        MirTableDefinition table = catalog.GetTable(tablePlan.TableId);
+        MirResultType resultType = new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));
+        string resultToken = names.TypeToken(results.Get(resultType));
+        string errorToken = names.TypeToken(catalog.GetEnum("TsonEncodeError"));
+        writer.WriteLine($"function encode{planIndex}(value) {{");
+        writer.Indent();
+        writer.WriteLine($"{names.TableValidator(table)}(value);");
+        for (int index = 0; index < tablePlan.Columns.Count; index++)
+        {
+            MirTsonTableColumnPlan column = tablePlan.Columns[index];
+            MirTableColumnDefinition carrierColumn = table.Columns[index];
+            writer.WriteLine($"const column{index} = value[{names.TableColumnSlot(carrierColumn)}];");
+            writer.WriteLine($"{names.ColumnValidator}(column{index});");
+            writer.WriteLine($"if (column{index}[{names.TableColumnToken(carrierColumn)}] !== {names.TableColumnToken(carrierColumn)}) {{ {names.Panic}(); }}");
+            writer.WriteLine($"const cells{index} = column{index}[{names.ColumnValuesSlot}];");
+            writer.WriteLine($"const length{index} = cells{index}.length;");
+            writer.WriteLine($"if (length{index} !== {column.ExpectedElementCount}) {{ {names.Panic}(); }}");
+        }
+        writer.WriteLine($"const writer = makeWriter({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
+        writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString(MirTsonCanonicalText.BuildDocumentPrefix(plan))})) {{");
+        writer.Indent();
+        EmitJavaScriptTsonFailure(writer, resultToken, errorToken, names);
+        writer.Unindent();
+        writer.WriteLine("}");
+        for (int columnIndex = 0; columnIndex < tablePlan.Columns.Count; columnIndex++)
+        {
+            MirTsonTableColumnPlan column = tablePlan.Columns[columnIndex];
+            writer.WriteLine($"if (length{columnIndex} === 0) {{");
+            writer.Indent();
+            writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString(MirTsonCanonicalText.BuildTableColumnPrefix(plan, column))}) || !writer.static(\"[];\\n\")) {{");
+            writer.Indent();
+            EmitJavaScriptTsonFailure(writer, resultToken, errorToken, names);
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.Unindent();
+            writer.WriteLine("} else {");
+            writer.Indent();
+            writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString(MirTsonCanonicalText.BuildTableColumnPrefix(plan, column))}) || !writer.static(\"[\\n\")) {{");
+            writer.Indent();
+            EmitJavaScriptTsonFailure(writer, resultToken, errorToken, names);
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine($"for (let index = 0; index < length{columnIndex}; index += 1) {{");
+            writer.Indent();
+            writer.WriteLine($"if (!Object.prototype.hasOwnProperty.call(cells{columnIndex}, index)) {{ {names.Panic}(); }}");
+            writer.WriteLine($"const cell = cells{columnIndex}[index];");
+            writer.WriteLine($"if (!writer.indent(2) || !{JavaScriptTsonValueWriter(planIndex, column.ElementPlan, recordIndexes, enumIndexes, arrayPlans)}(writer, cell, 2) || !writer.static(\",\\n\")) {{");
+            writer.Indent();
+            EmitJavaScriptTsonFailure(writer, resultToken, errorToken, names);
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine("if (!writer.indent(1) || !writer.static(\"];\\n\")) {");
+            writer.Indent();
+            EmitJavaScriptTsonFailure(writer, resultToken, errorToken, names);
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+        writer.WriteLine($"if (!writer.static({JavaScriptLiteralWriter.WriteString(MirTsonCanonicalText.BuildTableDocumentSuffix(plan))})) {{");
+        writer.Indent();
+        EmitJavaScriptTsonFailure(writer, resultToken, errorToken, names);
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"ok\", [writer.finish()]);");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitJavaScriptTsonFailure(
+        JavaScriptTextWriter writer,
+        string resultToken,
+        string errorToken,
+        GeneratedNames names)
+    {
+        writer.WriteLine("const tag = writer.error() === \"invalid\" ? \"InvalidUnicode\" : \"OutputLimitExceeded\";");
+        writer.WriteLine($"const error = {names.MakeValue}({errorToken}, tag, []);");
+        writer.WriteLine($"return {names.MakeValue}({resultToken}, \"err\", [error]);");
     }
 
     private static string JavaScriptTsonValueWriter(
@@ -1565,6 +1698,13 @@ public static class JavaScriptBackend
         }
 
         Visit(plan.RootValuePlan);
+        if (plan.TablePlan is not null)
+        {
+            foreach (MirTsonTableColumnPlan column in plan.TablePlan.Columns)
+            {
+                Visit(column.ElementPlan);
+            }
+        }
         foreach (MirTsonNominalPlan definition in plan.Definitions)
         {
             IEnumerable<MirTsonValuePlan> values = definition switch
@@ -2736,6 +2876,7 @@ public static class JavaScriptBackend
         private readonly Dictionary<MirRecordDefinition, string> recordValidators;
         private readonly Dictionary<MirRecordFieldDefinition, string> recordFieldSlots;
         private readonly Dictionary<MirTableDefinition, string> tableTypeTokens;
+        private readonly Dictionary<MirTableDefinition, string> tableInstances;
         private readonly Dictionary<MirTableDefinition, string> tableRowTypeTokens;
         private readonly Dictionary<MirTableDefinition, string> tableValidators;
         private readonly Dictionary<MirTableDefinition, string> tableRowValidators;
@@ -2760,6 +2901,7 @@ public static class JavaScriptBackend
             string flowToFunction,
             string validateFlow,
             string tsonRuntime,
+            bool usesTsonTableEncoding,
             Dictionary<EnumInfo, string> typeTokens,
             Dictionary<EnumInfo, string> enumInstances,
             Dictionary<EnumInfo, string> validators,
@@ -2771,11 +2913,14 @@ public static class JavaScriptBackend
             Dictionary<MirRecordDefinition, string> recordValidators,
             Dictionary<MirRecordFieldDefinition, string> recordFieldSlots,
             string columnCarrierToken,
+            string columnInstances,
             string columnReadSlot,
+            string columnValuesSlot,
             string columnValidator,
             string tableRowTableSlot,
             string tableRowIndexSlot,
             Dictionary<MirTableDefinition, string> tableTypeTokens,
+            Dictionary<MirTableDefinition, string> tableInstances,
             Dictionary<MirTableDefinition, string> tableRowTypeTokens,
             Dictionary<MirTableDefinition, string> tableValidators,
             Dictionary<MirTableDefinition, string> tableRowValidators,
@@ -2798,6 +2943,7 @@ public static class JavaScriptBackend
             FlowToFunction = flowToFunction;
             ValidateFlow = validateFlow;
             TsonRuntime = tsonRuntime;
+            UsesTsonTableEncoding = usesTsonTableEncoding;
             this.typeTokens = typeTokens;
             this.enumInstances = enumInstances;
             this.validators = validators;
@@ -2809,11 +2955,14 @@ public static class JavaScriptBackend
             this.recordValidators = recordValidators;
             this.recordFieldSlots = recordFieldSlots;
             ColumnCarrierToken = columnCarrierToken;
+            ColumnInstances = columnInstances;
             ColumnReadSlot = columnReadSlot;
+            ColumnValuesSlot = columnValuesSlot;
             ColumnValidator = columnValidator;
             TableRowTableSlot = tableRowTableSlot;
             TableRowIndexSlot = tableRowIndexSlot;
             this.tableTypeTokens = tableTypeTokens;
+            this.tableInstances = tableInstances;
             this.tableRowTypeTokens = tableRowTypeTokens;
             this.tableValidators = tableValidators;
             this.tableRowValidators = tableRowValidators;
@@ -2845,9 +2994,15 @@ public static class JavaScriptBackend
 
         public string TsonRuntime { get; }
 
+        public bool UsesTsonTableEncoding { get; }
+
         public string ColumnCarrierToken { get; }
 
+        public string ColumnInstances { get; }
+
         public string ColumnReadSlot { get; }
+
+        public string ColumnValuesSlot { get; }
 
         public string ColumnValidator { get; }
 
@@ -2876,6 +3031,8 @@ public static class JavaScriptBackend
         public string RecordFieldSlot(MirRecordFieldDefinition field) => recordFieldSlots[field];
 
         public string TableTypeToken(MirTableDefinition table) => tableTypeTokens[table];
+
+        public string TableInstances(MirTableDefinition table) => tableInstances[table];
 
         public string TableRowTypeToken(MirTableDefinition table) => tableRowTypeTokens[table];
 
@@ -2933,6 +3090,7 @@ public static class JavaScriptBackend
             string tsonRuntime = program.TsonEncodingPlans.Count > 0
                 ? allocator.Allocate("tson")
                 : string.Empty;
+            bool usesTsonTableEncoding = program.TsonEncodingPlans.Any(plan => plan.TablePlan is not null);
             var recordTypeTokens = new Dictionary<MirRecordDefinition, string>();
             var recordInstances = new Dictionary<MirRecordDefinition, string>();
             var recordConstructors = new Dictionary<MirRecordDefinition, string>();
@@ -2973,10 +3131,13 @@ public static class JavaScriptBackend
             bool usesTables = catalog.Tables.Count > 0;
             string columnCarrierToken = usesTables ? allocator.Allocate("column_type") : string.Empty;
             string columnReadSlot = usesTables ? allocator.Allocate("column_read") : string.Empty;
+            string columnInstances = usesTsonTableEncoding ? allocator.Allocate("column_instances") : string.Empty;
+            string columnValuesSlot = usesTsonTableEncoding ? allocator.Allocate("column_values") : string.Empty;
             string columnValidator = usesTables ? allocator.Allocate("column_require") : string.Empty;
             string tableRowTableSlot = usesTables ? allocator.Allocate("table_row_table") : string.Empty;
             string tableRowIndexSlot = usesTables ? allocator.Allocate("table_row_index") : string.Empty;
             var tableTypeTokens = new Dictionary<MirTableDefinition, string>();
+            var tableInstances = new Dictionary<MirTableDefinition, string>();
             var tableRowTypeTokens = new Dictionary<MirTableDefinition, string>();
             var tableValidators = new Dictionary<MirTableDefinition, string>();
             var tableRowValidators = new Dictionary<MirTableDefinition, string>();
@@ -2992,6 +3153,7 @@ public static class JavaScriptBackend
             {
                 string identity = JavaScriptIdentifierEncoder.Encode(table.Id.Value);
                 tableTypeTokens.Add(table, allocator.Allocate($"table_type_{identity}"));
+                tableInstances.Add(table, usesTsonTableEncoding ? allocator.Allocate($"table_instances_{identity}") : string.Empty);
                 tableRowTypeTokens.Add(table, allocator.Allocate($"table_row_type_{identity}"));
                 tableValidators.Add(table, allocator.Allocate($"table_require_{identity}"));
                 tableRowValidators.Add(table, allocator.Allocate($"table_row_require_{identity}"));
@@ -3020,6 +3182,7 @@ public static class JavaScriptBackend
                 flowToFunction,
                 validateFlow,
                 tsonRuntime,
+                usesTsonTableEncoding,
                 typeTokens,
                 enumInstances,
                 validators,
@@ -3031,11 +3194,14 @@ public static class JavaScriptBackend
                 recordValidators,
                 recordFieldSlots,
                 columnCarrierToken,
+                columnInstances,
                 columnReadSlot,
+                columnValuesSlot,
                 columnValidator,
                 tableRowTableSlot,
                 tableRowIndexSlot,
                 tableTypeTokens,
+                tableInstances,
                 tableRowTypeTokens,
                 tableValidators,
                 tableRowValidators,

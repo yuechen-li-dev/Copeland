@@ -1,9 +1,12 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
+using Copeland.TS.Mir;
 using Copeland.TS.Tson;
 using Xunit;
 
@@ -11,6 +14,339 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 
 public sealed class TsonEncodeRuntimeTests
 {
+    [Fact]
+    public async Task Table_singleton_encodes_through_authoritative_columns_with_csharp_node_parity()
+    {
+        const string source = """
+            const $schema: string = "copeland://tests/runtime-table";
+            record Point { x: number; }
+            enum State { Ready, Named(label: string), }
+            record table Samples {
+                active: boolean = [true, false];
+                score: number = [0, -0];
+                point: Point = [{ x: 1 }, { x: 2 }];
+                state: State = [State.Ready, State.Named("雪")];
+                values: number[][] = [[[1, 2], []], [[], []]];
+            }
+            function encode(): string ! TsonEncodeError { return tsonEncode(Samples); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        MirTsonEncodingPlan plan = Assert.Single(compilation.MirCompilation!.Program!.TsonEncodingPlans);
+        MirTsonTablePlan tablePlan = Assert.IsType<MirTsonTablePlan>(plan.TablePlan);
+        Assert.Equal("copeland://tests/runtime-table#Samples", tablePlan.StableIdentity);
+        Assert.Equal(2, tablePlan.ExpectedRowCount);
+        Assert.Equal(5, tablePlan.Columns.Count);
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation.Program);
+        JavaScriptCompilation javascript = JavaScriptBackend.Emit(compilation.MirCompilation.Program);
+        Assert.Empty(csharp.Diagnostics);
+        Assert.True(javascript.Success, string.Join(Environment.NewLine, javascript.Diagnostics));
+        Assert.DoesNotContain("Object.keys", javascript.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Object.getOwnPropertySymbols", javascript.SourceText, StringComparison.Ordinal);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        string csharpText = ResultValue(Invoke(generated, "encode"));
+        ProcessResult node = await RunNodeAsync(javascript.SourceText + "process.stdout.write(encode().$payload[0]);\n");
+        Assert.Equal(csharpText, node.StdOut);
+        TsonReadResult read = TsonDocumentReader.ReadSelfDescribed(csharpText, TsonDocumentProfile.CanonicalTson);
+        Assert.True(read.Success, csharpText + Environment.NewLine + string.Join(Environment.NewLine, read.Diagnostics));
+        Assert.Equal(csharpText, TsonCanonicalPrinter.Print(read.Document!));
+        Assert.Equal(csharpText, ResultValue(Invoke(generated, "encode")));
+    }
+
+    [Fact]
+    public async Task Asset_backed_and_zero_row_tables_encode_with_csharp_node_parity()
+    {
+        const string source = """
+            const $schema: string = "copeland://tests/runtime-table-assets";
+            record Point { name: string; }
+            enum State { Off, Named(label: string), }
+            record table Empty from tsonAsset("./empty.obj.ts") {
+                active: boolean;
+                note: string;
+            }
+            record table Samples from tsonAsset("./samples.tson") {
+                active: boolean;
+                score: number;
+                point: Point;
+                state: State;
+                values: number[][];
+            }
+            function encode(): string ! TsonEncodeError { return tsonEncode(Samples); }
+            function encodeEmpty(): string ! TsonEncodeError { return tsonEncode(Empty); }
+            """;
+        const string emptyAuthoring = """
+            const $schema: string = "copeland://tests/runtime-table-assets";
+
+            record table Empty {
+                active: boolean = [];
+                note: string = [];
+            }
+
+            const $value = Empty;
+            """;
+        TsonReadResult emptyRead = TsonDocumentReader.ReadSelfDescribed(emptyAuthoring, TsonDocumentProfile.ObjectTypeScript);
+        Assert.True(emptyRead.Success, string.Join(Environment.NewLine, emptyRead.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        string emptyCanonical = TsonCanonicalPrinter.Print(emptyRead.Document!);
+        const string samplesAuthoring = """
+            const $schema: string = "copeland://tests/runtime-table-assets";
+            record Point { name: string; }
+            enum State { Off, Named(label: string), }
+            record table Samples {
+                active: boolean = [true, false];
+                score: number = [$number("0000000000000000"), $number("FFF0000000000000")];
+                point: Point = [{ name: "first" }, { name: "雪😀" }];
+                state: State = [State.Off, State.Named("payload")];
+                values: number[][] = [[[1, 2], []], [[], [3]]];
+            }
+            const $value = Samples;
+            """;
+
+        TsonReadResult samplesRead = TsonDocumentReader.ReadSelfDescribed(samplesAuthoring, TsonDocumentProfile.ObjectTypeScript);
+        Assert.True(samplesRead.Success, string.Join(Environment.NewLine, samplesRead.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        string samplesCanonical = TsonCanonicalPrinter.Print(samplesRead.Document!);
+        var options = new CopelandCompilationOptions
+        {
+            SourcePath = "C:/project/main.ts",
+            ProjectRoot = "C:/project",
+            AssetSource = new InMemoryAssetSource(
+                ("C:/project/empty.obj.ts", emptyAuthoring),
+                ("C:/project/samples.tson", samplesCanonical)),
+        };
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source, options);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.DoesNotContain("samples.tson", csharp.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("samples.tson", javaScript.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("empty.obj.ts", csharp.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("empty.obj.ts", javaScript.SourceText, StringComparison.Ordinal);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        string samples = ResultValue(Invoke(generated, "encode"));
+        string empty = ResultValue(Invoke(generated, "encodeEmpty"));
+        Assert.Equal(samplesCanonical, samples);
+        Assert.Equal(emptyCanonical, empty);
+        Assert.Contains("record table Empty", empty, StringComparison.Ordinal);
+        Assert.Contains("active: boolean = [];", empty, StringComparison.Ordinal);
+        Assert.True(TsonDocumentReader.ReadSelfDescribed(samples, TsonDocumentProfile.CanonicalTson).Success);
+        Assert.True(TsonDocumentReader.ReadSelfDescribed(empty, TsonDocumentProfile.CanonicalTson).Success);
+
+        ProcessResult node = await RunNodeAsync(javaScript.SourceText + """
+            process.stdout.write(encode().$payload[0] + "---\n" + encodeEmpty().$payload[0]);
+            """);
+        Assert.Equal(samples + "---\n" + empty, node.StdOut);
+    }
+
+    [Fact]
+    public async Task Table_encoding_preserves_result_flow_and_terminal_invariants_bypass_except()
+    {
+        const string source = """
+            const $schema: string = "copeland://tests/runtime-table-errors";
+            record table Samples { text: string = ["ok"]; }
+            function forwarded(): string ! TsonEncodeError { return tsonEncode(Samples); }
+            function propagated(): string ! TsonEncodeError {
+                const text: string = tsonEncode(Samples)?;
+                return text;
+            }
+            function handled(): string {
+                return try {
+                    const text: string = tsonEncode(Samples)?;
+                    "ok"
+                } except (error) {
+                    match error {
+                        InvalidUnicode => "InvalidUnicode",
+                        OutputLimitExceeded => "OutputLimitExceeded",
+                    }
+                };
+            }
+            """;
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        CSharpCompilation invariantCSharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation invariantJavaScript = JavaScriptBackend.Emit(compilation.MirCompilation.Program!);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(invariantCSharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        Type module = generated.Assembly!.GetType("Copeland.Generated.CopelandModule")!;
+        object singleton = module
+            .GetFields(BindingFlags.Static | BindingFlags.NonPublic)
+            .Single(field => field.FieldType.Name.StartsWith("__CopeTable_", StringComparison.Ordinal))
+            .GetValue(null)!;
+        FieldInfo storage = singleton.GetType()
+            .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Single(field => field.FieldType == typeof(string[]));
+        string[] original = (string[])storage.GetValue(singleton)!;
+
+        storage.SetValue(singleton, new[] { "\uD800" });
+        Assert.Equal("InvalidUnicode", ResultErrorName(Invoke(generated, "forwarded")));
+        Assert.Equal("InvalidUnicode", ResultErrorName(Invoke(generated, "propagated")));
+        Assert.Equal("InvalidUnicode", Assert.IsType<string>(Invoke(generated, "handled")));
+
+        storage.SetValue(singleton, new[] { new string('a', 262_145) });
+        Assert.Equal("OutputLimitExceeded", ResultErrorName(Invoke(generated, "forwarded")));
+        Assert.Equal("OutputLimitExceeded", ResultErrorName(Invoke(generated, "propagated")));
+        Assert.Equal("OutputLimitExceeded", Assert.IsType<string>(Invoke(generated, "handled")));
+
+        storage.SetValue(singleton, new[] { "ok", "extra" });
+        TargetInvocationException csharpBypass = Assert.Throws<TargetInvocationException>(() => Invoke(generated, "handled"));
+        Assert.IsType<InvalidOperationException>(csharpBypass.InnerException);
+        storage.SetValue(singleton, original);
+        Assert.Equal("ok", Assert.IsType<string>(Invoke(generated, "handled")));
+
+        string javaScriptSingleton = Regex.Match(
+            invariantJavaScript.SourceText!,
+            @"__cope_m3_table_value_[A-Za-z0-9_]+",
+            RegexOptions.Singleline).Value;
+        string javaScriptEncoder = Regex.Match(
+            invariantJavaScript.SourceText!,
+            @"__cope_m3_tson_[A-Za-z0-9_]+",
+            RegexOptions.Singleline).Value;
+        string javaScriptColumnInstances = Regex.Match(
+            invariantJavaScript.SourceText!,
+            @"__cope_m3_column_instances_[A-Za-z0-9_]+",
+            RegexOptions.Singleline).Value;
+        string javaScriptTableInstances = Regex.Match(
+            invariantJavaScript.SourceText!,
+            @"__cope_m3_table_instances_[A-Za-z0-9_]+",
+            RegexOptions.Singleline).Value;
+        Assert.False(string.IsNullOrWhiteSpace(javaScriptSingleton));
+        Assert.False(string.IsNullOrWhiteSpace(javaScriptEncoder));
+        Assert.False(string.IsNullOrWhiteSpace(javaScriptColumnInstances));
+        Assert.False(string.IsNullOrWhiteSpace(javaScriptTableInstances));
+        string script = invariantJavaScript.SourceText + """
+            const tableValue =
+            """ + javaScriptSingleton + """
+            ;
+            const encodeTable =
+            """ + javaScriptEncoder + """
+            ["tson0"];
+            const columnInstances =
+            """ + javaScriptColumnInstances + """
+            ;
+            const tableInstances =
+            """ + javaScriptTableInstances + """
+            ;
+            const tableSymbols = Object.getOwnPropertySymbols(tableValue);
+            const columnSlot = tableSymbols.find(symbol => typeof tableValue[symbol] === "object" && tableValue[symbol] !== null);
+            const columnValue = tableValue[columnSlot];
+            const columnSymbols = Object.getOwnPropertySymbols(columnValue);
+            const valuesSlot = columnSymbols.find(symbol => Array.isArray(columnValue[symbol]));
+            function makeColumn(cells) {
+                const fake = Object.create(null);
+                for (const symbol of columnSymbols) {
+                    const value = symbol === valuesSlot ? Object.freeze(cells.slice()) : columnValue[symbol];
+                    Object.defineProperty(fake, symbol, { value, writable: false, enumerable: false, configurable: false });
+                }
+                Object.freeze(fake);
+                columnInstances.add(fake);
+                return fake;
+            }
+            function makeTable(column) {
+                const fake = Object.create(null);
+                for (const symbol of tableSymbols) {
+                    const value = symbol === columnSlot ? column : tableValue[symbol];
+                    Object.defineProperty(fake, symbol, { value, writable: false, enumerable: false, configurable: false });
+                }
+                Object.freeze(fake);
+                tableInstances.add(fake);
+                return fake;
+            }
+            console.log(encodeTable(makeTable(makeColumn(["\uD800"]))).$payload[0].$tag);
+            console.log(encodeTable(makeTable(makeColumn(["a".repeat(262145)]))).$payload[0].$tag);
+            let bypass = "typed";
+            try { encodeTable(Object.freeze(Object.create(null))); } catch (error) { bypass = error.message; }
+            console.log(bypass);
+            console.log(handled());
+            """;
+        ProcessResult node = await RunNodeAsync(script);
+        Assert.Equal(
+            "InvalidUnicode\n" +
+            "OutputLimitExceeded\n" +
+            "Copeland JavaScript backend invariant failure.\n" +
+            "ok\n",
+            node.StdOut);
+    }
+
+    [Fact]
+    public async Task Table_m2_corpus_has_pinned_artifacts_and_repeated_canonical_fixed_point()
+    {
+        string root = GetRepositoryRoot();
+        string corpus = Path.Combine(root, "tests", "Copeland", "Copeland.TS.Tests", "TsonEncoding", "Corpus", "tables-m2");
+        string sourcePath = Path.Combine(corpus, "main.ts");
+        CopelandCompilation firstCompilation = CopelandCompiler.CompileToMir(
+            File.ReadAllText(sourcePath),
+            new CopelandCompilationOptions
+            {
+                SourcePath = sourcePath,
+                ProjectRoot = corpus,
+                AssetSource = FileAssetSource.Instance,
+            });
+        Assert.True(firstCompilation.Success, string.Join(Environment.NewLine, firstCompilation.Diagnostics));
+
+        CSharpCompilation firstCSharp = CSharpBackend.Emit(firstCompilation.MirCompilation!.Program!);
+        JavaScriptCompilation firstJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation.Program!);
+        CSharpCompilation repeatedCSharp = CSharpBackend.Emit(firstCompilation.MirCompilation.Program!);
+        JavaScriptCompilation repeatedJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation.Program!);
+        Assert.Equal(firstCSharp.SourceText, repeatedCSharp.SourceText);
+        Assert.Equal(firstJavaScript.SourceText, repeatedJavaScript.SourceText);
+        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.cope")), firstCompilation.MirText);
+        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.g.cs")), firstCSharp.SourceText);
+        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.g.js")), firstJavaScript.SourceText);
+
+        byte[] expectedBytes = File.ReadAllBytes(Path.Combine(corpus, "expected.tson"));
+        string expected = Encoding.UTF8.GetString(expectedBytes);
+        Assert.NotEmpty(expectedBytes);
+        Assert.False(expectedBytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }));
+        Assert.Equal((byte)'\n', expectedBytes[^1]);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(firstCSharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        string csharpText = ResultValue(Invoke(generated, "encode"));
+        string emptyText = ResultValue(Invoke(generated, "encodeEmpty"));
+        ProcessResult node = await RunNodeAsync(firstJavaScript.SourceText + """
+            process.stdout.write(encode().$payload[0] + "---\n" + encodeEmpty().$payload[0]);
+            """);
+        Assert.Equal(expected, csharpText);
+        Assert.Equal(expected + "---\n" + emptyText, node.StdOut);
+
+        TsonReadResult read = TsonDocumentReader.ReadSelfDescribed(expected, TsonDocumentProfile.CanonicalTson);
+        Assert.True(read.Success, string.Join(Environment.NewLine, read.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(expected, TsonCanonicalPrinter.Print(read.Document!));
+        Assert.True(TsonDocumentReader.ReadSelfDescribed(emptyText, TsonDocumentProfile.CanonicalTson).Success);
+
+        foreach (string forbidden in new[] { "empty.obj.ts", "authoring comment", "TsonDocument", "TsonValue", "System.IO", "Object.keys", "Object.getOwnPropertySymbols" })
+        {
+            Assert.DoesNotContain(forbidden, firstCompilation.MirText!, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, firstCSharp.SourceText, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, firstJavaScript.SourceText!, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, expected, StringComparison.Ordinal);
+        }
+
+        var expectedArtifacts = new Dictionary<string, (int Length, string Sha256)>(StringComparer.Ordinal)
+        {
+            ["empty.obj.ts"] = (164, "A3E967D07DF6730E703718EC84EF42CEE5360682022751AB2FF65B683220088E"),
+            ["expected.tson"] = (1619, "77DB4113560183DD4F052F16E8656C0B2B1673FD39373FA6B720E58225F78666"),
+            ["main.cope"] = (2154, "5CF1FC80EFAE33F77807298E7EE9F9A10C57565E09715B14515549D35AC78A4A"),
+            ["main.g.cs"] = (34774, "B9E4B309991EE59B17016C7595669C1F34F068A0191C7804A6E8DD98EFC6B09C"),
+            ["main.g.js"] = (62425, "D7363BCD7050B8A255E290CDCEF7CC633A6250EF887731DD78539BFC4BA19EF9"),
+            ["main.ts"] = (577, "563EA53F2241964E9E43749B008131301C2F883D6B7ABA01827B40E6ED619064"),
+            ["samples.obj.ts"] = (1054, "684FE68C20A7EC25BD24A853198C3C5274CF5BDDC30B19F3468067FC154D55D0"),
+        };
+        foreach ((string fileName, (int expectedLength, string expectedHash)) in expectedArtifacts)
+        {
+            byte[] bytes = File.ReadAllBytes(Path.Combine(corpus, fileName));
+            Assert.Equal(expectedLength, bytes.Length);
+            string actualHash = Convert.ToHexString(SHA256.HashData(bytes));
+            Assert.Equal(expectedHash, actualHash);
+        }
+    }
+
     private const string Source = """
         const $schema: string = "copeland://tests/runtime-encode";
 

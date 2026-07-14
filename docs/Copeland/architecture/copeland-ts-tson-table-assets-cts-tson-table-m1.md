@@ -1,6 +1,6 @@
 # Copeland TS declaration-owned TSON table assets (CTS-TSON-TABLE-M1)
 
-**Status:** implemented and closed for compile-time ingestion. Runtime table encoding remains CTS-TSON-TABLE-M2.
+**Status:** implemented and closed for compile-time ingestion. CTS-TSON-TABLE-M2 subsequently adds demand-created runtime encoding of this declaration-owned singleton.
 
 ## Accepted source contract
 

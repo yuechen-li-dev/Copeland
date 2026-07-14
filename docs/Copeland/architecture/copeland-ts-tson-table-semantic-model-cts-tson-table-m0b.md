@@ -1,6 +1,6 @@
 # Copeland TS TSON table semantic model (CTS-TSON-TABLE-M0b)
 
-**Status:** implemented compiler-host semantic and canonical-text milestone. Declaration-owned compiler asset ingestion and ordinary backend realization are implemented by [CTS-TSON-TABLE-M1](copeland-ts-tson-table-assets-cts-tson-table-m1.md); runtime encoding, decoding, and JSON remain excluded.
+**Status:** implemented compiler-host semantic and canonical-text milestone. Declaration-owned compiler asset ingestion is implemented by [CTS-TSON-TABLE-M1](copeland-ts-tson-table-assets-cts-tson-table-m1.md), and authored-singleton runtime encoding by CTS-TSON-TABLE-M2; decoding and JSON remain excluded.
 
 ## Implemented path
 

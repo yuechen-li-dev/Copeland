@@ -35,12 +35,32 @@ public sealed class BoundTsonEncodingPlan(
     string id,
     string schemaIdentity,
     TypeSymbol rootType,
-    IReadOnlyList<TypeSymbol> definitions)
+    IReadOnlyList<TypeSymbol> definitions,
+    BoundTsonTablePlan? tablePlan = null)
 {
     public string Id { get; } = id;
     public string SchemaIdentity { get; } = schemaIdentity;
     public TypeSymbol RootType { get; } = rootType;
     public IReadOnlyList<TypeSymbol> Definitions { get; } = definitions;
+    public BoundTsonTablePlan? TablePlan { get; } = tablePlan;
+}
+
+public sealed class BoundTsonTablePlan(
+    TableTypeSymbol tableType,
+    int expectedRowCount,
+    IReadOnlyList<BoundTsonTableColumnPlan> columns)
+{
+    public TableTypeSymbol TableType { get; } = tableType;
+    public int ExpectedRowCount { get; } = expectedRowCount;
+    public IReadOnlyList<BoundTsonTableColumnPlan> Columns { get; } = columns.ToArray();
+}
+
+public sealed class BoundTsonTableColumnPlan(
+    TableColumnSymbol column,
+    int expectedElementCount)
+{
+    public TableColumnSymbol Column { get; } = column;
+    public int ExpectedElementCount { get; } = expectedElementCount;
 }
 public sealed class BoundCompilation
 {

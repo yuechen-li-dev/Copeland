@@ -181,14 +181,21 @@ public static class MirValidator
         }
         if (plan.Limits.MaximumUtf8Bytes != 1_048_576
             || plan.Limits.MaximumStringCodeUnits != 262_144
-            || plan.Limits.MaximumArrayLength != 100_000)
+            || plan.Limits.MaximumArrayLength != 100_000
+            || plan.Limits.MaximumColumns != 256
+            || plan.Limits.MaximumRows != 100_000
+            || plan.Limits.MaximumCells != 100_000
+            || plan.Limits.MaximumValueNodes != 100_000
+            || plan.Limits.MaximumNestingDepth != 64)
         {
             diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has invalid fixed limits."));
         }
         try
         {
-            string prefix = MirTsonCanonicalText.BuildDocumentPrefix(plan);
-            int staticBytes = MirTsonCanonicalText.CountUtf8Bytes(prefix) + 2;
+            string staticText = plan.TablePlan is null
+                ? MirTsonCanonicalText.BuildDocumentPrefix(plan) + ";\n"
+                : MirTsonCanonicalText.BuildTableStaticText(plan);
+            int staticBytes = MirTsonCanonicalText.CountUtf8Bytes(staticText);
             if (staticBytes > plan.Limits.MaximumUtf8Bytes)
             {
                 diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' static document text exceeds the output limit."));
@@ -198,7 +205,11 @@ public static class MirValidator
         {
             diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' has malformed canonical static text."));
         }
-        if (plan.RootType is not MirRecordType
+        if (plan.TablePlan is not null)
+        {
+            ValidateTsonTablePlan(plan, program, diagnostics);
+        }
+        else if (plan.RootType is not MirRecordType
             && !program.Enums.Any(@enum => @enum.Name == plan.RootType.Identifier))
         {
             diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' root is not a nominal record or enum."));
@@ -230,12 +241,88 @@ public static class MirValidator
 
         var definitionKeys = plan.Definitions.Select(TsonDefinitionKey).ToHashSet(StringComparer.Ordinal);
         var reachable = new HashSet<string>(StringComparer.Ordinal);
-        VisitTsonValuePlan(plan.RootValuePlan, plan, reachable, [], diagnostics);
+        if (plan.TablePlan is null)
+        {
+            VisitTsonValuePlan(plan.RootValuePlan, plan, reachable, [], diagnostics);
+        }
+        else
+        {
+            foreach (MirTsonTableColumnPlan column in plan.TablePlan.Columns)
+            {
+                VisitTsonValuePlan(column.ElementPlan, plan, reachable, [], diagnostics);
+            }
+        }
         if (!definitionKeys.SetEquals(reachable))
         {
             diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' contains missing or extraneous declarations."));
         }
     }
+
+    private static void ValidateTsonTablePlan(
+        MirTsonEncodingPlan plan,
+        MirProgram program,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        MirTsonTablePlan tablePlan = plan.TablePlan!;
+        MirTableDefinition? table = program.Tables.FirstOrDefault(candidate => candidate.Id == tablePlan.TableId);
+        if (table is null
+            || plan.RootType is not MirTableType rootType
+            || rootType.TableId != tablePlan.TableId
+            || plan.RootValuePlan is not MirTsonTableValuePlan rootValue
+            || rootValue.TableId != tablePlan.TableId)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON table plan '{plan.Id}' has a missing table, root, or table value plan."));
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(tablePlan.TableId.Value)
+            || tablePlan.Name != table.Name
+            || tablePlan.StableIdentity != $"{plan.SchemaIdentity}#{table.Name}"
+            || tablePlan.ExpectedRowCount != table.RowCount
+            || tablePlan.ExpectedRowCount < 0
+            || tablePlan.ExpectedRowCount > plan.Limits.MaximumRows
+            || tablePlan.Columns.Count == 0
+            || tablePlan.Columns.Count > plan.Limits.MaximumColumns)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON table plan '{plan.Id}' has invalid table identity, shape, or bounds."));
+        }
+
+        if ((long)tablePlan.ExpectedRowCount * tablePlan.Columns.Count > plan.Limits.MaximumCells)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON table plan '{plan.Id}' exceeds the table cell bound."));
+        }
+
+        if (tablePlan.Columns.Count != table.Columns.Count)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON table plan '{plan.Id}' has missing or duplicate column plans."));
+            return;
+        }
+
+        var ids = new HashSet<MirTableColumnId>();
+        foreach ((MirTsonTableColumnPlan columnPlan, MirTableColumnDefinition column) in tablePlan.Columns.Zip(table.Columns))
+        {
+            if (string.IsNullOrWhiteSpace(columnPlan.ColumnId.Value)
+                || !ids.Add(columnPlan.ColumnId)
+                || columnPlan.ColumnId != column.Id
+                || columnPlan.Name != column.Name
+                || columnPlan.StableIdentity != $"{tablePlan.StableIdentity}.{column.Name}"
+                || columnPlan.ExpectedElementCount != tablePlan.ExpectedRowCount
+                || columnPlan.ExpectedElementCount != column.Constants.Count
+                || !TsonPlanMatchesType(columnPlan.ElementPlan, column.ElementType)
+                || ContainsTablePlan(columnPlan.ElementPlan))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"TSON table column plan '{tablePlan.Name}.{columnPlan.Name}' does not match its declaration, bounds, or cell plan."));
+            }
+        }
+    }
+
+    private static bool ContainsTablePlan(MirTsonValuePlan plan)
+        => plan switch
+        {
+            MirTsonTableValuePlan => true,
+            MirTsonArrayPlan array when array.ElementPlan is not null => ContainsTablePlan(array.ElementPlan),
+            _ => false,
+        };
 
     private static void ValidateTsonNominalPlan(
         MirTsonNominalPlan definition,
@@ -338,6 +425,12 @@ public static class MirValidator
             return;
         }
 
+        if (valuePlan is MirTsonTableValuePlan)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"TSON encoding plan '{plan.Id}' contains a nested table value plan."));
+            return;
+        }
+
         string? key = valuePlan switch
         {
             MirTsonRecordValuePlan record => "record:" + record.RecordTypeId.Value,
@@ -395,6 +488,7 @@ public static class MirValidator
             (MirTsonRecordValuePlan value, MirRecordType record) => value.RecordTypeId == record.RecordTypeId,
             (MirTsonEnumValuePlan value, MirType named) when named is not MirArrayType and not MirResultType => value.EnumName == named.Identifier,
             (MirTsonArrayPlan array, MirArrayType arrayType) when array.ElementPlan is not null => TsonPlanMatchesType(array.ElementPlan, arrayType.ElementType),
+            (MirTsonTableValuePlan table, MirTableType tableType) => table.TableId == tableType.TableId,
             _ => false,
         };
 

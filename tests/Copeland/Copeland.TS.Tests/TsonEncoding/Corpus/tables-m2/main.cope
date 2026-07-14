@@ -1,0 +1,46 @@
+module
+
+enum TsonEncodeError
+  case InvalidUnicode
+  case OutputLimitExceeded
+
+enum TableBoundsError
+  case InvalidIndex(index: number)
+  case OutOfBounds(index: number, rowCount: number)
+
+enum State
+  case Off
+  case Named(label: string)
+
+record Point [r1]
+  field name [r1.f0]: string
+
+table Empty [t1] row [t1.row] count 0
+  column active [t1.c0]: boolean = []
+  column note [t1.c1]: string = []
+
+table Samples [t2] row [t2.row] count 5
+  column active [t2.c0]: boolean = [true, false, true, false, true]
+  column score [t2.c1]: number = [0, -0, 1.5, NaN, -Infinity]
+  column point [t2.c2]: Point = [record [r1] { [r1.f0]: "plain" }, record [r1] { [r1.f0]: "quote " slash \ newline
+" }, record [r1] { [r1.f0]: "雪" }, record [r1] { [r1.f0]: "😀" }, record [r1] { [r1.f0]: "𐐷" }]
+  column state [t2.c3]: State = [enum State.Off, enum State.Named("payload"), enum State.Named("雪"), enum State.Off, enum State.Named("array")]
+  column values [t2.c4]: number[][] = [[]: number[][], [[1, 2]: number[], []: number[]]: number[][], [[]: number[], [0]: number[]]: number[][], [[Infinity]: number[]]: number[][], [[NaN]: number[]]: number[][]]
+
+tson-plan tson0 schema copeland://corpus/runtime-table-encoding root Samples limits utf8=1048576 string-utf16=262144
+  record Point [r1] identity copeland://corpus/runtime-table-encoding#Point
+    field name [r1.f0] identity copeland://corpus/runtime-table-encoding#Point.name: string
+  enum State identity copeland://corpus/runtime-table-encoding#State
+    case Off identity copeland://corpus/runtime-table-encoding#State.Off
+    case Named identity copeland://corpus/runtime-table-encoding#State.Named
+      payload label identity copeland://corpus/runtime-table-encoding#State.Named.label: string
+
+tson-plan tson1 schema copeland://corpus/runtime-table-encoding root Empty limits utf8=1048576 string-utf16=262144
+
+func encode() -> string ! TsonEncodeError
+entry:
+  return tson-encode [tson0] table-ref [t2] : string ! TsonEncodeError
+
+func encodeEmpty() -> string ! TsonEncodeError
+entry:
+  return tson-encode [tson1] table-ref [t1] : string ! TsonEncodeError

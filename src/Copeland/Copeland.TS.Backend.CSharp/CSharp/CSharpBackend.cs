@@ -31,6 +31,10 @@ public static class CSharpBackend
         var writer = new CSharpTextWriter();
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var recordsById = program.Records.ToDictionary(record => record.Id);
+        var tsonTableIds = program.TsonEncodingPlans
+            .Where(plan => plan.TablePlan is not null)
+            .Select(plan => plan.TablePlan!.TableId)
+            .ToHashSet();
         var usesResult = ProgramUsesResult(program) || program.Tables.Count > 0;
         var usesUnwrap = ProgramUsesUnwrap(program);
         var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult);
@@ -51,7 +55,7 @@ public static class CSharpBackend
             EmitColumnSupport(writer);
             foreach (var table in program.Tables)
             {
-                EmitTable(writer, table, recordsById);
+                EmitTable(writer, table, recordsById, tsonTableIds.Contains(table.Id));
             }
         }
         writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
@@ -175,7 +179,8 @@ public static class CSharpBackend
     private static void EmitTable(
         CSharpTextWriter writer,
         MirTableDefinition table,
-        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
+        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
+        bool emitsTsonAccessors)
     {
         string tableType = TableTypeName(table.Id);
         string rowType = TableRowTypeName(table.RowTypeId);
@@ -264,6 +269,10 @@ public static class CSharpBackend
             writer.WriteLine($"internal {TableColumnTypeName(column.Id)} {TableColumnPropertyName(column.Id)} {{ get; }}");
             writer.WriteLine();
             writer.WriteLine($"internal {MapType(column.ElementType)} {TableReadMethodName(column.Id)}(int index) => {TableStorageName(column.Id)}[index];");
+            if (emitsTsonAccessors)
+            {
+                writer.WriteLine($"internal {MapType(column.ElementType)}[] {TableTsonStorageAccessName(column.Id)}() => {TableStorageName(column.Id)};");
+            }
         }
         writer.WriteLine();
         writer.WriteLine($"internal CopeResult<{rowType}, TableBoundsError> GetRow(double index)");
@@ -1013,6 +1022,12 @@ public static class CSharpBackend
     {
         IReadOnlyList<MirTsonArrayPlan> arrayPlans = CollectTsonArrayPlans(plan);
         string resultType = $"CopeResult<string, TsonEncodeError>";
+        if (plan.TablePlan is not null)
+        {
+            EmitTsonTableEncodingPlan(writer, plan, arrayPlans, resultType);
+        }
+        else
+        {
         writer.WriteLine($"private static {resultType} {TsonEncodeMethodName(plan.Id)}({MapType(plan.RootType)} value)");
         writer.WriteLine("{");
         writer.Indent();
@@ -1032,6 +1047,7 @@ public static class CSharpBackend
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine();
+        }
 
         foreach (MirTsonNominalPlan definition in plan.Definitions)
         {
@@ -1050,6 +1066,88 @@ public static class CSharpBackend
         {
             EmitTsonArrayWriter(writer, plan, arrayPlan, arrayPlans);
         }
+    }
+
+    private static void EmitTsonTableEncodingPlan(
+        CSharpTextWriter writer,
+        MirTsonEncodingPlan plan,
+        IReadOnlyList<MirTsonArrayPlan> arrayPlans,
+        string resultType)
+    {
+        MirTsonTablePlan table = plan.TablePlan!;
+        writer.WriteLine($"private static {resultType} {TsonEncodeMethodName(plan.Id)}({TableTypeName(table.TableId)} value)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"if (!object.ReferenceEquals(value, {TableSingletonName(table.TableId)})) throw new global::System.InvalidOperationException(\"Copeland C# backend invariant failure.\");");
+        for (int index = 0; index < table.Columns.Count; index++)
+        {
+            MirTsonTableColumnPlan column = table.Columns[index];
+            writer.WriteLine($"var column{index} = value.{TableTsonStorageAccessName(column.ColumnId)}();");
+            writer.WriteLine($"var length{index} = column{index} is null ? -1 : column{index}.Length;");
+            writer.WriteLine($"if (length{index} != {column.ExpectedElementCount}) throw new global::System.InvalidOperationException(\"Copeland C# backend invariant failure.\");");
+        }
+        writer.WriteLine($"var writer = new __TsonWriter({plan.Limits.MaximumUtf8Bytes}, {plan.Limits.MaximumStringCodeUnits});");
+        writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write(MirTsonCanonicalText.BuildDocumentPrefix(plan))}))");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"return {resultType}.Err(writer.Error ?? new TsonEncodeError.OutputLimitExceeded());");
+        writer.Unindent();
+        writer.WriteLine("}");
+        for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++)
+        {
+            MirTsonTableColumnPlan column = table.Columns[columnIndex];
+            writer.WriteLine($"if (length{columnIndex} == 0)");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write(MirTsonCanonicalText.BuildTableColumnPrefix(plan, column))}) || !writer.Static(\"[];\\n\"))");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"return {resultType}.Err(writer.Error ?? new TsonEncodeError.OutputLimitExceeded());");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine("goto " + $"__tson_table_column_done_{columnIndex};");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write(MirTsonCanonicalText.BuildTableColumnPrefix(plan, column))}) || !writer.Static(\"[\\n\"))");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"return {resultType}.Err(writer.Error ?? new TsonEncodeError.OutputLimitExceeded());");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine($"for (var index = 0; index < length{columnIndex}; index++)");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"var cell = column{columnIndex}[index];");
+            writer.WriteLine("if (!writer.Indent(2)");
+            writer.Indent();
+            writer.WriteLine($"|| !{TsonValueWriterName(plan.Id, column.ElementPlan, arrayPlans)}(writer, cell, 2)");
+            writer.WriteLine("|| !writer.Static(\",\\n\"))");
+            writer.Unindent();
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"return {resultType}.Err(writer.Error ?? new TsonEncodeError.OutputLimitExceeded());");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine("if (!writer.Indent(1) || !writer.Static(\"];\\n\"))");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"return {resultType}.Err(writer.Error ?? new TsonEncodeError.OutputLimitExceeded());");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine($"__tson_table_column_done_{columnIndex}: ;");
+        }
+        writer.WriteLine($"if (!writer.Static({CSharpLiteralWriter.Write(MirTsonCanonicalText.BuildTableDocumentSuffix(plan))}))");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"return {resultType}.Err(writer.Error ?? new TsonEncodeError.OutputLimitExceeded());");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine($"return {resultType}.Ok(writer.Finish());");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
     }
 
     private static void EmitTsonRecordWriter(CSharpTextWriter writer, MirTsonEncodingPlan plan, MirTsonRecordPlan record, IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records, IReadOnlyList<MirTsonArrayPlan> arrayPlans)
@@ -1225,6 +1323,13 @@ public static class CSharpBackend
         }
 
         Visit(plan.RootValuePlan);
+        if (plan.TablePlan is not null)
+        {
+            foreach (MirTsonTableColumnPlan column in plan.TablePlan.Columns)
+            {
+                Visit(column.ElementPlan);
+            }
+        }
         foreach (MirTsonNominalPlan definition in plan.Definitions)
         {
             IEnumerable<MirTsonValuePlan> values = definition switch
@@ -1375,6 +1480,9 @@ public static class CSharpBackend
 
     private static string TableReadMethodName(MirTableColumnId id)
         => "__read_" + EncodeStableIdentity(id.Value);
+
+    private static string TableTsonStorageAccessName(MirTableColumnId id)
+        => "__tson_values_" + EncodeStableIdentity(id.Value);
 
     private static string TableRowFieldName(MirTableColumnId id)
         => "__row_field_" + EncodeStableIdentity(id.Value);

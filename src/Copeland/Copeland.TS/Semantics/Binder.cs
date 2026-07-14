@@ -49,6 +49,7 @@ public static class Binder
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TableTypeSymbol> _tableTypes = new(StringComparer.Ordinal);
+        private readonly HashSet<VariableSymbol> _tableSingletonVariables = [];
         private EnumTypeSymbol? _tableBoundsErrorType;
         private EnumTypeSymbol? _tsonEncodeErrorType;
         private readonly Dictionary<TypeSymbol, BoundTsonEncodingPlan> _tsonEncodingPlans = [];
@@ -149,12 +150,14 @@ public static class Binder
                     continue;
                 }
                 var table = new TableTypeSymbol(declaration.Identifier.Text, new TableTypeId(_nextTableTypeId++));
-                if (!_global.TryDeclare(new VariableSymbol(table.Name, table, true)) || _tableTypes.ContainsKey(table.Name))
+                var tableSingleton = new VariableSymbol(table.Name, table, true);
+                if (!_global.TryDeclare(tableSingleton) || _tableTypes.ContainsKey(table.Name))
                 {
                     Report("COPE-TABLE-0002", $"Duplicate table declaration '{table.Name}'.", declaration.Identifier);
                     continue;
                 }
                 _tableTypes.Add(table.Name, table);
+                _tableSingletonVariables.Add(tableSingleton);
             }
         }
 
@@ -490,7 +493,7 @@ public static class Binder
             return new BoundTableRecordConstant(record.RecordType, fields);
         }
 
-        private static bool IsEligibleTableCellType(TypeSymbol type, HashSet<TypeSymbol> visiting, out bool isCyclic)
+        private bool IsEligibleTableCellType(TypeSymbol type, HashSet<TypeSymbol> visiting, out bool isCyclic)
         {
             if (!visiting.Add(type))
             {
@@ -502,6 +505,7 @@ public static class Binder
                 PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Number
                     || primitive == PrimitiveTypeSymbol.String
                     || primitive == PrimitiveTypeSymbol.Boolean => true,
+                ArrayTypeSymbol array when _schemaIdentity is not null => IsEligibleTableCellType(array.ElementType, visiting, out _),
                 EnumTypeSymbol @enum => @enum.Cases.All(@case => @case.PayloadFields.All(field => IsEligibleTableCellType(field.Type, visiting, out _))),
                 RecordTypeSymbol record => record.Fields.All(field => IsEligibleTableCellType(field.Type, visiting, out _)),
                 ResultTypeSymbol result => IsEligibleTableCellType(result.SuccessType, visiting, out _)
@@ -1140,7 +1144,7 @@ public static class Binder
             }
             return symbol switch
             {
-                VariableSymbol v when v.Type is TableTypeSymbol table => new BoundTableReferenceExpression(table),
+                VariableSymbol v when v.Type is TableTypeSymbol table && _tableSingletonVariables.Contains(v) => new BoundTableReferenceExpression(table),
                 VariableSymbol v => new BoundVariableExpression(v),
                 ParameterSymbol p => new BoundVariableExpression(new VariableSymbol(p.Name, p.Type, true)),
                 _ => new BoundErrorExpression()
@@ -1334,11 +1338,14 @@ public static class Binder
             }
 
             BoundExpression operand = BindExpression(call.Arguments[0]);
-            if (operand.Type is not RecordTypeSymbol and not EnumTypeSymbol)
+            bool isNominalRoot = operand.Type is RecordTypeSymbol or EnumTypeSymbol;
+            bool isAuthoredTableSingleton = operand is BoundTableReferenceExpression
+                && operand.Type is TableTypeSymbol;
+            if (!isNominalRoot && !isAuthoredTableSingleton)
             {
                 Report(
                     "COPE-TSON-ENCODE-0001",
-                    $"'tsonEncode' requires one nominal record or payload enum root, not '{operand.Type.Name}'.",
+                    $"'tsonEncode' requires one nominal record, payload enum, or authored table singleton, not '{operand.Type.Name}'.",
                     intrinsicName.IdentifierToken);
                 return new BoundErrorExpression();
             }
@@ -1352,7 +1359,7 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
-            if (!TryGetOrCreateTsonEncodingPlan(operand.Type, intrinsicName.IdentifierToken, out BoundTsonEncodingPlan? plan))
+            if (!TryGetOrCreateTsonEncodingPlan(operand, intrinsicName.IdentifierToken, out BoundTsonEncodingPlan? plan))
             {
                 return new BoundErrorExpression();
             }
@@ -1368,10 +1375,11 @@ public static class Binder
         }
 
         private bool TryGetOrCreateTsonEncodingPlan(
-            TypeSymbol rootType,
+            BoundExpression operand,
             SyntaxToken anchor,
             out BoundTsonEncodingPlan? plan)
         {
+            TypeSymbol rootType = operand.Type;
             if (_tsonEncodingPlans.TryGetValue(rootType, out plan))
             {
                 return true;
@@ -1382,7 +1390,40 @@ public static class Binder
 
             var reachable = new HashSet<TypeSymbol>();
             var visiting = new HashSet<TypeSymbol>();
-            bool valid = VisitTsonType(rootType, rootType.Name, anchor, reachable, visiting);
+            BoundTsonTablePlan? tablePlan = null;
+            bool valid;
+            if (operand is BoundTableReferenceExpression tableReference)
+            {
+                BoundTableDefinition? table = _tables.SingleOrDefault(
+                    definition => ReferenceEquals(definition.TableType, tableReference.TableType));
+                if (table is null)
+                {
+                    Report("COPE-TSON-ENCODE-0003", "TSON table encoding requires one declaration-owned table singleton.", anchor);
+                    plan = null;
+                    return false;
+                }
+
+                var columns = new List<BoundTsonTableColumnPlan>(table.Columns.Count);
+                valid = true;
+                foreach (BoundTableColumnDefinition column in table.Columns)
+                {
+                    if (!IsEligibleTsonTableCellType(column.Column.Type))
+                    {
+                        Report("COPE-TSON-ENCODE-0003", $"TSON table encoding does not support column '{column.Column.Name}' of type '{column.Column.Type.Name}'.", anchor);
+                        valid = false;
+                        continue;
+                    }
+
+                    valid &= VisitTsonType(column.Column.Type, table.TableType.Name + "." + column.Column.Name, anchor, reachable, visiting);
+                    columns.Add(new BoundTsonTableColumnPlan(column.Column, column.Cells.Count));
+                }
+
+                tablePlan = new BoundTsonTablePlan(table.TableType, table.RowCount, columns);
+            }
+            else
+            {
+                valid = VisitTsonType(rootType, rootType.Name, anchor, reachable, visiting);
+            }
             if (!valid)
             {
                 plan = null;
@@ -1419,7 +1460,8 @@ public static class Binder
                 $"tson{_tsonEncodingPlans.Count}",
                 schemaIdentity,
                 rootType,
-                definitions);
+                definitions,
+                tablePlan);
             _tsonEncodingPlans.Add(rootType, plan);
             return true;
         }

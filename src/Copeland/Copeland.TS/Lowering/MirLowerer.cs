@@ -33,13 +33,35 @@ public static class MirLowerer
 
     private static MirTsonEncodingPlan LowerTsonEncodingPlan(BoundTsonEncodingPlan plan)
     {
+        MirTsonTablePlan? tablePlan = plan.TablePlan is null
+            ? null
+            : LowerTsonTablePlan(plan.TablePlan, plan.SchemaIdentity);
         return new MirTsonEncodingPlan(
             new MirTsonEncodingPlanId(plan.Id),
             plan.SchemaIdentity,
             ToMirType(plan.RootType),
-            LowerTsonValuePlan(plan.RootType),
+            tablePlan is null
+                ? LowerTsonValuePlan(plan.RootType)
+                : new MirTsonTableValuePlan(tablePlan.TableId),
             plan.Definitions.Select(LowerTsonNominalPlan).ToArray(),
-            new MirTsonEncodingLimits(1_048_576, 262_144));
+            new MirTsonEncodingLimits(1_048_576, 262_144),
+            tablePlan);
+    }
+
+    private static MirTsonTablePlan LowerTsonTablePlan(BoundTsonTablePlan plan, string schemaIdentity)
+    {
+        var tableId = new MirTableId(plan.TableType.Id.ToString());
+        return new MirTsonTablePlan(
+            tableId,
+            plan.TableType.Name,
+            schemaIdentity + "#" + plan.TableType.Name,
+            plan.ExpectedRowCount,
+            plan.Columns.Select(column => new MirTsonTableColumnPlan(
+                new MirTableColumnId(column.Column.Id.ToString()),
+                column.Column.Name,
+                schemaIdentity + "#" + plan.TableType.Name + "." + column.Column.Name,
+                LowerTsonValuePlan(column.Column.Type),
+                column.ExpectedElementCount)).ToArray());
     }
 
     private static MirTsonNominalPlan LowerTsonNominalPlan(TypeSymbol type)

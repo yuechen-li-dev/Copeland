@@ -12,6 +12,9 @@ public sealed class MalformedTsonEncodingPlanValidationTests
         MirProgram valid = ValidProgram();
         MirTsonEncodingPlan plan = Assert.Single(valid.TsonEncodingPlans);
         MirFunction function = Assert.Single(valid.Functions);
+        MirProgram validTable = ValidTableProgram();
+        MirTsonEncodingPlan tablePlan = Assert.Single(validTable.TsonEncodingPlans);
+        MirFunction tableFunction = Assert.Single(validTable.Functions);
 
         yield return Case("duplicate plan identity", Program([plan, plan], function));
         yield return Case("missing referenced plan", Program([], function));
@@ -161,6 +164,102 @@ public sealed class MalformedTsonEncodingPlanValidationTests
                     new MirTsonEncodingPlanId("tson0"),
                     ResultType())),
                 extraEnums: [new MirEnum("Zed", [new MirEnumCase("Only", [])])]));
+        yield return Case(
+            "missing table definition",
+            TableProgram([tablePlan], tableFunction, []));
+        yield return Case(
+            "blank table identity",
+            TableProgram([TablePlan(stableIdentity: "")], tableFunction));
+        yield return Case(
+            "wrong table root value",
+            TableProgram(
+                [TablePlan(rootValuePlan: new MirTsonRecordValuePlan(RootId))],
+                TableFunction(new MirTsonEncodeExpression(
+                    new MirVariableExpression("value", TableRootType()),
+                    new MirTsonEncodingPlanId("tson0"),
+                    ResultType()))));
+        yield return Case(
+            "duplicate column plans",
+            TableProgram(
+                [TablePlan(columns:
+                [
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonNumberPlan(), 1),
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonNumberPlan(), 1),
+                ])],
+                tableFunction));
+        yield return Case(
+            "column order mismatch",
+            TableProgram(
+                [TablePlan(columns:
+                [
+                    new MirTsonTableColumnPlan(OtherColumnId, "other", Schema + "#Samples.other", new MirTsonStringPlan(), 1),
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonNumberPlan(), 1),
+                ])],
+                tableFunction));
+        yield return Case(
+            "column count mismatch",
+            TableProgram(
+                [TablePlan(columns:
+                [
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonNumberPlan(), 1),
+                ])],
+                tableFunction));
+        yield return Case(
+            "column stable identity mismatch",
+            TableProgram(
+                [TablePlan(columns:
+                [
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.other", new MirTsonNumberPlan(), 1),
+                    new MirTsonTableColumnPlan(OtherColumnId, "other", Schema + "#Samples.other", new MirTsonStringPlan(), 1),
+                ])],
+                tableFunction));
+        yield return Case(
+            "column length mismatch",
+            TableProgram(
+                [TablePlan(columns:
+                [
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonNumberPlan(), 2),
+                    new MirTsonTableColumnPlan(OtherColumnId, "other", Schema + "#Samples.other", new MirTsonStringPlan(), 1),
+                ])],
+                tableFunction));
+        yield return Case(
+            "table row count mismatch",
+            TableProgram(
+                [TablePlan(expectedRowCount: 2)],
+                tableFunction));
+        yield return Case(
+            "table zero columns",
+            TableProgram(
+                [TablePlan(columns: [])],
+                tableFunction,
+                [new MirTableDefinition(TableId, "Samples", "t1.row", [], 1)]));
+        yield return Case(
+            "nested table cell plan",
+            TableProgram(
+                [TablePlan(columns:
+                [
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonTableValuePlan(TableId), 1),
+                    new MirTsonTableColumnPlan(OtherColumnId, "other", Schema + "#Samples.other", new MirTsonStringPlan(), 1),
+                ])],
+                tableFunction));
+        yield return Case(
+            "wrong table cell plan",
+            TableProgram(
+                [TablePlan(columns:
+                [
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonRecordValuePlan(RootId), 1),
+                    new MirTsonTableColumnPlan(OtherColumnId, "other", Schema + "#Samples.other", new MirTsonStringPlan(), 1),
+                ])],
+                tableFunction));
+        yield return Case(
+            "invalid nested array cell plan",
+            TableProgram(
+                [TablePlan(columns:
+                [
+                    new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonArrayPlan(new MirTsonTableValuePlan(TableId)), 1),
+                    new MirTsonTableColumnPlan(OtherColumnId, "other", Schema + "#Samples.other", new MirTsonStringPlan(), 1),
+                ])],
+                tableFunction));
     }
 
     [Theory]
@@ -180,6 +279,9 @@ public sealed class MalformedTsonEncodingPlanValidationTests
     private const string Schema = "copeland://tests/malformed-plan";
     private static readonly MirRecordTypeId RootId = new("r1");
     private static readonly MirRecordFieldId FieldId = new("r1.f0");
+    private static readonly MirTableId TableId = new("t1");
+    private static readonly MirTableColumnId ColumnId = new("t1.c0");
+    private static readonly MirTableColumnId OtherColumnId = new("t1.c1");
 
     private static object[] Case(string name, MirProgram program) => [name, program];
 
@@ -190,6 +292,17 @@ public sealed class MalformedTsonEncodingPlanValidationTests
             [plan],
             Function(new MirTsonEncodeExpression(
                 new MirVariableExpression("value", RootType()),
+                plan.Id,
+                ResultType())));
+    }
+
+    private static MirProgram ValidTableProgram()
+    {
+        MirTsonEncodingPlan plan = TablePlan();
+        return TableProgram(
+            [plan],
+            TableFunction(new MirTsonEncodeExpression(
+                new MirVariableExpression("value", TableRootType()),
                 plan.Id,
                 ResultType())));
     }
@@ -224,6 +337,14 @@ public sealed class MalformedTsonEncodingPlanValidationTests
             [],
             [new MirReturnStatement(expression)]);
 
+    private static MirFunction TableFunction(MirExpression expression)
+        => new(
+            "encodeTable",
+            [new MirParameter("value", expression is MirTsonEncodeExpression encode ? encode.Operand.Type : TableRootType())],
+            expression.Type,
+            [],
+            [new MirReturnStatement(expression)]);
+
     private static MirProgram EnumProgram(MirTsonEnumPlan definition, MirEnum @enum)
     {
         MirType rootType = new MirNamedType(@enum.Name);
@@ -243,6 +364,23 @@ public sealed class MalformedTsonEncodingPlanValidationTests
             extraEnums: [@enum]);
     }
 
+    private static MirProgram TableProgram(
+        IReadOnlyList<MirTsonEncodingPlan> plans,
+        MirFunction function,
+        IReadOnlyList<MirTableDefinition>? tables = null)
+    {
+        return new MirProgram(
+            [new MirEnum("TsonEncodeError",
+            [
+                new MirEnumCase("InvalidUnicode", []),
+                new MirEnumCase("OutputLimitExceeded", []),
+            ])],
+            [],
+            tables ?? ValidTables(),
+            plans,
+            [function]);
+    }
+
     private static MirTsonEncodingPlan Plan(
         string? schema = null,
         MirType? rootType = null,
@@ -257,6 +395,29 @@ public sealed class MalformedTsonEncodingPlanValidationTests
             definitions ?? [RecordPlan()],
             limits ?? new MirTsonEncodingLimits(1_048_576, 262_144));
 
+    private static MirTsonEncodingPlan TablePlan(
+        string? schema = null,
+        string? stableIdentity = null,
+        MirType? rootType = null,
+        MirTsonValuePlan? rootValuePlan = null,
+        IReadOnlyList<MirTsonNominalPlan>? definitions = null,
+        MirTsonEncodingLimits? limits = null,
+        int expectedRowCount = 1,
+        IReadOnlyList<MirTsonTableColumnPlan>? columns = null)
+        => new(
+            new MirTsonEncodingPlanId("tson0"),
+            schema ?? Schema,
+            rootType ?? TableRootType(),
+            rootValuePlan ?? new MirTsonTableValuePlan(TableId),
+            definitions ?? [],
+            limits ?? new MirTsonEncodingLimits(1_048_576, 262_144),
+            new MirTsonTablePlan(
+                TableId,
+                "Samples",
+                stableIdentity ?? Schema + "#Samples",
+                expectedRowCount,
+                columns ?? ValidTableColumns()));
+
     private static MirTsonRecordPlan RecordPlan()
         => new(
             RootId,
@@ -265,6 +426,24 @@ public sealed class MalformedTsonEncodingPlanValidationTests
             [new MirTsonRecordFieldPlan(FieldId, "text", Schema + "#Root.text", new MirTsonStringPlan())]);
 
     private static MirRecordType RootType() => new(RootId, "Root");
+    private static MirTableType TableRootType() => new(TableId, "Samples");
+    private static IReadOnlyList<MirTsonTableColumnPlan> ValidTableColumns()
+        => [
+            new MirTsonTableColumnPlan(ColumnId, "value", Schema + "#Samples.value", new MirTsonNumberPlan(), 1),
+            new MirTsonTableColumnPlan(OtherColumnId, "other", Schema + "#Samples.other", new MirTsonStringPlan(), 1),
+        ];
+    private static IReadOnlyList<MirTableDefinition> ValidTables()
+        => [
+            new MirTableDefinition(
+                TableId,
+                "Samples",
+                "t1.row",
+                [
+                    new MirTableColumnDefinition(ColumnId, "value", new MirNamedType("number"), [new MirTableLiteralConstant(1d, new MirNamedType("number"))]),
+                    new MirTableColumnDefinition(OtherColumnId, "other", new MirNamedType("string"), [new MirTableLiteralConstant("x", new MirNamedType("string"))]),
+                ],
+                1),
+        ];
 
     private static MirResultType ResultType()
         => new(new MirNamedType("string"), new MirNamedType("TsonEncodeError"));

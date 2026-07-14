@@ -12,7 +12,10 @@ public static class MirTsonCanonicalText
         AppendString(builder, plan.SchemaIdentity);
         builder.Append(";\n");
 
-        foreach (MirTsonNominalPlan definition in plan.Definitions)
+        IEnumerable<MirTsonNominalPlan> definitionsBeforeTable = plan.TablePlan is null
+            ? plan.Definitions
+            : plan.Definitions.Where(definition => string.CompareOrdinal(definition.Name, plan.TablePlan.Name) < 0);
+        foreach (MirTsonNominalPlan definition in definitionsBeforeTable)
         {
             builder.Append('\n');
             switch (definition)
@@ -28,7 +31,57 @@ public static class MirTsonCanonicalText
             }
         }
 
+        if (plan.TablePlan is not null)
+        {
+            AppendTableHeader(builder, plan.TablePlan, plan);
+            return builder.ToString();
+        }
+
         builder.Append("\nconst $value = ");
+        return builder.ToString();
+    }
+
+    public static string BuildTableColumnPrefix(MirTsonEncodingPlan plan, MirTsonTableColumnPlan column)
+        => "    " + column.Name + ": " + ValueTypeName(column.ElementPlan, plan) + " = ";
+
+    public static string BuildTableDocumentSuffix(MirTsonEncodingPlan plan)
+    {
+        MirTsonTablePlan table = plan.TablePlan
+            ?? throw new InvalidOperationException("A table suffix request requires a table plan.");
+        var builder = new StringBuilder("}\n");
+        foreach (MirTsonNominalPlan definition in plan.Definitions.Where(definition => string.CompareOrdinal(definition.Name, table.Name) > 0))
+        {
+            builder.Append('\n');
+            switch (definition)
+            {
+                case MirTsonRecordPlan record:
+                    AppendRecordDefinition(builder, record, plan);
+                    break;
+                case MirTsonEnumPlan @enum:
+                    AppendEnumDefinition(builder, @enum, plan);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unsupported validated TSON nominal plan.");
+            }
+        }
+        builder.Append("\nconst $value = ").Append(table.Name).Append(";\n");
+        return builder.ToString();
+    }
+
+    public static string BuildTableStaticText(MirTsonEncodingPlan plan)
+    {
+        if (plan.TablePlan is null)
+        {
+            throw new InvalidOperationException("A table static-text request requires a table plan.");
+        }
+
+        var builder = new StringBuilder(BuildDocumentPrefix(plan));
+        foreach (MirTsonTableColumnPlan column in plan.TablePlan.Columns)
+        {
+            builder.Append(BuildTableColumnPrefix(plan, column));
+            builder.Append("[];\n");
+        }
+        builder.Append(BuildTableDocumentSuffix(plan));
         return builder.ToString();
     }
 
@@ -103,6 +156,12 @@ public static class MirTsonCanonicalText
             builder.Append(",\n");
         }
         builder.Append("}\n");
+    }
+
+    private static void AppendTableHeader(StringBuilder builder, MirTsonTablePlan table, MirTsonEncodingPlan plan)
+    {
+        _ = plan;
+        builder.Append("\nrecord table ").Append(table.Name).Append(" {\n");
     }
 
     private static string ValueTypeName(MirTsonValuePlan valuePlan, MirTsonEncodingPlan plan)
