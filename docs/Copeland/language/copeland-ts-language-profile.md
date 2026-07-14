@@ -1,6 +1,6 @@
 # Copeland TS language profile
 
-**Status:** canonical product-language profile through CTS-TSON-ARRAY-M1. Immutable nominal records and immutable record tables are implemented and closed through their private C# and JavaScript realizations. TSON arrays are compiler-host immutable values and compile-time assets lower through ordinary C#/JavaScript arrays; runtime canonical encoding now supports the approved nested array families beneath nominal roots. Runtime decoding remains deferred until one parser architecture exists on both backends. JSON/serialization remains unimplemented and must be designed as a compatibility lowering through TSON.
+**Status:** canonical product-language profile through closed CTS-TSON-ARRAY-M1. Immutable nominal records and immutable record tables are implemented and closed through their private C# and JavaScript realizations. TSON arrays are compiler-host immutable values and compile-time assets lower through ordinary C#/JavaScript arrays; runtime canonical encoding supports the approved nested array families beneath nominal roots with a pinned two-generation C#/Node fixed point. Runtime decoding remains deferred until one parser architecture exists on both backends. JSON/serialization remains unimplemented and must be designed as a compatibility lowering through TSON.
 
 ## Position
 

@@ -30,6 +30,62 @@ public sealed class CliIntegrationTests
     }
 
     [Fact]
+    public async Task Array_m1_corpus_cli_emission_is_fresh_repeatable_and_preserves_stale_artifacts_on_failure()
+    {
+        string corpus = Path.Combine(
+            GetRepoRoot(),
+            "tests",
+            "Copeland",
+            "Copeland.TS.Tests",
+            "TsonEncoding",
+            "Corpus",
+            "arrays");
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", await File.ReadAllTextAsync(Path.Combine(corpus, "main.ts")));
+        temp.WriteFile("packet.obj.ts", await File.ReadAllTextAsync(Path.Combine(corpus, "packet.obj.ts")));
+
+        var emissions = new[]
+        {
+            (Emit: "mir", File: "main.cope"),
+            (Emit: "csharp", File: "main.g.cs"),
+            (Emit: "javascript", File: "main.g.js"),
+        };
+        foreach ((string emit, string fileName) in emissions)
+        {
+            string outputPath = Path.Combine(temp.Path, fileName);
+            CliResult first = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emit, "--out", outputPath);
+            byte[] firstBytes = await File.ReadAllBytesAsync(outputPath);
+            CliResult second = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emit, "--out", outputPath);
+            byte[] secondBytes = await File.ReadAllBytesAsync(outputPath);
+
+            Assert.Equal(0, first.ExitCode);
+            Assert.Equal(0, second.ExitCode);
+            Assert.Equal(firstBytes, secondBytes);
+            Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(corpus, fileName)), firstBytes);
+            string emitted = Encoding.UTF8.GetString(firstBytes);
+            Assert.DoesNotContain("packet.obj.ts", emitted, StringComparison.Ordinal);
+            Assert.DoesNotContain(temp.Path, emitted, StringComparison.OrdinalIgnoreCase);
+        }
+
+        string stalePath = Path.Combine(temp.Path, "main.g.js");
+        string staleHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath)));
+        string invalidPath = temp.WriteFile("invalid.ts", """
+            const $schema: string = "copeland://corpus/runtime-array-encoding";
+            record Root { values: number[]; }
+            function encode(value: Root): string ! TsonEncodeError { return tsonEncode(value); }
+            const invalid: Root = { values: ["wrong"], };
+            """);
+        CliResult staleFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "javascript", "--out", stalePath);
+        string freshFailurePath = Path.Combine(temp.Path, "fresh-failure.g.cs");
+        CliResult freshFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "csharp", "--out", freshFailurePath);
+
+        Assert.Equal(1, staleFailure.ExitCode);
+        Assert.Equal(1, freshFailure.ExitCode);
+        Assert.Equal(staleHash, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath))));
+        Assert.False(File.Exists(freshFailurePath));
+    }
+
+    [Fact]
     public async Task Failed_Tson_encoding_compilation_preserves_stale_output()
     {
         using var temp = new TempDir();

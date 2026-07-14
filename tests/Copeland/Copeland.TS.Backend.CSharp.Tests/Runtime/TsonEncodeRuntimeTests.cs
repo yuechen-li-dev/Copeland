@@ -128,6 +128,113 @@ public sealed class TsonEncodeRuntimeTests
     }
 
     [Fact]
+    public async Task Array_corpus_has_two_generation_csharp_node_fixed_point_and_pinned_artifacts()
+    {
+        string root = GetRepositoryRoot();
+        string corpus = Path.Combine(root, "tests", "Copeland", "Copeland.TS.Tests", "TsonEncoding", "Corpus", "arrays");
+        string sourcePath = Path.Combine(corpus, "main.ts");
+        CopelandCompilation firstCompilation = CopelandCompiler.CompileToMir(
+            File.ReadAllText(sourcePath),
+            new CopelandCompilationOptions
+            {
+                SourcePath = sourcePath,
+                ProjectRoot = corpus,
+                AssetSource = FileAssetSource.Instance,
+            });
+        Assert.True(firstCompilation.Success, string.Join(Environment.NewLine, firstCompilation.Diagnostics));
+
+        CSharpCompilation firstCSharp = CSharpBackend.Emit(firstCompilation.MirCompilation!.Program!);
+        JavaScriptCompilation firstJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation.Program!);
+        Assert.Empty(firstCSharp.Diagnostics);
+        Assert.True(firstJavaScript.Success, string.Join(Environment.NewLine, firstJavaScript.Diagnostics));
+        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.cope")), firstCompilation.MirText);
+        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.g.cs")), firstCSharp.SourceText);
+        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.g.js")), firstJavaScript.SourceText);
+
+        CSharpCompilation repeatedCSharp = CSharpBackend.Emit(firstCompilation.MirCompilation.Program!);
+        JavaScriptCompilation repeatedJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation.Program!);
+        Assert.Equal(firstCSharp.SourceText, repeatedCSharp.SourceText);
+        Assert.Equal(firstJavaScript.SourceText, repeatedJavaScript.SourceText);
+
+        byte[] expectedBytes = File.ReadAllBytes(Path.Combine(corpus, "expected.tson"));
+        Assert.NotEmpty(expectedBytes);
+        Assert.False(expectedBytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }));
+        Assert.Equal((byte)'\n', expectedBytes[^1]);
+        string expected = Encoding.UTF8.GetString(expectedBytes);
+
+        RoslynCompileResult firstGenerated = RoslynCompileHelper.CompileGeneratedSource(firstCSharp.SourceText);
+        Assert.True(firstGenerated.Success, string.Join(Environment.NewLine, firstGenerated.Diagnostics));
+        string firstCSharpText = ResultValue(Invoke(firstGenerated, "encode"));
+        ProcessResult firstNode = await RunNodeAsync(firstJavaScript.SourceText + "process.stdout.write(encode().$payload[0]);\n");
+        Assert.Equal(expected, firstCSharpText);
+        Assert.Equal(expected, firstNode.StdOut);
+        TsonReadResult reparsed = TsonDocumentReader.ReadSelfDescribed(expected, TsonDocumentProfile.CanonicalTson);
+        Assert.True(reparsed.Success, string.Join(Environment.NewLine, reparsed.Diagnostics));
+        Assert.Equal(expected, TsonCanonicalPrinter.Print(reparsed.Document!));
+
+        const string secondSource = """
+            const $schema: string = "copeland://corpus/runtime-array-encoding";
+            record Detail { label: string; }
+            enum Signal { Idle, Text(value: string), DetailValue(detail: Detail), }
+            record Packet {
+                emptyNumbers: number[];
+                booleans: boolean[];
+                numbers: number[];
+                texts: string[];
+                nested: number[][];
+                details: Detail[];
+                signals: Signal[];
+                emptyDetails: Detail[];
+            }
+            function encode(): string ! TsonEncodeError {
+                const loaded: Packet = tsonAsset("./canonical.tson");
+                return tsonEncode(loaded);
+            }
+            """;
+        var options = new CopelandCompilationOptions
+        {
+            SourcePath = "C:/array-m1/main.ts",
+            ProjectRoot = "C:/array-m1",
+            AssetSource = new InMemoryAssetSource(("C:/array-m1/canonical.tson", expected)),
+        };
+        CopelandCompilation secondCompilation = CopelandCompiler.CompileToMir(secondSource, options);
+        Assert.True(secondCompilation.Success, string.Join(Environment.NewLine, secondCompilation.Diagnostics));
+        CSharpCompilation secondCSharp = CSharpBackend.Emit(secondCompilation.MirCompilation!.Program!);
+        JavaScriptCompilation secondJavaScript = JavaScriptBackend.Emit(secondCompilation.MirCompilation.Program!);
+        RoslynCompileResult secondGenerated = RoslynCompileHelper.CompileGeneratedSource(secondCSharp.SourceText);
+        Assert.True(secondGenerated.Success, string.Join(Environment.NewLine, secondGenerated.Diagnostics));
+        ProcessResult secondNode = await RunNodeAsync(secondJavaScript.SourceText + "process.stdout.write(encode().$payload[0]);\n");
+        Assert.Equal(expected, ResultValue(Invoke(secondGenerated, "encode")));
+        Assert.Equal(expected, secondNode.StdOut);
+
+        foreach (string forbidden in new[] { "packet.obj.ts", "canonical.tson", "ARRAY-M1 authoring", "declaration and element order" })
+        {
+            Assert.DoesNotContain(forbidden, firstCompilation.MirText!, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, firstCSharp.SourceText, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, firstJavaScript.SourceText!, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, secondCompilation.MirText!, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, secondCSharp.SourceText, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, secondJavaScript.SourceText!, StringComparison.Ordinal);
+            Assert.DoesNotContain(forbidden, expected, StringComparison.Ordinal);
+        }
+
+        var expectedHashes = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["main.ts"] = "5F7506BE9A496A8B6970E48553D7AF8656A3EA1A28FFDF3BAD8C39AFBF2D4342",
+            ["packet.obj.ts"] = "8BDA38AB1B62167C8794F5864777312BA674EA08D47C73042F3634FB4D1FFB8C",
+            ["expected.tson"] = "3E9DC91E15DA05DEE0F41556225914C7AD375A0DE1AD928FE423EC8AA3E94E51",
+            ["main.cope"] = "CCC4064D7FAFCD393FDD4FB0DD4F4E229EE20087F19AD739BE8EC990900AFB37",
+            ["main.g.cs"] = "9D4EFAF8827733808FF4A560B85CA64BC204898C3C547A2BDFA0F432856566F0",
+            ["main.g.js"] = "1335FE7939F9CB535DCD0E8116F5F9B4F227FA2B82B37E4EEB6E8CE5DE817E15",
+        };
+        foreach ((string fileName, string expectedHash) in expectedHashes)
+        {
+            string actualHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(corpus, fileName))));
+            Assert.Equal(expectedHash, actualHash);
+        }
+    }
+
+    [Fact]
     public async Task Both_backends_emit_identical_canonical_text_and_unicode_errors()
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(Source);
@@ -222,6 +329,57 @@ public sealed class TsonEncodeRuntimeTests
         Assert.Contains("matrix: number[][];", csharpText, StringComparison.Ordinal);
         Assert.Contains("empty: Item[];", csharpText, StringComparison.Ordinal);
         Assert.Contains("        [],", csharpText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Array_runtime_carriers_have_exact_boundaries_and_javascript_terminal_invariants()
+    {
+        const string source = """
+            const $schema: string = "copeland://tests/runtime-array-carriers";
+            record Root { values: number[]; }
+            function make(values: number[]): Root { return { values: values }; }
+            function encodeValues(values: number[]): string ! TsonEncodeError { return tsonEncode(make(values)); }
+            function encodeValue(value: Root): string ! TsonEncodeError { return tsonEncode(value); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation javaScript = JavaScriptBackend.Emit(compilation.MirCompilation.Program!);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        foreach (int length in new[] { 99_999, 100_000, 100_001 })
+        {
+            object result = Invoke(generated, "encodeValues", new object[] { new double[length] });
+            Assert.Equal("OutputLimitExceeded", ResultErrorName(result));
+        }
+
+        string script = javaScript.SourceText + """
+            const outcomes = [99999, 100000, 100001].map(length => encodeValues(new Array(length).fill(0)).$payload[0].$tag);
+            let holes = "accepted";
+            const sparse = [];
+            sparse.length = 1;
+            try { encodeValue(make(sparse)); } catch (error) { holes = error.message; }
+            let counterfeit = "accepted";
+            try { encodeValue(make({ length: 1, 0: 0 })); } catch (error) { counterfeit = error.message; }
+            let reads = 0;
+            const observed = [0];
+            Object.defineProperty(observed, 0, { get() { reads += 1; return 0; } });
+            const observedResult = encodeValue(make(observed));
+            console.log(outcomes.join(","));
+            console.log(holes);
+            console.log(counterfeit);
+            console.log(observedResult.$tag + ":" + reads);
+            """;
+        ProcessResult node = await RunNodeAsync(script);
+        Assert.Equal(
+            "OutputLimitExceeded,OutputLimitExceeded,OutputLimitExceeded\n" +
+            "Copeland JavaScript backend invariant failure.\n" +
+            "Copeland JavaScript backend invariant failure.\n" +
+            "ok:1\n",
+            node.StdOut);
+        Assert.Equal(string.Empty, node.StdErr);
     }
 
     [Fact]
