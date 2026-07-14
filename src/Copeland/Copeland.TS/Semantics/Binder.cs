@@ -62,8 +62,8 @@ public static class Binder
             PredeclareEnums(_tree.Root);
             PredeclareFunctions(_tree.Root);
             BindRecordBodies(_tree.Root);
-            BindTableBodies(_tree.Root);
             BindEnumBodies(_tree.Root);
+            BindTableBodies(_tree.Root);
             ValidateRecordCycles();
             foreach (var m in _tree.Root.Members)
             {
@@ -131,9 +131,13 @@ public static class Binder
                     }
                     var boundCells = columnSyntax.Cells.Elements.Select(cell => BindExpression(cell, explicitType)).ToArray();
                     var elementType = explicitType ?? boundCells.FirstOrDefault()?.Type ?? PrimitiveTypeSymbol.Error;
-                    if (!IsEligibleTableCellType(elementType, []))
+                    if (!IsEligibleTableCellType(elementType, [], out bool isCyclic))
                     {
-                        Report("COPE-TABLE-0009", "Table column element types must be deeply immutable.", columnSyntax.Identifier);
+                        string diagnosticId = isCyclic ? "COPE-TABLE-0010" : "COPE-TABLE-0009";
+                        string message = isCyclic
+                            ? "Table column element types cannot be recursive or cyclic."
+                            : "Table column element types must be deeply immutable.";
+                        Report(diagnosticId, message, columnSyntax.Identifier);
                     }
                     var cells = new List<BoundTableConstant>();
                     foreach (var cell in boundCells)
@@ -192,21 +196,42 @@ public static class Binder
             return new BoundTableRecordConstant(record.RecordType, fields);
         }
 
-        private static bool IsEligibleTableCellType(TypeSymbol type, HashSet<TypeSymbol> visiting)
+        private static bool IsEligibleTableCellType(TypeSymbol type, HashSet<TypeSymbol> visiting, out bool isCyclic)
         {
-            if (!visiting.Add(type)) return false;
+            if (!visiting.Add(type))
+            {
+                isCyclic = true;
+                return false;
+            }
             bool eligible = type switch
             {
                 PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Number
                     || primitive == PrimitiveTypeSymbol.String
                     || primitive == PrimitiveTypeSymbol.Boolean => true,
-                EnumTypeSymbol @enum => @enum.Cases.All(@case => @case.PayloadFields.All(field => IsEligibleTableCellType(field.Type, visiting))),
-                RecordTypeSymbol record => record.Fields.All(field => IsEligibleTableCellType(field.Type, visiting)),
-                ResultTypeSymbol result => IsEligibleTableCellType(result.SuccessType, visiting) && IsEligibleTableCellType(result.ErrorType, visiting),
+                EnumTypeSymbol @enum => @enum.Cases.All(@case => @case.PayloadFields.All(field => IsEligibleTableCellType(field.Type, visiting, out _))),
+                RecordTypeSymbol record => record.Fields.All(field => IsEligibleTableCellType(field.Type, visiting, out _)),
+                ResultTypeSymbol result => IsEligibleTableCellType(result.SuccessType, visiting, out _)
+                    && IsEligibleTableCellType(result.ErrorType, visiting, out _),
+                _ => false,
+            };
+            isCyclic = !eligible && ContainsCyclicTableCellType(type, []);
+            visiting.Remove(type);
+            return eligible;
+        }
+
+        private static bool ContainsCyclicTableCellType(TypeSymbol type, HashSet<TypeSymbol> visiting)
+        {
+            if (!visiting.Add(type)) return true;
+            bool cyclic = type switch
+            {
+                EnumTypeSymbol @enum => @enum.Cases.Any(@case => @case.PayloadFields.Any(field => ContainsCyclicTableCellType(field.Type, visiting))),
+                RecordTypeSymbol record => record.Fields.Any(field => ContainsCyclicTableCellType(field.Type, visiting)),
+                ResultTypeSymbol result => ContainsCyclicTableCellType(result.SuccessType, visiting)
+                    || ContainsCyclicTableCellType(result.ErrorType, visiting),
                 _ => false,
             };
             visiting.Remove(type);
-            return eligible;
+            return cyclic;
         }
 
         private void PredeclareRecords(CompilationUnitSyntax root)
@@ -1277,6 +1302,8 @@ public static class Binder
                 return enumType;
             if (_recordTypes.TryGetValue(i.Identifier.Text, out var recordType))
                 return recordType;
+            if (_tableTypes.TryGetValue(i.Identifier.Text, out var tableType))
+                return tableType;
             Report("COPE-BIND-0004", $"Unknown type '{i.Identifier.Text}'.", i.Identifier);
             return PrimitiveTypeSymbol.Error;
         }

@@ -5,6 +5,7 @@ using Copeland.TS.Lowering;
 using Copeland.TS.Mir;
 using Copeland.TS.Syntax;
 using Copeland.TS.Backend.CSharp.Tests.Runtime;
+using Copeland.TS.TestSupport;
 using Xunit;
 
 namespace Copeland.TS.Backend.CSharp.Tests;
@@ -20,6 +21,36 @@ public sealed class CSharpBackendTests
 
         Assert.Empty(compilation.SourceText);
         Assert.Collection(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-CS-TABLE-0001", diagnostic.Id));
+    }
+
+    [Fact]
+    public void Malformed_table_mir_is_rejected_by_shared_validation_before_backend_table_rejection()
+    {
+        MirProgram program = CreateMalformedTableProgram();
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.SourceText);
+        Assert.NotEmpty(compilation.Diagnostics);
+        Assert.All(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-CS-0002", diagnostic.Id));
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains("not a supported closed constant", StringComparison.Ordinal));
+        Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CS-TABLE-0001");
+    }
+
+    [Theory]
+    [MemberData(nameof(TableMirValidationCases.Cases), MemberType = typeof(TableMirValidationCases))]
+    public void Every_malformed_table_constant_is_rejected_before_csharp_table_backend_dispatch(
+        string _,
+        MirProgram program,
+        string expectedMessage)
+    {
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Empty(compilation.SourceText);
+        Assert.NotEmpty(compilation.Diagnostics);
+        Assert.All(compilation.Diagnostics, diagnostic => Assert.Equal("COPE-CS-0002", diagnostic.Id));
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains(expectedMessage, StringComparison.Ordinal));
+        Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CS-TABLE-0001");
     }
 
     [Fact]
@@ -364,6 +395,29 @@ public sealed class CSharpBackendTests
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Message.Contains(
             "Function-return propagation requires a Result function return type.",
             StringComparison.Ordinal));
+    }
+
+    private static MirProgram CreateMalformedTableProgram()
+    {
+        var number = new MirNamedType("number");
+        var table = new MirTableDefinition(
+            new MirTableId("t1"),
+            "Values",
+            "t1.row",
+            [new MirTableColumnDefinition(
+                new MirTableColumnId("t1.c0"),
+                "value",
+                number,
+                [new MirTableLiteralConstant("wrong", number)])],
+            1);
+        var boundsError = new MirEnum("TableBoundsError", [
+            new MirEnumCase("InvalidIndex", [new MirEnumPayloadField("index", number)]),
+            new MirEnumCase("OutOfBounds", [
+                new MirEnumPayloadField("index", number),
+                new MirEnumPayloadField("rowCount", number),
+            ]),
+        ]);
+        return new MirProgram([boundsError], [], [table], []);
     }
 
     private static string Emit(string source) => CSharpBackend.Emit(Lower(source)).SourceText;

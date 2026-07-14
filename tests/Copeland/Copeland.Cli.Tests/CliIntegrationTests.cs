@@ -1,5 +1,6 @@
 using Xunit;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Copeland.Cli.Tests;
@@ -196,6 +197,34 @@ function one(): number {
         Assert.Equal(1, result.ExitCode);
         Assert.Contains("COPE-JS-0001", result.StdErr);
         Assert.False(File.Exists(outputPath));
+    }
+
+    [Theory]
+    [InlineData("csharp", "table.g.cs", "COPE-CS-TABLE-0001")]
+    [InlineData("javascript", "table.g.js", "COPE-JS-TABLE-0001")]
+    public async Task Table_backend_rejection_preserves_a_preexisting_output(
+        string emitTarget,
+        string outputName,
+        string diagnosticId)
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("table.ts", "record table Values { value: [1]; }");
+        string mirPath = Path.Combine(temp.Path, "table.cope");
+        string outputPath = temp.WriteFile(outputName, "sentinel-table-artifact");
+        byte[] sentinel = await File.ReadAllBytesAsync(outputPath);
+        byte[] sentinelHash = SHA256.HashData(sentinel);
+
+        CliResult mir = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "mir", "--out", mirPath);
+        CliResult rejected = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emitTarget, "--out", outputPath);
+
+        Assert.Equal(0, mir.ExitCode);
+        Assert.True(File.Exists(mirPath));
+        Assert.Equal(1, rejected.ExitCode);
+        Assert.Contains(diagnosticId, rejected.StdErr, StringComparison.Ordinal);
+        Assert.DoesNotContain("wrote", rejected.StdOut, StringComparison.Ordinal);
+        byte[] retained = await File.ReadAllBytesAsync(outputPath);
+        Assert.Equal(sentinelHash, SHA256.HashData(retained));
+        Assert.Equal(sentinel, retained);
     }
 
     [Fact]

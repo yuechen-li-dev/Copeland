@@ -44,7 +44,7 @@ The core access feature contains no runtime builder, query system, mutation mode
 
 | Area | Finding | Classification | Consequence for tables |
 | --- | --- | --- | --- |
-| tokens/parser | `record`, brackets, colon, equals, dot, and literals exist. `table` is not a keyword. Postfix parsing supports calls, member access, `?`, `!`, and `with`, but not bracket indexing. | implemented reusable mechanism plus unresolved dependency | M0b needs one table keyword/declaration grammar and one postfix index form; no table syntax exists now. |
+| tokens/parser | `record`, brackets, colon, equals, dot, and literals exist. | implemented by M0b | M0b reserves `table`, adds one table-declaration grammar, and adds postfix index syntax. |
 | declarations | Top-level functions, enums, records, and global statements parse. Records and enums are predeclared before bodies. Nested records are deliberately rejected. | implemented reusable mechanism | Tables should be top-level and predeclared with stable IDs; nested tables are rejected initially. |
 | namespaces | One global symbol scope rejects cross-kind duplicate names. Separate dictionaries resolve enum and record type annotations, while readonly value-like symbols enable `Enum.Case`. | implemented mechanism with a conflated declaration namespace | A table name participates in the existing top-level collision rule. `Table.Row` is resolved only in type context; expression members resolve columns. This does not authorize general namespace separation. |
 | qualified names | Expression `Enum.Case` and record value fields resolve specially. Type grammar accepts only identifiers, arrays, parentheses, and Result; it has no dotted type names, namespaces, imports, or general static members. | implemented narrow value mechanism; unresolved qualified-type dependency | M0b adds only `TableName.Row` in type grammar. It must not add arbitrary nested/static types. |
@@ -58,7 +58,7 @@ The core access feature contains no runtime builder, query system, mutation mode
 | payload enums | Nominal declarations, qualified cases, payload construction, exhaustive `match`, MIR, and both backends exist. | implemented reusable mechanism | Deep constants and row-containing payloads can use existing typed composition after table MIR exists. |
 | Result | Structural `T ! E`, `ok`/`err`, match, `?`, `!`, and typed `try`/`except` exist through both backends. | current language law and reusable failure mechanism | Bounds access returns an ordinary Result and composes without a new failure channel. |
 | top-level values | Global variable statements bind into `BoundProgram.GlobalStatements`, but `MirLowerer.LowerProgram` omits them. MIR and backends contain functions and type definitions only. | proof-era/incomplete mechanism; incompatible assumption | There is no usable global/module initialization model to reuse. Table data must be canonical static definitions, not arbitrary top-level execution. |
-| constants | No constant-expression classifier, evaluator, named constant graph, folding phase, or cycle checker exists. Local `const` means non-reassignable binding, not compile-time constant. | unresolved dependency | M0b needs a table-local closed constant validator and MIR constant tree, not a general evaluator. |
+| constants | Local `const` means non-reassignable binding, not compile-time constant. | implemented table-local boundary | M0b has a closed table-local constant validator and parallel bound/MIR trees, not a general evaluator. |
 | modules | Imports, exports, namespaces, module initialization, and cross-file name resolution remain unresolved. The CLI compiles one source file to MIR, C#, or JavaScript. | unresolved dependency | Initial table references are single-compilation-unit only; cross-module initialization is not designed here. |
 | MIR | Cope MIR owns Copeland TS enums, records, functions, arrays, Results, and control flow. Stable record IDs and shared validation are established. | implemented reusable semantic boundary | Dedicated table definitions/types/access nodes belong in `Copeland.TS.Mir`; backend containers do not. |
 | C# backend | Arrays are emitted as mutable CLR arrays; records are sealed get-only classes; Result/enum helpers and MIR validation are established. | implemented proof backend with reusable nominal enforcement | CLR arrays may be private storage only. No array or mutable container may escape as a column. |
@@ -87,7 +87,7 @@ The absence of Oct artifacts is itself a bounded audit result: no Oct semantics 
 
 ### Declaration grammar
 
-M0b should reserve `table` and add exactly these column forms:
+M0b reserves `table` and adds exactly these column forms:
 
 ```text
 table-declaration := "record" "table" Identifier "{" table-column+ "}"
@@ -141,7 +141,7 @@ The first authored column establishes the authored singleton's row count. Every 
 
 ## Authored constant policy
 
-Table bodies are canonical authored data, not initialization code. M0b should validate a closed table-local constant grammar and lower accepted cells directly into typed MIR constants. It must not execute user functions or introduce a general constant evaluator.
+Table bodies are canonical authored data, not initialization code. M0b validates a closed table-local constant grammar and lowers accepted cells directly into typed MIR constants. It does not execute user functions or introduce a general constant evaluator.
 
 Accepted constant cells are recursive combinations of:
 
@@ -305,7 +305,7 @@ Alternate formats, schema envelopes, row-oriented JSON, arbitrary JSON-to-table 
 
 ## Bound and Cope MIR architecture
 
-M0b should add dedicated source, symbol, bound, and MIR concepts. It should reuse generic nominal-product validation helpers only where ownership remains clear.
+M0b adds dedicated source, symbol, bound, and MIR concepts. It reuses generic nominal-product validation helpers only where ownership remains clear.
 
 ```text
 MirTableDefinition
@@ -396,7 +396,7 @@ Both backends must agree on table/row/column nominal checks, row and column orde
 
 ## Diagnostics plan
 
-M0b should reserve this bounded family. Parser recovery may continue to use parser diagnostics, but semantically recognizable alternative/conflicting table forms must receive the table family rather than succeed accidentally.
+M0b reserves this bounded family. Parser recovery may continue to use parser diagnostics, but semantically recognizable alternative/conflicting table forms receive the table family rather than succeeding accidentally.
 
 | Code | Contract |
 | --- | --- |

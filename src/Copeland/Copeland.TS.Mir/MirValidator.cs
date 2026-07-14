@@ -106,7 +106,7 @@ public static class MirValidator
 
         switch (constant)
         {
-            case MirTableLiteralConstant literal when literal.Type.Identifier is "number" or "string" or "boolean":
+            case MirTableLiteralConstant literal when IsValidTableLiteral(literal):
                 return;
             case MirTableRecordConstant record:
                 MirRecordDefinition? definition = program.Records.FirstOrDefault(candidate => candidate.Id == record.RecordTypeId);
@@ -117,11 +117,20 @@ public static class MirValidator
                 }
                 if (record.Fields.Count != definition.Fields.Count)
                     diagnostics.Add(new MirValidationDiagnostic($"Table record constant in '{context}' does not provide every record field."));
+                var seenFieldIds = new HashSet<MirRecordFieldId>();
                 foreach (var field in record.Fields)
                 {
+                    if (!seenFieldIds.Add(field.FieldId))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Table record constant in '{context}' has a duplicate field identity '{field.FieldId}'."));
+                    }
                     MirRecordFieldDefinition? fieldDefinition = definition.Fields.FirstOrDefault(candidate => candidate.Id == field.FieldId);
                     if (fieldDefinition is null) diagnostics.Add(new MirValidationDiagnostic($"Table record constant in '{context}' has an unknown field identity '{field.FieldId}'."));
                     else ValidateTableConstant(field.Value, fieldDefinition.Type, program, diagnostics, context);
+                }
+                if (definition.Fields.Any(field => !seenFieldIds.Contains(field.Id)))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table record constant in '{context}' does not provide every record field."));
                 }
                 return;
             case MirTableEnumConstant value:
@@ -138,6 +147,11 @@ public static class MirValidator
                     ValidateTableConstant(value.Payloads[index], @case.PayloadFields[index].Type, program, diagnostics, context);
                 return;
             case MirTableResultConstant result:
+                if (result.Type.SuccessType.Identifier == "void")
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table Result constant in '{context}' cannot use a void success payload."));
+                    return;
+                }
                 ValidateTableConstant(result.Payload, result.IsOk ? result.Type.SuccessType : result.Type.ErrorType, program, diagnostics, context);
                 return;
             default:
@@ -145,6 +159,15 @@ public static class MirValidator
                 return;
         }
     }
+
+    private static bool IsValidTableLiteral(MirTableLiteralConstant literal)
+        => literal.Type.Identifier switch
+        {
+            "number" => literal.Value is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal,
+            "string" => literal.Value is string,
+            "boolean" => literal.Value is bool,
+            _ => false,
+        };
 
     private static void ValidateTableType(MirType type, IReadOnlyDictionary<MirTableId, MirTableDefinition> tables, IReadOnlySet<string> rowTypeIds, List<MirValidationDiagnostic> diagnostics, string context)
     {
