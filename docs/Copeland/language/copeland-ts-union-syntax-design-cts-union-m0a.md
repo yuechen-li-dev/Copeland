@@ -1,6 +1,6 @@
 # Copeland TS TypeScript-shaped union syntax design (CTS-UNION-M0a)
 
-**Status:** documentation and repository-audit milestone. This is a proposed independent compatibility-surface ladder, not an implemented language feature. [CTS-TYPE-M3](../architecture/copeland-ts-foundational-type-system-closeout-cts-type-m3.md) remains closed and unchanged.
+**Status:** design and repository-audit milestone. Its bounded declaration-only recommendation is implemented by [CTS-UNION-M0b](../architecture/copeland-ts-nominal-union-sugar-cts-union-m0b.md); M0b closeout evidence remains incomplete. [CTS-TYPE-M3](../architecture/copeland-ts-foundational-type-system-closeout-cts-type-m3.md) remains closed and unchanged.
 
 ## Product decision
 

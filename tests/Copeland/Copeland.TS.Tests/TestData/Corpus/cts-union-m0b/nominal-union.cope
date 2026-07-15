@@ -1,0 +1,21 @@
+module
+
+enum Shape
+  case Circle(value: Circle)
+  case Rectangle(value: Rectangle)
+
+record Circle [r1]
+  field radius [r1.f0]: number
+
+record Rectangle [r2]
+  field width [r2.f0]: number
+  field height [r2.f1]: number
+
+func main() -> number
+locals:
+  const circle: Circle
+  const shape: Shape
+entry:
+  store circle, record-new [r1] { [r1.f0]: 4 }
+  store shape, enum Shape.Circle(circle)
+  return match shape : number { Circle(value: Circle) => (record-get [r1] value.[r1.f0] * record-get [r1] value.[r1.f0]) | Rectangle(value: Rectangle) => (record-get [r2] value.[r2.f0] * record-get [r2] value.[r2.f1]) }

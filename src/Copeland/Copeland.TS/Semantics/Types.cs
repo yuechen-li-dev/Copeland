@@ -40,12 +40,15 @@ public sealed class ErrorNominalTypeSymbol(string name) : TypeSymbol
     public override string Name { get; } = name;
 }
 
+public sealed record NominalUnionProvenance(string SourceName, IReadOnlyList<string> Alternatives);
+
 public sealed class EnumTypeSymbol(string name, string? stableIdentity = null) : TypeSymbol
 {
     private readonly List<EnumCaseSymbol> _cases = [];
     public override string Name { get; } = name;
     public IReadOnlyList<EnumCaseSymbol> Cases => _cases;
     public string? StableIdentity { get; } = stableIdentity;
+    public NominalUnionProvenance? UnionProvenance { get; internal set; }
 
     public void AddCase(EnumCaseSymbol @case) => _cases.Add(@case);
 }

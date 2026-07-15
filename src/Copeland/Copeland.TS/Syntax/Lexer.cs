@@ -117,8 +117,7 @@ public sealed class Lexer
                     {
                         return DoubleCharToken(SyntaxKind.PipePipeToken);
                     }
-
-                    break;
+                    return SingleCharToken(SyntaxKind.PipeToken);
                 case '=':
                     if (Peek(1) == '=' && Peek(2) == '=')
                     {

@@ -87,6 +87,7 @@ public static class SyntaxFacts
             SyntaxKind.EqualsEqualsEqualsToken => "===",
             SyntaxKind.BangEqualsEqualsToken => "!==",
             SyntaxKind.AmpersandAmpersandToken => "&&",
+            SyntaxKind.PipeToken => "|",
             SyntaxKind.PipePipeToken => "||",
             SyntaxKind.ArrowToken => "=>",
             SyntaxKind.ConstKeyword => "const",

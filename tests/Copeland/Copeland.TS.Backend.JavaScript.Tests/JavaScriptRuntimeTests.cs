@@ -523,6 +523,35 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_Executes_Nominal_Union_Contextual_Construction_And_Match_Repeatedly()
+    {
+        const string source = """
+            record Circle { radius: number; }
+            record Rectangle { width: number; height: number; }
+            type Shape = Circle | Rectangle;
+            function area(): number {
+              const circle: Circle = { radius: 4 };
+              const shape: Shape = circle;
+              return match shape {
+                Circle(value) => value.radius * value.radius,
+                Rectangle(value) => value.width * value.height,
+              };
+            }
+            """;
+
+        JavaScriptCompilation emitted = Emit(source);
+        Assert.True(emitted.Success);
+
+        string script = emitted.SourceText + "console.log(area());\n";
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal("16\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public async Task Node_Executes_Result_Construction_Matching_Forwarding_And_Propagation_Repeatedly()
     {
         const string source = """

@@ -9,6 +9,71 @@ namespace Copeland.Cli.Tests;
 public sealed class CliIntegrationTests
 {
     [Fact]
+    public async Task Nominal_union_cli_emission_is_repeatable_profile_independent_and_preserves_stale_artifacts()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("union.ts", """
+            record Circle { radius: number; }
+            record Rectangle { width: number; height: number; }
+            type Shape = Circle | Rectangle;
+            function main(): number {
+              const circle: Circle = { radius: 4 };
+              const shape: Shape = circle;
+              return match shape {
+                Circle(value) => value.radius * value.radius,
+                Rectangle(value) => value.width * value.height,
+              };
+            }
+            """);
+
+        foreach ((string emit, string fileName, string[] extraArguments) in new[]
+        {
+            ("mir", "union.cope", Array.Empty<string>()),
+            ("csharp", "union.g.cs", Array.Empty<string>()),
+            ("javascript", "union.g.js", Array.Empty<string>()),
+            ("javascript", "union.sym.js", new[] { "--javascript-profile", "symbolic" }),
+        })
+        {
+            string outputPath = Path.Combine(temp.Path, fileName);
+            string[] arguments = ["compile", inputPath, "--emit", emit, .. extraArguments, "--out", outputPath];
+            CliResult first = await RunCliAsync(temp.Path, arguments);
+            byte[] firstBytes = await File.ReadAllBytesAsync(outputPath);
+            CliResult second = await RunCliAsync(temp.Path, arguments);
+
+            Assert.Equal(0, first.ExitCode);
+            Assert.Equal(0, second.ExitCode);
+            Assert.Equal(firstBytes, await File.ReadAllBytesAsync(outputPath));
+            Assert.DoesNotContain(temp.Path, Encoding.UTF8.GetString(firstBytes), StringComparison.OrdinalIgnoreCase);
+        }
+
+        string diagnosticPath = Path.Combine(temp.Path, "union.g.js");
+        string symbolicPath = Path.Combine(temp.Path, "union.sym.js");
+        await File.AppendAllTextAsync(diagnosticPath, "console.log(main());\n", new UTF8Encoding(false));
+        CliResult execution = await RunExecutableAsync("node", temp.Path, diagnosticPath);
+        CliResult symbolicSyntax = await RunExecutableAsync("node", temp.Path, "--check", symbolicPath);
+        await File.AppendAllTextAsync(symbolicPath, "console.log(main());\n", new UTF8Encoding(false));
+        CliResult symbolicExecution = await RunExecutableAsync("node", temp.Path, symbolicPath);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("16\n", execution.StdOut);
+        Assert.Equal(0, symbolicSyntax.ExitCode);
+        Assert.Equal(0, symbolicExecution.ExitCode);
+        Assert.Equal("16\n", symbolicExecution.StdOut);
+
+        byte[] staleBytes = await File.ReadAllBytesAsync(diagnosticPath);
+        string invalidPath = temp.WriteFile("invalid.ts", "type Shape = Circle | Circle;");
+        CliResult staleFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "javascript", "--out", diagnosticPath);
+        string freshPath = Path.Combine(temp.Path, "fresh.cope");
+        CliResult freshFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "mir", "--out", freshPath);
+
+        Assert.Equal(1, staleFailure.ExitCode);
+        Assert.Contains("COPE-UNION-0004", staleFailure.StdErr, StringComparison.Ordinal);
+        Assert.Equal(staleBytes, await File.ReadAllBytesAsync(diagnosticPath));
+        Assert.Equal(1, freshFailure.ExitCode);
+        Assert.False(File.Exists(freshPath));
+        Assert.Equal(staleFailure.StdErr, freshFailure.StdErr);
+    }
+
+    [Fact]
     public async Task Transparent_alias_cli_emission_is_erased_repeatable_and_preserves_artifact_policy_on_failure()
     {
         using var temp = new TempDir();

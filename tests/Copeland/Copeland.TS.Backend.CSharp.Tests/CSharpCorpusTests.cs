@@ -26,7 +26,7 @@ public sealed class CSharpCorpusTests
     public static IEnumerable<object[]> GetCases()
     {
         var corpusRoot = CorpusFile.GetCorpusRoot();
-        foreach (var corpus in new[] { "m0-csharp-valid", "m1-enum-match-csharp-valid", "m1-record-csharp-valid", "m1-table-csharp-valid" })
+        foreach (var corpus in new[] { "m0-csharp-valid", "m1-enum-match-csharp-valid", "m1-record-csharp-valid", "m1-table-csharp-valid", "cts-union-m0b" })
         {
             var dir = Path.Combine(corpusRoot, corpus);
             foreach (var sourcePath in Directory.EnumerateFiles(dir, "*.ts", SearchOption.TopDirectoryOnly).OrderBy(p => p, StringComparer.Ordinal))

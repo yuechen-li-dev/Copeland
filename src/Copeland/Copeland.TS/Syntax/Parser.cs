@@ -63,7 +63,7 @@ public sealed class Parser
         if (Current.Kind == SyntaxKind.IdentifierToken
             && Current.Text == "type")
         {
-            return ParseTypeAliasDeclaration();
+            return ParseTypeDeclaration();
         }
 
         if (Current.Kind == SyntaxKind.IdentifierToken
@@ -97,7 +97,7 @@ public sealed class Parser
         return new GlobalStatementMemberSyntax(ParseStatement());
     }
 
-    private TypeAliasDeclarationSyntax ParseTypeAliasDeclaration()
+    private MemberSyntax ParseTypeDeclaration()
     {
         var typeKeyword = NextToken();
         SyntaxToken identifier;
@@ -138,6 +138,11 @@ public sealed class Parser
         {
             ReportAliasSyntax("Expected '=' in type alias declaration.", Current);
             equalsToken = MissingToken(SyntaxKind.EqualsToken, Current.Position);
+        }
+
+        if (HasPipeBeforeTypeDeclarationTerminator())
+        {
+            return ParseNominalUnionDeclaration(typeKeyword, identifier, equalsToken);
         }
 
         TypeSyntax targetType;
@@ -183,6 +188,84 @@ public sealed class Parser
             semicolonToken);
     }
 
+    private NominalUnionDeclarationSyntax ParseNominalUnionDeclaration(
+        SyntaxToken typeKeyword,
+        SyntaxToken identifier,
+        SyntaxToken equalsToken)
+    {
+        SyntaxToken? leadingPipe = null;
+        if (Current.Kind == SyntaxKind.PipeToken)
+        {
+            leadingPipe = NextToken();
+        }
+
+        var alternatives = new List<SyntaxToken>();
+        var pipes = new List<SyntaxToken>();
+        bool expectingAlternative = true;
+
+        while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.EndOfFileToken)
+        {
+            if (expectingAlternative)
+            {
+                if (Current.Kind != SyntaxKind.IdentifierToken)
+                {
+                    ReportUnionSyntax("Expected a nominal record alternative after '|'.", Current);
+                    NextToken();
+                    continue;
+                }
+
+                alternatives.Add(NextToken());
+                expectingAlternative = false;
+                continue;
+            }
+
+            if (Current.Kind == SyntaxKind.PipeToken)
+            {
+                pipes.Add(NextToken());
+                expectingAlternative = true;
+                continue;
+            }
+
+            if (Current.Kind == SyntaxKind.PipePipeToken)
+            {
+                ReportUnionSyntax("'||' is a logical expression operator and cannot separate nominal union alternatives.", Current);
+                NextToken();
+                expectingAlternative = true;
+                continue;
+            }
+
+            ReportUnionSyntax("Nominal union alternatives must be separated by '|'.", Current);
+            NextToken();
+        }
+
+        if (expectingAlternative)
+        {
+            ReportUnionSyntax("Expected a nominal record alternative after '|'.", Current);
+        }
+
+        if (alternatives.Count < 2)
+        {
+            ReportUnionSyntax("A nominal union declaration requires at least two alternatives.", identifier);
+        }
+
+        SyntaxToken semicolon = Current.Kind == SyntaxKind.SemicolonToken
+            ? NextToken()
+            : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
+        if (semicolon.Text.Length == 0)
+        {
+            ReportUnionSyntax("Nominal union declarations require a terminating semicolon.", Current);
+        }
+
+        return new NominalUnionDeclarationSyntax(
+            typeKeyword,
+            identifier,
+            equalsToken,
+            leadingPipe,
+            alternatives,
+            pipes,
+            semicolon);
+    }
+
     private void ReportAliasSyntax(
         string message,
         SyntaxToken token,
@@ -193,6 +276,41 @@ public sealed class Parser
             message,
             token.Position,
             Math.Max(1, token.Text.Length));
+    }
+
+    private void ReportUnionSyntax(string message, SyntaxToken token)
+    {
+        _diagnostics.Report(
+            "COPE-UNION-0001",
+            message,
+            token.Position,
+            Math.Max(1, token.Text.Length));
+    }
+
+    private void ReportIllegalPipeUsage(SyntaxToken token)
+    {
+        _diagnostics.Report(
+            "COPE-UNION-0012",
+            "'|' is permitted only between alternatives in a compilation-unit nominal union declaration.",
+            token.Position,
+            Math.Max(1, token.Text.Length));
+    }
+
+    private bool HasPipeBeforeTypeDeclarationTerminator()
+    {
+        for (int offset = 0; ; offset++)
+        {
+            SyntaxKind kind = Peek(offset).Kind;
+            if (kind is SyntaxKind.PipeToken or SyntaxKind.PipePipeToken)
+            {
+                return true;
+            }
+
+            if (kind is SyntaxKind.SemicolonToken or SyntaxKind.EndOfFileToken)
+            {
+                return false;
+            }
+        }
     }
 
     private FunctionDeclarationSyntax ParseFunctionDeclaration()
@@ -443,12 +561,24 @@ public sealed class Parser
         var type = ParsePostfixTypeSyntax();
         if (Current.Kind != SyntaxKind.BangToken)
         {
+            ConsumeIllegalInlinePipeTypeSyntax();
             return type;
         }
 
         var bangToken = Match(SyntaxKind.BangToken);
         var errorType = ParseTypeSyntax();
+        ConsumeIllegalInlinePipeTypeSyntax();
         return new ResultTypeSyntax(type, bangToken, errorType);
+    }
+
+    private void ConsumeIllegalInlinePipeTypeSyntax()
+    {
+        while (Current.Kind == SyntaxKind.PipeToken)
+        {
+            ReportIllegalPipeUsage(Current);
+            NextToken();
+            _ = ParsePostfixTypeSyntax();
+        }
     }
 
     private RecordDeclarationSyntax ParseRecordDeclaration(SyntaxToken? constKeyword)
@@ -739,6 +869,13 @@ public sealed class Parser
     private ExpressionSyntax ParseAssignmentExpression()
     {
         var left = ParseBinaryExpression();
+
+        while (Current.Kind == SyntaxKind.PipeToken)
+        {
+            ReportIllegalPipeUsage(Current);
+            NextToken();
+            _ = ParseBinaryExpression();
+        }
 
         if (Current.Kind == SyntaxKind.EqualsToken)
         {

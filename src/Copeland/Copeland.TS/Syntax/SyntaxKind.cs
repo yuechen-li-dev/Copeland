@@ -48,6 +48,7 @@ public enum SyntaxKind
     BangEqualsEqualsToken,
     AmpersandAmpersandToken,
     AmpersandToken,
+    PipeToken,
     PipePipeToken,
     ArrowToken,
 
@@ -83,6 +84,7 @@ public enum SyntaxKind
     CompilationUnit,
     GlobalStatementMember,
     TypeAliasDeclaration,
+    NominalUnionDeclaration,
     InterfaceDeclaration,
     InterfaceField,
     FunctionDeclaration,

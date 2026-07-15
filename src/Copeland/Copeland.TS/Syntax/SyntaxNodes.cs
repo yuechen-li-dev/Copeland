@@ -102,6 +102,44 @@ public sealed record TypeAliasDeclarationSyntax(
     }
 }
 
+/// <summary>
+/// A compilation-unit nominal union declaration. Pipe spelling is deliberately
+/// not admitted into general TypeSyntax.
+/// </summary>
+public sealed record NominalUnionDeclarationSyntax(
+    SyntaxToken TypeKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken EqualsToken,
+    SyntaxToken? LeadingPipeToken,
+    IReadOnlyList<SyntaxToken> Alternatives,
+    IReadOnlyList<SyntaxToken> PipeTokens,
+    SyntaxToken SemicolonToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.NominalUnionDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return TypeKeyword;
+        yield return Identifier;
+        yield return EqualsToken;
+        if (LeadingPipeToken is not null)
+        {
+            yield return LeadingPipeToken;
+        }
+
+        for (var index = 0; index < Alternatives.Count; index++)
+        {
+            yield return Alternatives[index];
+            if (index < PipeTokens.Count)
+            {
+                yield return PipeTokens[index];
+            }
+        }
+
+        yield return SemicolonToken;
+    }
+}
+
 public sealed record InterfaceFieldSyntax(
     SyntaxToken Identifier,
     SyntaxToken ColonToken,

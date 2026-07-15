@@ -84,6 +84,7 @@ public static class Binder
         private readonly Dictionary<string, TableTypeSymbol> _tableTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TypeAliasSymbol> _aliases = new(StringComparer.Ordinal);
         private readonly Dictionary<string, InterfaceSymbol> _interfaces = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, NominalUnionDeclarationSyntax> _unionDeclarations = new(StringComparer.Ordinal);
         private readonly Dictionary<FunctionSymbol, BoundFunctionDeclaration> _genericBodies = [];
         private readonly Dictionary<string, BoundFunctionDeclaration> _closedInstantiations = new(StringComparer.Ordinal);
         private readonly Dictionary<FunctionSymbol, int> _closedInstantiationCounts = [];
@@ -125,11 +126,13 @@ public static class Binder
             PredeclareRecords(_tree.Root);
             PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
+            PredeclareNominalUnions(_tree.Root);
             ResolveAliases();
             BindInterfaceBodies(_tree.Root);
             PredeclareFunctions(_tree.Root);
             BindRecordBodies(_tree.Root);
             BindEnumBodies(_tree.Root);
+            BindNominalUnionBodies(_tree.Root);
             BindTableBodies(_tree.Root);
             ValidateRecordCycles();
             foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0))
@@ -140,6 +143,7 @@ public static class Binder
             {
                 if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0) _functions.Add(BindFunction(f));
                 else if (m is EnumDeclarationSyntax e && e.Identifier.Text != "TableBoundsError" && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
+                else if (m is NominalUnionDeclarationSyntax union && _enumTypes.TryGetValue(union.Identifier.Text, out var unionType)) _enums.Add(new BoundEnumDeclaration(unionType));
                 else if (m is RecordDeclarationSyntax r && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
                 else if (m is GlobalStatementMemberSyntax g && !IsSchemaDeclaration(g.Statement)) _globals.Add(BindStatement(g.Statement));
             }
@@ -180,6 +184,7 @@ public static class Binder
                 string? name = member switch
                 {
                     TypeAliasDeclarationSyntax alias => alias.Identifier.Text,
+                    NominalUnionDeclarationSyntax union => union.Identifier.Text,
                     RecordDeclarationSyntax record => record.Identifier.Text,
                     EnumDeclarationSyntax @enum => @enum.Identifier.Text,
                     TableDeclarationSyntax table => table.Identifier.Text,
@@ -198,7 +203,16 @@ public static class Binder
                     continue;
                 }
 
-                if (member is TypeAliasDeclarationSyntax || owner is TypeAliasDeclarationSyntax || member is InterfaceDeclarationSyntax || owner is InterfaceDeclarationSyntax)
+                if (member is NominalUnionDeclarationSyntax || owner is NominalUnionDeclarationSyntax)
+                {
+                    SyntaxToken anchor = GetTypeDeclarationName(member);
+                    Report(
+                        "COPE-UNION-0005",
+                        $"Type name '{name}' is already declared in this compilation unit.",
+                        anchor);
+                    _rejectedTypeDeclarations.Add(member);
+                }
+                else if (member is TypeAliasDeclarationSyntax || owner is TypeAliasDeclarationSyntax || member is InterfaceDeclarationSyntax || owner is InterfaceDeclarationSyntax)
                 {
                     SyntaxToken anchor = GetTypeDeclarationName(member);
                     Report(
@@ -215,6 +229,7 @@ public static class Binder
             return declaration switch
             {
                 TypeAliasDeclarationSyntax alias => alias.Identifier,
+                NominalUnionDeclarationSyntax union => union.Identifier,
                 RecordDeclarationSyntax record => record.Identifier,
                 EnumDeclarationSyntax @enum => @enum.Identifier,
                 TableDeclarationSyntax table => table.Identifier,
@@ -1398,6 +1413,115 @@ public static class Binder
             }
         }
 
+        private void PredeclareNominalUnions(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<NominalUnionDeclarationSyntax>())
+            {
+                if (_rejectedTypeDeclarations.Contains(declaration)
+                    || string.IsNullOrEmpty(declaration.Identifier.Text))
+                {
+                    continue;
+                }
+
+                string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{declaration.Identifier.Text}";
+                var unionType = new EnumTypeSymbol(declaration.Identifier.Text, identity);
+                if (!_global.TryDeclare(new VariableSymbol(unionType.Name, unionType, true))
+                    || _enumTypes.ContainsKey(unionType.Name))
+                {
+                    Report(
+                        "COPE-UNION-0005",
+                        $"Type name '{unionType.Name}' is already declared in this compilation unit.",
+                        declaration.Identifier);
+                    continue;
+                }
+
+                _enumTypes.Add(unionType.Name, unionType);
+                _unionDeclarations.Add(unionType.Name, declaration);
+            }
+        }
+
+        private void BindNominalUnionBodies(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<NominalUnionDeclarationSyntax>())
+            {
+                if (!_unionDeclarations.TryGetValue(declaration.Identifier.Text, out var authored)
+                    || !ReferenceEquals(authored, declaration)
+                    || !_enumTypes.TryGetValue(declaration.Identifier.Text, out var unionType))
+                {
+                    continue;
+                }
+
+                bool isValid = true;
+                if (declaration.Alternatives.Count < 2)
+                {
+                    Report("COPE-UNION-0002", "A nominal union declaration requires at least two alternatives.", declaration.Identifier);
+                    isValid = false;
+                }
+                if (declaration.Alternatives.Count > 8)
+                {
+                    Report("COPE-UNION-0003", "A nominal union declaration supports at most 8 alternatives.", declaration.Alternatives[8]);
+                    isValid = false;
+                }
+
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                var cases = new List<EnumCaseSymbol>();
+                foreach (var alternative in declaration.Alternatives)
+                {
+                    if (!names.Add(alternative.Text))
+                    {
+                        Report("COPE-UNION-0004", $"Duplicate union alternative '{alternative.Text}'.", alternative);
+                        isValid = false;
+                        continue;
+                    }
+
+                    if (_recordTypes.TryGetValue(alternative.Text, out var recordType))
+                    {
+                        cases.Add(new EnumCaseSymbol(
+                            alternative.Text,
+                            unionType,
+                            [new EnumPayloadFieldSymbol("value", recordType)]));
+                        continue;
+                    }
+
+                    isValid = false;
+                    if (_aliases.TryGetValue(alternative.Text, out var alias)
+                        && alias.CanonicalType is RecordTypeSymbol canonicalRecord)
+                    {
+                        Report(
+                            "COPE-UNION-0006",
+                            $"Union alternatives must name nominal record declarations directly. '{alternative.Text}' is an alias of '{canonicalRecord.Name}'; use '{canonicalRecord.Name}'.",
+                            alternative);
+                    }
+                    else if (_enumTypes.ContainsKey(alternative.Text))
+                    {
+                        Report("COPE-UNION-0007", $"Union alternative '{alternative.Text}' must name a nominal record declaration directly; enums and nominal unions are not allowed.", alternative);
+                    }
+                    else if (_interfaces.ContainsKey(alternative.Text)
+                        || _tableTypes.ContainsKey(alternative.Text))
+                    {
+                        Report("COPE-UNION-0007", $"Union alternative '{alternative.Text}' must name a nominal record declaration directly.", alternative);
+                    }
+                    else
+                    {
+                        Report("COPE-UNION-0008", $"Unknown or unsupported union alternative '{alternative.Text}'. Union alternatives must name nominal record declarations directly.", alternative);
+                    }
+                }
+
+                if (!isValid)
+                {
+                    continue;
+                }
+
+                unionType.UnionProvenance = new NominalUnionProvenance(
+                    unionType.Name,
+                    declaration.Alternatives.Select(alternative => alternative.Text).ToArray());
+                foreach (var @case in cases)
+                {
+                    unionType.AddCase(@case);
+                }
+            }
+        }
+
         private BoundFunctionDeclaration BindFunction(FunctionDeclarationSyntax s)
         {
             _global.TryLookup(s.Identifier.Text, out var sym);
@@ -1638,6 +1762,7 @@ public static class Binder
             if (expected == PrimitiveTypeSymbol.Void) Report("COPE-TYPE-0003", "Invalid return expression for void function.", r.ReturnKeyword);
             else if (expected is ResultTypeSymbol result)
             {
+                expr = InjectDirectNominalUnionCase(expr, result.SuccessType);
                 if (IsAssignable(result, expr.Type))
                 {
                     return new BoundReturnStatement(expr);
@@ -1687,7 +1812,23 @@ public static class Binder
                 _ => new BoundErrorExpression()
             };
 
-            return expression;
+            return InjectDirectNominalUnionCase(expression, contextualType);
+        }
+
+        private static BoundExpression InjectDirectNominalUnionCase(BoundExpression expression, TypeSymbol? contextualType)
+        {
+            if (contextualType is not EnumTypeSymbol { UnionProvenance: not null } unionType
+                || expression.Type is not RecordTypeSymbol recordType)
+            {
+                return expression;
+            }
+
+            EnumCaseSymbol? matchingCase = unionType.Cases.FirstOrDefault(@case =>
+                @case.PayloadFields.Count == 1
+                && ReferenceEquals(@case.PayloadFields[0].Type, recordType));
+            return matchingCase is null
+                ? expression
+                : new BoundEnumValueExpression(matchingCase, [expression]);
         }
 
 
@@ -4106,6 +4247,33 @@ public static class Binder
             SyntaxToken anchor,
             string? authoredAliasName = null)
         {
+            if (expected is EnumTypeSymbol { UnionProvenance: not null } expectedUnion
+                && actual is RecordTypeSymbol actualRecord)
+            {
+                Report(
+                    "COPE-UNION-0009",
+                    $"Record '{actualRecord.Name}' is not an alternative of nominal union '{expectedUnion.Name}'.",
+                    anchor);
+                return;
+            }
+            if (expected is RecordTypeSymbol expectedRecord
+                && actual is EnumTypeSymbol { UnionProvenance: not null } actualUnion)
+            {
+                Report(
+                    "COPE-UNION-0010",
+                    $"Nominal union '{actualUnion.Name}' cannot be assigned to alternative record '{expectedRecord.Name}'.",
+                    anchor);
+                return;
+            }
+            if (expected is EnumTypeSymbol { UnionProvenance: not null } targetUnion
+                && actual is EnumTypeSymbol { UnionProvenance: not null } sourceUnion)
+            {
+                Report(
+                    "COPE-UNION-0011",
+                    $"Nominal union '{sourceUnion.Name}' is not assignable to unrelated nominal union '{targetUnion.Name}'.",
+                    anchor);
+                return;
+            }
             if (expected is RecordTypeSymbol && actual is RecordTypeSymbol)
             {
                 Report("COPE-REC-0015", $"Nominal record type mismatch: expected '{expected.Name}', got '{actual.Name}'.", anchor);
