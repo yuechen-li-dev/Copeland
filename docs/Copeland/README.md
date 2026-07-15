@@ -23,6 +23,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [CTS-UNION-M0a Pipe Syntax and Payload-Enum Audit](../migrations/cts-union-m0a-pipe-syntax-and-payload-enum-audit.md)
 - [CTS-UNION-M0b Nominal Union Sugar](architecture/copeland-ts-nominal-union-sugar-cts-union-m0b.md)
 - [CTS-UNION-M0b Migration Record](../migrations/cts-union-m0b-pipe-syntax-to-payload-enum.md)
+- [CTS-CALL-M0a Callables and Explicit Capture Design](language/copeland-ts-callables-and-explicit-capture-design-cts-call-m0a.md)
+- [CTS-CALL-M0a Callable and Closure Audit](../migrations/cts-call-m0a-callable-and-closure-audit.md)
 - [CTS-TSON-M0a Native Typed Data Design](language/copeland-ts-tson-design-cts-tson-m0a.md)
 - [CTS-TSON-M0a Repository Audit](../migrations/cts-tson-m0a-native-typed-data-audit.md)
 - [CTS-TSON-M0b Shared Parser and Semantic Model](architecture/copeland-ts-tson-shared-parser-and-semantic-model-cts-tson-m0b.md)

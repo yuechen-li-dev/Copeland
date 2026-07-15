@@ -180,7 +180,7 @@ Future valid fixtures: two/three records, leading pipe, forward references, same
 2. **CTS-UNION-M1:** C#/JavaScript/TSON end-to-end parity only if M0b did not already prove it atomically through reused enum MIR. Do not create a milestone merely for numbering symmetry.
 3. **CTS-UNION-M2:** adversarial closeout, compatibility diagnostics, corpus, and doctrine ratification.
 
-Owners must approve: the eight-alternative bound and diagnostic truncation; whether M0b requires a distinct `UnionSymbol` versus source provenance; future enum/nested-union alternatives and explicit nested construction; a future canonical spelling; and cross-schema policy after same-unit proof. CTS-CALLABLE, CTS-TSXML, CTS-STATIC, CLR/.NET interop, CTS-JS-EMIT Hangul-radix identifiers, generic nominal declarations, and Option design remain independent.
+Owners must approve: the eight-alternative bound and diagnostic truncation; whether M0b requires a distinct `UnionSymbol` versus source provenance; future enum/nested-union alternatives and explicit nested construction; a future canonical spelling; and cross-schema policy after same-unit proof. CTS-CALL-M0a callable work, CTS-TSXML, CTS-STATIC, CLR/.NET interop, CTS-JS-EMIT Hangul-radix identifiers, generic nominal declarations, and Option design remain independent.
 
 ## Explicit exclusions
 

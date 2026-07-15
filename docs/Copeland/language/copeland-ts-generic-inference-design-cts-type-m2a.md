@@ -166,7 +166,7 @@ M2b must stabilize this boundary before claiming inferred/explicit artifact equi
 
 ## Scope, exclusions, and owner decisions
 
-M2b should implement only inferred calls in closed nongeneric bodies/contexts. Keep generic-to-generic calls and generic recursion rejected; inference does not justify solving open equations. Keep separate CTS-UNION, CTS-CALLABLE, CTS-TSXML, CTS-STATIC, CLR interop, generic nominal declarations, overloads, function values/lambdas/capture, `|`, intersections, conditional/mapped/indexed/template types, `keyof`, type-query `typeof`, `infer`, TSON/JSON, CTS-JS-EMIT, and package/version work.
+M2b should implement only inferred calls in closed nongeneric bodies/contexts. Keep generic-to-generic calls and generic recursion rejected; inference does not justify solving open equations. Keep separate CTS-UNION, CTS-CALL-M0a callable work, CTS-TSXML, CTS-STATIC, CLR interop, generic nominal declarations, overloads, function values/lambdas/capture, `|`, intersections, conditional/mapped/indexed/template types, `keyof`, type-query `typeof`, `infer`, TSON/JSON, CTS-JS-EMIT, and package/version work.
 
 Remaining owner decisions are: whether a Result constructor with both payload component types independently known can be represented without an expected Result under current syntax; the exact diagnostic IDs/text; and whether collision stabilization allocates names or reports a bounded frontend diagnostic. The recommended M2b scope is the shared inferred-call binder, iterative matcher, diagnostics, fixture/parity proof, and specialization-hash stabilization only.
 # Implementation status
