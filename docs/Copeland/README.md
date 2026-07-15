@@ -19,6 +19,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [CTS-TYPE-M2b Migration Record](../migrations/cts-type-m2b-direct-argument-inference.md)
 - [CTS-TYPE-M3 Foundational Type-System Closeout](architecture/copeland-ts-foundational-type-system-closeout-cts-type-m3.md)
 - [CTS-TYPE-M3 Migration Record](../migrations/cts-type-m3-foundational-type-system-closeout.md)
+- [CTS-UNION-M0a TypeScript-Shaped Union Syntax Design](language/copeland-ts-union-syntax-design-cts-union-m0a.md)
+- [CTS-UNION-M0a Pipe Syntax and Payload-Enum Audit](../migrations/cts-union-m0a-pipe-syntax-and-payload-enum-audit.md)
 - [CTS-TSON-M0a Native Typed Data Design](language/copeland-ts-tson-design-cts-tson-m0a.md)
 - [CTS-TSON-M0a Repository Audit](../migrations/cts-tson-m0a-native-typed-data-audit.md)
 - [CTS-TSON-M0b Shared Parser and Semantic Model](architecture/copeland-ts-tson-shared-parser-and-semantic-model-cts-tson-m0b.md)

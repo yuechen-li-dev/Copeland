@@ -107,7 +107,7 @@ At closeout, the filesystem language corpus has 43 valid and 101 invalid fixture
 
 The following remain outside this foundation: partial explicit inference; return-context/overload/best-common-type inference; backtracking/global solving; generic recursion and generic-to-generic calls; generic aliases/nominal types/interfaces; interface values/runtime/interfaces methods/composition/`implements`; variance/defaults/higher-kinded parameters; `any`, unchecked assertions, general structural runtime objects; conditional/mapped/indexed/template-literal types, `keyof`, type-query `typeof`, and `infer`; declaration merging/ambient unchecked declarations; classes/inheritance; first-class function types/lambdas/implicit closures/explicit capture; static evaluation; and CLR metadata import.
 
-Future work is independent: `CTS-UNION` canonicalizes `|` to payload enums; `CTS-CALLABLE` owns function types, noncapturing lambdas, and capture; `CTS-TSXML` owns TS-XML; `CTS-STATIC` owns bounded compile-time execution; CLR/.NET interop owns metadata import. Generic nominal types require separate evidence and approval.
+Future work is independent: [CTS-UNION-M0a](../language/copeland-ts-union-syntax-design-cts-union-m0a.md) proposes declaration-only `type Name = Record | Record` compatibility sugar canonicalized to payload enums; it does not make `|` implemented or broaden `TypeSyntax`. `CTS-CALLABLE` owns function types, noncapturing lambdas, and capture; `CTS-TSXML` owns TS-XML; `CTS-STATIC` owns bounded compile-time execution; CLR/.NET interop owns metadata import. Generic nominal types require separate evidence and approval.
 
 ## M3 requirement ledger
 

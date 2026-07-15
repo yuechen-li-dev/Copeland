@@ -50,7 +50,7 @@ The initial revision already contained the CTS-CF-M0 documentation and validator
 
 Rejected by initial doctrine: `any`, unchecked assertions, bivariant parameters, declaration/namespace merging, conditional types, `infer`, mapped types, arbitrary type-level execution, runtime interface imitation, and higher-kinded parameters.
 
-Replaced in the initial model: arbitrary unions by payload enums/Result/Option-style enums; intersections by explicit requirement lists; mutable anonymous DTO shapes by nominal records; untyped transport objects by TSON; many parametric `unknown` uses by generics.
+Historical CTS-TYPE-M0a direction replaced arbitrary unions with payload enums/Result/Option-style enums. It did not define pipe syntax. [CTS-UNION-M0a](../Copeland/language/copeland-ts-union-syntax-design-cts-union-m0a.md) is the current proposed compatibility-syntax doctrine; intersections remain explicit requirement lists, mutable anonymous DTO shapes remain nominal records, untyped transport objects remain TSON, and many parametric `unknown` uses remain addressed by generics.
 
 Deferred pending evidence or another ladder: `keyof`, indexed access, type-query `typeof`, template-literal types, ambient declarations, default type arguments, generic records/aliases, interface methods/composition/storage values, `implements`, classes, CLR imports/metadata, and bounded static execution.
 
