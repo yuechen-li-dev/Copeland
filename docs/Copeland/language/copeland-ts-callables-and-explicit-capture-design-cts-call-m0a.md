@@ -1,6 +1,6 @@
 # Copeland TS callables and explicit capture design (CTS-CALL-M0a)
 
-**Status:** documentation-only design milestone. No production syntax, binding, MIR, backend, evaluator, fixture, package, or runtime behavior is implemented or changed by M0a.
+**Status:** M0a remains the design baseline. Its named/closed-function-value subset is implemented by [CTS-CALL-M0b](../architecture/copeland-ts-callable-reference-foundation-cts-call-m0b.md); capture and anonymous callable design remain future work.
 
 ## Executive decision
 

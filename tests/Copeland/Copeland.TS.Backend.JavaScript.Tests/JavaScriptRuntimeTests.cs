@@ -40,6 +40,39 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_executes_callable_reference_and_rejects_a_plain_host_function()
+    {
+        const string source = """
+            type Operation = (value: number) => number;
+            function increment(value: number): number { return value + 1; }
+            function apply(operation: Operation, value: number): number { return operation(value); }
+            function main(): number { const operation = increment; return apply(operation, 4); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+
+        string script = emitted.SourceText + """
+            console.log(main());
+            try {
+              __cope_callable_invoke(function () { return 1; }, "(named:number)->named:number", [1]);
+              console.log("counterfeit");
+            } catch (error) {
+              console.log("rejected");
+            }
+            """;
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal("5\nrejected\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public async Task Node_Proves_ordinary_arrays_are_mutable_ordered_and_evaluate_selected_elements_once()
     {
         JavaScriptCompilation emitted = Emit("""

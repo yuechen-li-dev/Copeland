@@ -165,6 +165,8 @@ public static class MirTextWriter
         MirBinaryExpression b => $"({FormatExpression(b.Left)} {b.Operator} {FormatExpression(b.Right)})",
         MirUnitExpression => "unit",
         MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
+        MirFunctionReferenceExpression reference => $"function-ref {reference.FunctionName} : {reference.CallableType.Name}",
+        MirInvokeExpression invoke => $"invoke {FormatExpression(invoke.Callee)}({string.Join(", ", invoke.Arguments.Select(FormatExpression))})",
         MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
         MirRecordConstructionExpression construction => $"record-new [{construction.RecordTypeId}] {{ {string.Join(", ", construction.Initializers.Select(FormatRecordFieldValue))} }}",
         MirRecordFieldAccessExpression access => $"record-get [{access.RecordTypeId}] {FormatExpression(access.Receiver)}.[{access.FieldId}]",

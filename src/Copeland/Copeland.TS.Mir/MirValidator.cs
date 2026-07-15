@@ -7,6 +7,11 @@ public static class MirValidator
     public static IReadOnlyList<MirValidationDiagnostic> Validate(MirProgram program)
     {
         var diagnostics = new List<MirValidationDiagnostic>();
+        ValidateCallableModel(program, diagnostics);
+        if (diagnostics.Count > 0)
+        {
+            return diagnostics;
+        }
         ValidateArrayModel(program, diagnostics);
         if (diagnostics.Count > 0)
         {
@@ -25,6 +30,220 @@ public static class MirValidator
         }
 
         return diagnostics;
+    }
+
+    private static void ValidateCallableModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        var functions = new Dictionary<string, MirFunction>(StringComparer.Ordinal);
+        foreach (var function in program.Functions)
+        {
+            if (string.IsNullOrWhiteSpace(function.Name) || !functions.TryAdd(function.Name, function))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"Duplicate or blank function identity '{function.Name}'."));
+            }
+        }
+
+        foreach (var record in program.Records)
+        {
+            foreach (var field in record.Fields)
+            {
+                ValidateNoCallableContainer(field.Type, $"record field '{record.Name}.{field.Name}'", diagnostics);
+            }
+        }
+        foreach (var @enum in program.Enums)
+        {
+            foreach (var @case in @enum.Cases)
+            {
+                foreach (var payload in @case.PayloadFields) ValidateNoCallableContainer(payload.Type, $"enum payload '{@enum.Name}.{@case.Name}.{payload.Name}'", diagnostics);
+            }
+        }
+        foreach (var table in program.Tables)
+        {
+            foreach (var column in table.Columns) ValidateNoCallableContainer(column.ElementType, $"table column '{table.Name}.{column.Name}'", diagnostics);
+        }
+
+        foreach (var function in program.Functions)
+        {
+            ValidateCallableBoundaryType(function.ReturnType, $"return type of function '{function.Name}'", diagnostics, allowDirectCallable: true);
+            foreach (var parameter in function.Parameters) ValidateCallableBoundaryType(parameter.Type, $"parameter '{parameter.Name}' of function '{function.Name}'", diagnostics, allowDirectCallable: true);
+            foreach (var local in function.Locals) ValidateCallableBoundaryType(local.Type, $"local '{local.Name}' of function '{function.Name}'", diagnostics, allowDirectCallable: true);
+            ValidateCallableStatements(function.Body, functions, diagnostics);
+        }
+    }
+
+    private static void ValidateCallableStatements(IReadOnlyList<MirStatement> statements, IReadOnlyDictionary<string, MirFunction> functions, List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (var statement in statements)
+        {
+            switch (statement)
+            {
+                case MirVariableDeclarationStatement declaration:
+                    ValidateCallableExpression(declaration.Initializer, functions, diagnostics);
+                    break;
+                case MirExpressionStatement expression:
+                    ValidateCallableExpression(expression.Expression, functions, diagnostics);
+                    break;
+                case MirReturnStatement { Expression: not null } returned:
+                    ValidateCallableExpression(returned.Expression, functions, diagnostics);
+                    break;
+                case MirIfStatement conditional:
+                    ValidateCallableExpression(conditional.Condition, functions, diagnostics);
+                    ValidateCallableStatements(conditional.ThenStatements, functions, diagnostics);
+                    if (conditional.ElseStatements is not null) ValidateCallableStatements(conditional.ElseStatements, functions, diagnostics);
+                    break;
+                case MirWhileStatement loop:
+                    ValidateCallableExpression(loop.Condition, functions, diagnostics);
+                    ValidateCallableStatements(loop.BodyStatements, functions, diagnostics);
+                    break;
+                case MirForStatement loop:
+                    if (loop.Initializer is not null) ValidateCallableStatements([loop.Initializer], functions, diagnostics);
+                    if (loop.Condition is not null) ValidateCallableExpression(loop.Condition, functions, diagnostics);
+                    if (loop.Increment is not null) ValidateCallableExpression(loop.Increment, functions, diagnostics);
+                    ValidateCallableStatements(loop.BodyStatements, functions, diagnostics);
+                    break;
+            }
+        }
+    }
+
+    private static void ValidateCallableExpression(MirExpression expression, IReadOnlyDictionary<string, MirFunction> functions, List<MirValidationDiagnostic> diagnostics)
+    {
+        switch (expression)
+        {
+            case MirFunctionReferenceExpression reference:
+                ValidateCallableType(reference.CallableType, diagnostics);
+                if (!functions.TryGetValue(reference.FunctionName, out var target))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Callable reference targets unknown function '{reference.FunctionName}'."));
+                }
+                else
+                {
+                    var expected = new MirCallableType(target.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, parameter.Type)).ToArray(), target.ReturnType);
+                    if (!MirTypeFacts.AreEquivalent(reference.CallableType, expected)) diagnostics.Add(new MirValidationDiagnostic($"Callable reference '{reference.FunctionName}' signature does not match the target function."));
+                }
+                return;
+            case MirInvokeExpression invoke:
+                ValidateCallableExpression(invoke.Callee, functions, diagnostics);
+                foreach (var argument in invoke.Arguments) ValidateCallableExpression(argument, functions, diagnostics);
+                if (invoke.Callee.Type is not MirCallableType callable)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("Invoke has a non-callable callee."));
+                }
+                else
+                {
+                    if (invoke.Arguments.Count != callable.Parameters.Count) diagnostics.Add(new MirValidationDiagnostic("Invoke arity does not match the callable signature."));
+                    if (!MirTypeFacts.AreEquivalent(invoke.Type, callable.ReturnType)) diagnostics.Add(new MirValidationDiagnostic("Invoke result type does not match the callable return type."));
+                    for (var index = 0; index < Math.Min(invoke.Arguments.Count, callable.Parameters.Count); index++)
+                    {
+                        if (!MirTypeFacts.AreEquivalent(invoke.Arguments[index].Type, callable.Parameters[index].Type)) diagnostics.Add(new MirValidationDiagnostic($"Invoke argument {index + 1} does not match the callable parameter type."));
+                    }
+                }
+                return;
+            case MirAssignmentExpression assignment:
+                ValidateCallableExpression(assignment.Expression, functions, diagnostics);
+                return;
+            case MirUnaryExpression unary:
+                ValidateCallableExpression(unary.Operand, functions, diagnostics);
+                return;
+            case MirBinaryExpression binary:
+                ValidateCallableExpression(binary.Left, functions, diagnostics);
+                ValidateCallableExpression(binary.Right, functions, diagnostics);
+                return;
+            case MirCallExpression call:
+                foreach (var argument in call.Arguments) ValidateCallableExpression(argument, functions, diagnostics);
+                return;
+            case MirArrayExpression array:
+                foreach (var element in array.Elements) ValidateCallableExpression(element, functions, diagnostics);
+                return;
+            case MirRecordConstructionExpression construction:
+                foreach (var initializer in construction.Initializers) ValidateCallableExpression(initializer.Value, functions, diagnostics);
+                return;
+            case MirRecordFieldAccessExpression access:
+                ValidateCallableExpression(access.Receiver, functions, diagnostics);
+                return;
+            case MirRecordWithExpression update:
+                ValidateCallableExpression(update.Source, functions, diagnostics);
+                foreach (var replacement in update.Replacements) ValidateCallableExpression(replacement.Value, functions, diagnostics);
+                return;
+            case MirEnumValueExpression value:
+                foreach (var argument in value.Arguments) ValidateCallableExpression(argument, functions, diagnostics);
+                return;
+            case MirMatchExpression match:
+                ValidateCallableExpression(match.Scrutinee, functions, diagnostics);
+                foreach (var arm in match.Arms) ValidateCallableExpression(arm.Expression, functions, diagnostics);
+                return;
+            case MirResultMatchExpression match:
+                ValidateCallableExpression(match.Scrutinee, functions, diagnostics);
+                ValidateCallableExpression(match.OkExpression, functions, diagnostics);
+                ValidateCallableExpression(match.ErrExpression, functions, diagnostics);
+                return;
+            case MirIfExpression conditional:
+                ValidateCallableExpression(conditional.Condition, functions, diagnostics);
+                ValidateCallableExpression(conditional.ThenExpression, functions, diagnostics);
+                ValidateCallableExpression(conditional.ElseExpression, functions, diagnostics);
+                return;
+            case MirOkExpression ok:
+                ValidateCallableExpression(ok.Payload, functions, diagnostics);
+                return;
+            case MirErrExpression err:
+                ValidateCallableExpression(err.Payload, functions, diagnostics);
+                return;
+            case MirPropagateExpression propagate:
+                ValidateCallableExpression(propagate.Operand, functions, diagnostics);
+                return;
+            case MirUnwrapExpression unwrap:
+                ValidateCallableExpression(unwrap.Operand, functions, diagnostics);
+                return;
+            case MirTryExpression attempt:
+                ValidateCallableStatements(attempt.Protected.PrefixStatements, functions, diagnostics);
+                ValidateCallableExpression(attempt.Protected.ValueExpression, functions, diagnostics);
+                ValidateCallableStatements(attempt.Handler.PrefixStatements, functions, diagnostics);
+                ValidateCallableExpression(attempt.Handler.ValueExpression, functions, diagnostics);
+                return;
+        }
+    }
+
+    private static void ValidateCallableBoundaryType(MirType type, string context, List<MirValidationDiagnostic> diagnostics, bool allowDirectCallable)
+    {
+        if (type is MirCallableType callable)
+        {
+            if (!allowDirectCallable) diagnostics.Add(new MirValidationDiagnostic($"Callable type is not supported in {context}."));
+            ValidateCallableType(callable, diagnostics);
+            return;
+        }
+        ValidateNoCallableContainer(type, context, diagnostics);
+    }
+
+    private static void ValidateNoCallableContainer(MirType type, string context, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (ContainsCallable(type)) diagnostics.Add(new MirValidationDiagnostic($"Callable type is not supported in {context}."));
+    }
+
+    private static bool ContainsCallable(MirType type) => type switch
+    {
+        MirCallableType => true,
+        MirArrayType array => ContainsCallable(array.ElementType),
+        MirResultType result => ContainsCallable(result.SuccessType) || ContainsCallable(result.ErrorType),
+        MirColumnType column => ContainsCallable(column.ElementType),
+        _ => false,
+    };
+
+    private static void ValidateCallableType(MirCallableType callable, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (callable.Parameters.Count > 32) diagnostics.Add(new MirValidationDiagnostic("Callable type has more than 32 parameters."));
+        var pending = new Stack<(MirType Type, int Depth)>();
+        pending.Push((callable, 1));
+        while (pending.Count > 0)
+        {
+            var (type, depth) = pending.Pop();
+            if (type is not MirCallableType nested) continue;
+            if (depth > 16)
+            {
+                diagnostics.Add(new MirValidationDiagnostic("Callable type nesting exceeds 16."));
+                continue;
+            }
+            foreach (var parameter in nested.Parameters) pending.Push((parameter.Type, depth + 1));
+            pending.Push((nested.ReturnType, depth + 1));
+        }
     }
 
     private static void ValidateEnumModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)

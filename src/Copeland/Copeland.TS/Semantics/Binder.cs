@@ -66,6 +66,8 @@ public static class Binder
         private const int MaxInferenceMatchDepth = 16;
         private const int MaxInferenceMatchSteps = 128;
         private const int MaxInferenceEvidencePerTypeParameter = 16;
+        private const int MaxCallableParameters = 32;
+        private const int MaxCallableTypeDepth = 16;
 
         private int _loopDepth;
         private readonly SyntaxTree _tree = tree;
@@ -276,6 +278,10 @@ public static class Binder
                     {
                         Report("COPE-INTERFACE-0004", $"Interface field '{field.Identifier.Text}' has an illegal type '{type.Name}'.", field.Identifier);
                     }
+                    if (ContainsCallable(type))
+                    {
+                        Report("COPE-CALL-0007", "Callable types are not supported in interface fields.", field.Identifier);
+                    }
                     @interface.AddField(new RequirementFieldSymbol(field.Identifier.Text, type, @interface.Fields.Count));
                     _totalInterfaceFieldCount++;
                     if (_totalInterfaceFieldCount > MaxInterfaceFieldsPerCompilation)
@@ -410,6 +416,10 @@ public static class Binder
                     case ResultTypeSyntax result:
                         pending.Push(result.ErrorType);
                         pending.Push(result.SuccessType);
+                        break;
+                    case CallableTypeSyntax callable:
+                        pending.Push(callable.ReturnType);
+                        foreach (var parameter in callable.Parameters) pending.Push(parameter.Type);
                         break;
                 }
             }
@@ -619,6 +629,10 @@ public static class Binder
                     }
                     var boundCells = columnSyntax.Cells.Elements.Select(cell => BindExpression(cell, explicitType)).ToArray();
                     var elementType = explicitType ?? boundCells.FirstOrDefault()?.Type ?? PrimitiveTypeSymbol.Error;
+                    if (ContainsCallable(elementType))
+                    {
+                        Report("COPE-CALL-0009", "Callable types are not supported in record tables.", columnSyntax.Identifier);
+                    }
                     if (!IsEligibleTableCellType(elementType, [], out bool isCyclic))
                     {
                         string diagnosticId = isCyclic ? "COPE-TABLE-0010" : "COPE-TABLE-0009";
@@ -1603,8 +1617,11 @@ public static class Binder
                     : "COPE-TSON-ASSET-0001";
                 Report(id, message, v.Identifier);
             }
-            var type = BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
-            ValidateRuntimeValueType(type, v.Identifier, "variable");
+            bool inferCallableReference = v.Type is null
+                && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax;
+            var type = inferCallableReference
+                ? PrimitiveTypeSymbol.Error
+                : BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
             BoundExpression init;
             if (IsTsonAssetCall(v.Initializer))
             {
@@ -1615,8 +1632,13 @@ public static class Binder
             }
             else
             {
-                init = BindExpression(v.Initializer, type);
+                init = BindExpression(v.Initializer, inferCallableReference ? null : type);
             }
+            if (inferCallableReference)
+            {
+                type = init.Type;
+            }
+            ValidateRuntimeValueType(type, v.Identifier, "variable");
             string? authoredAliasName = GetAuthoredAliasName(v.Type);
             if (!IsAssignable(type, init.Type))
             {
@@ -1802,6 +1824,7 @@ public static class Binder
                 AssignmentExpressionSyntax a => BindAssignment(a),
                 CallExpressionSyntax c => BindCall(c, contextualType),
                 GenericCallExpressionSyntax c => BindGenericCall(c, contextualType),
+                GenericFunctionReferenceExpressionSyntax reference => BindGenericFunctionReference(reference),
                 ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
                 ObjectLiteralExpressionSyntax o => BindObject(o, contextualType),
                 MemberAccessExpressionSyntax m => BindMember(m),
@@ -1881,8 +1904,16 @@ public static class Binder
                 VariableSymbol v when v.Type is TableTypeSymbol table && _tableSingletonVariables.Contains(v) => new BoundTableReferenceExpression(table),
                 VariableSymbol v => new BoundVariableExpression(v),
                 ParameterSymbol p => new BoundVariableExpression(new VariableSymbol(p.Name, p.Type, true)),
+                FunctionSymbol function when function.IsGeneric => ReportOpenGenericFunctionValue(n),
+                FunctionSymbol function => new BoundFunctionReferenceExpression(function),
                 _ => new BoundErrorExpression()
             };
+        }
+
+        private BoundExpression ReportOpenGenericFunctionValue(NameExpressionSyntax name)
+        {
+            Report("COPE-CALL-0003", $"Generic function '{name.IdentifierToken.Text}' must be explicitly closed before it can be used as a callable value.", name.IdentifierToken);
+            return new BoundErrorExpression();
         }
 
         private BoundExpression BindLiteral(LiteralExpressionSyntax l)
@@ -1913,6 +1944,11 @@ public static class Binder
             var l = BindExpression(b.Left); var r = BindExpression(b.Right); var op = b.OperatorToken.Kind;
             if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken)
             {
+                if (l.Type is CallableTypeSymbol || r.Type is CallableTypeSymbol)
+                {
+                    Report("COPE-CALL-0008", "Callable equality is not supported.", b.OperatorToken);
+                    return new BoundErrorExpression();
+                }
                 if (l.Type is TableTypeSymbol or TableRowTypeSymbol or ColumnTypeSymbol
                     || r.Type is TableTypeSymbol or TableRowTypeSymbol or ColumnTypeSymbol)
                 {
@@ -2069,17 +2105,27 @@ public static class Binder
                 return BindEnumConstructorCall(c, m, enumName);
             }
 
-            if (c.Target is not NameExpressionSyntax name
-                || !_scope.TryLookup(name.IdentifierToken.Text, out var s)
+            if (c.Target is not NameExpressionSyntax)
+            {
+                return BindInvoke(c, BindExpression(c.Target));
+            }
+
+            var targetName = (NameExpressionSyntax)c.Target;
+            if (_scope.TryLookup(targetName.IdentifierToken.Text, out var lexicalSymbol)
+                && lexicalSymbol is VariableSymbol or ParameterSymbol)
+            {
+                return BindInvoke(c, BindName(targetName));
+            }
+
+            if (!_scope.TryLookup(targetName.IdentifierToken.Text, out var s)
                 || s is null)
             {
-                if (c.Target is NameExpressionSyntax aliasConstructor
-                    && _aliases.ContainsKey(aliasConstructor.IdentifierToken.Text))
+                if (_aliases.ContainsKey(targetName.IdentifierToken.Text))
                 {
                     Report(
                         "COPE-ALIAS-0006",
-                        $"Type alias '{aliasConstructor.IdentifierToken.Text}' cannot be used as a runtime value or constructor.",
-                        aliasConstructor.IdentifierToken);
+                        $"Type alias '{targetName.IdentifierToken.Text}' cannot be used as a runtime value or constructor.",
+                        targetName.IdentifierToken);
                     return new BoundErrorExpression();
                 }
 
@@ -2101,6 +2147,34 @@ public static class Binder
                         fn.Parameters[i].AuthoredAliasName);
                 }
             return new BoundCallExpression(fn, args);
+        }
+
+        private BoundExpression BindInvoke(CallExpressionSyntax call, BoundExpression callee)
+        {
+            if (callee.Type is not CallableTypeSymbol callable)
+            {
+                foreach (var argument in call.Arguments) _ = BindExpression(argument);
+                Report("COPE-CALL-0004", $"Cannot invoke non-callable value of type '{callee.Type.Name}'.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            if (call.Arguments.Count != callable.Parameters.Count)
+            {
+                Report("COPE-CALL-0005", $"Callable invocation argument count mismatch: expected {callable.Parameters.Count}, got {call.Arguments.Count}.", call.OpenParenToken);
+            }
+
+            var arguments = call.Arguments
+                .Select((argument, index) => BindExpression(argument, index < callable.Parameters.Count ? callable.Parameters[index].Type : null))
+                .ToArray();
+            for (var index = 0; index < Math.Min(arguments.Length, callable.Parameters.Count); index++)
+            {
+                if (!IsAssignable(callable.Parameters[index].Type, arguments[index].Type))
+                {
+                    ReportTypeMismatch("COPE-CALL-0006", callable.Parameters[index].Type, arguments[index].Type, InferenceAnchor(call.Arguments[index]));
+                }
+            }
+
+            return new BoundInvokeExpression(callee, arguments, callable);
         }
 
         private sealed class InferenceSlot(TypeParameterSymbol parameter)
@@ -2411,6 +2485,54 @@ public static class Binder
             return new BoundCallExpression(specialization.Symbol, arguments);
         }
 
+        private BoundExpression BindGenericFunctionReference(GenericFunctionReferenceExpressionSyntax reference)
+        {
+            if (reference.Target is not NameExpressionSyntax name
+                || !_scope.TryLookup(name.IdentifierToken.Text, out var symbol)
+                || symbol is not FunctionSymbol function)
+            {
+                Report("COPE-GENERIC-0004", "Explicit type arguments require an unshadowed named function.", reference.LessToken);
+                return new BoundErrorExpression();
+            }
+            if (!function.IsGeneric)
+            {
+                Report("COPE-GENERIC-0005", $"Function '{function.Name}' does not accept type arguments.", reference.LessToken);
+                return new BoundErrorExpression();
+            }
+            if (reference.TypeArguments.Count != function.TypeParameters.Count)
+            {
+                Report("COPE-GENERIC-0007", $"Generic function '{function.Name}' expects {function.TypeParameters.Count} type arguments, got {reference.TypeArguments.Count}.", reference.LessToken);
+                return new BoundErrorExpression();
+            }
+
+            var typeArguments = reference.TypeArguments
+                .Select(argument => BindType(argument, reference.LessToken, "COPE-GENERIC-0008", "type argument"))
+                .ToArray();
+            if (typeArguments.Any(IsOpenOrIllegalTypeArgument))
+            {
+                Report("COPE-GENERIC-0008", "Generic type arguments must be closed value types; interfaces and open type parameters are not allowed.", reference.LessToken);
+                return new BoundErrorExpression();
+            }
+            try
+            {
+                foreach (var argument in typeArguments) ValidateClosedTypeDepth(argument, MaxClosedTypeDepth);
+            }
+            catch (InvalidOperationException)
+            {
+                Report("COPE-GENERIC-0015", $"Generic instantiation exceeded the closed-type nesting limit of {MaxClosedTypeDepth}.", reference.LessToken);
+                return new BoundErrorExpression();
+            }
+            for (var index = 0; index < typeArguments.Length; index++)
+            {
+                if (!Satisfies(function.TypeParameters[index].Requirements, typeArguments[index], reference.LessToken)) return new BoundErrorExpression();
+            }
+
+            var specialization = GetOrCreateClosedInstantiation(function, typeArguments, reference.LessToken);
+            return specialization.Symbol.Name == "<error>"
+                ? new BoundErrorExpression()
+                : new BoundFunctionReferenceExpression(specialization.Symbol);
+        }
+
         private bool Satisfies(RequirementSet requirements, TypeSymbol candidate, SyntaxToken anchor)
         {
             if (requirements.Fields.Count == 0) return true;
@@ -2570,6 +2692,7 @@ public static class Binder
                 ColumnTypeSymbol column => "column(" + ClosedTypeIdentity(column.ElementType, depthRemaining - 1) + ")",
                 ArrayTypeSymbol array => "array(" + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
                 ResultTypeSymbol result => "result(" + ClosedTypeIdentity(result.SuccessType, depthRemaining - 1) + "," + ClosedTypeIdentity(result.ErrorType, depthRemaining - 1) + ")",
+                CallableTypeSymbol callable => "callable(" + string.Join(",", callable.Parameters.Select(parameter => ClosedTypeIdentity(parameter.Type, depthRemaining - 1))) + ")->" + ClosedTypeIdentity(callable.ReturnType, depthRemaining - 1),
                 _ => "type:" + type.Name
             };
         }
@@ -2679,6 +2802,10 @@ public static class Binder
                 case ColumnTypeSymbol column:
                     ValidateClosedTypeDepth(column.ElementType, depthRemaining - 1);
                     break;
+                case CallableTypeSymbol callable:
+                    foreach (var parameter in callable.Parameters) ValidateClosedTypeDepth(parameter.Type, depthRemaining - 1);
+                    ValidateClosedTypeDepth(callable.ReturnType, depthRemaining - 1);
+                    break;
             }
         }
 
@@ -2714,6 +2841,7 @@ public static class Binder
                 ArrayTypeSymbol array => new ArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
                 ResultTypeSymbol result => new ResultTypeSymbol(SubstituteType(result.SuccessType, substitutions), SubstituteType(result.ErrorType, substitutions)),
                 ColumnTypeSymbol column => new ColumnTypeSymbol(SubstituteType(column.ElementType, substitutions)),
+                CallableTypeSymbol callable => new CallableTypeSymbol(callable.Parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, SubstituteType(parameter.Type, substitutions))).ToArray(), SubstituteType(callable.ReturnType, substitutions)),
                 _ => type
             };
         }
@@ -2743,6 +2871,8 @@ public static class Binder
                 BoundUnaryExpression unary => new BoundUnaryExpression(unary.OperatorKind, RewriteExpression(unary.Operand), SubstituteType(unary.Type, substitutions)),
                 BoundBinaryExpression binary => new BoundBinaryExpression(RewriteExpression(binary.Left), binary.OperatorKind, RewriteExpression(binary.Right), SubstituteType(binary.Type, substitutions)),
                 BoundCallExpression call => new BoundCallExpression(call.Function, call.Arguments.Select(RewriteExpression).ToArray()),
+                BoundFunctionReferenceExpression reference => new BoundFunctionReferenceExpression(reference.Function),
+                BoundInvokeExpression invoke => new BoundInvokeExpression(RewriteExpression(invoke.Callee), invoke.Arguments.Select(RewriteExpression).ToArray(), (CallableTypeSymbol)SubstituteType(invoke.CallableType, substitutions)),
                 BoundEnumValueExpression value => new BoundEnumValueExpression(value.Case, value.Arguments.Select(RewriteExpression).ToArray()),
                 BoundPropagateExpression propagate => new BoundPropagateExpression(RewriteExpression(propagate.Operand), (ResultTypeSymbol)SubstituteType(propagate.ResultType, substitutions), propagate.Target),
                 BoundUnwrapExpression unwrap => new BoundUnwrapExpression(RewriteExpression(unwrap.Operand), (ResultTypeSymbol)SubstituteType(unwrap.ResultType, substitutions)),
@@ -3989,12 +4119,68 @@ public static class Binder
                 },
                 ArrayTypeSyntax a => new ArrayTypeSymbol(BindType(a.ElementType, anchor, missingId, missingPrefix)),
                 ColumnTypeSyntax c => new ColumnTypeSymbol(BindType(c.ElementType, anchor, "COPE-TABLE-0019", "column element")),
+                CallableTypeSyntax c => BindCallableType(c, anchor, missingId, missingPrefix),
                 QualifiedRowTypeSyntax q => ResolveQualifiedRowType(q),
                 ParenthesizedTypeSyntax p => BindType(p.Type, anchor, missingId, missingPrefix),
                 ResultTypeSyntax r => BindResultType(r, anchor, missingId, missingPrefix),
                 IdentifierTypeSyntax i => ResolveIdentifierType(i),
                 _ => PrimitiveTypeSymbol.Error
             };
+        }
+
+        private TypeSymbol BindCallableType(CallableTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
+        {
+            if (syntax.Parameters.Count > MaxCallableParameters)
+            {
+                Report("COPE-CALL-0001", $"Callable types support at most {MaxCallableParameters} parameters.", syntax.Parameters[MaxCallableParameters].Identifier);
+            }
+
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            var parameters = syntax.Parameters.Select(parameter =>
+            {
+                if (!names.Add(parameter.Identifier.Text))
+                {
+                    Report("COPE-BIND-0005", $"Duplicate callable parameter '{parameter.Identifier.Text}'.", parameter.Identifier);
+                }
+                return new CallableParameterTypeSymbol(parameter.Identifier.Text, BindType(parameter.Type, parameter.Identifier, missingId, missingPrefix));
+            }).ToArray();
+            var callable = new CallableTypeSymbol(parameters, BindType(syntax.ReturnType, anchor, missingId, missingPrefix));
+            if (GetCallableTypeDepth(callable) > MaxCallableTypeDepth)
+            {
+                Report("COPE-CALL-0002", $"Callable type nesting exceeds the limit of {MaxCallableTypeDepth}.", syntax.ArrowToken);
+            }
+            return callable;
+        }
+
+        private static int GetCallableTypeDepth(TypeSymbol root)
+        {
+            var worklist = new Stack<(TypeSymbol Type, int CallableDepth)>();
+            worklist.Push((root, 0));
+            var maximum = 0;
+            while (worklist.Count > 0)
+            {
+                var (type, callableDepth) = worklist.Pop();
+                switch (type)
+                {
+                    case CallableTypeSymbol callable:
+                        callableDepth++;
+                        maximum = Math.Max(maximum, callableDepth);
+                        foreach (var parameter in callable.Parameters) worklist.Push((parameter.Type, callableDepth));
+                        worklist.Push((callable.ReturnType, callableDepth));
+                        break;
+                    case ArrayTypeSymbol array:
+                        worklist.Push((array.ElementType, callableDepth));
+                        break;
+                    case ResultTypeSymbol result:
+                        worklist.Push((result.SuccessType, callableDepth));
+                        worklist.Push((result.ErrorType, callableDepth));
+                        break;
+                    case ColumnTypeSymbol column:
+                        worklist.Push((column.ElementType, callableDepth));
+                        break;
+                }
+            }
+            return maximum;
         }
 
         private TypeSymbol ResolveQualifiedRowType(QualifiedRowTypeSyntax type)
@@ -4172,6 +4358,18 @@ public static class Binder
 
         private void ValidateRuntimeValueType(TypeSymbol type, SyntaxToken anchor, string position)
         {
+            if (type is CallableTypeSymbol)
+            {
+                if (position is "record field" or "enum payload")
+                {
+                    Report("COPE-CALL-0007", $"Callable types are not supported in {position}s.", anchor);
+                }
+                return;
+            }
+            if (ContainsCallable(type))
+            {
+                Report("COPE-CALL-0007", $"Callable types are not supported inside {position} containers.", anchor);
+            }
             if (!IsLegalTypeForPosition(type, allowDirectVoid: false))
             {
                 Report(
@@ -4183,6 +4381,10 @@ public static class Binder
 
         private void ValidateFunctionReturnType(TypeSymbol type, SyntaxToken anchor)
         {
+            if (type is not CallableTypeSymbol && ContainsCallable(type))
+            {
+                Report("COPE-CALL-0007", "Callable types cannot be stored inside a function return container.", anchor);
+            }
             if (!IsLegalTypeForPosition(type, allowDirectVoid: true))
             {
                 Report(
@@ -4221,11 +4423,27 @@ public static class Binder
                         pending.Push((result.ErrorType, false));
                         pending.Push((result.SuccessType, true));
                         break;
+                    case CallableTypeSymbol callable:
+                        foreach (var parameter in callable.Parameters)
+                        {
+                            pending.Push((parameter.Type, false));
+                        }
+                        pending.Push((callable.ReturnType, true));
+                        break;
                 }
             }
 
             return true;
         }
+
+        private static bool ContainsCallable(TypeSymbol type) => type switch
+        {
+            CallableTypeSymbol => true,
+            ArrayTypeSymbol array => ContainsCallable(array.ElementType),
+            ResultTypeSymbol result => ContainsCallable(result.SuccessType) || ContainsCallable(result.ErrorType),
+            ColumnTypeSymbol column => ContainsCallable(column.ElementType),
+            _ => false,
+        };
 
         private static bool IsPrimitiveEqualityType(TypeSymbol type)
             => type == PrimitiveTypeSymbol.Number

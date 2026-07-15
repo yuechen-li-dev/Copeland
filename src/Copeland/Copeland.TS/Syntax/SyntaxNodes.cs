@@ -221,6 +221,39 @@ public sealed record ResultTypeSyntax(TypeSyntax SuccessType, SyntaxToken BangTo
     }
 }
 
+public sealed record CallableTypeParameterSyntax(SyntaxToken Identifier, SyntaxToken ColonToken, TypeSyntax Type) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.Parameter;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        yield return ColonToken;
+        yield return Type;
+    }
+}
+
+public sealed record CallableTypeSyntax(
+    SyntaxToken OpenParenToken,
+    IReadOnlyList<CallableTypeParameterSyntax> Parameters,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken CloseParenToken,
+    SyntaxToken ArrowToken,
+    TypeSyntax ReturnType) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.CallableType;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return OpenParenToken;
+        foreach (var parameter in Parameters) yield return parameter;
+        foreach (var comma in CommaTokens) yield return comma;
+        yield return CloseParenToken;
+        yield return ArrowToken;
+        yield return ReturnType;
+    }
+}
+
 public sealed record QualifiedRowTypeSyntax(SyntaxToken TableIdentifier, SyntaxToken DotToken, SyntaxToken RowIdentifier) : TypeSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.QualifiedRowType;
@@ -733,6 +766,25 @@ public sealed record GenericCallExpressionSyntax(
             yield return Arguments[i];
         }
         yield return CloseParenToken;
+    }
+}
+
+public sealed record GenericFunctionReferenceExpressionSyntax(
+    ExpressionSyntax Target,
+    SyntaxToken LessToken,
+    IReadOnlyList<TypeSyntax> TypeArguments,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken GreaterToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.GenericFunctionReferenceExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Target;
+        yield return LessToken;
+        foreach (var argument in TypeArguments) yield return argument;
+        foreach (var comma in CommaTokens) yield return comma;
+        yield return GreaterToken;
     }
 }
 

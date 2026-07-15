@@ -36,6 +36,7 @@ public sealed class FunctionSymbol(
     public bool IsFallible => ReturnType is ResultTypeSymbol;
     public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
     public bool IsGeneric => TypeParameters.Count > 0;
+    public CallableTypeSymbol CallableType => new(Parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, parameter.Type)).ToArray(), ReturnType);
 }
 
 public sealed class RequirementFieldSymbol(string name, TypeSymbol type, int ordinal) : Symbol(name)

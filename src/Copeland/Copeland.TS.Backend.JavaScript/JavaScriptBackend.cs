@@ -38,9 +38,16 @@ public static class JavaScriptBackend
         ResultCatalog results = ResultCatalog.Create(program);
         bool usesUnwrap = ProgramUsesUnwrap(program);
         bool usesTryExcept = ProgramUsesTryExcept(program);
+        bool usesCallables = ProgramUsesCallables(program);
         GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept, effectiveOptions.Profile);
         var writer = new JavaScriptTextWriter(names.Document, effectiveOptions.Profile);
         writer.WriteLine("\"use strict\";");
+
+        if (usesCallables)
+        {
+            writer.WriteLine();
+            EmitCallableRuntime(writer);
+        }
 
         if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
         {
@@ -234,6 +241,12 @@ public static class JavaScriptBackend
                 break;
             case MirCallExpression call:
                 ValidateCall(call, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirFunctionReferenceExpression reference:
+                ValidateFunctionReference(reference, context, functions, catalog, diagnostics);
+                break;
+            case MirInvokeExpression invoke:
+                ValidateInvoke(invoke, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirIfExpression conditional:
                 RequireType(conditional.Condition.Type, "boolean", $"if-expression condition in {context}", diagnostics);
@@ -500,6 +513,45 @@ public static class JavaScriptBackend
         }
     }
 
+    private static void ValidateFunctionReference(MirFunctionReferenceExpression reference, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
+    {
+        if (!functions.TryGetValue(reference.FunctionName, out MirFunction? function))
+        {
+            AddInvalid(diagnostics, $"unknown callable reference target '{reference.FunctionName}' in {context}");
+            return;
+        }
+
+        var expected = new MirCallableType(function.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, parameter.Type)).ToArray(), function.ReturnType);
+        RequireMatchingType(reference.CallableType, expected, $"callable reference '{reference.FunctionName}' in {context}", diagnostics);
+        ValidateValueType(reference.CallableType, $"callable reference '{reference.FunctionName}' in {context}", catalog, diagnostics, allowVoid: false);
+    }
+
+    private static void ValidateInvoke(MirInvokeExpression invoke, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
+    {
+        ValidateExpression(invoke.Callee, functionReturnType, context, functions, catalog, diagnostics);
+        if (invoke.Callee.Type is not MirCallableType callable)
+        {
+            AddInvalid(diagnostics, $"invoke has non-callable callee type '{invoke.Callee.Type.Name}' in {context}");
+        }
+        else
+        {
+            if (invoke.Arguments.Count != callable.Parameters.Count)
+            {
+                AddInvalid(diagnostics, $"invoke has {invoke.Arguments.Count} arguments but callable expects {callable.Parameters.Count} in {context}");
+            }
+            RequireMatchingType(invoke.Type, callable.ReturnType, $"invoke result in {context}", diagnostics);
+            for (int index = 0; index < Math.Min(invoke.Arguments.Count, callable.Parameters.Count); index++)
+            {
+                RequireMatchingType(invoke.Arguments[index].Type, callable.Parameters[index].Type, $"argument {index + 1} of invoke in {context}", diagnostics);
+            }
+        }
+        foreach (MirExpression argument in invoke.Arguments)
+        {
+            ValidateExpression(argument, functionReturnType, context, functions, catalog, diagnostics);
+        }
+        ValidateValueType(invoke.Type, $"invoke result in {context}", catalog, diagnostics, allowVoid: true);
+    }
+
     private static void ValidateValueType(MirType type, string context, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics, bool allowVoid)
     {
         switch (type)
@@ -510,6 +562,17 @@ public static class JavaScriptBackend
                 return;
             case MirArrayType array:
                 ValidateValueType(array.ElementType, $"array element type in {context}", catalog, diagnostics, allowVoid: false);
+                return;
+            case MirCallableType callable:
+                if (callable.Parameters.Count > 32)
+                {
+                    AddInvalid(diagnostics, $"callable type exceeds the 32-parameter limit in {context}");
+                }
+                foreach (MirCallableParameter parameter in callable.Parameters)
+                {
+                    ValidateValueType(parameter.Type, $"callable parameter '{parameter.Name}' in {context}", catalog, diagnostics, allowVoid: false);
+                }
+                ValidateValueType(callable.ReturnType, $"callable return type in {context}", catalog, diagnostics, allowVoid: true);
                 return;
             case MirType named when named is not MirArrayType and not MirResultType && named.Identifier is "number" or "boolean" or "string":
                 return;
@@ -744,6 +807,93 @@ public static class JavaScriptBackend
             EmitTsonEncodingRuntime(writer, tsonPlans, catalog, results, names);
         }
     }
+
+    private static void EmitCallableRuntime(JavaScriptTextWriter writer)
+    {
+        writer.WriteLine("const __cope_callable_instances = new WeakSet();");
+        writer.WriteLine("const __cope_callable_signatures = new WeakMap();");
+        writer.WriteLine("const __cope_callable_codes = new WeakMap();");
+        writer.WriteLine("function __cope_callable_ref(signature, code) {");
+        writer.Indent();
+        writer.WriteLine("const carrier = Object.create(null);");
+        writer.WriteLine("__cope_callable_signatures.set(carrier, signature);");
+        writer.WriteLine("__cope_callable_codes.set(carrier, code);");
+        writer.WriteLine("__cope_callable_instances.add(carrier);");
+        writer.WriteLine("return Object.freeze(carrier);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_callable_invoke(carrier, signature, argumentsInOrder) {");
+        writer.Indent();
+        writer.WriteLine("if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
+        writer.WriteLine("const code = __cope_callable_codes.get(carrier);");
+        writer.WriteLine("return code(...argumentsInOrder);");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static bool ProgramUsesCallables(MirProgram program)
+        => program.Functions.Any(function => ContainsCallableType(function.ReturnType)
+            || function.Parameters.Any(parameter => ContainsCallableType(parameter.Type))
+            || function.Locals.Any(local => ContainsCallableType(local.Type))
+            || function.Body.Any(StatementUsesCallables));
+
+    private static bool StatementUsesCallables(MirStatement statement) => statement switch
+    {
+        MirVariableDeclarationStatement declaration => ExpressionUsesCallables(declaration.Initializer),
+        MirExpressionStatement expression => ExpressionUsesCallables(expression.Expression),
+        MirReturnStatement { Expression: not null } returned => ExpressionUsesCallables(returned.Expression),
+        MirIfStatement conditional => ExpressionUsesCallables(conditional.Condition) || conditional.ThenStatements.Any(StatementUsesCallables) || (conditional.ElseStatements?.Any(StatementUsesCallables) ?? false),
+        MirWhileStatement loop => ExpressionUsesCallables(loop.Condition) || loop.BodyStatements.Any(StatementUsesCallables),
+        MirForStatement loop => (loop.Initializer is not null && StatementUsesCallables(loop.Initializer)) || (loop.Condition is not null && ExpressionUsesCallables(loop.Condition)) || (loop.Increment is not null && ExpressionUsesCallables(loop.Increment)) || loop.BodyStatements.Any(StatementUsesCallables),
+        _ => false,
+    };
+
+    private static bool ExpressionUsesCallables(MirExpression expression) => expression switch
+    {
+        MirFunctionReferenceExpression or MirInvokeExpression => true,
+        MirAssignmentExpression assignment => ExpressionUsesCallables(assignment.Expression),
+        MirUnaryExpression unary => ExpressionUsesCallables(unary.Operand),
+        MirBinaryExpression binary => ExpressionUsesCallables(binary.Left) || ExpressionUsesCallables(binary.Right),
+        MirCallExpression call => call.Arguments.Any(ExpressionUsesCallables),
+        MirArrayExpression array => array.Elements.Any(ExpressionUsesCallables),
+        MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesCallables(initializer.Value)),
+        MirRecordFieldAccessExpression access => ExpressionUsesCallables(access.Receiver),
+        MirRecordWithExpression update => ExpressionUsesCallables(update.Source) || update.Replacements.Any(replacement => ExpressionUsesCallables(replacement.Value)),
+        MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesCallables),
+        MirMatchExpression match => ExpressionUsesCallables(match.Scrutinee) || match.Arms.Any(arm => ExpressionUsesCallables(arm.Expression)),
+        MirResultMatchExpression match => ExpressionUsesCallables(match.Scrutinee) || ExpressionUsesCallables(match.OkExpression) || ExpressionUsesCallables(match.ErrExpression),
+        MirIfExpression conditional => ExpressionUsesCallables(conditional.Condition) || ExpressionUsesCallables(conditional.ThenExpression) || ExpressionUsesCallables(conditional.ElseExpression),
+        MirOkExpression ok => ExpressionUsesCallables(ok.Payload),
+        MirErrExpression err => ExpressionUsesCallables(err.Payload),
+        MirPropagateExpression propagate => ExpressionUsesCallables(propagate.Operand),
+        MirUnwrapExpression unwrap => ExpressionUsesCallables(unwrap.Operand),
+        MirTryExpression attempt => attempt.Protected.PrefixStatements.Any(StatementUsesCallables) || ExpressionUsesCallables(attempt.Protected.ValueExpression) || attempt.Handler.PrefixStatements.Any(StatementUsesCallables) || ExpressionUsesCallables(attempt.Handler.ValueExpression),
+        _ => false,
+    };
+
+    private static bool ContainsCallableType(MirType type) => type switch
+    {
+        MirCallableType => true,
+        MirArrayType array => ContainsCallableType(array.ElementType),
+        MirResultType result => ContainsCallableType(result.SuccessType) || ContainsCallableType(result.ErrorType),
+        MirColumnType column => ContainsCallableType(column.ElementType),
+        _ => false,
+    };
+
+    private static string CallableTypeIdentity(MirCallableType callable)
+        => "(" + string.Join(",", callable.Parameters.Select(parameter => MirTypeIdentity(parameter.Type))) + ")->" + MirTypeIdentity(callable.ReturnType);
+
+    private static string MirTypeIdentity(MirType type) => type switch
+    {
+        MirArrayType array => "array(" + MirTypeIdentity(array.ElementType) + ")",
+        MirResultType result => "result(" + MirTypeIdentity(result.SuccessType) + "," + MirTypeIdentity(result.ErrorType) + ")",
+        MirCallableType callable => CallableTypeIdentity(callable),
+        MirRecordType record => "record:" + record.RecordTypeId.Value,
+        MirTableType table => "table:" + table.TableId.Value,
+        MirTableRowType row => "row:" + row.RowTypeId,
+        MirColumnType column => "column(" + MirTypeIdentity(column.ElementType) + ")",
+        _ => "named:" + type.Identifier,
+    };
 
     private static void EmitColumnRuntime(JavaScriptTextWriter writer, GeneratedNames names)
     {
@@ -1413,6 +1563,8 @@ public static class JavaScriptBackend
             MirUnaryExpression unary => EmitUnary(unary, function, catalog, results, names, flowEnabled),
             MirBinaryExpression binary => EmitBinary(binary, function, catalog, results, names, flowEnabled),
             MirCallExpression call => EmitCall(call, function, catalog, results, names, flowEnabled),
+            MirFunctionReferenceExpression reference => EmittedExpression.ValueOnly($"__cope_callable_ref({JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(reference.CallableType))}, {JavaScriptIdentifierEncoder.Encode(reference.FunctionName)})"),
+            MirInvokeExpression invoke => EmitInvoke(invoke, function, catalog, results, names, flowEnabled),
             MirArrayExpression array => EmitArrayExpression(array, function, catalog, results, names, flowEnabled),
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
@@ -1996,6 +2148,14 @@ public static class JavaScriptBackend
             emittedArguments,
             names,
             values => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", values)})");
+    }
+
+    private static EmittedExpression EmitInvoke(MirInvokeExpression invoke, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        var expressions = new List<EmittedExpression> { EmitExpression(invoke.Callee, function, catalog, results, names, flowEnabled) };
+        expressions.AddRange(invoke.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)));
+        string signature = invoke.Callee.Type is MirCallableType callable ? CallableTypeIdentity(callable) : "invalid";
+        return CombineOrdered(expressions, names, values => $"__cope_callable_invoke({values[0]}, {JavaScriptLiteralWriter.WriteString(signature)}, [{string.Join(", ", values.Skip(1))}])");
     }
 
     private static EmittedExpression EmitArrayExpression(

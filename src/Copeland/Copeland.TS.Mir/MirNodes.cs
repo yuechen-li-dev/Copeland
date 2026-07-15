@@ -289,6 +289,11 @@ public sealed record MirTableRowType(string RowTypeId, string DisplayName) : Mir
 public sealed record MirColumnType(MirType ElementType) : MirType("column") { public override string Name => "column " + ElementType.Name; }
 public sealed record MirArrayType(MirType ElementType) : MirType("array") { public override string Name => MirTypeText.FormatArrayElement(ElementType) + "[]"; }
 public sealed record MirResultType(MirType SuccessType, MirType ErrorType) : MirType("result") { public override string Name => $"{MirTypeText.FormatResultComponent(SuccessType)} ! {ErrorType.Name}"; }
+public sealed record MirCallableParameter(string Name, MirType Type);
+public sealed record MirCallableType(IReadOnlyList<MirCallableParameter> Parameters, MirType ReturnType) : MirType("callable")
+{
+    public override string Name => "(" + string.Join(", ", Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + ") => " + ReturnType.Name;
+}
 
 public static class MirTypeFacts
 {
@@ -303,6 +308,9 @@ public static class MirTypeFacts
             (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType && right is not MirArrayType and not MirResultType => leftNamed.Identifier == rightNamed.Identifier,
             (MirArrayType leftArray, MirArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (MirResultType leftResult, MirResultType rightResult) => AreEquivalent(leftResult.SuccessType, rightResult.SuccessType) && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
+            (MirCallableType leftCallable, MirCallableType rightCallable) => leftCallable.Parameters.Count == rightCallable.Parameters.Count
+                && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))
+                && AreEquivalent(leftCallable.ReturnType, rightCallable.ReturnType),
             _ => false
         };
 
@@ -311,14 +319,15 @@ public static class MirTypeFacts
         {
             MirResultType => true,
             MirArrayType array => ContainsResult(array.ElementType),
+            MirCallableType callable => callable.Parameters.Any(parameter => ContainsResult(parameter.Type)) || ContainsResult(callable.ReturnType),
             _ => false
         };
 }
 
 public static class MirTypeText
 {
-    public static string FormatArrayElement(MirType type) => type is MirResultType ? $"({type.Name})" : type.Name;
-    public static string FormatResultComponent(MirType type) => type is MirResultType ? $"({type.Name})" : type.Name;
+    public static string FormatArrayElement(MirType type) => type is MirResultType or MirCallableType ? $"({type.Name})" : type.Name;
+    public static string FormatResultComponent(MirType type) => type is MirResultType or MirCallableType ? $"({type.Name})" : type.Name;
 }
 
 public abstract record MirExpression(MirType Type);
@@ -329,6 +338,8 @@ public sealed record MirAssignmentExpression(string Name, MirExpression Expressi
 public sealed record MirUnaryExpression(string Operator, MirExpression Operand, MirType Type) : MirExpression(Type);
 public sealed record MirBinaryExpression(string Operator, MirExpression Left, MirExpression Right, MirType Type) : MirExpression(Type);
 public sealed record MirCallExpression(string FunctionName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
+public sealed record MirFunctionReferenceExpression(string FunctionName, MirCallableType CallableType) : MirExpression(CallableType);
+public sealed record MirInvokeExpression(MirExpression Callee, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirArrayExpression(IReadOnlyList<MirExpression> Elements, MirType Type) : MirExpression(Type);
 public sealed class MirRecordFieldValue(MirRecordFieldId fieldId, MirExpression value)
 {

@@ -1,4 +1,6 @@
 using Copeland.TS.Mir;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Copeland.TS.Backend.CSharp;
 
@@ -51,6 +53,7 @@ public static class CSharpBackend
         if (program.Records.Count > 0) writer.WriteLine();
         foreach (var mirEnum in program.Enums) EmitEnum(writer, mirEnum);
         if (program.Enums.Count > 0) writer.WriteLine();
+        EmitCallableDelegates(writer, program);
         if (program.Tables.Count > 0)
         {
             EmitColumnSupport(writer);
@@ -118,6 +121,22 @@ public static class CSharpBackend
     {
         writer.WriteLine("public readonly record struct CopeUnit"); writer.WriteLine("{"); writer.Indent();
         writer.WriteLine("public static readonly CopeUnit Value = new();"); writer.Unindent(); writer.WriteLine("}"); writer.WriteLine();
+    }
+
+    private static void EmitCallableDelegates(CSharpTextWriter writer, MirProgram program)
+    {
+        var callables = EnumerateTypes(program)
+            .SelectMany(EnumerateCallableTypes)
+            .GroupBy(CallableTypeIdentity, StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group => group.First())
+            .ToArray();
+        foreach (var callable in callables)
+        {
+            string parameters = string.Join(", ", callable.Parameters.Select((parameter, index) => $"{MapValueStorageType(parameter.Type)} value{index}"));
+            writer.WriteLine($"public delegate {MapValueStorageType(callable.ReturnType)} {CallableDelegateName(callable)}({parameters});");
+        }
+        if (callables.Length > 0) writer.WriteLine();
     }
 
     private static void EmitResult(CSharpTextWriter writer)
@@ -574,6 +593,8 @@ public static class CSharpBackend
             MirUnaryExpression unary => unary.Operator + ParenthesizeAssignmentOperand(unary.Operand, EmitExpression(writer, unary.Operand, function, enumNames, ref tempIndex, diagnostics)),
             MirBinaryExpression binary => EmitBinary(writer, binary, function, enumNames, ref tempIndex, diagnostics),
             MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", EmitArguments(call.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
+            MirFunctionReferenceExpression reference => $"({MapType(reference.CallableType)}){CSharpNameMangler.Mangle(reference.FunctionName)}",
+            MirInvokeExpression invoke => $"{ParenthesizeAssignmentOperand(invoke.Callee, EmitExpression(writer, invoke.Callee, function, enumNames, ref tempIndex, diagnostics))}({string.Join(", ", EmitArguments(invoke.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirArrayExpression array => $"new {MapType(array.Type)} {{ {string.Join(", ", EmitArguments(array.Elements, writer, function, enumNames, ref tempIndex, diagnostics))} }}",
             MirRecordConstructionExpression construction => EmitRecordConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(writer, access, function, enumNames, ref tempIndex, diagnostics),
@@ -1510,7 +1531,7 @@ public static class CSharpBackend
 
         return arrays;
     }
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
     private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
 
@@ -1551,6 +1572,7 @@ public static class CSharpBackend
             MirUnaryExpression unary => ExpressionUsesUnwrap(unary.Operand),
             MirBinaryExpression binary => ExpressionUsesUnwrap(binary.Left) || ExpressionUsesUnwrap(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionUsesUnwrap),
+            MirInvokeExpression invoke => ExpressionUsesUnwrap(invoke.Callee) || invoke.Arguments.Any(ExpressionUsesUnwrap),
             MirArrayExpression array => array.Elements.Any(ExpressionUsesUnwrap),
             MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesUnwrap(initializer.Value)),
             MirRecordFieldAccessExpression access => ExpressionUsesUnwrap(access.Receiver),
@@ -1610,6 +1632,7 @@ public static class CSharpBackend
             MirUnaryExpression unary => ExpressionRequiresStatements(unary.Operand),
             MirBinaryExpression binary => ExpressionRequiresStatements(binary.Left) || ExpressionRequiresStatements(binary.Right),
             MirCallExpression call => call.Arguments.Any(ExpressionRequiresStatements),
+            MirInvokeExpression invoke => ExpressionRequiresStatements(invoke.Callee) || invoke.Arguments.Any(ExpressionRequiresStatements),
             MirArrayExpression array => array.Elements.Any(ExpressionRequiresStatements),
             MirRecordFieldAccessExpression access => ExpressionRequiresStatements(access.Receiver),
             MirTableColumnAccessExpression access => ExpressionRequiresStatements(access.Receiver),
@@ -1640,6 +1663,52 @@ public static class CSharpBackend
 
     private static string TableColumnTypeName(MirTableColumnId id)
         => "__CopeTableColumn_" + EncodeStableIdentity(id.Value);
+
+    private static IEnumerable<MirCallableType> EnumerateCallableTypes(MirType root)
+    {
+        var pending = new Stack<MirType>();
+        pending.Push(root);
+        while (pending.Count > 0)
+        {
+            MirType type = pending.Pop();
+            switch (type)
+            {
+                case MirCallableType callable:
+                    yield return callable;
+                    foreach (var parameter in callable.Parameters) pending.Push(parameter.Type);
+                    pending.Push(callable.ReturnType);
+                    break;
+                case MirArrayType array:
+                    pending.Push(array.ElementType);
+                    break;
+                case MirResultType result:
+                    pending.Push(result.SuccessType);
+                    pending.Push(result.ErrorType);
+                    break;
+                case MirColumnType column:
+                    pending.Push(column.ElementType);
+                    break;
+            }
+        }
+    }
+
+    private static string CallableDelegateName(MirCallableType callable)
+        => "__CopeCallable_" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(CallableTypeIdentity(callable))));
+
+    private static string CallableTypeIdentity(MirCallableType callable)
+        => "(" + string.Join(",", callable.Parameters.Select(parameter => MirTypeIdentity(parameter.Type))) + ")->" + MirTypeIdentity(callable.ReturnType);
+
+    private static string MirTypeIdentity(MirType type) => type switch
+    {
+        MirArrayType array => "array(" + MirTypeIdentity(array.ElementType) + ")",
+        MirResultType result => "result(" + MirTypeIdentity(result.SuccessType) + "," + MirTypeIdentity(result.ErrorType) + ")",
+        MirCallableType callable => CallableTypeIdentity(callable),
+        MirRecordType record => "record:" + record.RecordTypeId.Value,
+        MirTableType table => "table:" + table.TableId.Value,
+        MirTableRowType row => "row:" + row.RowTypeId,
+        MirColumnType column => "column(" + MirTypeIdentity(column.ElementType) + ")",
+        _ => "named:" + type.Identifier,
+    };
 
     private static string TableSingletonName(MirTableId id)
         => "__cope_table_" + EncodeStableIdentity(id.Value);

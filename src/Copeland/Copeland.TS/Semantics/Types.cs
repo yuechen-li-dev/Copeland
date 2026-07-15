@@ -35,6 +35,19 @@ public sealed class ResultTypeSymbol(TypeSymbol successType, TypeSymbol errorTyp
     public override string Name => $"{TypeText.FormatResultComponent(SuccessType)} ! {ErrorType.Name}";
 }
 
+public sealed class CallableTypeSymbol(IReadOnlyList<CallableParameterTypeSymbol> parameters, TypeSymbol returnType) : TypeSymbol
+{
+    public IReadOnlyList<CallableParameterTypeSymbol> Parameters { get; } = parameters;
+    public TypeSymbol ReturnType { get; } = returnType;
+    public override string Name => "(" + string.Join(", ", Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + ") => " + ReturnType.Name;
+}
+
+public sealed class CallableParameterTypeSymbol(string name, TypeSymbol type)
+{
+    public string Name { get; } = name;
+    public TypeSymbol Type { get; } = type;
+}
+
 public sealed class ErrorNominalTypeSymbol(string name) : TypeSymbol
 {
     public override string Name { get; } = name;
@@ -134,6 +147,10 @@ public static class TypeFacts
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
                 AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)
                 && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
+            (CallableTypeSymbol leftCallable, CallableTypeSymbol rightCallable) =>
+                leftCallable.Parameters.Count == rightCallable.Parameters.Count
+                && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))
+                && AreEquivalent(leftCallable.ReturnType, rightCallable.ReturnType),
             _ => left.GetType() == right.GetType() && left.Name == right.Name
         };
     }
@@ -142,8 +159,8 @@ public static class TypeFacts
 internal static class TypeText
 {
     public static string FormatArrayElement(TypeSymbol type)
-        => type is ResultTypeSymbol ? $"({type.Name})" : type.Name;
+        => type is ResultTypeSymbol or CallableTypeSymbol ? $"({type.Name})" : type.Name;
 
     public static string FormatResultComponent(TypeSymbol type)
-        => type is ResultTypeSymbol ? $"({type.Name})" : type.Name;
+        => type is ResultTypeSymbol or CallableTypeSymbol ? $"({type.Name})" : type.Name;
 }
