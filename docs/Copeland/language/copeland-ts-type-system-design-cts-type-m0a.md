@@ -1,6 +1,6 @@
 # Copeland TS user-authored type-system design (CTS-TYPE-M0a)
 
-**Status:** accepted architecture recommendation. [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md) implements transparent non-generic compilation-unit aliases. [CTS-TYPE-M1a](copeland-ts-interface-requirements-design-cts-type-m1a.md) supplies requirement architecture and [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md) implements its bounded interface plus explicit closed-generic slice. Static evaluation remains unimplemented.
+**Status:** accepted architecture recommendation with historical baseline inventory. [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md) implements transparent non-generic compilation-unit aliases. [CTS-TYPE-M1a](copeland-ts-interface-requirements-design-cts-type-m1a.md) supplies requirement architecture and [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md) implements its bounded interface plus explicit closed-generic slice. [CTS-TYPE-M2a](copeland-ts-generic-inference-design-cts-type-m2a.md) now defines the future direct-argument inference boundary; inference is not implemented. Static evaluation remains unimplemented.
 
 ## Decision
 
@@ -29,7 +29,7 @@ T extends Positioned
 
 This notation explains the model; it is not source syntax or a request for a runtime `Requires` value. Ordinary aliases, field-only interfaces, and bounded generic functions should look familiar to a TypeScript programmer. Type-level programs, ambient merging, runtime interface carriers, and C++-template-style execution are not part of the model.
 
-M0a changed documentation only. M0b implements the non-generic `type` alias examples; M1b implements field-only interfaces, explicit generic function declarations, and explicit closed calls. General type-level programming remains proposed syntax and is rejected.
+M0a changed documentation only. M0b implements the non-generic `type` alias examples; M1b implements field-only interfaces, explicit generic function declarations, and explicit closed calls. M2a documents, but does not implement, direct argument inference. General type-level programming remains proposed syntax and is rejected.
 
 ## Evidence and status vocabulary
 
@@ -61,7 +61,7 @@ This inventory records the repository audited by M0a. CTS-TYPE-M0b supersedes on
 | Type syntax hierarchy | [`TypeSyntax`](../../../src/Copeland/Copeland.TS/Syntax/SyntaxNodes.cs) | The complete current set is `PredefinedTypeSyntax`, `IdentifierTypeSyntax`, `ArrayTypeSyntax`, `ParenthesizedTypeSyntax`, `ResultTypeSyntax`, `QualifiedRowTypeSyntax`, and `ColumnTypeSyntax`. There is no function-type, alias-reference-specific, interface, type-parameter, union, intersection, indexed-access, conditional, mapped, or type-query node. **Implemented law.** |
 | Type positions | `FunctionDeclarationSyntax`, `ParameterSyntax`, `RecordFieldSyntax`, `EnumPayloadFieldSyntax`, `VariableDeclarationStatementSyntax`, `TableColumnSyntax` | Types occur in named function signatures, variables, record fields, payload fields, and explicit table columns. Functions themselves are not first-class type expressions. **Implemented law.** |
 
-The existing comparison tokens can be reused by a future generic parser, but their existence does not establish generic syntax. CTS-TYPE-M2a must specify lookahead and recovery for declarations and calls such as `f<T>(x)` without weakening comparison parsing.
+The existing comparison tokens were reused by M1b's bounded generic parser. The M1b lookahead recognizes only `name<Type>(...)` as an explicit generic call without weakening comparison parsing; M2a adds no syntax and therefore no new parser recovery rule.
 
 ### Semantic types, symbols, and identity
 
@@ -312,8 +312,8 @@ Type parameters are compile-time parameters. A generic body is checked once agai
 | --- | --- |
 | First declaration family | Generic named functions only. Generic records, enums, tables, interfaces, and aliases are deferred. |
 | Constraints | `T extends Requirement` is the familiar one-requirement spelling. Multiple constraints use an explicit bounded list, subject to M1a grammar confirmation; no intersection type. |
-| Explicit arguments | M2b requires explicit closed type arguments at calls. |
-| Inference | M2c may infer from direct value-argument/parameter positions using one deterministic, non-backtracking pass. Conflicting or absent evidence requests explicit arguments. Return-context-only inference, overload search, and constraint solving are excluded initially. |
+| Explicit arguments | M1b implements complete explicit closed type arguments at calls; they remain the deterministic escape hatch. |
+| Inference | CTS-TYPE-M2a selects a future M2b direct value-argument/parameter matcher: exact, local, deterministic, non-backtracking, resource-bounded, and without return-context inference, overload search, or constraint solving. |
 | Variance | No variance annotations or inferred declaration-site variance. Parameters are substituted exactly. |
 | Defaults | Deferred. |
 | Higher-kinded types | Rejected by initial doctrine; no type constructor parameters. |
@@ -415,9 +415,9 @@ Aliases, requirement satisfaction, substitution, and bounded inference are compi
 | CTS-TYPE-M0b | Compilation-unit transparent non-generic aliases; forward references; duplicates/cycles; canonical expansion; diagnostics; no MIR alias nodes or emitted declarations. **Implemented and closed.** |
 | CTS-TYPE-M1a | Confirm requirement grammar, field compatibility, table-row evidence, multiple-constraint spelling, diagnostics, and illegal interface positions against parser/member evidence. Documentation/tests may be designed, but behavior changes wait for M1b. |
 | CTS-TYPE-M1b | Field-only erased interfaces/requirement sets and implicit satisfaction for nominal records and table rows; constraint positions only; no methods, interface values, composition, `implements`, or runtime carrier. |
-| CTS-TYPE-M2a | Generic-function bound/MIR/backend design, stable closed identities, resource limits, recursive-instantiation policy, C#/JS/NativeAOT/code-size measurements. |
-| CTS-TYPE-M2b | Bounded generic named functions with explicit type arguments and closed instantiations; no generic records/aliases/defaults/variance/recursion. |
-| CTS-TYPE-M2c | Predictable direct-argument inference, adversarial diagnostics, deterministic artifacts, runtime parity, and cross-backend representation closeout. |
+| CTS-TYPE-M2a | Documentation-only direct generic-call inference architecture/audit: current M1b inventory, evidence boundary, structural matching, contextual argument law, resource policy, identity reuse, diagnostics, parity plan, and hash-collision stabilization requirement. |
+| CTS-TYPE-M2b | Recommended implementation of M2a's bounded direct inference plus explicit/inferred reuse proof and specialization-name collision stabilization; retain explicit calls, no partial explicit inference, generic-to-generic calls, or generic recursion. |
+| CTS-TYPE-M2c | Deferred only if M2b evidence exposes a genuinely separate closeout need; it is not currently authorized as a broader inference expansion. |
 | CTS-TYPE-M3 | Consolidated type-system doctrine, excluded-feature audit, malformed-MIR/adversarial parity, corpus/profile closeout, and decision whether any deferred family has earned a next ladder. |
 | CTS-STATIC-M0a | Separate documentation-only bounded static-execution audit after CTS-TYPE foundations close. |
 

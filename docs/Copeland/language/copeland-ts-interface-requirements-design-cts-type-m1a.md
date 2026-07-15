@@ -1,6 +1,6 @@
 # Copeland TS field-only interface requirements (CTS-TYPE-M1a)
 
-**Status:** accepted M1a architecture and repository audit. Its recommended bounded vertical slice is implemented by [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md); this document remains the requirement-law design authority.
+**Status:** accepted M1a architecture and historical baseline audit. Its recommended bounded vertical slice is implemented by [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md); this document remains the requirement-law design authority. [CTS-TYPE-M2a](copeland-ts-generic-inference-design-cts-type-m2a.md) is the successor audit for a future inference implementation and does not change M1b behavior.
 
 ## Decision
 
@@ -23,9 +23,9 @@ function inspect<T extends Positioned & Named>(value: T): string
 
 Here, and only in a generic constraint, `&` conjoins named requirement sets. It does not introduce general intersections, stored intersection values, or runtime intersections.
 
-## Corrected current implementation inventory
+## Historical M1a baseline inventory
 
-The following is repository evidence at M1a. It corrects M0a's now-superseded alias absence: transparent non-generic aliases are implemented and erased before MIR; interfaces and generics are still absent.
+The following records the repository evidence available at the M1a audit baseline. It corrects M0a's then-superseded alias absence: transparent non-generic aliases were implemented and erased before MIR; interfaces and generics were still absent. It is not a statement of current M1b behavior; see the M1b and M2a records above.
 
 | Concern | Exact current path | Finding |
 | --- | --- | --- |

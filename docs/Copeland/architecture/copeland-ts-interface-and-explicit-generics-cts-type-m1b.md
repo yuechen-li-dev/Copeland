@@ -1,6 +1,6 @@
 # Copeland TS interfaces and explicit closed generics (CTS-TYPE-M1b)
 
-**Status:** implemented bounded frontend feature with closed-MIR/backend erasure. Interfaces and open generics remain frontend-only facts. The repository now has strong frontend/runtime/CLI evidence for the implemented slice, but this document does not claim that every broader closeout checklist item outside that slice has been independently re-ratified.
+**Status:** implemented bounded frontend feature with closed-MIR/backend erasure. Interfaces and open generics remain frontend-only facts. [CTS-TYPE-M2a](../language/copeland-ts-generic-inference-design-cts-type-m2a.md) is the accepted documentation-only design for a future direct-argument inference slice; ordinary calls still require explicit type arguments today. The repository now has strong frontend/runtime/CLI evidence for the implemented slice, but this document does not claim that every broader closeout checklist item outside that slice has been independently re-ratified.
 
 ## Scope
 
@@ -14,7 +14,7 @@ CTS-TYPE-M1b adds:
 - one-time generic body binding
 - deterministic closed specialization before MIR
 
-It does not add inference, generic nominal declarations, interface storage/runtime behavior, generic-to-generic calls, or generic recursion.
+It does not add inference, generic nominal declarations, interface storage/runtime behavior, generic-to-generic calls, or generic recursion. Direct inference remains a future M2b implementation under the M2a evidence and resource boundary.
 
 ## Grammar
 
@@ -84,7 +84,7 @@ Canonical closed type identities are UTF-8 text over:
 - `enum:<stable enum identity>`
 - `column(...)`, `array(...)`, `result(...,...)`
 
-Specialized function names are deterministic display names plus the first sixteen hexadecimal characters of `SHA-256(UTF-8(identityText))`. The cache key remains the full canonical identity text. Name collisions are treated as impossible invariant failures rather than silent merges.
+Specialized function names are deterministic display names plus the first sixteen hexadecimal characters of `SHA-256(UTF-8(identityText))`. The cache key remains the full canonical identity text. The current name map detects a conflict and throws an invariant failure rather than silently merging; [CTS-TYPE-M2a](../language/copeland-ts-generic-inference-design-cts-type-m2a.md#specialization-name-hash-audit) requires M2b to stabilize this as collision-safe allocation or a deterministic frontend diagnostic.
 
 This removes the earlier `sum__r1`-style dependence on record/table traversal ordinals for generic specialization identity.
 
