@@ -3,6 +3,8 @@ using Copeland.TS.Compiler;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using Copeland.TS.Tson;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Copeland.TS.Semantics;
 
@@ -20,6 +22,13 @@ public static class Binder
         return impl.Bind();
     }
 
+    internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
+    {
+        var impl = new BinderImpl(tree, null);
+        _ = impl.Bind();
+        return impl.GetOpenGenericBodiesForTesting();
+    }
+
     private sealed class Scope(Scope? parent)
     {
         private readonly Dictionary<string, Symbol> _symbols = new(StringComparer.Ordinal);
@@ -35,6 +44,15 @@ public static class Binder
 
     private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver)
     {
+        private const int MaxTypeParametersPerFunction = 8;
+        private const int MaxRequirementInterfacesPerTypeParameter = 8;
+        private const int MaxNormalizedRequirementFields = 32;
+        private const int MaxInterfaceFieldsPerCompilation = 128;
+        private const int MaxClosedTypeDepth = 16;
+        private const int MaxClosedInstantiationsPerGenericDefinition = 16;
+        private const int MaxClosedInstantiationsPerCompilation = 128;
+        private const int MaxDiagnosticRequirementFields = 4;
+
         private int _loopDepth;
         private readonly SyntaxTree _tree = tree;
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
@@ -51,6 +69,14 @@ public static class Binder
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TableTypeSymbol> _tableTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TypeAliasSymbol> _aliases = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, InterfaceSymbol> _interfaces = new(StringComparer.Ordinal);
+        private readonly Dictionary<FunctionSymbol, BoundFunctionDeclaration> _genericBodies = [];
+        private readonly Dictionary<string, BoundFunctionDeclaration> _closedInstantiations = new(StringComparer.Ordinal);
+        private readonly Dictionary<FunctionSymbol, int> _closedInstantiationCounts = [];
+        private readonly Dictionary<string, string> _closedInstantiationNames = new(StringComparer.Ordinal);
+        private Dictionary<string, TypeParameterSymbol>? _activeTypeParameters;
+        private int _nextInterfaceId = 1;
+        private int _totalInterfaceFieldCount;
         private readonly Dictionary<TypeAliasSymbol, TypeAliasDeclarationSyntax> _aliasDeclarations = [];
         private readonly List<TypeAliasSymbol> _aliasesInDeclarationOrder = [];
         private readonly HashSet<MemberSyntax> _rejectedTypeDeclarations = [];
@@ -80,19 +106,25 @@ public static class Binder
             PredeclareTableBoundsError();
             PredeclareTsonEncodeError();
             AnalyzeAliasTypeNameCollisions(_tree.Root);
+            PredeclareInterfaces(_tree.Root);
             PredeclareAliases(_tree.Root);
             PredeclareRecords(_tree.Root);
             PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
             ResolveAliases();
+            BindInterfaceBodies(_tree.Root);
             PredeclareFunctions(_tree.Root);
             BindRecordBodies(_tree.Root);
             BindEnumBodies(_tree.Root);
             BindTableBodies(_tree.Root);
             ValidateRecordCycles();
+            foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0))
+            {
+                _genericBodies[(FunctionSymbol)_globalLookup(generic.Identifier.Text)!] = BindFunction(generic);
+            }
             foreach (var m in _tree.Root.Members)
             {
-                if (m is FunctionDeclarationSyntax f) _functions.Add(BindFunction(f));
+                if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0) _functions.Add(BindFunction(f));
                 else if (m is EnumDeclarationSyntax e && e.Identifier.Text != "TableBoundsError" && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
                 else if (m is RecordDeclarationSyntax r && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
                 else if (m is GlobalStatementMemberSyntax g && !IsSchemaDeclaration(g.Statement)) _globals.Add(BindStatement(g.Statement));
@@ -117,6 +149,15 @@ public static class Binder
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
         }
 
+        public IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> GetOpenGenericBodiesForTesting()
+            => new Dictionary<FunctionSymbol, BoundFunctionDeclaration>(_genericBodies);
+
+        private Symbol? _globalLookup(string name)
+        {
+            _global.TryLookup(name, out var symbol);
+            return symbol;
+        }
+
         private void AnalyzeAliasTypeNameCollisions(CompilationUnitSyntax root)
         {
             var owners = new Dictionary<string, MemberSyntax>(StringComparer.Ordinal);
@@ -128,6 +169,7 @@ public static class Binder
                     RecordDeclarationSyntax record => record.Identifier.Text,
                     EnumDeclarationSyntax @enum => @enum.Identifier.Text,
                     TableDeclarationSyntax table => table.Identifier.Text,
+                    InterfaceDeclarationSyntax @interface => @interface.Identifier.Text,
                     _ => null
                 };
 
@@ -142,7 +184,7 @@ public static class Binder
                     continue;
                 }
 
-                if (member is TypeAliasDeclarationSyntax || owner is TypeAliasDeclarationSyntax)
+                if (member is TypeAliasDeclarationSyntax || owner is TypeAliasDeclarationSyntax || member is InterfaceDeclarationSyntax || owner is InterfaceDeclarationSyntax)
                 {
                     SyntaxToken anchor = GetTypeDeclarationName(member);
                     Report(
@@ -162,8 +204,57 @@ public static class Binder
                 RecordDeclarationSyntax record => record.Identifier,
                 EnumDeclarationSyntax @enum => @enum.Identifier,
                 TableDeclarationSyntax table => table.Identifier,
+                InterfaceDeclarationSyntax @interface => @interface.Identifier,
                 _ => throw new InvalidOperationException("Expected a type declaration.")
             };
+        }
+
+        private void PredeclareInterfaces(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<InterfaceDeclarationSyntax>())
+            {
+                if (_rejectedTypeDeclarations.Contains(declaration) || string.IsNullOrEmpty(declaration.Identifier.Text)) continue;
+                if (_interfaces.ContainsKey(declaration.Identifier.Text)) continue;
+                _interfaces.Add(declaration.Identifier.Text, new InterfaceSymbol(declaration.Identifier.Text, _nextInterfaceId++));
+            }
+        }
+
+        private void BindInterfaceBodies(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<InterfaceDeclarationSyntax>())
+            {
+                if (!_interfaces.TryGetValue(declaration.Identifier.Text, out var @interface)) continue;
+                if (declaration.Fields.Count == 0)
+                {
+                    Report("COPE-INTERFACE-0001", "Interfaces must declare at least one field.", declaration.Identifier);
+                }
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var field in declaration.Fields)
+                {
+                    if (!field.HasExplicitType || !field.HasTerminator || field.UnsupportedTokens.Count > 0)
+                    {
+                        Report("COPE-INTERFACE-0002", $"Interface field '{field.Identifier.Text}' must be a readable field with an explicit type and semicolon.", field.Identifier);
+                    }
+                    if (!names.Add(field.Identifier.Text))
+                    {
+                        Report("COPE-INTERFACE-0003", $"Duplicate field '{field.Identifier.Text}' in interface '{@interface.Name}'.", field.Identifier);
+                        continue;
+                    }
+                    var type = field.HasExplicitType
+                        ? BindType(field.Type, field.Identifier, "COPE-INTERFACE-0004", "interface field")
+                        : PrimitiveTypeSymbol.Error;
+                    if (type is TypeParameterTypeSymbol || type == PrimitiveTypeSymbol.Void)
+                    {
+                        Report("COPE-INTERFACE-0004", $"Interface field '{field.Identifier.Text}' has an illegal type '{type.Name}'.", field.Identifier);
+                    }
+                    @interface.AddField(new RequirementFieldSymbol(field.Identifier.Text, type, @interface.Fields.Count));
+                    _totalInterfaceFieldCount++;
+                    if (_totalInterfaceFieldCount > MaxInterfaceFieldsPerCompilation)
+                    {
+                        Report("COPE-INTERFACE-0006", $"The compilation exceeded the {MaxInterfaceFieldsPerCompilation} interface-field limit.", field.Identifier);
+                    }
+                }
+            }
         }
 
         private void PredeclareAliases(CompilationUnitSyntax root)
@@ -462,7 +553,8 @@ public static class Binder
                         declaration.Identifier);
                     continue;
                 }
-                var table = new TableTypeSymbol(declaration.Identifier.Text, new TableTypeId(_nextTableTypeId++));
+                string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{declaration.Identifier.Text}";
+                var table = new TableTypeSymbol(declaration.Identifier.Text, new TableTypeId(_nextTableTypeId++), identity);
                 var tableSingleton = new VariableSymbol(table.Name, table, true);
                 if (!_global.TryDeclare(tableSingleton) || _tableTypes.ContainsKey(table.Name))
                 {
@@ -1158,6 +1250,27 @@ public static class Binder
                         m.Identifier);
                     continue;
                 }
+                var typeParameters = new List<TypeParameterSymbol>();
+                var typeParameterNames = new HashSet<string>(StringComparer.Ordinal);
+                if (m.TypeParameters.Count > MaxTypeParametersPerFunction)
+                {
+                    Report("COPE-GENERIC-0011", $"Generic function '{m.Identifier.Text}' exceeds the {MaxTypeParametersPerFunction} type-parameter limit.", m.Identifier);
+                }
+                for (var index = 0; index < m.TypeParameters.Count; index++)
+                {
+                    var syntax = m.TypeParameters[index];
+                    if (!typeParameterNames.Add(syntax.Identifier.Text))
+                    {
+                        Report("COPE-GENERIC-0001", $"Duplicate type parameter '{syntax.Identifier.Text}'.", syntax.Identifier);
+                    }
+                    if (_aliases.ContainsKey(syntax.Identifier.Text) || _recordTypes.ContainsKey(syntax.Identifier.Text) || _enumTypes.ContainsKey(syntax.Identifier.Text) || _tableTypes.ContainsKey(syntax.Identifier.Text) || _interfaces.ContainsKey(syntax.Identifier.Text))
+                    {
+                        Report("COPE-GENERIC-0002", $"Type parameter '{syntax.Identifier.Text}' cannot shadow a compilation-unit type declaration.", syntax.Identifier);
+                    }
+                    var requirements = BindRequirements(syntax);
+                    typeParameters.Add(new TypeParameterSymbol(syntax.Identifier.Text, new TypeParameterTypeSymbol(syntax.Identifier.Text, index), requirements));
+                }
+                _activeTypeParameters = CreateTypeParameterScope(typeParameters);
                 var ps = new List<ParameterSymbol>();
                 var seen = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var p in m.Parameters)
@@ -1176,7 +1289,16 @@ public static class Binder
                 }
                 var rt = BindType(m.ReturnType, m.Identifier, missingId: "COPE-TYPE-0002", missingPrefix: "function return");
                 ValidateFunctionReturnType(rt, m.Identifier);
-                var fn = new FunctionSymbol(m.Identifier.Text, ps, rt, GetAuthoredAliasName(m.ReturnType));
+                _activeTypeParameters = null;
+                var fn = new FunctionSymbol(
+                    m.Identifier.Text,
+                    ps,
+                    rt,
+                    GetAuthoredAliasName(m.ReturnType),
+                    CreateFunctionStableIdentity(m.Identifier.Text))
+                {
+                    TypeParameters = typeParameters
+                };
                 if (_enumTypes.ContainsKey(fn.Name) || _recordTypes.ContainsKey(fn.Name))
                 {
                     Report("COPE-BIND-0002", $"Name '{fn.Name}' is already used by a named type.", m.Identifier);
@@ -1265,15 +1387,17 @@ public static class Binder
         private BoundFunctionDeclaration BindFunction(FunctionDeclarationSyntax s)
         {
             _global.TryLookup(s.Identifier.Text, out var sym);
-            var fn = sym as FunctionSymbol ?? new FunctionSymbol(s.Identifier.Text, [], PrimitiveTypeSymbol.Error);
+            var fn = sym as FunctionSymbol ?? new FunctionSymbol(s.Identifier.Text, [], PrimitiveTypeSymbol.Error, stableIdentity: CreateFunctionStableIdentity(s.Identifier.Text));
             var prevFn = _currentFunction; _currentFunction = fn;
+            var previousTypeParameters = _activeTypeParameters;
+            _activeTypeParameters = CreateTypeParameterScope(fn.TypeParameters);
             var prev = _scope; _scope = new Scope(_global);
             foreach (var p in fn.Parameters)
             {
                 if (!_scope.TryDeclare(p)) Report("COPE-BIND-0005", $"Duplicate parameter '{p.Name}'.", s.Identifier);
             }
             var body = (BoundBlockStatement)BindStatement(s.Body);
-            _scope = prev; _currentFunction = prevFn;
+            _scope = prev; _currentFunction = prevFn; _activeTypeParameters = previousTypeParameters;
             return new BoundFunctionDeclaration(fn, body);
         }
 
@@ -1396,6 +1520,59 @@ public static class Binder
             }
         }
 
+        private RequirementSet BindRequirements(TypeParameterSyntax syntax)
+        {
+            if (syntax.ExtendsKeyword is null) return new RequirementSet([], []);
+            var interfaces = new List<InterfaceSymbol>();
+            var fields = new List<RequirementFieldSymbol>();
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            if (syntax.RequirementNames.Count > MaxRequirementInterfacesPerTypeParameter)
+            {
+                Report("COPE-REQUIREMENT-0009", $"Type parameter '{syntax.Identifier.Text}' exceeds the {MaxRequirementInterfacesPerTypeParameter} requirement-interface limit.", syntax.Identifier);
+            }
+            foreach (var operand in syntax.RequirementNames)
+            {
+                if (!_interfaces.TryGetValue(operand.Text, out var @interface))
+                {
+                    if (_aliases.ContainsKey(operand.Text)
+                        || _recordTypes.ContainsKey(operand.Text)
+                        || _enumTypes.ContainsKey(operand.Text)
+                        || _tableTypes.ContainsKey(operand.Text))
+                    {
+                        Report("COPE-REQUIREMENT-0008", $"Constraint operand '{operand.Text}' is not an interface.", operand);
+                    }
+                    else
+                    {
+                        Report("COPE-REQUIREMENT-0001", $"Unknown interface requirement '{operand.Text}'.", operand);
+                    }
+                    continue;
+                }
+                if (!names.Add(@interface.Name))
+                {
+                    Report("COPE-REQUIREMENT-0002", $"Requirement '{@interface.Name}' is repeated.", operand);
+                    continue;
+                }
+                interfaces.Add(@interface);
+                foreach (var field in @interface.Fields)
+                {
+                    var existing = fields.FirstOrDefault(candidate => candidate.Name == field.Name);
+                    if (existing is null)
+                    {
+                        fields.Add(field);
+                    }
+                    else if (!TypeFacts.AreEquivalent(existing.Type, field.Type))
+                    {
+                        Report("COPE-REQUIREMENT-0003", $"Requirements conflict on field '{field.Name}': '{existing.Type.Name}' versus '{field.Type.Name}'.", operand);
+                    }
+                }
+            }
+            if (fields.Count > MaxNormalizedRequirementFields)
+            {
+                Report("COPE-REQUIREMENT-0010", $"Type parameter '{syntax.Identifier.Text}' exceeds the {MaxNormalizedRequirementFields} normalized requirement-field limit.", syntax.Identifier);
+            }
+            return new RequirementSet(interfaces, fields);
+        }
+
         private BoundStatement BindWhile(WhileStatementSyntax statement)
         {
             var condition = EnsureBoolean(BindExpression(statement.Condition), statement.WhileKeyword);
@@ -1485,6 +1662,7 @@ public static class Binder
                 BinaryExpressionSyntax b => BindBinary(b),
                 AssignmentExpressionSyntax a => BindAssignment(a),
                 CallExpressionSyntax c => BindCall(c, contextualType),
+                GenericCallExpressionSyntax c => BindGenericCall(c, contextualType),
                 ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
                 ObjectLiteralExpressionSyntax o => BindObject(o, contextualType),
                 MemberAccessExpressionSyntax m => BindMember(m),
@@ -1754,6 +1932,11 @@ public static class Binder
                 return new BoundErrorExpression();
             }
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
+            if (fn.IsGeneric)
+            {
+                Report("COPE-GENERIC-0003", $"Generic function '{fn.Name}' requires explicit type arguments.", c.OpenParenToken);
+                return new BoundErrorExpression();
+            }
             if (c.Arguments.Count != fn.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {fn.Parameters.Count}, got {c.Arguments.Count}.", c.OpenParenToken);
             var args = c.Arguments.Select((a, index) => BindExpression(a, index < fn.Parameters.Count ? fn.Parameters[index].Type : null)).ToArray();
             for (var i = 0; i < Math.Min(args.Length, fn.Parameters.Count); i++)
@@ -1767,6 +1950,401 @@ public static class Binder
                         fn.Parameters[i].AuthoredAliasName);
                 }
             return new BoundCallExpression(fn, args);
+        }
+
+        private BoundExpression BindGenericCall(GenericCallExpressionSyntax call, TypeSymbol? contextualType)
+        {
+            if (call.Target is not NameExpressionSyntax name
+                || !_global.TryLookup(name.IdentifierToken.Text, out var symbol)
+                || symbol is not FunctionSymbol function)
+            {
+                Report("COPE-GENERIC-0004", "Explicit type arguments require a named function.", call.LessToken);
+                return new BoundErrorExpression();
+            }
+            if (!function.IsGeneric)
+            {
+                Report("COPE-GENERIC-0005", $"Function '{function.Name}' does not accept type arguments.", call.LessToken);
+                return new BoundErrorExpression();
+            }
+            if (_currentFunction?.IsGeneric == true)
+            {
+                string diagnosticId = _currentFunction.Name == function.Name
+                    ? "COPE-GENERIC-0014"
+                    : "COPE-GENERIC-0006";
+                string message = diagnosticId == "COPE-GENERIC-0014"
+                    ? $"Generic recursion through '{function.Name}' is not supported in CTS-TYPE-M1b."
+                    : "Generic-to-generic calls are not supported in CTS-TYPE-M1b.";
+                Report(diagnosticId, message, call.LessToken);
+                return new BoundErrorExpression();
+            }
+            if (call.TypeArguments.Count != function.TypeParameters.Count)
+            {
+                Report("COPE-GENERIC-0007", $"Generic function '{function.Name}' expects {function.TypeParameters.Count} type arguments, got {call.TypeArguments.Count}.", call.LessToken);
+                return new BoundErrorExpression();
+            }
+            if (call.TypeArguments.Any(argument => argument is IdentifierTypeSyntax identifier && _interfaces.ContainsKey(identifier.Identifier.Text)))
+            {
+                foreach (var argument in call.TypeArguments.OfType<IdentifierTypeSyntax>().Where(argument => _interfaces.ContainsKey(argument.Identifier.Text)))
+                {
+                    Report("COPE-GENERIC-0008", $"Interface '{argument.Identifier.Text}' cannot be used as a generic type argument.", argument.Identifier);
+                }
+
+                return new BoundErrorExpression();
+            }
+            var typeArguments = call.TypeArguments.Select(argument => BindType(argument, call.LessToken, "COPE-GENERIC-0008", "type argument")).ToArray();
+            if (typeArguments.Any(IsOpenOrIllegalTypeArgument))
+            {
+                Report("COPE-GENERIC-0008", "Generic type arguments must be closed value types; interfaces and open type parameters are not allowed.", call.LessToken);
+                return new BoundErrorExpression();
+            }
+            try
+            {
+                foreach (var typeArgument in typeArguments)
+                {
+                    ValidateClosedTypeDepth(typeArgument, MaxClosedTypeDepth);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                Report("COPE-GENERIC-0015", $"Generic instantiation exceeded the closed-type nesting limit of {MaxClosedTypeDepth}.", call.LessToken);
+                return new BoundErrorExpression();
+            }
+            for (var index = 0; index < typeArguments.Length; index++)
+            {
+                if (!Satisfies(function.TypeParameters[index].Requirements, typeArguments[index], call.LessToken))
+                {
+                    return new BoundErrorExpression();
+                }
+            }
+            var specialization = GetOrCreateClosedInstantiation(function, typeArguments, call.LessToken);
+            var arguments = call.Arguments.Select((argument, index) => BindExpression(argument, index < specialization.Symbol.Parameters.Count ? specialization.Symbol.Parameters[index].Type : null)).ToArray();
+            if (arguments.Length != specialization.Symbol.Parameters.Count)
+            {
+                Report("COPE-TYPE-0004", $"Argument count mismatch: expected {specialization.Symbol.Parameters.Count}, got {arguments.Length}.", call.OpenParenToken);
+            }
+            for (var index = 0; index < Math.Min(arguments.Length, specialization.Symbol.Parameters.Count); index++)
+            {
+                if (!IsAssignable(specialization.Symbol.Parameters[index].Type, arguments[index].Type))
+                {
+                    ReportTypeMismatch("COPE-TYPE-0005", specialization.Symbol.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
+                }
+            }
+            return new BoundCallExpression(specialization.Symbol, arguments);
+        }
+
+        private bool Satisfies(RequirementSet requirements, TypeSymbol candidate, SyntaxToken anchor)
+        {
+            if (requirements.Fields.Count == 0) return true;
+            IReadOnlyList<(string Name, TypeSymbol Type)> fields = candidate switch
+            {
+                RecordTypeSymbol record => record.Fields.Select(field => (field.Name, field.Type)).ToArray(),
+                TableRowTypeSymbol row => row.Fields.Select(field => (field.Name, field.Type)).ToArray(),
+                _ => []
+            };
+            if (fields.Count == 0)
+            {
+                Report("COPE-REQUIREMENT-0005", $"Type '{candidate.Name}' cannot satisfy field requirements.", anchor);
+                return false;
+            }
+            var missingFields = new List<RequirementFieldSymbol>();
+            var mismatchedFields = new List<(RequirementFieldSymbol Requirement, TypeSymbol ActualType)>();
+            foreach (var requirement in requirements.Fields)
+            {
+                var actual = fields.FirstOrDefault(field => field.Name == requirement.Name);
+                if (actual.Name is null)
+                {
+                    missingFields.Add(requirement);
+                    continue;
+                }
+                if (!TypeFacts.AreEquivalent(requirement.Type, actual.Type))
+                {
+                    mismatchedFields.Add((requirement, actual.Type));
+                }
+            }
+            if (missingFields.Count > 0)
+            {
+                Report(
+                    "COPE-REQUIREMENT-0006",
+                    BuildRequirementFieldListMessage(
+                        $"Type '{candidate.Name}' is missing required field",
+                        missingFields.Select(field => $"{field.Name}: {field.Type.Name}").ToArray()),
+                    anchor);
+            }
+
+            if (mismatchedFields.Count > 0)
+            {
+                var descriptions = mismatchedFields
+                    .Select(item => $"{item.Requirement.Name}: required {item.Requirement.Type.Name}, actual {item.ActualType.Name}")
+                    .ToArray();
+                Report(
+                    "COPE-REQUIREMENT-0007",
+                    BuildRequirementFieldListMessage(
+                        $"Type '{candidate.Name}' has incompatible required field",
+                        descriptions),
+                    anchor);
+            }
+
+            return missingFields.Count == 0 && mismatchedFields.Count == 0;
+        }
+
+        private static bool IsOpenOrIllegalTypeArgument(TypeSymbol type)
+        {
+            return type switch
+            {
+                TypeParameterTypeSymbol => true,
+                ArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
+                ResultTypeSymbol result => IsOpenOrIllegalTypeArgument(result.SuccessType) || IsOpenOrIllegalTypeArgument(result.ErrorType),
+                _ => false
+            };
+        }
+
+        private BoundFunctionDeclaration GetOrCreateClosedInstantiation(FunctionSymbol generic, IReadOnlyList<TypeSymbol> typeArguments, SyntaxToken anchor)
+        {
+            string identity;
+            try
+            {
+                identity = generic.StableIdentity + "<" + string.Join(",", typeArguments.Select(type => ClosedTypeIdentity(type, MaxClosedTypeDepth))) + ">";
+            }
+            catch (InvalidOperationException)
+            {
+                Report("COPE-GENERIC-0015", $"Generic instantiation exceeded the closed-type nesting limit of {MaxClosedTypeDepth}.", anchor);
+                return new BoundFunctionDeclaration(new FunctionSymbol("<error>", [], PrimitiveTypeSymbol.Error), new BoundBlockStatement([]));
+            }
+            if (_closedInstantiations.TryGetValue(identity, out var existing)) return existing;
+            if (_closedInstantiationCounts.TryGetValue(generic, out var perGenericCount)
+                && perGenericCount >= MaxClosedInstantiationsPerGenericDefinition)
+            {
+                Report("COPE-GENERIC-0012", $"Generic function '{generic.Name}' exceeded the {MaxClosedInstantiationsPerGenericDefinition} closed-instantiation limit.", anchor);
+                return new BoundFunctionDeclaration(new FunctionSymbol("<error>", [], PrimitiveTypeSymbol.Error), new BoundBlockStatement([]));
+            }
+            if (_closedInstantiations.Count >= MaxClosedInstantiationsPerCompilation)
+            {
+                Report("COPE-GENERIC-0009", $"The compilation exceeded the {MaxClosedInstantiationsPerCompilation} closed generic instantiation limit.", anchor);
+                return new BoundFunctionDeclaration(new FunctionSymbol("<error>", [], PrimitiveTypeSymbol.Error), new BoundBlockStatement([]));
+            }
+            if (!_genericBodies.TryGetValue(generic, out var openBody))
+            {
+                Report("COPE-GENERIC-0010", $"Generic function '{generic.Name}' is not available for closed instantiation.", anchor);
+                return new BoundFunctionDeclaration(new FunctionSymbol("<error>", [], PrimitiveTypeSymbol.Error), new BoundBlockStatement([]));
+            }
+            var substitutions = generic.TypeParameters
+                .Select((parameter, index) => (Open: (TypeSymbol)parameter.Type, Closed: typeArguments[index]))
+                .ToDictionary(pair => pair.Open, pair => pair.Closed);
+            var specializedParameters = generic.Parameters
+                .Select(parameter => new ParameterSymbol(parameter.Name, SubstituteType(parameter.Type, substitutions), parameter.AuthoredAliasName))
+                .ToArray();
+            var specializedName = CreateSpecializationName(generic, identity, typeArguments);
+            var specializedSymbol = new FunctionSymbol(
+                specializedName,
+                specializedParameters,
+                SubstituteType(generic.ReturnType, substitutions),
+                generic.AuthoredReturnAliasName,
+                identity);
+            var rewriter = new ClosedInstantiationRewriter(substitutions);
+            var specialized = new BoundFunctionDeclaration(specializedSymbol, rewriter.RewriteBlock(openBody.Body));
+            _closedInstantiations.Add(identity, specialized);
+            _closedInstantiationCounts[generic] = _closedInstantiationCounts.TryGetValue(generic, out perGenericCount)
+                ? perGenericCount + 1
+                : 1;
+            _functions.Add(specialized);
+            return specialized;
+        }
+
+        private string CreateSpecializationName(FunctionSymbol generic, string specializationIdentity, IReadOnlyList<TypeSymbol> typeArguments)
+        {
+            string displaySuffix = string.Join("_", typeArguments.Select(type => ClosedTypeIdentifier(type, MaxClosedTypeDepth)));
+            string hash = ComputeStableHashHex(specializationIdentity);
+            string specializedName = generic.Name + "__" + displaySuffix + "__" + hash[..16];
+            if (_closedInstantiationNames.TryGetValue(specializedName, out var existingIdentity)
+                && !string.Equals(existingIdentity, specializationIdentity, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"Specialization name collision detected for '{specializedName}'.");
+            }
+
+            _closedInstantiationNames[specializedName] = specializationIdentity;
+            return specializedName;
+        }
+
+        private static string ClosedTypeIdentity(TypeSymbol type, int depthRemaining)
+        {
+            if (depthRemaining <= 0)
+            {
+                throw new InvalidOperationException("Closed type identity exceeded the configured nesting limit.");
+            }
+
+            return type switch
+            {
+                PrimitiveTypeSymbol primitive => "primitive:" + primitive.Name,
+                ErrorNominalTypeSymbol error => "error:" + error.Name,
+                EnumTypeSymbol @enum => "enum:" + (@enum.StableIdentity ?? @enum.Name),
+                RecordTypeSymbol record => "record:" + (record.StableIdentity ?? record.Name),
+                TableTypeSymbol table => "table:" + table.StableIdentity,
+                TableRowTypeSymbol row => "row:" + row.StableIdentity,
+                ColumnTypeSymbol column => "column(" + ClosedTypeIdentity(column.ElementType, depthRemaining - 1) + ")",
+                ArrayTypeSymbol array => "array(" + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
+                ResultTypeSymbol result => "result(" + ClosedTypeIdentity(result.SuccessType, depthRemaining - 1) + "," + ClosedTypeIdentity(result.ErrorType, depthRemaining - 1) + ")",
+                _ => "type:" + type.Name
+            };
+        }
+
+        private static string ClosedTypeIdentifier(TypeSymbol type, int depthRemaining)
+        {
+            var identity = ClosedTypeIdentity(type, depthRemaining);
+            var builder = new StringBuilder(identity.Length);
+            foreach (var ch in identity)
+            {
+                builder.Append(char.IsLetterOrDigit(ch) ? ch : '_');
+            }
+
+            return builder.ToString();
+        }
+
+        private static string ComputeStableHashHex(string text)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            return Convert.ToHexString(SHA256.HashData(bytes));
+        }
+
+        private static string CreateFunctionStableIdentity(string name)
+            => "function:" + name;
+
+        private static Dictionary<string, TypeParameterSymbol> CreateTypeParameterScope(IReadOnlyList<TypeParameterSymbol> typeParameters)
+        {
+            var scope = new Dictionary<string, TypeParameterSymbol>(StringComparer.Ordinal);
+            foreach (var parameter in typeParameters)
+            {
+                if (!scope.ContainsKey(parameter.Name))
+                {
+                    scope.Add(parameter.Name, parameter);
+                }
+            }
+
+            return scope;
+        }
+
+        private static void ValidateClosedTypeDepth(TypeSymbol type, int depthRemaining)
+        {
+            if (depthRemaining <= 0)
+            {
+                throw new InvalidOperationException("Closed type nesting exceeded the configured limit.");
+            }
+
+            switch (type)
+            {
+                case ArrayTypeSymbol array:
+                    ValidateClosedTypeDepth(array.ElementType, depthRemaining - 1);
+                    break;
+                case ResultTypeSymbol result:
+                    ValidateClosedTypeDepth(result.SuccessType, depthRemaining - 1);
+                    ValidateClosedTypeDepth(result.ErrorType, depthRemaining - 1);
+                    break;
+                case ColumnTypeSymbol column:
+                    ValidateClosedTypeDepth(column.ElementType, depthRemaining - 1);
+                    break;
+            }
+        }
+
+        private static string BuildRequirementFieldListMessage(string prefix, IReadOnlyList<string> descriptions)
+        {
+            var shown = descriptions.Take(MaxDiagnosticRequirementFields).ToArray();
+            var builder = new StringBuilder();
+            builder.Append(prefix);
+            if (shown.Length == 1)
+            {
+                builder.Append(' ').Append('\'').Append(shown[0]).Append('\'');
+            }
+            else
+            {
+                builder.Append("s: ");
+                builder.Append(string.Join("; ", shown));
+            }
+
+            if (descriptions.Count > shown.Length)
+            {
+                builder.Append(" (+").Append(descriptions.Count - shown.Length).Append(" more)");
+            }
+
+            builder.Append('.');
+            return builder.ToString();
+        }
+
+        private static TypeSymbol SubstituteType(TypeSymbol type, IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
+        {
+            if (substitutions.TryGetValue(type, out var replacement)) return replacement;
+            return type switch
+            {
+                ArrayTypeSymbol array => new ArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
+                ResultTypeSymbol result => new ResultTypeSymbol(SubstituteType(result.SuccessType, substitutions), SubstituteType(result.ErrorType, substitutions)),
+                ColumnTypeSymbol column => new ColumnTypeSymbol(SubstituteType(column.ElementType, substitutions)),
+                _ => type
+            };
+        }
+
+        private sealed class ClosedInstantiationRewriter(IReadOnlyDictionary<TypeSymbol, TypeSymbol> substitutions)
+        {
+            public BoundBlockStatement RewriteBlock(BoundBlockStatement block)
+                => new(block.Statements.Select(RewriteStatement).ToArray());
+
+            private BoundStatement RewriteStatement(BoundStatement statement) => statement switch
+            {
+                BoundBlockStatement block => RewriteBlock(block),
+                BoundVariableDeclaration variable => new BoundVariableDeclaration(RewriteVariable(variable.Variable), RewriteExpression(variable.Initializer)),
+                BoundExpressionStatement expression => new BoundExpressionStatement(RewriteExpression(expression.Expression)),
+                BoundIfStatement conditional => new BoundIfStatement(RewriteExpression(conditional.Condition), RewriteStatement(conditional.ThenStatement), conditional.ElseStatement is null ? null : RewriteStatement(conditional.ElseStatement)),
+                BoundWhileStatement loop => new BoundWhileStatement(RewriteExpression(loop.Condition), RewriteStatement(loop.Body)),
+                BoundForStatement loop => new BoundForStatement(loop.Initializer is null ? null : RewriteStatement(loop.Initializer), loop.Condition is null ? null : RewriteExpression(loop.Condition), loop.Increment is null ? null : RewriteExpression(loop.Increment), RewriteStatement(loop.Body)),
+                BoundReturnStatement @return => new BoundReturnStatement(@return.Expression is null ? null : RewriteExpression(@return.Expression)),
+                _ => statement
+            };
+
+            private BoundExpression RewriteExpression(BoundExpression expression) => expression switch
+            {
+                BoundLiteralExpression literal => new BoundLiteralExpression(literal.Value, SubstituteType(literal.Type, substitutions)),
+                BoundVariableExpression variable => new BoundVariableExpression(RewriteVariable(variable.Variable)),
+                BoundAssignmentExpression assignment => new BoundAssignmentExpression(RewriteVariable(assignment.Variable), RewriteExpression(assignment.Expression)),
+                BoundUnaryExpression unary => new BoundUnaryExpression(unary.OperatorKind, RewriteExpression(unary.Operand), SubstituteType(unary.Type, substitutions)),
+                BoundBinaryExpression binary => new BoundBinaryExpression(RewriteExpression(binary.Left), binary.OperatorKind, RewriteExpression(binary.Right), SubstituteType(binary.Type, substitutions)),
+                BoundCallExpression call => new BoundCallExpression(call.Function, call.Arguments.Select(RewriteExpression).ToArray()),
+                BoundEnumValueExpression value => new BoundEnumValueExpression(value.Case, value.Arguments.Select(RewriteExpression).ToArray()),
+                BoundPropagateExpression propagate => new BoundPropagateExpression(RewriteExpression(propagate.Operand), (ResultTypeSymbol)SubstituteType(propagate.ResultType, substitutions), propagate.Target),
+                BoundUnwrapExpression unwrap => new BoundUnwrapExpression(RewriteExpression(unwrap.Operand), (ResultTypeSymbol)SubstituteType(unwrap.ResultType, substitutions)),
+                BoundOkExpression ok => new BoundOkExpression(RewriteExpression(ok.Payload), (ResultTypeSymbol)SubstituteType(ok.Type, substitutions)),
+                BoundErrExpression err => new BoundErrExpression(RewriteExpression(err.Payload), (ResultTypeSymbol)SubstituteType(err.Type, substitutions)),
+                BoundArrayExpression array => new BoundArrayExpression(array.Elements.Select(RewriteExpression).ToArray(), SubstituteType(array.Type, substitutions)),
+                BoundRequirementFieldAccessExpression requirement => RewriteRequirementAccess(requirement),
+                BoundRecordFieldAccessExpression access => new BoundRecordFieldAccessExpression(RewriteExpression(access.Receiver), access.RecordType, access.Field),
+                BoundTableRowFieldAccessExpression access => new BoundTableRowFieldAccessExpression(RewriteExpression(access.Receiver), access.RowType, access.Field),
+                BoundTableReferenceExpression table => table,
+                BoundTableColumnAccessExpression access => new BoundTableColumnAccessExpression(RewriteExpression(access.Receiver), access.TableType, access.Column),
+                BoundTableRowAccessExpression access => new BoundTableRowAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), access.TableType, (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
+                BoundColumnElementAccessExpression access => new BoundColumnElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
+                BoundRecordConstructionExpression construction => new BoundRecordConstructionExpression(construction.RecordType, construction.Initializers.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray()),
+                BoundRecordWithExpression withExpression => new BoundRecordWithExpression(RewriteExpression(withExpression.Source), withExpression.RecordType, withExpression.Replacements.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray()),
+                BoundIfExpression conditional => new BoundIfExpression(RewriteExpression(conditional.Condition), RewriteExpression(conditional.ThenExpression), RewriteExpression(conditional.ElseExpression), SubstituteType(conditional.Type, substitutions)),
+                BoundMatchExpression match => new BoundMatchExpression(RewriteExpression(match.Scrutinee), match.EnumType, match.Arms.Select(arm => new BoundMatchArm(arm.Case, arm.PayloadVariables.Select(RewriteVariable).ToArray(), RewriteExpression(arm.Expression))).ToArray(), SubstituteType(match.Type, substitutions)),
+                BoundResultMatchExpression match => new BoundResultMatchExpression(RewriteExpression(match.Scrutinee), RewriteVariable(match.OkVariable), RewriteExpression(match.OkExpression), RewriteVariable(match.ErrVariable), RewriteExpression(match.ErrExpression), SubstituteType(match.Type, substitutions)),
+                BoundTsonEncodeExpression encode => new BoundTsonEncodeExpression(RewriteExpression(encode.Operand), encode.Plan, (ResultTypeSymbol)SubstituteType(encode.ResultType, substitutions)),
+                BoundTryExceptExpression attempt => new BoundTryExceptExpression(attempt.HandlerId, RewriteValueBlock(attempt.Protected), RewriteVariable(attempt.HandlerBinding), SubstituteType(attempt.HandledErrorType, substitutions), RewriteValueBlock(attempt.Handler), SubstituteType(attempt.Type, substitutions)),
+                _ => expression
+            };
+
+            private BoundExpression RewriteRequirementAccess(BoundRequirementFieldAccessExpression access)
+            {
+                var receiver = RewriteExpression(access.Receiver);
+                var candidate = SubstituteType(access.TypeParameter, substitutions);
+                return candidate switch
+                {
+                    RecordTypeSymbol record => new BoundRecordFieldAccessExpression(receiver, record, record.Fields.Single(field => field.Name == access.Field.Name)),
+                    TableRowTypeSymbol row => new BoundTableRowFieldAccessExpression(receiver, row, row.Fields.Single(field => field.Name == access.Field.Name)),
+                    _ => new BoundErrorExpression()
+                };
+            }
+
+            private BoundValueBlock RewriteValueBlock(BoundValueBlock block)
+                => new(block.PrefixStatements.Select(RewriteStatement).ToArray(), RewriteExpression(block.ValueExpression));
+
+            private VariableSymbol RewriteVariable(VariableSymbol variable)
+                => new(variable.Name, SubstituteType(variable.Type, substitutions), variable.IsReadOnly, variable.AuthoredAliasName);
         }
 
         private BoundExpression BindTsonEncode(CallExpressionSyntax call, NameExpressionSyntax intrinsicName)
@@ -2870,6 +3448,17 @@ public static class Binder
                 }
                 return new BoundRecordFieldAccessExpression(receiver, recordType, field);
             }
+            if (receiver.Type is TypeParameterTypeSymbol typeParameter)
+            {
+                var parameter = _currentFunction?.TypeParameters.FirstOrDefault(candidate => ReferenceEquals(candidate.Type, typeParameter));
+                var field = parameter?.Requirements.Fields.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
+                if (field is null)
+                {
+                    Report("COPE-REQUIREMENT-0004", $"Type parameter '{typeParameter.Name}' has no required field '{m.NameToken.Text}'.", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                return new BoundRequirementFieldAccessExpression(receiver, typeParameter, field);
+            }
             Report("COPE-REC-0010", $"Field access requires a record receiver, got '{receiver.Type.Name}'.", m.DotToken);
             return new BoundErrorExpression();
         }
@@ -3058,6 +3647,7 @@ public static class Binder
         {
             return type switch
             {
+                IdentifierTypeSyntax i when _activeTypeParameters is not null && _activeTypeParameters.TryGetValue(i.Identifier.Text, out var typeParameter) => typeParameter.Type,
                 IdentifierTypeSyntax i when _aliases.TryGetValue(i.Identifier.Text, out var alias) => alias.CanonicalType,
                 IdentifierTypeSyntax i when _enumTypes.TryGetValue(i.Identifier.Text, out var enumType) => enumType,
                 IdentifierTypeSyntax i when _recordTypes.TryGetValue(i.Identifier.Text, out var recordType) => recordType,
@@ -3083,6 +3673,13 @@ public static class Binder
         {
             if (_aliases.TryGetValue(i.Identifier.Text, out var alias))
                 return alias.CanonicalType;
+            if (_activeTypeParameters is not null && _activeTypeParameters.TryGetValue(i.Identifier.Text, out var typeParameter))
+                return typeParameter.Type;
+            if (_interfaces.ContainsKey(i.Identifier.Text))
+            {
+                Report("COPE-INTERFACE-0005", $"Interface '{i.Identifier.Text}' is a requirement and cannot be used as a storage type.", i.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
             if (_enumTypes.TryGetValue(i.Identifier.Text, out var enumType))
                 return enumType;
             if (_recordTypes.TryGetValue(i.Identifier.Text, out var recordType))

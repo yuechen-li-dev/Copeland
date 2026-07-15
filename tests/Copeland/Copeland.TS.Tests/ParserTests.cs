@@ -26,6 +26,17 @@ public sealed class ParserTests
     }
 
     [Fact]
+    public void Parses_Contextual_Interfaces_And_Explicit_Generic_Calls_Without_Changing_Comparisons()
+    {
+        const string source = "interface Positioned { x: number; y: number; } function sum<T extends Positioned>(value: T): number { return value.x + value.y; } function compare(a: number, b: number): boolean { return a < b && b > a; } const answer: number = sum<number>(42);";
+        var tree = SyntaxTree.Parse(source);
+
+        Assert.Contains("InterfaceDeclaration", SyntaxTreeDumper.Dump(tree.Root), StringComparison.Ordinal);
+        Assert.Contains("GenericCallExpression", SyntaxTreeDumper.Dump(tree.Root), StringComparison.Ordinal);
+        Assert.DoesNotContain(tree.Diagnostics, diagnostic => diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Parses_Postfix_Unwrap_Independently_From_Prefix_And_Result_Type_Bang()
     {
         const string source = "function unwrap(value: number ! string, condition: boolean): number { const negated: boolean = !condition; return value!; }";

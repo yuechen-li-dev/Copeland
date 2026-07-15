@@ -1,6 +1,6 @@
 # Copeland TS user-authored type-system design (CTS-TYPE-M0a)
 
-**Status:** accepted architecture recommendation. M0a itself changed documentation only; its first implementation milestone, [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md), now implements transparent non-generic compilation-unit aliases. [CTS-TYPE-M1a](copeland-ts-interface-requirements-design-cts-type-m1a.md) is the accepted documentation-only architecture for erased field-only interface requirements. Interfaces, generics, and static evaluation remain unimplemented.
+**Status:** accepted architecture recommendation. [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md) implements transparent non-generic compilation-unit aliases. [CTS-TYPE-M1a](copeland-ts-interface-requirements-design-cts-type-m1a.md) supplies requirement architecture and [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md) implements its bounded interface plus explicit closed-generic slice. Static evaluation remains unimplemented.
 
 ## Decision
 
@@ -29,7 +29,7 @@ T extends Positioned
 
 This notation explains the model; it is not source syntax or a request for a runtime `Requires` value. Ordinary aliases, field-only interfaces, and bounded generic functions should look familiar to a TypeScript programmer. Type-level programs, ambient merging, runtime interface carriers, and C++-template-style execution are not part of the model.
 
-M0a changed documentation only. M0b now implements the non-generic `type` alias examples in this document. Examples using `interface`, type parameters, explicit type arguments, or general type-level programming remain proposed syntax and are rejected.
+M0a changed documentation only. M0b implements the non-generic `type` alias examples; M1b implements field-only interfaces, explicit generic function declarations, and explicit closed calls. General type-level programming remains proposed syntax and is rejected.
 
 ## Evidence and status vocabulary
 

@@ -79,21 +79,23 @@ public readonly record struct TableTypeId(int Value) { public override string To
 public readonly record struct TableColumnId(TableTypeId TableTypeId, int Ordinal) { public override string ToString() => $"{TableTypeId}.c{Ordinal}"; }
 public readonly record struct TableRowFieldId(TableColumnId ColumnId) { public override string ToString() => $"{ColumnId}.f"; }
 
-public sealed class TableTypeSymbol(string name, TableTypeId id) : TypeSymbol
+public sealed class TableTypeSymbol(string name, TableTypeId id, string? stableIdentity = null) : TypeSymbol
 {
     private readonly List<TableColumnSymbol> _columns = [];
     public override string Name { get; } = name;
     public TableTypeId Id { get; } = id;
-    public TableRowTypeSymbol RowType { get; } = new(name + ".Row", id);
+    public string StableIdentity { get; } = stableIdentity ?? name;
+    public TableRowTypeSymbol RowType { get; } = new(name + ".Row", id, (stableIdentity ?? name) + ".Row");
     public IReadOnlyList<TableColumnSymbol> Columns => _columns;
     public void AddColumn(TableColumnSymbol column) { _columns.Add(column); RowType.AddField(new TableRowFieldSymbol(column.Name, new TableRowFieldId(column.Id), column.Type)); }
 }
 
-public sealed class TableRowTypeSymbol(string name, TableTypeId tableId) : TypeSymbol
+public sealed class TableRowTypeSymbol(string name, TableTypeId tableId, string? stableIdentity = null) : TypeSymbol
 {
     private readonly List<TableRowFieldSymbol> _fields = [];
     public override string Name { get; } = name;
     public TableTypeId TableId { get; } = tableId;
+    public string StableIdentity { get; } = stableIdentity ?? name;
     public IReadOnlyList<TableRowFieldSymbol> Fields => _fields;
     public void AddField(TableRowFieldSymbol field) => _fields.Add(field);
 }
@@ -102,6 +104,12 @@ public sealed class ColumnTypeSymbol(TypeSymbol elementType) : TypeSymbol
 {
     public TypeSymbol ElementType { get; } = elementType;
     public override string Name => "column " + TypeText.FormatResultComponent(ElementType);
+}
+
+public sealed class TypeParameterTypeSymbol(string name, int ordinal) : TypeSymbol
+{
+    public int Ordinal { get; } = ordinal;
+    public override string Name { get; } = name;
 }
 
 public static class TypeFacts

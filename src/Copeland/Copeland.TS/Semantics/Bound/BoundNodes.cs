@@ -299,6 +299,13 @@ public sealed class BoundRecordFieldAccessExpression(BoundExpression receiver, R
     public RecordFieldSymbol Field { get; } = field;
     public override TypeSymbol Type => Field.Type;
 }
+public sealed class BoundRequirementFieldAccessExpression(BoundExpression receiver, TypeParameterTypeSymbol typeParameter, RequirementFieldSymbol field) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public TypeParameterTypeSymbol TypeParameter { get; } = typeParameter;
+    public RequirementFieldSymbol Field { get; } = field;
+    public override TypeSymbol Type => Field.Type;
+}
 public sealed class BoundTableReferenceExpression(TableTypeSymbol tableType) : BoundExpression { public TableTypeSymbol TableType { get; } = tableType; public override TypeSymbol Type => TableType; }
 public sealed class BoundTableColumnAccessExpression(BoundExpression receiver, TableTypeSymbol tableType, TableColumnSymbol column) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public TableTypeSymbol TableType { get; } = tableType; public TableColumnSymbol Column { get; } = column; public override TypeSymbol Type => new ColumnTypeSymbol(Column.Type); }
 public sealed class BoundTableRowAccessExpression(BoundExpression receiver, BoundExpression index, TableTypeSymbol tableType, ResultTypeSymbol type) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public BoundExpression Index { get; } = index; public TableTypeSymbol TableType { get; } = tableType; private ResultTypeSymbol TypeImpl { get; } = type; public override TypeSymbol Type => TypeImpl; }

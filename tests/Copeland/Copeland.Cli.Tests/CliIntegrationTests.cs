@@ -65,6 +65,155 @@ public sealed class CliIntegrationTests
         Assert.False(File.Exists(freshPath));
     }
 
+    [Fact]
+    public async Task Closed_generic_cli_emission_is_repeatable_executable_and_preserves_stale_artifacts()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("main.ts", """
+            interface Positioned {
+                x: number;
+                y: number;
+            }
+
+            record Point {
+                x: number;
+                y: number;
+            }
+
+            function sum<T extends Positioned>(value: T): number {
+                return value.x + value.y;
+            }
+
+            function identity<T>(value: T): T {
+                return value;
+            }
+
+            function mainSum(): number {
+                const point: Point = { x: 20, y: 22 };
+                return sum<Point>(point);
+            }
+
+            function mainIdentity(): number {
+                return identity<number>(42);
+            }
+            """);
+
+        var emissions = new[]
+        {
+            (Emit: "mir", File: "main.cope", Length: 626, Hash: "D0C536F3951C1A1955F985FECF5DA2098D0DB4FC8760234CB53D94A34F79EB93"),
+            (Emit: "csharp", File: "main.g.cs", Length: 1085, Hash: "BCABF245706A41808844969864760D7C95E88CC4DB97D68989F0B0DB969549AF"),
+            (Emit: "javascript", File: "main.g.js", Length: 2577, Hash: "6F670D0F21F0B27BD1CAE7898024FCD60C9DD912373FC6C464B71E83BF1DBF81"),
+        };
+
+        foreach ((string emit, string fileName, int expectedLength, string expectedHash) in emissions)
+        {
+            string outputPath = Path.Combine(temp.Path, fileName);
+            CliResult first = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emit, "--out", outputPath);
+            byte[] firstBytes = await File.ReadAllBytesAsync(outputPath);
+            CliResult second = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", emit, "--out", outputPath);
+            byte[] secondBytes = await File.ReadAllBytesAsync(outputPath);
+
+            Assert.Equal(0, first.ExitCode);
+            Assert.Equal(0, second.ExitCode);
+            Assert.Equal(firstBytes, secondBytes);
+            Assert.Equal(expectedLength, firstBytes.Length);
+            Assert.Equal(expectedHash, Convert.ToHexString(SHA256.HashData(firstBytes)));
+            string emitted = Encoding.UTF8.GetString(firstBytes);
+            Assert.DoesNotContain(temp.Path, emitted, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("interface Positioned", emitted, StringComparison.Ordinal);
+            Assert.DoesNotContain("TypeParameter", emitted, StringComparison.Ordinal);
+        }
+
+        string javaScriptPath = Path.Combine(temp.Path, "main.g.js");
+        await File.AppendAllTextAsync(
+            javaScriptPath,
+            "process.stdout.write(String(mainSum()) + \"|\" + String(mainIdentity()));\n",
+            new UTF8Encoding(false));
+        CliResult javaScriptExecution = await RunExecutableAsync("node", temp.Path, javaScriptPath);
+        Assert.Equal(0, javaScriptExecution.ExitCode);
+        Assert.Equal("42|42", javaScriptExecution.StdOut);
+
+        string runnerProject = temp.WriteFile(
+            "runner.csproj",
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+                <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+              </PropertyGroup>
+              <ItemGroup>
+                <Compile Include="main.g.cs" />
+                <Compile Include="Runner.cs" />
+              </ItemGroup>
+            </Project>
+            """);
+        temp.WriteFile(
+            "Runner.cs",
+            """
+            Console.Write(Copeland.Generated.CopelandModule.mainSum());
+            Console.Write("|");
+            Console.Write(Copeland.Generated.CopelandModule.mainIdentity());
+            """);
+        CliResult csharpExecution = await RunExecutableAsync("dotnet", temp.Path, "run", "--project", runnerProject);
+        Assert.Equal(0, csharpExecution.ExitCode);
+        Assert.Equal("42|42", csharpExecution.StdOut);
+
+        string stalePath = Path.Combine(temp.Path, "main.g.js");
+        string staleHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath)));
+        string invalidPath = temp.WriteFile("invalid.ts", """
+            interface Positioned {
+                x: number;
+            }
+
+            function sum<T extends Positioned>(value: T): number {
+                return value.y;
+            }
+
+            const answer: number = sum<number>(1);
+            """);
+        CliResult staleFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "javascript", "--out", stalePath);
+        string freshFailurePath = Path.Combine(temp.Path, "fresh-failure.cope");
+        CliResult freshFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "mir", "--out", freshFailurePath);
+
+        Assert.Equal(1, staleFailure.ExitCode);
+        Assert.Equal(1, freshFailure.ExitCode);
+        Assert.Equal(staleHash, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath))));
+        Assert.False(File.Exists(freshFailurePath));
+        Assert.DoesNotContain(temp.Path, staleFailure.StdErr, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Closed_generic_frontend_diagnostics_are_backend_and_profile_independent()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("invalid.ts", """
+            interface Positioned {
+                x: number;
+            }
+
+            function sum<T extends Positioned>(value: T): number {
+                return value.y;
+            }
+
+            const answer: number = sum<number>(1);
+            """);
+
+        CliResult mir = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "mir");
+        CliResult csharp = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "csharp");
+        CliResult javascript = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript");
+        CliResult symbolic = await RunCliAsync(temp.Path, "compile", inputPath, "--emit", "javascript", "--javascript-profile", "symbolic");
+
+        Assert.Equal(1, mir.ExitCode);
+        Assert.Equal(mir.StdErr, csharp.StdErr);
+        Assert.Equal(mir.StdErr, javascript.StdErr);
+        Assert.Equal(mir.StdErr, symbolic.StdErr);
+        Assert.Contains("COPE-REQUIREMENT-0004", mir.StdErr, StringComparison.Ordinal);
+        Assert.Contains("COPE-REQUIREMENT-0005", mir.StdErr, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("mir", "tson-plan tson0")]
     [InlineData("csharp", "__TsonWriter")]

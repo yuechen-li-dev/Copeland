@@ -1,6 +1,6 @@
 # Copeland TS field-only interface requirements (CTS-TYPE-M1a)
 
-**Status:** accepted documentation-only interface/requirement architecture and repository audit. No interface, generic, MIR, backend, TSON, fixture, or runtime behavior is implemented by M1a.
+**Status:** accepted M1a architecture and repository audit. Its recommended bounded vertical slice is implemented by [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md); this document remains the requirement-law design authority.
 
 ## Decision
 

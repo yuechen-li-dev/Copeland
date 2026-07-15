@@ -1,4 +1,5 @@
 using Copeland.TS.Compiler;
+using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Xunit;
 
@@ -221,6 +222,32 @@ public sealed class TsonEncodeFeatureTests
         Assert.Empty(compilation.MirCompilation!.Program!.TsonEncodingPlans);
         Assert.DoesNotContain(compilation.MirCompilation.Program.Enums, @enum => @enum.Name == "TsonEncodeError");
         Assert.DoesNotContain("tson", compilation.MirText!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Closed_generic_record_results_keep_concrete_tson_identity_and_never_leak_generic_or_interface_names()
+    {
+        CopelandCompilation compilation = Compile("""
+            const $schema: string = "copeland://tests/generic-tson";
+            interface Positioned { x: number; y: number; }
+            record Point { x: number; y: number; }
+            function clonePoint<T extends Positioned>(value: T): Point {
+                return { x: value.x, y: value.y };
+            }
+            function encode(): string ! TsonEncodeError {
+                return tsonEncode(clonePoint<Point>({ x: 1, y: 2 }));
+            }
+            """);
+
+        Assert.True(compilation.Success, Describe(compilation));
+        BoundTsonEncodingPlan plan = Assert.Single(compilation.BoundCompilation!.Program.TsonEncodingPlans);
+        Assert.Equal(["Point"], plan.Definitions.Select(type => type.Name));
+        RecordTypeSymbol point = Assert.IsType<RecordTypeSymbol>(plan.Definitions.Single());
+        Assert.Equal("copeland://tests/generic-tson#Point", point.StableIdentity);
+        Assert.DoesNotContain("Positioned", compilation.MirText!, StringComparison.Ordinal);
+        Assert.DoesNotContain("clonePoint<", compilation.MirText!, StringComparison.Ordinal);
+        Assert.DoesNotContain("TypeParameter", compilation.MirText!, StringComparison.Ordinal);
+        Assert.DoesNotContain("Positioned", compilation.MirText!, StringComparison.Ordinal);
     }
 
     private static CopelandCompilation Compile(string source)

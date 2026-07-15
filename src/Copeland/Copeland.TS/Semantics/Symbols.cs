@@ -26,12 +26,42 @@ public sealed class FunctionSymbol(
     string name,
     IReadOnlyList<ParameterSymbol> parameters,
     TypeSymbol returnType,
-    string? authoredReturnAliasName = null) : Symbol(name)
+    string? authoredReturnAliasName = null,
+    string? stableIdentity = null) : Symbol(name)
 {
     public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
     public TypeSymbol ReturnType { get; } = returnType;
     public string? AuthoredReturnAliasName { get; } = authoredReturnAliasName;
+    public string StableIdentity { get; } = stableIdentity ?? name;
     public bool IsFallible => ReturnType is ResultTypeSymbol;
+    public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
+    public bool IsGeneric => TypeParameters.Count > 0;
+}
+
+public sealed class RequirementFieldSymbol(string name, TypeSymbol type, int ordinal) : Symbol(name)
+{
+    public TypeSymbol Type { get; } = type;
+    public int Ordinal { get; } = ordinal;
+}
+
+public sealed class InterfaceSymbol(string name, int declarationIdentity) : Symbol(name)
+{
+    private readonly List<RequirementFieldSymbol> _fields = [];
+    public int DeclarationIdentity { get; } = declarationIdentity;
+    public IReadOnlyList<RequirementFieldSymbol> Fields => _fields;
+    public void AddField(RequirementFieldSymbol field) => _fields.Add(field);
+}
+
+public sealed class RequirementSet(IReadOnlyList<InterfaceSymbol> interfaces, IReadOnlyList<RequirementFieldSymbol> fields)
+{
+    public IReadOnlyList<InterfaceSymbol> Interfaces { get; } = interfaces;
+    public IReadOnlyList<RequirementFieldSymbol> Fields { get; } = fields;
+}
+
+public sealed class TypeParameterSymbol(string name, TypeParameterTypeSymbol type, RequirementSet requirements) : Symbol(name)
+{
+    public TypeParameterTypeSymbol Type { get; } = type;
+    public RequirementSet Requirements { get; } = requirements;
 }
 
 public sealed class TypeAliasSymbol(string name) : Symbol(name)

@@ -66,6 +66,12 @@ public sealed class Parser
             return ParseTypeAliasDeclaration();
         }
 
+        if (Current.Kind == SyntaxKind.IdentifierToken
+            && Current.Text == "interface")
+        {
+            return ParseInterfaceDeclaration();
+        }
+
         if (Current.Kind == SyntaxKind.ConstKeyword && Peek(1).Kind == SyntaxKind.RecordKeyword)
         {
             var constKeyword = Match(SyntaxKind.ConstKeyword);
@@ -193,6 +199,35 @@ public sealed class Parser
     {
         var functionKeyword = Match(SyntaxKind.FunctionKeyword);
         var identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? lessToken = null;
+        SyntaxToken? greaterToken = null;
+        var typeParameters = new List<TypeParameterSyntax>();
+        var typeParameterCommas = new List<SyntaxToken>();
+        if (Current.Kind == SyntaxKind.LessToken)
+        {
+            lessToken = NextToken();
+            while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
+            {
+                var parameterName = Match(SyntaxKind.IdentifierToken);
+                SyntaxToken? extendsKeyword = null;
+                var requirementNames = new List<SyntaxToken>();
+                var ampersands = new List<SyntaxToken>();
+                if (Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "extends")
+                {
+                    extendsKeyword = NextToken();
+                    requirementNames.Add(Match(SyntaxKind.IdentifierToken));
+                    while (Current.Kind == SyntaxKind.AmpersandToken)
+                    {
+                        ampersands.Add(NextToken());
+                        requirementNames.Add(Match(SyntaxKind.IdentifierToken));
+                    }
+                }
+                typeParameters.Add(new TypeParameterSyntax(parameterName, extendsKeyword, requirementNames, ampersands));
+                if (Current.Kind != SyntaxKind.CommaToken) break;
+                typeParameterCommas.Add(NextToken());
+            }
+            greaterToken = Match(SyntaxKind.GreaterToken);
+        }
         var openParenToken = Match(SyntaxKind.OpenParenToken);
 
         var parameters = new List<ParameterSyntax>();
@@ -227,7 +262,34 @@ public sealed class Parser
             returnType = ParseTypeSyntax();
         }
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(functionKeyword, identifier, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
+        return new FunctionDeclarationSyntax(functionKeyword, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
+    }
+
+    private InterfaceDeclarationSyntax ParseInterfaceDeclaration()
+    {
+        var interfaceKeyword = NextToken();
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        var openBrace = Match(SyntaxKind.OpenBraceToken);
+        var fields = new List<InterfaceFieldSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            var fieldIdentifier = Match(SyntaxKind.IdentifierToken);
+            var hasColon = Current.Kind == SyntaxKind.ColonToken;
+            var colon = hasColon ? NextToken() : MissingToken(SyntaxKind.ColonToken, Current.Position);
+            var hasType = hasColon && Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.CloseBraceToken;
+            var type = hasType
+                ? ParseTypeSyntax()
+                : new IdentifierTypeSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position));
+            var unsupported = new List<SyntaxToken>();
+            while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+            {
+                unsupported.Add(NextToken());
+            }
+            var hasTerminator = Current.Kind == SyntaxKind.SemicolonToken;
+            var semicolon = hasTerminator ? NextToken() : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
+            fields.Add(new InterfaceFieldSyntax(fieldIdentifier, colon, type, unsupported, semicolon, hasType, hasTerminator));
+        }
+        return new InterfaceDeclarationSyntax(interfaceKeyword, identifier, openBrace, fields, Match(SyntaxKind.CloseBraceToken));
     }
 
     private EnumDeclarationSyntax ParseEnumDeclaration()
@@ -764,6 +826,12 @@ public sealed class Parser
                 expression = new PropagateExpressionSyntax(expression, questionToken);
                 continue;
             }
+
+            if (expression is NameExpressionSyntax && IsGenericCallAhead())
+            {
+                expression = ParseGenericCallExpression(expression);
+                continue;
+            }
             if (Current.Kind == SyntaxKind.OpenBracketToken)
             {
                 var open = Match(SyntaxKind.OpenBracketToken);
@@ -837,6 +905,40 @@ public sealed class Parser
         var closeParen = MatchTryToken(SyntaxKind.CloseParenToken, "Expected ')' after the handler binding name.");
         var handlerBlock = ParseTryValueBlock();
         return new TryExceptExpressionSyntax(tryKeyword, protectedBlock, exceptKeyword, openParen, binding, closeParen, handlerBlock);
+    }
+
+    private bool IsGenericCallAhead()
+    {
+        if (Current.Kind != SyntaxKind.LessToken) return false;
+        var position = _position + 1;
+        var depth = 0;
+        while (position < _tokens.Length)
+        {
+            var token = _tokens[position];
+            if (token.Kind is SyntaxKind.OpenParenToken or SyntaxKind.OpenBracketToken) depth++;
+            else if (token.Kind is SyntaxKind.CloseParenToken or SyntaxKind.CloseBracketToken) depth--;
+            else if (token.Kind == SyntaxKind.GreaterToken && depth == 0)
+                return position + 1 < _tokens.Length && _tokens[position + 1].Kind == SyntaxKind.OpenParenToken;
+            else if (token.Kind is SyntaxKind.SemicolonToken or SyntaxKind.EndOfFileToken) return false;
+            position++;
+        }
+        return false;
+    }
+
+    private GenericCallExpressionSyntax ParseGenericCallExpression(ExpressionSyntax target)
+    {
+        var less = Match(SyntaxKind.LessToken);
+        var typeArguments = new List<TypeSyntax>();
+        var typeCommas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
+        {
+            typeArguments.Add(ParseTypeSyntax());
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            typeCommas.Add(NextToken());
+        }
+        var greater = Match(SyntaxKind.GreaterToken);
+        var call = ParseCallExpression(target);
+        return new GenericCallExpressionSyntax(target, less, typeArguments, typeCommas, greater, call.OpenParenToken, call.Arguments, call.CommaTokens, call.CloseParenToken);
     }
 
     private TryValueBlockSyntax ParseTryValueBlock()

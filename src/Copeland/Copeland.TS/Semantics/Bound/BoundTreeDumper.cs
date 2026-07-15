@@ -157,6 +157,10 @@ public static class BoundTreeDumper
                 sb.Append("RecordFieldAccess ").Append(access.RecordType.Name).Append('.').Append(access.Field.Name).Append(" [").Append(access.Field.Id).Append("] : ").Append(access.Type.Name).AppendLine();
                 AppendExpression(sb, access.Receiver, i + 1);
                 break;
+            case BoundRequirementFieldAccessExpression access:
+                sb.Append("RequirementFieldAccess ").Append(access.TypeParameter.Name).Append('.').Append(access.Field.Name).Append(" : ").Append(access.Type.Name).AppendLine();
+                AppendExpression(sb, access.Receiver, i + 1);
+                break;
             case BoundRecordWithExpression withExpression:
                 sb.Append("RecordWith ").Append(withExpression.RecordType.Name).Append(" [").Append(withExpression.RecordType.Id).AppendLine("]");
                 AppendExpression(sb, withExpression.Source, i + 1);

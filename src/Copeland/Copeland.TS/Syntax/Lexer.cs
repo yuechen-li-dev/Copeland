@@ -111,8 +111,7 @@ public sealed class Lexer
                     {
                         return DoubleCharToken(SyntaxKind.AmpersandAmpersandToken);
                     }
-
-                    break;
+                    return SingleCharToken(SyntaxKind.AmpersandToken);
                 case '|':
                     if (Peek(1) == '|')
                     {

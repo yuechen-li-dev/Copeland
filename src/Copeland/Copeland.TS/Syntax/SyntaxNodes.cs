@@ -102,6 +102,63 @@ public sealed record TypeAliasDeclarationSyntax(
     }
 }
 
+public sealed record InterfaceFieldSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken ColonToken,
+    TypeSyntax Type,
+    IReadOnlyList<SyntaxToken> UnsupportedTokens,
+    SyntaxToken SemicolonToken,
+    bool HasExplicitType,
+    bool HasTerminator) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.InterfaceField;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        yield return ColonToken;
+        yield return Type;
+        foreach (var token in UnsupportedTokens) yield return token;
+        yield return SemicolonToken;
+    }
+}
+
+public sealed record InterfaceDeclarationSyntax(
+    SyntaxToken InterfaceKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<InterfaceFieldSyntax> Fields,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.InterfaceDeclaration;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return InterfaceKeyword;
+        yield return Identifier;
+        yield return OpenBraceToken;
+        foreach (var field in Fields) yield return field;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record TypeParameterSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken? ExtendsKeyword,
+    IReadOnlyList<SyntaxToken> RequirementNames,
+    IReadOnlyList<SyntaxToken> AmpersandTokens) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TypeParameter;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        if (ExtendsKeyword is not null) yield return ExtendsKeyword;
+        for (var i = 0; i < RequirementNames.Count; i++)
+        {
+            if (i > 0) yield return AmpersandTokens[i - 1];
+            yield return RequirementNames[i];
+        }
+    }
+}
+
 public sealed record ParenthesizedTypeSyntax(SyntaxToken OpenParenToken, TypeSyntax Type, SyntaxToken CloseParenToken) : TypeSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.ParenthesizedType;
@@ -160,6 +217,10 @@ public sealed record ParameterSyntax(SyntaxToken Identifier, SyntaxToken? ColonT
 public sealed record FunctionDeclarationSyntax(
     SyntaxToken FunctionKeyword,
     SyntaxToken Identifier,
+    SyntaxToken? LessToken,
+    IReadOnlyList<TypeParameterSyntax> TypeParameters,
+    IReadOnlyList<SyntaxToken> TypeParameterCommas,
+    SyntaxToken? GreaterToken,
     SyntaxToken OpenParenToken,
     IReadOnlyList<ParameterSyntax> Parameters,
     IReadOnlyList<SyntaxToken> CommaTokens,
@@ -174,6 +235,13 @@ public sealed record FunctionDeclarationSyntax(
     {
         yield return FunctionKeyword;
         yield return Identifier;
+        if (LessToken is not null) yield return LessToken;
+        for (var i = 0; i < TypeParameters.Count; i++)
+        {
+            if (i > 0) yield return TypeParameterCommas[i - 1];
+            yield return TypeParameters[i];
+        }
+        if (GreaterToken is not null) yield return GreaterToken;
         yield return OpenParenToken;
 
         for (var i = 0; i < Parameters.Count; i++)
@@ -595,6 +663,38 @@ public sealed record PropagateExpressionSyntax(ExpressionSyntax Operand, SyntaxT
     {
         yield return Operand;
         yield return QuestionToken;
+    }
+}
+
+public sealed record GenericCallExpressionSyntax(
+    ExpressionSyntax Target,
+    SyntaxToken LessToken,
+    IReadOnlyList<TypeSyntax> TypeArguments,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken GreaterToken,
+    SyntaxToken OpenParenToken,
+    IReadOnlyList<ExpressionSyntax> Arguments,
+    IReadOnlyList<SyntaxToken> ArgumentCommas,
+    SyntaxToken CloseParenToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.GenericCallExpression;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Target;
+        yield return LessToken;
+        for (var i = 0; i < TypeArguments.Count; i++)
+        {
+            if (i > 0) yield return CommaTokens[i - 1];
+            yield return TypeArguments[i];
+        }
+        yield return GreaterToken;
+        yield return OpenParenToken;
+        for (var i = 0; i < Arguments.Count; i++)
+        {
+            if (i > 0) yield return ArgumentCommas[i - 1];
+            yield return Arguments[i];
+        }
+        yield return CloseParenToken;
     }
 }
 
