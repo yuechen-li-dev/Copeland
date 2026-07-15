@@ -1,6 +1,6 @@
 # CTS-TYPE-M2b bounded direct-argument inference
 
-CTS-TYPE-M2b is closed. It implements the direct generic-call inference path without extending the language's type-system surface. A call with no explicit type arguments is inferred locally from its value arguments and declared parameter types. Explicit closed calls continue to use the M1b path, and the migration ledger records the closeout evidence.
+CTS-TYPE-M2b is closed. It implements the direct generic-call inference path without extending the language's type-system surface. A call with no explicit type arguments is inferred locally from its value arguments and declared parameter types. Explicit closed calls continue to use the M1b path. [CTS-TYPE-M3](copeland-ts-foundational-type-system-closeout-cts-type-m3.md) is the final canonical authority and records the foundational closeout evidence.
 
 ## Algorithm and boundary
 

@@ -1,6 +1,6 @@
 # Copeland TS direct generic-call inference (CTS-TYPE-M2a)
 
-**Status:** M2a design accepted; its bounded direct-argument subset is implemented by CTS-TYPE-M2b. Explicit calls remain complete closed type-argument calls, while ordinary calls may infer a complete list from direct value arguments.
+**Status:** M2a design accepted; its bounded direct-argument subset is implemented by CTS-TYPE-M2b. [CTS-TYPE-M3](../architecture/copeland-ts-foundational-type-system-closeout-cts-type-m3.md) is the final canonical authority. Explicit calls remain complete closed type-argument calls, while ordinary calls may infer a complete list from direct value arguments.
 
 ## Decision
 

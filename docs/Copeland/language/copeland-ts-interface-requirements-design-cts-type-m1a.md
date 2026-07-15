@@ -1,6 +1,6 @@
 # Copeland TS field-only interface requirements (CTS-TYPE-M1a)
 
-**Status:** accepted M1a architecture and historical baseline audit. Its recommended bounded vertical slice is implemented by [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md); this document remains the requirement-law design authority. [CTS-TYPE-M2b](../architecture/copeland-ts-bounded-generic-inference-cts-type-m2b.md) validates these requirements after direct candidates are inferred; constraints never invent a candidate.
+**Status:** accepted M1a architecture and historical baseline audit. Its recommended bounded vertical slice is implemented by [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md); [CTS-TYPE-M3](../architecture/copeland-ts-foundational-type-system-closeout-cts-type-m3.md) is the final canonical authority. [CTS-TYPE-M2b](../architecture/copeland-ts-bounded-generic-inference-cts-type-m2b.md) validates these requirements after direct candidates are inferred; constraints never invent a candidate.
 
 ## Decision
 

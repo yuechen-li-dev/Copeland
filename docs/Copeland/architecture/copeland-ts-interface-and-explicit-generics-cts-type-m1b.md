@@ -1,6 +1,6 @@
 # Copeland TS interfaces and explicit closed generics (CTS-TYPE-M1b)
 
-**Status:** implemented bounded frontend feature with closed-MIR/backend erasure. Interfaces and open generics remain frontend-only facts. [CTS-TYPE-M2b](copeland-ts-bounded-generic-inference-cts-type-m2b.md) adds the implemented direct-argument inference path; complete explicit calls and inferred calls share the same closed-instantiation factory. The M2b migration ledger records remaining closeout evidence.
+**Status:** implemented bounded frontend feature with closed-MIR/backend erasure. Interfaces and open generics remain frontend-only facts. [CTS-TYPE-M2b](copeland-ts-bounded-generic-inference-cts-type-m2b.md) adds the implemented direct-argument inference path; complete explicit calls and inferred calls share the same closed-instantiation factory. [CTS-TYPE-M3](copeland-ts-foundational-type-system-closeout-cts-type-m3.md) is the final canonical authority.
 
 ## Scope
 

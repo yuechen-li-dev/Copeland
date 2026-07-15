@@ -61,6 +61,60 @@ const answer: number = sum<Point>(point);
     }
 
     [Fact]
+    public void Allocates_Each_Rendered_Name_Collision_Extension_And_Escaped_Identity_Fallback()
+    {
+        const string shortName = "function:identity<primitive:boolean>";
+        const string at24a = "function:identity<primitive:number>";
+        const string at24b = "function:identity<primitive:string>";
+        const string at32a = "function:identity<array(primitive:number)>";
+        const string at32b = "function:identity<array(primitive:string)>";
+        const string fallbackA = "function:identity<result(primitive:number,primitive:string)>";
+        const string fallbackB = "function:identity<result(primitive:string,primitive:number)>";
+
+        string Hash(string identity) => identity switch
+        {
+            var value when value == shortName => new string('B', 64),
+            var value when value == at24a => new string('A', 16) + "11111111" + new string('1', 40),
+            var value when value == at24b => new string('A', 16) + "22222222" + new string('2', 40),
+            var value when value == at32a => new string('C', 24) + "11111111" + new string('1', 32),
+            var value when value == at32b => new string('C', 24) + "22222222" + new string('2', 32),
+            _ => new string('D', 64),
+        };
+
+        var names = SemanticBinder.AllocateSpecializationNamesForTesting(
+            "identity",
+            "display",
+            [fallbackB, at32a, shortName, at24b, fallbackA, at24a, at32b],
+            Hash);
+
+        Assert.EndsWith("__BBBBBBBBBBBBBBBB", names[shortName], StringComparison.Ordinal);
+        Assert.EndsWith("__AAAAAAAAAAAAAAAA11111111", names[at24a], StringComparison.Ordinal);
+        Assert.EndsWith("__AAAAAAAAAAAAAAAA22222222", names[at24b], StringComparison.Ordinal);
+        Assert.EndsWith("__CCCCCCCCCCCCCCCCCCCCCCCC11111111", names[at32a], StringComparison.Ordinal);
+        Assert.EndsWith("__CCCCCCCCCCCCCCCCCCCCCCCC22222222", names[at32b], StringComparison.Ordinal);
+        Assert.Contains("__" + new string('D', 64) + "__identity_", names[fallbackA], StringComparison.Ordinal);
+        Assert.Contains("__" + new string('D', 64) + "__identity_", names[fallbackB], StringComparison.Ordinal);
+        Assert.NotEqual(names[fallbackA], names[fallbackB]);
+    }
+
+    [Fact]
+    public void Explicit_And_Inferred_Instantiation_Identity_Is_Independent_Of_Call_Order()
+    {
+        const string explicitFirst = "function identity<T>(value: T): T { return value; } const a: number = identity<number>(1); const b: number = identity(2);";
+        const string inferredFirst = "function identity<T>(value: T): T { return value; } const b: number = identity(2); const a: number = identity<number>(1);";
+
+        var first = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(explicitFirst);
+        var second = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(inferredFirst);
+
+        Assert.True(first.Success, string.Join(Environment.NewLine, first.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.True(second.Success, string.Join(Environment.NewLine, second.Diagnostics.Select(diagnostic => diagnostic.Message)));
+
+        string firstName = Assert.Single(Regex.Matches(first.MirText!, @"func (identity__primitive_number__[0-9A-F]{16})\(").Cast<Match>()).Groups[1].Value;
+        string secondName = Assert.Single(Regex.Matches(second.MirText!, @"func (identity__primitive_number__[0-9A-F]{16})\(").Cast<Match>()).Groups[1].Value;
+        Assert.Equal(firstName, secondName);
+    }
+
+    [Fact]
     public void Infers_Direct_Arguments_And_Stages_Contextual_Arguments_Afterwards()
     {
         const string source = """
