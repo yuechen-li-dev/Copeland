@@ -1,6 +1,6 @@
 # Copeland TS user-authored type-system design (CTS-TYPE-M0a)
 
-**Status:** accepted architecture recommendation with historical baseline inventory. [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md) implements transparent non-generic compilation-unit aliases. [CTS-TYPE-M1a](copeland-ts-interface-requirements-design-cts-type-m1a.md) supplies requirement architecture and [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md) implements its bounded interface plus explicit closed-generic slice. [CTS-TYPE-M2a](copeland-ts-generic-inference-design-cts-type-m2a.md) now defines the future direct-argument inference boundary; inference is not implemented. Static evaluation remains unimplemented.
+**Status:** accepted architecture recommendation with historical baseline inventory. [CTS-TYPE-M0b](../architecture/copeland-ts-transparent-type-aliases-cts-type-m0b.md) implements transparent non-generic compilation-unit aliases. [CTS-TYPE-M1a](copeland-ts-interface-requirements-design-cts-type-m1a.md) supplies requirement architecture and [CTS-TYPE-M1b](../architecture/copeland-ts-interface-and-explicit-generics-cts-type-m1b.md) implements its bounded interface plus explicit closed-generic slice. [CTS-TYPE-M2b](../architecture/copeland-ts-bounded-generic-inference-cts-type-m2b.md) implements its local, exact direct-argument inference boundary. Static evaluation remains unimplemented.
 
 ## Decision
 
@@ -29,7 +29,7 @@ T extends Positioned
 
 This notation explains the model; it is not source syntax or a request for a runtime `Requires` value. Ordinary aliases, field-only interfaces, and bounded generic functions should look familiar to a TypeScript programmer. Type-level programs, ambient merging, runtime interface carriers, and C++-template-style execution are not part of the model.
 
-M0a changed documentation only. M0b implements the non-generic `type` alias examples; M1b implements field-only interfaces, explicit generic function declarations, and explicit closed calls. M2a documents, but does not implement, direct argument inference. General type-level programming remains proposed syntax and is rejected.
+M0a changed documentation only. M0b implements the non-generic `type` alias examples; M1b implements field-only interfaces, explicit generic function declarations, and explicit closed calls. M2b implements bounded direct argument inference without general type-level programming, which remains rejected.
 
 ## Evidence and status vocabulary
 

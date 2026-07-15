@@ -8,7 +8,7 @@ The audit began at `a4486d76eac97dae0fd6ba8898694ae91ac805f8` (`a4486d7 Refactor
 
 ## Audit conclusion
 
-M1b is implemented for field-only erased requirements, named generics, complete explicit closed arguments, bind-once bodies, requirement access, deterministic specialization, closed MIR, C#/JavaScript consumption, and the generic-to-generic/recursion exclusions. It is not implemented for ordinary-call inference: [`BindCall`](../../src/Copeland/Copeland.TS/Semantics/Binder.cs#L1871) reports `COPE-GENERIC-0003` when its resolved `FunctionSymbol.IsGeneric` is true. The existing focused test deliberately asserts that rejection in [`BinderTests`](../../tests/Copeland/Copeland.TS.Tests/BinderTests.cs#L32).
+M1b is implemented for field-only erased requirements, named generics, complete explicit closed arguments, bind-once bodies, requirement access, deterministic specialization, closed MIR, C#/JavaScript consumption, and the generic-to-generic/recursion exclusions. M2b now implements ordinary direct-argument inference through `BindCall`, while complete explicit arguments retain the same closed-instantiation path.
 
 CTS-TYPE-M2a selects direct argument/parameter matching as the future M2b mechanism. The full design, exact implementation inventory, structural algebra, contextual-binding rule, bounded iterative algorithm, diagnostics, fixture plan, TSON/backend boundary, and remaining decisions are in [the M2a design](../Copeland/language/copeland-ts-generic-inference-design-cts-type-m2a.md).
 

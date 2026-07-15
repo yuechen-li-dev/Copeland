@@ -47,31 +47,31 @@ public sealed class GenericBackendParityTests
             function relayArray<T>(value: T[]): T[] { return value; }
             function relayResult<T, E>(value: T ! E): T ! E { return value; }
 
-            function mainNumber(): number { return identity<number>(42); }
-            function mainString(): string { return identity<string>("value"); }
-            function mainChoose(): number { return chooseLeft<number, string>(7, "x"); }
+            function mainNumber(): number { return identity(42); }
+            function mainString(): string { return identity("value"); }
+            function mainChoose(): number { return chooseLeft(7, "x"); }
             function mainRecord(): number {
                 const point: Point = { x: 20, y: 22 };
-                return sum<Point>(point);
+                return sum(point);
             }
             function mainExtra(): number {
                 const point: PersonPoint = { x: 5, y: 6, name: "extra" };
-                return sum<PersonPoint>(point);
+                return sum(point);
             }
             function mainNamed(): string {
                 const point: PersonPoint = { x: 3, y: 4, name: "named" };
-                return describe<PersonPoint>(point);
+                return describe(point);
             }
             function mainAlias(): string {
                 const point: AliasPoint = { x: 3, y: 4, name: "alias" };
-                return describe<AliasPoint>(point);
+                return describe(point);
             }
             function mainRow(): string {
                 const row: Samples.Row = Samples[0]!;
-                return describe<Samples.Row>(row);
+                return describe(row);
             }
             function mainArray(): number {
-                const values: number[] = relayArray<number>([5]);
+                const values: number[] = relayArray([5]);
                 return if true { 100 + 5 } else { 0 };
             }
             function mainResult(): number {
@@ -81,7 +81,7 @@ public sealed class GenericBackendParityTests
                 };
             }
             function mainReuse(): number {
-                return identity<number>(1) + identity<number>(2);
+                return identity<number>(1) + identity(2);
             }
             """;
 

@@ -1,0 +1,24 @@
+module
+
+record Point [r1]
+  field x [r1.f0]: number
+  field y [r1.f1]: number
+
+func identity__primitive_number__8F3BAE8FF0D9F338(value: number) -> number
+entry:
+  return value
+
+func sum__record_Point__AD972DE51050F4B6(value: Point) -> number
+entry:
+  return (record-get [r1] value.[r1.f0] + record-get [r1] value.[r1.f1])
+
+func main() -> number
+locals:
+  const explicit: number
+  const inferred: number
+  const point: Point
+entry:
+  store point, record-new [r1] { [r1.f0]: 20, [r1.f1]: 22 }
+  store explicit, call identity__primitive_number__8F3BAE8FF0D9F338(call sum__record_Point__AD972DE51050F4B6(point))
+  store inferred, call identity__primitive_number__8F3BAE8FF0D9F338(call sum__record_Point__AD972DE51050F4B6(point))
+  return (explicit + inferred)

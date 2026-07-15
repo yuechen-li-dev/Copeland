@@ -29,6 +29,17 @@ public static class Binder
         return impl.GetOpenGenericBodiesForTesting();
     }
 
+    internal static IReadOnlyDictionary<string, string> AllocateSpecializationNamesForTesting(
+        string genericName,
+        string displaySuffix,
+        IEnumerable<string> semanticIdentities,
+        Func<string, string>? hashProvider = null)
+        => BinderImpl.AllocateSpecializationNamesForTesting(
+            genericName,
+            displaySuffix,
+            semanticIdentities,
+            hashProvider);
+
     private sealed class Scope(Scope? parent)
     {
         private readonly Dictionary<string, Symbol> _symbols = new(StringComparer.Ordinal);
@@ -52,6 +63,9 @@ public static class Binder
         private const int MaxClosedInstantiationsPerGenericDefinition = 16;
         private const int MaxClosedInstantiationsPerCompilation = 128;
         private const int MaxDiagnosticRequirementFields = 4;
+        private const int MaxInferenceMatchDepth = 16;
+        private const int MaxInferenceMatchSteps = 128;
+        private const int MaxInferenceEvidencePerTypeParameter = 16;
 
         private int _loopDepth;
         private readonly SyntaxTree _tree = tree;
@@ -1932,11 +1946,7 @@ public static class Binder
                 return new BoundErrorExpression();
             }
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
-            if (fn.IsGeneric)
-            {
-                Report("COPE-GENERIC-0003", $"Generic function '{fn.Name}' requires explicit type arguments.", c.OpenParenToken);
-                return new BoundErrorExpression();
-            }
+            if (fn.IsGeneric) return BindInferredGenericCall(c, fn);
             if (c.Arguments.Count != fn.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {fn.Parameters.Count}, got {c.Arguments.Count}.", c.OpenParenToken);
             var args = c.Arguments.Select((a, index) => BindExpression(a, index < fn.Parameters.Count ? fn.Parameters[index].Type : null)).ToArray();
             for (var i = 0; i < Math.Min(args.Length, fn.Parameters.Count); i++)
@@ -1951,6 +1961,234 @@ public static class Binder
                 }
             return new BoundCallExpression(fn, args);
         }
+
+        private sealed class InferenceSlot(TypeParameterSymbol parameter)
+        {
+            public TypeParameterSymbol Parameter { get; } = parameter;
+            public TypeSymbol? Candidate { get; private set; }
+            public SyntaxToken? FirstEvidence { get; private set; }
+            public int EvidenceCount { get; private set; }
+            public bool HasConflict { get; private set; }
+
+            public bool AddEvidence(TypeSymbol candidate, SyntaxToken evidence, BinderImpl binder)
+            {
+                if (Candidate is null)
+                {
+                    Candidate = candidate;
+                    FirstEvidence = evidence;
+                    EvidenceCount = 1;
+                    return true;
+                }
+
+                if (!TypeFacts.AreEquivalent(Candidate, candidate))
+                {
+                    if (!HasConflict)
+                    {
+                        binder.Report(
+                            "COPE-INFER-0002",
+                            $"Conflicting inference for '{Parameter.Name}': argument at {FirstEvidence!.Position} gives canonical '{Candidate.Name}', but argument at {evidence.Position} gives canonical '{candidate.Name}'. Use explicit type arguments only if one concrete type makes every argument valid.",
+                            evidence);
+                        HasConflict = true;
+                    }
+
+                    return false;
+                }
+
+                EvidenceCount++;
+                if (EvidenceCount > MaxInferenceEvidencePerTypeParameter)
+                {
+                    binder.Report(
+                        "COPE-INFER-0007",
+                        $"Inference for '{Parameter.Name}' exceeded the {MaxInferenceEvidencePerTypeParameter} evidence-entry limit.",
+                        evidence);
+                    return false;
+                }
+
+                return true;
+            }
+        }
+
+        private BoundExpression BindInferredGenericCall(CallExpressionSyntax call, FunctionSymbol function)
+        {
+            if (_currentFunction?.IsGeneric == true)
+            {
+                string diagnosticId = _currentFunction.Name == function.Name ? "COPE-GENERIC-0014" : "COPE-GENERIC-0006";
+                string message = diagnosticId == "COPE-GENERIC-0014"
+                    ? $"Generic recursion through '{function.Name}' is not supported in CTS-TYPE-M1b."
+                    : "Generic-to-generic calls are not supported in CTS-TYPE-M1b.";
+                Report(diagnosticId, message, call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            if (call.Arguments.Count != function.Parameters.Count)
+            {
+                Report("COPE-TYPE-0004", $"Argument count mismatch: expected {function.Parameters.Count}, got {call.Arguments.Count}.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            var slots = function.TypeParameters.Select(parameter => new InferenceSlot(parameter)).ToArray();
+            var arguments = new BoundExpression[call.Arguments.Count];
+            var deferred = new List<int>();
+            bool failed = false;
+
+            for (var index = 0; index < call.Arguments.Count; index++)
+            {
+                ExpressionSyntax argument = call.Arguments[index];
+                if (RequiresInferenceContext(argument))
+                {
+                    deferred.Add(index);
+                    continue;
+                }
+
+                BoundExpression bound = BindExpression(argument);
+                arguments[index] = bound;
+                failed |= !CollectInferenceEvidence(function.Parameters[index].Type, bound.Type, slots, InferenceAnchor(argument));
+            }
+
+            var unresolved = slots.Where(slot => slot.Candidate is null).ToArray();
+            if (unresolved.Length > 0)
+            {
+                string names = string.Join(", ", unresolved.Select(slot => slot.Parameter.Name));
+                string explicitArguments = string.Join(", ", function.TypeParameters.Select(parameter => parameter.Name));
+                SyntaxToken anchor = deferred.Count > 0 ? InferenceAnchor(call.Arguments[deferred[0]]) : call.OpenParenToken;
+                string contextDetail = deferred.Count > 0 ? DescribeMissingContext(call.Arguments[deferred[0]]) + " " : string.Empty;
+                Report(
+                    "COPE-INFER-0001",
+                    $"Cannot infer type parameter{(unresolved.Length == 1 ? string.Empty : "s")} {names} for '{function.Name}'. {contextDetail}Provide explicit arguments, for example '{function.Name}<{explicitArguments}>(...)'.",
+                    anchor);
+                return new BoundErrorExpression();
+            }
+
+            if (failed || slots.Any(slot => slot.HasConflict)) return new BoundErrorExpression();
+
+            TypeSymbol[] typeArguments = slots.Select(slot => slot.Candidate!).ToArray();
+            try
+            {
+                foreach (TypeSymbol typeArgument in typeArguments)
+                {
+                    ValidateClosedTypeDepth(typeArgument, MaxClosedTypeDepth);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                Report("COPE-GENERIC-0015", $"Generic instantiation exceeded the closed-type nesting limit of {MaxClosedTypeDepth}.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            for (var index = 0; index < typeArguments.Length; index++)
+            {
+                if (!Satisfies(function.TypeParameters[index].Requirements, typeArguments[index], call.OpenParenToken))
+                {
+                    return new BoundErrorExpression();
+                }
+            }
+
+            BoundFunctionDeclaration specialization = GetOrCreateClosedInstantiation(function, typeArguments, call.OpenParenToken);
+            if (specialization.Symbol.Name == "<error>") return new BoundErrorExpression();
+
+            foreach (int index in deferred)
+            {
+                arguments[index] = BindExpression(call.Arguments[index], specialization.Symbol.Parameters[index].Type);
+            }
+
+            for (var index = 0; index < arguments.Length; index++)
+            {
+                if (!IsAssignable(specialization.Symbol.Parameters[index].Type, arguments[index].Type))
+                {
+                    ReportTypeMismatch("COPE-TYPE-0005", specialization.Symbol.Parameters[index].Type, arguments[index].Type, InferenceAnchor(call.Arguments[index]));
+                    failed = true;
+                }
+            }
+
+            return failed ? new BoundErrorExpression() : new BoundCallExpression(specialization.Symbol, arguments);
+        }
+
+        private bool CollectInferenceEvidence(TypeSymbol pattern, TypeSymbol actual, IReadOnlyList<InferenceSlot> slots, SyntaxToken anchor)
+        {
+            var worklist = new Stack<(TypeSymbol Pattern, TypeSymbol Actual, int Depth)>();
+            worklist.Push((pattern, actual, 0));
+            int steps = 0;
+            bool succeeded = true;
+
+            while (worklist.Count > 0)
+            {
+                var item = worklist.Pop();
+                if (++steps > MaxInferenceMatchSteps)
+                {
+                    Report("COPE-INFER-0006", $"Generic inference exceeded the {MaxInferenceMatchSteps} structural matching-step limit.", anchor);
+                    return false;
+                }
+                if (item.Depth > MaxInferenceMatchDepth)
+                {
+                    Report("COPE-INFER-0005", $"Generic inference exceeded the {MaxInferenceMatchDepth} structural matching-depth limit.", anchor);
+                    return false;
+                }
+
+                if (item.Pattern is TypeParameterTypeSymbol typeParameter)
+                {
+                    InferenceSlot? slot = slots.FirstOrDefault(candidate => ReferenceEquals(candidate.Parameter.Type, typeParameter));
+                    if (slot is null)
+                    {
+                        Report("COPE-INFER-0003", $"Generic inference encountered unsupported open type parameter '{typeParameter.Name}'.", anchor);
+                        return false;
+                    }
+                    succeeded &= slot.AddEvidence(item.Actual, anchor, this);
+                    continue;
+                }
+
+                switch (item.Pattern, item.Actual)
+                {
+                    case (ArrayTypeSymbol expected, ArrayTypeSymbol received):
+                        worklist.Push((expected.ElementType, received.ElementType, item.Depth + 1));
+                        break;
+                    case (ResultTypeSymbol expected, ResultTypeSymbol received):
+                        worklist.Push((expected.ErrorType, received.ErrorType, item.Depth + 1));
+                        worklist.Push((expected.SuccessType, received.SuccessType, item.Depth + 1));
+                        break;
+                    case (ColumnTypeSymbol expected, ColumnTypeSymbol received):
+                        worklist.Push((expected.ElementType, received.ElementType, item.Depth + 1));
+                        break;
+                    default:
+                        if (!TypeFacts.AreEquivalent(item.Pattern, item.Actual))
+                        {
+                            Report("COPE-INFER-0003", $"Generic inference structural mismatch: parameter pattern '{item.Pattern.Name}' does not exactly match argument type '{item.Actual.Name}'.", anchor);
+                            return false;
+                        }
+                        break;
+                }
+            }
+
+            return succeeded;
+        }
+
+        private static bool RequiresInferenceContext(ExpressionSyntax expression)
+            => expression is ObjectLiteralExpressionSyntax
+                || expression is ArrayLiteralExpressionSyntax { Elements.Count: 0 }
+                || expression is CallExpressionSyntax
+                {
+                    Target: NameExpressionSyntax { IdentifierToken.Text: "ok" or "err" }
+                };
+
+        private static string DescribeMissingContext(ExpressionSyntax expression)
+            => expression switch
+            {
+                ArrayLiteralExpressionSyntax => "An empty array provides no element-type evidence.",
+                ObjectLiteralExpressionSyntax => "A record literal provides no nominal-type evidence.",
+                CallExpressionSyntax => "A bare Result constructor provides incomplete Result evidence.",
+                _ => "This argument requires a contextual parameter type."
+            };
+
+        private static SyntaxToken InferenceAnchor(ExpressionSyntax expression)
+            => expression switch
+            {
+                ArrayLiteralExpressionSyntax array => array.OpenBracketToken,
+                ObjectLiteralExpressionSyntax record => record.OpenBraceToken,
+                CallExpressionSyntax call => call.OpenParenToken,
+                LiteralExpressionSyntax literal => literal.LiteralToken,
+                NameExpressionSyntax name => name.IdentifierToken,
+                _ => expression.GetChildren().OfType<SyntaxToken>().FirstOrDefault()
+                    ?? new SyntaxToken(SyntaxKind.BadToken, 0, "?", null)
+            };
 
         private BoundExpression BindGenericCall(GenericCallExpressionSyntax call, TypeSymbol? contextualType)
         {
@@ -2154,15 +2392,23 @@ public static class Binder
         {
             string displaySuffix = string.Join("_", typeArguments.Select(type => ClosedTypeIdentifier(type, MaxClosedTypeDepth)));
             string hash = ComputeStableHashHex(specializationIdentity);
-            string specializedName = generic.Name + "__" + displaySuffix + "__" + hash[..16];
-            if (_closedInstantiationNames.TryGetValue(specializedName, out var existingIdentity)
-                && !string.Equals(existingIdentity, specializationIdentity, StringComparison.Ordinal))
+            foreach (int suffixLength in new[] { 16, 24, 32, hash.Length })
             {
-                throw new InvalidOperationException($"Specialization name collision detected for '{specializedName}'.");
+                string specializedName = generic.Name + "__" + displaySuffix + "__" + hash[..suffixLength];
+                if (!_closedInstantiationNames.TryGetValue(specializedName, out var existingIdentity)
+                    || string.Equals(existingIdentity, specializationIdentity, StringComparison.Ordinal))
+                {
+                    _closedInstantiationNames[specializedName] = specializationIdentity;
+                    return specializedName;
+                }
             }
 
-            _closedInstantiationNames[specializedName] = specializationIdentity;
-            return specializedName;
+            // A full SHA-256 collision is not expected, but a valid program must never fail
+            // because a display hash is ambiguous. The canonical semantic identity is injective.
+            string escapedIdentity = Convert.ToHexString(Encoding.UTF8.GetBytes(specializationIdentity));
+            string fallbackName = generic.Name + "__" + displaySuffix + "__identity_" + escapedIdentity;
+            _closedInstantiationNames[fallbackName] = specializationIdentity;
+            return fallbackName;
         }
 
         private static string ClosedTypeIdentity(TypeSymbol type, int depthRemaining)
@@ -2203,6 +2449,57 @@ public static class Binder
         {
             byte[] bytes = Encoding.UTF8.GetBytes(text);
             return Convert.ToHexString(SHA256.HashData(bytes));
+        }
+
+        internal static IReadOnlyDictionary<string, string> AllocateSpecializationNamesForTesting(
+            string genericName,
+            string displaySuffix,
+            IEnumerable<string> semanticIdentities,
+            Func<string, string>? hashProvider = null)
+        {
+            hashProvider ??= ComputeStableHashHex;
+            var remaining = semanticIdentities
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(identity => identity, StringComparer.Ordinal)
+                .ToList();
+            var names = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            foreach (int suffixLength in new[] { 16, 24, 32, 64 })
+            {
+                var groups = remaining.GroupBy(
+                    identity => genericName + "__" + displaySuffix + "__" + hashProvider(identity)[..suffixLength],
+                    StringComparer.Ordinal)
+                    .OrderBy(group => group.Key, StringComparer.Ordinal)
+                    .ToArray();
+                remaining.Clear();
+
+                foreach (var group in groups)
+                {
+                    if (group.Count() == 1)
+                    {
+                        names.Add(group.Single(), group.Key);
+                    }
+                    else if (suffixLength == 64)
+                    {
+                        foreach (string identity in group.OrderBy(identity => identity, StringComparer.Ordinal))
+                        {
+                            string escapedIdentity = Convert.ToHexString(Encoding.UTF8.GetBytes(identity));
+                            names.Add(identity, group.Key + "__identity_" + escapedIdentity);
+                        }
+                    }
+                    else
+                    {
+                        remaining.AddRange(group.OrderBy(identity => identity, StringComparer.Ordinal));
+                    }
+                }
+
+                if (remaining.Count == 0)
+                {
+                    break;
+                }
+            }
+
+            return names;
         }
 
         private static string CreateFunctionStableIdentity(string name)

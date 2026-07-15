@@ -29,15 +29,119 @@ const answer: number = sum<Point>(point);
     }
 
     [Fact]
-    public void Reuses_A_Closed_Generic_Instantiation_And_Rejects_Inference()
+    public void Reuses_One_Closed_Generic_Instantiation_For_Explicit_And_Inferred_Calls()
     {
-        const string valid = "function identity<T>(value: T): T { return value; } const one: number = identity<number>(1); const two: number = identity<number>(2);";
+        const string valid = "function identity<T>(value: T): T { return value; } const one: number = identity<number>(1); const two: number = identity(2);";
         var specialized = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(valid);
-        var inferred = SemanticBinder.Bind(SyntaxTree.Parse("function identity<T>(value: T): T { return value; } const value: number = identity(1);"));
 
         Assert.True(specialized.Success, string.Join(Environment.NewLine, specialized.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Assert.Single(Regex.Matches(specialized.MirText!, @"func identity__primitive_number__[0-9A-F]{16}\(").Cast<Match>());
-        Assert.Contains(inferred.Diagnostics, diagnostic => diagnostic.Id == "COPE-GENERIC-0003");
+    }
+
+    [Fact]
+    public void Allocates_Collision_Safe_Rendered_Names_From_Sorted_Semantic_Identities()
+    {
+        const string first = "function:identity<primitive:number>";
+        const string second = "function:identity<primitive:string>";
+        const string unique = "function:identity<primitive:boolean>";
+        string Hash(string identity) => identity switch
+        {
+            var value when value == first => new string('A', 16) + new string('1', 48),
+            var value when value == second => new string('A', 16) + new string('2', 48),
+            _ => new string('B', 64)
+        };
+
+        var forward = SemanticBinder.AllocateSpecializationNamesForTesting("identity", "primitive", [first, second, unique], Hash);
+        var reverse = SemanticBinder.AllocateSpecializationNamesForTesting("identity", "primitive", [unique, second, first], Hash);
+
+        Assert.Equal(forward, reverse);
+        Assert.EndsWith("__BBBBBBBBBBBBBBBB", forward[unique], StringComparison.Ordinal);
+        Assert.EndsWith("__AAAAAAAAAAAAAAAA11111111", forward[first], StringComparison.Ordinal);
+        Assert.EndsWith("__AAAAAAAAAAAAAAAA22222222", forward[second], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Infers_Direct_Arguments_And_Stages_Contextual_Arguments_Afterwards()
+    {
+        const string source = """
+record Point { x: number; y: number; }
+function chooseLeft<T, U>(left: T, right: U): T { return left; }
+function takeArray<T>(values: T[], fallback: T): T { return fallback; }
+function combinePoint<T>(witness: T, value: T): T { return value; }
+const point: Point = { x: 20, y: 22 };
+const left: number = chooseLeft(42, "ignored");
+const arrayValue: number = takeArray([42], 0);
+const contextual: Point = combinePoint(point, { x: 1, y: 2 });
+""";
+
+        var compilation = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(source);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.DoesNotContain("TypeParameter", compilation.MirText, StringComparison.Ordinal);
+        Assert.DoesNotContain("<error>", compilation.MirText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("function make<T>(): T { return 1; } const value: number = make();", "COPE-INFER-0001")]
+    [InlineData("function same<T>(left: T, right: T): T { return left; } const value: number = same(1, \"two\");", "COPE-INFER-0002")]
+    [InlineData("function take<T>(values: T[]): T { return values[0]; } const value: number = take([]);", "COPE-INFER-0001")]
+    [InlineData("record Point { x: number; } function take<T>(value: T): T { return value; } const value: Point = take({ x: 1 });", "COPE-INFER-0001")]
+    [InlineData("function inner<T>(value: T): T { return value; } function outer<U>(value: U): U { return inner(value); }", "COPE-GENERIC-0006")]
+    [InlineData("function loop<T>(value: T): T { return loop(value); }", "COPE-GENERIC-0014")]
+    public void Reports_Bounded_Inference_Failures(string source, string diagnosticId)
+    {
+        var compilation = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(source);
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == diagnosticId);
+        Assert.Null(compilation.MirCompilation);
+    }
+
+    [Fact]
+    public void Enforces_Exact_Inference_Depth_And_Evidence_Boundaries()
+    {
+        var atDepthLimit = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(BuildNestedArrayInferenceSource(16));
+        var overDepthLimit = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(BuildNestedArrayInferenceSource(17));
+        var atEvidenceLimit = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(BuildRepeatedEvidenceSource(16));
+        var overEvidenceLimit = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(BuildRepeatedEvidenceSource(17));
+        var overStepLimit = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(BuildStructuralStepLimitSource());
+
+        Assert.True(atDepthLimit.Success, string.Join(Environment.NewLine, atDepthLimit.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Contains(overDepthLimit.Diagnostics, diagnostic => diagnostic.Id == "COPE-INFER-0005");
+        Assert.True(atEvidenceLimit.Success, string.Join(Environment.NewLine, atEvidenceLimit.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Contains(overEvidenceLimit.Diagnostics, diagnostic => diagnostic.Id == "COPE-INFER-0007");
+        Assert.Contains(overStepLimit.Diagnostics, diagnostic => diagnostic.Id == "COPE-INFER-0006");
+    }
+
+    private static string BuildNestedArrayInferenceSource(int depth)
+    {
+        string parameterType = "T" + string.Concat(Enumerable.Repeat("[]", depth));
+        string value = "42";
+        for (var index = 0; index < depth; index++)
+        {
+            value = "[" + value + "]";
+        }
+
+        return $"function relay<T>(value: {parameterType}): void {{ }} relay({value});";
+    }
+
+    private static string BuildRepeatedEvidenceSource(int count)
+    {
+        string parameters = string.Join(", ", Enumerable.Range(0, count).Select(index => $"value{index}: T"));
+        string arguments = string.Join(", ", Enumerable.Repeat("42", count));
+        return $"function same<T>({parameters}): void {{ }} same({arguments});";
+    }
+
+    private static string BuildStructuralStepLimitSource()
+    {
+        string type = "string";
+        string value = "\"bad\"";
+        for (var index = 0; index < 7; index++)
+        {
+            type = "(" + type + " ! " + type + ")";
+            value = "err(" + value + ")";
+        }
+
+        return $"function inspect<T>(witness: T, value: {type}): void {{ }} const source: {type} = {value}; inspect(1, source);";
     }
 
     [Fact]

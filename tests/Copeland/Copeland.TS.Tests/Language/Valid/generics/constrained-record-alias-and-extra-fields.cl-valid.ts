@@ -16,4 +16,4 @@ function sum<T extends Positioned>(value: T): number {
 }
 
 const point: PointAlias = { x: 20, y: 22, label: "ok" };
-const answer: number = sum<PointAlias>(point);
+const answer: number = sum(point);

@@ -79,6 +79,7 @@ public sealed class JavaScriptCorpusTests
     [InlineData("record-order-with.g.js", "A2A34C7F2CFEF31AA2186740C799249770D7050BE3C7FDD9052F8FE99D7BE146")]
     [InlineData("record-result-enum.g.js", "8DEACC0FE023E665B4C777CBA364D2262673DB6F65EACDC9C548EA7014A64732")]
     [InlineData("record-try-except.g.js", "E246048D818F5F6FF7DF932C546F112D7E4889C9A6CDB49EAB238BE47F0D7903")]
+    [InlineData("inferred-reuse.g.js", "2A620DE6C9EAA21AC2DA56512A60DC8200F231CB34BBE245AA6516E6CFEE3EE5")]
     public void Record_Artifacts_Have_Stable_Hashes(string fileName, string expectedHash)
     {
         string artifactPath = Path.Combine(GetCorpusRoot(), fileName);

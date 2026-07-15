@@ -18,4 +18,4 @@ function describe<T extends Positioned & Named>(value: T): string {
 }
 
 const row: Samples.Row = Samples[0]!;
-const answer: string = describe<Samples.Row>(row);
+const answer: string = describe(row);

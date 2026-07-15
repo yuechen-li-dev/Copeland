@@ -15,6 +15,7 @@ public sealed class JavaScriptSymbolicCorpusTests
     [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/try-except-success.ts", 3434, "0C772ECBE8D6F6A023098494B85A9380840AA3C4E9944110CBE49C431E7A0D7B")]
     [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/record-basic.ts", 2439, "08A8660EDFA7EA4DBD1B4C311F003B6851E83ED6E9B3DE0CA46AF5159E684B3A")]
     [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/record-order-with.ts", 1654, "302B57990326174B71C70BA29A9F740DE50241C12A1E31A0EF9991E0A7D6DBFA")]
+    [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/inferred-reuse.ts", 1819, "75116BFD2227A9F84C271F1D18D3849109EB3C2B13A1BB29E71EC69874FE737B")]
     [InlineData("tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus/m2-table-basic.ts", 15461, "80AF3FD5ED71D4B9CFCCCDE62877027480255C3E9F841A94C3B77FD9FE46AE5A")]
     [InlineData("tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/record/main.ts", 12156, "C227F69DF91785B71786C7CA5AEB406EA031323AD8ACF22E3F5ABAEA1507B79B")]
     [InlineData("tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus/arrays/main.ts", 20419, "0C0740A327B4A80B81118A9B7884902B1EC78277A90F641B9CA0EF439BF0D591")]

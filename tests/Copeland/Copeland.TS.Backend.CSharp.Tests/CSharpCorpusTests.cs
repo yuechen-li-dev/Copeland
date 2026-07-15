@@ -43,6 +43,15 @@ public sealed class CSharpCorpusTests
         Assert.Equal("B83CAA6470B05E46947F8F66591E9C0428377C642C0555BE1E1F62526FDE955A", hash);
     }
 
+    [Fact]
+    public void Inferred_reuse_csharp_artifact_has_a_stable_hash()
+    {
+        string path = Path.Combine(GetCorpusRoot(), "m0-csharp-valid", "inferred-reuse.g.cs");
+        string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
+
+        Assert.Equal("3E983E41DB6658CB9D9F5513A3958F871D18FAE4E4621ECBAA39EFF507A891DA", hash);
+    }
+
     private static string GetCorpusRoot() => CorpusFile.GetCorpusRoot();
 
 }

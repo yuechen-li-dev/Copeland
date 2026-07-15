@@ -235,7 +235,10 @@ public sealed class TsonEncodeFeatureTests
                 return { x: value.x, y: value.y };
             }
             function encode(): string ! TsonEncodeError {
-                return tsonEncode(clonePoint<Point>({ x: 1, y: 2 }));
+                const point: Point = { x: 1, y: 2 };
+                const explicitClone: Point = clonePoint<Point>(point);
+                const inferredClone: Point = clonePoint(point);
+                return tsonEncode(inferredClone);
             }
             """);
 
@@ -248,6 +251,7 @@ public sealed class TsonEncodeFeatureTests
         Assert.DoesNotContain("clonePoint<", compilation.MirText!, StringComparison.Ordinal);
         Assert.DoesNotContain("TypeParameter", compilation.MirText!, StringComparison.Ordinal);
         Assert.DoesNotContain("Positioned", compilation.MirText!, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(compilation.MirText!, @"func clonePoint__[A-Za-z0-9_]+__[0-9A-F]{16}\(").Cast<System.Text.RegularExpressions.Match>());
     }
 
     private static CopelandCompilation Compile(string source)

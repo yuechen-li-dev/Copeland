@@ -66,7 +66,7 @@ public sealed class CliIntegrationTests
     }
 
     [Fact]
-    public async Task Closed_generic_cli_emission_is_repeatable_executable_and_preserves_stale_artifacts()
+    public async Task Inferred_generic_cli_emission_is_repeatable_executable_and_preserves_stale_artifacts()
     {
         using var temp = new TempDir();
         string inputPath = temp.WriteFile("main.ts", """
@@ -90,11 +90,11 @@ public sealed class CliIntegrationTests
 
             function mainSum(): number {
                 const point: Point = { x: 20, y: 22 };
-                return sum<Point>(point);
+                return sum(point);
             }
 
             function mainIdentity(): number {
-                return identity<number>(42);
+                return identity(42);
             }
             """);
 

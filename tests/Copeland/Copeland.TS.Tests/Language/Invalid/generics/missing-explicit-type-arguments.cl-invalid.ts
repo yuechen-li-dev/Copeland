@@ -1,5 +1,5 @@
-function identity<T>(value: T): T {
-  return value;
+function create<T>(): T {
+  return 1;
 }
 
-const value: number = identity(42);
+const value: number = create();

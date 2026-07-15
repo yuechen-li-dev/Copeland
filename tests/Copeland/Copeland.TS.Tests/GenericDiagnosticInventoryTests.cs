@@ -26,7 +26,12 @@ public sealed class GenericDiagnosticInventoryTests
         yield return Case("COPE-REQUIREMENT-0010", BuildTooManyNormalizedFieldsSource());
         yield return Case("COPE-GENERIC-0001", "function use<T, T>(value: T): T { return value; }");
         yield return Case("COPE-GENERIC-0002", "record T { value: number; } function use<T>(value: T): T { return value; }");
-        yield return Case("COPE-GENERIC-0003", "function identity<T>(value: T): T { return value; } const answer: number = identity(1);");
+        yield return Case("COPE-INFER-0001", "function discard<T>(value: number): void { } discard(1);");
+        yield return Case("COPE-INFER-0002", "function same<T>(left: T, right: T): T { return left; } const answer: number = same(1, \"two\");");
+        yield return Case("COPE-INFER-0003", "function shape<T>(value: T[]): T { return value[0]; } const answer: number = shape(1);");
+        yield return Case("COPE-INFER-0005", BuildDepthLimitSource());
+        yield return Case("COPE-INFER-0006", BuildStepLimitSource());
+        yield return Case("COPE-INFER-0007", BuildEvidenceLimitSource());
         yield return Case("COPE-GENERIC-0005", "function value(input: number): number { return input; } const answer: number = value<number>(1);");
         yield return Case("COPE-GENERIC-0006", "function inner<T>(value: T): T { return value; } function outer<U>(value: U): U { return inner<U>(value); }");
         yield return Case("COPE-GENERIC-0007", "function identity<T>(value: T): T { return value; } const answer: number = identity<number, string>(1);");
@@ -155,5 +160,33 @@ public sealed class GenericDiagnosticInventoryTests
         }
 
         return $"function identity<T>(value: T): T {{ return value; }} const value: {nested} = identity<{nested}>(err(\"bad\"));";
+    }
+
+    private static string BuildDepthLimitSource()
+    {
+        string parameterType = "T" + string.Concat(Enumerable.Repeat("[]", 17));
+        string value = "42";
+        for (var index = 0; index < 17; index++) value = "[" + value + "]";
+        return $"function relay<T>(value: {parameterType}): void {{ }} relay({value});";
+    }
+
+    private static string BuildStepLimitSource()
+    {
+        string type = "string";
+        string value = "\"bad\"";
+        for (var index = 0; index < 7; index++)
+        {
+            type = "(" + type + " ! " + type + ")";
+            value = "err(" + value + ")";
+        }
+
+        return $"function inspect<T>(witness: T, value: {type}): void {{ }} const source: {type} = {value}; inspect(1, source);";
+    }
+
+    private static string BuildEvidenceLimitSource()
+    {
+        string parameters = string.Join(", ", Enumerable.Range(0, 17).Select(index => $"value{index}: T"));
+        string arguments = string.Join(", ", Enumerable.Repeat("42", 17));
+        return $"function same<T>({parameters}): void {{ }} same({arguments});";
     }
 }
