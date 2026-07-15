@@ -14,6 +14,7 @@ public static class MirValidator
         }
 
         ValidateRecordModel(program, diagnostics);
+        ValidateEnumModel(program, diagnostics);
         ValidateTableModel(program, diagnostics);
         ValidateTsonEncodingModel(program, diagnostics);
         foreach (var function in program.Functions)
@@ -24,6 +25,41 @@ public static class MirValidator
         }
 
         return diagnostics;
+    }
+
+    private static void ValidateEnumModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        var enumsByName = new Dictionary<string, MirEnum>(StringComparer.Ordinal);
+        foreach (MirEnum @enum in program.Enums)
+        {
+            if (string.IsNullOrWhiteSpace(@enum.Name) || !enumsByName.TryAdd(@enum.Name, @enum))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"Duplicate or blank enum name '{@enum.Name}'."));
+            }
+
+            var caseNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (MirEnumCase @case in @enum.Cases)
+            {
+                if (string.IsNullOrWhiteSpace(@case.Name) || !caseNames.Add(@case.Name))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Enum '{@enum.Name}' has a blank or duplicate case name '{@case.Name}'."));
+                }
+
+                var payloadNames = new HashSet<string>(StringComparer.Ordinal);
+                foreach (MirEnumPayloadField payload in @case.PayloadFields)
+                {
+                    if (string.IsNullOrWhiteSpace(payload.Name) || !payloadNames.Add(payload.Name))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Enum '{@enum.Name}.{@case.Name}' has a blank or duplicate payload name '{payload.Name}'."));
+                    }
+                }
+            }
+        }
+
+        foreach (MirFunction function in program.Functions)
+        {
+            ValidateEnumStatements(function.Body, enumsByName, diagnostics);
+        }
     }
 
     private static void ValidateArrayModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
@@ -1109,6 +1145,261 @@ public static class MirValidator
                     if (loop.Increment is not null) ValidateRecordExpression(loop.Increment, records, diagnostics);
                     ValidateRecordStatements(loop.BodyStatements, records, diagnostics);
                     break;
+            }
+        }
+    }
+
+    private static void ValidateEnumStatements(
+        IReadOnlyList<MirStatement> statements,
+        IReadOnlyDictionary<string, MirEnum> enumsByName,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (MirStatement statement in statements)
+        {
+            switch (statement)
+            {
+                case MirVariableDeclarationStatement declaration:
+                    ValidateEnumExpression(declaration.Initializer, enumsByName, diagnostics);
+                    break;
+                case MirExpressionStatement expression:
+                    ValidateEnumExpression(expression.Expression, enumsByName, diagnostics);
+                    break;
+                case MirReturnStatement { Expression: not null } returned:
+                    ValidateEnumExpression(returned.Expression, enumsByName, diagnostics);
+                    break;
+                case MirIfStatement conditional:
+                    ValidateEnumExpression(conditional.Condition, enumsByName, diagnostics);
+                    ValidateEnumStatements(conditional.ThenStatements, enumsByName, diagnostics);
+                    if (conditional.ElseStatements is not null)
+                    {
+                        ValidateEnumStatements(conditional.ElseStatements, enumsByName, diagnostics);
+                    }
+                    break;
+                case MirWhileStatement loop:
+                    ValidateEnumExpression(loop.Condition, enumsByName, diagnostics);
+                    ValidateEnumStatements(loop.BodyStatements, enumsByName, diagnostics);
+                    break;
+                case MirForStatement loop:
+                    if (loop.Initializer is not null)
+                    {
+                        ValidateEnumStatements([loop.Initializer], enumsByName, diagnostics);
+                    }
+                    if (loop.Condition is not null)
+                    {
+                        ValidateEnumExpression(loop.Condition, enumsByName, diagnostics);
+                    }
+                    if (loop.Increment is not null)
+                    {
+                        ValidateEnumExpression(loop.Increment, enumsByName, diagnostics);
+                    }
+                    ValidateEnumStatements(loop.BodyStatements, enumsByName, diagnostics);
+                    break;
+            }
+        }
+    }
+
+    private static void ValidateEnumExpression(
+        MirExpression expression,
+        IReadOnlyDictionary<string, MirEnum> enumsByName,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        switch (expression)
+        {
+            case MirAssignmentExpression assignment:
+                ValidateEnumExpression(assignment.Expression, enumsByName, diagnostics);
+                return;
+            case MirUnaryExpression unary:
+                ValidateEnumExpression(unary.Operand, enumsByName, diagnostics);
+                return;
+            case MirBinaryExpression binary:
+                ValidateEnumExpression(binary.Left, enumsByName, diagnostics);
+                ValidateEnumExpression(binary.Right, enumsByName, diagnostics);
+                return;
+            case MirCallExpression call:
+                foreach (MirExpression argument in call.Arguments)
+                {
+                    ValidateEnumExpression(argument, enumsByName, diagnostics);
+                }
+                return;
+            case MirArrayExpression array:
+                foreach (MirExpression element in array.Elements)
+                {
+                    ValidateEnumExpression(element, enumsByName, diagnostics);
+                }
+                return;
+            case MirRecordConstructionExpression record:
+                foreach (MirRecordFieldValue initializer in record.Initializers)
+                {
+                    ValidateEnumExpression(initializer.Value, enumsByName, diagnostics);
+                }
+                return;
+            case MirRecordFieldAccessExpression access:
+                ValidateEnumExpression(access.Receiver, enumsByName, diagnostics);
+                return;
+            case MirRecordWithExpression update:
+                ValidateEnumExpression(update.Source, enumsByName, diagnostics);
+                foreach (MirRecordFieldValue replacement in update.Replacements)
+                {
+                    ValidateEnumExpression(replacement.Value, enumsByName, diagnostics);
+                }
+                return;
+            case MirEnumValueExpression value:
+                ValidateEnumValueExpression(value, enumsByName, diagnostics);
+                foreach (MirExpression argument in value.Arguments)
+                {
+                    ValidateEnumExpression(argument, enumsByName, diagnostics);
+                }
+                return;
+            case MirMatchExpression match:
+                ValidateEnumExpression(match.Scrutinee, enumsByName, diagnostics);
+                ValidateMatchExpression(match, enumsByName, diagnostics);
+                foreach (MirMatchArm arm in match.Arms)
+                {
+                    ValidateEnumExpression(arm.Expression, enumsByName, diagnostics);
+                }
+                return;
+            case MirResultMatchExpression match:
+                ValidateEnumExpression(match.Scrutinee, enumsByName, diagnostics);
+                ValidateEnumExpression(match.OkExpression, enumsByName, diagnostics);
+                ValidateEnumExpression(match.ErrExpression, enumsByName, diagnostics);
+                return;
+            case MirIfExpression conditional:
+                ValidateEnumExpression(conditional.Condition, enumsByName, diagnostics);
+                ValidateEnumExpression(conditional.ThenExpression, enumsByName, diagnostics);
+                ValidateEnumExpression(conditional.ElseExpression, enumsByName, diagnostics);
+                return;
+            case MirOkExpression ok:
+                ValidateEnumExpression(ok.Payload, enumsByName, diagnostics);
+                return;
+            case MirErrExpression err:
+                ValidateEnumExpression(err.Payload, enumsByName, diagnostics);
+                return;
+            case MirPropagateExpression propagate:
+                ValidateEnumExpression(propagate.Operand, enumsByName, diagnostics);
+                return;
+            case MirUnwrapExpression unwrap:
+                ValidateEnumExpression(unwrap.Operand, enumsByName, diagnostics);
+                return;
+            case MirTryExpression tryExpression:
+                ValidateEnumStatements(tryExpression.Protected.PrefixStatements, enumsByName, diagnostics);
+                ValidateEnumExpression(tryExpression.Protected.ValueExpression, enumsByName, diagnostics);
+                ValidateEnumExpression(tryExpression.Handler.ValueExpression, enumsByName, diagnostics);
+                return;
+            default:
+                return;
+        }
+    }
+
+    private static void ValidateEnumValueExpression(
+        MirEnumValueExpression value,
+        IReadOnlyDictionary<string, MirEnum> enumsByName,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        if (!enumsByName.TryGetValue(value.EnumName, out MirEnum? @enum))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"unknown enum '{value.EnumName}' for enum value"));
+            return;
+        }
+
+        if (value.Type.Identifier != @enum.Name)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"enum value '{@enum.Name}.{value.CaseName}' result type does not match enum '{@enum.Name}'."));
+        }
+
+        MirEnumCase? @case = @enum.Cases.FirstOrDefault(candidate => candidate.Name == value.CaseName);
+        if (@case is null)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"unknown case '{value.EnumName}.{value.CaseName}'"));
+            return;
+        }
+
+        ValidatePayloadArguments(value.Arguments, @case.PayloadFields, $"enum value '{value.EnumName}.{value.CaseName}'", diagnostics);
+    }
+
+    private static void ValidateMatchExpression(
+        MirMatchExpression match,
+        IReadOnlyDictionary<string, MirEnum> enumsByName,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        if (match.Scrutinee.Type is not MirType scrutineeType
+            || match.Scrutinee.Type is MirArrayType or MirResultType
+            || !enumsByName.TryGetValue(scrutineeType.Identifier, out MirEnum? @enum))
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"match expression has non-enum scrutinee type '{match.Scrutinee.Type.Name}'."));
+            return;
+        }
+
+        var seenCases = new HashSet<string>(StringComparer.Ordinal);
+        foreach (MirMatchArm arm in match.Arms)
+        {
+            if (!seenCases.Add(arm.CaseName))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"duplicate match arm '{arm.CaseName}'"));
+            }
+
+            MirEnumCase? @case = @enum.Cases.FirstOrDefault(candidate => candidate.Name == arm.CaseName);
+            if (@case is null)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"unknown match case '{arm.CaseName}' for enum '{@enum.Name}'"));
+            }
+            else
+            {
+                ValidatePayloadBindings(arm.PayloadBindings, @case.PayloadFields, $"match arm '{arm.CaseName}'", diagnostics);
+            }
+
+            if (!MirTypeFacts.AreEquivalent(arm.Expression.Type, match.Type))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"result of match arm '{arm.CaseName}' does not match the match result type."));
+            }
+        }
+
+        foreach (MirEnumCase @case in @enum.Cases)
+        {
+            if (!seenCases.Contains(@case.Name))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"non-exhaustive match for enum '{@enum.Name}'; missing case '{@case.Name}'"));
+            }
+        }
+    }
+
+    private static void ValidatePayloadArguments(
+        IReadOnlyList<MirExpression> arguments,
+        IReadOnlyList<MirEnumPayloadField> fields,
+        string context,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        if (arguments.Count != fields.Count)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"{context} has {arguments.Count} payloads but case declares {fields.Count}"));
+        }
+
+        int sharedCount = Math.Min(arguments.Count, fields.Count);
+        for (int index = 0; index < sharedCount; index++)
+        {
+            if (!MirTypeFacts.AreEquivalent(arguments[index].Type, fields[index].Type))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"payload {index + 1} of {context} does not match the declared payload type."));
+            }
+        }
+    }
+
+    private static void ValidatePayloadBindings(
+        IReadOnlyList<MirMatchPayloadBinding> bindings,
+        IReadOnlyList<MirEnumPayloadField> fields,
+        string context,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        if (bindings.Count != fields.Count)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"{context} has {bindings.Count} bindings but case declares {fields.Count} payloads"));
+        }
+
+        int sharedCount = Math.Min(bindings.Count, fields.Count);
+        for (int index = 0; index < sharedCount; index++)
+        {
+            if (!MirTypeFacts.AreEquivalent(bindings[index].Type, fields[index].Type))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"binding {index + 1} of {context} does not match the declared payload type."));
             }
         }
     }

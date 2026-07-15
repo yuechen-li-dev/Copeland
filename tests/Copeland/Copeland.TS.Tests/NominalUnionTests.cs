@@ -1,5 +1,7 @@
 using Copeland.TS.Compiler;
+using Copeland.TS.Mir;
 using Copeland.TS.Syntax;
+using System.Security.Cryptography;
 using Xunit;
 
 namespace Copeland.TS.Tests;
@@ -57,8 +59,140 @@ public sealed class NominalUnionTests
         Assert.DoesNotContain(tree.Diagnostics, diagnostic => diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
     }
 
+    public static IEnumerable<object[]> ReachableUnionDiagnostics()
+    {
+        yield return DiagnosticCase(
+            "COPE-UNION-0003",
+            """
+            record A { value: number; }
+            record B { value: number; }
+            record C { value: number; }
+            record D { value: number; }
+            record E { value: number; }
+            record F { value: number; }
+            record G { value: number; }
+            record H { value: number; }
+            record I { value: number; }
+            type Shape = A | B | C | D | E | F | G | H | I;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0004",
+            """
+            record Circle { radius: number; }
+            type Shape = Circle | Circle;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0005",
+            """
+            record Shape { value: number; }
+            record Circle { radius: number; }
+            record Rectangle { width: number; }
+            type Shape = Circle | Rectangle;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0006",
+            """
+            record Circle { radius: number; }
+            record Rectangle { width: number; }
+            type Round = Circle;
+            type Shape = Round | Rectangle;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0007",
+            """
+            record Circle { radius: number; }
+            enum Existing { Value, }
+            type Shape = Existing | Circle;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0007",
+            """
+            record Circle { radius: number; }
+            interface Required { value: number; }
+            type Shape = Required | Circle;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0007",
+            """
+            record Circle { radius: number; }
+            record table Samples { value: [1]; }
+            type Shape = Samples | Circle;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0007",
+            """
+            record Circle { radius: number; }
+            record Rectangle { width: number; }
+            type Inner = Circle | Rectangle;
+            type Outer = Inner | Circle;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0008",
+            """
+            record Circle { radius: number; }
+            type Shape = Missing | Circle;
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0009",
+            """
+            record Circle { radius: number; }
+            record Rectangle { width: number; }
+            record Triangle { side: number; }
+            type Shape = Circle | Rectangle;
+            function bad(): Shape {
+                const triangle: Triangle = { side: 3 };
+                return triangle;
+            }
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0010",
+            """
+            record Circle { radius: number; }
+            record Rectangle { width: number; }
+            type Shape = Circle | Rectangle;
+            function bad(shape: Shape): Circle {
+                return shape;
+            }
+            """);
+        yield return DiagnosticCase(
+            "COPE-UNION-0011",
+            """
+            record Circle { radius: number; }
+            record Rectangle { width: number; }
+            type Shape = Circle | Rectangle;
+            type OtherShape = Circle | Rectangle;
+            function bad(shape: Shape): OtherShape {
+                return shape;
+            }
+            """);
+    }
+
+    [Theory]
+    [MemberData(nameof(ReachableUnionDiagnostics))]
+    public void Reachable_union_diagnostics_have_focused_coverage_and_nonempty_spans(string diagnosticId, string source)
+    {
+        var compilation = CompileToBound(source);
+
+        var diagnostic = Assert.Single(compilation.Diagnostics, item => item.Id == diagnosticId);
+        Assert.True(diagnostic.Length > 0);
+        Assert.True(diagnostic.Position >= 0);
+        Assert.DoesNotContain("C:\\", diagnostic.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
-    public void Nominal_union_lowers_as_a_payload_enum_and_contextually_injects_direct_records()
+    public void Primitive_alternatives_are_rejected_at_the_parser_boundary_with_union_owned_syntax_diagnostics()
+    {
+        var tree = SyntaxTree.Parse("""
+            record Circle { radius: number; }
+            type Shape = number | Circle;
+            """);
+
+        Assert.Contains(tree.Diagnostics, diagnostic => diagnostic.Id == "COPE-UNION-0001");
+        Assert.All(tree.Diagnostics, diagnostic => Assert.True(diagnostic.Length > 0));
+    }
+
+    [Fact]
+    public void Nominal_union_lowers_as_a_declaration_ordered_payload_enum_with_fixed_value_payload_names()
     {
         const string source = """
 record Circle {
@@ -85,11 +219,16 @@ function area(): number {
         var compilation = CopelandCompiler.CompileToMir(source);
 
         Assert.True(compilation.Success, Describe(compilation));
-        Assert.Contains("enum Shape", compilation.MirText, StringComparison.Ordinal);
-        Assert.Contains("Circle(value: Circle)", compilation.MirText, StringComparison.Ordinal);
-        Assert.Contains("Rectangle(value: Rectangle)", compilation.MirText, StringComparison.Ordinal);
+        MirProgram program = Assert.IsType<MirProgram>(compilation.MirCompilation!.Program);
+        MirEnum union = Assert.Single(program.Enums);
+        Assert.Equal("Shape", union.Name);
+        Assert.Equal(["Circle", "Rectangle"], union.Cases.Select(@case => @case.Name));
+        Assert.All(union.Cases, @case =>
+        {
+            MirEnumPayloadField payload = Assert.Single(@case.PayloadFields);
+            Assert.Equal("value", payload.Name);
+        });
         Assert.DoesNotContain("Union", compilation.MirText, StringComparison.Ordinal);
-
     }
 
     [Fact]
@@ -113,6 +252,30 @@ function invalid(value: Shape): OtherShape { return value; }
         var aliasDiagnostic = Assert.Single(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-UNION-0006");
         Assert.Contains("'Round' is an alias of 'Circle'; use 'Circle'", aliasDiagnostic.Message, StringComparison.Ordinal);
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-UNION-0011");
+    }
+
+    [Fact]
+    public void Nominal_union_reuses_existing_record_cycle_diagnostics_for_direct_and_indirect_containment()
+    {
+        const string direct = """
+record Node { child: Tree; }
+record Leaf { value: number; }
+type Tree = Node | Leaf;
+""";
+        const string indirect = """
+record Branch { left: Tree; }
+record TreeLeaf { node: Node; }
+type Tree = Branch | TreeLeaf;
+record Node { child: Tree; }
+""";
+
+        var directCompilation = CopelandCompiler.CompileToMir(direct);
+        var indirectCompilation = CopelandCompiler.CompileToMir(indirect);
+
+        Assert.Contains(directCompilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-REC-0004");
+        Assert.Contains(indirectCompilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-REC-0004");
+        Assert.Null(directCompilation.MirText);
+        Assert.Null(indirectCompilation.MirText);
     }
 
     [Fact]
@@ -145,7 +308,48 @@ type Shape = A | B | C | D | E | F | G | H | I;
     }
 
     [Fact]
-    public void Nominal_union_reuses_enum_tson_identity_and_record_containment_validation()
+    public void Nominal_union_and_equivalent_payload_enum_lower_to_equivalent_mir()
+    {
+        const string unionSource = """
+record Circle { radius: number; }
+record Rectangle { width: number; height: number; }
+type Shape = Circle | Rectangle;
+function area(): number {
+    const circle: Circle = { radius: 4 };
+    const shape: Shape = circle;
+    return match shape {
+        Circle(value) => value.radius * value.radius,
+        Rectangle(value) => value.width * value.height,
+    };
+}
+""";
+        const string enumSource = """
+record Circle { radius: number; }
+record Rectangle { width: number; height: number; }
+enum Shape {
+    Circle(value: Circle),
+    Rectangle(value: Rectangle),
+}
+function area(): number {
+    const circle: Circle = { radius: 4 };
+    const shape: Shape = Shape.Circle(circle);
+    return match shape {
+        Circle(value) => value.radius * value.radius,
+        Rectangle(value) => value.width * value.height,
+    };
+}
+""";
+
+        var unionCompilation = CopelandCompiler.CompileToMir(unionSource);
+        var enumCompilation = CopelandCompiler.CompileToMir(enumSource);
+
+        Assert.True(unionCompilation.Success, Describe(unionCompilation));
+        Assert.True(enumCompilation.Success, Describe(enumCompilation));
+        Assert.Equal(enumCompilation.MirText, unionCompilation.MirText);
+    }
+
+    [Fact]
+    public void Nominal_union_reuses_enum_tson_identity_and_payload_identities()
     {
         const string tsonSource = """
 const $schema: string = "copeland://union-proof/v1";
@@ -158,20 +362,22 @@ function encode(): string ! TsonEncodeError {
     return tsonEncode(shape);
 }
 """;
-        const string recursiveSource = """
-record Node { child: Tree; }
-record Leaf { value: number; }
-type Tree = Node | Leaf;
-""";
 
         var tsonCompilation = CopelandCompiler.CompileToMir(tsonSource);
-        var recursiveCompilation = CopelandCompiler.CompileToMir(recursiveSource);
 
         Assert.True(tsonCompilation.Success, Describe(tsonCompilation));
-        Assert.Contains("copeland://union-proof/v1#Shape", tsonCompilation.MirText, StringComparison.Ordinal);
-        Assert.Contains("copeland://union-proof/v1#Shape.Circle.value", tsonCompilation.MirText, StringComparison.Ordinal);
-        Assert.Contains(recursiveCompilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-REC-0004");
-        Assert.Null(recursiveCompilation.MirText);
+        MirTsonEncodingPlan plan = Assert.Single(tsonCompilation.MirCompilation!.Program!.TsonEncodingPlans);
+        Assert.Equal("copeland://union-proof/v1", plan.SchemaIdentity);
+        MirTsonEnumPlan enumPlan = Assert.IsType<MirTsonEnumPlan>(Assert.Single(plan.Definitions.OfType<MirTsonEnumPlan>()));
+        Assert.Equal("Shape", enumPlan.Name);
+        Assert.Equal("copeland://union-proof/v1#Shape", enumPlan.StableIdentity);
+        Assert.Equal(["Circle", "Rectangle"], enumPlan.Cases.Select(@case => @case.Name));
+        Assert.Equal(
+            ["copeland://union-proof/v1#Shape.Circle", "copeland://union-proof/v1#Shape.Rectangle"],
+            enumPlan.Cases.Select(@case => @case.StableIdentity));
+        Assert.Equal(
+            ["copeland://union-proof/v1#Shape.Circle.value", "copeland://union-proof/v1#Shape.Rectangle.value"],
+            enumPlan.Cases.Select(@case => Assert.Single(@case.Payloads).StableIdentity));
     }
 
     [Fact]
@@ -213,6 +419,50 @@ function prove(): number {
         Assert.True(compilation.Success, Describe(compilation));
         Assert.Contains("enum Shape", compilation.MirText, StringComparison.Ordinal);
         Assert.DoesNotContain("identity<", compilation.MirText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Nominal_union_corpus_artifacts_have_stable_bytes_and_hashes()
+    {
+        string corpusRoot = Path.Combine(
+            Corpus.CorpusFile.GetRepoRoot(),
+            "tests",
+            "Copeland",
+            "Copeland.TS.Tests",
+            "TestData",
+            "Corpus",
+            "cts-union-m0b");
+        var expected = new Dictionary<string, (int Length, string Sha256)>(StringComparer.Ordinal)
+        {
+            ["nominal-union.ts"] = (357, "FE2E63779FDC9C6B2497C1E43B79446212F6CCDB5B3A8D49571F263B02361296"),
+            ["nominal-union.cope"] = (608, "69CEDD1030B756AFC481942309E7BF85D4E5AAEB7E636B5C0645EC364C051033"),
+            ["nominal-union.g.cs"] = (1268, "56EDE4777585B3886F37F86B48332556AFE78CEEA86AEF5EBDC2BA43AF2BC34C"),
+            ["nominal-union.g.js"] = (6272, "BBAAA7FA856306904D74F64947A072BFA80958A46DA8C8E274660E7ABB37AAEC"),
+        };
+
+        foreach ((string fileName, (int expectedLength, string expectedHash)) in expected)
+        {
+            string path = Path.Combine(corpusRoot, fileName);
+            byte[] bytes = File.ReadAllBytes(path);
+
+            Assert.Equal(expectedLength, bytes.Length);
+            Assert.Equal(expectedHash, Convert.ToHexString(SHA256.HashData(bytes)));
+        }
+    }
+
+    private static object[] DiagnosticCase(string diagnosticId, string source)
+    {
+        return [diagnosticId, source];
+    }
+
+    private static CopelandCompilation CompileToBound(string source)
+    {
+        return CopelandCompiler.Compile(
+            source,
+            new CopelandCompilationOptions
+            {
+                TargetStage = CopelandCompilationStage.Bound,
+            });
     }
 
     private static string Describe(CopelandCompilation compilation)

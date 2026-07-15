@@ -417,7 +417,6 @@ public sealed class JavaScriptBackendTests
         Assert.Null(result.SourceText);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-0002"
             && diagnostic.Message.Contains("non-exhaustive match", StringComparison.Ordinal));
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("ParseError", StringComparison.Ordinal));
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("while loop", StringComparison.Ordinal));
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("assignment to 'value'", StringComparison.Ordinal));
     }

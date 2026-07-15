@@ -6,12 +6,32 @@ using System.Text.Json;
 using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
+using Copeland.TS.Mir;
 using Xunit;
 
 namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 
 public sealed class TsonAssetRuntimeTests
 {
+    private const string UnionEncodingSource = """
+        const $schema: string = "copeland://tests/runtime-shape";
+        record Circle { radius: number; }
+        record Rectangle { width: number; height: number; }
+        type Shape = Circle | Rectangle;
+        function load(): Shape {
+            const circle: Circle = { radius: 4 };
+            return circle;
+        }
+        function encodeLoaded(): string ! TsonEncodeError {
+            return tsonEncode(load());
+        }
+        function encodeRectangle(): string ! TsonEncodeError {
+            const rectangle: Rectangle = { width: 3, height: 2 };
+            const shape: Shape = rectangle;
+            return tsonEncode(shape);
+        }
+        """;
+
     private const string ArrayParitySource = """
         const $schema: string = "copeland://tests/runtime-array-assets";
         record Entry { label: string; }
@@ -132,6 +152,74 @@ public sealed class TsonAssetRuntimeTests
             choice: Choice.Detail({ value: 42 }),
         };
         """;
+
+    [Fact]
+    public async Task Nominal_union_encoding_reuses_payload_enum_runtime_contract_with_csharp_node_parity()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(
+            UnionEncodingSource,
+            new CopelandCompilationOptions
+            {
+                SourcePath = "C:/project/main.ts",
+                ProjectRoot = "C:/project",
+            });
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        MirProgram program = compilation.MirCompilation!.Program!;
+        CSharpCompilation csharp = CSharpBackend.Emit(program);
+        JavaScriptCompilation javascript = JavaScriptBackend.Emit(program);
+        Assert.Empty(csharp.Diagnostics);
+        Assert.True(javascript.Success, string.Join(Environment.NewLine, javascript.Diagnostics));
+        Assert.DoesNotContain("union", csharp.SourceText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("union", javascript.SourceText, StringComparison.OrdinalIgnoreCase);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+
+        object loaded = Invoke(generated, "load")!;
+        Assert.Equal("Circle", loaded.GetType().Name);
+        object payload = ReadProperties(loaded)[0]!;
+        Assert.Equal(4d, Assert.IsType<double>(ReadProperties(payload)[0]));
+
+        string loadedEncoded = ResultValue(Invoke(generated, "encodeLoaded"));
+        string rectangleEncoded = ResultValue(Invoke(generated, "encodeRectangle"));
+        Copeland.TS.Tson.TsonReadResult loadedRead = Copeland.TS.Tson.TsonDocumentReader.ReadSelfDescribed(
+            loadedEncoded,
+            Copeland.TS.Tson.TsonDocumentProfile.CanonicalTson);
+        Copeland.TS.Tson.TsonReadResult rectangleRead = Copeland.TS.Tson.TsonDocumentReader.ReadSelfDescribed(
+            rectangleEncoded,
+            Copeland.TS.Tson.TsonDocumentProfile.CanonicalTson);
+        Assert.True(loadedRead.Success, string.Join(Environment.NewLine, loadedRead.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.True(rectangleRead.Success, string.Join(Environment.NewLine, rectangleRead.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(loadedEncoded, Copeland.TS.Tson.TsonCanonicalPrinter.Print(loadedRead.Document!));
+        Assert.Equal(rectangleEncoded, Copeland.TS.Tson.TsonCanonicalPrinter.Print(rectangleRead.Document!));
+
+        Copeland.TS.Tson.TsonEnum loadedValue = Assert.IsType<Copeland.TS.Tson.TsonEnum>(loadedRead.Document!.Root);
+        Copeland.TS.Tson.TsonEnum rectangleValue = Assert.IsType<Copeland.TS.Tson.TsonEnum>(rectangleRead.Document!.Root);
+        Assert.Equal("copeland://tests/runtime-shape#Shape", loadedValue.EnumIdentity);
+        Assert.Equal("copeland://tests/runtime-shape#Shape.Circle", loadedValue.CaseIdentity);
+        Assert.Equal("copeland://tests/runtime-shape#Shape.Circle.value", Assert.Single(loadedValue.Payloads).Identity);
+        Assert.Equal("copeland://tests/runtime-shape#Shape", rectangleValue.EnumIdentity);
+        Assert.Equal("copeland://tests/runtime-shape#Shape.Rectangle", rectangleValue.CaseIdentity);
+        Assert.Equal("copeland://tests/runtime-shape#Shape.Rectangle.value", Assert.Single(rectangleValue.Payloads).Identity);
+
+        ProcessResult node = await RunNodeAsync(javascript.SourceText + """
+            const shape = load();
+            const payload = shape.$payload[0];
+            console.log(JSON.stringify({
+              tag: shape.$tag,
+              radius: payload[Object.getOwnPropertySymbols(payload)[1]],
+              loaded: encodeLoaded().$payload[0],
+              rectangle: encodeRectangle().$payload[0],
+            }));
+            """);
+        using JsonDocument output = JsonDocument.Parse(node.StdOut);
+        JsonElement root = output.RootElement;
+        Assert.Equal("Circle", root.GetProperty("tag").GetString());
+        Assert.Equal(4d, root.GetProperty("radius").GetDouble());
+        Assert.Equal(loadedEncoded, root.GetProperty("loaded").GetString());
+        Assert.Equal(rectangleEncoded, root.GetProperty("rectangle").GetString());
+    }
 
     [Fact]
     public async Task Both_backends_execute_compiled_asset_with_exact_repeated_parity()
@@ -451,6 +539,15 @@ public sealed class TsonAssetRuntimeTests
     private static object? Invoke(RoslynCompileResult generated, string name)
     {
         return GeneratedModuleInvoker.Invoke(generated.Assembly!, name);
+    }
+
+    private static string ResultValue(object? result)
+    {
+        object value = result!;
+        return Assert.IsType<string>(
+            value.GetType()
+                .GetProperty("Value", BindingFlags.Instance | BindingFlags.Public)!
+                .GetValue(value));
     }
 
     private static ulong Bits(object? value)

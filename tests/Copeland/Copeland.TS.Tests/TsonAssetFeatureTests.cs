@@ -79,6 +79,25 @@ public sealed class TsonAssetFeatureTests
         const $value: Choice = Choice.Detail({ text: "payload" });
         """;
 
+    private const string UnionProgramSource = """
+        const $schema: string = "copeland://tests/union-assets";
+        record Circle { radius: number; }
+        record Rectangle { width: number; height: number; }
+        type Shape = Circle | Rectangle;
+        function load(): Shape {
+            const shape: Shape = tsonAsset("./shape.obj.ts");
+            return shape;
+        }
+        """;
+
+    private const string UnionAuthoringAsset = """
+        const $schema: string = "copeland://tests/union-assets";
+        record Circle { radius: number; }
+        record Rectangle { width: number; height: number; }
+        type Shape = Circle | Rectangle;
+        const $value: Shape = { radius: 5 };
+        """;
+
     [Fact]
     public void ObjectTypeScript_asset_expands_to_existing_bound_and_mir_nodes()
     {
@@ -163,6 +182,28 @@ public sealed class TsonAssetFeatureTests
         var enumValue = Assert.IsType<BoundEnumValueExpression>(declaration.Initializer);
         Assert.Equal("Detail", enumValue.Case.Name);
         Assert.IsType<BoundRecordConstructionExpression>(Assert.Single(enumValue.Arguments));
+    }
+
+    [Fact]
+    public void Nominal_union_root_tson_assets_stop_at_the_existing_document_boundary()
+    {
+        TsonReadResult authored = TsonDocumentReader.ReadSelfDescribed(UnionAuthoringAsset, TsonDocumentProfile.ObjectTypeScript);
+        Assert.False(authored.Success);
+        Assert.Contains(
+            authored.Diagnostics,
+            diagnostic => diagnostic.Message.Contains("NominalUnionDeclaration", StringComparison.Ordinal)
+                && diagnostic.Length > 0);
+
+        CopelandCompilation compilation = Compile(
+            UnionProgramSource,
+            new InMemoryAssetSource(("C:/project/shape.obj.ts", UnionAuthoringAsset)));
+
+        Assert.False(compilation.Success);
+        Assert.Contains(
+            compilation.Diagnostics,
+            diagnostic => diagnostic.SourcePath == "shape.obj.ts"
+                && diagnostic.Message.Contains("NominalUnionDeclaration", StringComparison.Ordinal)
+                && diagnostic.Length > 0);
     }
 
     [Fact]
