@@ -2,7 +2,7 @@
 
 > Historical planning matrix. The current authoritative language law and implemented/intended distinction are in the [Copeland TS language profile](../language/copeland-ts-language-profile.md). In particular, proposed C# lowerings in this record do not decide future JavaScript semantics.
 
-> **Current doctrine correction (CTS-TYPE-M0a):** the proposals below for nominal/direct-C# interfaces and direct-C# generic lowering are preserved as history, not current direction. The accepted architecture recommendation treats interfaces as erased structural requirement sets, aliases as transparent, and backend generic representation as private. See [CTS-TYPE-M0a](../language/copeland-ts-type-system-design-cts-type-m0a.md).
+> **Current doctrine correction (CTS-TYPE-M0a and CTS-CLASS-M0a):** the proposals below for nominal/direct-C# interfaces, direct-C# generic lowering, and `this`/inheritance-shaped classes are preserved as history, not current direction. Interfaces are erased structural requirement sets, aliases are transparent, backend generic representation is private, and the accepted class direction is an immutable nominal value with pure construction and associated functions, without `new`, `this`, prototypes, or inheritance. See [CTS-TYPE-M0a](../language/copeland-ts-type-system-design-cts-type-m0a.md) and [CTS-CLASS-M0a](../language/copeland-ts-pure-classes-design-cts-class-m0a.md).
 
 ## Purpose
 

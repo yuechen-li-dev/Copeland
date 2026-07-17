@@ -30,6 +30,8 @@ Diagnostic and Symbolic JavaScript use frozen null-prototype callable carriers w
 
 Callable values may flow through locals, parameters, returns, arrays, records, enum payloads, Result values, and erased interface field requirements. They remain forbidden in record tables, TSON/TSON assets/encoding, JSON/host serialization, equality, and hashing.
 
+CTS-CLASS-M0a consumes this completed law: an associated class function is an ordinary named function and may become a callable value only through the same exact-signature, closed-generic, explicit-capture rules. It introduces no receiver capture or callable equality. See [pure classes design](../language/copeland-ts-pure-classes-design-cts-class-m0a.md).
+
 ## Limits and evaluator seam
 
 The compiler permits at most 512 lifted definitions, 16 slots per environment, 16 callable-expression nesting levels, and 8,192 total possible capture slots per compilation. The frontend rejects statically visible self/uninitialized capture. The future evaluator receives only:
