@@ -1,5 +1,7 @@
 # Copeland TS complete callable semantics (CTS-CALL-M1)
 
+> **Evaluator/suspension routing:** callable environments remain immutable callable values. [CTS-AUTOMATA-M0a](copeland-ts-suspension-automata-design-cts-automata-m0a.md) establishes that future suspension frames are separate execution activations, even when a captured callable itself is live across `await`; a future evaluator should step the same validated suspension automaton rather than reconstruct lexical scope.
+
 **Status:** implemented callable model and closeout contract.
 
 Copeland TS callable values are runtime pairs of a stable code identity and an immutable environment. A named function reference and a noncapturing arrow have an empty environment. A capturing arrow has stable ordered environment slots populated once, in authored `capture { ... }` order, before the callable is published.

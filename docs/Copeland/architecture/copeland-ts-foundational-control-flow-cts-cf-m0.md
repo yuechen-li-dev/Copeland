@@ -18,6 +18,6 @@ Statementful condition or increment lowering is staged in authored order inside 
 
 ## Exclusions
 
-This closeout excludes `do`/`while`, `for...of`, `for...in`, iterators, generators, labels, multi-level transfers, `switch`, ternaries, async control flow, and host exceptions for ordinary Result flow. It does not add any CTS-TYPE surface.
+This closeout excludes `do`/`while`, `for...of`, `for...in`, iterators, generators, labels, multi-level transfers, `switch`, ternaries, async control flow, and host exceptions for ordinary Result flow. [CTS-AUTOMATA-M0a](copeland-ts-suspension-automata-design-cts-automata-m0a.md) now routes async/sidecar and future iterator work through shared suspension lowering rather than a backend-only extension of these structured statements. It does not add any CTS-TYPE surface.
 
 The foundation is honestly closed for this bounded surface. Further control-flow forms require a separate language decision.

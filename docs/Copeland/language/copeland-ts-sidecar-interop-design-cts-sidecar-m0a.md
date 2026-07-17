@@ -54,7 +54,7 @@ sidecar Browser {
 
 `sidecar` belongs to the future module owning DTO schemas. Build/project configuration later binds CLR host and JavaScript guest implementations; it does not select Node/WebView/endpoint in source. M1 is one direction, CLR host -> JavaScript guest. Host/guest means transport ownership, not semantic ownership. Reverse calls, notifications, and reentrancy are deferred.
 
-Calls are intrinsically asynchronous. CTS-ASYNC must establish the computation/cancellation law first; CTS-SIDECAR-M1 consumes it rather than publishing a temporary blocking API. No one-way notification belongs in M1.
+Calls are intrinsically asynchronous. [CTS-AUTOMATA-M0a](../architecture/copeland-ts-suspension-automata-design-cts-automata-m0a.md) now establishes the compiler-owned suspension analysis, automaton, frame, terminal-outcome, and backend-realization direction that CTS-ASYNC-M1 must implement. CTS-SIDECAR-M1 consumes that proven async law rather than publishing a temporary blocking API. No one-way notification belongs in M1.
 
 ## 5. Transport algebra and TSON decision
 
