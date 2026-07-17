@@ -93,6 +93,10 @@ public sealed class Parser
             }
             return ParseRecordDeclaration(null);
         }
+        if (IsClassWord(Current, "class"))
+        {
+            return ParseClassDeclaration();
+        }
 
         return new GlobalStatementMemberSyntax(ParseStatement());
     }
@@ -622,6 +626,222 @@ public sealed class Parser
         return new RecordDeclarationSyntax(constKeyword, recordKeyword, identifier, openBraceToken, fields, closeBraceToken);
     }
 
+    private ClassDeclarationSyntax ParseClassDeclaration()
+    {
+        var classKeyword = MatchClassWord("class");
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        if (Current.Kind == SyntaxKind.LessToken)
+        {
+            _diagnostics.Report("COPE-CLASS-0001", "Generic classes are not supported; use a generic associated function instead.", Current.Position, Math.Max(1, Current.Text.Length));
+            do
+            {
+                NextToken();
+            }
+            while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.OpenBraceToken and not SyntaxKind.EndOfFileToken);
+            if (Current.Kind == SyntaxKind.GreaterToken)
+            {
+                NextToken();
+            }
+        }
+        SyntaxToken? extendsKeyword = null;
+        SyntaxToken? baseTypeIdentifier = null;
+        if (IsClassWord(Current, "extends"))
+        {
+            extendsKeyword = NextToken();
+            baseTypeIdentifier = Match(SyntaxKind.IdentifierToken);
+        }
+
+        var openBrace = Match(SyntaxKind.OpenBraceToken);
+        var members = new List<ClassMemberSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            var start = Current;
+            members.Add(ParseClassMember());
+            if (Current == start)
+            {
+                ReportUnexpectedToken(Current);
+                NextToken();
+            }
+        }
+
+        return new ClassDeclarationSyntax(
+            classKeyword,
+            identifier,
+            extendsKeyword,
+            baseTypeIdentifier,
+            openBrace,
+            members,
+            Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private ClassMemberSyntax ParseClassMember()
+    {
+        SyntaxToken? visibility = null;
+        if (IsClassWord(Current, "public") || IsClassWord(Current, "private") || IsClassWord(Current, "protected"))
+        {
+            visibility = NextToken();
+        }
+
+        var modifiers = new List<SyntaxToken>();
+        while (IsClassWord(Current, "static") || IsClassWord(Current, "readonly") || IsClassWord(Current, "get") || IsClassWord(Current, "set"))
+        {
+            modifiers.Add(NextToken());
+        }
+
+        if (IsClassWord(Current, "constructor"))
+        {
+            return ParseClassConstructor(visibility, modifiers);
+        }
+
+        var identifier = Current.Kind == SyntaxKind.IdentifierToken
+            ? NextToken()
+            : Match(SyntaxKind.IdentifierToken);
+        if (Current.Kind is SyntaxKind.OpenParenToken or SyntaxKind.LessToken)
+        {
+            return ParseClassAssociatedFunction(visibility, modifiers, identifier);
+        }
+
+        var hasColon = Current.Kind == SyntaxKind.ColonToken;
+        SyntaxToken colon = hasColon ? NextToken() : MissingToken(SyntaxKind.ColonToken, Current.Position);
+        bool hasType = hasColon && Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.EqualsToken and not SyntaxKind.CloseBraceToken;
+        TypeSyntax type = hasType
+            ? ParseTypeSyntax()
+            : new IdentifierTypeSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position));
+        SyntaxToken? equals = null;
+        ExpressionSyntax? initializer = null;
+        if (Current.Kind == SyntaxKind.EqualsToken)
+        {
+            equals = NextToken();
+            initializer = ParseExpression();
+        }
+        else
+        {
+            // Preserve unfamiliar member syntax so binding can issue a focused class diagnostic.
+            while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+            {
+                modifiers.Add(NextToken());
+            }
+        }
+        bool hasTerminator = Current.Kind == SyntaxKind.SemicolonToken;
+        SyntaxToken semicolon = hasTerminator ? NextToken() : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
+        return new ClassFieldSyntax(visibility, modifiers, identifier, colon, type, equals, initializer, semicolon, hasType, hasTerminator);
+    }
+
+    private ClassConstructorDeclarationSyntax ParseClassConstructor(SyntaxToken? visibility, IReadOnlyList<SyntaxToken> modifiers)
+    {
+        var constructor = MatchClassWord("constructor");
+        var open = Match(SyntaxKind.OpenParenToken);
+        ParseClassParameters(out var parameters, out var commas);
+        var close = Match(SyntaxKind.CloseParenToken);
+        SyntaxToken? returnColon = null;
+        TypeSyntax? returnType = null;
+        if (Current.Kind == SyntaxKind.ColonToken)
+        {
+            returnColon = NextToken();
+            returnType = ParseTypeSyntax();
+        }
+        var body = ParseBlockStatement();
+        return new ClassConstructorDeclarationSyntax(visibility, modifiers, constructor, open, parameters, commas, close, returnColon, returnType, body);
+    }
+
+    private ClassAssociatedFunctionDeclarationSyntax ParseClassAssociatedFunction(
+        SyntaxToken? visibility,
+        IReadOnlyList<SyntaxToken> modifiers,
+        SyntaxToken identifier)
+    {
+        SyntaxToken? less = null;
+        SyntaxToken? greater = null;
+        var typeParameters = new List<TypeParameterSyntax>();
+        var typeCommas = new List<SyntaxToken>();
+        if (Current.Kind == SyntaxKind.LessToken)
+        {
+            less = NextToken();
+            while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
+            {
+                var parameter = Match(SyntaxKind.IdentifierToken);
+                SyntaxToken? extends = null;
+                var requirements = new List<SyntaxToken>();
+                var ampersands = new List<SyntaxToken>();
+                if (IsClassWord(Current, "extends"))
+                {
+                    extends = NextToken();
+                    requirements.Add(Match(SyntaxKind.IdentifierToken));
+                    while (Current.Kind == SyntaxKind.AmpersandToken)
+                    {
+                        ampersands.Add(NextToken());
+                        requirements.Add(Match(SyntaxKind.IdentifierToken));
+                    }
+                }
+                typeParameters.Add(new TypeParameterSyntax(parameter, extends, requirements, ampersands));
+                if (Current.Kind != SyntaxKind.CommaToken) break;
+                typeCommas.Add(NextToken());
+            }
+            greater = Match(SyntaxKind.GreaterToken);
+        }
+
+        var open = Match(SyntaxKind.OpenParenToken);
+        ParseClassParameters(out var parameters, out var commas);
+        var close = Match(SyntaxKind.CloseParenToken);
+        SyntaxToken? returnColon = null;
+        TypeSyntax? returnType = null;
+        if (Current.Kind == SyntaxKind.ColonToken)
+        {
+            returnColon = NextToken();
+            returnType = ParseTypeSyntax();
+        }
+        var body = ParseBlockStatement();
+        return new ClassAssociatedFunctionDeclarationSyntax(
+            visibility,
+            modifiers,
+            identifier,
+            less,
+            typeParameters,
+            typeCommas,
+            greater,
+            open,
+            parameters,
+            commas,
+            close,
+            returnColon,
+            returnType,
+            body);
+    }
+
+    private void ParseClassParameters(out IReadOnlyList<ParameterSyntax> parameters, out IReadOnlyList<SyntaxToken> commas)
+    {
+        var parsedParameters = new List<ParameterSyntax>();
+        var parsedCommas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? colon = null;
+            TypeSyntax? type = null;
+            if (Current.Kind == SyntaxKind.ColonToken)
+            {
+                colon = NextToken();
+                type = ParseTypeSyntax();
+            }
+            parsedParameters.Add(new ParameterSyntax(identifier, colon, type));
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            parsedCommas.Add(NextToken());
+        }
+        parameters = parsedParameters;
+        commas = parsedCommas;
+    }
+
+    private static bool IsClassWord(SyntaxToken token, string text)
+        => token.Kind == SyntaxKind.IdentifierToken && string.Equals(token.Text, text, StringComparison.Ordinal);
+
+    private SyntaxToken MatchClassWord(string text)
+    {
+        if (IsClassWord(Current, text))
+        {
+            return NextToken();
+        }
+        _diagnostics.Report("COPE-CLASS-0001", $"Expected '{text}' in class declaration.", Current.Position, Math.Max(1, Current.Text.Length));
+        return MissingToken(SyntaxKind.IdentifierToken, Current.Position);
+    }
+
     private TableDeclarationSyntax ParseTableDeclaration()
     {
         var recordKeyword = Match(SyntaxKind.RecordKeyword);
@@ -997,7 +1217,7 @@ public sealed class Parser
                 continue;
             }
 
-            if (expression is NameExpressionSyntax && IsGenericFunctionSuffixAhead())
+            if ((expression is NameExpressionSyntax or MemberAccessExpressionSyntax) && IsGenericFunctionSuffixAhead())
             {
                 expression = ParseGenericFunctionExpression(expression);
                 continue;
@@ -1052,7 +1272,16 @@ public sealed class Parser
     }
 
     private ExpressionSyntax ParsePrimaryExpression()
-        => Current.Kind switch
+    {
+        if (IsClassWord(Current, "new"))
+        {
+            return ParseForbiddenClassExpression();
+        }
+        if (IsClassWord(Current, "this") || IsClassWord(Current, "super"))
+        {
+            return new UnsupportedExpressionSyntax(NextToken());
+        }
+        return Current.Kind switch
         {
             SyntaxKind.OpenParenToken when IsArrowExpressionAhead() => ParseArrowExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
@@ -1067,6 +1296,21 @@ public sealed class Parser
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+    }
+
+    private ExpressionSyntax ParseForbiddenClassExpression()
+    {
+        var keyword = NextToken();
+        if (Current.Kind == SyntaxKind.IdentifierToken)
+        {
+            _ = NextToken();
+            if (Current.Kind == SyntaxKind.OpenParenToken)
+            {
+                _ = ParseCallExpression(new NameExpressionSyntax(MissingToken(SyntaxKind.IdentifierToken, keyword.Position)));
+            }
+        }
+        return new UnsupportedExpressionSyntax(keyword);
+    }
 
     private bool IsArrowExpressionAhead()
     {
@@ -1324,8 +1568,11 @@ public sealed class Parser
             var name = Current.Kind is SyntaxKind.IdentifierToken or SyntaxKind.StringToken
                 ? NextToken()
                 : Match(SyntaxKind.IdentifierToken);
-            var colon = Match(SyntaxKind.ColonToken);
-            var value = ParseExpression();
+            var hasColon = Current.Kind == SyntaxKind.ColonToken;
+            var colon = hasColon ? NextToken() : MissingToken(SyntaxKind.ColonToken, name.Position + name.Text.Length);
+            var value = hasColon
+                ? ParseExpression()
+                : new NameExpressionSyntax(name);
             properties.Add(new ObjectPropertySyntax(name, colon, value));
 
             if (Current.Kind != SyntaxKind.CommaToken)

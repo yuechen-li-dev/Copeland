@@ -110,7 +110,8 @@ public static class CSharpBackend
         foreach (var field in record.Fields)
         {
             writer.WriteLine();
-            writer.WriteLine($"internal {MapType(field.Type)} {RecordFieldName(field.Id)} {{ get; }}");
+            string visibility = record.IsClass && field.IsPublic ? "public" : "internal";
+            writer.WriteLine($"{visibility} {MapType(field.Type)} {RecordFieldName(field.Id)} {{ get; }}");
         }
 
         writer.Unindent();

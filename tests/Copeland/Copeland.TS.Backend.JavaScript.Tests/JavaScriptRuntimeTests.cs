@@ -938,6 +938,49 @@ public sealed class JavaScriptRuntimeTests
         Assert.Equal(first, second);
     }
 
+    [Fact]
+    public async Task Node_executes_pure_classes_with_private_provenance_and_no_javascript_class_runtime()
+    {
+        const string source = """
+            class Person {
+                public name: string;
+                private normalizedName: string;
+                public age: number;
+                constructor(name: string, age: number): Person {
+                    return { name, normalizedName: Person.normalize(name), age };
+                }
+                private normalize(name: string): string { return name; }
+                birthday(person: Person): Person { return person with { age: person.age + 1 }; }
+            }
+            function main(): number {
+                const operation: (person: Person) => Person = Person.birthday;
+                return operation(Person("Ada", 41)).age;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation diagnostic = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation symbolic = JavaScriptBackend.Emit(
+            compilation.MirCompilation.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
+        Assert.DoesNotContain("class ", diagnostic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("new Person", diagnostic.SourceText, StringComparison.Ordinal);
+        Assert.Contains("new WeakSet()", diagnostic.SourceText, StringComparison.Ordinal);
+        string suffix = """
+            console.log(main());
+            try { Person__birthday(Object.freeze(Object.create(null))); }
+            catch (error) { console.log(error.message); }
+            """;
+        ProcessResult first = await RunNodeAsync(diagnostic.SourceText + suffix);
+        ProcessResult second = await RunNodeAsync(symbolic.SourceText + suffix);
+
+        Assert.Equal("42\nCopeland JavaScript backend invariant failure.\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first.StdOut, second.StdOut);
+        Assert.Equal(string.Empty, second.StdErr);
+    }
+
     private static JavaScriptCompilation Emit(string source)
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);

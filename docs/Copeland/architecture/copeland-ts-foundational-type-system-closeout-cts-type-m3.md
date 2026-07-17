@@ -7,7 +7,7 @@
 | Form | Source syntax | Semantic/bound representation | Canonical MIR and runtime |
 | --- | --- | --- | --- |
 | Primitive value | `number`, `string`, `boolean`, restricted `void` | `PrimitiveTypeSymbol` | Concrete primitive where legal. `void` is only a function return or Result success type. |
-| Nominal value | record, payload enum, record table, table row | nominal symbols with declaration/stable identity | Concrete nominal MIR and backend carrier. Record and row identities remain distinct even if their fields match. |
+| Nominal value | record, pure class, payload enum, record table, table row | nominal symbols with declaration/stable identity | Concrete nominal MIR and backend carrier. Class, record, and row identities remain distinct even if their fields match. |
 | Structural value | `T[]`, `T ! E`, `column T` | recursive closed type symbols | Concrete structural MIR and backend representation. |
 | Alias | `type Name = ExistingType;` | `TypeAliasSymbol` with canonical target and diagnostic provenance | Erased before MIR; no carrier, declaration, or TSON identity. |
 | Requirement | `interface I { field: Type; }` | `InterfaceSymbol`, normalized `RequirementSet` | Constraint-only; erased before MIR and never a storage/value type. |
@@ -29,7 +29,7 @@ The focused alias suite covers direct and indirect cycles, independent cycles, d
 
 `interface I { x: Type; ... }` is contextual, compilation-unit-only, and contains one or more declaration-ordered readable fields. Requirements compare exact canonical field types; candidate records and table rows may have extra fields. Missing or mismatched fields fail in interface/field declaration order. Repeated interfaces fail, alias-equivalent same-name fields merge, and conflicting fields fail deterministically. Requirement lists in diagnostics show at most four fields.
 
-Interfaces are constraint-only (`T extends A & B`). They are not storage values, runtime interfaces, C# interfaces, JavaScript brands, TSON schemas/values, equality/mutation/adapters, or interface composition. A generic body can access only normalized requirement fields: a candidate's undeclared member cannot make the body valid. Record and table-row shape satisfaction never converts, serializes, or unifies their distinct nominal identities. Unused interfaces emit nothing.
+Interfaces are constraint-only (`T extends A & B`). They are not storage values, runtime interfaces, C# interfaces, JavaScript brands, TSON schemas/values, equality/mutation/adapters, or interface composition. A generic body can access only normalized requirement fields: a candidate's undeclared member cannot make the body valid. Records, pure classes (through public fields only), and table rows may satisfy a requirement without conversion, serialization, or identity unification. Unused interfaces emit nothing. [CTS-CLASS-M1](copeland-ts-pure-classes-cts-class-m1.md) owns the class routing.
 
 ### Generic functions
 

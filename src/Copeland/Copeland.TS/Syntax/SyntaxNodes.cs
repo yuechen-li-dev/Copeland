@@ -891,6 +891,131 @@ public sealed record RecordFieldSyntax(
     }
 }
 
+/// <summary>
+/// The intentionally small class grammar. Class members are not general TypeScript
+/// declarations: fields are immutable product slots and member functions are
+/// associated functions with no receiver.
+/// </summary>
+public sealed record ClassDeclarationSyntax(
+    SyntaxToken ClassKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken? ExtendsKeyword,
+    SyntaxToken? BaseTypeIdentifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<ClassMemberSyntax> Members,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ClassDeclaration;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return ClassKeyword;
+        yield return Identifier;
+        if (ExtendsKeyword is not null) yield return ExtendsKeyword;
+        if (BaseTypeIdentifier is not null) yield return BaseTypeIdentifier;
+        yield return OpenBraceToken;
+        foreach (var member in Members) yield return member;
+        yield return CloseBraceToken;
+    }
+}
+
+public abstract record ClassMemberSyntax : SyntaxNode
+{
+    public abstract SyntaxToken NameToken { get; }
+}
+
+public sealed record ClassFieldSyntax(
+    SyntaxToken? VisibilityKeyword,
+    IReadOnlyList<SyntaxToken> Modifiers,
+    SyntaxToken Identifier,
+    SyntaxToken ColonToken,
+    TypeSyntax Type,
+    SyntaxToken? EqualsToken,
+    ExpressionSyntax? Initializer,
+    SyntaxToken SemicolonToken,
+    bool HasExplicitType,
+    bool HasTerminator) : ClassMemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ClassField;
+    public override SyntaxToken NameToken => Identifier;
+    public override IEnumerable<object> GetChildren()
+    {
+        if (VisibilityKeyword is not null) yield return VisibilityKeyword;
+        foreach (var modifier in Modifiers) yield return modifier;
+        yield return Identifier;
+        yield return ColonToken;
+        yield return Type;
+        if (EqualsToken is not null) yield return EqualsToken;
+        if (Initializer is not null) yield return Initializer;
+        yield return SemicolonToken;
+    }
+}
+
+public sealed record ClassConstructorDeclarationSyntax(
+    SyntaxToken? VisibilityKeyword,
+    IReadOnlyList<SyntaxToken> Modifiers,
+    SyntaxToken ConstructorKeyword,
+    SyntaxToken OpenParenToken,
+    IReadOnlyList<ParameterSyntax> Parameters,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken CloseParenToken,
+    SyntaxToken? ReturnTypeColonToken,
+    TypeSyntax? ReturnType,
+    BlockStatementSyntax Body) : ClassMemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ClassConstructor;
+    public override SyntaxToken NameToken => ConstructorKeyword;
+    public override IEnumerable<object> GetChildren()
+    {
+        if (VisibilityKeyword is not null) yield return VisibilityKeyword;
+        foreach (var modifier in Modifiers) yield return modifier;
+        yield return ConstructorKeyword;
+        yield return OpenParenToken;
+        foreach (var parameter in Parameters) yield return parameter;
+        foreach (var comma in CommaTokens) yield return comma;
+        yield return CloseParenToken;
+        if (ReturnTypeColonToken is not null) yield return ReturnTypeColonToken;
+        if (ReturnType is not null) yield return ReturnType;
+        yield return Body;
+    }
+}
+
+public sealed record ClassAssociatedFunctionDeclarationSyntax(
+    SyntaxToken? VisibilityKeyword,
+    IReadOnlyList<SyntaxToken> Modifiers,
+    SyntaxToken Identifier,
+    SyntaxToken? LessToken,
+    IReadOnlyList<TypeParameterSyntax> TypeParameters,
+    IReadOnlyList<SyntaxToken> TypeParameterCommas,
+    SyntaxToken? GreaterToken,
+    SyntaxToken OpenParenToken,
+    IReadOnlyList<ParameterSyntax> Parameters,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken CloseParenToken,
+    SyntaxToken? ReturnTypeColonToken,
+    TypeSyntax? ReturnType,
+    BlockStatementSyntax Body) : ClassMemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ClassAssociatedFunction;
+    public override SyntaxToken NameToken => Identifier;
+    public override IEnumerable<object> GetChildren()
+    {
+        if (VisibilityKeyword is not null) yield return VisibilityKeyword;
+        foreach (var modifier in Modifiers) yield return modifier;
+        yield return Identifier;
+        if (LessToken is not null) yield return LessToken;
+        foreach (var parameter in TypeParameters) yield return parameter;
+        foreach (var comma in TypeParameterCommas) yield return comma;
+        if (GreaterToken is not null) yield return GreaterToken;
+        yield return OpenParenToken;
+        foreach (var parameter in Parameters) yield return parameter;
+        foreach (var comma in CommaTokens) yield return comma;
+        yield return CloseParenToken;
+        if (ReturnTypeColonToken is not null) yield return ReturnTypeColonToken;
+        if (ReturnType is not null) yield return ReturnType;
+        yield return Body;
+    }
+}
+
 public sealed record TableAssetClauseSyntax(
     SyntaxToken FromToken,
     CallExpressionSyntax AssetCall) : SyntaxNode
@@ -1184,6 +1309,16 @@ public sealed record ArrowParameterSyntax(
         yield return Identifier;
         if (ColonToken is not null) yield return ColonToken;
         if (Type is not null) yield return Type;
+    }
+}
+
+public sealed record UnsupportedExpressionSyntax(SyntaxToken Token) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.UnsupportedExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Token;
     }
 }
 

@@ -1,6 +1,6 @@
 # Copeland TS pure classes design (CTS-CLASS-M0a)
 
-**Status:** accepted architecture and repository-audit milestone; no production implementation is authorized by this document. CTS-CLASS-M1 is the one proposed implementation milestone.
+**Status:** accepted semantic authority; implemented and closed by [CTS-CLASS-M1](../architecture/copeland-ts-pure-classes-cts-class-m1.md). This document remains authoritative where closeout wording is less detailed.
 
 ## Executive decision
 
@@ -18,7 +18,7 @@ There is no `new`, `this`, prototype, instance method, inheritance, virtual disp
 
 ## Audited current state
 
-The source of truth is the migration audit at [CTS-CLASS-M0a audit](../../migrations/cts-class-m0a-class-and-record-construction-audit.md). In brief, the current compiler has implemented nominal records, functions/callables, Results, arrays, payload enums, field-only interfaces, named closed generic functions, C# and JavaScript record realizations, TSON, and tables. It has no class token, syntax node, symbol, bound node, MIR node, visibility model, class backend, or class test fixture.
+The source-of-truth audit is the historical [CTS-CLASS-M0a audit](../../migrations/cts-class-m0a-class-and-record-construction-audit.md). CTS-CLASS-M1 now implements the selected class syntax, provenance, frontend authority checks, canonical record/function lowering, and backend proof path.
 
 The current [language profile](copeland-ts-language-profile.md) therefore owns implemented records and this intended, unimplemented class direction. The completed callable and foundational type work are inputs, not alternate class designs: [CTS-CALL-M1](../architecture/copeland-ts-complete-callable-semantics-cts-call-m1.md) supplies callable values and explicit capture; [CTS-TYPE-M3](../architecture/copeland-ts-foundational-type-system-closeout-cts-type-m3.md) supplies erased field-only requirements and closed generic functions.
 

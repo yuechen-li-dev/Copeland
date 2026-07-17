@@ -37,7 +37,16 @@ public sealed class FunctionSymbol(
     public bool IsFallible => ReturnType is ResultTypeSymbol;
     public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
     public bool IsGeneric => TypeParameters.Count > 0;
+    public ClassTypeSymbol? ClassOwner { get; internal set; }
+    public string? MemberName { get; internal set; }
+    public bool IsClassConstructor { get; internal set; }
+    public bool IsPublic { get; internal set; } = true;
     public CallableTypeSymbol CallableType => new(Parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, parameter.Type)).ToArray(), ReturnType);
+}
+
+public sealed class ClassValueSymbol(string name, ClassTypeSymbol classType) : Symbol(name)
+{
+    public ClassTypeSymbol ClassType { get; } = classType;
 }
 
 public sealed class RequirementFieldSymbol(string name, TypeSymbol type, int ordinal) : Symbol(name)
@@ -84,10 +93,11 @@ public sealed class EnumPayloadFieldSymbol(string name, TypeSymbol type) : Symbo
     public TypeSymbol Type { get; } = type;
 }
 
-public sealed class RecordFieldSymbol(string name, RecordFieldId id, TypeSymbol type) : Symbol(name)
+public sealed class RecordFieldSymbol(string name, RecordFieldId id, TypeSymbol type, bool isPublic = true) : Symbol(name)
 {
     public RecordFieldId Id { get; } = id;
     public TypeSymbol Type { get; } = type;
+    public bool IsPublic { get; } = isPublic;
 }
 
 public sealed class TableColumnSymbol(string name, TableColumnId id, TypeSymbol type) : Symbol(name)

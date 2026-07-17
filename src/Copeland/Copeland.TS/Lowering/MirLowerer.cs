@@ -149,7 +149,9 @@ public static class MirLowerer
             recordType.Fields.Select(field => new MirRecordFieldDefinition(
                 ToMirRecordFieldId(field.Id),
                 field.Name,
-                ToMirType(field.Type))).ToArray());
+                ToMirType(field.Type),
+                field.IsPublic)).ToArray(),
+            recordType is ClassTypeSymbol);
     }
 
     private static MirEnum LowerEnum(BoundEnumDeclaration declaration)

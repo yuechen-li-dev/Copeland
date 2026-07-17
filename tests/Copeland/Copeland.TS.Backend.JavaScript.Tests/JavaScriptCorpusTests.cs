@@ -46,6 +46,22 @@ public sealed class JavaScriptCorpusTests
     }
 
     [Fact]
+    public void Pure_class_corpus_matches_expected_javascript_and_pinned_hash()
+    {
+        string repoRoot = GetRepoRoot();
+        string sourcePath = Path.Combine(repoRoot, "tests", "Copeland", "Copeland.TS.Tests", "TestData", "Corpus", "cts-class-m1", "main.ts");
+        string expectedPath = Path.ChangeExtension(sourcePath, ".g.js");
+        var mir = MirLowerer.Lower(SyntaxTree.Parse(File.ReadAllText(sourcePath)));
+
+        Assert.Empty(mir.Diagnostics);
+        Assert.NotNull(mir.Program);
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(mir.Program!);
+        Assert.True(emitted.Success);
+        Assert.Equal(File.ReadAllText(expectedPath).Replace("\r\n", "\n", StringComparison.Ordinal), emitted.SourceText);
+        Assert.Equal("46AEAF4BAF4C83F9932AF46393D9F89E7E5CC0FACC1D497556AA1A39F178FFA5", Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedPath))));
+    }
+
+    [Fact]
     public void Primitive_Equality_Artifact_Has_Stable_Hash()
     {
         string artifactPath = Path.Combine(GetCorpusRoot(), "primitive-equality.g.js");

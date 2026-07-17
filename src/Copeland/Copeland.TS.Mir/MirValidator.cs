@@ -663,9 +663,9 @@ public static class MirValidator
             case MirTsonRecordPlan recordPlan:
             {
                 MirRecordDefinition? record = program.Records.FirstOrDefault(candidate => candidate.Id == recordPlan.RecordTypeId);
-                if (record is null || record.Name != recordPlan.Name || record.Fields.Count != recordPlan.Fields.Count)
+                if (record is null || record.IsClass || record.Name != recordPlan.Name || record.Fields.Count != recordPlan.Fields.Count)
                 {
-                    diagnostics.Add(new MirValidationDiagnostic($"TSON record plan '{recordPlan.Name}' does not match its MIR record definition."));
+                    diagnostics.Add(new MirValidationDiagnostic($"TSON record plan '{recordPlan.Name}' does not match an ordinary serializable MIR record definition."));
                     return;
                 }
                 for (int index = 0; index < record.Fields.Count; index++)
@@ -937,6 +937,8 @@ public static class MirValidator
                     diagnostics.Add(new MirValidationDiagnostic($"Table '{table.Name}' has a blank or duplicate column name '{column.Name}'."));
                 if (column.ElementType.Identifier is "error" or "void")
                     diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' has an invalid element type."));
+                if (ContainsClassTableType(column.ElementType, program, []))
+                    diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' contains a class value, which is not a table cell type."));
                 if (column.Constants.Count != table.RowCount)
                     diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' has {column.Constants.Count} constants but row count is {table.RowCount}."));
                 foreach (var constant in column.Constants)
@@ -960,6 +962,31 @@ public static class MirValidator
             foreach (var parameter in function.Parameters) ValidateTableType(parameter.Type, tables, rowTypeIds, diagnostics, $"parameter '{parameter.Name}'");
             foreach (var local in function.Locals) ValidateTableType(local.Type, tables, rowTypeIds, diagnostics, $"local '{local.Name}'");
             ValidateTableStatements(function.Body, tables, rowTypeIds, columns, diagnostics);
+        }
+    }
+
+    private static bool ContainsClassTableType(MirType type, MirProgram program, HashSet<MirRecordTypeId> visiting)
+    {
+        switch (type)
+        {
+            case MirRecordType recordType:
+            {
+                MirRecordDefinition? definition = program.Records.FirstOrDefault(record => record.Id == recordType.RecordTypeId);
+                if (definition is null || !visiting.Add(recordType.RecordTypeId))
+                {
+                    return definition?.IsClass == true;
+                }
+                bool contains = definition.IsClass || definition.Fields.Any(field => ContainsClassTableType(field.Type, program, visiting));
+                visiting.Remove(recordType.RecordTypeId);
+                return contains;
+            }
+            case MirArrayType array:
+                return ContainsClassTableType(array.ElementType, program, visiting);
+            case MirResultType result:
+                return ContainsClassTableType(result.SuccessType, program, visiting)
+                    || ContainsClassTableType(result.ErrorType, program, visiting);
+            default:
+                return false;
         }
     }
 

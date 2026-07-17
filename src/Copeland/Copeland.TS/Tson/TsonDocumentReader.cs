@@ -164,6 +164,16 @@ public static class TsonDocumentReader
 
         public TsonDocument? Project(CompilationUnitSyntax root)
         {
+            var classDeclarations = root.Members.OfType<ClassDeclarationSyntax>().ToArray();
+            if (classDeclarations.Length > 0)
+            {
+                Report(
+                    "COPE-TSON-0002",
+                    "TSON excludes class declarations and class values; project them to records first.",
+                    classDeclarations[0]);
+                return null;
+            }
+
             var recordDeclarations = root.Members.OfType<RecordDeclarationSyntax>().ToArray();
             var enumDeclarations = root.Members.OfType<EnumDeclarationSyntax>().ToArray();
             var tableDeclarations = root.Members.OfType<TableDeclarationSyntax>().ToArray();

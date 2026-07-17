@@ -13,6 +13,35 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
+    public void Pure_class_lowers_to_a_sealed_complete_carrier_and_static_functions()
+    {
+        var program = Lower("""
+            class Person {
+                public name: string;
+                private normalizedName: string;
+                age: number;
+                constructor(name: string, age: number): Person {
+                    return { name, normalizedName: Person.normalize(name), age };
+                }
+                private normalize(name: string): string { return name; }
+                birthday(person: Person): Person { return person with { age: person.age + 1 }; }
+            }
+            function main(): number { return Person.birthday(Person("Ada", 41)).age; }
+            """);
+
+        CSharpCompilation compilation = CSharpBackend.Emit(program);
+
+        Assert.Contains("public sealed class __CopeRecord_r1", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("public string __field_r1_002Ef0 { get; }", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("internal string __field_r1_002Ef1 { get; }", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("static __CopeRecord_r1 Person__constructor", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("set;", compilation.SourceText, StringComparison.Ordinal);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(compilation.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(42d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
     public void Transparent_aliases_are_erased_identically_by_both_backends()
     {
         const string aliasSource = """

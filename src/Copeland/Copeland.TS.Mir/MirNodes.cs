@@ -219,18 +219,28 @@ public readonly record struct MirRecordFieldId(string Value)
     public override string ToString() => Value;
 }
 
-public sealed class MirRecordDefinition(MirRecordTypeId id, string name, IReadOnlyList<MirRecordFieldDefinition> fields)
+public sealed class MirRecordDefinition(
+    MirRecordTypeId id,
+    string name,
+    IReadOnlyList<MirRecordFieldDefinition> fields,
+    bool isClass = false)
 {
     public MirRecordTypeId Id { get; } = id;
     public string Name { get; } = name;
     public IReadOnlyList<MirRecordFieldDefinition> Fields { get; } = fields;
+    public bool IsClass { get; } = isClass;
 }
 
-public sealed class MirRecordFieldDefinition(MirRecordFieldId id, string name, MirType type)
+public sealed class MirRecordFieldDefinition(
+    MirRecordFieldId id,
+    string name,
+    MirType type,
+    bool isPublic = true)
 {
     public MirRecordFieldId Id { get; } = id;
     public string Name { get; } = name;
     public MirType Type { get; } = type;
+    public bool IsPublic { get; } = isPublic;
 }
 
 public sealed class MirEnum(string name, IReadOnlyList<MirEnumCase> cases)

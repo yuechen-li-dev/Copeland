@@ -26,10 +26,19 @@ public static class MirTextWriter
         foreach (var record in program.Records)
         {
             sb.AppendLine();
-            sb.Append("record ").Append(record.Name).Append(" [").Append(record.Id).AppendLine("]");
+            sb.Append(record.IsClass ? "class-record " : "record ").Append(record.Name).Append(" [").Append(record.Id).AppendLine("]");
             foreach (var field in record.Fields)
             {
-                sb.Append("  field ").Append(field.Name).Append(" [").Append(field.Id).Append("]: ").Append(field.Type.Name).AppendLine();
+                sb.Append("  ");
+                if (record.IsClass)
+                {
+                    sb.Append(field.IsPublic ? "public field " : "private field ");
+                }
+                else
+                {
+                    sb.Append("field ");
+                }
+                sb.Append(field.Name).Append(" [").Append(field.Id).Append("]: ").Append(field.Type.Name).AppendLine();
             }
         }
 

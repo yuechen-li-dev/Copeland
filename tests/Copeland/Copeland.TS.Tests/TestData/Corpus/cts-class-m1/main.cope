@@ -1,0 +1,38 @@
+module
+
+enum PersonError
+  case InvalidAge(age: number)
+
+record PersonEnvelope [r1]
+  field people [r1.f0]: Person[]
+
+class-record Person [r2]
+  public field name [r2.f0]: string
+  private field normalizedName [r2.f1]: string
+  public field age [r2.f2]: number
+
+func Person__constructor(name: string, age: number) -> Person ! PersonError
+entry:
+  if (age < 0)
+    return err enum PersonError.InvalidAge(age)
+  return ok record-new [r2] { [r2.f0]: name, [r2.f1]: call Person__normalize(name), [r2.f2]: age }
+
+func Person__normalize(name: string) -> string
+entry:
+  return name
+
+func Person__birthday(person: Person) -> Person
+entry:
+  return record-with [r2] person { [r2.f2]: (record-get [r2] person.[r2.f2] + 1) }
+
+func Person__identity__primitive_number__7F14E33913752003(value: number) -> number
+entry:
+  return value
+
+func label__record_Person__66BA86D43998F2CA(value: Person) -> string
+entry:
+  return record-get [r2] value.[r2.f0]
+
+func main() -> string
+entry:
+  return try-result h1 error PersonError -> string { protected { store person, propagate call Person__constructor("Ada", 41) to except h1; store envelope, record-new [r1] { [r1.f0]: [person] }; store birthday, function-ref Person__birthday : (person: Person) => Person; store older, invoke birthday(person); store age, call Person__identity__primitive_number__7F14E33913752003(record-get [r2] older.[r2.f2]); call label__record_Person__66BA86D43998F2CA(older) } except error: PersonError { "recovered" } }

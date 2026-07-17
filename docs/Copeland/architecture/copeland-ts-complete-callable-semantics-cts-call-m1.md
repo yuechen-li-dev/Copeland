@@ -30,7 +30,7 @@ Diagnostic and Symbolic JavaScript use frozen null-prototype callable carriers w
 
 Callable values may flow through locals, parameters, returns, arrays, records, enum payloads, Result values, and erased interface field requirements. They remain forbidden in record tables, TSON/TSON assets/encoding, JSON/host serialization, equality, and hashing.
 
-CTS-CLASS-M0a consumes this completed law: an associated class function is an ordinary named function and may become a callable value only through the same exact-signature, closed-generic, explicit-capture rules. It introduces no receiver capture or callable equality. See [pure classes design](../language/copeland-ts-pure-classes-design-cts-class-m0a.md).
+CTS-CLASS-M1 consumes this completed law: an associated class function is an ordinary named function and may become a callable value only through the same exact-signature, closed-generic, explicit-capture rules. It introduces no receiver capture or callable equality. See [pure classes closeout](copeland-ts-pure-classes-cts-class-m1.md).
 
 ## Limits and evaluator seam
 

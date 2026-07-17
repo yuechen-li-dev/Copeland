@@ -2,7 +2,7 @@
 
 > Historical planning matrix. The current authoritative language law and implemented/intended distinction are in the [Copeland TS language profile](../language/copeland-ts-language-profile.md). In particular, proposed C# lowerings in this record do not decide future JavaScript semantics.
 
-> **Current doctrine correction (CTS-TYPE-M0a and CTS-CLASS-M0a):** the proposals below for nominal/direct-C# interfaces, direct-C# generic lowering, and `this`/inheritance-shaped classes are preserved as history, not current direction. Interfaces are erased structural requirement sets, aliases are transparent, backend generic representation is private, and the accepted class direction is an immutable nominal value with pure construction and associated functions, without `new`, `this`, prototypes, or inheritance. See [CTS-TYPE-M0a](../language/copeland-ts-type-system-design-cts-type-m0a.md) and [CTS-CLASS-M0a](../language/copeland-ts-pure-classes-design-cts-class-m0a.md).
+> **Current doctrine correction (CTS-TYPE-M3 and CTS-CLASS-M1):** the proposals below for nominal/direct-C# interfaces, direct-C# generic lowering, and `this`/inheritance-shaped classes are preserved as history, not current direction. Interfaces are erased structural requirement sets, aliases are transparent, backend generic representation is private, and implemented classes are immutable nominal values with pure construction and associated functions, without `new`, `this`, prototypes, or inheritance. See [CTS-TYPE-M3](copeland-ts-foundational-type-system-closeout-cts-type-m3.md) and [CTS-CLASS-M1](copeland-ts-pure-classes-cts-class-m1.md).
 
 ## Purpose
 
@@ -66,11 +66,11 @@ Copeland’s current truth is “safe restricted profile with end-to-end compile
 | Payload enums | Tagged enum + payloads | Implemented | Parse -> Bind/Semantics -> MIR -> C# Emit -> Runtime Invoke -> Docs | Copeland enum lowering | Constructor/match diagnostics documented.
 | `match` expressions | Exhaustive enum/domain branch | Implemented | Parse -> Bind/Semantics -> MIR -> C# Emit -> Runtime Invoke -> Docs | Copeland-native match lowering | Exhaustiveness/type checks documented.
 | Interface | TS interface subset | Planned | Docs | Likely direct C# interface (nominal) | TS-M2a candidate.
-| Class | TS class subset | Planned | Docs | Likely strict C# class subset | TS-M2b candidate.
-| Constructor | Class constructor subset | Planned | Docs | Lower in class pipeline | Depends on class milestone.
-| `this` | Instance member receiver | Planned | Docs | Nominal class semantics | Depends on class model.
-| Access modifiers | `public/private/protected` subset | Planned | Docs | Direct C# access modifiers | Keep strict subset only.
-| `readonly` | Read-only members | Planned | Docs | Direct C# readonly/init mapping | Define exact profile first.
+| Pure class | Immutable nominal record + constructor + associated functions | Implemented | CTS-CLASS-M1 | Canonical record/function MIR; sealed C# carrier and private JavaScript carrier | No prototype/object model.
+| Constructor | One public pure `Person(...)` constructor | Implemented | CTS-CLASS-M1 | Complete carrier construction or `Person ! E` Result | No `new`, overloads, or partial initialization.
+| `this` | Instance member receiver | Rejected | CTS-CLASS-M1 | N/A | Associated operations use explicit parameters.
+| Access modifiers | `public/private` class fields/functions | Implemented bounded subset | CTS-CLASS-M1 | Frontend authority; carrier visibility | `protected` rejected.
+| `readonly` | Read-only members | Rejected as redundant | CTS-CLASS-M1 | N/A | Every class field is immutable.
 | Generics | Restricted generic parameters | Planned | Docs | Direct C# generics subset | TS-M2e candidate.
 | Type aliases | Alias-only type defs | Planned | Docs | Compile-time alias mapping | Constrain to non-advanced forms first.
 | Modules/import/export | Project/module boundaries | Planned | CLI/Docs | Namespace/module class lowering | TS-M2c candidate.

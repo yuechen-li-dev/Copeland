@@ -1,6 +1,6 @@
 # CTS-CLASS-M0a: class and record construction audit
 
-**Audit revision:** `a21a7783f74faba91c6b9846eaec0030b0a7e3d1` on `main`, tracking `origin/main`; ahead 0, behind 0; initial worktree clean. This record is documentation-only and preserves existing CTS-CALL worktree/history.
+**Audit revision:** `a21a7783f74faba91c6b9846eaec0030b0a7e3d1` on `main`, tracking `origin/main`; ahead 0, behind 0; initial worktree clean. This is a historical pre-M1 audit. Its selected semantic direction is implemented by [CTS-CLASS-M1](cts-class-m1-pure-classes-and-associated-functions.md).
 
 ## Evidence classification
 

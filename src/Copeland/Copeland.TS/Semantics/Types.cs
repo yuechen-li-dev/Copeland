@@ -76,7 +76,7 @@ public readonly record struct RecordFieldId(RecordTypeId RecordTypeId, int Ordin
     public override string ToString() => $"{RecordTypeId}.f{Ordinal}";
 }
 
-public sealed class RecordTypeSymbol(string name, RecordTypeId id, string? stableIdentity = null) : TypeSymbol
+public class RecordTypeSymbol(string name, RecordTypeId id, string? stableIdentity = null) : TypeSymbol
 {
     private readonly List<RecordFieldSymbol> _fields = [];
 
@@ -89,6 +89,27 @@ public sealed class RecordTypeSymbol(string name, RecordTypeId id, string? stabl
     {
         _fields.Add(field);
     }
+}
+
+/// <summary>
+/// A class deliberately reuses the nominal record type algebra. The provenance is
+/// retained only for source access control and backend carrier shape; it is not an
+/// object-oriented runtime type.
+/// </summary>
+public sealed class ClassTypeSymbol(string name, RecordTypeId id, string? stableIdentity = null)
+    : RecordTypeSymbol(name, id, stableIdentity)
+{
+    private readonly List<FunctionSymbol> _associatedFunctions = [];
+
+    public FunctionSymbol? Constructor { get; private set; }
+    public IReadOnlyList<FunctionSymbol> AssociatedFunctions => _associatedFunctions;
+
+    public void SetConstructor(FunctionSymbol constructor) => Constructor = constructor;
+
+    public void AddAssociatedFunction(FunctionSymbol function) => _associatedFunctions.Add(function);
+
+    public FunctionSymbol? FindAssociatedFunction(string name)
+        => _associatedFunctions.FirstOrDefault(function => function.MemberName == name);
 }
 
 public readonly record struct TableTypeId(int Value) { public override string ToString() => $"t{Value}"; }

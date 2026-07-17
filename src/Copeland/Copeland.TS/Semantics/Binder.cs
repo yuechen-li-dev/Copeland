@@ -71,6 +71,10 @@ public static class Binder
         private const int MaxCallableExpressionNesting = 16;
         private const int MaxLiftedCallableDefinitions = 512;
         private const int MaxCaptureCount = 16;
+        private const int MaxClassFields = 64;
+        private const int MaxClassAssociatedFunctions = 64;
+        private const int MaxPrivateClassAssociatedFunctions = 32;
+        private const int MaxClassesPerCompilation = 256;
 
         private int _loopDepth;
         private readonly SyntaxTree _tree = tree;
@@ -79,6 +83,7 @@ public static class Binder
         private readonly Scope _global = new(null);
         private Scope _scope = null!;
         private FunctionSymbol? _currentFunction;
+        private ClassTypeSymbol? _currentClass;
         private readonly List<BoundFunctionDeclaration> _functions = [];
         private readonly List<BoundEnumDeclaration> _enums = [];
         private readonly List<BoundRecordDeclaration> _records = [];
@@ -86,6 +91,9 @@ public static class Binder
         private readonly List<BoundStatement> _globals = [];
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, ClassTypeSymbol> _classTypes = new(StringComparer.Ordinal);
+        private readonly Dictionary<FunctionSymbol, ClassAssociatedFunctionDeclarationSyntax> _classFunctionDeclarations = [];
+        private readonly Dictionary<FunctionSymbol, ClassConstructorDeclarationSyntax> _classConstructorDeclarations = [];
         private readonly Dictionary<string, TableTypeSymbol> _tableTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, TypeAliasSymbol> _aliases = new(StringComparer.Ordinal);
         private readonly Dictionary<string, InterfaceSymbol> _interfaces = new(StringComparer.Ordinal);
@@ -132,6 +140,7 @@ public static class Binder
             PredeclareInterfaces(_tree.Root);
             PredeclareAliases(_tree.Root);
             PredeclareRecords(_tree.Root);
+            PredeclareClasses(_tree.Root);
             PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
             PredeclareNominalUnions(_tree.Root);
@@ -139,6 +148,8 @@ public static class Binder
             BindInterfaceBodies(_tree.Root);
             PredeclareFunctions(_tree.Root);
             BindRecordBodies(_tree.Root);
+            BindClassFields(_tree.Root);
+            PredeclareClassMembers(_tree.Root);
             BindEnumBodies(_tree.Root);
             BindNominalUnionBodies(_tree.Root);
             BindTableBodies(_tree.Root);
@@ -147,12 +158,25 @@ public static class Binder
             {
                 _genericBodies[(FunctionSymbol)_globalLookup(generic.Identifier.Text)!] = BindFunction(generic);
             }
+            foreach (var pair in _classFunctionDeclarations.Where(pair => pair.Key.IsGeneric))
+            {
+                _genericBodies[pair.Key] = BindClassFunction(pair.Key, pair.Value);
+            }
+            foreach (var pair in _classConstructorDeclarations)
+            {
+                _functions.Add(BindClassConstructor(pair.Key, pair.Value));
+            }
+            foreach (var pair in _classFunctionDeclarations.Where(pair => !pair.Key.IsGeneric))
+            {
+                _functions.Add(BindClassFunction(pair.Key, pair.Value));
+            }
             foreach (var m in _tree.Root.Members)
             {
                 if (m is FunctionDeclarationSyntax f && f.TypeParameters.Count == 0) _functions.Add(BindFunction(f));
                 else if (m is EnumDeclarationSyntax e && e.Identifier.Text != "TableBoundsError" && _enumTypes.TryGetValue(e.Identifier.Text, out var enumType)) _enums.Add(new BoundEnumDeclaration(enumType));
                 else if (m is NominalUnionDeclarationSyntax union && _enumTypes.TryGetValue(union.Identifier.Text, out var unionType)) _enums.Add(new BoundEnumDeclaration(unionType));
                 else if (m is RecordDeclarationSyntax r && _recordTypes.TryGetValue(r.Identifier.Text, out var recordType)) _records.Add(new BoundRecordDeclaration(recordType));
+                else if (m is ClassDeclarationSyntax c && _classTypes.TryGetValue(c.Identifier.Text, out var classType)) _records.Add(new BoundRecordDeclaration(classType));
                 else if (m is GlobalStatementMemberSyntax g && !IsSchemaDeclaration(g.Statement)) _globals.Add(BindStatement(g.Statement));
             }
             if (_tables.Count > 0 && _tableBoundsErrorType is not null)
@@ -957,6 +981,7 @@ public static class Binder
                     || primitive == PrimitiveTypeSymbol.Boolean => true,
                 ArrayTypeSymbol array when _schemaIdentity is not null => IsEligibleTableCellType(array.ElementType, visiting, out _),
                 EnumTypeSymbol @enum => @enum.Cases.All(@case => @case.PayloadFields.All(field => IsEligibleTableCellType(field.Type, visiting, out _))),
+                ClassTypeSymbol => false,
                 RecordTypeSymbol record => record.Fields.All(field => IsEligibleTableCellType(field.Type, visiting, out _)),
                 ResultTypeSymbol result => IsEligibleTableCellType(result.SuccessType, visiting, out _)
                     && IsEligibleTableCellType(result.ErrorType, visiting, out _),
@@ -991,6 +1016,7 @@ public static class Binder
                 EnumTypeSymbol @enum => @enum.Cases.All(@case =>
                     @case.PayloadFields.All(field =>
                         IsEligibleTsonTableCellType(field.Type, visiting))),
+                ClassTypeSymbol => false,
                 RecordTypeSymbol record => record.Fields.All(field =>
                     IsEligibleTsonTableCellType(field.Type, visiting)),
                 _ => false,
@@ -1185,6 +1211,266 @@ public static class Binder
             }
         }
 
+        private void PredeclareClasses(CompilationUnitSyntax root)
+        {
+            var declarations = root.Members.OfType<ClassDeclarationSyntax>().ToArray();
+            if (declarations.Length > MaxClassesPerCompilation)
+            {
+                Report("COPE-CLASS-0018", $"A compilation supports at most {MaxClassesPerCompilation} class declarations.", declarations[MaxClassesPerCompilation].Identifier);
+            }
+
+            foreach (var declaration in declarations)
+            {
+                if (declaration.Identifier.Text is "tsonAsset" or "tsonEncode" or "TsonEncodeError")
+                {
+                    Report("COPE-CLASS-0002", $"'{declaration.Identifier.Text}' is compiler-owned and cannot be a class name.", declaration.Identifier);
+                    continue;
+                }
+
+                if (_aliases.ContainsKey(declaration.Identifier.Text)
+                    || _interfaces.ContainsKey(declaration.Identifier.Text)
+                    || _enumTypes.ContainsKey(declaration.Identifier.Text)
+                    || _tableTypes.ContainsKey(declaration.Identifier.Text)
+                    || _recordTypes.ContainsKey(declaration.Identifier.Text)
+                    || _classTypes.ContainsKey(declaration.Identifier.Text))
+                {
+                    Report("COPE-CLASS-0002", $"Class name '{declaration.Identifier.Text}' collides with an existing type declaration.", declaration.Identifier);
+                    continue;
+                }
+
+                string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{declaration.Identifier.Text}";
+                var classType = new ClassTypeSymbol(
+                    declaration.Identifier.Text,
+                    new RecordTypeId(_nextRecordTypeId++),
+                    identity);
+                if (!_global.TryDeclare(new ClassValueSymbol(classType.Name, classType)))
+                {
+                    Report("COPE-CLASS-0002", $"Duplicate declaration '{classType.Name}'.", declaration.Identifier);
+                    continue;
+                }
+                _recordTypes.Add(classType.Name, classType);
+                _classTypes.Add(classType.Name, classType);
+            }
+        }
+
+        private void BindClassFields(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<ClassDeclarationSyntax>())
+            {
+                if (!_classTypes.TryGetValue(declaration.Identifier.Text, out var classType))
+                {
+                    continue;
+                }
+
+                if (declaration.ExtendsKeyword is not null)
+                {
+                    Report("COPE-CLASS-0014", "Class inheritance is not supported; a Copeland class is a closed immutable nominal value.", declaration.ExtendsKeyword);
+                }
+
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                var fields = declaration.Members.OfType<ClassFieldSyntax>().ToArray();
+                if (fields.Length > MaxClassFields)
+                {
+                    Report("COPE-CLASS-0018", $"Class '{classType.Name}' supports at most {MaxClassFields} fields.", fields[MaxClassFields].Identifier);
+                }
+                foreach (var fieldSyntax in fields)
+                {
+                    ValidateClassVisibility(fieldSyntax.VisibilityKeyword, fieldSyntax.Identifier);
+                    if (!fieldSyntax.HasExplicitType || !fieldSyntax.HasTerminator)
+                    {
+                        Report("COPE-CLASS-0001", $"Class field '{fieldSyntax.Identifier.Text}' requires an explicit type and terminating semicolon.", fieldSyntax.Identifier);
+                    }
+                    if (fieldSyntax.EqualsToken is not null || fieldSyntax.Initializer is not null)
+                    {
+                        Report("COPE-CLASS-0015", $"Class field '{fieldSyntax.Identifier.Text}' cannot have an initializer; construction must return one complete value.", fieldSyntax.EqualsToken ?? fieldSyntax.Identifier);
+                    }
+                    if (fieldSyntax.Modifiers.Count > 0)
+                    {
+                        Report("COPE-CLASS-0015", "Class fields are immutable and do not support readonly, static, accessors, or other modifiers.", fieldSyntax.Modifiers[0]);
+                    }
+                    if (!names.Add(fieldSyntax.Identifier.Text))
+                    {
+                        Report("COPE-CLASS-0003", $"Duplicate class member '{fieldSyntax.Identifier.Text}' in '{classType.Name}'.", fieldSyntax.Identifier);
+                        continue;
+                    }
+
+                    TypeSymbol fieldType = fieldSyntax.HasExplicitType
+                        ? BindType(fieldSyntax.Type, fieldSyntax.Identifier, "COPE-CLASS-0001", "class field")
+                        : PrimitiveTypeSymbol.Error;
+                    ValidateRuntimeValueType(fieldType, fieldSyntax.Identifier, "class field");
+                    bool isPublic = !string.Equals(fieldSyntax.VisibilityKeyword?.Text, "private", StringComparison.Ordinal);
+                    classType.AddField(new RecordFieldSymbol(
+                        fieldSyntax.Identifier.Text,
+                        new RecordFieldId(classType.Id, classType.Fields.Count),
+                        fieldType,
+                        isPublic));
+                }
+            }
+        }
+
+        private void PredeclareClassMembers(CompilationUnitSyntax root)
+        {
+            foreach (var declaration in root.Members.OfType<ClassDeclarationSyntax>())
+            {
+                if (!_classTypes.TryGetValue(declaration.Identifier.Text, out var classType))
+                {
+                    continue;
+                }
+
+                var memberNames = classType.Fields.Select(field => field.Name).ToHashSet(StringComparer.Ordinal);
+                var constructors = declaration.Members.OfType<ClassConstructorDeclarationSyntax>().ToArray();
+                if (constructors.Length == 0)
+                {
+                    Report("COPE-CLASS-0004", $"Class '{classType.Name}' requires exactly one primary constructor.", declaration.Identifier);
+                }
+                if (constructors.Length > 1)
+                {
+                    foreach (var constructor in constructors.Skip(1))
+                    {
+                        Report("COPE-CLASS-0004", $"Class '{classType.Name}' has more than one constructor.", constructor.ConstructorKeyword);
+                    }
+                }
+                if (constructors.Length > 0)
+                {
+                    ClassConstructorDeclarationSyntax constructor = constructors[0];
+                    ValidateClassVisibility(constructor.VisibilityKeyword, constructor.ConstructorKeyword);
+                    if (string.Equals(constructor.VisibilityKeyword?.Text, "private", StringComparison.Ordinal))
+                    {
+                        Report("COPE-CLASS-0005", "The primary constructor is the public pure class call and cannot be private.", constructor.VisibilityKeyword!);
+                    }
+                    if (constructor.Modifiers.Count > 0)
+                    {
+                        Report("COPE-CLASS-0005", "Constructors cannot be static, readonly, accessors, or use other modifiers.", constructor.Modifiers[0]);
+                    }
+                    var parameters = BindClassParameters(constructor.Parameters, constructor.ConstructorKeyword, []);
+                    TypeSymbol returnType = constructor.ReturnType is null
+                        ? classType
+                        : BindType(constructor.ReturnType, constructor.ConstructorKeyword, "COPE-CLASS-0005", "constructor return");
+                    bool validReturn = ReferenceEquals(returnType, classType)
+                        || returnType is ResultTypeSymbol { SuccessType: var success } && ReferenceEquals(success, classType);
+                    if (!validReturn)
+                    {
+                        Report("COPE-CLASS-0005", $"Constructor '{classType.Name}' must return '{classType.Name}' or '{classType.Name} ! E'.", constructor.ReturnTypeColonToken ?? constructor.ConstructorKeyword);
+                    }
+                    var symbol = new FunctionSymbol(
+                        classType.Name + "__constructor",
+                        parameters,
+                        validReturn ? returnType : classType,
+                        stableIdentity: "class:" + classType.Name + ".constructor")
+                    {
+                        ClassOwner = classType,
+                        MemberName = "constructor",
+                        IsClassConstructor = true,
+                        IsPublic = true,
+                    };
+                    classType.SetConstructor(symbol);
+                    _classConstructorDeclarations.Add(symbol, constructor);
+                }
+
+                var functions = declaration.Members.OfType<ClassAssociatedFunctionDeclarationSyntax>().ToArray();
+                if (functions.Length > MaxClassAssociatedFunctions)
+                {
+                    Report("COPE-CLASS-0018", $"Class '{classType.Name}' supports at most {MaxClassAssociatedFunctions} associated functions.", functions[MaxClassAssociatedFunctions].Identifier);
+                }
+                int privateCount = 0;
+                foreach (var method in functions)
+                {
+                    ValidateClassVisibility(method.VisibilityKeyword, method.Identifier);
+                    if (method.Modifiers.Count > 0)
+                    {
+                        Report("COPE-CLASS-0015", "Associated functions do not use static, accessors, or other TypeScript method modifiers.", method.Modifiers[0]);
+                    }
+                    if (!memberNames.Add(method.Identifier.Text))
+                    {
+                        Report("COPE-CLASS-0003", $"Duplicate class member '{method.Identifier.Text}' in '{classType.Name}'.", method.Identifier);
+                        continue;
+                    }
+
+                    bool isPublic = !string.Equals(method.VisibilityKeyword?.Text, "private", StringComparison.Ordinal);
+                    if (!isPublic && ++privateCount > MaxPrivateClassAssociatedFunctions)
+                    {
+                        Report("COPE-CLASS-0018", $"Class '{classType.Name}' supports at most {MaxPrivateClassAssociatedFunctions} private associated functions.", method.Identifier);
+                    }
+                    var typeParameters = BindClassTypeParameters(method);
+                    _activeTypeParameters = CreateTypeParameterScope(typeParameters);
+                    var parameters = BindClassParameters(method.Parameters, method.Identifier, typeParameters);
+                    TypeSymbol returnType = BindType(method.ReturnType, method.Identifier, "COPE-TYPE-0002", "associated function return");
+                    ValidateFunctionReturnType(returnType, method.Identifier);
+                    _activeTypeParameters = null;
+                    var symbol = new FunctionSymbol(
+                        classType.Name + "__" + method.Identifier.Text,
+                        parameters,
+                        returnType,
+                        GetAuthoredAliasName(method.ReturnType),
+                        "class:" + classType.Name + "." + method.Identifier.Text)
+                    {
+                        TypeParameters = typeParameters,
+                        ClassOwner = classType,
+                        MemberName = method.Identifier.Text,
+                        IsPublic = isPublic,
+                    };
+                    classType.AddAssociatedFunction(symbol);
+                    _classFunctionDeclarations.Add(symbol, method);
+                }
+            }
+        }
+
+        private IReadOnlyList<TypeParameterSymbol> BindClassTypeParameters(ClassAssociatedFunctionDeclarationSyntax method)
+        {
+            var result = new List<TypeParameterSymbol>();
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            if (method.TypeParameters.Count > MaxTypeParametersPerFunction)
+            {
+                Report("COPE-GENERIC-0011", $"Generic associated function '{method.Identifier.Text}' exceeds the {MaxTypeParametersPerFunction} type-parameter limit.", method.Identifier);
+            }
+            for (int index = 0; index < method.TypeParameters.Count; index++)
+            {
+                TypeParameterSyntax syntax = method.TypeParameters[index];
+                if (!names.Add(syntax.Identifier.Text))
+                {
+                    Report("COPE-GENERIC-0001", $"Duplicate type parameter '{syntax.Identifier.Text}'.", syntax.Identifier);
+                }
+                if (_aliases.ContainsKey(syntax.Identifier.Text)
+                    || _recordTypes.ContainsKey(syntax.Identifier.Text)
+                    || _enumTypes.ContainsKey(syntax.Identifier.Text)
+                    || _tableTypes.ContainsKey(syntax.Identifier.Text)
+                    || _interfaces.ContainsKey(syntax.Identifier.Text))
+                {
+                    Report("COPE-GENERIC-0002", $"Type parameter '{syntax.Identifier.Text}' cannot shadow a compilation-unit type declaration.", syntax.Identifier);
+                }
+                result.Add(new TypeParameterSymbol(syntax.Identifier.Text, new TypeParameterTypeSymbol(syntax.Identifier.Text, index), BindRequirements(syntax)));
+            }
+            return result;
+        }
+
+        private IReadOnlyList<ParameterSymbol> BindClassParameters(
+            IReadOnlyList<ParameterSyntax> syntax,
+            SyntaxToken anchor,
+            IReadOnlyList<TypeParameterSymbol> typeParameters)
+        {
+            var result = new List<ParameterSymbol>();
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (ParameterSyntax parameter in syntax)
+            {
+                TypeSymbol type = BindType(parameter.Type, parameter.Identifier, "COPE-TYPE-0002", "parameter");
+                ValidateRuntimeValueType(type, parameter.Identifier, "parameter");
+                if (!names.Add(parameter.Identifier.Text))
+                {
+                    Report("COPE-BIND-0005", $"Duplicate parameter '{parameter.Identifier.Text}'.", parameter.Identifier);
+                }
+                result.Add(new ParameterSymbol(parameter.Identifier.Text, type, GetAuthoredAliasName(parameter.Type)));
+            }
+            return result;
+        }
+
+        private void ValidateClassVisibility(SyntaxToken? visibility, SyntaxToken anchor)
+        {
+            if (string.Equals(visibility?.Text, "protected", StringComparison.Ordinal))
+            {
+                Report("COPE-CLASS-0014", "'protected' is not supported because Copeland classes have no inheritance.", visibility!);
+            }
+        }
+
         private void BindRecordBodies(CompilationUnitSyntax root)
         {
             foreach (var declaration in root.Members.OfType<RecordDeclarationSyntax>())
@@ -1237,8 +1523,11 @@ public static class Binder
             }
             if (!visiting.Add(recordType))
             {
-                var declaration = _tree.Root.Members.OfType<RecordDeclarationSyntax>().First(item => item.Identifier.Text == recordType.Name);
-                Report("COPE-REC-0004", $"Recursive record definition involving '{recordType.Name}' is not supported.", declaration.Identifier);
+                SyntaxToken anchor = recordType is ClassTypeSymbol
+                    ? _tree.Root.Members.OfType<ClassDeclarationSyntax>().First(item => item.Identifier.Text == recordType.Name).Identifier
+                    : _tree.Root.Members.OfType<RecordDeclarationSyntax>().First(item => item.Identifier.Text == recordType.Name).Identifier;
+                string diagnosticId = recordType is ClassTypeSymbol ? "COPE-CLASS-0013" : "COPE-REC-0004";
+                Report(diagnosticId, $"Recursive nominal storage involving '{recordType.Name}' is not supported.", anchor);
                 return;
             }
 
@@ -1490,7 +1779,8 @@ public static class Binder
                         continue;
                     }
 
-                    if (_recordTypes.TryGetValue(alternative.Text, out var recordType))
+                    if (_recordTypes.TryGetValue(alternative.Text, out var recordType)
+                        && recordType is not ClassTypeSymbol)
                     {
                         cases.Add(new EnumCaseSymbol(
                             alternative.Text,
@@ -1511,6 +1801,10 @@ public static class Binder
                     else if (_enumTypes.ContainsKey(alternative.Text))
                     {
                         Report("COPE-UNION-0007", $"Union alternative '{alternative.Text}' must name a nominal record declaration directly; enums and nominal unions are not allowed.", alternative);
+                    }
+                    else if (_classTypes.ContainsKey(alternative.Text))
+                    {
+                        Report("COPE-UNION-0007", $"Class '{alternative.Text}' is not an approved nominal-union alternative.", alternative);
                     }
                     else if (_interfaces.ContainsKey(alternative.Text)
                         || _tableTypes.ContainsKey(alternative.Text))
@@ -1553,6 +1847,59 @@ public static class Binder
             var body = (BoundBlockStatement)BindStatement(s.Body);
             _scope = prev; _currentFunction = prevFn; _activeTypeParameters = previousTypeParameters;
             return new BoundFunctionDeclaration(fn, body);
+        }
+
+        private BoundFunctionDeclaration BindClassConstructor(FunctionSymbol function, ClassConstructorDeclarationSyntax syntax)
+            => BindClassFunctionBody(function, syntax.Body, syntax.ConstructorKeyword);
+
+        private BoundFunctionDeclaration BindClassFunction(FunctionSymbol function, ClassAssociatedFunctionDeclarationSyntax syntax)
+            => BindClassFunctionBody(function, syntax.Body, syntax.Identifier);
+
+        private BoundFunctionDeclaration BindClassFunctionBody(FunctionSymbol function, BlockStatementSyntax bodySyntax, SyntaxToken anchor)
+        {
+            FunctionSymbol? previousFunction = _currentFunction;
+            ClassTypeSymbol? previousClass = _currentClass;
+            Dictionary<string, TypeParameterSymbol>? previousTypeParameters = _activeTypeParameters;
+            Scope previousScope = _scope;
+            _currentFunction = function;
+            _currentClass = function.ClassOwner;
+            _activeTypeParameters = CreateTypeParameterScope(function.TypeParameters);
+            _scope = new Scope(_global);
+            try
+            {
+                foreach (ParameterSymbol parameter in function.Parameters)
+                {
+                    if (!_scope.TryDeclare(parameter))
+                    {
+                        Report("COPE-BIND-0005", $"Duplicate parameter '{parameter.Name}'.", anchor);
+                    }
+                }
+                var body = (BoundBlockStatement)BindStatement(bodySyntax);
+                if (function.IsClassConstructor && !AlwaysReturns(body))
+                {
+                    Report("COPE-CLASS-0008", $"Constructor '{function.ClassOwner!.Name}' can fall through without returning one complete class value.", anchor);
+                }
+                return new BoundFunctionDeclaration(function, body);
+            }
+            finally
+            {
+                _scope = previousScope;
+                _currentFunction = previousFunction;
+                _currentClass = previousClass;
+                _activeTypeParameters = previousTypeParameters;
+            }
+        }
+
+        private static bool AlwaysReturns(BoundStatement statement)
+        {
+            return statement switch
+            {
+                BoundReturnStatement => true,
+                BoundBlockStatement block => block.Statements.Any(AlwaysReturns),
+                BoundIfStatement conditional when conditional.ElseStatement is not null
+                    => AlwaysReturns(conditional.ThenStatement) && AlwaysReturns(conditional.ElseStatement),
+                _ => false,
+            };
         }
 
         private BoundStatement BindStatement(StatementSyntax s) => s switch
@@ -1838,10 +2185,24 @@ public static class Binder
                 WithExpressionSyntax w => BindWith(w),
                 IfExpressionSyntax i => BindIfExpression(i, contextualType),
                 MatchExpressionSyntax m => BindMatch(m, contextualType),
+                UnsupportedExpressionSyntax u => BindUnsupportedClassExpression(u),
                 _ => new BoundErrorExpression()
             };
 
             return InjectDirectNominalUnionCase(expression, contextualType);
+        }
+
+        private BoundExpression BindUnsupportedClassExpression(UnsupportedExpressionSyntax expression)
+        {
+            string message = expression.Token.Text switch
+            {
+                "new" => "'new' is not supported. Class construction is the pure call 'Person(...)'.",
+                "this" => "'this' is not supported. Class operations declare ordinary explicit parameters.",
+                "super" => "'super' is not supported because Copeland classes have no inheritance.",
+                _ => "Unsupported class expression.",
+            };
+            Report("COPE-CLASS-0014", message, expression.Token);
+            return new BoundErrorExpression();
         }
 
         private static BoundExpression InjectDirectNominalUnionCase(BoundExpression expression, TypeSymbol? contextualType)
@@ -1907,6 +2268,7 @@ public static class Binder
             }
             return symbol switch
             {
+                ClassValueSymbol classValue => ReportClassValueUse(classValue, n.IdentifierToken),
                 VariableSymbol v when v.Type is TableTypeSymbol table && _tableSingletonVariables.Contains(v) => new BoundTableReferenceExpression(table),
                 VariableSymbol v => new BoundVariableExpression(v),
                 ParameterSymbol p => new BoundVariableExpression(new VariableSymbol(p.Name, p.Type, true)),
@@ -1914,6 +2276,12 @@ public static class Binder
                 FunctionSymbol function => new BoundFunctionReferenceExpression(function),
                 _ => new BoundErrorExpression()
             };
+        }
+
+        private BoundExpression ReportClassValueUse(ClassValueSymbol classValue, SyntaxToken anchor)
+        {
+            Report("COPE-CLASS-0005", $"Class '{classValue.Name}' is a constructor namespace, not a first-class callable value. Call '{classValue.Name}(...)' or reference one of its public associated functions.", anchor);
+            return new BoundErrorExpression();
         }
 
         private BoundExpression BindCapture(CaptureExpressionSyntax capture, TypeSymbol? contextualType)
@@ -2150,6 +2518,11 @@ public static class Binder
             if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken
                 && (l.Type is RecordTypeSymbol || r.Type is RecordTypeSymbol))
             {
+                if (l.Type is ClassTypeSymbol || r.Type is ClassTypeSymbol)
+                {
+                    Report("COPE-CLASS-0016", "Class equality is not supported; source programs have no class identity law.", b.OperatorToken);
+                    return new BoundErrorExpression();
+                }
                 Report("COPE-REC-0016", "Record equality is not supported.", b.OperatorToken);
                 return new BoundErrorExpression();
             }
@@ -2299,6 +2672,10 @@ public static class Binder
 
             if (c.Target is MemberAccessExpressionSyntax m && m.Target is NameExpressionSyntax enumName)
             {
+                if (_classTypes.TryGetValue(enumName.IdentifierToken.Text, out var classType))
+                {
+                    return BindAssociatedFunctionCall(c, m, classType);
+                }
                 return BindEnumConstructorCall(c, m, enumName);
             }
 
@@ -2308,6 +2685,10 @@ public static class Binder
             }
 
             var targetName = (NameExpressionSyntax)c.Target;
+            if (_classTypes.TryGetValue(targetName.IdentifierToken.Text, out var targetClass))
+            {
+                return BindClassConstructorCall(c, targetName, targetClass);
+            }
             if (_scope.TryLookup(targetName.IdentifierToken.Text, out var lexicalSymbol)
                 && lexicalSymbol is VariableSymbol or ParameterSymbol)
             {
@@ -2344,6 +2725,69 @@ public static class Binder
                         fn.Parameters[i].AuthoredAliasName);
                 }
             return new BoundCallExpression(fn, args);
+        }
+
+        private BoundExpression BindClassConstructorCall(
+            CallExpressionSyntax call,
+            NameExpressionSyntax name,
+            ClassTypeSymbol classType)
+        {
+            if (classType.Constructor is null)
+            {
+                Report("COPE-CLASS-0004", $"Class '{classType.Name}' has no valid primary constructor.", name.IdentifierToken);
+                foreach (ExpressionSyntax argument in call.Arguments) _ = BindExpression(argument);
+                return new BoundErrorExpression();
+            }
+            return BindKnownFunctionCall(call, classType.Constructor, "COPE-CLASS-0005");
+        }
+
+        private BoundExpression BindAssociatedFunctionCall(
+            CallExpressionSyntax call,
+            MemberAccessExpressionSyntax member,
+            ClassTypeSymbol classType)
+        {
+            FunctionSymbol? function = classType.FindAssociatedFunction(member.NameToken.Text);
+            if (function is null)
+            {
+                Report("COPE-CLASS-0006", $"Class '{classType.Name}' has no associated function '{member.NameToken.Text}'.", member.NameToken);
+                foreach (ExpressionSyntax argument in call.Arguments) _ = BindExpression(argument);
+                return new BoundErrorExpression();
+            }
+            if (!CanAccessClassMember(function.ClassOwner!, function.IsPublic))
+            {
+                Report("COPE-CLASS-0009", $"Private associated function '{classType.Name}.{function.MemberName}' is accessible only from code owned by '{classType.Name}'.", member.NameToken);
+                foreach (ExpressionSyntax argument in call.Arguments) _ = BindExpression(argument);
+                return new BoundErrorExpression();
+            }
+            if (function.IsGeneric)
+            {
+                return BindInferredGenericCall(call, function);
+            }
+            return BindKnownFunctionCall(call, function, "COPE-TYPE-0005");
+        }
+
+        private BoundExpression BindKnownFunctionCall(CallExpressionSyntax call, FunctionSymbol function, string typeMismatchId)
+        {
+            if (call.Arguments.Count != function.Parameters.Count)
+            {
+                Report("COPE-TYPE-0004", $"Argument count mismatch: expected {function.Parameters.Count}, got {call.Arguments.Count}.", call.OpenParenToken);
+            }
+            BoundExpression[] arguments = call.Arguments
+                .Select((argument, index) => BindExpression(argument, index < function.Parameters.Count ? function.Parameters[index].Type : null))
+                .ToArray();
+            for (int index = 0; index < Math.Min(arguments.Length, function.Parameters.Count); index++)
+            {
+                if (!IsAssignable(function.Parameters[index].Type, arguments[index].Type))
+                {
+                    ReportTypeMismatch(
+                        typeMismatchId,
+                        function.Parameters[index].Type,
+                        arguments[index].Type,
+                        InferenceAnchor(call.Arguments[index]),
+                        function.Parameters[index].AuthoredAliasName);
+                }
+            }
+            return new BoundCallExpression(function, arguments);
         }
 
         private BoundExpression BindInvoke(CallExpressionSyntax call, BoundExpression callee)
@@ -2604,9 +3048,30 @@ public static class Binder
 
         private BoundExpression BindGenericCall(GenericCallExpressionSyntax call, TypeSymbol? contextualType)
         {
-            if (call.Target is not NameExpressionSyntax name
-                || !_global.TryLookup(name.IdentifierToken.Text, out var symbol)
-                || symbol is not FunctionSymbol function)
+            FunctionSymbol? function = null;
+            if (call.Target is NameExpressionSyntax name
+                && _global.TryLookup(name.IdentifierToken.Text, out var symbol)
+                && symbol is FunctionSymbol namedFunction)
+            {
+                function = namedFunction;
+            }
+            else if (call.Target is MemberAccessExpressionSyntax member
+                && member.Target is NameExpressionSyntax className
+                && _classTypes.TryGetValue(className.IdentifierToken.Text, out var classType))
+            {
+                function = classType.FindAssociatedFunction(member.NameToken.Text);
+                if (function is null)
+                {
+                    Report("COPE-CLASS-0006", $"Class '{classType.Name}' has no associated function '{member.NameToken.Text}'.", member.NameToken);
+                    return new BoundErrorExpression();
+                }
+                if (!CanAccessClassMember(classType, function.IsPublic))
+                {
+                    Report("COPE-CLASS-0009", $"Private associated function '{classType.Name}.{function.MemberName}' is accessible only from code owned by '{classType.Name}'.", member.NameToken);
+                    return new BoundErrorExpression();
+                }
+            }
+            if (function is null)
             {
                 Report("COPE-GENERIC-0004", "Explicit type arguments require a named function.", call.LessToken);
                 return new BoundErrorExpression();
@@ -2684,9 +3149,25 @@ public static class Binder
 
         private BoundExpression BindGenericFunctionReference(GenericFunctionReferenceExpressionSyntax reference)
         {
-            if (reference.Target is not NameExpressionSyntax name
-                || !_scope.TryLookup(name.IdentifierToken.Text, out var symbol)
-                || symbol is not FunctionSymbol function)
+            FunctionSymbol? function = null;
+            if (reference.Target is NameExpressionSyntax name
+                && _scope.TryLookup(name.IdentifierToken.Text, out var symbol)
+                && symbol is FunctionSymbol namedFunction)
+            {
+                function = namedFunction;
+            }
+            else if (reference.Target is MemberAccessExpressionSyntax member
+                && member.Target is NameExpressionSyntax className
+                && _classTypes.TryGetValue(className.IdentifierToken.Text, out var classType))
+            {
+                function = classType.FindAssociatedFunction(member.NameToken.Text);
+                if (function is not null && !CanAccessClassMember(classType, function.IsPublic))
+                {
+                    Report("COPE-CLASS-0009", $"Private associated function '{classType.Name}.{function.MemberName}' is accessible only from code owned by '{classType.Name}'.", member.NameToken);
+                    return new BoundErrorExpression();
+                }
+            }
+            if (function is null)
             {
                 Report("COPE-GENERIC-0004", "Explicit type arguments require an unshadowed named function.", reference.LessToken);
                 return new BoundErrorExpression();
@@ -2735,6 +3216,7 @@ public static class Binder
             if (requirements.Fields.Count == 0) return true;
             IReadOnlyList<(string Name, TypeSymbol Type)> fields = candidate switch
             {
+                ClassTypeSymbol @class => @class.Fields.Where(field => field.IsPublic).Select(field => (field.Name, field.Type)).ToArray(),
                 RecordTypeSymbol record => record.Fields.Select(field => (field.Name, field.Type)).ToArray(),
                 TableRowTypeSymbol row => row.Fields.Select(field => (field.Name, field.Type)).ToArray(),
                 _ => []
@@ -3264,6 +3746,11 @@ public static class Binder
             HashSet<TypeSymbol> reachable,
             HashSet<TypeSymbol> visiting)
         {
+            if (type is ClassTypeSymbol)
+            {
+                Report("COPE-CLASS-0017", $"Classes are invariant boundaries and cannot participate in TSON at '{path}'. Project to an ordinary record DTO first.", anchor);
+                return false;
+            }
             if (type == PrimitiveTypeSymbol.Boolean
                 || type == PrimitiveTypeSymbol.Number
                 || type == PrimitiveTypeSymbol.String)
@@ -3335,6 +3822,14 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
+            if (expectedType is ClassTypeSymbol)
+            {
+                Report(
+                    "COPE-CLASS-0017",
+                    $"'tsonAsset' cannot construct class '{expectedType.Name}'. Use a public associated projection to a record DTO.",
+                    intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
             if (expectedType is not RecordTypeSymbol && expectedType is not EnumTypeSymbol)
             {
                 Report(
@@ -3987,6 +4482,11 @@ public static class Binder
                 Report("COPE-REC-0005", "A record literal requires one expected nominal record type.", literal.OpenBraceToken);
                 return new BoundErrorExpression();
             }
+            if (recordType is ClassTypeSymbol classType && !ReferenceEquals(_currentClass, classType))
+            {
+                Report("COPE-CLASS-0010", $"Class '{classType.Name}' can be constructed only by its primary constructor or associated code.", literal.OpenBraceToken);
+                return new BoundErrorExpression();
+            }
 
             var initializers = new List<BoundRecordFieldInitializer>();
             var seen = new HashSet<RecordFieldId>();
@@ -3995,19 +4495,21 @@ public static class Binder
                 var field = recordType.Fields.FirstOrDefault(candidate => candidate.Name == property.NameToken.Text);
                 if (field is null || property.NameToken.Kind != SyntaxKind.IdentifierToken)
                 {
-                    Report("COPE-REC-0007", $"Record '{recordType.Name}' has no field '{property.NameToken.Text}'.", property.NameToken);
+                    string diagnosticId = recordType is ClassTypeSymbol ? "COPE-CLASS-0007" : "COPE-REC-0007";
+                    string subject = recordType is ClassTypeSymbol ? "Class" : "Record";
+                    Report(diagnosticId, $"{subject} '{recordType.Name}' has no returned field '{property.NameToken.Text}'.", property.NameToken);
                     BindExpression(property.ValueExpression);
                     continue;
                 }
                 if (!seen.Add(field.Id))
                 {
-                    Report("COPE-REC-0008", $"Field '{field.Name}' is initialized more than once.", property.NameToken);
+                    Report(recordType is ClassTypeSymbol ? "COPE-CLASS-0007" : "COPE-REC-0008", $"Field '{field.Name}' is initialized more than once.", property.NameToken);
                 }
 
                 var value = BindExpression(property.ValueExpression, field.Type);
                 if (!IsAssignable(field.Type, value.Type))
                 {
-                    Report("COPE-REC-0009", $"Initializer for '{recordType.Name}.{field.Name}' expected '{field.Type.Name}', got '{value.Type.Name}'.", property.NameToken);
+                    Report(recordType is ClassTypeSymbol ? "COPE-CLASS-0007" : "COPE-REC-0009", $"Initializer for '{recordType.Name}.{field.Name}' expected '{field.Type.Name}', got '{value.Type.Name}'.", property.NameToken);
                 }
                 initializers.Add(new BoundRecordFieldInitializer(field, value));
             }
@@ -4015,7 +4517,8 @@ public static class Binder
             var missing = recordType.Fields.Where(field => !seen.Contains(field.Id)).Select(field => field.Name).ToArray();
             if (missing.Length > 0)
             {
-                Report("COPE-REC-0006", $"Record '{recordType.Name}' is missing fields: {string.Join(", ", missing)}.", literal.OpenBraceToken);
+                string subject = recordType is ClassTypeSymbol ? "Class" : "Record";
+                Report(recordType is ClassTypeSymbol ? "COPE-CLASS-0007" : "COPE-REC-0006", $"{subject} '{recordType.Name}' is missing fields: {string.Join(", ", missing)}.", literal.OpenBraceToken);
             }
             return new BoundRecordConstructionExpression(recordType, initializers);
         }
@@ -4179,6 +4682,27 @@ public static class Binder
 
         private BoundExpression BindMember(MemberAccessExpressionSyntax m)
         {
+            if (m.Target is NameExpressionSyntax className
+                && _classTypes.TryGetValue(className.IdentifierToken.Text, out var classType))
+            {
+                FunctionSymbol? function = classType.FindAssociatedFunction(m.NameToken.Text);
+                if (function is null)
+                {
+                    Report("COPE-CLASS-0006", $"Class '{classType.Name}' has no associated function '{m.NameToken.Text}'.", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                if (!CanAccessClassMember(classType, function.IsPublic))
+                {
+                    Report("COPE-CLASS-0009", $"Private associated function '{classType.Name}.{function.MemberName}' is accessible only from code owned by '{classType.Name}'.", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                if (function.IsGeneric)
+                {
+                    Report("COPE-CALL-0003", $"Generic associated function '{classType.Name}.{function.MemberName}' must be explicitly closed before it can be used as a callable value.", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                return new BoundFunctionReferenceExpression(function);
+            }
             if (m.Target is NameExpressionSyntax n && _enumTypes.TryGetValue(n.IdentifierToken.Text, out var enumType))
             {
                 var @case = enumType.Cases.FirstOrDefault(c => c.Name == m.NameToken.Text);
@@ -4212,7 +4736,18 @@ public static class Binder
                 var field = recordType.Fields.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
                 if (field is null)
                 {
+                    if (recordType is ClassTypeSymbol classReceiver
+                        && classReceiver.FindAssociatedFunction(m.NameToken.Text) is not null)
+                    {
+                        Report("COPE-CLASS-0011", $"Instance call syntax is not supported. Use '{classReceiver.Name}.{m.NameToken.Text}({GuessInstanceArgument(m.Target)})'.", m.NameToken);
+                        return new BoundErrorExpression();
+                    }
                     Report("COPE-REC-0010", $"Record '{recordType.Name}' has no field '{m.NameToken.Text}'.", m.NameToken);
+                    return new BoundErrorExpression();
+                }
+                if (recordType is ClassTypeSymbol owningClass && !field.IsPublic && !CanAccessClassMember(owningClass, false))
+                {
+                    Report("COPE-CLASS-0009", $"Private field '{owningClass.Name}.{field.Name}' is accessible only from code owned by '{owningClass.Name}'.", m.NameToken);
                     return new BoundErrorExpression();
                 }
                 return new BoundRecordFieldAccessExpression(receiver, recordType, field);
@@ -4231,6 +4766,12 @@ public static class Binder
             Report("COPE-REC-0010", $"Field access requires a record receiver, got '{receiver.Type.Name}'.", m.DotToken);
             return new BoundErrorExpression();
         }
+
+        private bool CanAccessClassMember(ClassTypeSymbol owner, bool isPublic)
+            => isPublic || ReferenceEquals(_currentClass, owner);
+
+        private static string GuessInstanceArgument(ExpressionSyntax expression)
+            => expression is NameExpressionSyntax name ? name.IdentifierToken.Text : "value";
 
         private BoundExpression BindIndex(IndexExpressionSyntax index)
         {
@@ -4274,6 +4815,11 @@ public static class Binder
                 Report("COPE-REC-0012", $"A 'with' expression requires a record source, got '{source.Type.Name}'.", withExpression.WithKeyword);
                 return new BoundErrorExpression();
             }
+            if (recordType is ClassTypeSymbol classType && !ReferenceEquals(_currentClass, classType))
+            {
+                Report("COPE-CLASS-0012", $"Class '{classType.Name}' can be updated with 'with' only by its associated code.", withExpression.WithKeyword);
+                return new BoundErrorExpression();
+            }
             if (withExpression.Replacements.Properties.Count == 0)
             {
                 Report("COPE-REC-0013", "A 'with' expression requires at least one replacement.", withExpression.WithKeyword);
@@ -4287,6 +4833,12 @@ public static class Binder
                 if (field is null || property.NameToken.Kind != SyntaxKind.IdentifierToken)
                 {
                     Report("COPE-REC-0007", $"Record '{recordType.Name}' has no field '{property.NameToken.Text}'.", property.NameToken);
+                    BindExpression(property.ValueExpression);
+                    continue;
+                }
+                if (recordType is ClassTypeSymbol owningClass && !field.IsPublic && !CanAccessClassMember(owningClass, false))
+                {
+                    Report("COPE-CLASS-0009", $"Private field '{owningClass.Name}.{field.Name}' is accessible only from code owned by '{owningClass.Name}'.", property.NameToken);
                     BindExpression(property.ValueExpression);
                     continue;
                 }
