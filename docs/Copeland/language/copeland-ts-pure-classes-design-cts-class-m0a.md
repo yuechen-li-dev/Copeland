@@ -1,5 +1,7 @@
 # Copeland TS pure classes design (CTS-CLASS-M0a)
 
+> **Sidecar exclusion:** [CTS-SIDECAR-M0a](copeland-ts-sidecar-interop-design-cts-sidecar-m0a.md) keeps classes off the wire. A class must explicitly project to a public record DTO before transport.
+
 **Status:** accepted semantic authority; implemented and closed by [CTS-CLASS-M1](../architecture/copeland-ts-pure-classes-cts-class-m1.md). This document remains authoritative where closeout wording is less detailed.
 
 ## Executive decision

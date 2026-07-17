@@ -1,5 +1,7 @@
 # Copeland TS callables and explicit capture design (CTS-CALL-M0a)
 
+> **Sidecar exclusion:** [CTS-SIDECAR-M0a](copeland-ts-sidecar-interop-design-cts-sidecar-m0a.md) excludes callables, captures, function references, and environments from wire values. A sidecar boundary transports DTO data only.
+
 **Status:** historical design baseline. The accepted callable feature is implemented and closed by [CTS-CALL-M1](../architecture/copeland-ts-complete-callable-semantics-cts-call-m1.md).
 
 ## Executive decision

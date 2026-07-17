@@ -4,6 +4,9 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 
 ## Current docs
 
+- [CTS-SIDECAR-M0a Runtime-Partition Sidecar Interop Design](language/copeland-ts-sidecar-interop-design-cts-sidecar-m0a.md)
+- [CTS-SIDECAR-M0a Octxiliary and Runtime-Partition Audit](../migrations/cts-sidecar-m0a-octxiliary-and-runtime-partition-audit.md)
+
 - [Copeland TS Language Profile](language/copeland-ts-language-profile.md)
 - [CTS-TYPE-M0a User-Authored Type-System Design](language/copeland-ts-type-system-design-cts-type-m0a.md)
 - [CTS-TYPE-M0a Repository Audit](../migrations/cts-type-m0a-type-system-audit.md)

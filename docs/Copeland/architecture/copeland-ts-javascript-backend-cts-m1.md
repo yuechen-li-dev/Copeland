@@ -1,5 +1,7 @@
 # Copeland TS JavaScript backend (CTS-M1)
 
+> **Future runtime-partition routing:** [CTS-SIDECAR-M0a](../language/copeland-ts-sidecar-interop-design-cts-sidecar-m0a.md) supersedes any implication that current generated JavaScript is a CLR interop ABI. A future JavaScript sidecar guest is a separate runtime partition reached through explicit typed transport.
+
 ## Scope
 
 CTS-M1 adds the first real product backend for the Copeland TS lane. Its graph is intentionally concrete:

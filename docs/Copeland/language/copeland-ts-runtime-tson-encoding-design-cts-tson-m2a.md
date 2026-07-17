@@ -1,5 +1,7 @@
 # Copeland TS runtime canonical TSON encoding design (CTS-TSON-M2a)
 
+> **Sidecar routing:** runtime encoding remains encode-only here. [CTS-SIDECAR-M0a](copeland-ts-sidecar-interop-design-cts-sidecar-m0a.md) requires a future bounded generated schema-directed decoder for transport, not a public runtime `TsonValue` or general authored-document parser.
+
 **Status:** accepted documentation-only architecture milestone. Its decisions are implemented by [CTS-TSON-M2b](../architecture/copeland-ts-runtime-tson-encoding-cts-tson-m2b.md); M2a itself introduced no runtime encoding API.
 
 ## Executive decision
