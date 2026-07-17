@@ -1,6 +1,6 @@
 # Copeland TS callables and explicit capture design (CTS-CALL-M0a)
 
-**Status:** M0a remains the design baseline. Its named/closed-function-value subset is implemented by [CTS-CALL-M0b](../architecture/copeland-ts-callable-reference-foundation-cts-call-m0b.md); capture and anonymous callable design remain future work.
+**Status:** historical design baseline. The accepted callable feature is implemented and closed by [CTS-CALL-M1](../architecture/copeland-ts-complete-callable-semantics-cts-call-m1.md).
 
 ## Executive decision
 

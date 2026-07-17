@@ -31,6 +31,4 @@ All corpus artifacts are UTF-8 without BOM and end in one LF. `main.cope` is 865
 and `main.sym.js` is 1508 bytes
 (`B6AD9D99353FBBA8FCFFD6F546581DA688E4DE49A0FC7AD40AB99AAF43712E1A`).
 
-CTS-CALL-M0b remains open until the two missing rows are discharged. CTS-CALL-M0c remains
-the boundary for authored arrow bodies and noncapturing definitions, while explicit capture
-and environments remain CTS-CALL-M1 work.
+CTS-CALL-M0b is closed as part of [CTS-CALL-M1](cts-call-m1-first-class-callables-and-explicit-capture.md). Its two remaining evidence rows are absorbed by the final callable corpus and backend parity lanes; M0c and M2 are not separate milestones.

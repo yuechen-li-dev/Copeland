@@ -1,6 +1,6 @@
 # CTS-CALL-M0b callable reference foundation
 
-CTS-CALL-M0b introduces first-class references to compiler-owned named functions. It does not introduce callable bodies, arrow syntax, capture, environments, containers, equality, or host interop.
+CTS-CALL-M0b introduced the reference foundation. It is superseded by [CTS-CALL-M1 complete callable semantics](copeland-ts-complete-callable-semantics-cts-call-m1.md), which adds lifted arrows, explicit immutable environments, and callable storage while preserving this direct-call/reference distinction.
 
 ## Source and type law
 
@@ -20,4 +20,4 @@ C# demand-emits one delegate declaration per exact canonical signature and uses 
 
 ## Next boundary
 
-`CTS-CALL-M0c` may add noncapturing arrow expressions, lifted callable definitions, implicit-capture diagnostics, and conditional/match/container flow. `CTS-CALL-M1` owns explicit `capture { ... }` and immutable environments.
+M0b's remaining evidence rows are absorbed by CTS-CALL-M1; no separate M0c or M2 milestone remains.

@@ -1,0 +1,64 @@
+module
+
+enum Choice
+  case Value(operation: (value: number) => number)
+
+enum Failure
+  case Bad
+
+record Box [r1]
+  field operation [r1.f0]: (value: number) => number
+
+func increment(value: number) -> number
+entry:
+  return (value + 1)
+
+func apply(operation: (value: number) => number, value: number) -> number
+entry:
+  return invoke operation(value)
+
+func __cope_arrow_0(base: number, value: number) -> number
+entry:
+  return (base + value)
+
+func makeAdder(base: number) -> (value: number) => number
+entry:
+  return callable-new __cope_arrow_0 env(base) : (value: number) => number
+
+func identity__primitive_number__8F3BAE8FF0D9F338(value: number) -> number
+entry:
+  return value
+
+func __cope_arrow_1(value: number) -> number
+entry:
+  return (value * 2)
+
+func __cope_arrow_2(value: number) -> number
+locals:
+  const adjusted: number
+entry:
+  store adjusted, (value + 1)
+  return (adjusted * 2)
+
+func main() -> number
+locals:
+  const block: (value: number) => number
+  const box: Box
+  const choice: Choice
+  const closed: (value: number) => number
+  const double: (value: number) => number
+  const escaped: (value: number) => number
+  const named: (value: number) => number
+  const result: ((value: number) => number) ! Failure
+  const stored: ((value: number) => number)[]
+entry:
+  store named, function-ref increment : (value: number) => number
+  store closed, function-ref identity__primitive_number__8F3BAE8FF0D9F338 : (value: number) => number
+  store double, function-ref __cope_arrow_1 : (value: number) => number
+  store block, function-ref __cope_arrow_2 : (value: number) => number
+  store escaped, call makeAdder(10)
+  store stored, [named, closed, double, block, escaped]
+  store box, record-new [r1] { [r1.f0]: escaped }
+  store choice, enum Choice.Value(record-get [r1] box.[r1.f0])
+  store result, ok match choice : (value: number) => number { Value(operation: (value: number) => number) => operation }
+  return result-match result : number { ok(operation: (value: number) => number) => call apply(operation, 1) | err(error: Failure) => 0 }

@@ -47,14 +47,14 @@ public static class MirValidator
         {
             foreach (var field in record.Fields)
             {
-                ValidateNoCallableContainer(field.Type, $"record field '{record.Name}.{field.Name}'", diagnostics);
+                ValidateCallableBoundaryType(field.Type, $"record field '{record.Name}.{field.Name}'", diagnostics, allowDirectCallable: true);
             }
         }
         foreach (var @enum in program.Enums)
         {
             foreach (var @case in @enum.Cases)
             {
-                foreach (var payload in @case.PayloadFields) ValidateNoCallableContainer(payload.Type, $"enum payload '{@enum.Name}.{@case.Name}.{payload.Name}'", diagnostics);
+                foreach (var payload in @case.PayloadFields) ValidateCallableBoundaryType(payload.Type, $"enum payload '{@enum.Name}.{@case.Name}.{payload.Name}'", diagnostics, allowDirectCallable: true);
             }
         }
         foreach (var table in program.Tables)
@@ -119,6 +119,40 @@ public static class MirValidator
                 {
                     var expected = new MirCallableType(target.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, parameter.Type)).ToArray(), target.ReturnType);
                     if (!MirTypeFacts.AreEquivalent(reference.CallableType, expected)) diagnostics.Add(new MirValidationDiagnostic($"Callable reference '{reference.FunctionName}' signature does not match the target function."));
+                }
+                return;
+            case MirCallableConstructionExpression construction:
+                ValidateCallableType(construction.CallableType, diagnostics);
+                foreach (MirExpression capture in construction.Captures)
+                {
+                    ValidateCallableExpression(capture, functions, diagnostics);
+                }
+                if (!functions.TryGetValue(construction.CodeFunctionName, out MirFunction? code))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Callable construction targets unknown code function '{construction.CodeFunctionName}'."));
+                }
+                else
+                {
+                    if (construction.Captures.Count > code.Parameters.Count)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Callable construction '{construction.CodeFunctionName}' has more environment values than code parameters."));
+                    }
+                    else
+                    {
+                        var expected = new MirCallableType(code.Parameters.Skip(construction.Captures.Count)
+                            .Select(parameter => new MirCallableParameter(parameter.Name, parameter.Type)).ToArray(), code.ReturnType);
+                        if (!MirTypeFacts.AreEquivalent(construction.CallableType, expected))
+                        {
+                            diagnostics.Add(new MirValidationDiagnostic($"Callable construction '{construction.CodeFunctionName}' signature does not match the code function tail signature."));
+                        }
+                        for (int index = 0; index < construction.Captures.Count; index++)
+                        {
+                            if (!MirTypeFacts.AreEquivalent(construction.Captures[index].Type, code.Parameters[index].Type))
+                            {
+                                diagnostics.Add(new MirValidationDiagnostic($"Callable construction environment value {index + 1} does not match the code function environment slot."));
+                            }
+                        }
+                    }
                 }
                 return;
             case MirInvokeExpression invoke:
@@ -204,13 +238,32 @@ public static class MirValidator
 
     private static void ValidateCallableBoundaryType(MirType type, string context, List<MirValidationDiagnostic> diagnostics, bool allowDirectCallable)
     {
-        if (type is MirCallableType callable)
+        ValidateNestedCallableTypes(type, diagnostics);
+    }
+
+    private static void ValidateNestedCallableTypes(MirType root, List<MirValidationDiagnostic> diagnostics)
+    {
+        var pending = new Stack<MirType>();
+        pending.Push(root);
+        while (pending.Count > 0)
         {
-            if (!allowDirectCallable) diagnostics.Add(new MirValidationDiagnostic($"Callable type is not supported in {context}."));
-            ValidateCallableType(callable, diagnostics);
-            return;
+            MirType type = pending.Pop();
+            switch (type)
+            {
+                case MirCallableType callable:
+                    ValidateCallableType(callable, diagnostics);
+                    foreach (MirCallableParameter parameter in callable.Parameters) pending.Push(parameter.Type);
+                    pending.Push(callable.ReturnType);
+                    break;
+                case MirArrayType array:
+                    pending.Push(array.ElementType);
+                    break;
+                case MirResultType result:
+                    pending.Push(result.SuccessType);
+                    pending.Push(result.ErrorType);
+                    break;
+            }
         }
-        ValidateNoCallableContainer(type, context, diagnostics);
     }
 
     private static void ValidateNoCallableContainer(MirType type, string context, List<MirValidationDiagnostic> diagnostics)

@@ -27,6 +27,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 - [CTS-CALL-M0a Callable and Closure Audit](../migrations/cts-call-m0a-callable-and-closure-audit.md)
 - [CTS-CALL-M0b Callable Reference Foundation](architecture/copeland-ts-callable-reference-foundation-cts-call-m0b.md)
 - [CTS-CALL-M0b Migration Record](../migrations/cts-call-m0b-named-and-closed-function-values.md)
+- [CTS-CALL-M1 Complete Callable Semantics](architecture/copeland-ts-complete-callable-semantics-cts-call-m1.md)
+- [CTS-CALL-M1 Migration Record](../migrations/cts-call-m1-first-class-callables-and-explicit-capture.md)
 - [CTS-TSON-M0a Native Typed Data Design](language/copeland-ts-tson-design-cts-tson-m0a.md)
 - [CTS-TSON-M0a Repository Audit](../migrations/cts-tson-m0a-native-typed-data-audit.md)
 - [CTS-TSON-M0b Shared Parser and Semantic Model](architecture/copeland-ts-tson-shared-parser-and-semantic-model-cts-tson-m0b.md)

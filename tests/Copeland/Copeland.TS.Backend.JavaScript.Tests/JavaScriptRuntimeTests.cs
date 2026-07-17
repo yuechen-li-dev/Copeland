@@ -32,6 +32,95 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_executes_explicit_capture_through_a_private_immutable_environment()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function makeAdder(base: number): (value: number) => number {
+                return capture { base } (value: number) => base + value;
+            }
+            function main(): number { return makeAdder(20)(22); }
+            """);
+
+        Assert.Contains("__cope_callable_capture", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Object.create(null)", emitted.SourceText, StringComparison.Ordinal);
+        string script = emitted.SourceText + "console.log(main());\n";
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal("42\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task Node_explicit_capture_snapshots_a_rebound_let_at_construction_time()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            type Operation = (value: number) => number;
+            function make(): Operation {
+                let base: number = 10;
+                const add = capture { base } (value: number) => base + value;
+                base = 20;
+                return add;
+            }
+            function main(): number { return make()(5); }
+            """);
+
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(main());\n");
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("15\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Diagnostic_and_symbolic_profiles_share_explicit_capture_semantics()
+    {
+        const string source = """
+            type Operation = (value: number) => number;
+            function make(base: number): Operation { return capture { base } (value: number) => base + value; }
+            function main(): number { return make(20)(22); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation diagnostic = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation symbolic = JavaScriptBackend.Emit(
+            compilation.MirCompilation.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
+
+        ProcessResult first = await RunNodeAsync(diagnostic.SourceText + "console.log(main());\n");
+        ProcessResult second = await RunNodeAsync(symbolic.SourceText + "console.log(main());\n");
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal(first.StdOut, second.StdOut);
+        Assert.Equal("42\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(string.Empty, second.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_callable_values_survive_array_record_and_enum_storage()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            type Operation = (value: number) => number;
+            record Box { operation: Operation; }
+            enum Choice { Value(operation: Operation), }
+            function makeAdder(base: number): Operation { return capture { base } (value: number) => base + value; }
+            function main(): number {
+                const values: Operation[] = [makeAdder(1)];
+                const box: Box = { operation: makeAdder(2) };
+                const choice: Choice = Choice.Value(box.operation);
+                return match choice { Value(operation) => operation(40), };
+            }
+            """);
+
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(main());\n");
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("42\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
     public async Task Node_Executes_Foundational_Control_Flow_Repeatedly()
     {
         const string source = """

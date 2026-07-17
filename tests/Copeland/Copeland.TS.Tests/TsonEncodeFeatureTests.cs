@@ -81,6 +81,7 @@ public sealed class TsonEncodeFeatureTests
     [Theory]
     [InlineData("record Bad { value: number ! string; } function bad(value: Bad): string ! TsonEncodeError { return tsonEncode(value); }")]
     [InlineData("record table Values { value: [1]; } record Bad { value: Values.Row; } function bad(value: Bad): string ! TsonEncodeError { return tsonEncode(value); }")]
+    [InlineData("type Operation = (value: number) => number; record Bad { operation: Operation; } function bad(value: Bad): string ! TsonEncodeError { return tsonEncode(value); }")]
     public void Unsupported_reachable_types_are_compile_time_errors(string source)
     {
         CopelandCompilation compilation = Compile(

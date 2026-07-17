@@ -76,8 +76,8 @@ Copeland’s current truth is “safe restricted profile with end-to-end compile
 | Modules/import/export | Project/module boundaries | Planned | CLI/Docs | Namespace/module class lowering | TS-M2c candidate.
 | `async`/`await` | Async functions and await points | Planned | Docs | `Task`/`Task<T>` lowering | TS-M2d candidate.
 | Promise model | `Promise` compatibility shape | Deferred | Docs | Map to `Task` semantics | Do not implement JS event-loop semantics.
-| Arrow functions | Lambda syntax | Deferred | Docs | See CTS-CALL-M0a explicit-capture callable design | Phase after core class/module/generic work.
-| Function values/delegates | First-class callable values | Deferred | Docs | See CTS-CALL-M0a callable algebra and staging | Needs clear variance/capture rules.
+| Arrow functions | Lambda syntax | Supported bounded subset | CTS-CALL-M1 | Explicit capture only; no async/generator/default/rest/destructuring. | See CTS-CALL-M1 complete callable semantics.
+| Function values/delegates | First-class callable values | Supported bounded subset | CTS-CALL-M1 | Exact signatures, immutable environments, no equality/serialization. | See CTS-CALL-M1 complete callable semantics.
 | Typed object construction | Structural-like construction | Planned | Docs | Prefer nominal records/classes | TS-M2f candidate.
 | Record-like data | Immutable data records | Planned | Docs | C# record-style lowering | Coordinate with object model.
 | String literal unions | Narrow union-of-literals | Deferred | Docs | Candidate via enums or constrained unions | Needs design.

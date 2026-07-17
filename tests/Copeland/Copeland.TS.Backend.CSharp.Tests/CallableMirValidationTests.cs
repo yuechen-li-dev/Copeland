@@ -54,8 +54,14 @@ public sealed class CallableMirValidationTests
             Program(new MirInvokeExpression(new MirVariableExpression("operation", numberOperation), [new MirLiteralExpression(1d, number)], boolean)),
             "result type");
         yield return Case(
-            new MirProgram([], [new MirRecordDefinition(new MirRecordTypeId("r1"), "Box", [new MirRecordFieldDefinition(new MirRecordFieldId("r1.f0"), "operation", numberOperation)])], [], [], [new MirFunction("main", [], voidType, [], [])]),
-            "record field");
+            Program(new MirCallableConstructionExpression("missing", [new MirLiteralExpression(1d, number)], numberOperation)),
+            "unknown code function");
+        yield return Case(
+            new MirProgram([], [], [], [], [
+                new MirFunction("code", [new MirParameter("environment", number), new MirParameter("value", number)], number, [], []),
+                new MirFunction("main", [], voidType, [], [new MirExpressionStatement(new MirCallableConstructionExpression("code", [new MirLiteralExpression(true, boolean)], numberOperation))]),
+            ]),
+            "environment value");
         yield return Case(
             new MirProgram([], [], [], [], [increment, new MirFunction("increment", [], voidType, [], [])]),
             "duplicate");

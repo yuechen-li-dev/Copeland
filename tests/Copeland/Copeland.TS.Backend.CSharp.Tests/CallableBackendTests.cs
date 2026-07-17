@@ -31,6 +31,74 @@ public sealed class CallableBackendTests
     }
 
     [Fact]
+    public void Explicit_capture_uses_a_generated_immutable_environment_carrier()
+    {
+        const string source = """
+            function makeAdder(base: number): (value: number) => number {
+                return capture { base } (value: number) => base + value;
+            }
+            function main(): number { return makeAdder(20)(22); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        Assert.Contains("CapturedCallableEnvironment", csharp.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("=> base", csharp.SourceText, StringComparison.Ordinal);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(42d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
+    public void Explicit_capture_snapshots_a_rebound_let_at_construction_time()
+    {
+        const string source = """
+            type Operation = (value: number) => number;
+            function make(): Operation {
+                let base: number = 10;
+                const add = capture { base } (value: number) => base + value;
+                base = 20;
+                return add;
+            }
+            function main(): number { return make()(5); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(15d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
+    public void Callable_values_survive_array_record_and_enum_storage()
+    {
+        const string source = """
+            type Operation = (value: number) => number;
+            record Box { operation: Operation; }
+            enum Choice { Value(operation: Operation), }
+            function makeAdder(base: number): Operation { return capture { base } (value: number) => base + value; }
+            function main(): number {
+                const values: Operation[] = [makeAdder(1)];
+                const box: Box = { operation: makeAdder(2) };
+                const choice: Choice = Choice.Value(box.operation);
+                return match choice { Value(operation) => operation(40), };
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(42d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
     public void Callable_references_emit_delegates_in_csharp_and_provenance_carriers_in_javascript()
     {
         const string source = """

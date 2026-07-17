@@ -210,6 +210,10 @@ public static class MirLowerer
             BoundBinaryExpression b => new MirBinaryExpression(OperatorName(b.OperatorKind), LowerExpression(b.Left), LowerExpression(b.Right), ToMirType(b.Type)),
             BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type)),
             BoundFunctionReferenceExpression reference => new MirFunctionReferenceExpression(reference.Function.Name, (MirCallableType)ToMirType(reference.Type)),
+            BoundCallableConstructionExpression construction => new MirCallableConstructionExpression(
+                construction.Code.Name,
+                construction.Captures.Select(LowerExpression).ToArray(),
+                (MirCallableType)ToMirType(construction.CallableType)),
             BoundInvokeExpression invoke => new MirInvokeExpression(LowerExpression(invoke.Callee), invoke.Arguments.Select(LowerExpression).ToArray(), ToMirType(invoke.Type)),
             BoundEnumValueExpression e => new MirEnumValueExpression(e.Case.EnumType.Name, e.Case.Name, e.Arguments.Select(LowerExpression).ToArray(), ToMirType(e.Type)),
             BoundMatchExpression m => new MirMatchExpression(LowerExpression(m.Scrutinee), m.Arms.Select(arm => new MirMatchArm(arm.Case.Name, arm.PayloadVariables.Select(v => new MirMatchPayloadBinding(v.Name, ToMirType(v.Type))).ToArray(), LowerExpression(arm.Expression))).ToArray(), ToMirType(m.Type)),

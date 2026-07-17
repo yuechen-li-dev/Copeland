@@ -339,6 +339,7 @@ public sealed record MirUnaryExpression(string Operator, MirExpression Operand, 
 public sealed record MirBinaryExpression(string Operator, MirExpression Left, MirExpression Right, MirType Type) : MirExpression(Type);
 public sealed record MirCallExpression(string FunctionName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirFunctionReferenceExpression(string FunctionName, MirCallableType CallableType) : MirExpression(CallableType);
+public sealed record MirCallableConstructionExpression(string CodeFunctionName, IReadOnlyList<MirExpression> Captures, MirCallableType CallableType) : MirExpression(CallableType);
 public sealed record MirInvokeExpression(MirExpression Callee, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirArrayExpression(IReadOnlyList<MirExpression> Elements, MirType Type) : MirExpression(Type);
 public sealed class MirRecordFieldValue(MirRecordFieldId fieldId, MirExpression value)

@@ -54,6 +54,7 @@ public static class CSharpBackend
         foreach (var mirEnum in program.Enums) EmitEnum(writer, mirEnum);
         if (program.Enums.Count > 0) writer.WriteLine();
         EmitCallableDelegates(writer, program);
+        EmitCapturedCallableEnvironments(writer, program);
         if (program.Tables.Count > 0)
         {
             EmitColumnSupport(writer);
@@ -137,6 +138,53 @@ public static class CSharpBackend
             writer.WriteLine($"public delegate {MapValueStorageType(callable.ReturnType)} {CallableDelegateName(callable)}({parameters});");
         }
         if (callables.Length > 0) writer.WriteLine();
+    }
+
+    private static void EmitCapturedCallableEnvironments(CSharpTextWriter writer, MirProgram program)
+    {
+        var functions = program.Functions.ToDictionary(function => function.Name, StringComparer.Ordinal);
+        var constructions = EnumerateCallableConstructions(program)
+            .Where(construction => construction.Captures.Count > 0)
+            .GroupBy(construction => construction.CodeFunctionName, StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.Ordinal);
+
+        foreach (var group in constructions)
+        {
+            MirCallableConstructionExpression construction = group.First();
+            if (!functions.TryGetValue(construction.CodeFunctionName, out MirFunction? code))
+            {
+                continue;
+            }
+
+            string environmentName = CapturedCallableEnvironmentName(code.Name);
+            writer.WriteLine($"internal sealed class {environmentName}");
+            writer.WriteLine("{");
+            writer.Indent();
+            for (int index = 0; index < construction.Captures.Count; index++)
+            {
+                writer.WriteLine($"private readonly {MapValueStorageType(code.Parameters[index].Type)} _capture{index};");
+            }
+            writer.WriteLine();
+            string constructorParameters = string.Join(", ", construction.Captures.Select((capture, index) => $"{MapValueStorageType(capture.Type)} capture{index}"));
+            writer.WriteLine($"internal {environmentName}({constructorParameters})");
+            writer.WriteLine("{");
+            writer.Indent();
+            for (int index = 0; index < construction.Captures.Count; index++)
+            {
+                writer.WriteLine($"_capture{index} = capture{index};");
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine();
+            string invokeParameters = string.Join(", ", code.Parameters.Skip(construction.Captures.Count)
+                .Select((parameter, index) => $"{MapValueStorageType(parameter.Type)} value{index}"));
+            string arguments = string.Join(", ", Enumerable.Range(0, construction.Captures.Count).Select(index => $"_capture{index}")
+                .Concat(Enumerable.Range(0, code.Parameters.Count - construction.Captures.Count).Select(index => $"value{index}")));
+            writer.WriteLine($"internal {MapValueStorageType(code.ReturnType)} Invoke({invokeParameters}) => CopelandModule.{CSharpNameMangler.Mangle(code.Name)}({arguments});");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine();
+        }
     }
 
     private static void EmitResult(CSharpTextWriter writer)
@@ -594,6 +642,7 @@ public static class CSharpBackend
             MirBinaryExpression binary => EmitBinary(writer, binary, function, enumNames, ref tempIndex, diagnostics),
             MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", EmitArguments(call.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirFunctionReferenceExpression reference => $"({MapType(reference.CallableType)}){CSharpNameMangler.Mangle(reference.FunctionName)}",
+            MirCallableConstructionExpression construction => EmitCallableConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
             MirInvokeExpression invoke => $"{ParenthesizeAssignmentOperand(invoke.Callee, EmitExpression(writer, invoke.Callee, function, enumNames, ref tempIndex, diagnostics))}({string.Join(", ", EmitArguments(invoke.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirArrayExpression array => $"new {MapType(array.Type)} {{ {string.Join(", ", EmitArguments(array.Elements, writer, function, enumNames, ref tempIndex, diagnostics))} }}",
             MirRecordConstructionExpression construction => EmitRecordConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
@@ -616,6 +665,95 @@ public static class CSharpBackend
             MirTryExpression tryExpression => EmitTryExcept(writer, tryExpression, function, enumNames, ref tempIndex, diagnostics),
             _ => UnsupportedExpression(expression, diagnostics)
         };
+
+    private static string EmitCallableConstruction(
+        CSharpTextWriter writer,
+        MirCallableConstructionExpression construction,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        string environmentName = CapturedCallableEnvironmentName(construction.CodeFunctionName);
+        string captures = string.Join(", ", EmitArguments(construction.Captures, writer, function, enumNames, ref tempIndex, diagnostics));
+        return $"({MapType(construction.CallableType)})new {environmentName}({captures}).Invoke";
+    }
+
+    private static string CapturedCallableEnvironmentName(string codeFunctionName)
+        => "__CopeCapturedCallableEnvironment_" + CSharpNameMangler.Mangle(codeFunctionName);
+
+    private static IEnumerable<MirCallableConstructionExpression> EnumerateCallableConstructions(MirProgram program)
+    {
+        foreach (MirFunction function in program.Functions)
+        {
+            foreach (MirStatement statement in function.Body)
+            {
+                foreach (MirCallableConstructionExpression construction in EnumerateCallableConstructions(statement))
+                {
+                    yield return construction;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<MirCallableConstructionExpression> EnumerateCallableConstructions(MirStatement statement)
+    {
+        switch (statement)
+        {
+            case MirVariableDeclarationStatement declaration:
+                return EnumerateCallableConstructions(declaration.Initializer);
+            case MirExpressionStatement expression:
+                return EnumerateCallableConstructions(expression.Expression);
+            case MirReturnStatement { Expression: not null } returned:
+                return EnumerateCallableConstructions(returned.Expression);
+            case MirIfStatement conditional:
+                return EnumerateCallableConstructions(conditional.Condition)
+                    .Concat(conditional.ThenStatements.SelectMany(EnumerateCallableConstructions))
+                    .Concat(conditional.ElseStatements?.SelectMany(EnumerateCallableConstructions) ?? []);
+            case MirWhileStatement loop:
+                return EnumerateCallableConstructions(loop.Condition).Concat(loop.BodyStatements.SelectMany(EnumerateCallableConstructions));
+            case MirForStatement loop:
+                return (loop.Initializer is null ? [] : EnumerateCallableConstructions(loop.Initializer))
+                    .Concat(loop.Condition is null ? [] : EnumerateCallableConstructions(loop.Condition))
+                    .Concat(loop.Increment is null ? [] : EnumerateCallableConstructions(loop.Increment))
+                    .Concat(loop.BodyStatements.SelectMany(EnumerateCallableConstructions));
+            default:
+                return [];
+        }
+    }
+
+    private static IEnumerable<MirCallableConstructionExpression> EnumerateCallableConstructions(MirExpression expression)
+    {
+        IEnumerable<MirCallableConstructionExpression> Children(IEnumerable<MirExpression> expressions)
+            => expressions.SelectMany(EnumerateCallableConstructions);
+
+        return expression switch
+        {
+            MirCallableConstructionExpression construction => [construction, .. Children(construction.Captures)],
+            MirInvokeExpression invoke => Children([invoke.Callee, .. invoke.Arguments]),
+            MirAssignmentExpression assignment => EnumerateCallableConstructions(assignment.Expression),
+            MirUnaryExpression unary => EnumerateCallableConstructions(unary.Operand),
+            MirBinaryExpression binary => Children([binary.Left, binary.Right]),
+            MirCallExpression call => Children(call.Arguments),
+            MirArrayExpression array => Children(array.Elements),
+            MirRecordConstructionExpression record => Children(record.Initializers.Select(initializer => initializer.Value)),
+            MirRecordFieldAccessExpression access => EnumerateCallableConstructions(access.Receiver),
+            MirRecordWithExpression update => Children([update.Source, .. update.Replacements.Select(replacement => replacement.Value)]),
+            MirEnumValueExpression value => Children(value.Arguments),
+            MirMatchExpression match => Children([match.Scrutinee, .. match.Arms.Select(arm => arm.Expression)]),
+            MirResultMatchExpression match => Children([match.Scrutinee, match.OkExpression, match.ErrExpression]),
+            MirIfExpression conditional => Children([conditional.Condition, conditional.ThenExpression, conditional.ElseExpression]),
+            MirOkExpression ok => EnumerateCallableConstructions(ok.Payload),
+            MirErrExpression err => EnumerateCallableConstructions(err.Payload),
+            MirPropagateExpression propagate => EnumerateCallableConstructions(propagate.Operand),
+            MirUnwrapExpression unwrap => EnumerateCallableConstructions(unwrap.Operand),
+            MirTryExpression attempt => attempt.Protected.PrefixStatements.SelectMany(EnumerateCallableConstructions)
+                .Concat(EnumerateCallableConstructions(attempt.Protected.ValueExpression))
+                .Concat(attempt.Handler.PrefixStatements.SelectMany(EnumerateCallableConstructions))
+                .Concat(EnumerateCallableConstructions(attempt.Handler.ValueExpression)),
+            _ => [],
+        };
+    }
 
     private static string EmitBinary(
         CSharpTextWriter writer,

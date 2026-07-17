@@ -166,6 +166,7 @@ public static class MirTextWriter
         MirUnitExpression => "unit",
         MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
         MirFunctionReferenceExpression reference => $"function-ref {reference.FunctionName} : {reference.CallableType.Name}",
+        MirCallableConstructionExpression construction => $"callable-new {construction.CodeFunctionName} env({string.Join(", ", construction.Captures.Select(FormatExpression))}) : {construction.CallableType.Name}",
         MirInvokeExpression invoke => $"invoke {FormatExpression(invoke.Callee)}({string.Join(", ", invoke.Arguments.Select(FormatExpression))})",
         MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
         MirRecordConstructionExpression construction => $"record-new [{construction.RecordTypeId}] {{ {string.Join(", ", construction.Initializers.Select(FormatRecordFieldValue))} }}",

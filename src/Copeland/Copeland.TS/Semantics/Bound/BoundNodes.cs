@@ -136,6 +136,20 @@ public sealed class BoundUnaryExpression : BoundExpression { public BoundUnaryEx
 public sealed class BoundBinaryExpression : BoundExpression { public BoundBinaryExpression(BoundExpression left, SyntaxKind op, BoundExpression right, TypeSymbol type) { Left = left; OperatorKind = op; Right = right; TypeImpl = type; } public BoundExpression Left { get; } public SyntaxKind OperatorKind { get; } public BoundExpression Right { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundCallExpression : BoundExpression { public BoundCallExpression(FunctionSymbol function, IReadOnlyList<BoundExpression> arguments) { Function = function; Arguments = arguments; } public FunctionSymbol Function { get; } public IReadOnlyList<BoundExpression> Arguments { get; } public override TypeSymbol Type => Function.ReturnType; }
 public sealed class BoundFunctionReferenceExpression : BoundExpression { public BoundFunctionReferenceExpression(FunctionSymbol function) { Function = function; } public FunctionSymbol Function { get; } public override TypeSymbol Type => Function.CallableType; }
+public sealed class BoundCallableConstructionExpression : BoundExpression
+{
+    public BoundCallableConstructionExpression(FunctionSymbol code, IReadOnlyList<BoundExpression> captures, CallableTypeSymbol callableType)
+    {
+        Code = code;
+        Captures = captures;
+        CallableType = callableType;
+    }
+
+    public FunctionSymbol Code { get; }
+    public IReadOnlyList<BoundExpression> Captures { get; }
+    public CallableTypeSymbol CallableType { get; }
+    public override TypeSymbol Type => CallableType;
+}
 public sealed class BoundInvokeExpression : BoundExpression { public BoundInvokeExpression(BoundExpression callee, IReadOnlyList<BoundExpression> arguments, CallableTypeSymbol callableType) { Callee = callee; Arguments = arguments; CallableType = callableType; } public BoundExpression Callee { get; } public IReadOnlyList<BoundExpression> Arguments { get; } public CallableTypeSymbol CallableType { get; } public override TypeSymbol Type => CallableType.ReturnType; }
 public sealed class BoundEnumValueExpression : BoundExpression
 {

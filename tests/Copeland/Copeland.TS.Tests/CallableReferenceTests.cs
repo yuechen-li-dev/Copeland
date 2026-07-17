@@ -44,6 +44,21 @@ public sealed class CallableReferenceTests
     }
 
     [Fact]
+    public void Explicit_capture_lowers_to_a_callable_construction_with_environment_values()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            function makeAdder(base: number): (value: number) => number {
+                return capture { base } (value: number) => base + value;
+            }
+            function main(): number { return makeAdder(20)(22); }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("callable-new __cope_arrow_0 env(base)", compilation.MirText, StringComparison.Ordinal);
+        Assert.Contains("func __cope_arrow_0(base: number, value: number)", compilation.MirText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Named_and_closed_generic_function_values_lower_to_distinct_reference_and_invoke_nodes()
     {
         const string source = """
@@ -75,13 +90,60 @@ public sealed class CallableReferenceTests
     [InlineData("function id<T>(value: T): T { return value; } function main(): number { const value = id; return 0; }", "COPE-CALL-0003")]
     [InlineData("function f(value: number): number { return value; } function main(): number { const value: number = 1; return value(1); }", "COPE-CALL-0004")]
     [InlineData("function f(value: number): number { return value; } function main(): boolean { const value = f; return value == f; }", "COPE-CALL-0008")]
-    [InlineData("record Box { operation: (value: number) => number; }", "COPE-CALL-0007")]
-    [InlineData("function f(value: number): number { return value; } function main(): number { const values: ((value: number) => number)[] = [f]; return 0; }", "COPE-CALL-0007")]
     public void Unsupported_callable_uses_have_focused_diagnostics(string source, string diagnosticId)
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
 
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == diagnosticId && diagnostic.Length > 0);
+    }
+
+    [Fact]
+    public void Callable_values_flow_through_arrays_records_and_enum_payloads()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            type Operation = (value: number) => number;
+            record Box { operation: Operation; }
+            enum Choice { Value(operation: Operation), }
+            function increment(value: number): number { return value + 1; }
+            function main(): number {
+                const values: Operation[] = [increment];
+                const box: Box = { operation: increment };
+                const choice: Choice = Choice.Value(box.operation);
+                return match choice { Value(operation) => operation(41), };
+            }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+    }
+
+    [Fact]
+    public void Nested_explicit_capture_and_exact_interface_field_requirements_bind_once()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            type Operation = (value: number) => number;
+            interface HasOperation { operation: Operation; }
+            record Box { operation: Operation; }
+
+            function select<T extends HasOperation>(value: T): Operation {
+                return value.operation;
+            }
+
+            function make(base: number): (first: number) => (second: number) => number {
+                return capture { base } (first: number): (second: number) => number => {
+                    const total = base + first;
+                    return capture { total } (second: number) => total + second;
+                };
+            }
+
+            function main(): number {
+                const box: Box = { operation: make(10)(20) };
+                return select<Box>(box)(12);
+            }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        string mirText = Assert.IsType<string>(compilation.MirText);
+        Assert.Equal(2, mirText.Split("callable-new", StringSplitOptions.None).Length - 1);
     }
 
     [Fact]

@@ -11,6 +11,26 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CallableCorpusTests
 {
     [Fact]
+    public void Complete_callable_corpus_is_byte_stable_in_all_emission_profiles()
+    {
+        string directory = Path.Combine(FindRepoRoot(), "tests", "Copeland", "Copeland.TS.Tests", "TestData", "Corpus", "cts-call-m1");
+        string source = File.ReadAllText(Path.Combine(directory, "main.ts"));
+        var mir = MirLowerer.Lower(SyntaxTree.Parse(source));
+
+        Assert.Empty(mir.Diagnostics);
+        Assert.NotNull(mir.Program);
+        Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.cope"))), NormalizeNewlines(MirTextWriter.Write(mir.Program!)));
+        Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.g.cs"))), NormalizeNewlines(CSharpBackend.Emit(mir.Program).SourceText!));
+        Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.g.js"))), NormalizeNewlines(JavaScriptBackend.Emit(mir.Program).SourceText!));
+        Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.sym.js"))), NormalizeNewlines(JavaScriptBackend.Emit(mir.Program, new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic }).SourceText!));
+
+        AssertArtifact(directory, "main.cope", 2120, "832B6A103421844A98F654EA1407A27D79445E653772B507D698D2A94ED1EC67");
+        AssertArtifact(directory, "main.g.cs", 5062, "0C1FB55CFCC47E9E05BE677C53E38D9FA3C61AF3A32C3411E5C44E4C7326BA2A");
+        AssertArtifact(directory, "main.g.js", 9029, "9A750ED79A41E25D2CAFBA1C0D43AB1EEE227F797A1BD11733347D684EB1A775");
+        AssertArtifact(directory, "main.sym.js", 7560, "6D74561BEBBE54641B81E1626B6CEF6B558F14C5EC3F08E2AA46A993B15A3C6C");
+    }
+
+    [Fact]
     public void Callable_reference_corpus_is_byte_stable_in_all_emission_profiles()
     {
         string directory = Path.Combine(FindRepoRoot(), "tests", "Copeland", "Copeland.TS.Tests", "TestData", "Corpus", "cts-call-m0b");

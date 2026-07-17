@@ -70,6 +70,7 @@ public static class Binder
         private const int MaxCallableTypeDepth = 16;
         private const int MaxCallableExpressionNesting = 16;
         private const int MaxLiftedCallableDefinitions = 512;
+        private const int MaxCaptureCount = 16;
 
         private int _loopDepth;
         private readonly SyntaxTree _tree = tree;
@@ -282,10 +283,6 @@ public static class Binder
                     if (type is TypeParameterTypeSymbol || type == PrimitiveTypeSymbol.Void)
                     {
                         Report("COPE-INTERFACE-0004", $"Interface field '{field.Identifier.Text}' has an illegal type '{type.Name}'.", field.Identifier);
-                    }
-                    if (ContainsCallable(type))
-                    {
-                        Report("COPE-CALL-0007", "Callable types are not supported in interface fields.", field.Identifier);
                     }
                     @interface.AddField(new RequirementFieldSymbol(field.Identifier.Text, type, @interface.Fields.Count));
                     _totalInterfaceFieldCount++;
@@ -1921,7 +1918,12 @@ public static class Binder
 
         private BoundExpression BindCapture(CaptureExpressionSyntax capture, TypeSymbol? contextualType)
         {
+            if (capture.Identifiers.Count > MaxCaptureCount)
+            {
+                Report("COPE-CALL-0020", $"Callable captures support at most {MaxCaptureCount} bindings.", capture.Identifiers[MaxCaptureCount]);
+            }
             var names = new HashSet<string>(StringComparer.Ordinal);
+            var captures = new List<BoundExpression>();
             foreach (var identifier in capture.Identifiers)
             {
                 if (!names.Add(identifier.Text))
@@ -1933,23 +1935,16 @@ public static class Binder
                 if (!_scope.TryLookup(identifier.Text, out var symbol) || symbol is not VariableSymbol and not ParameterSymbol)
                 {
                     Report("COPE-CALL-0013", $"Capture '{identifier.Text}' must name an outer lexical runtime binding.", identifier);
+                    continue;
                 }
+
+                captures.Add(BindName(new NameExpressionSyntax(identifier)));
             }
 
-            // The lifted code path below deliberately has no lexical parent.  Captures are
-            // therefore diagnosed here until their immutable environment slots are present.
-            // This prevents the old JavaScript/C# host closure behavior from becoming an
-            // accidental language semantic while the source parser is being extended.
-            if (capture.Identifiers.Count > 0)
-            {
-                Report("COPE-CALL-0014", "Explicit capture requires the CTS-CALL immutable environment lowering path.", capture.CaptureKeyword);
-                return new BoundErrorExpression();
-            }
-
-            return BindArrow(capture.Arrow, contextualType, []);
+            return BindArrow(capture.Arrow, contextualType, captures);
         }
 
-        private BoundExpression BindArrow(ArrowExpressionSyntax arrow, TypeSymbol? contextualType, IReadOnlyList<VariableSymbol> captures)
+        private BoundExpression BindArrow(ArrowExpressionSyntax arrow, TypeSymbol? contextualType, IReadOnlyList<BoundExpression> captures)
         {
             if (++_callableExpressionDepth > MaxCallableExpressionNesting)
             {
@@ -2018,12 +2013,15 @@ public static class Binder
                 }
 
                 string name = "__cope_arrow_" + _nextLiftedCallableId++.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                var bindingFunction = new FunctionSymbol(name, parameters, returnType, stableIdentity: "callable-arrow:" + name);
+                var captureParameters = captures.Select((capture, index) =>
+                    new ParameterSymbol(GetCaptureName(capture, index), capture.Type, isCaptured: true)).ToArray();
+                var codeParameters = captureParameters.Concat(parameters).ToArray();
+                var bindingFunction = new FunctionSymbol(name, codeParameters, returnType, stableIdentity: "callable-arrow:" + name);
                 var previousScope = _scope;
                 var previousFunction = _currentFunction;
                 _scope = new Scope(_global);
                 _currentFunction = bindingFunction;
-                foreach (ParameterSymbol parameter in parameters)
+                foreach (ParameterSymbol parameter in codeParameters)
                 {
                     if (!_scope.TryDeclare(parameter)) Report("COPE-BIND-0005", $"Duplicate parameter '{parameter.Name}'.", arrow.ArrowToken);
                 }
@@ -2034,14 +2032,14 @@ public static class Binder
                 {
                     if (arrow.ExpressionBody is not null)
                     {
-                        ReportImplicitArrowCaptures(arrow.ExpressionBody, previousScope, parameters);
+                        ReportImplicitArrowCaptures(arrow.ExpressionBody, previousScope, parameters, captureParameters.Select(parameter => parameter.Name).ToArray());
                         BoundExpression expression = BindExpression(arrow.ExpressionBody, returnType == PrimitiveTypeSymbol.Error ? null : returnType);
                         if (returnType == PrimitiveTypeSymbol.Error) returnType = expression.Type;
                         body = new BoundBlockStatement([new BoundReturnStatement(expression)]);
                     }
                     else
                     {
-                        ReportImplicitArrowCaptures(arrow.BlockBody!, previousScope, parameters);
+                        ReportImplicitArrowCaptures(arrow.BlockBody!, previousScope, parameters, captureParameters.Select(parameter => parameter.Name).ToArray());
                         body = (BoundBlockStatement)BindStatement(arrow.BlockBody!);
                     }
                 }
@@ -2056,9 +2054,14 @@ public static class Binder
                 {
                     ReportTypeMismatch("COPE-CALL-0006", expectedCallable.ReturnType, returnType, arrow.ArrowToken);
                 }
-                var function = new FunctionSymbol(name, parameters, returnType, stableIdentity: "callable-arrow:" + name);
+                var function = new FunctionSymbol(name, codeParameters, returnType, stableIdentity: "callable-arrow:" + name);
                 _functions.Add(new BoundFunctionDeclaration(function, body));
-                return new BoundFunctionReferenceExpression(function);
+                var callableType = new CallableTypeSymbol(
+                    parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, parameter.Type)).ToArray(),
+                    returnType);
+                return captures.Count == 0
+                    ? new BoundFunctionReferenceExpression(function)
+                    : new BoundCallableConstructionExpression(function, captures, callableType);
             }
             finally
             {
@@ -2066,9 +2069,11 @@ public static class Binder
             }
         }
 
-        private void ReportImplicitArrowCaptures(SyntaxNode body, Scope outerScope, IReadOnlyList<ParameterSymbol> parameters)
+        private void ReportImplicitArrowCaptures(SyntaxNode body, Scope outerScope, IReadOnlyList<ParameterSymbol> parameters, IReadOnlyList<string> captureIdentifiers)
         {
-            var parameterNames = parameters.Select(parameter => parameter.Name).ToHashSet(StringComparer.Ordinal);
+            var parameterNames = parameters.Select(parameter => parameter.Name)
+                .Concat(captureIdentifiers)
+                .ToHashSet(StringComparer.Ordinal);
             var visited = new HashSet<string>(StringComparer.Ordinal);
             var work = new Stack<object>();
             work.Push(body);
@@ -2090,6 +2095,11 @@ public static class Binder
                 }
             }
         }
+
+        private static string GetCaptureName(BoundExpression capture, int index)
+            => capture is BoundVariableExpression variable
+                ? variable.Variable.Name
+                : "__capture_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         private BoundExpression ReportOpenGenericFunctionValue(NameExpressionSyntax name)
         {
@@ -2219,6 +2229,12 @@ public static class Binder
                 Report("COPE-BIND-0001", $"Undefined name '{n.IdentifierToken.Text}'.", n.IdentifierToken);
                 return new BoundErrorExpression();
             }
+            if (symbol is ParameterSymbol { IsCaptured: true })
+            {
+                Report("COPE-CALL-0018", $"Captured binding '{n.IdentifierToken.Text}' is immutable inside the callable.", n.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
             var variable = symbol as VariableSymbol ?? (symbol is ParameterSymbol p ? new VariableSymbol(p.Name, p.Type, true) : null);
             if (variable is null) { Report("COPE-BIND-0007", "Invalid assignment target.", n.IdentifierToken); return new BoundErrorExpression(); }
             if (variable.Type is TableTypeSymbol && variable.IsReadOnly)
@@ -3053,6 +3069,10 @@ public static class Binder
                 BoundBinaryExpression binary => new BoundBinaryExpression(RewriteExpression(binary.Left), binary.OperatorKind, RewriteExpression(binary.Right), SubstituteType(binary.Type, substitutions)),
                 BoundCallExpression call => new BoundCallExpression(call.Function, call.Arguments.Select(RewriteExpression).ToArray()),
                 BoundFunctionReferenceExpression reference => new BoundFunctionReferenceExpression(reference.Function),
+                BoundCallableConstructionExpression construction => new BoundCallableConstructionExpression(
+                    construction.Code,
+                    construction.Captures.Select(RewriteExpression).ToArray(),
+                    (CallableTypeSymbol)SubstituteType(construction.CallableType, substitutions)),
                 BoundInvokeExpression invoke => new BoundInvokeExpression(RewriteExpression(invoke.Callee), invoke.Arguments.Select(RewriteExpression).ToArray(), (CallableTypeSymbol)SubstituteType(invoke.CallableType, substitutions)),
                 BoundEnumValueExpression value => new BoundEnumValueExpression(value.Case, value.Arguments.Select(RewriteExpression).ToArray()),
                 BoundPropagateExpression propagate => new BoundPropagateExpression(RewriteExpression(propagate.Operand), (ResultTypeSymbol)SubstituteType(propagate.ResultType, substitutions), propagate.Target),
@@ -4539,18 +4559,6 @@ public static class Binder
 
         private void ValidateRuntimeValueType(TypeSymbol type, SyntaxToken anchor, string position)
         {
-            if (type is CallableTypeSymbol)
-            {
-                if (position is "record field" or "enum payload")
-                {
-                    Report("COPE-CALL-0007", $"Callable types are not supported in {position}s.", anchor);
-                }
-                return;
-            }
-            if (ContainsCallable(type))
-            {
-                Report("COPE-CALL-0007", $"Callable types are not supported inside {position} containers.", anchor);
-            }
             if (!IsLegalTypeForPosition(type, allowDirectVoid: false))
             {
                 Report(
@@ -4562,10 +4570,6 @@ public static class Binder
 
         private void ValidateFunctionReturnType(TypeSymbol type, SyntaxToken anchor)
         {
-            if (type is not CallableTypeSymbol && ContainsCallable(type))
-            {
-                Report("COPE-CALL-0007", "Callable types cannot be stored inside a function return container.", anchor);
-            }
             if (!IsLegalTypeForPosition(type, allowDirectVoid: true))
             {
                 Report(
