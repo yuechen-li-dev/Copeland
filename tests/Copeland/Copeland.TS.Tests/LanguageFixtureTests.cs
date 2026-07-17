@@ -38,6 +38,7 @@ public sealed class LanguageFixtureTests
             diagnostic.Id.StartsWith("COPE-UNION", StringComparison.Ordinal)
             || diagnostic.Id.StartsWith("COPE-MATCH", StringComparison.Ordinal)
             || diagnostic.Id.StartsWith("COPE-TRY", StringComparison.Ordinal)
+            || diagnostic.Id.StartsWith("COPE-CALL", StringComparison.Ordinal)
             || diagnostic.Id is "COPE-ALIAS-0001" or "COPE-ALIAS-0002");
         if (!hasFamilyOwnedSyntaxDiagnostic)
         {

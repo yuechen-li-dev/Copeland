@@ -10,6 +10,28 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_executes_lifted_noncapturing_arrows_with_the_callable_carrier()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            type Operation = (value: number) => number;
+            function main(): number {
+                const double = (value: number) => value * 2;
+                const increment: Operation = value => value + 1;
+                return increment(double(20));
+            }
+            """);
+
+        string script = emitted.SourceText + "console.log(main());\n";
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal("41\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public async Task Node_Executes_Foundational_Control_Flow_Repeatedly()
     {
         const string source = """
@@ -68,6 +90,53 @@ public sealed class JavaScriptRuntimeTests
 
         Assert.Equal(0, first.ExitCode);
         Assert.Equal("5\nrejected\n", first.StdOut);
+        Assert.Equal(string.Empty, first.StdErr);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task Node_rejects_callable_carrier_counterfeits_and_preserves_private_provenance()
+    {
+        const string source = """
+            type Operation = (value: number) => number;
+            function increment(value: number): number { return value + 1; }
+            function main(): number { const operation: Operation = increment; return operation(4); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+
+        string script = emitted.SourceText + """
+            const signature = "(named:number)->named:number";
+            const carrier = __cope_callable_ref(signature, increment);
+            function category(value, requestedSignature) {
+              try { __cope_callable_invoke(value, requestedSignature, [1]); return "accepted"; }
+              catch (error) { return "rejected"; }
+            }
+            const copied = Object.create(null);
+            for (const symbol of Object.getOwnPropertySymbols(carrier)) { copied[symbol] = carrier[symbol]; }
+            Object.freeze(copied);
+            let mutation = "accepted";
+            try { carrier.extra = 1; delete carrier.extra; } catch (error) { mutation = "rejected"; }
+            console.log(main());
+            console.log(Object.getPrototypeOf(carrier) === null);
+            console.log(Object.isFrozen(carrier));
+            console.log(Object.getOwnPropertyNames(carrier).length === 0 && Object.getOwnPropertySymbols(carrier).length === 0);
+            console.log(category(function () { return 1; }, signature));
+            console.log(category({}, signature));
+            console.log(category(Object.freeze(Object.create(null)), signature));
+            console.log(category(copied, signature));
+            console.log(category(carrier, "()->named:number"));
+            console.log(mutation);
+            console.log(category(carrier, signature));
+            """;
+
+        ProcessResult first = await RunNodeAsync(script);
+        ProcessResult second = await RunNodeAsync(script);
+
+        Assert.Equal("5\ntrue\ntrue\ntrue\nrejected\nrejected\nrejected\nrejected\nrejected\nrejected\naccepted\n", first.StdOut);
         Assert.Equal(string.Empty, first.StdErr);
         Assert.Equal(first, second);
     }

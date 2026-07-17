@@ -277,7 +277,7 @@ Require-Condition ($null -eq $forbiddenAbstractions) "A forbidden universal comp
 
 $copeFixtures = Get-ChildItem -LiteralPath (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TestData/Corpus") -Recurse -Filter *.cope -File
 foreach ($fixture in $copeFixtures) {
-    Require-Condition ($fixture.Directory.Name -match 'mir|cts-union-m0b') ".cope fixture is not owned by a MIR corpus case: $($fixture.FullName)"
+    Require-Condition ($fixture.Directory.Name -match 'mir|cts-union-m0b|cts-call-m0b') ".cope fixture is not owned by a MIR corpus case: $($fixture.FullName)"
 }
 
 $javaScriptFixtureRoot = Join-Path $root "tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/TestData/Corpus"
@@ -300,6 +300,9 @@ $misownedJavaScriptArtifacts = Get-ChildItem -LiteralPath (Join-Path $root "test
             [System.StringComparison]::OrdinalIgnoreCase) -and
         -not $_.FullName.StartsWith(
             (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TestData/Corpus/cts-union-m0b"),
+            [System.StringComparison]::OrdinalIgnoreCase) -and
+        -not $_.FullName.StartsWith(
+            (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TestData/Corpus/cts-call-m0b"),
             [System.StringComparison]::OrdinalIgnoreCase)
     }
 Require-Condition ($misownedJavaScriptArtifacts.Count -eq 0) "Generated JavaScript fixtures must be owned by Copeland.TS.Backend.JavaScript.Tests."
@@ -317,6 +320,9 @@ $misownedSymbolicArtifacts = $symbolicArtifacts |
         -not $_.FullName.StartsWith((Join-Path $tsonTableAssetFixtureRoot "Corpus"), [System.StringComparison]::OrdinalIgnoreCase) -and
         -not $_.FullName.StartsWith(
             (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TsonEncoding/Corpus"),
+            [System.StringComparison]::OrdinalIgnoreCase) -and
+        -not $_.FullName.StartsWith(
+            (Join-Path $root "tests/Copeland/Copeland.TS.Tests/TestData/Corpus/cts-call-m0b"),
             [System.StringComparison]::OrdinalIgnoreCase)
     }
 Require-Condition ($misownedSymbolicArtifacts.Count -eq 0) "Generated Symbolic JavaScript fixtures must be owned by the JavaScript or TSON corpus roots."

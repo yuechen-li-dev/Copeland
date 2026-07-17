@@ -9,6 +9,63 @@ namespace Copeland.Cli.Tests;
 public sealed class CliIntegrationTests
 {
     [Fact]
+    public async Task Callable_reference_cli_emission_is_repeatable_executable_and_preserves_stale_artifacts()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("callable.ts", """
+            type Operation = (value: number) => number;
+            function increment(value: number): number { return value + 1; }
+            function identity<T>(value: T): T { return value; }
+            function apply(operation: Operation, value: number): number { return operation(value); }
+            function main(): number {
+                const operation: Operation = increment;
+                const same: Operation = identity<number>;
+                return apply(operation, same(4));
+            }
+            """);
+
+        foreach ((string emit, string fileName, string[] extraArguments) in new[]
+        {
+            ("mir", "callable.cope", Array.Empty<string>()),
+            ("csharp", "callable.g.cs", Array.Empty<string>()),
+            ("javascript", "callable.g.js", Array.Empty<string>()),
+            ("javascript", "callable.sym.js", new[] { "--javascript-profile", "symbolic" }),
+        })
+        {
+            string outputPath = Path.Combine(temp.Path, fileName);
+            CliResult first = await RunCliAsync(temp.Path, ["compile", inputPath, "--emit", emit, .. extraArguments, "--out", outputPath]);
+            byte[] firstBytes = await File.ReadAllBytesAsync(outputPath);
+            CliResult second = await RunCliAsync(temp.Path, ["compile", inputPath, "--emit", emit, .. extraArguments, "--out", outputPath]);
+
+            Assert.Equal(0, first.ExitCode);
+            Assert.Equal(0, second.ExitCode);
+            Assert.Equal(firstBytes, await File.ReadAllBytesAsync(outputPath));
+            Assert.DoesNotContain(temp.Path, Encoding.UTF8.GetString(firstBytes), StringComparison.OrdinalIgnoreCase);
+        }
+
+        string diagnosticPath = Path.Combine(temp.Path, "callable.g.js");
+        string symbolicPath = Path.Combine(temp.Path, "callable.sym.js");
+        await File.AppendAllTextAsync(diagnosticPath, "console.log(main());\n", new UTF8Encoding(false));
+        await File.AppendAllTextAsync(symbolicPath, "console.log(main());\n", new UTF8Encoding(false));
+        Assert.Equal("5\n", (await RunExecutableAsync("node", temp.Path, diagnosticPath)).StdOut);
+        Assert.Equal("5\n", (await RunExecutableAsync("node", temp.Path, symbolicPath)).StdOut);
+
+        string stalePath = diagnosticPath;
+        string staleHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath)));
+        string invalidPath = temp.WriteFile("invalid-callable.ts", "function generic<T>(value: T): T { return value; } function main(): number { const value = generic; return 0; }");
+        CliResult staleFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "javascript", "--out", stalePath);
+        string freshPath = Path.Combine(temp.Path, "fresh-callable.cope");
+        CliResult freshFailure = await RunCliAsync(temp.Path, "compile", invalidPath, "--emit", "mir", "--out", freshPath);
+
+        Assert.Equal(1, staleFailure.ExitCode);
+        Assert.Contains("COPE-CALL-0003", staleFailure.StdErr, StringComparison.Ordinal);
+        Assert.Equal(staleHash, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(stalePath))));
+        Assert.Equal(1, freshFailure.ExitCode);
+        Assert.False(File.Exists(freshPath));
+        Assert.DoesNotContain(temp.Path, staleFailure.StdErr, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Nominal_union_cli_emission_is_repeatable_profile_independent_and_preserves_stale_artifacts()
     {
         using var temp = new TempDir();

@@ -1,0 +1,28 @@
+module
+
+func increment(value: number) -> number
+entry:
+  return (value + 1)
+
+func apply(operation: (value: number) => number, value: number) -> number
+entry:
+  return invoke operation(value)
+
+func provide() -> (value: number) => number
+entry:
+  return function-ref increment : (value: number) => number
+
+func identity__primitive_number__8F3BAE8FF0D9F338(value: number) -> number
+entry:
+  return value
+
+func main() -> number
+locals:
+  const first: (value: number) => number
+  const second: (value: number) => number
+  const supplied: (value: number) => number
+entry:
+  store first, function-ref increment : (value: number) => number
+  store second, function-ref identity__primitive_number__8F3BAE8FF0D9F338 : (value: number) => number
+  store supplied, call provide()
+  return (call apply(first, 20) + invoke second(invoke supplied(20)))

@@ -68,6 +68,8 @@ public static class Binder
         private const int MaxInferenceEvidencePerTypeParameter = 16;
         private const int MaxCallableParameters = 32;
         private const int MaxCallableTypeDepth = 16;
+        private const int MaxCallableExpressionNesting = 16;
+        private const int MaxLiftedCallableDefinitions = 512;
 
         private int _loopDepth;
         private readonly SyntaxTree _tree = tree;
@@ -108,6 +110,9 @@ public static class Binder
         private int _nextTableTypeId = 1;
         private string? _schemaIdentity;
         private TypeAliasDeclarationSyntax? _currentAliasDeclaration;
+        private int _nextLiftedCallableId;
+        private int _callableExpressionDepth;
+        private int _arrowBodyDepth;
 
         private sealed class PropagationTargetContext(BoundHandlerId handlerId)
         {
@@ -1618,8 +1623,10 @@ public static class Binder
                 Report(id, message, v.Identifier);
             }
             bool inferCallableReference = v.Type is null
-                && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax;
-            var type = inferCallableReference
+                && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax or ArrowExpressionSyntax or CaptureExpressionSyntax;
+            bool inferArrowLocal = v.Type is null && _arrowBodyDepth > 0;
+            bool inferInitializer = inferCallableReference || inferArrowLocal;
+            var type = inferInitializer
                 ? PrimitiveTypeSymbol.Error
                 : BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
             BoundExpression init;
@@ -1632,9 +1639,9 @@ public static class Binder
             }
             else
             {
-                init = BindExpression(v.Initializer, inferCallableReference ? null : type);
+                init = BindExpression(v.Initializer, inferInitializer ? null : type);
             }
-            if (inferCallableReference)
+            if (inferInitializer)
             {
                 type = init.Type;
             }
@@ -1825,6 +1832,8 @@ public static class Binder
                 CallExpressionSyntax c => BindCall(c, contextualType),
                 GenericCallExpressionSyntax c => BindGenericCall(c, contextualType),
                 GenericFunctionReferenceExpressionSyntax reference => BindGenericFunctionReference(reference),
+                ArrowExpressionSyntax arrow => BindArrow(arrow, contextualType, []),
+                CaptureExpressionSyntax capture => BindCapture(capture, contextualType),
                 ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
                 ObjectLiteralExpressionSyntax o => BindObject(o, contextualType),
                 MemberAccessExpressionSyntax m => BindMember(m),
@@ -1908,6 +1917,178 @@ public static class Binder
                 FunctionSymbol function => new BoundFunctionReferenceExpression(function),
                 _ => new BoundErrorExpression()
             };
+        }
+
+        private BoundExpression BindCapture(CaptureExpressionSyntax capture, TypeSymbol? contextualType)
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var identifier in capture.Identifiers)
+            {
+                if (!names.Add(identifier.Text))
+                {
+                    Report("COPE-CALL-0012", $"Capture '{identifier.Text}' is listed more than once.", identifier);
+                    continue;
+                }
+
+                if (!_scope.TryLookup(identifier.Text, out var symbol) || symbol is not VariableSymbol and not ParameterSymbol)
+                {
+                    Report("COPE-CALL-0013", $"Capture '{identifier.Text}' must name an outer lexical runtime binding.", identifier);
+                }
+            }
+
+            // The lifted code path below deliberately has no lexical parent.  Captures are
+            // therefore diagnosed here until their immutable environment slots are present.
+            // This prevents the old JavaScript/C# host closure behavior from becoming an
+            // accidental language semantic while the source parser is being extended.
+            if (capture.Identifiers.Count > 0)
+            {
+                Report("COPE-CALL-0014", "Explicit capture requires the CTS-CALL immutable environment lowering path.", capture.CaptureKeyword);
+                return new BoundErrorExpression();
+            }
+
+            return BindArrow(capture.Arrow, contextualType, []);
+        }
+
+        private BoundExpression BindArrow(ArrowExpressionSyntax arrow, TypeSymbol? contextualType, IReadOnlyList<VariableSymbol> captures)
+        {
+            if (++_callableExpressionDepth > MaxCallableExpressionNesting)
+            {
+                Report("COPE-CALL-0015", $"Callable expression nesting exceeds the {MaxCallableExpressionNesting} limit.", arrow.ArrowToken);
+                _callableExpressionDepth--;
+                return new BoundErrorExpression();
+            }
+
+            try
+            {
+                if (_nextLiftedCallableId >= MaxLiftedCallableDefinitions)
+                {
+                    Report("COPE-CALL-0016", $"Lifted callable definitions exceed the {MaxLiftedCallableDefinitions} limit.", arrow.ArrowToken);
+                    return new BoundErrorExpression();
+                }
+
+                CallableTypeSymbol? expectedCallable = contextualType as CallableTypeSymbol;
+                if (contextualType is not null && expectedCallable is null && contextualType != PrimitiveTypeSymbol.Error)
+                {
+                    Report("COPE-CALL-0007", $"Arrow expression requires a callable expected type, not '{contextualType.Name}'.", arrow.ArrowToken);
+                }
+                if (arrow.Parameters.Count > MaxCallableParameters)
+                {
+                    Report("COPE-CALL-0002", $"Callable types support at most {MaxCallableParameters} parameters.", arrow.ArrowToken);
+                }
+
+                var parameters = new List<ParameterSymbol>();
+                for (var index = 0; index < arrow.Parameters.Count; index++)
+                {
+                    ArrowParameterSyntax parameter = arrow.Parameters[index];
+                    TypeSymbol? expectedParameter = expectedCallable is not null && index < expectedCallable.Parameters.Count
+                        ? expectedCallable.Parameters[index].Type
+                        : null;
+                    TypeSymbol parameterType;
+                    if (parameter.Type is not null)
+                    {
+                        parameterType = BindType(parameter.Type, parameter.Identifier, "COPE-CALL-0011", "arrow parameter");
+                        if (expectedParameter is not null && !TypeFacts.AreEquivalent(parameterType, expectedParameter))
+                        {
+                            ReportTypeMismatch("COPE-CALL-0006", expectedParameter, parameterType, parameter.Identifier);
+                        }
+                    }
+                    else if (expectedParameter is not null)
+                    {
+                        parameterType = expectedParameter;
+                    }
+                    else
+                    {
+                        Report("COPE-CALL-0011", $"Arrow parameter '{parameter.Identifier.Text}' needs an explicit type or an exact contextual callable signature.", parameter.Identifier);
+                        parameterType = PrimitiveTypeSymbol.Error;
+                    }
+                    parameters.Add(new ParameterSymbol(parameter.Identifier.Text, parameterType));
+                }
+
+                if (expectedCallable is not null && expectedCallable.Parameters.Count != parameters.Count)
+                {
+                    Report("COPE-CALL-0005", $"Callable invocation argument count mismatch: expected {expectedCallable.Parameters.Count}, got {parameters.Count}.", arrow.ArrowToken);
+                }
+
+                TypeSymbol returnType = arrow.ReturnType is not null
+                    ? BindType(arrow.ReturnType, arrow.ArrowToken, "COPE-CALL-0011", "arrow return")
+                    : expectedCallable?.ReturnType ?? PrimitiveTypeSymbol.Error;
+                if (arrow.ReturnType is null && expectedCallable is null && arrow.BlockBody is not null)
+                {
+                    Report("COPE-CALL-0011", "A block-bodied arrow needs an explicit return type or an exact contextual callable signature.", arrow.ArrowToken);
+                }
+
+                string name = "__cope_arrow_" + _nextLiftedCallableId++.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var bindingFunction = new FunctionSymbol(name, parameters, returnType, stableIdentity: "callable-arrow:" + name);
+                var previousScope = _scope;
+                var previousFunction = _currentFunction;
+                _scope = new Scope(_global);
+                _currentFunction = bindingFunction;
+                foreach (ParameterSymbol parameter in parameters)
+                {
+                    if (!_scope.TryDeclare(parameter)) Report("COPE-BIND-0005", $"Duplicate parameter '{parameter.Name}'.", arrow.ArrowToken);
+                }
+
+                BoundBlockStatement body;
+                _arrowBodyDepth++;
+                try
+                {
+                    if (arrow.ExpressionBody is not null)
+                    {
+                        ReportImplicitArrowCaptures(arrow.ExpressionBody, previousScope, parameters);
+                        BoundExpression expression = BindExpression(arrow.ExpressionBody, returnType == PrimitiveTypeSymbol.Error ? null : returnType);
+                        if (returnType == PrimitiveTypeSymbol.Error) returnType = expression.Type;
+                        body = new BoundBlockStatement([new BoundReturnStatement(expression)]);
+                    }
+                    else
+                    {
+                        ReportImplicitArrowCaptures(arrow.BlockBody!, previousScope, parameters);
+                        body = (BoundBlockStatement)BindStatement(arrow.BlockBody!);
+                    }
+                }
+                finally
+                {
+                    _arrowBodyDepth--;
+                }
+                _scope = previousScope;
+                _currentFunction = previousFunction;
+
+                if (expectedCallable is not null && !TypeFacts.AreEquivalent(returnType, expectedCallable.ReturnType))
+                {
+                    ReportTypeMismatch("COPE-CALL-0006", expectedCallable.ReturnType, returnType, arrow.ArrowToken);
+                }
+                var function = new FunctionSymbol(name, parameters, returnType, stableIdentity: "callable-arrow:" + name);
+                _functions.Add(new BoundFunctionDeclaration(function, body));
+                return new BoundFunctionReferenceExpression(function);
+            }
+            finally
+            {
+                _callableExpressionDepth--;
+            }
+        }
+
+        private void ReportImplicitArrowCaptures(SyntaxNode body, Scope outerScope, IReadOnlyList<ParameterSymbol> parameters)
+        {
+            var parameterNames = parameters.Select(parameter => parameter.Name).ToHashSet(StringComparer.Ordinal);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            var work = new Stack<object>();
+            work.Push(body);
+            while (work.Count > 0)
+            {
+                object current = work.Pop();
+                if (current is NameExpressionSyntax name
+                    && !parameterNames.Contains(name.IdentifierToken.Text)
+                    && outerScope.TryLookup(name.IdentifierToken.Text, out var symbol)
+                    && symbol is VariableSymbol or ParameterSymbol
+                    && visited.Add(name.IdentifierToken.Text))
+                {
+                    Report("COPE-CALL-0017", $"Implicit lexical capture of '{name.IdentifierToken.Text}' is forbidden. Use 'capture {{ {name.IdentifierToken.Text} }} ...' to snapshot it into an immutable callable environment.", name.IdentifierToken);
+                }
+
+                if (current is SyntaxNode node)
+                {
+                    foreach (object child in node.GetChildren()) work.Push(child);
+                }
+            }
         }
 
         private BoundExpression ReportOpenGenericFunctionValue(NameExpressionSyntax name)

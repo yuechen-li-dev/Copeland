@@ -1054,8 +1054,11 @@ public sealed class Parser
     private ExpressionSyntax ParsePrimaryExpression()
         => Current.Kind switch
         {
+            SyntaxKind.OpenParenToken when IsArrowExpressionAhead() => ParseArrowExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword or SyntaxKind.NullKeyword or SyntaxKind.NumberToken or SyntaxKind.StringToken => new LiteralExpressionSyntax(NextToken()),
+            SyntaxKind.IdentifierToken when Current.Text == "capture" => ParseCaptureExpression(),
+            SyntaxKind.IdentifierToken when Peek(1).Kind == SyntaxKind.ArrowToken => ParseSingleParameterArrowExpression(),
             SyntaxKind.IdentifierToken => new NameExpressionSyntax(NextToken()),
             SyntaxKind.OpenBracketToken => ParseArrayLiteralExpression(),
             SyntaxKind.OpenBraceToken => ParseObjectLiteralExpression(),
@@ -1064,6 +1067,99 @@ public sealed class Parser
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+
+    private bool IsArrowExpressionAhead()
+    {
+        if (Current.Kind != SyntaxKind.OpenParenToken) return false;
+        var depth = 0;
+        for (var offset = 0; ; offset++)
+        {
+            SyntaxToken token = Peek(offset);
+            if (token.Kind == SyntaxKind.EndOfFileToken) return false;
+            if (token.Kind == SyntaxKind.OpenParenToken) depth++;
+            else if (token.Kind == SyntaxKind.CloseParenToken && --depth == 0)
+            {
+                var next = Peek(offset + 1);
+                return next.Kind is SyntaxKind.ArrowToken or SyntaxKind.ColonToken;
+            }
+        }
+    }
+
+    private CaptureExpressionSyntax ParseCaptureExpression()
+    {
+        var capture = NextToken();
+        var open = Match(SyntaxKind.OpenBraceToken);
+        var identifiers = new List<SyntaxToken>();
+        var commas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            identifiers.Add(Match(SyntaxKind.IdentifierToken));
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            commas.Add(NextToken());
+        }
+        var close = Match(SyntaxKind.CloseBraceToken);
+        if (!IsArrowExpressionAhead() && !(Current.Kind == SyntaxKind.IdentifierToken && Peek(1).Kind == SyntaxKind.ArrowToken))
+        {
+            _diagnostics.Report("COPE-CALL-0010", "Expected an arrow expression after the capture list.", Current.Position, Math.Max(1, Current.Text.Length));
+            return new CaptureExpressionSyntax(capture, open, identifiers, commas, close,
+                new ArrowExpressionSyntax(null, [], [], null, null, null, MissingToken(SyntaxKind.ArrowToken, Current.Position), new MissingExpressionSyntax(Current), null));
+        }
+        var arrow = Current.Kind == SyntaxKind.IdentifierToken ? ParseSingleParameterArrowExpression() : ParseArrowExpression();
+        return new CaptureExpressionSyntax(capture, open, identifiers, commas, close, arrow);
+    }
+
+    private ArrowExpressionSyntax ParseSingleParameterArrowExpression()
+    {
+        var identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? colon = null;
+        TypeSyntax? type = null;
+        if (Current.Kind == SyntaxKind.ColonToken)
+        {
+            colon = NextToken();
+            type = ParseTypeSyntax();
+        }
+        return ParseArrowExpressionCore(null, [new ArrowParameterSyntax(identifier, colon, type)], [], null);
+    }
+
+    private ArrowExpressionSyntax ParseArrowExpression()
+    {
+        var open = Match(SyntaxKind.OpenParenToken);
+        var parameters = new List<ArrowParameterSyntax>();
+        var commas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+        {
+            var identifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? colon = null;
+            TypeSyntax? type = null;
+            if (Current.Kind == SyntaxKind.ColonToken)
+            {
+                colon = NextToken();
+                type = ParseTypeSyntax();
+            }
+            parameters.Add(new ArrowParameterSyntax(identifier, colon, type));
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            commas.Add(NextToken());
+        }
+        var close = Match(SyntaxKind.CloseParenToken);
+        return ParseArrowExpressionCore(open, parameters, commas, close);
+    }
+
+    private ArrowExpressionSyntax ParseArrowExpressionCore(SyntaxToken? open, IReadOnlyList<ArrowParameterSyntax> parameters, IReadOnlyList<SyntaxToken> commas, SyntaxToken? close)
+    {
+        SyntaxToken? returnColon = null;
+        TypeSyntax? returnType = null;
+        if (Current.Kind == SyntaxKind.ColonToken)
+        {
+            returnColon = NextToken();
+            returnType = ParseTypeSyntax();
+        }
+        var arrow = Match(SyntaxKind.ArrowToken);
+        if (Current.Kind == SyntaxKind.OpenBraceToken)
+        {
+            return new ArrowExpressionSyntax(open, parameters, commas, close, returnColon, returnType, arrow, null, ParseBlockStatement());
+        }
+        return new ArrowExpressionSyntax(open, parameters, commas, close, returnColon, returnType, arrow, ParseExpression(), null);
+    }
 
     private TryExceptExpressionSyntax ParseTryExceptExpression()
     {

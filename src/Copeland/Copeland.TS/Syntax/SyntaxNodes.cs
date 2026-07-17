@@ -1172,3 +1172,69 @@ public sealed record MissingExpressionSyntax(SyntaxToken Token) : ExpressionSynt
         yield return Token;
     }
 }
+
+public sealed record ArrowParameterSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken? ColonToken,
+    TypeSyntax? Type) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.ArrowParameter;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        if (ColonToken is not null) yield return ColonToken;
+        if (Type is not null) yield return Type;
+    }
+}
+
+public sealed record ArrowExpressionSyntax(
+    SyntaxToken? OpenParenToken,
+    IReadOnlyList<ArrowParameterSyntax> Parameters,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken? CloseParenToken,
+    SyntaxToken? ReturnColonToken,
+    TypeSyntax? ReturnType,
+    SyntaxToken ArrowToken,
+    ExpressionSyntax? ExpressionBody,
+    BlockStatementSyntax? BlockBody) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ArrowExpression;
+    public override IEnumerable<object> GetChildren()
+    {
+        if (OpenParenToken is not null) yield return OpenParenToken;
+        for (var index = 0; index < Parameters.Count; index++)
+        {
+            if (index > 0) yield return CommaTokens[index - 1];
+            yield return Parameters[index];
+        }
+        if (CloseParenToken is not null) yield return CloseParenToken;
+        if (ReturnColonToken is not null) yield return ReturnColonToken;
+        if (ReturnType is not null) yield return ReturnType;
+        yield return ArrowToken;
+        if (ExpressionBody is not null) yield return ExpressionBody;
+        if (BlockBody is not null) yield return BlockBody;
+    }
+}
+
+public sealed record CaptureExpressionSyntax(
+    SyntaxToken CaptureKeyword,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<SyntaxToken> Identifiers,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken CloseBraceToken,
+    ArrowExpressionSyntax Arrow) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.CaptureExpression;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return CaptureKeyword;
+        yield return OpenBraceToken;
+        for (var index = 0; index < Identifiers.Count; index++)
+        {
+            if (index > 0) yield return CommaTokens[index - 1];
+            yield return Identifiers[index];
+        }
+        yield return CloseBraceToken;
+        yield return Arrow;
+    }
+}

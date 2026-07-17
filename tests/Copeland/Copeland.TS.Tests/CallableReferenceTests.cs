@@ -7,6 +7,43 @@ namespace Copeland.TS.Tests;
 public sealed class CallableReferenceTests
 {
     [Fact]
+    public void Noncapturing_arrows_are_lifted_and_contextually_typed_once()
+    {
+        const string source = """
+            type Operation = (value: number) => number;
+            function main(): number {
+                const double = (value: number) => value * 2;
+                const choose: Operation = value => value + 1;
+                const block: Operation = (value: number): number => {
+                    const adjusted = value + 1;
+                    return adjusted * 2;
+                };
+                return double(4) + choose(4) + block(4);
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("function-ref __cope_arrow_0", compilation.MirText, StringComparison.Ordinal);
+        Assert.Contains("func __cope_arrow_2", compilation.MirText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Implicit_arrow_capture_is_rejected_with_the_binding_name()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            function makeAdder(base: number): (value: number) => number {
+                return (value: number) => base + value;
+            }
+            """);
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-CALL-0017"
+            && diagnostic.Length > 0
+            && diagnostic.Message.Contains("base", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Named_and_closed_generic_function_values_lower_to_distinct_reference_and_invoke_nodes()
     {
         const string source = """
@@ -45,5 +82,31 @@ public sealed class CallableReferenceTests
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
 
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == diagnosticId && diagnostic.Length > 0);
+    }
+
+    [Fact]
+    public void Callable_resource_boundaries_are_exact()
+    {
+        string acceptedParameters = string.Join(", ", Enumerable.Range(0, 32).Select(index => $"p{index}: number"));
+        string rejectedParameters = string.Join(", ", Enumerable.Range(0, 33).Select(index => $"p{index}: number"));
+
+        Assert.True(CopelandCompiler.CompileToMir($"type Operation = ({acceptedParameters}) => number; function main(): number {{ return 0; }}").Success);
+        Assert.Contains(CopelandCompiler.CompileToMir($"type Operation = ({rejectedParameters}) => number; function main(): number {{ return 0; }}").Diagnostics,
+            diagnostic => diagnostic.Id == "COPE-CALL-0001" && diagnostic.Length > 0);
+
+        Assert.True(CopelandCompiler.CompileToMir(BuildNestedCallableSource(16)).Success);
+        Assert.Contains(CopelandCompiler.CompileToMir(BuildNestedCallableSource(17)).Diagnostics,
+            diagnostic => diagnostic.Id == "COPE-CALL-0002" && diagnostic.Length > 0);
+    }
+
+    private static string BuildNestedCallableSource(int depth)
+    {
+        string type = "number";
+        for (int index = 0; index < depth; index++)
+        {
+            type = "(value: " + type + ") => number";
+        }
+
+        return "type Operation = " + type + "; function main(): number { return 0; }";
     }
 }

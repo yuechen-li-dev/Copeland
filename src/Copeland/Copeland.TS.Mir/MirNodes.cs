@@ -305,12 +305,12 @@ public static class MirTypeFacts
             (MirTableRowType leftRow, MirTableRowType rightRow) => leftRow.RowTypeId == rightRow.RowTypeId,
             (MirColumnType leftColumn, MirColumnType rightColumn) => AreEquivalent(leftColumn.ElementType, rightColumn.ElementType),
             (MirRecordType, _) or (_, MirRecordType) => false,
-            (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType && right is not MirArrayType and not MirResultType => leftNamed.Identifier == rightNamed.Identifier,
-            (MirArrayType leftArray, MirArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
-            (MirResultType leftResult, MirResultType rightResult) => AreEquivalent(leftResult.SuccessType, rightResult.SuccessType) && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
             (MirCallableType leftCallable, MirCallableType rightCallable) => leftCallable.Parameters.Count == rightCallable.Parameters.Count
                 && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))
                 && AreEquivalent(leftCallable.ReturnType, rightCallable.ReturnType),
+            (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType && right is not MirArrayType and not MirResultType => leftNamed.Identifier == rightNamed.Identifier,
+            (MirArrayType leftArray, MirArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
+            (MirResultType leftResult, MirResultType rightResult) => AreEquivalent(leftResult.SuccessType, rightResult.SuccessType) && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
             _ => false
         };
 
