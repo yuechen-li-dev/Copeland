@@ -79,6 +79,35 @@ public sealed class SuspensionAutomatonValidationTests
         Assert.Contains(diagnostics, diagnostic => diagnostic.Message.Contains("257 states; maximum is 256", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ExecutablePlanRejectsUnknownAwaitFrameSlot()
+    {
+        MirSuspensionAutomaton valid = CreateValidAutomaton();
+        MirAsyncExecutionStateId entry = new("exec-entry");
+        MirAsyncExecutionStateId complete = new("exec-complete");
+        MirSuspensionAutomaton malformed = new(
+            valid.Identity,
+            valid.OwnerFunctionName,
+            valid.EntryStateId,
+            valid.FrameSlots,
+            valid.States,
+            valid.Transitions,
+            new MirAsyncExecutionPlan(
+                entry,
+                [
+                    new MirAsyncStatementExecutionState(
+                        entry,
+                        new MirExpressionStatement(new MirLiteralExpression(1.0, new MirNamedType("number"))),
+                        complete,
+                        new MirFrameSlotId("missing-await-slot")),
+                    new MirAsyncReturnExecutionState(complete, new MirReturnStatement(null)),
+                ]));
+
+        IReadOnlyList<MirValidationDiagnostic> diagnostics = MirValidator.Validate(new MirProgram([], [CreateFunction(malformed)]));
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Message.Contains("unknown or non-Async awaited frame slot", StringComparison.Ordinal));
+    }
+
     private static MirFunction CreateFunction(MirSuspensionAutomaton automaton)
         => new("load", [], new MirNamedType("number"), [], [], isAsync: true, suspensionAutomaton: automaton);
 

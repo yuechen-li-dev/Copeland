@@ -11,7 +11,8 @@ public sealed class MirSuspensionAutomaton(
     MirAutomatonStateId entryStateId,
     IReadOnlyList<MirFrameSlot> frameSlots,
     IReadOnlyList<MirAutomatonState> states,
-    IReadOnlyList<MirAutomatonTransition> transitions)
+    IReadOnlyList<MirAutomatonTransition> transitions,
+    MirAsyncExecutionPlan? executionPlan = null)
 {
     public string Identity { get; } = identity;
     public string OwnerFunctionName { get; } = ownerFunctionName;
@@ -19,6 +20,67 @@ public sealed class MirSuspensionAutomaton(
     public IReadOnlyList<MirFrameSlot> FrameSlots { get; } = Array.AsReadOnly(frameSlots.ToArray());
     public IReadOnlyList<MirAutomatonState> States { get; } = Array.AsReadOnly(states.ToArray());
     public IReadOnlyList<MirAutomatonTransition> Transitions { get; } = Array.AsReadOnly(transitions.ToArray());
+    public MirAsyncExecutionPlan? ExecutionPlan { get; } = executionPlan;
+}
+
+/// <summary>
+/// Backend-neutral executable control plan for an async function. Structured
+/// MIR is split here, before either target realizes the state discriminator.
+/// </summary>
+public sealed class MirAsyncExecutionPlan(
+    MirAsyncExecutionStateId entryStateId,
+    IReadOnlyList<MirAsyncExecutionState> states)
+{
+    public MirAsyncExecutionStateId EntryStateId { get; } = entryStateId;
+    public IReadOnlyList<MirAsyncExecutionState> States { get; } = Array.AsReadOnly(states.ToArray());
+}
+
+public readonly record struct MirAsyncExecutionStateId(string Value)
+{
+    public override string ToString() => Value;
+}
+
+public abstract class MirAsyncExecutionState(MirAsyncExecutionStateId id)
+{
+    public MirAsyncExecutionStateId Id { get; } = id;
+}
+
+public sealed class MirAsyncStatementExecutionState(
+    MirAsyncExecutionStateId id,
+    MirStatement statement,
+    MirAsyncExecutionStateId nextStateId,
+    MirFrameSlotId? awaitedComputationSlot = null) : MirAsyncExecutionState(id)
+{
+    public MirStatement Statement { get; } = statement;
+    public MirAsyncExecutionStateId NextStateId { get; } = nextStateId;
+    public MirFrameSlotId? AwaitedComputationSlot { get; } = awaitedComputationSlot;
+}
+
+public sealed class MirAsyncReturnExecutionState(
+    MirAsyncExecutionStateId id,
+    MirReturnStatement statement,
+    MirFrameSlotId? awaitedComputationSlot = null) : MirAsyncExecutionState(id)
+{
+    public MirReturnStatement Statement { get; } = statement;
+    public MirFrameSlotId? AwaitedComputationSlot { get; } = awaitedComputationSlot;
+}
+
+public sealed class MirAsyncBranchExecutionState(
+    MirAsyncExecutionStateId id,
+    MirExpression condition,
+    MirAsyncExecutionStateId thenStateId,
+    MirAsyncExecutionStateId elseStateId) : MirAsyncExecutionState(id)
+{
+    public MirExpression Condition { get; } = condition;
+    public MirAsyncExecutionStateId ThenStateId { get; } = thenStateId;
+    public MirAsyncExecutionStateId ElseStateId { get; } = elseStateId;
+}
+
+public sealed class MirAsyncJumpExecutionState(
+    MirAsyncExecutionStateId id,
+    MirAsyncExecutionStateId targetStateId) : MirAsyncExecutionState(id)
+{
+    public MirAsyncExecutionStateId TargetStateId { get; } = targetStateId;
 }
 
 public static class MirSuspensionAutomatonLimits
@@ -285,6 +347,69 @@ public static class MirSuspensionAutomatonValidator
         }
 
         ValidateReachability(automaton, states, outgoing, diagnostics);
+        if (automaton.ExecutionPlan is not null)
+        {
+            ValidateExecutionPlan(automaton, automaton.ExecutionPlan, diagnostics);
+        }
+    }
+
+    private static void ValidateExecutionPlan(MirSuspensionAutomaton automaton, MirAsyncExecutionPlan plan, List<MirValidationDiagnostic> diagnostics)
+    {
+        var states = new Dictionary<MirAsyncExecutionStateId, MirAsyncExecutionState>();
+        foreach (MirAsyncExecutionState state in plan.States)
+        {
+            if (string.IsNullOrWhiteSpace(state.Id.Value) || !states.TryAdd(state.Id, state))
+            {
+                Add(diagnostics, $"automaton '{automaton.Identity}' has a blank or duplicate executable state identity '{state.Id}'.");
+            }
+        }
+
+        if (!states.ContainsKey(plan.EntryStateId))
+        {
+            Add(diagnostics, $"automaton '{automaton.Identity}' has a missing executable entry state '{plan.EntryStateId}'.");
+        }
+
+        foreach (MirAsyncExecutionState state in states.Values)
+        {
+            switch (state)
+            {
+                case MirAsyncStatementExecutionState statement:
+                    if (statement.Statement is not MirVariableDeclarationStatement and not MirExpressionStatement)
+                    {
+                        Add(diagnostics, $"executable state '{state.Id}' contains an unsplit statement '{statement.Statement.GetType().Name}'.");
+                    }
+                    CheckExecutionTarget(automaton, states, statement.NextStateId, state.Id, diagnostics);
+                    if (statement.AwaitedComputationSlot is { } awaitedSlot)
+                    {
+                        if (!automaton.FrameSlots.Any(slot => slot.Id == awaitedSlot && slot.Type is MirAsyncType))
+                        {
+                            Add(diagnostics, $"executable state '{state.Id}' references unknown or non-Async awaited frame slot '{awaitedSlot}'.");
+                        }
+                    }
+                    break;
+                case MirAsyncBranchExecutionState branch:
+                    CheckExecutionTarget(automaton, states, branch.ThenStateId, state.Id, diagnostics);
+                    CheckExecutionTarget(automaton, states, branch.ElseStateId, state.Id, diagnostics);
+                    break;
+                case MirAsyncReturnExecutionState returned when returned.AwaitedComputationSlot is { } returnAwaitedSlot:
+                    if (!automaton.FrameSlots.Any(slot => slot.Id == returnAwaitedSlot && slot.Type is MirAsyncType))
+                    {
+                        Add(diagnostics, $"return state '{state.Id}' references unknown or non-Async awaited frame slot '{returnAwaitedSlot}'.");
+                    }
+                    break;
+                case MirAsyncJumpExecutionState jump:
+                    CheckExecutionTarget(automaton, states, jump.TargetStateId, state.Id, diagnostics);
+                    break;
+            }
+        }
+    }
+
+    private static void CheckExecutionTarget(MirSuspensionAutomaton automaton, IReadOnlyDictionary<MirAsyncExecutionStateId, MirAsyncExecutionState> states, MirAsyncExecutionStateId target, MirAsyncExecutionStateId source, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (!states.ContainsKey(target))
+        {
+            Add(diagnostics, $"automaton '{automaton.Identity}' executable state '{source}' targets unknown state '{target}'.");
+        }
     }
 
     private static void ValidateSlots(

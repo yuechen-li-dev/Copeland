@@ -167,13 +167,392 @@ public static class MirLowerer
     {
         var locals = new Dictionary<string, MirLocal>(StringComparer.Ordinal);
         var body = LowerStatements(function.Body.Statements, locals);
+        MirSuspensionAutomaton? automaton = function.Symbol.IsAsync
+            ? BuildSuspensionAutomaton(function.Symbol.Name, function.Symbol.Parameters, locals.Values, body, ToMirType(function.Symbol.ReturnType))
+            : null;
         return new MirFunction(
             function.Symbol.Name,
             function.Symbol.Parameters.Select(p => new MirParameter(p.Name, ToMirType(p.Type))).ToArray(),
             ToMirType(function.Symbol.ReturnType),
             locals.Values.OrderBy(l => l.Name, StringComparer.Ordinal).ToArray(),
             body,
-            function.Symbol.IsAsync);
+            function.Symbol.IsAsync,
+            automaton);
+    }
+
+    /// <summary>
+    /// Creates the backend-neutral control-flow skeleton used by the async
+    /// emitters.  The authored statements remain structured MIR; the machine
+    /// records every real suspension boundary and every value which must have
+    /// frame storage when execution resumes.
+    /// </summary>
+    private static MirSuspensionAutomaton BuildSuspensionAutomaton(
+        string functionName,
+        IReadOnlyList<ParameterSymbol> parameters,
+        IEnumerable<MirLocal> locals,
+        IReadOnlyList<MirStatement> body,
+        MirType returnType)
+    {
+        var frameSlots = new List<MirFrameSlot>();
+        foreach (ParameterSymbol parameter in parameters)
+        {
+            frameSlots.Add(new MirFrameSlot(
+                new MirFrameSlotId("parameter_" + parameter.Name),
+                ToMirType(parameter.Type),
+                "parameter " + parameter.Name,
+                isReadOnly: true));
+        }
+
+        foreach (MirLocal local in locals.OrderBy(local => local.Name, StringComparer.Ordinal))
+        {
+            frameSlots.Add(new MirFrameSlot(
+                new MirFrameSlotId("local_" + local.Name),
+                local.Type,
+                "local " + local.Name,
+                local.IsReadOnly));
+        }
+
+        MirAwaitExpression[] awaits = EnumerateAwaits(body).ToArray();
+        var awaitSlots = new Dictionary<MirAwaitExpression, MirFrameSlotId>(ReferenceEqualityComparer.Instance);
+        for (int index = 0; index < awaits.Length; index++)
+        {
+            MirFrameSlotId slotId = new("await_" + index);
+            awaitSlots.Add(awaits[index], slotId);
+            frameSlots.Add(new MirFrameSlot(
+                slotId,
+                awaits[index].Operand.Type,
+                "await operand " + index,
+                isReadOnly: true));
+        }
+
+        var entry = new MirAutomatonStateId("entry");
+        var complete = new MirAutomatonStateId("complete");
+        var cancelled = new MirAutomatonStateId("cancelled");
+        var states = new List<MirAutomatonState>
+        {
+            new MirTerminalAutomatonState(entry, MirAutomatonStateKind.Entry, "function entry"),
+            new MirCompletionAutomatonState(complete, "function completion", returnType),
+        };
+        if (awaits.Length > 0)
+        {
+            states.Add(new MirTerminalAutomatonState(cancelled, MirAutomatonStateKind.Cancelled, "cancellation"));
+        }
+        var transitions = new List<MirAutomatonTransition>();
+        MirAutomatonStateId previous = entry;
+        for (int index = 0; index < awaits.Length; index++)
+        {
+            var suspension = new MirAutomatonStateId("await_" + index);
+            var resumed = new MirAutomatonStateId("resume_" + index);
+            states.Add(new MirAwaitSuspensionAutomatonState(
+                suspension,
+                "await " + index,
+                new MirFrameSlotId("await_" + index),
+                awaits[index].Type));
+            states.Add(new MirExecutionAutomatonState(
+                resumed,
+                "resume " + index,
+                frameSlots.Select(slot => slot.Id).ToArray(),
+                []));
+            transitions.Add(new MirAutomatonTransition(previous, suspension, MirAutomatonTransitionKind.Unconditional, "reach await " + index));
+            transitions.Add(new MirAutomatonTransition(suspension, resumed, MirAutomatonTransitionKind.ResumeSuccess, "resume await " + index));
+            transitions.Add(new MirAutomatonTransition(suspension, cancelled, MirAutomatonTransitionKind.Cancellation, "cancel await " + index));
+            previous = resumed;
+        }
+
+        transitions.Add(new MirAutomatonTransition(previous, complete, MirAutomatonTransitionKind.Unconditional, "complete function"));
+        return new MirSuspensionAutomaton(
+            "async_" + functionName,
+            functionName,
+            entry,
+            frameSlots,
+            states,
+            transitions,
+            BuildAsyncExecutionPlan(body, awaitSlots));
+    }
+
+    private static MirAsyncExecutionPlan BuildAsyncExecutionPlan(
+        IReadOnlyList<MirStatement> body,
+        IReadOnlyDictionary<MirAwaitExpression, MirFrameSlotId> awaitSlots)
+    {
+        var states = new List<MirAsyncExecutionState>();
+        int nextId = 0;
+
+        MirAsyncExecutionStateId Add(MirAsyncExecutionState state)
+        {
+            states.Add(state);
+            return state.Id;
+        }
+
+        MirAsyncExecutionStateId NewId() => new("exec_" + nextId++);
+
+        MirFrameSlotId? GetAwaitSlot(MirStatement statement)
+        {
+            MirAwaitExpression? awaited = statement switch
+            {
+                MirVariableDeclarationStatement { Initializer: MirAwaitExpression direct } => direct,
+                MirVariableDeclarationStatement { Initializer: MirPropagateExpression { Operand: MirAwaitExpression propagated } } => propagated,
+                MirReturnStatement { Expression: MirAwaitExpression direct } => direct,
+                MirExpressionStatement { Expression: MirAssignmentExpression { Expression: MirAwaitExpression direct } } => direct,
+                _ => null,
+            };
+            return awaited is not null && awaitSlots.TryGetValue(awaited, out MirFrameSlotId slotId)
+                ? slotId
+                : null;
+        }
+
+        MirAsyncStatementExecutionState CreateStatementState(
+            MirAsyncExecutionStateId id,
+            MirStatement statement,
+            MirAsyncExecutionStateId nextStateId)
+        {
+            return new MirAsyncStatementExecutionState(id, statement, nextStateId, GetAwaitSlot(statement));
+        }
+
+        MirAsyncExecutionStateId Build(IReadOnlyList<MirStatement> statements, MirAsyncExecutionStateId continuation, MirAsyncExecutionStateId? breakTarget = null, MirAsyncExecutionStateId? continueTarget = null)
+        {
+            MirAsyncExecutionStateId current = continuation;
+            for (int index = statements.Count - 1; index >= 0; index--)
+            {
+                MirStatement statement = statements[index];
+                switch (statement)
+                {
+                    case MirReturnStatement returned:
+                    {
+                        MirAsyncExecutionStateId id = NewId();
+                        Add(new MirAsyncReturnExecutionState(id, returned, GetAwaitSlot(returned)));
+                        current = id;
+                        break;
+                    }
+                    case MirIfStatement conditional:
+                    {
+                        MirAsyncExecutionStateId thenState = Build(conditional.ThenStatements, current, breakTarget, continueTarget);
+                        MirAsyncExecutionStateId elseState = conditional.ElseStatements is null
+                            ? current
+                            : Build(conditional.ElseStatements, current, breakTarget, continueTarget);
+                        MirAsyncExecutionStateId id = NewId();
+                        Add(new MirAsyncBranchExecutionState(id, conditional.Condition, thenState, elseState));
+                        current = id;
+                        break;
+                    }
+                    case MirWhileStatement loop:
+                    {
+                        MirAsyncExecutionStateId id = NewId();
+                        MirAsyncExecutionStateId bodyState = Build(loop.BodyStatements, id, current, id);
+                        Add(new MirAsyncBranchExecutionState(id, loop.Condition, bodyState, current));
+                        current = id;
+                        break;
+                    }
+                    case MirForStatement loop:
+                    {
+                        MirExpression condition = loop.Condition ?? new MirLiteralExpression(true, new MirNamedType("boolean"));
+                        MirAsyncExecutionStateId conditionId = NewId();
+                        MirAsyncExecutionStateId incrementId = conditionId;
+                        if (loop.Increment is not null)
+                        {
+                            incrementId = NewId();
+                            Add(CreateStatementState(incrementId, new MirExpressionStatement(loop.Increment), conditionId));
+                        }
+                        MirAsyncExecutionStateId bodyState = Build(loop.BodyStatements, incrementId, current, incrementId);
+                        Add(new MirAsyncBranchExecutionState(conditionId, condition, bodyState, current));
+                        current = loop.Initializer is null
+                            ? conditionId
+                            : Build([loop.Initializer], conditionId, breakTarget, continueTarget);
+                        break;
+                    }
+                    case MirBreakStatement:
+                    {
+                        MirAsyncExecutionStateId id = NewId();
+                        Add(new MirAsyncJumpExecutionState(id, breakTarget ?? current));
+                        current = id;
+                        break;
+                    }
+                    case MirContinueStatement:
+                    {
+                        MirAsyncExecutionStateId id = NewId();
+                        Add(new MirAsyncJumpExecutionState(id, continueTarget ?? current));
+                        current = id;
+                        break;
+                    }
+                    default:
+                    {
+                        MirAsyncExecutionStateId id = NewId();
+                        Add(CreateStatementState(id, statement, current));
+                        current = id;
+                        break;
+                    }
+                }
+            }
+            return current;
+        }
+
+        MirAsyncExecutionStateId terminal = NewId();
+        Add(new MirAsyncReturnExecutionState(terminal, new MirReturnStatement(null)));
+        MirAsyncExecutionStateId entry = Build(body, terminal);
+        return new MirAsyncExecutionPlan(entry, states);
+    }
+
+    private static IEnumerable<MirAwaitExpression> EnumerateAwaits(IEnumerable<MirStatement> statements)
+    {
+        foreach (MirStatement statement in statements)
+        {
+            foreach (MirExpression expression in EnumerateStatementExpressions(statement))
+            {
+                foreach (MirAwaitExpression awaitExpression in EnumerateAwaits(expression))
+                {
+                    yield return awaitExpression;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<MirExpression> EnumerateStatementExpressions(MirStatement statement)
+    {
+        switch (statement)
+        {
+            case MirVariableDeclarationStatement declaration:
+                yield return declaration.Initializer;
+                break;
+            case MirExpressionStatement expression:
+                yield return expression.Expression;
+                break;
+            case MirReturnStatement { Expression: not null } returned:
+                yield return returned.Expression;
+                break;
+            case MirIfStatement conditional:
+                yield return conditional.Condition;
+                foreach (MirExpression nested in EnumerateStatements(conditional.ThenStatements)) yield return nested;
+                if (conditional.ElseStatements is not null) foreach (MirExpression nested in EnumerateStatements(conditional.ElseStatements)) yield return nested;
+                break;
+            case MirWhileStatement loop:
+                yield return loop.Condition;
+                foreach (MirExpression nested in EnumerateStatements(loop.BodyStatements)) yield return nested;
+                break;
+            case MirForStatement loop:
+                if (loop.Initializer is not null) foreach (MirExpression nested in EnumerateStatementExpressions(loop.Initializer)) yield return nested;
+                if (loop.Condition is not null) yield return loop.Condition;
+                if (loop.Increment is not null) yield return loop.Increment;
+                foreach (MirExpression nested in EnumerateStatements(loop.BodyStatements)) yield return nested;
+                break;
+        }
+    }
+
+    private static IEnumerable<MirExpression> EnumerateStatements(IEnumerable<MirStatement> statements)
+    {
+        foreach (MirStatement statement in statements)
+        {
+            foreach (MirExpression expression in EnumerateStatementExpressions(statement)) yield return expression;
+        }
+    }
+
+    private static IEnumerable<MirAwaitExpression> EnumerateAwaits(MirExpression expression)
+    {
+        if (expression is MirAwaitExpression awaitExpression)
+        {
+            yield return awaitExpression;
+        }
+
+        foreach (MirExpression child in EnumerateChildExpressions(expression))
+        {
+            foreach (MirAwaitExpression nested in EnumerateAwaits(child))
+            {
+                yield return nested;
+            }
+        }
+    }
+
+    private static IEnumerable<MirExpression> EnumerateChildExpressions(MirExpression expression)
+    {
+        switch (expression)
+        {
+            case MirAssignmentExpression assignment:
+                yield return assignment.Expression;
+                break;
+            case MirUnaryExpression unary:
+                yield return unary.Operand;
+                break;
+            case MirAwaitExpression awaited:
+                yield return awaited.Operand;
+                break;
+            case MirBinaryExpression binary:
+                yield return binary.Left;
+                yield return binary.Right;
+                break;
+            case MirCallExpression call:
+                foreach (MirExpression argument in call.Arguments) yield return argument;
+                break;
+            case MirCallableConstructionExpression construction:
+                foreach (MirExpression capture in construction.Captures) yield return capture;
+                break;
+            case MirInvokeExpression invoke:
+                yield return invoke.Callee;
+                foreach (MirExpression argument in invoke.Arguments) yield return argument;
+                break;
+            case MirArrayExpression array:
+                foreach (MirExpression element in array.Elements) yield return element;
+                break;
+            case MirRecordConstructionExpression construction:
+                foreach (MirRecordFieldValue initializer in construction.Initializers) yield return initializer.Value;
+                break;
+            case MirRecordFieldAccessExpression access:
+                yield return access.Receiver;
+                break;
+            case MirTableColumnAccessExpression access:
+                yield return access.Receiver;
+                break;
+            case MirTableRowAccessExpression access:
+                yield return access.Receiver;
+                yield return access.Index;
+                break;
+            case MirColumnElementAccessExpression access:
+                yield return access.Receiver;
+                yield return access.Index;
+                break;
+            case MirTableRowFieldAccessExpression access:
+                yield return access.Receiver;
+                break;
+            case MirRecordWithExpression withExpression:
+                yield return withExpression.Source;
+                foreach (MirRecordFieldValue replacement in withExpression.Replacements) yield return replacement.Value;
+                break;
+            case MirEnumValueExpression value:
+                foreach (MirExpression argument in value.Arguments) yield return argument;
+                break;
+            case MirMatchExpression match:
+                yield return match.Scrutinee;
+                foreach (MirMatchArm arm in match.Arms) yield return arm.Expression;
+                break;
+            case MirIfExpression conditional:
+                yield return conditional.Condition;
+                yield return conditional.ThenExpression;
+                yield return conditional.ElseExpression;
+                break;
+            case MirTsonEncodeExpression encode:
+                yield return encode.Operand;
+                break;
+            case MirOkExpression ok:
+                yield return ok.Payload;
+                break;
+            case MirErrExpression err:
+                yield return err.Payload;
+                break;
+            case MirResultMatchExpression match:
+                yield return match.Scrutinee;
+                yield return match.OkExpression;
+                yield return match.ErrExpression;
+                break;
+            case MirPropagateExpression propagation:
+                yield return propagation.Operand;
+                break;
+            case MirUnwrapExpression unwrap:
+                yield return unwrap.Operand;
+                break;
+            case MirTryExpression tryExpression:
+                foreach (MirExpression nested in EnumerateStatements(tryExpression.Protected.PrefixStatements)) yield return nested;
+                yield return tryExpression.Protected.ValueExpression;
+                foreach (MirExpression nested in EnumerateStatements(tryExpression.Handler.PrefixStatements)) yield return nested;
+                yield return tryExpression.Handler.ValueExpression;
+                break;
+        }
     }
 
     private static IReadOnlyList<MirStatement> LowerStatements(IReadOnlyList<BoundStatement> statements, Dictionary<string, MirLocal> locals)

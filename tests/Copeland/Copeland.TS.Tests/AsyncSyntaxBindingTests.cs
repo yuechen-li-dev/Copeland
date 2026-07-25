@@ -1,4 +1,5 @@
 using Copeland.TS.Compiler;
+using Copeland.TS.Mir;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
@@ -92,5 +93,32 @@ async function load(): number {
         Assert.Contains("async func load() -> number", compilation.MirText, StringComparison.Ordinal);
         Assert.Contains("await call read()", compilation.MirText, StringComparison.Ordinal);
         Assert.True(compilation.MirCompilation!.Program!.Functions.All(function => function.IsAsync));
+    }
+
+    [Fact]
+    public void AsyncSource_LowersAValidatedAutomatonWithSuspensionFrameSlots()
+    {
+        const string source = """
+async function read(value: number): number {
+    return value;
+}
+
+async function load(value: number): number {
+    const pending: Async<number> = read(value);
+    return await pending;
+}
+""";
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.Empty(compilation.Diagnostics);
+        MirFunction load = Assert.Single(compilation.MirCompilation!.Program!.Functions, function => function.Name == "load");
+        MirSuspensionAutomaton automaton = Assert.IsType<MirSuspensionAutomaton>(load.SuspensionAutomaton);
+        Assert.Contains(automaton.FrameSlots, slot => slot.Id.Value == "parameter_value");
+        Assert.Contains(automaton.FrameSlots, slot => slot.Id.Value == "local_pending");
+        Assert.Contains(automaton.States, state => state is MirAwaitSuspensionAutomatonState);
+        MirAsyncExecutionPlan executionPlan = Assert.IsType<MirAsyncExecutionPlan>(automaton.ExecutionPlan);
+        Assert.Contains(executionPlan.States, state => state is MirAsyncStatementExecutionState);
+        Assert.Empty(MirValidator.Validate(compilation.MirCompilation.Program));
     }
 }

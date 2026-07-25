@@ -13,6 +13,106 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class M0hRuntimeTests
 {
     [Fact]
+    public void Executes_explicit_async_state_machine_and_reuses_completed_result()
+    {
+        var assembly = CompileCopelandSource("""
+            async function read(value: number): number { return value + 1; }
+            async function load(value: number): number {
+                const pending: Async<number> = read(value);
+                const result: number = await pending;
+                return result + 1;
+            }
+            """);
+
+        object computation = Assert.IsAssignableFrom<object>(GeneratedModuleInvoker.Invoke(assembly, "load", 40.0));
+        Type computationType = computation.GetType();
+        Assert.True(Assert.IsType<bool>(computationType.GetProperty("IsCompleted")!.GetValue(computation)));
+        Assert.Equal(42.0, Assert.IsType<double>(computationType.GetProperty("Value")!.GetValue(computation)));
+        Assert.Equal(42.0, Assert.IsType<double>(computationType.GetProperty("Value")!.GetValue(computation)));
+    }
+
+    [Fact]
+    public void Async_await_preserves_a_typed_result_value()
+    {
+        var assembly = CompileCopelandSource("""
+            async function parse(value: number): number ! ParseError { return value + 1; }
+            async function load(value: number): number ! ParseError {
+                const pending: Async<number ! ParseError> = parse(value);
+                return await pending;
+            }
+            """);
+
+        object computation = Assert.IsAssignableFrom<object>(GeneratedModuleInvoker.Invoke(assembly, "load", 41.0));
+        object result = Assert.IsAssignableFrom<object>(computation.GetType().GetProperty("Value")!.GetValue(computation));
+        Assert.True(Assert.IsType<bool>(result.GetType().GetProperty("IsOk")!.GetValue(result)));
+        Assert.Equal(42.0, Assert.IsType<double>(result.GetType().GetProperty("Value")!.GetValue(result)));
+    }
+
+    [Fact]
+    public void Async_await_question_propagates_result_success_and_error()
+    {
+        var assembly = CompileCopelandSource("""
+            async function parse(value: number): number ! string {
+                if (value < 0) { return err("negative"); }
+                return value + 1;
+            }
+            async function load(value: number): number ! string {
+                const pending: Async<number ! string> = parse(value);
+                const parsed: number = await pending?;
+                return parsed + 1;
+            }
+            """);
+
+        object successful = GeneratedModuleInvoker.Invoke(assembly, "load", 40.0)!;
+        object successfulResult = successful.GetType().GetProperty("Value")!.GetValue(successful)!;
+        CopeResultAssertions.AssertCopeResultOk(successfulResult, 42.0);
+
+        object failed = GeneratedModuleInvoker.Invoke(assembly, "load", -1.0)!;
+        object failedResult = failed.GetType().GetProperty("Value")!.GetValue(failed)!;
+        CopeResultAssertions.AssertCopeResultErr(failedResult, "negative");
+    }
+
+    [Fact]
+    public void Async_await_states_use_their_own_typed_frame_slots()
+    {
+        var assembly = CompileCopelandSource("""
+            async function count(): number { return 1; }
+            async function label(): string { return "ready"; }
+            async function combine(): string {
+                const quantity: number = await count();
+                const text: string = await label();
+                return text;
+            }
+            """);
+
+        object computation = GeneratedModuleInvoker.Invoke(assembly, "combine")!;
+
+        Assert.Equal("ready", computation.GetType().GetProperty("Value")!.GetValue(computation));
+    }
+
+    [Fact]
+    public void Internal_async_pending_seam_arbitrates_terminal_outcomes_once()
+    {
+        var assembly = CompileCopelandSource("async function value(): number { return 1; }");
+        Type factory = assembly.GetType("Copeland.Generated.CopeAsyncPending")!;
+        MethodInfo create = factory.GetMethod("Create", BindingFlags.Static | BindingFlags.NonPublic)!.MakeGenericMethod(typeof(double));
+        object pending = create.Invoke(null, null)!;
+        int resumed = 0;
+        int cancelled = 0;
+        Type pendingType = pending.GetType();
+        pendingType.GetMethod("Subscribe")!.Invoke(pending, [new Action(() => resumed++), new Action(() => cancelled++), new Action(() => throw new InvalidOperationException("unexpected panic"))]);
+        pendingType.GetMethod("Cancel")!.Invoke(pending, null);
+        pendingType.GetMethod("Resolve")!.Invoke(pending, [99.0]);
+        pendingType.GetMethod("Cancel")!.Invoke(pending, null);
+
+        Assert.True(Assert.IsType<bool>(pendingType.GetProperty("IsCompleted")!.GetValue(pending)));
+        Assert.True(Assert.IsType<bool>(pendingType.GetProperty("IsCancelled")!.GetValue(pending)));
+        Assert.False(Assert.IsType<bool>(pendingType.GetProperty("IsPanicked")!.GetValue(pending)));
+        Assert.Equal(0, resumed);
+        Assert.Equal(1, cancelled);
+    }
+
+    [Fact]
     public void Executes_Nominal_Union_Contextual_Construction_And_Match()
     {
         var assembly = CompileCopelandSource("""

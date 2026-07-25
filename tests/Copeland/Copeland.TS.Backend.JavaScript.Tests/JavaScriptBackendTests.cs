@@ -13,6 +13,30 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptBackendTests
 {
     [Fact]
+    public void Async_if_control_flow_emits_explicit_state_transition()
+    {
+        JavaScriptCompilation compilation = Emit("""
+            async function value(flag: boolean): number {
+                if (flag) { return 1; }
+                return 2;
+            }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("frame.state = frame.flag ?", compilation.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Synchronous_program_does_not_emit_async_runtime()
+    {
+        JavaScriptCompilation compilation = Emit("function value(): number { return 1; }");
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.DoesNotContain("__cope_async", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("frame.state", compilation.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Control_flow_emits_structured_if_while_for_and_transfers()
     {
         JavaScriptCompilation compilation = Emit("""

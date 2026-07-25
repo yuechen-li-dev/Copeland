@@ -13,6 +13,30 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
+    public void Async_if_control_flow_emits_explicit_state_transition()
+    {
+        CSharpCompilation compilation = CSharpBackend.Emit(Lower("""
+            async function value(flag: boolean): number {
+                if (flag) { return 1; }
+                return 2;
+            }
+            """));
+
+        Assert.Empty(compilation.Diagnostics);
+        Assert.Contains("frame.State = frame.flag ?", compilation.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Synchronous_program_does_not_emit_async_runtime()
+    {
+        CSharpCompilation compilation = CSharpBackend.Emit(Lower("function value(): number { return 1; }"));
+
+        Assert.Empty(compilation.Diagnostics);
+        Assert.DoesNotContain("CopeAsync", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("__CopeAsyncFrame", compilation.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pure_class_lowers_to_a_sealed_complete_carrier_and_static_functions()
     {
         var program = Lower("""

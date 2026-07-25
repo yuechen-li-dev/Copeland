@@ -10,6 +10,227 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_propagates_a_result_after_await_without_host_rejection()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function parse(value: number): number ! string { return value + 1; }
+            async function load(value: number): number ! string {
+                const pending: Async<number ! string> = parse(value);
+                const parsed: number = await pending?;
+                return parsed + 1;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "const result = load(40).value; console.log(result.$tag); console.log(result.$payload[0]);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("ok\n42\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_propagates_a_result_error_after_await_without_host_rejection()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function parse(value: number): number ! string {
+                if (value < 0) { return err("negative"); }
+                return value + 1;
+            }
+            async function load(value: number): number ! string {
+                const pending: Async<number ! string> = parse(value);
+                const parsed: number = await pending?;
+                return parsed + 1;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "const result = load(-1).value; console.log(result.$tag); console.log(result.$payload[0]);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("err\nnegative\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_executes_async_for_with_continue_through_increment_state()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function count(): number {
+                let total: number = 0;
+                for (let index: number = 0; index < 5; index = index + 1) {
+                    if (index == 2) { continue; }
+                    total = total + index;
+                }
+                return total;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(count().value);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("8\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_executes_async_while_with_explicit_loop_state()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function count(): number {
+                let value: number = 0;
+                while (value < 3) { value = value + 1; }
+                return value;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(count().value);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("3\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_resumes_an_await_inside_an_explicit_loop_state()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function next(value: number): number { return value + 1; }
+            async function count(): number {
+                let value: number = 0;
+                while (value < 3) {
+                    const pending: Async<number> = next(value);
+                    value = await pending;
+                }
+                return value;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(count().value);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("3\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_executes_async_loop_break_and_continue_as_state_jumps()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function count(): number {
+                let value: number = 0;
+                let total: number = 0;
+                while (value < 5) {
+                    value = value + 1;
+                    if (value == 2) { continue; }
+                    if (value == 4) { break; }
+                    total = total + value;
+                }
+                return total;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(count().value);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("4\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_executes_async_if_through_explicit_state_transition()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function choose(flag: boolean): number {
+                if (flag) { return 1; }
+                return 2;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(choose(true).value); console.log(choose(false).value);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("1\n2\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Internal_async_pending_seam_arbitrates_terminal_outcomes_once()
+    {
+        JavaScriptCompilation emitted = Emit("async function value(): number { return 1; }");
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+
+        const string suffix = """
+            const pending = __cope_async_pending();
+            let resumed = 0;
+            let cancelled = 0;
+            pending.subscribe(() => resumed += 1, () => cancelled += 1, () => { throw new Error("unexpected panic"); });
+            pending.cancel();
+            pending.resolve(99);
+            pending.cancel();
+            console.log(pending.completed);
+            console.log(pending.cancelled);
+            console.log(pending.panicked);
+            console.log(resumed);
+            console.log(cancelled);
+            """;
+
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + suffix);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("true\ntrue\nfalse\n0\n1\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_executes_explicit_async_state_machine_in_both_profiles()
+    {
+        const string source = """
+            async function read(value: number): number { return value + 1; }
+            async function load(value: number): number {
+                const pending: Async<number> = read(value);
+                const result: number = await pending;
+                return result + 1;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation diagnostic = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation symbolic = JavaScriptBackend.Emit(compilation.MirCompilation.Program!, new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
+        Assert.True(diagnostic.Success, string.Join(Environment.NewLine, diagnostic.Diagnostics));
+        Assert.True(symbolic.Success, string.Join(Environment.NewLine, symbolic.Diagnostics));
+        Assert.Contains("switch (frame.state)", diagnostic.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("async function", diagnostic.SourceText, StringComparison.Ordinal);
+
+        const string suffix = """
+            const pending = load(40);
+            console.log(pending.completed);
+            console.log(pending.value);
+            console.log(pending.value);
+            const delayed = __cope_async_pending();
+            read = () => delayed;
+            const suspended = load(40);
+            console.log(suspended.completed);
+            delayed.cancel();
+            console.log(suspended.completed);
+            console.log(suspended.cancelled);
+            """;
+        ProcessResult diagnosticResult = await RunNodeAsync(diagnostic.SourceText + suffix);
+        ProcessResult symbolicResult = await RunNodeAsync(symbolic.SourceText + suffix);
+
+        Assert.Equal(0, diagnosticResult.ExitCode);
+        Assert.Equal("true\n42\n42\nfalse\ntrue\ntrue\n", diagnosticResult.StdOut);
+        Assert.Equal(string.Empty, diagnosticResult.StdErr);
+        Assert.Equal(diagnosticResult, symbolicResult);
+    }
+
+    [Fact]
     public async Task Node_executes_lifted_noncapturing_arrows_with_the_callable_carrier()
     {
         JavaScriptCompilation emitted = Emit("""
