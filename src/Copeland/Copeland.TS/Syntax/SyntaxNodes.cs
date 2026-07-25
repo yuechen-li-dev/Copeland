@@ -71,6 +71,23 @@ public sealed record ArrayTypeSyntax(TypeSyntax ElementType, SyntaxToken OpenBra
     }
 }
 
+public sealed record AsyncTypeSyntax(
+    SyntaxToken AsyncKeyword,
+    SyntaxToken LessToken,
+    TypeSyntax EventualType,
+    SyntaxToken GreaterToken) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.AsyncType;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return AsyncKeyword;
+        yield return LessToken;
+        yield return EventualType;
+        yield return GreaterToken;
+    }
+}
+
 public sealed record TypeAliasDeclarationSyntax(
     SyntaxToken TypeKeyword,
     SyntaxToken Identifier,
@@ -286,6 +303,7 @@ public sealed record ParameterSyntax(SyntaxToken Identifier, SyntaxToken? ColonT
 }
 
 public sealed record FunctionDeclarationSyntax(
+    SyntaxToken? AsyncKeyword,
     SyntaxToken FunctionKeyword,
     SyntaxToken Identifier,
     SyntaxToken? LessToken,
@@ -304,6 +322,7 @@ public sealed record FunctionDeclarationSyntax(
 
     public override IEnumerable<object> GetChildren()
     {
+        if (AsyncKeyword is not null) yield return AsyncKeyword;
         yield return FunctionKeyword;
         yield return Identifier;
         if (LessToken is not null) yield return LessToken;
@@ -1081,6 +1100,17 @@ public sealed record UnwrapExpressionSyntax(ExpressionSyntax Operand, SyntaxToke
     {
         yield return Operand;
         yield return BangToken;
+    }
+}
+
+public sealed record AwaitExpressionSyntax(SyntaxToken AwaitKeyword, ExpressionSyntax Operand) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.AwaitExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return AwaitKeyword;
+        yield return Operand;
     }
 }
 

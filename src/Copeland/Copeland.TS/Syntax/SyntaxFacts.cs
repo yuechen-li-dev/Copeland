@@ -33,6 +33,8 @@ public static class SyntaxFacts
             ["except"] = SyntaxKind.ExceptKeyword,
             ["break"] = SyntaxKind.BreakKeyword,
             ["continue"] = SyntaxKind.ContinueKeyword,
+            ["async"] = SyntaxKind.AsyncKeyword,
+            ["await"] = SyntaxKind.AwaitKeyword,
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     public static SyntaxKind GetKeywordKind(string text)
@@ -116,6 +118,8 @@ public static class SyntaxFacts
             SyntaxKind.ExceptKeyword => "except",
             SyntaxKind.BreakKeyword => "break",
             SyntaxKind.ContinueKeyword => "continue",
+            SyntaxKind.AsyncKeyword => "async",
+            SyntaxKind.AwaitKeyword => "await",
             SyntaxKind.ClassKeyword => "class",
             SyntaxKind.ConstructorKeyword => "constructor",
             SyntaxKind.PublicKeyword => "public",

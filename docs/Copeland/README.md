@@ -6,6 +6,8 @@ Copeland is the compiler workshop for Visionary. It hosts compiler lanes, shared
 
 - [CTS-AUTOMATA-M0a Suspension Automata Design](architecture/copeland-ts-suspension-automata-design-cts-automata-m0a.md)
 - [CTS-AUTOMATA-M0a Cross-Repository Audit](../migrations/cts-automata-m0a-dominatus-deusmachina-octomata-audit.md)
+- [CTS-ASYNC-M1 Typed Async and Suspension Automata](architecture/copeland-ts-async-and-suspension-automata-cts-async-m1.md)
+- [CTS-ASYNC-M1 Migration Record](../migrations/cts-async-m1-typed-async-await-and-automata.md)
 - [CTS-SIDECAR-M0a Runtime-Partition Sidecar Interop Design](language/copeland-ts-sidecar-interop-design-cts-sidecar-m0a.md)
 - [CTS-SIDECAR-M0a Octxiliary and Runtime-Partition Audit](../migrations/cts-sidecar-m0a-octxiliary-and-runtime-partition-audit.md)
 

@@ -261,12 +261,21 @@ public sealed class MirEnumPayloadField(string name, MirType type)
     public MirType Type { get; } = type;
 }
 
-public sealed class MirFunction(string name, IReadOnlyList<MirParameter> parameters, MirType returnType, IReadOnlyList<MirLocal> locals, IReadOnlyList<MirStatement> body)
+public sealed class MirFunction(
+    string name,
+    IReadOnlyList<MirParameter> parameters,
+    MirType returnType,
+    IReadOnlyList<MirLocal> locals,
+    IReadOnlyList<MirStatement> body,
+    bool isAsync = false,
+    MirSuspensionAutomaton? suspensionAutomaton = null)
 {
     public string Name { get; } = name;
     public IReadOnlyList<MirParameter> Parameters { get; } = parameters;
     public MirType ReturnType { get; } = returnType;
     public bool IsFallible => ReturnType is MirResultType;
+    public bool IsAsync { get; } = isAsync;
+    public MirSuspensionAutomaton? SuspensionAutomaton { get; } = suspensionAutomaton;
     public IReadOnlyList<MirLocal> Locals { get; } = locals;
     public IReadOnlyList<MirStatement> Body { get; } = body;
 }
@@ -299,10 +308,23 @@ public sealed record MirTableRowType(string RowTypeId, string DisplayName) : Mir
 public sealed record MirColumnType(MirType ElementType) : MirType("column") { public override string Name => "column " + ElementType.Name; }
 public sealed record MirArrayType(MirType ElementType) : MirType("array") { public override string Name => MirTypeText.FormatArrayElement(ElementType) + "[]"; }
 public sealed record MirResultType(MirType SuccessType, MirType ErrorType) : MirType("result") { public override string Name => $"{MirTypeText.FormatResultComponent(SuccessType)} ! {ErrorType.Name}"; }
+/// <summary>
+/// A compiler-owned asynchronous computation. This is deliberately not a host
+/// Task or Promise type: its eventual value is completed by a Copeland
+/// suspension automaton.
+/// </summary>
+public sealed record MirAsyncType(MirType EventualType) : MirType("async")
+{
+    public override string Name => $"Async<{EventualType.Name}>";
+}
 public sealed record MirCallableParameter(string Name, MirType Type);
 public sealed record MirCallableType(IReadOnlyList<MirCallableParameter> Parameters, MirType ReturnType) : MirType("callable")
 {
     public override string Name => "(" + string.Join(", ", Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + ") => " + ReturnType.Name;
+}
+public sealed record MirAsyncCallableType(IReadOnlyList<MirCallableParameter> Parameters, MirType EventualReturnType) : MirType("async-callable")
+{
+    public override string Name => "async (" + string.Join(", ", Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + ") => " + EventualReturnType.Name;
 }
 
 public static class MirTypeFacts
@@ -318,9 +340,13 @@ public static class MirTypeFacts
             (MirCallableType leftCallable, MirCallableType rightCallable) => leftCallable.Parameters.Count == rightCallable.Parameters.Count
                 && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))
                 && AreEquivalent(leftCallable.ReturnType, rightCallable.ReturnType),
-            (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType && right is not MirArrayType and not MirResultType => leftNamed.Identifier == rightNamed.Identifier,
+            (MirAsyncCallableType leftCallable, MirAsyncCallableType rightCallable) => leftCallable.Parameters.Count == rightCallable.Parameters.Count
+                && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))
+                && AreEquivalent(leftCallable.EventualReturnType, rightCallable.EventualReturnType),
+            (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType and not MirAsyncType && right is not MirArrayType and not MirResultType and not MirAsyncType => leftNamed.Identifier == rightNamed.Identifier,
             (MirArrayType leftArray, MirArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (MirResultType leftResult, MirResultType rightResult) => AreEquivalent(leftResult.SuccessType, rightResult.SuccessType) && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
+            (MirAsyncType leftAsync, MirAsyncType rightAsync) => AreEquivalent(leftAsync.EventualType, rightAsync.EventualType),
             _ => false
         };
 
@@ -328,16 +354,18 @@ public static class MirTypeFacts
         => type switch
         {
             MirResultType => true,
+            MirAsyncType async => ContainsResult(async.EventualType),
             MirArrayType array => ContainsResult(array.ElementType),
             MirCallableType callable => callable.Parameters.Any(parameter => ContainsResult(parameter.Type)) || ContainsResult(callable.ReturnType),
+            MirAsyncCallableType callable => callable.Parameters.Any(parameter => ContainsResult(parameter.Type)) || ContainsResult(callable.EventualReturnType),
             _ => false
         };
 }
 
 public static class MirTypeText
 {
-    public static string FormatArrayElement(MirType type) => type is MirResultType or MirCallableType ? $"({type.Name})" : type.Name;
-    public static string FormatResultComponent(MirType type) => type is MirResultType or MirCallableType ? $"({type.Name})" : type.Name;
+    public static string FormatArrayElement(MirType type) => type is MirResultType or MirCallableType or MirAsyncCallableType ? $"({type.Name})" : type.Name;
+    public static string FormatResultComponent(MirType type) => type is MirResultType or MirCallableType or MirAsyncCallableType ? $"({type.Name})" : type.Name;
 }
 
 public abstract record MirExpression(MirType Type);
@@ -346,6 +374,7 @@ public sealed record MirUnitExpression() : MirExpression(new MirNamedType("void"
 public sealed record MirVariableExpression(string Name, MirType Type) : MirExpression(Type);
 public sealed record MirAssignmentExpression(string Name, MirExpression Expression, MirType Type) : MirExpression(Type);
 public sealed record MirUnaryExpression(string Operator, MirExpression Operand, MirType Type) : MirExpression(Type);
+public sealed record MirAwaitExpression(MirExpression Operand, MirType Type) : MirExpression(Type);
 public sealed record MirBinaryExpression(string Operator, MirExpression Left, MirExpression Right, MirType Type) : MirExpression(Type);
 public sealed record MirCallExpression(string FunctionName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirFunctionReferenceExpression(string FunctionName, MirCallableType CallableType) : MirExpression(CallableType);

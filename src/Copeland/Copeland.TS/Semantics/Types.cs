@@ -35,6 +35,13 @@ public sealed class ResultTypeSymbol(TypeSymbol successType, TypeSymbol errorTyp
     public override string Name => $"{TypeText.FormatResultComponent(SuccessType)} ! {ErrorType.Name}";
 }
 
+public sealed class AsyncTypeSymbol(TypeSymbol eventualType) : TypeSymbol
+{
+    public TypeSymbol EventualType { get; } = eventualType;
+
+    public override string Name => $"Async<{EventualType.Name}>";
+}
+
 public sealed class CallableTypeSymbol(IReadOnlyList<CallableParameterTypeSymbol> parameters, TypeSymbol returnType) : TypeSymbol
 {
     public IReadOnlyList<CallableParameterTypeSymbol> Parameters { get; } = parameters;
@@ -168,6 +175,8 @@ public static class TypeFacts
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
                 AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)
                 && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
+            (AsyncTypeSymbol leftAsync, AsyncTypeSymbol rightAsync) =>
+                AreEquivalent(leftAsync.EventualType, rightAsync.EventualType),
             (CallableTypeSymbol leftCallable, CallableTypeSymbol rightCallable) =>
                 leftCallable.Parameters.Count == rightCallable.Parameters.Count
                 && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))

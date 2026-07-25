@@ -1,6 +1,6 @@
 # Copeland TS suspension automata (CTS-AUTOMATA-M0a)
 
-**Status:** architecture and audit decision only. This document adds no source syntax, MIR node, runtime, package, or backend behavior.
+**Status:** architecture and audit decision. CTS-ASYNC-M1 has begun by adding the compiler-local MIR automaton contract and shared validation; it has not yet added source syntax or backend runtime behavior. See [CTS-ASYNC-M1](copeland-ts-async-and-suspension-automata-cts-async-m1.md).
 
 ## 1. Problem statement
 

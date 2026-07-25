@@ -1629,7 +1629,8 @@ public static class Binder
                     ps,
                     rt,
                     GetAuthoredAliasName(m.ReturnType),
-                    CreateFunctionStableIdentity(m.Identifier.Text))
+                    CreateFunctionStableIdentity(m.Identifier.Text),
+                    m.AsyncKeyword is not null)
                 {
                     TypeParameters = typeParameters
                 };
@@ -2170,6 +2171,7 @@ public static class Binder
                 PropagateExpressionSyntax p => BindPropagate(p),
                 UnwrapExpressionSyntax u => BindUnwrap(u),
                 TryExceptExpressionSyntax t => BindTryExcept(t, contextualType),
+                AwaitExpressionSyntax a => BindAwait(a),
                 UnaryExpressionSyntax u => BindUnary(u),
                 BinaryExpressionSyntax b => BindBinary(b),
                 AssignmentExpressionSyntax a => BindAssignment(a),
@@ -2190,6 +2192,24 @@ public static class Binder
             };
 
             return InjectDirectNominalUnionCase(expression, contextualType);
+        }
+
+        private BoundExpression BindAwait(AwaitExpressionSyntax awaitExpression)
+        {
+            BoundExpression operand = BindExpression(awaitExpression.Operand);
+            if (_currentFunction?.IsAsync != true)
+            {
+                Report("COPE-ASYNC-0001", "'await' is valid only inside an async function.", awaitExpression.AwaitKeyword);
+                return new BoundErrorExpression();
+            }
+
+            if (operand.Type is not AsyncTypeSymbol asyncType)
+            {
+                Report("COPE-ASYNC-0002", $"'await' requires Async<T>, got '{operand.Type.Name}'.", awaitExpression.AwaitKeyword);
+                return new BoundErrorExpression();
+            }
+
+            return new BoundAwaitExpression(operand, asyncType.EventualType);
         }
 
         private BoundExpression BindUnsupportedClassExpression(UnsupportedExpressionSyntax expression)
@@ -2503,6 +2523,11 @@ public static class Binder
             var l = BindExpression(b.Left); var r = BindExpression(b.Right); var op = b.OperatorToken.Kind;
             if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken)
             {
+                if (l.Type is AsyncTypeSymbol || r.Type is AsyncTypeSymbol)
+                {
+                    Report("COPE-ASYNC-0003", "Equality is not supported for Async values.", b.OperatorToken);
+                    return new BoundErrorExpression();
+                }
                 if (l.Type is CallableTypeSymbol || r.Type is CallableTypeSymbol)
                 {
                     Report("COPE-CALL-0008", "Callable equality is not supported.", b.OperatorToken);
@@ -4871,6 +4896,7 @@ public static class Binder
                     _ => PrimitiveTypeSymbol.Error
                 },
                 ArrayTypeSyntax a => new ArrayTypeSymbol(BindType(a.ElementType, anchor, missingId, missingPrefix)),
+                AsyncTypeSyntax a => new AsyncTypeSymbol(BindType(a.EventualType, anchor, missingId, missingPrefix)),
                 ColumnTypeSyntax c => new ColumnTypeSymbol(BindType(c.ElementType, anchor, "COPE-TABLE-0019", "column element")),
                 CallableTypeSyntax c => BindCallableType(c, anchor, missingId, missingPrefix),
                 QualifiedRowTypeSyntax q => ResolveQualifiedRowType(q),

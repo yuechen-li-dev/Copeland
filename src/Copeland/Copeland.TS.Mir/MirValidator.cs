@@ -29,6 +29,8 @@ public static class MirValidator
             ValidateFunctionPropagationTargets(function.Body, function.ReturnType, diagnostics);
         }
 
+        MirSuspensionAutomatonValidator.Validate(program, diagnostics);
+
         return diagnostics;
     }
 

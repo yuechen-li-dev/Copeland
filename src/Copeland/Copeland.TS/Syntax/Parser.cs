@@ -77,7 +77,8 @@ public sealed class Parser
             var constKeyword = Match(SyntaxKind.ConstKeyword);
             return ParseRecordDeclaration(constKeyword);
         }
-        if (Current.Kind == SyntaxKind.FunctionKeyword)
+        if ((Current.Kind == SyntaxKind.AsyncKeyword && Peek(1).Kind == SyntaxKind.FunctionKeyword)
+            || Current.Kind == SyntaxKind.FunctionKeyword)
         {
             return ParseFunctionDeclaration();
         }
@@ -319,6 +320,7 @@ public sealed class Parser
 
     private FunctionDeclarationSyntax ParseFunctionDeclaration()
     {
+        SyntaxToken? asyncKeyword = Current.Kind == SyntaxKind.AsyncKeyword ? NextToken() : null;
         var functionKeyword = Match(SyntaxKind.FunctionKeyword);
         var identifier = Match(SyntaxKind.IdentifierToken);
         SyntaxToken? lessToken = null;
@@ -384,7 +386,7 @@ public sealed class Parser
             returnType = ParseTypeSyntax();
         }
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(functionKeyword, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
+        return new FunctionDeclarationSyntax(asyncKeyword, functionKeyword, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
     }
 
     private InterfaceDeclarationSyntax ParseInterfaceDeclaration()
@@ -929,6 +931,7 @@ public sealed class Parser
         {
             SyntaxKind.NumberKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
                 => new PredefinedTypeSyntax(NextToken()),
+            SyntaxKind.IdentifierToken when Current.Text == "Async" => ParseAsyncTypeSyntax(),
             SyntaxKind.IdentifierToken => ParseIdentifierOrQualifiedRowType(),
             SyntaxKind.ColumnKeyword => new ColumnTypeSyntax(NextToken(), ParsePostfixTypeSyntax()),
             SyntaxKind.OpenParenToken when IsCallableTypeAhead()
@@ -998,6 +1001,15 @@ public sealed class Parser
             return new QualifiedRowTypeSyntax(identifier, dot, Match(SyntaxKind.IdentifierToken));
         }
         return new IdentifierTypeSyntax(identifier);
+    }
+
+    private AsyncTypeSyntax ParseAsyncTypeSyntax()
+    {
+        var asyncKeyword = Match(SyntaxKind.IdentifierToken);
+        var lessToken = Match(SyntaxKind.LessToken);
+        var eventualType = ParseTypeSyntax();
+        var greaterToken = Match(SyntaxKind.GreaterToken);
+        return new AsyncTypeSyntax(asyncKeyword, lessToken, eventualType, greaterToken);
     }
 
     private ParenthesizedTypeSyntax ParseParenthesizedTypeSyntax()
@@ -1283,6 +1295,7 @@ public sealed class Parser
         }
         return Current.Kind switch
         {
+            SyntaxKind.AwaitKeyword => new AwaitExpressionSyntax(NextToken(), ParseAwaitOperand()),
             SyntaxKind.OpenParenToken when IsArrowExpressionAhead() => ParseArrowExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword or SyntaxKind.NullKeyword or SyntaxKind.NumberToken or SyntaxKind.StringToken => new LiteralExpressionSyntax(NextToken()),
@@ -1296,6 +1309,33 @@ public sealed class Parser
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+    }
+
+    private ExpressionSyntax ParseAwaitOperand()
+    {
+        ExpressionSyntax expression = Current.Kind == SyntaxKind.AwaitKeyword
+            ? new AwaitExpressionSyntax(NextToken(), ParseAwaitOperand())
+            : ParsePrimaryExpression();
+
+        while (Current.Kind is SyntaxKind.OpenParenToken or SyntaxKind.DotToken or SyntaxKind.OpenBracketToken)
+        {
+            if (Current.Kind == SyntaxKind.OpenParenToken)
+            {
+                expression = ParseCallExpression(expression);
+            }
+            else if (Current.Kind == SyntaxKind.DotToken)
+            {
+                var dot = Match(SyntaxKind.DotToken);
+                expression = new MemberAccessExpressionSyntax(expression, dot, Match(SyntaxKind.IdentifierToken));
+            }
+            else
+            {
+                var open = Match(SyntaxKind.OpenBracketToken);
+                expression = new IndexExpressionSyntax(expression, open, ParseExpression(), Match(SyntaxKind.CloseBracketToken));
+            }
+        }
+
+        return expression;
     }
 
     private ExpressionSyntax ParseForbiddenClassExpression()

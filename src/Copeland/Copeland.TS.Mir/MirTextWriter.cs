@@ -88,7 +88,7 @@ public static class MirTextWriter
         foreach (var function in program.Functions)
         {
             sb.AppendLine();
-            sb.Append("func ").Append(function.Name).Append('(');
+            sb.Append(function.IsAsync ? "async func " : "func ").Append(function.Name).Append('(');
             sb.Append(string.Join(", ", function.Parameters.Select(p => $"{p.Name}: {p.Type.Name}")));
             sb.Append(") -> ").Append(function.ReturnType.Name).AppendLine();
             if (function.Locals.Count > 0)
@@ -171,6 +171,7 @@ public static class MirTextWriter
         MirVariableExpression v => v.Name,
         MirAssignmentExpression a => $"{a.Name} = {FormatExpression(a.Expression)}",
         MirUnaryExpression u => $"({u.Operator}{FormatExpression(u.Operand)})",
+        MirAwaitExpression awaitExpression => $"await {FormatExpression(awaitExpression.Operand)}",
         MirBinaryExpression b => $"({FormatExpression(b.Left)} {b.Operator} {FormatExpression(b.Right)})",
         MirUnitExpression => "unit",
         MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",

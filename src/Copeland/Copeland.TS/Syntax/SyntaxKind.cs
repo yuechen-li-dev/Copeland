@@ -92,6 +92,8 @@ public enum SyntaxKind
     ReadonlyKeyword,
     GetKeyword,
     SetKeyword,
+    AsyncKeyword,
+    AwaitKeyword,
 
     // Nodes
     CompilationUnit,
@@ -123,6 +125,7 @@ public enum SyntaxKind
     ResultType,
     QualifiedRowType,
     ColumnType,
+    AsyncType,
     GenericCallExpression,
     GenericFunctionReferenceExpression,
     BlockStatement,
@@ -140,6 +143,7 @@ public enum SyntaxKind
     LiteralExpression,
     ParenthesizedExpression,
     UnaryExpression,
+    AwaitExpression,
     BinaryExpression,
     AssignmentExpression,
     CallExpression,

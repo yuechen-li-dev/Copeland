@@ -172,7 +172,8 @@ public static class MirLowerer
             function.Symbol.Parameters.Select(p => new MirParameter(p.Name, ToMirType(p.Type))).ToArray(),
             ToMirType(function.Symbol.ReturnType),
             locals.Values.OrderBy(l => l.Name, StringComparer.Ordinal).ToArray(),
-            body);
+            body,
+            function.Symbol.IsAsync);
     }
 
     private static IReadOnlyList<MirStatement> LowerStatements(IReadOnlyList<BoundStatement> statements, Dictionary<string, MirLocal> locals)
@@ -209,6 +210,7 @@ public static class MirLowerer
             BoundVariableExpression v => new MirVariableExpression(v.Variable.Name, ToMirType(v.Type)),
             BoundAssignmentExpression a => new MirAssignmentExpression(a.Variable.Name, LowerExpression(a.Expression), ToMirType(a.Type)),
             BoundUnaryExpression u => new MirUnaryExpression(OperatorName(u.OperatorKind), LowerExpression(u.Operand), ToMirType(u.Type)),
+            BoundAwaitExpression a => new MirAwaitExpression(LowerExpression(a.Operand), ToMirType(a.Type)),
             BoundBinaryExpression b => new MirBinaryExpression(OperatorName(b.OperatorKind), LowerExpression(b.Left), LowerExpression(b.Right), ToMirType(b.Type)),
             BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type)),
             BoundFunctionReferenceExpression reference => new MirFunctionReferenceExpression(reference.Function.Name, (MirCallableType)ToMirType(reference.Type)),
@@ -280,6 +282,7 @@ public static class MirLowerer
     private static MirType ToMirType(TypeSymbol type) => type switch
     {
         ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
+        AsyncTypeSymbol async => new MirAsyncType(ToMirType(async.EventualType)),
         ResultTypeSymbol result => new MirResultType(ToMirType(result.SuccessType), ToMirType(result.ErrorType)),
         CallableTypeSymbol callable => new MirCallableType(callable.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(), ToMirType(callable.ReturnType)),
         RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.Name),
