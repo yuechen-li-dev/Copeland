@@ -73,6 +73,51 @@ public sealed class M0hRuntimeTests
     }
 
     [Fact]
+    public void Async_await_question_composes_with_a_return_expression()
+    {
+        var assembly = CompileCopelandSource("""
+            async function parse(value: number): number ! string {
+                if (value < 0) { return err("negative"); }
+                return value + 1;
+            }
+            async function load(value: number): number ! string {
+                return (await parse(value)?) + 1;
+            }
+            """);
+
+        object successful = GeneratedModuleInvoker.Invoke(assembly, "load", 40.0)!;
+        CopeResultAssertions.AssertCopeResultOk(successful.GetType().GetProperty("Value")!.GetValue(successful)!, 42.0);
+
+        object failed = GeneratedModuleInvoker.Invoke(assembly, "load", -1.0)!;
+        CopeResultAssertions.AssertCopeResultErr(failed.GetType().GetProperty("Value")!.GetValue(failed)!, "negative");
+    }
+
+    [Fact]
+    public void Async_try_except_recovers_a_typed_result_after_await()
+    {
+        var assembly = CompileCopelandSource("""
+            async function parse(value: number): number ! string {
+                if (value < 0) { return err("negative"); }
+                return value + 1;
+            }
+            async function load(value: number): number {
+                return try {
+                    const parsed: number = await parse(value)?;
+                    parsed + 1
+                } except (error) {
+                    0
+                };
+            }
+            """);
+
+        object successful = GeneratedModuleInvoker.Invoke(assembly, "load", 40.0)!;
+        object recovered = GeneratedModuleInvoker.Invoke(assembly, "load", -1.0)!;
+
+        Assert.Equal(42.0, successful.GetType().GetProperty("Value")!.GetValue(successful));
+        Assert.Equal(0.0, recovered.GetType().GetProperty("Value")!.GetValue(recovered));
+    }
+
+    [Fact]
     public void Async_await_states_use_their_own_typed_frame_slots()
     {
         var assembly = CompileCopelandSource("""
@@ -88,6 +133,40 @@ public sealed class M0hRuntimeTests
         object computation = GeneratedModuleInvoker.Invoke(assembly, "combine")!;
 
         Assert.Equal("ready", computation.GetType().GetProperty("Value")!.GetValue(computation));
+    }
+
+    [Fact]
+    public void Async_nested_await_expressions_preserve_operand_order()
+    {
+        var assembly = CompileCopelandSource("""
+            async function read(value: number): number { return value + 1; }
+            async function combine(value: number): number {
+                return (await read(value)) + (await read(1));
+            }
+            """);
+
+        object computation = GeneratedModuleInvoker.Invoke(assembly, "combine", 40.0)!;
+
+        Assert.Equal(43.0, computation.GetType().GetProperty("Value")!.GetValue(computation));
+    }
+
+    [Fact]
+    public void Async_await_in_a_loop_condition_reenters_the_condition_state()
+    {
+        var assembly = CompileCopelandSource("""
+            async function below(value: number): boolean { return value < 3; }
+            async function count(): number {
+                let value: number = 0;
+                while (await below(value)) {
+                    value = value + 1;
+                }
+                return value;
+            }
+            """);
+
+        object computation = GeneratedModuleInvoker.Invoke(assembly, "count")!;
+
+        Assert.Equal(3.0, computation.GetType().GetProperty("Value")!.GetValue(computation));
     }
 
     [Fact]

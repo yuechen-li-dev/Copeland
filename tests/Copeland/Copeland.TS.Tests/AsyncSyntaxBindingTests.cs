@@ -121,4 +121,54 @@ async function load(value: number): number {
         Assert.Contains(executionPlan.States, state => state is MirAsyncStatementExecutionState);
         Assert.Empty(MirValidator.Validate(compilation.MirCompilation.Program));
     }
+
+    [Fact]
+    public void NestedAwaitExpression_LowersToExplicitAwaitExecutionStates()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            async function read(value: number): number { return value + 1; }
+            async function load(value: number): number {
+                return (await read(value)) + 1;
+            }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        MirFunction load = Assert.Single(compilation.MirCompilation!.Program!.Functions, function => function.Name == "load");
+        MirAsyncExecutionPlan plan = Assert.IsType<MirAsyncExecutionPlan>(load.SuspensionAutomaton!.ExecutionPlan);
+        MirAsyncAwaitExecutionState awaitState = Assert.Single(plan.States.OfType<MirAsyncAwaitExecutionState>());
+
+        Assert.Contains(load.SuspensionAutomaton.FrameSlots, slot => slot.Id == awaitState.AwaitedComputationSlot && slot.Type is MirAsyncType);
+        Assert.Contains(load.SuspensionAutomaton.FrameSlots, slot => slot.Id == awaitState.ResumedValueSlot && slot.Type.Name == "number");
+        Assert.Contains(plan.States, state => state is MirAsyncReturnExecutionState { Statement.Expression: MirBinaryExpression });
+    }
+
+    [Fact]
+    public void AwaitedResultInsideTry_LowersToAnExplicitLexicalHandlerTransfer()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            async function parse(value: number): number ! string {
+                if (value < 0) { return err("negative"); }
+                return value + 1;
+            }
+            async function load(value: number): number {
+                return try {
+                    const parsed: number = await parse(value)?;
+                    parsed + 1
+                } except (error) {
+                    0
+                };
+            }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        MirFunction load = Assert.Single(compilation.MirCompilation!.Program!.Functions, function => function.Name == "load");
+        MirAsyncExecutionPlan plan = Assert.IsType<MirAsyncExecutionPlan>(load.SuspensionAutomaton!.ExecutionPlan);
+        MirAsyncPropagateExecutionState propagation = Assert.Single(plan.States.OfType<MirAsyncPropagateExecutionState>());
+
+        Assert.IsType<MirPropagationTarget.LexicalExcept>(propagation.Target);
+        Assert.NotNull(propagation.HandlerStateId);
+        Assert.NotNull(propagation.HandlerErrorSlot);
+        Assert.Contains(load.SuspensionAutomaton.FrameSlots, slot => slot.Id == propagation.HandlerErrorSlot);
+        Assert.Empty(MirValidator.Validate(compilation.MirCompilation.Program));
+    }
 }

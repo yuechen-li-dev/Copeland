@@ -85,27 +85,132 @@ public sealed class SuspensionAutomatonValidationTests
         MirSuspensionAutomaton valid = CreateValidAutomaton();
         MirAsyncExecutionStateId entry = new("exec-entry");
         MirAsyncExecutionStateId complete = new("exec-complete");
+        MirFrameSlotId resumed = new("resumed");
+        var frameSlots = valid.FrameSlots.Append(new MirFrameSlot(resumed, new MirNamedType("number"), "resume value")).ToArray();
         MirSuspensionAutomaton malformed = new(
             valid.Identity,
             valid.OwnerFunctionName,
             valid.EntryStateId,
-            valid.FrameSlots,
+            frameSlots,
             valid.States,
             valid.Transitions,
             new MirAsyncExecutionPlan(
                 entry,
                 [
-                    new MirAsyncStatementExecutionState(
+                    new MirAsyncAwaitExecutionState(
                         entry,
-                        new MirExpressionStatement(new MirLiteralExpression(1.0, new MirNamedType("number"))),
-                        complete,
-                        new MirFrameSlotId("missing-await-slot")),
+                        new MirVariableExpression("operation", new MirAsyncType(new MirNamedType("number"))),
+                        new MirFrameSlotId("missing-await-slot"),
+                        resumed,
+                        complete),
                     new MirAsyncReturnExecutionState(complete, new MirReturnStatement(null)),
                 ]));
 
         IReadOnlyList<MirValidationDiagnostic> diagnostics = MirValidator.Validate(new MirProgram([], [CreateFunction(malformed)]));
 
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Message.Contains("unknown or non-Async awaited frame slot", StringComparison.Ordinal));
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Message.Contains("unknown or non-Async computation frame slot", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ExecutableAwaitStateRejectsAnIncompatibleResumeSlot()
+    {
+        MirSuspensionAutomaton valid = CreateValidAutomaton();
+        MirAsyncExecutionStateId entry = new("exec-entry");
+        MirAsyncExecutionStateId complete = new("exec-complete");
+        MirFrameSlotId operation = valid.FrameSlots.Single().Id;
+        var frameSlots = valid.FrameSlots.Append(new MirFrameSlot(new MirFrameSlotId("resumed"), new MirNamedType("string"), "resume value")).ToArray();
+        MirSuspensionAutomaton malformed = new(
+            valid.Identity,
+            valid.OwnerFunctionName,
+            valid.EntryStateId,
+            frameSlots,
+            valid.States,
+            valid.Transitions,
+            new MirAsyncExecutionPlan(
+                entry,
+                [
+                    new MirAsyncAwaitExecutionState(
+                        entry,
+                        new MirVariableExpression("operation", new MirAsyncType(new MirNamedType("number"))),
+                        operation,
+                        new MirFrameSlotId("resumed"),
+                        complete),
+                    new MirAsyncReturnExecutionState(complete, new MirReturnStatement(null)),
+                ]));
+
+        IReadOnlyList<MirValidationDiagnostic> diagnostics = MirValidator.Validate(new MirProgram([], [CreateFunction(malformed)]));
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Message.Contains("resume-value frame slot incompatible", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FunctionReturnPropagationRejectsAnAccidentalHandlerTransfer()
+    {
+        MirSuspensionAutomaton valid = CreateValidAutomaton();
+        MirAsyncExecutionStateId entry = new("exec-entry");
+        MirAsyncExecutionStateId complete = new("exec-complete");
+        MirFrameSlotId success = new("success");
+        MirFrameSlotId error = new("error");
+        MirResultType resultType = new(new MirNamedType("number"), new MirNamedType("string"));
+        var frameSlots = valid.FrameSlots
+            .Append(new MirFrameSlot(success, resultType.SuccessType, "propagation success"))
+            .Append(new MirFrameSlot(error, resultType.ErrorType, "propagation error"))
+            .ToArray();
+        MirSuspensionAutomaton malformed = new(
+            valid.Identity,
+            valid.OwnerFunctionName,
+            valid.EntryStateId,
+            frameSlots,
+            valid.States,
+            valid.Transitions,
+            new MirAsyncExecutionPlan(
+                entry,
+                [
+                    new MirAsyncPropagateExecutionState(
+                        entry,
+                        new MirOkExpression(new MirLiteralExpression(1.0, resultType.SuccessType), resultType),
+                        new MirPropagationTarget.FunctionReturn(),
+                        success,
+                        complete,
+                        complete,
+                        error),
+                    new MirAsyncReturnExecutionState(complete, new MirReturnStatement(null)),
+                ]));
+
+        IReadOnlyList<MirValidationDiagnostic> diagnostics = MirValidator.Validate(new MirProgram([], [CreateFunction(malformed)]));
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Message.Contains("must not carry a lexical handler transfer", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ExecutableExpressionRejectsAnUnknownFrameSlotRead()
+    {
+        MirSuspensionAutomaton valid = CreateValidAutomaton();
+        MirAsyncExecutionStateId entry = new("exec-entry");
+        MirAsyncExecutionStateId complete = new("exec-complete");
+        MirFrameSlotId target = new("target");
+        var frameSlots = valid.FrameSlots.Append(new MirFrameSlot(target, new MirNamedType("number"), "expression target")).ToArray();
+        MirSuspensionAutomaton malformed = new(
+            valid.Identity,
+            valid.OwnerFunctionName,
+            valid.EntryStateId,
+            frameSlots,
+            valid.States,
+            valid.Transitions,
+            new MirAsyncExecutionPlan(
+                entry,
+                [
+                    new MirAsyncEvaluateExpressionState(
+                        entry,
+                        target,
+                        new MirAsyncFrameSlotExpression(new MirFrameSlotId("missing"), new MirNamedType("number")),
+                        complete),
+                    new MirAsyncReturnExecutionState(complete, new MirReturnStatement(null)),
+                ]));
+
+        IReadOnlyList<MirValidationDiagnostic> diagnostics = MirValidator.Validate(new MirProgram([], [CreateFunction(malformed)]));
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Message.Contains("reads unknown or incompatible frame slot", StringComparison.Ordinal));
     }
 
     private static MirFunction CreateFunction(MirSuspensionAutomaton automaton)

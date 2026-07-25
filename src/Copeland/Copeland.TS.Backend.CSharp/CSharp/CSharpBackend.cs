@@ -12,6 +12,9 @@ public static class CSharpBackend
         Return,
         Branch,
         Jump,
+        Await,
+        Evaluate,
+        Propagate,
     }
 
     private sealed class HandlerTransfer(string errorTemporary, string label)
@@ -28,7 +31,12 @@ public static class CSharpBackend
         int thenState = -1,
         int elseState = -1,
         MirFrameSlotId? awaitedComputationSlot = null,
-        MirExpression? condition = null)
+        MirExpression? condition = null,
+        MirFrameSlotId? valueSlot = null,
+        MirExpression? expression = null,
+        MirPropagationTarget? propagationTarget = null,
+        int handlerState = -1,
+        MirFrameSlotId? handlerErrorSlot = null)
     {
         public int Id { get; } = id;
         public AsyncStateKind Kind { get; } = kind;
@@ -38,6 +46,11 @@ public static class CSharpBackend
         public int ElseState { get; } = elseState;
         public MirFrameSlotId? AwaitedComputationSlot { get; } = awaitedComputationSlot;
         public MirExpression? Condition { get; } = condition;
+        public MirFrameSlotId? ValueSlot { get; } = valueSlot;
+        public MirExpression? Expression { get; } = expression;
+        public MirPropagationTarget? PropagationTarget { get; } = propagationTarget;
+        public int HandlerState { get; } = handlerState;
+        public MirFrameSlotId? HandlerErrorSlot { get; } = handlerErrorSlot;
     }
 
     private sealed class CSharpEmissionState(IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records)
@@ -201,7 +214,9 @@ public static class CSharpBackend
         }
         if (function.SuspensionAutomaton is not null)
         {
-            foreach (MirFrameSlot slot in function.SuspensionAutomaton.FrameSlots.Where(slot => slot.Id.Value.StartsWith("await_", StringComparison.Ordinal)))
+            foreach (MirFrameSlot slot in function.SuspensionAutomaton.FrameSlots.Where(slot =>
+                         slot.Id.Value.StartsWith("await_", StringComparison.Ordinal)
+                         || slot.Id.Value.StartsWith("expression_", StringComparison.Ordinal)))
             {
                 writer.WriteLine($"public {MapValueStorageType(slot.Type)} __{slot.Id.Value} = default!;");
             }
@@ -620,58 +635,72 @@ public static class CSharpBackend
                 writer.Unindent();
                 continue;
             }
+            if (state.Kind == AsyncStateKind.Await)
+            {
+                string pending = "frame.__" + state.AwaitedComputationSlot!.Value.Value;
+                string resumed = "frame.__" + state.ValueSlot!.Value.Value;
+                writer.WriteLine($"{pending} = {EmitAsyncExpression(state.Expression!, function)};");
+                writer.WriteLine($"frame.State = {state.NextState};");
+                writer.WriteLine($"if (!{pending}.Subscribe(() => {{ {resumed} = {pending}.Value; Step(); }}, computation.Cancel, computation.Panic)) return;");
+                writer.WriteLine($"if ({pending}.IsCancelled) {{ computation.Cancel(); return; }}");
+                writer.WriteLine($"if ({pending}.IsPanicked) {{ computation.Panic(); return; }}");
+                writer.WriteLine($"{resumed} = {pending}.Value;");
+                writer.WriteLine("continue;");
+                writer.Unindent();
+                continue;
+            }
+            if (state.Kind == AsyncStateKind.Evaluate)
+            {
+                writer.WriteLine($"frame.__{state.ValueSlot!.Value.Value} = {EmitAsyncExpression(state.Expression!, function)};");
+                writer.WriteLine($"frame.State = {state.NextState};");
+                writer.WriteLine("continue;");
+                writer.Unindent();
+                continue;
+            }
+            if (state.Kind == AsyncStateKind.Propagate)
+            {
+                string result = "__cope_propagate_" + state.Id;
+                string success = "frame.__" + state.ValueSlot!.Value.Value;
+                writer.WriteLine($"var {result} = {EmitAsyncExpression(state.Expression!, function)};");
+                if (state.PropagationTarget is MirPropagationTarget.LexicalExcept)
+                {
+                    if (state.HandlerState < 0 || state.HandlerErrorSlot is null)
+                    {
+                        diagnostics.Add(new CSharpDiagnostic("COPE-CS-ASYNC-0003", $"Async function '{function.Name}' has a lexical Result propagation target without a validated handler state."));
+                        writer.WriteLine("computation.Panic();");
+                        writer.WriteLine("return;");
+                    }
+                    else
+                    {
+                        writer.WriteLine($"if (!{result}.IsOk) {{ frame.__{state.HandlerErrorSlot.Value.Value} = {result}.Error; frame.State = {state.HandlerState}; continue; }}");
+                        writer.WriteLine($"{success} = {result}.Value;");
+                        writer.WriteLine($"frame.State = {state.NextState};");
+                        writer.WriteLine("continue;");
+                    }
+                    writer.Unindent();
+                    continue;
+                }
+
+                if (state.PropagationTarget is not MirPropagationTarget.FunctionReturn
+                    || function.ReturnType is not MirResultType propagatedFunctionResult)
+                {
+                    diagnostics.Add(new CSharpDiagnostic("COPE-CS-ASYNC-0003", $"Async function '{function.Name}' has an unsupported Result propagation target."));
+                    writer.WriteLine("computation.Panic();");
+                    writer.WriteLine("return;");
+                    writer.Unindent();
+                    continue;
+                }
+
+                string errorResult = $"CopeResult<{MapResultComponentType(propagatedFunctionResult.SuccessType)}, {MapType(propagatedFunctionResult.ErrorType)}>.Err({result}.Error)";
+                writer.WriteLine($"if (!{result}.IsOk) {{ computation.Resolve({errorResult}); return; }}");
+                writer.WriteLine($"{success} = {result}.Value;");
+                writer.WriteLine($"frame.State = {state.NextState};");
+                writer.WriteLine("continue;");
+                writer.Unindent();
+                continue;
+            }
             MirStatement statement = state.Statement!;
-            if (statement is MirVariableDeclarationStatement { Initializer: MirPropagateExpression { Operand: MirAwaitExpression propagatedAwaited } } propagatedDeclaration
-                && function.ReturnType is MirResultType functionResult)
-            {
-                string pending = "frame.__" + state.AwaitedComputationSlot!.Value.Value;
-                string target = "frame." + CSharpNameMangler.Mangle(propagatedDeclaration.Local.Name);
-                string errorResult = $"CopeResult<{MapResultComponentType(functionResult.SuccessType)}, {MapType(functionResult.ErrorType)}>.Err({pending}.Value.Error)";
-                writer.WriteLine($"{pending} = {EmitAsyncExpression(propagatedAwaited.Operand, function)};");
-                writer.WriteLine($"frame.State = {state.NextState};");
-                writer.WriteLine($"if (!{pending}.Subscribe(() => {{ if (!{pending}.Value.IsOk) {{ computation.Resolve({errorResult}); return; }} {target} = {pending}.Value.Value; Step(); }}, computation.Cancel, computation.Panic)) return;");
-                writer.WriteLine("if (" + pending + ".IsCancelled) { computation.Cancel(); return; }");
-                writer.WriteLine("if (" + pending + ".IsPanicked) { computation.Panic(); return; }");
-                writer.WriteLine($"if (!{pending}.Value.IsOk) {{ computation.Resolve({errorResult}); return; }}");
-                writer.WriteLine($"{target} = {pending}.Value.Value;");
-                writer.WriteLine("continue;");
-            }
-            else if (statement is MirVariableDeclarationStatement { Initializer: MirAwaitExpression awaited } declaration)
-            {
-                string pending = "frame.__" + state.AwaitedComputationSlot!.Value.Value;
-                string target = "frame." + CSharpNameMangler.Mangle(declaration.Local.Name);
-                writer.WriteLine($"{pending} = {EmitAsyncExpression(awaited.Operand, function)};");
-                writer.WriteLine($"frame.State = {state.NextState};");
-                writer.WriteLine($"if (!{pending}.Subscribe(() => {{ {target} = {pending}.Value; Step(); }}, computation.Cancel, computation.Panic)) return;");
-                writer.WriteLine("if (" + pending + ".IsCancelled) { computation.Cancel(); return; }");
-                writer.WriteLine("if (" + pending + ".IsPanicked) { computation.Panic(); return; }");
-                writer.WriteLine($"{target} = {pending}.Value;");
-                writer.WriteLine("continue;");
-            }
-            else if (statement is MirReturnStatement { Expression: MirAwaitExpression awaitedReturn })
-            {
-                string pending = "frame.__" + state.AwaitedComputationSlot!.Value.Value;
-                writer.WriteLine($"{pending} = {EmitAsyncExpression(awaitedReturn.Operand, function)};");
-                writer.WriteLine($"frame.State = {state.NextState};");
-                writer.WriteLine($"if (!{pending}.Subscribe(() => computation.Resolve({pending}.Value), computation.Cancel, computation.Panic)) return;");
-                writer.WriteLine("if (" + pending + ".IsCancelled) { computation.Cancel(); return; }");
-                writer.WriteLine("if (" + pending + ".IsPanicked) { computation.Panic(); return; }");
-                writer.WriteLine($"computation.Resolve({pending}.Value);");
-                writer.WriteLine("return;");
-            }
-            else if (statement is MirExpressionStatement { Expression: MirAssignmentExpression { Expression: MirAwaitExpression assignedAwait } assignment })
-            {
-                string pending = "frame.__" + state.AwaitedComputationSlot!.Value.Value;
-                string target = "frame." + CSharpNameMangler.Mangle(assignment.Name);
-                writer.WriteLine($"{pending} = {EmitAsyncExpression(assignedAwait.Operand, function)};");
-                writer.WriteLine($"frame.State = {state.NextState};");
-                writer.WriteLine($"if (!{pending}.Subscribe(() => {{ {target} = {pending}.Value; Step(); }}, computation.Cancel, computation.Panic)) return;");
-                writer.WriteLine("if (" + pending + ".IsCancelled) { computation.Cancel(); return; }");
-                writer.WriteLine("if (" + pending + ".IsPanicked) { computation.Panic(); return; }");
-                writer.WriteLine($"{target} = {pending}.Value;");
-                writer.WriteLine("continue;");
-            }
-            else if (statement is MirVariableDeclarationStatement plainDeclaration)
+            if (statement is MirVariableDeclarationStatement plainDeclaration)
             {
                 writer.WriteLine($"frame.{CSharpNameMangler.Mangle(plainDeclaration.Local.Name)} = {EmitAsyncExpression(plainDeclaration.Initializer, function)};");
                 writer.WriteLine($"frame.State = {state.NextState};");
@@ -738,10 +767,10 @@ public static class CSharpBackend
             switch (state)
             {
                 case MirAsyncStatementExecutionState statement when numbers.TryGetValue(statement.NextStateId, out int next):
-                    states.Add(new AsyncState(id, AsyncStateKind.Statement, statement.Statement, next, awaitedComputationSlot: statement.AwaitedComputationSlot));
+                    states.Add(new AsyncState(id, AsyncStateKind.Statement, statement.Statement, next));
                     break;
                 case MirAsyncReturnExecutionState returned:
-                    states.Add(new AsyncState(id, AsyncStateKind.Return, returned.Statement, -1, awaitedComputationSlot: returned.AwaitedComputationSlot));
+                    states.Add(new AsyncState(id, AsyncStateKind.Return, returned.Statement, -1));
                     break;
                 case MirAsyncBranchExecutionState branch
                     when numbers.TryGetValue(branch.ThenStateId, out int thenState)
@@ -750,6 +779,20 @@ public static class CSharpBackend
                     break;
                 case MirAsyncJumpExecutionState jump when numbers.TryGetValue(jump.TargetStateId, out int target):
                     states.Add(new AsyncState(id, AsyncStateKind.Jump, null, target));
+                    break;
+                case MirAsyncAwaitExecutionState awaitState when numbers.TryGetValue(awaitState.NextStateId, out int awaitNext):
+                    states.Add(new AsyncState(id, AsyncStateKind.Await, null, awaitNext, awaitedComputationSlot: awaitState.AwaitedComputationSlot, valueSlot: awaitState.ResumedValueSlot, expression: awaitState.AwaitedComputation));
+                    break;
+                case MirAsyncEvaluateExpressionState evaluation when numbers.TryGetValue(evaluation.NextStateId, out int evaluationNext):
+                    states.Add(new AsyncState(id, AsyncStateKind.Evaluate, null, evaluationNext, valueSlot: evaluation.TargetSlot, expression: evaluation.Expression));
+                    break;
+                case MirAsyncPropagateExecutionState propagation
+                    when numbers.TryGetValue(propagation.NextStateId, out int propagationNext)
+                    && (propagation.HandlerStateId is null || numbers.TryGetValue(propagation.HandlerStateId.Value, out _)):
+                    int handlerState = propagation.HandlerStateId is { } handlerStateId
+                        ? numbers[handlerStateId]
+                        : -1;
+                    states.Add(new AsyncState(id, AsyncStateKind.Propagate, null, propagationNext, valueSlot: propagation.SuccessValueSlot, expression: propagation.ResultExpression, propagationTarget: propagation.Target, handlerState: handlerState, handlerErrorSlot: propagation.HandlerErrorSlot));
                     break;
                 default:
                     return false;
@@ -766,6 +809,7 @@ public static class CSharpBackend
             MirLiteralExpression literal => CSharpLiteralWriter.Write(literal.Value),
             MirUnitExpression => "CopeUnit.Value",
             MirVariableExpression variable => "frame." + CSharpNameMangler.Mangle(variable.Name),
+            MirAsyncFrameSlotExpression slot => "frame.__" + slot.SlotId.Value,
             MirAssignmentExpression assignment => $"frame.{CSharpNameMangler.Mangle(assignment.Name)} = {EmitAsyncExpression(assignment.Expression, function)}",
             MirBinaryExpression binary => $"({EmitAsyncExpression(binary.Left, function)} {binary.Operator} {EmitAsyncExpression(binary.Right, function)})",
             MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, function)})",

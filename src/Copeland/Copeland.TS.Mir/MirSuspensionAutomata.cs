@@ -48,21 +48,17 @@ public abstract class MirAsyncExecutionState(MirAsyncExecutionStateId id)
 public sealed class MirAsyncStatementExecutionState(
     MirAsyncExecutionStateId id,
     MirStatement statement,
-    MirAsyncExecutionStateId nextStateId,
-    MirFrameSlotId? awaitedComputationSlot = null) : MirAsyncExecutionState(id)
+    MirAsyncExecutionStateId nextStateId) : MirAsyncExecutionState(id)
 {
     public MirStatement Statement { get; } = statement;
     public MirAsyncExecutionStateId NextStateId { get; } = nextStateId;
-    public MirFrameSlotId? AwaitedComputationSlot { get; } = awaitedComputationSlot;
 }
 
 public sealed class MirAsyncReturnExecutionState(
     MirAsyncExecutionStateId id,
-    MirReturnStatement statement,
-    MirFrameSlotId? awaitedComputationSlot = null) : MirAsyncExecutionState(id)
+    MirReturnStatement statement) : MirAsyncExecutionState(id)
 {
     public MirReturnStatement Statement { get; } = statement;
-    public MirFrameSlotId? AwaitedComputationSlot { get; } = awaitedComputationSlot;
 }
 
 public sealed class MirAsyncBranchExecutionState(
@@ -81,6 +77,58 @@ public sealed class MirAsyncJumpExecutionState(
     MirAsyncExecutionStateId targetStateId) : MirAsyncExecutionState(id)
 {
     public MirAsyncExecutionStateId TargetStateId { get; } = targetStateId;
+}
+
+/// <summary>
+/// Reads a compiler-generated frame slot after a preceding async execution
+/// state has stored its value. This node exists only inside an executable
+/// async plan; authored structured MIR never contains it.
+/// </summary>
+public sealed record MirAsyncFrameSlotExpression(MirFrameSlotId SlotId, MirType Type) : MirExpression(Type);
+
+public sealed class MirAsyncAwaitExecutionState(
+    MirAsyncExecutionStateId id,
+    MirExpression awaitedComputation,
+    MirFrameSlotId awaitedComputationSlot,
+    MirFrameSlotId resumedValueSlot,
+    MirAsyncExecutionStateId nextStateId) : MirAsyncExecutionState(id)
+{
+    public MirExpression AwaitedComputation { get; } = awaitedComputation;
+    public MirFrameSlotId AwaitedComputationSlot { get; } = awaitedComputationSlot;
+    public MirFrameSlotId ResumedValueSlot { get; } = resumedValueSlot;
+    public MirAsyncExecutionStateId NextStateId { get; } = nextStateId;
+}
+
+public sealed class MirAsyncEvaluateExpressionState(
+    MirAsyncExecutionStateId id,
+    MirFrameSlotId targetSlot,
+    MirExpression expression,
+    MirAsyncExecutionStateId nextStateId) : MirAsyncExecutionState(id)
+{
+    public MirFrameSlotId TargetSlot { get; } = targetSlot;
+    public MirExpression Expression { get; } = expression;
+    public MirAsyncExecutionStateId NextStateId { get; } = nextStateId;
+}
+
+public sealed class MirAsyncPropagateExecutionState(
+    MirAsyncExecutionStateId id,
+    MirExpression resultExpression,
+    MirPropagationTarget target,
+    MirFrameSlotId successValueSlot,
+    MirAsyncExecutionStateId nextStateId,
+    MirAsyncExecutionStateId? handlerStateId = null,
+    MirFrameSlotId? handlerErrorSlot = null) : MirAsyncExecutionState(id)
+{
+    public MirExpression ResultExpression { get; } = resultExpression;
+    public MirPropagationTarget Target { get; } = target;
+    public MirFrameSlotId SuccessValueSlot { get; } = successValueSlot;
+    public MirAsyncExecutionStateId NextStateId { get; } = nextStateId;
+    /// <summary>
+    /// The executable handler entry for lexical propagation. Function-return
+    /// propagation deliberately has no handler transfer.
+    /// </summary>
+    public MirAsyncExecutionStateId? HandlerStateId { get; } = handlerStateId;
+    public MirFrameSlotId? HandlerErrorSlot { get; } = handlerErrorSlot;
 }
 
 public static class MirSuspensionAutomatonLimits
@@ -355,6 +403,7 @@ public static class MirSuspensionAutomatonValidator
 
     private static void ValidateExecutionPlan(MirSuspensionAutomaton automaton, MirAsyncExecutionPlan plan, List<MirValidationDiagnostic> diagnostics)
     {
+        CheckLimit(plan.States.Count, MirSuspensionAutomatonLimits.MaximumStates, "executable states", automaton, diagnostics);
         var states = new Dictionary<MirAsyncExecutionStateId, MirAsyncExecutionState>();
         foreach (MirAsyncExecutionState state in plan.States)
         {
@@ -379,22 +428,76 @@ public static class MirSuspensionAutomatonValidator
                         Add(diagnostics, $"executable state '{state.Id}' contains an unsplit statement '{statement.Statement.GetType().Name}'.");
                     }
                     CheckExecutionTarget(automaton, states, statement.NextStateId, state.Id, diagnostics);
-                    if (statement.AwaitedComputationSlot is { } awaitedSlot)
-                    {
-                        if (!automaton.FrameSlots.Any(slot => slot.Id == awaitedSlot && slot.Type is MirAsyncType))
-                        {
-                            Add(diagnostics, $"executable state '{state.Id}' references unknown or non-Async awaited frame slot '{awaitedSlot}'.");
-                        }
-                    }
+                    ValidatePlanStatementFrameSlots(automaton, statement.Statement, state.Id, diagnostics);
                     break;
                 case MirAsyncBranchExecutionState branch:
                     CheckExecutionTarget(automaton, states, branch.ThenStateId, state.Id, diagnostics);
                     CheckExecutionTarget(automaton, states, branch.ElseStateId, state.Id, diagnostics);
+                    ValidatePlanExpressionFrameSlots(automaton, branch.Condition, state.Id, diagnostics);
                     break;
-                case MirAsyncReturnExecutionState returned when returned.AwaitedComputationSlot is { } returnAwaitedSlot:
-                    if (!automaton.FrameSlots.Any(slot => slot.Id == returnAwaitedSlot && slot.Type is MirAsyncType))
+                case MirAsyncReturnExecutionState returned:
+                    ValidatePlanStatementFrameSlots(automaton, returned.Statement, state.Id, diagnostics);
+                    break;
+                case MirAsyncAwaitExecutionState awaitState:
+                    CheckExecutionTarget(automaton, states, awaitState.NextStateId, state.Id, diagnostics);
+                    ValidatePlanExpressionFrameSlots(automaton, awaitState.AwaitedComputation, state.Id, diagnostics);
+                    MirFrameSlot? awaitedComputationSlotDef = automaton.FrameSlots.FirstOrDefault(slot => slot.Id == awaitState.AwaitedComputationSlot);
+                    if (awaitedComputationSlotDef?.Type is not MirAsyncType asyncType)
                     {
-                        Add(diagnostics, $"return state '{state.Id}' references unknown or non-Async awaited frame slot '{returnAwaitedSlot}'.");
+                        Add(diagnostics, $"await state '{state.Id}' references unknown or non-Async computation frame slot '{awaitState.AwaitedComputationSlot}'.");
+                    }
+                    else
+                    {
+                        MirFrameSlot? resumedSlot = automaton.FrameSlots.FirstOrDefault(slot => slot.Id == awaitState.ResumedValueSlot);
+                        if (resumedSlot is null || !MirTypeFacts.AreEquivalent(asyncType.EventualType, resumedSlot.Type))
+                        {
+                            Add(diagnostics, $"await state '{state.Id}' has a resume-value frame slot incompatible with '{asyncType.EventualType.Name}'.");
+                        }
+                    }
+                    break;
+                case MirAsyncEvaluateExpressionState evaluation:
+                    CheckExecutionTarget(automaton, states, evaluation.NextStateId, state.Id, diagnostics);
+                    ValidatePlanExpressionFrameSlots(automaton, evaluation.Expression, state.Id, diagnostics);
+                    if (!automaton.FrameSlots.Any(slot => slot.Id == evaluation.TargetSlot && MirTypeFacts.AreEquivalent(slot.Type, evaluation.Expression.Type)))
+                    {
+                        Add(diagnostics, $"expression state '{state.Id}' references unknown or incompatible target frame slot '{evaluation.TargetSlot}'.");
+                    }
+                    break;
+                case MirAsyncPropagateExecutionState propagation:
+                    CheckExecutionTarget(automaton, states, propagation.NextStateId, state.Id, diagnostics);
+                    ValidatePlanExpressionFrameSlots(automaton, propagation.ResultExpression, state.Id, diagnostics);
+                    MirResultType? resultType = propagation.ResultExpression.Type as MirResultType;
+                    if (resultType is null)
+                    {
+                        Add(diagnostics, $"propagation state '{state.Id}' does not evaluate a Result expression.");
+                    }
+                    else if (!automaton.FrameSlots.Any(slot => slot.Id == propagation.SuccessValueSlot && MirTypeFacts.AreEquivalent(slot.Type, resultType.SuccessType)))
+                    {
+                        Add(diagnostics, $"propagation state '{state.Id}' references unknown or incompatible success-value frame slot '{propagation.SuccessValueSlot}'.");
+                    }
+                    if (propagation.Target is MirPropagationTarget.FunctionReturn)
+                    {
+                        if (propagation.HandlerStateId is not null || propagation.HandlerErrorSlot is not null)
+                        {
+                            Add(diagnostics, $"function-return propagation state '{state.Id}' must not carry a lexical handler transfer.");
+                        }
+                    }
+                    else if (propagation.Target is MirPropagationTarget.LexicalExcept)
+                    {
+                        if (propagation.HandlerStateId is not { } handlerStateId
+                            || propagation.HandlerErrorSlot is not { } handlerErrorSlot)
+                        {
+                            Add(diagnostics, $"lexical propagation state '{state.Id}' is missing its handler transfer.");
+                        }
+                        else
+                        {
+                            CheckExecutionTarget(automaton, states, handlerStateId, state.Id, diagnostics);
+                            if (resultType is { } result
+                                && !automaton.FrameSlots.Any(slot => slot.Id == handlerErrorSlot && MirTypeFacts.AreEquivalent(slot.Type, result.ErrorType)))
+                            {
+                                Add(diagnostics, $"lexical propagation state '{state.Id}' references unknown or incompatible handler-error frame slot '{handlerErrorSlot}'.");
+                            }
+                        }
                     }
                     break;
                 case MirAsyncJumpExecutionState jump:
@@ -409,6 +512,60 @@ public static class MirSuspensionAutomatonValidator
         if (!states.ContainsKey(target))
         {
             Add(diagnostics, $"automaton '{automaton.Identity}' executable state '{source}' targets unknown state '{target}'.");
+        }
+    }
+
+    private static void ValidatePlanStatementFrameSlots(
+        MirSuspensionAutomaton automaton,
+        MirStatement statement,
+        MirAsyncExecutionStateId stateId,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        switch (statement)
+        {
+            case MirVariableDeclarationStatement declaration:
+                ValidatePlanExpressionFrameSlots(automaton, declaration.Initializer, stateId, diagnostics);
+                break;
+            case MirExpressionStatement expression:
+                ValidatePlanExpressionFrameSlots(automaton, expression.Expression, stateId, diagnostics);
+                break;
+            case MirReturnStatement { Expression: not null } returned:
+                ValidatePlanExpressionFrameSlots(automaton, returned.Expression, stateId, diagnostics);
+                break;
+        }
+    }
+
+    private static void ValidatePlanExpressionFrameSlots(
+        MirSuspensionAutomaton automaton,
+        MirExpression expression,
+        MirAsyncExecutionStateId stateId,
+        List<MirValidationDiagnostic> diagnostics)
+    {
+        if (expression is MirAsyncFrameSlotExpression frameSlot
+            && !automaton.FrameSlots.Any(slot => slot.Id == frameSlot.SlotId && MirTypeFacts.AreEquivalent(slot.Type, frameSlot.Type)))
+        {
+            Add(diagnostics, $"executable state '{stateId}' reads unknown or incompatible frame slot '{frameSlot.SlotId}'.");
+        }
+
+        IEnumerable<MirExpression> children = expression switch
+        {
+            MirAssignmentExpression assignment => [assignment.Expression],
+            MirUnaryExpression unary => [unary.Operand],
+            MirAwaitExpression awaited => [awaited.Operand],
+            MirBinaryExpression binary => [binary.Left, binary.Right],
+            MirCallExpression call => call.Arguments,
+            MirCallableConstructionExpression construction => construction.Captures,
+            MirInvokeExpression invoke => [invoke.Callee, .. invoke.Arguments],
+            MirArrayExpression array => array.Elements,
+            MirOkExpression ok => [ok.Payload],
+            MirErrExpression err => [err.Payload],
+            MirPropagateExpression propagation => [propagation.Operand],
+            MirIfExpression conditional => [conditional.Condition, conditional.ThenExpression, conditional.ElseExpression],
+            _ => [],
+        };
+        foreach (MirExpression child in children)
+        {
+            ValidatePlanExpressionFrameSlots(automaton, child, stateId, diagnostics);
         }
     }
 

@@ -53,6 +53,133 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_propagates_an_awaited_result_inside_a_return_expression()
+    {
+        const string source = """
+            async function parse(value: number): number ! string {
+                if (value < 0) { return err("negative"); }
+                return value + 1;
+            }
+            async function load(value: number): number ! string {
+                return (await parse(value)?) + 1;
+            }
+            """;
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation diagnostic = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation symbolic = JavaScriptBackend.Emit(compilation.MirCompilation.Program!, new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
+
+        Assert.True(diagnostic.Success, string.Join(Environment.NewLine, diagnostic.Diagnostics));
+        Assert.True(symbolic.Success, string.Join(Environment.NewLine, symbolic.Diagnostics));
+        const string suffix = "const ok = load(40).value; const err = load(-1).value; console.log(ok.$tag); console.log(ok.$payload[0]); console.log(err.$tag); console.log(err.$payload[0]);\n";
+        ProcessResult result = await RunNodeAsync(diagnostic.SourceText + suffix);
+        ProcessResult symbolicResult = await RunNodeAsync(symbolic.SourceText + suffix);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("ok\n42\nerr\nnegative\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+        Assert.Equal(result, symbolicResult);
+    }
+
+    [Fact]
+    public async Task Node_recovers_a_typed_result_through_an_async_try_except_handler()
+    {
+        const string source = """
+            async function parse(value: number): number ! string { return value + 1; }
+            function failed(): number ! string { return err("negative"); }
+            async function load(value: number): number {
+                return try {
+                    const parsed: number = await parse(value)?;
+                    parsed + 1
+                } except (error) {
+                    0
+                };
+            }
+            """;
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation diagnostic = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation symbolic = JavaScriptBackend.Emit(
+            compilation.MirCompilation.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
+
+        Assert.True(diagnostic.Success, string.Join(Environment.NewLine, diagnostic.Diagnostics));
+        Assert.True(symbolic.Success, string.Join(Environment.NewLine, symbolic.Diagnostics));
+        const string suffix = """
+            const delayed = __cope_async_pending();
+            parse = () => delayed;
+            const suspended = load(40);
+            console.log(suspended.completed);
+            delayed.resolve(failed());
+            console.log(suspended.completed);
+            console.log(suspended.value);
+            """;
+        ProcessResult result = await RunNodeAsync(diagnostic.SourceText + suffix);
+        ProcessResult symbolicResult = await RunNodeAsync(symbolic.SourceText + suffix);
+
+        Assert.Equal("false\ntrue\n0\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+        Assert.Equal(result, symbolicResult);
+    }
+
+    [Fact]
+    public async Task Node_executes_nested_await_expressions_and_short_circuiting()
+    {
+        const string source = """
+            async function read(value: number): number { return value + 1; }
+            async function truth(): boolean { return true; }
+            async function falsehood(): boolean { return false; }
+            async function combine(value: number): number {
+                return (await read(value)) + (await read(1));
+            }
+            async function shortCircuit(flag: boolean): boolean {
+                return flag && await truth();
+            }
+            async function fallback(flag: boolean): boolean {
+                return flag || await falsehood();
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation diagnostic = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation symbolic = JavaScriptBackend.Emit(compilation.MirCompilation.Program!, new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
+
+        Assert.True(diagnostic.Success, string.Join(Environment.NewLine, diagnostic.Diagnostics));
+        Assert.True(symbolic.Success, string.Join(Environment.NewLine, symbolic.Diagnostics));
+        const string suffix = "console.log(combine(40).value); console.log(shortCircuit(false).value); console.log(shortCircuit(true).value); console.log(fallback(true).value); console.log(fallback(false).value);\n";
+        ProcessResult result = await RunNodeAsync(diagnostic.SourceText + suffix);
+        ProcessResult symbolicResult = await RunNodeAsync(symbolic.SourceText + suffix);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("43\nfalse\ntrue\ntrue\nfalse\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+        Assert.Equal(result, symbolicResult);
+    }
+
+    [Fact]
+    public async Task Node_reenters_an_async_loop_condition()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function below(value: number): boolean { return value < 3; }
+            async function count(): number {
+                let value: number = 0;
+                while (await below(value)) {
+                    value = value + 1;
+                }
+                return value;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(count().value);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("3\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
     public async Task Node_executes_async_for_with_continue_through_increment_state()
     {
         JavaScriptCompilation emitted = Emit("""

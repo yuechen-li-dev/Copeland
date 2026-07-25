@@ -214,15 +214,22 @@ public static class MirLowerer
 
         MirAwaitExpression[] awaits = EnumerateAwaits(body).ToArray();
         var awaitSlots = new Dictionary<MirAwaitExpression, MirFrameSlotId>(ReferenceEqualityComparer.Instance);
+        var awaitValueSlots = new Dictionary<MirAwaitExpression, MirFrameSlotId>(ReferenceEqualityComparer.Instance);
         for (int index = 0; index < awaits.Length; index++)
         {
             MirFrameSlotId slotId = new("await_" + index);
+            MirFrameSlotId valueSlotId = new("await_value_" + index);
             awaitSlots.Add(awaits[index], slotId);
+            awaitValueSlots.Add(awaits[index], valueSlotId);
             frameSlots.Add(new MirFrameSlot(
                 slotId,
                 awaits[index].Operand.Type,
                 "await operand " + index,
                 isReadOnly: true));
+            frameSlots.Add(new MirFrameSlot(
+                valueSlotId,
+                awaits[index].Type,
+                "await result " + index));
         }
 
         var entry = new MirAutomatonStateId("entry");
@@ -267,15 +274,20 @@ public static class MirLowerer
             frameSlots,
             states,
             transitions,
-            BuildAsyncExecutionPlan(body, awaitSlots));
+            BuildAsyncExecutionPlan(body, awaitSlots, awaitValueSlots, frameSlots));
     }
 
     private static MirAsyncExecutionPlan BuildAsyncExecutionPlan(
         IReadOnlyList<MirStatement> body,
-        IReadOnlyDictionary<MirAwaitExpression, MirFrameSlotId> awaitSlots)
+        IReadOnlyDictionary<MirAwaitExpression, MirFrameSlotId> awaitSlots,
+        IReadOnlyDictionary<MirAwaitExpression, MirFrameSlotId> awaitValueSlots,
+        ICollection<MirFrameSlot> frameSlots)
     {
         var states = new List<MirAsyncExecutionState>();
+        var frameVariables = new Dictionary<string, MirFrameSlotId>(StringComparer.Ordinal);
+        var activeHandlers = new Dictionary<MirHandlerId, AsyncHandlerContext>();
         int nextId = 0;
+        int nextTemporarySlot = 0;
 
         MirAsyncExecutionStateId Add(MirAsyncExecutionState state)
         {
@@ -285,27 +297,296 @@ public static class MirLowerer
 
         MirAsyncExecutionStateId NewId() => new("exec_" + nextId++);
 
-        MirFrameSlotId? GetAwaitSlot(MirStatement statement)
+        MirFrameSlotId NewTemporarySlot(MirType type)
         {
-            MirAwaitExpression? awaited = statement switch
-            {
-                MirVariableDeclarationStatement { Initializer: MirAwaitExpression direct } => direct,
-                MirVariableDeclarationStatement { Initializer: MirPropagateExpression { Operand: MirAwaitExpression propagated } } => propagated,
-                MirReturnStatement { Expression: MirAwaitExpression direct } => direct,
-                MirExpressionStatement { Expression: MirAssignmentExpression { Expression: MirAwaitExpression direct } } => direct,
-                _ => null,
-            };
-            return awaited is not null && awaitSlots.TryGetValue(awaited, out MirFrameSlotId slotId)
-                ? slotId
-                : null;
+            MirFrameSlotId id = new("expression_" + nextTemporarySlot++);
+            frameSlots.Add(new MirFrameSlot(id, type, "async expression temporary " + id.Value));
+            return id;
         }
 
-        MirAsyncStatementExecutionState CreateStatementState(
-            MirAsyncExecutionStateId id,
-            MirStatement statement,
+        MirAsyncExecutionStateId AddFrameEvaluation(
+            MirFrameSlotId targetSlot,
+            MirExpression expression,
             MirAsyncExecutionStateId nextStateId)
         {
-            return new MirAsyncStatementExecutionState(id, statement, nextStateId, GetAwaitSlot(statement));
+            MirAsyncExecutionStateId id = NewId();
+            Add(new MirAsyncEvaluateExpressionState(id, targetSlot, expression, nextStateId));
+            return id;
+        }
+
+        MirAsyncExecutionStateId AddStatement(MirStatement statement, MirAsyncExecutionStateId nextStateId)
+        {
+            MirAsyncExecutionStateId id = NewId();
+            Add(new MirAsyncStatementExecutionState(id, statement, nextStateId));
+            return id;
+        }
+
+        MirAsyncExecutionStateId AddReturn(MirReturnStatement statement)
+        {
+            MirAsyncExecutionStateId id = NewId();
+            Add(new MirAsyncReturnExecutionState(id, statement));
+            return id;
+        }
+
+        MirAsyncExecutionStateId LowerArguments(
+            IReadOnlyList<MirExpression> arguments,
+            int index,
+            List<MirExpression> lowered,
+            Func<IReadOnlyList<MirExpression>, MirAsyncExecutionStateId> continuation)
+        {
+            if (index == arguments.Count)
+            {
+                return continuation(lowered);
+            }
+
+            return LowerExpression(arguments[index], value =>
+            {
+                var nextLowered = new List<MirExpression>(lowered.Count + 1);
+                nextLowered.AddRange(lowered);
+                nextLowered.Add(value);
+                return LowerArguments(arguments, index + 1, nextLowered, continuation);
+            });
+        }
+
+        MirAsyncExecutionStateId LowerShortCircuit(
+            MirBinaryExpression binary,
+            Func<MirExpression, MirAsyncExecutionStateId> continuation)
+        {
+            return LowerExpression(binary.Left, left =>
+            {
+                MirFrameSlotId resultSlot = NewTemporarySlot(binary.Type);
+                var result = new MirAsyncFrameSlotExpression(resultSlot, binary.Type);
+                MirAsyncExecutionStateId nextState = continuation(result);
+                MirExpression shortCircuitValue = new MirLiteralExpression(binary.Operator == "||", binary.Type);
+                MirAsyncExecutionStateId shortCircuitState = NewId();
+                Add(new MirAsyncEvaluateExpressionState(shortCircuitState, resultSlot, shortCircuitValue, nextState));
+                MirAsyncExecutionStateId rightState = LowerExpression(binary.Right, right =>
+                {
+                    MirAsyncExecutionStateId evaluation = NewId();
+                    Add(new MirAsyncEvaluateExpressionState(evaluation, resultSlot, right, nextState));
+                    return evaluation;
+                });
+                MirAsyncExecutionStateId branch = NewId();
+                bool evaluatesRightWhenTrue = binary.Operator == "&&";
+                Add(new MirAsyncBranchExecutionState(
+                    branch,
+                    left,
+                    evaluatesRightWhenTrue ? rightState : shortCircuitState,
+                    evaluatesRightWhenTrue ? shortCircuitState : rightState));
+                return branch;
+            });
+        }
+
+        MirAsyncExecutionStateId LowerIfExpression(
+            MirIfExpression conditional,
+            Func<MirExpression, MirAsyncExecutionStateId> continuation)
+        {
+            return LowerExpression(conditional.Condition, condition =>
+            {
+                MirFrameSlotId resultSlot = NewTemporarySlot(conditional.Type);
+                var result = new MirAsyncFrameSlotExpression(resultSlot, conditional.Type);
+                MirAsyncExecutionStateId nextState = continuation(result);
+                MirAsyncExecutionStateId thenState = LowerExpression(conditional.ThenExpression, value =>
+                {
+                    MirAsyncExecutionStateId evaluation = NewId();
+                    Add(new MirAsyncEvaluateExpressionState(evaluation, resultSlot, value, nextState));
+                    return evaluation;
+                });
+                MirAsyncExecutionStateId elseState = LowerExpression(conditional.ElseExpression, value =>
+                {
+                    MirAsyncExecutionStateId evaluation = NewId();
+                    Add(new MirAsyncEvaluateExpressionState(evaluation, resultSlot, value, nextState));
+                    return evaluation;
+                });
+                MirAsyncExecutionStateId branch = NewId();
+                Add(new MirAsyncBranchExecutionState(branch, condition, thenState, elseState));
+                return branch;
+            });
+        }
+
+        MirAsyncExecutionStateId LowerExpression(
+            MirExpression expression,
+            Func<MirExpression, MirAsyncExecutionStateId> continuation)
+        {
+            return expression switch
+            {
+                MirAwaitExpression awaited => LowerExpression(awaited.Operand, operand =>
+                {
+                    MirAsyncExecutionStateId nextState = continuation(new MirAsyncFrameSlotExpression(awaitValueSlots[awaited], awaited.Type));
+                    MirAsyncExecutionStateId id = NewId();
+                    Add(new MirAsyncAwaitExecutionState(id, operand, awaitSlots[awaited], awaitValueSlots[awaited], nextState));
+                    return id;
+                }),
+                MirVariableExpression variable when frameVariables.TryGetValue(variable.Name, out MirFrameSlotId slot) =>
+                    continuation(new MirAsyncFrameSlotExpression(slot, variable.Type)),
+                MirAssignmentExpression assignment when frameVariables.TryGetValue(assignment.Name, out MirFrameSlotId assignmentSlot) =>
+                    LowerExpression(assignment.Expression, value =>
+                    {
+                        MirAsyncExecutionStateId nextState = continuation(new MirAsyncFrameSlotExpression(assignmentSlot, assignment.Type));
+                        return AddFrameEvaluation(assignmentSlot, value, nextState);
+                    }),
+                MirAssignmentExpression assignment => LowerExpression(
+                    assignment.Expression,
+                    value => continuation(new MirAssignmentExpression(assignment.Name, value, assignment.Type))),
+                MirUnaryExpression unary => LowerExpression(
+                    unary.Operand,
+                    value => continuation(new MirUnaryExpression(unary.Operator, value, unary.Type))),
+                MirBinaryExpression { Operator: "&&" or "||" } binary => LowerShortCircuit(binary, continuation),
+                MirBinaryExpression binary => LowerExpression(binary.Left, left => LowerExpression(
+                    binary.Right,
+                    right => continuation(new MirBinaryExpression(binary.Operator, left, right, binary.Type)))),
+                MirCallExpression call => LowerArguments(call.Arguments, 0, [], arguments =>
+                    continuation(new MirCallExpression(call.FunctionName, arguments, call.Type))),
+                MirCallableConstructionExpression construction => LowerArguments(construction.Captures, 0, [], captures =>
+                    continuation(new MirCallableConstructionExpression(construction.CodeFunctionName, captures, construction.CallableType))),
+                MirInvokeExpression invoke => LowerExpression(invoke.Callee, callee => LowerArguments(invoke.Arguments, 0, [], arguments =>
+                    continuation(new MirInvokeExpression(callee, arguments, invoke.Type)))),
+                MirArrayExpression array => LowerArguments(array.Elements, 0, [], elements =>
+                    continuation(new MirArrayExpression(elements, array.Type))),
+                MirOkExpression ok => LowerExpression(ok.Payload, value =>
+                    continuation(new MirOkExpression(value, (MirResultType)ok.Type))),
+                MirErrExpression err => LowerExpression(err.Payload, value =>
+                    continuation(new MirErrExpression(value, (MirResultType)err.Type))),
+                MirPropagateExpression propagation => LowerExpression(propagation.Operand, result =>
+                {
+                    MirFrameSlotId successSlot = NewTemporarySlot(propagation.Type);
+                    MirAsyncExecutionStateId nextState = continuation(new MirAsyncFrameSlotExpression(successSlot, propagation.Type));
+                    MirAsyncExecutionStateId id = NewId();
+                    if (propagation.Target is MirPropagationTarget.LexicalExcept lexical)
+                    {
+                        if (!activeHandlers.TryGetValue(lexical.HandlerId, out AsyncHandlerContext? handler))
+                        {
+                            throw new InvalidOperationException($"Async propagation target '{lexical.HandlerId}' is not active during executable lowering.");
+                        }
+
+                        Add(new MirAsyncPropagateExecutionState(
+                            id,
+                            result,
+                            propagation.Target,
+                            successSlot,
+                            nextState,
+                            handler.EntryStateId,
+                            handler.ErrorSlot));
+                    }
+                    else
+                    {
+                        Add(new MirAsyncPropagateExecutionState(id, result, propagation.Target, successSlot, nextState));
+                    }
+                    return id;
+                }),
+                MirIfExpression conditional => LowerIfExpression(conditional, continuation),
+                MirTryExpression attempt => LowerTryExpression(attempt, continuation),
+                _ => continuation(expression),
+            };
+        }
+
+        MirAsyncExecutionStateId LowerValueBlock(
+            MirValueBlock block,
+            Func<MirExpression, MirAsyncExecutionStateId> continuation)
+        {
+            var previousBindings = new List<(string Name, MirFrameSlotId? Previous)>();
+            foreach (MirVariableDeclarationStatement declaration in block.PrefixStatements.OfType<MirVariableDeclarationStatement>())
+            {
+                MirFrameSlotId? previous = frameVariables.TryGetValue(declaration.Local.Name, out MirFrameSlotId existing)
+                    ? existing
+                    : null;
+                previousBindings.Add((declaration.Local.Name, previous));
+                frameVariables[declaration.Local.Name] = NewTemporarySlot(declaration.Local.Type);
+            }
+
+            MirAsyncExecutionStateId current = LowerExpression(block.ValueExpression, continuation);
+            for (int index = block.PrefixStatements.Count - 1; index >= 0; index--)
+            {
+                MirStatement prefix = block.PrefixStatements[index];
+                MirAsyncExecutionStateId nextState = current;
+                current = prefix switch
+                {
+                    MirVariableDeclarationStatement declaration => LowerExpression(
+                        declaration.Initializer,
+                        value => AddFrameEvaluation(frameVariables[declaration.Local.Name], value, nextState)),
+                    MirExpressionStatement expression => LowerExpression(
+                        expression.Expression,
+                        value => AddStatement(new MirExpressionStatement(value), nextState)),
+                    _ => throw new InvalidOperationException($"Async try value block contains unsupported prefix statement '{prefix.GetType().Name}'."),
+                };
+            }
+
+            for (int index = previousBindings.Count - 1; index >= 0; index--)
+            {
+                (string name, MirFrameSlotId? previous) = previousBindings[index];
+                if (previous is { } previousSlot)
+                {
+                    frameVariables[name] = previousSlot;
+                }
+                else
+                {
+                    frameVariables.Remove(name);
+                }
+            }
+
+            return current;
+        }
+
+        MirAsyncExecutionStateId LowerTryExpression(
+            MirTryExpression attempt,
+            Func<MirExpression, MirAsyncExecutionStateId> continuation)
+        {
+            MirFrameSlotId resultSlot = NewTemporarySlot(attempt.Type);
+            MirFrameSlotId errorSlot = NewTemporarySlot(attempt.HandledErrorType);
+            var result = new MirAsyncFrameSlotExpression(resultSlot, attempt.Type);
+            MirAsyncExecutionStateId nextState = continuation(result);
+            MirAsyncExecutionStateId handlerEntry = NewId();
+
+            bool hadPriorHandler = activeHandlers.TryGetValue(attempt.HandlerId, out AsyncHandlerContext? priorHandler);
+            activeHandlers[attempt.HandlerId] = new AsyncHandlerContext(handlerEntry, errorSlot);
+            MirAsyncExecutionStateId protectedEntry = LowerValueBlock(
+                attempt.Protected,
+                value => AddFrameEvaluation(resultSlot, value, nextState));
+            if (hadPriorHandler)
+            {
+                activeHandlers[attempt.HandlerId] = priorHandler!;
+            }
+            else
+            {
+                activeHandlers.Remove(attempt.HandlerId);
+            }
+
+            MirFrameSlotId? previousBinding = frameVariables.TryGetValue(attempt.HandlerBinding.Name, out MirFrameSlotId previousSlot)
+                ? previousSlot
+                : null;
+            frameVariables[attempt.HandlerBinding.Name] = errorSlot;
+            MirAsyncExecutionStateId handlerBody = LowerValueBlock(
+                attempt.Handler,
+                value => AddFrameEvaluation(resultSlot, value, nextState));
+            if (previousBinding is { } previous)
+            {
+                frameVariables[attempt.HandlerBinding.Name] = previous;
+            }
+            else
+            {
+                frameVariables.Remove(attempt.HandlerBinding.Name);
+            }
+
+            Add(new MirAsyncJumpExecutionState(handlerEntry, handlerBody));
+            return protectedEntry;
+        }
+
+        MirAsyncExecutionStateId LowerStatement(MirStatement statement, MirAsyncExecutionStateId nextStateId)
+        {
+            return statement switch
+            {
+                MirVariableDeclarationStatement declaration => LowerExpression(
+                    declaration.Initializer,
+                    value => AddStatement(new MirVariableDeclarationStatement(declaration.Local, value), nextStateId)),
+                MirExpressionStatement expression => LowerExpression(
+                    expression.Expression,
+                    value => AddStatement(new MirExpressionStatement(value), nextStateId)),
+                MirReturnStatement { Expression: not null } returned => LowerExpression(
+                    returned.Expression,
+                    value => AddReturn(new MirReturnStatement(value))),
+                MirReturnStatement returned => AddReturn(returned),
+                _ => AddStatement(statement, nextStateId),
+            };
         }
 
         MirAsyncExecutionStateId Build(IReadOnlyList<MirStatement> statements, MirAsyncExecutionStateId continuation, MirAsyncExecutionStateId? breakTarget = null, MirAsyncExecutionStateId? continueTarget = null)
@@ -318,9 +599,7 @@ public static class MirLowerer
                 {
                     case MirReturnStatement returned:
                     {
-                        MirAsyncExecutionStateId id = NewId();
-                        Add(new MirAsyncReturnExecutionState(id, returned, GetAwaitSlot(returned)));
-                        current = id;
+                        current = LowerStatement(returned, current);
                         break;
                     }
                     case MirIfStatement conditional:
@@ -329,34 +608,48 @@ public static class MirLowerer
                         MirAsyncExecutionStateId elseState = conditional.ElseStatements is null
                             ? current
                             : Build(conditional.ElseStatements, current, breakTarget, continueTarget);
-                        MirAsyncExecutionStateId id = NewId();
-                        Add(new MirAsyncBranchExecutionState(id, conditional.Condition, thenState, elseState));
-                        current = id;
+                        current = LowerExpression(conditional.Condition, condition =>
+                        {
+                            MirAsyncExecutionStateId id = NewId();
+                            Add(new MirAsyncBranchExecutionState(id, condition, thenState, elseState));
+                            return id;
+                        });
                         break;
                     }
                     case MirWhileStatement loop:
                     {
-                        MirAsyncExecutionStateId id = NewId();
-                        MirAsyncExecutionStateId bodyState = Build(loop.BodyStatements, id, current, id);
-                        Add(new MirAsyncBranchExecutionState(id, loop.Condition, bodyState, current));
-                        current = id;
+                        MirAsyncExecutionStateId conditionEntry = NewId();
+                        MirAsyncExecutionStateId bodyState = Build(loop.BodyStatements, conditionEntry, current, conditionEntry);
+                        MirAsyncExecutionStateId conditionState = LowerExpression(loop.Condition, condition =>
+                        {
+                            MirAsyncExecutionStateId branch = NewId();
+                            Add(new MirAsyncBranchExecutionState(branch, condition, bodyState, current));
+                            return branch;
+                        });
+                        Add(new MirAsyncJumpExecutionState(conditionEntry, conditionState));
+                        current = conditionEntry;
                         break;
                     }
                     case MirForStatement loop:
                     {
                         MirExpression condition = loop.Condition ?? new MirLiteralExpression(true, new MirNamedType("boolean"));
-                        MirAsyncExecutionStateId conditionId = NewId();
-                        MirAsyncExecutionStateId incrementId = conditionId;
+                        MirAsyncExecutionStateId conditionEntry = NewId();
+                        MirAsyncExecutionStateId incrementId = conditionEntry;
                         if (loop.Increment is not null)
                         {
-                            incrementId = NewId();
-                            Add(CreateStatementState(incrementId, new MirExpressionStatement(loop.Increment), conditionId));
+                            incrementId = LowerStatement(new MirExpressionStatement(loop.Increment), conditionEntry);
                         }
                         MirAsyncExecutionStateId bodyState = Build(loop.BodyStatements, incrementId, current, incrementId);
-                        Add(new MirAsyncBranchExecutionState(conditionId, condition, bodyState, current));
+                        MirAsyncExecutionStateId conditionState = LowerExpression(condition, value =>
+                        {
+                            MirAsyncExecutionStateId branch = NewId();
+                            Add(new MirAsyncBranchExecutionState(branch, value, bodyState, current));
+                            return branch;
+                        });
+                        Add(new MirAsyncJumpExecutionState(conditionEntry, conditionState));
                         current = loop.Initializer is null
-                            ? conditionId
-                            : Build([loop.Initializer], conditionId, breakTarget, continueTarget);
+                            ? conditionEntry
+                            : Build([loop.Initializer], conditionEntry, breakTarget, continueTarget);
                         break;
                     }
                     case MirBreakStatement:
@@ -375,9 +668,7 @@ public static class MirLowerer
                     }
                     default:
                     {
-                        MirAsyncExecutionStateId id = NewId();
-                        Add(CreateStatementState(id, statement, current));
-                        current = id;
+                        current = LowerStatement(statement, current);
                         break;
                     }
                 }
@@ -389,6 +680,12 @@ public static class MirLowerer
         Add(new MirAsyncReturnExecutionState(terminal, new MirReturnStatement(null)));
         MirAsyncExecutionStateId entry = Build(body, terminal);
         return new MirAsyncExecutionPlan(entry, states);
+    }
+
+    private sealed class AsyncHandlerContext(MirAsyncExecutionStateId entryStateId, MirFrameSlotId errorSlot)
+    {
+        public MirAsyncExecutionStateId EntryStateId { get; } = entryStateId;
+        public MirFrameSlotId ErrorSlot { get; } = errorSlot;
     }
 
     private static IEnumerable<MirAwaitExpression> EnumerateAwaits(IEnumerable<MirStatement> statements)
