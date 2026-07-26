@@ -1,5 +1,10 @@
 # CTS-MSBUILD-M1: Copeland as an ordinary SDK project source language
 
+> **Historical decision record.** For current authoring guidance, see the
+> [canonical Copeland TypeScript authoring guide](../Copeland/authoring/copeland-typescript-guide.md).
+> The same-project C# deferral below was superseded by
+> [CTS-MIXED-M1](copeland-mixed-cts-mixed-m1.md).
+
 ## Decision
 
 Copeland TS is integrated into an existing SDK-style `.csproj` as an explicit
@@ -90,10 +95,9 @@ M1 proves ordinary console/app and test projects, `dotnet build`, `run`,
 public `ProjectReference` CLR calls. NuGet references flow through the same
 MSBuild reference projection, without a Copeland-specific restore path.
 
-Copeland-to-authored-C# in the same project is deliberately deferred: resolving
-uncompiled C# source would require declaration projection and invites genuine
-mixed-source cycles. Copeland can use only framework/package/ProjectReference
-assemblies that MSBuild has already resolved. Source generators, direct IL,
-reflection/dynamic dispatch, custom launchers, npm/package management changes,
-IDE/LSP work, async Task adaptation, React/JSX compatibility, and cross-language
-source cycles remain outside M1.
+Copeland-to-authored-C# in the same project is now supported through the
+bounded declaration projection in [CTS-MIXED-M1](copeland-mixed-cts-mixed-m1.md).
+Framework/package/ProjectReference assemblies remain supported as before.
+Source generators, direct IL, reflection/dynamic dispatch, custom launchers,
+npm/package management changes, IDE/LSP work, async Task adaptation, React/JSX
+compatibility, and cross-language source cycles remain outside M1.

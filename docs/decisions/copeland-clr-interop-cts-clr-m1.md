@@ -1,5 +1,10 @@
 # CTS-CLR-M1: bounded CLR metadata interop
 
+> **Historical decision record.** Read the [canonical Copeland TypeScript
+> authoring guide](../Copeland/authoring/copeland-typescript-guide.md) for the
+> current language surface. This decision predates ordinary `.csproj`
+> integration and same-project authored C# declaration projection.
+
 ## Decision
 
 Copeland TypeScript retains its existing compilation route:

@@ -1,162 +1,95 @@
-# Copeland monorepo
+# Copeland
 
-## Synchronous generators
+Copeland TS is TypeScript redesigned as a coherent application language. It is
+for TypeScript developers who want familiar source syntax without inheriting
+JavaScript's coercion and dynamic-shape semantics, and for C# developers who
+want that syntax to compile into an ordinary .NET project.
 
-Copeland supports typed lazy generators. `yield value` is canonical and
-`yield return value` is an equivalent C#-friendly spelling.
+The product thesis is simple: keep TypeScript's readable surface, make the
+language rules explicit and closed-world, and make npm and .NET deliberate,
+typed boundaries. Copeland source lowers through `.cope` MIR to generated C#
+or JavaScript. In a .NET project, MSBuild compiles the generated C# alongside
+authored C#; `dotnet build`, `run`, `test`, and `publish` remain the normal
+workflow.
+
+## Start here
+
+[The Copeland TypeScript authoring guide](docs/Copeland/authoring/copeland-typescript-guide.md)
+is the **canonical current language guide**. It is written for people who
+already know TypeScript and explains what stays familiar, what changes, why,
+and the exact supported spelling to use. Architecture decisions and milestone
+records are historical/design context, not competing language references.
+
+Copeland differs from ordinary TypeScript in intentionally visible ways:
+
+- `int` and `float` are distinct; `number` is an alias for `float`.
+- Strings, numbers, booleans, records, and boundaries do not use implicit
+  JavaScript coercion.
+- Records are nominal, immutable, and closed; interfaces are constraints, not
+  storage types.
+- npm is available through declared static contracts; CLR APIs use C#-shaped
+  `using` directives and direct generated C#.
+
+## A small Copeland program
 
 ```ts
-export function* values(): Iterable<number> {
-    yield 1;
-    yield return 2;
+using System.Text.Json;
+using Demo;
+
+export record Person {
+    name: string;
+    age: int;
 }
 
-for (const value of values()) {
-    Console.WriteLine(value);
+export function Describe(person: Person): string {
+    const normalized = Names.Normalize(person.name);
+    const json = JsonSerializer.Serialize(person);
+
+    return `${normalized} is ${person.age}. ${json}`;
 }
 ```
 
-See [CTS-GENERATOR-M1](docs/cts-generator-m1.md) for the supported iterator
-contract and deliberately deferred coroutine features.
+`Names` may be an authored C# type in the same project. The `using` directives
+resolve CLR namespaces/types, while `import { Name } from "./Local"` resolves a
+declared Copeland source module and `import { value } from "@scope/package"`
+resolves a declared npm contract. They are three different domains.
 
-## Explicit flows
+## Use Copeland in a `.csproj`
 
-Copeland TS also supports synchronous, typed application flows with fixed board
-memory and explicit event transitions:
+Install the `Copeland.TS.Sdk` package, then opt in the Copeland sources:
 
-```ts
-flow Door -> number {
-    board { attempts: number = 0; }
-    event Open();
-    state Closed initial {
-        on Open() -> Opened { board.attempts = board.attempts + 1; };
-    }
-    state Opened { finish board.attempts; }
-}
+```xml
+<ItemGroup>
+  <PackageReference Include="Copeland.TS.Sdk" Version="&lt;published-version&gt;" PrivateAssets="all" />
+  <CopelandCompile Include="Copeland\**\*.ts" />
+  <CopelandCompile Include="Copeland\**\*.tsx" />
+</ItemGroup>
 ```
 
-The compiler retains a dedicated flow graph through Bound and MIR, and both
-CLR and JavaScript emit direct inspectable sessions. See
-[CTS-FLOW-M1](docs/cts-flow-m1.md) for the transition, guard, inspection, and
-deferral laws.
+`CopelandCompile` is explicit: ordinary web `.ts`/`.tsx` files do not become
+Copeland sources accidentally. The package emits generated C# below `obj`
+before `CoreCompile`. Authored C# and Copeland can call supported declarations
+from each other in the same final assembly; unresolved cross-language type and
+inheritance cycles remain outside M1.
 
-Copeland is a compiler-infrastructure repository with three physically separated subsystem lanes: Copeland, Machina.UI, and Aurelian. Assembly names and namespaces retain their existing identities during the JTF-M0 topology milestone.
+## Current maturity
 
-## Subsystems
+The M1 authoring surface includes immutable records, payload enums and
+exhaustive `match`, local modules, bounded CLR and npm interop, compiler-owned
+async, `batch`, synchronous generators, typed flows, inline C#, and normal
+SDK-project integration. Important deliberate limits include no default or
+re-exports, no `.d.ts`/dynamic JavaScript boundary, no async generators, no
+source-level flow session API, no React/Blazor integration, and no inline
+JavaScript. See the [support matrix](docs/Copeland/authoring/copeland-typescript-guide.md#feature-support-matrix)
+for the exact M1 boundary.
 
-- `src/Copeland` and `tests/Copeland`: compiler conventions, diagnostics, source provenance, frontend/parsing/lowering, MIR, artifacts, Copeland TS/Markdown lanes, and compiler CLI surfaces.
-- `src/Machina.UI` and `tests/Machina.UI`: C# UI authoring, layout, text/font work, presenter composition, input routing, hit testing, local UI state, and the existing Machina renderer-facing projects.
-- `src/Aurelian` and `tests/Aurelian`: engine lifecycle, world and game-object models, actuation, frame coordination, renderer-neutral contracts, renderer backends, assets, shaders, and Dominatus-backed engine runtime.
-- `src/Integrations` and `tests/Integrations`: reserved for explicitly named cross-subsystem adapters such as the future `Aurelian.Machina` lane. JTF-M0 adds no production bridge API.
+## Repository lanes
 
-Samples are grouped under `samples/Machina.UI` and `samples/Aurelian`. The umbrella solution includes them for repository-wide validation.
-
-The authoritative current doctrine is [JTF-M0 topology and ownership](docs/architecture/jtf-m0-topology-and-ownership.md). Subsystem documentation is available in [Copeland docs](docs/Copeland/README.md), [Machina.UI docs](docs/Machina.UI/README.md), and [Aurelian docs](docs/Aurelian/README.md). Historical milestone records remain under subsystem `history` directories and `docs/migrations`.
-
-## Build and test lanes
+This monorepo also contains Machina.UI and Aurelian. Copeland implementation
+and tests live under `src/Copeland` and `tests/Copeland`; the focused Copeland
+documentation landing page is [docs/Copeland](docs/Copeland/README.md).
 
 ```powershell
-dotnet build Copeland.TS.slnx
-dotnet test Copeland.TS.slnx --no-build
-
-dotnet build Copeland.slnx
+dotnet build Copeland.slnx --no-restore
 dotnet test Copeland.slnx --no-build
-
-dotnet build Machina.UI.slnx
-dotnet test Machina.UI.slnx --no-build
-
-dotnet build Aurelian.slnx
-dotnet test Aurelian.slnx --no-build
-
-dotnet build JointTaskForce.slnx
-dotnet test JointTaskForce.slnx --no-build
-
-# Explicit expensive lanes
-dotnet build Machina.UI.Slow.slnx
-dotnet test Machina.UI.Slow.slnx --no-build --blame-hang-timeout 180s
-dotnet build JointTaskForce.Integration.slnx
-dotnet test JointTaskForce.Integration.slnx --no-build
-
-pwsh ./tools/Validate-DependencyBoundaries.ps1
-pwsh ./tools/Validate-CopelandTsTopology.ps1
 ```
-
-`Copeland.TS.slnx`, `Copeland.slnx`, `Machina.UI.slnx`, and `Aurelian.slnx` are independent fast reviewer lanes. `JointTaskForce.slnx` is the repository-wide fast lane and includes production projects, contract tests, and samples. `Machina.UI.Slow.slnx` owns visual, artifact, font-diagnostic, gallery, presenter, and playback proofs. `JointTaskForce.Integration.slnx` owns explicit Aurelian integration and visible-sample proofs. See the [test-lane doctrine](docs/architecture/jtf-test-lane-doctrine.md).
-
-## Compiler pipeline
-
-The Copeland compiler lanes currently include Copeland TS and the bounded Markdown frontend. The TS lane lowers to independently owned Cope MIR, then uses the C# proof backend; a JavaScript backend remains future work. The implementation remains lane-specific; no universal compiler IR is introduced.
-
-```text
-source -> frontend/parser -> lane MIR -> lowering -> artifacts or CLR proof
-```
-
-The CLI entry point is `src/Copeland/Copeland.Cli`.
-
-Copeland TS also supports synchronous structured mapping with `batch values as
-value { return transform(value); }`. The compiler owns scheduling: CLR uses a
-bounded parallel realization, while JavaScript preserves the same semantics
-with a sequential fallback. See the [batch language decision](docs/Copeland/language/copeland-ts-batch-cts-batch-m1.md).
-
-## Copeland TS in an SDK project
-
-Copeland TS can be added as explicit source items to a normal SDK-style project.
-The package contributes an MSBuild target that emits C# under `obj` before
-Roslyn's `CoreCompile`; `dotnet build`, `run`, `test`, and `publish` remain the
-only commands required. See the [MSBuild integration decision](docs/decisions/copeland-msbuild-cts-msbuild-m1.md)
-for the package shape, source ownership, generated API mapping, and current
-language limitations.
-
-Authored C# declarations in that same project are also available to Copeland's
-CLR `using` domain. For example:
-
-```csharp
-// Names.cs
-namespace Demo;
-public static class Names
-{
-    public static string Normalize(string value) => value.Trim().ToUpperInvariant();
-}
-```
-
-For incremental migration, a function may contain an explicitly delimited,
-typed native C# block:
-
-```typescript
-using Demo;
-function Normalize(value: string): string {
-    csharp {
-        return Names.Normalize(value);
-    }
-}
-```
-
-The block is compiled as ordinary project C# and is not sandboxed. It can capture
-only values with an existing CLR projection and cannot assign to those captures.
-It is unavailable for the JavaScript backend; arbitrary inline JavaScript is not
-supported (declared npm contracts remain the JavaScript interop boundary). See
-[the inline-C# decision](docs/decisions/copeland-inline-csharp-cts-csharp-blocks-m1.md).
-
-```typescript
-// Greeting.ts
-using Demo;
-function Message(name: string): string {
-    return Names.Normalize(name);
-}
-```
-
-The generated C# calls `Names.Normalize` directly, while authored C# may call
-the generated `Demo.Copeland.Greeting.Message` in the same final assembly. See
-the [same-project C# declaration projection decision](docs/decisions/copeland-mixed-cts-mixed-m1.md)
-for supported members and deferred cross-language cycles.
-
-## Ownership and history
-
-Reviewers should default to these write scopes:
-
-- Copeland: `src/Copeland`, `tests/Copeland`, `docs/Copeland`
-- Machina.UI: `src/Machina.UI`, `tests/Machina.UI`, `docs/Machina.UI`
-- Aurelian: `src/Aurelian`, `tests/Aurelian`, `docs/Aurelian`
-- architecture/orchestration: `src/Integrations`, `tests/Integrations`, root solution/build files, and repository-wide architecture/decision documents
-
-JTF-M0 is organizational only. It does not rename assemblies or namespaces, split projects, change dependency direction by semantic migration, add the `Aurelian.Machina` bridge, or intentionally change runtime behavior or public APIs. See the [migration record](docs/migrations/jtf-m0-topology.md) for the exact scope.

@@ -1,6 +1,9 @@
 # Copeland TypeScript Support Matrix (historical)
 
-> Historical planning matrix. The current authoritative language law and implemented/intended distinction are in the [Copeland TS language profile](../language/copeland-ts-language-profile.md). In particular, proposed C# lowerings in this record do not decide future JavaScript semantics.
+> Historical planning matrix. The current authoritative authoring law is the
+> [Copeland TypeScript authoring guide](../authoring/copeland-typescript-guide.md).
+> In particular, proposed C# lowerings in this record do not decide future
+> JavaScript semantics.
 
 > **Current doctrine correction (CTS-TYPE-M3 and CTS-CLASS-M1):** the proposals below for nominal/direct-C# interfaces, direct-C# generic lowering, and `this`/inheritance-shaped classes are preserved as history, not current direction. Interfaces are erased structural requirement sets, aliases are transparent, backend generic representation is private, and implemented classes are immutable nominal values with pure construction and associated functions, without `new`, `this`, prototypes, or inheritance. See [CTS-TYPE-M3](copeland-ts-foundational-type-system-closeout-cts-type-m3.md) and [CTS-CLASS-M1](copeland-ts-pure-classes-cts-class-m1.md).
 

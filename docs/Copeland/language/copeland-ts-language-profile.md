@@ -1,4 +1,11 @@
-# Copeland TS language profile
+# Copeland TS language profile (historical)
+
+> **Historical record — not current authoring guidance.** The canonical current
+> language guide is [Copeland TypeScript authoring guide](../authoring/copeland-typescript-guide.md).
+> This profile predates implemented local modules, async, generators, flows,
+> numeric conversion, same-project C# projection, and current JavaScript
+> realization. Its status tables preserve their milestone context and must not
+> be read as a statement of today's supported surface.
 
 > **Suspension and sidecar routing:** [CTS-AUTOMATA-M0a](../architecture/copeland-ts-suspension-automata-design-cts-automata-m0a.md) establishes a compiler-owned resumable-control lowering before async, sidecar calls, or iterators. [CTS-SIDECAR-M0a](copeland-ts-sidecar-interop-design-cts-sidecar-m0a.md) defines CLR-to-JavaScript communication as separate runtime partitions plus explicit generated TSON transport, not shared objects. Both are documentation-only: no `sidecar`, async, iterator, module, or browser-host source surface exists yet.
 

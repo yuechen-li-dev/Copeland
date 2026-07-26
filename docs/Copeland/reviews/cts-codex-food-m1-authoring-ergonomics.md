@@ -1,5 +1,9 @@
 # CTS-CODEX-FOOD-M1 — Copeland authoring ergonomics pass
 
+> **Historical review.** This report predates local source modules and the
+> canonical [Copeland TypeScript authoring guide](../authoring/copeland-typescript-guide.md).
+> Its observations remain milestone evidence, not current authoring law.
+
 ## What I built
 
 `samples/copeland-ts/authoring-food` is a small meal-prep console application
