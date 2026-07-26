@@ -59,6 +59,10 @@ public static class SyntaxFacts
             SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken => 4,
             SyntaxKind.AmpersandAmpersandToken => 3,
             SyntaxKind.PipePipeToken => 2,
+            // Pipeline binds after postfix application (calls, member access,
+            // propagation, and `with`) but before assignment. Its parser loop
+            // makes equal-precedence chains left associative.
+            SyntaxKind.PipeGreaterToken => 1,
             _ => 0,
         };
 
@@ -93,6 +97,7 @@ public static class SyntaxFacts
             SyntaxKind.BangEqualsEqualsToken => "!==",
             SyntaxKind.AmpersandAmpersandToken => "&&",
             SyntaxKind.PipeToken => "|",
+            SyntaxKind.PipeGreaterToken => "|>",
             SyntaxKind.PipePipeToken => "||",
             SyntaxKind.ArrowToken => "=>",
             SyntaxKind.ConstKeyword => "const",

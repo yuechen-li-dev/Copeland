@@ -3348,6 +3348,11 @@ public static class Binder
 
         private BoundExpression BindBinary(BinaryExpressionSyntax b)
         {
+            if (b.OperatorToken.Kind == SyntaxKind.PipeGreaterToken)
+            {
+                return BindPipeline(b);
+            }
+
             var l = BindExpression(b.Left); var r = BindExpression(b.Right); var op = b.OperatorToken.Kind;
             if (TypeFacts.IsFloat(l.Type) && r is BoundLiteralExpression { Value: int } integerLiteral)
             {
@@ -3655,6 +3660,32 @@ public static class Binder
 
             Report("COPE-NUM-0001", "Invalid or unsupported numeric literal. Copeland int literals must be signed 32-bit values and float literals must be finite.", literal.LiteralToken);
             return new BoundErrorExpression();
+        }
+
+        /// <summary>
+        /// Binds <c>value |&gt; callable</c> by presenting the existing call binder
+        /// with the exact same syntax shape as <c>callable(value)</c>. There is no
+        /// bound pipeline node: every later phase sees an ordinary call or invoke.
+        /// </summary>
+        private BoundExpression BindPipeline(BinaryExpressionSyntax pipeline)
+        {
+            if (pipeline.Right is CallExpressionSyntax or GenericCallExpressionSyntax)
+            {
+                Report(
+                    "COPE-PIPE-0001",
+                    "The right side of '|>' must be a callable reference, not a completed call. For additional arguments, wrap the call in an arrow: value |> ((item: T) => f(item, x)).",
+                    pipeline.OperatorToken);
+                return new BoundErrorExpression();
+            }
+
+            var syntheticCall = new CallExpressionSyntax(
+                pipeline.Right,
+                pipeline.OperatorToken,
+                [pipeline.Left],
+                [],
+                pipeline.OperatorToken);
+
+            return BindCall(syntheticCall, contextualType: null);
         }
 
         private bool TryBindNumericConversion(CallExpressionSyntax call, out BoundExpression? conversion)

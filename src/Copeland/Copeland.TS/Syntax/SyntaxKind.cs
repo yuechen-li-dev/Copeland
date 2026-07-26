@@ -51,6 +51,7 @@ public enum SyntaxKind
     AmpersandAmpersandToken,
     AmpersandToken,
     PipeToken,
+    PipeGreaterToken,
     PipePipeToken,
     ArrowToken,
 

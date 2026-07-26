@@ -211,6 +211,92 @@ export function DescribeDecision(decision: Decision): string {
 Every case must be covered and each binding must match its payload. Ordinary
 source `switch` is not supported; `match` is the exhaustive tagged-data form.
 
+### Nominal unions are not inline TypeScript unions
+
+Traditional TypeScript instinct: write `string | int` anywhere a value can be
+either shape. Copeland's `|` declares a top-level nominal union of nominal
+record alternatives; it is not a general inline type operator.
+
+```ts
+record Circle { radius: number; }
+record Rectangle { width: number; height: number; }
+type Shape = Circle | Rectangle;
+
+function Area(shape: Shape): number {
+    return match shape {
+        Circle(value) => value.radius * value.radius,
+        Rectangle(value) => value.width * value.height,
+    };
+}
+```
+
+Alternatives must be records, construction is contextual (`const shape: Shape =
+circle`) or named (`Shape.Circle(circle)`), and imports use the normal
+named-export law. Primitive alternatives and `value: string | int` are
+rejected. See `Language/Valid/tagged-data/nominal-union-pipe.cl-valid.ts`.
+
+### Pure classes and value-first operations
+
+Copeland classes are immutable product values with one primary `constructor`
+and associated functions. They are not JavaScript/C# receiver objects: there
+is no `this`, inheritance, instance dot-call, or field-initializer law. Fields
+are declared in the class, construction is `Person(...)`, and an operation
+names its input explicitly.
+
+```ts
+class Person {
+    name: string;
+    age: number;
+    constructor(name: string, age: number): Person { return { name, age }; }
+    birthday(value: Person): Person { return value with { age: value.age + 1 }; }
+}
+
+const older: Person = Person("Ada", 41) |> Person.birthday;
+```
+
+`person.birthday()` is deliberately not a receiver call. `Person.birthday` is
+an associated function reference; the pipe spells `Person.birthday(person)`.
+See `Language/Valid/classes/person.cl-valid.ts` and
+`Language/Valid/pipeline/pipeline-associated-callable-and-arrow.cl-valid.ts`.
+
+### Fallibility: `try`/`except`, `err`, and `?`
+
+Typed failure is an expression law, not JavaScript exception control flow.
+`err(...)` constructs a Result where a Result type is expected; postfix `?`
+propagates its typed error; and `try` consumes a value expression with an
+`except` fallback.
+
+```ts
+function Read(): number ! string { return err("missing"); }
+function Main(): number {
+    return try { Read()? } except (error) { 0 };
+}
+```
+
+Use `except`, not `catch`; the blocks are supported value blocks, not arbitrary
+statement-oriented exception handlers. `throw` is not the normal typed-failure
+mechanism. See `Language/Valid/fallibility/try-except-handled-err.cl-valid.ts`.
+
+### Pipeline application
+
+`value |> f` is exactly `f(value)`. It has lower precedence than calls, member
+access, Result propagation (`?`), and record `with`, but higher precedence than
+assignment. Chains associate left-to-right: `20 |> Increment |> Double` means
+`Double(Increment(20))`.
+
+The right side must already be a one-argument callable reference: a named or
+imported function, associated function, callable value, or arrow. It creates
+no receiver, partial application, slot filling, or runtime feature. For extra
+arguments, use an arrow:
+
+```ts
+const renamed = person |> ((value: Person) => Rename(value, "Jr"));
+```
+
+`person |> Rename("Jr")` is rejected because the right side is a completed
+call. Fixtures for chains, generic inference, precedence, classes, and batch
+are under `Language/**/pipeline/`.
+
 ### Interfaces are constraints, not storage types
 
 This is the most important surprise for TypeScript authors.
@@ -493,6 +579,12 @@ and async suspension are deferred.
 | `switch` narrowing | Exhaustive `match` over a payload enum. |
 | Untyped npm import / inline JavaScript | Declared npm contract. |
 | Effects in a flow guard | Pure condition; perform effects outside the flow. |
+| Optional field `name?: string` | A nominal payload enum that makes absence explicit. |
+| `value ?? fallback` | Typed Result handling or a nominal payload enum; no JS null semantics. |
+| `readonly T[]` | `T[]`; arrays expose no mutable array API. |
+| `[int, string]` tuple type | A nominal record with named fields. |
+| `try/catch` | `try { value? } except (error) { fallback }`. |
+| Default parameter | Pass the value explicitly or define a small helper. |
 
 `var`, `eval`, optional chaining, ternary `?:`, general structural object
 literals, implicit globals, and ambient nullability are outside the profile.
@@ -568,3 +660,23 @@ diagnostic defect; do not invent an undocumented fourth rule.
 For focused detail, see [numeric conversion](numeric-conversion-m1.md) and
 [local modules](local-modules-m1.md). The [Copeland documentation landing page](../README.md)
 links the corresponding implementation records.
+
+## Canonical language fixture corpus
+
+The executable language definition lives in
+`tests/Copeland/Copeland.TS.Tests/Language`. Discovery is recursive and a
+fixture's complete suffix is authoritative:
+
+| Suffix | Meaning |
+| --- | --- |
+| `.cl-valid.ts` | Plain Copeland source that binds and lowers successfully. |
+| `.cl-invalid.ts` | Plain Copeland source intentionally rejected. |
+| `.cl-valid.tsx` | TS-XML source accepted by the current TS-XML parser boundary. |
+| `.cl-invalid.tsx` | TS-XML source intentionally rejected. |
+
+Folders are topical only. Add a current small specimen under the relevant
+topic; invalid fixtures use a nearby `// expect: COPE-...` comment for the
+primary diagnostic. The shared test reads only the full suffix and checks any
+declared diagnostic IDs. TS-XML tests additionally inspect node shape and
+source spans. Search this corpus—not binder internals—to find compiling class,
+fallibility, union, yield, module, pipeline, and TypeScript-difference examples.

@@ -9,7 +9,7 @@ public sealed class TsXmlSyntaxTests
     [Fact]
     public void Parses_Nested_SelfClosing_Attributes_And_Expression_Children_From_Tsx_Fixture()
     {
-        SyntaxTree tree = ParseFixture("positive-nesting-and-attributes.tsx", "manifest.tsx");
+        SyntaxTree tree = ParseFixture("positive-nesting-and-attributes.cl-valid.tsx", "manifest.tsx");
 
         Assert.Empty(tree.Diagnostics);
         string dump = SyntaxTreeDumper.Dump(tree.Root);
@@ -48,9 +48,9 @@ public sealed class TsXmlSyntaxTests
     }
 
     [Theory]
-    [InlineData("mismatched-names.tsx", "COPE-TSXML-0006")]
-    [InlineData("malformed-element.tsx", "COPE-TSXML-0002")]
-    [InlineData("malformed-attribute.tsx", "COPE-TSXML-0003")]
+    [InlineData("mismatched-names.cl-invalid.tsx", "COPE-TSXML-0006")]
+    [InlineData("malformed-element.cl-invalid.tsx", "COPE-TSXML-0002")]
+    [InlineData("malformed-attribute.cl-invalid.tsx", "COPE-TSXML-0003")]
     public void Reports_Deterministic_TsXml_Diagnostics(string fixtureName, string expectedId)
     {
         SyntaxTree tree = ParseFixture(fixtureName, fixtureName);
@@ -101,7 +101,7 @@ public sealed class TsXmlSyntaxTests
 
     private static SyntaxTree ParseFixture(string fixtureName, string sourcePath)
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "TsXml", fixtureName);
+        string path = Path.Combine(AppContext.BaseDirectory, "Language", "tsx", fixtureName);
         return SyntaxTree.Parse(File.ReadAllText(path), sourcePath);
     }
 }

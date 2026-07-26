@@ -625,6 +625,8 @@ public sealed class Parser
                 parameterType = ParseTypeSyntax();
             }
 
+            ReportAndSkipDefaultParameterValue();
+
             parameters.Add(new ParameterSyntax(parameterIdentifier, parameterColon, parameterType));
 
             if (Current.Kind != SyntaxKind.CommaToken)
@@ -656,6 +658,15 @@ public sealed class Parser
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             var fieldIdentifier = Match(SyntaxKind.IdentifierToken);
+            if (Current.Kind == SyntaxKind.QuestionToken && Peek(1).Kind == SyntaxKind.ColonToken)
+            {
+                SyntaxToken questionToken = NextToken();
+                _diagnostics.Report(
+                    "COPE-PROFILE-0012",
+                    "Optional record fields are not supported. Copeland record shapes are fixed; model presence/absence with a nominal payload enum.",
+                    questionToken.Position,
+                    questionToken.Text.Length);
+            }
             var hasColon = Current.Kind == SyntaxKind.ColonToken;
             var colon = hasColon ? NextToken() : MissingToken(SyntaxKind.ColonToken, Current.Position);
             var hasType = hasColon && Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.CloseBraceToken;
@@ -875,6 +886,28 @@ public sealed class Parser
 
     private TypeSyntax ParseTypeSyntax()
     {
+        if (IsWord(Current, "readonly"))
+        {
+            SyntaxToken readonlyToken = NextToken();
+            _diagnostics.Report(
+                "COPE-PROFILE-0014",
+                "Readonly array syntax 'readonly T[]' is not supported. Use 'T[]'; Copeland arrays expose no mutable array API.",
+                readonlyToken.Position,
+                readonlyToken.Text.Length);
+        }
+
+        if (Current.Kind == SyntaxKind.OpenBracketToken)
+        {
+            SyntaxToken openBracket = NextToken();
+            _diagnostics.Report(
+                "COPE-PROFILE-0015",
+                "Tuple types are not supported. Declare a nominal record with named fields instead.",
+                openBracket.Position,
+                openBracket.Text.Length);
+            SkipTupleType();
+            return new IdentifierTypeSyntax(MissingToken(SyntaxKind.IdentifierToken, openBracket.Position));
+        }
+
         var type = ParsePostfixTypeSyntax();
         if (Current.Kind != SyntaxKind.BangToken)
         {
@@ -886,6 +919,34 @@ public sealed class Parser
         var errorType = ParseTypeSyntax();
         ConsumeIllegalInlinePipeTypeSyntax();
         return new ResultTypeSyntax(type, bangToken, errorType);
+    }
+
+    private void SkipTupleType()
+    {
+        var depth = 1;
+        while (Current.Kind != SyntaxKind.EndOfFileToken && depth > 0)
+        {
+            if (Current.Kind == SyntaxKind.OpenBracketToken) depth++;
+            if (Current.Kind == SyntaxKind.CloseBracketToken) depth--;
+            NextToken();
+        }
+    }
+
+    private void ReportAndSkipDefaultParameterValue()
+    {
+        if (Current.Kind != SyntaxKind.EqualsToken)
+        {
+            return;
+        }
+
+        SyntaxToken equalsToken = NextToken();
+        _diagnostics.Report(
+            "COPE-PROFILE-0011",
+            "Default parameter values are not supported. Use an explicit helper/overload or pass the default at the call site.",
+            equalsToken.Position,
+            equalsToken.Text.Length);
+
+        _ = ParseExpression();
     }
 
     private void ConsumeIllegalInlinePipeTypeSyntax()
@@ -908,6 +969,15 @@ public sealed class Parser
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             var fieldIdentifier = Match(SyntaxKind.IdentifierToken);
+            if (Current.Kind == SyntaxKind.QuestionToken && Peek(1).Kind == SyntaxKind.ColonToken)
+            {
+                SyntaxToken questionToken = NextToken();
+                _diagnostics.Report(
+                    "COPE-PROFILE-0012",
+                    "Optional record fields are not supported. Copeland record shapes are fixed; model presence/absence with a nominal payload enum.",
+                    questionToken.Position,
+                    questionToken.Text.Length);
+            }
             var hasColon = Current.Kind == SyntaxKind.ColonToken;
             var colonToken = hasColon
                 ? NextToken()
@@ -1134,6 +1204,7 @@ public sealed class Parser
                 colon = NextToken();
                 type = ParseTypeSyntax();
             }
+            ReportAndSkipDefaultParameterValue();
             parsedParameters.Add(new ParameterSyntax(identifier, colon, type));
             if (Current.Kind != SyntaxKind.CommaToken) break;
             parsedCommas.Add(NextToken());
@@ -1564,6 +1635,18 @@ public sealed class Parser
             if (Current.Kind == SyntaxKind.QuestionToken)
             {
                 var questionToken = Match(SyntaxKind.QuestionToken);
+                if (Current.Kind == SyntaxKind.QuestionToken)
+                {
+                    SyntaxToken secondQuestionToken = Match(SyntaxKind.QuestionToken);
+                    _diagnostics.Report(
+                        "COPE-PROFILE-0013",
+                        "Nullish coalescing '??' is not supported. Copeland does not use JavaScript null/undefined semantics; use typed Result handling or a nominal payload enum.",
+                        questionToken.Position,
+                        secondQuestionToken.Position + secondQuestionToken.Text.Length - questionToken.Position);
+                    _ = ParseBinaryExpression();
+                    expression = new MissingExpressionSyntax(questionToken);
+                    continue;
+                }
                 if (Current.Kind == SyntaxKind.DotToken)
                 {
                     _diagnostics.Report("COPE-PROFILE-0008", "Optional chaining is not supported. Use explicit fallible APIs or enum/option modeling.", questionToken.Position, 2);
@@ -1573,7 +1656,12 @@ public sealed class Parser
                     continue;
                 }
 
-                if (Current.Kind != SyntaxKind.SemicolonToken && Current.Kind != SyntaxKind.CloseParenToken && Current.Kind != SyntaxKind.CommaToken && Current.Kind != SyntaxKind.CloseBraceToken && Current.Kind != SyntaxKind.BangToken)
+                if (Current.Kind != SyntaxKind.SemicolonToken
+                    && Current.Kind != SyntaxKind.CloseParenToken
+                    && Current.Kind != SyntaxKind.CommaToken
+                    && Current.Kind != SyntaxKind.CloseBraceToken
+                    && Current.Kind != SyntaxKind.BangToken
+                    && Current.Kind != SyntaxKind.PipeGreaterToken)
                 {
                     _diagnostics.Report("COPE-PROFILE-0007", "The ternary operator is not supported. Use if/else expressions.", questionToken.Position, 1);
                 }
@@ -1956,7 +2044,20 @@ public sealed class Parser
     {
         var tryKeyword = Match(SyntaxKind.TryKeyword);
         var protectedBlock = ParseTryValueBlock();
-        var exceptKeyword = MatchTryToken(SyntaxKind.ExceptKeyword, "Expected 'except' after the protected try value block.");
+        SyntaxToken exceptKeyword;
+        if (IsWord(Current, "catch"))
+        {
+            exceptKeyword = NextToken();
+            _diagnostics.Report(
+                "COPE-PROFILE-0010",
+                "JavaScript-style 'try/catch' statements are not supported. Copeland uses the expression form: try { operation? } except (error) { fallback }.",
+                exceptKeyword.Position,
+                exceptKeyword.Text.Length);
+        }
+        else
+        {
+            exceptKeyword = MatchTryToken(SyntaxKind.ExceptKeyword, "Expected 'except' after the protected try value block.");
+        }
         var openParen = MatchTryToken(SyntaxKind.OpenParenToken, "Expected '(' after 'except'.");
         var binding = MatchTryToken(SyntaxKind.IdentifierToken, "Expected exactly one handler binding name in 'except (...)'.");
         var closeParen = MatchTryToken(SyntaxKind.CloseParenToken, "Expected ')' after the handler binding name.");

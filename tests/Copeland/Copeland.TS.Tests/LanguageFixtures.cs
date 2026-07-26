@@ -1,32 +1,102 @@
+using System.Text.RegularExpressions;
+
 namespace Copeland.TS.Tests;
 
+public enum LanguageFixtureVerdict
+{
+    Valid,
+    Invalid,
+}
+
+public sealed record LanguageFixture(
+    string RelativePath,
+    LanguageFixtureVerdict Verdict,
+    bool IsTsXml,
+    IReadOnlyList<string> ExpectedDiagnosticIds);
+
+/// <summary>
+/// Convention-based language specimen discovery. A fixture's complete suffix is
+/// its verdict; folders are only topical organization and never test authority.
+/// </summary>
 public static class LanguageFixtures
 {
     private const string FixtureRootName = "Language";
-    private const string ValidRootName = "Valid";
-    private const string InvalidRootName = "Invalid";
-    private const string ValidSuffix = ".cl-valid.ts";
-    private const string InvalidSuffix = ".cl-invalid.ts";
+    private static readonly FixtureSuffix[] Suffixes =
+    [
+        new(".cl-valid.ts", LanguageFixtureVerdict.Valid, false),
+        new(".cl-invalid.ts", LanguageFixtureVerdict.Invalid, false),
+        new(".cl-valid.tsx", LanguageFixtureVerdict.Valid, true),
+        new(".cl-invalid.tsx", LanguageFixtureVerdict.Invalid, true),
+    ];
 
-    public static IEnumerable<object[]> Valid => GetTheoryData(ValidRootName, ValidSuffix);
+    private static readonly Regex ExpectedDiagnosticPattern = new(
+        @"^\s*//\s*expect:\s*(?<id>COPE-[A-Z0-9-]+)\s*$",
+        RegexOptions.Compiled | RegexOptions.Multiline | RegexOptions.CultureInvariant);
 
-    public static IEnumerable<object[]> Invalid => GetTheoryData(InvalidRootName, InvalidSuffix);
+    public static IEnumerable<object[]> Valid => GetTheoryData(LanguageFixtureVerdict.Valid);
+
+    public static IEnumerable<object[]> Invalid => GetTheoryData(LanguageFixtureVerdict.Invalid);
 
     public static void AssertTopology()
     {
-        var root = GetFixtureRoot();
-        ValidateAllFixtureNames(root);
-        EnsureFixtureDirectoryExists(root, ValidRootName);
-        EnsureFixtureDirectoryExists(root, InvalidRootName);
-        EnsureFixturesExist(root, ValidRootName, ValidSuffix);
-        EnsureFixturesExist(root, InvalidRootName, InvalidSuffix);
+        LanguageFixture[] fixtures = Discover();
+        if (fixtures.Length == 0)
+        {
+            throw new InvalidOperationException("Language fixture root contains no convention-named fixtures.");
+        }
+
+        foreach (FixtureSuffix suffix in Suffixes)
+        {
+            if (!fixtures.Any(fixture => fixture.RelativePath.EndsWith(suffix.Text, StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException($"Language fixture corpus contains no '{suffix.Text}' specimen.");
+            }
+        }
     }
+
+    public static LanguageFixture[] Discover()
+    {
+        string root = GetFixtureRoot();
+        var fixtures = new List<LanguageFixture>();
+
+        foreach (string path in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+        {
+            string relativePath = NormalizeRelativePath(Path.GetRelativePath(root, path));
+            FixtureSuffix? suffix = Suffixes.FirstOrDefault(candidate =>
+                relativePath.EndsWith(candidate.Text, StringComparison.Ordinal));
+
+            if (suffix is null)
+            {
+                throw new InvalidOperationException(
+                    $"Language fixture does not follow a canonical full suffix: {relativePath}");
+            }
+
+            string source = File.ReadAllText(path);
+            string[] expectedDiagnostics = ExpectedDiagnosticPattern.Matches(source)
+                .Select(match => match.Groups["id"].Value)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+            fixtures.Add(new LanguageFixture(
+                relativePath,
+                suffix.Verdict,
+                suffix.IsTsXml,
+                expectedDiagnostics));
+        }
+
+        return fixtures
+            .OrderBy(fixture => fixture.RelativePath, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public static string ReadSourceText(LanguageFixture fixture)
+        => ReadSourceText(fixture.RelativePath);
 
     public static string ReadSourceText(string relativePath)
     {
-        var root = GetFixtureRoot();
-        var normalizedRelativePath = NormalizeRelativePath(relativePath);
-        var fullPath = Path.GetFullPath(Path.Combine(root, normalizedRelativePath));
+        string root = GetFixtureRoot();
+        string normalizedRelativePath = NormalizeRelativePath(relativePath);
+        string fullPath = Path.GetFullPath(Path.Combine(root, normalizedRelativePath));
 
         if (!fullPath.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal)
             && !string.Equals(fullPath, root, StringComparison.Ordinal))
@@ -34,93 +104,32 @@ public static class LanguageFixtures
             throw new ArgumentException("Language fixture path escapes the fixture root.", nameof(relativePath));
         }
 
-        if (!File.Exists(fullPath))
-        {
-            throw new FileNotFoundException($"Language fixture does not exist: {normalizedRelativePath}", fullPath);
-        }
-
         return File.ReadAllText(fullPath);
     }
 
-    private static IEnumerable<object[]> GetTheoryData(string category, string suffix)
+    private static IEnumerable<object[]> GetTheoryData(LanguageFixtureVerdict verdict)
     {
-        var root = GetFixtureRoot();
         AssertTopology();
-
-        return EnumerateFixtures(root, category, suffix)
-            .Select(relativePath => new object[] { relativePath })
+        return Discover()
+            .Where(fixture => fixture.Verdict == verdict)
+            .Select(fixture => new object[] { fixture })
             .ToArray();
     }
 
     private static string GetFixtureRoot()
     {
-        var root = Path.Combine(AppContext.BaseDirectory, FixtureRootName);
+        string root = Path.Combine(AppContext.BaseDirectory, FixtureRootName);
         if (!Directory.Exists(root))
         {
             throw new DirectoryNotFoundException(
-                $"Language fixture root was not copied to test output: {root}. " +
-                "Ensure Copeland.TS.Tests copies Language/**/*.");
+                $"Language fixture root was not copied to test output: {root}. Ensure Copeland.TS.Tests copies Language/**/*.");
         }
 
         return Path.GetFullPath(root);
     }
 
-    private static void ValidateAllFixtureNames(string root)
-    {
-        foreach (var filePath in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
-        {
-            var relativePath = NormalizeRelativePath(Path.GetRelativePath(root, filePath));
-
-            if (relativePath.EndsWith(".cope", StringComparison.Ordinal)
-                || relativePath.EndsWith(".g.cs", StringComparison.Ordinal)
-                || relativePath.EndsWith(".g.js", StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    $"Language fixtures cannot contain generated or MIR artifacts: {relativePath}");
-            }
-
-            var isValidFixture = relativePath.StartsWith(ValidRootName + "/", StringComparison.Ordinal)
-                && relativePath.EndsWith(ValidSuffix, StringComparison.Ordinal);
-            var isInvalidFixture = relativePath.StartsWith(InvalidRootName + "/", StringComparison.Ordinal)
-                && relativePath.EndsWith(InvalidSuffix, StringComparison.Ordinal);
-
-            if (!isValidFixture && !isInvalidFixture)
-            {
-                throw new InvalidOperationException(
-                    $"Language fixture does not follow the required suffix convention: {relativePath}");
-            }
-        }
-    }
-
-    private static void EnsureFixtureDirectoryExists(string root, string category)
-    {
-        var categoryPath = Path.Combine(root, category);
-        if (!Directory.Exists(categoryPath))
-        {
-            throw new DirectoryNotFoundException($"Language fixture directory is missing: {categoryPath}");
-        }
-    }
-
-    private static void EnsureFixturesExist(string root, string category, string suffix)
-    {
-        if (!EnumerateFixtures(root, category, suffix).Any())
-        {
-            throw new InvalidOperationException($"Language/{category} must contain at least one {suffix} fixture.");
-        }
-    }
-
-    private static IEnumerable<string> EnumerateFixtures(string root, string category, string suffix)
-    {
-        var categoryPath = Path.Combine(root, category);
-        return Directory.EnumerateFiles(categoryPath, "*", SearchOption.AllDirectories)
-            .Where(path => path.EndsWith(suffix, StringComparison.Ordinal))
-            .Select(path => NormalizeRelativePath(Path.GetRelativePath(root, path)))
-            .OrderBy(path => path, StringComparer.Ordinal);
-    }
-
     private static string NormalizeRelativePath(string path)
-    {
-        return path.Replace(Path.DirectorySeparatorChar, '/')
-            .Replace(Path.AltDirectorySeparatorChar, '/');
-    }
+        => path.Replace(Path.DirectorySeparatorChar, '/').Replace(Path.AltDirectorySeparatorChar, '/');
+
+    private sealed record FixtureSuffix(string Text, LanguageFixtureVerdict Verdict, bool IsTsXml);
 }

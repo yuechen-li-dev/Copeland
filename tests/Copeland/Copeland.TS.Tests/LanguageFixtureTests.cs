@@ -1,4 +1,5 @@
 using Copeland.TS.Compiler;
+using Copeland.TS.Syntax;
 using Xunit;
 
 namespace Copeland.TS.Tests;
@@ -13,11 +14,19 @@ public sealed class LanguageFixtureTests
 
     [Theory]
     [MemberData(nameof(LanguageFixtures.Valid), MemberType = typeof(LanguageFixtures))]
-    public void Valid_language_fixture_lowers_to_mir(string relativePath)
+    public void Valid_language_fixture_reaches_its_language_boundary(LanguageFixture fixture)
     {
-        var compilation = CopelandCompiler.CompileToMir(LanguageFixtures.ReadSourceText(relativePath));
+        string source = LanguageFixtures.ReadSourceText(fixture);
+        if (fixture.IsTsXml)
+        {
+            SyntaxTree tree = SyntaxTree.Parse(source, fixture.RelativePath);
+            Assert.Empty(tree.Diagnostics);
+            return;
+        }
 
-        Assert.True(compilation.Success, DescribeDiagnostics(relativePath, compilation.Diagnostics));
+        var compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.True(compilation.Success, DescribeDiagnostics(fixture.RelativePath, compilation.Diagnostics));
         Assert.Empty(compilation.Diagnostics);
         Assert.NotNull(compilation.BoundCompilation);
         Assert.NotNull(compilation.MirCompilation?.Program);
@@ -26,27 +35,35 @@ public sealed class LanguageFixtureTests
 
     [Theory]
     [MemberData(nameof(LanguageFixtures.Invalid), MemberType = typeof(LanguageFixtures))]
-    public void Invalid_language_fixture_is_rejected_at_validation(string relativePath)
+    public void Invalid_language_fixture_is_rejected_for_its_declared_reason(LanguageFixture fixture)
     {
-        var compilation = CopelandCompiler.CompileToMir(LanguageFixtures.ReadSourceText(relativePath));
+        string source = LanguageFixtures.ReadSourceText(fixture);
+        if (fixture.IsTsXml)
+        {
+            SyntaxTree tree = SyntaxTree.Parse(source, fixture.RelativePath);
+            Assert.NotEmpty(tree.Diagnostics);
+            AssertExpectedDiagnostics(fixture, tree.Diagnostics.Select(diagnostic => diagnostic.Id));
+            return;
+        }
+
+        var compilation = CopelandCompiler.CompileToMir(source);
 
         Assert.NotEmpty(compilation.Diagnostics);
         Assert.DoesNotContain(compilation.Diagnostics, diagnostic =>
             diagnostic.Id.StartsWith("COPE-LEX", StringComparison.Ordinal)
             || diagnostic.Id.StartsWith("COPE-PARSE", StringComparison.Ordinal));
-        bool hasFamilyOwnedSyntaxDiagnostic = compilation.Diagnostics.Any(diagnostic =>
-            diagnostic.Id.StartsWith("COPE-UNION", StringComparison.Ordinal)
-            || diagnostic.Id.StartsWith("COPE-MATCH", StringComparison.Ordinal)
-            || diagnostic.Id.StartsWith("COPE-TRY", StringComparison.Ordinal)
-            || diagnostic.Id.StartsWith("COPE-CALL", StringComparison.Ordinal)
-            || diagnostic.Id is "COPE-ALIAS-0001" or "COPE-ALIAS-0002");
-        if (!hasFamilyOwnedSyntaxDiagnostic)
-        {
-            Assert.NotNull(compilation.BoundCompilation);
-        }
         Assert.False(compilation.Success);
         Assert.Null(compilation.MirCompilation);
         Assert.Null(compilation.MirText);
+        AssertExpectedDiagnostics(fixture, compilation.Diagnostics.Select(diagnostic => diagnostic.Id));
+    }
+
+    private static void AssertExpectedDiagnostics(LanguageFixture fixture, IEnumerable<string> actualIds)
+    {
+        foreach (string expectedId in fixture.ExpectedDiagnosticIds)
+        {
+            Assert.Contains(expectedId, actualIds);
+        }
     }
 
     private static string DescribeDiagnostics(

@@ -10,6 +10,24 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_executes_pipeline_as_ordinary_calls()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function increment(value: number): number { return value + 1; }
+            function double(value: number): number { return value * 2; }
+            function main(): number { return 20 |> increment |> double; }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        Assert.DoesNotContain("Pipeline", emitted.SourceText, StringComparison.Ordinal);
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(main());\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("42\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
     public async Task Node_executes_array_length_indexing_and_for_of()
     {
         JavaScriptCompilation emitted = Emit("""

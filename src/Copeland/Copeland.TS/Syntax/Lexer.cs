@@ -122,6 +122,10 @@ public sealed class Lexer
                     }
                     return SingleCharToken(SyntaxKind.AmpersandToken);
                 case '|':
+                    if (Peek(1) == '>')
+                    {
+                        return DoubleCharToken(SyntaxKind.PipeGreaterToken);
+                    }
                     if (Peek(1) == '|')
                     {
                         return DoubleCharToken(SyntaxKind.PipePipeToken);
