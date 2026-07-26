@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Compiler;
 using Microsoft.Build.Framework;
@@ -188,10 +189,19 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         string generatedSource = emitted.SourceText
             .Replace("namespace Copeland.Generated;", "namespace " + generatedNamespace + ";", StringComparison.Ordinal)
             .Replace("public static class CopelandModule", "public static class " + moduleName, StringComparison.Ordinal);
+        generatedSource = ScopeRecordCarrierNames(generatedSource, moduleName);
 
         WriteIfChanged(outputPath, generatedSource);
         WriteIfChanged(mirPath, compilation.MirText!);
         return true;
+    }
+
+    private static string ScopeRecordCarrierNames(string generatedSource, string moduleName)
+    {
+        return Regex.Replace(
+            generatedSource,
+            @"__CopeRecord_(?<recordId>[A-Za-z0-9_]+)",
+            match => "__CopeRecord_" + moduleName + "_" + match.Groups["recordId"].Value);
     }
 
     private static IReadOnlyDictionary<string, string> CreateModuleNames(IReadOnlyList<string> sourcePaths)
@@ -221,7 +231,9 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         Append(hash, File.ReadAllText(sourcePath));
         Append(hash, rootNamespace);
         Append(hash, moduleName);
-        Append(hash, typeof(CopelandCompile).Assembly.GetName().Version?.ToString() ?? "unknown");
+        AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompile).Assembly);
+        AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompiler).Assembly);
+        AppendCompilerPayloadFingerprint(hash, typeof(CSharpBackend).Assembly);
         foreach (CopelandClrReference reference in references)
         {
             if (reference.AssemblyPath is not null)
@@ -240,6 +252,22 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         }
 
         return Convert.ToHexString(hash.GetHashAndReset());
+    }
+
+    private static void AppendCompilerPayloadFingerprint(IncrementalHash hash, System.Reflection.Assembly assembly)
+    {
+        Append(hash, assembly.GetName().Name ?? "unknown");
+        Append(hash, assembly.GetName().Version?.ToString() ?? "unknown");
+
+        string assemblyPath = assembly.Location;
+        if (!File.Exists(assemblyPath))
+        {
+            return;
+        }
+
+        var assemblyFile = new FileInfo(assemblyPath);
+        Append(hash, assemblyFile.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Append(hash, assemblyFile.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     private static bool IsCurrent(string stampPath, string outputPath, string mirPath, string fingerprint)

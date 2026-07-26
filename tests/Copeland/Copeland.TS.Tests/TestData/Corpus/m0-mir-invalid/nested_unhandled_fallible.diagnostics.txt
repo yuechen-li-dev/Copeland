@@ -1,1 +1,1 @@
-COPE-TYPE-0007|87|1|Invalid binary operands for '+'.
+COPE-TYPE-0007|87|1|Operator '+' cannot operate on Result values ('number ! ParseError' and 'number'). Propagate with '?' or handle the Result before applying the operator.

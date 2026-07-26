@@ -15,5 +15,9 @@
     <Project Path="tests/Copeland/Copeland.TS.Backend.CSharp.Tests/Copeland.TS.Backend.CSharp.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/Copeland.TS.Backend.JavaScript.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.TS.MSBuild.Tests/Copeland.TS.MSBuild.Tests.csproj" />
+    <Project Path="samples/copeland-ts/authoring-food/Copeland.Authoring.Food.Tests/Copeland.Authoring.Food.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/copeland-ts/authoring-food/Copeland.Authoring.Food.csproj" />
   </Folder>
 </Solution>

@@ -39,6 +39,17 @@ public sealed class NpmInteropBindingTests
     }
 
     [Fact]
+    public void Relative_import_explains_the_missing_source_module_boundary()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("import { summary } from \"./recipe-book\";", new CopelandCompilationOptions { SourcePath = "main.ts" });
+
+        var diagnostic = Assert.Single(compilation.Diagnostics);
+        Assert.Equal("COPE-MODULE-0001", diagnostic.Id);
+        Assert.Contains("no source-module resolver", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("declared package contract", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Contract_and_materialization_failures_are_distinct()
     {
         CopelandCompilation noContract = CopelandCompiler.CompileToMir("import { delayedTransform } from \"@fixture/transform\";", new CopelandCompilationOptions

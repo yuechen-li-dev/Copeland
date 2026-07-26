@@ -452,6 +452,31 @@ function equal(): boolean { return Choice.Yes == Choice.No; }
     }
 
     [Fact]
+    public void Mixed_String_And_Number_Concatenation_Explains_The_Explicit_Formatting_Boundary()
+    {
+        var bound = SemanticBinder.Bind(SyntaxTree.Parse("function describe(value: number): string { return \"value: \" + value; }"));
+
+        var diagnostic = Assert.Single(bound.Diagnostics, diagnostic => diagnostic.Id == "COPE-TYPE-0007");
+        Assert.Contains("string", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("number", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("does not perform implicit conversions", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("typed CLR formatting API", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Interface_Storage_Diagnostic_Teaches_The_Generic_Constraint_Repair_Without_A_Cascade()
+    {
+        var bound = SemanticBinder.Bind(SyntaxTree.Parse("""
+            interface HasPortions { portions: number; }
+            function count(value: HasPortions): number { return value.portions; }
+            """));
+
+        var diagnostic = Assert.Single(bound.Diagnostics);
+        Assert.Equal("COPE-INTERFACE-0005", diagnostic.Id);
+        Assert.Contains("<T extends HasPortions>(value: T)", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Match_Duplicate_Arm_Report()
     {
         var tree = SyntaxTree.Parse("""

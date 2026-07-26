@@ -324,8 +324,8 @@ public static class CSharpBackend
     private static void EmitBatchTestSeam(CSharpTextWriter writer)
     {
         writer.WriteLine("// Private test seam: never reachable from authored Copeland code.");
-        writer.WriteLine("private static global::System.Action? __cope_batch_item_entered_for_testing;");
-        writer.WriteLine("private static int __cope_batch_max_degree_for_testing;");
+        writer.WriteLine("private static global::System.Action? __cope_batch_item_entered_for_testing = null;");
+        writer.WriteLine("private static int __cope_batch_max_degree_for_testing = 0;");
         writer.WriteLine();
     }
 

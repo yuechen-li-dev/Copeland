@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Copeland.Authoring.Food</RootNamespace>
+    <AssemblyName>Copeland.Authoring.Food</AssemblyName>
+    <CopelandTaskAssembly>$(MSBuildProjectDirectory)\..\..\..\src\Copeland\Copeland.TS.MSBuild\bin\$(Configuration)\net10.0\Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj"
+                      ReferenceOutputAssembly="false" />
+    <CopelandCompile Include="Copeland\RecipeBook.ts" />
+    <CopelandCompile Include="Copeland\Planning.ts" />
+    <CopelandCompile Include="Copeland\PantryFlow.ts" />
+    <Compile Remove="Copeland.Authoring.Food.Tests\**\*.cs" />
+  </ItemGroup>
+
+  <Import Project="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.targets" />
+</Project>

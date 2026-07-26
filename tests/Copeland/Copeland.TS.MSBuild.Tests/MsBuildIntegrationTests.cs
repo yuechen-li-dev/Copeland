@@ -127,6 +127,42 @@ public sealed class MsBuildIntegrationTests
     }
 
     [Fact]
+    public void Independent_Copeland_Files_Scope_Private_Record_Carriers_Per_Module()
+    {
+        using var fixture = new TemporaryProject();
+        fixture.Write("Demo/Demo.csproj", CreateProjectFile(includeProjectReference: false, includePackage: false));
+        fixture.Write("Demo/Program.cs", """
+            using Demo.Copeland;
+            System.Console.WriteLine(Greeting.Message("greeting"));
+            System.Console.WriteLine(Feature.Make("feature"));
+            """);
+        fixture.Write("Demo/Greeting.ts", """
+            record GreetingValue { value: string; }
+            function Message(value: string): string {
+                const greeting: GreetingValue = { value, };
+                return greeting.value;
+            }
+            """);
+        fixture.Write("Demo/Feature.ts", """
+            record FeatureValue { value: string; }
+            function Make(value: string): string {
+                const feature: FeatureValue = { value, };
+                return feature.value;
+            }
+            """);
+
+        fixture.Run("Demo", "restore");
+        fixture.Run("Demo", "build", "--no-restore");
+        fixture.Run("Demo", "run", "--no-build").AssertOutput("greeting", "feature");
+
+        string generatedDirectory = Path.Combine(fixture.Root, "Demo", "obj", "Debug", "net10.0", "Copeland");
+        string greeting = File.ReadAllText(Path.Combine(generatedDirectory, "Greeting.g.cs"));
+        string feature = File.ReadAllText(Path.Combine(generatedDirectory, "Feature.g.cs"));
+        Assert.Contains("__CopeRecord_Greeting_r1", greeting, StringComparison.Ordinal);
+        Assert.Contains("__CopeRecord_Feature_r1", feature, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Copeland_Binds_Authored_CSharp_Declarations_In_The_Same_Project()
     {
         using var fixture = new TemporaryProject();

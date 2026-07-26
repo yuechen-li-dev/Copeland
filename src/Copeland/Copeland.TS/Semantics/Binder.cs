@@ -3284,7 +3284,14 @@ public static class Binder
                     return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Boolean);
                 }
             }
-            Report("COPE-TYPE-0007", $"Invalid binary operands for '{b.OperatorToken.Text}'.", b.OperatorToken);
+            string diagnosticMessage = l.Type is ResultTypeSymbol || r.Type is ResultTypeSymbol
+                ? $"Operator '{b.OperatorToken.Text}' cannot operate on Result values ('{l.Type.Name}' and '{r.Type.Name}'). Propagate with '?' or handle the Result before applying the operator."
+                : op == SyntaxKind.PlusToken
+                    && ((l.Type == PrimitiveTypeSymbol.String && r.Type == PrimitiveTypeSymbol.Number)
+                        || (l.Type == PrimitiveTypeSymbol.Number && r.Type == PrimitiveTypeSymbol.String))
+                    ? $"Operator '+' does not support operands of type '{l.Type.Name}' and '{r.Type.Name}'. Copeland does not perform implicit conversions; use matching primitive types or a typed CLR formatting API."
+                    : $"Operator '{b.OperatorToken.Text}' does not support operands of type '{l.Type.Name}' and '{r.Type.Name}'.";
+            Report("COPE-TYPE-0007", diagnosticMessage, b.OperatorToken);
             return new BoundErrorExpression();
         }
 
@@ -3830,6 +3837,15 @@ public static class Binder
                 if (module?.Value is not string packageName)
                 {
                     Report("COPE-NPM-0001", "npm imports require a string package specifier.", tokens[0]);
+                    continue;
+                }
+                if (packageName.StartsWith("./", StringComparison.Ordinal)
+                    || packageName.StartsWith("../", StringComparison.Ordinal))
+                {
+                    Report(
+                        "COPE-MODULE-0001",
+                        $"Relative import '{packageName}' is not supported because Copeland has no source-module resolver. Keep related declarations in one Copeland file or compose generated file-module APIs from C#; npm imports require a declared package contract.",
+                        module);
                     continue;
                 }
                 if (!_npmResolver.TryGetPackage(packageName, out CopelandNpmPackageContract? package) || package is null)
@@ -6056,6 +6072,10 @@ public static class Binder
                 return new BoundEnumValueExpression(@case, []);
             }
             var receiver = clrReceiver ?? BindExpression(m.Target);
+            if (receiver.Type == PrimitiveTypeSymbol.Error)
+            {
+                return new BoundErrorExpression();
+            }
             if (receiver.Type is TableTypeSymbol tableType)
             {
                 var column = tableType.Columns.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
@@ -6431,7 +6451,10 @@ public static class Binder
                 return typeParameter.Type;
             if (_interfaces.ContainsKey(i.Identifier.Text))
             {
-                Report("COPE-INTERFACE-0005", $"Interface '{i.Identifier.Text}' is a requirement and cannot be used as a storage type.", i.Identifier);
+                Report(
+                    "COPE-INTERFACE-0005",
+                    $"Interface '{i.Identifier.Text}' is a field requirement, not a storage type. Use it as a generic constraint, for example '<T extends {i.Identifier.Text}>(value: T)'.",
+                    i.Identifier);
                 return PrimitiveTypeSymbol.Error;
             }
             if (_enumTypes.TryGetValue(i.Identifier.Text, out var enumType))
