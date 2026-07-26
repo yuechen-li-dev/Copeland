@@ -201,28 +201,38 @@ public sealed class Lexer
             }
         }
 
-        var invalid = false;
+        string numericText = _text.Substring(start, _position - start);
+        double floatValue = default;
+        int intValue = default;
+        bool parsed = hasDecimalPoint
+            ? double.TryParse(numericText, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out floatValue)
+            : int.TryParse(numericText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out intValue);
+
         if (IsIdentifierStart(Current))
         {
-            invalid = true;
+            int suffixStart = _position;
             while (IsIdentifierPart(Current))
             {
                 _position++;
             }
+
+            string suffix = _text.Substring(suffixStart, _position - suffixStart);
+            string unitText = _text.Substring(start, _position - start);
+            if (parsed && suffix is "px" or "ui")
+            {
+                double unitValue = hasDecimalPoint ? floatValue : intValue;
+                return new SyntaxToken(
+                    SyntaxKind.NumberToken,
+                    start,
+                    unitText,
+                    new LengthLiteralTokenValue(unitValue, suffix));
+            }
+
+            _diagnostics.Report("COPE-LEX-0004", "Invalid number literal.", start, unitText.Length);
+            return new SyntaxToken(SyntaxKind.NumberToken, start, unitText, null);
         }
 
-        var text = _text.Substring(start, _position - start);
-        if (invalid)
-        {
-            _diagnostics.Report("COPE-LEX-0004", "Invalid number literal.", start, text.Length);
-            return new SyntaxToken(SyntaxKind.NumberToken, start, text, null);
-        }
-
-        double floatValue = default;
-        int intValue = default;
-        var parsed = hasDecimalPoint
-            ? double.TryParse(text, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out floatValue)
-            : int.TryParse(text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out intValue);
+        var text = numericText;
         object? value = !parsed
             ? null
             : hasDecimalPoint
@@ -396,3 +406,6 @@ public sealed class Lexer
     private static bool IsIdentifierPart(char ch)
         => IsIdentifierStart(ch) || char.IsAsciiDigit(ch);
 }
+
+/// <summary>Raw dimensional literal syntax retained for semantic profiles.</summary>
+public sealed record LengthLiteralTokenValue(double Value, string Unit);

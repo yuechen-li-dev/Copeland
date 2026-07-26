@@ -1,0 +1,17 @@
+root | Root | x=0 y=0 width=400 height=240 | source=C:\Users\yuech\source\repos\Copeland\samples\copeland-ts\machina-m1\Settings.ts:1058+23
+  root frame = viewport
+root/0 | VStack | x=24 y=20 width=352 height=200 | source=C:\Users\yuech\source\repos\Copeland\samples\copeland-ts\machina-m1\Settings.ts:353+657
+  x/width = Anchor(left=24px, right=24px, width=unset)
+  y/height = Anchor(top=20px, bottom=20px, height=unset)
+root/0/0 | Text | x=110 y=20 width=352 height=40 | measurement=TextWrap | source=C:\Users\yuech\source\repos\Copeland\samples\copeland-ts\machina-m1\Settings.ts:383+185
+  stack axis = Vertical
+  main allocation = 40px
+  cross allocation = 352px
+root/0/1 | Button | x=24 y=76 width=352 height=108 | source=C:\Users\yuech\source\repos\Copeland\samples\copeland-ts\machina-m1\Settings.ts:582+149
+  stack axis = Vertical
+  main allocation = 108px
+  cross allocation = 352px
+root/0/2 | Toggle | x=24 y=200 width=352 height=20 | source=C:\Users\yuech\source\repos\Copeland\samples\copeland-ts\machina-m1\Settings.ts:745+125
+  stack axis = Vertical
+  main allocation = 20px
+  cross allocation = 352px
