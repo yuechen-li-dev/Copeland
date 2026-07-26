@@ -22,6 +22,7 @@ public static class MirValidator
         ValidateEnumModel(program, diagnostics);
         ValidateTableModel(program, diagnostics);
         ValidateNpmModel(program, diagnostics);
+        ValidateClrModel(program, diagnostics);
         ValidateTsonEncodingModel(program, diagnostics);
         foreach (var function in program.Functions)
         {
@@ -33,6 +34,107 @@ public static class MirValidator
         MirSuspensionAutomatonValidator.Validate(program, diagnostics);
 
         return diagnostics;
+    }
+
+    private static void ValidateClrModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (MirFunction function in program.Functions)
+        {
+            foreach (MirStatement statement in function.Body)
+            {
+                foreach (MirExpression expression in EnumerateClrExpressions(statement))
+                {
+                    switch (expression)
+                    {
+                        case MirClrInvocationExpression invocation:
+                            ValidateClrMember(invocation.Member, invocation.Receiver, invocation.Arguments.Count, diagnostics);
+                            break;
+                        case MirClrPropertyAccessExpression property:
+                            ValidateClrMember(property.Property, property.Receiver, 0, diagnostics);
+                            break;
+                    }
+                }
+
+                if (statement is MirResourceUsingDeclarationStatement resource
+                    && resource.Local.Type is not MirClrType)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("resource using declaration must retain a CLR local type."));
+                }
+            }
+        }
+    }
+
+    private static void ValidateClrMember(MirClrMemberIdentity member, MirExpression? receiver, int argumentCount, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (string.IsNullOrWhiteSpace(member.AssemblyIdentity)
+            || string.IsNullOrWhiteSpace(member.DeclaringType)
+            || string.IsNullOrWhiteSpace(member.MemberName))
+        {
+            diagnostics.Add(new MirValidationDiagnostic("CLR member identity is incomplete."));
+        }
+
+        if (member.IsConstructor && receiver is not null)
+        {
+            diagnostics.Add(new MirValidationDiagnostic("CLR constructor invocation must not have a receiver."));
+        }
+
+        if (!member.IsConstructor && !member.IsStatic && receiver is null)
+        {
+            diagnostics.Add(new MirValidationDiagnostic("CLR instance member invocation has no receiver."));
+        }
+
+        if (member.ParameterTypes.Count < argumentCount)
+        {
+            diagnostics.Add(new MirValidationDiagnostic($"CLR member '{member.DeclaringType}.{member.MemberName}' has fewer bound parameters than authored arguments."));
+        }
+    }
+
+    private static IEnumerable<MirExpression> EnumerateClrExpressions(MirStatement statement)
+    {
+        IEnumerable<MirExpression> roots = statement switch
+        {
+            MirVariableDeclarationStatement declaration => [declaration.Initializer],
+            MirResourceUsingDeclarationStatement declaration => [declaration.Initializer],
+            MirExpressionStatement expression => [expression.Expression],
+            MirReturnStatement { Expression: not null } returned => [returned.Expression],
+            MirIfStatement conditional => new[] { conditional.Condition }.Concat(conditional.ThenStatements.SelectMany(EnumerateClrExpressions)).Concat(conditional.ElseStatements?.SelectMany(EnumerateClrExpressions) ?? []),
+            MirWhileStatement loop => new[] { loop.Condition }.Concat(loop.BodyStatements.SelectMany(EnumerateClrExpressions)),
+            MirForStatement loop => (loop.Initializer is null ? [] : EnumerateClrExpressions(loop.Initializer)).Concat(loop.Condition is null ? [] : [loop.Condition]).Concat(loop.Increment is null ? [] : [loop.Increment]).Concat(loop.BodyStatements.SelectMany(EnumerateClrExpressions)),
+            _ => [],
+        };
+        foreach (MirExpression root in roots)
+        {
+            foreach (MirExpression expression in EnumerateClrExpressions(root))
+            {
+                yield return expression;
+            }
+        }
+    }
+
+    private static IEnumerable<MirExpression> EnumerateClrExpressions(MirExpression expression)
+    {
+        yield return expression;
+        IEnumerable<MirExpression> children = expression switch
+        {
+            MirClrInvocationExpression invocation => invocation.Arguments.Append(invocation.Receiver).Where(child => child is not null)!.Cast<MirExpression>(),
+            MirClrPropertyAccessExpression property => property.Receiver is null ? [] : [property.Receiver],
+            MirAssignmentExpression assignment => [assignment.Expression],
+            MirUnaryExpression unary => [unary.Operand],
+            MirBinaryExpression binary => [binary.Left, binary.Right],
+            MirCallExpression call => call.Arguments,
+            MirInvokeExpression invoke => invoke.Arguments.Append(invoke.Callee),
+            MirArrayExpression array => array.Elements,
+            MirRecordConstructionExpression record => record.Initializers.Select(initializer => initializer.Value),
+            MirRecordFieldAccessExpression access => [access.Receiver],
+            _ => [],
+        };
+        foreach (MirExpression child in children)
+        {
+            foreach (MirExpression nested in EnumerateClrExpressions(child))
+            {
+                yield return nested;
+            }
+        }
     }
 
     private static void ValidateNpmModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)

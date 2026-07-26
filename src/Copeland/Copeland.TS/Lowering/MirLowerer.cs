@@ -881,6 +881,7 @@ public static class MirLowerer
         {
             BoundBlockStatement b => LowerStatements(b.Statements, locals),
             BoundVariableDeclaration v => [LowerVariable(v, locals)],
+            BoundResourceUsingDeclaration u => [LowerResourceUsing(u, locals)],
             BoundExpressionStatement e => [new MirExpressionStatement(LowerExpression(e.Expression))],
             BoundReturnStatement r => [new MirReturnStatement(r.Expression is null ? null : LowerExpression(r.Expression))],
             BoundIfStatement i => [new MirIfStatement(LowerExpression(i.Condition), LowerStatement(i.ThenStatement, locals), i.ElseStatement is null ? null : LowerStatement(i.ElseStatement, locals))],
@@ -897,6 +898,13 @@ public static class MirLowerer
         var local = new MirLocal(v.Variable.Name, ToMirType(v.Variable.Type), v.Variable.IsReadOnly);
         locals.TryAdd(local.Name, local);
         return new MirVariableDeclarationStatement(local, LowerExpression(v.Initializer));
+    }
+
+    private static MirStatement LowerResourceUsing(BoundResourceUsingDeclaration declaration, Dictionary<string, MirLocal> locals)
+    {
+        var local = new MirLocal(declaration.Variable.Name, ToMirType(declaration.Variable.Type), true);
+        locals.TryAdd(local.Name, local);
+        return new MirResourceUsingDeclarationStatement(local, LowerExpression(declaration.Initializer));
     }
 
     private static MirExpression LowerExpression(BoundExpression expression)
@@ -943,6 +951,15 @@ public static class MirLowerer
                 ToMirRecordFieldId(npm.ResponseValueField.Id),
                 ToMirRecordFieldId(npm.RemoteErrorValueField.Id),
                 (MirAsyncType)ToMirType(npm.Type)),
+            BoundClrInvocationExpression invocation => new MirClrInvocationExpression(
+                LowerClrMemberIdentity(invocation.Member, invocation.GenericArguments, invocation.Type),
+                invocation.Receiver is null ? null : LowerExpression(invocation.Receiver),
+                invocation.Arguments.Select(LowerExpression).ToArray(),
+                ToMirType(invocation.Type)),
+            BoundClrPropertyAccessExpression property => new MirClrPropertyAccessExpression(
+                LowerClrMemberIdentity(property.Property, [], property.Type),
+                property.Receiver is null ? null : LowerExpression(property.Receiver),
+                ToMirType(property.Type)),
             BoundPropagateExpression p => new MirPropagateExpression(LowerExpression(p.Operand), LowerPropagationTarget(p.Target), ToMirType(p.Type)),
             BoundUnwrapExpression u => new MirUnwrapExpression(LowerExpression(u.Operand), ToMirType(u.Type)),
             BoundTryExceptExpression t => new MirTryExpression(
@@ -1002,11 +1019,52 @@ public static class MirLowerer
         ResultTypeSymbol result => new MirResultType(ToMirType(result.SuccessType), ToMirType(result.ErrorType)),
         CallableTypeSymbol callable => new MirCallableType(callable.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(), ToMirType(callable.ReturnType)),
         RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.Name),
+        ClrTypeSymbol clr => new MirClrType(clr.AssemblyIdentity, clr.Namespace, clr.MetadataName),
         TableTypeSymbol table => new MirTableType(new MirTableId(table.Id.ToString()), table.Name),
         TableRowTypeSymbol row => new MirTableRowType(row.TableId + ".row", row.Name),
         ColumnTypeSymbol column => new MirColumnType(ToMirType(column.ElementType)),
         _ => new MirNamedType(type.Name)
     };
+
+    private static MirClrMemberIdentity LowerClrMemberIdentity(System.Reflection.MethodBase member, IReadOnlyList<TypeSymbol> genericArguments, TypeSymbol resultType)
+    {
+        Type declaringType = member.DeclaringType ?? throw new InvalidOperationException("CLR member has no declaring type.");
+        return new MirClrMemberIdentity(
+            declaringType.Assembly.FullName ?? declaringType.Assembly.GetName().Name ?? "<unknown>",
+            declaringType.Namespace ?? string.Empty,
+            declaringType.FullName?.Replace('+', '.') ?? declaringType.Name,
+            member is System.Reflection.ConstructorInfo ? ".ctor" : member.Name,
+            member.IsStatic,
+            member is System.Reflection.ConstructorInfo,
+            member.GetParameters().Select(parameter => ToMirTypeFromRuntimeType(parameter.ParameterType)).ToArray(),
+            ToMirType(resultType),
+            genericArguments.Select(ToMirType).ToArray());
+    }
+
+    private static MirClrMemberIdentity LowerClrMemberIdentity(System.Reflection.PropertyInfo property, IReadOnlyList<TypeSymbol> genericArguments, TypeSymbol resultType)
+    {
+        Type declaringType = property.DeclaringType ?? throw new InvalidOperationException("CLR property has no declaring type.");
+        return new MirClrMemberIdentity(
+            declaringType.Assembly.FullName ?? declaringType.Assembly.GetName().Name ?? "<unknown>",
+            declaringType.Namespace ?? string.Empty,
+            declaringType.FullName?.Replace('+', '.') ?? declaringType.Name,
+            property.Name,
+            property.GetMethod?.IsStatic == true,
+            false,
+            [],
+            ToMirType(resultType),
+            genericArguments.Select(ToMirType).ToArray());
+    }
+
+    private static MirType ToMirTypeFromRuntimeType(Type type)
+    {
+        if (type == typeof(void)) return new MirNamedType("void");
+        if (type == typeof(string)) return new MirNamedType("string");
+        if (type == typeof(bool)) return new MirNamedType("boolean");
+        if (type == typeof(double) || type == typeof(float) || type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte)) return new MirNamedType("number");
+        if (type.IsArray && type.GetArrayRank() == 1) return new MirArrayType(ToMirTypeFromRuntimeType(type.GetElementType()!));
+        return new MirClrType(type.Assembly.FullName ?? type.Assembly.GetName().Name ?? "<unknown>", type.Namespace ?? string.Empty, type.FullName?.Replace('+', '.') ?? type.Name);
+    }
 
     private static MirRecordTypeId ToMirRecordTypeId(RecordTypeId id) => new(id.ToString());
 

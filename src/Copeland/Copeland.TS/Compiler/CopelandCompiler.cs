@@ -28,7 +28,11 @@ public static class CopelandCompiler
             {
                 CopelandNpmDependencyGraph npmDependencies = effectiveOptions.NpmDependencies
                     ?? new CopelandNpmDependencyGraph(effectiveOptions.NpmPackages);
-                boundCompilation = Binder.Bind(syntaxTree, assetResolver, new CopelandNpmContractResolver(npmDependencies));
+                boundCompilation = Binder.Bind(
+                    syntaxTree,
+                    assetResolver,
+                    new CopelandNpmContractResolver(npmDependencies),
+                    new CopelandClrMetadataResolver(effectiveOptions.ClrReferences));
                 diagnostics.AddRange(boundCompilation.Diagnostics);
             }
         }
@@ -65,6 +69,7 @@ public static class CopelandCompiler
             AssetSource = effectiveOptions.AssetSource,
             NpmDependencies = effectiveOptions.NpmDependencies,
             NpmPackages = effectiveOptions.NpmPackages,
+            ClrReferences = effectiveOptions.ClrReferences,
         });
     }
 

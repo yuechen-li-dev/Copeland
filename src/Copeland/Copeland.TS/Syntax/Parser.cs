@@ -69,6 +69,11 @@ public sealed class Parser
 
     private MemberSyntax ParseMember()
     {
+        if (IsWord(Current, "using") && IsClrUsingDirectiveAhead())
+        {
+            return ParseClrUsingDirective();
+        }
+
         if ((_allowsTsXml || _allowsImports) && Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "import")
         {
             return ParseImportDeclaration();
@@ -123,6 +128,51 @@ public sealed class Parser
         }
 
         return new GlobalStatementMemberSyntax(ParseStatement());
+    }
+
+    private ClrUsingDirectiveSyntax ParseClrUsingDirective()
+    {
+        SyntaxToken usingKeyword = NextToken();
+        var nameParts = new List<SyntaxToken> { Match(SyntaxKind.IdentifierToken) };
+        var dots = new List<SyntaxToken>();
+        while (Current.Kind == SyntaxKind.DotToken)
+        {
+            dots.Add(NextToken());
+            nameParts.Add(Match(SyntaxKind.IdentifierToken));
+        }
+
+        return new ClrUsingDirectiveSyntax(
+            usingKeyword,
+            nameParts,
+            dots,
+            Match(SyntaxKind.SemicolonToken));
+    }
+
+    private bool IsClrUsingDirectiveAhead()
+    {
+        if (!IsWord(Current, "using"))
+        {
+            return false;
+        }
+
+        int offset = 1;
+        if (Peek(offset).Kind != SyntaxKind.IdentifierToken)
+        {
+            return false;
+        }
+
+        offset++;
+        while (Peek(offset).Kind == SyntaxKind.DotToken)
+        {
+            if (Peek(offset + 1).Kind != SyntaxKind.IdentifierToken)
+            {
+                return false;
+            }
+
+            offset += 2;
+        }
+
+        return Peek(offset).Kind == SyntaxKind.SemicolonToken;
     }
 
     private ImportDeclarationSyntax ParseImportDeclaration()
@@ -551,8 +601,38 @@ public sealed class Parser
             SyntaxKind.ContinueKeyword => ParseContinueStatement(),
             SyntaxKind.RecordKeyword when Peek(1).Kind == SyntaxKind.TableKeyword => new NestedTableDeclarationStatementSyntax(ParseTableDeclaration()),
             SyntaxKind.RecordKeyword => new NestedRecordDeclarationStatementSyntax(ParseRecordDeclaration(null)),
+            SyntaxKind.IdentifierToken when IsWord(Current, "using") && IsClrUsingDirectiveAhead() => ParseMisplacedClrUsingDirective(),
+            SyntaxKind.IdentifierToken when IsWord(Current, "using") => ParseResourceUsingDeclaration(null),
+            SyntaxKind.AwaitKeyword when IsWord(Peek(1), "using") => ParseResourceUsingDeclaration(NextToken()),
             _ => ParseExpressionStatementOrRecovery(),
         };
+
+    private StatementSyntax ParseMisplacedClrUsingDirective()
+    {
+        ClrUsingDirectiveSyntax directive = ParseClrUsingDirective();
+        _diagnostics.Report(
+            "COPE-CLR-0010",
+            "CLR 'using Qualified.Name;' directives are allowed only at module scope.",
+            directive.UsingKeyword.Position,
+            Math.Max(1, directive.UsingKeyword.Text.Length));
+        return new ExpressionStatementSyntax(new MissingExpressionSyntax(directive.UsingKeyword), directive.SemicolonToken);
+    }
+
+    private ResourceUsingDeclarationStatementSyntax ParseResourceUsingDeclaration(SyntaxToken? awaitKeyword)
+    {
+        SyntaxToken usingKeyword = NextToken();
+        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken equalsToken = Match(SyntaxKind.EqualsToken);
+        ExpressionSyntax initializer = ParseExpression();
+        SyntaxToken semicolonToken = Match(SyntaxKind.SemicolonToken);
+        return new ResourceUsingDeclarationStatementSyntax(
+            awaitKeyword,
+            usingKeyword,
+            identifier,
+            equalsToken,
+            initializer,
+            semicolonToken);
+    }
 
     private StatementSyntax ParseExpressionStatementOrRecovery()
     {
@@ -880,6 +960,9 @@ public sealed class Parser
     }
 
     private static bool IsClassWord(SyntaxToken token, string text)
+        => token.Kind == SyntaxKind.IdentifierToken && string.Equals(token.Text, text, StringComparison.Ordinal);
+
+    private static bool IsWord(SyntaxToken token, string text)
         => token.Kind == SyntaxKind.IdentifierToken && string.Equals(token.Text, text, StringComparison.Ordinal);
 
     private SyntaxToken MatchClassWord(string text)
@@ -1340,7 +1423,7 @@ public sealed class Parser
 
         if (IsClassWord(Current, "new"))
         {
-            return ParseForbiddenClassExpression();
+            return ParseNewExpression();
         }
         if (IsClassWord(Current, "this") || IsClassWord(Current, "super"))
         {
@@ -1391,18 +1474,24 @@ public sealed class Parser
         return expression;
     }
 
-    private ExpressionSyntax ParseForbiddenClassExpression()
+    private ExpressionSyntax ParseNewExpression()
     {
         var keyword = NextToken();
-        if (Current.Kind == SyntaxKind.IdentifierToken)
+        ExpressionSyntax target = new NameExpressionSyntax(Match(SyntaxKind.IdentifierToken));
+        while (Current.Kind == SyntaxKind.DotToken)
         {
-            _ = NextToken();
-            if (Current.Kind == SyntaxKind.OpenParenToken)
-            {
-                _ = ParseCallExpression(new NameExpressionSyntax(MissingToken(SyntaxKind.IdentifierToken, keyword.Position)));
-            }
+            SyntaxToken dot = NextToken();
+            target = new MemberAccessExpressionSyntax(target, dot, Match(SyntaxKind.IdentifierToken));
         }
-        return new UnsupportedExpressionSyntax(keyword);
+
+        CallExpressionSyntax call = ParseCallExpression(target);
+        return new NewExpressionSyntax(
+            keyword,
+            target,
+            call.OpenParenToken,
+            call.Arguments,
+            call.CommaTokens,
+            call.CloseParenToken);
     }
 
     private bool IsArrowExpressionAhead()

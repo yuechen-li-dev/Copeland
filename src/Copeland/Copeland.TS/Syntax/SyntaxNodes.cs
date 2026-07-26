@@ -89,6 +89,36 @@ public sealed record ImportDeclarationSyntax(IReadOnlyList<SyntaxToken> Tokens) 
 }
 
 /// <summary>
+/// A module-level CLR namespace or named-type import. This is intentionally a
+/// different syntax node from TypeScript's resource <c>using</c> declaration.
+/// </summary>
+public sealed record ClrUsingDirectiveSyntax(
+    SyntaxToken UsingKeyword,
+    IReadOnlyList<SyntaxToken> NameParts,
+    IReadOnlyList<SyntaxToken> DotTokens,
+    SyntaxToken SemicolonToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ClrUsingDirective;
+
+    public string QualifiedName => string.Join('.', NameParts.Select(part => part.Text));
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return UsingKeyword;
+        for (int index = 0; index < NameParts.Count; index++)
+        {
+            yield return NameParts[index];
+            if (index < DotTokens.Count)
+            {
+                yield return DotTokens[index];
+            }
+        }
+
+        yield return SemicolonToken;
+    }
+}
+
+/// <summary>
 /// Preserves an export-default wrapper for a profile-owned document root.
 /// </summary>
 public sealed record ExportDefaultDeclarationSyntax(
@@ -525,6 +555,31 @@ public sealed record VariableDeclarationStatementSyntax(
     }
 }
 
+public sealed record ResourceUsingDeclarationStatementSyntax(
+    SyntaxToken? AwaitKeyword,
+    SyntaxToken UsingKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken EqualsToken,
+    ExpressionSyntax Initializer,
+    SyntaxToken SemicolonToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ResourceUsingDeclarationStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        if (AwaitKeyword is not null)
+        {
+            yield return AwaitKeyword;
+        }
+
+        yield return UsingKeyword;
+        yield return Identifier;
+        yield return EqualsToken;
+        yield return Initializer;
+        yield return SemicolonToken;
+    }
+}
+
 public sealed record ExpressionStatementSyntax(
     ExpressionSyntax Expression,
     SyntaxToken SemicolonToken) : StatementSyntax
@@ -738,6 +793,35 @@ public sealed record CallExpressionSyntax(
             }
 
             yield return Arguments[i];
+        }
+
+        yield return CloseParenToken;
+    }
+}
+
+public sealed record NewExpressionSyntax(
+    SyntaxToken NewKeyword,
+    ExpressionSyntax Target,
+    SyntaxToken OpenParenToken,
+    IReadOnlyList<ExpressionSyntax> Arguments,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken CloseParenToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.NewExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return NewKeyword;
+        yield return Target;
+        yield return OpenParenToken;
+        for (int index = 0; index < Arguments.Count; index++)
+        {
+            if (index > 0)
+            {
+                yield return CommaTokens[index - 1];
+            }
+
+            yield return Arguments[index];
         }
 
         yield return CloseParenToken;

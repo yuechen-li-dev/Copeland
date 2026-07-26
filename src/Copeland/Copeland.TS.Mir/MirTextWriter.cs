@@ -128,6 +128,9 @@ public static class MirTextWriter
             case MirVariableDeclarationStatement v:
                 sb.Append(i).Append("store ").Append(v.Local.Name).Append(", ").AppendLine(FormatExpression(v.Initializer));
                 break;
+            case MirResourceUsingDeclarationStatement v:
+                sb.Append(i).Append("using ").Append(v.Local.Name).Append(", ").AppendLine(FormatExpression(v.Initializer));
+                break;
             case MirExpressionStatement e:
                 sb.Append(i).AppendLine(FormatExpression(e.Expression));
                 break;
@@ -169,6 +172,7 @@ public static class MirTextWriter
     private static string StatementInline(MirStatement stmt) => stmt switch
     {
         MirVariableDeclarationStatement v => $"store {v.Local.Name}, {FormatExpression(v.Initializer)}",
+        MirResourceUsingDeclarationStatement v => $"using {v.Local.Name}, {FormatExpression(v.Initializer)}",
         MirExpressionStatement e => FormatExpression(e.Expression),
         _ => stmt.GetType().Name
     };
@@ -189,6 +193,8 @@ public static class MirTextWriter
         MirBinaryExpression b => $"({FormatExpression(b.Left)} {b.Operator} {FormatExpression(b.Right)})",
         MirUnitExpression => "unit",
         MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
+        MirClrInvocationExpression invocation => $"clr-call [{invocation.Member.AssemblyIdentity}] {invocation.Member.DeclaringType}.{invocation.Member.MemberName}{FormatClrGenericArguments(invocation.Member.GenericArguments)}({string.Join(", ", invocation.Arguments.Select(FormatExpression))})",
+        MirClrPropertyAccessExpression property => $"clr-property [{property.Property.AssemblyIdentity}] {property.Property.DeclaringType}.{property.Property.MemberName}",
         MirFunctionReferenceExpression reference => $"function-ref {reference.FunctionName} : {reference.CallableType.Name}",
         MirCallableConstructionExpression construction => $"callable-new {construction.CodeFunctionName} env({string.Join(", ", construction.Captures.Select(FormatExpression))}) : {construction.CallableType.Name}",
         MirInvokeExpression invoke => $"invoke {FormatExpression(invoke.Callee)}({string.Join(", ", invoke.Arguments.Select(FormatExpression))})",
@@ -214,6 +220,9 @@ public static class MirTextWriter
         MirTryExpression tryExpression => FormatTryExpression(tryExpression),
         _ => expr.ToString() ?? "<expr>"
     };
+
+    private static string FormatClrGenericArguments(IReadOnlyList<MirType> genericArguments)
+        => genericArguments.Count == 0 ? string.Empty : "<" + string.Join(", ", genericArguments.Select(argument => argument.Name)) + ">";
 
     private static string FormatTsonValuePlan(MirTsonValuePlan plan)
         => plan switch

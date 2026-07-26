@@ -129,6 +129,7 @@ public sealed class BoundTableColumnDefinition(TableColumnSymbol column, IReadOn
 { public TableColumnSymbol Column { get; } = column; public IReadOnlyList<BoundTableConstant> Cells { get; } = cells; }
 public sealed class BoundBlockStatement : BoundStatement { public BoundBlockStatement(IReadOnlyList<BoundStatement> statements) => Statements = statements; public IReadOnlyList<BoundStatement> Statements { get; } }
 public sealed class BoundVariableDeclaration : BoundStatement { public BoundVariableDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
+public sealed class BoundResourceUsingDeclaration : BoundStatement { public BoundResourceUsingDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
 public sealed class BoundExpressionStatement : BoundStatement { public BoundExpressionStatement(BoundExpression expression) => Expression = expression; public BoundExpression Expression { get; } }
 public sealed class BoundIfStatement : BoundStatement { public BoundIfStatement(BoundExpression condition, BoundStatement thenStatement, BoundStatement? elseStatement) { Condition = condition; ThenStatement = thenStatement; ElseStatement = elseStatement; } public BoundExpression Condition { get; } public BoundStatement ThenStatement { get; } public BoundStatement? ElseStatement { get; } }
 public sealed class BoundWhileStatement : BoundStatement { public BoundWhileStatement(BoundExpression condition, BoundStatement body) { Condition = condition; Body = body; } public BoundExpression Condition { get; } public BoundStatement Body { get; } }
@@ -156,6 +157,39 @@ public sealed class BoundNpmCallExpression : BoundExpression
     public RecordFieldSymbol ResponseValueField { get; }
     public RecordFieldSymbol RemoteErrorValueField { get; }
     public override TypeSymbol Type => Function.InvocationReturnType;
+}
+public sealed class BoundClrInvocationExpression : BoundExpression
+{
+    public BoundClrInvocationExpression(System.Reflection.MethodBase member, BoundExpression? receiver, IReadOnlyList<TypeSymbol> genericArguments, IReadOnlyList<BoundExpression> arguments, TypeSymbol type)
+    {
+        Member = member;
+        Receiver = receiver;
+        Arguments = arguments;
+        GenericArguments = genericArguments;
+        TypeImpl = type;
+    }
+
+    public System.Reflection.MethodBase Member { get; }
+    public BoundExpression? Receiver { get; }
+    public IReadOnlyList<BoundExpression> Arguments { get; }
+    public IReadOnlyList<TypeSymbol> GenericArguments { get; }
+    private TypeSymbol TypeImpl { get; }
+    public override TypeSymbol Type => TypeImpl;
+}
+
+public sealed class BoundClrPropertyAccessExpression : BoundExpression
+{
+    public BoundClrPropertyAccessExpression(System.Reflection.PropertyInfo property, BoundExpression? receiver, TypeSymbol type)
+    {
+        Property = property;
+        Receiver = receiver;
+        TypeImpl = type;
+    }
+
+    public System.Reflection.PropertyInfo Property { get; }
+    public BoundExpression? Receiver { get; }
+    private TypeSymbol TypeImpl { get; }
+    public override TypeSymbol Type => TypeImpl;
 }
 public sealed class BoundFunctionReferenceExpression : BoundExpression { public BoundFunctionReferenceExpression(FunctionSymbol function) { Function = function; } public FunctionSymbol Function { get; } public override TypeSymbol Type => Function.CallableType; }
 public sealed class BoundCallableConstructionExpression : BoundExpression

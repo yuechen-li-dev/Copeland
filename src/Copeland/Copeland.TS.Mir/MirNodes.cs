@@ -299,6 +299,7 @@ public sealed record MirWhileStatement(MirExpression Condition, IReadOnlyList<Mi
 public sealed record MirForStatement(MirStatement? Initializer, MirExpression? Condition, MirExpression? Increment, IReadOnlyList<MirStatement> BodyStatements) : MirStatement;
 public sealed record MirBreakStatement : MirStatement;
 public sealed record MirContinueStatement : MirStatement;
+public sealed record MirResourceUsingDeclarationStatement(MirLocal Local, MirExpression Initializer) : MirStatement;
 
 public record MirType(string Identifier)
 {
@@ -306,6 +307,10 @@ public record MirType(string Identifier)
 }
 
 public sealed record MirNamedType(string Identifier) : MirType(Identifier);
+public sealed record MirClrType(string AssemblyIdentity, string Namespace, string MetadataName) : MirType(MetadataName)
+{
+    public override string Name => MetadataName;
+}
 public sealed record MirRecordType(MirRecordTypeId RecordTypeId, string DisplayName) : MirType(RecordTypeId.Value)
 {
     public override string Name => DisplayName;
@@ -433,6 +438,25 @@ public sealed record MirNpmCallExpression(
     MirRecordFieldId ResponseValueFieldId,
     MirRecordFieldId RemoteErrorValueFieldId,
     MirAsyncType AsyncType) : MirExpression(AsyncType);
+public sealed record MirClrMemberIdentity(
+    string AssemblyIdentity,
+    string Namespace,
+    string DeclaringType,
+    string MemberName,
+    bool IsStatic,
+    bool IsConstructor,
+    IReadOnlyList<MirType> ParameterTypes,
+    MirType ResultType,
+    IReadOnlyList<MirType> GenericArguments);
+public sealed record MirClrInvocationExpression(
+    MirClrMemberIdentity Member,
+    MirExpression? Receiver,
+    IReadOnlyList<MirExpression> Arguments,
+    MirType Type) : MirExpression(Type);
+public sealed record MirClrPropertyAccessExpression(
+    MirClrMemberIdentity Property,
+    MirExpression? Receiver,
+    MirType Type) : MirExpression(Type);
 
 public sealed record MirOkExpression : MirExpression
 {

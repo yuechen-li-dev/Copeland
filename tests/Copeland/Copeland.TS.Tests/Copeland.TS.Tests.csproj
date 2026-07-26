@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../../../src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

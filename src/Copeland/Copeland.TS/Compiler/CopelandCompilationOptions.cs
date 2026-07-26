@@ -20,4 +20,7 @@ public sealed class CopelandCompilationOptions
     /// must provide <see cref="NpmDependencies"/> from manifest IR.
     /// </summary>
     public IReadOnlyList<CopelandNpmPackageContract> NpmPackages { get; init; } = [];
+
+    /// <summary>Already-compiled CLR assemblies available to CLR <c>using</c> binding.</summary>
+    public IReadOnlyList<CopelandClrReference> ClrReferences { get; init; } = [];
 }

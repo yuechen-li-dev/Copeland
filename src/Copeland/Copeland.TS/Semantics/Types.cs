@@ -27,6 +27,16 @@ public sealed class ArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
     public override string Name => TypeText.FormatArrayElement(ElementType) + "[]";
 }
 
+/// <summary>Compiler-bound CLR type identity retained independently of C# text emission.</summary>
+public sealed class ClrTypeSymbol(Type runtimeType) : TypeSymbol
+{
+    public Type RuntimeType { get; } = runtimeType;
+    public string AssemblyIdentity { get; } = runtimeType.Assembly.FullName ?? runtimeType.Assembly.GetName().Name ?? "<unknown>";
+    public string Namespace { get; } = runtimeType.Namespace ?? string.Empty;
+    public string MetadataName { get; } = runtimeType.FullName?.Replace('+', '.') ?? runtimeType.Name;
+    public override string Name => MetadataName;
+}
+
 public sealed class ResultTypeSymbol(TypeSymbol successType, TypeSymbol errorType) : TypeSymbol
 {
     public TypeSymbol SuccessType { get; } = successType;

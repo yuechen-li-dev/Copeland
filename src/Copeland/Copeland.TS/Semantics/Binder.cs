@@ -3,6 +3,7 @@ using Copeland.TS.Compiler;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using Copeland.TS.Tson;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -12,19 +13,19 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])));
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]));
         return impl.Bind();
     }
 
-    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver)
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver)
     {
-        var impl = new BinderImpl(tree, assetResolver, npmResolver);
+        var impl = new BinderImpl(tree, assetResolver, npmResolver, clrResolver);
         return impl.Bind();
     }
 
     internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])));
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]));
         _ = impl.Bind();
         return impl.GetOpenGenericBodiesForTesting();
     }
@@ -53,7 +54,7 @@ public static class Binder
         }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver)
+    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver)
     {
         private const int MaxTypeParametersPerFunction = 8;
         private const int MaxRequirementInterfacesPerTypeParameter = 8;
@@ -80,6 +81,7 @@ public static class Binder
         private readonly SyntaxTree _tree = tree;
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
         private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
+        private readonly CopelandClrMetadataResolver _clrResolver = clrResolver;
         private readonly DiagnosticBag _diagnostics = new();
         private readonly Scope _global = new(null);
         private Scope _scope = null!;
@@ -91,6 +93,8 @@ public static class Binder
         private readonly List<BoundTableDefinition> _tables = [];
         private readonly List<BoundStatement> _globals = [];
         private readonly List<BoundNpmImport> _npmImports = [];
+        private readonly HashSet<string> _clrNamespaces = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<Type>> _clrImportedTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ClassTypeSymbol> _classTypes = new(StringComparer.Ordinal);
@@ -148,9 +152,10 @@ public static class Binder
             PredeclareEnums(_tree.Root);
             PredeclareNominalUnions(_tree.Root);
             ResolveAliases();
-            BindNpmImports(_tree.Root);
             BindInterfaceBodies(_tree.Root);
             PredeclareFunctions(_tree.Root);
+            BindClrUsingDirectives(_tree.Root);
+            BindNpmImports(_tree.Root);
             BindRecordBodies(_tree.Root);
             BindClassFields(_tree.Root);
             PredeclareClassMembers(_tree.Root);
@@ -1912,6 +1917,7 @@ public static class Binder
         {
             BlockStatementSyntax b => BindBlock(b),
             VariableDeclarationStatementSyntax v => BindVariable(v),
+            ResourceUsingDeclarationStatementSyntax u => BindResourceUsing(u),
             ExpressionStatementSyntax e => BindExpressionStatement(e),
             IfStatementSyntax i => BindIf(i),
             WhileStatementSyntax w => BindWhile(w),
@@ -2008,6 +2014,29 @@ public static class Binder
                 authoredAliasName);
             if (!_scope.TryDeclare(varSym)) Report("COPE-BIND-0002", $"Duplicate declaration '{varSym.Name}'.", v.Identifier);
             return new BoundVariableDeclaration(varSym, init);
+        }
+
+        private BoundStatement BindResourceUsing(ResourceUsingDeclarationStatementSyntax declaration)
+        {
+            BoundExpression initializer = BindExpression(declaration.Initializer);
+            if (declaration.AwaitKeyword is not null)
+            {
+                Report("COPE-CLR-0008", "'await using' is parsed as TypeScript resource management but asynchronous CLR disposal is deferred beyond CTS-CLR-M1.", declaration.AwaitKeyword);
+            }
+
+            if (initializer.Type is not ClrTypeSymbol clrType
+                || !typeof(IDisposable).IsAssignableFrom(clrType.RuntimeType))
+            {
+                Report("COPE-CLR-0007", $"Resource 'using' requires a CLR IDisposable value, got '{initializer.Type.Name}'.", declaration.Identifier);
+            }
+
+            var variable = new VariableSymbol(declaration.Identifier.Text, initializer.Type, true);
+            if (!_scope.TryDeclare(variable))
+            {
+                Report("COPE-BIND-0002", $"Duplicate declaration '{variable.Name}'.", declaration.Identifier);
+            }
+
+            return new BoundResourceUsingDeclaration(variable, initializer);
         }
 
         private BoundStatement BindIf(IfStatementSyntax i)
@@ -2181,6 +2210,7 @@ public static class Binder
                 BinaryExpressionSyntax b => BindBinary(b),
                 AssignmentExpressionSyntax a => BindAssignment(a),
                 CallExpressionSyntax c => BindCall(c, contextualType),
+                NewExpressionSyntax n => BindNew(n),
                 GenericCallExpressionSyntax c => BindGenericCall(c, contextualType),
                 GenericFunctionReferenceExpressionSyntax reference => BindGenericFunctionReference(reference),
                 ArrowExpressionSyntax arrow => BindArrow(arrow, contextualType, []),
@@ -2679,6 +2709,37 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (c.Target is MemberAccessExpressionSyntax staticMember
+                && TryResolveClrTypeReference(staticMember.Target, out Type? staticType))
+            {
+                return BindClrMethodCall(c, staticType!, receiver: null, staticMember.NameToken);
+            }
+
+            if (c.Target is MemberAccessExpressionSyntax unresolvedClrMember
+                && _clrNamespaces.Count > 0
+                && TryGetQualifiedName(unresolvedClrMember.Target, out string unresolvedClrName, out SyntaxToken unresolvedClrAnchor)
+                && !_scope.TryLookup(unresolvedClrName.Split('.')[0], out _)
+                && !_classTypes.ContainsKey(unresolvedClrName.Split('.')[0])
+                && !_enumTypes.ContainsKey(unresolvedClrName.Split('.')[0]))
+            {
+                Report("COPE-CLR-0001", $"CLR type '{unresolvedClrName}' was not found in imported CLR namespaces or supplied references.", unresolvedClrAnchor);
+                return new BoundErrorExpression();
+            }
+
+            if (c.Target is MemberAccessExpressionSyntax instanceMember)
+            {
+                if (instanceMember.Target is not NameExpressionSyntax instanceTargetName
+                    || (!_classTypes.ContainsKey(instanceTargetName.IdentifierToken.Text)
+                        && !_enumTypes.ContainsKey(instanceTargetName.IdentifierToken.Text)))
+                {
+                    BoundExpression receiver = BindExpression(instanceMember.Target);
+                    if (receiver.Type is ClrTypeSymbol clrReceiver)
+                    {
+                        return BindClrMethodCall(c, clrReceiver.RuntimeType, receiver, instanceMember.NameToken);
+                    }
+                }
+            }
+
             if (c.Target is NameExpressionSyntax tsonEncodeName
                 && tsonEncodeName.IdentifierToken.Text == "tsonEncode")
             {
@@ -2774,6 +2835,331 @@ public static class Binder
                         fn.Parameters[i].AuthoredAliasName);
                 }
             return new BoundCallExpression(fn, args);
+        }
+
+        private BoundExpression BindNew(NewExpressionSyntax expression)
+        {
+            if (!TryResolveClrTypeReference(expression.Target, out Type? type))
+            {
+                Report("COPE-CLR-0001", "CLR constructor target was not found. CLR 'using' directives resolve only CLR namespaces and types.", expression.NewKeyword);
+                return new BoundErrorExpression();
+            }
+
+            ConstructorInfo[] publicConstructors = type!.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+            if (publicConstructors.Length == 0
+                && type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Length > 0)
+            {
+                Report("COPE-CLR-0004", $"CLR constructor '{type.FullName}' is inaccessible.", expression.NewKeyword);
+                return new BoundErrorExpression();
+            }
+
+            return BindClrInvocation(
+                expression.Arguments,
+                expression.OpenParenToken,
+                publicConstructors.Cast<MethodBase>(),
+                receiver: null,
+                memberDisplayName: type.FullName ?? type.Name);
+        }
+
+        private BoundExpression BindClrMethodCall(CallExpressionSyntax call, Type declaringType, BoundExpression? receiver, SyntaxToken memberName)
+        {
+            BindingFlags dispatchFlags = receiver is null ? BindingFlags.Static : BindingFlags.Instance;
+            MethodInfo[] publicMethods = declaringType
+                .GetMethods(BindingFlags.Public | dispatchFlags)
+                .Where(method => string.Equals(method.Name, memberName.Text, StringComparison.Ordinal)
+                    && !method.IsSpecialName)
+                .ToArray();
+            if (publicMethods.Length == 0
+                && declaringType.GetMethods(BindingFlags.NonPublic | dispatchFlags).Any(method => string.Equals(method.Name, memberName.Text, StringComparison.Ordinal)))
+            {
+                Report("COPE-CLR-0004", $"CLR member '{declaringType.FullName}.{memberName.Text}' is inaccessible.", memberName);
+                return new BoundErrorExpression();
+            }
+
+            return BindClrInvocation(call.Arguments, call.OpenParenToken, publicMethods.Cast<MethodBase>(), receiver, declaringType.FullName + "." + memberName.Text);
+        }
+
+        private BoundExpression BindClrInvocation(
+            IReadOnlyList<ExpressionSyntax> argumentSyntax,
+            SyntaxToken anchor,
+            IEnumerable<MethodBase> members,
+            BoundExpression? receiver,
+            string memberDisplayName)
+        {
+            BoundExpression[] arguments = argumentSyntax.Select(argument => BindExpression(argument)).ToArray();
+            var applicable = new List<(MethodBase Member, IReadOnlyList<TypeSymbol> GenericArguments)>();
+            var unsupportedShape = false;
+
+            foreach (MethodBase candidateMember in members)
+            {
+                if (!TryGetClrInvocationShape(candidateMember, arguments, out IReadOnlyList<TypeSymbol> candidateGenericArguments, out bool shapeUnsupported))
+                {
+                    unsupportedShape |= shapeUnsupported;
+                    continue;
+                }
+
+                applicable.Add((candidateMember, candidateGenericArguments));
+            }
+
+            if (applicable.Count == 0)
+            {
+                string diagnosticId = unsupportedShape ? "COPE-CLR-0007" : "COPE-CLR-0005";
+                string message = unsupportedShape
+                    ? $"CLR member '{memberDisplayName}' has an unsupported member or type shape for CTS-CLR-M1."
+                    : $"No applicable CLR overload for '{memberDisplayName}' with ({string.Join(", ", arguments.Select(argument => argument.Type.Name))}).";
+                Report(diagnosticId, message, anchor);
+                return new BoundErrorExpression();
+            }
+
+            if (applicable.Count > 1)
+            {
+                Report("COPE-CLR-0006", $"CLR overload resolution for '{memberDisplayName}' is ambiguous for ({string.Join(", ", arguments.Select(argument => argument.Type.Name))}).", anchor);
+                return new BoundErrorExpression();
+            }
+
+            (MethodBase selectedMember, IReadOnlyList<TypeSymbol> selectedGenericArguments) = applicable[0];
+            if (!TryProjectClrInvocationReturnType(selectedMember, selectedGenericArguments, out TypeSymbol resultType))
+            {
+                Report("COPE-CLR-0007", $"CLR return type for '{memberDisplayName}' is not supported by CTS-CLR-M1.", anchor);
+                return new BoundErrorExpression();
+            }
+
+            return new BoundClrInvocationExpression(selectedMember, receiver, selectedGenericArguments, arguments, resultType);
+        }
+
+        private bool TryGetClrInvocationShape(MethodBase member, IReadOnlyList<BoundExpression> arguments, out IReadOnlyList<TypeSymbol> genericArguments, out bool shapeUnsupported)
+        {
+            genericArguments = [];
+            shapeUnsupported = false;
+            ParameterInfo[] parameters = member.GetParameters();
+            int requiredParameterCount = parameters.Count(parameter => !parameter.IsOptional);
+            if (arguments.Count < requiredParameterCount
+                || arguments.Count > parameters.Length
+                || parameters.Any(parameter => parameter.ParameterType.IsByRef || parameter.IsOut || parameter.GetCustomAttributes(typeof(ParamArrayAttribute), inherit: false).Length > 0))
+            {
+                shapeUnsupported = parameters.Any(parameter => parameter.ParameterType.IsByRef || parameter.IsOut);
+                return false;
+            }
+
+            var substitutions = new Dictionary<Type, TypeSymbol>();
+            if (member is MethodInfo method && method.IsGenericMethodDefinition)
+            {
+                foreach ((ParameterInfo parameter, BoundExpression argument) in parameters.Zip(arguments))
+                {
+                    if (parameter.ParameterType.IsGenericParameter)
+                    {
+                        if (substitutions.TryGetValue(parameter.ParameterType, out TypeSymbol? existing)
+                            && !TypeFacts.AreEquivalent(existing, argument.Type))
+                        {
+                            return false;
+                        }
+
+                        substitutions[parameter.ParameterType] = argument.Type;
+                    }
+                    else if (!IsClrArgumentCompatible(argument.Type, parameter.ParameterType))
+                    {
+                        return false;
+                    }
+                }
+
+                if (method.GetGenericArguments().Any(argument => !substitutions.ContainsKey(argument)))
+                {
+                    shapeUnsupported = true;
+                    return false;
+                }
+
+                genericArguments = method.GetGenericArguments().Select(argument => substitutions[argument]).ToArray();
+                return true;
+            }
+
+            if (member is MethodInfo nonGeneric && nonGeneric.ContainsGenericParameters)
+            {
+                shapeUnsupported = true;
+                return false;
+            }
+
+            return parameters.Zip(arguments).All(pair => IsClrArgumentCompatible(pair.Second.Type, pair.First.ParameterType));
+        }
+
+        private static bool TryProjectClrInvocationReturnType(MethodBase member, IReadOnlyList<TypeSymbol> genericArguments, out TypeSymbol projected)
+        {
+            if (member is ConstructorInfo constructor)
+            {
+                return TryProjectClrType(constructor.DeclaringType!, out projected);
+            }
+
+            MethodInfo method = (MethodInfo)member;
+            if (!method.IsGenericMethodDefinition || !method.ReturnType.IsGenericParameter)
+            {
+                return TryProjectClrType(method.ReturnType, out projected);
+            }
+
+            int ordinal = method.ReturnType.GenericParameterPosition;
+            projected = genericArguments[ordinal];
+            return true;
+        }
+
+        private static bool IsClrArgumentCompatible(TypeSymbol source, Type target)
+        {
+            if (target == typeof(double) && source == PrimitiveTypeSymbol.Number)
+            {
+                return true;
+            }
+
+            if (target == typeof(string) && source == PrimitiveTypeSymbol.String)
+            {
+                return true;
+            }
+
+            if (target == typeof(bool) && source == PrimitiveTypeSymbol.Boolean)
+            {
+                return true;
+            }
+
+            if (target.IsArray && target.GetArrayRank() == 1 && source is ArrayTypeSymbol array)
+            {
+                return IsClrArgumentCompatible(array.ElementType, target.GetElementType()!);
+            }
+
+            return source is ClrTypeSymbol clr && clr.RuntimeType == target;
+        }
+
+        private static bool TryProjectClrType(Type type, out TypeSymbol projected)
+        {
+            if (type == typeof(void)) { projected = PrimitiveTypeSymbol.Void; return true; }
+            if (type == typeof(string)) { projected = PrimitiveTypeSymbol.String; return true; }
+            if (type == typeof(bool)) { projected = PrimitiveTypeSymbol.Boolean; return true; }
+            if (type == typeof(double) || type == typeof(float) || type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte)) { projected = PrimitiveTypeSymbol.Number; return true; }
+            if (type.IsArray && type.GetArrayRank() == 1 && TryProjectClrType(type.GetElementType()!, out TypeSymbol element)) { projected = new ArrayTypeSymbol(element); return true; }
+            if (type.IsGenericParameter) { projected = PrimitiveTypeSymbol.Error; return false; }
+            if (type == typeof(object) || type.IsEnum || Nullable.GetUnderlyingType(type) is not null || type.IsPointer || type.IsByRef || type.ContainsGenericParameters) { projected = PrimitiveTypeSymbol.Error; return false; }
+            if (type.IsPublic || type.IsNestedPublic) { projected = new ClrTypeSymbol(type); return true; }
+            projected = PrimitiveTypeSymbol.Error;
+            return false;
+        }
+
+
+        private void BindClrUsingDirectives(CompilationUnitSyntax root)
+        {
+            foreach (ClrUsingDirectiveSyntax directive in root.Members.OfType<ClrUsingDirectiveSyntax>())
+            {
+                string qualifiedName = directive.QualifiedName;
+                IReadOnlyList<Type> exactTypes = _clrResolver.FindTypes(qualifiedName);
+                IReadOnlyList<Type> namespaceTypes = _clrResolver.FindTypesInNamespace(qualifiedName);
+                if (exactTypes.Count == 0 && namespaceTypes.Count == 0)
+                {
+                    Report("COPE-CLR-0001", $"CLR namespace or type '{qualifiedName}' was not found in the supplied framework/reference metadata.", directive.NameParts[0]);
+                    continue;
+                }
+
+                if (namespaceTypes.Count > 0)
+                {
+                    _clrNamespaces.Add(qualifiedName);
+                }
+
+                foreach (Type type in exactTypes)
+                {
+                    AddClrImportedType(type, directive.NameParts[^1]);
+                }
+
+                foreach (Type type in namespaceTypes)
+                {
+                    AddClrImportedType(type, directive.NameParts[^1]);
+                }
+            }
+        }
+
+        private void AddClrImportedType(Type type, SyntaxToken anchor)
+        {
+            if (HasLocalClrConflict(type.Name))
+            {
+                Report("COPE-CLR-0009", $"CLR-imported type '{type.Name}' conflicts with a local Copeland declaration.", anchor);
+                return;
+            }
+
+            if (!_clrImportedTypes.TryGetValue(type.Name, out List<Type>? candidates))
+            {
+                candidates = [];
+                _clrImportedTypes.Add(type.Name, candidates);
+            }
+
+            if (!candidates.Contains(type))
+            {
+                candidates.Add(type);
+            }
+        }
+
+        private bool HasLocalClrConflict(string name)
+            => _recordTypes.ContainsKey(name)
+                || _classTypes.ContainsKey(name)
+                || _enumTypes.ContainsKey(name)
+                || _tableTypes.ContainsKey(name)
+                || _aliases.ContainsKey(name)
+                || _interfaces.ContainsKey(name)
+                || _global.TryLookup(name, out _);
+
+        private bool TryResolveClrTypeReference(ExpressionSyntax syntax, out Type? type)
+        {
+            type = null;
+            if (!TryGetQualifiedName(syntax, out string qualifiedName, out SyntaxToken anchor))
+            {
+                return false;
+            }
+
+            if (!qualifiedName.Contains('.', StringComparison.Ordinal))
+            {
+                if (!_clrImportedTypes.TryGetValue(qualifiedName, out List<Type>? candidates))
+                {
+                    return false;
+                }
+
+                if (candidates.Count != 1)
+                {
+                    Report("COPE-CLR-0002", $"CLR type '{qualifiedName}' is ambiguous across imported CLR namespaces: {string.Join(", ", candidates.Select(candidate => candidate.FullName))}.", anchor);
+                    return false;
+                }
+
+                type = candidates[0];
+                return true;
+            }
+
+            IReadOnlyList<Type> exact = _clrResolver.FindTypes(qualifiedName);
+            if (exact.Count == 1)
+            {
+                type = exact[0];
+                return true;
+            }
+
+            if (exact.Count > 1)
+            {
+                Report("COPE-CLR-0002", $"CLR type '{qualifiedName}' is ambiguous across supplied references.", anchor);
+            }
+
+            return false;
+        }
+
+        private static bool TryGetQualifiedName(ExpressionSyntax syntax, out string name, out SyntaxToken anchor)
+        {
+            var parts = new Stack<string>();
+            anchor = new SyntaxToken(SyntaxKind.IdentifierToken, 0, string.Empty, null);
+            ExpressionSyntax current = syntax;
+            while (current is MemberAccessExpressionSyntax member)
+            {
+                parts.Push(member.NameToken.Text);
+                anchor = member.NameToken;
+                current = member.Target;
+            }
+
+            if (current is not NameExpressionSyntax root)
+            {
+                name = string.Empty;
+                return false;
+            }
+
+            parts.Push(root.IdentifierToken.Text);
+            anchor = root.IdentifierToken;
+            name = string.Join('.', parts);
+            return true;
         }
 
         private void BindNpmImports(CompilationUnitSyntax root)
@@ -4956,6 +5342,21 @@ public static class Binder
 
         private BoundExpression BindMember(MemberAccessExpressionSyntax m)
         {
+            if (TryResolveClrTypeReference(m.Target, out Type? staticType))
+            {
+                return BindClrProperty(m, staticType!, receiver: null);
+            }
+
+            BoundExpression? clrReceiver = null;
+            if (m.Target is not NameExpressionSyntax name || !_classTypes.ContainsKey(name.IdentifierToken.Text))
+            {
+                clrReceiver = BindExpression(m.Target);
+                if (clrReceiver.Type is ClrTypeSymbol clrType)
+                {
+                    return BindClrProperty(m, clrType.RuntimeType, clrReceiver);
+                }
+            }
+
             if (m.Target is NameExpressionSyntax className
                 && _classTypes.TryGetValue(className.IdentifierToken.Text, out var classType))
             {
@@ -4992,7 +5393,7 @@ public static class Binder
                 }
                 return new BoundEnumValueExpression(@case, []);
             }
-            var receiver = BindExpression(m.Target);
+            var receiver = clrReceiver ?? BindExpression(m.Target);
             if (receiver.Type is TableTypeSymbol tableType)
             {
                 var column = tableType.Columns.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
@@ -5039,6 +5440,43 @@ public static class Binder
             }
             Report("COPE-REC-0010", $"Field access requires a record receiver, got '{receiver.Type.Name}'.", m.DotToken);
             return new BoundErrorExpression();
+        }
+
+        private BoundExpression BindClrProperty(MemberAccessExpressionSyntax syntax, Type declaringType, BoundExpression? receiver)
+        {
+            BindingFlags flags = BindingFlags.Public | (receiver is null ? BindingFlags.Static : BindingFlags.Instance);
+            PropertyInfo[] properties = declaringType
+                .GetProperties(flags)
+                .Where(property => string.Equals(property.Name, syntax.NameToken.Text, StringComparison.Ordinal)
+                    && property.GetMethod is not null
+                    && property.GetIndexParameters().Length == 0)
+                .ToArray();
+            if (properties.Length == 0)
+            {
+                if (declaringType.GetProperties(BindingFlags.NonPublic | (receiver is null ? BindingFlags.Static : BindingFlags.Instance))
+                    .Any(property => string.Equals(property.Name, syntax.NameToken.Text, StringComparison.Ordinal)))
+                {
+                    Report("COPE-CLR-0004", $"CLR property '{declaringType.FullName}.{syntax.NameToken.Text}' is inaccessible.", syntax.NameToken);
+                    return new BoundErrorExpression();
+                }
+                Report("COPE-CLR-0003", $"CLR type '{declaringType.FullName}' has no readable supported member '{syntax.NameToken.Text}'.", syntax.NameToken);
+                return new BoundErrorExpression();
+            }
+
+            if (properties.Length > 1)
+            {
+                Report("COPE-CLR-0006", $"CLR property lookup for '{declaringType.FullName}.{syntax.NameToken.Text}' is ambiguous.", syntax.NameToken);
+                return new BoundErrorExpression();
+            }
+
+            PropertyInfo property = properties[0];
+            if (!TryProjectClrType(property.PropertyType, out TypeSymbol resultType))
+            {
+                Report("COPE-CLR-0007", $"CLR property '{declaringType.FullName}.{property.Name}' has unsupported type '{property.PropertyType}'.", syntax.NameToken);
+                return new BoundErrorExpression();
+            }
+
+            return new BoundClrPropertyAccessExpression(property, receiver, resultType);
         }
 
         private bool CanAccessClassMember(ClassTypeSymbol owner, bool isPublic)
