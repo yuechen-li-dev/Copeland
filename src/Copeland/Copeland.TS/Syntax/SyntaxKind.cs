@@ -165,6 +165,7 @@ public enum SyntaxKind
     MatchExpression,
     IfExpression,
     TryExceptExpression,
+    BatchExpression,
     ArrowExpression,
     CaptureExpression,
     ArrowParameter,

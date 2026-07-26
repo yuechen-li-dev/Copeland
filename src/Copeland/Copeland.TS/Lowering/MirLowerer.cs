@@ -978,6 +978,11 @@ public static class MirLowerer
             BoundErrExpression err => new MirErrExpression(LowerExpression(err.Payload), (MirResultType)ToMirType(err.Type)),
             BoundUnitExpression => new MirUnitExpression(),
             BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), ToMirType(a.Type)),
+            BoundBatchExpression batch => new MirBatchExpression(
+                LowerExpression(batch.Input),
+                new MirLocal(batch.Item.Name, ToMirType(batch.Item.Type), true),
+                LowerValueBlock(batch.Body),
+                (MirArrayType)ToMirType(batch.Type)),
             BoundRecordConstructionExpression construction => new MirRecordConstructionExpression(
                 ToMirRecordTypeId(construction.RecordType.Id),
                 construction.Initializers.Select(LowerRecordFieldValue).ToArray(),

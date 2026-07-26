@@ -199,6 +199,7 @@ public static class MirTextWriter
         MirCallableConstructionExpression construction => $"callable-new {construction.CodeFunctionName} env({string.Join(", ", construction.Captures.Select(FormatExpression))}) : {construction.CallableType.Name}",
         MirInvokeExpression invoke => $"invoke {FormatExpression(invoke.Callee)}({string.Join(", ", invoke.Arguments.Select(FormatExpression))})",
         MirArrayExpression a => $"[{string.Join(", ", a.Elements.Select(FormatExpression))}]",
+        MirBatchExpression batch => $"batch {FormatExpression(batch.Input)} as {batch.Item.Name}: {batch.ArrayType.Name} {{ {FormatValueBlock(batch.Body)} }}",
         MirRecordConstructionExpression construction => $"record-new [{construction.RecordTypeId}] {{ {string.Join(", ", construction.Initializers.Select(FormatRecordFieldValue))} }}",
         MirRecordFieldAccessExpression access => $"record-get [{access.RecordTypeId}] {FormatExpression(access.Receiver)}.[{access.FieldId}]",
         MirTableReferenceExpression table => $"table-ref [{table.TableId}]",

@@ -477,6 +477,20 @@ public static class JavaScriptBackend
                     RequireMatchingType(element.Type, arrayType.ElementType, $"array element in {context}", diagnostics);
                 }
                 break;
+            case MirBatchExpression batch:
+                if (batch.Input.Type is not MirArrayType inputType
+                    || !MirTypeFacts.AreEquivalent(inputType.ElementType, batch.Item.Type)
+                    || !MirTypeFacts.AreEquivalent(batch.Body.ValueExpression.Type, batch.ArrayType.ElementType))
+                {
+                    AddInvalid(diagnostics, $"batch item and result types do not match the input array in {context}");
+                }
+                ValidateExpression(batch.Input, functionReturnType, context, functions, catalog, diagnostics);
+                foreach (MirStatement statement in batch.Body.PrefixStatements)
+                {
+                    ValidateStatement(statement, functionReturnType, context + " batch body", functions, catalog, diagnostics);
+                }
+                ValidateExpression(batch.Body.ValueExpression, functionReturnType, context, functions, catalog, diagnostics);
+                break;
             case MirRecordConstructionExpression construction:
                 ValidateRecordConstruction(construction, functionReturnType, context, functions, catalog, diagnostics);
                 break;
@@ -2139,6 +2153,7 @@ public static class JavaScriptBackend
             MirCallableConstructionExpression construction => EmitCallableConstruction(construction, function, catalog, results, names, flowEnabled),
             MirInvokeExpression invoke => EmitInvoke(invoke, function, catalog, results, names, flowEnabled),
             MirArrayExpression array => EmitArrayExpression(array, function, catalog, results, names, flowEnabled),
+            MirBatchExpression batch => EmitBatchExpression(batch, function, catalog, results, names, flowEnabled),
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
             MirTableReferenceExpression reference => EmittedExpression.ValueOnly(names.TableSingleton(catalog.GetTable(reference.TableId))),
@@ -2854,6 +2869,61 @@ public static class JavaScriptBackend
             elements,
             names,
             values => "[" + string.Join(", ", values) + "]");
+    }
+
+    private static EmittedExpression EmitBatchExpression(
+        MirBatchExpression batch,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression input = EmitExpression(batch.Input, function, catalog, results, names, flowEnabled);
+        var bodyLines = new List<string>();
+        string item = JavaScriptIdentifierEncoder.Encode(batch.Item.Name);
+        foreach (MirStatement statement in batch.Body.PrefixStatements)
+        {
+            switch (statement)
+            {
+                case MirVariableDeclarationStatement declaration:
+                {
+                    EmittedExpression initializer = EmitExpression(declaration.Initializer, function, catalog, results, names, flowEnabled);
+                    bodyLines.AddRange(initializer.Prelude.Select(line => line.Text));
+                    string keyword = declaration.Local.IsReadOnly ? "const" : "let";
+                    bodyLines.Add($"{keyword} {JavaScriptIdentifierEncoder.Encode(declaration.Local.Name)} = {initializer.Value};");
+                    break;
+                }
+                case MirExpressionStatement expression:
+                {
+                    EmittedExpression emitted = EmitExpression(expression.Expression, function, catalog, results, names, flowEnabled);
+                    bodyLines.AddRange(emitted.Prelude.Select(line => line.Text));
+                    bodyLines.Add(emitted.Value + ";");
+                    break;
+                }
+                default:
+                    throw new InvalidOperationException($"Validated JavaScript batch emission received unsupported statement {statement.GetType().Name}.");
+            }
+        }
+
+        EmittedExpression value = EmitExpression(batch.Body.ValueExpression, function, catalog, results, names, flowEnabled);
+        bodyLines.AddRange(value.Prelude.Select(line => line.Text));
+        string inputName = names.NextTemporary("batch_input");
+        string outputName = names.NextTemporary("batch_output");
+        string indexName = names.NextTemporary("batch_index");
+        var lines = new List<string>
+        {
+            $"const {inputName} = {input.Value};",
+            $"const {outputName} = new Array({inputName}.length);",
+            $"for (let {indexName} = 0; {indexName} < {inputName}.length; {indexName} += 1) {{",
+            $"const {item} = {inputName}[{indexName}];",
+        };
+        lines.AddRange(bodyLines);
+        lines.Add($"{outputName}[{indexName}] = {value.Value};");
+        lines.Add("}");
+        lines.Add($"return {outputName};");
+        string valueExpression = "(() => { " + string.Join(" ", lines) + " })()";
+        return new EmittedExpression(input.Prelude, valueExpression);
     }
 
     private static EmittedExpression EmitRecordConstruction(

@@ -1475,6 +1475,7 @@ public sealed class Parser
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword or SyntaxKind.NullKeyword or SyntaxKind.NumberToken or SyntaxKind.StringToken => new LiteralExpressionSyntax(NextToken()),
             SyntaxKind.IdentifierToken when Current.Text == "capture" => ParseCaptureExpression(),
+            SyntaxKind.IdentifierToken when Current.Text == "batch" && IsBatchExpressionAhead() => ParseBatchExpression(),
             SyntaxKind.IdentifierToken when Peek(1).Kind == SyntaxKind.ArrowToken => ParseSingleParameterArrowExpression(),
             SyntaxKind.IdentifierToken => new NameExpressionSyntax(NextToken()),
             SyntaxKind.OpenBracketToken => ParseArrayLiteralExpression(),
@@ -1484,6 +1485,86 @@ public sealed class Parser
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+    }
+
+    private BatchExpressionSyntax ParseBatchExpression()
+    {
+        SyntaxToken batchKeyword = NextToken();
+        ExpressionSyntax input = ParseExpression();
+        SyntaxToken asKeyword;
+        if (Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "as")
+        {
+            asKeyword = NextToken();
+        }
+        else
+        {
+            _diagnostics.Report("COPE-BATCH-0001", "Expected 'as' after the batch input expression.", Current.Position, Math.Max(1, Current.Text.Length));
+            asKeyword = MissingToken(SyntaxKind.IdentifierToken, Current.Position);
+        }
+
+        SyntaxToken itemIdentifier = Match(SyntaxKind.IdentifierToken);
+        BlockStatementSyntax body = ParseBlockStatement();
+        return new BatchExpressionSyntax(batchKeyword, input, asKeyword, itemIdentifier, body);
+    }
+
+    private bool IsBatchExpressionAhead()
+    {
+        var parenthesisDepth = 0;
+        var bracketDepth = 0;
+        for (var offset = 1; ; offset++)
+        {
+            SyntaxToken token = Peek(offset);
+            if (token.Kind is SyntaxKind.EndOfFileToken or SyntaxKind.SemicolonToken)
+            {
+                return false;
+            }
+
+            if (token.Kind == SyntaxKind.OpenParenToken)
+            {
+                parenthesisDepth++;
+                continue;
+            }
+
+            if (token.Kind == SyntaxKind.CloseParenToken)
+            {
+                if (parenthesisDepth == 0)
+                {
+                    return false;
+                }
+                parenthesisDepth--;
+                continue;
+            }
+
+            if (token.Kind == SyntaxKind.OpenBracketToken)
+            {
+                bracketDepth++;
+                continue;
+            }
+
+            if (token.Kind == SyntaxKind.CloseBracketToken)
+            {
+                if (bracketDepth == 0)
+                {
+                    return false;
+                }
+                bracketDepth--;
+                continue;
+            }
+
+            if (token.Kind == SyntaxKind.CloseBraceToken && parenthesisDepth == 0 && bracketDepth == 0)
+            {
+                return false;
+            }
+
+            if (parenthesisDepth == 0
+                && bracketDepth == 0
+                && IsWord(token, "as")
+                && Peek(offset + 1).Kind == SyntaxKind.IdentifierToken
+                && Peek(offset + 2).Kind == SyntaxKind.OpenBraceToken)
+            {
+                return true;
+            }
+        }
     }
 
     private ExpressionSyntax ParseAwaitOperand()

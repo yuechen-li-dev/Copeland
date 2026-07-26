@@ -897,6 +897,25 @@ public sealed record PropagateExpressionSyntax(ExpressionSyntax Operand, SyntaxT
     }
 }
 
+public sealed record BatchExpressionSyntax(
+    SyntaxToken BatchKeyword,
+    ExpressionSyntax Input,
+    SyntaxToken AsKeyword,
+    SyntaxToken ItemIdentifier,
+    BlockStatementSyntax Body) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.BatchExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return BatchKeyword;
+        yield return Input;
+        yield return AsKeyword;
+        yield return ItemIdentifier;
+        yield return Body;
+    }
+}
+
 public sealed record GenericCallExpressionSyntax(
     ExpressionSyntax Target,
     SyntaxToken LessToken,

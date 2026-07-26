@@ -291,6 +291,18 @@ public sealed class BoundValueBlock
     public TypeSymbol Type => ValueExpression.Type;
 }
 
+public sealed class BoundBatchExpression(
+    BoundExpression input,
+    VariableSymbol item,
+    BoundValueBlock body,
+    ArrayTypeSymbol type) : BoundExpression
+{
+    public BoundExpression Input { get; } = input;
+    public VariableSymbol Item { get; } = item;
+    public BoundValueBlock Body { get; } = body;
+    public override TypeSymbol Type { get; } = type;
+}
+
 public sealed class BoundTryExceptExpression : BoundExpression
 {
     public BoundTryExceptExpression(

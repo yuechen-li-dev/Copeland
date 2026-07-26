@@ -13,6 +13,22 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptBackendTests
 {
     [Fact]
+    public void Batch_uses_the_documented_sequential_javascript_fallback()
+    {
+        JavaScriptCompilation compilation = Emit("""
+            function main(): number[] {
+                const values: number[] = [1, 2, 3];
+                return batch values as value { return value * value; };
+            }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.Contains("new Array", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("for (let", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Promise.all", compilation.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Async_if_control_flow_emits_explicit_state_transition()
     {
         JavaScriptCompilation compilation = Emit("""

@@ -399,6 +399,11 @@ public sealed record MirFunctionReferenceExpression(string FunctionName, MirCall
 public sealed record MirCallableConstructionExpression(string CodeFunctionName, IReadOnlyList<MirExpression> Captures, MirCallableType CallableType) : MirExpression(CallableType);
 public sealed record MirInvokeExpression(MirExpression Callee, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirArrayExpression(IReadOnlyList<MirExpression> Elements, MirType Type) : MirExpression(Type);
+public sealed record MirBatchExpression(
+    MirExpression Input,
+    MirLocal Item,
+    MirValueBlock Body,
+    MirArrayType ArrayType) : MirExpression(ArrayType);
 public sealed class MirRecordFieldValue(MirRecordFieldId fieldId, MirExpression value)
 {
     public MirRecordFieldId FieldId { get; } = fieldId;

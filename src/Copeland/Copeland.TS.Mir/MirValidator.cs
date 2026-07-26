@@ -183,6 +183,7 @@ public static class MirValidator
             MirCallExpression call => call.Arguments,
             MirInvokeExpression invoke => invoke.Arguments.Append(invoke.Callee),
             MirArrayExpression array => array.Elements,
+            MirBatchExpression batch => batch.Body.PrefixStatements.OfType<MirExpressionStatement>().Select(statement => statement.Expression).Append(batch.Input).Append(batch.Body.ValueExpression),
             MirRecordConstructionExpression record => record.Initializers.Select(initializer => initializer.Value),
             MirRecordFieldAccessExpression access => [access.Receiver],
             _ => [],
@@ -2132,6 +2133,16 @@ public static class MirValidator
                 return;
             case MirArrayExpression array:
                 foreach (var element in array.Elements) ValidateExpression(element, activeHandlers, handlerIds, diagnostics);
+                return;
+            case MirBatchExpression batch:
+                if (batch.Input.Type is not MirArrayType inputType
+                    || !MirTypeFacts.AreEquivalent(inputType.ElementType, batch.Item.Type)
+                    || !MirTypeFacts.AreEquivalent(batch.Body.ValueExpression.Type, batch.ArrayType.ElementType))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("Batch input, item, and result element types must agree."));
+                }
+                ValidateExpression(batch.Input, activeHandlers, handlerIds, diagnostics);
+                ValidateValueBlock(batch.Body, activeHandlers, handlerIds, diagnostics);
                 return;
             case MirRecordConstructionExpression construction:
                 foreach (var initializer in construction.Initializers) ValidateExpression(initializer.Value, activeHandlers, handlerIds, diagnostics);

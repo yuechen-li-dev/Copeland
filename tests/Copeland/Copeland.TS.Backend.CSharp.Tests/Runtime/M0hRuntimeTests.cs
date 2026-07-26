@@ -626,12 +626,11 @@ internal static class RoslynCompileHelper
         var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
         var syntaxTree = CSharpSyntaxTree.ParseText(sourceText, parseOptions);
 
-        var references = new[]
-        {
-            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(System.Runtime.GCSettings).Assembly.Location)
-        };
+        string trustedPlatformAssemblies = (string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!;
+        var references = trustedPlatformAssemblies
+            .Split(Path.PathSeparator)
+            .Select(path => MetadataReference.CreateFromFile(path))
+            .ToArray();
 
         var compilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create(
             assemblyName: $"Copeland.Generated.Tests.{Guid.NewGuid():N}",

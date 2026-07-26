@@ -53,6 +53,11 @@ source -> frontend/parser -> lane MIR -> lowering -> artifacts or CLR proof
 
 The CLI entry point is `src/Copeland/Copeland.Cli`.
 
+Copeland TS also supports synchronous structured mapping with `batch values as
+value { return transform(value); }`. The compiler owns scheduling: CLR uses a
+bounded parallel realization, while JavaScript preserves the same semantics
+with a sequential fallback. See the [batch language decision](docs/Copeland/language/copeland-ts-batch-cts-batch-m1.md).
+
 ## Copeland TS in an SDK project
 
 Copeland TS can be added as explicit source items to a normal SDK-style project.

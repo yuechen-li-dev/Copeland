@@ -70,6 +70,13 @@ public static class Binder
 
     private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath)
     {
+        private sealed class BatchBindingContext
+        {
+            public required SyntaxToken Anchor { get; init; }
+            public HashSet<Symbol> LocalBindings { get; } = [];
+            public HashSet<Symbol> Captures { get; } = [];
+        }
+
         private const int MaxTypeParametersPerFunction = 8;
         private const int MaxRequirementInterfacesPerTypeParameter = 8;
         private const int MaxNormalizedRequirementFields = 32;
@@ -92,6 +99,7 @@ public static class Binder
         private const int MaxClassesPerCompilation = 256;
 
         private int _loopDepth;
+        private readonly Stack<BatchBindingContext> _batchContexts = [];
         private readonly SyntaxTree _tree = tree;
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
         private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
@@ -2032,6 +2040,10 @@ public static class Binder
                 v.Keyword.Kind == SyntaxKind.ConstKeyword,
                 authoredAliasName);
             if (!_scope.TryDeclare(varSym)) Report("COPE-BIND-0002", $"Duplicate declaration '{varSym.Name}'.", v.Identifier);
+            if (_batchContexts.TryPeek(out BatchBindingContext? batch))
+            {
+                batch.LocalBindings.Add(varSym);
+            }
             return new BoundVariableDeclaration(varSym, init);
         }
 
@@ -2300,6 +2312,7 @@ public static class Binder
                 PropagateExpressionSyntax p => BindPropagate(p),
                 UnwrapExpressionSyntax u => BindUnwrap(u),
                 TryExceptExpressionSyntax t => BindTryExcept(t, contextualType),
+                BatchExpressionSyntax batch => BindBatch(batch),
                 AwaitExpressionSyntax a => BindAwait(a),
                 UnaryExpressionSyntax u => BindUnary(u),
                 BinaryExpressionSyntax b => BindBinary(b),
@@ -2427,6 +2440,7 @@ public static class Binder
                 Report("COPE-BIND-0001", $"Undefined name '{n.IdentifierToken.Text}'.", n.IdentifierToken);
                 return new BoundErrorExpression();
             }
+            RecordBatchCapture(symbol);
             return symbol switch
             {
                 ClassValueSymbol classValue => ReportClassValueUse(classValue, n.IdentifierToken),
@@ -2438,6 +2452,179 @@ public static class Binder
                 NpmFunctionSymbol => ReportNpmFunctionValue(n),
                 _ => new BoundErrorExpression()
             };
+        }
+
+        private BoundExpression BindBatch(BatchExpressionSyntax batch)
+        {
+            BoundExpression input = BindExpression(batch.Input);
+            if (input.Type is not ArrayTypeSymbol inputArray)
+            {
+                Report("COPE-BATCH-0002", $"Batch input must be a supported array, got '{input.Type.Name}'.", batch.BatchKeyword);
+                return new BoundErrorExpression();
+            }
+
+            if (!IsBatchPortableType(inputArray.ElementType))
+            {
+                Report("COPE-BATCH-0003", $"Batch element type '{inputArray.ElementType.Name}' is not supported. Batch accepts primitive, string, and immutable record elements.", batch.BatchKeyword);
+            }
+
+            if (_batchContexts.Count != 0)
+            {
+                Report("COPE-BATCH-0011", "Nested batch expressions are not supported in CTS-BATCH-M1.", batch.BatchKeyword);
+                return new BoundErrorExpression();
+            }
+
+            if (batch.Body.Statements.Count == 0 || batch.Body.Statements[^1] is not ReturnStatementSyntax finalReturn || finalReturn.Expression is null)
+            {
+                Report("COPE-BATCH-0004", "A batch body must end with exactly one value-producing 'return' statement.", batch.Body.OpenBraceToken);
+                return new BoundErrorExpression();
+            }
+
+            if (batch.Body.Statements.Take(batch.Body.Statements.Count - 1).Any(statement => statement is not VariableDeclarationStatementSyntax and not ExpressionStatementSyntax))
+            {
+                Report("COPE-BATCH-0004", "A CTS-BATCH-M1 body may contain item-local declarations and expressions before its final return.", batch.Body.OpenBraceToken);
+            }
+
+            Scope previousScope = _scope;
+            var context = new BatchBindingContext { Anchor = batch.BatchKeyword };
+            var item = new VariableSymbol(batch.ItemIdentifier.Text, inputArray.ElementType, true);
+            _scope = new Scope(previousScope);
+            if (!_scope.TryDeclare(item))
+            {
+                Report("COPE-BATCH-0005", $"Batch item binding '{item.Name}' conflicts with an item-local declaration.", batch.ItemIdentifier);
+            }
+            context.LocalBindings.Add(item);
+            _batchContexts.Push(context);
+            try
+            {
+                var prefix = new List<BoundStatement>();
+                foreach (StatementSyntax statement in batch.Body.Statements.Take(batch.Body.Statements.Count - 1))
+                {
+                    if (statement is CSharpBlockStatementSyntax)
+                    {
+                        Report("COPE-BATCH-0009", "Inline C# blocks are not supported inside batch bodies.", batch.BatchKeyword);
+                    }
+                    prefix.Add(BindStatement(statement));
+                }
+
+                BoundExpression value = BindExpression(finalReturn.Expression);
+                ValidateBatchBodyEffects(value, batch.BatchKeyword);
+                foreach (BoundStatement statement in prefix)
+                {
+                    ValidateBatchStatementEffects(statement, batch.BatchKeyword);
+                }
+
+                if (!IsBatchPortableType(value.Type))
+                {
+                    Report("COPE-BATCH-0006", $"Batch result type '{value.Type.Name}' is not supported.", finalReturn.ReturnKeyword);
+                }
+
+                return new BoundBatchExpression(input, item, new BoundValueBlock(prefix, value), new ArrayTypeSymbol(value.Type));
+            }
+            finally
+            {
+                _batchContexts.Pop();
+                _scope = previousScope;
+            }
+        }
+
+        private void RecordBatchCapture(Symbol symbol)
+        {
+            if (!_batchContexts.TryPeek(out BatchBindingContext? batch)
+                || symbol is not VariableSymbol and not ParameterSymbol
+                || batch.LocalBindings.Contains(symbol)
+                || !batch.Captures.Add(symbol))
+            {
+                return;
+            }
+
+            TypeSymbol type = symbol is VariableSymbol variable ? variable.Type : ((ParameterSymbol)symbol).Type;
+            bool isReadOnly = symbol is not VariableSymbol mutable || mutable.IsReadOnly;
+            if (!isReadOnly)
+            {
+                Report("COPE-BATCH-0007", $"Batch cannot capture mutable binding '{symbol.Name}'.", batch.Anchor);
+            }
+            else if (!IsBatchPortableType(type))
+            {
+                Report("COPE-BATCH-0008", $"Batch capture '{symbol.Name}' of type '{type.Name}' is not proven immutable and portable.", batch.Anchor);
+            }
+        }
+
+        private static bool IsBatchPortableType(TypeSymbol type)
+            => type is PrimitiveTypeSymbol primitive
+                && primitive != PrimitiveTypeSymbol.Void
+                && primitive != PrimitiveTypeSymbol.Error
+                || type is RecordTypeSymbol and not ClassTypeSymbol
+                || type is ArrayTypeSymbol array && IsBatchPortableType(array.ElementType);
+
+        private void ValidateBatchStatementEffects(BoundStatement statement, SyntaxToken anchor)
+        {
+            switch (statement)
+            {
+                case BoundVariableDeclaration declaration:
+                    ValidateBatchBodyEffects(declaration.Initializer, anchor);
+                    break;
+                case BoundExpressionStatement expression:
+                    ValidateBatchBodyEffects(expression.Expression, anchor);
+                    break;
+                default:
+                    Report("COPE-BATCH-0010", "This statement is not supported inside a batch body.", anchor);
+                    break;
+            }
+        }
+
+        private void ValidateBatchBodyEffects(BoundExpression expression, SyntaxToken anchor)
+        {
+            switch (expression)
+            {
+                case BoundAwaitExpression or BoundNpmCallExpression:
+                    Report("COPE-BATCH-0012", "Async and npm operations are not supported inside batch bodies.", anchor);
+                    return;
+                case BoundClrInvocationExpression or BoundClrPropertyAccessExpression:
+                    Report("COPE-BATCH-0013", "CLR interop is not supported inside batch bodies.", anchor);
+                    return;
+                case BoundInvokeExpression or BoundCallableConstructionExpression or BoundFunctionReferenceExpression:
+                    Report("COPE-BATCH-0014", "Only direct synchronous Copeland function calls are supported inside batch bodies.", anchor);
+                    return;
+                case BoundPropagateExpression:
+                    Report("COPE-BATCH-0015", "Result propagation cannot escape a batch item body; return an explicit Result value instead.", anchor);
+                    return;
+                case BoundAssignmentExpression assignment:
+                    ValidateBatchBodyEffects(assignment.Expression, anchor);
+                    return;
+                case BoundUnaryExpression unary:
+                    ValidateBatchBodyEffects(unary.Operand, anchor);
+                    return;
+                case BoundBinaryExpression binary:
+                    ValidateBatchBodyEffects(binary.Left, anchor);
+                    ValidateBatchBodyEffects(binary.Right, anchor);
+                    return;
+                case BoundCallExpression call:
+                    if (call.Function.IsAsync)
+                    {
+                        Report("COPE-BATCH-0012", "Async Copeland calls are not supported inside batch bodies.", anchor);
+                    }
+                    foreach (BoundExpression argument in call.Arguments) ValidateBatchBodyEffects(argument, anchor);
+                    return;
+                case BoundArrayExpression array:
+                    foreach (BoundExpression element in array.Elements) ValidateBatchBodyEffects(element, anchor);
+                    return;
+                case BoundRecordConstructionExpression record:
+                    foreach (BoundRecordFieldInitializer initializer in record.Initializers) ValidateBatchBodyEffects(initializer.Value, anchor);
+                    return;
+                case BoundRecordFieldAccessExpression access:
+                    ValidateBatchBodyEffects(access.Receiver, anchor);
+                    return;
+                case BoundRecordWithExpression update:
+                    ValidateBatchBodyEffects(update.Source, anchor);
+                    foreach (BoundRecordFieldInitializer replacement in update.Replacements) ValidateBatchBodyEffects(replacement.Value, anchor);
+                    return;
+                case BoundIfExpression conditional:
+                    ValidateBatchBodyEffects(conditional.Condition, anchor);
+                    ValidateBatchBodyEffects(conditional.ThenExpression, anchor);
+                    ValidateBatchBodyEffects(conditional.ElseExpression, anchor);
+                    return;
+            }
         }
 
         private BoundExpression ReportNpmFunctionValue(NameExpressionSyntax name)
