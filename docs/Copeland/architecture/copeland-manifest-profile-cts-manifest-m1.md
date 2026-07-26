@@ -1,6 +1,6 @@
 # CTS-MANIFEST-M1: TSPack manifest semantic profile
 
-**Status:** implemented bounded compile-time project-description profile. CTS-SIDECAR-M1a remains deferred.
+**Status:** implemented bounded compile-time project-description profile. CTS-SIDECAR-M1a consumes its root deployment IR.
 
 ## Profile boundary
 
@@ -24,11 +24,13 @@ The binder admits the established root/package structures: `Package`, split-work
 
 The compile-time expression evaluator admits literals, arrays, objects, parenthesized values, previously declared constants/property access, and TSPack's established data helpers: `defineDeps`, `npm`, `git`, `path`, `workspace`, `dep`, `peer`, `tool`, `Env`, `Service`, `json`, `TsConfig.manifestEditor`, `VSCode.settings`, and `VSCode.extensions`. It evaluates data directly into immutable manifest values; it never executes JavaScript/TypeScript.
 
-## Authority and sidecar preparation
+## Authority and sidecar binding
 
 TSPack currently has no `<Sidecar>` declaration or deployment artifact. Its established deployment-adjacent data is a root-owned `Package(kind="service")` and its `RunTargets` rows. M1 preserves each run target as `ManifestRunTarget` with distinct runtime and argv fields, then derives an immutable root `ManifestDeploymentBinding` with a deterministic workspace/package/target logical identity. It never creates a shell command string, launches a process, or grants target execution authority.
 
-Dependency manifests use the separate `DependencyManifest` context and `definePackage(<Package ...>)` shape. That context rejects `RunTargets`, so a dependency cannot acquire root deployment/process authority. Split package references are represented and path-validated, but recursive package loading/merging remains deferred.
+`<Workspace>` may contain one root-only `<Sidecars rows={...}>` declaration. Each row has only `id`, `runTarget`, and optional `default`; `runTarget` is a stable derived root RunTarget identity. The binder rejects launch fields, duplicate IDs, unknown/non-root targets, and multiple defaults. `CSharpBackend.EmitForRootManifest` requires one default when targetless `tsonCall` is present and computes the protocol digest from generated TSON plans.
+
+Dependency manifests use the separate `DependencyManifest` context and `definePackage(<Package ...>)` shape. That context rejects `RunTargets` and cannot declare root `Sidecars`, so a dependency cannot acquire root deployment/process authority. Split package references are represented and path-validated, but recursive package loading/merging remains deferred.
 
 ## Diagnostics and exclusions
 
@@ -40,4 +42,4 @@ Functions, classes, async/await, loops, conditionals, arbitrary calls, environme
 
 `ManifestProfileTests` uses positive and negative `manifest.tsx` fixtures plus an actual temporary root directory to prove discovery, parsing, profile binding, validation, and immutable IR availability. It also proves that ordinary `.tsx` remains neutral and that dependency authority is rejected.
 
-Deferred: recursive split-workspace package loading, package annotations, all TSPack runtime/lockfile/compat-file materialization semantics, full helper default expansion, build execution, external process launch, sidecar declaration/stdio binding, React compatibility, and CTS-SIDECAR-M1a.
+Deferred: recursive split-workspace package loading, package annotations, all TSPack runtime/lockfile/compat-file materialization semantics, multiple authored sidecars, source-level selection, browser/WebView adapters, retries, authentication, streaming, reverse calls, callbacks, service discovery, general schema decoding, React compatibility, and CTS-ASYNC-M2.

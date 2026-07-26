@@ -11,4 +11,6 @@ public sealed class CopelandCompilationOptions
     public string? ProjectRoot { get; init; }
 
     public ICopelandAssetSource? AssetSource { get; init; }
+
+    public IReadOnlyList<CopelandNpmPackageContract> NpmPackages { get; init; } = [];
 }

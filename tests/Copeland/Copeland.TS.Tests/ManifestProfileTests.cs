@@ -31,6 +31,10 @@ public sealed class ManifestProfileTests
             Assert.Equal("package", target.WorkingDirectory);
             Assert.Single(manifest.CompatFiles);
             Assert.Equal("sample/@sample/app/serve", Assert.Single(manifest.DeploymentBindings).LogicalIdentity);
+            ManifestSidecarBinding sidecar = Assert.Single(manifest.Sidecars);
+            Assert.Equal("node-transport", sidecar.LogicalBindingId);
+            Assert.Equal("sample/@sample/app/serve", sidecar.RunTargetIdentity);
+            Assert.True(sidecar.IsDefault);
         }
         finally
         {
@@ -71,6 +75,22 @@ public sealed class ManifestProfileTests
 
         Assert.False(result.Success);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-MANIFEST-0018");
+    }
+
+    [Fact]
+    public void Sidecars_Reject_Launch_Fields_Unknown_Targets_And_Duplicate_Defaults()
+    {
+        ManifestBindingResult result = ManifestBinder.Bind(
+            SyntaxTree.Parse("""
+                import { define } from "tspack/manifest";
+                export default define(<Workspace name="sample"><Package name="app" version="1" kind="app"><RunTargets rows={[{ name: "node", runtime: "node", command: ["sidecar.js"] }]} /></Package><Sidecars rows={[{ id: "one", runTarget: "sample/app/missing", default: true, command: ["nope"] }, { id: "two", runTarget: "sample/app/node", default: true }]} /></Workspace>);
+                """, "manifest.tsx"),
+            "C:/project",
+            "manifest.tsx",
+            ManifestBindingContext.RootProject);
+
+        Assert.False(result.Success);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-MANIFEST-0032");
     }
 
     [Fact]

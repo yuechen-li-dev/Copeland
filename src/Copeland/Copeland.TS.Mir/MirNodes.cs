@@ -405,6 +405,16 @@ public sealed record MirTsonTransportExpression(
     MirTsonEncodingPlanId ResponsePlanId,
     MirTsonEncodingPlanId RemoteErrorPlanId,
     MirAsyncType AsyncType) : MirExpression(AsyncType);
+public sealed record MirNpmCallExpression(
+    string PackageName,
+    string PackageVersion,
+    string ExportName,
+    MirExpression Request,
+    MirTsonEncodingPlanId RequestPlanId,
+    MirTsonEncodingPlanId ResponsePlanId,
+    MirTsonEncodingPlanId RemoteErrorPlanId,
+    bool IsPromise,
+    MirAsyncType AsyncType) : MirExpression(AsyncType);
 
 public sealed record MirOkExpression : MirExpression
 {

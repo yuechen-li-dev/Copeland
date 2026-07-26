@@ -47,6 +47,19 @@ public sealed class FunctionSymbol(
     public TypeSymbol InvocationReturnType => IsAsync ? new AsyncTypeSymbol(ReturnType) : ReturnType;
 }
 
+public sealed class NpmFunctionSymbol : Symbol
+{
+    public NpmFunctionSymbol(string name, string packageName, string packageVersion, IReadOnlyList<ParameterSymbol> parameters, TypeSymbol resultType, TypeSymbol? remoteErrorType) : base(name) { PackageName = packageName; PackageVersion = packageVersion; Parameters = parameters; ResultType = resultType; RemoteErrorType = remoteErrorType; }
+    public string PackageName { get; }
+    public string PackageVersion { get; }
+    public IReadOnlyList<ParameterSymbol> Parameters { get; }
+    public TypeSymbol ResultType { get; }
+    public TypeSymbol? RemoteErrorType { get; }
+    public TypeSymbol InvocationReturnType => RemoteErrorType is null
+        ? new AsyncTypeSymbol(ResultType)
+        : new AsyncTypeSymbol(new ResultTypeSymbol(ResultType, RemoteErrorType!));
+}
+
 public sealed class ClassValueSymbol(string name, ClassTypeSymbol classType) : Symbol(name)
 {
     public ClassTypeSymbol ClassType { get; } = classType;

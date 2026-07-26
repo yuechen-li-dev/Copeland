@@ -25,7 +25,7 @@ public sealed class SyntaxTree
 
     public static SyntaxTree Parse(string text, SourceFileKind fileKind)
     {
-        var parser = new Parser(text, fileKind == SourceFileKind.TypeScriptXml);
+        var parser = new Parser(text, fileKind == SourceFileKind.TypeScriptXml, fileKind == SourceFileKind.TypeScriptModule);
         var root = parser.ParseCompilationUnit();
         var diagnostics = parser.Diagnostics.ToArray();
         var tokens = CollectTokens(root).ToArray();
@@ -95,6 +95,7 @@ public sealed class SyntaxTree
 public enum SourceFileKind
 {
     TypeScript,
+    TypeScriptModule,
     TypeScriptXml,
 }
 
@@ -103,5 +104,7 @@ public static class SourceFileKindExtensions
     public static SourceFileKind FromSourcePath(string? sourcePath)
         => sourcePath is not null && sourcePath.EndsWith(".tsx", StringComparison.OrdinalIgnoreCase)
             ? SourceFileKind.TypeScriptXml
-            : SourceFileKind.TypeScript;
+            : sourcePath is not null && sourcePath.EndsWith(".ts", StringComparison.OrdinalIgnoreCase)
+                ? SourceFileKind.TypeScriptModule
+                : SourceFileKind.TypeScript;
 }

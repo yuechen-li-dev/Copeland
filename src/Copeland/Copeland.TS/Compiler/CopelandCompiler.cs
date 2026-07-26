@@ -26,7 +26,7 @@ public static class CopelandCompiler
         {
             if (diagnostics.Count == 0)
             {
-                boundCompilation = Binder.Bind(syntaxTree, assetResolver);
+                boundCompilation = Binder.Bind(syntaxTree, assetResolver, new CopelandNpmContractResolver(effectiveOptions.NpmPackages));
                 diagnostics.AddRange(boundCompilation.Diagnostics);
             }
         }
@@ -61,6 +61,7 @@ public static class CopelandCompiler
             SourcePath = effectiveOptions.SourcePath,
             ProjectRoot = effectiveOptions.ProjectRoot,
             AssetSource = effectiveOptions.AssetSource,
+            NpmPackages = effectiveOptions.NpmPackages,
         });
     }
 

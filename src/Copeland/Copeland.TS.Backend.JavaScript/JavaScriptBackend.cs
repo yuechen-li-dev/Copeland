@@ -84,6 +84,10 @@ public static class JavaScriptBackend
         bool usesAsync = program.Functions.Any(function => function.IsAsync);
         GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept, effectiveOptions.Profile);
         var writer = new JavaScriptTextWriter(names.Document, effectiveOptions.Profile);
+        foreach (MirNpmCallExpression npm in FindNpmCalls(program).OrderBy(call => call.PackageName, StringComparer.Ordinal).ThenBy(call => call.ExportName, StringComparer.Ordinal))
+        {
+            writer.WriteLine($"import {{ {JavaScriptIdentifierEncoder.Encode(npm.ExportName)} }} from {JavaScriptLiteralWriter.WriteString(npm.PackageName)};");
+        }
         writer.WriteLine("\"use strict\";");
 
         if (usesAsync)
@@ -442,6 +446,9 @@ public static class JavaScriptBackend
             case MirTsonTransportExpression transport:
                 ValidateExpression(transport.Operation, functionReturnType, context, functions, catalog, diagnostics);
                 ValidateExpression(transport.Request, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirNpmCallExpression npm:
+                ValidateExpression(npm.Request, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirTableReferenceExpression reference:
                 ValidateValueType(reference.Type, $"table reference in {context}", catalog, diagnostics, allowVoid: false);
@@ -1864,6 +1871,7 @@ public static class JavaScriptBackend
             MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, results, names)})",
             MirCallExpression call => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)))})",
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, results, names),
+            MirNpmCallExpression npm => EmitAsyncNpmCall(npm, results, names),
             MirOkExpression ok => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)ok.Type))}, \"ok\", [{EmitAsyncExpression(ok.Payload, results, names)}])",
             MirErrExpression err => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)err.Type))}, \"err\", [{EmitAsyncExpression(err.Payload, results, names)}])",
             _ => throw new InvalidOperationException($"Async expression '{expression.GetType().Name}' has not been lowered into an explicit state expression."),
@@ -1878,6 +1886,44 @@ public static class JavaScriptBackend
         string responsePlan = JavaScriptLiteralWriter.WriteString(transport.ResponsePlanId.Value);
         string errorPlan = JavaScriptLiteralWriter.WriteString(transport.RemoteErrorPlanId.Value);
         return $"__cope_tson_transport.start({EmitAsyncExpression(transport.Operation, results, names)}, {names.TsonRuntime}[{requestPlan}]({EmitAsyncExpression(transport.Request, results, names)}).$payload[0], (kind, payload) => kind === \"ok\" ? {names.MakeValue}({resultToken}, \"ok\", [{names.TsonRuntime}[{responsePlan}].decode(payload)]) : {names.MakeValue}({resultToken}, \"err\", [{names.TsonRuntime}[{errorPlan}].decode(payload)]))";
+    }
+
+    private static string EmitAsyncNpmCall(MirNpmCallExpression npm, ResultCatalog results, GeneratedNames names)
+    {
+        MirResultType result = (MirResultType)npm.AsyncType.EventualType;
+        string token = names.TypeToken(results.Get(result));
+        string request = EmitAsyncExpression(npm.Request, results, names);
+        string exportName = JavaScriptIdentifierEncoder.Encode(npm.ExportName);
+        return $"(() => {{ const pending = __cope_async_pending(); globalThis.Promise.resolve({exportName}({request})).then(value => pending.resolve({names.MakeValue}({token}, \"ok\", [value])), error => pending.resolve({names.MakeValue}({token}, \"err\", [error]))); return pending; }})()";
+    }
+
+    private static IEnumerable<MirNpmCallExpression> FindNpmCalls(MirProgram program)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (MirFunction function in program.Functions)
+        foreach (MirStatement statement in function.Body)
+        foreach (MirNpmCallExpression call in FindNpmCalls(statement))
+            if (seen.Add(call.PackageName + "\0" + call.ExportName)) yield return call;
+    }
+
+    private static IEnumerable<MirNpmCallExpression> FindNpmCalls(MirStatement statement)
+    {
+        switch (statement)
+        {
+            case MirVariableDeclarationStatement variable: return FindNpmCalls(variable.Initializer);
+            case MirExpressionStatement expression: return FindNpmCalls(expression.Expression);
+            case MirReturnStatement { Expression: not null } returned: return FindNpmCalls(returned.Expression);
+            case MirIfStatement conditional: return FindNpmCalls(conditional.Condition).Concat(conditional.ThenStatements.SelectMany(FindNpmCalls)).Concat(conditional.ElseStatements?.SelectMany(FindNpmCalls) ?? []);
+            default: return [];
+        }
+    }
+
+    private static IEnumerable<MirNpmCallExpression> FindNpmCalls(MirExpression expression)
+    {
+        if (expression is MirNpmCallExpression npm) return [npm];
+        if (expression is MirAwaitExpression awaited) return FindNpmCalls(awaited.Operand);
+        if (expression is MirAssignmentExpression assignment) return FindNpmCalls(assignment.Expression);
+        return [];
     }
 
     private static void EmitStatement(JavaScriptTextWriter writer, MirStatement statement, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
@@ -2094,6 +2140,7 @@ public static class JavaScriptBackend
             MirTryExpression tryExpression => EmitTryExcept(tryExpression, function, catalog, results, names, flowEnabled),
             MirTsonEncodeExpression encode => EmitTsonEncode(encode, function, catalog, results, names, flowEnabled),
             MirTsonTransportExpression transport => EmitTsonTransport(transport, function, catalog, results, names, flowEnabled),
+            MirNpmCallExpression npm => new EmittedExpression([], EmitAsyncNpmCall(npm, results, names)),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
     }
@@ -3359,7 +3406,7 @@ public static class JavaScriptBackend
     private static bool ExpressionUsesTsonTransport(MirExpression expression)
         => expression switch
         {
-            MirTsonTransportExpression => true,
+            MirTsonTransportExpression or MirNpmCallExpression => true,
             MirAwaitExpression awaited => ExpressionUsesTsonTransport(awaited.Operand),
             MirAssignmentExpression assignment => ExpressionUsesTsonTransport(assignment.Expression),
             MirUnaryExpression unary => ExpressionUsesTsonTransport(unary.Operand),

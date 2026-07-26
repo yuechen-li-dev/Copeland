@@ -64,6 +64,25 @@ public static class CSharpBackend
     private static readonly AsyncLocal<CSharpEmissionState?> CurrentEmissionState = new();
 
     public static CSharpCompilation Emit(MirProgram program)
+        => EmitCore(program, null);
+
+    /// <summary>
+    /// Emits a root application and binds targetless tsonCall to the one
+    /// manifest-declared default sidecar. This is the production emission seam.
+    /// </summary>
+    public static CSharpCompilation EmitForRootManifest(MirProgram program, Copeland.TS.Manifest.CopelandManifest manifest)
+    {
+        CSharpSidecarContract? contract = null;
+        if (ProgramUsesTsonTransport(program)
+            && !CSharpSidecarContracts.TryCreate(program, manifest, out contract, out CSharpDiagnostic? diagnostic))
+        {
+            return new CSharpCompilation(string.Empty, [diagnostic!]);
+        }
+
+        return EmitCore(program, ProgramUsesTsonTransport(program) ? contract : null);
+    }
+
+    private static CSharpCompilation EmitCore(MirProgram program, CSharpSidecarContract? sidecarContract)
     {
         var diagnostics = MirValidator.Validate(program)
             .Select(diagnostic => new CSharpDiagnostic("COPE-CS-0002", $"Invalid MIR: {diagnostic.Message}"))
@@ -91,7 +110,7 @@ public static class CSharpBackend
         if (needsUnit) EmitUnit(writer);
         if (usesResult) EmitResult(writer);
         if (usesAsync) EmitAsyncRuntime(writer);
-        if (usesTsonTransport) EmitTsonTransportRuntime(writer);
+        if (usesTsonTransport) EmitTsonTransportRuntime(writer, sidecarContract);
         foreach (var errorType in errorTypes) writer.WriteLine($"public readonly record struct {CSharpNameMangler.Mangle(errorType)};");
         if (errorTypes.Count > 0) writer.WriteLine();
         foreach (var record in program.Records) EmitRecord(writer, record);
@@ -135,7 +154,7 @@ public static class CSharpBackend
         foreach (var function in program.Functions) EmitFunction(writer, function, enumNames, recordsById, diagnostics);
         writer.Unindent(); writer.WriteLine("}");
         return diagnostics.Count == 0
-            ? new CSharpCompilation(writer.ToString(), diagnostics)
+            ? new CSharpCompilation(writer.ToString(), diagnostics, sidecarContract)
             : new CSharpCompilation(string.Empty, diagnostics);
     }
 
@@ -212,11 +231,15 @@ public static class CSharpBackend
         writer.WriteLine();
     }
 
-    private static void EmitTsonTransportRuntime(CSharpTextWriter writer)
+    private static void EmitTsonTransportRuntime(CSharpTextWriter writer, CSharpSidecarContract? sidecarContract)
     {
         writer.WriteLine("internal static class CopeTsonTransport");
         writer.WriteLine("{");
         writer.Indent();
+        writer.WriteLine($"internal const string BindingId = {CSharpLiteralWriter.Write(sidecarContract?.LogicalBindingId ?? string.Empty)};");
+        writer.WriteLine($"internal const string ProtocolVersion = {CSharpLiteralWriter.Write(sidecarContract?.ProtocolVersion ?? CSharpSidecarContracts.ProtocolVersion)};");
+        writer.WriteLine($"internal const string ExpectedDigest = {CSharpLiteralWriter.Write(sidecarContract?.ExpectedDigest ?? string.Empty)};");
+        writer.WriteLine("private static readonly object Gate = new();");
         writer.WriteLine("private interface IPending { void Receive(string kind, string payload); void Fail(); }");
         writer.WriteLine("private sealed class Pending<T>(CopeAsync<T> computation, global::System.Func<string, string, T> decode) : IPending");
         writer.WriteLine("{");
@@ -241,8 +264,8 @@ public static class CSharpBackend
         writer.Indent();
         writer.WriteLine("string correlation = (++nextCorrelation).ToString(global::System.Globalization.CultureInfo.InvariantCulture);");
         writer.WriteLine("var computation = CopeAsyncPending.Create<T>();");
-        writer.WriteLine("PendingByCorrelation.Add(correlation, new Pending<T>(computation, decode));");
-        writer.WriteLine("Dispatch?.Invoke(Envelope(correlation, \"request\", operation, request));");
+        writer.WriteLine("lock (Gate) { PendingByCorrelation.Add(correlation, new Pending<T>(computation, decode)); }");
+        writer.WriteLine("try { Dispatch?.Invoke(Envelope(correlation, \"request\", operation, request)); } catch { FailCorrelation(correlation); }");
         writer.WriteLine("return computation;");
         writer.Unindent();
         writer.WriteLine("}");
@@ -250,7 +273,8 @@ public static class CSharpBackend
         writer.WriteLine("{");
         writer.Indent();
         writer.WriteLine("if (!TryReadEnvelope(envelope, out string correlation, out string kind, out _, out string payload)) return false;");
-        writer.WriteLine("if (!PendingByCorrelation.Remove(correlation, out IPending? pending)) return false;");
+        writer.WriteLine("IPending? pending;");
+        writer.WriteLine("lock (Gate) { if (!PendingByCorrelation.Remove(correlation, out pending)) return false; }");
         writer.WriteLine("pending.Receive(kind, payload);");
         writer.WriteLine("return true;");
         writer.Unindent();
@@ -258,30 +282,38 @@ public static class CSharpBackend
         writer.WriteLine("internal static void ConnectionLost()");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine("var pending = new global::System.Collections.Generic.List<IPending>(PendingByCorrelation.Values);");
-        writer.WriteLine("PendingByCorrelation.Clear();");
+        writer.WriteLine("global::System.Collections.Generic.List<IPending> pending;");
+        writer.WriteLine("lock (Gate) { pending = new global::System.Collections.Generic.List<IPending>(PendingByCorrelation.Values); PendingByCorrelation.Clear(); }");
         writer.WriteLine("foreach (IPending item in pending) item.Fail();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("private static void FailCorrelation(string correlation)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("IPending? pending;");
+        writer.WriteLine("lock (Gate) { if (!PendingByCorrelation.Remove(correlation, out pending)) return; }");
+        writer.WriteLine("pending.Fail();");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine("internal static string Envelope(string correlation, string kind, string operation, string payload)");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine("return \"const $schema: string = \\\"copeland://interop/transport/v1\\\";\\n\\nrecord Envelope {\\n    correlation: string;\\n    kind: string;\\n    operation: string;\\n    payload: string;\\n}\\n\\nconst $value = $record.Envelope({\\n    \\\"correlation\\\": \\\"\" + Escape(correlation) + \"\\\",\\n    \\\"kind\\\": \\\"\" + Escape(kind) + \"\\\",\\n    \\\"operation\\\": \\\"\" + Escape(operation) + \"\\\",\\n    \\\"payload\\\": \\\"\" + Escape(payload) + \"\\\",\\n});\\n\";");
+        writer.WriteLine("return \"const $schema: string = \\\"copeland://interop/transport/v1\\\"; record Envelope { correlation: string; kind: string; operation: string; payload: string; } const $value = $record.Envelope({\\\"correlation\\\":\\\"\" + Escape(correlation) + \"\\\",\\\"kind\\\":\\\"\" + Escape(kind) + \"\\\",\\\"operation\\\":\\\"\" + Escape(operation) + \"\\\",\\\"payload\\\":\\\"\" + Escape(payload) + \"\\\",});\";");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine("""
             private static bool TryReadEnvelope(string value, out string correlation, out string kind, out string operation, out string payload)
             {
-                const string prefix = "const $schema: string = \"copeland://interop/transport/v1\";\n\nrecord Envelope {\n    correlation: string;\n    kind: string;\n    operation: string;\n    payload: string;\n}\n\nconst $value = $record.Envelope({\n";
+                const string prefix = "const $schema: string = \"copeland://interop/transport/v1\"; record Envelope { correlation: string; kind: string; operation: string; payload: string; } const $value = $record.Envelope({";
                 int position = 0;
                 if (!value.StartsWith(prefix, global::System.StringComparison.Ordinal)
-                    || !ReadField(value, ref position, prefix, "    \"correlation\": ", out correlation)
-                    || !ReadField(value, ref position, string.Empty, "    \"kind\": ", out kind)
-                    || !ReadField(value, ref position, string.Empty, "    \"operation\": ", out operation)
-                    || !ReadField(value, ref position, string.Empty, "    \"payload\": ", out payload)
-                    || position > value.Length - 4
-                    || string.CompareOrdinal(value, position, "});\n", 0, 4) != 0
-                    || position + 4 != value.Length)
+                    || !ReadField(value, ref position, prefix, "\"correlation\":", out correlation)
+                    || !ReadField(value, ref position, string.Empty, "\"kind\":", out kind)
+                    || !ReadField(value, ref position, string.Empty, "\"operation\":", out operation)
+                    || !ReadField(value, ref position, string.Empty, "\"payload\":", out payload)
+                    || position > value.Length - 3
+                    || string.CompareOrdinal(value, position, "});", 0, 3) != 0
+                    || position + 3 != value.Length)
                 {
                     correlation = kind = operation = payload = string.Empty;
                     return false;
@@ -302,7 +334,7 @@ public static class CSharpBackend
                     char current = value[position++];
                     if (current == '"')
                     {
-                        if (position > value.Length - 2 || value[position++] != ',' || value[position++] != '\n') return false;
+                        if (position >= value.Length || value[position++] != ',') return false;
                         result = builder.ToString();
                         return true;
                     }
@@ -943,6 +975,7 @@ public static class CSharpBackend
             MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, function)})",
             MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, function)))})",
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, function),
+            MirNpmCallExpression npm => EmitAsyncNpmCall(npm, function),
             MirOkExpression ok => $"CopeResult<{MapResultComponentType(((MirResultType)ok.Type).SuccessType)}, {MapType(((MirResultType)ok.Type).ErrorType)}>.Ok({EmitAsyncExpression(ok.Payload, function)})",
             MirErrExpression err => $"CopeResult<{MapResultComponentType(((MirResultType)err.Type).SuccessType)}, {MapType(((MirResultType)err.Type).ErrorType)}>.Err({EmitAsyncExpression(err.Payload, function)})",
             _ => throw new InvalidOperationException($"Async function '{function.Name}' uses expression '{expression.GetType().Name}' which has not been lowered into an explicit state expression."),
@@ -959,6 +992,15 @@ public static class CSharpBackend
         string decodedResponse = $"{TsonDecodeMethodName(transport.ResponsePlanId)}(payload)";
         string decodedError = $"{TsonDecodeMethodName(transport.RemoteErrorPlanId)}(payload)";
         return $"CopeTsonTransport.Start<{resultType}>({operation}, {encodedRequest}.Value, (kind, payload) => kind == \"ok\" ? {resultType}.Ok({decodedResponse}) : {resultType}.Err({decodedError}))";
+    }
+
+    private static string EmitAsyncNpmCall(MirNpmCallExpression npm, MirFunction function)
+    {
+        var result = (MirResultType)npm.AsyncType.EventualType;
+        string resultType = $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>";
+        string request = EmitAsyncExpression(npm.Request, function);
+        string operation = CSharpLiteralWriter.Write("npm:" + npm.PackageName + "@" + npm.PackageVersion + ":" + npm.ExportName);
+        return $"CopeTsonTransport.Start<{resultType}>({operation}, {TsonEncodeMethodName(npm.RequestPlanId)}({request}).Value, (kind, payload) => kind == \"ok\" ? {resultType}.Ok({TsonDecodeMethodName(npm.ResponsePlanId)}(payload)) : {resultType}.Err({TsonDecodeMethodName(npm.RemoteErrorPlanId)}(payload)))";
     }
 
     private static void EmitStatement(CSharpTextWriter writer, MirStatement statement, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
@@ -2340,7 +2382,7 @@ public static class CSharpBackend
     private static bool ExpressionUsesTsonTransport(MirExpression expression)
         => expression switch
         {
-            MirTsonTransportExpression => true,
+            MirTsonTransportExpression or MirNpmCallExpression => true,
             MirAwaitExpression awaited => ExpressionUsesTsonTransport(awaited.Operand),
             MirAssignmentExpression assignment => ExpressionUsesTsonTransport(assignment.Expression),
             MirUnaryExpression unary => ExpressionUsesTsonTransport(unary.Operand),

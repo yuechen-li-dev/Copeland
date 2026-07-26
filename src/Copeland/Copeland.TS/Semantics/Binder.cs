@@ -12,19 +12,19 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver([]));
         return impl.Bind();
     }
 
-    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver)
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver)
     {
-        var impl = new BinderImpl(tree, assetResolver);
+        var impl = new BinderImpl(tree, assetResolver, npmResolver);
         return impl.Bind();
     }
 
     internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver([]));
         _ = impl.Bind();
         return impl.GetOpenGenericBodiesForTesting();
     }
@@ -53,7 +53,7 @@ public static class Binder
         }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver)
+    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver)
     {
         private const int MaxTypeParametersPerFunction = 8;
         private const int MaxRequirementInterfacesPerTypeParameter = 8;
@@ -79,6 +79,7 @@ public static class Binder
         private int _loopDepth;
         private readonly SyntaxTree _tree = tree;
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
+        private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
         private readonly DiagnosticBag _diagnostics = new();
         private readonly Scope _global = new(null);
         private Scope _scope = null!;
@@ -145,6 +146,7 @@ public static class Binder
             PredeclareEnums(_tree.Root);
             PredeclareNominalUnions(_tree.Root);
             ResolveAliases();
+            BindNpmImports(_tree.Root);
             BindInterfaceBodies(_tree.Root);
             PredeclareFunctions(_tree.Root);
             BindRecordBodies(_tree.Root);
@@ -2305,8 +2307,15 @@ public static class Binder
                 ParameterSymbol p => new BoundVariableExpression(new VariableSymbol(p.Name, p.Type, true)),
                 FunctionSymbol function when function.IsGeneric => ReportOpenGenericFunctionValue(n),
                 FunctionSymbol function => new BoundFunctionReferenceExpression(function),
+                NpmFunctionSymbol => ReportNpmFunctionValue(n),
                 _ => new BoundErrorExpression()
             };
+        }
+
+        private BoundExpression ReportNpmFunctionValue(NameExpressionSyntax name)
+        {
+            Report("COPE-NPM-0006", $"Imported npm function '{name.IdentifierToken.Text}' may only be called directly.", name.IdentifierToken);
+            return new BoundErrorExpression();
         }
 
         private BoundExpression ReportClassValueUse(ClassValueSymbol classValue, SyntaxToken anchor)
@@ -2746,6 +2755,7 @@ public static class Binder
                 Report("COPE-BIND-0001", "Undefined function name.", c.OpenParenToken);
                 return new BoundErrorExpression();
             }
+            if (s is NpmFunctionSymbol npm) return BindNpmCall(c, npm);
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
             if (fn.IsGeneric) return BindInferredGenericCall(c, fn);
             if (c.Arguments.Count != fn.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {fn.Parameters.Count}, got {c.Arguments.Count}.", c.OpenParenToken);
@@ -2761,6 +2771,75 @@ public static class Binder
                         fn.Parameters[i].AuthoredAliasName);
                 }
             return new BoundCallExpression(fn, args);
+        }
+
+        private void BindNpmImports(CompilationUnitSyntax root)
+        {
+            foreach (ImportDeclarationSyntax import in root.Members.OfType<ImportDeclarationSyntax>())
+            {
+                SyntaxToken[] tokens = import.Tokens.ToArray();
+                SyntaxToken? module = tokens.LastOrDefault(token => token.Kind == SyntaxKind.StringToken);
+                if (module?.Value is not string packageName)
+                {
+                    Report("COPE-NPM-0001", "npm imports require a string package specifier.", tokens[0]);
+                    continue;
+                }
+                if (!_npmResolver.TryGetPackage(packageName, out CopelandNpmPackageContract? package) || package is null)
+                {
+                    Report("COPE-NPM-0001", $"npm package '{packageName}' is unavailable in project configuration.", module);
+                    continue;
+                }
+                int open = Array.FindIndex(tokens, token => token.Kind == SyntaxKind.OpenBraceToken);
+                int close = Array.FindIndex(tokens, token => token.Kind == SyntaxKind.CloseBraceToken);
+                if (open < 0 || close <= open || tokens.Skip(close + 1).FirstOrDefault(token => token.Text == "from") is null)
+                {
+                    Report("COPE-NPM-0002", "Only named npm imports of the form 'import { name } from \"package\"' are supported.", tokens[0]);
+                    continue;
+                }
+                foreach (SyntaxToken name in tokens.Skip(open + 1).Take(close - open - 1).Where(token => token.Kind == SyntaxKind.IdentifierToken))
+                {
+                    CopelandNpmFunctionContract? export = package.Exports.SingleOrDefault(candidate => candidate.ExportName == name.Text);
+                    if (export is null)
+                    {
+                        Report("COPE-NPM-0003", $"npm package '{packageName}' has no supported named export '{name.Text}'.", name);
+                        continue;
+                    }
+                    TypeSymbol[] parameters = export.ParameterTypes.Select(type => ResolveNpmType(type, name)).ToArray();
+                    TypeSymbol result = ResolveNpmType(export.ResultType, name);
+                    TypeSymbol? remoteError = export.RemoteErrorType is null ? null : ResolveNpmType(export.RemoteErrorType, name);
+                    var symbol = new NpmFunctionSymbol(name.Text, package.PackageName, package.Version, parameters.Select((type, index) => new ParameterSymbol("arg" + index, type)).ToArray(), result, remoteError);
+                    if (!_global.TryDeclare(symbol)) Report("COPE-NPM-0004", $"Imported npm name '{name.Text}' conflicts with an existing declaration.", name);
+                }
+            }
+        }
+
+        private TypeSymbol ResolveNpmType(string name, SyntaxToken anchor)
+        {
+            if (name.EndsWith("[]", StringComparison.Ordinal)) return new ArrayTypeSymbol(ResolveNpmType(name[..^2], anchor));
+            if (name is "number") return PrimitiveTypeSymbol.Number;
+            if (name is "string") return PrimitiveTypeSymbol.String;
+            if (name is "boolean") return PrimitiveTypeSymbol.Boolean;
+            if (_recordTypes.TryGetValue(name, out RecordTypeSymbol? record) && record is not ClassTypeSymbol) return record;
+            Report("COPE-NPM-0005", $"npm contract type '{name}' is unsupported or not a declared flat record.", anchor);
+            return PrimitiveTypeSymbol.Error;
+        }
+
+        private BoundExpression BindNpmCall(CallExpressionSyntax call, NpmFunctionSymbol npm)
+        {
+            if (call.Arguments.Count != npm.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {npm.Parameters.Count}, got {call.Arguments.Count}.", call.OpenParenToken);
+            BoundExpression[] arguments = call.Arguments.Select((argument, index) => BindExpression(argument, index < npm.Parameters.Count ? npm.Parameters[index].Type : null)).ToArray();
+            for (int index = 0; index < Math.Min(arguments.Length, npm.Parameters.Count); index++)
+                if (!IsAssignable(npm.Parameters[index].Type, arguments[index].Type)) ReportTypeMismatch("COPE-TYPE-0005", npm.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
+            if (arguments.Length != 1 || npm.RemoteErrorType is null
+                || !TryGetOrCreateTsonEncodingPlan(arguments[0], call.OpenParenToken, out BoundTsonEncodingPlan? requestPlan)
+                || !TryGetOrCreateTsonEncodingPlan(new BoundSyntheticTypeExpression(npm.ResultType), call.OpenParenToken, out BoundTsonEncodingPlan? responsePlan)
+                || !TryGetOrCreateTsonEncodingPlan(new BoundSyntheticTypeExpression(npm.RemoteErrorType), call.OpenParenToken, out BoundTsonEncodingPlan? errorPlan))
+            {
+                Report("COPE-NPM-0005", "npm M1 functions require one TSON-supported argument, result, and explicit remote-error record.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+            _usesTsonEncode = true;
+            return new BoundNpmCallExpression(npm, arguments, requestPlan!, responsePlan!, errorPlan!);
         }
 
         private BoundExpression BindClassConstructorCall(

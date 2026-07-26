@@ -22,7 +22,7 @@ public static class ManifestBinder
 
     private sealed class Implementation
     {
-        private static readonly HashSet<string> WorkspaceElements = ["Package", "Packages", "Security", "UpdatePolicy", "CompatFiles"];
+        private static readonly HashSet<string> WorkspaceElements = ["Package", "Packages", "Sidecars", "Security", "UpdatePolicy", "CompatFiles"];
         private static readonly HashSet<string> PackageElements = ["Targets", "RunTargets", "Tools", "Boundaries", "Publish", "Policies"];
         private readonly SyntaxTree _tree;
         private readonly string _projectRoot;
@@ -159,6 +159,7 @@ public static class ManifestBinder
                 [package],
                 [],
                 [],
+                [],
                 null,
                 null,
                 []);
@@ -181,6 +182,7 @@ public static class ManifestBinder
 
             var packages = new List<ManifestPackage>();
             var references = new List<ManifestPackageReference>();
+            var sidecars = new List<ManifestSidecarBinding>();
             ManifestSecurity? security = null;
             ManifestUpdatePolicy? updatePolicy = null;
             var compatFiles = new List<ManifestCompatFile>();
@@ -208,6 +210,14 @@ public static class ManifestBinder
 
                         hasPackageReferences = true;
                         references.AddRange(BindPackageReferences(child));
+                        break;
+                    case "Sidecars":
+                        if (!seenSingletons.Add("Sidecars"))
+                        {
+                            Report("COPE-MANIFEST-0012", "<Workspace> cannot contain duplicate <Sidecars> elements.", child.NameToken);
+                        }
+
+                        sidecars.AddRange(BindSidecars(child));
                         break;
                     case "Security":
                         if (!seenSingletons.Add("Security"))
@@ -243,6 +253,7 @@ public static class ManifestBinder
 
             ValidateUnique(packages.Select(package => (package.Name, element.NameToken)), "package", element.NameToken);
             ValidateUnique(references.Select(reference => (reference.Name, element.NameToken)), "package reference", element.NameToken);
+            ValidateUnique(sidecars.Select(sidecar => (sidecar.LogicalBindingId, element.NameToken)), "sidecar binding", element.NameToken);
             IReadOnlyList<ManifestDeploymentBinding> bindings = name is null
                 ? []
                 : packages.SelectMany(package => package.RunTargets.Select(target => new ManifestDeploymentBinding(
@@ -252,9 +263,70 @@ public static class ManifestBinder
                     target.Runtime,
                     target.Command,
                     target.WorkingDirectory))).ToArray();
+            ValidateSidecarReferences(sidecars, bindings, element.NameToken);
+            if (sidecars.Count(binding => binding.IsDefault) > 1)
+            {
+                Report("COPE-MANIFEST-0032", "<Sidecars> permits exactly zero or one default binding.", element.NameToken);
+            }
             return name is null
                 ? null
-                : new CopelandManifest(_projectRoot, _sourcePath, new ManifestWorkspace(name, runtime), packages, bindings, references, security, updatePolicy, compatFiles);
+                : new CopelandManifest(_projectRoot, _sourcePath, new ManifestWorkspace(name, runtime), packages, bindings, sidecars, references, security, updatePolicy, compatFiles);
+        }
+
+        private IReadOnlyList<ManifestSidecarBinding> BindSidecars(TsXmlElementExpressionSyntax element)
+        {
+            if (_context != ManifestBindingContext.RootProject)
+            {
+                Report("COPE-MANIFEST-0018", "Dependency manifests cannot declare <Sidecars> or acquire root deployment authority.", element.NameToken);
+            }
+
+            var result = new List<ManifestSidecarBinding>();
+            foreach (ManifestValue value in RequiredArray(BindAttributes(element, ["rows"]), "rows", element.NameToken))
+            {
+                if (value is not ManifestValue.Object row
+                    || StringProperty(row, "id") is not string id
+                    || string.IsNullOrWhiteSpace(id)
+                    || StringProperty(row, "runTarget") is not string runTarget
+                    || string.IsNullOrWhiteSpace(runTarget))
+                {
+                    Report("COPE-MANIFEST-0032", "Sidecar rows require non-empty string id and runTarget fields.", element.NameToken);
+                    continue;
+                }
+
+                if (row.Properties.TryGetValue("default", out ManifestValue? defaultValue)
+                    && defaultValue is not ManifestValue.Boolean)
+                {
+                    Report("COPE-MANIFEST-0032", $"Sidecar '{id}' default must be a boolean.", element.NameToken);
+                    continue;
+                }
+
+                foreach (string field in row.Properties.Keys)
+                {
+                    if (field is not ("id" or "runTarget" or "default"))
+                    {
+                        Report("COPE-MANIFEST-0032", $"Sidecar '{id}' cannot declare '{field}'; launch configuration belongs to its RunTarget.", element.NameToken);
+                    }
+                }
+
+                result.Add(new ManifestSidecarBinding(id, runTarget, defaultValue is ManifestValue.Boolean { BooleanValue: true }));
+            }
+
+            return result;
+        }
+
+        private void ValidateSidecarReferences(
+            IReadOnlyList<ManifestSidecarBinding> sidecars,
+            IReadOnlyList<ManifestDeploymentBinding> runTargets,
+            SyntaxToken anchor)
+        {
+            var known = runTargets.Select(target => target.LogicalIdentity).ToHashSet(StringComparer.Ordinal);
+            foreach (ManifestSidecarBinding sidecar in sidecars)
+            {
+                if (!known.Contains(sidecar.RunTargetIdentity))
+                {
+                    Report("COPE-MANIFEST-0032", $"Sidecar '{sidecar.LogicalBindingId}' references unknown or non-root RunTarget '{sidecar.RunTargetIdentity}'.", anchor);
+                }
+            }
         }
 
         private ManifestPackage BindPackage(TsXmlElementExpressionSyntax element)

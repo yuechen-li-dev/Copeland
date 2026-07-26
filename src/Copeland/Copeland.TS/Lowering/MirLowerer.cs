@@ -922,6 +922,16 @@ public static class MirLowerer
                 new MirTsonEncodingPlanId(transport.ResponsePlan.Id),
                 new MirTsonEncodingPlanId(transport.RemoteErrorPlan.Id),
                 (MirAsyncType)ToMirType(transport.Type)),
+            BoundNpmCallExpression npm => new MirNpmCallExpression(
+                npm.Function.PackageName,
+                npm.Function.PackageVersion,
+                npm.Function.Name,
+                LowerExpression(npm.Arguments[0]),
+                new MirTsonEncodingPlanId(npm.RequestPlan.Id),
+                new MirTsonEncodingPlanId(npm.ResponsePlan.Id),
+                new MirTsonEncodingPlanId(npm.RemoteErrorPlan.Id),
+                true,
+                (MirAsyncType)ToMirType(npm.Type)),
             BoundPropagateExpression p => new MirPropagateExpression(LowerExpression(p.Operand), LowerPropagationTarget(p.Target), ToMirType(p.Type)),
             BoundUnwrapExpression u => new MirUnwrapExpression(LowerExpression(u.Operand), ToMirType(u.Type)),
             BoundTryExceptExpression t => new MirTryExpression(

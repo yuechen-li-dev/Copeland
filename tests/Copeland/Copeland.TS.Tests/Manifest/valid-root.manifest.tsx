@@ -6,6 +6,7 @@ const deps = defineDeps({
 
 export default define(
   <Workspace name="sample" runtime="nodejs">
+    <Sidecars rows={[{ id: "node-transport", runTarget: "sample/@sample/app/serve", default: true }]} />
     <CompatFiles>
       <JsonFile path="tsconfig.tspack.json" value={{ strict: true, include: ["manifest.tsx"] }} />
     </CompatFiles>

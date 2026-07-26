@@ -10,4 +10,6 @@ TSPack has no native sidecar declaration. M1 therefore preserves its existing ro
 
 Focused fixtures prove positive binding, expression-valued fields, root project discovery, unknown/duplicate/nesting/type/path diagnostics with spans, restricted-expression rejection, dependency authority, and neutral non-manifest `.tsx`. Broad Copeland validation remains required after this record.
 
-Deferred: split package loading/merge, package annotations, all executable TSPack behavior, lockfiles, materialization, sidecar/process transport, and CTS-SIDECAR-M1a.
+CTS-SIDECAR-M1a adds a root-only logical `<Sidecars>` binding to a stable RunTarget identity. `CSharpSidecarHost` owns the CLR process, streams, handshake, bounded frame reader, stderr drain, correlation fan-in, and shutdown; generated code carries only canonical envelopes, binding metadata, and compiler-owned async completion. A real Node fixture covers typed success/failure, out-of-order replies, cancellation/loss, malformed and duplicate replies, handshake mismatch, and graceful shutdown.
+
+Deferred: split package loading/merge, package annotations, all executable TSPack behavior beyond the bounded sidecar host, lockfiles, materialization, multiple sidecars, source-level selection, browser adapters, retries, authentication, streaming, reverse calls, callbacks, service discovery, general schema decoding, and CTS-ASYNC-M2.

@@ -136,6 +136,16 @@ public sealed class BoundUnaryExpression : BoundExpression { public BoundUnaryEx
 public sealed class BoundAwaitExpression : BoundExpression { public BoundAwaitExpression(BoundExpression operand, TypeSymbol type) { Operand = operand; TypeImpl = type; } public BoundExpression Operand { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundBinaryExpression : BoundExpression { public BoundBinaryExpression(BoundExpression left, SyntaxKind op, BoundExpression right, TypeSymbol type) { Left = left; OperatorKind = op; Right = right; TypeImpl = type; } public BoundExpression Left { get; } public SyntaxKind OperatorKind { get; } public BoundExpression Right { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundCallExpression : BoundExpression { public BoundCallExpression(FunctionSymbol function, IReadOnlyList<BoundExpression> arguments) { Function = function; Arguments = arguments; } public FunctionSymbol Function { get; } public IReadOnlyList<BoundExpression> Arguments { get; } public override TypeSymbol Type => Function.InvocationReturnType; }
+public sealed class BoundNpmCallExpression : BoundExpression
+{
+    public BoundNpmCallExpression(NpmFunctionSymbol function, IReadOnlyList<BoundExpression> arguments, BoundTsonEncodingPlan requestPlan, BoundTsonEncodingPlan responsePlan, BoundTsonEncodingPlan remoteErrorPlan) { Function = function; Arguments = arguments; RequestPlan = requestPlan; ResponsePlan = responsePlan; RemoteErrorPlan = remoteErrorPlan; }
+    public NpmFunctionSymbol Function { get; }
+    public IReadOnlyList<BoundExpression> Arguments { get; }
+    public BoundTsonEncodingPlan RequestPlan { get; }
+    public BoundTsonEncodingPlan ResponsePlan { get; }
+    public BoundTsonEncodingPlan RemoteErrorPlan { get; }
+    public override TypeSymbol Type => Function.InvocationReturnType;
+}
 public sealed class BoundFunctionReferenceExpression : BoundExpression { public BoundFunctionReferenceExpression(FunctionSymbol function) { Function = function; } public FunctionSymbol Function { get; } public override TypeSymbol Type => Function.CallableType; }
 public sealed class BoundCallableConstructionExpression : BoundExpression
 {

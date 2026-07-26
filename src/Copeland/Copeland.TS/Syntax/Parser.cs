@@ -10,12 +10,14 @@ public sealed class Parser
     private readonly DiagnosticBag _diagnostics = new();
     private readonly List<(int Start, int End)> _tsXmlTextRanges = [];
     private readonly bool _allowsTsXml;
+    private readonly bool _allowsImports;
     private int _position;
 
-    public Parser(string text, bool allowsTsXml = false)
+    public Parser(string text, bool allowsTsXml = false, bool allowsImports = false)
     {
         _text = text;
         _allowsTsXml = allowsTsXml;
+        _allowsImports = allowsImports;
         var lexer = new Lexer(text);
         var tokens = new List<SyntaxToken>();
 
@@ -67,7 +69,7 @@ public sealed class Parser
 
     private MemberSyntax ParseMember()
     {
-        if (_allowsTsXml && Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "import")
+        if ((_allowsTsXml || _allowsImports) && Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "import")
         {
             return ParseImportDeclaration();
         }

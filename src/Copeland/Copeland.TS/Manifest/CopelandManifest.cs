@@ -13,6 +13,7 @@ public sealed record CopelandManifest(
     ManifestWorkspace Workspace,
     IReadOnlyList<ManifestPackage> Packages,
     IReadOnlyList<ManifestDeploymentBinding> DeploymentBindings,
+    IReadOnlyList<ManifestSidecarBinding> Sidecars,
     IReadOnlyList<ManifestPackageReference> PackageReferences,
     ManifestSecurity? Security,
     ManifestUpdatePolicy? UpdatePolicy,
@@ -60,6 +61,15 @@ public sealed record ManifestDeploymentBinding(
     string? Runtime,
     IReadOnlyList<string> Arguments,
     string? WorkingDirectory);
+
+/// <summary>
+/// Root-owned logical transport binding. Launch details deliberately remain on
+/// the referenced RunTarget; this record cannot become a second command line.
+/// </summary>
+public sealed record ManifestSidecarBinding(
+    string LogicalBindingId,
+    string RunTargetIdentity,
+    bool IsDefault);
 
 public sealed record ManifestPackageReference(string Name, string Root, string ManifestPath);
 
