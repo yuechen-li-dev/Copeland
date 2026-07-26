@@ -21,6 +21,7 @@ public static class MirValidator
         ValidateRecordModel(program, diagnostics);
         ValidateEnumModel(program, diagnostics);
         ValidateTableModel(program, diagnostics);
+        ValidateNpmModel(program, diagnostics);
         ValidateTsonEncodingModel(program, diagnostics);
         foreach (var function in program.Functions)
         {
@@ -32,6 +33,74 @@ public static class MirValidator
         MirSuspensionAutomatonValidator.Validate(program, diagnostics);
 
         return diagnostics;
+    }
+
+    private static void ValidateNpmModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        var imports = new Dictionary<string, MirNpmImport>(StringComparer.Ordinal);
+        foreach (MirNpmImport import in program.NpmImports)
+        {
+            if (string.IsNullOrWhiteSpace(import.PackageName)
+                || string.IsNullOrWhiteSpace(import.PackageVersion)
+                || string.IsNullOrWhiteSpace(import.ExportName)
+                || string.IsNullOrWhiteSpace(import.LocalBinding)
+                || !imports.TryAdd(import.LocalBinding, import))
+            {
+                diagnostics.Add(new MirValidationDiagnostic("npm module metadata has a blank or duplicate local binding."));
+            }
+        }
+
+        foreach (MirFunction function in program.Functions)
+        {
+            foreach (MirStatement statement in function.Body)
+            {
+                ValidateNpmCalls(statement, imports, diagnostics);
+            }
+        }
+    }
+
+    private static void ValidateNpmCalls(MirStatement statement, IReadOnlyDictionary<string, MirNpmImport> imports, List<MirValidationDiagnostic> diagnostics)
+    {
+        IEnumerable<MirExpression> expressions = statement switch
+        {
+            MirVariableDeclarationStatement declaration => [declaration.Initializer],
+            MirExpressionStatement expression => [expression.Expression],
+            MirReturnStatement { Expression: not null } returned => [returned.Expression],
+            MirIfStatement conditional => new[] { conditional.Condition }.Concat(conditional.ThenStatements.SelectMany(EnumerateStatementExpressions)).Concat(conditional.ElseStatements?.SelectMany(EnumerateStatementExpressions) ?? Enumerable.Empty<MirExpression>()),
+            _ => Enumerable.Empty<MirExpression>(),
+        };
+        foreach (MirExpression expression in expressions)
+        {
+            ValidateNpmCalls(expression, imports, diagnostics);
+        }
+    }
+
+    private static IEnumerable<MirExpression> EnumerateStatementExpressions(MirStatement statement)
+        => statement switch
+        {
+            MirVariableDeclarationStatement declaration => [declaration.Initializer],
+            MirExpressionStatement expression => [expression.Expression],
+            MirReturnStatement { Expression: not null } returned => [returned.Expression],
+            MirIfStatement conditional => new[] { conditional.Condition }.Concat(conditional.ThenStatements.SelectMany(EnumerateStatementExpressions)).Concat(conditional.ElseStatements?.SelectMany(EnumerateStatementExpressions) ?? Enumerable.Empty<MirExpression>()),
+            _ => Enumerable.Empty<MirExpression>(),
+        };
+
+    private static void ValidateNpmCalls(MirExpression expression, IReadOnlyDictionary<string, MirNpmImport> imports, List<MirValidationDiagnostic> diagnostics)
+    {
+        if (expression is MirNpmCallExpression npm)
+        {
+            if (!imports.TryGetValue(npm.LocalBinding, out MirNpmImport? import)
+                || import.PackageName != npm.PackageName
+                || import.PackageVersion != npm.PackageVersion
+                || import.ExportName != npm.ExportName)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"npm call '{npm.LocalBinding}' does not resolve to module import metadata."));
+            }
+        }
+        foreach (MirExpression child in EnumerateTsonExpressionChildren(expression))
+        {
+            ValidateNpmCalls(child, imports, diagnostics);
+        }
     }
 
     private static void ValidateCallableModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
@@ -895,6 +964,20 @@ public static class MirValidator
                 diagnostics.Add(new MirValidationDiagnostic("TSON transport expression has missing plans or incompatible request, response, or remote-error types."));
             }
         }
+        if (expression is MirNpmCallExpression npm)
+        {
+            plans.TryGetValue(npm.RequestPlanId, out MirTsonEncodingPlan? requestPlan);
+            plans.TryGetValue(npm.ResponsePlanId, out MirTsonEncodingPlan? responsePlan);
+            plans.TryGetValue(npm.RemoteErrorPlanId, out MirTsonEncodingPlan? errorPlan);
+            if (requestPlan is null
+                || responsePlan is null
+                || errorPlan is null
+                || !MirTypeFacts.AreEquivalent(requestPlan.RootType, npm.ArgumentTuple.Type)
+                || npm.AsyncType.EventualType is not MirResultType)
+            {
+                diagnostics.Add(new MirValidationDiagnostic("npm call has missing private argument-tuple, response, or remote-error transport metadata."));
+            }
+        }
         foreach (MirExpression child in EnumerateTsonExpressionChildren(expression))
         {
             ValidateTsonEncodingExpression(child, plans, diagnostics);
@@ -906,6 +989,7 @@ public static class MirValidator
         {
             MirTsonEncodeExpression encode => [encode.Operand],
             MirTsonTransportExpression transport => [transport.Operation, transport.Request],
+            MirNpmCallExpression npm => npm.Arguments.Append(npm.ArgumentTuple),
             MirAssignmentExpression assignment => [assignment.Expression],
             MirUnaryExpression unary => [unary.Operand],
             MirBinaryExpression binary => [binary.Left, binary.Right],
@@ -1930,6 +2014,13 @@ public static class MirValidator
             case MirTsonTransportExpression transport:
                 ValidateExpression(transport.Operation, activeHandlers, handlerIds, diagnostics);
                 ValidateExpression(transport.Request, activeHandlers, handlerIds, diagnostics);
+                return;
+            case MirNpmCallExpression npm:
+                foreach (MirExpression argument in npm.Arguments)
+                {
+                    ValidateExpression(argument, activeHandlers, handlerIds, diagnostics);
+                }
+                ValidateExpression(npm.ArgumentTuple, activeHandlers, handlerIds, diagnostics);
                 return;
         }
     }

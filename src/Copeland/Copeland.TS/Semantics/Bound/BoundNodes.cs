@@ -14,7 +14,8 @@ public sealed class BoundProgram
         IReadOnlyList<BoundRecordDeclaration> records,
         IReadOnlyList<BoundStatement> globalStatements,
         IReadOnlyList<BoundTableDefinition>? tables = null,
-        IReadOnlyList<BoundTsonEncodingPlan>? tsonEncodingPlans = null)
+        IReadOnlyList<BoundTsonEncodingPlan>? tsonEncodingPlans = null,
+        IReadOnlyList<BoundNpmImport>? npmImports = null)
     {
         Functions = functions;
         Enums = enums;
@@ -22,6 +23,7 @@ public sealed class BoundProgram
         GlobalStatements = globalStatements;
         Tables = tables ?? [];
         TsonEncodingPlans = tsonEncodingPlans ?? [];
+        NpmImports = npmImports ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -29,6 +31,12 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundStatement> GlobalStatements { get; }
     public IReadOnlyList<BoundTableDefinition> Tables { get; }
     public IReadOnlyList<BoundTsonEncodingPlan> TsonEncodingPlans { get; }
+    public IReadOnlyList<BoundNpmImport> NpmImports { get; }
+}
+
+public sealed class BoundNpmImport(NpmFunctionSymbol function)
+{
+    public NpmFunctionSymbol Function { get; } = function;
 }
 
 public sealed class BoundTsonEncodingPlan(
@@ -138,12 +146,15 @@ public sealed class BoundBinaryExpression : BoundExpression { public BoundBinary
 public sealed class BoundCallExpression : BoundExpression { public BoundCallExpression(FunctionSymbol function, IReadOnlyList<BoundExpression> arguments) { Function = function; Arguments = arguments; } public FunctionSymbol Function { get; } public IReadOnlyList<BoundExpression> Arguments { get; } public override TypeSymbol Type => Function.InvocationReturnType; }
 public sealed class BoundNpmCallExpression : BoundExpression
 {
-    public BoundNpmCallExpression(NpmFunctionSymbol function, IReadOnlyList<BoundExpression> arguments, BoundTsonEncodingPlan requestPlan, BoundTsonEncodingPlan responsePlan, BoundTsonEncodingPlan remoteErrorPlan) { Function = function; Arguments = arguments; RequestPlan = requestPlan; ResponsePlan = responsePlan; RemoteErrorPlan = remoteErrorPlan; }
+    public BoundNpmCallExpression(NpmFunctionSymbol function, IReadOnlyList<BoundExpression> arguments, BoundRecordConstructionExpression argumentTuple, BoundTsonEncodingPlan requestPlan, BoundTsonEncodingPlan responsePlan, BoundTsonEncodingPlan remoteErrorPlan, RecordFieldSymbol responseValueField, RecordFieldSymbol remoteErrorValueField) { Function = function; Arguments = arguments; ArgumentTuple = argumentTuple; RequestPlan = requestPlan; ResponsePlan = responsePlan; RemoteErrorPlan = remoteErrorPlan; ResponseValueField = responseValueField; RemoteErrorValueField = remoteErrorValueField; }
     public NpmFunctionSymbol Function { get; }
     public IReadOnlyList<BoundExpression> Arguments { get; }
+    public BoundRecordConstructionExpression ArgumentTuple { get; }
     public BoundTsonEncodingPlan RequestPlan { get; }
     public BoundTsonEncodingPlan ResponsePlan { get; }
     public BoundTsonEncodingPlan RemoteErrorPlan { get; }
+    public RecordFieldSymbol ResponseValueField { get; }
+    public RecordFieldSymbol RemoteErrorValueField { get; }
     public override TypeSymbol Type => Function.InvocationReturnType;
 }
 public sealed class BoundFunctionReferenceExpression : BoundExpression { public BoundFunctionReferenceExpression(FunctionSymbol function) { Function = function; } public FunctionSymbol Function { get; } public override TypeSymbol Type => Function.CallableType; }

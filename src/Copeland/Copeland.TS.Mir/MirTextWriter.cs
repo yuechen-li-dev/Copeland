@@ -9,6 +9,20 @@ public static class MirTextWriter
         var sb = new StringBuilder();
         sb.AppendLine("module");
 
+        foreach (MirNpmImport import in program.NpmImports.OrderBy(item => item.PackageName, StringComparer.Ordinal).ThenBy(item => item.ExportName, StringComparer.Ordinal).ThenBy(item => item.LocalBinding, StringComparer.Ordinal))
+        {
+            sb.Append("npm:")
+                .Append(import.PackageName)
+                .Append('@')
+                .Append(import.PackageVersion)
+                .Append(':')
+                .Append(import.ExportName)
+                .Append(" import ")
+                .Append(import.LocalBinding)
+                .Append(import.IsPromise ? " async" : " sync")
+                .AppendLine();
+        }
+
         foreach (var @enum in program.Enums)
         {
             sb.AppendLine();

@@ -18,11 +18,17 @@ public sealed class MirProgram
     }
 
     public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirFunction> functions)
+        : this(enums, records, tables, tsonEncodingPlans, [], functions)
+    {
+    }
+
+    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions)
     {
         Enums = enums;
         Records = records;
         Tables = tables;
         TsonEncodingPlans = tsonEncodingPlans;
+        NpmImports = npmImports;
         Functions = functions;
     }
 
@@ -30,6 +36,7 @@ public sealed class MirProgram
     public IReadOnlyList<MirRecordDefinition> Records { get; }
     public IReadOnlyList<MirTableDefinition> Tables { get; }
     public IReadOnlyList<MirTsonEncodingPlan> TsonEncodingPlans { get; }
+    public IReadOnlyList<MirNpmImport> NpmImports { get; }
     public IReadOnlyList<MirFunction> Functions { get; }
 }
 
@@ -405,15 +412,26 @@ public sealed record MirTsonTransportExpression(
     MirTsonEncodingPlanId ResponsePlanId,
     MirTsonEncodingPlanId RemoteErrorPlanId,
     MirAsyncType AsyncType) : MirExpression(AsyncType);
-public sealed record MirNpmCallExpression(
+public sealed record MirNpmImport(
     string PackageName,
     string PackageVersion,
     string ExportName,
-    MirExpression Request,
+    string LocalBinding,
+    bool IsPromise,
+    bool IsAvailableToJavaScript,
+    bool IsAvailableToClrSidecar);
+public sealed record MirNpmCallExpression(
+    string LocalBinding,
+    string PackageName,
+    string PackageVersion,
+    string ExportName,
+    IReadOnlyList<MirExpression> Arguments,
+    MirExpression ArgumentTuple,
     MirTsonEncodingPlanId RequestPlanId,
     MirTsonEncodingPlanId ResponsePlanId,
     MirTsonEncodingPlanId RemoteErrorPlanId,
-    bool IsPromise,
+    MirRecordFieldId ResponseValueFieldId,
+    MirRecordFieldId RemoteErrorValueFieldId,
     MirAsyncType AsyncType) : MirExpression(AsyncType);
 
 public sealed record MirOkExpression : MirExpression

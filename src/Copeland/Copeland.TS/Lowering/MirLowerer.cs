@@ -28,7 +28,15 @@ public static class MirLowerer
         var tables = program.Tables.Select(LowerTable).ToArray();
         var tsonEncodingPlans = program.TsonEncodingPlans.Select(LowerTsonEncodingPlan).ToArray();
         var functions = program.Functions.Select(LowerFunction).ToArray();
-        return new MirProgram(enums, records, tables, tsonEncodingPlans, functions);
+        MirNpmImport[] npmImports = program.NpmImports.Select(import => new MirNpmImport(
+            import.Function.PackageName,
+            import.Function.PackageVersion,
+            import.Function.ExportName,
+            import.Function.Name,
+            import.Function.IsPromise,
+            import.Function.IsAvailableToJavaScript,
+            import.Function.IsAvailableToClrSidecar)).ToArray();
+        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions);
     }
 
     private static MirTsonEncodingPlan LowerTsonEncodingPlan(BoundTsonEncodingPlan plan)
@@ -923,14 +931,17 @@ public static class MirLowerer
                 new MirTsonEncodingPlanId(transport.RemoteErrorPlan.Id),
                 (MirAsyncType)ToMirType(transport.Type)),
             BoundNpmCallExpression npm => new MirNpmCallExpression(
+                npm.Function.Name,
                 npm.Function.PackageName,
                 npm.Function.PackageVersion,
-                npm.Function.Name,
-                LowerExpression(npm.Arguments[0]),
+                npm.Function.ExportName,
+                npm.Arguments.Select(LowerExpression).ToArray(),
+                LowerExpression(npm.ArgumentTuple),
                 new MirTsonEncodingPlanId(npm.RequestPlan.Id),
                 new MirTsonEncodingPlanId(npm.ResponsePlan.Id),
                 new MirTsonEncodingPlanId(npm.RemoteErrorPlan.Id),
-                true,
+                ToMirRecordFieldId(npm.ResponseValueField.Id),
+                ToMirRecordFieldId(npm.RemoteErrorValueField.Id),
                 (MirAsyncType)ToMirType(npm.Type)),
             BoundPropagateExpression p => new MirPropagateExpression(LowerExpression(p.Operand), LowerPropagationTarget(p.Target), ToMirType(p.Type)),
             BoundUnwrapExpression u => new MirUnwrapExpression(LowerExpression(u.Operand), ToMirType(u.Type)),

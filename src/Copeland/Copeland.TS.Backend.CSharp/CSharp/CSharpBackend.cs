@@ -91,6 +91,14 @@ public static class CSharpBackend
         {
             return new CSharpCompilation(string.Empty, diagnostics);
         }
+        foreach (MirNpmImport import in program.NpmImports.Where(import => !import.IsAvailableToClrSidecar))
+        {
+            diagnostics.Add(new CSharpDiagnostic("COPE-CS-0001", $"npm import '{import.LocalBinding}' is unavailable for the CLR sidecar backend."));
+        }
+        if (diagnostics.Count > 0)
+        {
+            return new CSharpCompilation(string.Empty, diagnostics);
+        }
         var writer = new CSharpTextWriter();
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var recordsById = program.Records.ToDictionary(record => record.Id);
@@ -998,9 +1006,13 @@ public static class CSharpBackend
     {
         var result = (MirResultType)npm.AsyncType.EventualType;
         string resultType = $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>";
-        string request = EmitAsyncExpression(npm.Request, function);
+        string request = npm.ArgumentTuple is MirRecordConstructionExpression tuple
+            ? $"new {RecordTypeName(tuple.RecordTypeId)}({string.Join(", ", tuple.Initializers.Select(initializer => EmitAsyncExpression(initializer.Value, function)))})"
+            : EmitAsyncExpression(npm.ArgumentTuple, function);
         string operation = CSharpLiteralWriter.Write("npm:" + npm.PackageName + "@" + npm.PackageVersion + ":" + npm.ExportName);
-        return $"CopeTsonTransport.Start<{resultType}>({operation}, {TsonEncodeMethodName(npm.RequestPlanId)}({request}).Value, (kind, payload) => kind == \"ok\" ? {resultType}.Ok({TsonDecodeMethodName(npm.ResponsePlanId)}(payload)) : {resultType}.Err({TsonDecodeMethodName(npm.RemoteErrorPlanId)}(payload)))";
+        string response = $"{TsonDecodeMethodName(npm.ResponsePlanId)}(payload).{RecordFieldName(npm.ResponseValueFieldId)}";
+        string error = $"{TsonDecodeMethodName(npm.RemoteErrorPlanId)}(payload).{RecordFieldName(npm.RemoteErrorValueFieldId)}";
+        return $"CopeTsonTransport.Start<{resultType}>({operation}, {TsonEncodeMethodName(npm.RequestPlanId)}({request}).Value, (kind, payload) => kind == \"ok\" ? {resultType}.Ok({response}) : {resultType}.Err({error}))";
     }
 
     private static void EmitStatement(CSharpTextWriter writer, MirStatement statement, MirFunction function, IReadOnlySet<string> enumNames, ref int tempIndex, List<CSharpDiagnostic> diagnostics)
@@ -1747,6 +1759,10 @@ public static class CSharpBackend
                     position += value.Length;
                     return true;
                 }
+                internal void SkipWhitespace()
+                {
+                    while (position < text.Length && char.IsWhiteSpace(text[position])) position++;
+                }
                 internal bool TryBoolean(out bool value)
                 {
                     if (Expect("true")) { value = true; return true; }
@@ -1814,20 +1830,13 @@ public static class CSharpBackend
         writer.WriteLine("var reader = new __TsonReader(text.Substring(rootPosition));");
         writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(rootPrefix)})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at record prefix.\");");
         var valuesByFieldId = new Dictionary<MirRecordFieldId, string>();
+        int temporaryIndex = 0;
         for (int index = 0; index < recordPlan.Fields.Count; index++)
         {
             MirTsonRecordFieldPlan fieldPlan = recordPlan.Fields[index];
             MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == fieldPlan.FieldId);
-            string variable = "field" + index;
             writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write("    \"" + fieldPlan.Name + "\": ")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at field label {fieldPlan.Name}.\");");
-            string readerMethod = field.Type.Identifier switch
-            {
-                "boolean" => "TryBoolean",
-                "number" => "TryNumber",
-                "string" => "TryString",
-                _ => throw new InvalidOperationException("Transport decoder received a non-flat record plan."),
-            };
-            writer.WriteLine($"if (!reader.{readerMethod}(out {MapType(field.Type)} {variable})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at field value.\");");
+            string variable = EmitTsonDecoderValue(writer, plan, fieldPlan.ValuePlan, field.Type, records, indentation: 1, ref temporaryIndex);
             writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(",\n")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at field separator.\");");
             valuesByFieldId.Add(field.Id, variable);
         }
@@ -1836,6 +1845,68 @@ public static class CSharpBackend
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine();
+    }
+
+    private static string EmitTsonDecoderValue(
+        CSharpTextWriter writer,
+        MirTsonEncodingPlan plan,
+        MirTsonValuePlan valuePlan,
+        MirType type,
+        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
+        int indentation,
+        ref int temporaryIndex)
+    {
+        string variable = "field" + temporaryIndex++;
+        switch (valuePlan)
+        {
+            case MirTsonBooleanPlan:
+                writer.WriteLine($"if (!reader.TryBoolean(out bool {variable})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at boolean value.\");");
+                return variable;
+            case MirTsonNumberPlan:
+                writer.WriteLine($"if (!reader.TryNumber(out double {variable})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at number value.\");");
+                return variable;
+            case MirTsonStringPlan:
+                writer.WriteLine($"if (!reader.TryString(out string {variable})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at string value.\");");
+                return variable;
+            case MirTsonArrayPlan arrayPlan when type is MirArrayType arrayType:
+                string elementType = MapType(arrayType.ElementType);
+                string items = "items" + temporaryIndex++;
+                writer.WriteLine($"var {items} = new global::System.Collections.Generic.List<{elementType}>();");
+                writer.WriteLine("reader.SkipWhitespace();");
+                writer.WriteLine("if (!reader.Expect(\"[\")) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at array prefix.\");");
+                writer.WriteLine("while (true)");
+                writer.WriteLine("{");
+                writer.Indent();
+                writer.WriteLine("reader.SkipWhitespace();");
+                writer.WriteLine("if (reader.Expect(\"]\")) break;");
+                string element = EmitTsonDecoderValue(writer, plan, arrayPlan.ElementPlan, arrayType.ElementType, records, indentation + 1, ref temporaryIndex);
+                writer.WriteLine($"{items}.Add({element});");
+                writer.WriteLine("reader.SkipWhitespace();");
+                writer.WriteLine("if (!reader.Expect(\",\")) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at array separator.\");");
+                writer.Unindent();
+                writer.WriteLine("}");
+                writer.WriteLine($"var {variable} = {items}.ToArray();");
+                return variable;
+            case MirTsonRecordValuePlan recordValue when type is MirRecordType recordType
+                && records.TryGetValue(recordValue.RecordTypeId, out MirRecordDefinition? record)
+                && plan.Definitions.OfType<MirTsonRecordPlan>().SingleOrDefault(candidate => candidate.RecordTypeId == recordValue.RecordTypeId) is MirTsonRecordPlan recordPlan:
+                writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write("$record." + record.Name + "({\n")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at nested record prefix.\");");
+                var values = new Dictionary<MirRecordFieldId, string>();
+                for (int index = 0; index < recordPlan.Fields.Count; index++)
+                {
+                    MirTsonRecordFieldPlan fieldPlan = recordPlan.Fields[index];
+                    MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == fieldPlan.FieldId);
+                    string fieldPrefix = new string(' ', 4 * (indentation + 1)) + "\"" + fieldPlan.Name + "\": ";
+                    writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(fieldPrefix)})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at nested field label.\");");
+                    values.Add(field.Id, EmitTsonDecoderValue(writer, plan, fieldPlan.ValuePlan, field.Type, records, indentation + 1, ref temporaryIndex));
+                    writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(",\n")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at nested field separator.\");");
+                }
+                writer.WriteLine($"if (!reader.Expect({CSharpLiteralWriter.Write(new string(' ', 4 * indentation) + "})")})) throw new global::System.InvalidOperationException(\"Malformed TSON transport payload at nested record suffix.\");");
+                writer.WriteLine($"var {variable} = new {RecordTypeName(record.Id)}({string.Join(", ", record.Fields.Select(field => values[field.Id]))});");
+                return variable;
+            default:
+                throw new InvalidOperationException("Transport decoder received an unsupported nested TSON value plan.");
+        }
     }
 
     private static void EmitTsonWriter(CSharpTextWriter writer, bool needsArrayWriter)

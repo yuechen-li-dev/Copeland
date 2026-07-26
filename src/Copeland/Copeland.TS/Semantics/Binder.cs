@@ -12,7 +12,7 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver([]));
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])));
         return impl.Bind();
     }
 
@@ -24,7 +24,7 @@ public static class Binder
 
     internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver([]));
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])));
         _ = impl.Bind();
         return impl.GetOpenGenericBodiesForTesting();
     }
@@ -90,6 +90,7 @@ public static class Binder
         private readonly List<BoundRecordDeclaration> _records = [];
         private readonly List<BoundTableDefinition> _tables = [];
         private readonly List<BoundStatement> _globals = [];
+        private readonly List<BoundNpmImport> _npmImports = [];
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ClassTypeSymbol> _classTypes = new(StringComparer.Ordinal);
@@ -101,6 +102,7 @@ public static class Binder
         private readonly Dictionary<string, NominalUnionDeclarationSyntax> _unionDeclarations = new(StringComparer.Ordinal);
         private readonly Dictionary<FunctionSymbol, BoundFunctionDeclaration> _genericBodies = [];
         private readonly Dictionary<string, BoundFunctionDeclaration> _closedInstantiations = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, RecordTypeSymbol> _npmTransportRecords = new(StringComparer.Ordinal);
         private readonly Dictionary<FunctionSymbol, int> _closedInstantiationCounts = [];
         private readonly Dictionary<string, string> _closedInstantiationNames = new(StringComparer.Ordinal);
         private Dictionary<string, TypeParameterSymbol>? _activeTypeParameters;
@@ -197,7 +199,8 @@ public static class Binder
                     _records,
                     _globals,
                     _tables,
-                    _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray()),
+                    _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray(),
+                    _npmImports.OrderBy(import => import.Function.PackageName, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray()),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
         }
 
@@ -2789,6 +2792,11 @@ public static class Binder
                     Report("COPE-NPM-0001", $"npm package '{packageName}' is unavailable in project configuration.", module);
                     continue;
                 }
+                if (!package.IsMaterialized)
+                {
+                    Report("COPE-NPM-0007", $"npm package '{packageName}' has a valid contract but no available runtime materialization.", module);
+                    continue;
+                }
                 int open = Array.FindIndex(tokens, token => token.Kind == SyntaxKind.OpenBraceToken);
                 int close = Array.FindIndex(tokens, token => token.Kind == SyntaxKind.CloseBraceToken);
                 if (open < 0 || close <= open || tokens.Skip(close + 1).FirstOrDefault(token => token.Text == "from") is null)
@@ -2796,26 +2804,83 @@ public static class Binder
                     Report("COPE-NPM-0002", "Only named npm imports of the form 'import { name } from \"package\"' are supported.", tokens[0]);
                     continue;
                 }
-                foreach (SyntaxToken name in tokens.Skip(open + 1).Take(close - open - 1).Where(token => token.Kind == SyntaxKind.IdentifierToken))
+                SyntaxToken[] importTokens = tokens.Skip(open + 1).Take(close - open - 1).ToArray();
+                for (int index = 0; index < importTokens.Length; index++)
                 {
-                    CopelandNpmFunctionContract? export = package.Exports.SingleOrDefault(candidate => candidate.ExportName == name.Text);
-                    if (export is null)
+                    SyntaxToken exportToken = importTokens[index];
+                    if (exportToken.Kind != SyntaxKind.IdentifierToken)
                     {
-                        Report("COPE-NPM-0003", $"npm package '{packageName}' has no supported named export '{name.Text}'.", name);
                         continue;
                     }
-                    TypeSymbol[] parameters = export.ParameterTypes.Select(type => ResolveNpmType(type, name)).ToArray();
-                    TypeSymbol result = ResolveNpmType(export.ResultType, name);
-                    TypeSymbol? remoteError = export.RemoteErrorType is null ? null : ResolveNpmType(export.RemoteErrorType, name);
-                    var symbol = new NpmFunctionSymbol(name.Text, package.PackageName, package.Version, parameters.Select((type, index) => new ParameterSymbol("arg" + index, type)).ToArray(), result, remoteError);
-                    if (!_global.TryDeclare(symbol)) Report("COPE-NPM-0004", $"Imported npm name '{name.Text}' conflicts with an existing declaration.", name);
+
+                    SyntaxToken localToken = exportToken;
+                    if (index + 2 < importTokens.Length
+                        && importTokens[index + 1].Kind == SyntaxKind.IdentifierToken
+                        && string.Equals(importTokens[index + 1].Text, "as", StringComparison.Ordinal)
+                        && importTokens[index + 2].Kind == SyntaxKind.IdentifierToken)
+                    {
+                        localToken = importTokens[index + 2];
+                        index += 2;
+                    }
+
+                    if (package.Exports.Count == 0)
+                    {
+                        Report("COPE-NPM-0006", $"npm package '{packageName}' is declared but exposes no supported static contract.", exportToken);
+                        continue;
+                    }
+
+                    if (localToken.Text.StartsWith("__cope_", StringComparison.Ordinal))
+                    {
+                        Report("COPE-NPM-0008", $"npm binding '{localToken.Text}' conflicts with compiler-reserved JavaScript helper names.", localToken);
+                        continue;
+                    }
+
+                    CopelandNpmFunctionContract? export = package.Exports.SingleOrDefault(candidate => candidate.ExportName == exportToken.Text);
+                    if (export is null)
+                    {
+                        Report("COPE-NPM-0003", $"npm package '{packageName}' has no supported named export '{exportToken.Text}'.", exportToken);
+                        continue;
+                    }
+                    TypeSymbol[] parameters = export.ParameterTypes.Select(type => ResolveNpmType(type, exportToken)).ToArray();
+                    TypeSymbol result = ResolveNpmType(export.ResultType, exportToken);
+                    TypeSymbol? remoteError = export.RemoteErrorType is null ? null : ResolveNpmType(export.RemoteErrorType, exportToken);
+                    var symbol = new NpmFunctionSymbol(localToken.Text, package.PackageName, package.Version, export.ExportName, parameters.Select((type, parameterIndex) => new ParameterSymbol("arg" + parameterIndex, type)).ToArray(), result, remoteError, export.IsPromise, package.IsAvailableToJavaScript, package.IsAvailableToClrSidecar);
+                    if (_global.TryLookup(symbol.Name, out Symbol? existing))
+                    {
+                        if (existing is NpmFunctionSymbol existingNpm
+                            && existingNpm.PackageName == symbol.PackageName
+                            && existingNpm.PackageVersion == symbol.PackageVersion
+                            && existingNpm.ExportName == symbol.ExportName)
+                        {
+                            continue;
+                        }
+
+                        Report("COPE-NPM-0004", $"Imported npm binding '{localToken.Text}' conflicts with an existing declaration.", localToken);
+                        continue;
+                    }
+                    if (!_global.TryDeclare(symbol))
+                    {
+                        Report("COPE-NPM-0004", $"Imported npm binding '{localToken.Text}' conflicts with an existing declaration.", localToken);
+                        continue;
+                    }
+                    _npmImports.Add(new BoundNpmImport(symbol));
                 }
             }
         }
 
         private TypeSymbol ResolveNpmType(string name, SyntaxToken anchor)
         {
-            if (name.EndsWith("[]", StringComparison.Ordinal)) return new ArrayTypeSymbol(ResolveNpmType(name[..^2], anchor));
+            if (name.EndsWith("[]", StringComparison.Ordinal))
+            {
+                string elementName = name[..^2];
+                if (elementName.EndsWith("[]", StringComparison.Ordinal))
+                {
+                    Report("COPE-NPM-0005", $"npm contract type '{name}' is unsupported; nested arrays are outside the M1 value surface.", anchor);
+                    return PrimitiveTypeSymbol.Error;
+                }
+
+                return new ArrayTypeSymbol(ResolveNpmType(elementName, anchor));
+            }
             if (name is "number") return PrimitiveTypeSymbol.Number;
             if (name is "string") return PrimitiveTypeSymbol.String;
             if (name is "boolean") return PrimitiveTypeSymbol.Boolean;
@@ -2830,16 +2895,51 @@ public static class Binder
             BoundExpression[] arguments = call.Arguments.Select((argument, index) => BindExpression(argument, index < npm.Parameters.Count ? npm.Parameters[index].Type : null)).ToArray();
             for (int index = 0; index < Math.Min(arguments.Length, npm.Parameters.Count); index++)
                 if (!IsAssignable(npm.Parameters[index].Type, arguments[index].Type)) ReportTypeMismatch("COPE-TYPE-0005", npm.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
-            if (arguments.Length != 1 || npm.RemoteErrorType is null
-                || !TryGetOrCreateTsonEncodingPlan(arguments[0], call.OpenParenToken, out BoundTsonEncodingPlan? requestPlan)
-                || !TryGetOrCreateTsonEncodingPlan(new BoundSyntheticTypeExpression(npm.ResultType), call.OpenParenToken, out BoundTsonEncodingPlan? responsePlan)
-                || !TryGetOrCreateTsonEncodingPlan(new BoundSyntheticTypeExpression(npm.RemoteErrorType), call.OpenParenToken, out BoundTsonEncodingPlan? errorPlan))
+            if (call.Arguments.Count != npm.Parameters.Count || npm.RemoteErrorType is null)
             {
-                Report("COPE-NPM-0005", "npm M1 functions require one TSON-supported argument, result, and explicit remote-error record.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            RecordTypeSymbol argumentTupleType = GetOrCreateNpmTransportRecord("arguments", npm, npm.Parameters.Select(parameter => parameter.Type).ToArray());
+            RecordTypeSymbol responseWrapperType = GetOrCreateNpmTransportRecord("response", npm, [npm.ResultType]);
+            RecordTypeSymbol errorWrapperType = GetOrCreateNpmTransportRecord("error", npm, [npm.RemoteErrorType]);
+            var argumentTuple = new BoundRecordConstructionExpression(
+                argumentTupleType,
+                arguments.Select((argument, index) => new BoundRecordFieldInitializer(argumentTupleType.Fields[index], argument)).ToArray());
+            var responseWrapper = new BoundSyntheticTypeExpression(responseWrapperType);
+            var errorWrapper = new BoundSyntheticTypeExpression(errorWrapperType);
+            if (!TryGetOrCreateTsonEncodingPlan(argumentTuple, call.OpenParenToken, out BoundTsonEncodingPlan? requestPlan)
+                || !TryGetOrCreateTsonEncodingPlan(responseWrapper, call.OpenParenToken, out BoundTsonEncodingPlan? responsePlan)
+                || !TryGetOrCreateTsonEncodingPlan(errorWrapper, call.OpenParenToken, out BoundTsonEncodingPlan? errorPlan))
+            {
+                Report("COPE-NPM-0005", "npm function arguments, result, or remote error contain an unsupported transport value shape.", call.OpenParenToken);
                 return new BoundErrorExpression();
             }
             _usesTsonEncode = true;
-            return new BoundNpmCallExpression(npm, arguments, requestPlan!, responsePlan!, errorPlan!);
+            return new BoundNpmCallExpression(npm, arguments, argumentTuple, requestPlan!, responsePlan!, errorPlan!, responseWrapperType.Fields[0], errorWrapperType.Fields[0]);
+        }
+
+        private RecordTypeSymbol GetOrCreateNpmTransportRecord(string role, NpmFunctionSymbol npm, IReadOnlyList<TypeSymbol> fields)
+        {
+            string signature = string.Join("|", new[] { role, npm.PackageName, npm.PackageVersion, npm.ExportName }.Concat(fields.Select(field => field.Name)));
+            if (_npmTransportRecords.TryGetValue(signature, out RecordTypeSymbol? existing))
+            {
+                return existing;
+            }
+
+            string identitySuffix = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(signature)))[..16].ToLowerInvariant();
+            string name = "__NpmTransport_" + role + "_" + identitySuffix;
+            string schemaIdentity = _schemaIdentity ?? throw new InvalidOperationException("npm transport records require validated schema metadata.");
+            var record = new RecordTypeSymbol(name, new RecordTypeId(_nextRecordTypeId++), schemaIdentity + "#" + name);
+            for (int index = 0; index < fields.Count; index++)
+            {
+                string fieldName = role == "arguments" ? "arg" + index : "value";
+                record.AddField(new RecordFieldSymbol(fieldName, new RecordFieldId(record.Id, index), fields[index]));
+            }
+
+            _npmTransportRecords.Add(signature, record);
+            _records.Add(new BoundRecordDeclaration(record));
+            return record;
         }
 
         private BoundExpression BindClassConstructorCall(

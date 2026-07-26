@@ -49,12 +49,16 @@ public sealed class FunctionSymbol(
 
 public sealed class NpmFunctionSymbol : Symbol
 {
-    public NpmFunctionSymbol(string name, string packageName, string packageVersion, IReadOnlyList<ParameterSymbol> parameters, TypeSymbol resultType, TypeSymbol? remoteErrorType) : base(name) { PackageName = packageName; PackageVersion = packageVersion; Parameters = parameters; ResultType = resultType; RemoteErrorType = remoteErrorType; }
+    public NpmFunctionSymbol(string name, string packageName, string packageVersion, string exportName, IReadOnlyList<ParameterSymbol> parameters, TypeSymbol resultType, TypeSymbol? remoteErrorType, bool isPromise, bool isAvailableToJavaScript, bool isAvailableToClrSidecar) : base(name) { PackageName = packageName; PackageVersion = packageVersion; ExportName = exportName; Parameters = parameters; ResultType = resultType; RemoteErrorType = remoteErrorType; IsPromise = isPromise; IsAvailableToJavaScript = isAvailableToJavaScript; IsAvailableToClrSidecar = isAvailableToClrSidecar; }
     public string PackageName { get; }
     public string PackageVersion { get; }
+    public string ExportName { get; }
     public IReadOnlyList<ParameterSymbol> Parameters { get; }
     public TypeSymbol ResultType { get; }
     public TypeSymbol? RemoteErrorType { get; }
+    public bool IsPromise { get; }
+    public bool IsAvailableToJavaScript { get; }
+    public bool IsAvailableToClrSidecar { get; }
     public TypeSymbol InvocationReturnType => RemoteErrorType is null
         ? new AsyncTypeSymbol(ResultType)
         : new AsyncTypeSymbol(new ResultTypeSymbol(ResultType, RemoteErrorType!));
