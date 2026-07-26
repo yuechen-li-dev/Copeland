@@ -13,7 +13,7 @@ public sealed class TableFeatureTests
 {
     private const string Program = """
         record table Samples {
-            x: [1, 2];
+            x: number = [1, 2];
             label: string = ["a", "b"];
         }
 
@@ -43,7 +43,7 @@ public sealed class TableFeatureTests
         Assert.Empty(tree.Diagnostics);
         var table = Assert.IsType<TableDeclarationSyntax>(tree.Root.Members[0]);
         Assert.Equal(["x", "label"], table.Columns.Select(column => column.Identifier.Text));
-        Assert.Null(table.Columns[0].ExplicitType);
+        Assert.IsType<PredefinedTypeSyntax>(table.Columns[0].ExplicitType);
         Assert.IsType<PredefinedTypeSyntax>(table.Columns[1].ExplicitType);
         var row = Assert.IsType<FunctionDeclarationSyntax>(tree.Root.Members[2]);
         Assert.IsType<QualifiedRowTypeSyntax>(((ResultTypeSyntax)row.ReturnType!).SuccessType);
@@ -129,7 +129,7 @@ public sealed class TableFeatureTests
                 label: ["text"];
                 positive: [1];
                 negative: [-1];
-                negativeZero: [-0];
+                negativeZero: number = [-0.0];
                 empty: [Choice.Empty];
                 payload: [Choice.Value(2)];
                 contextual: Envelope = [{ nested: { value: 3 } }];

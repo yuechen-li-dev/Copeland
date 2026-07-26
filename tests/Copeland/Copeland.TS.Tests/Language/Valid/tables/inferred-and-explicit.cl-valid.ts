@@ -1,5 +1,5 @@
 record table Samples {
-    x: [1, 2, 3];
+    x: number = [1, 2, 3];
     label: string = ["a", "b", "c"];
 }
 

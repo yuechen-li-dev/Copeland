@@ -14,6 +14,34 @@ public abstract record StatementSyntax : SyntaxNode;
 public abstract record ExpressionSyntax : SyntaxNode;
 public abstract record TypeSyntax : SyntaxNode;
 
+public sealed record TemplateExpressionSyntax(SyntaxToken TemplateToken, IReadOnlyList<TemplatePartSyntax> Parts) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TemplateExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return TemplateToken;
+        foreach (TemplatePartSyntax part in Parts)
+        {
+            yield return part;
+        }
+    }
+}
+
+public abstract record TemplatePartSyntax : SyntaxNode;
+
+public sealed record TemplateTextPartSyntax(string Text) : TemplatePartSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TemplateTextPart;
+    public override IEnumerable<object> GetChildren() => [];
+}
+
+public sealed record TemplateInterpolationPartSyntax(ExpressionSyntax Expression) : TemplatePartSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TemplateInterpolationPart;
+    public override IEnumerable<object> GetChildren() => [Expression];
+}
+
 public sealed record CompilationUnitSyntax(IReadOnlyList<MemberSyntax> Members, SyntaxToken EndOfFileToken) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.CompilationUnit;

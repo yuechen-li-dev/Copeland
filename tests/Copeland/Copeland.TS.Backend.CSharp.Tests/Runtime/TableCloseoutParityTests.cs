@@ -122,7 +122,7 @@ public sealed class TableCloseoutParityTests
             enum Flag { None, Value(value: number), }
             record table Empty { value: number = []; }
             record table Values {
-                value: [-0, 10, 20];
+                value: number = [-0.0, 10, 20];
                 text: string = ["quote \" slash \\ newline\n", "middle", "last"];
                 enabled: boolean = [true, false, true];
                 point: Point = [{ x: 1, y: 2 }, { x: 3, y: 4 }, { x: 5, y: 6 }];
@@ -130,7 +130,7 @@ public sealed class TableCloseoutParityTests
                 result: number ! string = [ok(11), err("no"), ok(13)];
                 nested: Flag ! string = [ok(Flag.Value(14)), err("nested"), ok(Flag.None)];
             }
-            record table SameShape { value: [-0, 10, 20]; }
+            record table SameShape { value: number = [-0.0, 10, 20]; }
 
             function receiver(marker: number): Values { return Values; }
             function combine(earlier: number, row: Values.Row): number { return earlier * 100 + row.point.y; }

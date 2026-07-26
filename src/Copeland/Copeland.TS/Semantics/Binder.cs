@@ -13,19 +13,19 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]), null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]), null, null, null);
         return impl.Bind();
     }
 
-    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath = null)
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null)
     {
-        var impl = new BinderImpl(tree, assetResolver, npmResolver, clrResolver, sourcePath);
+        var impl = new BinderImpl(tree, assetResolver, npmResolver, clrResolver, sourcePath, moduleIdentity, imports);
         return impl.Bind();
     }
 
     internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]), null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]), null, null, null);
         _ = impl.Bind();
         return impl.GetOpenGenericBodiesForTesting();
     }
@@ -46,6 +46,7 @@ public static class Binder
         private readonly Dictionary<string, Symbol> _symbols = new(StringComparer.Ordinal);
         public Scope? Parent { get; } = parent;
         public bool TryDeclare(Symbol s) => _symbols.TryAdd(s.Name, s);
+        public bool TryDeclare(string localName, Symbol symbol) => _symbols.TryAdd(localName, symbol);
         public bool TryLookup(string n, out Symbol? symbol)
         {
             for (var c = this; c is not null; c = c.Parent)
@@ -68,7 +69,7 @@ public static class Binder
         }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath)
+    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
     {
         private sealed class BatchBindingContext
         {
@@ -105,6 +106,8 @@ public static class Binder
         private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
         private readonly CopelandClrMetadataResolver _clrResolver = clrResolver;
         private readonly string? _sourcePath = sourcePath;
+        private readonly string? _moduleIdentity = moduleIdentity;
+        private readonly BoundModuleImports? _imports = imports;
         private readonly DiagnosticBag _diagnostics = new();
         private readonly Scope _global = new(null);
         private Scope _scope = null!;
@@ -164,6 +167,8 @@ public static class Binder
         public BoundCompilation Bind()
         {
             _scope = _global;
+            InitializeModuleOwnedTypeIdentityRange();
+            ImportModuleSymbols();
             BindSchemaMetadata(_tree.Root);
             PredeclareTableBoundsError();
             PredeclareTsonEncodeError();
@@ -234,7 +239,54 @@ public static class Binder
                     _clrNamespaces.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
                     _sourcePath,
                     _flows),
-                _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
+                _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray(),
+                CreateModuleScope());
+        }
+
+        private void ImportModuleSymbols()
+        {
+            if (_imports is null) return;
+            foreach (var pair in _imports.Declarations)
+            {
+                if (!_global.TryDeclare(pair.Key, pair.Value)) continue;
+                if (pair.Value is VariableSymbol variable)
+                {
+                    switch (variable.Type)
+                    {
+                        case RecordTypeSymbol record: _recordTypes[pair.Key] = record; break;
+                        case EnumTypeSymbol @enum: _enumTypes[pair.Key] = @enum; break;
+                        case TableTypeSymbol table: _tableTypes[pair.Key] = table; break;
+                    }
+                }
+            }
+            foreach (var pair in _imports.Aliases) _aliases[pair.Key] = pair.Value;
+            foreach (var pair in _imports.Interfaces) _interfaces[pair.Key] = pair.Value;
+            foreach (var pair in _imports.GenericBodies) _genericBodies[pair.Key] = pair.Value;
+        }
+
+        private void InitializeModuleOwnedTypeIdentityRange()
+        {
+            if (_moduleIdentity is null) return;
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(_moduleIdentity));
+            int bucket = ((hash[0] << 16) | (hash[1] << 8) | hash[2]) % 1_000_000;
+            // The range is a deterministic encoding of the logical module path,
+            // not source ordering or a generated class name. A module's local
+            // declaration counter occupies only its own range.
+            _nextRecordTypeId = checked(bucket * 1_000 + 1);
+            _nextTableTypeId = checked(bucket * 1_000 + 1);
+        }
+
+        private BoundModuleScope CreateModuleScope()
+        {
+            var imported = _imports?.Declarations.Keys.ToHashSet(StringComparer.Ordinal) ?? [];
+            var declarations = _global.VisibleSymbols()
+                .Where(pair => !imported.Contains(pair.Key))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            var aliases = _aliases.Where(pair => _imports is null || !_imports.Aliases.ContainsKey(pair.Key))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            var interfaces = _interfaces.Where(pair => _imports is null || !_imports.Interfaces.ContainsKey(pair.Key))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            return new BoundModuleScope(_moduleIdentity ?? _sourcePath ?? "<standalone>", declarations, aliases, interfaces, new Dictionary<FunctionSymbol, BoundFunctionDeclaration>(_genericBodies));
         }
 
         public IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> GetOpenGenericBodiesForTesting()
@@ -656,7 +708,7 @@ public static class Binder
                         declaration.Identifier);
                     continue;
                 }
-                string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{declaration.Identifier.Text}";
+                string? identity = CreateDeclarationStableIdentity(declaration.Identifier.Text);
                 var table = new TableTypeSymbol(declaration.Identifier.Text, new TableTypeId(_nextTableTypeId++), identity);
                 var tableSingleton = new VariableSymbol(table.Name, table, true);
                 if (!_global.TryDeclare(tableSingleton) || _tableTypes.ContainsKey(table.Name))
@@ -955,7 +1007,9 @@ public static class Binder
             {
                 BoundLiteralExpression literal when literal.Value is not null => new BoundTableLiteralConstant(literal.Value, literal.Type),
                 BoundUnaryExpression { OperatorKind: SyntaxKind.MinusToken, Operand: BoundLiteralExpression literal }
-                    when literal.Type == PrimitiveTypeSymbol.Number && literal.Value is IConvertible number => new BoundTableLiteralConstant(-number.ToDouble(System.Globalization.CultureInfo.InvariantCulture), literal.Type),
+                    when literal.Type == PrimitiveTypeSymbol.Int && literal.Value is int integer => new BoundTableLiteralConstant(-integer, expression.Type),
+                BoundUnaryExpression { OperatorKind: SyntaxKind.MinusToken, Operand: BoundLiteralExpression literal }
+                    when TypeFacts.IsFloat(literal.Type) && literal.Value is IConvertible number => new BoundTableLiteralConstant(-number.ToDouble(System.Globalization.CultureInfo.InvariantCulture), expression.Type),
                 BoundEnumValueExpression value => BindTableEnumConstant(value),
                 BoundArrayExpression array => BindTableArrayConstant(array),
                 BoundOkExpression ok => BindTableResultConstant(true, ok.Payload, (ResultTypeSymbol)ok.Type),
@@ -1014,7 +1068,7 @@ public static class Binder
             }
             bool eligible = type switch
             {
-                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Number
+                PrimitiveTypeSymbol primitive when TypeFacts.IsNumeric(primitive)
                     || primitive == PrimitiveTypeSymbol.String
                     || primitive == PrimitiveTypeSymbol.Boolean => true,
                 ArrayTypeSymbol array when _schemaIdentity is not null => IsEligibleTableCellType(array.ElementType, visiting, out _),
@@ -1047,7 +1101,7 @@ public static class Binder
 
             bool eligible = type switch
             {
-                PrimitiveTypeSymbol primitive => primitive == PrimitiveTypeSymbol.Number
+                PrimitiveTypeSymbol primitive => TypeFacts.IsNumeric(primitive)
                     || primitive == PrimitiveTypeSymbol.String
                     || primitive == PrimitiveTypeSymbol.Boolean,
                 ArrayTypeSymbol array => IsEligibleTsonTableCellType(array.ElementType, visiting),
@@ -1235,7 +1289,7 @@ public static class Binder
                     Report("COPE-REC-0001", "Record declarations use 'record', not 'const record'.", declaration.ConstKeyword);
                 }
 
-                string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{declaration.Identifier.Text}";
+                string? identity = CreateDeclarationStableIdentity(declaration.Identifier.Text);
                 var recordType = new RecordTypeSymbol(
                     declaration.Identifier.Text,
                     new RecordTypeId(_nextRecordTypeId++),
@@ -1714,7 +1768,7 @@ public static class Binder
                     Report("COPE-TSON-ENCODE-0001", "'TsonEncodeError' is a compiler-owned TSON encoding error enum.", m.Identifier);
                     continue;
                 }
-                string? identity = _schemaIdentity is null ? null : $"{_schemaIdentity}#{m.Identifier.Text}";
+                string? identity = CreateDeclarationStableIdentity(m.Identifier.Text);
                 var enumType = new EnumTypeSymbol(m.Identifier.Text, identity);
                 if (_tableTypes.ContainsKey(m.Identifier.Text))
                 {
@@ -1952,7 +2006,7 @@ public static class Binder
                     }
                     else
                     {
-                        initializer = BindExpression(fieldSyntax.Initializer);
+                        initializer = BindExpression(fieldSyntax.Initializer, type);
                         if (initializer.Type != PrimitiveTypeSymbol.Error && !IsAssignable(type, initializer.Type))
                         {
                             Report("COPE-FLOW-0007", $"Board initializer for '{field.Name}' must have type '{type.Name}', got '{initializer.Type.Name}'.", fieldSyntax.Identifier);
@@ -2100,7 +2154,7 @@ public static class Binder
                     Report("COPE-FLOW-0022", $"Flow board has no field '{member.NameToken.Text}'.", member.NameToken);
                     continue;
                 }
-                BoundExpression expression = BindExpression(value);
+                BoundExpression expression = BindExpression(value, field.Type);
                 if (expression.Type != PrimitiveTypeSymbol.Error && !IsAssignable(field.Type, expression.Type))
                 {
                     Report("COPE-FLOW-0023", $"Board update for '{field.Name}' must have type '{field.Type.Name}', got '{expression.Type.Name}'.", member.NameToken);
@@ -2122,7 +2176,8 @@ public static class Binder
             try
             {
                 _scope.TryDeclare(new VariableSymbol("board", boardType, true));
-                BoundExpression? expression = syntax.Expression is null ? null : BindExpression(syntax.Expression);
+                TypeSymbol? expectedTerminalType = syntax.Keyword.Text == "finish" ? resultType : failureType;
+                BoundExpression? expression = syntax.Expression is null ? null : BindExpression(syntax.Expression, expectedTerminalType);
                 if (syntax.Keyword.Text == "finish" && resultType != PrimitiveTypeSymbol.Void && expression is null)
                 {
                     Report("COPE-FLOW-0029", $"Flow completion requires a value of type '{resultType.Name}'.", syntax.Keyword);
@@ -2291,7 +2346,8 @@ public static class Binder
             bool inferCallableReference = v.Type is null
                 && v.Initializer is NameExpressionSyntax or GenericFunctionReferenceExpressionSyntax or CallExpressionSyntax or ArrowExpressionSyntax or CaptureExpressionSyntax;
             bool inferArrowLocal = v.Type is null && _arrowBodyDepth > 0;
-            bool inferInitializer = inferCallableReference || inferArrowLocal;
+            bool inferNumericLiteral = v.Type is null && v.Initializer is LiteralExpressionSyntax;
+            bool inferInitializer = inferCallableReference || inferArrowLocal || inferNumericLiteral;
             var type = inferInitializer
                 ? PrimitiveTypeSymbol.Error
                 : BindType(v.Type, v.Identifier, "COPE-TYPE-0002", "variable");
@@ -2605,6 +2661,7 @@ public static class Binder
             if (expected == PrimitiveTypeSymbol.Void) Report("COPE-TYPE-0003", "Invalid return expression for void function.", r.ReturnKeyword);
             else if (expected is ResultTypeSymbol result)
             {
+                expr = AdaptExactIntegerLiteral(expr, result.SuccessType);
                 expr = InjectDirectNominalUnionCase(expr, result.SuccessType);
                 if (IsAssignable(result, expr.Type))
                 {
@@ -2676,6 +2733,7 @@ public static class Binder
             var expression = s switch
             {
                 LiteralExpressionSyntax l => BindLiteral(l),
+                TemplateExpressionSyntax template => BindTemplate(template),
                 NameExpressionSyntax n => BindName(n),
                 ParenthesizedExpressionSyntax p => BindExpression(p.Expression, contextualType),
                 PropagateExpressionSyntax p => BindPropagate(p),
@@ -2705,7 +2763,50 @@ public static class Binder
                 _ => new BoundErrorExpression()
             };
 
+            expression = AdaptExactIntegerLiteral(expression, contextualType);
             return InjectDirectNominalUnionCase(expression, contextualType);
+        }
+
+        private static BoundExpression AdaptExactIntegerLiteral(BoundExpression expression, TypeSymbol? contextualType)
+        {
+            if (expression is BoundLiteralExpression { Value: int } literal
+                && contextualType is not null
+                && TypeFacts.IsFloat(contextualType))
+            {
+                return new BoundLiteralExpression(Convert.ToDouble(literal.Value, System.Globalization.CultureInfo.InvariantCulture), contextualType);
+            }
+
+            if (expression is BoundUnaryExpression
+                {
+                    OperatorKind: SyntaxKind.MinusToken,
+                    Operand: BoundLiteralExpression { Value: int } negativeLiteral
+                }
+                && contextualType is not null
+                && TypeFacts.IsFloat(contextualType))
+            {
+                var adaptedOperand = new BoundLiteralExpression(
+                    Convert.ToDouble(negativeLiteral.Value, System.Globalization.CultureInfo.InvariantCulture),
+                    contextualType);
+                return new BoundUnaryExpression(SyntaxKind.MinusToken, adaptedOperand, contextualType);
+            }
+
+            return expression;
+        }
+
+        private BoundExpression BindTemplate(TemplateExpressionSyntax template)
+        {
+            BoundExpression result = new BoundLiteralExpression(string.Empty, PrimitiveTypeSymbol.String);
+            foreach (TemplatePartSyntax part in template.Parts)
+            {
+                BoundExpression next = part switch
+                {
+                    TemplateTextPartSyntax text => new BoundLiteralExpression(text.Text, PrimitiveTypeSymbol.String),
+                    TemplateInterpolationPartSyntax interpolation => BindStringConversion(BindExpression(interpolation.Expression), template.TemplateToken, true),
+                    _ => new BoundErrorExpression(),
+                };
+                result = new BoundBinaryExpression(result, SyntaxKind.PlusToken, next, PrimitiveTypeSymbol.String);
+            }
+            return result;
         }
 
         private BoundExpression BindTsXml(SyntaxToken token)
@@ -3209,7 +3310,7 @@ public static class Binder
             var k = l.LiteralToken.Kind;
             return k switch
             {
-                SyntaxKind.NumberToken => new BoundLiteralExpression(l.LiteralToken.Value, PrimitiveTypeSymbol.Number),
+                SyntaxKind.NumberToken => BindNumberLiteral(l),
                 SyntaxKind.StringToken => new BoundLiteralExpression(l.LiteralToken.Value, PrimitiveTypeSymbol.String),
                 SyntaxKind.TrueKeyword => new BoundLiteralExpression(true, PrimitiveTypeSymbol.Boolean),
                 SyntaxKind.FalseKeyword => new BoundLiteralExpression(false, PrimitiveTypeSymbol.Boolean),
@@ -3221,7 +3322,7 @@ public static class Binder
         private BoundExpression BindUnary(UnaryExpressionSyntax u)
         {
             var op = u.OperatorToken.Kind; var operand = BindExpression(u.Operand);
-            if (op == SyntaxKind.MinusToken && operand.Type == PrimitiveTypeSymbol.Number) return new BoundUnaryExpression(op, operand, PrimitiveTypeSymbol.Number);
+            if (op == SyntaxKind.MinusToken && TypeFacts.IsNumeric(operand.Type)) return new BoundUnaryExpression(op, operand, operand.Type);
             if (op == SyntaxKind.BangToken && operand.Type == PrimitiveTypeSymbol.Boolean) return new BoundUnaryExpression(op, operand, PrimitiveTypeSymbol.Boolean);
             Report("COPE-TYPE-0006", $"Invalid unary operand for '{u.OperatorToken.Text}'.", u.OperatorToken);
             return new BoundErrorExpression();
@@ -3230,6 +3331,14 @@ public static class Binder
         private BoundExpression BindBinary(BinaryExpressionSyntax b)
         {
             var l = BindExpression(b.Left); var r = BindExpression(b.Right); var op = b.OperatorToken.Kind;
+            if (TypeFacts.IsFloat(l.Type) && r is BoundLiteralExpression { Value: int } integerLiteral)
+            {
+                r = new BoundLiteralExpression(Convert.ToDouble(integerLiteral.Value, System.Globalization.CultureInfo.InvariantCulture), l.Type);
+            }
+            else if (TypeFacts.IsFloat(r.Type) && l is BoundLiteralExpression { Value: int } integerLiteralLeft)
+            {
+                l = new BoundLiteralExpression(Convert.ToDouble(integerLiteralLeft.Value, System.Globalization.CultureInfo.InvariantCulture), r.Type);
+            }
             if (op is SyntaxKind.EqualsEqualsToken or SyntaxKind.BangEqualsToken or SyntaxKind.EqualsEqualsEqualsToken or SyntaxKind.BangEqualsEqualsToken)
             {
                 if (l.Type is AsyncTypeSymbol || r.Type is AsyncTypeSymbol)
@@ -3260,13 +3369,22 @@ public static class Binder
                 Report("COPE-REC-0016", "Record equality is not supported.", b.OperatorToken);
                 return new BoundErrorExpression();
             }
-            if (l.Type == PrimitiveTypeSymbol.Number && r.Type == PrimitiveTypeSymbol.Number && op is SyntaxKind.PlusToken or SyntaxKind.MinusToken or SyntaxKind.StarToken or SyntaxKind.SlashToken or SyntaxKind.PercentToken)
-                return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Number);
+            if (TypeFacts.IsNumeric(l.Type) && TypeFacts.IsNumeric(r.Type)
+                && op is SyntaxKind.PlusToken or SyntaxKind.MinusToken or SyntaxKind.StarToken or SyntaxKind.SlashToken or SyntaxKind.PercentToken)
+            {
+                if (TypeFacts.AreEquivalent(l.Type, r.Type))
+                {
+                    return new BoundBinaryExpression(l, op, r, l.Type);
+                }
+
+                Report("COPE-NUM-0002", $"Cannot apply '{b.OperatorToken.Text}' to {l.Type.Name} and {r.Type.Name}. Copeland does not implicitly widen stored int values; use Float.From(integerValue).", b.OperatorToken);
+                return new BoundErrorExpression();
+            }
             if (op == SyntaxKind.PlusToken && l.Type == PrimitiveTypeSymbol.String && r.Type == PrimitiveTypeSymbol.String)
                 return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.String);
             if (op is SyntaxKind.LessToken or SyntaxKind.LessOrEqualsToken or SyntaxKind.GreaterToken or SyntaxKind.GreaterOrEqualsToken)
             {
-                if (l.Type == PrimitiveTypeSymbol.Number && r.Type == PrimitiveTypeSymbol.Number) return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Boolean);
+                if (TypeFacts.IsNumeric(l.Type) && TypeFacts.AreEquivalent(l.Type, r.Type)) return new BoundBinaryExpression(l, op, r, PrimitiveTypeSymbol.Boolean);
             }
             if (op is SyntaxKind.AmpersandAmpersandToken or SyntaxKind.PipePipeToken)
             {
@@ -3287,9 +3405,9 @@ public static class Binder
             string diagnosticMessage = l.Type is ResultTypeSymbol || r.Type is ResultTypeSymbol
                 ? $"Operator '{b.OperatorToken.Text}' cannot operate on Result values ('{l.Type.Name}' and '{r.Type.Name}'). Propagate with '?' or handle the Result before applying the operator."
                 : op == SyntaxKind.PlusToken
-                    && ((l.Type == PrimitiveTypeSymbol.String && r.Type == PrimitiveTypeSymbol.Number)
-                        || (l.Type == PrimitiveTypeSymbol.Number && r.Type == PrimitiveTypeSymbol.String))
-                    ? $"Operator '+' does not support operands of type '{l.Type.Name}' and '{r.Type.Name}'. Copeland does not perform implicit conversions; use matching primitive types or a typed CLR formatting API."
+                    && ((l.Type == PrimitiveTypeSymbol.String && TypeFacts.IsNumeric(r.Type))
+                        || (TypeFacts.IsNumeric(l.Type) && r.Type == PrimitiveTypeSymbol.String))
+                    ? $"Cannot add string and {(l.Type == PrimitiveTypeSymbol.String ? r.Type.Name : l.Type.Name)}. Copeland does not perform implicit conversions or host coercion; use String.From(value), String(value), interpolation, or a typed CLR formatting API where interop formatting is intentionally required."
                     : $"Operator '{b.OperatorToken.Text}' does not support operands of type '{l.Type.Name}' and '{r.Type.Name}'.";
             Report("COPE-TYPE-0007", diagnosticMessage, b.OperatorToken);
             return new BoundErrorExpression();
@@ -3372,6 +3490,11 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (TryBindNumericConversion(c, out BoundExpression? conversion))
+            {
+                return conversion!;
+            }
+
             if (c.Target is MemberAccessExpressionSyntax staticMember
                 && TryResolveClrTypeReference(staticMember.Target, out Type? staticType))
             {
@@ -3500,6 +3623,143 @@ public static class Binder
             return new BoundCallExpression(fn, args);
         }
 
+        private BoundExpression BindNumberLiteral(LiteralExpressionSyntax literal)
+        {
+            if (literal.LiteralToken.Value is int integer)
+            {
+                return new BoundLiteralExpression(integer, PrimitiveTypeSymbol.Int);
+            }
+
+            if (literal.LiteralToken.Value is double floating && double.IsFinite(floating))
+            {
+                return new BoundLiteralExpression(floating, PrimitiveTypeSymbol.Float);
+            }
+
+            Report("COPE-NUM-0001", "Invalid or unsupported numeric literal. Copeland int literals must be signed 32-bit values and float literals must be finite.", literal.LiteralToken);
+            return new BoundErrorExpression();
+        }
+
+        private bool TryBindNumericConversion(CallExpressionSyntax call, out BoundExpression? conversion)
+        {
+            conversion = null;
+            if (call.Target is NameExpressionSyntax name)
+            {
+                if (name.IdentifierToken.Text == "String")
+                {
+                    conversion = BindStringConversionArgument(call, name.IdentifierToken);
+                    return true;
+                }
+                if (name.IdentifierToken.Text == "Float")
+                {
+                    conversion = BindFloatConversion(call, name.IdentifierToken);
+                    return true;
+                }
+                if (name.IdentifierToken.Text == "Int")
+                {
+                    Report("COPE-NUM-0005", "Cannot convert float to int without a rounding policy. Use Int.Floor(value), Int.Ceil(value), Int.Round(value), or Int.Truncate(value).", name.IdentifierToken);
+                    conversion = new BoundErrorExpression();
+                    return true;
+                }
+                return false;
+            }
+
+            if (call.Target is not MemberAccessExpressionSyntax { Target: NameExpressionSyntax typeName } member)
+            {
+                return false;
+            }
+
+            if (typeName.IdentifierToken.Text == "String" && member.NameToken.Text == "From")
+            {
+                conversion = BindStringConversionArgument(call, member.NameToken);
+                return true;
+            }
+            if (typeName.IdentifierToken.Text == "Float" && member.NameToken.Text == "From")
+            {
+                conversion = BindFloatConversion(call, member.NameToken);
+                return true;
+            }
+            if (typeName.IdentifierToken.Text != "Int")
+            {
+                return false;
+            }
+
+            BoundNumericConversionKind? kind = member.NameToken.Text switch
+            {
+                "Floor" => BoundNumericConversionKind.IntFloor,
+                "Ceil" => BoundNumericConversionKind.IntCeil,
+                "Round" => BoundNumericConversionKind.IntRound,
+                "Truncate" => BoundNumericConversionKind.IntTruncate,
+                _ => null,
+            };
+            if (kind is not null)
+            {
+                conversion = BindIntRoundingConversion(call, member.NameToken, kind.Value);
+                return true;
+            }
+            if (member.NameToken.Text == "From")
+            {
+                Report("COPE-NUM-0005", "Int.From accepts only int identity values. Convert float values with Int.Floor, Int.Ceil, Int.Round, or Int.Truncate.", member.NameToken);
+                conversion = new BoundErrorExpression();
+                return true;
+            }
+            return false;
+        }
+
+        private BoundExpression BindStringConversionArgument(CallExpressionSyntax call, SyntaxToken anchor)
+        {
+            if (call.Arguments.Count != 1)
+            {
+                Report("COPE-NUM-0003", "String.From expects exactly one argument.", anchor);
+                return new BoundErrorExpression();
+            }
+            return BindStringConversion(BindExpression(call.Arguments[0]), anchor, false);
+        }
+
+        private BoundExpression BindStringConversion(BoundExpression operand, SyntaxToken anchor, bool interpolation)
+        {
+            if (operand.Type == PrimitiveTypeSymbol.String)
+            {
+                return operand;
+            }
+            if (operand.Type == PrimitiveTypeSymbol.Boolean || TypeFacts.IsNumeric(operand.Type))
+            {
+                return new BoundNumericConversionExpression(BoundNumericConversionKind.StringFrom, operand, PrimitiveTypeSymbol.String);
+            }
+            string action = interpolation ? "interpolate" : "convert";
+            Report("COPE-NUM-0004", $"Cannot {action} value of type '{operand.Type.Name}' as a canonical string. String.From supports string, boolean, int, and float.", anchor);
+            return new BoundErrorExpression();
+        }
+
+        private BoundExpression BindFloatConversion(CallExpressionSyntax call, SyntaxToken anchor)
+        {
+            if (call.Arguments.Count != 1)
+            {
+                Report("COPE-NUM-0003", "Float.From expects exactly one argument.", anchor);
+                return new BoundErrorExpression();
+            }
+            BoundExpression operand = BindExpression(call.Arguments[0]);
+            if (TypeFacts.IsFloat(operand.Type)) return operand;
+            if (TypeFacts.IsInt(operand.Type)) return new BoundNumericConversionExpression(BoundNumericConversionKind.IntToFloat, operand, PrimitiveTypeSymbol.Float);
+            Report("COPE-NUM-0006", $"Cannot convert '{operand.Type.Name}' to float. Float.From supports int and float values; parsing text is not part of conversion.", anchor);
+            return new BoundErrorExpression();
+        }
+
+        private BoundExpression BindIntRoundingConversion(CallExpressionSyntax call, SyntaxToken anchor, BoundNumericConversionKind kind)
+        {
+            if (call.Arguments.Count != 1)
+            {
+                Report("COPE-NUM-0003", $"{anchor.Text} expects exactly one argument.", anchor);
+                return new BoundErrorExpression();
+            }
+            BoundExpression operand = BindExpression(call.Arguments[0]);
+            if (!TypeFacts.IsFloat(operand.Type))
+            {
+                Report("COPE-NUM-0007", $"Int.{anchor.Text} requires float, got '{operand.Type.Name}'.", anchor);
+                return new BoundErrorExpression();
+            }
+            return new BoundNumericConversionExpression(kind, operand, PrimitiveTypeSymbol.Int);
+        }
+
         private BoundExpression BindNew(NewExpressionSyntax expression)
         {
             if (!TryResolveClrTypeReference(expression.Target, out Type? type))
@@ -3552,11 +3812,12 @@ public static class Binder
             BoundExpression? receiver,
             string memberDisplayName)
         {
-            BoundExpression[] arguments = argumentSyntax.Select(argument => BindExpression(argument)).ToArray();
+            MethodBase[] candidates = members.ToArray();
+            BoundExpression[] arguments = BindClrArguments(argumentSyntax, candidates);
             var applicable = new List<(MethodBase Member, IReadOnlyList<TypeSymbol> GenericArguments)>();
             var unsupportedShape = false;
 
-            foreach (MethodBase candidateMember in members)
+            foreach (MethodBase candidateMember in candidates)
             {
                 if (!TryGetClrInvocationShape(candidateMember, arguments, out IReadOnlyList<TypeSymbol> candidateGenericArguments, out bool shapeUnsupported))
                 {
@@ -3591,6 +3852,23 @@ public static class Binder
             }
 
             return new BoundClrInvocationExpression(selectedMember, receiver, selectedGenericArguments, arguments, resultType);
+        }
+
+        private BoundExpression[] BindClrArguments(IReadOnlyList<ExpressionSyntax> argumentSyntax, IReadOnlyList<MethodBase> candidates)
+        {
+            if (candidates.Count != 1)
+            {
+                return argumentSyntax.Select(argument => BindExpression(argument)).ToArray();
+            }
+
+            ParameterInfo[] parameters = candidates[0].GetParameters();
+            return argumentSyntax.Select((argument, index) =>
+            {
+                TypeSymbol? expected = index < parameters.Length && TryProjectClrType(parameters[index].ParameterType, out TypeSymbol projected)
+                    ? projected
+                    : null;
+                return BindExpression(argument, expected);
+            }).ToArray();
         }
 
         private bool TryGetClrInvocationShape(MethodBase member, IReadOnlyList<BoundExpression> arguments, out IReadOnlyList<TypeSymbol> genericArguments, out bool shapeUnsupported)
@@ -3667,7 +3945,12 @@ public static class Binder
 
         private static bool IsClrArgumentCompatible(TypeSymbol source, Type target)
         {
-            if (target == typeof(double) && source == PrimitiveTypeSymbol.Number)
+            if (target == typeof(int) && source == PrimitiveTypeSymbol.Int)
+            {
+                return true;
+            }
+
+            if (target == typeof(double) && TypeFacts.IsFloat(source))
             {
                 return true;
             }
@@ -3695,7 +3978,9 @@ public static class Binder
             if (type == typeof(void)) { projected = PrimitiveTypeSymbol.Void; return true; }
             if (type == typeof(string)) { projected = PrimitiveTypeSymbol.String; return true; }
             if (type == typeof(bool)) { projected = PrimitiveTypeSymbol.Boolean; return true; }
-            if (type == typeof(double) || type == typeof(float) || type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte)) { projected = PrimitiveTypeSymbol.Number; return true; }
+            if (type == typeof(int)) { projected = PrimitiveTypeSymbol.Int; return true; }
+            if (type == typeof(double)) { projected = PrimitiveTypeSymbol.Float; return true; }
+            if (type == typeof(float) || type == typeof(long) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte)) { projected = PrimitiveTypeSymbol.Error; return false; }
             if (type.IsArray && type.GetArrayRank() == 1 && TryProjectClrType(type.GetElementType()!, out TypeSymbol element)) { projected = new ArrayTypeSymbol(element); return true; }
             if (type.IsGenericParameter) { projected = PrimitiveTypeSymbol.Error; return false; }
             if (type == typeof(object) || type.IsEnum || Nullable.GetUnderlyingType(type) is not null || type.IsPointer || type.IsByRef || type.ContainsGenericParameters) { projected = PrimitiveTypeSymbol.Error; return false; }
@@ -4479,7 +4764,7 @@ public static class Binder
 
         private static bool IsFlatTsonRecord(RecordTypeSymbol record)
             => record.Fields.All(field => field.Type == PrimitiveTypeSymbol.Boolean
-                || field.Type == PrimitiveTypeSymbol.Number
+                || TypeFacts.IsNumeric(field.Type)
                 || field.Type == PrimitiveTypeSymbol.String);
 
         private BoundExpression BindGenericFunctionReference(GenericFunctionReferenceExpressionSyntax reference)
@@ -4780,8 +5065,14 @@ public static class Binder
             return names;
         }
 
-        private static string CreateFunctionStableIdentity(string name)
-            => "function:" + name;
+        private string CreateFunctionStableIdentity(string name)
+            => "function:" + (CreateDeclarationStableIdentity(name) ?? name);
+
+        private string? CreateDeclarationStableIdentity(string name)
+        {
+            if (_moduleIdentity is not null) return $"module:{_moduleIdentity}#{name}";
+            return _schemaIdentity is null ? null : $"{_schemaIdentity}#{name}";
+        }
 
         private static Dictionary<string, TypeParameterSymbol> CreateTypeParameterScope(IReadOnlyList<TypeParameterSymbol> typeParameters)
         {
@@ -5090,7 +5381,7 @@ public static class Binder
                 return false;
             }
             if (type == PrimitiveTypeSymbol.Boolean
-                || type == PrimitiveTypeSymbol.Number
+                || TypeFacts.IsNumeric(type)
                 || type == PrimitiveTypeSymbol.String)
             {
                 return true;
@@ -5409,7 +5700,7 @@ public static class Binder
 
             if (type is PrimitiveTypeSymbol primitive
                 && primitive != PrimitiveTypeSymbol.Boolean
-                && primitive != PrimitiveTypeSymbol.Number
+                && !TypeFacts.IsNumeric(primitive)
                 && primitive != PrimitiveTypeSymbol.String)
             {
                 mismatch = $"Type '{type.Name}' is unsupported in TSON assets.";
@@ -5437,7 +5728,7 @@ public static class Binder
                     case (TsonTypeKind.Boolean, PrimitiveTypeSymbol boolean)
                         when boolean == PrimitiveTypeSymbol.Boolean:
                     case (TsonTypeKind.Number, PrimitiveTypeSymbol number)
-                        when number == PrimitiveTypeSymbol.Number:
+                        when TypeFacts.IsNumeric(number):
                     case (TsonTypeKind.String, PrimitiveTypeSymbol text)
                         when text == PrimitiveTypeSymbol.String:
                         break;
@@ -5463,7 +5754,7 @@ public static class Binder
             return type switch
             {
                 PrimitiveTypeSymbol primitive => primitive == PrimitiveTypeSymbol.Boolean
-                    || primitive == PrimitiveTypeSymbol.Number
+                    || TypeFacts.IsNumeric(primitive)
                     || primitive == PrimitiveTypeSymbol.String,
                 RecordTypeSymbol => true,
                 EnumTypeSymbol => true,
@@ -5485,8 +5776,10 @@ public static class Binder
                 case PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Boolean && value is TsonBoolean boolean:
                     expression = new BoundLiteralExpression(boolean.Value, primitive);
                     return true;
-                case PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Number && value is TsonNumber number:
-                    expression = new BoundLiteralExpression(number.Value, primitive);
+                case PrimitiveTypeSymbol primitive when TypeFacts.IsNumeric(primitive) && value is TsonNumber number:
+                    expression = primitive == PrimitiveTypeSymbol.Int && number.Value == Math.Truncate(number.Value) && number.Value >= int.MinValue && number.Value <= int.MaxValue
+                        ? new BoundLiteralExpression((int)number.Value, primitive)
+                        : new BoundLiteralExpression(number.Value, primitive);
                     return true;
                 case PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.String && value is TsonString text:
                     expression = new BoundLiteralExpression(text.Value, primitive);
@@ -5499,7 +5792,7 @@ public static class Binder
                     return TryLowerTsonArray(value, array, assetPath, callSite, out expression);
                 case PrimitiveTypeSymbol primitive
                     when primitive == PrimitiveTypeSymbol.Boolean
-                        || primitive == PrimitiveTypeSymbol.Number
+                        || TypeFacts.IsNumeric(primitive)
                         || primitive == PrimitiveTypeSymbol.String:
                     ReportAssetMismatch(
                         assetPath,
@@ -5917,7 +6210,7 @@ public static class Binder
                     payloadVars.Add(symbol);
                 }
 
-                var armExpression = BindExpression(arm.Expression, contextualType);
+                var armExpression = BindExpression(arm.Expression, contextualType ?? expectedArmType);
                 _scope = prevScope;
 
                 if (expectedArmType is null && armExpression.Type != PrimitiveTypeSymbol.Error)
@@ -5980,7 +6273,7 @@ public static class Binder
                     _scope.TryDeclare(payloadVariable);
                 }
 
-                var expression = BindExpression(arm.Expression, contextualType);
+                var expression = BindExpression(arm.Expression, contextualType ?? armType);
                 _scope = previousScope;
                 if (armType is null && expression.Type != PrimitiveTypeSymbol.Error)
                 {
@@ -6172,7 +6465,7 @@ public static class Binder
         {
             var receiver = BindExpression(index.Target);
             var boundIndex = BindExpression(index.Index);
-            if (!TypeFacts.AreEquivalent(boundIndex.Type, PrimitiveTypeSymbol.Number))
+            if (!TypeFacts.IsNumeric(boundIndex.Type))
             {
                 Report("COPE-TABLE-0013", "Table and column indexes must have type 'number'.", index.OpenBracketToken);
                 return new BoundErrorExpression();
@@ -6259,6 +6552,8 @@ public static class Binder
                 PredefinedTypeSyntax p => p.Keyword.Kind switch
                 {
                     SyntaxKind.NumberKeyword => PrimitiveTypeSymbol.Number,
+                    SyntaxKind.IntKeyword => PrimitiveTypeSymbol.Int,
+                    SyntaxKind.FloatKeyword => PrimitiveTypeSymbol.Float,
                     SyntaxKind.StringKeyword => PrimitiveTypeSymbol.String,
                     SyntaxKind.BooleanKeyword => PrimitiveTypeSymbol.Boolean,
                     SyntaxKind.VoidKeyword => PrimitiveTypeSymbol.Void,
@@ -6517,7 +6812,9 @@ public static class Binder
         }
 
         private static bool IsAssignable(TypeSymbol target, TypeSymbol actual)
-            => target == PrimitiveTypeSymbol.Error || actual == PrimitiveTypeSymbol.Error || TypeFacts.AreEquivalent(target, actual);
+            => target == PrimitiveTypeSymbol.Error
+                || actual == PrimitiveTypeSymbol.Error
+                || TypeFacts.AreEquivalent(target, actual);
 
         private void ValidateRuntimeValueType(TypeSymbol type, SyntaxToken anchor, string position)
         {
@@ -6596,7 +6893,7 @@ public static class Binder
         };
 
         private static bool IsPrimitiveEqualityType(TypeSymbol type)
-            => type == PrimitiveTypeSymbol.Number
+            => TypeFacts.IsNumeric(type)
                 || type == PrimitiveTypeSymbol.String
                 || type == PrimitiveTypeSymbol.Boolean;
 

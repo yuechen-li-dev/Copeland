@@ -1,17 +1,17 @@
 using Copeland.Authoring.Food;
 
-record Recipe {
+export record Recipe {
     name: string;
-    portions: number;
-    calories: number;
+    portions: int;
+    calories: float;
 }
 
-enum PrepDecision {
+export enum PrepDecision {
     Cook(recipe: Recipe),
     Skip(reason: string),
 }
 
-function BuildDailySummary(name: string, portions: number, calories: number): string {
+export function BuildDailySummary(name: string, portions: int, calories: float): string {
     const recipe: Recipe = {
         name: KitchenText.Normalize(name),
         portions,
@@ -27,7 +27,7 @@ function BuildDailySummary(name: string, portions: number, calories: number): st
 
 function BuildCookSummary(recipe: Recipe): string {
     const highlighted: string = Highlight(recipe.name);
-    return KitchenText.Describe(highlighted, recipe.portions, recipe.calories);
+    return `${highlighted} serves ${recipe.portions} for ${recipe.calories} calories`;
 }
 
 function Highlight(value: string): string {

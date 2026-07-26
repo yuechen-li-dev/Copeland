@@ -1548,6 +1548,7 @@ public static class CSharpBackend
             MirAssignmentExpression assignment => $"{CSharpNameMangler.Mangle(assignment.Name)} = {EmitExpression(writer, assignment.Expression, function, enumNames, ref tempIndex, diagnostics)}",
             MirUnaryExpression unary => unary.Operator + ParenthesizeAssignmentOperand(unary.Operand, EmitExpression(writer, unary.Operand, function, enumNames, ref tempIndex, diagnostics)),
             MirBinaryExpression binary => EmitBinary(writer, binary, function, enumNames, ref tempIndex, diagnostics),
+            MirNumericConversionExpression conversion => EmitNumericConversion(writer, conversion, function, enumNames, ref tempIndex, diagnostics),
             MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", EmitArguments(call.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirClrInvocationExpression invocation => EmitClrInvocation(writer, invocation, function, enumNames, ref tempIndex, diagnostics),
             MirClrPropertyAccessExpression property => EmitClrProperty(writer, property, function, enumNames, ref tempIndex, diagnostics),
@@ -1576,6 +1577,32 @@ public static class CSharpBackend
             MirTryExpression tryExpression => EmitTryExcept(writer, tryExpression, function, enumNames, ref tempIndex, diagnostics),
             _ => UnsupportedExpression(expression, diagnostics)
         };
+
+    private static string EmitNumericConversion(
+        CSharpTextWriter writer,
+        MirNumericConversionExpression conversion,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        string operand = EmitExpression(writer, conversion.Operand, function, enumNames, ref tempIndex, diagnostics);
+        return conversion.Kind switch
+        {
+            MirNumericConversionKind.StringFrom when conversion.Operand.Type is MirType { Identifier: "boolean" }
+                => $"({operand} ? \"true\" : \"false\")",
+            MirNumericConversionKind.StringFrom when conversion.Operand.Type is MirType { Identifier: "int" }
+                => $"{operand}.ToString(global::System.Globalization.CultureInfo.InvariantCulture)",
+            MirNumericConversionKind.StringFrom
+                => $"{operand}.ToString(\"R\", global::System.Globalization.CultureInfo.InvariantCulture)",
+            MirNumericConversionKind.IntToFloat => $"((double){operand})",
+            MirNumericConversionKind.IntFloor => $"checked((int)global::System.Math.Floor({operand}))",
+            MirNumericConversionKind.IntCeil => $"checked((int)global::System.Math.Ceiling({operand}))",
+            MirNumericConversionKind.IntTruncate => $"checked((int)global::System.Math.Truncate({operand}))",
+            MirNumericConversionKind.IntRound => $"checked((int)({operand} < 0.0 ? global::System.Math.Ceiling({operand} - 0.5) : global::System.Math.Floor({operand} + 0.5)))",
+            _ => UnsupportedExpression(conversion, diagnostics),
+        };
+    }
 
     private static string EmitBatchExpression(
         CSharpTextWriter writer,
@@ -2846,7 +2873,7 @@ public static class CSharpBackend
 
         return arrays;
     }
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
     private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
 

@@ -1,18 +1,11 @@
 using Copeland.Authoring.Food.Copeland;
 
-string summary = RecipeBook.BuildDailySummary(" lentil stew ", 4, 560);
-double[] portions = Planning.DoublePortions([1, 2, 3]);
-double slotTotal = Planning.SumCookingSlots(3);
-double inferredPlanPortions = Planning.PlannedPortions(4);
-double explicitPlanPortions = Planning.ExplicitPlannedPortions(5);
-
-var pantry = PantryRun.Start();
-pantry.SendAdd(2);
-pantry.SendAdd(3);
-pantry.SendClose();
+string summary = Main.Run(" lentil stew ", 4, 560);
+double[] portions = Main.DoubledPortions([1, 2, 3]);
+double slotTotal = Main.CookingSlotTotal(3);
+double plannedPortions = Main.PlanPortions(4);
 
 Console.WriteLine(summary);
 Console.WriteLine(string.Join(",", portions));
 Console.WriteLine(slotTotal);
-Console.WriteLine($"{inferredPlanPortions}:{explicitPlanPortions}");
-Console.WriteLine($"{pantry.State}:{pantry.Revision}");
+Console.WriteLine(plannedPortions);

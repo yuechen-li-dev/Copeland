@@ -11,6 +11,15 @@ public sealed class PrimitiveTypeSymbol : TypeSymbol
 {
     private PrimitiveTypeSymbol(string name) => Name = name;
 
+    /// <summary>Copeland's signed 32-bit whole-number type.</summary>
+    public static readonly PrimitiveTypeSymbol Int = new("int");
+    /// <summary>Copeland's IEEE-754 binary64 floating-point type.</summary>
+    public static readonly PrimitiveTypeSymbol Float = new("float");
+    /// <summary>
+    /// TypeScript-compatible spelling for <see cref="Float"/>. It deliberately
+    /// remains a distinct display symbol so diagnostics preserve authored source,
+    /// while semantic equivalence treats it as float.
+    /// </summary>
     public static readonly PrimitiveTypeSymbol Number = new("number");
     public static readonly PrimitiveTypeSymbol String = new("string");
     public static readonly PrimitiveTypeSymbol Boolean = new("boolean");
@@ -86,6 +95,8 @@ public sealed class EnumTypeSymbol(string name, string? stableIdentity = null) :
     public override string Name { get; } = name;
     public IReadOnlyList<EnumCaseSymbol> Cases => _cases;
     public string? StableIdentity { get; } = stableIdentity;
+    /// <summary>Backend-neutral enum spelling selected after module binding.</summary>
+    public string EmissionName { get; internal set; } = name;
     public NominalUnionProvenance? UnionProvenance { get; internal set; }
 
     public void AddCase(EnumCaseSymbol @case) => _cases.Add(@case);
@@ -109,6 +120,8 @@ public class RecordTypeSymbol(string name, RecordTypeId id, string? stableIdenti
     public RecordTypeId Id { get; } = id;
     public IReadOnlyList<RecordFieldSymbol> Fields => _fields;
     public string? StableIdentity { get; } = stableIdentity;
+    /// <summary>Backend-neutral carrier spelling selected after module binding.</summary>
+    public string EmissionName { get; internal set; } = name;
 
     public void AddField(RecordFieldSymbol field)
     {
@@ -176,9 +189,21 @@ public sealed class TypeParameterTypeSymbol(string name, int ordinal) : TypeSymb
 
 public static class TypeFacts
 {
+    public static bool IsInt(TypeSymbol type) => type == PrimitiveTypeSymbol.Int;
+
+    public static bool IsFloat(TypeSymbol type)
+        => type == PrimitiveTypeSymbol.Float || type == PrimitiveTypeSymbol.Number;
+
+    public static bool IsNumeric(TypeSymbol type) => IsInt(type) || IsFloat(type);
+
     public static bool AreEquivalent(TypeSymbol left, TypeSymbol right)
     {
         if (ReferenceEquals(left, right))
+        {
+            return true;
+        }
+
+        if (IsFloat(left) && IsFloat(right))
         {
             return true;
         }

@@ -200,6 +200,7 @@ public static class MirTextWriter
         MirUnaryExpression u => $"({u.Operator}{FormatExpression(u.Operand)})",
         MirAwaitExpression awaitExpression => $"await {FormatExpression(awaitExpression.Operand)}",
         MirBinaryExpression b => $"({FormatExpression(b.Left)} {b.Operator} {FormatExpression(b.Right)})",
+        MirNumericConversionExpression conversion => $"{conversion.Kind}({FormatExpression(conversion.Operand)})",
         MirUnitExpression => "unit",
         MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
         MirClrInvocationExpression invocation => $"clr-call [{invocation.Member.AssemblyIdentity}] {invocation.Member.DeclaringType}.{invocation.Member.MemberName}{FormatClrGenericArguments(invocation.Member.GenericArguments)}({string.Join(", ", invocation.Arguments.Select(FormatExpression))})",

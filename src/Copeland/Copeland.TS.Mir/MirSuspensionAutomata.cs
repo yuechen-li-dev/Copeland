@@ -553,6 +553,7 @@ public static class MirSuspensionAutomatonValidator
             MirUnaryExpression unary => [unary.Operand],
             MirAwaitExpression awaited => [awaited.Operand],
             MirBinaryExpression binary => [binary.Left, binary.Right],
+            MirNumericConversionExpression conversion => [conversion.Operand],
             MirCallExpression call => call.Arguments,
             MirCallableConstructionExpression construction => construction.Captures,
             MirInvokeExpression invoke => [invoke.Callee, .. invoke.Arguments],

@@ -1,19 +1,19 @@
-type Portions = number;
+export type Portions = number;
 
-interface HasPortions {
+export interface HasPortions {
     portions: number;
 }
 
-record PortionPlan {
+export record PortionPlan {
     portions: Portions;
     label: string;
 }
 
-function PortionCount<T extends HasPortions>(plan: T): Portions {
+export function PortionCount<T extends HasPortions>(plan: T): Portions {
     return plan.portions;
 }
 
-function PlannedPortions(portions: Portions): Portions {
+export function PlannedPortions(portions: Portions): Portions {
     const plan: PortionPlan = {
         portions,
         label: "weekday",
@@ -21,7 +21,7 @@ function PlannedPortions(portions: Portions): Portions {
     return PortionCount(plan);
 }
 
-function ExplicitPlannedPortions(portions: Portions): Portions {
+export function ExplicitPlannedPortions(portions: Portions): Portions {
     const plan: PortionPlan = {
         portions,
         label: "weekend",
@@ -29,13 +29,13 @@ function ExplicitPlannedPortions(portions: Portions): Portions {
     return PortionCount<PortionPlan>(plan);
 }
 
-function DoublePortions(portions: number[]): number[] {
+export function DoublePortions(portions: number[]): number[] {
     return batch portions as portion {
         return portion * 2;
     };
 }
 
-function* CookingSlots(count: number): Iterable<number> {
+export function* CookingSlots(count: number): Iterable<number> {
     let slot: number = 0;
 
     while (slot < count) {
@@ -44,7 +44,7 @@ function* CookingSlots(count: number): Iterable<number> {
     }
 }
 
-function SumCookingSlots(count: number): number {
+export function SumCookingSlots(count: number): number {
     let total: number = 0;
 
     for (const slot of CookingSlots(count)) {

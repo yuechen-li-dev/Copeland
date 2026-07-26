@@ -216,7 +216,7 @@ public sealed class CliIntegrationTests
             }
 
             function mainIdentity(): number {
-                return identity(42);
+                return identity<number>(42);
             }
             """);
 
@@ -840,7 +840,7 @@ function one(): number {
         using var temp = new TempDir();
         var inputPath = temp.WriteFile("input.ts", """
             function main(): boolean {
-              const nan: number = 0 / 0;
+              const nan: number = 0.0 / 0.0;
               return nan != nan;
             }
             """);
@@ -950,7 +950,7 @@ function one(): number {
     public async Task Table_mir_csharp_and_javascript_emission_succeed()
     {
         using var temp = new TempDir();
-        string inputPath = temp.WriteFile("table.ts", "record table Values { value: [1, 2]; } function main(): number { const row: Values.Row = Values[1]!; return row.value; }");
+        string inputPath = temp.WriteFile("table.ts", "record table Values { value: number = [1, 2]; } function main(): number { const row: Values.Row = Values[1]!; return row.value; }");
         string mirPath = Path.Combine(temp.Path, "table.cope");
         string csharpPath = Path.Combine(temp.Path, "table.g.cs");
         string javaScriptPath = Path.Combine(temp.Path, "table.g.js");

@@ -3,7 +3,7 @@ record table Empty {
 }
 
 record table Values {
-    x: [-0, 2];
+    x: number = [-0.0, 2];
     label: string = ["zero", "two"];
 }
 

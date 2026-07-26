@@ -12,6 +12,7 @@
     <CopelandCompile Include="Copeland\RecipeBook.ts" />
     <CopelandCompile Include="Copeland\Planning.ts" />
     <CopelandCompile Include="Copeland\PantryFlow.ts" />
+    <CopelandCompile Include="Copeland\Main.ts" />
     <Compile Remove="Copeland.Authoring.Food.Tests\**\*.cs" />
   </ItemGroup>
 

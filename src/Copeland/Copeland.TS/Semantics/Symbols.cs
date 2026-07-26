@@ -36,6 +36,8 @@ public sealed class FunctionSymbol(
     public TypeSymbol ReturnType { get; } = returnType;
     public string? AuthoredReturnAliasName { get; } = authoredReturnAliasName;
     public string StableIdentity { get; } = stableIdentity ?? name;
+    /// <summary>Backend-neutral callable spelling selected after project binding. It never changes source lookup identity.</summary>
+    public string EmissionName { get; internal set; } = name;
     public bool IsFallible => ReturnType is ResultTypeSymbol;
     public bool IsAsync { get; } = isAsync;
     public bool IsGenerator { get; } = isGenerator;

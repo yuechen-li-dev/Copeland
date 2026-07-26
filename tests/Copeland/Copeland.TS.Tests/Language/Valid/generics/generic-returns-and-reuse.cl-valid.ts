@@ -7,5 +7,5 @@ function chooseLeft<T, U>(left: T, right: U): T {
 }
 
 const first: number = identity<number>(1);
-const second: number = identity(2);
-const chosen: number = chooseLeft(second, "skip");
+const second: int = identity(2);
+const chosen: int = chooseLeft(second, "skip");

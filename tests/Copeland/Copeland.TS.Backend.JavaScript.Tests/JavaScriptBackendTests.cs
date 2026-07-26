@@ -93,7 +93,7 @@ public sealed class JavaScriptBackendTests
     [Fact]
     public void Valid_table_mir_emits_private_nominal_columnar_runtime()
     {
-        MirProgram program = Lower("record table Samples { x: [1]; }");
+        MirProgram program = Lower("record table Samples { x: number = [1]; }");
 
         JavaScriptCompilation compilation = JavaScriptBackend.Emit(program);
 
@@ -210,7 +210,7 @@ public sealed class JavaScriptBackendTests
     public void Emits_supported_unary_expressions_including_a_negative_table_index()
     {
         JavaScriptCompilation result = Emit("""
-            record table Values { value: [1]; }
+            record table Values { value: number = [1]; }
             function negative(): number ! TableBoundsError { return Values.value[-1]; }
             function negate(value: number): number { return -value; }
             function invert(value: boolean): boolean { return !value; }

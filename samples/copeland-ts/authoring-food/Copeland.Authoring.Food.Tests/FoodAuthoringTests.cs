@@ -8,7 +8,7 @@ public sealed class FoodAuthoringTests
     [Fact]
     public void Recipe_summary_uses_record_union_clr_call_and_inline_csharp()
     {
-        string summary = RecipeBook.BuildDailySummary(" lentil stew ", 4, 560);
+        string summary = Main.Run(" lentil stew ", 4, 560);
 
         Assert.Equal("[LENTIL STEW] serves 4 for 560 calories", summary);
     }
@@ -16,10 +16,9 @@ public sealed class FoodAuthoringTests
     [Fact]
     public void Batch_and_generator_produce_ordered_values()
     {
-        Assert.Equal([2d, 4d, 6d], Planning.DoublePortions([1d, 2d, 3d]));
-        Assert.Equal(3d, Planning.SumCookingSlots(3));
-        Assert.Equal(4d, Planning.PlannedPortions(4));
-        Assert.Equal(5d, Planning.ExplicitPlannedPortions(5));
+        Assert.Equal([2d, 4d, 6d], Main.DoubledPortions([1d, 2d, 3d]));
+        Assert.Equal(3d, Main.CookingSlotTotal(3));
+        Assert.Equal(9d, Main.PlanPortions(4));
     }
 
     [Fact]

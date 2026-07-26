@@ -22,11 +22,11 @@ function nested(value: (number ! string) ! string): number {
     }
 
     [Fact]
-    public void Binary_Operands_Retain_Left_To_Right_Tree_Order_And_Number_Type()
+    public void Binary_Operands_Retain_Left_To_Right_Tree_Order_And_Float_Type()
     {
         var program = CompileProgram("""
 function value(): number {
-  return (1 + 2) * (3 + 4);
+  return (1.0 + 2.0) * (3.0 + 4.0);
 }
 """);
 
@@ -35,13 +35,13 @@ function value(): number {
         var right = Assert.IsType<MirBinaryExpression>(expression.Right);
 
         Assert.Equal("*", expression.Operator);
-        Assert.Equal("number", expression.Type.Name);
+        Assert.Equal("float", expression.Type.Name);
         Assert.Equal("+", left.Operator);
-        Assert.Equal(1, Assert.IsType<MirLiteralExpression>(left.Left).Value);
-        Assert.Equal(2, Assert.IsType<MirLiteralExpression>(left.Right).Value);
+        Assert.Equal(1d, Assert.IsType<MirLiteralExpression>(left.Left).Value);
+        Assert.Equal(2d, Assert.IsType<MirLiteralExpression>(left.Right).Value);
         Assert.Equal("+", right.Operator);
-        Assert.Equal(3, Assert.IsType<MirLiteralExpression>(right.Left).Value);
-        Assert.Equal(4, Assert.IsType<MirLiteralExpression>(right.Right).Value);
+        Assert.Equal(3d, Assert.IsType<MirLiteralExpression>(right.Left).Value);
+        Assert.Equal(4d, Assert.IsType<MirLiteralExpression>(right.Right).Value);
     }
 
     [Fact]
@@ -57,23 +57,23 @@ function choose(first: number, second: number): number {
 }
 
 function call(): number {
-  return choose(10 - 3, 8 - 2);
+  return choose(10.0 - 3.0, 8.0 - 2.0);
 }
 
 function payload(): Pair {
-  return Pair.Value(1 + 2, 3 + 4);
+  return Pair.Value(1.0 + 2.0, 3.0 + 4.0);
 }
 """);
 
         var call = Assert.IsType<MirCallExpression>(ReturnExpression(program, "call"));
         Assert.Equal(2, call.Arguments.Count);
-        Assert.Equal(10, Assert.IsType<MirLiteralExpression>(Assert.IsType<MirBinaryExpression>(call.Arguments[0]).Left).Value);
-        Assert.Equal(8, Assert.IsType<MirLiteralExpression>(Assert.IsType<MirBinaryExpression>(call.Arguments[1]).Left).Value);
+        Assert.Equal(10d, Assert.IsType<MirLiteralExpression>(Assert.IsType<MirBinaryExpression>(call.Arguments[0]).Left).Value);
+        Assert.Equal(8d, Assert.IsType<MirLiteralExpression>(Assert.IsType<MirBinaryExpression>(call.Arguments[1]).Left).Value);
 
         var payload = Assert.IsType<MirEnumValueExpression>(ReturnExpression(program, "payload"));
         Assert.Equal(2, payload.Arguments.Count);
-        Assert.Equal(1, Assert.IsType<MirLiteralExpression>(Assert.IsType<MirBinaryExpression>(payload.Arguments[0]).Left).Value);
-        Assert.Equal(3, Assert.IsType<MirLiteralExpression>(Assert.IsType<MirBinaryExpression>(payload.Arguments[1]).Left).Value);
+        Assert.Equal(1d, Assert.IsType<MirLiteralExpression>(Assert.IsType<MirBinaryExpression>(payload.Arguments[0]).Left).Value);
+        Assert.Equal(3d, Assert.IsType<MirLiteralExpression>(Assert.IsType<MirBinaryExpression>(payload.Arguments[1]).Left).Value);
     }
 
     [Fact]

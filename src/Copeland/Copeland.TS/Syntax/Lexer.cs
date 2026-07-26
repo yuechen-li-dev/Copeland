@@ -68,6 +68,11 @@ public sealed class Lexer
                 return LexString();
             }
 
+            if (current == '`')
+            {
+                return LexTemplate();
+            }
+
             switch (current)
             {
                 case '(':
@@ -181,6 +186,17 @@ public sealed class Lexer
             _position++;
         }
 
+        var hasDecimalPoint = false;
+        if (Current == '.' && char.IsAsciiDigit(Peek(1)))
+        {
+            hasDecimalPoint = true;
+            _position++;
+            while (char.IsAsciiDigit(Current))
+            {
+                _position++;
+            }
+        }
+
         var invalid = false;
         if (IsIdentifierStart(Current))
         {
@@ -198,14 +214,64 @@ public sealed class Lexer
             return new SyntaxToken(SyntaxKind.NumberToken, start, text, null);
         }
 
-        var parsed = int.TryParse(text, out var intValue);
-        object? value = parsed ? intValue : null;
+        double floatValue = default;
+        int intValue = default;
+        var parsed = hasDecimalPoint
+            ? double.TryParse(text, System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out floatValue)
+            : int.TryParse(text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out intValue);
+        object? value = !parsed
+            ? null
+            : hasDecimalPoint
+                ? (object)floatValue
+                : intValue;
         if (!parsed)
         {
             _diagnostics.Report("COPE-LEX-0004", "Invalid number literal.", start, text.Length);
         }
 
         return new SyntaxToken(SyntaxKind.NumberToken, start, text, value);
+    }
+
+    private SyntaxToken LexTemplate()
+    {
+        var start = _position;
+        _position++;
+        var interpolationDepth = 0;
+        while (_position < _text.Length)
+        {
+            if (Current == '\\' && _position + 1 < _text.Length)
+            {
+                _position += 2;
+                continue;
+            }
+
+            if (Current == '$' && Peek(1) == '{')
+            {
+                interpolationDepth++;
+                _position += 2;
+                continue;
+            }
+
+            if (Current == '}' && interpolationDepth > 0)
+            {
+                interpolationDepth--;
+                _position++;
+                continue;
+            }
+
+            if (Current == '`' && interpolationDepth == 0)
+            {
+                _position++;
+                var text = _text.Substring(start, _position - start);
+                return new SyntaxToken(SyntaxKind.TemplateToken, start, text, text[1..^1]);
+            }
+
+            _position++;
+        }
+
+        var unterminated = _text.Substring(start, _position - start);
+        _diagnostics.Report("COPE-LEX-0005", "Unterminated template literal.", start, Math.Max(1, unterminated.Length));
+        return new SyntaxToken(SyntaxKind.TemplateToken, start, unterminated, unterminated.Length > 1 ? unterminated[1..] : string.Empty);
     }
 
     private SyntaxToken LexString()

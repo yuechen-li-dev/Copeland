@@ -192,7 +192,7 @@ public static class MirLowerer
         var recordType = declaration.RecordType;
         return new MirRecordDefinition(
             ToMirRecordTypeId(recordType.Id),
-            recordType.Name,
+            recordType.EmissionName,
             recordType.Fields.Select(field => new MirRecordFieldDefinition(
                 ToMirRecordFieldId(field.Id),
                 field.Name,
@@ -203,7 +203,7 @@ public static class MirLowerer
 
     private static MirEnum LowerEnum(BoundEnumDeclaration declaration)
         => new(
-            declaration.EnumType.Name,
+            declaration.EnumType.EmissionName,
             declaration.EnumType.Cases.Select(@case =>
                 new MirEnumCase(
                     @case.Name,
@@ -218,7 +218,7 @@ public static class MirLowerer
             ? BuildSuspensionAutomaton(function.Symbol.Name, function.Symbol.Parameters, locals.Values, body, ToMirType(function.Symbol.ReturnType))
             : null;
         return new MirFunction(
-            function.Symbol.Name,
+            function.Symbol.EmissionName,
             function.Symbol.Parameters.Select(p => new MirParameter(p.Name, ToMirType(p.Type))).ToArray(),
             ToMirType(function.Symbol.ReturnType),
             locals.Values.OrderBy(l => l.Name, StringComparer.Ordinal).ToArray(),
@@ -963,14 +963,27 @@ public static class MirLowerer
             BoundUnaryExpression u => new MirUnaryExpression(OperatorName(u.OperatorKind), LowerExpression(u.Operand), ToMirType(u.Type)),
             BoundAwaitExpression a => new MirAwaitExpression(LowerExpression(a.Operand), ToMirType(a.Type)),
             BoundBinaryExpression b => new MirBinaryExpression(OperatorName(b.OperatorKind), LowerExpression(b.Left), LowerExpression(b.Right), ToMirType(b.Type)),
-            BoundCallExpression c => new MirCallExpression(c.Function.Name, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type)),
-            BoundFunctionReferenceExpression reference => new MirFunctionReferenceExpression(reference.Function.Name, (MirCallableType)ToMirType(reference.Type)),
+            BoundNumericConversionExpression conversion => new MirNumericConversionExpression(
+                conversion.Kind switch
+                {
+                    BoundNumericConversionKind.StringFrom => MirNumericConversionKind.StringFrom,
+                    BoundNumericConversionKind.IntToFloat => MirNumericConversionKind.IntToFloat,
+                    BoundNumericConversionKind.IntFloor => MirNumericConversionKind.IntFloor,
+                    BoundNumericConversionKind.IntCeil => MirNumericConversionKind.IntCeil,
+                    BoundNumericConversionKind.IntRound => MirNumericConversionKind.IntRound,
+                    BoundNumericConversionKind.IntTruncate => MirNumericConversionKind.IntTruncate,
+                    _ => throw new InvalidOperationException("Unsupported numeric conversion."),
+                },
+                LowerExpression(conversion.Operand),
+                ToMirType(conversion.Type)),
+            BoundCallExpression c => new MirCallExpression(c.Function.EmissionName, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type)),
+            BoundFunctionReferenceExpression reference => new MirFunctionReferenceExpression(reference.Function.EmissionName, (MirCallableType)ToMirType(reference.Type)),
             BoundCallableConstructionExpression construction => new MirCallableConstructionExpression(
                 construction.Code.Name,
                 construction.Captures.Select(LowerExpression).ToArray(),
                 (MirCallableType)ToMirType(construction.CallableType)),
             BoundInvokeExpression invoke => new MirInvokeExpression(LowerExpression(invoke.Callee), invoke.Arguments.Select(LowerExpression).ToArray(), ToMirType(invoke.Type)),
-            BoundEnumValueExpression e => new MirEnumValueExpression(e.Case.EnumType.Name, e.Case.Name, e.Arguments.Select(LowerExpression).ToArray(), ToMirType(e.Type)),
+            BoundEnumValueExpression e => new MirEnumValueExpression(e.Case.EnumType.EmissionName, e.Case.Name, e.Arguments.Select(LowerExpression).ToArray(), ToMirType(e.Type)),
             BoundMatchExpression m => new MirMatchExpression(LowerExpression(m.Scrutinee), m.Arms.Select(arm => new MirMatchArm(arm.Case.Name, arm.PayloadVariables.Select(v => new MirMatchPayloadBinding(v.Name, ToMirType(v.Type))).ToArray(), LowerExpression(arm.Expression))).ToArray(), ToMirType(m.Type)),
             BoundResultMatchExpression m => new MirResultMatchExpression(LowerExpression(m.Scrutinee), new MirResultBinding(m.OkVariable.Name, ToMirType(m.OkVariable.Type)), LowerExpression(m.OkExpression), new MirResultBinding(m.ErrVariable.Name, ToMirType(m.ErrVariable.Type)), LowerExpression(m.ErrExpression), ToMirType(m.Type)),
             BoundIfExpression i => new MirIfExpression(LowerExpression(i.Condition), LowerExpression(i.ThenExpression), LowerExpression(i.ElseExpression), ToMirType(i.Type)),
@@ -1071,7 +1084,8 @@ public static class MirLowerer
         IterableTypeSymbol iterable => new MirIterableType(ToMirType(iterable.ElementType)),
         ResultTypeSymbol result => new MirResultType(ToMirType(result.SuccessType), ToMirType(result.ErrorType)),
         CallableTypeSymbol callable => new MirCallableType(callable.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(), ToMirType(callable.ReturnType)),
-        RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.Name),
+        RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.EmissionName),
+        EnumTypeSymbol @enum => new MirNamedType(@enum.EmissionName),
         ClrTypeSymbol clr => new MirClrType(clr.AssemblyIdentity, clr.Namespace, clr.MetadataName),
         TableTypeSymbol table => new MirTableType(new MirTableId(table.Id.ToString()), table.Name),
         TableRowTypeSymbol row => new MirTableRowType(row.TableId + ".row", row.Name),
@@ -1114,7 +1128,8 @@ public static class MirLowerer
         if (type == typeof(void)) return new MirNamedType("void");
         if (type == typeof(string)) return new MirNamedType("string");
         if (type == typeof(bool)) return new MirNamedType("boolean");
-        if (type == typeof(double) || type == typeof(float) || type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte) || type == typeof(uint) || type == typeof(ulong) || type == typeof(ushort) || type == typeof(sbyte)) return new MirNamedType("number");
+        if (type == typeof(int)) return new MirNamedType("int");
+        if (type == typeof(double)) return new MirNamedType("float");
         if (type.IsArray && type.GetArrayRank() == 1) return new MirArrayType(ToMirTypeFromRuntimeType(type.GetElementType()!));
         return new MirClrType(type.Assembly.FullName ?? type.Assembly.GetName().Name ?? "<unknown>", type.Namespace ?? string.Empty, type.FullName?.Replace('+', '.') ?? type.Name);
     }

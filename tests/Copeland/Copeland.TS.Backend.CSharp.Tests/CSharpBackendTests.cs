@@ -138,7 +138,7 @@ function retain(values: number[]): number[] {
     [Fact]
     public void Valid_table_mir_emits_a_complete_csharp_artifact()
     {
-        var program = Lower("record table Samples { x: [1]; }");
+        var program = Lower("record table Samples { x: number = [1]; }");
 
         CSharpCompilation compilation = CSharpBackend.Emit(program);
 
@@ -157,7 +157,7 @@ function retain(values: number[]): number[] {
             record Point { x: number; }
             enum State { Empty, Value(value: number), }
             record table Values {
-                x: [-0, 2];
+                x: number = [-0.0, 2];
                 name: string = ["zero", "two"];
                 enabled: boolean = [true, false];
                 point: Point = [{ x: 3 }, { x: 4 }];
@@ -201,8 +201,8 @@ function retain(values: number[]): number[] {
     {
         var program = Lower("""
             record table Empty { value: number = []; }
-            record table First { value: [1]; }
-            record table Second { value: [1]; }
+            record table First { value: number = [1]; }
+            record table Second { value: number = [1]; }
             function first(): First { return First; }
             function again(): First { return First; }
             function empty(): number {

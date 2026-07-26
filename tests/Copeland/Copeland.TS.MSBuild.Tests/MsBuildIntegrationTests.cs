@@ -280,6 +280,50 @@ public sealed class MsBuildIntegrationTests
         Assert.Contains("CS0117", csharpError.Output, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Relative_modules_emit_one_graph_artifact_with_internal_private_functions()
+    {
+        using var fixture = new TemporaryProject();
+        string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
+        string targets = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.targets"));
+        fixture.Write("Demo/Demo.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <RootNamespace>Demo</RootNamespace>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+              </PropertyGroup>
+              <ItemGroup>
+                <CopelandCompile Include="Library.ts" />
+                <CopelandCompile Include="Main.ts" />
+              </ItemGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """);
+        fixture.Write("Demo/Library.ts", """
+            function Normalize(value: string): string { return value; }
+            export function Public(value: string): string { return Normalize(value); }
+            """);
+        fixture.Write("Demo/Main.ts", """
+            import { Public } from "./Library";
+            export function Run(): string { return Public("module"); }
+            """);
+        fixture.Write("Demo/Program.cs", """
+            using Demo.Copeland;
+            System.Console.WriteLine(Main.Run());
+            """);
+
+        fixture.Run("Demo", "restore");
+        fixture.Run("Demo", "build", "--no-restore");
+        fixture.Run("Demo", "run", "--no-build").AssertOutput("module");
+
+        string generated = Path.Combine(fixture.Root, "Demo", "obj", "Debug", "net10.0", "Copeland", "CopelandProject.g.cs");
+        string source = File.ReadAllText(generated);
+        Assert.Contains("internal static string Normalize", source, StringComparison.Ordinal);
+        Assert.Contains("public static string Run", source, StringComparison.Ordinal);
+    }
+
     private static string CreateProjectFile(bool includeFeature = true, bool includeProjectReference = true, bool includePackage = true)
     {
         string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));

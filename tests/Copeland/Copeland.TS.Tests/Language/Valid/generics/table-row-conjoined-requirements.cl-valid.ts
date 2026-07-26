@@ -8,8 +8,8 @@ interface Named {
 }
 
 record table Samples {
-    x: [1];
-    y: [2];
+    x: number = [1];
+    y: number = [2];
     name: string = ["row"];
 }
 

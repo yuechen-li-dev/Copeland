@@ -1,4 +1,4 @@
-flow PantryRun -> number {
+export flow PantryRun -> number {
     board {
         servings: number = 0;
     }

@@ -16,6 +16,7 @@ public enum SyntaxKind
     IdentifierToken,
     NumberToken,
     StringToken,
+    TemplateToken,
     TsXmlTextToken,
 
     // Punctuation
@@ -71,6 +72,8 @@ public enum SyntaxKind
     FalseKeyword,
     NullKeyword,
     NumberKeyword,
+    IntKeyword,
+    FloatKeyword,
     StringKeyword,
     BooleanKeyword,
     VoidKeyword,
@@ -159,6 +162,9 @@ public enum SyntaxKind
     NestedTableDeclarationStatement,
     NameExpression,
     LiteralExpression,
+    TemplateExpression,
+    TemplateTextPart,
+    TemplateInterpolationPart,
     ParenthesizedExpression,
     UnaryExpression,
     AwaitExpression,

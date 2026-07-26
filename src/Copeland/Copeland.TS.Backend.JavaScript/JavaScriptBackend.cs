@@ -47,6 +47,19 @@ public static class JavaScriptBackend
     private const string UnsupportedDiagnosticId = "COPE-JS-0001";
     private const string InvalidDiagnosticId = "COPE-JS-0002";
     private static readonly AsyncLocal<Stack<EmittedExpression?>?> ContinueIncrements = new();
+    private static readonly AsyncLocal<bool> ModuleFactoryEmission = new();
+
+    public static string GetEnumFactoryName(string enumName, string caseName)
+        => "__cope_enum_" + EncodeModuleIdentity(enumName) + "_" + EncodeModuleIdentity(caseName);
+
+    public static string GetRecordFactoryName(MirRecordTypeId recordId)
+        => "__cope_record_" + EncodeModuleIdentity(recordId.Value);
+
+    private static string EncodeModuleIdentity(string value)
+        => string.Concat(value.Select(character => ((int)character).ToString("x4", System.Globalization.CultureInfo.InvariantCulture)));
+
+    private static string RecordConstructionName(MirRecordDefinition record, GeneratedNames names)
+        => ModuleFactoryEmission.Value ? GetRecordFactoryName(record.Id) : names.RecordConstructor(record);
 
     public static JavaScriptCompilation Emit(MirProgram program)
     {
@@ -99,6 +112,10 @@ public static class JavaScriptBackend
         bool usesCallables = ProgramUsesCallables(program);
         bool usesCapturedCallables = ProgramUsesCapturedCallables(program);
         bool usesAsync = program.Functions.Any(function => function.IsAsync);
+        bool previousModuleFactoryEmission = ModuleFactoryEmission.Value;
+        ModuleFactoryEmission.Value = effectiveOptions.EmitModuleFactories;
+        try
+        {
         GeneratedNames names = GeneratedNames.Create(program, catalog, results, usesUnwrap, usesTryExcept, effectiveOptions.Profile);
         var writer = new JavaScriptTextWriter(names.Document, effectiveOptions.Profile);
         foreach (MirNpmImport npm in program.NpmImports.OrderBy(import => import.PackageName, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
@@ -155,6 +172,11 @@ public static class JavaScriptBackend
         }
 
         return new JavaScriptCompilation(sourceText, []);
+        }
+        finally
+        {
+            ModuleFactoryEmission.Value = previousModuleFactoryEmission;
+        }
     }
 
     private static void EmitFlow(JavaScriptTextWriter writer, MirFlowDefinition flow)
@@ -538,20 +560,24 @@ public static class JavaScriptBackend
                 ValidateValueType(variable.Type, $"variable '{variable.Name}' in {context}", catalog, diagnostics, allowVoid: false);
                 break;
             case MirBinaryExpression binary:
-                bool isSupportedArithmetic = binary.Operator is "+" or "-" or "*" or "/" or "%";
+                bool isStringConcatenation = binary.Operator == "+"
+                    && binary.Type is MirType { Identifier: "string" }
+                    && binary.Left.Type is MirType { Identifier: "string" }
+                    && binary.Right.Type is MirType { Identifier: "string" };
+                bool isSupportedArithmetic = (binary.Operator is "+" or "-" or "*" or "/" or "%") && !isStringConcatenation;
                 bool isEquality = binary.Operator is "==" or "!=";
                 bool isLogical = binary.Operator is "&&" or "||";
                 bool isRelational = binary.Operator is "<" or "<=" or ">" or ">=";
-                if (!isSupportedArithmetic && !isEquality && !isLogical && !isRelational)
+                if (!isSupportedArithmetic && !isStringConcatenation && !isEquality && !isLogical && !isRelational)
                 {
                     AddUnsupported(diagnostics, $"binary operator '{binary.Operator}' in {context}");
                 }
 
                 if (isSupportedArithmetic)
                 {
-                    RequireType(binary.Type, "number", $"binary expression in {context}", diagnostics);
-                    RequireType(binary.Left.Type, "number", $"left operand of binary expression in {context}", diagnostics);
-                    RequireType(binary.Right.Type, "number", $"right operand of binary expression in {context}", diagnostics);
+                    RequireNumericType(binary.Type, $"binary expression in {context}", diagnostics);
+                    RequireNumericType(binary.Left.Type, $"left operand of binary expression in {context}", diagnostics);
+                    RequireNumericType(binary.Right.Type, $"right operand of binary expression in {context}", diagnostics);
                 }
 
                 if (isEquality)
@@ -569,12 +595,16 @@ public static class JavaScriptBackend
                 if (isRelational)
                 {
                     RequireType(binary.Type, "boolean", $"relational expression in {context}", diagnostics);
-                    RequireType(binary.Left.Type, "number", $"left operand of relational expression in {context}", diagnostics);
-                    RequireType(binary.Right.Type, "number", $"right operand of relational expression in {context}", diagnostics);
+                    RequireNumericType(binary.Left.Type, $"left operand of relational expression in {context}", diagnostics);
+                    RequireNumericType(binary.Right.Type, $"right operand of relational expression in {context}", diagnostics);
                 }
 
                 ValidateExpression(binary.Left, functionReturnType, context, functions, catalog, diagnostics);
                 ValidateExpression(binary.Right, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirNumericConversionExpression conversion:
+                ValidateNumericConversion(conversion, context, diagnostics);
+                ValidateExpression(conversion.Operand, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirCallExpression call:
                 ValidateCall(call, functionReturnType, context, functions, catalog, diagnostics);
@@ -836,7 +866,12 @@ public static class JavaScriptBackend
             return;
         }
 
-        if (literal.Type is MirType { Identifier: "number" } && literal.Value is int or long or float or double)
+        if (literal.Type is MirType { Identifier: "int" } && literal.Value is int)
+        {
+            return;
+        }
+
+        if (literal.Type is MirType { Identifier: "float" or "number" } && literal.Value is int or long or float or double)
         {
             return;
         }
@@ -847,6 +882,26 @@ public static class JavaScriptBackend
         }
 
         AddUnsupported(diagnostics, $"literal of type '{literal.Type.Name}' in {context}");
+    }
+
+    private static void ValidateNumericConversion(MirNumericConversionExpression conversion, string context, List<JavaScriptDiagnostic> diagnostics)
+    {
+        string operandType = conversion.Operand.Type.Name;
+        bool supported = conversion.Kind switch
+        {
+            MirNumericConversionKind.StringFrom => conversion.Type is MirType { Identifier: "string" }
+                && conversion.Operand.Type is MirType { Identifier: "string" or "boolean" or "int" or "float" or "number" },
+            MirNumericConversionKind.IntToFloat => conversion.Type is MirType { Identifier: "float" }
+                && conversion.Operand.Type is MirType { Identifier: "int" },
+            MirNumericConversionKind.IntFloor or MirNumericConversionKind.IntCeil or MirNumericConversionKind.IntRound or MirNumericConversionKind.IntTruncate
+                => conversion.Type is MirType { Identifier: "int" }
+                && conversion.Operand.Type is MirType { Identifier: "float" or "number" },
+            _ => false,
+        };
+        if (!supported)
+        {
+            AddInvalid(diagnostics, $"invalid numeric conversion '{conversion.Kind}' from '{operandType}' in {context}");
+        }
     }
 
     private static void ValidateCall(MirCallExpression call, MirType functionReturnType, string context, IReadOnlyDictionary<string, MirFunction> functions, EnumCatalog catalog, List<JavaScriptDiagnostic> diagnostics)
@@ -979,7 +1034,7 @@ public static class JavaScriptBackend
                 }
                 ValidateValueType(callable.ReturnType, $"callable return type in {context}", catalog, diagnostics, allowVoid: true);
                 return;
-            case MirType named when named is not MirArrayType and not MirResultType && named.Identifier is "number" or "boolean" or "string":
+            case MirType named when named is not MirArrayType and not MirResultType && named.Identifier is "int" or "float" or "number" or "boolean" or "string":
                 return;
             case MirType { Identifier: "void" } when allowVoid:
                 return;
@@ -1008,6 +1063,14 @@ public static class JavaScriptBackend
         }
     }
 
+    private static void RequireNumericType(MirType type, string context, List<JavaScriptDiagnostic> diagnostics)
+    {
+        if (type is not MirType { Identifier: "int" or "float" or "number" })
+        {
+            AddInvalid(diagnostics, $"expected numeric type for {context}, found '{type.Name}'");
+        }
+    }
+
     private static void RequireMatchingType(MirType actual, MirType expected, string context, List<JavaScriptDiagnostic> diagnostics)
     {
         if (!MirTypeFacts.AreEquivalent(actual, expected))
@@ -1021,7 +1084,7 @@ public static class JavaScriptBackend
         RequireType(binary.Type, "boolean", $"equality expression in {context}", diagnostics);
         RequireMatchingType(binary.Left.Type, binary.Right.Type, $"operands of equality expression in {context}", diagnostics);
 
-        if (binary.Left.Type is MirType { Identifier: "boolean" or "number" or "string" })
+        if (binary.Left.Type is MirType { Identifier: "boolean" or "int" or "float" or "number" or "string" })
         {
             return;
         }
@@ -1167,6 +1230,16 @@ public static class JavaScriptBackend
         {
             writer.WriteLine();
             EmitRecordRuntime(writer, record, names);
+            if (ModuleFactoryEmission.Value)
+            {
+                writer.WriteLine();
+                string parameters = string.Join(", ", record.Fields.Select((_, index) => "field" + index));
+                writer.WriteLine($"function {GetRecordFactoryName(record.Id)}({parameters}) {{");
+                writer.Indent();
+                writer.WriteLine($"return {names.RecordConstructor(record)}({parameters});");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
         }
 
         foreach (EnumInfo enumInfo in catalog.Enums)
@@ -1174,6 +1247,20 @@ public static class JavaScriptBackend
             writer.WriteLine();
             writer.WriteLine($"const {names.TypeToken(enumInfo)} = Object.freeze(Object.create(null));");
             writer.WriteLine($"const {names.EnumInstances(enumInfo)} = new WeakSet();");
+        }
+
+        if (ModuleFactoryEmission.Value) foreach (EnumInfo enumInfo in catalog.Enums)
+        {
+            foreach (MirEnumCase enumCase in enumInfo.Definition.Cases)
+            {
+                writer.WriteLine();
+                string parameters = string.Join(", ", enumCase.PayloadFields.Select((_, index) => "payload" + index));
+                writer.WriteLine($"function {GetEnumFactoryName(enumInfo.Definition.Name, enumCase.Name)}({parameters}) {{");
+                writer.Indent();
+                writer.WriteLine($"return {names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(enumCase.Name)}, [{parameters}]);");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
         }
 
         foreach (EnumInfo enumInfo in catalog.Enums)
@@ -1587,7 +1674,7 @@ public static class JavaScriptBackend
     {
         MirRecordDefinition record = catalog.GetRecord(constant.RecordTypeId);
         var values = constant.Fields.ToDictionary(field => field.FieldId, field => field.Value);
-        return $"{names.RecordConstructor(record)}({string.Join(", ", record.Fields.Select(field => EmitTableConstant(values[field.Id], catalog, results, names)))})";
+        return $"{RecordConstructionName(record, names)}({string.Join(", ", record.Fields.Select(field => EmitTableConstant(values[field.Id], catalog, results, names)))})";
     }
 
     private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, GeneratedNames names)
@@ -2316,6 +2403,7 @@ public static class JavaScriptBackend
             MirAssignmentExpression assignment => EmitAssignment(assignment, function, catalog, results, names, flowEnabled),
             MirUnaryExpression unary => EmitUnary(unary, function, catalog, results, names, flowEnabled),
             MirBinaryExpression binary => EmitBinary(binary, function, catalog, results, names, flowEnabled),
+            MirNumericConversionExpression conversion => EmitNumericConversion(conversion, function, catalog, results, names, flowEnabled),
             MirCallExpression call => EmitCall(call, function, catalog, results, names, flowEnabled),
             MirFunctionReferenceExpression reference => EmittedExpression.ValueOnly($"__cope_callable_ref({JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(reference.CallableType))}, {JavaScriptIdentifierEncoder.Encode(reference.FunctionName)})"),
             MirCallableConstructionExpression construction => EmitCallableConstruction(construction, function, catalog, results, names, flowEnabled),
@@ -2345,6 +2433,33 @@ public static class JavaScriptBackend
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
     }
+
+    private static EmittedExpression EmitNumericConversion(
+        MirNumericConversionExpression conversion,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression operand = EmitExpression(conversion.Operand, function, catalog, results, names, flowEnabled);
+        string value = conversion.Kind switch
+        {
+            MirNumericConversionKind.StringFrom when conversion.Operand.Type is MirType { Identifier: "boolean" }
+                => $"({operand.Value} ? \"true\" : \"false\")",
+            MirNumericConversionKind.StringFrom => $"String({operand.Value})",
+            MirNumericConversionKind.IntToFloat => operand.Value,
+            MirNumericConversionKind.IntFloor => EmitCheckedIntConversion($"Math.floor({operand.Value})"),
+            MirNumericConversionKind.IntCeil => EmitCheckedIntConversion($"Math.ceil({operand.Value})"),
+            MirNumericConversionKind.IntTruncate => EmitCheckedIntConversion($"Math.trunc({operand.Value})"),
+            MirNumericConversionKind.IntRound => EmitCheckedIntConversion($"({operand.Value} < 0 ? Math.ceil({operand.Value} - 0.5) : Math.floor({operand.Value} + 0.5))"),
+            _ => throw new InvalidOperationException($"Unsupported numeric conversion {conversion.Kind}."),
+        };
+        return new EmittedExpression(operand.Prelude, value);
+    }
+
+    private static string EmitCheckedIntConversion(string value)
+        => $"(() => {{ const __cope_int = {value}; if (!Number.isFinite(__cope_int) || !Number.isInteger(__cope_int) || __cope_int < -2147483648 || __cope_int > 2147483647) throw new RangeError(\"Copeland int conversion overflow\"); return __cope_int; }})()";
 
     private static EmittedExpression EmitUnary(
         MirUnaryExpression unary,
@@ -2485,7 +2600,7 @@ public static class JavaScriptBackend
         writer.WriteLine("expect(\"})\");");
         writer.WriteLine("expect(\";\\n\");");
         writer.WriteLine("if (position !== text.length) throw new Error(\"Malformed TSON transport payload.\");");
-        writer.WriteLine($"return {names.RecordConstructor(record)}({string.Join(", ", record.Fields.Select(field => valuesByFieldId[field.Id]))});");
+        writer.WriteLine($"return {RecordConstructionName(record, names)}({string.Join(", ", record.Fields.Select(field => valuesByFieldId[field.Id]))});");
         writer.Unindent();
         writer.WriteLine("}");
     }
@@ -3115,7 +3230,7 @@ public static class JavaScriptBackend
         }
 
         string arguments = string.Join(", ", record.Fields.Select(field => valuesByField[field.Id]));
-        return new EmittedExpression(prelude, $"{names.RecordConstructor(record)}({arguments})");
+        return new EmittedExpression(prelude, $"{RecordConstructionName(record, names)}({arguments})");
     }
 
     private static EmittedExpression EmitRecordFieldAccess(
@@ -3268,7 +3383,7 @@ public static class JavaScriptBackend
             replacementsByField.TryGetValue(field.Id, out string? replacement)
                 ? replacement
                 : $"{sourceTemporary}[{names.RecordFieldSlot(field)}]"));
-        return new EmittedExpression(prelude, $"{names.RecordConstructor(record)}({arguments})");
+        return new EmittedExpression(prelude, $"{RecordConstructionName(record, names)}({arguments})");
     }
 
     private static EmittedExpression CombineOrdered(
@@ -3313,7 +3428,9 @@ public static class JavaScriptBackend
         return CombineOrdered(
             payloads,
             names,
-            values => $"{names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", values)}])");
+            values => ModuleFactoryEmission.Value
+                ? $"{GetEnumFactoryName(enumInfo.Definition.Name, value.CaseName)}({string.Join(", ", values)})"
+                : $"{names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", values)}])");
     }
 
     private static EmittedExpression EmitEnumMatchExpression(MirMatchExpression match, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)

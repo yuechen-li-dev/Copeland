@@ -58,7 +58,7 @@ public sealed class NominalUnionBackendParityTests
                 const shape: Shape = circle;
                 return match shape {
                     Circle(value) => trace * 10 + value.observed,
-                    Rectangle(value) => 0,
+                    Rectangle(value) => 0.0,
                 };
             }
 
@@ -73,7 +73,7 @@ public sealed class NominalUnionBackendParityTests
                 };
                 shape = rectangle;
                 return match shape {
-                    Circle(value) => 0,
+                    Circle(value) => 0.0,
                     Rectangle(value) => trace * 10 + value.observed,
                 };
             }
@@ -84,7 +84,7 @@ public sealed class NominalUnionBackendParityTests
                 const shape: Shape = identity<Shape>(circle);
                 return match shape {
                     Circle(value) => trace * 10 + value.observed,
-                    Rectangle(value) => 0,
+                    Rectangle(value) => 0.0,
                 };
             }
 
@@ -94,7 +94,7 @@ public sealed class NominalUnionBackendParityTests
                 const holder: Holder = { shape: circle };
                 return match holder.shape {
                     Circle(value) => trace * 10 + value.observed,
-                    Rectangle(value) => 0,
+                    Rectangle(value) => 0.0,
                 };
             }
 
@@ -105,7 +105,7 @@ public sealed class NominalUnionBackendParityTests
                 return match envelope {
                     Value(shape) => match shape {
                         Circle(value) => trace * 10 + value.observed,
-                        Rectangle(value) => 0,
+                        Rectangle(value) => 0.0,
                     },
                 };
             }
@@ -128,7 +128,7 @@ public sealed class NominalUnionBackendParityTests
                 const shape: Shape = identity<Shape>(circle);
                 return match shape {
                     Circle(value) => trace * 10 + value.observed,
-                    Rectangle(value) => 0,
+                    Rectangle(value) => 0.0,
                 };
             }
 
@@ -143,7 +143,7 @@ public sealed class NominalUnionBackendParityTests
                 const shape: Shape = selectLeft<Shape, Shape>(circle, rectangle);
                 return match shape {
                     Circle(value) => trace * 10 + value.observed,
-                    Rectangle(value) => 0,
+                    Rectangle(value) => 0.0,
                 };
             }
 
@@ -154,7 +154,7 @@ public sealed class NominalUnionBackendParityTests
                 const shape: Shape = value?;
                 return match shape {
                     Circle(payload) => trace * 10 + payload.observed,
-                    Rectangle(payload) => 0,
+                    Rectangle(payload) => 0.0,
                 };
             }
 
@@ -170,7 +170,7 @@ public sealed class NominalUnionBackendParityTests
                     const shape: Shape = value?;
                     match shape {
                         Circle(payload) => trace * 10 + payload.observed,
-                        Rectangle(payload) => 0,
+                        Rectangle(payload) => 0.0,
                     }
                 } except (error) {
                     0
@@ -184,9 +184,9 @@ public sealed class NominalUnionBackendParityTests
                 const second: Shape = secondRectangle;
                 return match first {
                     Circle(value) => value.radius,
-                    Rectangle(value) => 0,
+                    Rectangle(value) => 0.0,
                 } + match second {
-                    Circle(value) => 0,
+                    Circle(value) => 0.0,
                     Rectangle(value) => value.width + value.height,
                 };
             }
@@ -195,7 +195,7 @@ public sealed class NominalUnionBackendParityTests
                 const badge: Badge = { value: 9 };
                 const token: Token = badge;
                 return match token {
-                    Coin(value) => 0,
+                    Coin(value) => 0.0,
                     Badge(value) => value.value,
                 };
             }
@@ -207,9 +207,9 @@ public sealed class NominalUnionBackendParityTests
                 const second: Shape = identity<Shape>(rectangleValue);
                 return match first {
                     Circle(value) => value.radius,
-                    Rectangle(value) => 0,
+                    Rectangle(value) => 0.0,
                 } + match second {
-                    Circle(value) => 0,
+                    Circle(value) => 0.0,
                     Rectangle(value) => value.width + value.height,
                 };
             }

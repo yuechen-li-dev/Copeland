@@ -31,7 +31,7 @@ const answer: number = sum<Point>(point);
     [Fact]
     public void Reuses_One_Closed_Generic_Instantiation_For_Explicit_And_Inferred_Calls()
     {
-        const string valid = "function identity<T>(value: T): T { return value; } const one: number = identity<number>(1); const two: number = identity(2);";
+        const string valid = "function identity<T>(value: T): T { return value; } const one: number = identity<number>(1); const two: int = identity(2);";
         var specialized = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(valid);
 
         Assert.True(specialized.Success, string.Join(Environment.NewLine, specialized.Diagnostics.Select(diagnostic => diagnostic.Message)));
@@ -100,8 +100,8 @@ const answer: number = sum<Point>(point);
     [Fact]
     public void Explicit_And_Inferred_Instantiation_Identity_Is_Independent_Of_Call_Order()
     {
-        const string explicitFirst = "function identity<T>(value: T): T { return value; } const a: number = identity<number>(1); const b: number = identity(2);";
-        const string inferredFirst = "function identity<T>(value: T): T { return value; } const b: number = identity(2); const a: number = identity<number>(1);";
+        const string explicitFirst = "function identity<T>(value: T): T { return value; } const a: number = identity<number>(1); const b: int = identity(2);";
+        const string inferredFirst = "function identity<T>(value: T): T { return value; } const b: int = identity(2); const a: number = identity<number>(1);";
 
         var first = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(explicitFirst);
         var second = Copeland.TS.Compiler.CopelandCompiler.CompileToMir(inferredFirst);
@@ -123,8 +123,8 @@ function chooseLeft<T, U>(left: T, right: U): T { return left; }
 function takeArray<T>(values: T[], fallback: T): T { return fallback; }
 function combinePoint<T>(witness: T, value: T): T { return value; }
 const point: Point = { x: 20, y: 22 };
-const left: number = chooseLeft(42, "ignored");
-const arrayValue: number = takeArray([42], 0);
+const left: int = chooseLeft(42, "ignored");
+const arrayValue: int = takeArray([42], 0);
 const contextual: Point = combinePoint(point, { x: 1, y: 2 });
 """;
 
@@ -296,7 +296,7 @@ function valid<T extends Positioned>(value: T): number { return value.x; }
     {
         const string source = """
 interface Positioned { x: number; }
-record table Samples { x: [20]; y: [22]; }
+record table Samples { x: number = [20]; y: [22]; }
 function read<T extends Positioned>(value: T): number { return value.x; }
 function main(): number { return read<Samples.Row>(Samples[0]!); }
 """;
@@ -407,11 +407,12 @@ function use<T extends I0 & I1 & I2 & I3 & I4 & I5 & I6 & I7 & I8>(value: T): nu
     }
 
     [Fact]
-    public void Reports_Missing_Type_Annotation()
+    public void Infers_Integer_Literal_Without_A_Type_Annotation()
     {
         var tree = SyntaxTree.Parse("let x = 1;");
         var bound = SemanticBinder.Bind(tree);
-        Assert.Contains(bound.Diagnostics, d => d.Id == "COPE-TYPE-0002");
+        Assert.DoesNotContain(bound.Diagnostics, d => d.Id == "COPE-TYPE-0002");
+        Assert.Contains("VariableDeclaration let x: int", BoundTreeDumper.Dump(bound.Program), StringComparison.Ordinal);
     }
 
     [Fact]

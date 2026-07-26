@@ -15,23 +15,23 @@ function numberNotEqual(): boolean {
 }
 
 function nanEqual(): boolean {
-  const nan: number = 0 / 0;
+  const nan: number = 0.0 / 0.0;
   return nan == nan;
 }
 
 function nanNotEqual(): boolean {
-  const nan: number = 0 / 0;
+  const nan: number = 0.0 / 0.0;
   return nan != nan;
 }
 
 function signedZeroEqual(): boolean {
-  const positiveZero: number = 0;
-  const negativeZero: number = 0 * (0 - 1);
+  const positiveZero: number = 0.0;
+  const negativeZero: number = 0.0 * (0.0 - 1.0);
   return positiveZero == negativeZero;
 }
 
 function signedZeroNotEqual(): boolean {
-  const positiveZero: number = 0;
-  const negativeZero: number = 0 * (0 - 1);
+  const positiveZero: number = 0.0;
+  const negativeZero: number = 0.0 * (0.0 - 1.0);
   return positiveZero != negativeZero;
 }

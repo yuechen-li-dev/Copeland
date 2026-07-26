@@ -81,10 +81,39 @@ public sealed class BoundTsonTableColumnPlan(
 }
 public sealed class BoundCompilation
 {
-    public BoundCompilation(SyntaxTree syntaxTree, BoundProgram program, IReadOnlyList<Diagnostics.Diagnostic> diagnostics) { SyntaxTree = syntaxTree; Program = program; Diagnostics = diagnostics; }
+    public BoundCompilation(SyntaxTree syntaxTree, BoundProgram program, IReadOnlyList<Diagnostics.Diagnostic> diagnostics, BoundModuleScope? moduleScope = null) { SyntaxTree = syntaxTree; Program = program; Diagnostics = diagnostics; ModuleScope = moduleScope; }
     public SyntaxTree SyntaxTree { get; }
     public BoundProgram Program { get; }
     public IReadOnlyList<Diagnostics.Diagnostic> Diagnostics { get; }
+    /// <summary>Compiler-owned declarations of this source module. Imported names are deliberately absent.</summary>
+    public BoundModuleScope? ModuleScope { get; }
+}
+
+public sealed class BoundModuleScope(
+    string moduleIdentity,
+    IReadOnlyDictionary<string, Symbol> declarations,
+    IReadOnlyDictionary<string, TypeAliasSymbol> aliases,
+    IReadOnlyDictionary<string, InterfaceSymbol> interfaces,
+    IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> genericBodies)
+{
+    public string ModuleIdentity { get; } = moduleIdentity;
+    public IReadOnlyDictionary<string, Symbol> Declarations { get; } = declarations;
+    public IReadOnlyDictionary<string, TypeAliasSymbol> Aliases { get; } = aliases;
+    public IReadOnlyDictionary<string, InterfaceSymbol> Interfaces { get; } = interfaces;
+    public IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> GenericBodies { get; } = genericBodies;
+}
+
+/// <summary>Names introduced into one module by resolved local imports.</summary>
+public sealed class BoundModuleImports(
+    IReadOnlyDictionary<string, Symbol> declarations,
+    IReadOnlyDictionary<string, TypeAliasSymbol> aliases,
+    IReadOnlyDictionary<string, InterfaceSymbol> interfaces,
+    IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> genericBodies)
+{
+    public IReadOnlyDictionary<string, Symbol> Declarations { get; } = declarations;
+    public IReadOnlyDictionary<string, TypeAliasSymbol> Aliases { get; } = aliases;
+    public IReadOnlyDictionary<string, InterfaceSymbol> Interfaces { get; } = interfaces;
+    public IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> GenericBodies { get; } = genericBodies;
 }
 
 public sealed class BoundFunctionDeclaration : BoundNode { public BoundFunctionDeclaration(FunctionSymbol symbol, BoundBlockStatement body) { Symbol = symbol; Body = body; } public FunctionSymbol Symbol { get; } public BoundBlockStatement Body { get; } }
@@ -238,6 +267,14 @@ public sealed class BoundAssignmentExpression : BoundExpression { public BoundAs
 public sealed class BoundUnaryExpression : BoundExpression { public BoundUnaryExpression(SyntaxKind op, BoundExpression operand, TypeSymbol type) { OperatorKind = op; Operand = operand; TypeImpl = type; } public SyntaxKind OperatorKind { get; } public BoundExpression Operand { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundAwaitExpression : BoundExpression { public BoundAwaitExpression(BoundExpression operand, TypeSymbol type) { Operand = operand; TypeImpl = type; } public BoundExpression Operand { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundBinaryExpression : BoundExpression { public BoundBinaryExpression(BoundExpression left, SyntaxKind op, BoundExpression right, TypeSymbol type) { Left = left; OperatorKind = op; Right = right; TypeImpl = type; } public BoundExpression Left { get; } public SyntaxKind OperatorKind { get; } public BoundExpression Right { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
+public enum BoundNumericConversionKind { StringFrom, IntToFloat, IntFloor, IntCeil, IntRound, IntTruncate }
+/// <summary>Compiler-owned numeric and canonical formatting conversion.</summary>
+public sealed class BoundNumericConversionExpression(BoundNumericConversionKind kind, BoundExpression operand, TypeSymbol type) : BoundExpression
+{
+    public BoundNumericConversionKind Kind { get; } = kind;
+    public BoundExpression Operand { get; } = operand;
+    public override TypeSymbol Type { get; } = type;
+}
 public sealed class BoundCallExpression : BoundExpression { public BoundCallExpression(FunctionSymbol function, IReadOnlyList<BoundExpression> arguments) { Function = function; Arguments = arguments; } public FunctionSymbol Function { get; } public IReadOnlyList<BoundExpression> Arguments { get; } public override TypeSymbol Type => Function.InvocationReturnType; }
 public sealed class BoundNpmCallExpression : BoundExpression
 {

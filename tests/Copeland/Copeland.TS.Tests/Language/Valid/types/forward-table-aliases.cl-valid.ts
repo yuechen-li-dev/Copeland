@@ -3,7 +3,7 @@ type SampleRow = SamplesAlias.Row;
 type NumericColumn = column number;
 
 record table Samples {
-    value: [1, 2];
+    value: number = [1, 2];
 }
 
 function read(row: SampleRow): number {

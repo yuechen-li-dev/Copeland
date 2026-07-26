@@ -12,8 +12,4 @@ public static class KitchenText
         return "[" + Normalize(value) + "]";
     }
 
-    public static string Describe(string name, double portions, double calories)
-    {
-        return name + " serves " + portions + " for " + calories + " calories";
-    }
 }

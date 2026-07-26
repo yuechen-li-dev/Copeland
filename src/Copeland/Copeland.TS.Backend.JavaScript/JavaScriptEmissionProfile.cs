@@ -11,4 +11,5 @@ public enum JavaScriptEmissionProfile
 public sealed record JavaScriptEmissionOptions
 {
     public JavaScriptEmissionProfile Profile { get; init; } = JavaScriptEmissionProfile.Diagnostic;
+    public bool EmitModuleFactories { get; init; }
 }

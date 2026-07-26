@@ -22,8 +22,8 @@ public sealed class GenericBackendParityTests
             type AliasPoint = PersonPoint;
 
             record table Samples {
-                x: [9];
-                y: [10];
+                x: number = [9];
+                y: number = [10];
                 name: string = ["row"];
             }
 
@@ -47,9 +47,9 @@ public sealed class GenericBackendParityTests
             function relayArray<T>(value: T[]): T[] { return value; }
             function relayResult<T, E>(value: T ! E): T ! E { return value; }
 
-            function mainNumber(): number { return identity(42); }
+            function mainNumber(): number { return identity<number>(42); }
             function mainString(): string { return identity("value"); }
-            function mainChoose(): number { return chooseLeft(7, "x"); }
+            function mainChoose(): number { return chooseLeft<number, string>(7, "x"); }
             function mainRecord(): number {
                 const point: Point = { x: 20, y: 22 };
                 return sum(point);
@@ -71,8 +71,8 @@ public sealed class GenericBackendParityTests
                 return describe(row);
             }
             function mainArray(): number {
-                const values: number[] = relayArray([5]);
-                return if true { 100 + 5 } else { 0 };
+                const values: number[] = relayArray<number>([5]);
+                return if true { 100.0 + 5.0 } else { 0 };
             }
             function mainResult(): number {
                 return match relayResult<number, string>(ok(42)) {
@@ -81,7 +81,7 @@ public sealed class GenericBackendParityTests
                 };
             }
             function mainReuse(): number {
-                return identity<number>(1) + identity(2);
+                return identity<number>(1) + identity<number>(2);
             }
             """;
 

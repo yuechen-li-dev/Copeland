@@ -252,6 +252,7 @@ public static class MirValidator
             MirAssignmentExpression assignment => [assignment.Expression],
             MirUnaryExpression unary => [unary.Operand],
             MirBinaryExpression binary => [binary.Left, binary.Right],
+            MirNumericConversionExpression conversion => [conversion.Operand],
             MirCallExpression call => call.Arguments,
             MirInvokeExpression invoke => invoke.Arguments.Append(invoke.Callee),
             MirArrayExpression array => array.Elements,
@@ -486,6 +487,9 @@ public static class MirValidator
             case MirBinaryExpression binary:
                 ValidateCallableExpression(binary.Left, functions, diagnostics);
                 ValidateCallableExpression(binary.Right, functions, diagnostics);
+                return;
+            case MirNumericConversionExpression conversion:
+                ValidateCallableExpression(conversion.Operand, functions, diagnostics);
                 return;
             case MirCallExpression call:
                 foreach (var argument in call.Arguments) ValidateCallableExpression(argument, functions, diagnostics);
@@ -1480,11 +1484,15 @@ public static class MirValidator
     private static bool IsValidTableLiteral(MirTableLiteralConstant literal)
         => literal.Type.Identifier switch
         {
-            "number" => literal.Value is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal,
+            "int" => literal.Value is int,
+            "float" or "number" => literal.Value is sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal,
             "string" => literal.Value is string,
             "boolean" => literal.Value is bool,
             _ => false,
         };
+
+    private static bool IsTableIndexType(MirType type)
+        => type.Identifier is "int" or "float" or "number";
 
     private static void ValidateTableType(MirType type, IReadOnlyDictionary<MirTableId, MirTableDefinition> tables, IReadOnlySet<string> rowTypeIds, List<MirValidationDiagnostic> diagnostics, string context)
     {
@@ -1558,7 +1566,7 @@ public static class MirValidator
                 ValidateTableExpression(access.Index, tables, rowTypeIds, columns, diagnostics);
                 if (!tables.TryGetValue(access.TableId, out var indexedTable)
                     || access.Receiver.Type is not MirTableType tableReceiver || tableReceiver.TableId != access.TableId
-                    || access.Index.Type.Identifier != "number"
+                    || !IsTableIndexType(access.Index.Type)
                     || access.Type is not MirResultType { SuccessType: MirTableRowType row, ErrorType: MirNamedType rowError }
                     || row.RowTypeId != indexedTable.RowTypeId || rowError.Identifier != "TableBoundsError")
                     diagnostics.Add(new MirValidationDiagnostic($"Table row access '{access.TableId}' has an invalid receiver, index, or Result bounds type."));
@@ -1566,7 +1574,7 @@ public static class MirValidator
             case MirColumnElementAccessExpression access:
                 ValidateTableExpression(access.Receiver, tables, rowTypeIds, columns, diagnostics);
                 ValidateTableExpression(access.Index, tables, rowTypeIds, columns, diagnostics);
-                if (access.Receiver.Type is not MirColumnType columnReceiver || access.Index.Type.Identifier != "number"
+                if (access.Receiver.Type is not MirColumnType columnReceiver || !IsTableIndexType(access.Index.Type)
                     || access.Type is not MirResultType { ErrorType: MirNamedType columnError } result
                     || !MirTypeFacts.AreEquivalent(result.SuccessType, columnReceiver.ElementType) || columnError.Identifier != "TableBoundsError")
                     diagnostics.Add(new MirValidationDiagnostic("Column element access has an invalid receiver, index, or Result bounds type."));

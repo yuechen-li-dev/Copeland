@@ -443,7 +443,9 @@ public static class MirTypeFacts
                 && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))
                 && AreEquivalent(leftCallable.EventualReturnType, rightCallable.EventualReturnType),
             (MirIterableType leftIterable, MirIterableType rightIterable) => AreEquivalent(leftIterable.ElementType, rightIterable.ElementType),
-            (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType and not MirAsyncType and not MirIterableType && right is not MirArrayType and not MirResultType and not MirAsyncType and not MirIterableType => leftNamed.Identifier == rightNamed.Identifier,
+            (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType and not MirAsyncType and not MirIterableType && right is not MirArrayType and not MirResultType and not MirAsyncType and not MirIterableType
+                => leftNamed.Identifier == rightNamed.Identifier
+                    || (leftNamed.Identifier is "float" or "number" && rightNamed.Identifier is "float" or "number"),
             (MirArrayType leftArray, MirArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (MirResultType leftResult, MirResultType rightResult) => AreEquivalent(leftResult.SuccessType, rightResult.SuccessType) && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
             (MirAsyncType leftAsync, MirAsyncType rightAsync) => AreEquivalent(leftAsync.EventualType, rightAsync.EventualType),
@@ -477,6 +479,8 @@ public sealed record MirAssignmentExpression(string Name, MirExpression Expressi
 public sealed record MirUnaryExpression(string Operator, MirExpression Operand, MirType Type) : MirExpression(Type);
 public sealed record MirAwaitExpression(MirExpression Operand, MirType Type) : MirExpression(Type);
 public sealed record MirBinaryExpression(string Operator, MirExpression Left, MirExpression Right, MirType Type) : MirExpression(Type);
+public enum MirNumericConversionKind { StringFrom, IntToFloat, IntFloor, IntCeil, IntRound, IntTruncate }
+public sealed record MirNumericConversionExpression(MirNumericConversionKind Kind, MirExpression Operand, MirType Type) : MirExpression(Type);
 public sealed record MirCallExpression(string FunctionName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirFunctionReferenceExpression(string FunctionName, MirCallableType CallableType) : MirExpression(CallableType);
 public sealed record MirCallableConstructionExpression(string CodeFunctionName, IReadOnlyList<MirExpression> Captures, MirCallableType CallableType) : MirExpression(CallableType);

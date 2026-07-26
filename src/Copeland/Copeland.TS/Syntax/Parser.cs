@@ -114,6 +114,16 @@ public sealed class Parser
             return ParseFunctionDeclaration();
         }
 
+        // Module exports do not change the shape of a declaration. The project
+        // compiler records export ownership while it builds the module graph;
+        // the ordinary parser can then bind the declaration itself.
+        if (Current.Kind == SyntaxKind.IdentifierToken
+            && Current.Text == "export"
+            && IsExportableDeclarationAhead())
+        {
+            _ = NextToken();
+        }
+
         if (IsWord(Current, "flow"))
         {
             return ParseFlowDeclaration();
@@ -159,6 +169,17 @@ public sealed class Parser
         }
 
         return new GlobalStatementMemberSyntax(ParseStatement());
+    }
+
+    private bool IsExportableDeclarationAhead()
+    {
+        SyntaxToken next = Peek(1);
+        return next.Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword
+            || IsWord(next, "type")
+            || IsWord(next, "interface")
+            || IsWord(next, "flow")
+            || IsClassWord(next, "class")
+            || (next.Kind == SyntaxKind.ConstKeyword && Peek(2).Kind == SyntaxKind.RecordKeyword);
     }
 
     private FlowDeclarationSyntax ParseFlowDeclaration()
@@ -1222,7 +1243,7 @@ public sealed class Parser
     {
         TypeSyntax type = Current.Kind switch
         {
-            SyntaxKind.NumberKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
+            SyntaxKind.NumberKeyword or SyntaxKind.IntKeyword or SyntaxKind.FloatKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
                 => new PredefinedTypeSyntax(NextToken()),
             SyntaxKind.IdentifierToken when Current.Text == "Async" => ParseAsyncTypeSyntax(),
             SyntaxKind.IdentifierToken when Current.Text == "Iterable" => ParseIterableTypeSyntax(),
@@ -1636,6 +1657,7 @@ public sealed class Parser
             SyntaxKind.OpenParenToken when IsArrowExpressionAhead() => ParseArrowExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
             SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword or SyntaxKind.NullKeyword or SyntaxKind.NumberToken or SyntaxKind.StringToken => new LiteralExpressionSyntax(NextToken()),
+            SyntaxKind.TemplateToken => ParseTemplateExpression(),
             SyntaxKind.IdentifierToken when Current.Text == "capture" => ParseCaptureExpression(),
             SyntaxKind.IdentifierToken when Current.Text == "batch" && IsBatchExpressionAhead() => ParseBatchExpression(),
             SyntaxKind.IdentifierToken when Peek(1).Kind == SyntaxKind.ArrowToken => ParseSingleParameterArrowExpression(),
@@ -1647,6 +1669,67 @@ public sealed class Parser
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+    }
+
+    private TemplateExpressionSyntax ParseTemplateExpression()
+    {
+        SyntaxToken token = NextToken();
+        string text = (string?)token.Value ?? string.Empty;
+        var parts = new List<TemplatePartSyntax>();
+        var textBuilder = new System.Text.StringBuilder();
+        for (var index = 0; index < text.Length; index++)
+        {
+            if (text[index] == '\\' && index + 1 < text.Length)
+            {
+                textBuilder.Append(text[index + 1]);
+                index++;
+                continue;
+            }
+
+            if (text[index] != '$' || index + 1 >= text.Length || text[index + 1] != '{')
+            {
+                textBuilder.Append(text[index]);
+                continue;
+            }
+
+            if (textBuilder.Length > 0)
+            {
+                parts.Add(new TemplateTextPartSyntax(textBuilder.ToString()));
+                textBuilder.Clear();
+            }
+
+            int expressionStart = index + 2;
+            int depth = 1;
+            index += 2;
+            for (; index < text.Length && depth > 0; index++)
+            {
+                if (text[index] == '{') depth++;
+                else if (text[index] == '}') depth--;
+            }
+
+            if (depth != 0)
+            {
+                _diagnostics.Report("COPE-PARSE-0024", "Unterminated template interpolation.", token.Position, Math.Max(1, token.Text.Length));
+                break;
+            }
+
+            string expressionText = text.Substring(expressionStart, index - expressionStart - 1);
+            var nested = new Parser(expressionText, _allowsTsXml, _allowsImports);
+            ExpressionSyntax expression = nested.ParseExpression();
+            foreach (Diagnostic diagnostic in nested.Diagnostics)
+            {
+                _diagnostics.Report(diagnostic.Id, diagnostic.Message, token.Position + expressionStart + diagnostic.Position + 1, diagnostic.Length);
+            }
+            parts.Add(new TemplateInterpolationPartSyntax(expression));
+            index--;
+        }
+
+        if (textBuilder.Length > 0 || parts.Count == 0)
+        {
+            parts.Add(new TemplateTextPartSyntax(textBuilder.ToString()));
+        }
+
+        return new TemplateExpressionSyntax(token, parts);
     }
 
     private BatchExpressionSyntax ParseBatchExpression()
