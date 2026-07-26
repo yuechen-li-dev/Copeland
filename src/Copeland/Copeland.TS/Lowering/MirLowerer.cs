@@ -24,7 +24,14 @@ public static class MirLowerer
     public static MirProgram LowerProgram(BoundProgram program)
     {
         var enums = program.Enums.Select(LowerEnum).ToArray();
-        var records = program.Records.Select(LowerRecord).ToArray();
+        IReadOnlySet<RecordTypeId> flowBoardIds = program.Flows.Select(flow => flow.BoardType.Id).ToHashSet();
+        var records = program.Records.Select(declaration =>
+        {
+            MirRecordDefinition record = LowerRecord(declaration);
+            return flowBoardIds.Contains(declaration.RecordType.Id)
+                ? new MirRecordDefinition(record.Id, record.Name, record.Fields, isClass: true)
+                : record;
+        }).ToArray();
         var tables = program.Tables.Select(LowerTable).ToArray();
         var tsonEncodingPlans = program.TsonEncodingPlans.Select(LowerTsonEncodingPlan).ToArray();
         var functions = program.Functions.Select(LowerFunction).ToArray();
@@ -36,8 +43,40 @@ public static class MirLowerer
             import.Function.IsPromise,
             import.Function.IsAvailableToJavaScript,
             import.Function.IsAvailableToClrSidecar)).ToArray();
-        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath);
+        MirFlowDefinition[] flows = program.Flows.Select(LowerFlow).ToArray();
+        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath, flows);
     }
+
+    private static MirFlowDefinition LowerFlow(BoundFlowDefinition flow)
+        => new(
+            flow.Name,
+            flow.StableIdentity,
+            (MirRecordType)ToMirType(flow.BoardType),
+            flow.BoardFields.Select(field => new MirFlowBoardField(
+                ToMirRecordFieldId(field.Field.Id),
+                field.Field.Name,
+                ToMirType(field.Field.Type),
+                LowerExpression(field.Initializer))).ToArray(),
+            flow.Events.Select(@event => new MirFlowEvent(
+                @event.Name,
+                @event.StableIdentity,
+                @event.Parameters.Select(parameter => new MirParameter(parameter.Name, ToMirType(parameter.Type))).ToArray())).ToArray(),
+            flow.States.Select(state => new MirFlowState(
+                state.Name,
+                state.StableIdentity,
+                state.IsInitial,
+                state.Transitions.Select(transition => new MirFlowTransition(
+                    transition.EventName,
+                    transition.TargetState,
+                    transition.Guard is null ? null : LowerExpression(transition.Guard),
+                    transition.Bindings.Select(binding => new MirParameter(binding.Name, ToMirType(binding.Type))).ToArray(),
+                    transition.Updates.Select(update => new MirFlowBoardUpdate(ToMirRecordFieldId(update.Field.Id), LowerExpression(update.Value))).ToArray())).ToArray(),
+                state.Terminal is null ? null : new MirFlowTerminal(
+                    state.Terminal.IsFailure,
+                    state.Terminal.Expression is null ? null : LowerExpression(state.Terminal.Expression)))).ToArray(),
+            flow.InitialState,
+            ToMirType(flow.ResultType),
+            flow.FailureType is null ? null : ToMirType(flow.FailureType));
 
     private static MirTsonEncodingPlan LowerTsonEncodingPlan(BoundTsonEncodingPlan plan)
     {

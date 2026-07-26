@@ -95,6 +95,10 @@ public sealed class Lexer
                 case '+':
                     return SingleCharToken(SyntaxKind.PlusToken);
                 case '-':
+                    if (Peek(1) == '>')
+                    {
+                        return DoubleCharToken(SyntaxKind.ArrowToken);
+                    }
                     return SingleCharToken(SyntaxKind.MinusToken);
                 case '*':
                     return SingleCharToken(SyntaxKind.StarToken);

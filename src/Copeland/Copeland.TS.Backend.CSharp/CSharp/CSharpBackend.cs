@@ -140,6 +140,11 @@ public static class CSharpBackend
         if (program.Records.Count > 0) writer.WriteLine();
         foreach (var mirEnum in program.Enums) EmitEnum(writer, mirEnum);
         if (program.Enums.Count > 0) writer.WriteLine();
+        foreach (MirFlowDefinition flow in program.Flows)
+        {
+            EmitFlow(writer, flow, enumNames, diagnostics);
+            writer.WriteLine();
+        }
         EmitCallableDelegates(writer, program);
         EmitCapturedCallableEnvironments(writer, program);
         if (program.Tables.Count > 0)
@@ -184,6 +189,136 @@ public static class CSharpBackend
         return diagnostics.Count == 0
             ? new CSharpCompilation(writer.ToString(), diagnostics, sidecarContract)
             : new CSharpCompilation(string.Empty, diagnostics);
+    }
+
+    private static void EmitFlow(CSharpTextWriter writer, MirFlowDefinition flow, IReadOnlySet<string> enumNames, List<CSharpDiagnostic> diagnostics)
+    {
+        string flowName = CSharpNameMangler.Mangle(flow.Name);
+        string boardType = RecordTypeName(flow.BoardType.RecordTypeId);
+        string resultType = flowName + "TransitionResult";
+        var expressionContext = new MirFunction("<flow>", [], new MirNamedType("void"), [], []);
+        writer.WriteLine($"public readonly record struct {resultType}(string Kind, string FromState, string? ToState, string Event, long Revision, bool IsTerminal, object? Error);");
+        writer.WriteLine($"public static class {flowName}");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"public static Session Start() => new Session();");
+        writer.WriteLine("public sealed class Session");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"private {boardType} board;");
+        writer.WriteLine($"private string state = {CSharpLiteralWriter.Write(flow.InitialState)};");
+        writer.WriteLine("private bool terminal;");
+        writer.WriteLine("private bool sending;");
+        writer.WriteLine("private long revision;");
+        int initializerTempIndex = 0;
+        string initializers = string.Join(", ", flow.BoardFields.Select(field => EmitExpression(writer, field.Initializer, expressionContext, enumNames, ref initializerTempIndex, diagnostics)));
+        writer.WriteLine($"internal Session() {{ board = new {boardType}({initializers}); }}");
+        writer.WriteLine($"public {boardType} Board => board;");
+        writer.WriteLine("public string State => state;");
+        writer.WriteLine("public bool IsTerminal => terminal;");
+        writer.WriteLine("public long Revision => revision;");
+        foreach (MirFlowEvent @event in flow.Events)
+        {
+            EmitFlowSend(writer, flow, @event, resultType, expressionContext, enumNames, diagnostics);
+        }
+        foreach (MirFlowState state in flow.States.Where(state => state.Terminal is not null))
+        {
+            EmitFlowTerminal(writer, flow, state, resultType, expressionContext, enumNames, diagnostics);
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitFlowSend(CSharpTextWriter writer, MirFlowDefinition flow, MirFlowEvent @event, string resultType, MirFunction expressionContext, IReadOnlySet<string> enumNames, List<CSharpDiagnostic> diagnostics)
+    {
+        string parameters = string.Join(", ", @event.Payloads.Select(parameter => MapValueStorageType(parameter.Type) + " " + CSharpNameMangler.Mangle(parameter.Name)));
+        writer.WriteLine($"public {resultType} Send{CSharpNameMangler.Mangle(@event.Name)}({parameters})");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (sending) throw new global::System.InvalidOperationException(\"A Copeland flow session cannot receive a reentrant event.\");");
+        writer.WriteLine("if (terminal) return new(" + CSharpLiteralWriter.Write("Terminal") + ", state, null, " + CSharpLiteralWriter.Write(@event.Name) + ", revision, true, null);");
+        writer.WriteLine("sending = true;");
+        writer.WriteLine("try");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("switch (state)");
+        writer.WriteLine("{");
+        writer.Indent();
+        foreach (MirFlowState state in flow.States)
+        {
+            MirFlowTransition? transition = state.Transitions.SingleOrDefault(candidate => candidate.EventName == @event.Name);
+            if (transition is null) continue;
+            writer.WriteLine($"case {CSharpLiteralWriter.Write(state.Name)}:");
+            writer.Indent();
+            int tempIndex = 0;
+            if (transition.Guard is not null)
+            {
+                string guard = EmitExpression(writer, transition.Guard, expressionContext, enumNames, ref tempIndex, diagnostics);
+                writer.WriteLine($"if (!({guard})) return new({CSharpLiteralWriter.Write("Unhandled")}, state, null, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null);");
+            }
+            writer.WriteLine($"{RecordTypeName(flow.BoardType.RecordTypeId)} nextBoard = this.board;");
+            writer.WriteLine($"{RecordTypeName(flow.BoardType.RecordTypeId)} board = nextBoard;");
+            foreach (MirFlowBoardUpdate update in transition.Updates)
+            {
+                string value = EmitExpression(writer, update.Value, expressionContext, enumNames, ref tempIndex, diagnostics);
+                string constructorArguments = string.Join(", ", flow.BoardFields.Select(field =>
+                    field.Id == update.FieldId
+                        ? value
+                        : "nextBoard." + RecordFieldName(field.Id)));
+                writer.WriteLine($"nextBoard = new {RecordTypeName(flow.BoardType.RecordTypeId)}({constructorArguments});");
+                writer.WriteLine("board = nextBoard;");
+            }
+            writer.WriteLine("string fromState = state;");
+            writer.WriteLine("this.board = nextBoard;");
+            writer.WriteLine($"state = {CSharpLiteralWriter.Write(transition.TargetState)};");
+            writer.WriteLine("revision++;");
+            MirFlowState target = flow.States.Single(state => state.Name == transition.TargetState);
+            if (target.Terminal is not null)
+            {
+                writer.WriteLine($"return Enter{CSharpNameMangler.Mangle(target.Name)}(fromState, {CSharpLiteralWriter.Write(@event.Name)});");
+            }
+            else
+            {
+                writer.WriteLine($"return new({CSharpLiteralWriter.Write("Transitioned")}, fromState, state, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null);");
+            }
+            writer.Unindent();
+        }
+        writer.WriteLine("default:");
+        writer.Indent();
+        writer.WriteLine($"return new({CSharpLiteralWriter.Write("Unhandled")}, state, null, {CSharpLiteralWriter.Write(@event.Name)}, revision, false, null);");
+        writer.Unindent();
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("finally");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("sending = false;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitFlowTerminal(CSharpTextWriter writer, MirFlowDefinition flow, MirFlowState state, string resultType, MirFunction expressionContext, IReadOnlySet<string> enumNames, List<CSharpDiagnostic> diagnostics)
+    {
+        MirFlowTerminal terminal = state.Terminal!;
+        int tempIndex = 0;
+        string? error = terminal.IsFailure && terminal.Expression is not null
+            ? EmitExpression(writer, terminal.Expression, expressionContext, enumNames, ref tempIndex, diagnostics)
+            : terminal.IsFailure ? CSharpLiteralWriter.Write("Flow failed.") : "null";
+        writer.WriteLine($"private {resultType} Enter{CSharpNameMangler.Mangle(state.Name)}(string fromState, string eventName)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"{RecordTypeName(flow.BoardType.RecordTypeId)} board = this.board;");
+        writer.WriteLine("terminal = true;");
+        string kind = terminal.IsFailure ? "Failed" : "Completed";
+        writer.WriteLine($"return new({CSharpLiteralWriter.Write(kind)}, fromState, state, eventName, revision, true, {(terminal.IsFailure ? error : "null")});");
+        writer.Unindent();
+        writer.WriteLine("}");
     }
 
     private static void EmitBatchTestSeam(CSharpTextWriter writer)

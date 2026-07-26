@@ -22,7 +22,7 @@ public sealed class MirProgram
     {
     }
 
-    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions, IReadOnlyList<string>? csharpUsings = null, string? csharpSourcePath = null)
+    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions, IReadOnlyList<string>? csharpUsings = null, string? csharpSourcePath = null, IReadOnlyList<MirFlowDefinition>? flows = null)
     {
         Enums = enums;
         Records = records;
@@ -32,6 +32,7 @@ public sealed class MirProgram
         Functions = functions;
         CSharpUsings = csharpUsings ?? [];
         CSharpSourcePath = csharpSourcePath;
+        Flows = flows ?? [];
     }
 
     public IReadOnlyList<MirEnum> Enums { get; }
@@ -42,6 +43,78 @@ public sealed class MirProgram
     public IReadOnlyList<MirFunction> Functions { get; }
     public IReadOnlyList<string> CSharpUsings { get; }
     public string? CSharpSourcePath { get; }
+    public IReadOnlyList<MirFlowDefinition> Flows { get; }
+}
+
+/// <summary>
+/// Backend-neutral, normalized event automaton. This remains distinct from the
+/// async suspension automaton because event delivery owns durable progression.
+/// </summary>
+public sealed class MirFlowDefinition(
+    string name,
+    string stableIdentity,
+    MirRecordType boardType,
+    IReadOnlyList<MirFlowBoardField> boardFields,
+    IReadOnlyList<MirFlowEvent> events,
+    IReadOnlyList<MirFlowState> states,
+    string initialState,
+    MirType resultType,
+    MirType? failureType)
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public MirRecordType BoardType { get; } = boardType;
+    public IReadOnlyList<MirFlowBoardField> BoardFields { get; } = boardFields;
+    public IReadOnlyList<MirFlowEvent> Events { get; } = events;
+    public IReadOnlyList<MirFlowState> States { get; } = states;
+    public string InitialState { get; } = initialState;
+    public MirType ResultType { get; } = resultType;
+    public MirType? FailureType { get; } = failureType;
+}
+
+public sealed class MirFlowBoardField(MirRecordFieldId id, string name, MirType type, MirExpression initializer)
+{
+    public MirRecordFieldId Id { get; } = id;
+    public string Name { get; } = name;
+    public MirType Type { get; } = type;
+    public MirExpression Initializer { get; } = initializer;
+}
+
+public sealed class MirFlowEvent(string name, string stableIdentity, IReadOnlyList<MirParameter> payloads)
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public IReadOnlyList<MirParameter> Payloads { get; } = payloads;
+}
+
+public sealed class MirFlowState(string name, string stableIdentity, bool isInitial, IReadOnlyList<MirFlowTransition> transitions, MirFlowTerminal? terminal)
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public bool IsInitial { get; } = isInitial;
+    public IReadOnlyList<MirFlowTransition> Transitions { get; } = transitions;
+    public MirFlowTerminal? Terminal { get; } = terminal;
+}
+
+public sealed class MirFlowTransition(string eventName, string targetState, MirExpression? guard, IReadOnlyList<MirParameter> bindings, IReadOnlyList<MirFlowBoardUpdate> updates)
+{
+    public string EventName { get; } = eventName;
+    public string TargetState { get; } = targetState;
+    public MirExpression? Guard { get; } = guard;
+    public IReadOnlyList<MirParameter> Bindings { get; } = bindings;
+    public IReadOnlyList<MirFlowBoardUpdate> Updates { get; } = updates;
+}
+
+public sealed class MirFlowBoardUpdate(MirRecordFieldId fieldId, MirExpression value)
+{
+    public MirRecordFieldId FieldId { get; } = fieldId;
+    public MirExpression Value { get; } = value;
+}
+
+public sealed class MirFlowTerminal(bool isFailure, MirExpression? expression)
+{
+    public bool IsFailure { get; } = isFailure;
+    public MirExpression? Expression { get; } = expression;
 }
 
 public readonly record struct MirTsonEncodingPlanId(string Value)

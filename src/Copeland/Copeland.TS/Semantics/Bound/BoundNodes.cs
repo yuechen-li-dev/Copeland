@@ -17,7 +17,8 @@ public sealed class BoundProgram
         IReadOnlyList<BoundTsonEncodingPlan>? tsonEncodingPlans = null,
         IReadOnlyList<BoundNpmImport>? npmImports = null,
         IReadOnlyList<string>? csharpUsings = null,
-        string? csharpSourcePath = null)
+        string? csharpSourcePath = null,
+        IReadOnlyList<BoundFlowDefinition>? flows = null)
     {
         Functions = functions;
         Enums = enums;
@@ -28,6 +29,7 @@ public sealed class BoundProgram
         NpmImports = npmImports ?? [];
         CSharpUsings = csharpUsings ?? [];
         CSharpSourcePath = csharpSourcePath;
+        Flows = flows ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -38,6 +40,7 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundNpmImport> NpmImports { get; }
     public IReadOnlyList<string> CSharpUsings { get; }
     public string? CSharpSourcePath { get; }
+    public IReadOnlyList<BoundFlowDefinition> Flows { get; }
 }
 
 public sealed class BoundNpmImport(NpmFunctionSymbol function)
@@ -89,6 +92,72 @@ public sealed class BoundEnumDeclaration : BoundNode { public BoundEnumDeclarati
 public sealed class BoundRecordDeclaration : BoundNode { public BoundRecordDeclaration(RecordTypeSymbol recordType) => RecordType = recordType; public RecordTypeSymbol RecordType { get; } }
 public sealed class BoundTableDefinition(TableTypeSymbol tableType, IReadOnlyList<BoundTableColumnDefinition> columns, int rowCount) : BoundNode
 { public TableTypeSymbol TableType { get; } = tableType; public IReadOnlyList<BoundTableColumnDefinition> Columns { get; } = columns; public int RowCount { get; } = rowCount; }
+
+public sealed class BoundFlowDefinition(
+    string name,
+    string stableIdentity,
+    RecordTypeSymbol boardType,
+    IReadOnlyList<BoundFlowBoardField> boardFields,
+    IReadOnlyList<BoundFlowEvent> events,
+    IReadOnlyList<BoundFlowState> states,
+    string initialState,
+    TypeSymbol resultType,
+    TypeSymbol? failureType)
+    : BoundNode
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public RecordTypeSymbol BoardType { get; } = boardType;
+    public IReadOnlyList<BoundFlowBoardField> BoardFields { get; } = boardFields;
+    public IReadOnlyList<BoundFlowEvent> Events { get; } = events;
+    public IReadOnlyList<BoundFlowState> States { get; } = states;
+    public string InitialState { get; } = initialState;
+    public TypeSymbol ResultType { get; } = resultType;
+    public TypeSymbol? FailureType { get; } = failureType;
+}
+
+public sealed class BoundFlowBoardField(RecordFieldSymbol field, BoundExpression initializer) : BoundNode
+{
+    public RecordFieldSymbol Field { get; } = field;
+    public BoundExpression Initializer { get; } = initializer;
+}
+
+public sealed class BoundFlowEvent(string name, string stableIdentity, IReadOnlyList<ParameterSymbol> parameters) : BoundNode
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
+}
+
+public sealed class BoundFlowState(string name, string stableIdentity, bool isInitial, IReadOnlyList<BoundFlowTransition> transitions, BoundFlowTerminal? terminal) : BoundNode
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public bool IsInitial { get; } = isInitial;
+    public IReadOnlyList<BoundFlowTransition> Transitions { get; } = transitions;
+    public BoundFlowTerminal? Terminal { get; } = terminal;
+}
+
+public sealed class BoundFlowTransition(string eventName, string targetState, BoundExpression? guard, IReadOnlyList<ParameterSymbol> bindings, IReadOnlyList<BoundFlowBoardUpdate> updates) : BoundNode
+{
+    public string EventName { get; } = eventName;
+    public string TargetState { get; } = targetState;
+    public BoundExpression? Guard { get; } = guard;
+    public IReadOnlyList<ParameterSymbol> Bindings { get; } = bindings;
+    public IReadOnlyList<BoundFlowBoardUpdate> Updates { get; } = updates;
+}
+
+public sealed class BoundFlowBoardUpdate(RecordFieldSymbol field, BoundExpression value) : BoundNode
+{
+    public RecordFieldSymbol Field { get; } = field;
+    public BoundExpression Value { get; } = value;
+}
+
+public sealed class BoundFlowTerminal(bool isFailure, BoundExpression? expression) : BoundNode
+{
+    public bool IsFailure { get; } = isFailure;
+    public BoundExpression? Expression { get; } = expression;
+}
 public abstract class BoundTableConstant(TypeSymbol type) : BoundNode
 {
     public TypeSymbol Type { get; } = type;

@@ -19,6 +19,27 @@ for (const value of values()) {
 See [CTS-GENERATOR-M1](docs/cts-generator-m1.md) for the supported iterator
 contract and deliberately deferred coroutine features.
 
+## Explicit flows
+
+Copeland TS also supports synchronous, typed application flows with fixed board
+memory and explicit event transitions:
+
+```ts
+flow Door -> number {
+    board { attempts: number = 0; }
+    event Open();
+    state Closed initial {
+        on Open() -> Opened { board.attempts = board.attempts + 1; };
+    }
+    state Opened { finish board.attempts; }
+}
+```
+
+The compiler retains a dedicated flow graph through Bound and MIR, and both
+CLR and JavaScript emit direct inspectable sessions. See
+[CTS-FLOW-M1](docs/cts-flow-m1.md) for the transition, guard, inspection, and
+deferral laws.
+
 Copeland is a compiler-infrastructure repository with three physically separated subsystem lanes: Copeland, Machina.UI, and Aurelian. Assembly names and namespaces retain their existing identities during the JTF-M0 topology milestone.
 
 ## Subsystems

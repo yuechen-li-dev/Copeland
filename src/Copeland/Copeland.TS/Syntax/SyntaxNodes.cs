@@ -599,6 +599,104 @@ public sealed record ResourceUsingDeclarationStatementSyntax(
     }
 }
 
+/// <summary>Module-level, compiler-owned event automaton declaration.</summary>
+public sealed record FlowDeclarationSyntax(
+    SyntaxToken FlowKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken? ResultArrowToken,
+    TypeSyntax? ResultType,
+    SyntaxToken OpenBraceToken,
+    FlowBoardSyntax? Board,
+    IReadOnlyList<FlowEventSyntax> Events,
+    IReadOnlyList<FlowStateSyntax> States,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.FlowDeclaration;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return FlowKeyword; yield return Identifier;
+        if (ResultArrowToken is not null) yield return ResultArrowToken;
+        if (ResultType is not null) yield return ResultType;
+        yield return OpenBraceToken;
+        if (Board is not null) yield return Board;
+        foreach (var @event in Events) yield return @event;
+        foreach (var state in States) yield return state;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record FlowBoardSyntax(SyntaxToken BoardKeyword, SyntaxToken OpenBraceToken, IReadOnlyList<FlowBoardFieldSyntax> Fields, SyntaxToken CloseBraceToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.FlowBoard;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return BoardKeyword; yield return OpenBraceToken;
+        foreach (var field in Fields) yield return field;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record FlowBoardFieldSyntax(SyntaxToken Identifier, SyntaxToken ColonToken, TypeSyntax Type, SyntaxToken? EqualsToken, ExpressionSyntax? Initializer, SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.FlowBoardField;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier; yield return ColonToken; yield return Type;
+        if (EqualsToken is not null) yield return EqualsToken;
+        if (Initializer is not null) yield return Initializer;
+        yield return SemicolonToken;
+    }
+}
+
+public sealed record FlowEventSyntax(SyntaxToken EventKeyword, SyntaxToken Identifier, SyntaxToken OpenParenToken, IReadOnlyList<ParameterSyntax> Parameters, IReadOnlyList<SyntaxToken> CommaTokens, SyntaxToken CloseParenToken, SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.FlowEvent;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return EventKeyword; yield return Identifier; yield return OpenParenToken;
+        foreach (var parameter in Parameters) yield return parameter;
+        foreach (var comma in CommaTokens) yield return comma;
+        yield return CloseParenToken; yield return SemicolonToken;
+    }
+}
+
+public sealed record FlowStateSyntax(SyntaxToken StateKeyword, SyntaxToken Identifier, SyntaxToken? InitialKeyword, SyntaxToken OpenBraceToken, IReadOnlyList<FlowTransitionSyntax> Transitions, FlowTerminalSyntax? Terminal, SyntaxToken CloseBraceToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.FlowState;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return StateKeyword; yield return Identifier;
+        if (InitialKeyword is not null) yield return InitialKeyword;
+        yield return OpenBraceToken;
+        foreach (var transition in Transitions) yield return transition;
+        if (Terminal is not null) yield return Terminal;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record FlowTransitionSyntax(SyntaxToken OnKeyword, SyntaxToken EventIdentifier, SyntaxToken OpenParenToken, IReadOnlyList<SyntaxToken> Bindings, IReadOnlyList<SyntaxToken> CommaTokens, SyntaxToken CloseParenToken, SyntaxToken? WhenKeyword, ExpressionSyntax? Guard, SyntaxToken ArrowToken, SyntaxToken TargetIdentifier, BlockStatementSyntax? Body, SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.FlowTransition;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return OnKeyword; yield return EventIdentifier; yield return OpenParenToken;
+        foreach (var binding in Bindings) yield return binding;
+        foreach (var comma in CommaTokens) yield return comma;
+        yield return CloseParenToken;
+        if (WhenKeyword is not null) yield return WhenKeyword;
+        if (Guard is not null) yield return Guard;
+        yield return ArrowToken; yield return TargetIdentifier;
+        if (Body is not null) yield return Body;
+        yield return SemicolonToken;
+    }
+}
+
+public sealed record FlowTerminalSyntax(SyntaxToken Keyword, ExpressionSyntax? Expression, SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => Keyword.Text == "finish" ? SyntaxKind.FlowFinish : SyntaxKind.FlowFail;
+    public override IEnumerable<object> GetChildren() { yield return Keyword; if (Expression is not null) yield return Expression; yield return SemicolonToken; }
+}
+
 public sealed record CSharpBlockStatementSyntax(
     SyntaxToken CSharpKeyword,
     SyntaxToken OpenBraceToken,

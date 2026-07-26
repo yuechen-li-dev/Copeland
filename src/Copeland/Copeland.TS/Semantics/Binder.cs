@@ -114,6 +114,7 @@ public static class Binder
         private readonly List<BoundEnumDeclaration> _enums = [];
         private readonly List<BoundRecordDeclaration> _records = [];
         private readonly List<BoundTableDefinition> _tables = [];
+        private readonly List<BoundFlowDefinition> _flows = [];
         private readonly List<BoundStatement> _globals = [];
         private readonly List<BoundNpmImport> _npmImports = [];
         private readonly HashSet<string> _clrNamespaces = new(StringComparer.Ordinal);
@@ -185,6 +186,7 @@ public static class Binder
             BindEnumBodies(_tree.Root);
             BindNominalUnionBodies(_tree.Root);
             BindTableBodies(_tree.Root);
+            BindFlows(_tree.Root);
             ValidateRecordCycles();
             foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0))
             {
@@ -230,7 +232,8 @@ public static class Binder
                     _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray(),
                     _npmImports.OrderBy(import => import.Function.PackageName, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray(),
                     _clrNamespaces.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
-                    _sourcePath),
+                    _sourcePath,
+                    _flows),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
         }
 
@@ -1893,6 +1896,275 @@ public static class Binder
             _scope = prev; _currentFunction = prevFn; _activeTypeParameters = previousTypeParameters;
             return new BoundFunctionDeclaration(fn, body);
         }
+
+        private void BindFlows(CompilationUnitSyntax root)
+        {
+            foreach (FlowDeclarationSyntax declaration in root.Members.OfType<FlowDeclarationSyntax>())
+            {
+                BindFlow(declaration);
+            }
+        }
+
+        private void BindFlow(FlowDeclarationSyntax declaration)
+        {
+            string flowName = declaration.Identifier.Text;
+            TypeSymbol declaredResult = declaration.ResultType is null
+                ? PrimitiveTypeSymbol.Void
+                : BindType(declaration.ResultType, declaration.Identifier, "COPE-FLOW-0027", "flow result");
+            TypeSymbol? declaredFailure = declaredResult is ResultTypeSymbol result ? result.ErrorType : null;
+            if (declaredResult is ResultTypeSymbol resultType)
+            {
+                declaredResult = resultType.SuccessType;
+            }
+            if (_global.TryLookup(flowName, out _))
+            {
+                Report("COPE-FLOW-0002", $"Duplicate flow declaration '{flowName}'.", declaration.Identifier);
+            }
+
+            var boardType = new RecordTypeSymbol(
+                flowName + "Board",
+                new RecordTypeId(_nextRecordTypeId++),
+                "flow:" + flowName + ".board");
+            var boardFields = new List<BoundFlowBoardField>();
+            if (declaration.Board is null)
+            {
+                Report("COPE-FLOW-0003", $"Flow '{flowName}' must declare a fixed board.", declaration.Identifier);
+            }
+            else
+            {
+                var fieldNames = new HashSet<string>(StringComparer.Ordinal);
+                foreach (FlowBoardFieldSyntax fieldSyntax in declaration.Board.Fields)
+                {
+                    if (!fieldNames.Add(fieldSyntax.Identifier.Text))
+                    {
+                        Report("COPE-FLOW-0004", $"Flow board '{flowName}' has duplicate field '{fieldSyntax.Identifier.Text}'.", fieldSyntax.Identifier);
+                        continue;
+                    }
+
+                    TypeSymbol type = BindType(fieldSyntax.Type, fieldSyntax.Identifier, "COPE-FLOW-0005", "board field");
+                    var field = new RecordFieldSymbol(fieldSyntax.Identifier.Text, new RecordFieldId(boardType.Id, boardType.Fields.Count), type);
+                    boardType.AddField(field);
+                    BoundExpression initializer;
+                    if (fieldSyntax.Initializer is null)
+                    {
+                        Report("COPE-FLOW-0006", $"Board field '{field.Name}' requires an explicit initializer in FLOW-M1.", fieldSyntax.Identifier);
+                        initializer = new BoundErrorExpression();
+                    }
+                    else
+                    {
+                        initializer = BindExpression(fieldSyntax.Initializer);
+                        if (initializer.Type != PrimitiveTypeSymbol.Error && !IsAssignable(type, initializer.Type))
+                        {
+                            Report("COPE-FLOW-0007", $"Board initializer for '{field.Name}' must have type '{type.Name}', got '{initializer.Type.Name}'.", fieldSyntax.Identifier);
+                        }
+                    }
+                    boardFields.Add(new BoundFlowBoardField(field, initializer));
+                }
+            }
+            _records.Add(new BoundRecordDeclaration(boardType));
+
+            var events = new List<BoundFlowEvent>();
+            var eventsByName = new Dictionary<string, BoundFlowEvent>(StringComparer.Ordinal);
+            foreach (FlowEventSyntax eventSyntax in declaration.Events)
+            {
+                if (eventsByName.ContainsKey(eventSyntax.Identifier.Text))
+                {
+                    Report("COPE-FLOW-0008", $"Flow '{flowName}' has duplicate event '{eventSyntax.Identifier.Text}'.", eventSyntax.Identifier);
+                    continue;
+                }
+                var parameters = new List<ParameterSymbol>();
+                var parameterNames = new HashSet<string>(StringComparer.Ordinal);
+                foreach (ParameterSyntax parameterSyntax in eventSyntax.Parameters)
+                {
+                    if (!parameterNames.Add(parameterSyntax.Identifier.Text))
+                    {
+                        Report("COPE-FLOW-0009", $"Event '{eventSyntax.Identifier.Text}' has duplicate payload binding '{parameterSyntax.Identifier.Text}'.", parameterSyntax.Identifier);
+                        continue;
+                    }
+                    TypeSymbol type = BindType(parameterSyntax.Type, parameterSyntax.Identifier, "COPE-FLOW-0010", "event payload");
+                    parameters.Add(new ParameterSymbol(parameterSyntax.Identifier.Text, type));
+                }
+                var @event = new BoundFlowEvent(eventSyntax.Identifier.Text, "flow:" + flowName + ".event:" + eventSyntax.Identifier.Text, parameters);
+                events.Add(@event);
+                eventsByName.Add(@event.Name, @event);
+            }
+
+            var stateNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (FlowStateSyntax state in declaration.States)
+            {
+                if (!stateNames.Add(state.Identifier.Text))
+                {
+                    Report("COPE-FLOW-0011", $"Flow '{flowName}' has duplicate state '{state.Identifier.Text}'.", state.Identifier);
+                }
+            }
+            FlowStateSyntax[] initialStates = declaration.States.Where(state => state.InitialKeyword is not null).ToArray();
+            if (initialStates.Length == 0)
+            {
+                Report("COPE-FLOW-0012", $"Flow '{flowName}' must have exactly one initial state.", declaration.Identifier);
+            }
+            else if (initialStates.Length > 1)
+            {
+                foreach (FlowStateSyntax state in initialStates.Skip(1))
+                {
+                    Report("COPE-FLOW-0013", $"Flow '{flowName}' has multiple initial states.", state.InitialKeyword!);
+                }
+            }
+
+            var states = new List<BoundFlowState>();
+            foreach (FlowStateSyntax stateSyntax in declaration.States)
+            {
+                var transitions = new List<BoundFlowTransition>();
+                foreach (FlowTransitionSyntax transitionSyntax in stateSyntax.Transitions)
+                {
+                    if (!eventsByName.TryGetValue(transitionSyntax.EventIdentifier.Text, out BoundFlowEvent? @event))
+                    {
+                        Report("COPE-FLOW-0014", $"State '{stateSyntax.Identifier.Text}' handles unknown event '{transitionSyntax.EventIdentifier.Text}'.", transitionSyntax.EventIdentifier);
+                        continue;
+                    }
+                    if (!stateNames.Contains(transitionSyntax.TargetIdentifier.Text))
+                    {
+                        Report("COPE-FLOW-0015", $"Transition target '{transitionSyntax.TargetIdentifier.Text}' is not a state in flow '{flowName}'.", transitionSyntax.TargetIdentifier);
+                    }
+                    if (transitionSyntax.Bindings.Count != @event.Parameters.Count)
+                    {
+                        Report("COPE-FLOW-0016", $"Event '{@event.Name}' requires {@event.Parameters.Count} payload binding(s), got {transitionSyntax.Bindings.Count}.", transitionSyntax.EventIdentifier);
+                    }
+
+                    Scope previousScope = _scope;
+                    _scope = new Scope(_global);
+                    try
+                    {
+                        _scope.TryDeclare(new VariableSymbol("board", boardType, true));
+                        var bindings = new List<ParameterSymbol>();
+                        for (int index = 0; index < transitionSyntax.Bindings.Count && index < @event.Parameters.Count; index++)
+                        {
+                            var binding = new ParameterSymbol(transitionSyntax.Bindings[index].Text, @event.Parameters[index].Type);
+                            bindings.Add(binding);
+                            if (!_scope.TryDeclare(binding)) Report("COPE-FLOW-0017", $"Payload binding '{binding.Name}' is duplicated or shadows board.", transitionSyntax.Bindings[index]);
+                        }
+                        BoundExpression? guard = transitionSyntax.Guard is null ? null : EnsureBoolean(BindExpression(transitionSyntax.Guard), transitionSyntax.WhenKeyword!);
+                        if (guard is not null && !IsFlowPure(guard))
+                        {
+                            Report("COPE-FLOW-0018", "Flow guards may use only pure local expressions and board reads in FLOW-M1.", transitionSyntax.WhenKeyword!);
+                        }
+                        transitions.Add(new BoundFlowTransition(@event.Name, transitionSyntax.TargetIdentifier.Text, guard, bindings, BindFlowUpdates(transitionSyntax.Body, boardType)));
+                    }
+                    finally
+                    {
+                        _scope = previousScope;
+                    }
+                }
+
+                BoundFlowTerminal? terminal = BindFlowTerminal(stateSyntax.Terminal, boardType, declaredResult, declaredFailure);
+                states.Add(new BoundFlowState(
+                    stateSyntax.Identifier.Text,
+                    "flow:" + flowName + ".state:" + stateSyntax.Identifier.Text,
+                    stateSyntax.InitialKeyword is not null,
+                    transitions,
+                    terminal));
+            }
+
+            foreach (BoundFlowState state in states)
+            {
+                foreach (IGrouping<string, BoundFlowTransition> group in state.Transitions.GroupBy(transition => transition.EventName, StringComparer.Ordinal))
+                {
+                    if (group.Count() > 1)
+                    {
+                        Report("COPE-FLOW-0019", $"State '{state.Name}' has multiple transitions for event '{group.Key}'. FLOW-M1 rejects ambiguous transition declarations.", declaration.Identifier);
+                    }
+                }
+            }
+            string initialState = initialStates.FirstOrDefault()?.Identifier.Text ?? declaration.States.FirstOrDefault()?.Identifier.Text ?? "<missing>";
+            _flows.Add(new BoundFlowDefinition(flowName, "flow:" + flowName, boardType, boardFields, events, states, initialState, declaredResult, declaredFailure));
+        }
+
+        private IReadOnlyList<BoundFlowBoardUpdate> BindFlowUpdates(BlockStatementSyntax? body, RecordTypeSymbol boardType)
+        {
+            if (body is null) return [];
+            var updates = new List<BoundFlowBoardUpdate>();
+            foreach (StatementSyntax statement in body.Statements)
+            {
+                if (statement is not ExpressionStatementSyntax { Expression: AssignmentExpressionSyntax { Left: MemberAccessExpressionSyntax member, Right: ExpressionSyntax value } })
+                {
+                    Report("COPE-FLOW-0020", "FLOW-M1 transition bodies may contain only 'board.field = expression;' updates.", body.OpenBraceToken);
+                    continue;
+                }
+                if (member.Target is not NameExpressionSyntax { IdentifierToken.Text: "board" })
+                {
+                    Report("COPE-FLOW-0021", "Transition updates must assign an explicit board field.", member.NameToken);
+                    continue;
+                }
+                RecordFieldSymbol? field = boardType.Fields.FirstOrDefault(candidate => candidate.Name == member.NameToken.Text);
+                if (field is null)
+                {
+                    Report("COPE-FLOW-0022", $"Flow board has no field '{member.NameToken.Text}'.", member.NameToken);
+                    continue;
+                }
+                BoundExpression expression = BindExpression(value);
+                if (expression.Type != PrimitiveTypeSymbol.Error && !IsAssignable(field.Type, expression.Type))
+                {
+                    Report("COPE-FLOW-0023", $"Board update for '{field.Name}' must have type '{field.Type.Name}', got '{expression.Type.Name}'.", member.NameToken);
+                }
+                if (!IsFlowPure(expression))
+                {
+                    Report("COPE-FLOW-0024", "FLOW-M1 transition updates may not call async, npm, CLR, batch, or inline-C# operations.", member.NameToken);
+                }
+                updates.Add(new BoundFlowBoardUpdate(field, expression));
+            }
+            return updates;
+        }
+
+        private BoundFlowTerminal? BindFlowTerminal(FlowTerminalSyntax? syntax, RecordTypeSymbol boardType, TypeSymbol resultType, TypeSymbol? failureType)
+        {
+            if (syntax is null) return null;
+            Scope previousScope = _scope;
+            _scope = new Scope(_global);
+            try
+            {
+                _scope.TryDeclare(new VariableSymbol("board", boardType, true));
+                BoundExpression? expression = syntax.Expression is null ? null : BindExpression(syntax.Expression);
+                if (syntax.Keyword.Text == "finish" && resultType != PrimitiveTypeSymbol.Void && expression is null)
+                {
+                    Report("COPE-FLOW-0029", $"Flow completion requires a value of type '{resultType.Name}'.", syntax.Keyword);
+                }
+                if (syntax.Keyword.Text == "finish" && expression is not null && !IsAssignable(resultType, expression.Type))
+                {
+                    Report("COPE-FLOW-0028", $"Flow completion requires '{resultType.Name}', got '{expression.Type.Name}'.", syntax.Keyword);
+                }
+                if (syntax.Keyword.Text == "fail"
+                    && failureType is not null
+                    && expression is null)
+                {
+                    Report("COPE-FLOW-0030", $"Flow failure requires a value of type '{failureType.Name}'.", syntax.Keyword);
+                }
+                if (syntax.Keyword.Text == "fail"
+                    && expression is not null
+                    && expression.Type != PrimitiveTypeSymbol.Error
+                    && (failureType is null || !IsAssignable(failureType, expression.Type)))
+                {
+                    Report("COPE-FLOW-0026", "Flow failure does not match its declared failure type.", syntax.Keyword);
+                }
+                if (expression is not null && !IsFlowPure(expression))
+                {
+                    Report("COPE-FLOW-0025", "FLOW-M1 terminal outcomes may use only pure expressions and board reads.", syntax.Keyword);
+                }
+                return new BoundFlowTerminal(syntax.Keyword.Text == "fail", expression);
+            }
+            finally
+            {
+                _scope = previousScope;
+            }
+        }
+
+        private static bool IsFlowPure(BoundExpression expression)
+            => expression switch
+            {
+                BoundLiteralExpression or BoundVariableExpression or BoundUnitExpression => true,
+                BoundUnaryExpression unary => IsFlowPure(unary.Operand),
+                BoundBinaryExpression binary => IsFlowPure(binary.Left) && IsFlowPure(binary.Right),
+                BoundRecordFieldAccessExpression access => IsFlowPure(access.Receiver),
+                _ => false,
+            };
 
         private BoundFunctionDeclaration BindClassConstructor(FunctionSymbol function, ClassConstructorDeclarationSyntax syntax)
             => BindClassFunctionBody(function, syntax.Body, syntax.ConstructorKeyword);

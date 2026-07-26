@@ -114,6 +114,11 @@ public sealed class Parser
             return ParseFunctionDeclaration();
         }
 
+        if (IsWord(Current, "flow"))
+        {
+            return ParseFlowDeclaration();
+        }
+
         if (Current.Kind == SyntaxKind.IdentifierToken
             && Current.Text == "type")
         {
@@ -154,6 +159,113 @@ public sealed class Parser
         }
 
         return new GlobalStatementMemberSyntax(ParseStatement());
+    }
+
+    private FlowDeclarationSyntax ParseFlowDeclaration()
+    {
+        SyntaxToken flowKeyword = NextToken();
+        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? resultArrow = Current.Kind == SyntaxKind.ArrowToken ? NextToken() : null;
+        TypeSyntax? resultType = resultArrow is null ? null : ParseTypeSyntax();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        FlowBoardSyntax? board = null;
+        var events = new List<FlowEventSyntax>();
+        var states = new List<FlowStateSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            if (IsWord(Current, "board"))
+            {
+                if (board is not null) _diagnostics.Report("COPE-FLOW-0001", "A flow may declare only one board.", Current.Position, Current.Text.Length);
+                board = ParseFlowBoard();
+            }
+            else if (IsWord(Current, "event")) events.Add(ParseFlowEvent());
+            else if (IsWord(Current, "state")) states.Add(ParseFlowState());
+            else { ReportUnexpectedToken(Current); NextToken(); }
+            if (Current == start) NextToken();
+        }
+        return new FlowDeclarationSyntax(flowKeyword, identifier, resultArrow, resultType, openBrace, board, events, states, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private FlowBoardSyntax ParseFlowBoard()
+    {
+        SyntaxToken boardKeyword = NextToken();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var fields = new List<FlowBoardFieldSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken colon = Match(SyntaxKind.ColonToken);
+            TypeSyntax type = ParseTypeSyntax();
+            SyntaxToken? equals = Current.Kind == SyntaxKind.EqualsToken ? NextToken() : null;
+            ExpressionSyntax? initializer = equals is null ? null : ParseExpression();
+            SyntaxToken semicolon = Match(SyntaxKind.SemicolonToken);
+            fields.Add(new FlowBoardFieldSyntax(identifier, colon, type, equals, initializer, semicolon));
+        }
+        return new FlowBoardSyntax(boardKeyword, openBrace, fields, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private FlowEventSyntax ParseFlowEvent()
+    {
+        SyntaxToken eventKeyword = NextToken();
+        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
+        var parameters = new List<ParameterSyntax>();
+        var commas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken name = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? colon = Current.Kind == SyntaxKind.ColonToken ? NextToken() : null;
+            TypeSyntax? type = colon is null ? null : ParseTypeSyntax();
+            parameters.Add(new ParameterSyntax(name, colon, type));
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            commas.Add(NextToken());
+        }
+        return new FlowEventSyntax(eventKeyword, identifier, openParen, parameters, commas, Match(SyntaxKind.CloseParenToken), Match(SyntaxKind.SemicolonToken));
+    }
+
+    private FlowStateSyntax ParseFlowState()
+    {
+        SyntaxToken stateKeyword = NextToken();
+        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? initial = IsWord(Current, "initial") ? NextToken() : null;
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var transitions = new List<FlowTransitionSyntax>();
+        FlowTerminalSyntax? terminal = null;
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            if (IsWord(Current, "on")) transitions.Add(ParseFlowTransition());
+            else if (IsWord(Current, "finish") || IsWord(Current, "fail"))
+            {
+                SyntaxToken keyword = NextToken();
+                ExpressionSyntax? expression = Current.Kind == SyntaxKind.SemicolonToken ? null : ParseExpression();
+                terminal = new FlowTerminalSyntax(keyword, expression, Match(SyntaxKind.SemicolonToken));
+            }
+            else { ReportUnexpectedToken(Current); NextToken(); }
+        }
+        return new FlowStateSyntax(stateKeyword, identifier, initial, openBrace, transitions, terminal, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private FlowTransitionSyntax ParseFlowTransition()
+    {
+        SyntaxToken onKeyword = NextToken();
+        SyntaxToken eventIdentifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
+        var bindings = new List<SyntaxToken>();
+        var commas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+        {
+            bindings.Add(Match(SyntaxKind.IdentifierToken));
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            commas.Add(NextToken());
+        }
+        SyntaxToken closeParen = Match(SyntaxKind.CloseParenToken);
+        SyntaxToken? when = IsWord(Current, "when") ? NextToken() : null;
+        ExpressionSyntax? guard = when is null ? null : ParseExpression();
+        SyntaxToken arrow = Match(SyntaxKind.ArrowToken);
+        SyntaxToken target = Match(SyntaxKind.IdentifierToken);
+        BlockStatementSyntax? body = Current.Kind == SyntaxKind.OpenBraceToken ? ParseBlockStatement() : null;
+        return new FlowTransitionSyntax(onKeyword, eventIdentifier, openParen, bindings, commas, closeParen, when, guard, arrow, target, body, Match(SyntaxKind.SemicolonToken));
     }
 
     private ClrUsingDirectiveSyntax ParseClrUsingDirective()

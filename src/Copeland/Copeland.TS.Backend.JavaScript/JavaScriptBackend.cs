@@ -142,6 +142,12 @@ public static class JavaScriptBackend
             EmitFunction(writer, function, catalog, results, names);
         }
 
+        foreach (MirFlowDefinition flow in program.Flows)
+        {
+            writer.WriteLine();
+            EmitFlow(writer, flow);
+        }
+
         string sourceText = writer.ToString();
         if (effectiveOptions.Profile == JavaScriptEmissionProfile.Symbolic)
         {
@@ -150,6 +156,121 @@ public static class JavaScriptBackend
 
         return new JavaScriptCompilation(sourceText, []);
     }
+
+    private static void EmitFlow(JavaScriptTextWriter writer, MirFlowDefinition flow)
+    {
+        string flowName = JavaScriptIdentifierEncoder.Encode(flow.Name);
+        var fieldsById = flow.BoardFields.ToDictionary(field => field.Id, field => field.Name);
+        writer.WriteLine($"const {flowName} = Object.freeze({{");
+        writer.Indent();
+        writer.WriteLine("start() {");
+        writer.Indent();
+        string boardInitializers = string.Join(", ", flow.BoardFields.Select(field => JavaScriptIdentifierEncoder.Encode(field.Name) + ": " + EmitFlowExpression(field.Initializer, fieldsById)));
+        writer.WriteLine("let board = { " + boardInitializers + " };");
+        writer.WriteLine($"let state = {JavaScriptLiteralWriter.WriteString(flow.InitialState)};");
+        writer.WriteLine("let terminal = false;");
+        writer.WriteLine("let sending = false;");
+        writer.WriteLine("let revision = 0;");
+        writer.WriteLine("const result = (kind, fromState, toState, event, error = null) => Object.freeze({ kind, fromState, toState, event, revision, terminal, error });");
+        writer.WriteLine("const session = {");
+        writer.Indent();
+        writer.WriteLine("get state() { return state; },");
+        writer.WriteLine("get board() { return Object.freeze({ ...board }); },");
+        writer.WriteLine("get terminal() { return terminal; },");
+        writer.WriteLine("get revision() { return revision; },");
+        foreach (MirFlowEvent @event in flow.Events)
+        {
+            EmitFlowSend(writer, flow, @event, fieldsById);
+        }
+        writer.Unindent();
+        writer.WriteLine("};");
+        writer.WriteLine("return Object.freeze(session);");
+        writer.Unindent();
+        writer.WriteLine("},");
+        writer.Unindent();
+        writer.WriteLine("});");
+    }
+
+    private static void EmitFlowSend(JavaScriptTextWriter writer, MirFlowDefinition flow, MirFlowEvent @event, IReadOnlyDictionary<MirRecordFieldId, string> fieldsById)
+    {
+        string method = "send" + JavaScriptIdentifierEncoder.Encode(@event.Name);
+        string parameters = string.Join(", ", @event.Payloads.Select(payload => JavaScriptIdentifierEncoder.Encode(payload.Name)));
+        writer.WriteLine($"{method}({parameters}) {{");
+        writer.Indent();
+        writer.WriteLine("if (sending) throw new Error(\"A Copeland flow session cannot receive a reentrant event.\");");
+        writer.WriteLine($"if (terminal) return result(\"Terminal\", state, null, {JavaScriptLiteralWriter.WriteString(@event.Name)});");
+        writer.WriteLine("sending = true;");
+        writer.WriteLine("try {");
+        writer.Indent();
+        writer.WriteLine("switch (state) {");
+        writer.Indent();
+        foreach (MirFlowState state in flow.States)
+        {
+            MirFlowTransition? transition = state.Transitions.SingleOrDefault(candidate => candidate.EventName == @event.Name);
+            if (transition is null) continue;
+            writer.WriteLine($"case {JavaScriptLiteralWriter.WriteString(state.Name)}: {{");
+            writer.Indent();
+            if (transition.Guard is not null)
+            {
+                writer.WriteLine($"if (!({EmitFlowExpression(transition.Guard, fieldsById)})) return result(\"Unhandled\", state, null, {JavaScriptLiteralWriter.WriteString(@event.Name)});");
+            }
+            writer.WriteLine("let nextBoard = board;");
+            foreach (MirFlowBoardUpdate update in transition.Updates)
+            {
+                string field = JavaScriptIdentifierEncoder.Encode(fieldsById[update.FieldId]);
+                string value = EmitFlowExpression(update.Value, fieldsById);
+                writer.WriteLine($"nextBoard = {{ ...nextBoard, {field}: {value} }};");
+                writer.WriteLine("board = nextBoard;");
+            }
+            writer.WriteLine("const fromState = state;");
+            writer.WriteLine("board = nextBoard;");
+            writer.WriteLine($"state = {JavaScriptLiteralWriter.WriteString(transition.TargetState)};");
+            writer.WriteLine("revision += 1;");
+            MirFlowState target = flow.States.Single(item => item.Name == transition.TargetState);
+            if (target.Terminal is not null)
+            {
+                MirFlowTerminal terminal = target.Terminal;
+                writer.WriteLine("terminal = true;");
+                string kind = terminal.IsFailure ? "Failed" : "Completed";
+                string error = terminal.IsFailure && terminal.Expression is not null
+                    ? EmitFlowExpression(terminal.Expression, fieldsById)
+                    : terminal.IsFailure ? JavaScriptLiteralWriter.WriteString("Flow failed.") : "null";
+                writer.WriteLine($"return result({JavaScriptLiteralWriter.WriteString(kind)}, fromState, state, {JavaScriptLiteralWriter.WriteString(@event.Name)}, {error});");
+            }
+            else
+            {
+                writer.WriteLine($"return result(\"Transitioned\", fromState, state, {JavaScriptLiteralWriter.WriteString(@event.Name)});");
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+        writer.WriteLine("default: return result(\"Unhandled\", state, null, " + JavaScriptLiteralWriter.WriteString(@event.Name) + ");");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("} finally {");
+        writer.Indent();
+        writer.WriteLine("sending = false;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("},");
+    }
+
+    private static string EmitFlowExpression(MirExpression expression, IReadOnlyDictionary<MirRecordFieldId, string> fieldsById)
+        => expression switch
+        {
+            MirLiteralExpression { Value: bool boolean } => boolean ? "true" : "false",
+            MirLiteralExpression { Value: string text } => JavaScriptLiteralWriter.WriteString(text),
+            MirLiteralExpression { Value: not null } literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
+            MirUnitExpression => "null",
+            MirVariableExpression variable => JavaScriptIdentifierEncoder.Encode(variable.Name),
+            MirUnaryExpression unary => "(" + unary.Operator + EmitFlowExpression(unary.Operand, fieldsById) + ")",
+            MirBinaryExpression binary => "(" + EmitFlowExpression(binary.Left, fieldsById) + " " + binary.Operator + " " + EmitFlowExpression(binary.Right, fieldsById) + ")",
+            MirRecordFieldAccessExpression access when access.Receiver is MirVariableExpression { Name: "board" }
+                => "board[" + JavaScriptLiteralWriter.WriteString(JavaScriptIdentifierEncoder.Encode(fieldsById[access.FieldId])) + "]",
+            _ => throw new InvalidOperationException($"FLOW-M1 JavaScript emission received unsupported pure expression '{expression.GetType().Name}'.")
+        };
 
     private static bool ContainsInlineCSharp(IEnumerable<MirStatement> statements)
     {
