@@ -53,6 +53,15 @@ source -> frontend/parser -> lane MIR -> lowering -> artifacts or CLR proof
 
 The CLI entry point is `src/Copeland/Copeland.Cli`.
 
+## Copeland TS in an SDK project
+
+Copeland TS can be added as explicit source items to a normal SDK-style project.
+The package contributes an MSBuild target that emits C# under `obj` before
+Roslyn's `CoreCompile`; `dotnet build`, `run`, `test`, and `publish` remain the
+only commands required. See the [MSBuild integration decision](docs/decisions/copeland-msbuild-cts-msbuild-m1.md)
+for the package shape, source ownership, generated API mapping, and current
+language limitations.
+
 ## Ownership and history
 
 Reviewers should default to these write scopes:

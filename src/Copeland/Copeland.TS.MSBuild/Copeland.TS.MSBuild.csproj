@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.MSBuild</AssemblyName>
+    <RootNamespace>Copeland.TS.MSBuild</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <PackageId>Copeland.TS.Sdk</PackageId>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <Description>MSBuild integration for Copeland TypeScript source files.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackCopelandTaskPayload</TargetsForTfmSpecificContentInPackage>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <NoWarn>$(NoWarn);NU5100</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" PrivateAssets="all" />
+    <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" PrivateAssets="all" />
+    <ProjectReference Include="../Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.Build.Framework">
+      <HintPath>$(MSBuildBinPath)\Microsoft.Build.Framework.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Build.Utilities.Core">
+      <HintPath>$(MSBuildBinPath)\Microsoft.Build.Utilities.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\Copeland.TS.Sdk.props" Pack="true" PackagePath="build;buildTransitive" />
+    <None Include="build\Copeland.TS.Sdk.targets" Pack="true" PackagePath="build;buildTransitive" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <Target Name="PackCopelandTaskPayload">
+    <ItemGroup>
+      <TfmSpecificPackageFileWithRecursiveDir Include="$(TargetDir)*.dll">
+        <PackagePath>tools/net10.0/</PackagePath>
+      </TfmSpecificPackageFileWithRecursiveDir>
+    </ItemGroup>
+  </Target>
+</Project>

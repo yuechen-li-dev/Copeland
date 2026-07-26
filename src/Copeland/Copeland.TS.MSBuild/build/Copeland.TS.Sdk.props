@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <CopelandGeneratedDirectory Condition="'$(CopelandGeneratedDirectory)' == ''">$(IntermediateOutputPath)Copeland\</CopelandGeneratedDirectory>
+    <CopelandTaskAssembly Condition="'$(CopelandTaskAssembly)' == ''">$(MSBuildThisFileDirectory)..\tools\net10.0\Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
+  </PropertyGroup>
+</Project>

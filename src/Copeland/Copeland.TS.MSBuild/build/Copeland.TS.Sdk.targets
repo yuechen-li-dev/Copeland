@@ -1,0 +1,22 @@
+<Project>
+  <UsingTask TaskName="Copeland.TS.MSBuild.CopelandCompile" AssemblyFile="$(CopelandTaskAssembly)" />
+
+  <Target Name="CopelandCompile"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveReferences"
+          Condition="'@(CopelandCompile)' != ''">
+    <Copeland.TS.MSBuild.CopelandCompile
+        Sources="@(CopelandCompile)"
+        ClrReferencePaths="@(ReferencePath);@(ReferencePathWithRefAssemblies)"
+        IntermediateOutputPath="$(IntermediateOutputPath)"
+        ProjectDirectory="$(MSBuildProjectDirectory)"
+        RootNamespace="$(RootNamespace)">
+      <Output TaskParameter="GeneratedSources" ItemName="CopelandGeneratedCompile" />
+    </Copeland.TS.MSBuild.CopelandCompile>
+
+    <ItemGroup>
+      <Compile Include="@(CopelandGeneratedCompile)" />
+      <FileWrites Include="@(CopelandGeneratedCompile)" />
+    </ItemGroup>
+  </Target>
+</Project>
