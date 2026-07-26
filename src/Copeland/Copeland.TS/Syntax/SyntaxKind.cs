@@ -64,6 +64,7 @@ public enum SyntaxKind
     TableKeyword,
     ColumnKeyword,
     MatchKeyword,
+    SwitchKeyword,
     ReturnKeyword,
     IfKeyword,
     ElseKeyword,

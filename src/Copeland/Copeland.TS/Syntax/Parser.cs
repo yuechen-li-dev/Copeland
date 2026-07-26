@@ -1752,7 +1752,7 @@ public sealed class Parser
             SyntaxKind.IdentifierToken => new NameExpressionSyntax(NextToken()),
             SyntaxKind.OpenBracketToken => ParseArrayLiteralExpression(),
             SyntaxKind.OpenBraceToken => ParseObjectLiteralExpression(),
-            SyntaxKind.MatchKeyword => ParseMatchExpression(),
+            SyntaxKind.MatchKeyword or SyntaxKind.SwitchKeyword => ParseMatchExpression(),
             SyntaxKind.IfKeyword => ParseIfExpression(),
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
@@ -2237,7 +2237,9 @@ public sealed class Parser
 
     private MatchExpressionSyntax ParseMatchExpression()
     {
-        var matchKeyword = Match(SyntaxKind.MatchKeyword);
+        var matchKeyword = Current.Kind is SyntaxKind.MatchKeyword or SyntaxKind.SwitchKeyword
+            ? NextToken()
+            : Match(SyntaxKind.MatchKeyword);
         var scrutinee = ParseExpression();
         var openBraceToken = Match(SyntaxKind.OpenBraceToken);
         var arms = new List<MatchArmSyntax>();

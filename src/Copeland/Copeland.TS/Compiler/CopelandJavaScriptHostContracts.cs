@@ -14,7 +14,11 @@ public sealed record CopelandJavaScriptHostModuleContract(
 public sealed record CopelandJavaScriptHostFunctionContract(
     string ExportName,
     IReadOnlyList<CopelandJavaScriptHostType> ParameterTypes,
-    CopelandJavaScriptHostType ResultType);
+    CopelandJavaScriptHostType ResultType,
+    IReadOnlyList<string>? GenericTypeParameters = null)
+{
+    public IReadOnlyList<string> TypeParameters { get; } = GenericTypeParameters ?? [];
+}
 
 public enum CopelandJavaScriptHostEnvironment
 {
@@ -32,6 +36,13 @@ public abstract record CopelandJavaScriptHostType
     public sealed record Callable(
         IReadOnlyList<CopelandJavaScriptHostType> Parameters,
         CopelandJavaScriptHostType ReturnType) : CopelandJavaScriptHostType;
+
+    /// <summary>
+    /// A type parameter owned by one declared host export. It can only be
+    /// instantiated at a direct host call; it never crosses the JavaScript
+    /// boundary as a dynamic type value.
+    /// </summary>
+    public sealed record TypeParameter(string Name) : CopelandJavaScriptHostType;
 
     public static Primitive Int { get; } = new("int");
     public static Primitive String { get; } = new("string");

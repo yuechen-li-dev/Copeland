@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copeland Browser Dispatch</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "@copeland/browser-v1": "./host/browser-v1.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <p id="count">loading</p>
+  <button id="increment" type="button">Increment</button>
+  <button id="reset" type="button">Reset</button>
+  <script type="module">
+    import { Main } from "./generated/Main.js";
+    Main();
+  </script>
+</body>
+</html>

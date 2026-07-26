@@ -119,6 +119,7 @@ public static class JavaScriptBackend
         bool usesTryExcept = ProgramUsesTryExcept(program);
         bool usesCallables = ProgramUsesCallables(program);
         bool usesCapturedCallables = ProgramUsesCapturedCallables(program);
+        bool usesSharedBrowserInteropRuntime = program.JavaScriptHostImports.Count > 0;
         bool usesAsync = program.Functions.Any(function => function.IsAsync);
         bool previousModuleFactoryEmission = ModuleFactoryEmission.Value;
         ModuleFactoryEmission.Value = effectiveOptions.EmitModuleFactories;
@@ -161,13 +162,13 @@ public static class JavaScriptBackend
         if (usesCallables)
         {
             writer.WriteLine();
-            EmitCallableRuntime(writer, usesCapturedCallables);
+            EmitCallableRuntime(writer, usesCapturedCallables, usesSharedBrowserInteropRuntime);
         }
 
         if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
         {
             writer.WriteLine();
-            EmitValueRuntime(writer, javascriptTsonPlans, catalog, results, names, usesUnwrap, usesTryExcept, usesTsonTransport);
+            EmitValueRuntime(writer, javascriptTsonPlans, catalog, results, names, usesUnwrap, usesTryExcept, usesTsonTransport, usesSharedBrowserInteropRuntime);
         }
 
         foreach (MirFunction function in program.Functions)
@@ -1237,7 +1238,7 @@ public static class JavaScriptBackend
         diagnostics.Add(new JavaScriptDiagnostic(InvalidDiagnosticId, $"Invalid MIR for JavaScript backend: {message}."));
     }
 
-    private static void EmitValueRuntime(JavaScriptTextWriter writer, IReadOnlyList<MirTsonEncodingPlan> tsonPlans, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap, bool usesTryExcept, bool usesTsonTransport)
+    private static void EmitValueRuntime(JavaScriptTextWriter writer, IReadOnlyList<MirTsonEncodingPlan> tsonPlans, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap, bool usesTryExcept, bool usesTsonTransport, bool usesSharedBrowserInteropRuntime)
     {
         writer.WriteLine($"function {names.Panic}() {{");
         writer.Indent();
@@ -1277,10 +1278,16 @@ public static class JavaScriptBackend
             EmitFlowRuntime(writer, names);
         }
 
+        if (usesSharedBrowserInteropRuntime && catalog.Records.Count > 0)
+        {
+            writer.WriteLine();
+            EmitRecordRegistryRuntime(writer);
+        }
+
         foreach (MirRecordDefinition record in catalog.Records)
         {
             writer.WriteLine();
-            EmitRecordRuntime(writer, record, names);
+            EmitRecordRuntime(writer, record, names, usesSharedBrowserInteropRuntime);
             if (ModuleFactoryEmission.Value)
             {
                 writer.WriteLine();
@@ -1351,7 +1358,70 @@ public static class JavaScriptBackend
         }
     }
 
-    private static void EmitCallableRuntime(JavaScriptTextWriter writer, bool usesCapturedCallables)
+    private static void EmitCallableRuntime(JavaScriptTextWriter writer, bool usesCapturedCallables, bool shareAcrossModules)
+    {
+        if (!shareAcrossModules)
+        {
+            EmitLocalCallableRuntime(writer, usesCapturedCallables);
+            return;
+        }
+
+        writer.WriteLine("const __cope_callable_runtime_key = Symbol.for(\"copeland.ts.callable-runtime.v1\");");
+        writer.WriteLine("let __cope_callable_runtime = globalThis[__cope_callable_runtime_key];");
+        writer.WriteLine("if (__cope_callable_runtime === undefined) {");
+        writer.Indent();
+        writer.WriteLine("__cope_callable_runtime = { instances: new WeakSet(), signatures: new WeakMap(), codes: new WeakMap(), environments: new WeakMap(), environmentInstances: new WeakSet(), environmentValues: new WeakMap() };");
+        writer.WriteLine("Object.defineProperty(globalThis, __cope_callable_runtime_key, { value: __cope_callable_runtime, writable: false, enumerable: false, configurable: false });");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("const __cope_callable_instances = __cope_callable_runtime.instances;");
+        writer.WriteLine("const __cope_callable_signatures = __cope_callable_runtime.signatures;");
+        writer.WriteLine("const __cope_callable_codes = __cope_callable_runtime.codes;");
+        writer.WriteLine("const __cope_callable_environments = __cope_callable_runtime.environments;");
+        writer.WriteLine("const __cope_callable_environment_instances = __cope_callable_runtime.environmentInstances;");
+        writer.WriteLine("const __cope_callable_environment_values = __cope_callable_runtime.environmentValues;");
+        writer.WriteLine("function __cope_callable_ref(signature, code) {");
+        writer.Indent();
+        writer.WriteLine("const carrier = Object.create(null);");
+        writer.WriteLine("__cope_callable_signatures.set(carrier, signature);");
+        writer.WriteLine("__cope_callable_codes.set(carrier, code);");
+        writer.WriteLine("__cope_callable_instances.add(carrier);");
+        writer.WriteLine("return Object.freeze(carrier);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_callable_host(signature, hostCallable) {");
+        writer.Indent();
+        writer.WriteLine("if (typeof hostCallable !== \"function\") throw new Error(\"COPE-PANIC-CALLABLE: host returned a non-callable value\");");
+        writer.WriteLine("return __cope_callable_ref(signature, (...argumentsInOrder) => hostCallable(...argumentsInOrder));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_callable_capture(signature, code, values) {");
+        writer.Indent();
+        writer.WriteLine("const environment = Object.create(null);");
+        writer.WriteLine("__cope_callable_environment_values.set(environment, Object.freeze(values.slice()));");
+        writer.WriteLine("__cope_callable_environment_instances.add(environment);");
+        writer.WriteLine("Object.freeze(environment);");
+        writer.WriteLine("const carrier = Object.create(null);");
+        writer.WriteLine("__cope_callable_signatures.set(carrier, signature);");
+        writer.WriteLine("__cope_callable_codes.set(carrier, code);");
+        writer.WriteLine("__cope_callable_environments.set(carrier, environment);");
+        writer.WriteLine("__cope_callable_instances.add(carrier);");
+        writer.WriteLine("return Object.freeze(carrier);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_callable_invoke(carrier, signature, argumentsInOrder) {");
+        writer.Indent();
+        writer.WriteLine("if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
+        writer.WriteLine("const code = __cope_callable_codes.get(carrier);");
+        writer.WriteLine("const environment = __cope_callable_environments.get(carrier);");
+        writer.WriteLine("if (environment === undefined) return code(...argumentsInOrder);");
+        writer.WriteLine("if (!__cope_callable_environment_instances.has(environment)) throw new Error(\"COPE-PANIC-CALLABLE: invalid environment\");");
+        writer.WriteLine("return code(...__cope_callable_environment_values.get(environment), ...argumentsInOrder);");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static void EmitLocalCallableRuntime(JavaScriptTextWriter writer, bool usesCapturedCallables)
     {
         writer.WriteLine("const __cope_callable_instances = new WeakSet();");
         writer.WriteLine("const __cope_callable_signatures = new WeakMap();");
@@ -1362,6 +1432,7 @@ public static class JavaScriptBackend
             writer.WriteLine("const __cope_callable_environment_instances = new WeakSet();");
             writer.WriteLine("const __cope_callable_environment_values = new WeakMap();");
         }
+
         writer.WriteLine("function __cope_callable_ref(signature, code) {");
         writer.Indent();
         writer.WriteLine("const carrier = Object.create(null);");
@@ -1388,6 +1459,7 @@ public static class JavaScriptBackend
             writer.Unindent();
             writer.WriteLine("}");
         }
+
         writer.WriteLine("function __cope_callable_invoke(carrier, signature, argumentsInOrder) {");
         writer.Indent();
         writer.WriteLine("if (!__cope_callable_instances.has(carrier) || __cope_callable_signatures.get(carrier) !== signature) throw new Error(\"COPE-PANIC-CALLABLE: invalid callable\");");
@@ -1427,7 +1499,8 @@ public static class JavaScriptBackend
 
     private static bool ExpressionUsesJavaScriptHostCallables(MirExpression expression) => expression switch
     {
-        MirJavaScriptHostCallExpression host => host.Arguments.Any(argument => argument.Type is MirCallableType)
+        MirJavaScriptHostCallExpression host => host.Type is MirCallableType
+            || host.Arguments.Any(argument => argument.Type is MirCallableType)
             || host.Arguments.Any(ExpressionUsesJavaScriptHostCallables),
         _ => false,
     };
@@ -1748,14 +1821,27 @@ public static class JavaScriptBackend
         return $"{RecordConstructionName(record, names)}({string.Join(", ", record.Fields.Select(field => EmitTableConstant(values[field.Id], catalog, results, names)))})";
     }
 
-    private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, GeneratedNames names)
+    private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, GeneratedNames names, bool shareAcrossModules)
     {
         var typeToken = names.RecordTypeToken(record);
-        writer.WriteLine($"const {typeToken} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(typeToken, record.Id.Value))});");
-        writer.WriteLine($"const {names.RecordInstances(record)} = new WeakSet();");
+        string registration = "__cope_m3_record_registration_" + record.Id.Value;
+        if (shareAcrossModules)
+        {
+            writer.WriteLine($"const {registration} = __cope_m3_record_registration({JavaScriptLiteralWriter.WriteString(record.Id.Value)});");
+            writer.WriteLine($"const {typeToken} = {registration}.type;");
+            writer.WriteLine($"const {names.RecordInstances(record)} = {registration}.instances;");
+        }
+        else
+        {
+            writer.WriteLine($"const {typeToken} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(typeToken, record.Id.Value))});");
+            writer.WriteLine($"const {names.RecordInstances(record)} = new WeakSet();");
+        }
         foreach (MirRecordFieldDefinition field in record.Fields)
         {
-            writer.WriteLine($"const {names.RecordFieldSlot(field)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.RecordFieldSlot(field), field.Id.Value))});");
+            string fieldValue = shareAcrossModules
+                ? $"__cope_m3_record_field({registration}, {JavaScriptLiteralWriter.WriteString(field.Id.Value)})"
+                : $"Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.RecordFieldSlot(field), field.Id.Value))})";
+            writer.WriteLine($"const {names.RecordFieldSlot(field)} = {fieldValue};");
         }
 
         writer.WriteLine();
@@ -1797,6 +1883,50 @@ public static class JavaScriptBackend
         writer.WriteLine($"{names.Panic}();");
         writer.Unindent();
         writer.WriteLine("}");
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    /// <summary>
+    /// Project ESM modules independently emit the runtime support needed by
+    /// their local functions. Records may nevertheless cross a module boundary,
+    /// so their nominal token, field slots, and provenance set must be shared by
+    /// every generated module in one JavaScript realm. This tiny registry shares
+    /// only compiler-private record metadata; application state remains owned by
+    /// the calling host or ordinary Copeland code.
+    /// </summary>
+    private static void EmitRecordRegistryRuntime(JavaScriptTextWriter writer)
+    {
+        writer.WriteLine("const __cope_m3_record_registry_key = Symbol.for(\"copeland.ts.record-registry.v1\");");
+        writer.WriteLine("let __cope_m3_record_registry = globalThis[__cope_m3_record_registry_key];");
+        writer.WriteLine("if (__cope_m3_record_registry === undefined) {");
+        writer.Indent();
+        writer.WriteLine("__cope_m3_record_registry = new Map();");
+        writer.WriteLine("Object.defineProperty(globalThis, __cope_m3_record_registry_key, { value: __cope_m3_record_registry, writable: false, enumerable: false, configurable: false });");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_m3_record_registration(id) {");
+        writer.Indent();
+        writer.WriteLine("let registration = __cope_m3_record_registry.get(id);");
+        writer.WriteLine("if (registration === undefined) {");
+        writer.Indent();
+        writer.WriteLine("registration = { type: Symbol(id), instances: new WeakSet(), fields: new Map() };");
+        writer.WriteLine("__cope_m3_record_registry.set(id, registration);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("return registration;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_m3_record_field(registration, id) {");
+        writer.Indent();
+        writer.WriteLine("let field = registration.fields.get(id);");
+        writer.WriteLine("if (field === undefined) {");
+        writer.Indent();
+        writer.WriteLine("field = Symbol(id);");
+        writer.WriteLine("registration.fields.set(id, field);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("return field;");
         writer.Unindent();
         writer.WriteLine("}");
     }
@@ -2525,7 +2655,10 @@ public static class JavaScriptBackend
             string[] hostArguments = host.Arguments.Select((argument, index) => argument.Type is MirCallableType callable
                 ? $"(...args) => __cope_callable_invoke({values[index]}, {JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}, args)"
                 : values[index]).ToArray();
-            return $"{JavaScriptIdentifierEncoder.Encode(host.LocalBinding)}({string.Join(", ", hostArguments)})";
+            string invocation = $"{JavaScriptIdentifierEncoder.Encode(host.LocalBinding)}({string.Join(", ", hostArguments)})";
+            return host.Type is MirCallableType callable
+                ? $"__cope_callable_host({JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}, {invocation})"
+                : invocation;
         });
     }
 

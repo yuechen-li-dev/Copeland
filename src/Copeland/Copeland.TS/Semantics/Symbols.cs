@@ -75,19 +75,23 @@ public sealed class JavaScriptHostFunctionSymbol : Symbol
         string moduleSpecifier,
         string exportName,
         IReadOnlyList<ParameterSymbol> parameters,
-        TypeSymbol returnType)
+        TypeSymbol returnType,
+        IReadOnlyList<TypeParameterSymbol>? typeParameters = null)
         : base(name)
     {
         ModuleSpecifier = moduleSpecifier;
         ExportName = exportName;
         Parameters = parameters;
         ReturnType = returnType;
+        TypeParameters = typeParameters ?? [];
     }
 
     public string ModuleSpecifier { get; }
     public string ExportName { get; }
     public IReadOnlyList<ParameterSymbol> Parameters { get; }
     public TypeSymbol ReturnType { get; }
+    public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; }
+    public bool IsGeneric => TypeParameters.Count > 0;
 }
 
 public sealed class ClassValueSymbol(string name, ClassTypeSymbol classType) : Symbol(name)

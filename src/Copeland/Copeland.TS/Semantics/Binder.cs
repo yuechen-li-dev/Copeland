@@ -4324,14 +4324,29 @@ public static class Binder
                         continue;
                     }
 
-                    TypeSymbol[] parameters = export.ParameterTypes.Select(type => ResolveJavaScriptHostType(type, exportToken)).ToArray();
-                    TypeSymbol result = ResolveJavaScriptHostType(export.ResultType, exportToken);
+                    var typeParameters = new List<TypeParameterSymbol>();
+                    var hostTypeParameters = new Dictionary<string, TypeParameterTypeSymbol>(StringComparer.Ordinal);
+                    for (int typeParameterIndex = 0; typeParameterIndex < export.TypeParameters.Count; typeParameterIndex++)
+                    {
+                        string typeParameterName = export.TypeParameters[typeParameterIndex];
+                        if (!hostTypeParameters.TryAdd(typeParameterName, new TypeParameterTypeSymbol(typeParameterName, typeParameterIndex)))
+                        {
+                            Report("COPE-HOST-0004", $"JavaScript host export '{export.ExportName}' declares duplicate type parameter '{typeParameterName}'.", exportToken);
+                            continue;
+                        }
+
+                        typeParameters.Add(new TypeParameterSymbol(typeParameterName, hostTypeParameters[typeParameterName], new RequirementSet([], [])));
+                    }
+
+                    TypeSymbol[] parameters = export.ParameterTypes.Select(type => ResolveJavaScriptHostType(type, exportToken, hostTypeParameters)).ToArray();
+                    TypeSymbol result = ResolveJavaScriptHostType(export.ResultType, exportToken, hostTypeParameters);
                     var symbol = new JavaScriptHostFunctionSymbol(
                         localToken.Text,
                         hostModule.ModuleSpecifier,
                         export.ExportName,
                         parameters.Select((type, parameterIndex) => new ParameterSymbol("arg" + parameterIndex, type)).ToArray(),
-                        result);
+                        result,
+                        typeParameters);
                     if (_global.TryLookup(symbol.Name, out _))
                     {
                         Report("COPE-HOST-0002", $"JavaScript host binding '{localToken.Text}' conflicts with an existing declaration.", localToken);
@@ -4349,21 +4364,25 @@ public static class Binder
             }
         }
 
-        private TypeSymbol ResolveJavaScriptHostType(CopelandJavaScriptHostType type, SyntaxToken anchor)
+        private TypeSymbol ResolveJavaScriptHostType(
+            CopelandJavaScriptHostType type,
+            SyntaxToken anchor,
+            IReadOnlyDictionary<string, TypeParameterTypeSymbol>? typeParameters = null)
             => type switch
             {
                 CopelandJavaScriptHostType.Primitive { Name: "int" } => PrimitiveTypeSymbol.Int,
                 CopelandJavaScriptHostType.Primitive { Name: "string" } => PrimitiveTypeSymbol.String,
                 CopelandJavaScriptHostType.Primitive { Name: "void" } => PrimitiveTypeSymbol.Void,
                 CopelandJavaScriptHostType.Callable callable => new CallableTypeSymbol(
-                    callable.Parameters.Select((parameter, index) => new CallableParameterTypeSymbol("arg" + index, ResolveJavaScriptHostType(parameter, anchor))).ToArray(),
-                    ResolveJavaScriptHostType(callable.ReturnType, anchor)),
+                    callable.Parameters.Select((parameter, index) => new CallableParameterTypeSymbol("arg" + index, ResolveJavaScriptHostType(parameter, anchor, typeParameters))).ToArray(),
+                    ResolveJavaScriptHostType(callable.ReturnType, anchor, typeParameters)),
+                CopelandJavaScriptHostType.TypeParameter parameter when typeParameters is not null && typeParameters.TryGetValue(parameter.Name, out TypeParameterTypeSymbol? resolved) => resolved,
                 _ => ReportUnsupportedJavaScriptHostType(type, anchor),
             };
 
         private TypeSymbol ReportUnsupportedJavaScriptHostType(CopelandJavaScriptHostType type, SyntaxToken anchor)
         {
-            Report("COPE-HOST-0004", $"JavaScript host contract type '{type}' is unsupported. Browser M0 permits only int, string, void, and explicitly declared callables.", anchor);
+            Report("COPE-HOST-0004", $"JavaScript host contract type '{type}' is unsupported. Host contracts permit declared primitives, callable values, and export-local type parameters.", anchor);
             return PrimitiveTypeSymbol.Error;
         }
 
@@ -4789,6 +4808,13 @@ public static class Binder
                 return BindTsonTransport(call, transportName);
             }
 
+            if (call.Target is NameExpressionSyntax hostName
+                && _global.TryLookup(hostName.IdentifierToken.Text, out var hostSymbol)
+                && hostSymbol is JavaScriptHostFunctionSymbol host)
+            {
+                return BindGenericJavaScriptHostCall(call, host);
+            }
+
             FunctionSymbol? function = null;
             if (call.Target is NameExpressionSyntax name
                 && _global.TryLookup(name.IdentifierToken.Text, out var symbol)
@@ -4886,6 +4912,62 @@ public static class Binder
                 }
             }
             return new BoundCallExpression(specialization.Symbol, arguments);
+        }
+
+        private BoundExpression BindGenericJavaScriptHostCall(
+            GenericCallExpressionSyntax call,
+            JavaScriptHostFunctionSymbol host)
+        {
+            if (!host.IsGeneric)
+            {
+                Report("COPE-GENERIC-0005", $"Function '{host.Name}' does not accept type arguments.", call.LessToken);
+                return new BoundErrorExpression();
+            }
+
+            if (call.TypeArguments.Count != host.TypeParameters.Count)
+            {
+                Report("COPE-GENERIC-0007", $"Generic host function '{host.Name}' expects {host.TypeParameters.Count} type arguments, got {call.TypeArguments.Count}.", call.LessToken);
+                return new BoundErrorExpression();
+            }
+
+            TypeSymbol[] typeArguments = call.TypeArguments
+                .Select(argument => BindType(argument, call.LessToken, "COPE-GENERIC-0008", "type argument"))
+                .ToArray();
+            if (typeArguments.Any(IsOpenOrIllegalTypeArgument))
+            {
+                Report("COPE-GENERIC-0008", "Generic type arguments must be closed value types; interfaces and open type parameters are not allowed.", call.LessToken);
+                return new BoundErrorExpression();
+            }
+
+            var substitutions = host.TypeParameters
+                .Select((parameter, index) => new KeyValuePair<TypeSymbol, TypeSymbol>(parameter.Type, typeArguments[index]))
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            var specialized = new JavaScriptHostFunctionSymbol(
+                host.Name,
+                host.ModuleSpecifier,
+                host.ExportName,
+                host.Parameters
+                    .Select(parameter => new ParameterSymbol(parameter.Name, SubstituteType(parameter.Type, substitutions), parameter.AuthoredAliasName))
+                    .ToArray(),
+                SubstituteType(host.ReturnType, substitutions));
+
+            if (call.Arguments.Count != specialized.Parameters.Count)
+            {
+                Report("COPE-TYPE-0004", $"Argument count mismatch: expected {specialized.Parameters.Count}, got {call.Arguments.Count}.", call.OpenParenToken);
+            }
+
+            BoundExpression[] arguments = call.Arguments
+                .Select((argument, index) => BindExpression(argument, index < specialized.Parameters.Count ? specialized.Parameters[index].Type : null))
+                .ToArray();
+            for (int index = 0; index < Math.Min(arguments.Length, specialized.Parameters.Count); index++)
+            {
+                if (!IsAssignable(specialized.Parameters[index].Type, arguments[index].Type))
+                {
+                    ReportTypeMismatch("COPE-TYPE-0005", specialized.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
+                }
+            }
+
+            return new BoundJavaScriptHostCallExpression(specialized, arguments);
         }
 
         private BoundExpression BindTsonTransport(GenericCallExpressionSyntax call, NameExpressionSyntax intrinsicName)

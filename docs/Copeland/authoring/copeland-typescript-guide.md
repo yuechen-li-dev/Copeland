@@ -235,10 +235,18 @@ Use `with` only to update an existing field. To make a new shape, declare a
 second record and construct it explicitly. Flat records cross current CLR/npm
 boundaries; dynamic shapes and nested npm arrays do not.
 
-### Payload enums and `match`
+### Exhaustive `match` and `switch`
 
-Use nominal payload enums and exhaustive `match` instead of structural
-discriminated unions plus `switch`:
+Use nominal payload enums and exhaustive pattern arms instead of structural
+discriminated unions. `match` and `switch` are interchangeable forms of the
+same exhaustive pattern construct: they share patterns, payload bindings, arm
+type checks, diagnostics, lowering, and have no implicit fallthrough.
+
+By convention, `match` often reads naturally for value decomposition, enums,
+unions, and fallibility, while `switch` often reads naturally for event dispatch
+and control flow. The compiler does not enforce that stylistic distinction.
+
+Use fat-arrow arms; do not write `case` or `break`:
 
 ```ts
 export enum Decision {
@@ -254,8 +262,63 @@ export function DescribeDecision(decision: Decision): string {
 }
 ```
 
-Every case must be covered and each binding must match its payload. Ordinary
-source `switch` is not supported; `match` is the exhaustive tagged-data form.
+Every enum case must be covered and each binding must match its payload. A
+missing arm is an error, and each arm must return a compatible result type.
+
+For example, this reducer uses `switch` because the enum represents commands:
+
+```ts
+export record CounterState {
+    count: int;
+}
+
+export enum CounterEvent {
+    Increment,
+    Reset,
+}
+
+export function Reduce(state: CounterState, event: CounterEvent): CounterState {
+    return switch event {
+        Increment => state with { count: state.count + 1 },
+        Reset => state with { count: 0 },
+    };
+}
+```
+
+### Browser dispatch: explicit retained state
+
+For the narrow browser host, `dispatch<State, Event>` expresses the whole
+durable-state law:
+
+```text
+current state + event -> reducer -> replacement state -> render
+```
+
+```ts
+const send: (event: CounterEvent) => void = dispatch<CounterState, CounterEvent>(
+    { count: 0 },
+    Reduce,
+    state => setText("count", `Count: ${state.count}`));
+
+onClick("increment", capture { send } () => SendIncrement(send));
+```
+
+The browser host retains one current immutable state value, invokes the typed
+reducer with an event, replaces that value only with the reducer result, and
+renders after a changed identity. It never inspects state fields. The reducer
+is ordinary Copeland code and can be reused by tests or another host. The
+returned sender remains a typed Copeland callable even though the browser host
+provides the native event boundary.
+
+Keep reducers deterministic and free of rendering, DOM writes, network calls,
+timers, retries, and orchestration. Put browser writes in the render callback.
+The dispatch form is intentionally smaller than `flow` and Dominatus: it has no
+table DSL, middleware, async dispatch, effect queue, router, store, hooks, or
+state-machine hierarchy. A future host may add a deliberately narrow
+data-oriented table helper, but CTS-DISPATCH provides the general reducer only.
+
+Do not replace dispatch with a mutable captured local. Callback captures remain
+immutable; durable browser state belongs at the explicit dispatch boundary.
 
 ### Nominal unions are not inline TypeScript unions
 
@@ -622,7 +685,7 @@ and async suspension are deferred.
 | `Int(value)` | `Int.Floor`, `Int.Ceil`, `Int.Round`, or `Int.Truncate`. |
 | Dynamic object mutation | A declared record plus construction or `with` update. |
 | `===` / `!==` | Typed primitive `==` / `!=`. |
-| `switch` narrowing | Exhaustive `match` over a payload enum. |
+| C-style `switch`/fallthrough | Exhaustive `switch` or `match` with `pattern => body` arms. |
 | Untyped npm import / inline JavaScript | Declared npm contract. |
 | Effects in a flow guard | Pure condition; perform effects outside the flow. |
 | Optional field `name?: string` | A nominal payload enum that makes absence explicit. |
