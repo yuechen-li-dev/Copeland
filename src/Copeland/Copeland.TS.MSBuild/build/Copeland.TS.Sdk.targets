@@ -7,9 +7,14 @@
           Condition="'@(CopelandCompile)' != ''">
     <Copeland.TS.MSBuild.CopelandCompile
         Sources="@(CopelandCompile)"
+        CSharpSources="@(Compile)"
         ClrReferencePaths="@(ReferencePath);@(ReferencePathWithRefAssemblies)"
         IntermediateOutputPath="$(IntermediateOutputPath)"
         ProjectDirectory="$(MSBuildProjectDirectory)"
+        AssemblyName="$(AssemblyName)"
+        LangVersion="$(LangVersion)"
+        DefineConstants="$(DefineConstants)"
+        Nullable="$(Nullable)"
         RootNamespace="$(RootNamespace)">
       <Output TaskParameter="GeneratedSources" ItemName="CopelandGeneratedCompile" />
     </Copeland.TS.MSBuild.CopelandCompile>

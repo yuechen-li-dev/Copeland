@@ -2845,7 +2845,9 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
-            ConstructorInfo[] publicConstructors = type!.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+            ConstructorInfo[] publicConstructors = type!.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .Where(_clrResolver.IsMemberVisible)
+                .ToArray();
             if (publicConstructors.Length == 0
                 && type.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance).Length > 0)
             {
@@ -2865,9 +2867,10 @@ public static class Binder
         {
             BindingFlags dispatchFlags = receiver is null ? BindingFlags.Static : BindingFlags.Instance;
             MethodInfo[] publicMethods = declaringType
-                .GetMethods(BindingFlags.Public | dispatchFlags)
+                .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | dispatchFlags)
                 .Where(method => string.Equals(method.Name, memberName.Text, StringComparison.Ordinal)
-                    && !method.IsSpecialName)
+                    && !method.IsSpecialName
+                    && _clrResolver.IsMemberVisible(method))
                 .ToArray();
             if (publicMethods.Length == 0
                 && declaringType.GetMethods(BindingFlags.NonPublic | dispatchFlags).Any(method => string.Equals(method.Name, memberName.Text, StringComparison.Ordinal)))
@@ -2981,7 +2984,7 @@ public static class Binder
             return parameters.Zip(arguments).All(pair => IsClrArgumentCompatible(pair.Second.Type, pair.First.ParameterType));
         }
 
-        private static bool TryProjectClrInvocationReturnType(MethodBase member, IReadOnlyList<TypeSymbol> genericArguments, out TypeSymbol projected)
+        private bool TryProjectClrInvocationReturnType(MethodBase member, IReadOnlyList<TypeSymbol> genericArguments, out TypeSymbol projected)
         {
             if (member is ConstructorInfo constructor)
             {
@@ -3024,7 +3027,7 @@ public static class Binder
             return source is ClrTypeSymbol clr && clr.RuntimeType == target;
         }
 
-        private static bool TryProjectClrType(Type type, out TypeSymbol projected)
+        private bool TryProjectClrType(Type type, out TypeSymbol projected)
         {
             if (type == typeof(void)) { projected = PrimitiveTypeSymbol.Void; return true; }
             if (type == typeof(string)) { projected = PrimitiveTypeSymbol.String; return true; }
@@ -3033,7 +3036,7 @@ public static class Binder
             if (type.IsArray && type.GetArrayRank() == 1 && TryProjectClrType(type.GetElementType()!, out TypeSymbol element)) { projected = new ArrayTypeSymbol(element); return true; }
             if (type.IsGenericParameter) { projected = PrimitiveTypeSymbol.Error; return false; }
             if (type == typeof(object) || type.IsEnum || Nullable.GetUnderlyingType(type) is not null || type.IsPointer || type.IsByRef || type.ContainsGenericParameters) { projected = PrimitiveTypeSymbol.Error; return false; }
-            if (type.IsPublic || type.IsNestedPublic) { projected = new ClrTypeSymbol(type); return true; }
+            if (_clrResolver.IsTypeVisible(type)) { projected = new ClrTypeSymbol(type); return true; }
             projected = PrimitiveTypeSymbol.Error;
             return false;
         }
@@ -5446,10 +5449,11 @@ public static class Binder
         {
             BindingFlags flags = BindingFlags.Public | (receiver is null ? BindingFlags.Static : BindingFlags.Instance);
             PropertyInfo[] properties = declaringType
-                .GetProperties(flags)
+                .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | (receiver is null ? BindingFlags.Static : BindingFlags.Instance))
                 .Where(property => string.Equals(property.Name, syntax.NameToken.Text, StringComparison.Ordinal)
                     && property.GetMethod is not null
-                    && property.GetIndexParameters().Length == 0)
+                    && property.GetIndexParameters().Length == 0
+                    && _clrResolver.IsMemberVisible(property.GetMethod))
                 .ToArray();
             if (properties.Length == 0)
             {
@@ -5776,6 +5780,16 @@ public static class Binder
                 return recordType;
             if (_tableTypes.TryGetValue(i.Identifier.Text, out var tableType))
                 return tableType;
+            if (_clrImportedTypes.TryGetValue(i.Identifier.Text, out List<Type>? clrCandidates))
+            {
+                if (clrCandidates.Count == 1 && _clrResolver.IsTypeVisible(clrCandidates[0]))
+                {
+                    return new ClrTypeSymbol(clrCandidates[0]);
+                }
+
+                Report("COPE-CLR-0002", $"CLR type '{i.Identifier.Text}' is ambiguous across imported CLR namespaces.", i.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
             if (_currentAliasDeclaration is not null)
             {
                 Report(

@@ -6,7 +6,10 @@ namespace Copeland.TS.Compiler;
 /// An already-built CLR assembly made available to the Copeland binder. Package
 /// restore and project graph discovery deliberately remain outside CTS-CLR-M1.
 /// </summary>
-public sealed record CopelandClrReference(string AssemblyPath);
+public sealed record CopelandClrReference(
+    string? AssemblyPath,
+    Assembly? DeclarationAssembly = null,
+    bool IncludeInternalSymbols = false);
 
 /// <summary>
 /// Compiler-time metadata source for the bounded CLR interop surface. It is not
@@ -16,19 +19,23 @@ public sealed record CopelandClrReference(string AssemblyPath);
 public sealed class CopelandClrMetadataResolver
 {
     private readonly IReadOnlyList<Assembly> _assemblies;
+    private readonly IReadOnlyDictionary<Assembly, bool> _internalVisibility;
 
     public CopelandClrMetadataResolver(IReadOnlyList<CopelandClrReference> references)
     {
         var assemblies = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
-        AddAssemblies(assemblies, AppDomain.CurrentDomain.GetAssemblies());
-        LoadFrameworkAssembly(assemblies, "System.Runtime");
-        LoadFrameworkAssembly(assemblies, "System.Text.Json");
+        var internalVisibility = new Dictionary<Assembly, bool>();
+        AddAssemblies(assemblies, internalVisibility, AppDomain.CurrentDomain.GetAssemblies(), includeInternal: false);
+        LoadFrameworkAssembly(assemblies, internalVisibility, "System.Runtime");
+        LoadFrameworkAssembly(assemblies, internalVisibility, "System.Text.Json");
 
         foreach (CopelandClrReference reference in references)
         {
             try
             {
-                AddAssemblies(assemblies, [Assembly.LoadFrom(reference.AssemblyPath)]);
+                Assembly assembly = reference.DeclarationAssembly
+                    ?? Assembly.LoadFrom(reference.AssemblyPath ?? throw new InvalidOperationException("CLR reference has no assembly source."));
+                AddAssemblies(assemblies, internalVisibility, [assembly], reference.IncludeInternalSymbols);
             }
             catch (Exception exception) when (exception is FileNotFoundException or FileLoadException or BadImageFormatException)
             {
@@ -38,6 +45,7 @@ public sealed class CopelandClrMetadataResolver
         }
 
         _assemblies = assemblies.Values.ToArray();
+        _internalVisibility = internalVisibility;
     }
 
     public IReadOnlyList<Type> FindTypesInNamespace(string @namespace)
@@ -51,6 +59,31 @@ public sealed class CopelandClrMetadataResolver
                 || string.Equals(type.FullName?.Replace('+', '.'), fullName, StringComparison.Ordinal))
             .ToArray();
 
+    public bool IsTypeVisible(Type type)
+    {
+        bool includeInternal = _internalVisibility.TryGetValue(type.Assembly, out bool value) && value;
+        for (Type? current = type; current is not null; current = current.DeclaringType)
+        {
+            if (current.IsPublic || current.IsNestedPublic)
+            {
+                continue;
+            }
+
+            if (!includeInternal || !(current.IsNotPublic || current.IsNestedAssembly))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public bool IsMemberVisible(MethodBase member)
+        => member.IsPublic
+            || (_internalVisibility.TryGetValue(member.DeclaringType!.Assembly, out bool includeInternal)
+                && includeInternal
+                && member.IsAssembly);
+
     private IEnumerable<Type> EnumeratePublicTypes()
     {
         foreach (Assembly assembly in _assemblies)
@@ -58,7 +91,7 @@ public sealed class CopelandClrMetadataResolver
             Type[] types;
             try
             {
-                types = assembly.GetExportedTypes();
+                types = assembly.GetTypes();
             }
             catch (ReflectionTypeLoadException exception)
             {
@@ -67,7 +100,7 @@ public sealed class CopelandClrMetadataResolver
 
             foreach (Type type in types)
             {
-                if (type.IsPublic || type.IsNestedPublic)
+                if (IsTypeVisible(type))
                 {
                     yield return type;
                 }
@@ -75,20 +108,30 @@ public sealed class CopelandClrMetadataResolver
         }
     }
 
-    private static void AddAssemblies(Dictionary<string, Assembly> target, IEnumerable<Assembly> assemblies)
+    private static void AddAssemblies(
+        Dictionary<string, Assembly> target,
+        Dictionary<Assembly, bool> internalVisibility,
+        IEnumerable<Assembly> assemblies,
+        bool includeInternal)
     {
         foreach (Assembly assembly in assemblies)
         {
             string identity = assembly.FullName ?? assembly.GetName().Name ?? Guid.NewGuid().ToString("N");
             target.TryAdd(identity, assembly);
+            internalVisibility[assembly] = internalVisibility.TryGetValue(assembly, out bool existing)
+                ? existing || includeInternal
+                : includeInternal;
         }
     }
 
-    private static void LoadFrameworkAssembly(Dictionary<string, Assembly> target, string name)
+    private static void LoadFrameworkAssembly(
+        Dictionary<string, Assembly> target,
+        Dictionary<Assembly, bool> internalVisibility,
+        string name)
     {
         try
         {
-            AddAssemblies(target, [Assembly.Load(name)]);
+            AddAssemblies(target, internalVisibility, [Assembly.Load(name)], includeInternal: false);
         }
         catch (FileNotFoundException)
         {

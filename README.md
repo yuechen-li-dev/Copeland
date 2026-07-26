@@ -62,6 +62,31 @@ only commands required. See the [MSBuild integration decision](docs/decisions/co
 for the package shape, source ownership, generated API mapping, and current
 language limitations.
 
+Authored C# declarations in that same project are also available to Copeland's
+CLR `using` domain. For example:
+
+```csharp
+// Names.cs
+namespace Demo;
+public static class Names
+{
+    public static string Normalize(string value) => value.Trim().ToUpperInvariant();
+}
+```
+
+```typescript
+// Greeting.ts
+using Demo;
+function Message(name: string): string {
+    return Names.Normalize(name);
+}
+```
+
+The generated C# calls `Names.Normalize` directly, while authored C# may call
+the generated `Demo.Copeland.Greeting.Message` in the same final assembly. See
+the [same-project C# declaration projection decision](docs/decisions/copeland-mixed-cts-mixed-m1.md)
+for supported members and deferred cross-language cycles.
+
 ## Ownership and history
 
 Reviewers should default to these write scopes:

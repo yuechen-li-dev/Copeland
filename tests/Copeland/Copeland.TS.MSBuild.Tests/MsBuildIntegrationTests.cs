@@ -126,6 +126,105 @@ public sealed class MsBuildIntegrationTests
         Assert.DoesNotContain("Greeting.g.cs", result.Output, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Copeland_Binds_Authored_CSharp_Declarations_In_The_Same_Project()
+    {
+        using var fixture = new TemporaryProject();
+        fixture.Write("Demo/Demo.csproj", CreateMixedProjectFile());
+        string names = """
+            namespace Demo;
+
+            public static class Names
+            {
+                public static string Normalize(string value) => value.Trim().ToUpperInvariant();
+                private static string Hidden(string value) => value;
+            }
+
+            internal static class InternalTools
+            {
+                internal static string Normalize(string value) => "internal:" + value.Trim();
+            }
+
+            public sealed class Counter
+            {
+                public Counter(double initial) => Value = initial;
+                public double Value { get; }
+                public double Add(double amount) => Value + amount;
+            }
+
+            public static class Formatter
+            {
+                public static string Format(string value) => "string:" + value;
+                public static string Format(double value) => "number:" + value;
+            }
+
+            #if FEATURE_X
+            public static class OptionalApi
+            {
+                public static string Value() => "feature";
+            }
+            #endif
+            """;
+        fixture.Write("Demo/Names.cs", names);
+        fixture.Write("Demo/Program.cs", """
+            using Demo.Copeland;
+
+            System.Console.WriteLine(Greeting.Message(" wyrm "));
+            System.Console.WriteLine(Feature.Calculate(2, 3));
+            System.Console.WriteLine(Feature.Internal(" wyrm "));
+            System.Console.WriteLine(Feature.Format("wyrm"));
+            System.Console.WriteLine(Feature.Optional());
+            """);
+        fixture.Write("Demo/Greeting.ts", """
+            using Demo;
+
+            function Message(name: string): string {
+                return Names.Normalize(name);
+            }
+            """);
+        fixture.Write("Demo/Feature.ts", """
+            using Demo;
+
+            function Calculate(initial: number, amount: number): number {
+                const counter: Counter = new Counter(initial);
+                return counter.Add(amount) + counter.Value;
+            }
+
+            function Internal(value: string): string {
+                return InternalTools.Normalize(value);
+            }
+
+            function Format(value: string): string {
+                return Formatter.Format(value);
+            }
+
+            function Optional(): string {
+                return OptionalApi.Value();
+            }
+            """);
+
+        fixture.Run("Demo", "restore");
+        fixture.Run("Demo", "build", "--no-restore");
+        fixture.Run("Demo", "run", "--no-build").AssertOutput("WYRM", "7", "internal:wyrm", "string:wyrm", "feature");
+        fixture.Run("Demo", "publish", "--no-restore", "-o", "publish");
+
+        string generated = Path.Combine(fixture.Root, "Demo", "obj", "Debug", "net10.0", "Copeland", "Greeting.g.cs");
+        Assert.Contains("global::Demo.Names.Normalize", File.ReadAllText(generated), StringComparison.Ordinal);
+
+        fixture.Write("Demo/Names.cs", names.Replace("public static string Normalize", "public static string Renamed", StringComparison.Ordinal));
+        ProcessResult renamed = fixture.RunExpectingFailure("Demo", "build", "--no-restore");
+        Assert.Contains("Greeting.ts", renamed.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("COPE-CLR", renamed.Output, StringComparison.Ordinal);
+
+        fixture.Write("Demo/Greeting.ts", """
+            using Demo;
+            function Message(name: string): string { return Names.Hidden(name); }
+            """);
+        ProcessResult result = fixture.RunExpectingFailure("Demo", "build", "--no-restore");
+        Assert.Contains("Greeting.ts", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("COPE-CLR-0004", result.Output, StringComparison.Ordinal);
+    }
+
     private static string CreateProjectFile(bool includeFeature = true, bool includeProjectReference = true, bool includePackage = true)
     {
         string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
@@ -148,6 +247,28 @@ public sealed class MsBuildIntegrationTests
                 <CopelandCompile Include="Greeting.ts" />
                 {{featureItem}}
                 {{packageItem}}
+              </ItemGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """;
+    }
+
+    private static string CreateMixedProjectFile()
+    {
+        string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
+        string targets = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.targets"));
+        return $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <RootNamespace>Demo</RootNamespace>
+                <DefineConstants>FEATURE_X</DefineConstants>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+              </PropertyGroup>
+              <ItemGroup>
+                <CopelandCompile Include="Greeting.ts" />
+                <CopelandCompile Include="Feature.ts" />
               </ItemGroup>
               <Import Project="{{targets}}" />
             </Project>

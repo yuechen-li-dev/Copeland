@@ -18,6 +18,16 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
 
     public ITaskItem[] ClrReferencePaths { get; set; } = [];
 
+    public ITaskItem[] CSharpSources { get; set; } = [];
+
+    public string AssemblyName { get; set; } = string.Empty;
+
+    public string LangVersion { get; set; } = string.Empty;
+
+    public string DefineConstants { get; set; } = string.Empty;
+
+    public string Nullable { get; set; } = string.Empty;
+
     [Required]
     public string IntermediateOutputPath { get; set; } = string.Empty;
 
@@ -69,6 +79,30 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             .Select(path => new CopelandClrReference(path))
             .ToArray();
 
+        IReadOnlyList<string> authoredCSharpSources = GetAuthoredCSharpSources(projectDirectory, generatedDirectory);
+        if (!RoslynDeclarationProjection.TryCreate(
+                authoredCSharpSources,
+                references,
+                string.IsNullOrWhiteSpace(AssemblyName) ? Path.GetFileName(projectDirectory) : AssemblyName,
+                NormalizeNamespace(RootNamespace) + ".Copeland",
+                LangVersion,
+                DefineConstants,
+                Nullable,
+                out CopelandClrReference? projectDeclarations,
+                out IReadOnlyList<RoslynDeclarationProjectionDiagnostic> projectionDiagnostics))
+        {
+            foreach (RoslynDeclarationProjectionDiagnostic diagnostic in projectionDiagnostics)
+            {
+                Log.LogError(diagnostic.Id, "", "", diagnostic.FilePath, diagnostic.Line, diagnostic.Column, diagnostic.Line, diagnostic.Column, diagnostic.Message);
+            }
+
+            return false;
+        }
+
+        CopelandClrReference[] effectiveReferences = projectDeclarations is null
+            ? references
+            : references.Append(projectDeclarations).ToArray();
+
         foreach (string sourcePath in sourcePaths.OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
         {
             string moduleName = moduleNames[sourcePath];
@@ -79,10 +113,10 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             activePaths.Add(mirPath);
             activePaths.Add(stampPath);
 
-            string fingerprint = CreateFingerprint(sourcePath, references, RootNamespace, moduleName);
+            string fingerprint = CreateFingerprint(sourcePath, effectiveReferences, authoredCSharpSources, RootNamespace, moduleName);
             if (!IsCurrent(stampPath, outputPath, mirPath, fingerprint))
             {
-                if (!Compile(sourcePath, projectDirectory, references, RootNamespace, moduleName, outputPath, mirPath))
+                if (!Compile(sourcePath, projectDirectory, effectiveReferences, RootNamespace, moduleName, outputPath, mirPath))
                 {
                     continue;
                 }
@@ -179,6 +213,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
     private static string CreateFingerprint(
         string sourcePath,
         IReadOnlyList<CopelandClrReference> references,
+        IReadOnlyList<string> authoredCSharpSources,
         string rootNamespace,
         string moduleName)
     {
@@ -189,10 +224,19 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         Append(hash, typeof(CopelandCompile).Assembly.GetName().Version?.ToString() ?? "unknown");
         foreach (CopelandClrReference reference in references)
         {
-            var info = new FileInfo(reference.AssemblyPath);
-            Append(hash, info.FullName);
-            Append(hash, info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            Append(hash, info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            if (reference.AssemblyPath is not null)
+            {
+                var info = new FileInfo(reference.AssemblyPath);
+                Append(hash, info.FullName);
+                Append(hash, info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                Append(hash, info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
+
+        foreach (string source in authoredCSharpSources)
+        {
+            Append(hash, source);
+            Append(hash, File.ReadAllText(source));
         }
 
         return Convert.ToHexString(hash.GetHashAndReset());
@@ -278,6 +322,19 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
     {
         hash.AppendData(Encoding.UTF8.GetBytes(value));
         hash.AppendData([0]);
+    }
+
+    private IReadOnlyList<string> GetAuthoredCSharpSources(string projectDirectory, string generatedDirectory)
+    {
+        string normalizedGeneratedDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(generatedDirectory));
+        return CSharpSources
+            .Select(item => Path.GetFullPath(item.ItemSpec, projectDirectory))
+            .Where(File.Exists)
+            .Where(path => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+            .Where(path => !path.StartsWith(normalizedGeneratedDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private sealed class FileSystemAssetSource : ICopelandAssetSource
