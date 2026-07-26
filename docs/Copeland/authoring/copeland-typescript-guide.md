@@ -51,6 +51,52 @@ package and item names below are current; substitute a published version.
 `CopelandCompile` is opt-in. The package emits C# below `obj` before Roslyn's
 `CoreCompile`; `dotnet build`, `run`, `test`, and `publish` stay the workflow.
 
+## xUnit tests
+
+Copeland test modules use the `.tsxtest` extension and run through ordinary
+xUnit.NET. They are not TS-XML documents and do not use TSPack `xtest`.
+
+```ts
+using Xunit;
+
+import { Add } from "./Calculator";
+
+[Fact]
+export function Add_returns_sum(): void {
+    Assert.Equal(42, Add(20, 22));
+}
+
+[Theory]
+[InlineData(1, 2, 3)]
+export function Add_returns_expected(left: number, right: number, expected: number): void {
+    Assert.Equal(expected, Add(left, right));
+}
+```
+
+The SDK discovers `**/*.tsxtest`. In a production project it creates an
+auxiliary test project under `obj/CopelandTests` and invokes it through normal
+`dotnet test`; the production assembly is referenced rather than recompiled.
+`dotnet build` and `dotnet publish` compile and publish only production code.
+The auxiliary project supplies the supported xUnit, runner, and test SDK
+packages through normal NuGet restore, and the generated wrapper uses xUnit's
+real discovery, filtering, execution, and reporting.
+
+For the current SDK-style first slice, a colocated production project declares
+`<IsTestProject>true</IsTestProject>` when it contains `.tsxtest` files. This
+lets the ordinary test target invoke the generated auxiliary project; it does
+not put test methods or xUnit references into the production assembly.
+
+M1 accepts module-level exported functions with `[Fact]`, `[Theory]`, repeated
+`[InlineData(...)]`, and `[Trait(...)]`. Fact functions must be parameterless;
+Theory functions require InlineData with literal primitive arguments. Attribute
+wrappers emit `#line` directives so xUnit failures name the authored
+`.tsxtest`. Current M1 is synchronous and supports public production APIs.
+
+For a dedicated xUnit project, add `xunit` and `xunit.runner.visualstudio`, and set
+`<CopelandCompileTestsInProject>true</CopelandCompileTestsInProject>`. A
+`.tsxtest` is discovered automatically and compiles into that test project, so
+ordinary C# tests and Copeland tests coexist.
+
 ```ts
 using System.Text.Json;
 using Demo;

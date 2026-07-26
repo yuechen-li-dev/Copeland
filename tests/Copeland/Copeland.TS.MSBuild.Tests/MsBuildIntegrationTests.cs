@@ -111,6 +111,116 @@ public sealed class MsBuildIntegrationTests
     }
 
     [Fact]
+    public void Same_project_tsxtest_files_run_through_xunit_in_a_separate_test_assembly()
+    {
+        using var fixture = new TemporaryProject();
+        string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
+        string props = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.props"));
+        string targets = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.targets"));
+        fixture.Write("Demo/Demo.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <Import Project="{{props}}" />
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <RootNamespace>Demo</RootNamespace>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+                <IsTestProject>true</IsTestProject>
+              </PropertyGroup>
+              <ItemGroup>
+                <CopelandCompile Include="Calculator.ts" />
+              </ItemGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """);
+        fixture.Write("Demo/Program.cs", "System.Console.WriteLine(\"production\");");
+        fixture.Write("Demo/Calculator.ts", "export function Add(left: number, right: number): number { return left + right; }");
+        fixture.Write("Demo/Calculator.tsxtest", """
+            using Xunit;
+
+            import { Add } from "./Calculator";
+
+            [Fact]
+            export function Add_returns_sum(): void {
+                Assert.Equal(42, Add(20, 22));
+            }
+
+            [Theory]
+            [InlineData(1, 2, 3)]
+            [InlineData(10, 20, 30)]
+            export function Add_returns_expected(left: number, right: number, expected: number): void {
+                Assert.Equal(expected, Add(left, right));
+            }
+            """);
+
+        fixture.Run("Demo", "restore");
+        fixture.Run("Demo", "build", "--no-restore");
+        ProcessResult result = fixture.Run("Demo", "test", "--no-restore");
+
+        string productionOutput = Path.Combine(fixture.Root, "Demo", "bin", "Debug", "net10.0", "Demo.dll");
+        string[] testOutputs = Directory.GetFiles(
+            Path.Combine(fixture.Root, "Demo"),
+            "Demo.CopelandTests.dll",
+            SearchOption.AllDirectories);
+        Assert.True(File.Exists(productionOutput));
+        Assert.NotEmpty(testOutputs);
+        Assert.True(result.Output.Contains("Passed!", StringComparison.OrdinalIgnoreCase), result.Output);
+
+        fixture.Run("Demo", "publish", "--no-restore", "-o", "publish");
+        Assert.False(File.Exists(Path.Combine(fixture.Root, "Demo", "publish", "Demo.CopelandTests.dll")));
+    }
+
+    [Fact]
+    public void Dedicated_xunit_project_discovers_tsxtest_without_a_copeland_property()
+    {
+        using var fixture = new TemporaryProject();
+        string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
+        string props = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.props"));
+        string targets = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.targets"));
+        fixture.Write("Demo/Demo.csproj", """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+            </Project>
+            """);
+        fixture.Write("Demo/Calculator.cs", "namespace Demo; public static class Calculator { public static double Add(double left, double right) => left + right; }");
+        fixture.Write("Demo.Tests/Demo.Tests.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <Import Project="{{props}}" />
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+                <CopelandSameProjectTestHost>false</CopelandSameProjectTestHost>
+                <CopelandCompileTestsInProject>true</CopelandCompileTestsInProject>
+              </PropertyGroup>
+              <ItemGroup>
+                <ProjectReference Include="..\Demo\Demo.csproj" />
+                <PackageReference Include="xunit" Version="2.9.3" />
+                <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+              </ItemGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """);
+        fixture.Write("Demo.Tests/Calculator.tsxtest", """
+            using Xunit;
+            using Demo;
+
+            [Fact]
+            export function Copeland_calls_referenced_csharp(): void {
+                Assert.True(Calculator.Add(20, 22) == 42);
+            }
+            """);
+        fixture.Write("Demo.Tests/CSharpTests.cs", """
+            using Xunit;
+            public sealed class CSharpTests { [Fact] public void Csharp_test_coexists() => Assert.True(true); }
+            """);
+
+        fixture.Run("Demo.Tests", "restore");
+        ProcessResult result = fixture.Run("Demo.Tests", "test", "--no-restore");
+        Assert.True(result.Output.Contains("Passed!", StringComparison.OrdinalIgnoreCase), result.Output);
+        Assert.Contains("Demo.Tests.dll", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Copeland_Diagnostics_Are_Reported_Against_The_Authored_Source()
     {
         using var fixture = new TemporaryProject();

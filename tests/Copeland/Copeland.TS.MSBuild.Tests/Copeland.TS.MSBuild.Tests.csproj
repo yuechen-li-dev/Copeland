@@ -17,5 +17,8 @@
     <None Include="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.targets"
           Link="Copeland.TS.Sdk.targets"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.props"
+          Link="Copeland.TS.Sdk.props"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,24 @@
 <Project>
   <PropertyGroup>
     <CopelandGeneratedDirectory Condition="'$(CopelandGeneratedDirectory)' == ''">$(IntermediateOutputPath)Copeland\</CopelandGeneratedDirectory>
+    <CopelandTestGeneratedDirectory Condition="'$(CopelandTestGeneratedDirectory)' == ''">$(BaseIntermediateOutputPath)CopelandTests\</CopelandTestGeneratedDirectory>
     <CopelandTaskAssembly Condition="'$(CopelandTaskAssembly)' == ''">$(MSBuildThisFileDirectory)..\tools\net10.0\Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
+    <CopelandXunitVersion Condition="'$(CopelandXunitVersion)' == ''">2.9.3</CopelandXunitVersion>
+    <CopelandTestSdkVersion Condition="'$(CopelandTestSdkVersion)' == ''">17.14.1</CopelandTestSdkVersion>
+    <CopelandXunitRunnerVersion Condition="'$(CopelandXunitRunnerVersion)' == ''">3.1.5</CopelandXunitRunnerVersion>
+    <CopelandSameProjectTestHost Condition="'$(CopelandSameProjectTestHost)' == ''">true</CopelandSameProjectTestHost>
   </PropertyGroup>
+
+  <ItemGroup>
+    <CopelandTest Include="**\*.tsxtest" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"
+                      Version="$(CopelandTestSdkVersion)"
+                      PrivateAssets="all"
+                      Condition="'@(CopelandTest)' != ''">
+      <CopelandOwnedTestSdk>true</CopelandOwnedTestSdk>
+    </PackageReference>
+  </ItemGroup>
 </Project>
