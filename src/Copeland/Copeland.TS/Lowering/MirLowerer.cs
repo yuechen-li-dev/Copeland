@@ -499,6 +499,12 @@ public static class MirLowerer
                     continuation(new MirInvokeExpression(callee, arguments, invoke.Type)))),
                 MirArrayExpression array => LowerArguments(array.Elements, 0, [], elements =>
                     continuation(new MirArrayExpression(elements, array.Type))),
+                MirArrayLengthExpression length => LowerExpression(length.Receiver, receiver =>
+                    continuation(new MirArrayLengthExpression(receiver))),
+                MirArrayElementAccessExpression access => LowerExpression(access.Receiver, receiver => LowerExpression(access.Index, index =>
+                    continuation(new MirArrayElementAccessExpression(receiver, index, access.Type)))),
+                MirArrayIterableExpression iterable => LowerExpression(iterable.Receiver, receiver =>
+                    continuation(new MirArrayIterableExpression(receiver, iterable.IterableType))),
                 MirOkExpression ok => LowerExpression(ok.Payload, value =>
                     continuation(new MirOkExpression(value, (MirResultType)ok.Type))),
                 MirErrExpression err => LowerExpression(err.Payload, value =>
@@ -843,6 +849,16 @@ public static class MirLowerer
             case MirArrayExpression array:
                 foreach (MirExpression element in array.Elements) yield return element;
                 break;
+            case MirArrayLengthExpression length:
+                yield return length.Receiver;
+                break;
+            case MirArrayElementAccessExpression access:
+                yield return access.Receiver;
+                yield return access.Index;
+                break;
+            case MirArrayIterableExpression iterable:
+                yield return iterable.Receiver;
+                break;
             case MirRecordConstructionExpression construction:
                 foreach (MirRecordFieldValue initializer in construction.Initializers) yield return initializer.Value;
                 break;
@@ -1033,6 +1049,9 @@ public static class MirLowerer
             BoundErrExpression err => new MirErrExpression(LowerExpression(err.Payload), (MirResultType)ToMirType(err.Type)),
             BoundUnitExpression => new MirUnitExpression(),
             BoundArrayExpression a => new MirArrayExpression(a.Elements.Select(LowerExpression).ToArray(), ToMirType(a.Type)),
+            BoundArrayLengthExpression length => new MirArrayLengthExpression(LowerExpression(length.Receiver)),
+            BoundArrayElementAccessExpression access => new MirArrayElementAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), ToMirType(access.Type)),
+            BoundArrayIterableExpression iterable => new MirArrayIterableExpression(LowerExpression(iterable.Receiver), (MirIterableType)ToMirType(iterable.Type)),
             BoundBatchExpression batch => new MirBatchExpression(
                 LowerExpression(batch.Input),
                 new MirLocal(batch.Item.Name, ToMirType(batch.Item.Type), true),

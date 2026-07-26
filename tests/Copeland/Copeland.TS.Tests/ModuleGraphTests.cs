@@ -16,6 +16,58 @@ namespace Copeland.TS.Tests;
 public sealed class ModuleGraphTests
 {
     [Fact]
+    public void Arrays_cross_module_boundaries_support_length_indexing_and_for_of()
+    {
+        CopelandProjectCompilation compilation = Compile(
+        [
+            ("Model.ts", "export function Values(): int[] { return [2, 3, 5]; }"),
+            ("Main.ts", """
+                import { Values } from "./Model";
+                export function Run(): int {
+                    const items: int[] = Values();
+                    const first: int = items[0];
+                    let total: int = 0;
+                    for (const item of items) { total = total + item; }
+                    return items.length + first + total;
+                }
+                """),
+        ]);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        MirFunction run = Assert.Single(compilation.Compilation!.MirCompilation!.Program!.Functions, function => function.Name == "Run");
+        Assert.Contains(run.Body, statement => statement is MirForOfStatement { Iterable: MirArrayIterableExpression });
+        Assert.Contains("array", compilation.Compilation.MirText!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Broken_module_does_not_poison_an_independent_enum_importer()
+    {
+        CopelandProjectCompilation compilation = Compile(
+        [
+            ("Board.ts", "export function Broken(): int { return missing; }"),
+            ("Model.ts", "export enum TaskEvent { Created(id: int), }"),
+            ("Main.ts", """
+                import { TaskEvent } from "./Model";
+                export function Run(): TaskEvent { return TaskEvent.Created(1); }
+                """),
+        ]);
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.SourcePath == "Board.ts" && diagnostic.Id == "COPE-BIND-0001");
+        Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.SourcePath == "Main.ts");
+        Assert.DoesNotContain(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-ENUM-0010");
+    }
+
+    [Theory]
+    [InlineData("function Read(values: int[]): int { return values[1.5]; }", "COPE-ARRAY-0002")]
+    [InlineData("function Read(values: int[]): int { return values[-1]; }", "COPE-ARRAY-0003")]
+    public void Array_index_diagnostics_teach_the_supported_integer_and_bounds_law(string source, string diagnosticId)
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == diagnosticId);
+    }
+
+    [Fact]
     public void Relative_named_imports_preserve_the_exported_function_and_type_identity()
     {
         CopelandProjectCompilation compilation = Compile(

@@ -12,6 +12,30 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class BatchRuntimeTests
 {
     [Fact]
+    public void Arrays_support_length_indexing_and_for_of_after_batch()
+    {
+        const string source = """
+            function main(): number {
+                const values: number[] = [2, 3, 5];
+                const doubled: number[] = batch values as value { return value * 2; };
+                let total: number = 0;
+                for (const value of doubled) { total = total + value; }
+                return Float.From(doubled.length) + doubled[0] + total;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.Empty(emitted.Diagnostics);
+        Assert.Contains("CopeArray.Get", emitted.SourceText, StringComparison.Ordinal);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(emitted.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(27d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "main")));
+    }
+
+    [Fact]
     public void Batch_maps_in_stable_order_with_a_local_and_immutable_capture()
     {
         const string source = """

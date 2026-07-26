@@ -17,7 +17,7 @@ public sealed class TableDiagnosticInventoryTests
         yield return Case("COPE-TABLE-0008", "record table T { x: [1, 2]; y: [3]; }");
         yield return Case("COPE-TABLE-0009", "record table T { x: [[1]]; }");
         yield return Case("COPE-TABLE-0010", "record Node { next: Node; } record table T { node: Node = []; }");
-        yield return Case("COPE-TABLE-0011", "function f(): void { const values: number[] = [1]; values[0]; }");
+        yield return Case("COPE-TABLE-0011", "function f(): void { const value: int = 1; value[0]; }");
         yield return Case("COPE-TABLE-0012", "record table T { x: [1]; } function f(): column number { return T.missing; }");
         yield return Case("COPE-TABLE-0013", "record table T { x: [1]; } function f(index: string): number ! TableBoundsError { return T.x[index]; }");
         yield return Case("COPE-TABLE-0014", "record table T { x: [1]; } function f(): void { T = T; }");

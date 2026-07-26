@@ -394,6 +394,34 @@ may not mutate outer state, call CLR/npm/callables, use inline C#/async, or nest
 `batch`. Async batch, reduction, filter, flattening, and arbitrary iterables
 are deferred.
 
+### Arrays
+
+Arrays are finite, ordered `T[]` values. They expose only the small
+consumption surface needed for ordinary application code:
+
+```ts
+const count: int = items.length;
+const first: Item = items[0];
+
+for (const item of items) {
+    consume(item);
+}
+```
+
+`length` returns `int`; array indexes must be `int`; and arrays satisfy the
+same supported `Iterable<T>` protocol used by `for...of`. An index below zero
+or at/after `length` deterministically fails with `Copeland array index is out
+of bounds.` on both CLR and JavaScript. JavaScript never turns an out-of-range
+read into `undefined`.
+
+Arrays are not record tables or table columns: `items[index]` returns an array
+element directly, whereas table and column indexing keep their table-specific
+result/bounds semantics. Arrays can be returned from `batch`, stored in
+records, and passed through supported local, CLR, and npm contracts.
+
+`map`, `filter`, `reduce`, `find`, sorting, slicing, mutable array methods,
+and iterator-helper APIs remain intentionally deferred.
+
 ### Generators
 
 ```ts

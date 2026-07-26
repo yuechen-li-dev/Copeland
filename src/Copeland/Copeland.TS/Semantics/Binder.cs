@@ -2519,12 +2519,20 @@ public static class Binder
         private BoundStatement BindForOf(ForOfStatementSyntax statement)
         {
             BoundExpression iterable = BindExpression(statement.Iterable);
-            TypeSymbol elementType = iterable.Type is IterableTypeSymbol sequence
-                ? sequence.ElementType
-                : PrimitiveTypeSymbol.Error;
-            if (iterable.Type is not IterableTypeSymbol)
+            TypeSymbol elementType;
+            if (iterable.Type is ArrayTypeSymbol array)
             {
-                Report("COPE-GEN-0008", "The source of 'for...of' must have type Iterable<T>.", statement.OfKeyword);
+                elementType = array.ElementType;
+                iterable = new BoundArrayIterableExpression(iterable, new IterableTypeSymbol(array.ElementType));
+            }
+            else if (iterable.Type is IterableTypeSymbol sequence)
+            {
+                elementType = sequence.ElementType;
+            }
+            else
+            {
+                elementType = PrimitiveTypeSymbol.Error;
+                Report("COPE-GEN-0008", "The source of 'for...of' must have type Iterable<T> or T[].", statement.OfKeyword);
             }
 
             Scope previousScope = _scope;
@@ -3083,6 +3091,16 @@ public static class Binder
                     return;
                 case BoundArrayExpression array:
                     foreach (BoundExpression element in array.Elements) ValidateBatchBodyEffects(element, anchor);
+                    return;
+                case BoundArrayLengthExpression length:
+                    ValidateBatchBodyEffects(length.Receiver, anchor);
+                    return;
+                case BoundArrayElementAccessExpression access:
+                    ValidateBatchBodyEffects(access.Receiver, anchor);
+                    ValidateBatchBodyEffects(access.Index, anchor);
+                    return;
+                case BoundArrayIterableExpression iterable:
+                    ValidateBatchBodyEffects(iterable.Receiver, anchor);
                     return;
                 case BoundRecordConstructionExpression record:
                     foreach (BoundRecordFieldInitializer initializer in record.Initializers) ValidateBatchBodyEffects(initializer.Value, anchor);
@@ -5191,6 +5209,9 @@ public static class Binder
                 BoundOkExpression ok => new BoundOkExpression(RewriteExpression(ok.Payload), (ResultTypeSymbol)SubstituteType(ok.Type, substitutions)),
                 BoundErrExpression err => new BoundErrExpression(RewriteExpression(err.Payload), (ResultTypeSymbol)SubstituteType(err.Type, substitutions)),
                 BoundArrayExpression array => new BoundArrayExpression(array.Elements.Select(RewriteExpression).ToArray(), SubstituteType(array.Type, substitutions)),
+                BoundArrayLengthExpression length => new BoundArrayLengthExpression(RewriteExpression(length.Receiver)),
+                BoundArrayElementAccessExpression access => new BoundArrayElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ArrayTypeSymbol)SubstituteType(access.ArrayType, substitutions)),
+                BoundArrayIterableExpression iterable => new BoundArrayIterableExpression(RewriteExpression(iterable.Receiver), (IterableTypeSymbol)SubstituteType(iterable.Type, substitutions)),
                 BoundRequirementFieldAccessExpression requirement => RewriteRequirementAccess(requirement),
                 BoundRecordFieldAccessExpression access => new BoundRecordFieldAccessExpression(RewriteExpression(access.Receiver), access.RecordType, access.Field),
                 BoundTableRowFieldAccessExpression access => new BoundTableRowFieldAccessExpression(RewriteExpression(access.Receiver), access.RowType, access.Field),
@@ -6369,6 +6390,16 @@ public static class Binder
             {
                 return new BoundErrorExpression();
             }
+            if (receiver.Type is ArrayTypeSymbol)
+            {
+                if (m.NameToken.Text == "length")
+                {
+                    return new BoundArrayLengthExpression(receiver);
+                }
+
+                Report("COPE-ARRAY-0001", $"Array values support only the 'length' property; '{m.NameToken.Text}' is not available.", m.NameToken);
+                return new BoundErrorExpression();
+            }
             if (receiver.Type is TableTypeSymbol tableType)
             {
                 var column = tableType.Columns.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
@@ -6465,6 +6496,23 @@ public static class Binder
         {
             var receiver = BindExpression(index.Target);
             var boundIndex = BindExpression(index.Index);
+            if (receiver.Type is ArrayTypeSymbol array)
+            {
+                if (boundIndex.Type != PrimitiveTypeSymbol.Int)
+                {
+                    Report("COPE-ARRAY-0002", $"Array indexes must have type int. Found: {boundIndex.Type.Name}. Use Int.Floor, Int.Ceil, Int.Round, or Int.Truncate if an explicit float-to-int policy is intended.", index.OpenBracketToken);
+                    return new BoundErrorExpression();
+                }
+
+                if (boundIndex is BoundUnaryExpression { OperatorKind: SyntaxKind.MinusToken, Operand: BoundLiteralExpression { Value: int } }
+                    || boundIndex is BoundLiteralExpression { Value: int value } && value < 0)
+                {
+                    Report("COPE-ARRAY-0003", "Array indexes must be greater than or equal to zero.", index.OpenBracketToken);
+                    return new BoundErrorExpression();
+                }
+
+                return new BoundArrayElementAccessExpression(receiver, boundIndex, array);
+            }
             if (!TypeFacts.IsNumeric(boundIndex.Type))
             {
                 Report("COPE-TABLE-0013", "Table and column indexes must have type 'number'.", index.OpenBracketToken);
@@ -6481,7 +6529,7 @@ public static class Binder
 
         private BoundExpression ReportInvalidIndex(IndexExpressionSyntax index)
         {
-            Report("COPE-TABLE-0011", "Indexing is currently supported only for record tables and columns.", index.OpenBracketToken);
+            Report("COPE-TABLE-0011", "Indexing is supported for arrays, record tables, and columns.", index.OpenBracketToken);
             return new BoundErrorExpression();
         }
 

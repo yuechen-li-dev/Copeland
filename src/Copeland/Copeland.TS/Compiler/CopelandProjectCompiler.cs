@@ -40,13 +40,10 @@ public static class CopelandProjectCompiler
         foreach (ProjectModule module in ordered)
         {
             BoundModuleImports imports = CreateImports(module, diagnostics);
-            if (diagnostics.Count > 0) break;
-
             SyntaxTree tree = SyntaxTree.Parse(RewriteModule(module), module.Source.SourcePath);
             BoundCompilation bound = Binder.Bind(tree, null, npmResolver, clrResolver, module.Source.SourcePath, module.LogicalPath, imports);
             module.Bound = bound;
             diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
-            if (diagnostics.Count > 0) break;
         }
 
         if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics);

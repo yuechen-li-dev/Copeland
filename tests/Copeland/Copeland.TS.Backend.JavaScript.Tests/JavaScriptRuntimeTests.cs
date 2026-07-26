@@ -10,6 +10,30 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_executes_array_length_indexing_and_for_of()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function main(): number {
+                const values: number[] = [2, 3, 5];
+                let total: number = 0;
+                for (const value of values) { total = total + value; }
+                return Float.From(values.length) + values[0] + total;
+            }
+            function invalid(): number {
+                const values: number[] = [2];
+                return values[1];
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(main()); try { invalid(); } catch (error) { console.log(error.message); }\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("15\nCopeland array index is out of bounds.\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
     public async Task Node_runs_a_lazy_generator_with_aliases_and_delegation()
     {
         JavaScriptCompilation emitted = Emit("""

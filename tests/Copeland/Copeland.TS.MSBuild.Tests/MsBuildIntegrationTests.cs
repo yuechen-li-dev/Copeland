@@ -127,6 +127,24 @@ public sealed class MsBuildIntegrationTests
     }
 
     [Fact]
+    public void Multiple_Copeland_failures_remain_the_visible_MSBuild_root_cause()
+    {
+        using var fixture = new TemporaryProject();
+        fixture.Write("Demo/Demo.csproj", CreateProjectFile(includeProjectReference: false, includePackage: false));
+        fixture.Write("Demo/Program.cs", "System.Console.WriteLine(\"unreachable\");");
+        fixture.Write("Demo/Greeting.ts", "function Message(): string { return missingGreeting; }");
+        fixture.Write("Demo/Feature.ts", "function Feature(): string { return missingFeature; }");
+
+        fixture.Run("Demo", "restore");
+        ProcessResult result = fixture.RunExpectingFailure("Demo", "build", "--no-restore");
+
+        Assert.Contains("COPE-BIND-0001", result.Output, StringComparison.Ordinal);
+        Assert.Contains("Greeting.ts", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Feature.ts", result.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("CS0246", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Independent_Copeland_Files_Scope_Private_Record_Carriers_Per_Module()
     {
         using var fixture = new TemporaryProject();

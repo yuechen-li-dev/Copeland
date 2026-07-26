@@ -650,6 +650,34 @@ public static class JavaScriptBackend
                     RequireMatchingType(element.Type, arrayType.ElementType, $"array element in {context}", diagnostics);
                 }
                 break;
+            case MirArrayLengthExpression length:
+                ValidateExpression(length.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                if (length.Receiver.Type is not MirArrayType)
+                {
+                    AddInvalid(diagnostics, $"array length receiver in {context} must be an array");
+                }
+                break;
+            case MirArrayElementAccessExpression access:
+                ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(access.Index, functionReturnType, context, functions, catalog, diagnostics);
+                if (access.Receiver.Type is not MirArrayType indexedArrayType)
+                {
+                    AddInvalid(diagnostics, $"array index receiver in {context} must be an array");
+                }
+                else
+                {
+                    RequireMatchingType(access.Type, indexedArrayType.ElementType, $"array element access in {context}", diagnostics);
+                }
+                RequireType(access.Index.Type, "int", $"array index in {context}", diagnostics);
+                break;
+            case MirArrayIterableExpression iterable:
+                ValidateExpression(iterable.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                if (iterable.Receiver.Type is not MirArrayType iterableArrayType
+                    || !MirTypeFacts.AreEquivalent(iterableArrayType.ElementType, iterable.IterableType.ElementType))
+                {
+                    AddInvalid(diagnostics, $"array iterable adaptation in {context} must preserve its array element type");
+                }
+                break;
             case MirBatchExpression batch:
                 if (batch.Input.Type is not MirArrayType inputType
                     || !MirTypeFacts.AreEquivalent(inputType.ElementType, batch.Item.Type)
@@ -2409,6 +2437,9 @@ public static class JavaScriptBackend
             MirCallableConstructionExpression construction => EmitCallableConstruction(construction, function, catalog, results, names, flowEnabled),
             MirInvokeExpression invoke => EmitInvoke(invoke, function, catalog, results, names, flowEnabled),
             MirArrayExpression array => EmitArrayExpression(array, function, catalog, results, names, flowEnabled),
+            MirArrayLengthExpression length => EmitArrayLength(length, function, catalog, results, names, flowEnabled),
+            MirArrayElementAccessExpression access => EmitArrayElementAccess(access, function, catalog, results, names, flowEnabled),
+            MirArrayIterableExpression iterable => EmitExpression(iterable.Receiver, function, catalog, results, names, flowEnabled),
             MirBatchExpression batch => EmitBatchExpression(batch, function, catalog, results, names, flowEnabled),
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
@@ -2432,6 +2463,36 @@ public static class JavaScriptBackend
             MirNpmCallExpression npm => new EmittedExpression([], EmitNpmCall(npm, results, names)),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
+    }
+
+    private static EmittedExpression EmitArrayLength(
+        MirArrayLengthExpression length,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression receiver = EmitExpression(length.Receiver, function, catalog, results, names, flowEnabled);
+        return new EmittedExpression(receiver.Prelude, $"{receiver.Value}.length");
+    }
+
+    private static EmittedExpression EmitArrayElementAccess(
+        MirArrayElementAccessExpression access,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression receiver = EmitExpression(access.Receiver, function, catalog, results, names, flowEnabled);
+        EmittedExpression index = EmitExpression(access.Index, function, catalog, results, names, flowEnabled);
+        var prelude = new List<EmittedLine>(receiver.Prelude);
+        prelude.AddRange(index.Prelude);
+        string receiverTemporary = names.NextTemporary("array_receiver");
+        string indexTemporary = names.NextTemporary("array_index");
+        string value = $"(() => {{ const {receiverTemporary} = {receiver.Value}; const {indexTemporary} = {index.Value}; if ({indexTemporary} < 0 || {indexTemporary} >= {receiverTemporary}.length) throw new RangeError(\"Copeland array index is out of bounds.\"); return {receiverTemporary}[{indexTemporary}]; }})()";
+        return new EmittedExpression(prelude, value);
     }
 
     private static EmittedExpression EmitNumericConversion(

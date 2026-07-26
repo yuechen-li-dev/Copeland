@@ -486,6 +486,9 @@ public sealed record MirFunctionReferenceExpression(string FunctionName, MirCall
 public sealed record MirCallableConstructionExpression(string CodeFunctionName, IReadOnlyList<MirExpression> Captures, MirCallableType CallableType) : MirExpression(CallableType);
 public sealed record MirInvokeExpression(MirExpression Callee, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirArrayExpression(IReadOnlyList<MirExpression> Elements, MirType Type) : MirExpression(Type);
+public sealed record MirArrayLengthExpression(MirExpression Receiver) : MirExpression(new MirNamedType("int"));
+public sealed record MirArrayElementAccessExpression(MirExpression Receiver, MirExpression Index, MirType Type) : MirExpression(Type);
+public sealed record MirArrayIterableExpression(MirExpression Receiver, MirIterableType IterableType) : MirExpression(IterableType);
 public sealed record MirBatchExpression(
     MirExpression Input,
     MirLocal Item,

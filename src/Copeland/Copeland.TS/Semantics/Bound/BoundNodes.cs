@@ -515,6 +515,23 @@ public sealed class BoundResultMatchExpression : BoundExpression
     public override TypeSymbol Type => TypeImpl;
 }
 public sealed class BoundArrayExpression : BoundExpression { public BoundArrayExpression(IReadOnlyList<BoundExpression> elements, TypeSymbol type) { Elements = elements; TypeImpl = type; } public IReadOnlyList<BoundExpression> Elements { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
+public sealed class BoundArrayLengthExpression(BoundExpression receiver) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public override TypeSymbol Type => PrimitiveTypeSymbol.Int;
+}
+public sealed class BoundArrayElementAccessExpression(BoundExpression receiver, BoundExpression index, ArrayTypeSymbol arrayType) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public BoundExpression Index { get; } = index;
+    public ArrayTypeSymbol ArrayType { get; } = arrayType;
+    public override TypeSymbol Type => ArrayType.ElementType;
+}
+public sealed class BoundArrayIterableExpression(BoundExpression receiver, IterableTypeSymbol type) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public override TypeSymbol Type { get; } = type;
+}
 public sealed class BoundRecordFieldInitializer(RecordFieldSymbol field, BoundExpression value)
 {
     public RecordFieldSymbol Field { get; } = field;

@@ -43,6 +43,35 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
 
     public override bool Execute()
     {
+        try
+        {
+            return ExecuteCore();
+        }
+        catch (Exception exception)
+        {
+            Exception rootCause = exception.GetBaseException();
+            string summary = rootCause.Message.Replace('\r', ' ').Replace('\n', ' ');
+            if (summary.Length > 500)
+            {
+                summary = summary[..500] + "…";
+            }
+
+            Log.LogError(
+                "COPE-MSBUILD-0001",
+                "",
+                "",
+                ProjectDirectory,
+                0,
+                0,
+                0,
+                0,
+                $"Copeland compilation failed unexpectedly: {rootCause.GetType().Name}: {summary}");
+            return false;
+        }
+    }
+
+    private bool ExecuteCore()
+    {
         string projectDirectory = Path.GetFullPath(ProjectDirectory);
         string generatedDirectory = Path.Combine(Path.GetFullPath(IntermediateOutputPath), "Copeland");
         var sourcePaths = new List<string>();
