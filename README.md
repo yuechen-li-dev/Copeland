@@ -74,6 +74,24 @@ public static class Names
 }
 ```
 
+For incremental migration, a function may contain an explicitly delimited,
+typed native C# block:
+
+```typescript
+using Demo;
+function Normalize(value: string): string {
+    csharp {
+        return Names.Normalize(value);
+    }
+}
+```
+
+The block is compiled as ordinary project C# and is not sandboxed. It can capture
+only values with an existing CLR projection and cannot assign to those captures.
+It is unavailable for the JavaScript backend; arbitrary inline JavaScript is not
+supported (declared npm contracts remain the JavaScript interop boundary). See
+[the inline-C# decision](docs/decisions/copeland-inline-csharp-cts-csharp-blocks-m1.md).
+
 ```typescript
 // Greeting.ts
 using Demo;

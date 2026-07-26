@@ -135,6 +135,7 @@ public enum SyntaxKind
     BlockStatement,
     VariableDeclarationStatement,
     ResourceUsingDeclarationStatement,
+    CSharpBlockStatement,
     ExpressionStatement,
     IfStatement,
     WhileStatement,

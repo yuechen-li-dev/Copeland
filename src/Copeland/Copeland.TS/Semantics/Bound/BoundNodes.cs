@@ -15,7 +15,9 @@ public sealed class BoundProgram
         IReadOnlyList<BoundStatement> globalStatements,
         IReadOnlyList<BoundTableDefinition>? tables = null,
         IReadOnlyList<BoundTsonEncodingPlan>? tsonEncodingPlans = null,
-        IReadOnlyList<BoundNpmImport>? npmImports = null)
+        IReadOnlyList<BoundNpmImport>? npmImports = null,
+        IReadOnlyList<string>? csharpUsings = null,
+        string? csharpSourcePath = null)
     {
         Functions = functions;
         Enums = enums;
@@ -24,6 +26,8 @@ public sealed class BoundProgram
         Tables = tables ?? [];
         TsonEncodingPlans = tsonEncodingPlans ?? [];
         NpmImports = npmImports ?? [];
+        CSharpUsings = csharpUsings ?? [];
+        CSharpSourcePath = csharpSourcePath;
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -32,6 +36,8 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundTableDefinition> Tables { get; }
     public IReadOnlyList<BoundTsonEncodingPlan> TsonEncodingPlans { get; }
     public IReadOnlyList<BoundNpmImport> NpmImports { get; }
+    public IReadOnlyList<string> CSharpUsings { get; }
+    public string? CSharpSourcePath { get; }
 }
 
 public sealed class BoundNpmImport(NpmFunctionSymbol function)
@@ -130,6 +136,23 @@ public sealed class BoundTableColumnDefinition(TableColumnSymbol column, IReadOn
 public sealed class BoundBlockStatement : BoundStatement { public BoundBlockStatement(IReadOnlyList<BoundStatement> statements) => Statements = statements; public IReadOnlyList<BoundStatement> Statements { get; } }
 public sealed class BoundVariableDeclaration : BoundStatement { public BoundVariableDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
 public sealed class BoundResourceUsingDeclaration : BoundStatement { public BoundResourceUsingDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
+public sealed class BoundCSharpCapture(string name, TypeSymbol type)
+{
+    public string Name { get; } = name;
+    public TypeSymbol Type { get; } = type;
+}
+
+public sealed class BoundCSharpBlockStatement(
+    string bodyText,
+    int sourceLine,
+    TypeSymbol expectedResultType,
+    IReadOnlyList<BoundCSharpCapture> captures) : BoundStatement
+{
+    public string BodyText { get; } = bodyText;
+    public int SourceLine { get; } = sourceLine;
+    public TypeSymbol ExpectedResultType { get; } = expectedResultType;
+    public IReadOnlyList<BoundCSharpCapture> Captures { get; } = captures;
+}
 public sealed class BoundExpressionStatement : BoundStatement { public BoundExpressionStatement(BoundExpression expression) => Expression = expression; public BoundExpression Expression { get; } }
 public sealed class BoundIfStatement : BoundStatement { public BoundIfStatement(BoundExpression condition, BoundStatement thenStatement, BoundStatement? elseStatement) { Condition = condition; ThenStatement = thenStatement; ElseStatement = elseStatement; } public BoundExpression Condition { get; } public BoundStatement ThenStatement { get; } public BoundStatement? ElseStatement { get; } }
 public sealed class BoundWhileStatement : BoundStatement { public BoundWhileStatement(BoundExpression condition, BoundStatement body) { Condition = condition; Body = body; } public BoundExpression Condition { get; } public BoundStatement Body { get; } }

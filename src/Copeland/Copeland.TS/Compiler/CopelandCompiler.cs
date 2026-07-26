@@ -32,7 +32,8 @@ public static class CopelandCompiler
                     syntaxTree,
                     assetResolver,
                     new CopelandNpmContractResolver(npmDependencies),
-                    new CopelandClrMetadataResolver(effectiveOptions.ClrReferences));
+                    new CopelandClrMetadataResolver(effectiveOptions.ClrReferences),
+                    effectiveOptions.SourcePath);
                 diagnostics.AddRange(boundCompilation.Diagnostics);
             }
         }

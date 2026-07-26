@@ -580,6 +580,23 @@ public sealed record ResourceUsingDeclarationStatementSyntax(
     }
 }
 
+public sealed record CSharpBlockStatementSyntax(
+    SyntaxToken CSharpKeyword,
+    SyntaxToken OpenBraceToken,
+    string BodyText,
+    int BodyPosition,
+    SyntaxToken CloseBraceToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.CSharpBlockStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return CSharpKeyword;
+        yield return OpenBraceToken;
+        yield return CloseBraceToken;
+    }
+}
+
 public sealed record ExpressionStatementSyntax(
     ExpressionSyntax Expression,
     SyntaxToken SemicolonToken) : StatementSyntax

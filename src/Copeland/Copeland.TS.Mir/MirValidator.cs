@@ -23,6 +23,7 @@ public static class MirValidator
         ValidateTableModel(program, diagnostics);
         ValidateNpmModel(program, diagnostics);
         ValidateClrModel(program, diagnostics);
+        ValidateCSharpBlockModel(program, diagnostics);
         ValidateTsonEncodingModel(program, diagnostics);
         foreach (var function in program.Functions)
         {
@@ -34,6 +35,64 @@ public static class MirValidator
         MirSuspensionAutomatonValidator.Validate(program, diagnostics);
 
         return diagnostics;
+    }
+
+    private static void ValidateCSharpBlockModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (MirFunction function in program.Functions)
+        {
+            foreach (MirCSharpBlockStatement block in EnumerateCSharpBlocks(function.Body))
+            {
+                foreach (MirCSharpCapture capture in block.Captures)
+                {
+                    if (!IsCSharpProjectable(capture.Type))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"inline C# capture '{capture.Name}' has no CLR projection."));
+                    }
+                }
+
+                if (!IsCSharpProjectable(block.ExpectedResultType, allowVoid: true))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("inline C# result has no CLR projection."));
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<MirCSharpBlockStatement> EnumerateCSharpBlocks(IEnumerable<MirStatement> statements)
+    {
+        foreach (MirStatement statement in statements)
+        {
+            switch (statement)
+            {
+                case MirCSharpBlockStatement block:
+                    yield return block;
+                    break;
+                case MirIfStatement conditional:
+                    foreach (MirCSharpBlockStatement block in EnumerateCSharpBlocks(conditional.ThenStatements)) yield return block;
+                    if (conditional.ElseStatements is not null)
+                    {
+                        foreach (MirCSharpBlockStatement block in EnumerateCSharpBlocks(conditional.ElseStatements)) yield return block;
+                    }
+                    break;
+                case MirWhileStatement loop:
+                    foreach (MirCSharpBlockStatement block in EnumerateCSharpBlocks(loop.BodyStatements)) yield return block;
+                    break;
+                case MirForStatement loop:
+                    if (loop.Initializer is not null)
+                    {
+                        foreach (MirCSharpBlockStatement block in EnumerateCSharpBlocks([loop.Initializer])) yield return block;
+                    }
+                    foreach (MirCSharpBlockStatement block in EnumerateCSharpBlocks(loop.BodyStatements)) yield return block;
+                    break;
+            }
+        }
+    }
+
+    private static bool IsCSharpProjectable(MirType type, bool allowVoid = false)
+    {
+        if (type is MirNamedType { Identifier: "void" }) return allowVoid;
+        return type is MirNamedType or MirClrType or MirRecordType or MirArrayType;
     }
 
     private static void ValidateClrModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)

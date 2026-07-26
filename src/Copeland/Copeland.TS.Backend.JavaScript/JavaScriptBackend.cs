@@ -69,6 +69,11 @@ public static class JavaScriptBackend
         {
             return new JavaScriptCompilation(null, diagnostics);
         }
+        if (program.Functions.Any(function => ContainsInlineCSharp(function.Body)))
+        {
+            diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-CSHARP-0001", "Inline C# is available only on the CLR backend."));
+            return new JavaScriptCompilation(null, diagnostics);
+        }
         foreach (MirNpmImport import in program.NpmImports.Where(import => !import.IsAvailableToJavaScript))
         {
             diagnostics.Add(new JavaScriptDiagnostic(UnsupportedDiagnosticId, $"npm import '{import.LocalBinding}' is unavailable for the JavaScript backend."));
@@ -144,6 +149,28 @@ public static class JavaScriptBackend
         }
 
         return new JavaScriptCompilation(sourceText, []);
+    }
+
+    private static bool ContainsInlineCSharp(IEnumerable<MirStatement> statements)
+    {
+        foreach (MirStatement statement in statements)
+        {
+            switch (statement)
+            {
+                case MirCSharpBlockStatement:
+                    return true;
+                case MirIfStatement conditional when ContainsInlineCSharp(conditional.ThenStatements)
+                    || conditional.ElseStatements is not null && ContainsInlineCSharp(conditional.ElseStatements):
+                    return true;
+                case MirWhileStatement loop when ContainsInlineCSharp(loop.BodyStatements):
+                    return true;
+                case MirForStatement loop when (loop.Initializer is not null && ContainsInlineCSharp([loop.Initializer]))
+                    || ContainsInlineCSharp(loop.BodyStatements):
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     private static void EmitAsyncRuntime(JavaScriptTextWriter writer)

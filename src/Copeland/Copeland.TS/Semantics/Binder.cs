@@ -13,19 +13,19 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]));
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]), null);
         return impl.Bind();
     }
 
-    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver)
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath = null)
     {
-        var impl = new BinderImpl(tree, assetResolver, npmResolver, clrResolver);
+        var impl = new BinderImpl(tree, assetResolver, npmResolver, clrResolver, sourcePath);
         return impl.Bind();
     }
 
     internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]));
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]), null);
         _ = impl.Bind();
         return impl.GetOpenGenericBodiesForTesting();
     }
@@ -52,9 +52,23 @@ public static class Binder
                 if (c._symbols.TryGetValue(n, out symbol)) return true;
             symbol = null; return false;
         }
+
+        public IReadOnlyDictionary<string, Symbol> VisibleSymbols()
+        {
+            var visible = new Dictionary<string, Symbol>(StringComparer.Ordinal);
+            for (var current = this; current is not null; current = current.Parent)
+            {
+                foreach (var pair in current._symbols)
+                {
+                    visible.TryAdd(pair.Key, pair.Value);
+                }
+            }
+
+            return visible;
+        }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver)
+    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath)
     {
         private const int MaxTypeParametersPerFunction = 8;
         private const int MaxRequirementInterfacesPerTypeParameter = 8;
@@ -82,6 +96,7 @@ public static class Binder
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
         private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
         private readonly CopelandClrMetadataResolver _clrResolver = clrResolver;
+        private readonly string? _sourcePath = sourcePath;
         private readonly DiagnosticBag _diagnostics = new();
         private readonly Scope _global = new(null);
         private Scope _scope = null!;
@@ -205,7 +220,9 @@ public static class Binder
                     _globals,
                     _tables,
                     _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray(),
-                    _npmImports.OrderBy(import => import.Function.PackageName, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray()),
+                    _npmImports.OrderBy(import => import.Function.PackageName, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray(),
+                    _clrNamespaces.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
+                    _sourcePath),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray());
         }
 
@@ -1906,6 +1923,7 @@ public static class Binder
             return statement switch
             {
                 BoundReturnStatement => true,
+                BoundCSharpBlockStatement block when block.ExpectedResultType != PrimitiveTypeSymbol.Void => true,
                 BoundBlockStatement block => block.Statements.Any(AlwaysReturns),
                 BoundIfStatement conditional when conditional.ElseStatement is not null
                     => AlwaysReturns(conditional.ThenStatement) && AlwaysReturns(conditional.ElseStatement),
@@ -1918,6 +1936,7 @@ public static class Binder
             BlockStatementSyntax b => BindBlock(b),
             VariableDeclarationStatementSyntax v => BindVariable(v),
             ResourceUsingDeclarationStatementSyntax u => BindResourceUsing(u),
+            CSharpBlockStatementSyntax c => BindCSharpBlock(c),
             ExpressionStatementSyntax e => BindExpressionStatement(e),
             IfStatementSyntax i => BindIf(i),
             WhileStatementSyntax w => BindWhile(w),
@@ -2037,6 +2056,82 @@ public static class Binder
             }
 
             return new BoundResourceUsingDeclaration(variable, initializer);
+        }
+
+        private BoundStatement BindCSharpBlock(CSharpBlockStatementSyntax block)
+        {
+            if (_currentFunction is null)
+            {
+                Report("COPE-CSHARP-0002", "Inline C# blocks are valid only inside a Copeland function.", block.CSharpKeyword);
+                return new BoundCSharpBlockStatement(block.BodyText, GetLineNumber(block.BodyPosition), PrimitiveTypeSymbol.Void, []);
+            }
+
+            if (_currentFunction.IsAsync || ContainsCSharpAwait(block.BodyText))
+            {
+                Report("COPE-CSHARP-0003", "Inline C# async and await are deferred beyond CTS-CSHARP-BLOCKS-M1.", block.CSharpKeyword);
+            }
+
+            IReadOnlyDictionary<string, Symbol> visible = _scope.VisibleSymbols();
+            var captureCandidates = visible
+                .Where(pair => pair.Value is VariableSymbol or ParameterSymbol)
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            IReadOnlySet<string> names = captureCandidates.Keys.ToHashSet(StringComparer.Ordinal);
+            IReadOnlySet<string> referenced = CSharpCaptureAnalyzer.FindReferencedNames(block.BodyText, names);
+            IReadOnlySet<string> assigned = CSharpCaptureAnalyzer.FindAssignedNames(block.BodyText, names);
+            var captures = new List<BoundCSharpCapture>();
+            foreach (string name in referenced.OrderBy(name => name, StringComparer.Ordinal))
+            {
+                TypeSymbol type = captureCandidates[name] switch
+                {
+                    VariableSymbol variable => variable.Type,
+                    ParameterSymbol parameter => parameter.Type,
+                    _ => PrimitiveTypeSymbol.Error,
+                };
+                if (!IsCSharpProjectable(type))
+                {
+                    Report("COPE-CSHARP-0004", $"Inline C# cannot capture '{name}' because '{type.Name}' has no CLR projection.", block.CSharpKeyword);
+                    continue;
+                }
+
+                if (assigned.Contains(name))
+                {
+                    Report("COPE-CSHARP-0005", $"Inline C# cannot assign to captured Copeland binding '{name}'.", block.CSharpKeyword);
+                }
+
+                captures.Add(new BoundCSharpCapture(name, type));
+            }
+
+            TypeSymbol result = _currentFunction.ReturnType;
+            if (!IsCSharpProjectable(result, allowVoid: true))
+            {
+                Report("COPE-CSHARP-0006", $"Inline C# cannot return '{result.Name}' because it has no CLR projection.", block.CSharpKeyword);
+            }
+
+            return new BoundCSharpBlockStatement(block.BodyText, GetLineNumber(block.BodyPosition), result, captures);
+        }
+
+        private int GetLineNumber(int position)
+        {
+            var line = 1;
+            for (var index = 0; index < position && index < _tree.Text.Length; index++)
+            {
+                if (_tree.Text[index] == '\n') line++;
+            }
+
+            return line;
+        }
+
+        private static bool ContainsCSharpAwait(string bodyText)
+            => CSharpCaptureAnalyzer.FindReferencedNames(bodyText, new HashSet<string>(["await"], StringComparer.Ordinal)).Contains("await");
+
+        private static bool IsCSharpProjectable(TypeSymbol type, bool allowVoid = false)
+        {
+            if (type == PrimitiveTypeSymbol.Void)
+            {
+                return allowVoid;
+            }
+
+            return type is PrimitiveTypeSymbol or ArrayTypeSymbol or RecordTypeSymbol or ClrTypeSymbol;
         }
 
         private BoundStatement BindIf(IfStatementSyntax i)

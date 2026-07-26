@@ -36,7 +36,7 @@ public static class MirLowerer
             import.Function.IsPromise,
             import.Function.IsAvailableToJavaScript,
             import.Function.IsAvailableToClrSidecar)).ToArray();
-        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions);
+        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath);
     }
 
     private static MirTsonEncodingPlan LowerTsonEncodingPlan(BoundTsonEncodingPlan plan)
@@ -882,6 +882,11 @@ public static class MirLowerer
             BoundBlockStatement b => LowerStatements(b.Statements, locals),
             BoundVariableDeclaration v => [LowerVariable(v, locals)],
             BoundResourceUsingDeclaration u => [LowerResourceUsing(u, locals)],
+            BoundCSharpBlockStatement c => [new MirCSharpBlockStatement(
+                c.BodyText,
+                c.SourceLine,
+                ToMirType(c.ExpectedResultType),
+                c.Captures.Select(capture => new MirCSharpCapture(capture.Name, ToMirType(capture.Type))).ToArray())],
             BoundExpressionStatement e => [new MirExpressionStatement(LowerExpression(e.Expression))],
             BoundReturnStatement r => [new MirReturnStatement(r.Expression is null ? null : LowerExpression(r.Expression))],
             BoundIfStatement i => [new MirIfStatement(LowerExpression(i.Condition), LowerStatement(i.ThenStatement, locals), i.ElseStatement is null ? null : LowerStatement(i.ElseStatement, locals))],

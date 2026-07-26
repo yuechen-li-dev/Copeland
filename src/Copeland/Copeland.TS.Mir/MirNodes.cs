@@ -22,7 +22,7 @@ public sealed class MirProgram
     {
     }
 
-    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions)
+    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions, IReadOnlyList<string>? csharpUsings = null, string? csharpSourcePath = null)
     {
         Enums = enums;
         Records = records;
@@ -30,6 +30,8 @@ public sealed class MirProgram
         TsonEncodingPlans = tsonEncodingPlans;
         NpmImports = npmImports;
         Functions = functions;
+        CSharpUsings = csharpUsings ?? [];
+        CSharpSourcePath = csharpSourcePath;
     }
 
     public IReadOnlyList<MirEnum> Enums { get; }
@@ -38,6 +40,8 @@ public sealed class MirProgram
     public IReadOnlyList<MirTsonEncodingPlan> TsonEncodingPlans { get; }
     public IReadOnlyList<MirNpmImport> NpmImports { get; }
     public IReadOnlyList<MirFunction> Functions { get; }
+    public IReadOnlyList<string> CSharpUsings { get; }
+    public string? CSharpSourcePath { get; }
 }
 
 public readonly record struct MirTsonEncodingPlanId(string Value)
@@ -300,6 +304,8 @@ public sealed record MirForStatement(MirStatement? Initializer, MirExpression? C
 public sealed record MirBreakStatement : MirStatement;
 public sealed record MirContinueStatement : MirStatement;
 public sealed record MirResourceUsingDeclarationStatement(MirLocal Local, MirExpression Initializer) : MirStatement;
+public sealed record MirCSharpCapture(string Name, MirType Type);
+public sealed record MirCSharpBlockStatement(string BodyText, int SourceLine, MirType ExpectedResultType, IReadOnlyList<MirCSharpCapture> Captures) : MirStatement;
 
 public record MirType(string Identifier)
 {

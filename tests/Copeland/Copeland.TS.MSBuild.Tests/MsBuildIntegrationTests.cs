@@ -174,6 +174,7 @@ public sealed class MsBuildIntegrationTests
             System.Console.WriteLine(Feature.Internal(" wyrm "));
             System.Console.WriteLine(Feature.Format("wyrm"));
             System.Console.WriteLine(Feature.Optional());
+            System.Console.WriteLine(Feature.Inline(" wyrm "));
             """);
         fixture.Write("Demo/Greeting.ts", """
             using Demo;
@@ -201,15 +202,23 @@ public sealed class MsBuildIntegrationTests
             function Optional(): string {
                 return OptionalApi.Value();
             }
+
+            function Inline(value: string): string {
+                csharp {
+                    return Names.Normalize(value);
+                }
+            }
             """);
 
         fixture.Run("Demo", "restore");
         fixture.Run("Demo", "build", "--no-restore");
-        fixture.Run("Demo", "run", "--no-build").AssertOutput("WYRM", "7", "internal:wyrm", "string:wyrm", "feature");
+        fixture.Run("Demo", "run", "--no-build").AssertOutput("WYRM", "7", "internal:wyrm", "string:wyrm", "feature", "WYRM");
         fixture.Run("Demo", "publish", "--no-restore", "-o", "publish");
 
         string generated = Path.Combine(fixture.Root, "Demo", "obj", "Debug", "net10.0", "Copeland", "Greeting.g.cs");
         Assert.Contains("global::Demo.Names.Normalize", File.ReadAllText(generated), StringComparison.Ordinal);
+        string featureGenerated = Path.Combine(fixture.Root, "Demo", "obj", "Debug", "net10.0", "Copeland", "Feature.g.cs");
+        Assert.Contains("return Names.Normalize(value);", File.ReadAllText(featureGenerated), StringComparison.Ordinal);
 
         fixture.Write("Demo/Names.cs", names.Replace("public static string Normalize", "public static string Renamed", StringComparison.Ordinal));
         ProcessResult renamed = fixture.RunExpectingFailure("Demo", "build", "--no-restore");
@@ -223,6 +232,16 @@ public sealed class MsBuildIntegrationTests
         ProcessResult result = fixture.RunExpectingFailure("Demo", "build", "--no-restore");
         Assert.Contains("Greeting.ts", result.Output, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("COPE-CLR-0004", result.Output, StringComparison.Ordinal);
+
+        fixture.Write("Demo/Greeting.ts", """
+            using Demo;
+            function Message(name: string): string {
+                csharp { return Names.DoesNotExist(name); }
+            }
+            """);
+        ProcessResult csharpError = fixture.RunExpectingFailure("Demo", "build", "--no-restore");
+        Assert.Contains("Greeting.ts", csharpError.Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("CS0117", csharpError.Output, StringComparison.Ordinal);
     }
 
     private static string CreateProjectFile(bool includeFeature = true, bool includeProjectReference = true, bool includePackage = true)
