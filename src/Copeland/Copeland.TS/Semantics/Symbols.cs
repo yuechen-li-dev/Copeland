@@ -68,6 +68,28 @@ public sealed class NpmFunctionSymbol : Symbol
         : new AsyncTypeSymbol(new ResultTypeSymbol(ResultType, RemoteErrorType!));
 }
 
+public sealed class JavaScriptHostFunctionSymbol : Symbol
+{
+    public JavaScriptHostFunctionSymbol(
+        string name,
+        string moduleSpecifier,
+        string exportName,
+        IReadOnlyList<ParameterSymbol> parameters,
+        TypeSymbol returnType)
+        : base(name)
+    {
+        ModuleSpecifier = moduleSpecifier;
+        ExportName = exportName;
+        Parameters = parameters;
+        ReturnType = returnType;
+    }
+
+    public string ModuleSpecifier { get; }
+    public string ExportName { get; }
+    public IReadOnlyList<ParameterSymbol> Parameters { get; }
+    public TypeSymbol ReturnType { get; }
+}
+
 public sealed class ClassValueSymbol(string name, ClassTypeSymbol classType) : Symbol(name)
 {
     public ClassTypeSymbol ClassType { get; } = classType;

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copeland Browser M0</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "@copeland/browser-m0": "./host/browser-m0.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <p>Count: <span id="count">loading</span></p>
+  <button id="increment" type="button">Increment</button>
+  <script type="module">
+    import { Main } from "./generated/Main.js";
+    Main();
+  </script>
+</body>
+</html>

@@ -36,12 +36,13 @@ public static class CopelandProjectCompiler
 
         IReadOnlyList<ProjectModule> ordered = OrderModules(modules);
         var npmResolver = new CopelandNpmContractResolver(options?.NpmDependencies ?? new CopelandNpmDependencyGraph(options?.NpmPackages ?? []));
+        var hostResolver = new CopelandJavaScriptHostContractResolver(options?.JavaScriptHostModules ?? []);
         var clrResolver = new CopelandClrMetadataResolver(options?.ClrReferences ?? []);
         foreach (ProjectModule module in ordered)
         {
             BoundModuleImports imports = CreateImports(module, diagnostics);
             SyntaxTree tree = SyntaxTree.Parse(RewriteModule(module), module.Source.SourcePath);
-            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, clrResolver, module.Source.SourcePath, module.LogicalPath, imports);
+            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, module.Source.SourcePath, module.LogicalPath, imports);
             module.Bound = bound;
             diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
         }
@@ -421,7 +422,8 @@ public static class CopelandProjectCompiler
             programs.SelectMany(program => program.Functions).ToArray(),
             programs.SelectMany(program => program.CSharpUsings).Distinct(StringComparer.Ordinal).ToArray(),
             null,
-            programs.SelectMany(program => program.Flows).ToArray());
+            programs.SelectMany(program => program.Flows).ToArray(),
+            programs.SelectMany(program => program.JavaScriptHostImports).ToArray());
 
     private static void ConfigureDuplicateFunctionEmissionNames(IReadOnlyList<ProjectModule> modules)
     {
@@ -516,7 +518,14 @@ public static class CopelandProjectCompiler
                 .OrderBy(name => name, StringComparer.Ordinal)
                 .ToArray();
             MirFunction[] moduleFunctions = module.Mir!.Functions.ToArray();
-            return new MirProjectModule(new MirModuleId(module.LogicalPath), imports, exports, privateDeclarations, moduleFunctions);
+            return new MirProjectModule(
+                new MirModuleId(module.LogicalPath),
+                imports,
+                exports,
+                privateDeclarations,
+                moduleFunctions,
+                module.Mir!.NpmImports,
+                module.Mir.JavaScriptHostImports);
         }).ToArray();
         return new MirProjectGraph(aggregateProgram, mirModules);
     }

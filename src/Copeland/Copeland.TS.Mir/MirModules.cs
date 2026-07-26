@@ -23,13 +23,17 @@ public sealed class MirProjectModule(
     IReadOnlyList<MirModuleImport> imports,
     IReadOnlyList<MirModuleExport> exports,
     IReadOnlyList<string> privateDeclarations,
-    IReadOnlyList<MirFunction> functions)
+    IReadOnlyList<MirFunction> functions,
+    IReadOnlyList<MirNpmImport>? npmImports = null,
+    IReadOnlyList<MirJavaScriptHostImport>? javaScriptHostImports = null)
 {
     public MirModuleId Id { get; } = id;
     public IReadOnlyList<MirModuleImport> Imports { get; } = imports;
     public IReadOnlyList<MirModuleExport> Exports { get; } = exports;
     public IReadOnlyList<string> PrivateDeclarations { get; } = privateDeclarations;
     public IReadOnlyList<MirFunction> Functions { get; } = functions;
+    public IReadOnlyList<MirNpmImport> NpmImports { get; } = npmImports ?? [];
+    public IReadOnlyList<MirJavaScriptHostImport> JavaScriptHostImports { get; } = javaScriptHostImports ?? [];
 }
 
 /// <summary>

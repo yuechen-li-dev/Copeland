@@ -32,6 +32,7 @@ public static class CopelandCompiler
                     syntaxTree,
                     assetResolver,
                     new CopelandNpmContractResolver(npmDependencies),
+                    new CopelandJavaScriptHostContractResolver(effectiveOptions.JavaScriptHostModules),
                     new CopelandClrMetadataResolver(effectiveOptions.ClrReferences),
                     effectiveOptions.SourcePath);
                 diagnostics.AddRange(boundCompilation.Diagnostics);
@@ -70,6 +71,7 @@ public static class CopelandCompiler
             AssetSource = effectiveOptions.AssetSource,
             NpmDependencies = effectiveOptions.NpmDependencies,
             NpmPackages = effectiveOptions.NpmPackages,
+            JavaScriptHostModules = effectiveOptions.JavaScriptHostModules,
             ClrReferences = effectiveOptions.ClrReferences,
         });
     }

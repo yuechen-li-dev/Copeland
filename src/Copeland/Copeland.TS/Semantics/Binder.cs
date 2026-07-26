@@ -13,19 +13,19 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]), null, null, null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), null, null, null);
         return impl.Bind();
     }
 
-    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null)
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null)
     {
-        var impl = new BinderImpl(tree, assetResolver, npmResolver, clrResolver, sourcePath, moduleIdentity, imports);
+        var impl = new BinderImpl(tree, assetResolver, npmResolver, hostResolver, clrResolver, sourcePath, moduleIdentity, imports);
         return impl.Bind();
     }
 
     internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandClrMetadataResolver([]), null, null, null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), null, null, null);
         _ = impl.Bind();
         return impl.GetOpenGenericBodiesForTesting();
     }
@@ -69,7 +69,7 @@ public static class Binder
         }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
+    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
     {
         private sealed class BatchBindingContext
         {
@@ -104,6 +104,7 @@ public static class Binder
         private readonly SyntaxTree _tree = tree;
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
         private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
+        private readonly CopelandJavaScriptHostContractResolver _hostResolver = hostResolver;
         private readonly CopelandClrMetadataResolver _clrResolver = clrResolver;
         private readonly string? _sourcePath = sourcePath;
         private readonly string? _moduleIdentity = moduleIdentity;
@@ -120,6 +121,7 @@ public static class Binder
         private readonly List<BoundFlowDefinition> _flows = [];
         private readonly List<BoundStatement> _globals = [];
         private readonly List<BoundNpmImport> _npmImports = [];
+        private readonly List<BoundJavaScriptHostImport> _javaScriptHostImports = [];
         private readonly HashSet<string> _clrNamespaces = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Type>> _clrImportedTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
@@ -185,6 +187,7 @@ public static class Binder
             PredeclareFunctions(_tree.Root);
             BindClrUsingDirectives(_tree.Root);
             BindNpmImports(_tree.Root);
+            BindJavaScriptHostImports(_tree.Root);
             BindRecordBodies(_tree.Root);
             BindClassFields(_tree.Root);
             PredeclareClassMembers(_tree.Root);
@@ -236,6 +239,7 @@ public static class Binder
                     _tables,
                     _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray(),
                     _npmImports.OrderBy(import => import.Function.PackageName, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray(),
+                    _javaScriptHostImports.OrderBy(import => import.Function.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray(),
                     _clrNamespaces.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
                     _sourcePath,
                     _flows),
@@ -2933,6 +2937,7 @@ public static class Binder
                 FunctionSymbol function when function.IsGeneric => ReportOpenGenericFunctionValue(n),
                 FunctionSymbol function => new BoundFunctionReferenceExpression(function),
                 NpmFunctionSymbol => ReportNpmFunctionValue(n),
+                JavaScriptHostFunctionSymbol => ReportJavaScriptHostFunctionValue(n),
                 _ => new BoundErrorExpression()
             };
         }
@@ -3123,6 +3128,12 @@ public static class Binder
         private BoundExpression ReportNpmFunctionValue(NameExpressionSyntax name)
         {
             Report("COPE-NPM-0006", $"Imported npm function '{name.IdentifierToken.Text}' may only be called directly.", name.IdentifierToken);
+            return new BoundErrorExpression();
+        }
+
+        private BoundExpression ReportJavaScriptHostFunctionValue(NameExpressionSyntax name)
+        {
+            Report("COPE-HOST-0003", $"Imported JavaScript host function '{name.IdentifierToken.Text}' may only be called directly or passed through its declared callable parameter.", name.IdentifierToken);
             return new BoundErrorExpression();
         }
 
@@ -3629,6 +3640,7 @@ public static class Binder
                 return new BoundErrorExpression();
             }
             if (s is NpmFunctionSymbol npm) return BindNpmCall(c, npm);
+            if (s is JavaScriptHostFunctionSymbol host) return BindJavaScriptHostCall(c, host);
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
             if (fn.IsGeneric) return BindInferredGenericCall(c, fn);
             if (c.Arguments.Count != fn.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {fn.Parameters.Count}, got {c.Arguments.Count}.", c.OpenParenToken);
@@ -4184,6 +4196,10 @@ public static class Binder
                 }
                 if (!_npmResolver.TryGetPackage(packageName, out CopelandNpmPackageContract? package) || package is null)
                 {
+                    if (_hostResolver.TryGetModule(packageName, out _))
+                    {
+                        continue;
+                    }
                     Report("COPE-NPM-0001", $"npm package '{packageName}' is unavailable in project configuration.", module);
                     continue;
                 }
@@ -4261,6 +4277,115 @@ public static class Binder
                     _npmImports.Add(new BoundNpmImport(symbol));
                 }
             }
+        }
+
+        private void BindJavaScriptHostImports(CompilationUnitSyntax root)
+        {
+            foreach (ImportDeclarationSyntax import in root.Members.OfType<ImportDeclarationSyntax>())
+            {
+                SyntaxToken[] tokens = import.Tokens.ToArray();
+                SyntaxToken? module = tokens.LastOrDefault(token => token.Kind == SyntaxKind.StringToken);
+                if (module?.Value is not string moduleSpecifier || !_hostResolver.TryGetModule(moduleSpecifier, out CopelandJavaScriptHostModuleContract? hostModule) || hostModule is null)
+                {
+                    continue;
+                }
+
+                int open = Array.FindIndex(tokens, token => token.Kind == SyntaxKind.OpenBraceToken);
+                int close = Array.FindIndex(tokens, token => token.Kind == SyntaxKind.CloseBraceToken);
+                if (open < 0 || close <= open || tokens.Skip(close + 1).FirstOrDefault(token => token.Text == "from") is null)
+                {
+                    Report("COPE-HOST-0001", "JavaScript host imports must use named imports of the form 'import { name } from \"host\"'.", tokens[0]);
+                    continue;
+                }
+
+                SyntaxToken[] importTokens = tokens.Skip(open + 1).Take(close - open - 1).ToArray();
+                for (int index = 0; index < importTokens.Length; index += 1)
+                {
+                    SyntaxToken exportToken = importTokens[index];
+                    if (exportToken.Kind != SyntaxKind.IdentifierToken)
+                    {
+                        continue;
+                    }
+
+                    SyntaxToken localToken = exportToken;
+                    if (index + 2 < importTokens.Length
+                        && importTokens[index + 1].Kind == SyntaxKind.IdentifierToken
+                        && string.Equals(importTokens[index + 1].Text, "as", StringComparison.Ordinal)
+                        && importTokens[index + 2].Kind == SyntaxKind.IdentifierToken)
+                    {
+                        localToken = importTokens[index + 2];
+                        index += 2;
+                    }
+
+                    CopelandJavaScriptHostFunctionContract? export = hostModule.Exports.SingleOrDefault(candidate => candidate.ExportName == exportToken.Text);
+                    if (export is null)
+                    {
+                        Report("COPE-HOST-0002", $"JavaScript host module '{moduleSpecifier}' has no declared export '{exportToken.Text}'.", exportToken);
+                        continue;
+                    }
+
+                    TypeSymbol[] parameters = export.ParameterTypes.Select(type => ResolveJavaScriptHostType(type, exportToken)).ToArray();
+                    TypeSymbol result = ResolveJavaScriptHostType(export.ResultType, exportToken);
+                    var symbol = new JavaScriptHostFunctionSymbol(
+                        localToken.Text,
+                        hostModule.ModuleSpecifier,
+                        export.ExportName,
+                        parameters.Select((type, parameterIndex) => new ParameterSymbol("arg" + parameterIndex, type)).ToArray(),
+                        result);
+                    if (_global.TryLookup(symbol.Name, out _))
+                    {
+                        Report("COPE-HOST-0002", $"JavaScript host binding '{localToken.Text}' conflicts with an existing declaration.", localToken);
+                        continue;
+                    }
+
+                    if (!_global.TryDeclare(symbol))
+                    {
+                        Report("COPE-HOST-0002", $"JavaScript host binding '{localToken.Text}' conflicts with an existing declaration.", localToken);
+                        continue;
+                    }
+
+                    _javaScriptHostImports.Add(new BoundJavaScriptHostImport(symbol));
+                }
+            }
+        }
+
+        private TypeSymbol ResolveJavaScriptHostType(CopelandJavaScriptHostType type, SyntaxToken anchor)
+            => type switch
+            {
+                CopelandJavaScriptHostType.Primitive { Name: "int" } => PrimitiveTypeSymbol.Int,
+                CopelandJavaScriptHostType.Primitive { Name: "string" } => PrimitiveTypeSymbol.String,
+                CopelandJavaScriptHostType.Primitive { Name: "void" } => PrimitiveTypeSymbol.Void,
+                CopelandJavaScriptHostType.Callable callable => new CallableTypeSymbol(
+                    callable.Parameters.Select((parameter, index) => new CallableParameterTypeSymbol("arg" + index, ResolveJavaScriptHostType(parameter, anchor))).ToArray(),
+                    ResolveJavaScriptHostType(callable.ReturnType, anchor)),
+                _ => ReportUnsupportedJavaScriptHostType(type, anchor),
+            };
+
+        private TypeSymbol ReportUnsupportedJavaScriptHostType(CopelandJavaScriptHostType type, SyntaxToken anchor)
+        {
+            Report("COPE-HOST-0004", $"JavaScript host contract type '{type}' is unsupported. Browser M0 permits only int, string, void, and explicitly declared callables.", anchor);
+            return PrimitiveTypeSymbol.Error;
+        }
+
+        private BoundExpression BindJavaScriptHostCall(CallExpressionSyntax call, JavaScriptHostFunctionSymbol host)
+        {
+            if (call.Arguments.Count != host.Parameters.Count)
+            {
+                Report("COPE-TYPE-0004", $"Argument count mismatch: expected {host.Parameters.Count}, got {call.Arguments.Count}.", call.OpenParenToken);
+            }
+
+            BoundExpression[] arguments = call.Arguments
+                .Select((argument, index) => BindExpression(argument, index < host.Parameters.Count ? host.Parameters[index].Type : null))
+                .ToArray();
+            for (int index = 0; index < Math.Min(arguments.Length, host.Parameters.Count); index += 1)
+            {
+                if (!IsAssignable(host.Parameters[index].Type, arguments[index].Type))
+                {
+                    ReportTypeMismatch("COPE-TYPE-0005", host.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
+                }
+            }
+
+            return new BoundJavaScriptHostCallExpression(host, arguments);
         }
 
         private TypeSymbol ResolveNpmType(string name, SyntaxToken anchor)

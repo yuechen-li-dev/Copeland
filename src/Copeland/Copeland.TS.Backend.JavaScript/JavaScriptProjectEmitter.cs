@@ -10,10 +10,11 @@ namespace Copeland.TS.Backend.JavaScript;
 /// </summary>
 public static class JavaScriptProjectEmitter
 {
-    public static JavaScriptProjectCompilation Emit(MirProjectGraph graph)
+    public static JavaScriptProjectCompilation Emit(MirProjectGraph graph, JavaScriptEmissionOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
-        JavaScriptCompilation aggregate = JavaScriptBackend.Emit(graph.AggregateProgram, new JavaScriptEmissionOptions
+        JavaScriptEmissionOptions effectiveOptions = options ?? new JavaScriptEmissionOptions();
+        JavaScriptCompilation aggregate = JavaScriptBackend.Emit(graph.AggregateProgram, effectiveOptions with
         {
             EmitModuleFactories = true,
         });
@@ -32,6 +33,7 @@ public static class JavaScriptProjectEmitter
             string outputPath = GetOutputPath(module.Id);
             var lines = new List<string>();
             var importedHelpers = new HashSet<string>(StringComparer.Ordinal);
+            AddExternalImports(lines, module.NpmImports, module.JavaScriptHostImports);
             foreach (IGrouping<MirModuleId, MirModuleImport> imports in module.Imports
                 .Where(import => import.TargetModule is not null)
                 .GroupBy(import => import.TargetModule!))
@@ -74,6 +76,7 @@ public static class JavaScriptProjectEmitter
                 .Select(function => function.Name)
                 .Except(module.Functions.Select(function => function.Name), StringComparer.Ordinal));
             source = StripFunctions(source, importedHelpers);
+            source = StripExternalImports(source);
             lines.Add(source.TrimEnd());
             if (exports.Length > 0)
             {
@@ -156,6 +159,39 @@ public static class JavaScriptProjectEmitter
         }
         return result;
     }
+
+    private static void AddExternalImports(
+        List<string> lines,
+        IReadOnlyList<MirNpmImport> npmImports,
+        IReadOnlyList<MirJavaScriptHostImport> javaScriptHostImports)
+    {
+        foreach (MirNpmImport npm in npmImports.OrderBy(import => import.PackageName, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
+        {
+            AddExternalImport(lines, npm.PackageName, npm.ExportName, npm.LocalBinding);
+        }
+
+        foreach (MirJavaScriptHostImport host in javaScriptHostImports.OrderBy(import => import.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
+        {
+            AddExternalImport(lines, host.ModuleSpecifier, host.ExportName, host.LocalBinding);
+        }
+    }
+
+    private static void AddExternalImport(List<string> lines, string moduleSpecifier, string exportName, string localBinding)
+    {
+        string encodedExport = JavaScriptIdentifierEncoder.Encode(exportName);
+        string encodedLocal = JavaScriptIdentifierEncoder.Encode(localBinding);
+        string binding = string.Equals(encodedExport, encodedLocal, StringComparison.Ordinal)
+            ? encodedExport
+            : encodedExport + " as " + encodedLocal;
+        lines.Add($"import {{ {binding} }} from \"{moduleSpecifier}\";");
+    }
+
+    private static string StripExternalImports(string source)
+        => string.Join(
+            Environment.NewLine,
+            source.Split(["\r\n", "\n"], StringSplitOptions.None)
+                .Where(line => !line.StartsWith("import { ", StringComparison.Ordinal)))
+            .TrimEnd();
 
     private static int FindFunctionStart(string source, string name)
     {

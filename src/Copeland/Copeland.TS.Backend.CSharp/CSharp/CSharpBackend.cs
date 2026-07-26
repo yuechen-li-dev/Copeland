@@ -96,6 +96,10 @@ public static class CSharpBackend
         {
             diagnostics.Add(new CSharpDiagnostic("COPE-CS-0001", $"npm import '{import.LocalBinding}' is unavailable for the CLR sidecar backend."));
         }
+        if (program.JavaScriptHostImports.Count > 0)
+        {
+            diagnostics.Add(new CSharpDiagnostic("COPE-CS-BROWSER-0001", "JavaScript host contracts are available only to the Browser JavaScript runtime target."));
+        }
         if (diagnostics.Count > 0)
         {
             return new CSharpCompilation(string.Empty, diagnostics);

@@ -16,6 +16,7 @@ public sealed class BoundProgram
         IReadOnlyList<BoundTableDefinition>? tables = null,
         IReadOnlyList<BoundTsonEncodingPlan>? tsonEncodingPlans = null,
         IReadOnlyList<BoundNpmImport>? npmImports = null,
+        IReadOnlyList<BoundJavaScriptHostImport>? javaScriptHostImports = null,
         IReadOnlyList<string>? csharpUsings = null,
         string? csharpSourcePath = null,
         IReadOnlyList<BoundFlowDefinition>? flows = null)
@@ -27,6 +28,7 @@ public sealed class BoundProgram
         Tables = tables ?? [];
         TsonEncodingPlans = tsonEncodingPlans ?? [];
         NpmImports = npmImports ?? [];
+        JavaScriptHostImports = javaScriptHostImports ?? [];
         CSharpUsings = csharpUsings ?? [];
         CSharpSourcePath = csharpSourcePath;
         Flows = flows ?? [];
@@ -38,6 +40,7 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundTableDefinition> Tables { get; }
     public IReadOnlyList<BoundTsonEncodingPlan> TsonEncodingPlans { get; }
     public IReadOnlyList<BoundNpmImport> NpmImports { get; }
+    public IReadOnlyList<BoundJavaScriptHostImport> JavaScriptHostImports { get; }
     public IReadOnlyList<string> CSharpUsings { get; }
     public string? CSharpSourcePath { get; }
     public IReadOnlyList<BoundFlowDefinition> Flows { get; }
@@ -46,6 +49,11 @@ public sealed class BoundProgram
 public sealed class BoundNpmImport(NpmFunctionSymbol function)
 {
     public NpmFunctionSymbol Function { get; } = function;
+}
+
+public sealed class BoundJavaScriptHostImport(JavaScriptHostFunctionSymbol function)
+{
+    public JavaScriptHostFunctionSymbol Function { get; } = function;
 }
 
 public sealed class BoundTsonEncodingPlan(
@@ -288,6 +296,12 @@ public sealed class BoundNpmCallExpression : BoundExpression
     public RecordFieldSymbol ResponseValueField { get; }
     public RecordFieldSymbol RemoteErrorValueField { get; }
     public override TypeSymbol Type => Function.InvocationReturnType;
+}
+public sealed class BoundJavaScriptHostCallExpression(JavaScriptHostFunctionSymbol function, IReadOnlyList<BoundExpression> arguments) : BoundExpression
+{
+    public JavaScriptHostFunctionSymbol Function { get; } = function;
+    public IReadOnlyList<BoundExpression> Arguments { get; } = arguments;
+    public override TypeSymbol Type => Function.ReturnType;
 }
 public sealed class BoundClrInvocationExpression : BoundExpression
 {

@@ -74,6 +74,10 @@ public static class JavaScriptBackend
         {
             throw new ArgumentOutOfRangeException(nameof(options), "Unsupported JavaScript emission profile.");
         }
+        if (!Enum.IsDefined(effectiveOptions.RuntimeTarget))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "Unsupported JavaScript runtime target.");
+        }
 
         var diagnostics = MirValidator.Validate(program)
             .Select(diagnostic => new JavaScriptDiagnostic(InvalidDiagnosticId, $"Invalid MIR: {diagnostic.Message}"))
@@ -90,6 +94,10 @@ public static class JavaScriptBackend
         foreach (MirNpmImport import in program.NpmImports.Where(import => !import.IsAvailableToJavaScript))
         {
             diagnostics.Add(new JavaScriptDiagnostic(UnsupportedDiagnosticId, $"npm import '{import.LocalBinding}' is unavailable for the JavaScript backend."));
+        }
+        if (effectiveOptions.RuntimeTarget != JavaScriptRuntimeTarget.Browser && program.JavaScriptHostImports.Count > 0)
+        {
+            diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-BROWSER-0001", "Browser host contracts require the Browser JavaScript runtime target."));
         }
         if (diagnostics.Count > 0)
         {
@@ -126,6 +134,15 @@ public static class JavaScriptBackend
                 ? exportName
                 : exportName + " as " + localBinding;
             writer.WriteLine($"import {{ {specifier} }} from {JavaScriptLiteralWriter.WriteString(npm.PackageName)};");
+        }
+        foreach (MirJavaScriptHostImport host in program.JavaScriptHostImports.OrderBy(import => import.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.ExportName, StringComparer.Ordinal).ThenBy(import => import.LocalBinding, StringComparer.Ordinal))
+        {
+            string exportName = JavaScriptIdentifierEncoder.Encode(host.ExportName);
+            string localBinding = JavaScriptIdentifierEncoder.Encode(host.LocalBinding);
+            string specifier = string.Equals(exportName, localBinding, StringComparison.Ordinal)
+                ? exportName
+                : exportName + " as " + localBinding;
+            writer.WriteLine($"import {{ {specifier} }} from {JavaScriptLiteralWriter.WriteString(host.ModuleSpecifier)};");
         }
         writer.WriteLine("\"use strict\";");
 
@@ -708,6 +725,12 @@ public static class JavaScriptBackend
                 break;
             case MirNpmCallExpression npm:
                 foreach (MirExpression argument in npm.Arguments)
+                {
+                    ValidateExpression(argument, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                break;
+            case MirJavaScriptHostCallExpression host:
+                foreach (MirExpression argument in host.Arguments)
                 {
                     ValidateExpression(argument, functionReturnType, context, functions, catalog, diagnostics);
                 }
@@ -1388,7 +1411,26 @@ public static class JavaScriptBackend
         => program.Functions.Any(function => ContainsCallableType(function.ReturnType)
             || function.Parameters.Any(parameter => ContainsCallableType(parameter.Type))
             || function.Locals.Any(local => ContainsCallableType(local.Type))
-            || function.Body.Any(StatementUsesCallables));
+            || function.Body.Any(StatementUsesCallables))
+            || program.Functions.Any(function => function.Body.Any(StatementUsesJavaScriptHostCallables));
+
+    private static bool StatementUsesJavaScriptHostCallables(MirStatement statement) => statement switch
+    {
+        MirVariableDeclarationStatement declaration => ExpressionUsesJavaScriptHostCallables(declaration.Initializer),
+        MirExpressionStatement expression => ExpressionUsesJavaScriptHostCallables(expression.Expression),
+        MirReturnStatement { Expression: not null } returned => ExpressionUsesJavaScriptHostCallables(returned.Expression),
+        MirIfStatement conditional => ExpressionUsesJavaScriptHostCallables(conditional.Condition)
+            || conditional.ThenStatements.Any(StatementUsesJavaScriptHostCallables)
+            || (conditional.ElseStatements?.Any(StatementUsesJavaScriptHostCallables) ?? false),
+        _ => false,
+    };
+
+    private static bool ExpressionUsesJavaScriptHostCallables(MirExpression expression) => expression switch
+    {
+        MirJavaScriptHostCallExpression host => host.Arguments.Any(argument => argument.Type is MirCallableType)
+            || host.Arguments.Any(ExpressionUsesJavaScriptHostCallables),
+        _ => false,
+    };
 
     private static bool ProgramUsesCapturedCallables(MirProgram program)
         => program.Functions.Any(function => function.Body.Any(StatementUsesCapturedCallables));
@@ -1433,6 +1475,7 @@ public static class JavaScriptBackend
             || ExpressionUsesCapturedCallables(attempt.Protected.ValueExpression)
             || attempt.Handler.PrefixStatements.Any(StatementUsesCapturedCallables)
             || ExpressionUsesCapturedCallables(attempt.Handler.ValueExpression),
+        MirJavaScriptHostCallExpression host => host.Arguments.Any(ExpressionUsesCapturedCallables),
         _ => false,
     };
 
@@ -2461,8 +2504,29 @@ public static class JavaScriptBackend
             MirTsonEncodeExpression encode => EmitTsonEncode(encode, function, catalog, results, names, flowEnabled),
             MirTsonTransportExpression transport => EmitTsonTransport(transport, function, catalog, results, names, flowEnabled),
             MirNpmCallExpression npm => new EmittedExpression([], EmitNpmCall(npm, results, names)),
+            MirJavaScriptHostCallExpression host => EmitJavaScriptHostCall(host, function, catalog, results, names, flowEnabled),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
+    }
+
+    private static EmittedExpression EmitJavaScriptHostCall(
+        MirJavaScriptHostCallExpression host,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression[] arguments = host.Arguments
+            .Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled))
+            .ToArray();
+        return CombineOrdered(arguments, names, values =>
+        {
+            string[] hostArguments = host.Arguments.Select((argument, index) => argument.Type is MirCallableType callable
+                ? $"(...args) => __cope_callable_invoke({values[index]}, {JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}, args)"
+                : values[index]).ToArray();
+            return $"{JavaScriptIdentifierEncoder.Encode(host.LocalBinding)}({string.Join(", ", hostArguments)})";
+        });
     }
 
     private static EmittedExpression EmitArrayLength(

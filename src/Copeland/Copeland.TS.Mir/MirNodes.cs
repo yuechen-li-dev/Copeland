@@ -22,13 +22,14 @@ public sealed class MirProgram
     {
     }
 
-    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions, IReadOnlyList<string>? csharpUsings = null, string? csharpSourcePath = null, IReadOnlyList<MirFlowDefinition>? flows = null)
+    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions, IReadOnlyList<string>? csharpUsings = null, string? csharpSourcePath = null, IReadOnlyList<MirFlowDefinition>? flows = null, IReadOnlyList<MirJavaScriptHostImport>? javaScriptHostImports = null)
     {
         Enums = enums;
         Records = records;
         Tables = tables;
         TsonEncodingPlans = tsonEncodingPlans;
         NpmImports = npmImports;
+        JavaScriptHostImports = javaScriptHostImports ?? [];
         Functions = functions;
         CSharpUsings = csharpUsings ?? [];
         CSharpSourcePath = csharpSourcePath;
@@ -40,6 +41,7 @@ public sealed class MirProgram
     public IReadOnlyList<MirTableDefinition> Tables { get; }
     public IReadOnlyList<MirTsonEncodingPlan> TsonEncodingPlans { get; }
     public IReadOnlyList<MirNpmImport> NpmImports { get; }
+    public IReadOnlyList<MirJavaScriptHostImport> JavaScriptHostImports { get; }
     public IReadOnlyList<MirFunction> Functions { get; }
     public IReadOnlyList<string> CSharpUsings { get; }
     public string? CSharpSourcePath { get; }
@@ -539,6 +541,16 @@ public sealed record MirNpmCallExpression(
     MirRecordFieldId ResponseValueFieldId,
     MirRecordFieldId RemoteErrorValueFieldId,
     MirAsyncType AsyncType) : MirExpression(AsyncType);
+public sealed record MirJavaScriptHostImport(
+    string ModuleSpecifier,
+    string ExportName,
+    string LocalBinding);
+public sealed record MirJavaScriptHostCallExpression(
+    string LocalBinding,
+    string ModuleSpecifier,
+    string ExportName,
+    IReadOnlyList<MirExpression> Arguments,
+    MirType Type) : MirExpression(Type);
 public sealed record MirClrMemberIdentity(
     string AssemblyIdentity,
     string Namespace,

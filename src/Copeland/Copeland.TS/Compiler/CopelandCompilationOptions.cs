@@ -21,6 +21,12 @@ public sealed class CopelandCompilationOptions
     /// </summary>
     public IReadOnlyList<CopelandNpmPackageContract> NpmPackages { get; init; } = [];
 
+    /// <summary>
+    /// Compiler-owned host modules available to native JavaScript emission.
+    /// This intentionally remains separate from npm's transport contract.
+    /// </summary>
+    public IReadOnlyList<CopelandJavaScriptHostModuleContract> JavaScriptHostModules { get; init; } = [];
+
     /// <summary>Already-compiled CLR assemblies available to CLR <c>using</c> binding.</summary>
     public IReadOnlyList<CopelandClrReference> ClrReferences { get; init; } = [];
 }

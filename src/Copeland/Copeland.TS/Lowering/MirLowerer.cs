@@ -43,8 +43,12 @@ public static class MirLowerer
             import.Function.IsPromise,
             import.Function.IsAvailableToJavaScript,
             import.Function.IsAvailableToClrSidecar)).ToArray();
+        MirJavaScriptHostImport[] javaScriptHostImports = program.JavaScriptHostImports.Select(import => new MirJavaScriptHostImport(
+            import.Function.ModuleSpecifier,
+            import.Function.ExportName,
+            import.Function.Name)).ToArray();
         MirFlowDefinition[] flows = program.Flows.Select(LowerFlow).ToArray();
-        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath, flows);
+        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath, flows, javaScriptHostImports);
     }
 
     private static MirFlowDefinition LowerFlow(BoundFlowDefinition flow)
@@ -1027,6 +1031,12 @@ public static class MirLowerer
                 ToMirRecordFieldId(npm.ResponseValueField.Id),
                 ToMirRecordFieldId(npm.RemoteErrorValueField.Id),
                 (MirAsyncType)ToMirType(npm.Type)),
+            BoundJavaScriptHostCallExpression host => new MirJavaScriptHostCallExpression(
+                host.Function.Name,
+                host.Function.ModuleSpecifier,
+                host.Function.ExportName,
+                host.Arguments.Select(LowerExpression).ToArray(),
+                ToMirType(host.Type)),
             BoundClrInvocationExpression invocation => new MirClrInvocationExpression(
                 LowerClrMemberIdentity(invocation.Member, invocation.GenericArguments, invocation.Type),
                 invocation.Receiver is null ? null : LowerExpression(invocation.Receiver),
