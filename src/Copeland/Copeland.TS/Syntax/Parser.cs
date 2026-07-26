@@ -106,6 +106,15 @@ public sealed class Parser
         }
 
         if (Current.Kind == SyntaxKind.IdentifierToken
+            && Current.Text == "export"
+            && (Peek(1).Kind == SyntaxKind.FunctionKeyword
+                || Peek(1).Kind == SyntaxKind.AsyncKeyword && Peek(2).Kind == SyntaxKind.FunctionKeyword))
+        {
+            _ = NextToken();
+            return ParseFunctionDeclaration();
+        }
+
+        if (Current.Kind == SyntaxKind.IdentifierToken
             && Current.Text == "type")
         {
             return ParseTypeDeclaration();
@@ -437,6 +446,7 @@ public sealed class Parser
     {
         SyntaxToken? asyncKeyword = Current.Kind == SyntaxKind.AsyncKeyword ? NextToken() : null;
         var functionKeyword = Match(SyntaxKind.FunctionKeyword);
+        SyntaxToken? generatorStarToken = Current.Kind == SyntaxKind.StarToken ? NextToken() : null;
         var identifier = Match(SyntaxKind.IdentifierToken);
         SyntaxToken? lessToken = null;
         SyntaxToken? greaterToken = null;
@@ -501,7 +511,7 @@ public sealed class Parser
             returnType = ParseTypeSyntax();
         }
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(asyncKeyword, functionKeyword, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
+        return new FunctionDeclarationSyntax(asyncKeyword, functionKeyword, generatorStarToken, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
     }
 
     private InterfaceDeclarationSyntax ParseInterfaceDeclaration()
@@ -614,6 +624,7 @@ public sealed class Parser
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
             SyntaxKind.ForKeyword => ParseForStatement(),
             SyntaxKind.ReturnKeyword => ParseReturnStatement(),
+            SyntaxKind.YieldKeyword => ParseYieldStatement(),
             SyntaxKind.BreakKeyword => ParseBreakStatement(),
             SyntaxKind.ContinueKeyword => ParseContinueStatement(),
             SyntaxKind.RecordKeyword when Peek(1).Kind == SyntaxKind.TableKeyword => new NestedTableDeclarationStatementSyntax(ParseTableDeclaration()),
@@ -1102,6 +1113,7 @@ public sealed class Parser
             SyntaxKind.NumberKeyword or SyntaxKind.StringKeyword or SyntaxKind.BooleanKeyword or SyntaxKind.VoidKeyword or SyntaxKind.NullKeyword
                 => new PredefinedTypeSyntax(NextToken()),
             SyntaxKind.IdentifierToken when Current.Text == "Async" => ParseAsyncTypeSyntax(),
+            SyntaxKind.IdentifierToken when Current.Text == "Iterable" => ParseIterableTypeSyntax(),
             SyntaxKind.IdentifierToken => ParseIdentifierOrQualifiedRowType(),
             SyntaxKind.ColumnKeyword => new ColumnTypeSyntax(NextToken(), ParsePostfixTypeSyntax()),
             SyntaxKind.OpenParenToken when IsCallableTypeAhead()
@@ -1182,6 +1194,15 @@ public sealed class Parser
         return new AsyncTypeSyntax(asyncKeyword, lessToken, eventualType, greaterToken);
     }
 
+    private IterableTypeSyntax ParseIterableTypeSyntax()
+    {
+        var iterableIdentifier = Match(SyntaxKind.IdentifierToken);
+        var lessToken = Match(SyntaxKind.LessToken);
+        var elementType = ParseTypeSyntax();
+        var greaterToken = Match(SyntaxKind.GreaterToken);
+        return new IterableTypeSyntax(iterableIdentifier, lessToken, elementType, greaterToken);
+    }
+
     private ParenthesizedTypeSyntax ParseParenthesizedTypeSyntax()
     {
         var openParenToken = Match(SyntaxKind.OpenParenToken);
@@ -1225,10 +1246,24 @@ public sealed class Parser
         return new WhileStatementSyntax(whileKeyword, openParenToken, condition, closeParenToken, body);
     }
 
-    private ForStatementSyntax ParseForStatement()
+    private StatementSyntax ParseForStatement()
     {
         var forKeyword = Match(SyntaxKind.ForKeyword);
         var openParenToken = Match(SyntaxKind.OpenParenToken);
+
+        if (Current.Kind is SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword
+            && Peek(1).Kind == SyntaxKind.IdentifierToken
+            && Peek(2).Kind == SyntaxKind.IdentifierToken
+            && Peek(2).Text == "of")
+        {
+            SyntaxToken declarationKeyword = NextToken();
+            SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken ofKeyword = Match(SyntaxKind.IdentifierToken);
+            ExpressionSyntax iterable = ParseExpression();
+            SyntaxToken forOfCloseParenToken = Match(SyntaxKind.CloseParenToken);
+            StatementSyntax forOfBody = ParseStatement();
+            return new ForOfStatementSyntax(forKeyword, openParenToken, declarationKeyword, identifier, ofKeyword, iterable, forOfCloseParenToken, forOfBody);
+        }
 
         SyntaxNode? initializer = null;
         if (Current.Kind != SyntaxKind.SemicolonToken)
@@ -1277,6 +1312,21 @@ public sealed class Parser
 
         var semicolonToken = Match(SyntaxKind.SemicolonToken);
         return new ReturnStatementSyntax(returnKeyword, expression, semicolonToken);
+    }
+
+    private YieldStatementSyntax ParseYieldStatement()
+    {
+        SyntaxToken yieldKeyword = Match(SyntaxKind.YieldKeyword);
+        if (Current.Kind == SyntaxKind.BreakKeyword)
+        {
+            SyntaxToken breakKeyword = NextToken();
+            return new YieldStatementSyntax(yieldKeyword, null, null, breakKeyword, null, Match(SyntaxKind.SemicolonToken));
+        }
+
+        SyntaxToken? returnKeyword = Current.Kind == SyntaxKind.ReturnKeyword ? NextToken() : null;
+        SyntaxToken? starToken = Current.Kind == SyntaxKind.StarToken ? NextToken() : null;
+        ExpressionSyntax? expression = Current.Kind == SyntaxKind.SemicolonToken ? null : ParseExpression();
+        return new YieldStatementSyntax(yieldKeyword, returnKeyword, starToken, null, expression, Match(SyntaxKind.SemicolonToken));
     }
 
     private BreakStatementSyntax ParseBreakStatement()

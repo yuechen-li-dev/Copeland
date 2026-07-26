@@ -52,6 +52,14 @@ public sealed class AsyncTypeSymbol(TypeSymbol eventualType) : TypeSymbol
     public override string Name => $"Async<{EventualType.Name}>";
 }
 
+/// <summary>A compiler-owned synchronous pull sequence.</summary>
+public sealed class IterableTypeSymbol(TypeSymbol elementType) : TypeSymbol
+{
+    public TypeSymbol ElementType { get; } = elementType;
+
+    public override string Name => $"Iterable<{ElementType.Name}>";
+}
+
 public sealed class CallableTypeSymbol(IReadOnlyList<CallableParameterTypeSymbol> parameters, TypeSymbol returnType) : TypeSymbol
 {
     public IReadOnlyList<CallableParameterTypeSymbol> Parameters { get; } = parameters;
@@ -187,6 +195,8 @@ public static class TypeFacts
                 && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
             (AsyncTypeSymbol leftAsync, AsyncTypeSymbol rightAsync) =>
                 AreEquivalent(leftAsync.EventualType, rightAsync.EventualType),
+            (IterableTypeSymbol leftIterable, IterableTypeSymbol rightIterable) =>
+                AreEquivalent(leftIterable.ElementType, rightIterable.ElementType),
             (CallableTypeSymbol leftCallable, CallableTypeSymbol rightCallable) =>
                 leftCallable.Parameters.Count == rightCallable.Parameters.Count
                 && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))

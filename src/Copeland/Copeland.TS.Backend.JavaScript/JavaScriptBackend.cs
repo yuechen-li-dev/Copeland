@@ -318,6 +318,8 @@ public static class JavaScriptBackend
                 break;
             case MirReturnStatement when functionReturnType is MirResultType { SuccessType: MirType { Identifier: "void" } }:
                 break;
+            case MirReturnStatement when functionReturnType is MirIterableType:
+                break;
             case MirReturnStatement:
                 RequireType(functionReturnType, "void", $"empty return in {context}", diagnostics);
                 break;
@@ -365,6 +367,26 @@ public static class JavaScriptBackend
                 {
                     ValidateStatement(nested, functionReturnType, context, functions, catalog, diagnostics);
                 }
+                break;
+            case MirForOfStatement loop:
+                ValidateExpression(loop.Iterable, functionReturnType, context, functions, catalog, diagnostics);
+                if (loop.Iterable.Type is not MirIterableType sequence)
+                {
+                    AddInvalid(diagnostics, $"for...of source in {context} must be Iterable<T>");
+                }
+                else
+                {
+                    RequireMatchingType(loop.Local.Type, sequence.ElementType, $"for...of local '{loop.Local.Name}' in {context}", diagnostics);
+                }
+                foreach (MirStatement nested in loop.BodyStatements)
+                {
+                    ValidateStatement(nested, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                break;
+            case MirYieldStatement { Expression: null }:
+                break;
+            case MirYieldStatement yield:
+                ValidateExpression(yield.Expression!, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirBreakStatement:
             case MirContinueStatement:
@@ -821,6 +843,9 @@ public static class JavaScriptBackend
                 return;
             case MirArrayType array:
                 ValidateValueType(array.ElementType, $"array element type in {context}", catalog, diagnostics, allowVoid: false);
+                return;
+            case MirIterableType iterable:
+                ValidateValueType(iterable.ElementType, $"iterable element type in {context}", catalog, diagnostics, allowVoid: false);
                 return;
             case MirCallableType callable:
                 if (callable.Parameters.Count > 32)
@@ -1664,7 +1689,8 @@ public static class JavaScriptBackend
         JavaScriptScopeId functionScope = names.EnterFunction(function);
         writer.EnterScope(functionScope);
         string parameters = string.Join(", ", function.Parameters.Select(parameter => JavaScriptIdentifierEncoder.Encode(parameter.Name)));
-        writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
+        string generatorMarker = function.IsGenerator ? "*" : string.Empty;
+        writer.WriteLine($"function{generatorMarker} {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
 
         bool usesTryExcept = FunctionUsesTryExcept(function);
@@ -1995,6 +2021,19 @@ public static class JavaScriptBackend
             case MirForStatement loop:
                 EmitForStatement(writer, loop, function, catalog, results, names, flowEnabled);
                 break;
+            case MirForOfStatement loop:
+                EmittedExpression iterable = EmitExpression(loop.Iterable, function, catalog, results, names, flowEnabled);
+                WritePrelude(writer, iterable.Prelude);
+                string loopDeclarationKeyword = loop.Local.IsReadOnly ? "const" : "let";
+                writer.WriteLine($"for ({loopDeclarationKeyword} {JavaScriptIdentifierEncoder.Encode(loop.Local.Name)} of {iterable.Value}) {{");
+                writer.Indent();
+                foreach (MirStatement nested in loop.BodyStatements)
+                {
+                    EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
+                }
+                writer.Unindent();
+                writer.WriteLine("}");
+                break;
             case MirBreakStatement:
                 writer.WriteLine("break;");
                 break;
@@ -2008,6 +2047,14 @@ public static class JavaScriptBackend
                     writer.WriteLine($"{increment.Value};");
                 }
                 writer.WriteLine("continue;");
+                break;
+            case MirYieldStatement { Expression: null }:
+                writer.WriteLine("return;");
+                break;
+            case MirYieldStatement yield:
+                EmittedExpression yielded = EmitExpression(yield.Expression!, function, catalog, results, names, flowEnabled);
+                WritePrelude(writer, yielded.Prelude);
+                writer.WriteLine(yield.IsDelegating ? $"yield* {yielded.Value};" : $"yield {yielded.Value};");
                 break;
             default:
                 throw new InvalidOperationException($"Validated JavaScript emission received unsupported statement {statement.GetType().Name}.");

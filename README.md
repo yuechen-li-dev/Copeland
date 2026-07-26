@@ -1,5 +1,24 @@
 # Copeland monorepo
 
+## Synchronous generators
+
+Copeland supports typed lazy generators. `yield value` is canonical and
+`yield return value` is an equivalent C#-friendly spelling.
+
+```ts
+export function* values(): Iterable<number> {
+    yield 1;
+    yield return 2;
+}
+
+for (const value of values()) {
+    Console.WriteLine(value);
+}
+```
+
+See [CTS-GENERATOR-M1](docs/cts-generator-m1.md) for the supported iterator
+contract and deliberately deferred coroutine features.
+
 Copeland is a compiler-infrastructure repository with three physically separated subsystem lanes: Copeland, Machina.UI, and Aurelian. Assembly names and namespaces retain their existing identities during the JTF-M0 topology milestone.
 
 ## Subsystems

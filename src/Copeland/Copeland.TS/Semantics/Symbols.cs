@@ -29,7 +29,8 @@ public sealed class FunctionSymbol(
     TypeSymbol returnType,
     string? authoredReturnAliasName = null,
     string? stableIdentity = null,
-    bool isAsync = false) : Symbol(name)
+    bool isAsync = false,
+    bool isGenerator = false) : Symbol(name)
 {
     public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
     public TypeSymbol ReturnType { get; } = returnType;
@@ -37,6 +38,7 @@ public sealed class FunctionSymbol(
     public string StableIdentity { get; } = stableIdentity ?? name;
     public bool IsFallible => ReturnType is ResultTypeSymbol;
     public bool IsAsync { get; } = isAsync;
+    public bool IsGenerator { get; } = isGenerator;
     public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
     public bool IsGeneric => TypeParameters.Count > 0;
     public ClassTypeSymbol? ClassOwner { get; internal set; }

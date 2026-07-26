@@ -10,6 +10,90 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_runs_a_lazy_generator_with_aliases_and_delegation()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function* tail(): Iterable<number> {
+                yield return 3;
+            }
+            export function* values(): Iterable<number> {
+                yield 1;
+                yield return 2;
+                yield* tail();
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "const iterator = values(); console.log(iterator.next().value); console.log([...iterator].join(',')); console.log([...values()].join(','));\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("1\n2,3\n1,2,3\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
+    public async Task Node_generator_advancement_completion_close_and_failure_follow_the_iterator_contract()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function* values(): Iterable<number> {
+                yield 1;
+                yield return 2;
+            }
+
+            function* delegated(): Iterable<number> {
+                yield 0;
+                yield* values();
+            }
+
+            function* emptyReturn(): Iterable<number> {
+                return;
+            }
+
+            function* emptyBreak(): Iterable<number> {
+                yield break;
+            }
+
+            function failed(): number ! string {
+                return err("broken");
+            }
+
+            function* faulty(): Iterable<number> {
+                yield 1;
+                const ignored: number = failed()!;
+            }
+            """);
+
+        const string suffix = """
+            const first = values();
+            const second = values();
+            console.log(first.next().value);
+            console.log(second.next().value);
+            console.log(first.next().value);
+            console.log(first.next().done);
+            console.log(first.next().done);
+            console.log(emptyReturn().next().done);
+            console.log(emptyBreak().next().done);
+            const delegatedIterator = delegated();
+            console.log(delegatedIterator.next().value);
+            console.log(delegatedIterator.next().value);
+            console.log(delegatedIterator.return().done);
+            console.log(delegatedIterator.next().done);
+            const faultyIterator = faulty();
+            console.log(faultyIterator.next().value);
+            try { faultyIterator.next(); } catch { console.log("failed"); }
+            let reentrant;
+            function* nativeReentrant() { reentrant.next(); yield 1; }
+            reentrant = nativeReentrant();
+            try { reentrant.next(); } catch (error) { console.log(error instanceof TypeError); }
+            """;
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + suffix);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("1\n1\n2\ntrue\ntrue\ntrue\ntrue\n0\n1\ntrue\ntrue\n1\nfailed\ntrue\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
     public async Task Node_propagates_a_result_after_await_without_host_rejection()
     {
         JavaScriptCompilation emitted = Emit("""

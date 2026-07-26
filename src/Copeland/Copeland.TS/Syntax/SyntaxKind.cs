@@ -95,6 +95,7 @@ public enum SyntaxKind
     SetKeyword,
     AsyncKeyword,
     AwaitKeyword,
+    YieldKeyword,
 
     // Nodes
     CompilationUnit,
@@ -130,6 +131,7 @@ public enum SyntaxKind
     QualifiedRowType,
     ColumnType,
     AsyncType,
+    IterableType,
     GenericCallExpression,
     GenericFunctionReferenceExpression,
     BlockStatement,
@@ -140,7 +142,9 @@ public enum SyntaxKind
     IfStatement,
     WhileStatement,
     ForStatement,
+    ForOfStatement,
     ReturnStatement,
+    YieldStatement,
     BreakStatement,
     ContinueStatement,
     NestedRecordDeclarationStatement,

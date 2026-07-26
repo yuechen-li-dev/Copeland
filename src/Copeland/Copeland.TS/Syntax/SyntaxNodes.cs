@@ -158,6 +158,23 @@ public sealed record AsyncTypeSyntax(
     }
 }
 
+public sealed record IterableTypeSyntax(
+    SyntaxToken IterableIdentifier,
+    SyntaxToken LessToken,
+    TypeSyntax ElementType,
+    SyntaxToken GreaterToken) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.IterableType;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return IterableIdentifier;
+        yield return LessToken;
+        yield return ElementType;
+        yield return GreaterToken;
+    }
+}
+
 public sealed record TypeAliasDeclarationSyntax(
     SyntaxToken TypeKeyword,
     SyntaxToken Identifier,
@@ -375,6 +392,7 @@ public sealed record ParameterSyntax(SyntaxToken Identifier, SyntaxToken? ColonT
 public sealed record FunctionDeclarationSyntax(
     SyntaxToken? AsyncKeyword,
     SyntaxToken FunctionKeyword,
+    SyntaxToken? GeneratorStarToken,
     SyntaxToken Identifier,
     SyntaxToken? LessToken,
     IReadOnlyList<TypeParameterSyntax> TypeParameters,
@@ -394,6 +412,7 @@ public sealed record FunctionDeclarationSyntax(
     {
         if (AsyncKeyword is not null) yield return AsyncKeyword;
         yield return FunctionKeyword;
+        if (GeneratorStarToken is not null) yield return GeneratorStarToken;
         yield return Identifier;
         if (LessToken is not null) yield return LessToken;
         for (var i = 0; i < TypeParameters.Count; i++)
@@ -702,6 +721,31 @@ public sealed record ForStatementSyntax(
     }
 }
 
+public sealed record ForOfStatementSyntax(
+    SyntaxToken ForKeyword,
+    SyntaxToken OpenParenToken,
+    SyntaxToken DeclarationKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken OfKeyword,
+    ExpressionSyntax Iterable,
+    SyntaxToken CloseParenToken,
+    StatementSyntax Body) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ForOfStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return ForKeyword;
+        yield return OpenParenToken;
+        yield return DeclarationKeyword;
+        yield return Identifier;
+        yield return OfKeyword;
+        yield return Iterable;
+        yield return CloseParenToken;
+        yield return Body;
+    }
+}
+
 public sealed record ReturnStatementSyntax(
     SyntaxToken ReturnKeyword,
     ExpressionSyntax? Expression,
@@ -717,6 +761,27 @@ public sealed record ReturnStatementSyntax(
             yield return Expression;
         }
 
+        yield return SemicolonToken;
+    }
+}
+
+public sealed record YieldStatementSyntax(
+    SyntaxToken YieldKeyword,
+    SyntaxToken? ReturnKeyword,
+    SyntaxToken? StarToken,
+    SyntaxToken? BreakKeyword,
+    ExpressionSyntax? Expression,
+    SyntaxToken SemicolonToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.YieldStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return YieldKeyword;
+        if (ReturnKeyword is not null) yield return ReturnKeyword;
+        if (StarToken is not null) yield return StarToken;
+        if (BreakKeyword is not null) yield return BreakKeyword;
+        if (Expression is not null) yield return Expression;
         yield return SemicolonToken;
     }
 }

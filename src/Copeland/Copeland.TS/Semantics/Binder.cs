@@ -1658,6 +1658,14 @@ public static class Binder
                 }
                 var rt = BindType(m.ReturnType, m.Identifier, missingId: "COPE-TYPE-0002", missingPrefix: "function return");
                 ValidateFunctionReturnType(rt, m.Identifier);
+                if (m.GeneratorStarToken is not null && rt is not IterableTypeSymbol)
+                {
+                    Report("COPE-GEN-0001", "Generator functions must declare a return type of Iterable<T>.", m.Identifier);
+                }
+                if (m.GeneratorStarToken is not null && m.AsyncKeyword is not null)
+                {
+                    Report("COPE-GEN-0002", "Async generators are not supported.", m.AsyncKeyword);
+                }
                 _activeTypeParameters = null;
                 var fn = new FunctionSymbol(
                     m.Identifier.Text,
@@ -1665,7 +1673,8 @@ public static class Binder
                     rt,
                     GetAuthoredAliasName(m.ReturnType),
                     CreateFunctionStableIdentity(m.Identifier.Text),
-                    m.AsyncKeyword is not null)
+                    m.AsyncKeyword is not null,
+                    m.GeneratorStarToken is not null)
                 {
                     TypeParameters = typeParameters
                 };
@@ -1949,7 +1958,9 @@ public static class Binder
             IfStatementSyntax i => BindIf(i),
             WhileStatementSyntax w => BindWhile(w),
             ForStatementSyntax f => BindFor(f),
+            ForOfStatementSyntax f => BindForOf(f),
             ReturnStatementSyntax r => BindReturn(r),
+            YieldStatementSyntax y => BindYield(y),
             BreakStatementSyntax b => BindBreak(b),
             ContinueStatementSyntax c => BindContinue(c),
             NestedRecordDeclarationStatementSyntax nested => BindNestedRecord(nested),
@@ -2078,6 +2089,10 @@ public static class Binder
                 return new BoundCSharpBlockStatement(block.BodyText, GetLineNumber(block.BodyPosition), PrimitiveTypeSymbol.Void, []);
             }
 
+            if (_currentFunction.IsGenerator)
+            {
+                Report("COPE-GEN-0010", "Inline C# blocks are not supported inside generator bodies.", block.CSharpKeyword);
+            }
             if (_currentFunction.IsAsync || ContainsCSharpAwait(block.BodyText))
             {
                 Report("COPE-CSHARP-0003", "Inline C# async and await are deferred beyond CTS-CSHARP-BLOCKS-M1.", block.CSharpKeyword);
@@ -2165,6 +2180,39 @@ public static class Binder
                 var condition = f.Condition is null ? null : EnsureBoolean(BindExpression(f.Condition), f.ForKeyword);
                 var increment = f.Increment is null ? null : BindExpression(f.Increment);
                 return new BoundForStatement(initializer, condition, increment, BindStatement(f.Body));
+            }
+            finally
+            {
+                _loopDepth--;
+                _scope = previousScope;
+            }
+        }
+
+        private BoundStatement BindForOf(ForOfStatementSyntax statement)
+        {
+            BoundExpression iterable = BindExpression(statement.Iterable);
+            TypeSymbol elementType = iterable.Type is IterableTypeSymbol sequence
+                ? sequence.ElementType
+                : PrimitiveTypeSymbol.Error;
+            if (iterable.Type is not IterableTypeSymbol)
+            {
+                Report("COPE-GEN-0008", "The source of 'for...of' must have type Iterable<T>.", statement.OfKeyword);
+            }
+
+            Scope previousScope = _scope;
+            _scope = new Scope(previousScope);
+            _loopDepth++;
+            try
+            {
+                var variable = new VariableSymbol(
+                    statement.Identifier.Text,
+                    elementType,
+                    statement.DeclarationKeyword.Kind == SyntaxKind.ConstKeyword);
+                if (!_scope.TryDeclare(variable))
+                {
+                    Report("COPE-BIND-0002", $"Duplicate declaration '{variable.Name}'.", statement.Identifier);
+                }
+                return new BoundForOfStatement(variable, iterable, BindStatement(statement.Body));
             }
             finally
             {
@@ -2262,6 +2310,14 @@ public static class Binder
 
         private BoundStatement BindReturn(ReturnStatementSyntax r)
         {
+            if (_currentFunction?.IsGenerator == true)
+            {
+                if (r.Expression is not null)
+                {
+                    Report("COPE-GEN-0005", "Generator functions cannot return a value; use 'return;' or 'yield break;'.", r.ReturnKeyword);
+                }
+                return new BoundReturnStatement(null);
+            }
             var expected = _currentFunction?.ReturnType ?? PrimitiveTypeSymbol.Void;
             if (r.Expression is null)
             {
@@ -2300,6 +2356,47 @@ public static class Binder
                     _currentFunction?.AuthoredReturnAliasName);
             }
             return new BoundReturnStatement(expr);
+        }
+
+        private BoundStatement BindYield(YieldStatementSyntax statement)
+        {
+            if (_currentFunction?.IsGenerator != true)
+            {
+                Report("COPE-GEN-0003", "'yield' is valid only inside a generator function.", statement.YieldKeyword);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            if (statement.BreakKeyword is not null)
+            {
+                return new BoundReturnStatement(null);
+            }
+
+            if (statement.Expression is null)
+            {
+                Report("COPE-GEN-0004", "A yielded value is required; use 'yield break;' to complete a generator.", statement.YieldKeyword);
+                return new BoundYieldStatement(new BoundErrorExpression());
+            }
+
+            IterableTypeSymbol sequence = (IterableTypeSymbol)_currentFunction.ReturnType;
+            BoundExpression expression = BindExpression(statement.Expression, sequence.ElementType);
+            if (statement.StarToken is not null)
+            {
+                if (expression.Type is not IterableTypeSymbol delegated)
+                {
+                    Report("COPE-GEN-0009", "The source of 'yield*' must have type Iterable<T>.", statement.StarToken);
+                }
+                else if (!IsAssignable(sequence.ElementType, delegated.ElementType))
+                {
+                    ReportTypeMismatch("COPE-GEN-0006", sequence.ElementType, delegated.ElementType, statement.StarToken, null);
+                }
+                return new BoundYieldStatement(expression, isDelegating: true);
+            }
+
+            if (!IsAssignable(sequence.ElementType, expression.Type))
+            {
+                ReportTypeMismatch("COPE-GEN-0006", sequence.ElementType, expression.Type, statement.YieldKeyword, null);
+            }
+            return new BoundYieldStatement(expression);
         }
 
         private BoundExpression BindExpression(ExpressionSyntax s, TypeSymbol? contextualType = null)
@@ -2351,6 +2448,11 @@ public static class Binder
         private BoundExpression BindAwait(AwaitExpressionSyntax awaitExpression)
         {
             BoundExpression operand = BindExpression(awaitExpression.Operand);
+            if (_currentFunction?.IsGenerator == true)
+            {
+                Report("COPE-GEN-0007", "'await' is not supported inside a synchronous generator.", awaitExpression.AwaitKeyword);
+                return new BoundErrorExpression();
+            }
             if (_currentFunction?.IsAsync != true)
             {
                 Report("COPE-ASYNC-0001", "'await' is valid only inside an async function.", awaitExpression.AwaitKeyword);
@@ -4463,6 +4565,7 @@ public static class Binder
             return type switch
             {
                 ArrayTypeSymbol array => new ArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
+                IterableTypeSymbol iterable => new IterableTypeSymbol(SubstituteType(iterable.ElementType, substitutions)),
                 ResultTypeSymbol result => new ResultTypeSymbol(SubstituteType(result.SuccessType, substitutions), SubstituteType(result.ErrorType, substitutions)),
                 ColumnTypeSymbol column => new ColumnTypeSymbol(SubstituteType(column.ElementType, substitutions)),
                 CallableTypeSymbol callable => new CallableTypeSymbol(callable.Parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, SubstituteType(parameter.Type, substitutions))).ToArray(), SubstituteType(callable.ReturnType, substitutions)),
@@ -4483,7 +4586,9 @@ public static class Binder
                 BoundIfStatement conditional => new BoundIfStatement(RewriteExpression(conditional.Condition), RewriteStatement(conditional.ThenStatement), conditional.ElseStatement is null ? null : RewriteStatement(conditional.ElseStatement)),
                 BoundWhileStatement loop => new BoundWhileStatement(RewriteExpression(loop.Condition), RewriteStatement(loop.Body)),
                 BoundForStatement loop => new BoundForStatement(loop.Initializer is null ? null : RewriteStatement(loop.Initializer), loop.Condition is null ? null : RewriteExpression(loop.Condition), loop.Increment is null ? null : RewriteExpression(loop.Increment), RewriteStatement(loop.Body)),
+                BoundForOfStatement loop => new BoundForOfStatement(RewriteVariable(loop.Variable), RewriteExpression(loop.Iterable), RewriteStatement(loop.Body)),
                 BoundReturnStatement @return => new BoundReturnStatement(@return.Expression is null ? null : RewriteExpression(@return.Expression)),
+                BoundYieldStatement yield => new BoundYieldStatement(yield.Expression is null ? null : RewriteExpression(yield.Expression), yield.IsDelegating),
                 _ => statement
             };
 
@@ -5870,6 +5975,7 @@ public static class Binder
                 },
                 ArrayTypeSyntax a => new ArrayTypeSymbol(BindType(a.ElementType, anchor, missingId, missingPrefix)),
                 AsyncTypeSyntax a => new AsyncTypeSymbol(BindType(a.EventualType, anchor, missingId, missingPrefix)),
+                IterableTypeSyntax i => new IterableTypeSymbol(BindType(i.ElementType, anchor, missingId, missingPrefix)),
                 ColumnTypeSyntax c => new ColumnTypeSymbol(BindType(c.ElementType, anchor, "COPE-TABLE-0019", "column element")),
                 CallableTypeSyntax c => BindCallableType(c, anchor, missingId, missingPrefix),
                 QualifiedRowTypeSyntax q => ResolveQualifiedRowType(q),
@@ -6164,6 +6270,9 @@ public static class Binder
                         break;
                     case ColumnTypeSymbol column:
                         pending.Push((column.ElementType, false));
+                        break;
+                    case IterableTypeSymbol iterable:
+                        pending.Push((iterable.ElementType, false));
                         break;
                     case ResultTypeSymbol result:
                         pending.Push((result.ErrorType, false));

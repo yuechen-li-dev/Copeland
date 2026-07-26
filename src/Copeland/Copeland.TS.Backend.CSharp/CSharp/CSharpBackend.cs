@@ -114,6 +114,7 @@ public static class CSharpBackend
         var needsUnit = EnumerateTypes(program).Any(ContainsVoidResult);
         var errorTypes = CollectErrorNominalTypes(program, enumNames);
         var usesAsync = program.Functions.Any(function => function.IsAsync);
+        var usesGenerators = program.Functions.Any(function => function.IsGenerator);
         var usesTsonTransport = ProgramUsesTsonTransport(program);
         var usesSystemTextJson = ProgramUsesSystemTextJson(program);
         var usesBatch = ProgramUsesBatch(program);
@@ -131,6 +132,7 @@ public static class CSharpBackend
         if (needsUnit) EmitUnit(writer);
         if (usesResult) EmitResult(writer);
         if (usesAsync) EmitAsyncRuntime(writer);
+        if (usesGenerators) EmitGeneratorRuntime(writer);
         if (usesTsonTransport) EmitTsonTransportRuntime(writer, sidecarContract);
         foreach (var errorType in errorTypes) writer.WriteLine($"public readonly record struct {CSharpNameMangler.Mangle(errorType)};");
         if (errorTypes.Count > 0) writer.WriteLine();
@@ -260,6 +262,39 @@ public static class CSharpBackend
         writer.WriteLine("{");
         writer.Indent();
         writer.WriteLine("internal static CopeAsync<T> Create<T>() => new CopeAsync<T>();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+    }
+
+    private static void EmitGeneratorRuntime(CSharpTextWriter writer)
+    {
+        writer.WriteLine("internal sealed class CopeGeneratorEnumerable<T>(global::System.Func<global::System.Collections.Generic.IEnumerator<T>> create) : global::System.Collections.Generic.IEnumerable<T>");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("public global::System.Collections.Generic.IEnumerator<T> GetEnumerator() => new CopeGeneratorEnumerator<T>(create());");
+        writer.WriteLine("global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("internal sealed class CopeGeneratorEnumerator<T>(global::System.Collections.Generic.IEnumerator<T> inner) : global::System.Collections.Generic.IEnumerator<T>");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("private bool disposed;");
+        writer.WriteLine("private bool running;");
+        writer.WriteLine("public T Current => inner.Current;");
+        writer.WriteLine("object global::System.Collections.IEnumerator.Current => Current!;");
+        writer.WriteLine("public bool MoveNext()");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("if (disposed) return false;");
+        writer.WriteLine("if (running) throw new global::System.InvalidOperationException(\"A Copeland generator cannot be resumed while it is already running.\");");
+        writer.WriteLine("running = true;");
+        writer.WriteLine("try { return inner.MoveNext(); }");
+        writer.WriteLine("finally { running = false; }");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("public void Reset() => throw new global::System.NotSupportedException();");
+        writer.WriteLine("public void Dispose() { if (disposed) return; disposed = true; inner.Dispose(); }");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine();
@@ -767,6 +802,11 @@ public static class CSharpBackend
             EmitAsyncFunction(writer, function, diagnostics);
             return;
         }
+        if (function.IsGenerator)
+        {
+            EmitGeneratorFunction(writer, function, enumNames, records, diagnostics);
+            return;
+        }
         var returnType = MapType(function.ReturnType); var parameters = string.Join(", ", function.Parameters.Select(parameter => $"{MapType(parameter.Type)} {CSharpNameMangler.Mangle(parameter.Name)}"));
         writer.WriteLine($"public static {returnType} {CSharpNameMangler.Mangle(function.Name)}({parameters})"); writer.WriteLine("{"); writer.Indent();
         var tempIndex = 0;
@@ -782,6 +822,60 @@ public static class CSharpBackend
         }
         writer.Unindent(); writer.WriteLine("}"); writer.WriteLine();
     }
+
+    private static void EmitGeneratorFunction(
+        CSharpTextWriter writer,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        var iterable = (MirIterableType)function.ReturnType;
+        string elementType = MapValueStorageType(iterable.ElementType);
+        string returnType = MapType(function.ReturnType);
+        string parameters = string.Join(", ", function.Parameters.Select(parameter => $"{MapType(parameter.Type)} {CSharpNameMangler.Mangle(parameter.Name)}"));
+        string arguments = string.Join(", ", function.Parameters.Select(parameter => CSharpNameMangler.Mangle(parameter.Name)));
+        string publicName = CSharpNameMangler.Mangle(function.Name);
+        string rawName = "__cope_generator_" + publicName;
+
+        writer.WriteLine($"public static {returnType} {publicName}({parameters}) => new CopeGeneratorEnumerable<{elementType}>(() => {rawName}({arguments}).GetEnumerator());");
+        writer.WriteLine($"private static {returnType} {rawName}({parameters})");
+        writer.WriteLine("{");
+        writer.Indent();
+        var tempIndex = 0;
+        var previousState = CurrentEmissionState.Value;
+        CurrentEmissionState.Value = new CSharpEmissionState(records);
+        try
+        {
+            foreach (MirStatement statement in function.Body)
+            {
+                EmitStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
+            }
+            if (!ContainsYield(function.Body))
+            {
+                writer.WriteLine("yield break;");
+            }
+        }
+        finally
+        {
+            CurrentEmissionState.Value = previousState;
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine();
+    }
+
+    private static bool ContainsYield(IEnumerable<MirStatement> statements)
+        => statements.Any(statement => statement switch
+        {
+            MirYieldStatement => true,
+            MirIfStatement conditional => ContainsYield(conditional.ThenStatements)
+                || conditional.ElseStatements is not null && ContainsYield(conditional.ElseStatements),
+            MirWhileStatement loop => ContainsYield(loop.BodyStatements),
+            MirForStatement loop => loop.Initializer is not null && ContainsYield([loop.Initializer]) || ContainsYield(loop.BodyStatements),
+            MirForOfStatement loop => ContainsYield(loop.BodyStatements),
+            _ => false,
+        });
 
     private static void EmitAsyncFunction(CSharpTextWriter writer, MirFunction function, List<CSharpDiagnostic> diagnostics)
     {
@@ -1099,6 +1193,8 @@ public static class CSharpBackend
                 break;
             case MirExpressionStatement expression:
                 writer.WriteLine($"{EmitExpression(writer, expression.Expression, function, enumNames, ref tempIndex, diagnostics)};"); break;
+            case MirReturnStatement { Expression: null } when function.IsGenerator:
+                writer.WriteLine("yield break;"); break;
             case MirReturnStatement { Expression: null }:
                 writer.WriteLine("return;"); break;
             case MirReturnStatement returnStatement:
@@ -1121,6 +1217,10 @@ public static class CSharpBackend
             case MirForStatement loop:
                 EmitForStatement(writer, loop, function, enumNames, ref tempIndex, diagnostics);
                 break;
+            case MirForOfStatement loop:
+                writer.WriteLine($"foreach ({MapValueStorageType(loop.Local.Type)} {CSharpNameMangler.Mangle(loop.Local.Name)} in {EmitExpression(writer, loop.Iterable, function, enumNames, ref tempIndex, diagnostics)})");
+                EmitStatementBlock(writer, loop.BodyStatements, function, enumNames, ref tempIndex, diagnostics);
+                break;
             case MirBreakStatement:
                 writer.WriteLine("break;");
                 break;
@@ -1133,6 +1233,13 @@ public static class CSharpBackend
                     writer.WriteLine($"{EmitExpression(writer, increment, function, enumNames, ref tempIndex, diagnostics)};");
                 }
                 writer.WriteLine("continue;");
+                break;
+            case MirYieldStatement { Expression: null }:
+                writer.WriteLine("yield break;");
+                break;
+            case MirYieldStatement yield:
+                string yielded = EmitExpression(writer, yield.Expression!, function, enumNames, ref tempIndex, diagnostics);
+                writer.WriteLine(yield.IsDelegating ? $"foreach (var __cope_delegated in {yielded}) yield return __cope_delegated;" : $"yield return {yielded};");
                 break;
             default: diagnostics.Add(new CSharpDiagnostic("COPE-CS-0001", $"Unsupported MIR statement: {statement.GetType().Name}")); break;
         }
@@ -2604,7 +2711,7 @@ public static class CSharpBackend
 
         return arrays;
     }
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
     private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
 

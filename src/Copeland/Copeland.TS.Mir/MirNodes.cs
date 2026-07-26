@@ -279,6 +279,7 @@ public sealed class MirFunction(
     IReadOnlyList<MirLocal> locals,
     IReadOnlyList<MirStatement> body,
     bool isAsync = false,
+    bool isGenerator = false,
     MirSuspensionAutomaton? suspensionAutomaton = null)
 {
     public string Name { get; } = name;
@@ -286,6 +287,7 @@ public sealed class MirFunction(
     public MirType ReturnType { get; } = returnType;
     public bool IsFallible => ReturnType is MirResultType;
     public bool IsAsync { get; } = isAsync;
+    public bool IsGenerator { get; } = isGenerator;
     public MirSuspensionAutomaton? SuspensionAutomaton { get; } = suspensionAutomaton;
     public IReadOnlyList<MirLocal> Locals { get; } = locals;
     public IReadOnlyList<MirStatement> Body { get; } = body;
@@ -301,8 +303,10 @@ public sealed record MirReturnStatement(MirExpression? Expression) : MirStatemen
 public sealed record MirIfStatement(MirExpression Condition, IReadOnlyList<MirStatement> ThenStatements, IReadOnlyList<MirStatement>? ElseStatements) : MirStatement;
 public sealed record MirWhileStatement(MirExpression Condition, IReadOnlyList<MirStatement> BodyStatements) : MirStatement;
 public sealed record MirForStatement(MirStatement? Initializer, MirExpression? Condition, MirExpression? Increment, IReadOnlyList<MirStatement> BodyStatements) : MirStatement;
+public sealed record MirForOfStatement(MirLocal Local, MirExpression Iterable, IReadOnlyList<MirStatement> BodyStatements) : MirStatement;
 public sealed record MirBreakStatement : MirStatement;
 public sealed record MirContinueStatement : MirStatement;
+public sealed record MirYieldStatement(MirExpression? Expression, bool IsDelegating = false) : MirStatement;
 public sealed record MirResourceUsingDeclarationStatement(MirLocal Local, MirExpression Initializer) : MirStatement;
 public sealed record MirCSharpCapture(string Name, MirType Type);
 public sealed record MirCSharpBlockStatement(string BodyText, int SourceLine, MirType ExpectedResultType, IReadOnlyList<MirCSharpCapture> Captures) : MirStatement;
@@ -335,6 +339,10 @@ public sealed record MirAsyncType(MirType EventualType) : MirType("async")
 {
     public override string Name => $"Async<{EventualType.Name}>";
 }
+public sealed record MirIterableType(MirType ElementType) : MirType("iterable")
+{
+    public override string Name => $"Iterable<{ElementType.Name}>";
+}
 public sealed record MirCallableParameter(string Name, MirType Type);
 public sealed record MirCallableType(IReadOnlyList<MirCallableParameter> Parameters, MirType ReturnType) : MirType("callable")
 {
@@ -361,7 +369,8 @@ public static class MirTypeFacts
             (MirAsyncCallableType leftCallable, MirAsyncCallableType rightCallable) => leftCallable.Parameters.Count == rightCallable.Parameters.Count
                 && leftCallable.Parameters.Zip(rightCallable.Parameters).All(pair => AreEquivalent(pair.First.Type, pair.Second.Type))
                 && AreEquivalent(leftCallable.EventualReturnType, rightCallable.EventualReturnType),
-            (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType and not MirAsyncType && right is not MirArrayType and not MirResultType and not MirAsyncType => leftNamed.Identifier == rightNamed.Identifier,
+            (MirIterableType leftIterable, MirIterableType rightIterable) => AreEquivalent(leftIterable.ElementType, rightIterable.ElementType),
+            (MirType leftNamed, MirType rightNamed) when left is not MirArrayType and not MirResultType and not MirAsyncType and not MirIterableType && right is not MirArrayType and not MirResultType and not MirAsyncType and not MirIterableType => leftNamed.Identifier == rightNamed.Identifier,
             (MirArrayType leftArray, MirArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (MirResultType leftResult, MirResultType rightResult) => AreEquivalent(leftResult.SuccessType, rightResult.SuccessType) && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
             (MirAsyncType leftAsync, MirAsyncType rightAsync) => AreEquivalent(leftAsync.EventualType, rightAsync.EventualType),
@@ -373,6 +382,7 @@ public static class MirTypeFacts
         {
             MirResultType => true,
             MirAsyncType async => ContainsResult(async.EventualType),
+            MirIterableType iterable => ContainsResult(iterable.ElementType),
             MirArrayType array => ContainsResult(array.ElementType),
             MirCallableType callable => callable.Parameters.Any(parameter => ContainsResult(parameter.Type)) || ContainsResult(callable.ReturnType),
             MirAsyncCallableType callable => callable.Parameters.Any(parameter => ContainsResult(parameter.Type)) || ContainsResult(callable.EventualReturnType),

@@ -25,6 +25,7 @@ public static class MirValidator
         ValidateClrModel(program, diagnostics);
         ValidateCSharpBlockModel(program, diagnostics);
         ValidateTsonEncodingModel(program, diagnostics);
+        ValidateGeneratorModel(program, diagnostics);
         foreach (var function in program.Functions)
         {
             var handlerIds = new HashSet<MirHandlerId>();
@@ -35,6 +36,77 @@ public static class MirValidator
         MirSuspensionAutomatonValidator.Validate(program, diagnostics);
 
         return diagnostics;
+    }
+
+    private static void ValidateGeneratorModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        foreach (MirFunction function in program.Functions)
+        {
+            if (function.IsGenerator && function.IsAsync)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"generator '{function.Name}' cannot also be async."));
+            }
+
+            MirIterableType? iterable = function.ReturnType as MirIterableType;
+            if (function.IsGenerator && iterable is null)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"generator '{function.Name}' must return Iterable<T>."));
+            }
+
+            foreach (MirStatement statement in EnumerateGeneratorStatements(function.Body))
+            {
+                if (statement is not MirYieldStatement yield)
+                {
+                    continue;
+                }
+
+                if (!function.IsGenerator)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"non-generator function '{function.Name}' contains a yield statement."));
+                    continue;
+                }
+
+                if (yield.Expression is null)
+                {
+                    continue;
+                }
+
+                if (yield.IsDelegating)
+                {
+                    if (yield.Expression.Type is not MirIterableType delegated
+                        || !MirTypeFacts.AreEquivalent(iterable!.ElementType, delegated.ElementType))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"generator '{function.Name}' has an incompatible yield* source."));
+                    }
+                }
+                else if (!MirTypeFacts.AreEquivalent(iterable!.ElementType, yield.Expression.Type))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"generator '{function.Name}' yields a value incompatible with its Iterable element type."));
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<MirStatement> EnumerateGeneratorStatements(IEnumerable<MirStatement> statements)
+    {
+        foreach (MirStatement statement in statements)
+        {
+            yield return statement;
+            IEnumerable<MirStatement> nested = statement switch
+            {
+                MirIfStatement conditional => conditional.ThenStatements.Concat(conditional.ElseStatements ?? []),
+                MirWhileStatement loop => loop.BodyStatements,
+                MirForStatement loop => (loop.Initializer is null
+                    ? Enumerable.Empty<MirStatement>()
+                    : new[] { loop.Initializer }).Concat(loop.BodyStatements),
+                MirForOfStatement loop => loop.BodyStatements,
+                _ => [],
+            };
+            foreach (MirStatement child in EnumerateGeneratorStatements(nested))
+            {
+                yield return child;
+            }
+        }
     }
 
     private static void ValidateCSharpBlockModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)

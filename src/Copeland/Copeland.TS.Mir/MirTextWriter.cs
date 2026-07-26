@@ -102,7 +102,7 @@ public static class MirTextWriter
         foreach (var function in program.Functions)
         {
             sb.AppendLine();
-            sb.Append(function.IsAsync ? "async func " : "func ").Append(function.Name).Append('(');
+            sb.Append(function.IsAsync ? "async func " : function.IsGenerator ? "generator func " : "func ").Append(function.Name).Append('(');
             sb.Append(string.Join(", ", function.Parameters.Select(p => $"{p.Name}: {p.Type.Name}")));
             sb.Append(") -> ").Append(function.ReturnType.Name).AppendLine();
             if (function.Locals.Count > 0)
@@ -160,11 +160,20 @@ public static class MirTextWriter
                 sb.AppendLine();
                 foreach (var s in f.BodyStatements) WriteStatement(sb, s, indent + 1);
                 break;
+            case MirForOfStatement f:
+                sb.Append(i).Append("for-of ").Append(f.Local.Name).Append(" in ").AppendLine(FormatExpression(f.Iterable));
+                foreach (var s in f.BodyStatements) WriteStatement(sb, s, indent + 1);
+                break;
             case MirBreakStatement:
                 sb.Append(i).AppendLine("break");
                 break;
             case MirContinueStatement:
                 sb.Append(i).AppendLine("continue");
+                break;
+            case MirYieldStatement y:
+                sb.Append(i).Append(y.IsDelegating ? "yield*" : "yield");
+                if (y.Expression is not null) sb.Append(' ').Append(FormatExpression(y.Expression));
+                sb.AppendLine();
                 break;
         }
     }

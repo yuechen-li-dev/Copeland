@@ -35,6 +35,7 @@ public static class SyntaxFacts
             ["continue"] = SyntaxKind.ContinueKeyword,
             ["async"] = SyntaxKind.AsyncKeyword,
             ["await"] = SyntaxKind.AwaitKeyword,
+            ["yield"] = SyntaxKind.YieldKeyword,
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     public static SyntaxKind GetKeywordKind(string text)
@@ -120,6 +121,7 @@ public static class SyntaxFacts
             SyntaxKind.ContinueKeyword => "continue",
             SyntaxKind.AsyncKeyword => "async",
             SyntaxKind.AwaitKeyword => "await",
+            SyntaxKind.YieldKeyword => "yield",
             SyntaxKind.ClassKeyword => "class",
             SyntaxKind.ConstructorKeyword => "constructor",
             SyntaxKind.PublicKeyword => "public",

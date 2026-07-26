@@ -185,6 +185,7 @@ public static class MirLowerer
             locals.Values.OrderBy(l => l.Name, StringComparer.Ordinal).ToArray(),
             body,
             function.Symbol.IsAsync,
+            function.Symbol.IsGenerator,
             automaton);
     }
 
@@ -892,8 +893,10 @@ public static class MirLowerer
             BoundIfStatement i => [new MirIfStatement(LowerExpression(i.Condition), LowerStatement(i.ThenStatement, locals), i.ElseStatement is null ? null : LowerStatement(i.ElseStatement, locals))],
             BoundWhileStatement w => [new MirWhileStatement(LowerExpression(w.Condition), LowerStatement(w.Body, locals))],
             BoundForStatement f => [new MirForStatement(f.Initializer is null ? null : LowerStatement(f.Initializer, locals).Single(), f.Condition is null ? null : LowerExpression(f.Condition), f.Increment is null ? null : LowerExpression(f.Increment), LowerStatement(f.Body, locals))],
+            BoundForOfStatement f => [new MirForOfStatement(new MirLocal(f.Variable.Name, ToMirType(f.Variable.Type), f.Variable.IsReadOnly), LowerExpression(f.Iterable), LowerStatement(f.Body, locals))],
             BoundBreakStatement => [new MirBreakStatement()],
             BoundContinueStatement => [new MirContinueStatement()],
+            BoundYieldStatement y => [new MirYieldStatement(y.Expression is null ? null : LowerExpression(y.Expression), y.IsDelegating)],
             _ => []
         };
     }
@@ -1026,6 +1029,7 @@ public static class MirLowerer
     {
         ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
         AsyncTypeSymbol async => new MirAsyncType(ToMirType(async.EventualType)),
+        IterableTypeSymbol iterable => new MirIterableType(ToMirType(iterable.ElementType)),
         ResultTypeSymbol result => new MirResultType(ToMirType(result.SuccessType), ToMirType(result.ErrorType)),
         CallableTypeSymbol callable => new MirCallableType(callable.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(), ToMirType(callable.ReturnType)),
         RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.Name),
