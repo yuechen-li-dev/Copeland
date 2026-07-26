@@ -40,7 +40,7 @@ public sealed class CSharpCorpusTests
         string path = Path.Combine(GetCorpusRoot(), "m1-table-csharp-valid", "empty-table.g.cs");
         string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
 
-        Assert.Equal("B83CAA6470B05E46947F8F66591E9C0428377C642C0555BE1E1F62526FDE955A", hash);
+        Assert.Equal("18326C9663290677C9B581F2F7BA9C7BCDE4B5408B32DC2187FD8A96156D2D30", hash);
     }
 
     [Fact]

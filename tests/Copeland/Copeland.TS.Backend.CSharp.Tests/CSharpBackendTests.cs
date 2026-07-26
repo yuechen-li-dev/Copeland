@@ -13,6 +13,19 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 public sealed class CSharpBackendTests
 {
     [Fact]
+    public void Int_literals_compile_as_ints_in_generated_csharp()
+    {
+        CSharpCompilation compilation = CSharpBackend.Emit(Lower("function increment(value: int): int { return value + 1; }"));
+
+        Assert.Empty(compilation.Diagnostics);
+        Assert.Contains("(value + 1)", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("1.0", compilation.SourceText, StringComparison.Ordinal);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(compilation.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(2, Assert.IsType<int>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "increment", 1)));
+    }
+
+    [Fact]
     public void Async_if_control_flow_emits_explicit_state_transition()
     {
         CSharpCompilation compilation = CSharpBackend.Emit(Lower("""

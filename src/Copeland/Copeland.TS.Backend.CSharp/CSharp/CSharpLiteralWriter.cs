@@ -12,8 +12,8 @@ internal static class CSharpLiteralWriter
             null => "null",
             bool b => b ? "true" : "false",
             string s => WriteString(s),
-            int i => i.ToString("0.0", CultureInfo.InvariantCulture),
-            long l => l.ToString("0.0", CultureInfo.InvariantCulture),
+            int i => i.ToString(CultureInfo.InvariantCulture),
+            long l => l.ToString(CultureInfo.InvariantCulture) + "L",
             float f => f.ToString("0.0###############", CultureInfo.InvariantCulture),
             double d => WriteDouble(d),
             _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "null"

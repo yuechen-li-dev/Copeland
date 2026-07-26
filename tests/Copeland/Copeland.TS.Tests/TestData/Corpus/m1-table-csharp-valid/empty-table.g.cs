@@ -118,7 +118,7 @@ public static class CopelandModule
 
     public static double main()
     {
-        var __cope_tmp0 = __cope_table_t1.GetRow(0.0);
+        var __cope_tmp0 = __cope_table_t1.GetRow(0);
         double __cope_tmp1;
         if (__cope_tmp0.IsOk)
         {

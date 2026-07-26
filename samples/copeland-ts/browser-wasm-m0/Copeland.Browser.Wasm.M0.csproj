@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>Copeland.Browser.Wasm.M0</RootNamespace>
+    <AssemblyName>Copeland.Browser.Wasm.M0</AssemblyName>
+    <CopelandTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\src\Copeland\Copeland.TS.MSBuild\bin\$(Configuration)\net10.0\Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
+  </PropertyGroup>
+
+  <Import Project="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.props" />
+
+  <ItemGroup>
+    <CopelandCompile Include="Copeland\**\*.ts" />
+  </ItemGroup>
+
+  <Import Project="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.targets" />
+</Project>
