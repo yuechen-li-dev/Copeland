@@ -1329,6 +1329,45 @@ public sealed class JavaScriptRuntimeTests
         Assert.Equal(string.Empty, second.StdErr);
     }
 
+    [Fact]
+    public async Task Node_resumes_a_delayed_tson_transport_response_once()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            const $schema: string = "copeland://transport/test";
+            record Request { value: number; }
+            record Response { value: number; label: string; }
+            record RemoteError { message: string; }
+            function makeRequest(value: number): Request { return { value }; }
+            function makeResponse(): Response { return { value: 42, label: "ok" }; }
+            function readResponse(response: Response): number { return response.value; }
+            async function load(value: number): Response ! RemoteError {
+                const request: Request = makeRequest(value);
+                const pending: Async<Response ! RemoteError> = tsonCall<Response, RemoteError>("double", request);
+                return await pending;
+            }
+            """);
+
+        Match tsonRuntime = Regex.Match(emitted.SourceText!, @"const (?<name>__cope_[A-Za-z0-9_]+) = \(\(\) => \{\r?\n\s+function makeWriter");
+        Assert.True(tsonRuntime.Success);
+        string script = emitted.SourceText + """
+            let request = "";
+            __cope_tson_transport.setDispatch(value => { request = value; });
+            const pending = load(21);
+            console.log(pending.completed);
+            const payload = __TSON_RUNTIME__["tson1"](makeResponse()).$payload[0];
+            console.log(readResponse(__TSON_RUNTIME__["tson1"].decode(payload)));
+            console.log(__cope_tson_transport.receive(__cope_tson_transport.envelope("1", "ok", "", payload)));
+            console.log(__cope_tson_transport.receive(__cope_tson_transport.envelope("1", "ok", "", payload)));
+            console.log(pending.completed);
+            console.log(readResponse(pending.value.$payload[0]));
+            console.log(request.includes("copeland://interop/transport/v1"));
+            """.Replace("__TSON_RUNTIME__", tsonRuntime.Groups["name"].Value, StringComparison.Ordinal);
+        ProcessResult result = await RunNodeAsync(script);
+
+        Assert.Equal("false\n42\ntrue\nfalse\ntrue\n42\ntrue\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
     private static JavaScriptCompilation Emit(string source)
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);

@@ -398,6 +398,13 @@ public sealed record MirEnumValueExpression(string EnumName, string CaseName, IR
 public sealed record MirMatchExpression(MirExpression Scrutinee, IReadOnlyList<MirMatchArm> Arms, MirType Type) : MirExpression(Type);
 public sealed record MirIfExpression(MirExpression Condition, MirExpression ThenExpression, MirExpression ElseExpression, MirType Type) : MirExpression(Type);
 public sealed record MirTsonEncodeExpression(MirExpression Operand, MirTsonEncodingPlanId PlanId, MirResultType ResultType) : MirExpression(ResultType);
+public sealed record MirTsonTransportExpression(
+    MirExpression Operation,
+    MirExpression Request,
+    MirTsonEncodingPlanId RequestPlanId,
+    MirTsonEncodingPlanId ResponsePlanId,
+    MirTsonEncodingPlanId RemoteErrorPlanId,
+    MirAsyncType AsyncType) : MirExpression(AsyncType);
 
 public sealed record MirOkExpression : MirExpression
 {

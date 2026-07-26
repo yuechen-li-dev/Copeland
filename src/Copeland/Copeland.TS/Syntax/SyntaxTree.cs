@@ -21,12 +21,35 @@ public sealed class SyntaxTree
     public IReadOnlyList<Diagnostic> Diagnostics { get; }
 
     public static SyntaxTree Parse(string text)
+        => Parse(text, SourceFileKind.TypeScript);
+
+    public static SyntaxTree Parse(string text, SourceFileKind fileKind)
     {
-        var parser = new Parser(text);
+        var parser = new Parser(text, fileKind == SourceFileKind.TypeScriptXml);
         var root = parser.ParseCompilationUnit();
         var diagnostics = parser.Diagnostics.ToArray();
         var tokens = CollectTokens(root).ToArray();
         return new SyntaxTree(text, root, tokens, diagnostics);
+    }
+
+    public static SyntaxTree Parse(string text, string? sourcePath)
+    {
+        SourceFileKind fileKind = SourceFileKindExtensions.FromSourcePath(sourcePath);
+        SyntaxTree tree = Parse(text, fileKind);
+
+        if (sourcePath is null || !sourcePath.EndsWith(".jsx", StringComparison.OrdinalIgnoreCase))
+        {
+            return tree;
+        }
+
+        var diagnostics = tree.Diagnostics
+            .Append(new Diagnostic(
+                "COPE-TSXML-0001",
+                "TS-XML is available only in '.tsx' source files; '.jsx' is not a Copeland source extension.",
+                0,
+                Math.Max(1, text.Length)))
+            .ToArray();
+        return new SyntaxTree(tree.Text, tree.Root, tree.Tokens, diagnostics);
     }
 
     public static SyntaxTree ParseTokens(string text)
@@ -67,4 +90,18 @@ public sealed class SyntaxTree
             }
         }
     }
+}
+
+public enum SourceFileKind
+{
+    TypeScript,
+    TypeScriptXml,
+}
+
+public static class SourceFileKindExtensions
+{
+    public static SourceFileKind FromSourcePath(string? sourcePath)
+        => sourcePath is not null && sourcePath.EndsWith(".tsx", StringComparison.OrdinalIgnoreCase)
+            ? SourceFileKind.TypeScriptXml
+            : SourceFileKind.TypeScript;
 }

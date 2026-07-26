@@ -191,6 +191,7 @@ public static class MirTextWriter
         MirMatchExpression m => $"match {FormatExpression(m.Scrutinee)} : {m.Type.Name} {{ {string.Join(" | ", m.Arms.Select(FormatArm))} }}",
         MirIfExpression i => $"if {FormatExpression(i.Condition)} : {i.Type.Name} {{ then {FormatExpression(i.ThenExpression)} else {FormatExpression(i.ElseExpression)} }}",
         MirTsonEncodeExpression encode => $"tson-encode [{encode.PlanId}] {FormatExpression(encode.Operand)} : {encode.ResultType.Name}",
+        MirTsonTransportExpression transport => $"tson-call [{transport.RequestPlanId}/{transport.ResponsePlanId}/{transport.RemoteErrorPlanId}] {FormatExpression(transport.Operation)} {FormatExpression(transport.Request)} : {transport.AsyncType.Name}",
         MirOkExpression ok => $"ok {FormatExpression(ok.Payload)}",
         MirErrExpression err => $"err {FormatExpression(err.Payload)}",
         MirResultMatchExpression match => $"result-match {FormatExpression(match.Scrutinee)} : {match.Type.Name} {{ ok({match.OkBinding.Name}: {match.OkBinding.Type.Name}) => {FormatExpression(match.OkExpression)} | err({match.ErrBinding.Name}: {match.ErrBinding.Type.Name}) => {FormatExpression(match.ErrExpression)} }}",

@@ -876,6 +876,25 @@ public static class MirValidator
                     diagnostics.Add(new MirValidationDiagnostic($"TSON encode expression for plan '{encode.PlanId}' has the wrong Result type."));
             }
         }
+        if (expression is MirTsonTransportExpression transport)
+        {
+            plans.TryGetValue(transport.RequestPlanId, out MirTsonEncodingPlan? requestPlan);
+            plans.TryGetValue(transport.ResponsePlanId, out MirTsonEncodingPlan? responsePlan);
+            plans.TryGetValue(transport.RemoteErrorPlanId, out MirTsonEncodingPlan? errorPlan);
+            bool plansExist = requestPlan is not null && responsePlan is not null && errorPlan is not null;
+            if (!plansExist
+                || transport.Operation.Type.Identifier != "string"
+                || requestPlan is null
+                || responsePlan is null
+                || errorPlan is null
+                || !MirTypeFacts.AreEquivalent(requestPlan.RootType, transport.Request.Type)
+                || transport.AsyncType.EventualType is not MirResultType result
+                || !MirTypeFacts.AreEquivalent(responsePlan.RootType, result.SuccessType)
+                || !MirTypeFacts.AreEquivalent(errorPlan.RootType, result.ErrorType))
+            {
+                diagnostics.Add(new MirValidationDiagnostic("TSON transport expression has missing plans or incompatible request, response, or remote-error types."));
+            }
+        }
         foreach (MirExpression child in EnumerateTsonExpressionChildren(expression))
         {
             ValidateTsonEncodingExpression(child, plans, diagnostics);
@@ -886,6 +905,7 @@ public static class MirValidator
         => expression switch
         {
             MirTsonEncodeExpression encode => [encode.Operand],
+            MirTsonTransportExpression transport => [transport.Operation, transport.Request],
             MirAssignmentExpression assignment => [assignment.Expression],
             MirUnaryExpression unary => [unary.Operand],
             MirBinaryExpression binary => [binary.Left, binary.Right],
@@ -1907,6 +1927,10 @@ public static class MirValidator
             case MirTsonEncodeExpression encode:
                 ValidateExpression(encode.Operand, activeHandlers, handlerIds, diagnostics);
                 return;
+            case MirTsonTransportExpression transport:
+                ValidateExpression(transport.Operation, activeHandlers, handlerIds, diagnostics);
+                ValidateExpression(transport.Request, activeHandlers, handlerIds, diagnostics);
+                return;
         }
     }
 
@@ -2117,6 +2141,10 @@ public static class MirValidator
                 return;
             case MirTsonEncodeExpression encode:
                 ValidateFunctionPropagationTarget(encode.Operand, functionReturnType, diagnostics);
+                return;
+            case MirTsonTransportExpression transport:
+                ValidateFunctionPropagationTarget(transport.Operation, functionReturnType, diagnostics);
+                ValidateFunctionPropagationTarget(transport.Request, functionReturnType, diagnostics);
                 return;
         }
     }

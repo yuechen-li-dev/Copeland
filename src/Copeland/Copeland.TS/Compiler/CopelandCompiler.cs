@@ -14,7 +14,7 @@ public static class CopelandCompiler
         var effectiveOptions = options ?? new CopelandCompilationOptions();
         var diagnostics = new List<Diagnostic>();
 
-        var syntaxTree = SyntaxTree.Parse(sourceText);
+        var syntaxTree = SyntaxTree.Parse(sourceText, effectiveOptions.SourcePath);
         diagnostics.AddRange(syntaxTree.Diagnostics);
 
         BoundCompilation? boundCompilation = null;

@@ -4,12 +4,18 @@ namespace Copeland.TS.Syntax;
 
 public sealed class Parser
 {
+    private readonly string _text;
     private readonly SyntaxToken[] _tokens;
+    private readonly IReadOnlyList<Diagnostic> _lexerDiagnostics;
     private readonly DiagnosticBag _diagnostics = new();
+    private readonly List<(int Start, int End)> _tsXmlTextRanges = [];
+    private readonly bool _allowsTsXml;
     private int _position;
 
-    public Parser(string text)
+    public Parser(string text, bool allowsTsXml = false)
     {
+        _text = text;
+        _allowsTsXml = allowsTsXml;
         var lexer = new Lexer(text);
         var tokens = new List<SyntaxToken>();
 
@@ -29,13 +35,14 @@ public sealed class Parser
 
         _tokens = [.. tokens];
 
-        foreach (var diagnostic in lexer.Diagnostics)
-        {
-            _diagnostics.Report(diagnostic.Id, diagnostic.Message, diagnostic.Position, diagnostic.Length);
-        }
+        _lexerDiagnostics = lexer.Diagnostics.ToArray();
     }
 
-    public IReadOnlyList<Diagnostic> Diagnostics => _diagnostics.Diagnostics;
+    public IReadOnlyList<Diagnostic> Diagnostics
+        => _lexerDiagnostics
+            .Where(diagnostic => !IsTsXmlTextDiagnostic(diagnostic))
+            .Concat(_diagnostics.Diagnostics)
+            .ToArray();
 
     public CompilationUnitSyntax ParseCompilationUnit()
     {
@@ -60,6 +67,20 @@ public sealed class Parser
 
     private MemberSyntax ParseMember()
     {
+        if (_allowsTsXml && Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "import")
+        {
+            return ParseImportDeclaration();
+        }
+
+        if (_allowsTsXml
+            && Current.Kind == SyntaxKind.IdentifierToken
+            && Current.Text == "export"
+            && Peek(1).Kind == SyntaxKind.IdentifierToken
+            && Peek(1).Text == "default")
+        {
+            return ParseExportDefaultDeclaration();
+        }
+
         if (Current.Kind == SyntaxKind.IdentifierToken
             && Current.Text == "type")
         {
@@ -100,6 +121,31 @@ public sealed class Parser
         }
 
         return new GlobalStatementMemberSyntax(ParseStatement());
+    }
+
+    private ImportDeclarationSyntax ParseImportDeclaration()
+    {
+        var tokens = new List<SyntaxToken> { NextToken() };
+        while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.EndOfFileToken)
+        {
+            tokens.Add(NextToken());
+        }
+
+        if (Current.Kind == SyntaxKind.SemicolonToken)
+        {
+            tokens.Add(NextToken());
+        }
+
+        return new ImportDeclarationSyntax(tokens);
+    }
+
+    private ExportDefaultDeclarationSyntax ParseExportDefaultDeclaration()
+    {
+        SyntaxToken exportToken = NextToken();
+        SyntaxToken defaultToken = NextToken();
+        ExpressionSyntax expression = ParseExpression();
+        SyntaxToken? semicolonToken = Current.Kind == SyntaxKind.SemicolonToken ? NextToken() : null;
+        return new ExportDefaultDeclarationSyntax(exportToken, defaultToken, expression, semicolonToken);
     }
 
     private MemberSyntax ParseTypeDeclaration()
@@ -1285,6 +1331,11 @@ public sealed class Parser
 
     private ExpressionSyntax ParsePrimaryExpression()
     {
+        if (_allowsTsXml && Current.Kind == SyntaxKind.LessToken)
+        {
+            return ParseTsXmlExpression();
+        }
+
         if (IsClassWord(Current, "new"))
         {
             return ParseForbiddenClassExpression();
@@ -1689,6 +1740,267 @@ public sealed class Parser
 
         return new MatchPatternSyntax(caseIdentifier, openParen, payloadIdentifiers, commas, closeParen);
     }
+
+    private TsXmlExpressionSyntax ParseTsXmlExpression()
+    {
+        SyntaxToken lessToken = MatchTsXml(SyntaxKind.LessToken, "Expected '<' to begin a TS-XML expression.");
+        if (Current.Kind == SyntaxKind.GreaterToken)
+        {
+            return ParseTsXmlFragment(lessToken);
+        }
+
+        SyntaxToken nameToken = MatchTsXmlName("Expected an element name after '<'.");
+        var attributes = new List<TsXmlAttributeSyntax>();
+        while (IsTsXmlName(Current))
+        {
+            attributes.Add(ParseTsXmlAttribute());
+        }
+
+        SyntaxToken? slashToken = null;
+        if (Current.Kind == SyntaxKind.SlashToken)
+        {
+            slashToken = NextToken();
+        }
+
+        SyntaxToken openCloseToken = MatchTsXml(SyntaxKind.GreaterToken, "Expected '>' to end the TS-XML opening tag.");
+        if (slashToken is not null)
+        {
+            return new TsXmlElementExpressionSyntax(
+                lessToken,
+                nameToken,
+                attributes,
+                slashToken,
+                openCloseToken,
+                [],
+                null,
+                null,
+                null,
+                null);
+        }
+
+        var children = ParseTsXmlChildren(openCloseToken.Position + openCloseToken.Text.Length);
+        SyntaxToken? closeLessToken = null;
+        SyntaxToken? closeSlashToken = null;
+        SyntaxToken? closeNameToken = null;
+        SyntaxToken? closeGreaterToken = null;
+        if (Current.Kind == SyntaxKind.LessToken)
+        {
+            closeLessToken = NextToken();
+            closeSlashToken = MatchTsXml(SyntaxKind.SlashToken, "Expected '/' in the TS-XML closing tag.");
+            closeNameToken = MatchTsXmlName("Expected an element name in the TS-XML closing tag.");
+            closeGreaterToken = MatchTsXml(SyntaxKind.GreaterToken, "Expected '>' to end the TS-XML closing tag.");
+
+            if (!string.Equals(nameToken.Text, closeNameToken.Text, StringComparison.Ordinal))
+            {
+                ReportTsXml(
+                    "COPE-TSXML-0006",
+                    $"TS-XML closing name '{closeNameToken.Text}' does not match opening name '{nameToken.Text}'.",
+                    closeNameToken);
+            }
+        }
+        else
+        {
+            ReportTsXml("COPE-TSXML-0005", $"Expected closing tag '</{nameToken.Text}>'.", Current);
+        }
+
+        return new TsXmlElementExpressionSyntax(
+            lessToken,
+            nameToken,
+            attributes,
+            null,
+            openCloseToken,
+            children,
+            closeLessToken,
+            closeSlashToken,
+            closeNameToken,
+            closeGreaterToken);
+    }
+
+    private TsXmlFragmentExpressionSyntax ParseTsXmlFragment(SyntaxToken lessToken)
+    {
+        SyntaxToken openCloseToken = MatchTsXml(SyntaxKind.GreaterToken, "Expected '>' to begin the TS-XML fragment.");
+        IReadOnlyList<TsXmlChildSyntax> children = ParseTsXmlChildren(openCloseToken.Position + openCloseToken.Text.Length);
+        SyntaxToken closeLessToken = MatchTsXml(SyntaxKind.LessToken, "Expected '</>' to close the TS-XML fragment.");
+        SyntaxToken closeSlashToken = MatchTsXml(SyntaxKind.SlashToken, "Expected '</>' to close the TS-XML fragment.");
+        SyntaxToken closeGreaterToken = MatchTsXml(SyntaxKind.GreaterToken, "Expected '</>' to close the TS-XML fragment.");
+        return new TsXmlFragmentExpressionSyntax(
+            lessToken,
+            openCloseToken,
+            children,
+            closeLessToken,
+            closeSlashToken,
+            closeGreaterToken);
+    }
+
+    private IReadOnlyList<TsXmlChildSyntax> ParseTsXmlChildren(int textStart)
+    {
+        var children = new List<TsXmlChildSyntax>();
+
+        while (textStart < _text.Length)
+        {
+            int specialPosition = FindTsXmlChildBoundary(textStart);
+            if (specialPosition > textStart)
+            {
+                children.Add(CreateTsXmlText(textStart, specialPosition));
+                AdvancePastSourcePosition(specialPosition);
+                textStart = specialPosition;
+            }
+
+            if (textStart >= _text.Length)
+            {
+                break;
+            }
+
+            if (_text[textStart] == '<')
+            {
+                AdvancePastSourcePosition(textStart);
+                if (Current.Kind == SyntaxKind.LessToken && Peek(1).Kind == SyntaxKind.SlashToken)
+                {
+                    break;
+                }
+
+                if (Current.Kind == SyntaxKind.LessToken)
+                {
+                    TsXmlExpressionSyntax nested = ParseTsXmlExpression();
+                    children.Add(new TsXmlElementChildSyntax(nested));
+                    textStart = GetTsXmlEndPosition(nested);
+                    continue;
+                }
+            }
+
+            if (_text[textStart] == '{')
+            {
+                AdvancePastSourcePosition(textStart);
+                SyntaxToken openBrace = MatchTsXml(SyntaxKind.OpenBraceToken, "Expected '{' to begin a TS-XML expression child.");
+                ExpressionSyntax expression = ParseExpression();
+                SyntaxToken closeBrace = MatchTsXml(SyntaxKind.CloseBraceToken, "Expected '}' to close the TS-XML expression child.");
+                children.Add(new TsXmlExpressionChildSyntax(openBrace, expression, closeBrace));
+                textStart = closeBrace.Position + closeBrace.Text.Length;
+                continue;
+            }
+
+            break;
+        }
+
+        return children;
+    }
+
+    private TsXmlAttributeSyntax ParseTsXmlAttribute()
+    {
+        SyntaxToken nameToken = MatchTsXmlName("Expected a TS-XML attribute name.");
+        if (Current.Kind != SyntaxKind.EqualsToken)
+        {
+            return new TsXmlAttributeSyntax(nameToken, null, null, null, null, null);
+        }
+
+        SyntaxToken equalsToken = NextToken();
+        if (Current.Kind == SyntaxKind.StringToken)
+        {
+            return new TsXmlAttributeSyntax(nameToken, equalsToken, NextToken(), null, null, null);
+        }
+
+        if (Current.Kind == SyntaxKind.OpenBraceToken)
+        {
+            SyntaxToken openBrace = NextToken();
+            if (Current.Kind == SyntaxKind.CloseBraceToken)
+            {
+                ReportTsXml(
+                    "COPE-TSXML-0003",
+                    "TS-XML attribute expressions cannot be empty.",
+                    Current);
+                return new TsXmlAttributeSyntax(nameToken, equalsToken, null, openBrace, null, NextToken());
+            }
+
+            if (Current.Kind is SyntaxKind.SlashToken or SyntaxKind.GreaterToken)
+            {
+                ReportTsXml(
+                    "COPE-TSXML-0003",
+                    "TS-XML attribute values must be a string literal or a braced TypeScript expression.",
+                    Current);
+                return new TsXmlAttributeSyntax(nameToken, equalsToken, null, openBrace, null, null);
+            }
+
+            ExpressionSyntax expression = ParseExpression();
+            SyntaxToken closeBrace = MatchTsXml(SyntaxKind.CloseBraceToken, "Expected '}' to close the TS-XML attribute expression.");
+            return new TsXmlAttributeSyntax(nameToken, equalsToken, null, openBrace, expression, closeBrace);
+        }
+
+        ReportTsXml("COPE-TSXML-0003", "TS-XML attribute values must be a string literal or a braced TypeScript expression.", Current);
+        return new TsXmlAttributeSyntax(nameToken, equalsToken, null, null, null, null);
+    }
+
+    private TsXmlTextSyntax CreateTsXmlText(int start, int end)
+    {
+        _tsXmlTextRanges.Add((start, end));
+        string text = _text.Substring(start, end - start);
+        return new TsXmlTextSyntax(new SyntaxToken(SyntaxKind.TsXmlTextToken, start, text, text));
+    }
+
+    private int FindTsXmlChildBoundary(int start)
+    {
+        for (int position = start; position < _text.Length; position++)
+        {
+            if (_text[position] is '<' or '{')
+            {
+                return position;
+            }
+        }
+
+        return _text.Length;
+    }
+
+    private static int GetTsXmlEndPosition(TsXmlExpressionSyntax expression)
+        => expression switch
+        {
+            TsXmlElementExpressionSyntax element when element.CloseGreaterToken is not null
+                => element.CloseGreaterToken.Position + element.CloseGreaterToken.Text.Length,
+            TsXmlElementExpressionSyntax element
+                => element.OpenCloseToken.Position + element.OpenCloseToken.Text.Length,
+            TsXmlFragmentExpressionSyntax fragment
+                => fragment.CloseGreaterToken.Position + fragment.CloseGreaterToken.Text.Length,
+            _ => throw new InvalidOperationException("Expected a TS-XML syntax expression."),
+        };
+
+    private void AdvancePastSourcePosition(int position)
+    {
+        while (Current.Kind != SyntaxKind.EndOfFileToken && Current.Position < position)
+        {
+            NextToken();
+        }
+    }
+
+    private SyntaxToken MatchTsXmlName(string message)
+    {
+        if (IsTsXmlName(Current))
+        {
+            return NextToken();
+        }
+
+        ReportTsXml("COPE-TSXML-0002", message, Current);
+        return MissingToken(SyntaxKind.IdentifierToken, Current.Position);
+    }
+
+    private static bool IsTsXmlName(SyntaxToken token)
+        => token.Kind == SyntaxKind.IdentifierToken;
+
+    private SyntaxToken MatchTsXml(SyntaxKind kind, string message)
+    {
+        if (Current.Kind == kind)
+        {
+            return NextToken();
+        }
+
+        ReportTsXml("COPE-TSXML-0002", message, Current);
+        return MissingToken(kind, Current.Position);
+    }
+
+    private void ReportTsXml(string diagnosticId, string message, SyntaxToken token)
+    {
+        _diagnostics.Report(diagnosticId, message, token.Position, Math.Max(1, token.Text.Length));
+    }
+
+    private bool IsTsXmlTextDiagnostic(Diagnostic diagnostic)
+        => _tsXmlTextRanges.Any(range => diagnostic.Position >= range.Start && diagnostic.Position < range.End);
 
     private MissingExpressionSyntax ParseMissingExpression()
     {

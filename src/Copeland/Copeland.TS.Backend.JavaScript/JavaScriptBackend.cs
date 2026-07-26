@@ -75,7 +75,8 @@ public static class JavaScriptBackend
             return new JavaScriptCompilation(null, diagnostics);
         }
 
-        ResultCatalog results = ResultCatalog.Create(program);
+        bool usesTsonTransport = ProgramUsesTsonTransport(program);
+        ResultCatalog results = ResultCatalog.Create(program, usesTsonTransport);
         bool usesUnwrap = ProgramUsesUnwrap(program);
         bool usesTryExcept = ProgramUsesTryExcept(program);
         bool usesCallables = ProgramUsesCallables(program);
@@ -91,6 +92,12 @@ public static class JavaScriptBackend
             EmitAsyncRuntime(writer);
         }
 
+        if (usesTsonTransport)
+        {
+            writer.WriteLine();
+            EmitTsonTransportRuntime(writer);
+        }
+
         if (usesCallables)
         {
             writer.WriteLine();
@@ -100,7 +107,7 @@ public static class JavaScriptBackend
         if (catalog.Enums.Count > 0 || catalog.Records.Count > 0 || program.Tables.Count > 0 || results.Types.Count > 0 || usesTryExcept)
         {
             writer.WriteLine();
-            EmitValueRuntime(writer, program.TsonEncodingPlans, catalog, results, names, usesUnwrap, usesTryExcept);
+            EmitValueRuntime(writer, program.TsonEncodingPlans, catalog, results, names, usesUnwrap, usesTryExcept, usesTsonTransport);
         }
 
         foreach (MirFunction function in program.Functions)
@@ -130,16 +137,75 @@ public static class JavaScriptBackend
         writer.WriteLine("get completed() { return terminal !== 0; },");
         writer.WriteLine("get cancelled() { return terminal === 2; },");
         writer.WriteLine("get panicked() { return terminal === 3; },");
+        writer.WriteLine("get transportFailed() { return terminal === 4; },");
         writer.WriteLine("get value() { return value; },");
-        writer.WriteLine("subscribe(success, cancelled, panicked) { if (terminal !== 0) return true; continuations.push({ success, cancelled, panicked }); return false; },");
+        writer.WriteLine("subscribe(success, cancelled, failed, panicked) { if (terminal !== 0) return true; continuations.push({ success, cancelled, failed, panicked }); return false; },");
         writer.WriteLine("resolve(next) { if (terminal !== 0) return; terminal = 1; value = next; const pending = continuations.splice(0); for (const continuation of pending) continuation.success(); },");
         writer.WriteLine("cancel() { if (terminal !== 0) return; terminal = 2; const pending = continuations.splice(0); for (const continuation of pending) continuation.cancelled(); },");
+        writer.WriteLine("fail() { if (terminal !== 0) return; terminal = 4; const pending = continuations.splice(0); for (const continuation of pending) continuation.failed(); },");
         writer.WriteLine("panic() { if (terminal !== 0) return; terminal = 3; const pending = continuations.splice(0); for (const continuation of pending) continuation.panicked(); },");
         writer.Unindent();
         writer.WriteLine("});");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine("function __cope_async_pending() { return __cope_async(); }");
+    }
+
+    private static void EmitTsonTransportRuntime(JavaScriptTextWriter writer)
+    {
+        writer.WriteLine("const __cope_tson_transport = (() => {");
+        writer.Indent();
+        writer.WriteLine("const pending = new Map();");
+        writer.WriteLine("let nextCorrelation = 0;");
+        writer.WriteLine("let dispatch = null;");
+        writer.WriteLine("""
+            function escape(value) { return value.replaceAll("\\", "\\\\").replaceAll("\"", "\\\"").replaceAll("\n", "\\n").replaceAll("\r", "\\r").replaceAll("\t", "\\t"); }
+            """);
+        writer.WriteLine("function envelope(correlation, kind, operation, payload) { return \"const $schema: string = \\\"copeland://interop/transport/v1\\\";\\n\\nrecord Envelope {\\n    correlation: string;\\n    kind: string;\\n    operation: string;\\n    payload: string;\\n}\\n\\nconst $value = $record.Envelope({\\n    \\\"correlation\\\": \\\"\" + escape(correlation) + \"\\\",\\n    \\\"kind\\\": \\\"\" + escape(kind) + \"\\\",\\n    \\\"operation\\\": \\\"\" + escape(operation) + \"\\\",\\n    \\\"payload\\\": \\\"\" + escape(payload) + \"\\\",\\n});\\n\"; }");
+        writer.WriteLine("""
+            function read(value) {
+              const prefix = "const $schema: string = \"copeland://interop/transport/v1\";\n\nrecord Envelope {\n    correlation: string;\n    kind: string;\n    operation: string;\n    payload: string;\n}\n\nconst $value = $record.Envelope({\n";
+              if (!value.startsWith(prefix) || !value.endsWith("});\n")) return null;
+              let position = prefix.length;
+              function field(label) {
+                if (!value.startsWith(label, position)) throw new Error("malformed");
+                position += label.length;
+                const start = position;
+                if (value[position++] !== "\"") throw new Error("malformed");
+                let escaped = false;
+                while (position < value.length) {
+                  const current = value[position++];
+                  if (escaped) { escaped = false; continue; }
+                  if (current === "\\") { escaped = true; continue; }
+                  if (current === "\"") {
+                    const encoded = value.slice(start, position);
+                    if (value.slice(position, position + 2) !== ",\n") throw new Error("malformed");
+                    position += 2;
+                    return JSON.parse(encoded);
+                  }
+                }
+                throw new Error("malformed");
+              }
+              try {
+                const correlation = field("    \"correlation\": ");
+                const kind = field("    \"kind\": ");
+                const operation = field("    \"operation\": ");
+                const payload = field("    \"payload\": ");
+                return position + 4 === value.length ? { correlation, kind, operation, payload } : null;
+              } catch { return null; }
+            }
+            """);
+        writer.WriteLine("return Object.freeze({");
+        writer.Indent();
+        writer.WriteLine("setDispatch(value) { dispatch = value; },");
+        writer.WriteLine("envelope,");
+        writer.WriteLine("start(operation, request, decode) { const correlation = String(++nextCorrelation); const computation = __cope_async_pending(); pending.set(correlation, { computation, decode }); if (dispatch !== null) dispatch(envelope(correlation, \"request\", operation, request)); return computation; },");
+        writer.WriteLine("receive(value) { const message = read(value); if (message === null) return false; const item = pending.get(message.correlation); if (item === undefined) return false; pending.delete(message.correlation); if (message.kind === \"cancel\") item.computation.cancel(); else if (message.kind === \"failure\") item.computation.fail(); else if (message.kind === \"ok\" || message.kind === \"remote-error\") { try { item.computation.resolve(item.decode(message.kind, message.payload)); } catch { item.computation.fail(); } } else item.computation.fail(); return true; },");
+        writer.WriteLine("connectionLost() { for (const item of pending.values()) item.computation.fail(); pending.clear(); },");
+        writer.Unindent();
+        writer.WriteLine("});");
+        writer.Unindent();
+        writer.WriteLine("})();");
     }
 
     private static EnumCatalog ValidateProgram(MirProgram program, List<JavaScriptDiagnostic> diagnostics)
@@ -372,6 +438,10 @@ public static class JavaScriptBackend
                 break;
             case MirTsonEncodeExpression encode:
                 ValidateExpression(encode.Operand, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirTsonTransportExpression transport:
+                ValidateExpression(transport.Operation, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(transport.Request, functionReturnType, context, functions, catalog, diagnostics);
                 break;
             case MirTableReferenceExpression reference:
                 ValidateValueType(reference.Type, $"table reference in {context}", catalog, diagnostics, allowVoid: false);
@@ -839,7 +909,7 @@ public static class JavaScriptBackend
         diagnostics.Add(new JavaScriptDiagnostic(InvalidDiagnosticId, $"Invalid MIR for JavaScript backend: {message}."));
     }
 
-    private static void EmitValueRuntime(JavaScriptTextWriter writer, IReadOnlyList<MirTsonEncodingPlan> tsonPlans, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap, bool usesTryExcept)
+    private static void EmitValueRuntime(JavaScriptTextWriter writer, IReadOnlyList<MirTsonEncodingPlan> tsonPlans, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool usesUnwrap, bool usesTryExcept, bool usesTsonTransport)
     {
         writer.WriteLine($"function {names.Panic}() {{");
         writer.Indent();
@@ -925,7 +995,7 @@ public static class JavaScriptBackend
         if (tsonPlans.Count > 0)
         {
             writer.WriteLine();
-            EmitTsonEncodingRuntime(writer, tsonPlans, catalog, results, names);
+            EmitTsonEncodingRuntime(writer, tsonPlans, catalog, results, names, usesTsonTransport);
         }
     }
 
@@ -1629,8 +1699,9 @@ public static class JavaScriptBackend
                 string resumed = "__" + state.ValueSlot!.Value.Value;
                 writer.WriteLine($"frame.{pending} = {EmitAsyncExpression(state.Expression!, results, names)};");
                 writer.WriteLine($"frame.state = {state.NextState};");
-                writer.WriteLine($"if (!frame.{pending}.subscribe(() => {{ frame.{resumed} = frame.{pending}.value; step(); }}, () => computation.cancel(), () => computation.panic())) return;");
+                writer.WriteLine($"if (!frame.{pending}.subscribe(() => {{ frame.{resumed} = frame.{pending}.value; step(); }}, () => computation.cancel(), () => computation.fail(), () => computation.panic())) return;");
                 writer.WriteLine($"if (frame.{pending}.cancelled) {{ computation.cancel(); return; }}");
+                writer.WriteLine($"if (frame.{pending}.transportFailed) {{ computation.fail(); return; }}");
                 writer.WriteLine($"if (frame.{pending}.panicked) {{ computation.panic(); return; }}");
                 writer.WriteLine($"frame.{resumed} = frame.{pending}.value;");
                 writer.WriteLine("continue;");
@@ -1792,10 +1863,21 @@ public static class JavaScriptBackend
             MirBinaryExpression binary => $"({EmitAsyncExpression(binary.Left, results, names)} {binary.Operator} {EmitAsyncExpression(binary.Right, results, names)})",
             MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, results, names)})",
             MirCallExpression call => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)))})",
+            MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, results, names),
             MirOkExpression ok => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)ok.Type))}, \"ok\", [{EmitAsyncExpression(ok.Payload, results, names)}])",
             MirErrExpression err => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)err.Type))}, \"err\", [{EmitAsyncExpression(err.Payload, results, names)}])",
             _ => throw new InvalidOperationException($"Async expression '{expression.GetType().Name}' has not been lowered into an explicit state expression."),
         };
+    }
+
+    private static string EmitAsyncTsonTransport(MirTsonTransportExpression transport, ResultCatalog results, GeneratedNames names)
+    {
+        MirResultType result = (MirResultType)transport.AsyncType.EventualType;
+        string resultToken = names.TypeToken(results.Get(result));
+        string requestPlan = JavaScriptLiteralWriter.WriteString(transport.RequestPlanId.Value);
+        string responsePlan = JavaScriptLiteralWriter.WriteString(transport.ResponsePlanId.Value);
+        string errorPlan = JavaScriptLiteralWriter.WriteString(transport.RemoteErrorPlanId.Value);
+        return $"__cope_tson_transport.start({EmitAsyncExpression(transport.Operation, results, names)}, {names.TsonRuntime}[{requestPlan}]({EmitAsyncExpression(transport.Request, results, names)}).$payload[0], (kind, payload) => kind === \"ok\" ? {names.MakeValue}({resultToken}, \"ok\", [{names.TsonRuntime}[{responsePlan}].decode(payload)]) : {names.MakeValue}({resultToken}, \"err\", [{names.TsonRuntime}[{errorPlan}].decode(payload)]))";
     }
 
     private static void EmitStatement(JavaScriptTextWriter writer, MirStatement statement, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
@@ -2011,6 +2093,7 @@ public static class JavaScriptBackend
             MirUnwrapExpression unwrap => EmitUnwrap(unwrap, function, catalog, results, names, flowEnabled),
             MirTryExpression tryExpression => EmitTryExcept(tryExpression, function, catalog, results, names, flowEnabled),
             MirTsonEncodeExpression encode => EmitTsonEncode(encode, function, catalog, results, names, flowEnabled),
+            MirTsonTransportExpression transport => EmitTsonTransport(transport, function, catalog, results, names, flowEnabled),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
     }
@@ -2040,12 +2123,35 @@ public static class JavaScriptBackend
         return new EmittedExpression(operand.Prelude, $"{names.TsonRuntime}[{property}]({operand.Value})");
     }
 
+    private static EmittedExpression EmitTsonTransport(
+        MirTsonTransportExpression transport,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression operation = EmitExpression(transport.Operation, function, catalog, results, names, flowEnabled);
+        EmittedExpression request = EmitExpression(transport.Request, function, catalog, results, names, flowEnabled);
+        var prelude = new List<EmittedLine>(operation.Prelude.Count + request.Prelude.Count);
+        prelude.AddRange(operation.Prelude);
+        prelude.AddRange(request.Prelude);
+        MirResultType result = (MirResultType)transport.AsyncType.EventualType;
+        string resultToken = names.TypeToken(results.Get(result));
+        string requestPlan = JavaScriptLiteralWriter.WriteString(transport.RequestPlanId.Value);
+        string responsePlan = JavaScriptLiteralWriter.WriteString(transport.ResponsePlanId.Value);
+        string errorPlan = JavaScriptLiteralWriter.WriteString(transport.RemoteErrorPlanId.Value);
+        string value = $"__cope_tson_transport.start({operation.Value}, {names.TsonRuntime}[{requestPlan}]({request.Value}).$payload[0], (kind, payload) => kind === \"ok\" ? {names.MakeValue}({resultToken}, \"ok\", [{names.TsonRuntime}[{responsePlan}].decode(payload)]) : {names.MakeValue}({resultToken}, \"err\", [{names.TsonRuntime}[{errorPlan}].decode(payload)]))";
+        return new EmittedExpression(prelude, value);
+    }
+
     private static void EmitTsonEncodingRuntime(
         JavaScriptTextWriter writer,
         IReadOnlyList<MirTsonEncodingPlan> plans,
         EnumCatalog catalog,
         ResultCatalog results,
-        GeneratedNames names)
+        GeneratedNames names,
+        bool emitTransportDecoders)
     {
         var tsonNames = TsonGeneratedNames.Create(plans, names);
         writer.WriteLine($"const {names.TsonRuntime} = (() => {{");
@@ -2061,6 +2167,11 @@ public static class JavaScriptBackend
         {
             writer.WriteLine();
             EmitJavaScriptTsonPlan(writer, plans[planIndex], planIndex, catalog, results, names, tsonNames);
+            if (emitTransportDecoders && plans[planIndex].RootValuePlan is MirTsonRecordValuePlan)
+            {
+                writer.WriteLine();
+                EmitJavaScriptTsonFlatRecordDecoder(writer, plans[planIndex], planIndex, catalog, names, tsonNames);
+            }
         }
 
         writer.WriteLine();
@@ -2068,10 +2179,67 @@ public static class JavaScriptBackend
         for (int planIndex = 0; planIndex < plans.Count; planIndex++)
         {
             writer.WriteLine($"Object.defineProperty(api, {JavaScriptLiteralWriter.WriteString(plans[planIndex].Id.Value)}, {{ value: {tsonNames.Encoder(planIndex)}, writable: false, enumerable: false, configurable: false }});");
+            if (emitTransportDecoders && plans[planIndex].RootValuePlan is MirTsonRecordValuePlan)
+            {
+                writer.WriteLine($"Object.defineProperty({tsonNames.Encoder(planIndex)}, \"decode\", {{ value: {tsonNames.Encoder(planIndex)}Decode, writable: false, enumerable: false, configurable: false }});");
+            }
         }
         writer.WriteLine("return Object.freeze(api);");
         writer.Unindent();
         writer.WriteLine("})();");
+    }
+
+    private static void EmitJavaScriptTsonFlatRecordDecoder(
+        JavaScriptTextWriter writer,
+        MirTsonEncodingPlan plan,
+        int planIndex,
+        EnumCatalog catalog,
+        GeneratedNames names,
+        TsonGeneratedNames tsonNames)
+    {
+        if (plan.RootValuePlan is not MirTsonRecordValuePlan root)
+        {
+            return;
+        }
+
+        MirRecordDefinition record = catalog.GetRecord(root.RecordTypeId);
+        MirTsonRecordPlan recordPlan = plan.Definitions.OfType<MirTsonRecordPlan>()
+            .Single(candidate => candidate.RecordTypeId == root.RecordTypeId);
+        string decoder = tsonNames.Encoder(planIndex) + "Decode";
+        writer.WriteLine($"function {decoder}(text) {{");
+        writer.Indent();
+        writer.WriteLine("if (!text.startsWith(\"const $schema: string = \\\"\") || !text.endsWith(\";\\n\")) throw new Error(\"Malformed TSON transport payload.\");");
+        writer.WriteLine($"let position = text.indexOf({JavaScriptLiteralWriter.WriteString("$record." + record.Name + "({\n")});");
+        writer.WriteLine("if (position < 0) throw new Error(\"Malformed TSON transport payload.\");");
+        writer.WriteLine("function expect(value) { if (!text.startsWith(value, position)) throw new Error(\"Malformed TSON transport payload.\"); position += value.length; }");
+        writer.WriteLine("function readString() { const start = position; if (text[position] !== '\"') throw new Error(\"Malformed TSON transport payload.\"); position += 1; let escaped = false; while (position < text.length) { const current = text[position++]; if (escaped) { escaped = false; continue; } if (current === '\\\\') { escaped = true; continue; } if (current === '\"') return JSON.parse(text.slice(start, position)); if (current < ' ') throw new Error(\"Malformed TSON transport payload.\"); } throw new Error(\"Malformed TSON transport payload.\"); }");
+        writer.WriteLine("function readNumber() { expect(\"$number(\\\"\"); const hexadecimal = text.slice(position, position + 16); if (!/^[0-9A-F]{16}$/.test(hexadecimal)) throw new Error(\"Malformed TSON transport payload.\"); position += 16; expect(\"\\\")\"); const buffer = new ArrayBuffer(8); const view = new DataView(buffer); view.setUint32(0, Number.parseInt(hexadecimal.slice(0, 8), 16), false); view.setUint32(4, Number.parseInt(hexadecimal.slice(8), 16), false); return view.getFloat64(0, false); }");
+        writer.WriteLine("function readBoolean() { if (text.startsWith(\"true\", position)) { position += 4; return true; } if (text.startsWith(\"false\", position)) { position += 5; return false; } throw new Error(\"Malformed TSON transport payload.\"); }");
+        writer.WriteLine($"expect({JavaScriptLiteralWriter.WriteString("$record." + record.Name + "({\n")});");
+        var valuesByFieldId = new Dictionary<MirRecordFieldId, string>();
+        for (int index = 0; index < recordPlan.Fields.Count; index++)
+        {
+            MirTsonRecordFieldPlan fieldPlan = recordPlan.Fields[index];
+            MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == fieldPlan.FieldId);
+            writer.WriteLine($"expect({JavaScriptLiteralWriter.WriteString("    \"" + fieldPlan.Name + "\": ")});");
+            string read = field.Type.Identifier switch
+            {
+                "boolean" => "readBoolean()",
+                "number" => "readNumber()",
+                "string" => "readString()",
+                _ => throw new InvalidOperationException("Transport decoder received a non-flat record plan."),
+            };
+            string value = "field" + index;
+            writer.WriteLine($"const {value} = {read};");
+            writer.WriteLine("expect(\",\\n\");");
+            valuesByFieldId.Add(field.Id, value);
+        }
+        writer.WriteLine("expect(\"})\");");
+        writer.WriteLine("expect(\";\\n\");");
+        writer.WriteLine("if (position !== text.length) throw new Error(\"Malformed TSON transport payload.\");");
+        writer.WriteLine($"return {names.RecordConstructor(record)}({string.Join(", ", record.Fields.Select(field => valuesByFieldId[field.Id]))});");
+        writer.Unindent();
+        writer.WriteLine("}");
     }
 
     private static void EmitJavaScriptTsonWriter(JavaScriptTextWriter writer, bool needsArrayWriter, TsonGeneratedNames tsonNames)
@@ -3173,6 +3341,36 @@ public static class JavaScriptBackend
     private static bool ProgramUsesUnwrap(MirProgram program)
         => program.Functions.Any(function => function.Body.Any(StatementUsesUnwrap));
 
+    private static bool ProgramUsesTsonTransport(MirProgram program)
+        => program.Functions.Any(function => function.Body.Any(StatementUsesTsonTransport));
+
+    private static bool StatementUsesTsonTransport(MirStatement statement)
+        => statement switch
+        {
+            MirVariableDeclarationStatement declaration => ExpressionUsesTsonTransport(declaration.Initializer),
+            MirExpressionStatement expression => ExpressionUsesTsonTransport(expression.Expression),
+            MirReturnStatement { Expression: not null } returned => ExpressionUsesTsonTransport(returned.Expression),
+            MirIfStatement conditional => ExpressionUsesTsonTransport(conditional.Condition)
+                || conditional.ThenStatements.Any(StatementUsesTsonTransport)
+                || (conditional.ElseStatements?.Any(StatementUsesTsonTransport) ?? false),
+            _ => false,
+        };
+
+    private static bool ExpressionUsesTsonTransport(MirExpression expression)
+        => expression switch
+        {
+            MirTsonTransportExpression => true,
+            MirAwaitExpression awaited => ExpressionUsesTsonTransport(awaited.Operand),
+            MirAssignmentExpression assignment => ExpressionUsesTsonTransport(assignment.Expression),
+            MirUnaryExpression unary => ExpressionUsesTsonTransport(unary.Operand),
+            MirBinaryExpression binary => ExpressionUsesTsonTransport(binary.Left) || ExpressionUsesTsonTransport(binary.Right),
+            MirCallExpression call => call.Arguments.Any(ExpressionUsesTsonTransport),
+            MirRecordConstructionExpression record => record.Initializers.Any(value => ExpressionUsesTsonTransport(value.Value)),
+            MirRecordFieldAccessExpression access => ExpressionUsesTsonTransport(access.Receiver),
+            MirTsonEncodeExpression encode => ExpressionUsesTsonTransport(encode.Operand),
+            _ => false,
+        };
+
     private static bool StatementUsesUnwrap(MirStatement statement)
         => statement switch
         {
@@ -3447,9 +3645,13 @@ public static class JavaScriptBackend
             throw new InvalidOperationException($"No JavaScript Result token exists for '{type.Name}'.");
         }
 
-        public static ResultCatalog Create(MirProgram program)
+        public static ResultCatalog Create(MirProgram program, bool includeTsonEncodingResult = false)
         {
             var catalog = new ResultCatalog();
+            if (includeTsonEncodingResult && program.TsonEncodingPlans.Count > 0)
+            {
+                catalog.Add(new MirResultType(new MirNamedType("string"), new MirNamedType("TsonEncodeError")));
+            }
             foreach (MirRecordDefinition record in program.Records)
             {
                 foreach (MirRecordFieldDefinition field in record.Fields)
@@ -3653,6 +3855,10 @@ public static class JavaScriptBackend
                     break;
                 case MirTsonEncodeExpression encode:
                     Add(encode.Operand);
+                    break;
+                case MirTsonTransportExpression transport:
+                    Add(transport.Operation);
+                    Add(transport.Request);
                     break;
             }
         }

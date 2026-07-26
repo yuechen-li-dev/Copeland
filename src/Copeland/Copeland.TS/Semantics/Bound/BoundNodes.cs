@@ -262,6 +262,25 @@ public sealed class BoundTsonEncodeExpression(BoundExpression operand, BoundTson
     public ResultTypeSymbol ResultType { get; } = resultType;
     public override TypeSymbol Type => ResultType;
 }
+public sealed class BoundTsonTransportExpression(
+    BoundExpression operation,
+    BoundExpression request,
+    BoundTsonEncodingPlan requestPlan,
+    BoundTsonEncodingPlan responsePlan,
+    BoundTsonEncodingPlan remoteErrorPlan,
+    AsyncTypeSymbol type) : BoundExpression
+{
+    public BoundExpression Operation { get; } = operation;
+    public BoundExpression Request { get; } = request;
+    public BoundTsonEncodingPlan RequestPlan { get; } = requestPlan;
+    public BoundTsonEncodingPlan ResponsePlan { get; } = responsePlan;
+    public BoundTsonEncodingPlan RemoteErrorPlan { get; } = remoteErrorPlan;
+    public override TypeSymbol Type { get; } = type;
+}
+internal sealed class BoundSyntheticTypeExpression(TypeSymbol type) : BoundExpression
+{
+    public override TypeSymbol Type { get; } = type;
+}
 public sealed class BoundMatchExpression : BoundExpression
 {
     public BoundMatchExpression(BoundExpression scrutinee, EnumTypeSymbol enumType, IReadOnlyList<BoundMatchArm> arms, TypeSymbol type)

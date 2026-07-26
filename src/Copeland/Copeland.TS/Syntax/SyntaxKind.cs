@@ -16,6 +16,7 @@ public enum SyntaxKind
     IdentifierToken,
     NumberToken,
     StringToken,
+    TsXmlTextToken,
 
     // Punctuation
     OpenParenToken,
@@ -98,6 +99,8 @@ public enum SyntaxKind
     // Nodes
     CompilationUnit,
     GlobalStatementMember,
+    ImportDeclaration,
+    ExportDefaultDeclaration,
     TypeAliasDeclaration,
     NominalUnionDeclaration,
     InterfaceDeclaration,
@@ -161,6 +164,12 @@ public enum SyntaxKind
     ArrowExpression,
     CaptureExpression,
     ArrowParameter,
+    TsXmlElementExpression,
+    TsXmlFragmentExpression,
+    TsXmlAttribute,
+    TsXmlText,
+    TsXmlExpressionChild,
+    TsXmlElementChild,
     TryValueBlock,
     MatchArm,
     MatchPattern,

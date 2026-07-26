@@ -437,6 +437,14 @@ public static class MirLowerer
                     right => continuation(new MirBinaryExpression(binary.Operator, left, right, binary.Type)))),
                 MirCallExpression call => LowerArguments(call.Arguments, 0, [], arguments =>
                     continuation(new MirCallExpression(call.FunctionName, arguments, call.Type))),
+                MirTsonTransportExpression transport => LowerExpression(transport.Operation, operation =>
+                    LowerExpression(transport.Request, request => continuation(new MirTsonTransportExpression(
+                        operation,
+                        request,
+                        transport.RequestPlanId,
+                        transport.ResponsePlanId,
+                        transport.RemoteErrorPlanId,
+                        transport.AsyncType)))),
                 MirCallableConstructionExpression construction => LowerArguments(construction.Captures, 0, [], captures =>
                     continuation(new MirCallableConstructionExpression(construction.CodeFunctionName, captures, construction.CallableType))),
                 MirInvokeExpression invoke => LowerExpression(invoke.Callee, callee => LowerArguments(invoke.Arguments, 0, [], arguments =>
@@ -826,6 +834,10 @@ public static class MirLowerer
             case MirTsonEncodeExpression encode:
                 yield return encode.Operand;
                 break;
+            case MirTsonTransportExpression transport:
+                yield return transport.Operation;
+                yield return transport.Request;
+                break;
             case MirOkExpression ok:
                 yield return ok.Payload;
                 break;
@@ -903,6 +915,13 @@ public static class MirLowerer
                 LowerExpression(encode.Operand),
                 new MirTsonEncodingPlanId(encode.Plan.Id),
                 (MirResultType)ToMirType(encode.ResultType)),
+            BoundTsonTransportExpression transport => new MirTsonTransportExpression(
+                LowerExpression(transport.Operation),
+                LowerExpression(transport.Request),
+                new MirTsonEncodingPlanId(transport.RequestPlan.Id),
+                new MirTsonEncodingPlanId(transport.ResponsePlan.Id),
+                new MirTsonEncodingPlanId(transport.RemoteErrorPlan.Id),
+                (MirAsyncType)ToMirType(transport.Type)),
             BoundPropagateExpression p => new MirPropagateExpression(LowerExpression(p.Operand), LowerPropagationTarget(p.Target), ToMirType(p.Type)),
             BoundUnwrapExpression u => new MirUnwrapExpression(LowerExpression(u.Operand), ToMirType(u.Type)),
             BoundTryExceptExpression t => new MirTryExpression(

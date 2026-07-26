@@ -2187,11 +2187,22 @@ public static class Binder
                 WithExpressionSyntax w => BindWith(w),
                 IfExpressionSyntax i => BindIfExpression(i, contextualType),
                 MatchExpressionSyntax m => BindMatch(m, contextualType),
+                TsXmlElementExpressionSyntax element => BindTsXml(element.LessToken),
+                TsXmlFragmentExpressionSyntax fragment => BindTsXml(fragment.LessToken),
                 UnsupportedExpressionSyntax u => BindUnsupportedClassExpression(u),
                 _ => new BoundErrorExpression()
             };
 
             return InjectDirectNominalUnionCase(expression, contextualType);
+        }
+
+        private BoundExpression BindTsXml(SyntaxToken token)
+        {
+            Report(
+                "COPE-TSXML-0101",
+                "TS-XML syntax requires a semantic profile; no manifest, test, component, or compatibility profile is selected by this compilation.",
+                token);
+            return new BoundErrorExpression();
         }
 
         private BoundExpression BindAwait(AwaitExpressionSyntax awaitExpression)
@@ -3073,6 +3084,12 @@ public static class Binder
 
         private BoundExpression BindGenericCall(GenericCallExpressionSyntax call, TypeSymbol? contextualType)
         {
+            if (call.Target is NameExpressionSyntax transportName
+                && transportName.IdentifierToken.Text == "tsonCall")
+            {
+                return BindTsonTransport(call, transportName);
+            }
+
             FunctionSymbol? function = null;
             if (call.Target is NameExpressionSyntax name
                 && _global.TryLookup(name.IdentifierToken.Text, out var symbol)
@@ -3171,6 +3188,59 @@ public static class Binder
             }
             return new BoundCallExpression(specialization.Symbol, arguments);
         }
+
+        private BoundExpression BindTsonTransport(GenericCallExpressionSyntax call, NameExpressionSyntax intrinsicName)
+        {
+            if (call.TypeArguments.Count != 2 || call.Arguments.Count != 2)
+            {
+                foreach (ExpressionSyntax argument in call.Arguments)
+                {
+                    _ = BindExpression(argument);
+                }
+                Report("COPE-TSON-TRANSPORT-0001", "'tsonCall<Response, RemoteError>' requires two type arguments and two arguments: an operation string and a request record.", intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
+            TypeSymbol responseType = BindType(call.TypeArguments[0], call.LessToken, "COPE-TSON-TRANSPORT-0001", "response type");
+            TypeSymbol remoteErrorType = BindType(call.TypeArguments[1], call.LessToken, "COPE-TSON-TRANSPORT-0001", "remote error type");
+            BoundExpression operation = BindExpression(call.Arguments[0], PrimitiveTypeSymbol.String);
+            BoundExpression request = BindExpression(call.Arguments[1]);
+            if (!IsAssignable(PrimitiveTypeSymbol.String, operation.Type)
+                || request.Type is not RecordTypeSymbol
+                || responseType is not RecordTypeSymbol
+                || remoteErrorType is not RecordTypeSymbol)
+            {
+                Report("COPE-TSON-TRANSPORT-0001", "'tsonCall' requires a string operation plus nominal record request, response, and remote-error types.", intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+            if (_schemaIdentity is null)
+            {
+                Report("COPE-TSON-TRANSPORT-0002", "A compilation unit using 'tsonCall' requires one valid top-level '$schema' declaration.", intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+            if (!TryGetOrCreateTsonEncodingPlan(request, intrinsicName.IdentifierToken, out BoundTsonEncodingPlan? requestPlan)
+                || !TryGetOrCreateTsonEncodingPlan(new BoundSyntheticTypeExpression(responseType), intrinsicName.IdentifierToken, out BoundTsonEncodingPlan? responsePlan)
+                || !TryGetOrCreateTsonEncodingPlan(new BoundSyntheticTypeExpression(remoteErrorType), intrinsicName.IdentifierToken, out BoundTsonEncodingPlan? remoteErrorPlan))
+            {
+                return new BoundErrorExpression();
+            }
+            if (!IsFlatTsonRecord((RecordTypeSymbol)request.Type)
+                || !IsFlatTsonRecord((RecordTypeSymbol)responseType)
+                || !IsFlatTsonRecord((RecordTypeSymbol)remoteErrorType))
+            {
+                Report("COPE-TSON-TRANSPORT-0003", "CTS-SIDECAR-M1 transport records may contain only boolean, number, and string fields.", intrinsicName.IdentifierToken);
+                return new BoundErrorExpression();
+            }
+
+            _usesTsonEncode = true;
+            var resultType = new ResultTypeSymbol(responseType, remoteErrorType);
+            return new BoundTsonTransportExpression(operation, request, requestPlan!, responsePlan!, remoteErrorPlan!, new AsyncTypeSymbol(resultType));
+        }
+
+        private static bool IsFlatTsonRecord(RecordTypeSymbol record)
+            => record.Fields.All(field => field.Type == PrimitiveTypeSymbol.Boolean
+                || field.Type == PrimitiveTypeSymbol.Number
+                || field.Type == PrimitiveTypeSymbol.String);
 
         private BoundExpression BindGenericFunctionReference(GenericFunctionReferenceExpressionSyntax reference)
         {

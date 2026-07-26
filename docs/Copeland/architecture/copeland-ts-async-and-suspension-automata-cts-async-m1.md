@@ -40,3 +40,23 @@ Current bounded defaults are 256 states, 512 transitions, 128 suspension points,
 CTS-ASYNC-M2 owns async arrows/callable identity and associated functions; table/TSON/enum-match/Result-match expression transfer across suspension; source-level cancellation delivery; corpus/artifact parity; and the broader fixture and diagnostic inventory. Enum and Result match specifically require a plan-owned dispatch state that evaluates the scrutinee once, copies selected payloads into retained binding slots, and jumps to an explicit lowered arm state. No host `async`/`await`, host Promise rejection, or host Task fault may become source semantics during that work.
 
 CTS-SIDECAR-M1 remains sequenced after this explicit realization. It will extend the pending-computation completion seam with transport outcomes without mapping them to declared Result errors.
+
+## TSON interop transport slice
+
+The first bounded interop path uses the compiler intrinsic
+`tsonCall<Response, RemoteError>(operation, request)`. It is valid only with a
+unit `$schema` and nominal request/response/remote-error records whose fields
+are primitive TSON values. It returns `Async<Response ! RemoteError>`: an
+`ok` envelope resolves the authored `Result`, while a `remote-error` envelope
+resolves its declared `err` payload. Cancellation, connection loss, malformed
+envelopes, malformed TSON, and incompatible payloads never become that
+authored error type.
+
+Both targets generate the same canonical TSON request document and a private
+canonical TSON `Envelope` carrying correlation, kind, operation, and payload.
+The generated adapter owns the outstanding-correlation table. A correlation is
+removed before terminal delivery, so duplicate, unknown, and late envelopes are
+rejected without re-entering an authored continuation. Connection loss settles
+every remaining computation as a distinct transport-failed carrier terminal;
+cancellation and invariant panic remain separate terminals. The adapter exposes
+no Copeland `Task`, `Promise`, socket, stream, or process type.

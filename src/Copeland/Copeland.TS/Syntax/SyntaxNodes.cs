@@ -71,6 +71,46 @@ public sealed record ArrayTypeSyntax(TypeSyntax ElementType, SyntaxToken OpenBra
     }
 }
 
+/// <summary>
+/// Preserves a TypeScript import for profile-owned validation. The base language
+/// intentionally gives imports no executable meaning.
+/// </summary>
+public sealed record ImportDeclarationSyntax(IReadOnlyList<SyntaxToken> Tokens) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ImportDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        foreach (SyntaxToken token in Tokens)
+        {
+            yield return token;
+        }
+    }
+}
+
+/// <summary>
+/// Preserves an export-default wrapper for a profile-owned document root.
+/// </summary>
+public sealed record ExportDefaultDeclarationSyntax(
+    SyntaxToken ExportToken,
+    SyntaxToken DefaultToken,
+    ExpressionSyntax Expression,
+    SyntaxToken? SemicolonToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ExportDefaultDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return ExportToken;
+        yield return DefaultToken;
+        yield return Expression;
+        if (SemicolonToken is not null)
+        {
+            yield return SemicolonToken;
+        }
+    }
+}
+
 public sealed record AsyncTypeSyntax(
     SyntaxToken AsyncKeyword,
     SyntaxToken LessToken,
@@ -1401,5 +1441,169 @@ public sealed record CaptureExpressionSyntax(
         }
         yield return CloseBraceToken;
         yield return Arrow;
+    }
+}
+
+/// <summary>
+/// A backend-neutral TS-XML element. Semantic profiles decide what an element means;
+/// this syntax node deliberately does not imply a UI, component, or runtime model.
+/// </summary>
+public abstract record TsXmlExpressionSyntax : ExpressionSyntax;
+
+public sealed record TsXmlElementExpressionSyntax(
+    SyntaxToken LessToken,
+    SyntaxToken NameToken,
+    IReadOnlyList<TsXmlAttributeSyntax> Attributes,
+    SyntaxToken? SlashToken,
+    SyntaxToken OpenCloseToken,
+    IReadOnlyList<TsXmlChildSyntax> Children,
+    SyntaxToken? CloseLessToken,
+    SyntaxToken? CloseSlashToken,
+    SyntaxToken? CloseNameToken,
+    SyntaxToken? CloseGreaterToken) : TsXmlExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TsXmlElementExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return LessToken;
+        yield return NameToken;
+        foreach (TsXmlAttributeSyntax attribute in Attributes)
+        {
+            yield return attribute;
+        }
+
+        if (SlashToken is not null)
+        {
+            yield return SlashToken;
+        }
+
+        yield return OpenCloseToken;
+        foreach (TsXmlChildSyntax child in Children)
+        {
+            yield return child;
+        }
+
+        if (CloseLessToken is not null)
+        {
+            yield return CloseLessToken;
+        }
+
+        if (CloseSlashToken is not null)
+        {
+            yield return CloseSlashToken;
+        }
+
+        if (CloseNameToken is not null)
+        {
+            yield return CloseNameToken;
+        }
+
+        if (CloseGreaterToken is not null)
+        {
+            yield return CloseGreaterToken;
+        }
+    }
+}
+
+public sealed record TsXmlFragmentExpressionSyntax(
+    SyntaxToken LessToken,
+    SyntaxToken OpenCloseToken,
+    IReadOnlyList<TsXmlChildSyntax> Children,
+    SyntaxToken CloseLessToken,
+    SyntaxToken CloseSlashToken,
+    SyntaxToken CloseGreaterToken) : TsXmlExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TsXmlFragmentExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return LessToken;
+        yield return OpenCloseToken;
+        foreach (TsXmlChildSyntax child in Children)
+        {
+            yield return child;
+        }
+
+        yield return CloseLessToken;
+        yield return CloseSlashToken;
+        yield return CloseGreaterToken;
+    }
+}
+
+public sealed record TsXmlAttributeSyntax(
+    SyntaxToken NameToken,
+    SyntaxToken? EqualsToken,
+    SyntaxToken? StringValueToken,
+    SyntaxToken? OpenBraceToken,
+    ExpressionSyntax? ExpressionValue,
+    SyntaxToken? CloseBraceToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TsXmlAttribute;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return NameToken;
+        if (EqualsToken is not null)
+        {
+            yield return EqualsToken;
+        }
+
+        if (StringValueToken is not null)
+        {
+            yield return StringValueToken;
+        }
+
+        if (OpenBraceToken is not null)
+        {
+            yield return OpenBraceToken;
+        }
+
+        if (ExpressionValue is not null)
+        {
+            yield return ExpressionValue;
+        }
+
+        if (CloseBraceToken is not null)
+        {
+            yield return CloseBraceToken;
+        }
+    }
+}
+
+public abstract record TsXmlChildSyntax : SyntaxNode;
+
+public sealed record TsXmlTextSyntax(SyntaxToken TextToken) : TsXmlChildSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TsXmlText;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return TextToken;
+    }
+}
+
+public sealed record TsXmlExpressionChildSyntax(
+    SyntaxToken OpenBraceToken,
+    ExpressionSyntax Expression,
+    SyntaxToken CloseBraceToken) : TsXmlChildSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TsXmlExpressionChild;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return OpenBraceToken;
+        yield return Expression;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record TsXmlElementChildSyntax(TsXmlExpressionSyntax Element) : TsXmlChildSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TsXmlElementChild;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Element;
     }
 }

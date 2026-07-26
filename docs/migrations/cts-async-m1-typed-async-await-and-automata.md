@@ -11,3 +11,11 @@ The first executable vertical slice now realizes named async functions in C#, Di
 The runtime now also supplies an internal pending-computation factory for test and future sidecar use. Its carrier arbitrates resolve, cancel, and panic as distinct exactly-once terminal states; late terminal attempts are ignored and cancellation continuations prevent success resumption. It is not a Copeland source feature and has no Task/Promise or sidecar transport semantics.
 
 The slice deliberately does not emit C# `async`, JavaScript `async function`, generators, Promise/Task source interop, sidecar transport, or a user cancellation API. CTS-ASYNC-M2 will extend the same compiler-owned plan with enum/Result match dispatch, remaining expression families, callable source forms, and broader evidence; it is implementation continuation, not a replacement architecture.
+
+The post-M1 TSON transport slice intentionally does not reopen M2. It adds only
+the expression form needed by the representative path:
+`tsonCall<Response, RemoteError>(operation, request)`. Its bounded flat-record
+decoder is generated beside existing canonical encoders. The host-facing
+adapter is private generated machinery with monotonic correlation settlement;
+it carries a response, remote error, cancellation, transport failure, or panic
+without exposing a host async abstraction to authored code.
