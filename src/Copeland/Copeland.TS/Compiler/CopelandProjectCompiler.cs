@@ -38,11 +38,12 @@ public static class CopelandProjectCompiler
         var npmResolver = new CopelandNpmContractResolver(options?.NpmDependencies ?? new CopelandNpmDependencyGraph(options?.NpmPackages ?? []));
         var hostResolver = new CopelandJavaScriptHostContractResolver(options?.JavaScriptHostModules ?? []);
         var clrResolver = new CopelandClrMetadataResolver(options?.ClrReferences ?? []);
+        var packageContracts = new CopelandPackageContractMap(options?.PackageContracts ?? []);
         foreach (ProjectModule module in ordered)
         {
             BoundModuleImports imports = CreateImports(module, diagnostics);
             SyntaxTree tree = SyntaxTree.Parse(RewriteModule(module), module.Source.SourcePath);
-            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, module.Source.SourcePath, module.LogicalPath, imports);
+            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options?.PackageBackend ?? CopelandPackageBackend.Clr, module.Source.SourcePath, module.LogicalPath, imports);
             module.Bound = bound;
             diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
         }
@@ -423,7 +424,8 @@ public static class CopelandProjectCompiler
             programs.SelectMany(program => program.CSharpUsings).Distinct(StringComparer.Ordinal).ToArray(),
             null,
             programs.SelectMany(program => program.Flows).ToArray(),
-            programs.SelectMany(program => program.JavaScriptHostImports).ToArray());
+            programs.SelectMany(program => program.JavaScriptHostImports).ToArray(),
+            programs.SelectMany(program => program.PackageImports).ToArray());
 
     private static void ConfigureDuplicateFunctionEmissionNames(IReadOnlyList<ProjectModule> modules)
     {

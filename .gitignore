@@ -19,3 +19,5 @@ artifacts/cts-jit-m0/
 artifacts/cts-jit-m0-smoke/
 artifacts/cts-js-perf-m1/
 artifacts/cts-js-perf-m1-production-smoke/
+tests/fixtures/copeland-nuget-m1/LocalFeed/
+tests/fixtures/copeland-nuget-m1/.packages*/

@@ -34,6 +34,8 @@ public static class CopelandCompiler
                     new CopelandNpmContractResolver(npmDependencies),
                     new CopelandJavaScriptHostContractResolver(effectiveOptions.JavaScriptHostModules),
                     new CopelandClrMetadataResolver(effectiveOptions.ClrReferences),
+                    new CopelandPackageContractMap(effectiveOptions.PackageContracts),
+                    effectiveOptions.PackageBackend,
                     effectiveOptions.SourcePath);
                 diagnostics.AddRange(boundCompilation.Diagnostics);
             }
@@ -72,6 +74,8 @@ public static class CopelandCompiler
             NpmDependencies = effectiveOptions.NpmDependencies,
             NpmPackages = effectiveOptions.NpmPackages,
             JavaScriptHostModules = effectiveOptions.JavaScriptHostModules,
+            PackageContracts = effectiveOptions.PackageContracts,
+            PackageBackend = effectiveOptions.PackageBackend,
             ClrReferences = effectiveOptions.ClrReferences,
         });
     }

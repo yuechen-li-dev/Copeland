@@ -47,8 +47,17 @@ public static class MirLowerer
             import.Function.ModuleSpecifier,
             import.Function.ExportName,
             import.Function.Name)).ToArray();
+        MirPackageImport[] packageImports = program.PackageImports.Select(import => new MirPackageImport(
+            import.Function.PackageId,
+            import.Function.ModuleSpecifier,
+            import.Function.NominalScope,
+            import.Function.ExportName,
+            import.Function.Method.DeclaringType!.Assembly.GetName().Name!,
+            import.Function.Method.DeclaringType.FullName!,
+            import.Function.Method.Name,
+            import.Function.Name)).ToArray();
         MirFlowDefinition[] flows = program.Flows.Select(LowerFlow).ToArray();
-        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath, flows, javaScriptHostImports);
+        return new MirProgram(enums, records, tables, tsonEncodingPlans, npmImports, functions, program.CSharpUsings, program.CSharpSourcePath, flows, javaScriptHostImports, packageImports);
     }
 
     private static MirFlowDefinition LowerFlow(BoundFlowDefinition flow)

@@ -20,6 +20,9 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
 
     public ITaskItem[] ClrReferencePaths { get; set; } = [];
 
+    /// <summary>Exact package contract paths contributed by buildTransitive targets after NuGet restore.</summary>
+    public ITaskItem[] CopelandPackageContracts { get; set; } = [];
+
     public ITaskItem[] CSharpSources { get; set; } = [];
 
     public string AssemblyName { get; set; } = string.Empty;
@@ -133,6 +136,11 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         CopelandClrReference[] effectiveReferences = projectDeclarations is null
             ? references
             : references.Append(projectDeclarations).ToArray();
+        CopelandPackageContract[] packageContracts = ReadPackageContracts(projectDirectory);
+        if (Log.HasLoggedErrors)
+        {
+            return false;
+        }
 
         CopelandProjectSource[] projectSources = sourcePaths
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
@@ -147,6 +155,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 projectSources,
                 projectDirectory,
                 effectiveReferences,
+                packageContracts,
                 RootNamespace,
                 generatedDirectory,
                 authoredCSharpSources);
@@ -162,10 +171,10 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             activePaths.Add(mirPath);
             activePaths.Add(stampPath);
 
-            string fingerprint = CreateFingerprint(sourcePath, effectiveReferences, authoredCSharpSources, RootNamespace, moduleName);
+            string fingerprint = CreateFingerprint(sourcePath, effectiveReferences, packageContracts, authoredCSharpSources, RootNamespace, moduleName);
             if (!IsCurrent(stampPath, outputPath, mirPath, fingerprint))
             {
-                if (!Compile(sourcePath, projectDirectory, effectiveReferences, RootNamespace, moduleName, outputPath, mirPath))
+                if (!Compile(sourcePath, projectDirectory, effectiveReferences, packageContracts, RootNamespace, moduleName, outputPath, mirPath))
                 {
                     continue;
                 }
@@ -185,6 +194,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         IReadOnlyList<CopelandProjectSource> sources,
         string projectDirectory,
         IReadOnlyList<CopelandClrReference> references,
+        IReadOnlyList<CopelandPackageContract> packageContracts,
         string rootNamespace,
         string generatedDirectory,
         IReadOnlyList<string> authoredCSharpSources)
@@ -193,7 +203,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         string outputPath = Path.Combine(generatedDirectory, graphArtifactName + ".g.cs");
         string mirPath = Path.Combine(generatedDirectory, graphArtifactName + ".cope");
         string stampPath = Path.Combine(generatedDirectory, graphArtifactName + ".stamp");
-        string fingerprint = CreateProjectFingerprint(sources, references, authoredCSharpSources, rootNamespace, graphArtifactName);
+        string fingerprint = CreateProjectFingerprint(sources, references, packageContracts, authoredCSharpSources, rootNamespace, graphArtifactName);
 
         if (!IsCurrent(stampPath, outputPath, mirPath, fingerprint))
         {
@@ -205,6 +215,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                     ProjectRoot = projectDirectory,
                     AssetSource = FileSystemAssetSource.Instance,
                     ClrReferences = references,
+                    PackageContracts = packageContracts,
                 });
             if (!project.Success)
             {
@@ -256,6 +267,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         string sourcePath,
         string projectDirectory,
         IReadOnlyList<CopelandClrReference> references,
+        IReadOnlyList<CopelandPackageContract> packageContracts,
         string rootNamespace,
         string moduleName,
         string outputPath,
@@ -280,6 +292,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 ProjectRoot = projectDirectory,
                 AssetSource = FileSystemAssetSource.Instance,
                 ClrReferences = references,
+                PackageContracts = packageContracts,
             });
 
         if (!compilation.Success)
@@ -379,9 +392,46 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         return result;
     }
 
+    private CopelandPackageContract[] ReadPackageContracts(string projectDirectory)
+    {
+        var contracts = new List<CopelandPackageContract>();
+        foreach (ITaskItem item in CopelandPackageContracts
+            .OrderBy(item => item.ItemSpec, StringComparer.OrdinalIgnoreCase))
+        {
+            string path = Path.GetFullPath(item.ItemSpec, projectDirectory);
+            if (!CopelandPackageContractReader.TryRead(path, out CopelandPackageContract? contract, out string? error))
+            {
+                Log.LogError("COPE-MSBUILD-0005", "", "", path, 0, 0, 0, 0, error ?? "Copeland package contract could not be read.");
+                continue;
+            }
+
+            string expectedPackageId = item.GetMetadata("PackageId");
+            if (!string.IsNullOrWhiteSpace(expectedPackageId)
+                && !string.Equals(contract!.PackageId, expectedPackageId, StringComparison.Ordinal))
+            {
+                Log.LogError("COPE-PACKAGE-0015", "", "", path, 0, 0, 0, 0, $"Copeland package contract declares package '{contract.PackageId}', but the package target exposed it as '{expectedPackageId}'.");
+                continue;
+            }
+
+            contracts.Add(contract!);
+        }
+
+        return contracts.ToArray();
+    }
+
+    private static void AppendPackageContractFingerprints(IncrementalHash hash, IReadOnlyList<CopelandPackageContract> contracts)
+    {
+        foreach (CopelandPackageContract contract in contracts.OrderBy(contract => contract.SourcePath, StringComparer.OrdinalIgnoreCase))
+        {
+            Append(hash, contract.SourcePath);
+            Append(hash, File.ReadAllText(contract.SourcePath));
+        }
+    }
+
     private static string CreateFingerprint(
         string sourcePath,
         IReadOnlyList<CopelandClrReference> references,
+        IReadOnlyList<CopelandPackageContract> packageContracts,
         IReadOnlyList<string> authoredCSharpSources,
         string rootNamespace,
         string moduleName)
@@ -404,6 +454,8 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             }
         }
 
+        AppendPackageContractFingerprints(hash, packageContracts);
+
         foreach (string source in authoredCSharpSources)
         {
             Append(hash, source);
@@ -416,6 +468,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
     private static string CreateProjectFingerprint(
         IReadOnlyList<CopelandProjectSource> sources,
         IReadOnlyList<CopelandClrReference> references,
+        IReadOnlyList<CopelandPackageContract> packageContracts,
         IReadOnlyList<string> authoredCSharpSources,
         string rootNamespace,
         string moduleName)
@@ -439,6 +492,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             Append(hash, info.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
             Append(hash, info.LastWriteTimeUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
+        AppendPackageContractFingerprints(hash, packageContracts);
         foreach (string source in authoredCSharpSources)
         {
             Append(hash, source);

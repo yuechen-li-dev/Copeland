@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "Example.Copeland": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "zM4UKjA1fGvCg+Kt2VPqnD+iZY8dU5ubO1QbMSsPG+MXm7b01IskeasJYDlDZn4nwxz1KN1zr7jv/OhS0ydbMw=="
+      }
+    }
+  }
+}

@@ -27,6 +27,11 @@ public sealed class CopelandCompilationOptions
     /// </summary>
     public IReadOnlyList<CopelandJavaScriptHostModuleContract> JavaScriptHostModules { get; init; } = [];
 
+    /// <summary>Explicit contracts supplied by MSBuild project/package items; the compiler never discovers them from NuGet storage.</summary>
+    public IReadOnlyList<CopelandPackageContract> PackageContracts { get; init; } = [];
+
+    public CopelandPackageBackend PackageBackend { get; init; } = CopelandPackageBackend.Clr;
+
     /// <summary>Already-compiled CLR assemblies available to CLR <c>using</c> binding.</summary>
     public IReadOnlyList<CopelandClrReference> ClrReferences { get; init; } = [];
 }

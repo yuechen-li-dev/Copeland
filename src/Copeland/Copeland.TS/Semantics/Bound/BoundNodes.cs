@@ -16,6 +16,7 @@ public sealed class BoundProgram
         IReadOnlyList<BoundTableDefinition>? tables = null,
         IReadOnlyList<BoundTsonEncodingPlan>? tsonEncodingPlans = null,
         IReadOnlyList<BoundNpmImport>? npmImports = null,
+        IReadOnlyList<BoundPackageImport>? packageImports = null,
         IReadOnlyList<BoundJavaScriptHostImport>? javaScriptHostImports = null,
         IReadOnlyList<string>? csharpUsings = null,
         string? csharpSourcePath = null,
@@ -28,6 +29,7 @@ public sealed class BoundProgram
         Tables = tables ?? [];
         TsonEncodingPlans = tsonEncodingPlans ?? [];
         NpmImports = npmImports ?? [];
+        PackageImports = packageImports ?? [];
         JavaScriptHostImports = javaScriptHostImports ?? [];
         CSharpUsings = csharpUsings ?? [];
         CSharpSourcePath = csharpSourcePath;
@@ -40,6 +42,7 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundTableDefinition> Tables { get; }
     public IReadOnlyList<BoundTsonEncodingPlan> TsonEncodingPlans { get; }
     public IReadOnlyList<BoundNpmImport> NpmImports { get; }
+    public IReadOnlyList<BoundPackageImport> PackageImports { get; }
     public IReadOnlyList<BoundJavaScriptHostImport> JavaScriptHostImports { get; }
     public IReadOnlyList<string> CSharpUsings { get; }
     public string? CSharpSourcePath { get; }
@@ -49,6 +52,11 @@ public sealed class BoundProgram
 public sealed class BoundNpmImport(NpmFunctionSymbol function)
 {
     public NpmFunctionSymbol Function { get; } = function;
+}
+
+public sealed class BoundPackageImport(CopelandPackageFunctionSymbol function)
+{
+    public CopelandPackageFunctionSymbol Function { get; } = function;
 }
 
 public sealed class BoundJavaScriptHostImport(JavaScriptHostFunctionSymbol function)

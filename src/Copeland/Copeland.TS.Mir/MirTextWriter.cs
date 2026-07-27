@@ -23,6 +23,27 @@ public static class MirTextWriter
                 .AppendLine();
         }
 
+        foreach (MirPackageImport import in program.PackageImports.OrderBy(item => item.PackageId, StringComparer.Ordinal).ThenBy(item => item.ModuleSpecifier, StringComparer.Ordinal).ThenBy(item => item.ExportName, StringComparer.Ordinal))
+        {
+            sb.Append("package:")
+                .Append(import.PackageId)
+                .Append(':')
+                .Append(import.ModuleSpecifier)
+                .Append(':')
+                .Append(import.ExportName)
+                .Append(" nominal ")
+                .Append(import.NominalScope)
+                .Append(" clr ")
+                .Append(import.AssemblyIdentity)
+                .Append(':')
+                .Append(import.ClrType)
+                .Append('.')
+                .Append(import.ClrMethod)
+                .Append(" import ")
+                .Append(import.LocalBinding)
+                .AppendLine();
+        }
+
         foreach (var @enum in program.Enums)
         {
             sb.AppendLine();

@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup>
+    <CopelandPackageContract Include="$(MSBuildThisFileDirectory)..\copeland\contract.v1.json">
+      <PackageId>Example.Copeland</PackageId>
+    </CopelandPackageContract>
+  </ItemGroup>
+</Project>

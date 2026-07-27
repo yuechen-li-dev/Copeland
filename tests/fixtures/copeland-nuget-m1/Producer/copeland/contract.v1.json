@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "package": {
+    "id": "Example.Copeland"
+  },
+  "compiler": {
+    "minimum": "1.0"
+  },
+  "assemblies": [
+    {
+      "tfm": "net10.0",
+      "identity": "Example.Copeland"
+    }
+  ],
+  "modules": [
+    {
+      "specifier": "example/parser",
+      "nominalScope": "Example.Copeland/example/parser",
+      "exports": [
+        {
+          "name": "Parse",
+          "kind": "function",
+          "contract": {
+            "parameters": [
+              {
+                "name": "value",
+                "type": "string"
+              }
+            ],
+            "returnType": "int"
+          },
+          "clr": {
+            "type": "Example.Copeland.Copeland.Parser",
+            "method": "Parse"
+          }
+        }
+      ],
+      "realizations": {
+        "clr": {
+          "kind": "binary",
+          "assembly": "Example.Copeland"
+        }
+      }
+    }
+  ]
+}

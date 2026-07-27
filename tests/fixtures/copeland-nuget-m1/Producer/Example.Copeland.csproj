@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Example.Copeland</AssemblyName>
+    <RootNamespace>Example.Copeland</RootNamespace>
+    <PackageId>Example.Copeland</PackageId>
+    <Version>1.0.0</Version>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <CopelandTaskAssembly>$(MSBuildProjectDirectory)\..\..\..\..\src\Copeland\Copeland.TS.MSBuild\bin\$(Configuration)\net10.0\Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\src\Copeland\Copeland.TS.MSBuild\Copeland.TS.MSBuild.csproj" ReferenceOutputAssembly="false" />
+    <CopelandCompile Include="Parser.ts" />
+    <None Include="copeland\contract.v1.json" Pack="true" PackagePath="copeland\" />
+    <None Include="buildTransitive\Example.Copeland.targets" Pack="true" PackagePath="buildTransitive\" />
+    <None Include="README.md" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <Import Project="..\..\..\..\src\Copeland\Copeland.TS.MSBuild\build\Copeland.TS.Sdk.targets" />
+</Project>

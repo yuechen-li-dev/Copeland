@@ -68,6 +68,27 @@ public sealed class NpmFunctionSymbol : Symbol
         : new AsyncTypeSymbol(new ResultTypeSymbol(ResultType, RemoteErrorType!));
 }
 
+/// <summary>A statically bound function exported by a Copeland NuGet package module.</summary>
+public sealed class CopelandPackageFunctionSymbol(
+    string name,
+    string packageId,
+    string moduleSpecifier,
+    string nominalScope,
+    string exportName,
+    IReadOnlyList<ParameterSymbol> parameters,
+    TypeSymbol returnType,
+    System.Reflection.MethodInfo method) : Symbol(name)
+{
+    public string PackageId { get; } = packageId;
+    public string ModuleSpecifier { get; } = moduleSpecifier;
+    public string NominalScope { get; } = nominalScope;
+    public string ExportName { get; } = exportName;
+    public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
+    public TypeSymbol ReturnType { get; } = returnType;
+    public System.Reflection.MethodInfo Method { get; } = method;
+    public string StableIdentity => PackageId + "/" + Method.DeclaringType!.Assembly.GetName().Name + "/" + ModuleSpecifier + "/" + NominalScope + "/" + ExportName;
+}
+
 public sealed class JavaScriptHostFunctionSymbol : Symbol
 {
     public JavaScriptHostFunctionSymbol(

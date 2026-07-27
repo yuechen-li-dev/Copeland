@@ -59,6 +59,11 @@ public sealed class CopelandClrMetadataResolver
                 || string.Equals(type.FullName?.Replace('+', '.'), fullName, StringComparison.Ordinal))
             .ToArray();
 
+    public IReadOnlyList<Type> FindTypes(string assemblyIdentity, string fullName)
+        => FindTypes(fullName)
+            .Where(type => string.Equals(type.Assembly.GetName().Name, assemblyIdentity, StringComparison.Ordinal))
+            .ToArray();
+
     public bool IsTypeVisible(Type type)
     {
         bool includeInternal = _internalVisibility.TryGetValue(type.Assembly, out bool value) && value;

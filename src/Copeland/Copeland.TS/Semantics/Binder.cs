@@ -13,19 +13,19 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), null, null, null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), new CopelandPackageContractMap([]), CopelandPackageBackend.Clr, null, null, null);
         return impl.Bind();
     }
 
-    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null)
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null)
     {
-        var impl = new BinderImpl(tree, assetResolver, npmResolver, hostResolver, clrResolver, sourcePath, moduleIdentity, imports);
+        var impl = new BinderImpl(tree, assetResolver, npmResolver, hostResolver, clrResolver, packageContracts, packageBackend, sourcePath, moduleIdentity, imports);
         return impl.Bind();
     }
 
     internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), null, null, null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), new CopelandPackageContractMap([]), CopelandPackageBackend.Clr, null, null, null);
         _ = impl.Bind();
         return impl.GetOpenGenericBodiesForTesting();
     }
@@ -69,7 +69,7 @@ public static class Binder
         }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
+    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
     {
         private sealed class BatchBindingContext
         {
@@ -106,6 +106,8 @@ public static class Binder
         private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
         private readonly CopelandJavaScriptHostContractResolver _hostResolver = hostResolver;
         private readonly CopelandClrMetadataResolver _clrResolver = clrResolver;
+        private readonly CopelandPackageContractMap _packageContracts = packageContracts;
+        private readonly CopelandPackageBackend _packageBackend = packageBackend;
         private readonly string? _sourcePath = sourcePath;
         private readonly string? _moduleIdentity = moduleIdentity;
         private readonly BoundModuleImports? _imports = imports;
@@ -121,6 +123,7 @@ public static class Binder
         private readonly List<BoundFlowDefinition> _flows = [];
         private readonly List<BoundStatement> _globals = [];
         private readonly List<BoundNpmImport> _npmImports = [];
+        private readonly List<BoundPackageImport> _packageImports = [];
         private readonly List<BoundJavaScriptHostImport> _javaScriptHostImports = [];
         private readonly HashSet<string> _clrNamespaces = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Type>> _clrImportedTypes = new(StringComparer.Ordinal);
@@ -186,6 +189,7 @@ public static class Binder
             BindInterfaceBodies(_tree.Root);
             PredeclareFunctions(_tree.Root);
             BindClrUsingDirectives(_tree.Root);
+            BindCopelandPackageImports(_tree.Root);
             BindNpmImports(_tree.Root);
             BindJavaScriptHostImports(_tree.Root);
             BindRecordBodies(_tree.Root);
@@ -239,6 +243,7 @@ public static class Binder
                     _tables,
                     _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray(),
                     _npmImports.OrderBy(import => import.Function.PackageName, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray(),
+                    _packageImports.OrderBy(import => import.Function.PackageId, StringComparer.Ordinal).ThenBy(import => import.Function.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ToArray(),
                     _javaScriptHostImports.OrderBy(import => import.Function.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray(),
                     _clrNamespaces.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
                     _sourcePath,
@@ -3640,6 +3645,7 @@ public static class Binder
                 return new BoundErrorExpression();
             }
             if (s is NpmFunctionSymbol npm) return BindNpmCall(c, npm);
+            if (s is CopelandPackageFunctionSymbol packageFunction) return BindCopelandPackageCall(c, packageFunction);
             if (s is JavaScriptHostFunctionSymbol host) return BindJavaScriptHostCall(c, host);
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
             if (fn.IsGeneric) return BindInferredGenericCall(c, fn);
@@ -4174,6 +4180,198 @@ public static class Binder
             return true;
         }
 
+        private void BindCopelandPackageImports(CompilationUnitSyntax root)
+        {
+            foreach (ImportDeclarationSyntax import in root.Members.OfType<ImportDeclarationSyntax>())
+            {
+                SyntaxToken[] tokens = import.Tokens.ToArray();
+                SyntaxToken? moduleToken = tokens.LastOrDefault(token => token.Kind == SyntaxKind.StringToken);
+                if (moduleToken?.Value is not string specifier || IsRelativeSpecifier(specifier))
+                {
+                    continue;
+                }
+
+                if (!_packageContracts.TryGetModules(specifier, out IReadOnlyList<CopelandPackageModuleContract>? candidates))
+                {
+                    continue;
+                }
+
+                if (candidates.Count != 1)
+                {
+                    string owners = string.Join(", ", _packageContracts.Contracts
+                        .Where(contract => contract.Modules.Any(module => module.Specifier == specifier))
+                        .Select(contract => contract.PackageId)
+                        .OrderBy(id => id, StringComparer.Ordinal));
+                    Report("COPE-PACKAGE-0006", $"Copeland module '{specifier}' is ambiguous across NuGet package contracts: {owners}.", moduleToken);
+                    continue;
+                }
+
+                if (_npmResolver.TryGetPackage(specifier, out CopelandNpmPackageContract? npmPackage) && npmPackage is not null)
+                {
+                    Report("COPE-PACKAGE-0006", $"Copeland module '{specifier}' is ambiguous between NuGet package contract '{_packageContracts.Contracts.Single(contract => contract.Modules.Contains(candidates[0])).PackageId}' and npm contract '{npmPackage.PackageName}'.", moduleToken);
+                    continue;
+                }
+
+                CopelandPackageModuleContract module = candidates[0];
+                CopelandPackageContract owner = _packageContracts.Contracts.Single(contract => contract.Modules.Contains(module));
+                if (_packageBackend != CopelandPackageBackend.Clr || module.ClrRealization is null)
+                {
+                    string backend = _packageBackend == CopelandPackageBackend.JavaScriptNode ? "Node" : _packageBackend == CopelandPackageBackend.JavaScriptBrowser ? "browser" : "CLR";
+                    string available = module.ClrRealization is null ? "none" : "clr.binary";
+                    Report("COPE-PACKAGE-0007", $"Copeland module '{specifier}' from package '{owner.PackageId}' has no realization for {backend}; available realizations: {available}.", moduleToken);
+                    continue;
+                }
+
+                int open = Array.FindIndex(tokens, token => token.Kind == SyntaxKind.OpenBraceToken);
+                int close = Array.FindIndex(tokens, token => token.Kind == SyntaxKind.CloseBraceToken);
+                if (open < 0 || close <= open)
+                {
+                    Report("COPE-PACKAGE-0008", "Copeland package imports must use named imports of the form 'import { name } from \"module\"'.", tokens[0]);
+                    continue;
+                }
+
+                for (int index = open + 1; index < close; index += 1)
+                {
+                    SyntaxToken exportToken = tokens[index];
+                    if (exportToken.Kind != SyntaxKind.IdentifierToken)
+                    {
+                        continue;
+                    }
+
+                    SyntaxToken localToken = exportToken;
+                    if (index + 2 < close && tokens[index + 1].Text == "as" && tokens[index + 2].Kind == SyntaxKind.IdentifierToken)
+                    {
+                        localToken = tokens[index + 2];
+                        index += 2;
+                    }
+
+                    CopelandPackageExportContract? export = module.Exports.SingleOrDefault(candidate => candidate.Name == exportToken.Text);
+                    if (export is null)
+                    {
+                        Report("COPE-PACKAGE-0009", $"Copeland module '{specifier}' from package '{owner.PackageId}' has no named export '{exportToken.Text}'.", exportToken);
+                        continue;
+                    }
+                    if (export.Kind != "function")
+                    {
+                        Report("COPE-PACKAGE-0010", $"Copeland package export '{export.Name}' from module '{specifier}' has unsupported kind '{export.Kind}'. M1 supports only functions.", exportToken);
+                        continue;
+                    }
+
+                    if (!TryBindCopelandPackageFunction(owner, module, export, localToken, out CopelandPackageFunctionSymbol? function))
+                    {
+                        continue;
+                    }
+                    CopelandPackageFunctionSymbol resolvedFunction = function!;
+                    if (_global.TryLookup(localToken.Text, out Symbol? existing))
+                    {
+                        if (existing is CopelandPackageFunctionSymbol existingPackage && existingPackage.StableIdentity == resolvedFunction.StableIdentity)
+                        {
+                            continue;
+                        }
+                        Report("COPE-PACKAGE-0011", $"Imported Copeland package binding '{localToken.Text}' conflicts with an existing declaration.", localToken);
+                        continue;
+                    }
+
+                    _global.TryDeclare(resolvedFunction);
+                    _packageImports.Add(new BoundPackageImport(resolvedFunction));
+                }
+            }
+        }
+
+        private bool TryBindCopelandPackageFunction(
+            CopelandPackageContract owner,
+            CopelandPackageModuleContract module,
+            CopelandPackageExportContract export,
+            SyntaxToken anchor,
+            out CopelandPackageFunctionSymbol? function)
+        {
+            function = null;
+            CopelandClrBinaryRealization realization = module.ClrRealization!;
+            Type[] types = _clrResolver.FindTypes(realization.AssemblyIdentity, export.ClrType).ToArray();
+            if (types.Length != 1)
+            {
+                Report("COPE-PACKAGE-0012", $"Copeland package '{owner.PackageId}' contract for module '{module.Specifier}' names CLR facade '{export.ClrType}' in assembly '{realization.AssemblyIdentity}', but that public type was not resolved exactly once.", anchor);
+                return false;
+            }
+
+            TypeSymbol[] parameterTypes = export.Parameters.Select(parameter => ResolveCopelandPackageType(parameter.Type, anchor)).ToArray();
+            TypeSymbol returnType = ResolveCopelandPackageType(export.ReturnType, anchor);
+            if (parameterTypes.Any(type => type == PrimitiveTypeSymbol.Error) || returnType == PrimitiveTypeSymbol.Error)
+            {
+                return false;
+            }
+
+            MethodInfo[] methods = types[0].GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(method => method.Name == export.ClrMethod && method.GetParameters().Length == parameterTypes.Length)
+                .Where(method => IsCopelandPackageMethodShape(method, parameterTypes, returnType))
+                .ToArray();
+            if (methods.Length != 1)
+            {
+                Report("COPE-PACKAGE-0013", $"Copeland package '{owner.PackageId}' contract/binary mismatch for '{module.Specifier}' export '{export.Name}': expected public static {export.ClrType}.{export.ClrMethod} with the declared signature.", anchor);
+                return false;
+            }
+
+            function = new CopelandPackageFunctionSymbol(
+                anchor.Text,
+                owner.PackageId,
+                module.Specifier,
+                module.NominalScope,
+                export.Name,
+                export.Parameters.Select((parameter, index) => new ParameterSymbol(parameter.Name, parameterTypes[index])).ToArray(),
+                returnType,
+                methods[0]);
+            return true;
+        }
+
+        private bool IsCopelandPackageMethodShape(MethodInfo method, IReadOnlyList<TypeSymbol> parameterTypes, TypeSymbol returnType)
+        {
+            ParameterInfo[] parameters = method.GetParameters();
+            return parameters.Select((parameter, index) => IsClrArgumentCompatible(parameterTypes[index], parameter.ParameterType)).All(result => result)
+                && TryProjectClrType(method.ReturnType, out TypeSymbol projectedReturn)
+                && projectedReturn == returnType;
+        }
+
+        private TypeSymbol ResolveCopelandPackageType(string type, SyntaxToken anchor)
+        {
+            return type switch
+            {
+                "int" => PrimitiveTypeSymbol.Int,
+                "float" => PrimitiveTypeSymbol.Float,
+                "string" => PrimitiveTypeSymbol.String,
+                "boolean" => PrimitiveTypeSymbol.Boolean,
+                "void" => PrimitiveTypeSymbol.Void,
+                _ => ReportUnsupportedCopelandPackageType(type, anchor),
+            };
+        }
+
+        private TypeSymbol ReportUnsupportedCopelandPackageType(string type, SyntaxToken anchor)
+        {
+            Report("COPE-PACKAGE-0014", $"Copeland package contract type '{type}' is unsupported in M1. Supported function contract types are int, float, string, boolean, and void.", anchor);
+            return PrimitiveTypeSymbol.Error;
+        }
+
+        private BoundExpression BindCopelandPackageCall(CallExpressionSyntax call, CopelandPackageFunctionSymbol function)
+        {
+            if (call.Arguments.Count != function.Parameters.Count)
+            {
+                Report("COPE-TYPE-0004", $"Argument count mismatch: expected {function.Parameters.Count}, got {call.Arguments.Count}.", call.OpenParenToken);
+            }
+            BoundExpression[] arguments = call.Arguments.Select((argument, index) => BindExpression(argument, index < function.Parameters.Count ? function.Parameters[index].Type : null)).ToArray();
+            for (int index = 0; index < Math.Min(arguments.Length, function.Parameters.Count); index += 1)
+            {
+                if (!IsAssignable(function.Parameters[index].Type, arguments[index].Type))
+                {
+                    ReportTypeMismatch("COPE-TYPE-0005", function.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
+                }
+            }
+            return call.Arguments.Count == function.Parameters.Count
+                ? new BoundClrInvocationExpression(function.Method, null, [], arguments, function.ReturnType)
+                : new BoundErrorExpression();
+        }
+
+        private static bool IsRelativeSpecifier(string specifier)
+            => specifier.StartsWith("./", StringComparison.Ordinal) || specifier.StartsWith("../", StringComparison.Ordinal);
+
         private void BindNpmImports(CompilationUnitSyntax root)
         {
             foreach (ImportDeclarationSyntax import in root.Members.OfType<ImportDeclarationSyntax>())
@@ -4192,6 +4390,13 @@ public static class Binder
                         "COPE-MODULE-0001",
                         $"Relative import '{packageName}' is not supported because Copeland has no source-module resolver. Keep related declarations in one Copeland file or compose generated file-module APIs from C#; npm imports require a declared package contract.",
                         module);
+                    continue;
+                }
+                // A declared native package module owns its bare specifier.
+                // It never falls through into npm semantics after partial or
+                // failed export binding.
+                if (_packageContracts.TryGetModules(packageName, out _))
+                {
                     continue;
                 }
                 if (!_npmResolver.TryGetPackage(packageName, out CopelandNpmPackageContract? package) || package is null)
