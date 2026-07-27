@@ -20,6 +20,7 @@ guidance.
 - [Generators](../cts-generator-m1.md)
 - [Flows](../cts-flow-m1.md)
 - [Inline C#](../decisions/copeland-inline-csharp-cts-csharp-blocks-m1.md)
+- [Standalone hosted web application M0](reviews/cts-standalone-web-m0.md)
 
 ## Historical and design records
 

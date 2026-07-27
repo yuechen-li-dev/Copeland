@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Copeland.StandaloneWebM0</RootNamespace>
+    <AssemblyName>StandaloneWebM0</AssemblyName>
+    <CopelandWebStagingDirectory>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\standalone-web\wwwroot</CopelandWebStagingDirectory>
+    <CopelandWebGeneratedDirectory>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\standalone-web\generated</CopelandWebGeneratedDirectory>
+    <TSPackExecutable Condition="'$(TSPackExecutable)' == ''">$(MSBuildProjectDirectory)\..\..\..\..\tspack\tspack.exe</TSPackExecutable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="Generate\StandaloneWebM0.Generate.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\src\Copeland\Copeland.Cli\Copeland.Cli.csproj" ReferenceOutputAssembly="false" />
+    <Compile Remove="Generate\**\*.cs" />
+    <Compile Remove="standalone-web\**\*.cs" />
+  </ItemGroup>
+
+  <Target Name="CopelandClearPreviousStandaloneAssets" BeforeTargets="CopelandBuildStandaloneFrontend">
+    <RemoveDir Directories="$(OutDir)wwwroot" />
+  </Target>
+
+  <Target Name="CopelandBuildStandaloneFrontend"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="BuildOnlySettings;ResolveReferences">
+    <PropertyGroup>
+      <CopelandCliOutputDirectory>$(MSBuildProjectDirectory)\..\..\..\src\Copeland\Copeland.Cli\bin\$(Configuration)\net10.0</CopelandCliOutputDirectory>
+      <CopelandGeneratorPath>$(MSBuildProjectDirectory)\Generate\bin\$(Configuration)\net10.0\StandaloneWebM0.Generate.dll</CopelandGeneratorPath>
+      <CopelandCliOutputDirectory Condition="'$(RuntimeIdentifier)' != ''">$(CopelandCliOutputDirectory)\$(RuntimeIdentifier)</CopelandCliOutputDirectory>
+      <CopelandGeneratorPath Condition="'$(RuntimeIdentifier)' != ''">$(MSBuildProjectDirectory)\Generate\bin\$(Configuration)\net10.0\$(RuntimeIdentifier)\StandaloneWebM0.Generate.dll</CopelandGeneratorPath>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(TSPackExecutable)')"
+           Text="COPE-HOST-1001: TSPack executable was not found at '$(TSPackExecutable)'. Set TSPackExecutable to a built TSPack executable." />
+    <RemoveDir Directories="$(CopelandWebStagingDirectory);$(CopelandWebGeneratedDirectory)" />
+    <MakeDir Directories="$(CopelandWebStagingDirectory);$(CopelandWebGeneratedDirectory)" />
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\frontend\compiler" />
+    <ItemGroup>
+      <CopelandStandaloneCompiler Include="$(CopelandCliOutputDirectory)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(CopelandStandaloneCompiler)"
+          DestinationFiles="@(CopelandStandaloneCompiler->'$(MSBuildProjectDirectory)\frontend\compiler\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Exec Command="&quot;$(TSPackExecutable)&quot; update --root &quot;$(MSBuildProjectDirectory)\frontend&quot;" />
+    <Exec Command="&quot;$(TSPackExecutable)&quot; sync --root &quot;$(MSBuildProjectDirectory)\frontend&quot;" />
+    <Exec Command="&quot;$(TSPackExecutable)&quot; build --root &quot;$(MSBuildProjectDirectory)\frontend&quot; browser-materialization" />
+    <ItemGroup>
+      <CopelandStandaloneTspackAsset Include="$(MSBuildProjectDirectory)\frontend\generated\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(CopelandStandaloneTspackAsset)"
+          DestinationFiles="@(CopelandStandaloneTspackAsset->'$(CopelandWebStagingDirectory)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Exec Command="dotnet exec &quot;$(CopelandGeneratorPath)&quot; --source-root &quot;$(MSBuildProjectDirectory)&quot; --web-root &quot;$(CopelandWebStagingDirectory)&quot; --generated-root &quot;$(CopelandWebGeneratedDirectory)&quot;" />
+    <ItemGroup>
+      <Compile Include="$(CopelandWebGeneratedDirectory)\*.g.cs" />
+      <FileWrites Include="$(CopelandWebGeneratedDirectory)\*.g.cs;$(CopelandWebStagingDirectory)\**\*" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopelandCopyStandaloneAssetsToBuildOutput" AfterTargets="Build" DependsOnTargets="CopelandBuildStandaloneFrontend">
+    <ItemGroup>
+      <CopelandStandaloneAsset Include="$(CopelandWebStagingDirectory)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(CopelandStandaloneAsset)"
+          DestinationFiles="@(CopelandStandaloneAsset->'$(OutDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+
+  <Target Name="CopelandCopyStandaloneAssetsToPublish"
+          AfterTargets="Publish"
+          DependsOnTargets="CopelandBuildStandaloneFrontend">
+    <ItemGroup>
+      <CopelandStandalonePublishedAsset Include="$(CopelandWebStagingDirectory)\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(CopelandStandalonePublishedAsset)"
+          DestinationFiles="@(CopelandStandalonePublishedAsset->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+</Project>

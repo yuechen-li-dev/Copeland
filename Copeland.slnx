@@ -25,5 +25,7 @@
     <Project Path="samples/copeland-ts/aspnet-bridge-m0/Host/Copeland.AspNetBridge.M0.csproj" />
     <Project Path="samples/copeland-ts/tsxml-react-m0/Copeland.TsXml.React.M0.csproj" />
     <Project Path="samples/copeland-ts/tsxml-react-m0/Host/Copeland.ReactClr.M0.Host.csproj" />
+    <Project Path="samples/copeland-ts/standalone-web-m0/Generate/StandaloneWebM0.Generate.csproj" />
+    <Project Path="samples/copeland-ts/standalone-web-m0/StandaloneWebM0.csproj" />
   </Folder>
 </Solution>
