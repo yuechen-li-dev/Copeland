@@ -1,0 +1,327 @@
+[lock]
+format = 1
+
+[[package]]
+ID = 'npm:@babel/runtime@7.29.7'
+Name = '@babel/runtime'
+Version = '7.29.7'
+Source = 'npm'
+Integrity = 'sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:4d7f1bd502a1a64d47625cc738d13284865f0666d2ed01f244de0adf05b69aa5'
+
+[[package]]
+ID = 'npm:@base-ui-components/react@1.0.0-rc.0'
+Name = '@base-ui-components/react'
+Version = '1.0.0-rc.0'
+Source = 'npm'
+Integrity = 'sha512-9lhUFbJcbXvc9KulLev1WTFxS/alJRBWDH/ibKSQaNvmDwMFS2gKp1sTeeldYSfKuS/KC1w2MZutc0wHu2hRHQ=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:fd48911d202eb7ae13e7d56888fff503f3e9037c5e4e7991536429fafd7d9931'
+
+[[package]]
+ID = 'npm:@base-ui-components/utils@0.2.2'
+Name = '@base-ui-components/utils'
+Version = '0.2.2'
+Source = 'npm'
+Integrity = 'sha512-rNJCD6TFy3OSRDKVHJDzLpxO3esTV1/drRtWNUpe7rCpPN9HZVHUCuP+6rdDYDGWfXnQHbqi05xOyRP2iZAlkw=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:d36486d55dd00295d634fc1d7a37650b1e97a93a567689d2ba37d6614d5472df'
+
+[[package]]
+ID = 'npm:@floating-ui/core@1.8.0'
+Name = '@floating-ui/core'
+Version = '1.8.0'
+Source = 'npm'
+Integrity = 'sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:c86371bdb19948a71591d36f23ec33d2b54e06503bd5c2e00a2dbbfa389622fd'
+
+[[package]]
+ID = 'npm:@floating-ui/dom@1.8.0'
+Name = '@floating-ui/dom'
+Version = '1.8.0'
+Source = 'npm'
+Integrity = 'sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:b9511cc8fd8898c7c67143ff8dd93a3d427108632c801a546ae72ab1df3cd6a5'
+
+[[package]]
+ID = 'npm:@floating-ui/react-dom@2.1.9'
+Name = '@floating-ui/react-dom'
+Version = '2.1.9'
+Source = 'npm'
+Integrity = 'sha512-JDjEFGCpImxDCA7JJKviA0M9+RtmJdj0m/NVU5IMgBK+AmZouAQQ7/+2GLH0GXXY0YMw9oXPB8hKdbPYg5QLYg=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:c60ae5915affc398222f7c24350069f2e4a3a18dd2ef641bc45ad6e0d4148739'
+
+[[package]]
+ID = 'npm:@floating-ui/utils@0.2.12'
+Name = '@floating-ui/utils'
+Version = '0.2.12'
+Source = 'npm'
+Integrity = 'sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:fe0800a3de3d9c819bf63e525bf26080ce692969dda400c715780141a187928f'
+
+[[package]]
+ID = 'npm:react-dom@19.2.7'
+Name = 'react-dom'
+Version = '19.2.7'
+Source = 'npm'
+Integrity = 'sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:e47bae602149b38b90b452c89e53d2d60639fee09361d90374983a6aac62739e'
+
+[[package]]
+ID = 'npm:react@19.2.7'
+Name = 'react'
+Version = '19.2.7'
+Source = 'npm'
+Integrity = 'sha512-HNe9WslTbXmFK8o8cmwgAeJFSBvt1bPdHCVKtaaV+WlAN36mpT4hcRpwbf3fY56ar2oIXzsBpOAiIRHAdY0OlQ=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:d0065884db7670ffb89046826995cf0d7754a31653d23908532e52671bf83d7d'
+
+[[package]]
+ID = 'npm:reselect@5.2.0'
+Name = 'reselect'
+Version = '5.2.0'
+Source = 'npm'
+Integrity = 'sha512-AgZ3UOZm3YndfrJ4OYjgrT7bmCm/1iqkjvEfH/oYjzh6PD2qw4QuT3jjnXIrpdt4MTpMXclMT3lXbmRY+XRakw=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:5bc689451f40937e96b1e0a807267e8836a4deb1e534a35f621f935584ad4721'
+
+[[package.capability]]
+kind = 'lifecycleScript'
+script = 'prepack'
+command = 'yarn build'
+
+[[package]]
+ID = 'npm:scheduler@0.27.0'
+Name = 'scheduler'
+Version = '0.27.0'
+Source = 'npm'
+Integrity = 'sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:ab26ce35ce4032f04b78cfc5bbb4cfe13358e9fe7a5433a8aa6315c3debc5095'
+
+[[package]]
+ID = 'npm:tabbable@6.5.0'
+Name = 'tabbable'
+Version = '6.5.0'
+Source = 'npm'
+Integrity = 'sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:4f017b2a4cf6395505f6cc5182a7053230e15afe27d6135c7e86794cd9c3e7f7'
+
+[[package.capability]]
+kind = 'lifecycleScript'
+script = 'prepare'
+command = 'npm run build'
+
+[[package.capability]]
+kind = 'lifecycleScript'
+script = 'prepublishOnly'
+command = 'npm run test && npm run build'
+
+[[package]]
+ID = 'npm:use-sync-external-store@1.6.0'
+Name = 'use-sync-external-store'
+Version = '1.6.0'
+Source = 'npm'
+Integrity = 'sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w=='
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = ''
+Workspace = ''
+Hash = 'sha256:4f003b4c39114ca6a6989033ae2013a583fbd4073ee40badb7dd9cbacc1af3ae'
+
+[[package]]
+ID = 'path:runtime#e10765371a768e058722b922e2a4ee56e4509883b3c94b12f77447e90e5cd101'
+Name = '@copeland/browser-v1'
+Version = ''
+Source = 'path'
+Integrity = ''
+Repo = ''
+Rev = ''
+TreeHash = ''
+Path = 'runtime'
+Workspace = ''
+Hash = 'sha256:e10765371a768e058722b922e2a4ee56e4509883b3c94b12f77447e90e5cd101'
+
+[[edge]]
+From = 'copeland-react-components-m1:target:browser'
+To = 'npm:@base-ui-components/react@1.0.0-rc.0'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'copeland-react-components-m1:target:browser'
+To = 'npm:react-dom@19.2.7'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'copeland-react-components-m1:target:browser'
+To = 'npm:react@19.2.7'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'copeland-react-components-m1:target:browser'
+To = 'path:runtime#e10765371a768e058722b922e2a4ee56e4509883b3c94b12f77447e90e5cd101'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:@babel/runtime@7.29.7'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:@base-ui-components/utils@0.2.2'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:@floating-ui/react-dom@2.1.9'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:@floating-ui/utils@0.2.12'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:reselect@5.2.0'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:tabbable@6.5.0'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/react@1.0.0-rc.0'
+To = 'npm:use-sync-external-store@1.6.0'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/utils@0.2.2'
+To = 'npm:@babel/runtime@7.29.7'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/utils@0.2.2'
+To = 'npm:@floating-ui/utils@0.2.12'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/utils@0.2.2'
+To = 'npm:reselect@5.2.0'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@base-ui-components/utils@0.2.2'
+To = 'npm:use-sync-external-store@1.6.0'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@floating-ui/core@1.8.0'
+To = 'npm:@floating-ui/utils@0.2.12'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@floating-ui/dom@1.8.0'
+To = 'npm:@floating-ui/core@1.8.0'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@floating-ui/dom@1.8.0'
+To = 'npm:@floating-ui/utils@0.2.12'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:@floating-ui/react-dom@2.1.9'
+To = 'npm:@floating-ui/dom@1.8.0'
+Kind = 'runtime'
+Optional = false
+
+[[edge]]
+From = 'npm:react-dom@19.2.7'
+To = 'npm:scheduler@0.27.0'
+Kind = 'runtime'
+Optional = false
+
+[[target]]
+Package = 'copeland-react-components-m1'
+Name = 'browser'
+Export = '.'
+Entry = 'src/Main.ts'
+Runtime = 'dist/browser/main.js'
+Types = 'dist/browser/main.d.ts'
