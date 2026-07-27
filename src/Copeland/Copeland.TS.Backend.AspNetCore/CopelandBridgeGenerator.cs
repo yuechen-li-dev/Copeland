@@ -241,10 +241,12 @@ public static class CopelandBridgeGenerator
                 : $"dto.{CSharpBackend.GeneratedFunctionName(field.Name)}!.Value"));
         string errorKind = CSharpBackend.GeneratedRecordFieldName(operation.Error.Fields[0].Id);
         string errorMessage = CSharpBackend.GeneratedRecordFieldName(operation.Error.Fields[1].Id);
+        string directCallMarker = ToCSharpLiteral($"COPELAND_CLR_DIRECT operation={operation.Id}");
         writer.WriteLine($"            {requestType} request = new({arguments});");
         writer.WriteLine("            try");
         writer.WriteLine("            {");
         writer.WriteLine($"                CopeResult<string, {CSharpBackend.GeneratedRecordTypeName(operation.Error.Id)}> result = CopelandModule.{functionName}(request);");
+        writer.WriteLine($"                Console.WriteLine({directCallMarker});");
         writer.WriteLine("                if (result.IsOk)");
         writer.WriteLine("                {");
         writer.WriteLine("                    return Results.Json(new BridgeSuccess<string>(SchemaVersion, true, result.Value));");

@@ -410,6 +410,30 @@ public static class MirLowerer
             });
         }
 
+        MirAsyncExecutionStateId LowerRecordInitializers(
+            MirRecordConstructionExpression construction,
+            int index,
+            List<MirRecordFieldValue> lowered,
+            Func<MirExpression, MirAsyncExecutionStateId> continuation)
+        {
+            if (index == construction.Initializers.Count)
+            {
+                return continuation(new MirRecordConstructionExpression(
+                    construction.RecordTypeId,
+                    lowered,
+                    construction.Type));
+            }
+
+            MirRecordFieldValue initializer = construction.Initializers[index];
+            return LowerExpression(initializer.Value, value =>
+            {
+                var nextLowered = new List<MirRecordFieldValue>(lowered.Count + 1);
+                nextLowered.AddRange(lowered);
+                nextLowered.Add(new MirRecordFieldValue(initializer.FieldId, value));
+                return LowerRecordInitializers(construction, index + 1, nextLowered, continuation);
+            });
+        }
+
         MirAsyncExecutionStateId LowerShortCircuit(
             MirBinaryExpression binary,
             Func<MirExpression, MirAsyncExecutionStateId> continuation)
@@ -511,6 +535,11 @@ public static class MirLowerer
                     continuation(new MirCallableConstructionExpression(construction.CodeFunctionName, captures, construction.CallableType))),
                 MirInvokeExpression invoke => LowerExpression(invoke.Callee, callee => LowerArguments(invoke.Arguments, 0, [], arguments =>
                     continuation(new MirInvokeExpression(callee, arguments, invoke.Type)))),
+                MirRecordConstructionExpression construction => LowerRecordInitializers(construction, 0, [], continuation),
+                MirRecordFieldAccessExpression access => LowerExpression(access.Receiver, receiver =>
+                    continuation(new MirRecordFieldAccessExpression(receiver, access.RecordTypeId, access.FieldId, access.Type))),
+                MirEnumValueExpression value => LowerArguments(value.Arguments, 0, [], arguments =>
+                    continuation(new MirEnumValueExpression(value.EnumName, value.CaseName, arguments, value.Type))),
                 MirArrayExpression array => LowerArguments(array.Elements, 0, [], elements =>
                     continuation(new MirArrayExpression(elements, array.Type))),
                 MirArrayLengthExpression length => LowerExpression(length.Receiver, receiver =>

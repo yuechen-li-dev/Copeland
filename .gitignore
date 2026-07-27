@@ -21,3 +21,10 @@ artifacts/cts-js-perf-m1/
 artifacts/cts-js-perf-m1-production-smoke/
 tests/fixtures/copeland-nuget-m1/LocalFeed/
 tests/fixtures/copeland-nuget-m1/.packages*/
+
+# TSPack and generated browser/bridge outputs for the unified React sample
+samples/copeland-ts/tsxml-react-m0/host/.tspack/
+samples/copeland-ts/tsxml-react-m0/host/node_modules/
+samples/copeland-ts/tsxml-react-m0/host/Generated/
+samples/copeland-ts/tsxml-react-m0/host/wwwroot/
+samples/copeland-ts/tsxml-react-m0/host/*.log

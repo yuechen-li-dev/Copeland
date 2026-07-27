@@ -1067,7 +1067,7 @@ public static class JavaScriptBackend
                 AddInvalid(diagnostics, $"call '{call.FunctionName}' has {call.Arguments.Count} arguments but target expects {target.Parameters.Count} in {context}");
             }
 
-            MirType targetCallType = target.IsAsync
+            MirType targetCallType = target.IsAsync || target.IsRemote
                 ? new MirAsyncType(target.ReturnType)
                 : target.ReturnType;
             RequireMatchingType(call.Type, targetCallType, $"call '{call.FunctionName}' in {context}", diagnostics);
@@ -2513,14 +2513,19 @@ public static class JavaScriptBackend
         }
 
         string parameters = string.Join(", ", function.Parameters.Select(parameter => JavaScriptIdentifierEncoder.Encode(parameter.Name)));
+        names.AsyncFrameVariables = function.Parameters
+            .Select(parameter => (parameter.Name, Slot: "parameter_" + parameter.Name))
+            .Concat(function.Locals.Select(local => (local.Name, Slot: "local_" + local.Name)))
+            .ToDictionary(item => item.Name, item => item.Slot, StringComparer.Ordinal);
         writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
         EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction);
-        writer.WriteLine($"const frame = {{ state: {entryState} }};");
+        writer.WriteLine($"const frame = {{ __cope_state: {entryState} }};");
         foreach (MirParameter parameter in function.Parameters)
         {
             string name = JavaScriptIdentifierEncoder.Encode(parameter.Name);
-            writer.WriteLine($"frame.{name} = {name};");
+            string parameterSlot = AsyncFrameSlotReference(new MirFrameSlotId("parameter_" + parameter.Name));
+            writer.WriteLine($"{parameterSlot} = {name};");
         }
         writer.WriteLine("const computation = __cope_async();");
         writer.WriteLine("function step() {");
@@ -2528,7 +2533,7 @@ public static class JavaScriptBackend
         writer.WriteLine("if (computation.completed) return;");
         writer.WriteLine("while (true) {");
         writer.Indent();
-        writer.WriteLine("switch (frame.state) {");
+        writer.WriteLine("switch (frame.__cope_state) {");
         writer.Indent();
         foreach (AsyncState state in states.OrderBy(state => state.Id))
         {
@@ -2536,7 +2541,7 @@ public static class JavaScriptBackend
             writer.Indent();
             if (state.Kind == AsyncStateKind.Branch)
             {
-                writer.WriteLine($"frame.state = {EmitAsyncExpression(state.Condition!, results, names)} ? {state.ThenState} : {state.ElseState};");
+                writer.WriteLine($"frame.__cope_state = {EmitAsyncExpression(state.Condition!, results, names)} ? {state.ThenState} : {state.ElseState};");
                 writer.WriteLine("continue;");
                 writer.Unindent();
                 writer.WriteLine("}");
@@ -2544,7 +2549,7 @@ public static class JavaScriptBackend
             }
             if (state.Kind == AsyncStateKind.Jump)
             {
-                writer.WriteLine($"frame.state = {state.NextState};");
+                writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine("continue;");
                 writer.Unindent();
                 writer.WriteLine("}");
@@ -2552,15 +2557,15 @@ public static class JavaScriptBackend
             }
             if (state.Kind == AsyncStateKind.Await)
             {
-                string pending = "__" + state.AwaitedComputationSlot!.Value.Value;
-                string resumed = "__" + state.ValueSlot!.Value.Value;
-                writer.WriteLine($"frame.{pending} = {EmitAsyncExpression(state.Expression!, results, names)};");
-                writer.WriteLine($"frame.state = {state.NextState};");
-                writer.WriteLine($"if (!frame.{pending}.subscribe(() => {{ frame.{resumed} = frame.{pending}.value; step(); }}, () => computation.cancel(), () => computation.fail(), () => computation.panic())) return;");
-                writer.WriteLine($"if (frame.{pending}.cancelled) {{ computation.cancel(); return; }}");
-                writer.WriteLine($"if (frame.{pending}.transportFailed) {{ computation.fail(); return; }}");
-                writer.WriteLine($"if (frame.{pending}.panicked) {{ computation.panic(); return; }}");
-                writer.WriteLine($"frame.{resumed} = frame.{pending}.value;");
+                string pending = AsyncFrameSlotReference(state.AwaitedComputationSlot!.Value);
+                string resumed = AsyncFrameSlotReference(state.ValueSlot!.Value);
+                writer.WriteLine($"{pending} = {EmitAsyncExpression(state.Expression!, results, names)};");
+                writer.WriteLine($"frame.__cope_state = {state.NextState};");
+                writer.WriteLine($"if (!{pending}.subscribe(() => {{ {resumed} = {pending}.value; step(); }}, () => computation.cancel(), () => computation.fail(), () => computation.panic())) return;");
+                writer.WriteLine($"if ({pending}.cancelled) {{ computation.cancel(); return; }}");
+                writer.WriteLine($"if ({pending}.transportFailed) {{ computation.fail(); return; }}");
+                writer.WriteLine($"if ({pending}.panicked) {{ computation.panic(); return; }}");
+                writer.WriteLine($"{resumed} = {pending}.value;");
                 writer.WriteLine("continue;");
                 writer.Unindent();
                 writer.WriteLine("}");
@@ -2568,8 +2573,8 @@ public static class JavaScriptBackend
             }
             if (state.Kind == AsyncStateKind.Evaluate)
             {
-                writer.WriteLine($"frame.__{state.ValueSlot!.Value.Value} = {EmitAsyncExpression(state.Expression!, results, names)};");
-                writer.WriteLine($"frame.state = {state.NextState};");
+                writer.WriteLine($"{AsyncFrameSlotReference(state.ValueSlot!.Value)} = {EmitAsyncExpression(state.Expression!, results, names)};");
+                writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine("continue;");
                 writer.Unindent();
                 writer.WriteLine("}");
@@ -2578,7 +2583,6 @@ public static class JavaScriptBackend
             if (state.Kind == AsyncStateKind.Propagate)
             {
                 string result = "__cope_propagate_" + state.Id;
-                string success = "__" + state.ValueSlot!.Value.Value;
                 writer.WriteLine($"const {result} = {EmitAsyncExpression(state.Expression!, results, names)};");
                 if (state.PropagationTarget is MirPropagationTarget.LexicalExcept)
                 {
@@ -2587,9 +2591,9 @@ public static class JavaScriptBackend
                         throw new InvalidOperationException($"Async function '{function.Name}' has a lexical Result propagation target without a validated handler state.");
                     }
 
-                    writer.WriteLine($"if ({result}.$tag !== \"ok\") {{ frame.__{state.HandlerErrorSlot.Value.Value} = {result}.$payload[0]; frame.state = {state.HandlerState}; continue; }}");
-                    writer.WriteLine($"frame.{success} = {result}.$payload[0];");
-                    writer.WriteLine($"frame.state = {state.NextState};");
+                    writer.WriteLine($"if ({result}.$tag !== \"ok\") {{ {AsyncFrameSlotReference(state.HandlerErrorSlot.Value)} = {result}.$payload[0]; frame.__cope_state = {state.HandlerState}; continue; }}");
+                    writer.WriteLine($"{AsyncFrameSlotReference(state.ValueSlot!.Value)} = {result}.$payload[0];");
+                    writer.WriteLine($"frame.__cope_state = {state.NextState};");
                     writer.WriteLine("continue;");
                     writer.Unindent();
                     writer.WriteLine("}");
@@ -2604,8 +2608,8 @@ public static class JavaScriptBackend
 
                 string errorResult = $"{names.MakeValue}({names.TypeToken(results.Get(propagatedFunctionResult))}, \"err\", [{result}.$payload[0]])";
                 writer.WriteLine($"if ({result}.$tag !== \"ok\") {{ computation.resolve({errorResult}); return; }}");
-                writer.WriteLine($"frame.{success} = {result}.$payload[0];");
-                writer.WriteLine($"frame.state = {state.NextState};");
+                writer.WriteLine($"{AsyncFrameSlotReference(state.ValueSlot!.Value)} = {result}.$payload[0];");
+                writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine("continue;");
                 writer.Unindent();
                 writer.WriteLine("}");
@@ -2614,8 +2618,9 @@ public static class JavaScriptBackend
             MirStatement statement = state.Statement!;
             if (statement is MirVariableDeclarationStatement plainDeclaration)
             {
-                writer.WriteLine($"frame.{JavaScriptIdentifierEncoder.Encode(plainDeclaration.Local.Name)} = {EmitAsyncExpression(plainDeclaration.Initializer, results, names)};");
-                writer.WriteLine($"frame.state = {state.NextState};");
+                string localSlot = AsyncFrameSlotReference(new MirFrameSlotId("local_" + plainDeclaration.Local.Name));
+                writer.WriteLine($"{localSlot} = {EmitAsyncExpression(plainDeclaration.Initializer, results, names)};");
+                writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine("continue;");
             }
             else if (statement is MirReturnStatement { Expression: not null } returned)
@@ -2631,7 +2636,7 @@ public static class JavaScriptBackend
             else if (statement is MirExpressionStatement expression)
             {
                 writer.WriteLine($"{EmitAsyncExpression(expression.Expression, results, names)};");
-                writer.WriteLine($"frame.state = {state.NextState};");
+                writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine("continue;");
             }
             writer.Unindent();
@@ -2648,6 +2653,7 @@ public static class JavaScriptBackend
         writer.WriteLine("return computation;");
         writer.Unindent();
         writer.WriteLine("}");
+        names.AsyncFrameVariables = null;
     }
 
     private static bool TryGetAsyncStates(MirAsyncExecutionPlan? plan, out List<AsyncState> states, out int entryState)
@@ -2706,6 +2712,14 @@ public static class JavaScriptBackend
         return true;
     }
 
+    private static string AsyncFrameSlotReference(MirFrameSlotId slot)
+        => "frame.__" + JavaScriptIdentifierEncoder.Encode(slot.Value);
+
+    private static string AsyncFrameVariableReference(string name, GeneratedNames names)
+        => names.AsyncFrameVariables is { } variables && variables.TryGetValue(name, out string? slot)
+            ? AsyncFrameSlotReference(new MirFrameSlotId(slot))
+            : "frame." + JavaScriptIdentifierEncoder.Encode(name);
+
     private static string EmitAsyncExpression(MirExpression expression, ResultCatalog results, GeneratedNames names)
     {
         return expression switch
@@ -2714,12 +2728,16 @@ public static class JavaScriptBackend
             MirLiteralExpression { Value: string text } => JavaScriptLiteralWriter.WriteString(text),
             MirLiteralExpression { Value: not null } literal => JavaScriptLiteralWriter.WriteNumber(literal.Value),
             MirUnitExpression => "null",
-            MirVariableExpression variable => "frame." + JavaScriptIdentifierEncoder.Encode(variable.Name),
-            MirAsyncFrameSlotExpression slot => "frame.__" + slot.SlotId.Value,
-            MirAssignmentExpression assignment => $"frame.{JavaScriptIdentifierEncoder.Encode(assignment.Name)} = {EmitAsyncExpression(assignment.Expression, results, names)}",
+            MirVariableExpression variable => AsyncFrameVariableReference(variable.Name, names),
+            MirAsyncFrameSlotExpression slot => AsyncFrameSlotReference(slot.SlotId),
+            MirAssignmentExpression assignment => $"{AsyncFrameVariableReference(assignment.Name, names)} = {EmitAsyncExpression(assignment.Expression, results, names)}",
             MirBinaryExpression binary => $"({EmitAsyncExpression(binary.Left, results, names)} {binary.Operator} {EmitAsyncExpression(binary.Right, results, names)})",
             MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, results, names)})",
             MirCallExpression call => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)))})",
+            MirInvokeExpression invoke => EmitAsyncInvoke(invoke, results, names),
+            MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, results, names),
+            MirRecordFieldAccessExpression access => EmitAsyncRecordFieldAccess(access, results, names),
+            MirEnumValueExpression value => EmitAsyncEnumValue(value, results, names),
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, results, names),
             MirNpmCallExpression npm => EmitNpmCall(npm, results, names),
             MirNpmDirectCallExpression npm => EmitNpmDirectCallValue(npm, results, names),
@@ -2727,6 +2745,39 @@ public static class JavaScriptBackend
             MirErrExpression err => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)err.Type))}, \"err\", [{EmitAsyncExpression(err.Payload, results, names)}])",
             _ => throw new InvalidOperationException($"Async expression '{expression.GetType().Name}' has not been lowered into an explicit state expression."),
         };
+    }
+
+    private static string EmitAsyncInvoke(MirInvokeExpression invoke, ResultCatalog results, GeneratedNames names)
+    {
+        string signature = invoke.Callee.Type is MirCallableType callable
+            ? CallableTypeIdentity(callable)
+            : "invalid";
+        string callee = EmitAsyncExpression(invoke.Callee, results, names);
+        string arguments = string.Join(", ", invoke.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)));
+        return $"__cope_callable_invoke({callee}, {JavaScriptLiteralWriter.WriteString(signature)}, [{arguments}])";
+    }
+
+    private static string EmitAsyncEnumValue(MirEnumValueExpression value, ResultCatalog results, GeneratedNames names)
+    {
+        string arguments = string.Join(", ", value.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)));
+        return $"{GetEnumFactoryName(value.EnumName, value.CaseName)}({arguments})";
+    }
+
+    private static string EmitAsyncRecordConstruction(MirRecordConstructionExpression construction, ResultCatalog results, GeneratedNames names)
+    {
+        string arguments = string.Join(", ", construction.Initializers.Select(initializer => EmitAsyncExpression(initializer.Value, results, names)));
+        return $"{GetRecordFactoryName(construction.RecordTypeId)}({arguments})";
+    }
+
+    private static string EmitAsyncRecordFieldAccess(MirRecordFieldAccessExpression access, ResultCatalog results, GeneratedNames names)
+    {
+        int fieldSeparator = access.FieldId.Value.LastIndexOf('f');
+        if (fieldSeparator < 0 || !int.TryParse(access.FieldId.Value[(fieldSeparator + 1)..], out int fieldIndex))
+        {
+            throw new InvalidOperationException($"Async record field '{access.FieldId.Value}' does not have a production field index.");
+        }
+
+        return $"{EmitAsyncExpression(access.Receiver, results, names)}.$f{fieldIndex}";
     }
 
     private static string EmitAsyncTsonTransport(MirTsonTransportExpression transport, ResultCatalog results, GeneratedNames names)
@@ -5260,6 +5311,8 @@ public static class JavaScriptBackend
 
     private sealed class GeneratedNames
     {
+        public Dictionary<string, string>? AsyncFrameVariables { get; set; }
+
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> typeTokens;
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> enumInstances;
         private readonly Dictionary<EnumInfo, JavaScriptBindingReference> validators;

@@ -7,6 +7,12 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Copeland\Copeland.TS\Copeland.TS.csproj" />
+    <ProjectReference Include="..\..\..\src\Copeland\Copeland.TS.Backend.AspNetCore\Copeland.TS.Backend.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\..\src\Copeland\Copeland.TS.Backend.CSharp\Copeland.TS.Backend.CSharp.csproj" />
     <ProjectReference Include="..\..\..\src\Copeland\Copeland.TS.Backend.JavaScript\Copeland.TS.Backend.JavaScript.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Host\**\*.cs" />
   </ItemGroup>
 </Project>

@@ -3656,6 +3656,12 @@ public static class Binder
                 return conversion!;
             }
 
+            if (c.Target is MemberAccessExpressionSyntax staticMember
+                && TryResolveClrTypeReference(staticMember.Target, out Type? staticType))
+            {
+                return BindClrMethodCall(c, staticType!, receiver: null, staticMember.NameToken);
+            }
+
             if (_tsXmlProfile == CopelandTsXmlProfile.ReactM0
                 && c.Target is MemberAccessExpressionSyntax reactMember)
             {
@@ -3664,12 +3670,6 @@ public static class Binder
                 {
                     return BindReactRootMember(c, reactMember, receiver);
                 }
-            }
-
-            if (c.Target is MemberAccessExpressionSyntax staticMember
-                && TryResolveClrTypeReference(staticMember.Target, out Type? staticType))
-            {
-                return BindClrMethodCall(c, staticType!, receiver: null, staticMember.NameToken);
             }
 
             if (c.Target is MemberAccessExpressionSyntax unresolvedClrMember

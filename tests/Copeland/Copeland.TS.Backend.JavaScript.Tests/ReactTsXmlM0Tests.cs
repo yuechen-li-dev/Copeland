@@ -71,4 +71,146 @@ public sealed class ReactTsXmlM0Tests
 
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-TSXML-0101");
     }
+
+    [Fact]
+    public void React_profile_preserves_direct_clr_static_calls()
+    {
+        CopelandProjectCompilation project = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource(
+                "Bridge.ts",
+                "Bridge.ts",
+                """
+                using System.Text.Json;
+                export record Request { message: string; count: int; }
+                export function Serialize(request: Request): string {
+                    return JsonSerializer.Serialize(request);
+                }
+                """),
+        ],
+        new CopelandCompilationOptions
+        {
+            TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+            ClrReferences = [new CopelandClrReference(typeof(System.Text.Json.JsonSerializer).Assembly.Location)],
+        });
+
+        Assert.True(project.Success, string.Join(Environment.NewLine, project.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Contains("System.Text.Json.JsonSerializer.Serialize", project.Compilation!.MirText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Browser_react_profile_can_await_a_declared_remote_operation()
+    {
+        CopelandProjectCompilation project = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource(
+                "Bridge.ts",
+                "Bridge.ts",
+                """
+                export record Request { message: string; count: int; }
+                export record BridgeError { kind: string; message: string; }
+                export remote function SerializeState(request: Request): string ! BridgeError {
+                    return request.message;
+                }
+                """),
+            new CopelandProjectSource(
+                "Main.ts",
+                "Main.ts",
+                """
+                import { SerializeState, BridgeError, Request } from "./Bridge";
+                async function Load(request: Request): string ! BridgeError {
+                    const serialized: string = request.message;
+                    const pending: Async<string ! BridgeError> = SerializeState({ message: serialized, count: request.count });
+                    return await pending;
+                }
+                export function Main(): void { Load({ message: "ok", count: 0 }); }
+                """),
+        ],
+        new CopelandCompilationOptions
+        {
+            TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+        });
+
+        Assert.True(project.Success, string.Join(Environment.NewLine, project.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(
+            project.MirProjectGraph!,
+            new JavaScriptEmissionOptions
+            {
+                RuntimeTarget = JavaScriptRuntimeTarget.Browser,
+                RemoteOperationRoutes = new Dictionary<string, string>
+                {
+                    ["SerializeState"] = "/serialize-state",
+                },
+            });
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Contains("SerializeState", emitted.Files["Main.js"], StringComparison.Ordinal);
+        Assert.Contains("frame.__parameter_request", emitted.Files["Main.js"], StringComparison.Ordinal);
+        Assert.Contains("frame.__local_serialized", emitted.Files["Main.js"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Browser_effect_projects_declared_bridge_failure_to_a_typed_event()
+    {
+        CopelandProjectCompilation project = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource(
+                "Bridge.ts",
+                "Bridge.ts",
+                """
+                export record Request { message: string; count: int; }
+                export record BridgeError { kind: string; message: string; }
+                export remote function SerializeState(request: Request): string ! BridgeError {
+                    return request.message;
+                }
+                """),
+            new CopelandProjectSource(
+                "Main.ts",
+                "Main.ts",
+                """
+                import { SerializeState, BridgeError, Request } from "./Bridge";
+
+                export enum AppEvent {
+                    SerializationCompleted(serialized: string),
+                    SerializationFailed(message: string),
+                }
+
+                async function SerializeEffect(send: (event: AppEvent) => void): void {
+                    try {
+                        const pending: Async<string ! BridgeError> = SerializeState({ message: "ok", count: 0 });
+                        const serialized: string = await pending?;
+                        send(AppEvent.SerializationCompleted(serialized))
+                    } except (error) {
+                        send(AppEvent.SerializationFailed("The CLR bridge request failed."))
+                    };
+                }
+
+                export function Main(): void {
+                    const send: (event: AppEvent) => void = (event: AppEvent) => {};
+                    SerializeEffect(send);
+                }
+                """),
+        ],
+        new CopelandCompilationOptions
+        {
+            TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+        });
+
+        Assert.True(project.Success, string.Join(Environment.NewLine, project.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(
+            project.MirProjectGraph!,
+            new JavaScriptEmissionOptions
+            {
+                RuntimeTarget = JavaScriptRuntimeTarget.Browser,
+                RemoteOperationRoutes = new Dictionary<string, string>
+                {
+                    ["SerializeState"] = "/serialize-state",
+                },
+            });
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        string output = emitted.Files["Main.js"];
+        Assert.Contains("SerializationFailed", output, StringComparison.Ordinal);
+        Assert.Contains("The CLR bridge request failed.", output, StringComparison.Ordinal);
+    }
 }
