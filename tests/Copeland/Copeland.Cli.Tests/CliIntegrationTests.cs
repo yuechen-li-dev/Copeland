@@ -1318,6 +1318,86 @@ function value(flag: boolean): number {
         Assert.Contains("\"Heading\"", result.StdOut, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task DatabaseBuildEmitsRepeatableExternalSegmentsAndGeneratedApi()
+    {
+        using var temp = new TempDir();
+        string schemaPath = temp.WriteFile(
+            "schema.ts",
+            """
+            const $schema: string = "copeland://experimental/cli-events/v1";
+            export record Event {
+                tenant: string;
+                year: int;
+                value: number;
+            }
+            """);
+        string definitionPath = temp.WriteFile(
+            "index.tsx",
+            """
+            export default defineDatabase(
+                <Database name="Events">
+                    <Index field="tenant">
+                        <Index field="year">
+                            <Table type={Event} />
+                        </Index>
+                    </Index>
+                </Database>
+            );
+            """);
+        string inputPath = temp.WriteFile(
+            "events.json",
+            """
+            [
+              { "tenant": "a", "year": 2025, "value": 1000 },
+              { "tenant": "a", "year": 2026, "value": 1.5 },
+              { "tenant": "a", "year": 2026, "value": 2.5 },
+              { "tenant": "b", "year": 2026, "value": 10000 }
+            ]
+            """);
+        string outputPath = Path.Combine(temp.Path, "database");
+        string generatedPath = Path.Combine(temp.Path, "generated", "EventsDatabase.g.cs");
+        string[] arguments =
+        [
+            "database",
+            "build",
+            "--schema",
+            schemaPath,
+            "--definition",
+            definitionPath,
+            "--input",
+            inputPath,
+            "--output",
+            outputPath,
+            "--generated-source",
+            generatedPath,
+        ];
+
+        CliResult first = await RunCliAsync(temp.Path, arguments);
+        byte[] firstRoot = await File.ReadAllBytesAsync(Path.Combine(outputPath, "root.index"));
+        string[] firstLeaves = Directory.GetFiles(Path.Combine(outputPath, "leaves"))
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .Select(File.ReadAllBytes)
+            .Select(Convert.ToHexString)
+            .ToArray();
+        string firstSource = await File.ReadAllTextAsync(generatedPath);
+        CliResult second = await RunCliAsync(temp.Path, arguments);
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal(0, second.ExitCode);
+        Assert.Contains("Built 4 rows into 3 leaves", first.StdOut, StringComparison.Ordinal);
+        Assert.Equal(firstRoot, await File.ReadAllBytesAsync(Path.Combine(outputPath, "root.index")));
+        Assert.Equal(
+            firstLeaves,
+            Directory.GetFiles(Path.Combine(outputPath, "leaves"))
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .Select(File.ReadAllBytes)
+                .Select(Convert.ToHexString));
+        Assert.Equal(firstSource, await File.ReadAllTextAsync(generatedPath));
+        Assert.Contains("public sealed class EventsDatabase", firstSource, StringComparison.Ordinal);
+        Assert.Contains("public double SumValue(string tenant, int year)", firstSource, StringComparison.Ordinal);
+    }
+
     private static async Task<CliResult> RunCliAsync(string workingDirectory, params string[] args)
     {
         var startInfo = new ProcessStartInfo

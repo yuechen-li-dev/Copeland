@@ -22,15 +22,16 @@ internal static class Program
 
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'markdown'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'database', 'markdown'.");
         }
 
         return args[0] switch
         {
             "compile" => RunCompile(args),
             "build" => TsclBuildContract.Run(args),
+            "database" => DatabaseCommand.Run(args),
             "markdown" => RunMarkdown(args),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'markdown'."),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'database', 'markdown'."),
         };
     }
 
