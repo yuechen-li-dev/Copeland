@@ -1008,7 +1008,7 @@ public static class MirLowerer
             BoundCallExpression c => new MirCallExpression(c.Function.EmissionName, c.Arguments.Select(LowerExpression).ToArray(), ToMirType(c.Type)),
             BoundFunctionReferenceExpression reference => new MirFunctionReferenceExpression(reference.Function.EmissionName, (MirCallableType)ToMirType(reference.Type)),
             BoundCallableConstructionExpression construction => new MirCallableConstructionExpression(
-                construction.Code.Name,
+                construction.Code.EmissionName,
                 construction.Captures.Select(LowerExpression).ToArray(),
                 (MirCallableType)ToMirType(construction.CallableType)),
             BoundInvokeExpression invoke => new MirInvokeExpression(LowerExpression(invoke.Callee), invoke.Arguments.Select(LowerExpression).ToArray(), ToMirType(invoke.Type)),
@@ -1047,6 +1047,16 @@ public static class MirLowerer
                 npm.Function.ExportName,
                 npm.Arguments.Select(LowerExpression).ToArray(),
                 ToMirType(npm.Type)),
+            BoundReactElementExpression element => new MirReactElementExpression(
+                element.CreateElementBinding,
+                element.TagName,
+                element.Properties.Select(property => new MirReactProperty(property.Name, LowerExpression(property.Value))).ToArray(),
+                element.Children.Select(LowerExpression).ToArray(),
+                ToMirType(element.Type)),
+            BoundReactRootRenderExpression render => new MirReactRootRenderExpression(
+                LowerExpression(render.Root),
+                LowerExpression(render.Node)),
+            BoundReactRootUnmountExpression unmount => new MirReactRootUnmountExpression(LowerExpression(unmount.Root)),
             BoundJavaScriptHostCallExpression host => new MirJavaScriptHostCallExpression(
                 host.Function.Name,
                 host.Function.ModuleSpecifier,

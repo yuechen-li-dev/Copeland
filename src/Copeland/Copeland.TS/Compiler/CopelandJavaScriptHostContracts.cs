@@ -44,6 +44,9 @@ public abstract record CopelandJavaScriptHostType
     /// </summary>
     public sealed record TypeParameter(string Name) : CopelandJavaScriptHostType;
 
+    /// <summary>One of the bounded opaque browser-renderer identities.</summary>
+    public sealed record Named(string Name) : CopelandJavaScriptHostType;
+
     public static Primitive Int { get; } = new("int");
     public static Primitive String { get; } = new("string");
     public static Primitive Void { get; } = new("void");

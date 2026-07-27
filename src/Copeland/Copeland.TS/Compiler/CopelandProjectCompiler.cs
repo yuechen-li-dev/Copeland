@@ -43,7 +43,7 @@ public static class CopelandProjectCompiler
         {
             BoundModuleImports imports = CreateImports(module, diagnostics);
             SyntaxTree tree = SyntaxTree.Parse(RewriteModule(module), module.Source.SourcePath);
-            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options?.PackageBackend ?? CopelandPackageBackend.Clr, module.Source.SourcePath, module.LogicalPath, imports);
+            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options?.PackageBackend ?? CopelandPackageBackend.Clr, options?.TsXmlProfile ?? CopelandTsXmlProfile.None, module.Source.SourcePath, module.LogicalPath, imports);
             module.Bound = bound;
             diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
         }
@@ -441,6 +441,11 @@ public static class CopelandProjectCompiler
             {
                 if (!duplicates.Contains(function)) continue;
                 function.EmissionName = "__cope_" + Sanitize(module.LogicalPath) + "_" + function.Name;
+            }
+
+            foreach (BoundFunctionDeclaration lifted in module.Bound.Program.Functions.Where(function => function.Symbol.Name.StartsWith("__cope_arrow_", StringComparison.Ordinal)))
+            {
+                lifted.Symbol.EmissionName = "__cope_" + Sanitize(module.LogicalPath) + "_" + lifted.Symbol.Name;
             }
         }
     }

@@ -102,6 +102,28 @@ public sealed class EnumTypeSymbol(string name, string? stableIdentity = null) :
     public void AddCase(EnumCaseSymbol @case) => _cases.Add(@case);
 }
 
+/// <summary>Opaque React values owned by the bounded React M0 profile.</summary>
+public sealed class ReactNodeTypeSymbol : TypeSymbol
+{
+    public static ReactNodeTypeSymbol Instance { get; } = new();
+    private ReactNodeTypeSymbol() { }
+    public override string Name => "ReactNode";
+}
+
+public sealed class ReactRootTypeSymbol : TypeSymbol
+{
+    public static ReactRootTypeSymbol Instance { get; } = new();
+    private ReactRootTypeSymbol() { }
+    public override string Name => "ReactRoot";
+}
+
+public sealed class ReactMountElementTypeSymbol : TypeSymbol
+{
+    public static ReactMountElementTypeSymbol Instance { get; } = new();
+    private ReactMountElementTypeSymbol() { }
+    public override string Name => "ReactMountElement";
+}
+
 public readonly record struct RecordTypeId(int Value)
 {
     public override string ToString() => $"r{Value}";

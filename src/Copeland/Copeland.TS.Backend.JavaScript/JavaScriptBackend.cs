@@ -768,6 +768,23 @@ public static class JavaScriptBackend
                     ValidateExpression(argument, functionReturnType, context, functions, catalog, diagnostics);
                 }
                 break;
+            case MirReactElementExpression element:
+                foreach (MirReactProperty property in element.Properties)
+                {
+                    ValidateExpression(property.Value, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                foreach (MirExpression child in element.Children)
+                {
+                    ValidateExpression(child, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                break;
+            case MirReactRootRenderExpression render:
+                ValidateExpression(render.Root, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(render.Node, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirReactRootUnmountExpression unmount:
+                ValidateExpression(unmount.Root, functionReturnType, context, functions, catalog, diagnostics);
+                break;
             case MirJavaScriptHostCallExpression host:
                 foreach (MirExpression argument in host.Arguments)
                 {
@@ -1128,6 +1145,8 @@ public static class JavaScriptBackend
                 return;
             case MirType { Identifier: "void" } when allowVoid:
                 return;
+            case MirType { Identifier: "ReactNode" or "ReactRoot" or "ReactMountElement" }:
+                return;
             case MirType named when named is not MirArrayType and not MirResultType && catalog.ContainsEnum(named.Identifier):
                 return;
             case MirRecordType record when catalog.ContainsRecord(record.RecordTypeId):
@@ -1421,8 +1440,13 @@ public static class JavaScriptBackend
         writer.WriteLine("let __cope_callable_runtime = globalThis[__cope_callable_runtime_key];");
         writer.WriteLine("if (__cope_callable_runtime === undefined) {");
         writer.Indent();
-        writer.WriteLine("__cope_callable_runtime = { instances: new WeakSet(), signatures: new WeakMap(), codes: new WeakMap(), environments: new WeakMap(), environmentInstances: new WeakSet(), environmentValues: new WeakMap() };");
+        writer.WriteLine("__cope_callable_runtime = { instances: new WeakSet(), signatures: new WeakMap(), codes: new WeakMap(), environments: new WeakMap(), environmentInstances: new WeakSet(), environmentValues: new WeakMap(), hostCarriers: new WeakMap() };");
         writer.WriteLine("Object.defineProperty(globalThis, __cope_callable_runtime_key, { value: __cope_callable_runtime, writable: false, enumerable: false, configurable: false });");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("else if (__cope_callable_runtime.hostCarriers === undefined) {");
+        writer.Indent();
+        writer.WriteLine("__cope_callable_runtime.hostCarriers = new WeakMap();");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine("const __cope_callable_instances = __cope_callable_runtime.instances;");
@@ -1431,6 +1455,7 @@ public static class JavaScriptBackend
         writer.WriteLine("const __cope_callable_environments = __cope_callable_runtime.environments;");
         writer.WriteLine("const __cope_callable_environment_instances = __cope_callable_runtime.environmentInstances;");
         writer.WriteLine("const __cope_callable_environment_values = __cope_callable_runtime.environmentValues;");
+        writer.WriteLine("const __cope_callable_host_carriers = __cope_callable_runtime.hostCarriers;");
         writer.WriteLine("function __cope_callable_ref(signature, code) {");
         writer.Indent();
         writer.WriteLine("const carrier = Object.create(null);");
@@ -1444,6 +1469,26 @@ public static class JavaScriptBackend
         writer.Indent();
         writer.WriteLine("if (typeof hostCallable !== \"function\") throw new Error(\"COPE-PANIC-CALLABLE: host returned a non-callable value\");");
         writer.WriteLine("return __cope_callable_ref(signature, (...argumentsInOrder) => hostCallable(...argumentsInOrder));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_callable_host_retained(signature, hostCallable) {");
+        writer.Indent();
+        writer.WriteLine("if (typeof hostCallable !== \"function\") throw new Error(\"COPE-PANIC-CALLABLE: host supplied a non-callable callback argument\");");
+        writer.WriteLine("let bySignature = __cope_callable_host_carriers.get(hostCallable);");
+        writer.WriteLine("if (bySignature === undefined) {");
+        writer.Indent();
+        writer.WriteLine("bySignature = new Map();");
+        writer.WriteLine("__cope_callable_host_carriers.set(hostCallable, bySignature);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("let carrier = bySignature.get(signature);");
+        writer.WriteLine("if (carrier === undefined) {");
+        writer.Indent();
+        writer.WriteLine("carrier = __cope_callable_host(signature, hostCallable);");
+        writer.WriteLine("bySignature.set(signature, carrier);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("return carrier;");
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine("function __cope_callable_capture(signature, code, values) {");
@@ -1477,6 +1522,7 @@ public static class JavaScriptBackend
         writer.WriteLine("const __cope_callable_instances = new WeakSet();");
         writer.WriteLine("const __cope_callable_signatures = new WeakMap();");
         writer.WriteLine("const __cope_callable_codes = new WeakMap();");
+        writer.WriteLine("const __cope_callable_host_carriers = new WeakMap();");
         if (usesCapturedCallables)
         {
             writer.WriteLine("const __cope_callable_environments = new WeakMap();");
@@ -1491,6 +1537,32 @@ public static class JavaScriptBackend
         writer.WriteLine("__cope_callable_codes.set(carrier, code);");
         writer.WriteLine("__cope_callable_instances.add(carrier);");
         writer.WriteLine("return Object.freeze(carrier);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_callable_host(signature, hostCallable) {");
+        writer.Indent();
+        writer.WriteLine("if (typeof hostCallable !== \"function\") throw new Error(\"COPE-PANIC-CALLABLE: host returned a non-callable value\");");
+        writer.WriteLine("return __cope_callable_ref(signature, (...argumentsInOrder) => hostCallable(...argumentsInOrder));");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("function __cope_callable_host_retained(signature, hostCallable) {");
+        writer.Indent();
+        writer.WriteLine("if (typeof hostCallable !== \"function\") throw new Error(\"COPE-PANIC-CALLABLE: host supplied a non-callable callback argument\");");
+        writer.WriteLine("let bySignature = __cope_callable_host_carriers.get(hostCallable);");
+        writer.WriteLine("if (bySignature === undefined) {");
+        writer.Indent();
+        writer.WriteLine("bySignature = new Map();");
+        writer.WriteLine("__cope_callable_host_carriers.set(hostCallable, bySignature);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("let carrier = bySignature.get(signature);");
+        writer.WriteLine("if (carrier === undefined) {");
+        writer.Indent();
+        writer.WriteLine("carrier = __cope_callable_host(signature, hostCallable);");
+        writer.WriteLine("bySignature.set(signature, carrier);");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("return carrier;");
         writer.Unindent();
         writer.WriteLine("}");
         if (usesCapturedCallables)
@@ -2002,7 +2074,7 @@ public static class JavaScriptBackend
         writer.WriteLine("let registration = __cope_m3_record_registry.get(id);");
         writer.WriteLine("if (registration === undefined) {");
         writer.Indent();
-        writer.WriteLine("registration = { type: Symbol(id), instances: new WeakSet(), fields: new Map() };");
+        writer.WriteLine("registration = { type: Symbol.for(\"copeland.ts.record.\" + id), instances: new WeakSet(), fields: new Map() };");
         writer.WriteLine("__cope_m3_record_registry.set(id, registration);");
         writer.Unindent();
         writer.WriteLine("}");
@@ -2807,9 +2879,70 @@ public static class JavaScriptBackend
             MirTsonTransportExpression transport => EmitTsonTransport(transport, function, catalog, results, names, flowEnabled),
             MirNpmCallExpression npm => new EmittedExpression([], EmitNpmCall(npm, results, names)),
             MirNpmDirectCallExpression npm => EmitNpmDirectCall(npm, function, catalog, results, names, flowEnabled),
+            MirReactElementExpression element => EmitReactElement(element, function, catalog, results, names, flowEnabled),
+            MirReactRootRenderExpression render => EmitReactRootRender(render, function, catalog, results, names, flowEnabled),
+            MirReactRootUnmountExpression unmount => EmitReactRootUnmount(unmount, function, catalog, results, names, flowEnabled),
             MirJavaScriptHostCallExpression host => EmitJavaScriptHostCall(host, function, catalog, results, names, flowEnabled),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
+    }
+
+    private static EmittedExpression EmitReactElement(
+        MirReactElementExpression element,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        var prelude = new List<EmittedLine>();
+        var properties = new List<string>();
+        foreach (MirReactProperty property in element.Properties.OrderBy(property => property.Name, StringComparer.Ordinal))
+        {
+            EmittedExpression value = EmitExpression(property.Value, function, catalog, results, names, flowEnabled);
+            prelude.AddRange(value.Prelude);
+            string emittedValue = property.Name == "onClick" && property.Value.Type is MirCallableType callable
+                ? "() => __cope_callable_invoke(" + value.Value + ", " + JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable)) + ", [])"
+                : value.Value;
+            properties.Add(JavaScriptIdentifierEncoder.Encode(property.Name) + ": " + emittedValue);
+        }
+
+        var children = new List<string>();
+        foreach (MirExpression child in element.Children)
+        {
+            EmittedExpression value = EmitExpression(child, function, catalog, results, names, flowEnabled);
+            prelude.AddRange(value.Prelude);
+            children.Add(value.Value);
+        }
+
+        string props = properties.Count == 0 ? "null" : "{ " + string.Join(", ", properties) + " }";
+        string args = string.Join(", ", new[] { JavaScriptLiteralWriter.WriteString(element.TagName), props }.Concat(children));
+        return new EmittedExpression(prelude, JavaScriptIdentifierEncoder.Encode(element.CreateElementBinding) + "(" + args + ")");
+    }
+
+    private static EmittedExpression EmitReactRootRender(
+        MirReactRootRenderExpression render,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression root = EmitExpression(render.Root, function, catalog, results, names, flowEnabled);
+        EmittedExpression node = EmitExpression(render.Node, function, catalog, results, names, flowEnabled);
+        return new EmittedExpression(root.Prelude.Concat(node.Prelude).ToArray(), root.Value + ".render(" + node.Value + ")");
+    }
+
+    private static EmittedExpression EmitReactRootUnmount(
+        MirReactRootUnmountExpression unmount,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression root = EmitExpression(unmount.Root, function, catalog, results, names, flowEnabled);
+        return new EmittedExpression(root.Prelude, root.Value + ".unmount()");
     }
 
     private static EmittedExpression EmitNpmDirectCall(
@@ -2847,13 +2980,22 @@ public static class JavaScriptBackend
         return CombineOrdered(arguments, names, values =>
         {
             string[] hostArguments = host.Arguments.Select((argument, index) => argument.Type is MirCallableType callable
-                ? $"(...args) => __cope_callable_invoke({values[index]}, {JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}, args)"
+                ? EmitJavaScriptHostCallbackAdapter(values[index], callable)
                 : values[index]).ToArray();
             string invocation = $"{JavaScriptIdentifierEncoder.Encode(host.LocalBinding)}({string.Join(", ", hostArguments)})";
             return host.Type is MirCallableType callable
                 ? $"__cope_callable_host({JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}, {invocation})"
                 : invocation;
         });
+    }
+
+    private static string EmitJavaScriptHostCallbackAdapter(string carrier, MirCallableType callback)
+    {
+        string signature = JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callback));
+        string[] arguments = callback.Parameters.Select((parameter, index) => parameter.Type is MirCallableType callable
+            ? $"__cope_callable_host_retained({JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}, args[{index}])"
+            : $"args[{index}]").ToArray();
+        return $"(...args) => __cope_callable_invoke({carrier}, {signature}, [{string.Join(", ", arguments)}])";
     }
 
     private static EmittedExpression EmitArrayLength(

@@ -1,5 +1,7 @@
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
+using System.Diagnostics;
+using System.Text;
 using Xunit;
 
 namespace Copeland.TS.Backend.JavaScript.Tests;
@@ -104,6 +106,124 @@ public sealed class BrowserM0EmissionTests
         Assert.Contains("dispatch(", emitted.Files["Main.js"], StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Browser_dispatch_callback_lifts_a_host_sender_to_a_retained_typed_callable()
+    {
+        CopelandProjectCompilation project = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                import { dispatchReact } from "@copeland/browser-v1";
+                record State { count: int; }
+                enum Event { Increment, }
+                function Reduce(state: State, event: Event): State { return switch event { Increment => state with { count: state.count + 1 }, }; }
+                export function Main(): void {
+                    dispatchReact<State, Event>({ count: 0 }, Reduce, capture { Event } (state: State, send: (event: Event) => void) => {
+                        send(Event.Increment);
+                    });
+                }
+                """),
+        ],
+        new CopelandCompilationOptions { JavaScriptHostModules = [BrowserReactDispatchHost] });
+
+        Assert.True(project.Success, string.Join(Environment.NewLine, project.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(
+            project.MirProjectGraph!,
+            new JavaScriptEmissionOptions { RuntimeTarget = JavaScriptRuntimeTarget.Browser });
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        string output = emitted.Files["Main.js"];
+        Assert.Contains("function __cope_callable_host_retained", output, StringComparison.Ordinal);
+        Assert.Contains("host supplied a non-callable callback argument", output, StringComparison.Ordinal);
+        Assert.Contains("let carrier = bySignature.get(signature);", output, StringComparison.Ordinal);
+        Assert.Contains("__cope_callable_host_retained(\"(named:Event)->named:void\", args[1])", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Browser_dispatch_sender_runs_one_transition_and_rejects_an_incompatible_event()
+    {
+        CopelandProjectCompilation project = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource("Main.ts", "Main.ts", """
+                import { dispatchReact } from "@fixture/browser";
+                record State { count: int; }
+                enum Event { Increment, }
+                function Reduce(state: State, event: Event): State { return switch event { Increment => state with { count: state.count + 1 }, }; }
+                export function Main(): void {
+                    const increment: Event = Event.Increment;
+                    dispatchReact<State, Event>({ count: 0 }, Reduce, capture { increment } (state: State, send: (event: Event) => void) => {
+                        if (state.count == 0) {
+                            send(increment);
+                        }
+                    });
+                }
+                """),
+        ],
+        new CopelandCompilationOptions { JavaScriptHostModules = [FixtureReactDispatchHost] });
+
+        Assert.True(project.Success, string.Join(Environment.NewLine, project.Diagnostics));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(
+            project.MirProjectGraph!,
+            new JavaScriptEmissionOptions { RuntimeTarget = JavaScriptRuntimeTarget.Browser });
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+
+        string root = Path.Combine(Path.GetTempPath(), "copeland-browser-dispatch-" + Guid.NewGuid().ToString("N"));
+        string packageRoot = Path.Combine(root, "node_modules", "@fixture", "browser");
+        Directory.CreateDirectory(packageRoot);
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(packageRoot, "package.json"), "{\"type\":\"module\",\"exports\":\"./index.js\"}", new UTF8Encoding(false));
+            await File.WriteAllTextAsync(Path.Combine(packageRoot, "index.js"), """
+                export function dispatchReact(initialState, reduce, render) {
+                    let currentState = initialState;
+                    let renderCount = 0;
+                    let transitionCount = 0;
+                    const send = event => {
+                        const nextState = reduce(currentState, event);
+                        transitionCount += 1;
+                        currentState = nextState;
+                        renderCount += 1;
+                        render(currentState, send);
+                    };
+                    renderCount += 1;
+                    render(currentState, send);
+                    let invalidRejected = false;
+                    try {
+                        send({});
+                    } catch {
+                        invalidRejected = true;
+                    }
+                    globalThis.__dispatchResult = { renderCount, transitionCount, invalidRejected };
+                    return send;
+                }
+                """, new UTF8Encoding(false));
+            await File.WriteAllTextAsync(
+                Path.Combine(root, "program.mjs"),
+                emitted.Files["Main.js"] + "\nMain();\nconsole.log(JSON.stringify(globalThis.__dispatchResult));\n",
+                new UTF8Encoding(false));
+
+            var startInfo = new ProcessStartInfo("node")
+            {
+                WorkingDirectory = root,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            };
+            startInfo.ArgumentList.Add(Path.Combine(root, "program.mjs"));
+            using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start Node.js.");
+            string stdout = await process.StandardOutput.ReadToEndAsync();
+            string stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            Assert.True(process.ExitCode == 0, stderr);
+            Assert.Equal("{\"renderCount\":2,\"transitionCount\":1,\"invalidRejected\":true}\n", stdout);
+            Assert.Equal(string.Empty, stderr);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static CopelandJavaScriptHostModuleContract BrowserHost { get; } = new(
         "@copeland/browser-m0",
         [
@@ -139,4 +259,29 @@ public sealed class BrowserM0EmissionTests
                     CopelandJavaScriptHostType.Void),
                 ["State", "Event"]),
         ]);
+
+    private static CopelandJavaScriptHostModuleContract BrowserReactDispatchHost { get; } = new(
+        "@copeland/browser-v1",
+        [
+            new CopelandJavaScriptHostFunctionContract(
+                "dispatchReact",
+                [
+                    new CopelandJavaScriptHostType.TypeParameter("State"),
+                    new CopelandJavaScriptHostType.Callable(
+                        [new CopelandJavaScriptHostType.TypeParameter("State"), new CopelandJavaScriptHostType.TypeParameter("Event")],
+                        new CopelandJavaScriptHostType.TypeParameter("State")),
+                    new CopelandJavaScriptHostType.Callable(
+                        [
+                            new CopelandJavaScriptHostType.TypeParameter("State"),
+                            new CopelandJavaScriptHostType.Callable([new CopelandJavaScriptHostType.TypeParameter("Event")], CopelandJavaScriptHostType.Void),
+                        ],
+                        CopelandJavaScriptHostType.Void),
+                ],
+                new CopelandJavaScriptHostType.Callable([new CopelandJavaScriptHostType.TypeParameter("Event")], CopelandJavaScriptHostType.Void),
+                ["State", "Event"]),
+        ]);
+
+    private static CopelandJavaScriptHostModuleContract FixtureReactDispatchHost { get; } = new(
+        "@fixture/browser",
+        BrowserReactDispatchHost.Exports);
 }

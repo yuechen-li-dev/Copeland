@@ -569,6 +569,15 @@ public sealed record MirJavaScriptHostCallExpression(
     string ExportName,
     IReadOnlyList<MirExpression> Arguments,
     MirType Type) : MirExpression(Type);
+public sealed record MirReactElementExpression(
+    string CreateElementBinding,
+    string TagName,
+    IReadOnlyList<MirReactProperty> Properties,
+    IReadOnlyList<MirExpression> Children,
+    MirType Type) : MirExpression(Type);
+public sealed record MirReactProperty(string Name, MirExpression Value);
+public sealed record MirReactRootRenderExpression(MirExpression Root, MirExpression Node) : MirExpression(new MirNamedType("void"));
+public sealed record MirReactRootUnmountExpression(MirExpression Root) : MirExpression(new MirNamedType("void"));
 public sealed record MirClrMemberIdentity(
     string AssemblyIdentity,
     string Namespace,

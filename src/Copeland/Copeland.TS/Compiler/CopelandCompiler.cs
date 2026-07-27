@@ -36,6 +36,7 @@ public static class CopelandCompiler
                     new CopelandClrMetadataResolver(effectiveOptions.ClrReferences),
                     new CopelandPackageContractMap(effectiveOptions.PackageContracts),
                     effectiveOptions.PackageBackend,
+                    effectiveOptions.TsXmlProfile,
                     effectiveOptions.SourcePath);
                 diagnostics.AddRange(boundCompilation.Diagnostics);
             }
@@ -70,6 +71,7 @@ public static class CopelandCompiler
             ModuleName = effectiveOptions.ModuleName,
             SourcePath = effectiveOptions.SourcePath,
             ProjectRoot = effectiveOptions.ProjectRoot,
+            TsXmlProfile = effectiveOptions.TsXmlProfile,
             AssetSource = effectiveOptions.AssetSource,
             NpmDependencies = effectiveOptions.NpmDependencies,
             NpmPackages = effectiveOptions.NpmPackages,

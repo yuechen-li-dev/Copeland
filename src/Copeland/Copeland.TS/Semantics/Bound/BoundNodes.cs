@@ -317,6 +317,37 @@ public sealed class BoundNpmDirectCallExpression : BoundExpression
     public IReadOnlyList<BoundExpression> Arguments { get; }
     public override TypeSymbol Type => Function.ResultType;
 }
+public sealed class BoundReactElementExpression(
+    string createElementBinding,
+    string tagName,
+    IReadOnlyList<BoundReactProperty> properties,
+    IReadOnlyList<BoundExpression> children) : BoundExpression
+{
+    public string CreateElementBinding { get; } = createElementBinding;
+    public string TagName { get; } = tagName;
+    public IReadOnlyList<BoundReactProperty> Properties { get; } = properties;
+    public IReadOnlyList<BoundExpression> Children { get; } = children;
+    public override TypeSymbol Type => ReactNodeTypeSymbol.Instance;
+}
+
+public sealed class BoundReactProperty(string name, BoundExpression value)
+{
+    public string Name { get; } = name;
+    public BoundExpression Value { get; } = value;
+}
+
+public sealed class BoundReactRootRenderExpression(BoundExpression root, BoundExpression node) : BoundExpression
+{
+    public BoundExpression Root { get; } = root;
+    public BoundExpression Node { get; } = node;
+    public override TypeSymbol Type => PrimitiveTypeSymbol.Void;
+}
+
+public sealed class BoundReactRootUnmountExpression(BoundExpression root) : BoundExpression
+{
+    public BoundExpression Root { get; } = root;
+    public override TypeSymbol Type => PrimitiveTypeSymbol.Void;
+}
 public sealed class BoundJavaScriptHostCallExpression(JavaScriptHostFunctionSymbol function, IReadOnlyList<BoundExpression> arguments) : BoundExpression
 {
     public JavaScriptHostFunctionSymbol Function { get; } = function;

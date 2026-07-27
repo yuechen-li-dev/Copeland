@@ -10,6 +10,13 @@ public sealed class CopelandCompilationOptions
 
     public string? ProjectRoot { get; init; }
 
+    /// <summary>
+    /// Selects the semantic owner for renderer-neutral TS-XML syntax. The
+    /// default deliberately remains None: a .tsx file alone never selects
+    /// React semantics.
+    /// </summary>
+    public CopelandTsXmlProfile TsXmlProfile { get; init; } = CopelandTsXmlProfile.None;
+
     public ICopelandAssetSource? AssetSource { get; init; }
 
     /// <summary>The manifest-derived, resolved npm graph consumed by this compilation.</summary>
@@ -34,4 +41,10 @@ public sealed class CopelandCompilationOptions
 
     /// <summary>Already-compiled CLR assemblies available to CLR <c>using</c> binding.</summary>
     public IReadOnlyList<CopelandClrReference> ClrReferences { get; init; } = [];
+}
+
+public enum CopelandTsXmlProfile
+{
+    None,
+    ReactM0,
 }
