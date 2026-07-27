@@ -31,7 +31,8 @@ internal static class Program
             "build" => TsclBuildContract.Run(args),
             "database" => DatabaseCommand.Run(args),
             "markdown" => RunMarkdown(args),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'database', 'markdown'."),
+            "table" => TableToolCommand.Run(args),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'database', 'markdown', 'table'."),
         };
     }
 
@@ -433,6 +434,7 @@ internal static class Program
         Console.Error.WriteLine("Usage:");
         Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic|production] [--out <path>]");
         Console.Error.WriteLine("  tscl build --project <project.json> --result <result.json>");
+        Console.Error.WriteLine("  tscl table list|schema|rows|set|add-row|delete-row|validate|export|import ...");
         Console.Error.WriteLine("  copeland markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
         Console.Error.WriteLine($"{id} error: {message}");

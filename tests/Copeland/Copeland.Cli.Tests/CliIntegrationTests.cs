@@ -1398,6 +1398,132 @@ function value(flag: boolean): number {
         Assert.Contains("public double SumValue(string tenant, int year)", firstSource, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task TableTools_ProjectBoundColumnsAsRowsAndApplyAtomicCompilerValidatedEdits()
+    {
+        using var temp = new TempDir();
+        string sourcePath = temp.WriteFile(
+            "Workbook.ts",
+            """
+            enum Department { Engineering, Sales, }
+
+            export record table Scores {
+                employeeId: int = [1, 2, 3];
+                name: string = ["Alice", "Bob", "Carol"];
+                score: number = [95.0, 81.5, 91.0];
+            }
+
+            export record table Employees {
+                id: int = [1, 2, 3];
+                name: string = ["Alice", "Bob", "Carol"];
+                department: Department = [Department.Engineering, Department.Sales, Department.Engineering];
+            }
+
+            export function bobScore(): number { return Scores.score[1]!; }
+            """);
+        string repoRoot = GetRepoRoot();
+        string taskProjectPath = Path.Combine(repoRoot, "src", "Copeland", "Copeland.TS.MSBuild", "Copeland.TS.MSBuild.csproj");
+        string taskTargetsPath = Path.Combine(repoRoot, "src", "Copeland", "Copeland.TS.MSBuild", "build", "Copeland.TS.Sdk.targets");
+        string taskAssemblyPath = Path.Combine(repoRoot, "src", "Copeland", "Copeland.TS.MSBuild", "bin", "Debug", "net10.0", "Copeland.TS.MSBuild.dll");
+        string workbookProjectPath = temp.WriteFile(
+            "Workbook.csproj",
+            $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <AssemblyName>TableToolProof</AssemblyName>
+                <RootNamespace>TableToolProof</RootNamespace>
+                <CopelandTaskAssembly>{{taskAssemblyPath}}</CopelandTaskAssembly>
+              </PropertyGroup>
+              <ItemGroup>
+                <ProjectReference Include="{{taskProjectPath}}" ReferenceOutputAssembly="false" />
+                <CopelandCompile Include="Workbook.ts" />
+                <Compile Remove="Program.cs" />
+              </ItemGroup>
+              <Import Project="{{taskTargetsPath}}" />
+            </Project>
+            """);
+        string consumerProjectPath = temp.WriteFile(
+            "Consumer.csproj",
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <ItemGroup><ProjectReference Include="Workbook.csproj" /></ItemGroup>
+            </Project>
+            """);
+        temp.WriteFile(
+            "Program.cs",
+            "using System; using Workbook = TableToolProof.Copeland.Workbook; Console.WriteLine(Workbook.bobScore().ToString(System.Globalization.CultureInfo.InvariantCulture));");
+
+        CliResult list = await RunCliAsync(temp.Path, "table", "list", sourcePath, "--format", "json");
+        CliResult schema = await RunCliAsync(temp.Path, "table", "schema", sourcePath, "Scores", "--format", "json");
+        CliResult rows = await RunCliAsync(temp.Path, "table", "rows", sourcePath, "Scores", "--format", "json");
+
+        Assert.Equal(0, list.ExitCode);
+        Assert.Equal(0, schema.ExitCode);
+        Assert.Equal(0, rows.ExitCode);
+        using (JsonDocument listJson = JsonDocument.Parse(list.StdOut))
+        {
+            Assert.Equal("Scores", listJson.RootElement.GetProperty("tables")[0].GetProperty("name").GetString());
+            Assert.Equal(3, listJson.RootElement.GetProperty("tables")[0].GetProperty("rowCount").GetInt32());
+        }
+
+        using (JsonDocument schemaJson = JsonDocument.Parse(schema.StdOut))
+        {
+            Assert.Equal("number", schemaJson.RootElement.GetProperty("columns")[2].GetProperty("type").GetString());
+        }
+
+        using (JsonDocument rowsJson = JsonDocument.Parse(rows.StdOut))
+        {
+            Assert.Equal("Bob", rowsJson.RootElement.GetProperty("rows")[1].GetProperty("values").GetProperty("name").GetString());
+        }
+
+        byte[] original = await File.ReadAllBytesAsync(sourcePath);
+        CliResult invalidValue = await RunCliAsync(temp.Path, "table", "set", sourcePath, "Scores", "--row", "1", "--column", "score", "--value", "not-a-number", "--format", "json");
+        CliResult incomplete = await RunCliAsync(temp.Path, "table", "add-row", sourcePath, "Employees", "--json", "{\"id\":4}", "--format", "json");
+        Assert.Equal(1, invalidValue.ExitCode);
+        Assert.Equal(1, incomplete.ExitCode);
+        Assert.Equal(original, await File.ReadAllBytesAsync(sourcePath));
+        Assert.Contains("COPE-TABLE-TOOL-0010", invalidValue.StdOut, StringComparison.Ordinal);
+        Assert.Contains("COPE-TABLE-TOOL-0009", incomplete.StdOut, StringComparison.Ordinal);
+
+        CliResult set = await RunCliAsync(temp.Path, "table", "set", sourcePath, "Scores", "--row", "1", "--column", "score", "--value", "84.0", "--format", "json");
+        CliResult stringSet = await RunCliAsync(temp.Path, "table", "set", sourcePath, "Scores", "--row", "1", "--column", "name", "--value", "Bob, Jr.", "--format", "json");
+        CliResult add = await RunCliAsync(temp.Path, "table", "add-row", sourcePath, "Employees", "--json", "{\"id\":4,\"name\":\"Dana\",\"department\":\"Engineering\"}", "--format", "json");
+        CliResult delete = await RunCliAsync(temp.Path, "table", "delete-row", sourcePath, "Employees", "--row", "3", "--format", "json");
+        Assert.Equal(0, set.ExitCode);
+        Assert.Equal(0, stringSet.ExitCode);
+        Assert.Equal(0, add.ExitCode);
+        Assert.Equal(0, delete.ExitCode);
+        string edited = await File.ReadAllTextAsync(sourcePath);
+        Assert.Contains("score: number = [95.0, 84.0, 91.0];", edited, StringComparison.Ordinal);
+        Assert.Contains("Department.Engineering];", edited, StringComparison.Ordinal);
+
+        string csvPath = Path.Combine(temp.Path, "Scores.csv");
+        CliResult export = await RunCliAsync(temp.Path, "table", "export", sourcePath, "Scores", "--format", "csv", "--output", csvPath, "--result-format", "json");
+        string firstCsv = await File.ReadAllTextAsync(csvPath);
+        CliResult import = await RunCliAsync(temp.Path, "table", "import", sourcePath, "Scores", "--format", "csv", "--input", csvPath, "--replace", "--dry-run", "--result-format", "json");
+        CliResult exportAgain = await RunCliAsync(temp.Path, "table", "export", sourcePath, "Scores", "--format", "csv", "--output", csvPath);
+        Assert.Equal(0, export.ExitCode);
+        Assert.Equal(0, import.ExitCode);
+        Assert.Equal(firstCsv, await File.ReadAllTextAsync(csvPath));
+        Assert.Contains("\"Bob, Jr.\"", firstCsv, StringComparison.Ordinal);
+        Assert.Contains("\"command\": \"table.export\"", export.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"command\": \"table.import\"", import.StdOut, StringComparison.Ordinal);
+
+        CliResult validation = await RunCliAsync(temp.Path, "table", "validate", sourcePath, "--format", "json");
+        CliResult csharp = await RunCliAsync(temp.Path, "compile", sourcePath, "--emit", "csharp");
+        Assert.Equal(0, validation.ExitCode);
+        Assert.Equal(0, csharp.ExitCode);
+        Assert.Contains("84", csharp.StdOut, StringComparison.Ordinal);
+
+        CliResult consumerBuild = await RunExecutableAsync("dotnet", temp.Path, "build", consumerProjectPath);
+        CliResult consumer = await RunExecutableAsync("dotnet", temp.Path, "run", "--project", consumerProjectPath, "--no-build");
+        Assert.True(consumerBuild.ExitCode == 0, consumerBuild.StdOut + consumerBuild.StdErr);
+        Assert.True(consumer.ExitCode == 0, consumer.StdOut + consumer.StdErr);
+        Assert.Equal("84\n", consumer.StdOut);
+    }
+
     private static async Task<CliResult> RunCliAsync(string workingDirectory, params string[] args)
     {
         var startInfo = new ProcessStartInfo
