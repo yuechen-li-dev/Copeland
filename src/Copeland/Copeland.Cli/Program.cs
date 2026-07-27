@@ -14,16 +14,23 @@ internal static class Program
 
     public static int Main(string[] args)
     {
+        if (args.Length == 1 && string.Equals(args[0], "--version", StringComparison.Ordinal))
+        {
+            Console.Out.WriteLine(TsclBuildContract.Version);
+            return SuccessExitCode;
+        }
+
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'markdown'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'markdown'.");
         }
 
         return args[0] switch
         {
             "compile" => RunCompile(args),
+            "build" => TsclBuildContract.Run(args),
             "markdown" => RunMarkdown(args),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'markdown'."),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'markdown'."),
         };
     }
 
@@ -424,6 +431,7 @@ internal static class Program
     {
         Console.Error.WriteLine("Usage:");
         Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic|production] [--out <path>]");
+        Console.Error.WriteLine("  tscl build --project <project.json> --result <result.json>");
         Console.Error.WriteLine("  copeland markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
         Console.Error.WriteLine($"{id} error: {message}");

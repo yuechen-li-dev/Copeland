@@ -2,12 +2,52 @@ using Xunit;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Copeland.TS.Tson;
 
 namespace Copeland.Cli.Tests;
 
 public sealed class CliIntegrationTests
 {
+    [Fact]
+    public async Task Tscl_build_emits_a_multi_module_production_node_project_and_machine_readable_manifest()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        string greetingPath = temp.WriteFile("src/Greeting.ts", "export function Greeting(name: string): string { return `Hello, ${name}`; }");
+        string mainPath = temp.WriteFile("src/Main.ts", "import { Greeting } from \"./Greeting\"; export function Main(): string { return Greeting(\"TSPack\"); }");
+        string outputDirectory = Path.Combine(temp.Path, "dist");
+        string projectPath = temp.WriteFile("project.json", JsonSerializer.Serialize(new
+        {
+            projectRoot = temp.Path,
+            sources = new[]
+            {
+                new { logicalPath = "src/Greeting.ts", path = greetingPath },
+                new { logicalPath = "src/Main.ts", path = mainPath },
+            },
+            entry = new { module = "src/Main.ts", @export = "Main" },
+            javascriptRuntime = "node",
+            javascriptProfile = "production",
+            outputDirectory,
+            entryOutputPath = "main.js",
+        }));
+        string resultPath = Path.Combine(temp.Path, "result.json");
+
+        CliResult build = await RunCliAsync(temp.Path, "build", "--project", projectPath, "--result", resultPath);
+
+        Assert.Equal(0, build.ExitCode);
+        using JsonDocument result = JsonDocument.Parse(await File.ReadAllTextAsync(resultPath));
+        Assert.True(result.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal("main.js", result.RootElement.GetProperty("entryOutputPath").GetString());
+        Assert.Contains(result.RootElement.GetProperty("outputs").EnumerateArray(), output => output.GetProperty("path").GetString() == "src/Main.js");
+        Assert.Contains("import { Greeting } from \"./Greeting.js\";", await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "Main.js")), StringComparison.Ordinal);
+        Assert.DoesNotContain("__cope_validate", await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "Main.js")), StringComparison.Ordinal);
+
+        CliResult execution = await RunExecutableAsync("node", temp.Path, Path.Combine(outputDirectory, "main.js"));
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("Hello, TSPack\n", execution.StdOut);
+    }
+
     [Fact]
     public async Task Callable_reference_cli_emission_is_repeatable_executable_and_preserves_stale_artifacts()
     {
