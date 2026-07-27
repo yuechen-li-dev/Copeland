@@ -124,6 +124,7 @@ public static class Binder
         private readonly List<BoundFlowDefinition> _flows = [];
         private readonly List<BoundStatement> _globals = [];
         private readonly List<BoundNpmImport> _npmImports = [];
+        private readonly List<BoundNpmComponentImport> _npmComponentImports = [];
         private readonly List<BoundPackageImport> _packageImports = [];
         private readonly List<BoundJavaScriptHostImport> _javaScriptHostImports = [];
         private readonly HashSet<string> _clrNamespaces = new(StringComparer.Ordinal);
@@ -244,6 +245,7 @@ public static class Binder
                     _tables,
                     _tsonEncodingPlans.Values.OrderBy(plan => plan.Id, StringComparer.Ordinal).ToArray(),
                     _npmImports.OrderBy(import => import.Function.PackageName, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray(),
+                    _npmComponentImports.OrderBy(import => import.Component.PackageName, StringComparer.Ordinal).ThenBy(import => import.Component.ExportName, StringComparer.Ordinal).ThenBy(import => import.Component.Name, StringComparer.Ordinal).ToArray(),
                     _packageImports.OrderBy(import => import.Function.PackageId, StringComparer.Ordinal).ThenBy(import => import.Function.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ToArray(),
                     _javaScriptHostImports.OrderBy(import => import.Function.ModuleSpecifier, StringComparer.Ordinal).ThenBy(import => import.Function.ExportName, StringComparer.Ordinal).ThenBy(import => import.Function.Name, StringComparer.Ordinal).ToArray(),
                     _clrNamespaces.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
@@ -2868,19 +2870,46 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
-            string tagName = element.NameToken.Text;
-            if (!IsSupportedReactIntrinsic(tagName))
+            string elementName = element.NameToken.Text;
+            bool isIntrinsic = elementName.Length > 0 && char.IsLower(elementName[0]);
+            BoundExpression elementType;
+            IReadOnlyList<NpmComponentPropertySymbol> componentProperties;
+            if (isIntrinsic)
             {
-                Report("COPE-REACT-0002", $"React TS-XML intrinsic '<{tagName}>' is not supported by the bounded React M0 profile.", element.NameToken);
+                if (!IsSupportedReactIntrinsic(elementName))
+                {
+                    Report("COPE-REACT-0002", $"React TS-XML intrinsic '<{elementName}>' is not supported by the bounded React M0 profile.", element.NameToken);
+                }
+
+                elementType = new BoundLiteralExpression(elementName, PrimitiveTypeSymbol.String);
+                componentProperties = [];
+            }
+            else if (TryResolveReactComponent(elementName, element.NameToken, out BoundExpression? resolvedComponent, out IReadOnlyList<NpmComponentPropertySymbol>? resolvedProperties))
+            {
+                elementType = resolvedComponent!;
+                componentProperties = resolvedProperties!;
+            }
+            else
+            {
+                elementType = new BoundErrorExpression();
+                componentProperties = [];
             }
 
             var properties = new List<BoundReactProperty>();
+            var seenProperties = new HashSet<string>(StringComparer.Ordinal);
             foreach (TsXmlAttributeSyntax attribute in element.Attributes)
             {
                 string propertyName = attribute.NameToken.Text;
-                if (!IsSupportedReactProperty(tagName, propertyName))
+                if (!seenProperties.Add(propertyName))
                 {
-                    Report("COPE-REACT-0003", $"React TS-XML property '{propertyName}' is not supported on '<{tagName}>' in the bounded React M0 profile.", attribute.NameToken);
+                    Report("COPE-REACT-0012", $"React TS-XML property '{propertyName}' is specified more than once on '<{elementName}>'.", attribute.NameToken);
+                    continue;
+                }
+
+                NpmComponentPropertySymbol? componentProperty = componentProperties.FirstOrDefault(property => property.Name == propertyName);
+                if (!isIntrinsic && componentProperty is null)
+                {
+                    Report("COPE-REACT-0013", $"React component '<{elementName}>' has no contracted property '{propertyName}'.", attribute.NameToken);
                     continue;
                 }
 
@@ -2890,28 +2919,78 @@ public static class Binder
                     continue;
                 }
 
-                TypeSymbol? expectedType = propertyName == "onClick"
-                    ? new CallableTypeSymbol([], PrimitiveTypeSymbol.Void)
-                    : PrimitiveTypeSymbol.String;
+                TypeSymbol expectedType = componentProperty?.Type
+                    ?? (propertyName == "onClick" ? new CallableTypeSymbol([], PrimitiveTypeSymbol.Void) : PrimitiveTypeSymbol.String);
                 BoundExpression value = attribute.ExpressionValue is not null
                     ? BindExpression(attribute.ExpressionValue, expectedType)
                     : new BoundLiteralExpression(attribute.StringValueToken!.Value, PrimitiveTypeSymbol.String);
-                bool isValidClickCallback = value.Type is CallableTypeSymbol callback
-                    && callback.Parameters.Count == 0
-                    && TypeFacts.AreEquivalent(callback.ReturnType, PrimitiveTypeSymbol.Void);
-                if (propertyName == "onClick" && !isValidClickCallback)
+                if (!IsAssignable(expectedType, value.Type))
                 {
-                    Report("COPE-REACT-0005", "React TS-XML 'onClick' requires a zero-parameter callback returning void. React's event argument is intentionally not exposed to Copeland M0 application logic.", attribute.NameToken);
-                }
-                else if (propertyName is "id" or "className" && value.Type != PrimitiveTypeSymbol.String)
-                {
-                    ReportTypeMismatch("COPE-TYPE-0005", PrimitiveTypeSymbol.String, value.Type, attribute.NameToken);
+                    ReportTypeMismatch("COPE-REACT-0014", expectedType, value.Type, attribute.NameToken);
                 }
 
                 properties.Add(new BoundReactProperty(propertyName, value));
             }
 
-            return new BoundReactElementExpression(createElement.Name, tagName, properties, BindReactChildren(element.Children));
+            if (!isIntrinsic)
+            {
+                foreach (NpmComponentPropertySymbol required in componentProperties.Where(property => property.IsRequired))
+                {
+                    if (!seenProperties.Contains(required.Name) && !(required.Name == "children" && element.Children.Count > 0))
+                    {
+                        Report("COPE-REACT-0015", $"React component '<{elementName}>' is missing required property '{required.Name}'.", element.NameToken);
+                    }
+                }
+                if (element.Children.Count > 0 && componentProperties.All(property => property.Name != "children"))
+                {
+                    Report("COPE-REACT-0016", $"React component '<{elementName}>' does not accept children in its selected contract.", element.NameToken);
+                }
+            }
+
+            return new BoundReactElementExpression(createElement.Name, elementType, isIntrinsic, properties, BindReactChildren(element.Children));
+        }
+
+        private bool TryResolveReactComponent(string elementName, SyntaxToken anchor, out BoundExpression? component, out IReadOnlyList<NpmComponentPropertySymbol>? properties)
+        {
+            component = null;
+            properties = null;
+            string[] parts = elementName.Split('.');
+            if (parts.Length == 1 && _scope.TryLookup(parts[0], out Symbol? direct) && direct is NpmComponentSymbol directComponent)
+            {
+                if (!directComponent.IsAvailableToJavaScript)
+                {
+                    Report("COPE-REACT-0017", $"React component '{elementName}' is unavailable for the JavaScript target.", anchor);
+                    return false;
+                }
+
+                component = new BoundNpmComponentValueExpression(directComponent);
+                properties = directComponent.Properties;
+                return true;
+            }
+
+            if (parts.Length == 2
+                && _scope.TryLookup(parts[0], out Symbol? namespaceSymbol)
+                && namespaceSymbol is NpmComponentSymbol namespaceComponent)
+            {
+                NpmComponentMemberSymbol? member = namespaceComponent.Members.SingleOrDefault(candidate => candidate.Name == parts[1]);
+                if (member is null)
+                {
+                    Report("COPE-REACT-0010", $"React component namespace '{parts[0]}' has no contracted member '{parts[1]}'.", anchor);
+                    return false;
+                }
+                if (!member.IsAvailableToJavaScript)
+                {
+                    Report("COPE-REACT-0017", $"React component '{elementName}' is unavailable for the JavaScript target.", anchor);
+                    return false;
+                }
+
+                component = new BoundNpmComponentMemberExpression(member);
+                properties = member.Properties;
+                return true;
+            }
+
+            Report("COPE-REACT-0008", $"Unknown React component '<{elementName}>'. Import a selected component contract before using it in TS-XML.", anchor);
+            return false;
         }
 
         private BoundExpression BindReactTsXmlFragment(TsXmlFragmentExpressionSyntax fragment)
@@ -2950,9 +3029,6 @@ public static class Binder
 
         private static bool IsSupportedReactIntrinsic(string name)
             => name is "main" or "h1" or "p" or "pre" or "button";
-
-        private static bool IsSupportedReactProperty(string tagName, string name)
-            => name is "id" or "className" || tagName == "button" && name == "onClick";
 
         private static bool IsReactChild(TypeSymbol type)
             => type == PrimitiveTypeSymbol.String || TypeFacts.IsNumeric(type) || type == ReactNodeTypeSymbol.Instance;
@@ -3064,6 +3140,7 @@ public static class Binder
                 FunctionSymbol function when function.IsGeneric => ReportOpenGenericFunctionValue(n),
                 FunctionSymbol function => new BoundFunctionReferenceExpression(function),
                 NpmFunctionSymbol => ReportNpmFunctionValue(n),
+                NpmComponentSymbol component => new BoundNpmComponentValueExpression(component),
                 JavaScriptHostFunctionSymbol => ReportJavaScriptHostFunctionValue(n),
                 _ => new BoundErrorExpression()
             };
@@ -4598,7 +4675,7 @@ public static class Binder
                         index += 2;
                     }
 
-                    if (package.Exports.Count == 0)
+                    if (package.Exports.Count == 0 && package.ComponentExports.Count == 0)
                     {
                         Report("COPE-NPM-0006", $"npm package '{packageName}' is declared but exposes no supported static contract.", exportToken);
                         continue;
@@ -4611,6 +4688,10 @@ public static class Binder
                     }
 
                     CopelandNpmFunctionContract? export = package.Exports.SingleOrDefault(candidate => candidate.ExportName == exportToken.Text);
+                    if (export is null && package.ComponentExports.Any(candidate => candidate.ExportName == exportToken.Text))
+                    {
+                        continue;
+                    }
                     if (export is null)
                     {
                         Report("COPE-NPM-0003", $"npm package '{packageName}' has no supported named export '{exportToken.Text}'.", exportToken);
@@ -4640,6 +4721,88 @@ public static class Binder
                     }
                     _npmImports.Add(new BoundNpmImport(symbol));
                 }
+
+                BindNpmComponents(package, packageName!, tokens);
+            }
+        }
+
+        private void BindNpmComponents(CopelandNpmPackageContract package, string packageName, IReadOnlyList<SyntaxToken> tokens)
+        {
+            SyntaxToken[] tokenArray = tokens.ToArray();
+            int open = Array.FindIndex(tokenArray, token => token.Kind == SyntaxKind.OpenBraceToken);
+            int close = Array.FindIndex(tokenArray, token => token.Kind == SyntaxKind.CloseBraceToken);
+            if (open < 0 || close <= open)
+            {
+                return;
+            }
+
+            SyntaxToken[] importTokens = tokens.Skip(open + 1).Take(close - open - 1).ToArray();
+            for (int index = 0; index < importTokens.Length; index++)
+            {
+                SyntaxToken exportToken = importTokens[index];
+                if (exportToken.Kind != SyntaxKind.IdentifierToken)
+                {
+                    continue;
+                }
+
+                SyntaxToken localToken = exportToken;
+                if (index + 2 < importTokens.Length
+                    && importTokens[index + 1].Kind == SyntaxKind.IdentifierToken
+                    && string.Equals(importTokens[index + 1].Text, "as", StringComparison.Ordinal)
+                    && importTokens[index + 2].Kind == SyntaxKind.IdentifierToken)
+                {
+                    localToken = importTokens[index + 2];
+                    index += 2;
+                }
+
+                CopelandNpmComponentContract? contract = package.ComponentExports.SingleOrDefault(candidate => candidate.ExportName == exportToken.Text);
+                if (contract is null)
+                {
+                    continue;
+                }
+
+                var properties = contract.ComponentProperties
+                    .Select(property => new NpmComponentPropertySymbol(property.PropertyName, ResolveNpmType(property.TypeName, exportToken), property.IsRequired))
+                    .ToArray();
+                var members = contract.CompoundMembers
+                    .Select(member => new NpmComponentMemberSymbol(
+                        member.MemberName,
+                        localToken.Text,
+                        package.PackageName,
+                        package.Version,
+                        contract.ExportName,
+                        member.Properties.Select(property => new NpmComponentPropertySymbol(property.PropertyName, ResolveNpmType(property.TypeName, exportToken), property.IsRequired)).ToArray(),
+                        package.IsAvailableToJavaScript))
+                    .ToArray();
+                var symbol = new NpmComponentSymbol(
+                    localToken.Text,
+                    package.PackageName,
+                    package.Version,
+                    contract.ExportName,
+                    properties,
+                    members,
+                    package.IsAvailableToJavaScript);
+                if (_global.TryLookup(symbol.Name, out Symbol? existing))
+                {
+                    if (existing is NpmComponentSymbol existingComponent
+                        && existingComponent.PackageName == symbol.PackageName
+                        && existingComponent.PackageVersion == symbol.PackageVersion
+                        && existingComponent.ExportName == symbol.ExportName)
+                    {
+                        continue;
+                    }
+
+                    Report("COPE-NPM-0004", $"Imported npm binding '{localToken.Text}' conflicts with an existing declaration.", localToken);
+                    continue;
+                }
+
+                if (!_global.TryDeclare(symbol))
+                {
+                    Report("COPE-NPM-0004", $"Imported npm binding '{localToken.Text}' conflicts with an existing declaration.", localToken);
+                    continue;
+                }
+
+                _npmComponentImports.Add(new BoundNpmComponentImport(symbol));
             }
         }
 
@@ -4780,6 +4943,10 @@ public static class Binder
                 if (name == "ReactRoot") return ReactRootTypeSymbol.Instance;
                 if (name == "ReactMountElement") return ReactMountElementTypeSymbol.Instance;
             }
+            if (TryResolveNpmCallableType(name, anchor, out TypeSymbol? callable))
+            {
+                return callable!;
+            }
             if (name.EndsWith("[]", StringComparison.Ordinal))
             {
                 string elementName = name[..^2];
@@ -4794,9 +4961,39 @@ public static class Binder
             if (name is "number") return PrimitiveTypeSymbol.Number;
             if (name is "string") return PrimitiveTypeSymbol.String;
             if (name is "boolean") return PrimitiveTypeSymbol.Boolean;
+            if (name is "void") return PrimitiveTypeSymbol.Void;
             if (_recordTypes.TryGetValue(name, out RecordTypeSymbol? record) && record is not ClassTypeSymbol) return record;
             Report("COPE-NPM-0005", $"npm contract type '{name}' is unsupported or not a declared flat record.", anchor);
             return PrimitiveTypeSymbol.Error;
+        }
+
+        private bool TryResolveNpmCallableType(string name, SyntaxToken anchor, out TypeSymbol? result)
+        {
+            result = null;
+            int arrow = name.IndexOf("=>", StringComparison.Ordinal);
+            if (arrow <= 0)
+            {
+                return false;
+            }
+
+            string parameterText = name[..arrow].Trim();
+            if (!parameterText.StartsWith("(", StringComparison.Ordinal) || !parameterText.EndsWith(")", StringComparison.Ordinal))
+            {
+                Report("COPE-NPM-0005", $"npm callable contract type '{name}' is malformed.", anchor);
+                result = PrimitiveTypeSymbol.Error;
+                return true;
+            }
+
+            string[] parameterNames = parameterText[1..^1].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parameters = new List<CallableParameterTypeSymbol>();
+            for (int index = 0; index < parameterNames.Length; index++)
+            {
+                TypeSymbol parameterType = ResolveNpmType(parameterNames[index], anchor);
+                parameters.Add(new CallableParameterTypeSymbol("arg" + index, parameterType));
+            }
+
+            result = new CallableTypeSymbol(parameters, ResolveNpmType(name[(arrow + 2)..].Trim(), anchor));
+            return true;
         }
 
         private BoundExpression BindNpmCall(CallExpressionSyntax call, NpmFunctionSymbol npm)

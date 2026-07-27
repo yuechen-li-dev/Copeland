@@ -142,7 +142,13 @@ internal static class TsclBuildContract
                 contract.MaterializationPath,
                 contract.Materialized,
                 IsAvailableToJavaScript: true,
-                IsAvailableToClrSidecar: false)));
+                IsAvailableToClrSidecar: false,
+                Components: contract.Components.Select(component => new CopelandNpmComponentContract(
+                    component.Name,
+                    component.Properties.Select(property => new CopelandNpmComponentPropertyContract(property.Name, property.Type, property.Required)).ToArray(),
+                    component.Members.Select(member => new CopelandNpmComponentMemberContract(
+                        member.Name,
+                        member.Properties.Select(property => new CopelandNpmComponentPropertyContract(property.Name, property.Type, property.Required)).ToArray())).ToArray())).ToArray())));
         JavaScriptRuntimeTarget runtimeTarget = request.JavaScriptRuntime == "browser"
             ? JavaScriptRuntimeTarget.Browser
             : JavaScriptRuntimeTarget.Node;
@@ -153,6 +159,7 @@ internal static class TsclBuildContract
             JavaScriptHostModules = runtimeTarget == JavaScriptRuntimeTarget.Browser
                 ? [CreateBrowserHostContract()]
                 : [],
+            TsXmlProfile = request.TsXmlProfile == "react-m0" ? CopelandTsXmlProfile.ReactM0 : CopelandTsXmlProfile.None,
         };
 
         CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(sources, options);
@@ -265,6 +272,19 @@ internal static class TsclBuildContract
                     ],
                     new CopelandJavaScriptHostType.Callable([@event], CopelandJavaScriptHostType.Void),
                     ["State", "Event"]),
+                new CopelandJavaScriptHostFunctionContract(
+                    "getMountElement",
+                    [CopelandJavaScriptHostType.String],
+                    new CopelandJavaScriptHostType.Named("ReactMountElement")),
+                new CopelandJavaScriptHostFunctionContract(
+                    "dispatchReact",
+                    [
+                        state,
+                        new CopelandJavaScriptHostType.Callable([state, @event], state),
+                        new CopelandJavaScriptHostType.Callable([state, new CopelandJavaScriptHostType.Callable([@event], CopelandJavaScriptHostType.Void)], CopelandJavaScriptHostType.Void),
+                    ],
+                    new CopelandJavaScriptHostType.Callable([@event], CopelandJavaScriptHostType.Void),
+                    ["State", "Event"]),
             ]);
     }
 
@@ -332,6 +352,7 @@ internal static class TsclBuildContract
         public TsclEntry? Entry { get; init; }
         public string JavaScriptRuntime { get; init; } = string.Empty;
         public string JavaScriptProfile { get; init; } = string.Empty;
+        public string? TsXmlProfile { get; init; }
         public string OutputDirectory { get; init; } = string.Empty;
         public string? EntryOutputPath { get; init; }
         public string? BuildFingerprint { get; init; }
@@ -357,6 +378,7 @@ internal static class TsclBuildContract
         public string? MaterializationPath { get; init; }
         public bool Materialized { get; init; }
         public List<TsclNpmExport> Exports { get; init; } = [];
+        public List<TsclNpmComponent> Components { get; init; } = [];
     }
 
     private sealed class TsclNpmExport
@@ -366,6 +388,26 @@ internal static class TsclBuildContract
         public string Result { get; init; } = string.Empty;
         public string? RemoteError { get; init; }
         public bool Promise { get; init; }
+    }
+
+    private sealed class TsclNpmComponent
+    {
+        public string Name { get; init; } = string.Empty;
+        public List<TsclNpmProperty> Properties { get; init; } = [];
+        public List<TsclNpmMember> Members { get; init; } = [];
+    }
+
+    private sealed class TsclNpmMember
+    {
+        public string Name { get; init; } = string.Empty;
+        public List<TsclNpmProperty> Properties { get; init; } = [];
+    }
+
+    private sealed class TsclNpmProperty
+    {
+        public string Name { get; init; } = string.Empty;
+        public string Type { get; init; } = string.Empty;
+        public bool Required { get; init; }
     }
 
     private sealed class TsclBuildResult

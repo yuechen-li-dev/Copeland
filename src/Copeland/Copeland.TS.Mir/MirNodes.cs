@@ -531,7 +531,8 @@ public sealed record MirNpmImport(
     string LocalBinding,
     bool IsPromise,
     bool IsAvailableToJavaScript,
-    bool IsAvailableToClrSidecar);
+    bool IsAvailableToClrSidecar,
+    bool IsComponent = false);
 public sealed record MirNpmCallExpression(
     string LocalBinding,
     string PackageName,
@@ -552,6 +553,13 @@ public sealed record MirNpmDirectCallExpression(
     string ExportName,
     IReadOnlyList<MirExpression> Arguments,
     MirType ResultType) : MirExpression(ResultType);
+public sealed record MirNpmComponentExpression(
+    string LocalBinding,
+    string PackageName,
+    string PackageVersion,
+    string ExportName,
+    string? MemberName,
+    MirType Type) : MirExpression(Type);
 public sealed record MirJavaScriptHostImport(
     string ModuleSpecifier,
     string ExportName,
@@ -573,7 +581,8 @@ public sealed record MirJavaScriptHostCallExpression(
     MirType Type) : MirExpression(Type);
 public sealed record MirReactElementExpression(
     string CreateElementBinding,
-    string TagName,
+    MirExpression ElementType,
+    bool IsIntrinsic,
     IReadOnlyList<MirReactProperty> Properties,
     IReadOnlyList<MirExpression> Children,
     MirType Type) : MirExpression(Type);

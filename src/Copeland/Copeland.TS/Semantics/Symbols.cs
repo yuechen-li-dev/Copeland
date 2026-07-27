@@ -72,6 +72,67 @@ public sealed class NpmFunctionSymbol : Symbol
             : new AsyncTypeSymbol(new ResultTypeSymbol(ResultType, RemoteErrorType));
 }
 
+public sealed class NpmComponentSymbol : Symbol
+{
+    public NpmComponentSymbol(
+        string name,
+        string packageName,
+        string packageVersion,
+        string exportName,
+        IReadOnlyList<NpmComponentPropertySymbol> properties,
+        IReadOnlyList<NpmComponentMemberSymbol> members,
+        bool isAvailableToJavaScript)
+        : base(name)
+    {
+        PackageName = packageName;
+        PackageVersion = packageVersion;
+        ExportName = exportName;
+        Properties = properties;
+        Members = members;
+        IsAvailableToJavaScript = isAvailableToJavaScript;
+    }
+
+    public string PackageName { get; }
+    public string PackageVersion { get; }
+    public string ExportName { get; }
+    public IReadOnlyList<NpmComponentPropertySymbol> Properties { get; }
+    public IReadOnlyList<NpmComponentMemberSymbol> Members { get; }
+    public bool IsAvailableToJavaScript { get; }
+}
+
+public sealed class NpmComponentMemberSymbol(
+    string name,
+    string localBinding,
+    string packageName,
+    string packageVersion,
+    string exportName,
+    IReadOnlyList<NpmComponentPropertySymbol> properties,
+    bool isAvailableToJavaScript) : Symbol(name)
+{
+    public string LocalBinding { get; } = localBinding;
+    public string PackageName { get; } = packageName;
+    public string PackageVersion { get; } = packageVersion;
+    public string ExportName { get; } = exportName;
+    public IReadOnlyList<NpmComponentPropertySymbol> Properties { get; } = properties;
+    public bool IsAvailableToJavaScript { get; } = isAvailableToJavaScript;
+}
+
+public sealed record NpmComponentPropertySymbol(string Name, TypeSymbol Type, bool IsRequired);
+
+public sealed class NpmComponentNamespaceTypeSymbol : TypeSymbol
+{
+    public NpmComponentNamespaceTypeSymbol(NpmComponentSymbol component) => Component = component;
+    public NpmComponentSymbol Component { get; }
+    public override string Name => "ReactComponentNamespace<" + Component.ExportName + ">";
+}
+
+public sealed class ReactComponentTypeSymbol : TypeSymbol
+{
+    public ReactComponentTypeSymbol(NpmComponentMemberSymbol component) => Component = component;
+    public NpmComponentMemberSymbol Component { get; }
+    public override string Name => "ReactComponent<" + Component.Name + ">";
+}
+
 /// <summary>A statically bound function exported by a Copeland NuGet package module.</summary>
 public sealed class CopelandPackageFunctionSymbol(
     string name,

@@ -14,7 +14,11 @@ public sealed record CopelandNpmPackageContract(
     string? MaterializationPath = null,
     bool IsMaterialized = true,
     bool IsAvailableToJavaScript = true,
-    bool IsAvailableToClrSidecar = true);
+    bool IsAvailableToClrSidecar = true,
+    IReadOnlyList<CopelandNpmComponentContract>? Components = null)
+{
+    public IReadOnlyList<CopelandNpmComponentContract> ComponentExports { get; } = Components ?? [];
+}
 
 public sealed record CopelandNpmFunctionContract(
     string ExportName,
@@ -22,6 +26,29 @@ public sealed record CopelandNpmFunctionContract(
     string ResultType,
     string? RemoteErrorType = null,
     bool IsPromise = false);
+
+/// <summary>
+/// A deliberately bounded projection of a React component export. This is not
+/// a TypeScript declaration model: it names only the component values and
+/// props selected by the package owner for this Copeland target.
+/// </summary>
+public sealed record CopelandNpmComponentContract(
+    string ExportName,
+    IReadOnlyList<CopelandNpmComponentPropertyContract>? Properties = null,
+    IReadOnlyList<CopelandNpmComponentMemberContract>? Members = null)
+{
+    public IReadOnlyList<CopelandNpmComponentPropertyContract> ComponentProperties { get; } = Properties ?? [];
+    public IReadOnlyList<CopelandNpmComponentMemberContract> CompoundMembers { get; } = Members ?? [];
+}
+
+public sealed record CopelandNpmComponentMemberContract(
+    string MemberName,
+    IReadOnlyList<CopelandNpmComponentPropertyContract> Properties);
+
+public sealed record CopelandNpmComponentPropertyContract(
+    string PropertyName,
+    string TypeName,
+    bool IsRequired = false);
 
 /// <summary>
 /// The compilation-owned projection of validated manifest IR.  Tests may inject
@@ -77,7 +104,8 @@ public static class CopelandNpmManifestProjection
                 bool clr = !TryGetBoolean(row, "clrSidecarAvailable", out bool clrValue) || clrValue;
                 string? materializationPath = TryGetString(row, "materialization", out string? path) ? path : null;
                 IReadOnlyList<CopelandNpmFunctionContract> exports = ReadExports(row);
-                packages.Add(new CopelandNpmPackageContract(packageName!, version!, exports, materializationPath, materialized, javascript, clr));
+                IReadOnlyList<CopelandNpmComponentContract> components = ReadComponents(row);
+                packages.Add(new CopelandNpmPackageContract(packageName!, version!, exports, materializationPath, materialized, javascript, clr, components));
             }
         }
 
@@ -109,6 +137,78 @@ public static class CopelandNpmManifestProjection
             string? remoteError = TryGetString(contract, "remoteError", out string? error) ? error : null;
             bool isPromise = TryGetBoolean(contract, "promise", out bool promise) && promise;
             result.Add(new CopelandNpmFunctionContract(name!, parameters, resultType!, remoteError, isPromise));
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<CopelandNpmComponentContract> ReadComponents(ManifestValue.Object row)
+    {
+        if (!row.Properties.TryGetValue("components", out ManifestValue? value)
+            || value is not ManifestValue.Array components)
+        {
+            return [];
+        }
+
+        var result = new List<CopelandNpmComponentContract>();
+        foreach (ManifestValue entry in components.Values)
+        {
+            if (entry is not ManifestValue.Object component
+                || !TryGetString(component, "name", out string? name))
+            {
+                continue;
+            }
+
+            result.Add(new CopelandNpmComponentContract(
+                name!,
+                ReadComponentProperties(component, "properties"),
+                ReadComponentMembers(component)));
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<CopelandNpmComponentMemberContract> ReadComponentMembers(ManifestValue.Object component)
+    {
+        if (!component.Properties.TryGetValue("members", out ManifestValue? value)
+            || value is not ManifestValue.Array members)
+        {
+            return [];
+        }
+
+        var result = new List<CopelandNpmComponentMemberContract>();
+        foreach (ManifestValue entry in members.Values)
+        {
+            if (entry is ManifestValue.Object member
+                && TryGetString(member, "name", out string? name))
+            {
+                result.Add(new CopelandNpmComponentMemberContract(name!, ReadComponentProperties(member, "properties")));
+            }
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<CopelandNpmComponentPropertyContract> ReadComponentProperties(ManifestValue.Object owner, string propertyName)
+    {
+        if (!owner.Properties.TryGetValue(propertyName, out ManifestValue? value)
+            || value is not ManifestValue.Array properties)
+        {
+            return [];
+        }
+
+        var result = new List<CopelandNpmComponentPropertyContract>();
+        foreach (ManifestValue entry in properties.Values)
+        {
+            if (entry is not ManifestValue.Object property
+                || !TryGetString(property, "name", out string? name)
+                || !TryGetString(property, "type", out string? type))
+            {
+                continue;
+            }
+
+            bool required = TryGetBoolean(property, "required", out bool requiredValue) && requiredValue;
+            result.Add(new CopelandNpmComponentPropertyContract(name!, type!, required));
         }
 
         return result;

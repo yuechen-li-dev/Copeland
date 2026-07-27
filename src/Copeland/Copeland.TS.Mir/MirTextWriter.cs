@@ -224,6 +224,8 @@ public static class MirTextWriter
         MirNumericConversionExpression conversion => $"{conversion.Kind}({FormatExpression(conversion.Operand)})",
         MirUnitExpression => "unit",
         MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
+        MirNpmComponentExpression component => $"npm-component {component.PackageName}@{component.PackageVersion}:{component.ExportName}{(component.MemberName is null ? string.Empty : "." + component.MemberName)}",
+        MirReactElementExpression element => $"react-element {FormatExpression(element.ElementType)}({string.Join(", ", element.Properties.Select(property => property.Name))})",
         MirClrInvocationExpression invocation => $"clr-call [{invocation.Member.AssemblyIdentity}] {invocation.Member.DeclaringType}.{invocation.Member.MemberName}{FormatClrGenericArguments(invocation.Member.GenericArguments)}({string.Join(", ", invocation.Arguments.Select(FormatExpression))})",
         MirClrPropertyAccessExpression property => $"clr-property [{property.Property.AssemblyIdentity}] {property.Property.DeclaringType}.{property.Property.MemberName}",
         MirFunctionReferenceExpression reference => $"function-ref {reference.FunctionName} : {reference.CallableType.Name}",

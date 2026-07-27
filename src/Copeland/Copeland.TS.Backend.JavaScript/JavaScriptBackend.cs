@@ -811,7 +811,10 @@ public static class JavaScriptBackend
                     ValidateExpression(argument, functionReturnType, context, functions, catalog, diagnostics);
                 }
                 break;
+            case MirNpmComponentExpression:
+                break;
             case MirReactElementExpression element:
+                ValidateExpression(element.ElementType, functionReturnType, context, functions, catalog, diagnostics);
                 foreach (MirReactProperty property in element.Properties)
                 {
                     ValidateExpression(property.Value, functionReturnType, context, functions, catalog, diagnostics);
@@ -1737,6 +1740,9 @@ public static class JavaScriptBackend
         MirUnaryExpression unary => ExpressionUsesCallables(unary.Operand),
         MirBinaryExpression binary => ExpressionUsesCallables(binary.Left) || ExpressionUsesCallables(binary.Right),
         MirCallExpression call => call.Arguments.Any(ExpressionUsesCallables),
+        MirReactElementExpression element => ExpressionUsesCallables(element.ElementType)
+            || element.Properties.Any(property => ExpressionUsesCallables(property.Value))
+            || element.Children.Any(ExpressionUsesCallables),
         MirArrayExpression array => array.Elements.Any(ExpressionUsesCallables),
         MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesCallables(initializer.Value)),
         MirRecordFieldAccessExpression access => ExpressionUsesCallables(access.Receiver),
@@ -3044,6 +3050,7 @@ public static class JavaScriptBackend
             MirTsonTransportExpression transport => EmitTsonTransport(transport, function, catalog, results, names, flowEnabled),
             MirNpmCallExpression npm => new EmittedExpression([], EmitNpmCall(npm, results, names)),
             MirNpmDirectCallExpression npm => EmitNpmDirectCall(npm, function, catalog, results, names, flowEnabled),
+            MirNpmComponentExpression component => EmitNpmComponent(component, function, catalog, results, names, flowEnabled),
             MirReactElementExpression element => EmitReactElement(element, function, catalog, results, names, flowEnabled),
             MirReactRootRenderExpression render => EmitReactRootRender(render, function, catalog, results, names, flowEnabled),
             MirReactRootUnmountExpression unmount => EmitReactRootUnmount(unmount, function, catalog, results, names, flowEnabled),
@@ -3061,13 +3068,15 @@ public static class JavaScriptBackend
         bool flowEnabled)
     {
         var prelude = new List<EmittedLine>();
+        EmittedExpression elementType = EmitExpression(element.ElementType, function, catalog, results, names, flowEnabled);
+        prelude.AddRange(elementType.Prelude);
         var properties = new List<string>();
         foreach (MirReactProperty property in element.Properties.OrderBy(property => property.Name, StringComparer.Ordinal))
         {
             EmittedExpression value = EmitExpression(property.Value, function, catalog, results, names, flowEnabled);
             prelude.AddRange(value.Prelude);
-            string emittedValue = property.Name == "onClick" && property.Value.Type is MirCallableType callable
-                ? "() => __cope_callable_invoke(" + value.Value + ", " + JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable)) + ", [])"
+            string emittedValue = property.Value.Type is MirCallableType callable
+                ? EmitReactCallbackAdapter(value.Value, callable)
                 : value.Value;
             properties.Add(JavaScriptIdentifierEncoder.Encode(property.Name) + ": " + emittedValue);
         }
@@ -3081,8 +3090,54 @@ public static class JavaScriptBackend
         }
 
         string props = properties.Count == 0 ? "null" : "{ " + string.Join(", ", properties) + " }";
-        string args = string.Join(", ", new[] { JavaScriptLiteralWriter.WriteString(element.TagName), props }.Concat(children));
+        string componentValue = element.IsIntrinsic ? elementType.Value : EmitReactComponentValue(element.ElementType, elementType.Value);
+        string args = string.Join(", ", new[] { componentValue, props }.Concat(children));
         return new EmittedExpression(prelude, JavaScriptIdentifierEncoder.Encode(element.CreateElementBinding) + "(" + args + ")");
+    }
+
+    private static string EmitReactComponentValue(MirExpression elementType, string value)
+        => elementType is MirNpmComponentExpression { MemberName: not null } component
+            ? value + "." + JavaScriptIdentifierEncoder.Encode(component.MemberName!)
+            : value;
+
+    private static string EmitReactCallbackAdapter(string carrier, MirCallableType callable)
+    {
+        string signature = JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable));
+        if (callable.Parameters.Count == 0)
+        {
+            return "() => __cope_callable_invoke(" + carrier + ", " + signature + ", [])";
+        }
+
+        (string Value, string Validation)[] arguments = callable.Parameters.Select((parameter, index) =>
+            EmitReactCallbackArgument(parameter.Type, index)).ToArray();
+        return "(...args) => { " + string.Join(" ", arguments.Select(argument => argument.Validation))
+            + " return __cope_callable_invoke(" + carrier + ", " + signature + ", ["
+            + string.Join(", ", arguments.Select(argument => argument.Value)) + "]); }";
+    }
+
+    private static (string Value, string Validation) EmitReactCallbackArgument(MirType type, int index)
+    {
+        string value = "args[" + index + "]";
+        string validation = type.Identifier switch
+        {
+            "boolean" => "if (typeof " + value + " !== \"boolean\") throw new TypeError(\"COPE-PANIC-CALLABLE: expected boolean callback argument\");",
+            "string" => "if (typeof " + value + " !== \"string\") throw new TypeError(\"COPE-PANIC-CALLABLE: expected string callback argument\");",
+            "number" or "float" or "int" => "if (typeof " + value + " !== \"number\") throw new TypeError(\"COPE-PANIC-CALLABLE: expected numeric callback argument\");",
+            _ => string.Empty,
+        };
+        return (value, validation);
+    }
+
+    private static EmittedExpression EmitNpmComponent(
+        MirNpmComponentExpression component,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        string local = JavaScriptIdentifierEncoder.Encode(component.LocalBinding);
+        return new EmittedExpression([], component.MemberName is null ? local : local);
     }
 
     private static EmittedExpression EmitReactRootRender(

@@ -342,6 +342,17 @@ public static class MirValidator
                 diagnostics.Add(new MirValidationDiagnostic($"npm direct call '{direct.LocalBinding}' does not resolve to module import metadata."));
             }
         }
+        if (expression is MirNpmComponentExpression component)
+        {
+            if (!imports.TryGetValue(component.LocalBinding, out MirNpmImport? import)
+                || import.PackageName != component.PackageName
+                || import.PackageVersion != component.PackageVersion
+                || import.ExportName != component.ExportName
+                || !import.IsComponent)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"npm component '{component.LocalBinding}' does not resolve to component import metadata."));
+            }
+        }
         foreach (MirExpression child in EnumerateTsonExpressionChildren(expression))
         {
             ValidateNpmCalls(child, imports, diagnostics);
@@ -1239,6 +1250,10 @@ public static class MirValidator
             MirTsonTransportExpression transport => [transport.Operation, transport.Request],
             MirNpmCallExpression npm => npm.Arguments.Append(npm.ArgumentTuple),
             MirNpmDirectCallExpression npm => npm.Arguments,
+            MirNpmComponentExpression => [],
+            MirReactElementExpression element => new[] { element.ElementType }
+                .Concat(element.Properties.Select(property => property.Value))
+                .Concat(element.Children),
             MirAssignmentExpression assignment => [assignment.Expression],
             MirUnaryExpression unary => [unary.Operand],
             MirBinaryExpression binary => [binary.Left, binary.Right],

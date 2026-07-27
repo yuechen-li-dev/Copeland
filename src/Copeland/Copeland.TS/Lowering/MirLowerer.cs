@@ -42,7 +42,15 @@ public static class MirLowerer
             import.Function.Name,
             import.Function.IsPromise,
             import.Function.IsAvailableToJavaScript,
-            import.Function.IsAvailableToClrSidecar)).ToArray();
+            import.Function.IsAvailableToClrSidecar)).Concat(program.NpmComponentImports.Select(import => new MirNpmImport(
+                import.Component.PackageName,
+                import.Component.PackageVersion,
+                import.Component.ExportName,
+                import.Component.Name,
+                false,
+                import.Component.IsAvailableToJavaScript,
+                false,
+                true))).ToArray();
         MirJavaScriptHostImport[] javaScriptHostImports = program.JavaScriptHostImports.Select(import => new MirJavaScriptHostImport(
             import.Function.ModuleSpecifier,
             import.Function.ExportName,
@@ -1077,9 +1085,24 @@ public static class MirLowerer
                 npm.Function.ExportName,
                 npm.Arguments.Select(LowerExpression).ToArray(),
                 ToMirType(npm.Type)),
+            BoundNpmComponentValueExpression component => new MirNpmComponentExpression(
+                component.Component.Name,
+                component.Component.PackageName,
+                component.Component.PackageVersion,
+                component.Component.ExportName,
+                null,
+                ToMirType(component.Type)),
+            BoundNpmComponentMemberExpression component => new MirNpmComponentExpression(
+                component.Component.LocalBinding,
+                component.Component.PackageName,
+                component.Component.PackageVersion,
+                component.Component.ExportName,
+                component.Component.Name,
+                ToMirType(component.Type)),
             BoundReactElementExpression element => new MirReactElementExpression(
                 element.CreateElementBinding,
-                element.TagName,
+                LowerExpression(element.ElementType),
+                element.IsIntrinsic,
                 element.Properties.Select(property => new MirReactProperty(property.Name, LowerExpression(property.Value))).ToArray(),
                 element.Children.Select(LowerExpression).ToArray(),
                 ToMirType(element.Type)),

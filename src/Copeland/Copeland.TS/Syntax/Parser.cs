@@ -2561,7 +2561,26 @@ public sealed class Parser
     {
         if (IsTsXmlName(Current))
         {
-            return NextToken();
+            SyntaxToken first = NextToken();
+            if (Current.Kind != SyntaxKind.DotToken)
+            {
+                return first;
+            }
+
+            var parts = new List<string> { first.Text };
+            while (Current.Kind == SyntaxKind.DotToken)
+            {
+                NextToken();
+                if (!IsTsXmlName(Current))
+                {
+                    ReportTsXml("COPE-TSXML-0002", "Expected an identifier after '.' in a qualified TS-XML name.", Current);
+                    break;
+                }
+
+                parts.Add(NextToken().Text);
+            }
+
+            return new SyntaxToken(SyntaxKind.IdentifierToken, first.Position, string.Join(".", parts), null);
         }
 
         ReportTsXml("COPE-TSXML-0002", message, Current);

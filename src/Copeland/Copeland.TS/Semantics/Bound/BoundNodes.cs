@@ -16,6 +16,7 @@ public sealed class BoundProgram
         IReadOnlyList<BoundTableDefinition>? tables = null,
         IReadOnlyList<BoundTsonEncodingPlan>? tsonEncodingPlans = null,
         IReadOnlyList<BoundNpmImport>? npmImports = null,
+        IReadOnlyList<BoundNpmComponentImport>? npmComponentImports = null,
         IReadOnlyList<BoundPackageImport>? packageImports = null,
         IReadOnlyList<BoundJavaScriptHostImport>? javaScriptHostImports = null,
         IReadOnlyList<string>? csharpUsings = null,
@@ -29,6 +30,7 @@ public sealed class BoundProgram
         Tables = tables ?? [];
         TsonEncodingPlans = tsonEncodingPlans ?? [];
         NpmImports = npmImports ?? [];
+        NpmComponentImports = npmComponentImports ?? [];
         PackageImports = packageImports ?? [];
         JavaScriptHostImports = javaScriptHostImports ?? [];
         CSharpUsings = csharpUsings ?? [];
@@ -42,6 +44,7 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundTableDefinition> Tables { get; }
     public IReadOnlyList<BoundTsonEncodingPlan> TsonEncodingPlans { get; }
     public IReadOnlyList<BoundNpmImport> NpmImports { get; }
+    public IReadOnlyList<BoundNpmComponentImport> NpmComponentImports { get; }
     public IReadOnlyList<BoundPackageImport> PackageImports { get; }
     public IReadOnlyList<BoundJavaScriptHostImport> JavaScriptHostImports { get; }
     public IReadOnlyList<string> CSharpUsings { get; }
@@ -52,6 +55,11 @@ public sealed class BoundProgram
 public sealed class BoundNpmImport(NpmFunctionSymbol function)
 {
     public NpmFunctionSymbol Function { get; } = function;
+}
+
+public sealed class BoundNpmComponentImport(NpmComponentSymbol component)
+{
+    public NpmComponentSymbol Component { get; } = component;
 }
 
 public sealed class BoundPackageImport(CopelandPackageFunctionSymbol function)
@@ -317,14 +325,27 @@ public sealed class BoundNpmDirectCallExpression : BoundExpression
     public IReadOnlyList<BoundExpression> Arguments { get; }
     public override TypeSymbol Type => Function.ResultType;
 }
+public sealed class BoundNpmComponentValueExpression(NpmComponentSymbol component) : BoundExpression
+{
+    public NpmComponentSymbol Component { get; } = component;
+    public override TypeSymbol Type => new NpmComponentNamespaceTypeSymbol(Component);
+}
+
+public sealed class BoundNpmComponentMemberExpression(NpmComponentMemberSymbol component) : BoundExpression
+{
+    public NpmComponentMemberSymbol Component { get; } = component;
+    public override TypeSymbol Type => new ReactComponentTypeSymbol(Component);
+}
 public sealed class BoundReactElementExpression(
     string createElementBinding,
-    string tagName,
+    BoundExpression elementType,
+    bool isIntrinsic,
     IReadOnlyList<BoundReactProperty> properties,
     IReadOnlyList<BoundExpression> children) : BoundExpression
 {
     public string CreateElementBinding { get; } = createElementBinding;
-    public string TagName { get; } = tagName;
+    public BoundExpression ElementType { get; } = elementType;
+    public bool IsIntrinsic { get; } = isIntrinsic;
     public IReadOnlyList<BoundReactProperty> Properties { get; } = properties;
     public IReadOnlyList<BoundExpression> Children { get; } = children;
     public override TypeSymbol Type => ReactNodeTypeSymbol.Instance;
