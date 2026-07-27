@@ -189,4 +189,59 @@ public sealed class TableFeatureTests
 
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == diagnosticId);
     }
+
+    [Fact]
+    public void Table_with_replaces_authored_columns_and_preserves_nominal_identity()
+    {
+        const string source = """
+            record table Scores {
+                name: string = ["Alice", "Bob", "Carol"];
+                score: number = [95.0, 81.5, 91.0];
+            }
+
+            function revised(): Scores {
+                return Scores with {
+                    score: [95.0, 84.0, 91.0]
+                };
+            }
+            """;
+
+        CopelandCompilation first = CopelandCompiler.CompileToMir(source);
+        CopelandCompilation second = CopelandCompiler.CompileToMir(source);
+
+        Assert.True(first.Success, string.Join(Environment.NewLine, first.Diagnostics));
+        Assert.Equal(first.MirText, second.MirText);
+        BoundReturnStatement returned = Assert.IsType<BoundReturnStatement>(
+            Assert.Single(first.BoundCompilation!.Program.Functions).Body.Statements[0]);
+        BoundTableWithExpression update = Assert.IsType<BoundTableWithExpression>(returned.Expression);
+        Assert.Equal("Scores", update.TableType.Name);
+        Assert.Equal("score", Assert.Single(update.Replacements).Column.Name);
+        Assert.Equal(3, Assert.Single(update.Replacements).Value.Elements.Count);
+        Assert.Contains(
+            "table-with [t1] table-ref [t1] { t1.c1: [95, 84, 91] }",
+            first.MirText,
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(
+        "record table Scores { score: number = [1, 2, 3]; } function revised(): Scores { return Scores with { score: [1, 2] }; }",
+        "COPE-TABLE-0008")]
+    [InlineData(
+        "record table Scores { score: number = [1, 2, 3]; } function revised(values: number[]): Scores { return Scores with { score: values }; }",
+        "COPE-TABLE-0022")]
+    [InlineData(
+        "record table Scores { score: number = [1, 2, 3]; } function revised(): Scores { return Scores with { score: [1, \"bad\", 3] }; }",
+        "COPE-TYPE-0009")]
+    public void Table_with_rejects_ragged_nonliteral_and_wrong_element_replacements(
+        string source,
+        string diagnosticId)
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        var diagnostic = Assert.Single(
+            compilation.Diagnostics,
+            candidate => candidate.Id == diagnosticId);
+        Assert.True(diagnostic.Position > 0);
+    }
 }

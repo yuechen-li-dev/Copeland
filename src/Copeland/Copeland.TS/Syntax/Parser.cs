@@ -86,6 +86,7 @@ public sealed class Parser
 
     private MemberSyntax ParseMember()
     {
+        bool isExported = false;
         if (IsWord(Current, "using") && IsClrUsingDirectiveAhead())
         {
             return ParseClrUsingDirective();
@@ -127,6 +128,7 @@ public sealed class Parser
             && IsExportableDeclarationAhead())
         {
             _ = NextToken();
+            isExported = true;
         }
 
         if (IsWord(Current, "flow"))
@@ -169,7 +171,7 @@ public sealed class Parser
         {
             if (Peek(1).Kind == SyntaxKind.TableKeyword)
             {
-                return ParseTableDeclaration();
+                return ParseTableDeclaration(isExported);
             }
             return ParseRecordDeclaration(null);
         }
@@ -1258,7 +1260,7 @@ public sealed class Parser
         return MissingToken(SyntaxKind.IdentifierToken, Current.Position);
     }
 
-    private TableDeclarationSyntax ParseTableDeclaration()
+    private TableDeclarationSyntax ParseTableDeclaration(bool isExported = false)
     {
         var recordKeyword = Match(SyntaxKind.RecordKeyword);
         var tableKeyword = Match(SyntaxKind.TableKeyword);
@@ -1336,7 +1338,8 @@ public sealed class Parser
             assetClause,
             openBrace,
             columns,
-            Match(SyntaxKind.CloseBraceToken));
+            Match(SyntaxKind.CloseBraceToken),
+            isExported);
     }
 
     private TypeSyntax ParsePostfixTypeSyntax()

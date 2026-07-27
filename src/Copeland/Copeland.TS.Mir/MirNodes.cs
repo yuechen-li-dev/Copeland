@@ -259,8 +259,21 @@ public sealed class MirTsonTableColumnPlan(
 
 public readonly record struct MirTableId(string Value) { public override string ToString() => Value; }
 public readonly record struct MirTableColumnId(string Value) { public override string ToString() => Value; }
-public sealed class MirTableDefinition(MirTableId id, string name, string rowTypeId, IReadOnlyList<MirTableColumnDefinition> columns, int rowCount)
-{ public MirTableId Id { get; } = id; public string Name { get; } = name; public string RowTypeId { get; } = rowTypeId; public IReadOnlyList<MirTableColumnDefinition> Columns { get; } = columns; public int RowCount { get; } = rowCount; }
+public sealed class MirTableDefinition(
+    MirTableId id,
+    string name,
+    string rowTypeId,
+    IReadOnlyList<MirTableColumnDefinition> columns,
+    int rowCount,
+    bool isExported = false)
+{
+    public MirTableId Id { get; } = id;
+    public string Name { get; } = name;
+    public string RowTypeId { get; } = rowTypeId;
+    public IReadOnlyList<MirTableColumnDefinition> Columns { get; } = columns;
+    public int RowCount { get; } = rowCount;
+    public bool IsExported { get; } = isExported;
+}
 public abstract record MirTableConstant(MirType Type);
 public sealed record MirTableLiteralConstant(object Value, MirType Type) : MirTableConstant(Type);
 public sealed record MirTableArrayConstant : MirTableConstant
@@ -512,6 +525,16 @@ public sealed record MirTableColumnAccessExpression(MirExpression Receiver, MirT
 public sealed record MirTableRowAccessExpression(MirExpression Receiver, MirExpression Index, MirTableId TableId, MirType Type) : MirExpression(Type);
 public sealed record MirColumnElementAccessExpression(MirExpression Receiver, MirExpression Index, MirType Type) : MirExpression(Type);
 public sealed record MirTableRowFieldAccessExpression(MirExpression Receiver, string RowTypeId, string FieldId, MirType Type) : MirExpression(Type);
+public sealed class MirTableColumnReplacement(MirTableColumnId columnId, MirArrayExpression value)
+{
+    public MirTableColumnId ColumnId { get; } = columnId;
+    public MirArrayExpression Value { get; } = value;
+}
+public sealed record MirTableWithExpression(
+    MirExpression Source,
+    MirTableId TableId,
+    IReadOnlyList<MirTableColumnReplacement> Replacements,
+    MirType Type) : MirExpression(Type);
 public sealed record MirRecordWithExpression(MirExpression Source, MirRecordTypeId RecordTypeId, IReadOnlyList<MirRecordFieldValue> Replacements, MirType Type) : MirExpression(Type);
 public sealed record MirEnumValueExpression(string EnumName, string CaseName, IReadOnlyList<MirExpression> Arguments, MirType Type) : MirExpression(Type);
 public sealed record MirMatchExpression(MirExpression Scrutinee, IReadOnlyList<MirMatchArm> Arms, MirType Type) : MirExpression(Type);

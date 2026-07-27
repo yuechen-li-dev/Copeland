@@ -10,6 +10,57 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class TableCloseoutParityTests
 {
     [Fact]
+    public async Task Table_with_is_immutable_and_has_csharp_javascript_parity()
+    {
+        const string source = """
+            export record table Scores {
+                name: string = ["Alice", "Bob", "Carol"];
+                score: number = [95.0, 81.5, 91.0];
+            }
+
+            function revised(): Scores {
+                return Scores with {
+                    score: [95.0, 84.0, 91.0]
+                };
+            }
+
+            function originalBob(): number {
+                return Scores.score[1]!;
+            }
+
+            function revisedBob(): number {
+                return revised().score[1]!;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation javascript = JavaScriptBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        Assert.True(javascript.Success, string.Join(Environment.NewLine, javascript.Diagnostics));
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Assert.Equal(81.5d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "originalBob")));
+        Assert.Equal(84d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "revisedBob")));
+
+        Type module = generated.Assembly!.GetType("Copeland.Generated.CopelandModule")!;
+        object table = module.GetProperty("Scores")!.GetValue(null)!;
+        Assert.Equal(3, table.GetType().GetProperty("RowCount")!.GetValue(table));
+        object scoreColumn = table.GetType().GetProperty("score")!.GetValue(table)!;
+        object second = scoreColumn.GetType().GetMethod("At")!.Invoke(scoreColumn, [1d])!;
+        Assert.Equal(81.5d, second.GetType().GetProperty("Value")!.GetValue(second));
+
+        ProcessResult node = await RunNodeAsync(
+            javascript.SourceText
+            + "\nconsole.log(originalBob());\nconsole.log(revisedBob());\n");
+        Assert.Equal("81.5\n84\n", node.StdOut);
+        Assert.Equal(string.Empty, node.StdErr);
+    }
+
+    [Fact]
     public async Task Asset_backed_table_executes_with_csharp_node_parity_and_one_singleton()
     {
         const string source = """

@@ -183,7 +183,8 @@ public static class MirLowerer
                 column.Column.Name,
                 ToMirType(column.Column.Type),
                 column.Cells.Select(LowerTableConstant).ToArray())).ToArray(),
-            definition.RowCount);
+            definition.RowCount,
+            definition.IsExported);
 
     private static MirTableConstant LowerTableConstant(BoundTableConstant constant)
         => constant switch
@@ -1160,6 +1161,15 @@ public static class MirLowerer
             BoundTableRowAccessExpression access => new MirTableRowAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), new MirTableId(access.TableType.Id.ToString()), ToMirType(access.Type)),
             BoundColumnElementAccessExpression access => new MirColumnElementAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), ToMirType(access.Type)),
             BoundTableRowFieldAccessExpression access => new MirTableRowFieldAccessExpression(LowerExpression(access.Receiver), access.RowType.TableId + ".row", access.Field.Id.ToString(), ToMirType(access.Type)),
+            BoundTableWithExpression withExpression => new MirTableWithExpression(
+                LowerExpression(withExpression.Source),
+                new MirTableId(withExpression.TableType.Id.ToString()),
+                withExpression.Replacements
+                    .Select(replacement => new MirTableColumnReplacement(
+                        new MirTableColumnId(replacement.Column.Id.ToString()),
+                        (MirArrayExpression)LowerExpression(replacement.Value)))
+                    .ToArray(),
+                ToMirType(withExpression.Type)),
             BoundRecordWithExpression withExpression => new MirRecordWithExpression(
                 LowerExpression(withExpression.Source),
                 ToMirRecordTypeId(withExpression.RecordType.Id),

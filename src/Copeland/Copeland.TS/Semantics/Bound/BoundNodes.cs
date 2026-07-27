@@ -143,8 +143,17 @@ public sealed class BoundModuleImports(
 public sealed class BoundFunctionDeclaration : BoundNode { public BoundFunctionDeclaration(FunctionSymbol symbol, BoundBlockStatement body) { Symbol = symbol; Body = body; } public FunctionSymbol Symbol { get; } public BoundBlockStatement Body { get; } }
 public sealed class BoundEnumDeclaration : BoundNode { public BoundEnumDeclaration(EnumTypeSymbol enumType) => EnumType = enumType; public EnumTypeSymbol EnumType { get; } }
 public sealed class BoundRecordDeclaration : BoundNode { public BoundRecordDeclaration(RecordTypeSymbol recordType) => RecordType = recordType; public RecordTypeSymbol RecordType { get; } }
-public sealed class BoundTableDefinition(TableTypeSymbol tableType, IReadOnlyList<BoundTableColumnDefinition> columns, int rowCount) : BoundNode
-{ public TableTypeSymbol TableType { get; } = tableType; public IReadOnlyList<BoundTableColumnDefinition> Columns { get; } = columns; public int RowCount { get; } = rowCount; }
+public sealed class BoundTableDefinition(
+    TableTypeSymbol tableType,
+    IReadOnlyList<BoundTableColumnDefinition> columns,
+    int rowCount,
+    bool isExported = false) : BoundNode
+{
+    public TableTypeSymbol TableType { get; } = tableType;
+    public IReadOnlyList<BoundTableColumnDefinition> Columns { get; } = columns;
+    public int RowCount { get; } = rowCount;
+    public bool IsExported { get; } = isExported;
+}
 
 public sealed class BoundFlowDefinition(
     string name,
@@ -648,6 +657,21 @@ public sealed class BoundTableColumnAccessExpression(BoundExpression receiver, T
 public sealed class BoundTableRowAccessExpression(BoundExpression receiver, BoundExpression index, TableTypeSymbol tableType, ResultTypeSymbol type) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public BoundExpression Index { get; } = index; public TableTypeSymbol TableType { get; } = tableType; private ResultTypeSymbol TypeImpl { get; } = type; public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundColumnElementAccessExpression(BoundExpression receiver, BoundExpression index, ResultTypeSymbol type) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public BoundExpression Index { get; } = index; private ResultTypeSymbol TypeImpl { get; } = type; public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundTableRowFieldAccessExpression(BoundExpression receiver, TableRowTypeSymbol rowType, TableRowFieldSymbol field) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public TableRowTypeSymbol RowType { get; } = rowType; public TableRowFieldSymbol Field { get; } = field; public override TypeSymbol Type => Field.Type; }
+public sealed class BoundTableColumnReplacement(TableColumnSymbol column, BoundArrayExpression value) : BoundNode
+{
+    public TableColumnSymbol Column { get; } = column;
+    public BoundArrayExpression Value { get; } = value;
+}
+public sealed class BoundTableWithExpression(
+    BoundExpression source,
+    TableTypeSymbol tableType,
+    IReadOnlyList<BoundTableColumnReplacement> replacements) : BoundExpression
+{
+    public BoundExpression Source { get; } = source;
+    public TableTypeSymbol TableType { get; } = tableType;
+    public IReadOnlyList<BoundTableColumnReplacement> Replacements { get; } = replacements;
+    public override TypeSymbol Type => TableType;
+}
 public sealed class BoundRecordWithExpression(BoundExpression source, RecordTypeSymbol recordType, IReadOnlyList<BoundRecordFieldInitializer> replacements) : BoundExpression
 {
     public BoundExpression Source { get; } = source;

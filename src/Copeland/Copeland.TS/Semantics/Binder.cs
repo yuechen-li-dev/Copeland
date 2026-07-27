@@ -783,7 +783,7 @@ public static class Binder
                     table.AddColumn(column);
                     columns.Add(new BoundTableColumnDefinition(column, cells));
                 }
-                _tables.Add(new BoundTableDefinition(table, columns, rowCount ?? 0));
+                _tables.Add(new BoundTableDefinition(table, columns, rowCount ?? 0, declaration.IsExported));
             }
         }
 
@@ -850,7 +850,8 @@ public static class Binder
                 _tables.Add(new BoundTableDefinition(
                     table,
                     sourceColumns.Select(column => new BoundTableColumnDefinition(column.Symbol, [])).ToArray(),
-                    0));
+                    0,
+                    declaration.IsExported));
                 return;
             }
 
@@ -859,7 +860,8 @@ public static class Binder
                 _tables.Add(new BoundTableDefinition(
                     table,
                     sourceColumns.Select(column => new BoundTableColumnDefinition(column.Symbol, [])).ToArray(),
-                    0));
+                    0,
+                    declaration.IsExported));
                 return;
             }
 
@@ -874,7 +876,8 @@ public static class Binder
                 _tables.Add(new BoundTableDefinition(
                     table,
                     sourceColumns.Select(column => new BoundTableColumnDefinition(column.Symbol, [])).ToArray(),
-                    0));
+                    0,
+                    declaration.IsExported));
                 return;
             }
 
@@ -911,7 +914,7 @@ public static class Binder
                 columns.Add(new BoundTableColumnDefinition(sourceColumn, cells));
             }
 
-            _tables.Add(new BoundTableDefinition(table, columns, tsonTable.RowCount));
+            _tables.Add(new BoundTableDefinition(table, columns, tsonTable.RowCount, declaration.IsExported));
         }
 
         private bool TryReadTableAsset(
@@ -3316,6 +3319,13 @@ public static class Binder
                     return;
                 case BoundRecordFieldAccessExpression access:
                     ValidateBatchBodyEffects(access.Receiver, anchor);
+                    return;
+                case BoundTableWithExpression update:
+                    ValidateBatchBodyEffects(update.Source, anchor);
+                    foreach (BoundTableColumnReplacement replacement in update.Replacements)
+                    {
+                        ValidateBatchBodyEffects(replacement.Value, anchor);
+                    }
                     return;
                 case BoundRecordWithExpression update:
                     ValidateBatchBodyEffects(update.Source, anchor);
@@ -6041,6 +6051,14 @@ public static class Binder
                 BoundTableColumnAccessExpression access => new BoundTableColumnAccessExpression(RewriteExpression(access.Receiver), access.TableType, access.Column),
                 BoundTableRowAccessExpression access => new BoundTableRowAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), access.TableType, (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
                 BoundColumnElementAccessExpression access => new BoundColumnElementAccessExpression(RewriteExpression(access.Receiver), RewriteExpression(access.Index), (ResultTypeSymbol)SubstituteType(access.Type, substitutions)),
+                BoundTableWithExpression withExpression => new BoundTableWithExpression(
+                    RewriteExpression(withExpression.Source),
+                    withExpression.TableType,
+                    withExpression.Replacements
+                        .Select(replacement => new BoundTableColumnReplacement(
+                            replacement.Column,
+                            (BoundArrayExpression)RewriteExpression(replacement.Value)))
+                        .ToArray()),
                 BoundRecordConstructionExpression construction => new BoundRecordConstructionExpression(construction.RecordType, construction.Initializers.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray()),
                 BoundRecordWithExpression withExpression => new BoundRecordWithExpression(RewriteExpression(withExpression.Source), withExpression.RecordType, withExpression.Replacements.Select(field => new BoundRecordFieldInitializer(field.Field, RewriteExpression(field.Value))).ToArray()),
                 BoundIfExpression conditional => new BoundIfExpression(RewriteExpression(conditional.Condition), RewriteExpression(conditional.ThenExpression), RewriteExpression(conditional.ElseExpression), SubstituteType(conditional.Type, substitutions)),
@@ -7363,9 +7381,13 @@ public static class Binder
                 Report("COPE-TABLE-0016", "Table-owned rows cannot be updated with 'with'.", withExpression.WithKeyword);
                 return new BoundErrorExpression();
             }
-            if (source.Type is TableTypeSymbol or ColumnTypeSymbol)
+            if (source.Type is TableTypeSymbol tableType)
             {
-                Report("COPE-TABLE-0014", "Table values and columns cannot be updated with 'with'.", withExpression.WithKeyword);
+                return BindTableWith(withExpression, source, tableType);
+            }
+            if (source.Type is ColumnTypeSymbol)
+            {
+                Report("COPE-TABLE-0014", "Table columns cannot be updated with 'with'.", withExpression.WithKeyword);
                 return new BoundErrorExpression();
             }
             if (source.Type is not RecordTypeSymbol recordType)
@@ -7412,6 +7434,68 @@ public static class Binder
                 replacements.Add(new BoundRecordFieldInitializer(field, value));
             }
             return new BoundRecordWithExpression(source, recordType, replacements);
+        }
+
+        private BoundExpression BindTableWith(
+            WithExpressionSyntax withExpression,
+            BoundExpression source,
+            TableTypeSymbol tableType)
+        {
+            if (withExpression.Replacements.Properties.Count == 0)
+            {
+                Report("COPE-TABLE-0020", "A table 'with' expression requires at least one replacement column.", withExpression.WithKeyword);
+            }
+
+            BoundTableDefinition? definition = _tables.SingleOrDefault(candidate => candidate.TableType.Id == tableType.Id);
+            var replacements = new List<BoundTableColumnReplacement>();
+            var seen = new HashSet<TableColumnId>();
+            foreach (ObjectPropertySyntax property in withExpression.Replacements.Properties)
+            {
+                TableColumnSymbol? column = tableType.Columns.FirstOrDefault(
+                    candidate => candidate.Name == property.NameToken.Text);
+                if (column is null || property.NameToken.Kind != SyntaxKind.IdentifierToken)
+                {
+                    Report("COPE-TABLE-0012", $"Table '{tableType.Name}' has no column '{property.NameToken.Text}'.", property.NameToken);
+                    BindExpression(property.ValueExpression);
+                    continue;
+                }
+                if (!seen.Add(column.Id))
+                {
+                    Report("COPE-TABLE-0021", $"Column '{column.Name}' is replaced more than once.", property.NameToken);
+                }
+
+                BoundExpression value = BindExpression(
+                    property.ValueExpression,
+                    new ArrayTypeSymbol(column.Type));
+                if (value is not BoundArrayExpression array)
+                {
+                    Report(
+                        "COPE-TABLE-0022",
+                        $"Replacement for '{tableType.Name}.{column.Name}' must be an authored array literal.",
+                        property.NameToken);
+                    continue;
+                }
+                if (definition is not null && array.Elements.Count != definition.RowCount)
+                {
+                    Report(
+                        "COPE-TABLE-0008",
+                        $"Replacement column '{tableType.Name}.{column.Name}' has {array.Elements.Count} cells; expected {definition.RowCount}.",
+                        property.NameToken);
+                }
+                foreach (BoundExpression element in array.Elements)
+                {
+                    if (BindTableConstant(element) is null)
+                    {
+                        Report(
+                            "COPE-TABLE-0009",
+                            $"Replacement cells for '{tableType.Name}.{column.Name}' must be static deeply immutable constants.",
+                            property.NameToken);
+                        break;
+                    }
+                }
+                replacements.Add(new BoundTableColumnReplacement(column, array));
+            }
+            return new BoundTableWithExpression(source, tableType, replacements);
         }
 
         private TypeSymbol BindType(TypeSyntax? type, SyntaxToken anchor, string missingId, string missingPrefix)

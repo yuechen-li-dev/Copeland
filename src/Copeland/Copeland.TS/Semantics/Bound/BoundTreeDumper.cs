@@ -161,6 +161,16 @@ public static class BoundTreeDumper
                 sb.Append("RequirementFieldAccess ").Append(access.TypeParameter.Name).Append('.').Append(access.Field.Name).Append(" : ").Append(access.Type.Name).AppendLine();
                 AppendExpression(sb, access.Receiver, i + 1);
                 break;
+            case BoundTableWithExpression withExpression:
+                sb.Append("TableWith ").Append(withExpression.TableType.Name).Append(" [").Append(withExpression.TableType.Id).AppendLine("]");
+                AppendExpression(sb, withExpression.Source, i + 1);
+                foreach (BoundTableColumnReplacement replacement in withExpression.Replacements)
+                {
+                    I(sb, i + 1);
+                    sb.Append("Replacement ").Append(replacement.Column.Name).Append(" [").Append(replacement.Column.Id).AppendLine("]");
+                    AppendExpression(sb, replacement.Value, i + 2);
+                }
+                break;
             case BoundRecordWithExpression withExpression:
                 sb.Append("RecordWith ").Append(withExpression.RecordType.Name).Append(" [").Append(withExpression.RecordType.Id).AppendLine("]");
                 AppendExpression(sb, withExpression.Source, i + 1);

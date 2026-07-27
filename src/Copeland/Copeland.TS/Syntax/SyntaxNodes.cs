@@ -1427,7 +1427,8 @@ public sealed record TableDeclarationSyntax(
     TableAssetClauseSyntax? AssetClause,
     SyntaxToken OpenBraceToken,
     IReadOnlyList<TableColumnSyntax> Columns,
-    SyntaxToken CloseBraceToken) : MemberSyntax
+    SyntaxToken CloseBraceToken,
+    bool IsExported) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.TableDeclaration;
     public override IEnumerable<object> GetChildren()

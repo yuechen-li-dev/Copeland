@@ -240,6 +240,7 @@ public static class MirTextWriter
         MirTableRowAccessExpression access => $"table-row [{access.TableId}] {FormatExpression(access.Receiver)}[{FormatExpression(access.Index)}]",
         MirColumnElementAccessExpression access => $"column-element {FormatExpression(access.Receiver)}[{FormatExpression(access.Index)}]",
         MirTableRowFieldAccessExpression access => $"table-row-field [{access.RowTypeId}] {FormatExpression(access.Receiver)}.[{access.FieldId}]",
+        MirTableWithExpression withExpression => $"table-with [{withExpression.TableId}] {FormatExpression(withExpression.Source)} {{ {string.Join(", ", withExpression.Replacements.Select(replacement => $"{replacement.ColumnId}: {FormatExpression(replacement.Value)}"))} }}",
         MirRecordWithExpression withExpression => $"record-with [{withExpression.RecordTypeId}] {FormatExpression(withExpression.Source)} {{ {string.Join(", ", withExpression.Replacements.Select(FormatRecordFieldValue))} }}",
         MirEnumValueExpression e => $"enum {e.EnumName}.{e.CaseName}{(e.Arguments.Count == 0 ? string.Empty : $"({string.Join(", ", e.Arguments.Select(FormatExpression))})")}",
         MirMatchExpression m => $"match {FormatExpression(m.Scrutinee)} : {m.Type.Name} {{ {string.Join(" | ", m.Arms.Select(FormatArm))} }}",

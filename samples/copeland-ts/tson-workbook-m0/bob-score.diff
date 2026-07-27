@@ -1,0 +1,6 @@
+diff --git a/Workbook/Workbook.ts b/Workbook/Workbook.ts
+--- a/Workbook/Workbook.ts
++++ b/Workbook/Workbook.ts
+@@
+-    score: number = [95.0, 81.5, 91.0];
++    score: number = [95.0, 84.0, 91.0];

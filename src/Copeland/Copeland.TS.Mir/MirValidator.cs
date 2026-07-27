@@ -524,6 +524,13 @@ public static class MirValidator
             case MirRecordFieldAccessExpression access:
                 ValidateCallableExpression(access.Receiver, functions, diagnostics);
                 return;
+            case MirTableWithExpression update:
+                ValidateCallableExpression(update.Source, functions, diagnostics);
+                foreach (var replacement in update.Replacements)
+                {
+                    ValidateCallableExpression(replacement.Value, functions, diagnostics);
+                }
+                return;
             case MirRecordWithExpression update:
                 ValidateCallableExpression(update.Source, functions, diagnostics);
                 foreach (var replacement in update.Replacements) ValidateCallableExpression(replacement.Value, functions, diagnostics);
@@ -1261,6 +1268,7 @@ public static class MirValidator
             MirArrayExpression array => array.Elements,
             MirRecordConstructionExpression record => record.Initializers.Select(value => value.Value),
             MirRecordFieldAccessExpression access => [access.Receiver],
+            MirTableWithExpression update => update.Replacements.Select(value => (MirExpression)value.Value).Prepend(update.Source),
             MirRecordWithExpression update => update.Replacements.Select(value => value.Value).Prepend(update.Source),
             MirEnumValueExpression value => value.Arguments,
             MirMatchExpression match => match.Arms.Select(arm => arm.Expression).Prepend(match.Scrutinee),
@@ -1619,6 +1627,53 @@ public static class MirValidator
                         diagnostics.Add(new MirValidationDiagnostic($"Table row field access type does not match field '{access.FieldId}'."));
                 }
                 break;
+            case MirTableWithExpression update:
+                ValidateTableExpression(update.Source, tables, rowTypeIds, columns, diagnostics);
+                if (!tables.TryGetValue(update.TableId, out MirTableDefinition? updatedTable)
+                    || update.Source.Type is not MirTableType sourceType
+                    || sourceType.TableId != update.TableId
+                    || update.Type is not MirTableType resultType
+                    || resultType.TableId != update.TableId)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic(
+                        $"Table 'with' expression '{update.TableId}' has an invalid source or result type."));
+                    break;
+                }
+
+                var replacedColumns = new HashSet<MirTableColumnId>();
+                if (update.Replacements.Count == 0)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic("Table 'with' expression requires at least one replacement."));
+                }
+                foreach (MirTableColumnReplacement replacement in update.Replacements)
+                {
+                    ValidateTableExpression(replacement.Value, tables, rowTypeIds, columns, diagnostics);
+                    MirTableColumnDefinition? replacedColumn = updatedTable.Columns.FirstOrDefault(
+                        candidate => candidate.Id == replacement.ColumnId);
+                    if (replacedColumn is null)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic(
+                            $"Table 'with' expression uses unknown column '{replacement.ColumnId}'."));
+                        continue;
+                    }
+                    if (!replacedColumns.Add(replacement.ColumnId))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic(
+                            $"Table 'with' expression replaces column '{replacement.ColumnId}' more than once."));
+                    }
+                    if (replacement.Value.Type is not MirArrayType arrayType
+                        || !MirTypeFacts.AreEquivalent(arrayType.ElementType, replacedColumn.ElementType))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic(
+                            $"Table 'with' replacement '{replacement.ColumnId}' has an incompatible element type."));
+                    }
+                    if (replacement.Value.Elements.Count != updatedTable.RowCount)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic(
+                            $"Table 'with' replacement '{replacement.ColumnId}' does not preserve row count {updatedTable.RowCount}."));
+                    }
+                }
+                break;
             default:
                 foreach (var child in EnumerateTableExpressionChildren(expression)) ValidateTableExpression(child, tables, rowTypeIds, columns, diagnostics);
                 break;
@@ -1635,6 +1690,7 @@ public static class MirValidator
             MirArrayExpression array => array.Elements,
             MirRecordConstructionExpression record => record.Initializers.Select(value => value.Value),
             MirRecordFieldAccessExpression access => [access.Receiver],
+            MirTableWithExpression update => update.Replacements.Select(value => (MirExpression)value.Value).Prepend(update.Source),
             MirRecordWithExpression update => update.Replacements.Select(value => value.Value).Prepend(update.Source),
             MirEnumValueExpression value => value.Arguments,
             MirMatchExpression match => match.Arms.Select(arm => arm.Expression).Prepend(match.Scrutinee),
@@ -1909,6 +1965,13 @@ public static class MirValidator
             case MirRecordFieldAccessExpression access:
                 ValidateEnumExpression(access.Receiver, enumsByName, diagnostics);
                 return;
+            case MirTableWithExpression update:
+                ValidateEnumExpression(update.Source, enumsByName, diagnostics);
+                foreach (MirTableColumnReplacement replacement in update.Replacements)
+                {
+                    ValidateEnumExpression(replacement.Value, enumsByName, diagnostics);
+                }
+                return;
             case MirRecordWithExpression update:
                 ValidateEnumExpression(update.Source, enumsByName, diagnostics);
                 foreach (MirRecordFieldValue replacement in update.Replacements)
@@ -2106,6 +2169,13 @@ public static class MirValidator
                 ValidateRecordFieldValues(withExpression.RecordTypeId, withExpression.Replacements, records, diagnostics, requireComplete: false, allowEmpty: false);
                 foreach (var value in withExpression.Replacements) ValidateRecordExpression(value.Value, records, diagnostics);
                 return;
+            case MirTableWithExpression withExpression:
+                ValidateRecordExpression(withExpression.Source, records, diagnostics);
+                foreach (MirTableColumnReplacement replacement in withExpression.Replacements)
+                {
+                    ValidateRecordExpression(replacement.Value, records, diagnostics);
+                }
+                return;
             case MirAssignmentExpression assignment: ValidateRecordExpression(assignment.Expression, records, diagnostics); return;
             case MirUnaryExpression unary: ValidateRecordExpression(unary.Operand, records, diagnostics); return;
             case MirBinaryExpression binary: ValidateRecordExpression(binary.Left, records, diagnostics); ValidateRecordExpression(binary.Right, records, diagnostics); return;
@@ -2255,6 +2325,13 @@ public static class MirValidator
                 return;
             case MirRecordFieldAccessExpression access:
                 ValidateExpression(access.Receiver, activeHandlers, handlerIds, diagnostics);
+                return;
+            case MirTableWithExpression withExpression:
+                ValidateExpression(withExpression.Source, activeHandlers, handlerIds, diagnostics);
+                foreach (MirTableColumnReplacement replacement in withExpression.Replacements)
+                {
+                    ValidateExpression(replacement.Value, activeHandlers, handlerIds, diagnostics);
+                }
                 return;
             case MirRecordWithExpression withExpression:
                 ValidateExpression(withExpression.Source, activeHandlers, handlerIds, diagnostics);
@@ -2477,6 +2554,13 @@ public static class MirValidator
                 return;
             case MirRecordFieldAccessExpression access:
                 ValidateFunctionPropagationTarget(access.Receiver, functionReturnType, diagnostics);
+                return;
+            case MirTableWithExpression withExpression:
+                ValidateFunctionPropagationTarget(withExpression.Source, functionReturnType, diagnostics);
+                foreach (MirTableColumnReplacement replacement in withExpression.Replacements)
+                {
+                    ValidateFunctionPropagationTarget(replacement.Value, functionReturnType, diagnostics);
+                }
                 return;
             case MirRecordWithExpression withExpression:
                 ValidateFunctionPropagationTarget(withExpression.Source, functionReturnType, diagnostics);

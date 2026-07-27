@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Copeland.TsonWorkbookM0.Consumer</AssemblyName>
+    <RootNamespace>Copeland.TsonWorkbookM0.Consumer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Workbook\Workbook.csproj" />
+  </ItemGroup>
+</Project>
