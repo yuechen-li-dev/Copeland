@@ -868,6 +868,23 @@ public static class JavaScriptBackend
                 ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
                 ValidateValueType(access.Type, $"table row field access in {context}", catalog, diagnostics, allowVoid: false);
                 break;
+            case MirTableRowsExpression rows:
+                ValidateExpression(rows.Table, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirTableWhereExpression where:
+                ValidateExpression(where.Source, functionReturnType, context, functions, catalog, diagnostics);
+                foreach (MirExpression predicate in where.Predicates)
+                {
+                    ValidateExpression(predicate, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                break;
+            case MirTableSelectExpression select:
+                ValidateExpression(select.Source, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(select.Projector, functionReturnType, context, functions, catalog, diagnostics);
+                break;
+            case MirTableAggregateExpression aggregate:
+                ValidateExpression(aggregate.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                break;
             case MirTableWithExpression withExpression:
                 ValidateExpression(withExpression.Source, functionReturnType, context, functions, catalog, diagnostics);
                 foreach (MirTableColumnReplacement replacement in withExpression.Replacements)
@@ -1825,6 +1842,10 @@ public static class JavaScriptBackend
         MirArrayExpression array => array.Elements.Any(ExpressionUsesCallables),
         MirRecordConstructionExpression construction => construction.Initializers.Any(initializer => ExpressionUsesCallables(initializer.Value)),
         MirRecordFieldAccessExpression access => ExpressionUsesCallables(access.Receiver),
+        MirTableRowsExpression rows => ExpressionUsesCallables(rows.Table),
+        MirTableWhereExpression where => ExpressionUsesCallables(where.Source) || where.Predicates.Any(ExpressionUsesCallables),
+        MirTableSelectExpression select => ExpressionUsesCallables(select.Source) || ExpressionUsesCallables(select.Projector),
+        MirTableAggregateExpression aggregate => ExpressionUsesCallables(aggregate.Receiver),
         MirTableWithExpression update => ExpressionUsesCallables(update.Source) || update.Replacements.Any(replacement => ExpressionUsesCallables(replacement.Value)),
         MirRecordWithExpression update => ExpressionUsesCallables(update.Source) || update.Replacements.Any(replacement => ExpressionUsesCallables(replacement.Value)),
         MirEnumValueExpression value => value.Arguments.Any(ExpressionUsesCallables),
@@ -2938,17 +2959,24 @@ public static class JavaScriptBackend
                 EmitForStatement(writer, loop, function, catalog, results, names, flowEnabled);
                 break;
             case MirForOfStatement loop:
-                EmittedExpression iterable = EmitExpression(loop.Iterable, function, catalog, results, names, flowEnabled);
-                WritePrelude(writer, iterable.Prelude);
-                string loopDeclarationKeyword = loop.Local.IsReadOnly ? "const" : "let";
-                writer.WriteLine($"for ({loopDeclarationKeyword} {JavaScriptIdentifierEncoder.Encode(loop.Local.Name)} of {iterable.Value}) {{");
-                writer.Indent();
-                foreach (MirStatement nested in loop.BodyStatements)
+                if (loop.Iterable is MirTableRowsExpression or MirTableWhereExpression)
                 {
-                    EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
+                    EmitTableForOf(writer, loop, function, catalog, results, names, flowEnabled);
                 }
-                writer.Unindent();
-                writer.WriteLine("}");
+                else
+                {
+                    EmittedExpression iterable = EmitExpression(loop.Iterable, function, catalog, results, names, flowEnabled);
+                    WritePrelude(writer, iterable.Prelude);
+                    string loopDeclarationKeyword = loop.Local.IsReadOnly ? "const" : "let";
+                    writer.WriteLine($"for ({loopDeclarationKeyword} {JavaScriptIdentifierEncoder.Encode(loop.Local.Name)} of {iterable.Value}) {{");
+                    writer.Indent();
+                    foreach (MirStatement nested in loop.BodyStatements)
+                    {
+                        EmitStatement(writer, nested, function, catalog, results, names, flowEnabled);
+                    }
+                    writer.Unindent();
+                    writer.WriteLine("}");
+                }
                 break;
             case MirBreakStatement:
                 writer.WriteLine("break;");
@@ -3129,6 +3157,10 @@ public static class JavaScriptBackend
             MirTableRowAccessExpression access => EmitTableRowAccess(access, function, catalog, results, names, flowEnabled),
             MirColumnElementAccessExpression access => EmitColumnElementAccess(access, function, catalog, results, names, flowEnabled),
             MirTableRowFieldAccessExpression access => EmitTableRowFieldAccess(access, function, catalog, results, names, flowEnabled),
+            MirTableRowsExpression rows => EmitExpression(rows.Table, function, catalog, results, names, flowEnabled),
+            MirTableWhereExpression where => EmitExpression(where.Source, function, catalog, results, names, flowEnabled),
+            MirTableSelectExpression select => EmitTableSelect(select, function, catalog, results, names, flowEnabled),
+            MirTableAggregateExpression aggregate => EmitTableAggregate(aggregate, function, catalog, results, names, flowEnabled),
             MirRecordWithExpression withExpression => EmitRecordWith(withExpression, function, catalog, results, names, flowEnabled),
             MirEnumValueExpression value => EmitEnumValueExpression(value, function, catalog, results, names, flowEnabled),
             MirMatchExpression match => EmitEnumMatchExpression(match, function, catalog, results, names, flowEnabled),
@@ -3149,6 +3181,153 @@ public static class JavaScriptBackend
             MirReactRootUnmountExpression unmount => EmitReactRootUnmount(unmount, function, catalog, results, names, flowEnabled),
             MirJavaScriptHostCallExpression host => EmitJavaScriptHostCall(host, function, catalog, results, names, flowEnabled),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
+        };
+    }
+
+    private static EmittedExpression EmitTableSelect(
+        MirTableSelectExpression select,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        (MirExpression table, IReadOnlyList<MirExpression> predicates) = UnwrapTableSelection(select.Source);
+        EmittedExpression input = EmitExpression(table, function, catalog, results, names, flowEnabled);
+        MirTableDefinition tableDefinition = catalog.GetTable(select.TableId);
+        string inputName = names.NextTemporary("table_input");
+        string outputName = names.NextTemporary("table_output");
+        string indexName = names.NextTemporary("table_index");
+        string rowName = names.NextTemporary("table_row");
+        var lines = new List<string>
+        {
+            $"const {inputName} = {input.Value};",
+            $"const {outputName} = [];",
+            $"for (let {indexName} = 0; {indexName} < {tableDefinition.RowCount}; {indexName} += 1) {{",
+            $"const {rowName} = {names.TableCreateRow(tableDefinition)}({inputName}, {indexName});",
+        };
+        foreach (MirExpression predicate in predicates)
+        {
+            var invoke = new MirInvokeExpression(
+                predicate,
+                [new MirVariableExpression(rowName, new MirTableRowType(select.TableId.Value + ".row", string.Empty))],
+                new MirNamedType("boolean"));
+            EmittedExpression condition = EmitExpression(invoke, function, catalog, results, names, flowEnabled);
+            lines.AddRange(condition.Prelude.Select(line => line.Text));
+            lines.Add($"if (!{condition.Value}) continue;");
+        }
+        var project = new MirInvokeExpression(
+            select.Projector,
+            [new MirVariableExpression(rowName, new MirTableRowType(select.TableId.Value + ".row", string.Empty))],
+            select.ArrayType.ElementType);
+        EmittedExpression value = EmitExpression(project, function, catalog, results, names, flowEnabled);
+        lines.AddRange(value.Prelude.Select(line => line.Text));
+        lines.Add($"{outputName}.push({value.Value});");
+        lines.Add("}");
+        lines.Add($"return {outputName};");
+        return new EmittedExpression(input.Prelude, "(() => { " + string.Join(" ", lines) + " })()");
+    }
+
+    private static void EmitTableForOf(
+        JavaScriptTextWriter writer,
+        MirForOfStatement loop,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        (MirExpression table, IReadOnlyList<MirExpression> predicates) = UnwrapTableSelection(loop.Iterable);
+        EmittedExpression input = EmitExpression(table, function, catalog, results, names, flowEnabled);
+        WritePrelude(writer, input.Prelude);
+        MirTableId tableId = loop.Iterable switch
+        {
+            MirTableRowsExpression rows => rows.TableId,
+            MirTableWhereExpression where => where.TableId,
+            _ => throw new InvalidOperationException("Table row iteration requires a table row view."),
+        };
+        MirTableDefinition tableDefinition = catalog.GetTable(tableId);
+        string inputName = names.NextTemporary("table_input");
+        string indexName = names.NextTemporary("table_index");
+        string rowName = JavaScriptIdentifierEncoder.Encode(loop.Local.Name);
+        writer.WriteLine($"const {inputName} = {input.Value};");
+        writer.WriteLine($"for (let {indexName} = 0; {indexName} < {tableDefinition.RowCount}; {indexName} += 1) {{");
+        writer.Indent();
+        writer.WriteLine($"const {rowName} = {names.TableCreateRow(tableDefinition)}({inputName}, {indexName});");
+        foreach (MirExpression predicate in predicates)
+        {
+            var invoke = new MirInvokeExpression(predicate, [new MirVariableExpression(rowName, loop.Local.Type)], new MirNamedType("boolean"));
+            EmittedExpression condition = EmitExpression(invoke, function, catalog, results, names, flowEnabled);
+            WritePrelude(writer, condition.Prelude);
+            writer.WriteLine($"if (!{condition.Value}) continue;");
+        }
+        foreach (MirStatement statement in loop.BodyStatements)
+        {
+            EmitStatement(writer, statement, function, catalog, results, names, flowEnabled);
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static EmittedExpression EmitTableAggregate(
+        MirTableAggregateExpression aggregate,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        EmittedExpression receiver = EmitExpression(aggregate.Receiver, function, catalog, results, names, flowEnabled);
+        MirTableDefinition table = catalog.GetTable(aggregate.TableId);
+        MirTableColumnDefinition column = catalog.GetTableColumn(aggregate.ColumnId);
+        string inputName = names.NextTemporary("column_input");
+        string resultName = names.NextTemporary("column_result");
+        string indexName = names.NextTemporary("column_index");
+        string read = $"{inputName}[{names.ColumnReadSlot}]({indexName}).$payload[0]";
+        if (aggregate.Kind == MirTableAggregateKind.Count)
+        {
+            return new EmittedExpression(receiver.Prelude, table.RowCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        string initial = aggregate.Kind switch
+        {
+            MirTableAggregateKind.Sum or MirTableAggregateKind.Average => "0",
+            _ => $"{inputName}[{names.ColumnReadSlot}](0).$payload[0]",
+        };
+        int start = aggregate.Kind is MirTableAggregateKind.Min or MirTableAggregateKind.Max ? 1 : 0;
+        var lines = new List<string>
+        {
+            $"const {inputName} = {receiver.Value};",
+            $"let {resultName} = {initial};",
+            $"for (let {indexName} = {start}; {indexName} < {table.RowCount}; {indexName} += 1) {{",
+        };
+        switch (aggregate.Kind)
+        {
+            case MirTableAggregateKind.Sum:
+            case MirTableAggregateKind.Average:
+                lines.Add($"{resultName} += {read};");
+                break;
+            case MirTableAggregateKind.Min:
+                lines.Add($"if ({read} < {resultName}) {resultName} = {read};");
+                break;
+            case MirTableAggregateKind.Max:
+                lines.Add($"if ({read} > {resultName}) {resultName} = {read};");
+                break;
+        }
+        lines.Add("}");
+        lines.Add(aggregate.Kind == MirTableAggregateKind.Average
+            ? $"return {resultName} / {table.RowCount};"
+            : $"return {resultName};");
+        return new EmittedExpression(receiver.Prelude, "(() => { " + string.Join(" ", lines) + " })()");
+    }
+
+    private static (MirExpression Table, IReadOnlyList<MirExpression> Predicates) UnwrapTableSelection(MirExpression source)
+    {
+        return source switch
+        {
+            MirTableRowsExpression rows => (rows.Table, []),
+            MirTableWhereExpression where => (where.Source, where.Predicates),
+            _ => throw new InvalidOperationException($"Unsupported table selection source {source.GetType().Name}."),
         };
     }
 
@@ -5217,6 +5396,23 @@ public static class JavaScriptBackend
                     break;
                 case MirTableRowFieldAccessExpression access:
                     Add(access.Receiver);
+                    break;
+                case MirTableRowsExpression rows:
+                    Add(rows.Table);
+                    break;
+                case MirTableWhereExpression where:
+                    Add(where.Source);
+                    foreach (MirExpression predicate in where.Predicates)
+                    {
+                        Add(predicate);
+                    }
+                    break;
+                case MirTableSelectExpression select:
+                    Add(select.Source);
+                    Add(select.Projector);
+                    break;
+                case MirTableAggregateExpression aggregate:
+                    Add(aggregate.Receiver);
                     break;
                 case MirTableWithExpression withExpression:
                     Add(withExpression.Source);

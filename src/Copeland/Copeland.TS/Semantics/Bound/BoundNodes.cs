@@ -657,6 +657,37 @@ public sealed class BoundTableColumnAccessExpression(BoundExpression receiver, T
 public sealed class BoundTableRowAccessExpression(BoundExpression receiver, BoundExpression index, TableTypeSymbol tableType, ResultTypeSymbol type) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public BoundExpression Index { get; } = index; public TableTypeSymbol TableType { get; } = tableType; private ResultTypeSymbol TypeImpl { get; } = type; public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundColumnElementAccessExpression(BoundExpression receiver, BoundExpression index, ResultTypeSymbol type) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public BoundExpression Index { get; } = index; private ResultTypeSymbol TypeImpl { get; } = type; public override TypeSymbol Type => TypeImpl; }
 public sealed class BoundTableRowFieldAccessExpression(BoundExpression receiver, TableRowTypeSymbol rowType, TableRowFieldSymbol field) : BoundExpression { public BoundExpression Receiver { get; } = receiver; public TableRowTypeSymbol RowType { get; } = rowType; public TableRowFieldSymbol Field { get; } = field; public override TypeSymbol Type => Field.Type; }
+public sealed class BoundTableRowsExpression(BoundExpression table, TableTypeSymbol tableType) : BoundExpression
+{
+    public BoundExpression Table { get; } = table;
+    public TableTypeSymbol TableType { get; } = tableType;
+    public override TypeSymbol Type => new TableRowsTypeSymbol(TableType);
+}
+public sealed class BoundTableWhereExpression(BoundExpression source, TableTypeSymbol tableType, IReadOnlyList<BoundExpression> predicates) : BoundExpression
+{
+    public BoundExpression Source { get; } = source;
+    public TableTypeSymbol TableType { get; } = tableType;
+    public IReadOnlyList<BoundExpression> Predicates { get; } = predicates;
+    public override TypeSymbol Type => new TableRowsTypeSymbol(TableType);
+}
+public sealed class BoundTableSelectExpression(BoundExpression source, TableTypeSymbol tableType, BoundExpression projector, ArrayTypeSymbol type) : BoundExpression
+{
+    public BoundExpression Source { get; } = source;
+    public TableTypeSymbol TableType { get; } = tableType;
+    public BoundExpression Projector { get; } = projector;
+    private ArrayTypeSymbol TypeImpl { get; } = type;
+    public override TypeSymbol Type => TypeImpl;
+}
+public enum TableAggregateKind { Sum, Average, Min, Max, Count }
+public sealed class BoundTableAggregateExpression(BoundExpression receiver, TableTypeSymbol tableType, TableColumnSymbol column, TableAggregateKind kind, TypeSymbol type) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public TableTypeSymbol TableType { get; } = tableType;
+    public TableColumnSymbol Column { get; } = column;
+    public TableAggregateKind Kind { get; } = kind;
+    private TypeSymbol TypeImpl { get; } = type;
+    public override TypeSymbol Type => TypeImpl;
+}
 public sealed class BoundTableColumnReplacement(TableColumnSymbol column, BoundArrayExpression value) : BoundNode
 {
     public TableColumnSymbol Column { get; } = column;

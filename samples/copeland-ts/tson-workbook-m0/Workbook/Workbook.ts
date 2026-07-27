@@ -47,34 +47,43 @@ function revisedBobScore(): number {
 }
 
 function averageScore(scores: Scores): number {
-    return (
-        scores.score[0]!
-        + scores.score[1]!
-        + scores.score[2]!
-    ) / 3.0;
+    return scores.score.average();
 }
 
 function highScores(scores: Scores): ScoreView[] {
-    return [
-        {
-            name: scores.name[0]!,
-            score: scores.score[0]!
-        },
-        {
-            name: scores.name[2]!,
-            score: scores.score[2]!
+    return scores.rows()
+        .where(row => row.score >= 90.0)
+        .select(scoreView);
+}
+
+function scoreView(row: Scores.Row): ScoreView {
+    return {
+        name: row.name,
+        score: row.score
+    };
+}
+
+function scoreForEmployee(employeeId: int): number {
+    for (const score of Scores.rows()) {
+        if (score.employeeId == employeeId) {
+            return score.score;
         }
-    ];
+    }
+    return 0.0;
 }
 
 function engineeringAverage(): number {
-    const firstIsEngineering: number = match Employees.department[0]! {
-        Engineering => Scores.score[0]!,
-        Sales => 0.0,
-    };
-    const thirdIsEngineering: number = match Employees.department[2]! {
-        Engineering => Scores.score[2]!,
-        Sales => 0.0,
-    };
-    return (firstIsEngineering + thirdIsEngineering) / 2.0;
+    let total: number = 0.0;
+    let count: int = 0;
+    for (const employee of Employees.rows()) {
+        const isEngineering: boolean = match employee.department {
+            Engineering => true,
+            Sales => false,
+        };
+        if (isEngineering) {
+            total = total + scoreForEmployee(employee.id);
+            count = count + 1;
+        }
+    }
+    return total / Float.From(count);
 }

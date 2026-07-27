@@ -1161,6 +1161,26 @@ public static class MirLowerer
             BoundTableRowAccessExpression access => new MirTableRowAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), new MirTableId(access.TableType.Id.ToString()), ToMirType(access.Type)),
             BoundColumnElementAccessExpression access => new MirColumnElementAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), ToMirType(access.Type)),
             BoundTableRowFieldAccessExpression access => new MirTableRowFieldAccessExpression(LowerExpression(access.Receiver), access.RowType.TableId + ".row", access.Field.Id.ToString(), ToMirType(access.Type)),
+            BoundTableRowsExpression rows => new MirTableRowsExpression(
+                LowerExpression(rows.Table),
+                new MirTableId(rows.TableType.Id.ToString()),
+                new MirIterableType(ToMirType(rows.TableType.RowType))),
+            BoundTableWhereExpression where => new MirTableWhereExpression(
+                LowerExpression(where.Source),
+                new MirTableId(where.TableType.Id.ToString()),
+                where.Predicates.Select(LowerExpression).ToArray(),
+                new MirIterableType(ToMirType(where.TableType.RowType))),
+            BoundTableSelectExpression select => new MirTableSelectExpression(
+                LowerExpression(select.Source),
+                new MirTableId(select.TableType.Id.ToString()),
+                LowerExpression(select.Projector),
+                (MirArrayType)ToMirType(select.Type)),
+            BoundTableAggregateExpression aggregate => new MirTableAggregateExpression(
+                LowerExpression(aggregate.Receiver),
+                new MirTableId(aggregate.TableType.Id.ToString()),
+                new MirTableColumnId(aggregate.Column.Id.ToString()),
+                (MirTableAggregateKind)aggregate.Kind,
+                ToMirType(aggregate.Type)),
             BoundTableWithExpression withExpression => new MirTableWithExpression(
                 LowerExpression(withExpression.Source),
                 new MirTableId(withExpression.TableType.Id.ToString()),
@@ -1200,6 +1220,7 @@ public static class MirLowerer
         ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
         AsyncTypeSymbol async => new MirAsyncType(ToMirType(async.EventualType)),
         IterableTypeSymbol iterable => new MirIterableType(ToMirType(iterable.ElementType)),
+        TableRowsTypeSymbol rows => new MirIterableType(ToMirType(rows.TableType.RowType)),
         ResultTypeSymbol result => new MirResultType(ToMirType(result.SuccessType), ToMirType(result.ErrorType)),
         CallableTypeSymbol callable => new MirCallableType(callable.Parameters.Select(parameter => new MirCallableParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(), ToMirType(callable.ReturnType)),
         RecordTypeSymbol record => new MirRecordType(ToMirRecordTypeId(record.Id), record.EmissionName),

@@ -772,6 +772,7 @@ public static class CSharpBackend
         writer.WriteLine("public abstract class CopeColumn<T>");
         writer.WriteLine("{");
         writer.Indent();
+        writer.WriteLine("internal abstract int Count { get; }");
         writer.WriteLine("internal abstract CopeResult<T, TableBoundsError> Get(double index);");
         writer.Unindent();
         writer.WriteLine("}");
@@ -794,6 +795,7 @@ public static class CSharpBackend
             writer.WriteLine("{");
             writer.Indent();
             writer.WriteLine($"private readonly {MapType(column.ElementType)}[] _values;");
+            writer.WriteLine($"internal override int Count => _values.Length;");
             writer.WriteLine();
             writer.WriteLine($"internal {TableColumnTypeName(column.Id)}({MapType(column.ElementType)}[] values)");
             writer.WriteLine("{");
@@ -846,6 +848,8 @@ public static class CSharpBackend
         writer.WriteLine($"public sealed class {tableType}");
         writer.WriteLine("{");
         writer.Indent();
+        writer.WriteLine($"internal int Count => {table.RowCount};");
+        writer.WriteLine();
         foreach (var column in table.Columns)
         {
             writer.WriteLine($"private readonly {MapType(column.ElementType)}[] {TableStorageName(column.Id)};");
@@ -1437,8 +1441,15 @@ public static class CSharpBackend
                 EmitForStatement(writer, loop, function, enumNames, ref tempIndex, diagnostics);
                 break;
             case MirForOfStatement loop:
-                writer.WriteLine($"foreach ({MapValueStorageType(loop.Local.Type)} {CSharpNameMangler.Mangle(loop.Local.Name)} in {EmitExpression(writer, loop.Iterable, function, enumNames, ref tempIndex, diagnostics)})");
-                EmitStatementBlock(writer, loop.BodyStatements, function, enumNames, ref tempIndex, diagnostics);
+                if (loop.Iterable is MirTableRowsExpression or MirTableWhereExpression)
+                {
+                    EmitTableForOf(writer, loop, function, enumNames, ref tempIndex, diagnostics);
+                }
+                else
+                {
+                    writer.WriteLine($"foreach ({MapValueStorageType(loop.Local.Type)} {CSharpNameMangler.Mangle(loop.Local.Name)} in {EmitExpression(writer, loop.Iterable, function, enumNames, ref tempIndex, diagnostics)})");
+                    EmitStatementBlock(writer, loop.BodyStatements, function, enumNames, ref tempIndex, diagnostics);
+                }
                 break;
             case MirBreakStatement:
                 writer.WriteLine("break;");
@@ -1638,7 +1649,7 @@ public static class CSharpBackend
             MirClrPropertyAccessExpression property => EmitClrProperty(writer, property, function, enumNames, ref tempIndex, diagnostics),
             MirFunctionReferenceExpression reference => $"({MapType(reference.CallableType)}){CSharpNameMangler.Mangle(reference.FunctionName)}",
             MirCallableConstructionExpression construction => EmitCallableConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
-            MirInvokeExpression invoke => $"{ParenthesizeAssignmentOperand(invoke.Callee, EmitExpression(writer, invoke.Callee, function, enumNames, ref tempIndex, diagnostics))}({string.Join(", ", EmitArguments(invoke.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
+            MirInvokeExpression invoke => EmitInvokeExpression(writer, invoke, function, enumNames, ref tempIndex, diagnostics),
             MirArrayExpression array => $"new {MapType(array.Type)} {{ {string.Join(", ", EmitArguments(array.Elements, writer, function, enumNames, ref tempIndex, diagnostics))} }}",
             MirArrayLengthExpression length => $"{ParenthesizeAssignmentOperand(length.Receiver, EmitExpression(writer, length.Receiver, function, enumNames, ref tempIndex, diagnostics))}.Length",
             MirArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, checked((int){EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)}))",
@@ -1653,6 +1664,10 @@ public static class CSharpBackend
             MirTableRowAccessExpression access => $"{EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}.GetRow({EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
             MirColumnElementAccessExpression access => $"{EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}.Get({EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)})",
             MirTableRowFieldAccessExpression access => $"{EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}.{TableRowFieldName(access.FieldId)}",
+            MirTableRowsExpression rows => EmitExpression(writer, rows.Table, function, enumNames, ref tempIndex, diagnostics),
+            MirTableWhereExpression where => EmitExpression(writer, where.Source, function, enumNames, ref tempIndex, diagnostics),
+            MirTableSelectExpression select => EmitTableSelect(writer, select, function, enumNames, ref tempIndex, diagnostics),
+            MirTableAggregateExpression aggregate => EmitTableAggregate(writer, aggregate, function, enumNames, ref tempIndex, diagnostics),
             MirEnumValueExpression value => $"new {CSharpNameMangler.Mangle(value.EnumName)}.{CSharpNameMangler.Mangle(value.CaseName)}({string.Join(", ", EmitArguments(value.Arguments, writer, function, enumNames, ref tempIndex, diagnostics))})",
             MirMatchExpression match => EmitEnumMatch(writer, match, function, enumNames, ref tempIndex, diagnostics),
             MirIfExpression conditional => EmitIfExpression(writer, conditional, function, enumNames, ref tempIndex, diagnostics),
@@ -1665,6 +1680,156 @@ public static class CSharpBackend
             MirTryExpression tryExpression => EmitTryExcept(writer, tryExpression, function, enumNames, ref tempIndex, diagnostics),
             _ => UnsupportedExpression(expression, diagnostics)
         };
+
+    private static string EmitInvokeExpression(
+        CSharpTextWriter writer,
+        MirInvokeExpression invoke,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        string callee = EmitExpression(writer, invoke.Callee, function, enumNames, ref tempIndex, diagnostics);
+        string arguments = string.Join(", ", EmitArguments(invoke.Arguments, writer, function, enumNames, ref tempIndex, diagnostics));
+        return invoke.Callee is MirFunctionReferenceExpression
+            ? $"({callee})({arguments})"
+            : $"{ParenthesizeAssignmentOperand(invoke.Callee, callee)}({arguments})";
+    }
+
+    private static string EmitTableSelect(
+        CSharpTextWriter writer,
+        MirTableSelectExpression select,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        (MirExpression table, IReadOnlyList<MirExpression> predicates) = UnwrapTableSelection(select.Source);
+        int id = tempIndex++;
+        string tableName = "__cope_table_" + id;
+        string outputName = "__cope_table_output_" + id;
+        string indexName = "__cope_table_index_" + id;
+        string rowName = "__cope_table_row_" + id;
+        string outputType = MapType(select.ArrayType.ElementType);
+        string rowType = TableRowTypeName(select.TableId.Value + ".row");
+        string tableExpression = EmitExpression(writer, table, function, enumNames, ref tempIndex, diagnostics);
+
+        writer.WriteLine($"var {tableName} = {tableExpression};");
+        writer.WriteLine($"var {outputName} = new global::System.Collections.Generic.List<{outputType}>();");
+        writer.WriteLine($"for (int {indexName} = 0; {indexName} < {tableName}.Count; {indexName}++)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"var {rowName} = new {rowType}({tableName}, {indexName});");
+        foreach (MirExpression predicate in predicates)
+        {
+            var invoke = new MirInvokeExpression(
+                predicate,
+                [new MirVariableExpression(rowName, new MirTableRowType(select.TableId.Value + ".row", string.Empty))],
+                new MirNamedType("boolean"));
+            string condition = EmitExpression(writer, invoke, function, enumNames, ref tempIndex, diagnostics);
+            writer.WriteLine($"if (!{condition}) continue;");
+        }
+        var project = new MirInvokeExpression(
+            select.Projector,
+            [new MirVariableExpression(rowName, new MirTableRowType(select.TableId.Value + ".row", string.Empty))],
+            select.ArrayType.ElementType);
+        writer.WriteLine($"{outputName}.Add({EmitExpression(writer, project, function, enumNames, ref tempIndex, diagnostics)});");
+        writer.Unindent();
+        writer.WriteLine("}");
+        return outputName + ".ToArray()";
+    }
+
+    private static void EmitTableForOf(
+        CSharpTextWriter writer,
+        MirForOfStatement loop,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        (MirExpression table, IReadOnlyList<MirExpression> predicates) = UnwrapTableSelection(loop.Iterable);
+        int id = tempIndex++;
+        string tableName = "__cope_table_" + id;
+        string indexName = "__cope_table_index_" + id;
+        string rowName = CSharpNameMangler.Mangle(loop.Local.Name);
+        string rowType = TableRowTypeName(((MirTableRowType)loop.Local.Type).RowTypeId);
+        writer.WriteLine($"var {tableName} = {EmitExpression(writer, table, function, enumNames, ref tempIndex, diagnostics)};");
+        writer.WriteLine($"for (int {indexName} = 0; {indexName} < {tableName}.Count; {indexName}++)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"{rowType} {rowName} = new {rowType}({tableName}, {indexName});");
+        foreach (MirExpression predicate in predicates)
+        {
+            var invoke = new MirInvokeExpression(predicate, [new MirVariableExpression(rowName, loop.Local.Type)], new MirNamedType("boolean"));
+            writer.WriteLine($"if (!{EmitExpression(writer, invoke, function, enumNames, ref tempIndex, diagnostics)}) continue;");
+        }
+        foreach (MirStatement statement in loop.BodyStatements)
+        {
+            EmitStatement(writer, statement, function, enumNames, ref tempIndex, diagnostics);
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+    }
+
+    private static string EmitTableAggregate(
+        CSharpTextWriter writer,
+        MirTableAggregateExpression aggregate,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        int id = tempIndex++;
+        string column = "__cope_column_" + id;
+        string index = "__cope_column_index_" + id;
+        string receiver = EmitExpression(writer, aggregate.Receiver, function, enumNames, ref tempIndex, diagnostics);
+        writer.WriteLine($"var {column} = {receiver};");
+        if (aggregate.Kind == MirTableAggregateKind.Count)
+        {
+            return $"{column}.Count";
+        }
+
+        string valueType = MapType(aggregate.Type);
+        string value = "__cope_column_value_" + id;
+        string result = "__cope_column_result_" + id;
+        string initializer = aggregate.Kind is MirTableAggregateKind.Sum or MirTableAggregateKind.Average
+            ? "default"
+            : $"{column}.Get(0).Value";
+        writer.WriteLine($"{valueType} {result} = {initializer};");
+        int start = (aggregate.Kind is MirTableAggregateKind.Min or MirTableAggregateKind.Max) ? 1 : 0;
+        writer.WriteLine($"for (int {index} = {start}; {index} < {column}.Count; {index}++)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine($"{valueType} {value} = {column}.Get({index}).Value;");
+        switch (aggregate.Kind)
+        {
+            case MirTableAggregateKind.Sum:
+            case MirTableAggregateKind.Average:
+                writer.WriteLine($"{result} += {value};");
+                break;
+            case MirTableAggregateKind.Min:
+                writer.WriteLine($"if ({value} < {result}) {result} = {value};");
+                break;
+            case MirTableAggregateKind.Max:
+                writer.WriteLine($"if ({value} > {result}) {result} = {value};");
+                break;
+        }
+        writer.Unindent();
+        writer.WriteLine("}");
+        return aggregate.Kind == MirTableAggregateKind.Average
+            ? $"{result} / {column}.Count"
+            : result;
+    }
+
+    private static (MirExpression Table, IReadOnlyList<MirExpression> Predicates) UnwrapTableSelection(MirExpression source)
+    {
+        return source switch
+        {
+            MirTableRowsExpression rows => (rows.Table, []),
+            MirTableWhereExpression where => (where.Source, where.Predicates),
+            _ => throw new InvalidOperationException($"Unsupported table selection source {source.GetType().Name}."),
+        };
+    }
 
     private static string EmitNumericConversion(
         CSharpTextWriter writer,
@@ -3278,7 +3443,13 @@ public static class CSharpBackend
             || ExpressionUsesUnwrap(block.ValueExpression);
     private static IEnumerable<MirType> EnumerateTypes(MirProgram program)
     {
-        foreach (var function in program.Functions) { yield return function.ReturnType; foreach (var parameter in function.Parameters) yield return parameter.Type; foreach (var local in function.Locals) yield return local.Type; }
+        foreach (var function in program.Functions)
+        {
+            yield return function.ReturnType;
+            foreach (var parameter in function.Parameters) yield return parameter.Type;
+            foreach (var local in function.Locals) yield return local.Type;
+            foreach (MirType type in function.Body.SelectMany(EnumerateTableQueryTypes)) yield return type;
+        }
         foreach (var @enum in program.Enums) foreach (var @case in @enum.Cases) foreach (var field in @case.PayloadFields) yield return field.Type;
         foreach (var record in program.Records) foreach (var field in record.Fields) yield return field.Type;
         foreach (var table in program.Tables)
@@ -3295,6 +3466,53 @@ public static class CSharpBackend
                 }
             }
         }
+    }
+
+    private static IEnumerable<MirType> EnumerateTableQueryTypes(MirStatement statement)
+    {
+        return statement switch
+        {
+            MirVariableDeclarationStatement declaration => EnumerateTableQueryTypes(declaration.Initializer),
+            MirExpressionStatement expression => EnumerateTableQueryTypes(expression.Expression),
+            MirReturnStatement { Expression: not null } returned => EnumerateTableQueryTypes(returned.Expression),
+            MirIfStatement conditional => EnumerateTableQueryTypes(conditional.Condition)
+                .Concat(conditional.ThenStatements.SelectMany(EnumerateTableQueryTypes))
+                .Concat(conditional.ElseStatements?.SelectMany(EnumerateTableQueryTypes) ?? []),
+            MirWhileStatement loop => EnumerateTableQueryTypes(loop.Condition)
+                .Concat(loop.BodyStatements.SelectMany(EnumerateTableQueryTypes)),
+            MirForStatement loop => (loop.Initializer is null ? [] : EnumerateTableQueryTypes(loop.Initializer))
+                .Concat(loop.Condition is null ? [] : EnumerateTableQueryTypes(loop.Condition))
+                .Concat(loop.Increment is null ? [] : EnumerateTableQueryTypes(loop.Increment))
+                .Concat(loop.BodyStatements.SelectMany(EnumerateTableQueryTypes)),
+            _ => [],
+        };
+    }
+
+    private static IEnumerable<MirType> EnumerateTableQueryTypes(MirExpression expression)
+    {
+        return expression switch
+        {
+            MirTableRowsExpression rows => EnumerateTableQueryTypes(rows.Table),
+            MirTableWhereExpression where => EnumerateTableQueryTypes(where.Source)
+                .Concat(where.Predicates.SelectMany(predicate => new[] { predicate.Type }.Concat(EnumerateTableQueryTypes(predicate)))),
+            MirTableSelectExpression select => EnumerateTableQueryTypes(select.Source)
+                .Concat([select.Projector.Type])
+                .Concat(EnumerateTableQueryTypes(select.Projector)),
+            MirTableAggregateExpression aggregate => EnumerateTableQueryTypes(aggregate.Receiver),
+            MirAssignmentExpression assignment => EnumerateTableQueryTypes(assignment.Expression),
+            MirUnaryExpression unary => EnumerateTableQueryTypes(unary.Operand),
+            MirBinaryExpression binary => EnumerateTableQueryTypes(binary.Left).Concat(EnumerateTableQueryTypes(binary.Right)),
+            MirCallExpression call => call.Arguments.SelectMany(EnumerateTableQueryTypes),
+            MirInvokeExpression invoke => EnumerateTableQueryTypes(invoke.Callee).Concat(invoke.Arguments.SelectMany(EnumerateTableQueryTypes)),
+            MirArrayExpression array => array.Elements.SelectMany(EnumerateTableQueryTypes),
+            MirRecordConstructionExpression record => record.Initializers.SelectMany(initializer => EnumerateTableQueryTypes(initializer.Value)),
+            MirRecordFieldAccessExpression access => EnumerateTableQueryTypes(access.Receiver),
+            MirTableColumnAccessExpression access => EnumerateTableQueryTypes(access.Receiver),
+            MirTableRowAccessExpression access => EnumerateTableQueryTypes(access.Receiver).Concat(EnumerateTableQueryTypes(access.Index)),
+            MirColumnElementAccessExpression access => EnumerateTableQueryTypes(access.Receiver).Concat(EnumerateTableQueryTypes(access.Index)),
+            MirTableRowFieldAccessExpression access => EnumerateTableQueryTypes(access.Receiver),
+            _ => [],
+        };
     }
 
     private static bool ExpressionRequiresStatements(MirExpression expression)

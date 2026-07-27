@@ -525,6 +525,11 @@ public sealed record MirTableColumnAccessExpression(MirExpression Receiver, MirT
 public sealed record MirTableRowAccessExpression(MirExpression Receiver, MirExpression Index, MirTableId TableId, MirType Type) : MirExpression(Type);
 public sealed record MirColumnElementAccessExpression(MirExpression Receiver, MirExpression Index, MirType Type) : MirExpression(Type);
 public sealed record MirTableRowFieldAccessExpression(MirExpression Receiver, string RowTypeId, string FieldId, MirType Type) : MirExpression(Type);
+public sealed record MirTableRowsExpression(MirExpression Table, MirTableId TableId, MirIterableType IterableType) : MirExpression(IterableType);
+public sealed record MirTableWhereExpression(MirExpression Source, MirTableId TableId, IReadOnlyList<MirExpression> Predicates, MirIterableType IterableType) : MirExpression(IterableType);
+public sealed record MirTableSelectExpression(MirExpression Source, MirTableId TableId, MirExpression Projector, MirArrayType ArrayType) : MirExpression(ArrayType);
+public enum MirTableAggregateKind { Sum, Average, Min, Max, Count }
+public sealed record MirTableAggregateExpression(MirExpression Receiver, MirTableId TableId, MirTableColumnId ColumnId, MirTableAggregateKind Kind, MirType Type) : MirExpression(Type);
 public sealed class MirTableColumnReplacement(MirTableColumnId columnId, MirArrayExpression value)
 {
     public MirTableColumnId ColumnId { get; } = columnId;

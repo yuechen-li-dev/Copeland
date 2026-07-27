@@ -10,6 +10,74 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class TableCloseoutParityTests
 {
     [Fact]
+    public async Task Typed_table_queries_lower_to_direct_columnar_loops_with_csharp_javascript_parity()
+    {
+        const string source = """
+            record ScoreView { name: string; score: number; }
+            export record table Scores {
+                name: string = ["Alice", "Bob", "Carol"];
+                score: number = [95.0, 81.5, 91.0];
+            }
+
+            function view(row: Scores.Row): ScoreView {
+                return { name: row.name, score: row.score };
+            }
+
+            function highScores(): ScoreView[] {
+                return Scores.rows()
+                    .where(row => row.score >= 90.0)
+                    .select(view);
+            }
+
+            function scoreSum(): number { return Scores.score.sum(); }
+            function scoreAverage(): number { return Scores.score.average(); }
+            function scoreMinimum(): number { return Scores.score.min(); }
+            function scoreMaximum(): number { return Scores.score.max(); }
+            function scoreCount(): int { return Scores.score.count(); }
+            function iteratedScoreSum(): number {
+                let total: number = 0.0;
+                for (const row of Scores.rows()) {
+                    total = total + row.score;
+                }
+                return total;
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+
+        CSharpCompilation csharp = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation javascript = JavaScriptBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        Assert.True(javascript.Success, string.Join(Environment.NewLine, javascript.Diagnostics));
+        Assert.Contains("for (int __cope_table_index_", csharp.SourceText, StringComparison.Ordinal);
+        Assert.Contains("for (let", javascript.SourceText, StringComparison.Ordinal);
+
+        RoslynCompileResult generated = RoslynCompileHelper.CompileGeneratedSource(csharp.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        Array results = Assert.IsAssignableFrom<Array>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "highScores"));
+        Assert.Equal(2, results.Length);
+        Assert.Equal(267.5d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "scoreSum")));
+        Assert.Equal(267.5d / 3d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "scoreAverage")));
+        Assert.Equal(81.5d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "scoreMinimum")));
+        Assert.Equal(95d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "scoreMaximum")));
+        Assert.Equal(3, Assert.IsType<int>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "scoreCount")));
+        Assert.Equal(267.5d, Assert.IsType<double>(GeneratedModuleInvoker.Invoke(generated.Assembly!, "iteratedScoreSum")));
+
+        ProcessResult node = await RunNodeAsync(javascript.SourceText + """
+            console.log(highScores().length);
+            console.log(scoreSum());
+            console.log(scoreAverage());
+            console.log(scoreMinimum());
+            console.log(scoreMaximum());
+            console.log(scoreCount());
+            console.log(iteratedScoreSum());
+            """);
+        Assert.Equal("2\n267.5\n89.16666666666667\n81.5\n95\n3\n267.5\n", node.StdOut);
+        Assert.Equal(string.Empty, node.StdErr);
+    }
+
+    [Fact]
     public async Task Table_with_is_immutable_and_has_csharp_javascript_parity()
     {
         const string source = """

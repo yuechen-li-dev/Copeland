@@ -182,6 +182,7 @@ public sealed class TableTypeSymbol(string name, TableTypeId id, string? stableI
     public override string Name { get; } = name;
     public TableTypeId Id { get; } = id;
     public string StableIdentity { get; } = stableIdentity ?? name;
+    public int RowCount { get; set; } = -1;
     public TableRowTypeSymbol RowType { get; } = new(name + ".Row", id, (stableIdentity ?? name) + ".Row");
     public IReadOnlyList<TableColumnSymbol> Columns => _columns;
     public void AddColumn(TableColumnSymbol column) { _columns.Add(column); RowType.AddField(new TableRowFieldSymbol(column.Name, new TableRowFieldId(column.Id), column.Type)); }
@@ -195,6 +196,21 @@ public sealed class TableRowTypeSymbol(string name, TableTypeId tableId, string?
     public string StableIdentity { get; } = stableIdentity ?? name;
     public IReadOnlyList<TableRowFieldSymbol> Fields => _fields;
     public void AddField(TableRowFieldSymbol field) => _fields.Add(field);
+}
+
+/// <summary>
+/// A non-owning, typed selection of logical positions in one table. This is a
+/// compiler-only type: values lower to loops over the table's columnar storage.
+/// </summary>
+public sealed class TableRowsTypeSymbol : TypeSymbol
+{
+    public TableRowsTypeSymbol(TableTypeSymbol tableType)
+    {
+        TableType = tableType;
+    }
+
+    public TableTypeSymbol TableType { get; }
+    public override string Name => TableType.Name + ".rows";
 }
 
 public sealed class ColumnTypeSymbol(TypeSymbol elementType) : TypeSymbol
@@ -235,6 +251,7 @@ public static class TypeFacts
             (RecordTypeSymbol, RecordTypeSymbol) => false,
             (TableTypeSymbol, TableTypeSymbol) => false,
             (TableRowTypeSymbol, TableRowTypeSymbol) => false,
+            (TableRowsTypeSymbol leftRows, TableRowsTypeSymbol rightRows) => leftRows.TableType.Id == rightRows.TableType.Id,
             (ColumnTypeSymbol leftColumn, ColumnTypeSymbol rightColumn) => AreEquivalent(leftColumn.ElementType, rightColumn.ElementType),
             (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>

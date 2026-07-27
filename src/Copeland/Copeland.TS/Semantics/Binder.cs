@@ -783,7 +783,8 @@ public static class Binder
                     table.AddColumn(column);
                     columns.Add(new BoundTableColumnDefinition(column, cells));
                 }
-                _tables.Add(new BoundTableDefinition(table, columns, rowCount ?? 0, declaration.IsExported));
+                table.RowCount = rowCount ?? 0;
+                _tables.Add(new BoundTableDefinition(table, columns, table.RowCount, declaration.IsExported));
             }
         }
 
@@ -914,7 +915,8 @@ public static class Binder
                 columns.Add(new BoundTableColumnDefinition(sourceColumn, cells));
             }
 
-            _tables.Add(new BoundTableDefinition(table, columns, tsonTable.RowCount, declaration.IsExported));
+            table.RowCount = tsonTable.RowCount;
+            _tables.Add(new BoundTableDefinition(table, columns, table.RowCount, declaration.IsExported));
         }
 
         private bool TryReadTableAsset(
@@ -2549,6 +2551,10 @@ public static class Binder
             {
                 elementType = sequence.ElementType;
             }
+            else if (iterable.Type is TableRowsTypeSymbol rows)
+            {
+                elementType = rows.TableType.RowType;
+            }
             else
             {
                 elementType = PrimitiveTypeSymbol.Error;
@@ -3491,7 +3497,9 @@ public static class Binder
                 _scope = previousScope;
                 _currentFunction = previousFunction;
 
-                if (expectedCallable is not null && !TypeFacts.AreEquivalent(returnType, expectedCallable.ReturnType))
+                if (expectedCallable is not null
+                    && expectedCallable.ReturnType != PrimitiveTypeSymbol.Error
+                    && !TypeFacts.AreEquivalent(returnType, expectedCallable.ReturnType))
                 {
                     ReportTypeMismatch("COPE-CALL-0006", expectedCallable.ReturnType, returnType, arrow.ArrowToken);
                 }
@@ -3759,6 +3767,33 @@ public static class Binder
                 }
             }
 
+            if (c.Target is MemberAccessExpressionSyntax tableMember)
+            {
+                BoundExpression tableReceiver = BindExpression(tableMember.Target);
+                if (tableReceiver.Type is TableTypeSymbol tableType
+                    && tableMember.NameToken.Text == "rows")
+                {
+                    if (c.Arguments.Count != 0)
+                    {
+                        Report("COPE-TABLE-0020", "Table rows() does not accept arguments.", c.OpenParenToken);
+                        return new BoundErrorExpression();
+                    }
+
+                    return new BoundTableRowsExpression(tableReceiver, tableType);
+                }
+
+                if (tableReceiver.Type is TableRowsTypeSymbol rowsType)
+                {
+                    return BindTableRowsCall(c, tableMember, tableReceiver, rowsType);
+                }
+
+                if (tableReceiver.Type is ColumnTypeSymbol
+                    && tableReceiver is BoundTableColumnAccessExpression columnAccess)
+                {
+                    return BindColumnAggregateCall(c, tableMember, columnAccess);
+                }
+            }
+
             if (c.Target is MemberAccessExpressionSyntax unresolvedClrMember
                 && _clrNamespaces.Count > 0
                 && TryGetQualifiedName(unresolvedClrMember.Target, out string unresolvedClrName, out SyntaxToken unresolvedClrAnchor)
@@ -3881,6 +3916,125 @@ public static class Binder
                         fn.Parameters[i].AuthoredAliasName);
                 }
             return new BoundCallExpression(fn, args);
+        }
+
+        private BoundExpression BindTableRowsCall(
+            CallExpressionSyntax call,
+            MemberAccessExpressionSyntax member,
+            BoundExpression receiver,
+            TableRowsTypeSymbol rowsType)
+        {
+            if (member.NameToken.Text == "where")
+            {
+                if (call.Arguments.Count != 1)
+                {
+                    Report("COPE-TABLE-0021", "Table rows.where requires exactly one predicate.", call.OpenParenToken);
+                    return new BoundErrorExpression();
+                }
+
+                var predicateType = new CallableTypeSymbol(
+                    [new CallableParameterTypeSymbol("row", rowsType.TableType.RowType)],
+                    PrimitiveTypeSymbol.Boolean);
+                BoundExpression predicate = BindExpression(call.Arguments[0], predicateType);
+                if (!TypeFacts.AreEquivalent(predicate.Type, predicateType))
+                {
+                    Report("COPE-TABLE-0022", "A table row predicate must have type '(row) => boolean'.", member.NameToken);
+                    return new BoundErrorExpression();
+                }
+
+                if (receiver is BoundTableWhereExpression filtered)
+                {
+                    return new BoundTableWhereExpression(
+                        filtered.Source,
+                        rowsType.TableType,
+                        filtered.Predicates.Concat([predicate]).ToArray());
+                }
+
+                return new BoundTableWhereExpression(receiver, rowsType.TableType, [predicate]);
+            }
+
+            if (member.NameToken.Text == "select")
+            {
+                if (call.Arguments.Count != 1)
+                {
+                    Report("COPE-TABLE-0023", "Table rows.select requires exactly one projector.", call.OpenParenToken);
+                    return new BoundErrorExpression();
+                }
+
+                var projectorContext = new CallableTypeSymbol(
+                    [new CallableParameterTypeSymbol("row", rowsType.TableType.RowType)],
+                    PrimitiveTypeSymbol.Error);
+                BoundExpression projector = BindExpression(call.Arguments[0], projectorContext);
+                if (projector.Type is not CallableTypeSymbol projectorType
+                    || projectorType.Parameters.Count != 1
+                    || !TypeFacts.AreEquivalent(projectorType.Parameters[0].Type, rowsType.TableType.RowType)
+                    || projectorType.ReturnType == PrimitiveTypeSymbol.Error)
+                {
+                    Report("COPE-TABLE-0024", "A table row projector must accept one row and return a supported value.", member.NameToken);
+                    return new BoundErrorExpression();
+                }
+
+                return new BoundTableSelectExpression(
+                    receiver,
+                    rowsType.TableType,
+                    projector,
+                    new ArrayTypeSymbol(projectorType.ReturnType));
+            }
+
+            Report("COPE-TABLE-0025", $"Table row views support only 'where' and 'select'; '{member.NameToken.Text}' is not available.", member.NameToken);
+            return new BoundErrorExpression();
+        }
+
+        private BoundExpression BindColumnAggregateCall(
+            CallExpressionSyntax call,
+            MemberAccessExpressionSyntax member,
+            BoundTableColumnAccessExpression column)
+        {
+            if (call.Arguments.Count != 0)
+            {
+                Report("COPE-TABLE-0026", $"Column aggregate '{member.NameToken.Text}' does not accept arguments.", call.OpenParenToken);
+                return new BoundErrorExpression();
+            }
+
+            TableAggregateKind? kind = member.NameToken.Text switch
+            {
+                "sum" => TableAggregateKind.Sum,
+                "average" => TableAggregateKind.Average,
+                "min" => TableAggregateKind.Min,
+                "max" => TableAggregateKind.Max,
+                "count" => TableAggregateKind.Count,
+                _ => null,
+            };
+            if (kind is null)
+            {
+                Report("COPE-TABLE-0027", $"Column '{column.Column.Name}' has no aggregate '{member.NameToken.Text}'.", member.NameToken);
+                return new BoundErrorExpression();
+            }
+
+            if (kind == TableAggregateKind.Count)
+            {
+                return new BoundTableAggregateExpression(column, column.TableType, column.Column, kind.Value, PrimitiveTypeSymbol.Int);
+            }
+            if (!TypeFacts.IsNumeric(column.Column.Type))
+            {
+                Report("COPE-TABLE-0028", $"Aggregate '{member.NameToken.Text}' requires an int or number column, got '{column.Column.Type.Name}'.", member.NameToken);
+                return new BoundErrorExpression();
+            }
+            if (kind == TableAggregateKind.Average && column.Column.Type == PrimitiveTypeSymbol.Int)
+            {
+                Report("COPE-TABLE-0029", "average is supported only for number columns; convert int values explicitly before averaging.", member.NameToken);
+                return new BoundErrorExpression();
+            }
+            if (column.TableType.RowCount == 0)
+            {
+                Report(
+                    "COPE-TABLE-0030",
+                    $"Aggregate '{member.NameToken.Text}' is not defined for the empty column '{column.Column.Name}'. Use count() or sum(), or guard the query before aggregating.",
+                    member.NameToken);
+                return new BoundErrorExpression();
+            }
+
+            return new BoundTableAggregateExpression(column, column.TableType, column.Column, kind.Value, column.Column.Type);
         }
 
         private BoundExpression BindReactRootMember(CallExpressionSyntax call, MemberAccessExpressionSyntax member, BoundExpression root)
