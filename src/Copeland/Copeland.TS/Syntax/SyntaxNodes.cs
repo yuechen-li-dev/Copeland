@@ -418,6 +418,7 @@ public sealed record ParameterSyntax(SyntaxToken Identifier, SyntaxToken? ColonT
 }
 
 public sealed record FunctionDeclarationSyntax(
+    SyntaxToken? RemoteKeyword,
     SyntaxToken? AsyncKeyword,
     SyntaxToken FunctionKeyword,
     SyntaxToken? GeneratorStarToken,
@@ -438,6 +439,7 @@ public sealed record FunctionDeclarationSyntax(
 
     public override IEnumerable<object> GetChildren()
     {
+        if (RemoteKeyword is not null) yield return RemoteKeyword;
         if (AsyncKeyword is not null) yield return AsyncKeyword;
         yield return FunctionKeyword;
         if (GeneratorStarToken is not null) yield return GeneratorStarToken;

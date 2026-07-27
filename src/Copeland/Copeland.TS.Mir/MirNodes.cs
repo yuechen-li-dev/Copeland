@@ -357,7 +357,8 @@ public sealed class MirFunction(
     IReadOnlyList<MirStatement> body,
     bool isAsync = false,
     bool isGenerator = false,
-    MirSuspensionAutomaton? suspensionAutomaton = null)
+    MirSuspensionAutomaton? suspensionAutomaton = null,
+    bool isRemote = false)
 {
     public string Name { get; } = name;
     public IReadOnlyList<MirParameter> Parameters { get; } = parameters;
@@ -365,6 +366,7 @@ public sealed class MirFunction(
     public bool IsFallible => ReturnType is MirResultType;
     public bool IsAsync { get; } = isAsync;
     public bool IsGenerator { get; } = isGenerator;
+    public bool IsRemote { get; } = isRemote;
     public MirSuspensionAutomaton? SuspensionAutomaton { get; } = suspensionAutomaton;
     public IReadOnlyList<MirLocal> Locals { get; } = locals;
     public IReadOnlyList<MirStatement> Body { get; } = body;

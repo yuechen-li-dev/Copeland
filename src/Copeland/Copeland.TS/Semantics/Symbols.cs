@@ -30,7 +30,8 @@ public sealed class FunctionSymbol(
     string? authoredReturnAliasName = null,
     string? stableIdentity = null,
     bool isAsync = false,
-    bool isGenerator = false) : Symbol(name)
+    bool isGenerator = false,
+    bool isRemote = false) : Symbol(name)
 {
     public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
     public TypeSymbol ReturnType { get; } = returnType;
@@ -41,6 +42,7 @@ public sealed class FunctionSymbol(
     public bool IsFallible => ReturnType is ResultTypeSymbol;
     public bool IsAsync { get; } = isAsync;
     public bool IsGenerator { get; } = isGenerator;
+    public bool IsRemote { get; } = isRemote;
     public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
     public bool IsGeneric => TypeParameters.Count > 0;
     public ClassTypeSymbol? ClassOwner { get; internal set; }
@@ -48,7 +50,7 @@ public sealed class FunctionSymbol(
     public bool IsClassConstructor { get; internal set; }
     public bool IsPublic { get; internal set; } = true;
     public CallableTypeSymbol CallableType => new(Parameters.Select(parameter => new CallableParameterTypeSymbol(parameter.Name, parameter.Type)).ToArray(), InvocationReturnType);
-    public TypeSymbol InvocationReturnType => IsAsync ? new AsyncTypeSymbol(ReturnType) : ReturnType;
+    public TypeSymbol InvocationReturnType => IsAsync || IsRemote ? new AsyncTypeSymbol(ReturnType) : ReturnType;
 }
 
 public sealed class NpmFunctionSymbol : Symbol

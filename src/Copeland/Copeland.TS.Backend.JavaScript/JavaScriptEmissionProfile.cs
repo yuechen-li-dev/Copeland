@@ -30,4 +30,6 @@ public sealed record JavaScriptEmissionOptions
     public JavaScriptRuntimeTarget RuntimeTarget { get; init; } = JavaScriptRuntimeTarget.Node;
     public bool EmitModuleFactories { get; init; }
     public IReadOnlySet<string> BoundaryFunctionNames { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+    public IReadOnlyDictionary<string, string> RemoteOperationRoutes { get; init; } = new Dictionary<string, string>(StringComparer.Ordinal);
+    public string BridgeBaseUrlBinding { get; init; } = "__copelandBridgeBaseUrl";
 }

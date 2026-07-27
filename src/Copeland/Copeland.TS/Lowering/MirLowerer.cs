@@ -238,7 +238,8 @@ public static class MirLowerer
             body,
             function.Symbol.IsAsync,
             function.Symbol.IsGenerator,
-            automaton);
+            automaton,
+            isRemote: function.Symbol.IsRemote);
     }
 
     /// <summary>

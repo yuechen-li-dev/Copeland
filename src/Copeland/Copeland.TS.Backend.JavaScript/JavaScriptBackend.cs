@@ -101,6 +101,7 @@ public static class JavaScriptBackend
     public static JavaScriptCompilation Emit(MirProgram program, JavaScriptEmissionOptions? options)
     {
         ArgumentNullException.ThrowIfNull(program);
+        program = RemoveRemoteImplementationBodies(program);
         JavaScriptEmissionOptions effectiveOptions = options ?? new JavaScriptEmissionOptions();
         if (!Enum.IsDefined(effectiveOptions.Profile))
         {
@@ -152,7 +153,7 @@ public static class JavaScriptBackend
         bool usesCallables = ProgramUsesCallables(program);
         bool usesCapturedCallables = ProgramUsesCapturedCallables(program);
         bool usesSharedBrowserInteropRuntime = program.JavaScriptHostImports.Count > 0;
-        bool usesAsync = program.Functions.Any(function => function.IsAsync);
+        bool usesAsync = program.Functions.Any(function => function.IsAsync || function.IsRemote);
         bool previousModuleFactoryEmission = ModuleFactoryEmission.Value;
         ModuleFactoryEmission.Value = effectiveOptions.EmitModuleFactories;
         try
@@ -206,7 +207,14 @@ public static class JavaScriptBackend
         foreach (MirFunction function in program.Functions)
         {
             writer.WriteLine();
-            EmitFunction(writer, function, catalog, results, names, effectiveOptions.BoundaryFunctionNames.Contains(function.Name));
+            if (function.IsRemote)
+            {
+                EmitRemoteFunction(writer, function, catalog, results, names, effectiveOptions);
+            }
+            else
+            {
+                EmitFunction(writer, function, catalog, results, names, effectiveOptions.BoundaryFunctionNames.Contains(function.Name));
+            }
         }
 
         foreach (MirFlowDefinition flow in program.Flows)
@@ -227,6 +235,41 @@ public static class JavaScriptBackend
         {
             ModuleFactoryEmission.Value = previousModuleFactoryEmission;
         }
+    }
+
+    private static MirProgram RemoveRemoteImplementationBodies(MirProgram program)
+    {
+        if (!program.Functions.Any(function => function.IsRemote))
+        {
+            return program;
+        }
+
+        MirFunction[] functions = program.Functions
+            .Select(function => function.IsRemote
+                ? new MirFunction(
+                    function.Name,
+                    function.Parameters,
+                    function.ReturnType,
+                    [],
+                    [],
+                    isAsync: false,
+                    isGenerator: false,
+                    suspensionAutomaton: null,
+                    isRemote: true)
+                : function)
+            .ToArray();
+        return new MirProgram(
+            program.Enums,
+            program.Records,
+            program.Tables,
+            program.TsonEncodingPlans,
+            program.NpmImports,
+            functions,
+            program.CSharpUsings,
+            program.CSharpSourcePath,
+            program.Flows,
+            program.JavaScriptHostImports,
+            program.PackageImports);
     }
 
     private static void EmitFlow(JavaScriptTextWriter writer, MirFlowDefinition flow)
@@ -2389,6 +2432,77 @@ public static class JavaScriptBackend
         writer.WriteLine("}");
         names.LeaveFunction();
         writer.EnterScope(names.Document.ProgramScope);
+    }
+
+    private static void EmitRemoteFunction(
+        JavaScriptTextWriter writer,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        JavaScriptEmissionOptions options)
+    {
+        if (!options.RemoteOperationRoutes.TryGetValue(function.Name, out string? route))
+        {
+            throw new InvalidOperationException($"Remote function '{function.Name}' has no generated bridge route.");
+        }
+
+        if (function.Parameters.Count != 1
+            || function.Parameters[0].Type is not MirRecordType requestType
+            || function.ReturnType is not MirResultType { SuccessType: MirType { Identifier: "string" }, ErrorType: MirRecordType errorType } resultType
+            || !catalog.TryGetRecord(requestType.RecordTypeId, out MirRecordDefinition requestRecord)
+            || !catalog.TryGetRecord(errorType.RecordTypeId, out MirRecordDefinition errorRecord))
+        {
+            throw new InvalidOperationException(
+                $"Remote function '{function.Name}' does not use the bounded M0 bridge shape.");
+        }
+
+        string resultToken = names.TypeToken(results.Get(resultType));
+        string requestValidator = names.RecordValidator(requestRecord);
+        string errorConstructor = RecordConstructionName(errorRecord, names);
+        string makeValue = names.MakeValue;
+        string bridgeBaseUrl = options.BridgeBaseUrlBinding;
+        string functionName = JavaScriptIdentifierEncoder.Encode(function.Name);
+        string parameterName = JavaScriptIdentifierEncoder.Encode(function.Parameters[0].Name);
+        string routeLiteral = JavaScriptLiteralWriter.WriteString(route);
+        string requestPayload = "{ " + string.Join(
+            ", ",
+            requestRecord.Fields.Select((field, index) =>
+                JavaScriptLiteralWriter.WriteString(field.Name) + ": " + parameterName + ".$f" + index)) + " }";
+
+        writer.WriteLine($"function {functionName}({parameterName}) {{");
+        writer.Indent();
+        writer.WriteLine("const computation = __cope_async();");
+        writer.WriteLine("const resolveError = (kind, message) => computation.resolve(" +
+            $"{makeValue}({resultToken}, \"err\", [{errorConstructor}(kind, message)]));");
+        writer.WriteLine("try {");
+        writer.Indent();
+        writer.WriteLine($"{requestValidator}({parameterName});");
+        writer.Unindent();
+        writer.WriteLine("} catch {");
+        writer.Indent();
+        writer.WriteLine("resolveError(\"malformed-request\", \"The request does not match the bridge contract.\");");
+        writer.WriteLine("return computation;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("globalThis.fetch(" +
+            $"{bridgeBaseUrl} + {routeLiteral}, {{ method: \"POST\", headers: {{ \"content-type\": \"application/json\" }}, body: JSON.stringify({requestPayload}) }})");
+        writer.Indent();
+        writer.WriteLine(".then(async response => {");
+        writer.Indent();
+        writer.WriteLine("let envelope;");
+        writer.WriteLine("try { envelope = await response.json(); } catch { resolveError(\"malformed-response\", \"The bridge response was not valid JSON.\"); return; }");
+        writer.WriteLine("if (!response.ok) { resolveError(typeof envelope?.error?.kind === \"string\" ? envelope.error.kind : \"http-failure\", \"The bridge host rejected the request.\"); return; }");
+        writer.WriteLine("if (envelope?.schemaVersion !== 1) { resolveError(\"bridge-version-mismatch\", \"The bridge contract version is incompatible.\"); return; }");
+        writer.WriteLine("if (envelope?.schemaVersion !== 1 || envelope?.ok !== true || typeof envelope.value !== \"string\") { resolveError(\"malformed-response\", \"The bridge response did not match the contract.\"); return; }");
+        writer.WriteLine($"computation.resolve({makeValue}({resultToken}, \"ok\", [envelope.value]));");
+        writer.Unindent();
+        writer.WriteLine("})");
+        writer.WriteLine(".catch(() => resolveError(\"host-unavailable\", \"The bridge host is unavailable.\"));");
+        writer.WriteLine("return computation;");
+        writer.Unindent();
+        writer.Unindent();
+        writer.WriteLine("}");
     }
 
     private static void EmitAsyncFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction)

@@ -6,6 +6,12 @@ namespace Copeland.TS.Backend.CSharp;
 
 public static class CSharpBackend
 {
+    public static string GeneratedRecordTypeName(MirRecordTypeId id) => RecordTypeName(id);
+
+    public static string GeneratedRecordFieldName(MirRecordFieldId id) => RecordFieldName(id);
+
+    public static string GeneratedFunctionName(string name) => CSharpNameMangler.Mangle(name);
+
     private enum AsyncStateKind
     {
         Statement,
@@ -2999,7 +3005,9 @@ public static class CSharpBackend
         => program.Functions.Any(function => function.Body.Any(StatementUsesTsonTransport));
 
     private static bool ProgramUsesSystemTextJson(MirProgram program)
-        => program.Functions.Any(function => function.Body.Any(StatementUsesSystemTextJson));
+        => program.Functions.Any(function => function.Body.Any(StatementUsesSystemTextJson))
+            || program.Functions.Any(function => function.IsRemote
+                && program.CSharpUsings.Contains("System.Text.Json", StringComparer.Ordinal));
 
     private static bool StatementUsesSystemTextJson(MirStatement statement)
         => statement switch

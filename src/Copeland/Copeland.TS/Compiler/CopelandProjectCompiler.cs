@@ -591,6 +591,8 @@ public static class CopelandProjectCompiler
             if (tokens[index].Kind != SyntaxKind.IdentifierToken || tokens[index].Text != "export") continue;
             int nameIndex = tokens[index + 1].Text switch
             {
+                "remote" when index + 4 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.FunctionKeyword => index + 3,
+                "remote" when index + 5 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.AsyncKeyword && tokens[index + 3].Kind == SyntaxKind.FunctionKeyword => index + 4,
                 "async" when index + 3 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.FunctionKeyword => index + 3,
                 _ when tokens[index + 1].Kind == SyntaxKind.FunctionKeyword && tokens[index + 2].Kind == SyntaxKind.StarToken => index + 3,
                 _ when tokens[index + 1].Kind == SyntaxKind.FunctionKeyword => index + 2,

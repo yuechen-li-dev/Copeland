@@ -1741,10 +1741,15 @@ public static class Binder
                     GetAuthoredAliasName(m.ReturnType),
                     CreateFunctionStableIdentity(m.Identifier.Text),
                     m.AsyncKeyword is not null,
-                    m.GeneratorStarToken is not null)
+                    m.GeneratorStarToken is not null,
+                    m.RemoteKeyword is not null)
                 {
                     TypeParameters = typeParameters
                 };
+                if (m.RemoteKeyword is not null)
+                {
+                    ValidateRemoteFunction(m, fn);
+                }
                 if (_enumTypes.ContainsKey(fn.Name) || _recordTypes.ContainsKey(fn.Name))
                 {
                     Report("COPE-BIND-0002", $"Name '{fn.Name}' is already used by a named type.", m.Identifier);
@@ -7657,5 +7662,55 @@ public static class Binder
         };
 
         private void Report(string id, string msg, SyntaxToken at) => _diagnostics.Report(id, msg, at.Position, at.Text.Length);
+
+        private void ValidateRemoteFunction(FunctionDeclarationSyntax declaration, FunctionSymbol function)
+        {
+            if (function.IsAsync || function.IsGenerator)
+            {
+                Report("COPE-BRIDGE-0001", "Remote operations must use the synchronous CLR realization; the browser boundary supplies asynchrony.", declaration.RemoteKeyword!);
+            }
+
+            if (function.IsGeneric)
+            {
+                Report("COPE-BRIDGE-0002", "Remote operations cannot declare type parameters in bridge M0.", declaration.RemoteKeyword!);
+            }
+
+            if (function.Parameters.Count != 1 || function.Parameters[0].Type is not RecordTypeSymbol request)
+            {
+                Report("COPE-BRIDGE-0003", "Remote operations require exactly one nominal record request parameter.", declaration.RemoteKeyword!);
+            }
+            else
+            {
+                ValidateRemoteRecord(request, "request", declaration.RemoteKeyword!);
+            }
+
+            if (function.ReturnType is not ResultTypeSymbol result
+                || !TypeFacts.AreEquivalent(result.SuccessType, PrimitiveTypeSymbol.String)
+                || result.ErrorType is not RecordTypeSymbol error)
+            {
+                Report("COPE-BRIDGE-0004", "Remote operations must return string ! <nominal error record> in bridge M0.", declaration.RemoteKeyword!);
+            }
+            else
+            {
+                ValidateRemoteRecord(error, "error", declaration.RemoteKeyword!);
+            }
+        }
+
+        private void ValidateRemoteRecord(RecordTypeSymbol record, string role, SyntaxToken anchor)
+        {
+            foreach (RecordFieldSymbol field in record.Fields)
+            {
+                bool supported = TypeFacts.AreEquivalent(field.Type, PrimitiveTypeSymbol.Int)
+                    || TypeFacts.AreEquivalent(field.Type, PrimitiveTypeSymbol.Boolean)
+                    || TypeFacts.AreEquivalent(field.Type, PrimitiveTypeSymbol.String);
+                if (!supported)
+                {
+                    Report(
+                        "COPE-BRIDGE-0005",
+                        $"Remote {role} record field '{field.Name}' has unsupported type '{field.Type.Name}'. Bridge M0 permits only int, bool, and string fields.",
+                        anchor);
+                }
+            }
+        }
     }
 }

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Copeland ASP.NET Bridge M0</title>
+</head>
+<body>
+    <main>
+        <h1>Copeland browser-to-CLR bridge</h1>
+        <p>Count: <span id="count">0</span></p>
+        <p>CLR JSON: <code id="json">loading…</code></p>
+        <p id="status">Loading</p>
+        <button id="increment" type="button">Increment and serialize</button>
+    </main>
+    <script type="module">
+        import { SerializeRequest, SerializeState } from "./Bridge.js";
+
+        let count = 0;
+        const countElement = document.querySelector("#count");
+        const jsonElement = document.querySelector("#json");
+        const statusElement = document.querySelector("#status");
+        const incrementButton = document.querySelector("#increment");
+
+        function subscribeResult(computation, onSuccess) {
+            computation.subscribe(
+                () => {
+                    const result = computation.value;
+                    if (result.$tag === "ok") {
+                        onSuccess(result.$payload[0]);
+                    } else {
+                        statusElement.textContent = result.$payload[0].$f0;
+                    }
+                },
+                () => { statusElement.textContent = "cancelled"; },
+                () => { statusElement.textContent = "host-unavailable"; },
+                () => { statusElement.textContent = "bridge-panic"; });
+        }
+
+        function renderSerialized(nextCount) {
+            statusElement.textContent = "Loading";
+            incrementButton.disabled = true;
+            subscribeResult(SerializeState(SerializeRequest("Hello from CLR", nextCount)), value => {
+                countElement.textContent = String(nextCount);
+                jsonElement.textContent = value;
+                statusElement.textContent = "Ready";
+                incrementButton.disabled = false;
+            });
+        }
+
+        incrementButton.addEventListener("click", () => {
+            count += 1;
+            renderSerialized(count);
+        });
+
+        renderSerialized(0);
+    </script>
+</body>
+</html>

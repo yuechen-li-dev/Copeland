@@ -40,6 +40,11 @@ public static class JavaScriptProjectEmitter
             var lines = new List<string>();
             var importedHelpers = new HashSet<string>(StringComparer.Ordinal);
             AddExternalImports(lines, module.NpmImports, module.JavaScriptHostImports);
+            if (module.Functions.Any(function => function.IsRemote))
+            {
+                string configSpecifier = GetRelativeSpecifier(outputPath, "bridge-config.js");
+                lines.Add($"import {{ baseUrl as {effectiveOptions.BridgeBaseUrlBinding} }} from \"{configSpecifier}\";");
+            }
             foreach (IGrouping<MirModuleId, MirModuleImport> imports in module.Imports
                 .Where(import => import.TargetModule is not null)
                 .GroupBy(import => import.TargetModule!))
@@ -96,6 +101,13 @@ public static class JavaScriptProjectEmitter
             if (exportedHelpers.Length > 0)
             {
                 lines.Add($"export {{ {string.Join(", ", exportedHelpers)} }};");
+            }
+            foreach (MirModuleExport export in module.Exports
+                .Where(export => export.DeclarationKind == "record" && export.RuntimeName is not null)
+                .OrderBy(export => export.Name, StringComparer.Ordinal))
+            {
+                string helper = JavaScriptBackend.GetRecordFactoryName(new MirRecordTypeId(export.RuntimeName!));
+                lines.Add($"export {{ {helper} as {JavaScriptIdentifierEncoder.Encode(export.Name)} }};");
             }
 
             files.Add(outputPath, string.Join(Environment.NewLine, lines) + Environment.NewLine);

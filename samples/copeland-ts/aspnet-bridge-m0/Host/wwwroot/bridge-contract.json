@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "operations": [
+    {
+      "id": "Bridge.ts/SerializeState",
+      "method": "POST",
+      "route": "/__copeland/m0/bridge/serialize-state",
+      "request": {
+        "kind": "record",
+        "type": "SerializeRequest",
+        "identity": "r806379001",
+        "fields": [
+          {
+            "name": "message",
+            "type": {
+              "kind": "primitive",
+              "type": "string",
+              "identity": null,
+              "fields": []
+            }
+          },
+          {
+            "name": "count",
+            "type": {
+              "kind": "primitive",
+              "type": "int",
+              "identity": null,
+              "fields": []
+            }
+          }
+        ]
+      },
+      "response": {
+        "kind": "string",
+        "type": "string",
+        "identity": null,
+        "fields": []
+      },
+      "fallible": true,
+      "error": {
+        "type": "BridgeError",
+        "identity": "r806379002",
+        "fields": [
+          {
+            "name": "kind",
+            "type": {
+              "kind": "primitive",
+              "type": "string",
+              "identity": null,
+              "fields": []
+            }
+          },
+          {
+            "name": "message",
+            "type": {
+              "kind": "primitive",
+              "type": "string",
+              "identity": null,
+              "fields": []
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

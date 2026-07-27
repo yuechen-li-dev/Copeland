@@ -18,6 +18,7 @@
     <ProjectReference Include="../../../src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <ProjectReference Include="../../../src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
     <ProjectReference Include="../../../src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS.Backend.AspNetCore/Copeland.TS.Backend.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

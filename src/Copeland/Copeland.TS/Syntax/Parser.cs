@@ -107,11 +107,16 @@ public sealed class Parser
 
         if (Current.Kind == SyntaxKind.IdentifierToken
             && Current.Text == "export"
-            && (Peek(1).Kind == SyntaxKind.FunctionKeyword
-                || Peek(1).Kind == SyntaxKind.AsyncKeyword && Peek(2).Kind == SyntaxKind.FunctionKeyword))
+            && IsFunctionDeclarationAhead(1))
         {
             _ = NextToken();
-            return ParseFunctionDeclaration();
+            SyntaxToken? remoteKeyword = null;
+            if (IsWord(Current, "remote"))
+            {
+                remoteKeyword = NextToken();
+            }
+
+            return ParseFunctionDeclaration(remoteKeyword);
         }
 
         // Module exports do not change the shape of a declaration. The project
@@ -146,10 +151,15 @@ public sealed class Parser
             var constKeyword = Match(SyntaxKind.ConstKeyword);
             return ParseRecordDeclaration(constKeyword);
         }
-        if ((Current.Kind == SyntaxKind.AsyncKeyword && Peek(1).Kind == SyntaxKind.FunctionKeyword)
-            || Current.Kind == SyntaxKind.FunctionKeyword)
+        if (IsFunctionDeclarationAhead(0))
         {
-            return ParseFunctionDeclaration();
+            SyntaxToken? remoteKeyword = null;
+            if (IsWord(Current, "remote"))
+            {
+                remoteKeyword = NextToken();
+            }
+
+            return ParseFunctionDeclaration(remoteKeyword);
         }
         if (Current.Kind == SyntaxKind.EnumKeyword)
         {
@@ -575,7 +585,7 @@ public sealed class Parser
         }
     }
 
-    private FunctionDeclarationSyntax ParseFunctionDeclaration()
+    private FunctionDeclarationSyntax ParseFunctionDeclaration(SyntaxToken? remoteKeyword = null)
     {
         SyntaxToken? asyncKeyword = Current.Kind == SyntaxKind.AsyncKeyword ? NextToken() : null;
         var functionKeyword = Match(SyntaxKind.FunctionKeyword);
@@ -646,7 +656,26 @@ public sealed class Parser
             returnType = ParseTypeSyntax();
         }
         var body = ParseBlockStatement();
-        return new FunctionDeclarationSyntax(asyncKeyword, functionKeyword, generatorStarToken, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
+        return new FunctionDeclarationSyntax(remoteKeyword, asyncKeyword, functionKeyword, generatorStarToken, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
+    }
+
+    private bool IsFunctionDeclarationAhead(int offset)
+    {
+        if (Peek(offset).Kind == SyntaxKind.FunctionKeyword)
+        {
+            return true;
+        }
+
+        if (Peek(offset).Kind == SyntaxKind.AsyncKeyword
+            && Peek(offset + 1).Kind == SyntaxKind.FunctionKeyword)
+        {
+            return true;
+        }
+
+        return IsWord(Peek(offset), "remote")
+            && (Peek(offset + 1).Kind == SyntaxKind.FunctionKeyword
+                || Peek(offset + 1).Kind == SyntaxKind.AsyncKeyword
+                    && Peek(offset + 2).Kind == SyntaxKind.FunctionKeyword);
     }
 
     private InterfaceDeclarationSyntax ParseInterfaceDeclaration()

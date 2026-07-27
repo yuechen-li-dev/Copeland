@@ -7,6 +7,7 @@
     <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.AspNetCore/Copeland.TS.Backend.AspNetCore.csproj" />
     <Project Path="src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" />
   </Folder>
   <Folder Name="/tests/">
@@ -19,6 +20,8 @@
     <Project Path="samples/copeland-ts/authoring-food/Copeland.Authoring.Food.Tests/Copeland.Authoring.Food.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/copeland-ts/aspnet-bridge-m0/Generate/Generate.csproj" />
     <Project Path="samples/copeland-ts/authoring-food/Copeland.Authoring.Food.csproj" />
+    <Project Path="samples/copeland-ts/aspnet-bridge-m0/Host/Copeland.AspNetBridge.M0.csproj" />
   </Folder>
 </Solution>
