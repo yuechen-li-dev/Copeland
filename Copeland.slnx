@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
+    <Project Path="tools/CtsJitM0/CtsJitM0.csproj" />
     <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />

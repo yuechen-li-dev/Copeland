@@ -810,7 +810,6 @@ function one(): number {
     }
 
     [Theory]
-    [InlineData("release")]
     [InlineData("unknown")]
     public async Task Unsupported_JavaScriptProfile_Fails_Before_Artifact_Output(string profile)
     {
@@ -832,6 +831,31 @@ function one(): number {
         Assert.Equal(2, result.ExitCode);
         Assert.False(File.Exists(outputPath));
         Assert.Contains("Unsupported JavaScript profile", result.StdErr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task JavaScriptProductionProfile_Emits_Stable_Trusted_Record_Representation()
+    {
+        using var temp = new TempDir();
+        string inputPath = temp.WriteFile("input.ts", "record Point { x: int; } function main(): int { const point: Point = { x: 42 }; return point.x; }");
+        string outputPath = Path.Combine(temp.Path, "output.production.js");
+
+        CliResult compilation = await RunCliAsync(
+            temp.Path,
+            "compile",
+            inputPath,
+            "--emit",
+            "javascript",
+            "--javascript-profile",
+            "production",
+            "--out",
+            outputPath);
+
+        Assert.Equal(0, compilation.ExitCode);
+        string emitted = Normalize(await File.ReadAllTextAsync(outputPath));
+        Assert.Contains("$f0", emitted, StringComparison.Ordinal);
+        Assert.DoesNotContain("new WeakSet()", emitted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Object.defineProperties", emitted, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -110,12 +110,13 @@ internal static class Program
             {
                 "diagnostic" => JavaScriptEmissionProfile.Diagnostic,
                 "symbolic" => JavaScriptEmissionProfile.Symbolic,
-                "release" => (JavaScriptEmissionProfile)(-1),
+                "production" => JavaScriptEmissionProfile.Production,
+                "release" => JavaScriptEmissionProfile.Production,
                 _ => (JavaScriptEmissionProfile)(-1),
             };
             if (!Enum.IsDefined(profile))
             {
-                return UsageError("COPE-CLI-0023", $"Unsupported JavaScript profile '{javaScriptProfile}'. Use 'diagnostic' or 'symbolic'; Release is deferred.");
+                return UsageError("COPE-CLI-0023", $"Unsupported JavaScript profile '{javaScriptProfile}'. Use 'diagnostic', 'symbolic', or 'production'.");
             }
         }
 
@@ -422,7 +423,7 @@ internal static class Program
     private static int UsageError(string id, string message)
     {
         Console.Error.WriteLine("Usage:");
-        Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic] [--out <path>]");
+        Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic|production] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
         Console.Error.WriteLine($"{id} error: {message}");

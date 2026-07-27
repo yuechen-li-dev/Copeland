@@ -14,5 +14,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
+    <ProjectReference Include="../../../tools/CtsJitM0/CtsJitM0.csproj" />
   </ItemGroup>
 </Project>

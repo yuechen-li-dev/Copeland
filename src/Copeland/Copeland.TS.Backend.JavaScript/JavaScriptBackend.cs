@@ -61,6 +61,38 @@ public static class JavaScriptBackend
     private static string RecordConstructionName(MirRecordDefinition record, GeneratedNames names)
         => ModuleFactoryEmission.Value ? GetRecordFactoryName(record.Id) : names.RecordConstructor(record);
 
+    private static bool IsProduction(GeneratedNames names)
+        => names.Profile == JavaScriptEmissionProfile.Production;
+
+    private static string ProductionRecordFieldName(MirRecordDefinition record, MirRecordFieldDefinition field)
+    {
+        int index = FindIndex(record.Fields, field);
+        return "$f" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string ProductionEnumPayloadName(int index)
+        => "$p" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string ProductionEnumSingletonName(GeneratedNames names, EnumInfo enumInfo, MirEnumCase enumCase)
+    {
+        int index = FindIndex(enumInfo.Definition.Cases, enumCase);
+        return names.TypeToken(enumInfo) + "_case_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static int FindIndex<T>(IReadOnlyList<T> values, T value)
+        where T : class
+    {
+        for (int index = 0; index < values.Count; index += 1)
+        {
+            if (ReferenceEquals(values[index], value) || EqualityComparer<T>.Default.Equals(values[index], value))
+            {
+                return index;
+            }
+        }
+
+        throw new InvalidOperationException("Generated JavaScript representation could not locate a declared member.");
+    }
+
     public static JavaScriptCompilation Emit(MirProgram program)
     {
         return Emit(program, options: null);
@@ -174,7 +206,7 @@ public static class JavaScriptBackend
         foreach (MirFunction function in program.Functions)
         {
             writer.WriteLine();
-            EmitFunction(writer, function, catalog, results, names);
+            EmitFunction(writer, function, catalog, results, names, effectiveOptions.BoundaryFunctionNames.Contains(function.Name));
         }
 
         foreach (MirFlowDefinition flow in program.Flows)
@@ -1287,7 +1319,7 @@ public static class JavaScriptBackend
         foreach (MirRecordDefinition record in catalog.Records)
         {
             writer.WriteLine();
-            EmitRecordRuntime(writer, record, names, usesSharedBrowserInteropRuntime);
+            EmitRecordRuntime(writer, record, catalog, results, names, usesSharedBrowserInteropRuntime);
             if (ModuleFactoryEmission.Value)
             {
                 writer.WriteLine();
@@ -1303,8 +1335,19 @@ public static class JavaScriptBackend
         foreach (EnumInfo enumInfo in catalog.Enums)
         {
             writer.WriteLine();
-            writer.WriteLine($"const {names.TypeToken(enumInfo)} = Object.freeze(Object.create(null));");
-            writer.WriteLine($"const {names.EnumInstances(enumInfo)} = new WeakSet();");
+            if (IsProduction(names))
+            {
+                writer.WriteLine($"const {names.TypeToken(enumInfo)} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.TypeToken(enumInfo), enumInfo.Definition.Name))});");
+                foreach (MirEnumCase enumCase in enumInfo.Definition.Cases.Where(candidate => candidate.PayloadFields.Count == 0))
+                {
+                    writer.WriteLine($"const {ProductionEnumSingletonName(names, enumInfo, enumCase)} = Object.freeze({{ $type: {names.TypeToken(enumInfo)}, $tag: {JavaScriptLiteralWriter.WriteString(enumCase.Name)} }});");
+                }
+            }
+            else
+            {
+                writer.WriteLine($"const {names.TypeToken(enumInfo)} = Object.freeze(Object.create(null));");
+                writer.WriteLine($"const {names.EnumInstances(enumInfo)} = new WeakSet();");
+            }
         }
 
         if (ModuleFactoryEmission.Value) foreach (EnumInfo enumInfo in catalog.Enums)
@@ -1315,7 +1358,9 @@ public static class JavaScriptBackend
                 string parameters = string.Join(", ", enumCase.PayloadFields.Select((_, index) => "payload" + index));
                 writer.WriteLine($"function {GetEnumFactoryName(enumInfo.Definition.Name, enumCase.Name)}({parameters}) {{");
                 writer.Indent();
-                writer.WriteLine($"return {names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(enumCase.Name)}, [{parameters}]);");
+                writer.WriteLine(IsProduction(names)
+                    ? $"return {EmitProductionEnumConstruction(enumInfo, enumCase, names, enumCase.PayloadFields.Select((_, index) => "payload" + index).ToArray())};"
+                    : $"return {names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(enumCase.Name)}, [{parameters}]);");
                 writer.Unindent();
                 writer.WriteLine("}");
             }
@@ -1821,7 +1866,7 @@ public static class JavaScriptBackend
         return $"{RecordConstructionName(record, names)}({string.Join(", ", record.Fields.Select(field => EmitTableConstant(values[field.Id], catalog, results, names)))})";
     }
 
-    private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, GeneratedNames names, bool shareAcrossModules)
+    private static void EmitRecordRuntime(JavaScriptTextWriter writer, MirRecordDefinition record, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool shareAcrossModules)
     {
         var typeToken = names.RecordTypeToken(record);
         string registration = "__cope_m3_record_registration_" + record.Id.Value;
@@ -1834,10 +1879,17 @@ public static class JavaScriptBackend
         else
         {
             writer.WriteLine($"const {typeToken} = Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(typeToken, record.Id.Value))});");
-            writer.WriteLine($"const {names.RecordInstances(record)} = new WeakSet();");
+            if (!IsProduction(names))
+            {
+                writer.WriteLine($"const {names.RecordInstances(record)} = new WeakSet();");
+            }
         }
         foreach (MirRecordFieldDefinition field in record.Fields)
         {
+            if (IsProduction(names))
+            {
+                continue;
+            }
             string fieldValue = shareAcrossModules
                 ? $"__cope_m3_record_field({registration}, {JavaScriptLiteralWriter.WriteString(field.Id.Value)})"
                 : $"Symbol({JavaScriptLiteralWriter.WriteString(names.SymbolDescription(names.RecordFieldSlot(field), field.Id.Value))})";
@@ -1848,25 +1900,59 @@ public static class JavaScriptBackend
         string parameters = string.Join(", ", record.Fields.Select((_, index) => $"field{index}"));
         writer.WriteLine($"function {names.RecordConstructor(record)}({parameters}) {{");
         writer.Indent();
-        writer.WriteLine("const value = Object.create(null);");
-        writer.WriteLine("Object.defineProperties(value, {");
-        writer.Indent();
-        writer.WriteLine($"[{typeToken}]: {{ value: {typeToken}, writable: false, enumerable: false, configurable: false }},");
-        for (int index = 0; index < record.Fields.Count; index += 1)
+        if (IsProduction(names))
         {
-            writer.WriteLine($"[{names.RecordFieldSlot(record.Fields[index])}]: {{ value: field{index}, writable: false, enumerable: false, configurable: false }},");
+            string properties = string.Join(", ", record.Fields.Select((field, index) => $"{ProductionRecordFieldName(record, field)}: field{index}"));
+            writer.WriteLine($"return {{ [{typeToken}]: {typeToken}, {properties} }};");
         }
-        writer.Unindent();
-        writer.WriteLine("});");
-        writer.WriteLine("Object.freeze(value);");
-        writer.WriteLine($"{names.RecordInstances(record)}.add(value);");
-        writer.WriteLine("return value;");
+        else
+        {
+            writer.WriteLine("const value = Object.create(null);");
+            writer.WriteLine("Object.defineProperties(value, {");
+            writer.Indent();
+            writer.WriteLine($"[{typeToken}]: {{ value: {typeToken}, writable: false, enumerable: false, configurable: false }},");
+            for (int index = 0; index < record.Fields.Count; index += 1)
+            {
+                writer.WriteLine($"[{names.RecordFieldSlot(record.Fields[index])}]: {{ value: field{index}, writable: false, enumerable: false, configurable: false }},");
+            }
+            writer.Unindent();
+            writer.WriteLine("});");
+            writer.WriteLine("Object.freeze(value);");
+            writer.WriteLine($"{names.RecordInstances(record)}.add(value);");
+            writer.WriteLine("return value;");
+        }
         writer.Unindent();
         writer.WriteLine("}");
 
         writer.WriteLine();
         writer.WriteLine($"function {names.RecordValidator(record)}(value) {{");
         writer.Indent();
+        if (IsProduction(names))
+        {
+            var productionConditions = new List<string>
+            {
+                "typeof value !== \"object\"",
+                "value === null",
+                $"value[{typeToken}] !== {typeToken}",
+                $"Object.keys(value).length !== {record.Fields.Count}",
+                "Object.getOwnPropertySymbols(value).length !== 1",
+            };
+            productionConditions.AddRange(record.Fields.Select(field => $"!Object.prototype.hasOwnProperty.call(value, {JavaScriptLiteralWriter.WriteString(ProductionRecordFieldName(record, field))})"));
+            writer.WriteLine($"if ({string.Join(" || ", productionConditions)}) {{");
+            writer.Indent();
+            writer.WriteLine($"{names.Panic}();");
+            writer.Unindent();
+            writer.WriteLine("}");
+            foreach (MirRecordFieldDefinition field in record.Fields)
+            {
+                string property = "value." + ProductionRecordFieldName(record, field);
+                writer.WriteLine($"if (!({PayloadTypeCondition(property, field.Type, catalog, results, names)})) {{ {names.Panic}(); }}");
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+            return;
+        }
+
         var conditions = new List<string>
         {
             "typeof value !== \"object\"",
@@ -1935,6 +2021,34 @@ public static class JavaScriptBackend
     {
         writer.WriteLine($"function {names.Validator(enumInfo)}(value) {{");
         writer.Indent();
+        if (IsProduction(names))
+        {
+            writer.WriteLine($"if (typeof value !== \"object\" || value === null || value.$type !== {names.TypeToken(enumInfo)} || typeof value.$tag !== \"string\") {{");
+            writer.Indent();
+            writer.WriteLine($"{names.Panic}();");
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine("switch (value.$tag) {");
+            writer.Indent();
+            foreach (MirEnumCase enumCase in enumInfo.Definition.Cases)
+            {
+                writer.WriteLine($"case {JavaScriptLiteralWriter.WriteString(enumCase.Name)}:");
+                writer.Indent();
+                EmitProductionPayloadValidation(writer, enumCase, catalog, results, names);
+                writer.WriteLine("return;");
+                writer.Unindent();
+            }
+            writer.WriteLine("default:");
+            writer.Indent();
+            writer.WriteLine($"{names.Panic}();");
+            writer.Unindent();
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.Unindent();
+            writer.WriteLine("}");
+            return;
+        }
+
         writer.WriteLine($"if (typeof value !== \"object\" || value === null || Object.getPrototypeOf(value) !== null || !Object.isFrozen(value) || !{names.EnumInstances(enumInfo)}.has(value) || !Object.prototype.hasOwnProperty.call(value, \"$type\") || !Object.prototype.hasOwnProperty.call(value, \"$tag\") || !Object.prototype.hasOwnProperty.call(value, \"$payload\") || value.$type !== {names.TypeToken(enumInfo)} || typeof value.$tag !== \"string\" || !Array.isArray(value.$payload) || !Object.isFrozen(value.$payload)) {{");
         writer.Indent();
         writer.WriteLine($"{names.Panic}();");
@@ -2012,12 +2126,32 @@ public static class JavaScriptBackend
         }
     }
 
+    private static void EmitProductionPayloadValidation(JavaScriptTextWriter writer, MirEnumCase enumCase, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    {
+        int expectedOwnProperties = 2 + enumCase.PayloadFields.Count;
+        writer.WriteLine($"if (Object.keys(value).length !== {expectedOwnProperties} || Object.getOwnPropertySymbols(value).length !== 0) {{");
+        writer.Indent();
+        writer.WriteLine($"{names.Panic}();");
+        writer.Unindent();
+        writer.WriteLine("}");
+        for (int index = 0; index < enumCase.PayloadFields.Count; index += 1)
+        {
+            string property = ProductionEnumPayloadName(index);
+            MirType type = enumCase.PayloadFields[index].Type;
+            writer.WriteLine($"if (!Object.prototype.hasOwnProperty.call(value, {JavaScriptLiteralWriter.WriteString(property)}) || !({PayloadTypeCondition("value." + property, type, catalog, results, names)})) {{");
+            writer.Indent();
+            writer.WriteLine($"{names.Panic}();");
+            writer.Unindent();
+            writer.WriteLine("}");
+        }
+    }
+
     private static string PayloadTypeCondition(string expression, MirType type, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         return type switch
         {
             MirType { Identifier: "boolean" } => $"typeof {expression} === \"boolean\"",
-            MirType { Identifier: "number" } => $"typeof {expression} === \"number\"",
+            MirType { Identifier: "number" or "int" or "float" } => $"typeof {expression} === \"number\"",
             MirType { Identifier: "string" } => $"typeof {expression} === \"string\"",
             MirType { Identifier: "void" } => $"{expression} === null",
             MirCallableType callable => $"__cope_callable_instances.has({expression}) && __cope_callable_signatures.get({expression}) === {JavaScriptLiteralWriter.WriteString(CallableTypeIdentity(callable))}",
@@ -2088,11 +2222,37 @@ public static class JavaScriptBackend
         writer.WriteLine("}");
     }
 
-    private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+    private static void EmitBoundaryParameterValidation(
+        JavaScriptTextWriter writer,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool isBoundaryFunction)
+    {
+        if (!IsProduction(names) || !isBoundaryFunction)
+        {
+            return;
+        }
+
+        foreach (MirParameter parameter in function.Parameters)
+        {
+            string parameterName = JavaScriptIdentifierEncoder.Encode(parameter.Name);
+            string condition = PayloadTypeCondition(parameterName, parameter.Type, catalog, results, names);
+            if (condition == "false")
+            {
+                continue;
+            }
+
+            writer.WriteLine($"if (!({condition})) {{ {names.Panic}(); }}");
+        }
+    }
+
+    private static void EmitFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction)
     {
         if (function.IsAsync)
         {
-            EmitAsyncFunction(writer, function, results, names);
+            EmitAsyncFunction(writer, function, catalog, results, names, isBoundaryFunction);
             return;
         }
         JavaScriptScopeId functionScope = names.EnterFunction(function);
@@ -2101,6 +2261,7 @@ public static class JavaScriptBackend
         string generatorMarker = function.IsGenerator ? "*" : string.Empty;
         writer.WriteLine($"function{generatorMarker} {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
+        EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction);
 
         bool usesTryExcept = FunctionUsesTryExcept(function);
         if (usesTryExcept)
@@ -2152,7 +2313,7 @@ public static class JavaScriptBackend
         writer.EnterScope(names.Document.ProgramScope);
     }
 
-    private static void EmitAsyncFunction(JavaScriptTextWriter writer, MirFunction function, ResultCatalog results, GeneratedNames names)
+    private static void EmitAsyncFunction(JavaScriptTextWriter writer, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool isBoundaryFunction)
     {
         if (!TryGetAsyncStates(function.SuspensionAutomaton?.ExecutionPlan, out List<AsyncState> states, out int entryState))
         {
@@ -2162,6 +2323,7 @@ public static class JavaScriptBackend
         string parameters = string.Join(", ", function.Parameters.Select(parameter => JavaScriptIdentifierEncoder.Encode(parameter.Name)));
         writer.WriteLine($"function {JavaScriptIdentifierEncoder.Encode(function.Name)}({parameters}) {{");
         writer.Indent();
+        EmitBoundaryParameterValidation(writer, function, catalog, results, names, isBoundaryFunction);
         writer.WriteLine($"const frame = {{ state: {entryState} }};");
         foreach (MirParameter parameter in function.Parameters)
         {
@@ -3506,9 +3668,15 @@ public static class JavaScriptBackend
         var prelude = new List<EmittedLine>(receiver.Prelude)
         {
             new($"const {temporary} = {receiver.Value};", 0),
-            new($"{names.RecordValidator(record)}({temporary});", 0),
         };
-        return new EmittedExpression(prelude, $"{temporary}[{names.RecordFieldSlot(field)}]");
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.RecordValidator(record)}({temporary});", 0));
+        }
+        string fieldAccess = IsProduction(names)
+            ? $"{temporary}.{ProductionRecordFieldName(record, field)}"
+            : $"{temporary}[{names.RecordFieldSlot(field)}]";
+        return new EmittedExpression(prelude, fieldAccess);
     }
 
     private static EmittedExpression EmitTableColumnAccess(
@@ -3625,8 +3793,11 @@ public static class JavaScriptBackend
         var prelude = new List<EmittedLine>(source.Prelude)
         {
             new($"const {sourceTemporary} = {source.Value};", 0),
-            new($"{names.RecordValidator(record)}({sourceTemporary});", 0),
         };
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.RecordValidator(record)}({sourceTemporary});", 0));
+        }
         var replacementsByField = new Dictionary<MirRecordFieldId, string>();
         foreach (MirRecordFieldValue replacement in withExpression.Replacements)
         {
@@ -3640,7 +3811,9 @@ public static class JavaScriptBackend
         string arguments = string.Join(", ", record.Fields.Select(field =>
             replacementsByField.TryGetValue(field.Id, out string? replacement)
                 ? replacement
-                : $"{sourceTemporary}[{names.RecordFieldSlot(field)}]"));
+                : IsProduction(names)
+                    ? $"{sourceTemporary}.{ProductionRecordFieldName(record, field)}"
+                    : $"{sourceTemporary}[{names.RecordFieldSlot(field)}]"));
         return new EmittedExpression(prelude, $"{RecordConstructionName(record, names)}({arguments})");
     }
 
@@ -3679,15 +3852,33 @@ public static class JavaScriptBackend
         return new EmittedExpression(prelude, buildValue(values));
     }
 
+    private static string EmitProductionEnumConstruction(
+        EnumInfo enumInfo,
+        MirEnumCase enumCase,
+        GeneratedNames names,
+        IReadOnlyList<string> payloads)
+    {
+        if (enumCase.PayloadFields.Count == 0)
+        {
+            return ProductionEnumSingletonName(names, enumInfo, enumCase);
+        }
+
+        string properties = string.Join(", ", payloads.Select((value, index) => $"{ProductionEnumPayloadName(index)}: {value}"));
+        return $"{{ $type: {names.TypeToken(enumInfo)}, $tag: {JavaScriptLiteralWriter.WriteString(enumCase.Name)}, {properties} }}";
+    }
+
     private static EmittedExpression EmitEnumValueExpression(MirEnumValueExpression value, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
         EnumInfo enumInfo = catalog.GetEnum(value.EnumName);
+        MirEnumCase enumCase = enumInfo.Definition.Cases.Single(candidate => candidate.Name == value.CaseName);
         var payloads = value.Arguments.Select(argument => EmitExpression(argument, function, catalog, results, names, flowEnabled)).ToList();
         return CombineOrdered(
             payloads,
             names,
             values => ModuleFactoryEmission.Value
                 ? $"{GetEnumFactoryName(enumInfo.Definition.Name, value.CaseName)}({string.Join(", ", values)})"
+                : IsProduction(names)
+                    ? EmitProductionEnumConstruction(enumInfo, enumCase, names, values)
                 : $"{names.MakeValue}({names.TypeToken(enumInfo)}, {JavaScriptLiteralWriter.WriteString(value.CaseName)}, [{string.Join(", ", values)}])");
     }
 
@@ -3704,9 +3895,12 @@ public static class JavaScriptBackend
         {
             "(() => {",
             $"const {scrutinee} = {EmitExpression(match.Scrutinee, function, catalog, results, names, flowEnabled).Value};",
-            $"{names.Validator(enumInfo)}({scrutinee});",
             $"switch ({scrutinee}.$tag) {{",
         };
+        if (!IsProduction(names))
+        {
+            parts.Insert(2, $"{names.Validator(enumInfo)}({scrutinee});");
+        }
 
         foreach (MirMatchArm arm in match.Arms)
         {
@@ -3714,7 +3908,10 @@ public static class JavaScriptBackend
             for (int index = 0; index < arm.PayloadBindings.Count; index += 1)
             {
                 string binding = JavaScriptIdentifierEncoder.Encode(arm.PayloadBindings[index].Name);
-                parts.Add($"const {binding} = {scrutinee}.$payload[{index}];");
+                string payload = IsProduction(names)
+                    ? $"{scrutinee}.{ProductionEnumPayloadName(index)}"
+                    : $"{scrutinee}.$payload[{index}]";
+                parts.Add($"const {binding} = {payload};");
             }
 
             parts.Add($"return {EmitExpression(arm.Expression, function, catalog, results, names, flowEnabled).Value};");
@@ -3925,10 +4122,13 @@ public static class JavaScriptBackend
         var prelude = new List<EmittedLine>(scrutinee.Prelude)
         {
             new($"const {scrutineeTemporary} = {scrutinee.Value};", 0),
-            new($"{names.Validator(enumInfo)}({scrutineeTemporary});", 0),
-            new($"let {valueTemporary};", 0),
-            new($"switch ({scrutineeTemporary}.$tag) {{", 0),
         };
+        if (!IsProduction(names))
+        {
+            prelude.Add(new EmittedLine($"{names.Validator(enumInfo)}({scrutineeTemporary});", 0));
+        }
+        prelude.Add(new EmittedLine($"let {valueTemporary};", 0));
+        prelude.Add(new EmittedLine($"switch ({scrutineeTemporary}.$tag) {{", 0));
         foreach (MirMatchArm arm in match.Arms)
         {
             EmittedExpression armExpression = EmitExpression(arm.Expression, function, catalog, results, names, flowEnabled);
@@ -3936,7 +4136,10 @@ public static class JavaScriptBackend
             prelude.Add(new EmittedLine("{", 1));
             for (int index = 0; index < arm.PayloadBindings.Count; index += 1)
             {
-                prelude.Add(new EmittedLine($"const {JavaScriptIdentifierEncoder.Encode(arm.PayloadBindings[index].Name)} = {scrutineeTemporary}.$payload[{index}];", 2));
+                string payload = IsProduction(names)
+                    ? $"{scrutineeTemporary}.{ProductionEnumPayloadName(index)}"
+                    : $"{scrutineeTemporary}.$payload[{index}]";
+                prelude.Add(new EmittedLine($"const {JavaScriptIdentifierEncoder.Encode(arm.PayloadBindings[index].Name)} = {payload};", 2));
             }
             prelude.AddRange(armExpression.Prelude.Select(line => line.OffsetBy(2)));
             prelude.Add(new EmittedLine($"{valueTemporary} = {armExpression.Value};", 2));

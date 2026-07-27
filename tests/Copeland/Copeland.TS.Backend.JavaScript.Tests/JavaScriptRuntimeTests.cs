@@ -1494,6 +1494,67 @@ public sealed class JavaScriptRuntimeTests
         Assert.Equal(string.Empty, result.StdErr);
     }
 
+    [Fact]
+    public async Task Production_profile_uses_trusted_stable_values_and_retains_boundary_rejection()
+    {
+        const string source = """
+            record Point { count: int; enabled: boolean; }
+            record OtherPoint { count: int; enabled: boolean; }
+            enum Event { Tick, Add(value: int), }
+            enum OtherEvent { Tick, }
+            function main(): int {
+                let point: Point = { count: 1, enabled: true };
+                point = point with { count: point.count + 1 };
+                const event: Event = Event.Add(point.count);
+                return match event {
+                    Tick => 0,
+                    Add(value) => value,
+                };
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        JavaScriptCompilation validated = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        JavaScriptCompilation production = JavaScriptBackend.Emit(
+            compilation.MirCompilation.Program!,
+            new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Production });
+
+        Assert.True(validated.Success, string.Join(Environment.NewLine, validated.Diagnostics));
+        Assert.True(production.Success, string.Join(Environment.NewLine, production.Diagnostics));
+        Assert.Contains("return { [", production.SourceText, StringComparison.Ordinal);
+        Assert.Contains("$f0", production.SourceText, StringComparison.Ordinal);
+        Assert.Contains("$p0", production.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("new WeakSet()", production.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Object.defineProperties", production.SourceText, StringComparison.Ordinal);
+
+        ProcessResult validatedResult = await RunNodeAsync(validated.SourceText + "console.log(main());\n");
+        ProcessResult productionResult = await RunNodeAsync(production.SourceText + "console.log(main());\n");
+        Assert.Equal("2\n", validatedResult.StdOut);
+        Assert.Equal(validatedResult.StdOut, productionResult.StdOut);
+
+        Match recordConstructor = Regex.Match(production.SourceText!, @"function (?<name>__cope_m3_record_make_r1_\d+)\(");
+        Match recordValidator = Regex.Match(production.SourceText!, @"function (?<name>__cope_m3_record_require_r1_\d+)\(");
+        Match enumValidator = Regex.Match(production.SourceText!, @"function (?<name>__cope_m3_validate_\d+)\(");
+        Assert.True(recordConstructor.Success);
+        Assert.True(recordValidator.Success);
+        Assert.True(enumValidator.Success);
+
+        string adversarialScript = production.SourceText + $$"""
+            const trusted = {{recordConstructor.Groups["name"].Value}}(1, true);
+            trusted.$f0 = "forged";
+            try { {{recordValidator.Groups["name"].Value}}(trusted); console.log("record-accepted"); }
+            catch (error) { console.log("record-rejected"); }
+            try { {{recordValidator.Groups["name"].Value}}({ $f0: 1, $f1: true }); console.log("plain-record-accepted"); }
+            catch (error) { console.log("plain-record-rejected"); }
+            try { {{enumValidator.Groups["name"].Value}}({ $type: Symbol("forged"), $tag: "Tick" }); console.log("enum-accepted"); }
+            catch (error) { console.log("enum-rejected"); }
+            """;
+        ProcessResult adversarialResult = await RunNodeAsync(adversarialScript);
+        Assert.Equal("record-rejected\nplain-record-rejected\nenum-rejected\n", adversarialResult.StdOut);
+        Assert.Equal(string.Empty, adversarialResult.StdErr);
+    }
+
     private static JavaScriptCompilation Emit(string source)
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);

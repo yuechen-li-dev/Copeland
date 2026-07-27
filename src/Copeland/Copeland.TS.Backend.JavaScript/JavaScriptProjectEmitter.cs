@@ -14,9 +14,15 @@ public static class JavaScriptProjectEmitter
     {
         ArgumentNullException.ThrowIfNull(graph);
         JavaScriptEmissionOptions effectiveOptions = options ?? new JavaScriptEmissionOptions();
+        IReadOnlySet<string> boundaryFunctions = graph.Modules
+            .SelectMany(module => module.Exports)
+            .Where(export => export.RuntimeName is not null)
+            .Select(export => export.RuntimeName!)
+            .ToHashSet(StringComparer.Ordinal);
         JavaScriptCompilation aggregate = JavaScriptBackend.Emit(graph.AggregateProgram, effectiveOptions with
         {
             EmitModuleFactories = true,
+            BoundaryFunctionNames = boundaryFunctions,
         });
         if (!aggregate.Success)
         {
