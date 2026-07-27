@@ -63,9 +63,11 @@ public sealed class NpmFunctionSymbol : Symbol
     public bool IsPromise { get; }
     public bool IsAvailableToJavaScript { get; }
     public bool IsAvailableToClrSidecar { get; }
-    public TypeSymbol InvocationReturnType => RemoteErrorType is null
-        ? new AsyncTypeSymbol(ResultType)
-        : new AsyncTypeSymbol(new ResultTypeSymbol(ResultType, RemoteErrorType!));
+    public TypeSymbol InvocationReturnType => RemoteErrorType is null && !IsPromise
+        ? ResultType
+        : RemoteErrorType is null
+            ? new AsyncTypeSymbol(ResultType)
+            : new AsyncTypeSymbol(new ResultTypeSymbol(ResultType, RemoteErrorType));
 }
 
 /// <summary>A statically bound function exported by a Copeland NuGet package module.</summary>

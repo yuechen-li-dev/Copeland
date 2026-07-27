@@ -3070,7 +3070,7 @@ public static class Binder
         {
             switch (expression)
             {
-                case BoundAwaitExpression or BoundNpmCallExpression:
+                case BoundAwaitExpression or BoundNpmCallExpression or BoundNpmDirectCallExpression:
                     Report("COPE-BATCH-0012", "Async and npm operations are not supported inside batch bodies.", anchor);
                     return;
                 case BoundClrInvocationExpression or BoundClrPropertyAccessExpression:
@@ -4639,8 +4639,19 @@ public static class Binder
             BoundExpression[] arguments = call.Arguments.Select((argument, index) => BindExpression(argument, index < npm.Parameters.Count ? npm.Parameters[index].Type : null)).ToArray();
             for (int index = 0; index < Math.Min(arguments.Length, npm.Parameters.Count); index++)
                 if (!IsAssignable(npm.Parameters[index].Type, arguments[index].Type)) ReportTypeMismatch("COPE-TYPE-0005", npm.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
-            if (call.Arguments.Count != npm.Parameters.Count || npm.RemoteErrorType is null)
+            if (call.Arguments.Count != npm.Parameters.Count)
             {
+                return new BoundErrorExpression();
+            }
+
+            if (npm.RemoteErrorType is null && !npm.IsPromise)
+            {
+                return new BoundNpmDirectCallExpression(npm, arguments);
+            }
+
+            if (npm.RemoteErrorType is null)
+            {
+                Report("COPE-NPM-0009", "Promise-returning npm functions require a declared remote error type in this profile.", call.OpenParenToken);
                 return new BoundErrorExpression();
             }
 
@@ -5531,8 +5542,13 @@ public static class Binder
 
         private string? CreateDeclarationStableIdentity(string name)
         {
-            if (_moduleIdentity is not null) return $"module:{_moduleIdentity}#{name}";
-            return _schemaIdentity is null ? null : $"{_schemaIdentity}#{name}";
+            // A declared schema owns the transport identity even when the
+            // declaration is compiled as one module in a project graph.  The
+            // previous module-first order made otherwise valid npm contracts
+            // unusable from tscl projects because their TSON plans require a
+            // schema-owned record identity.
+            if (_schemaIdentity is not null) return $"{_schemaIdentity}#{name}";
+            return _moduleIdentity is null ? null : $"module:{_moduleIdentity}#{name}";
         }
 
         private static Dictionary<string, TypeParameterSymbol> CreateTypeParameterScope(IReadOnlyList<TypeParameterSymbol> typeParameters)

@@ -305,6 +305,18 @@ public sealed class BoundNpmCallExpression : BoundExpression
     public RecordFieldSymbol RemoteErrorValueField { get; }
     public override TypeSymbol Type => Function.InvocationReturnType;
 }
+public sealed class BoundNpmDirectCallExpression : BoundExpression
+{
+    public BoundNpmDirectCallExpression(NpmFunctionSymbol function, IReadOnlyList<BoundExpression> arguments)
+    {
+        Function = function;
+        Arguments = arguments;
+    }
+
+    public NpmFunctionSymbol Function { get; }
+    public IReadOnlyList<BoundExpression> Arguments { get; }
+    public override TypeSymbol Type => Function.ResultType;
+}
 public sealed class BoundJavaScriptHostCallExpression(JavaScriptHostFunctionSymbol function, IReadOnlyList<BoundExpression> arguments) : BoundExpression
 {
     public JavaScriptHostFunctionSymbol Function { get; } = function;

@@ -1040,6 +1040,13 @@ public static class MirLowerer
                 ToMirRecordFieldId(npm.ResponseValueField.Id),
                 ToMirRecordFieldId(npm.RemoteErrorValueField.Id),
                 (MirAsyncType)ToMirType(npm.Type)),
+            BoundNpmDirectCallExpression npm => new MirNpmDirectCallExpression(
+                npm.Function.Name,
+                npm.Function.PackageName,
+                npm.Function.PackageVersion,
+                npm.Function.ExportName,
+                npm.Arguments.Select(LowerExpression).ToArray(),
+                ToMirType(npm.Type)),
             BoundJavaScriptHostCallExpression host => new MirJavaScriptHostCallExpression(
                 host.Function.Name,
                 host.Function.ModuleSpecifier,

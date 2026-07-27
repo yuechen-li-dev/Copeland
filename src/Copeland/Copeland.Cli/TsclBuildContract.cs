@@ -95,9 +95,10 @@ internal static class TsclBuildContract
             throw new TsclContractException("COPE-TSCL-0004", "Project contract is empty.");
         }
 
-        if (!string.Equals(request.JavaScriptRuntime, "node", StringComparison.Ordinal))
+        if (!string.Equals(request.JavaScriptRuntime, "node", StringComparison.Ordinal)
+            && !string.Equals(request.JavaScriptRuntime, "browser", StringComparison.Ordinal))
         {
-            throw new TsclContractException("COPE-TSCL-0005", "tscl build M1 supports only javascriptRuntime='node'.");
+            throw new TsclContractException("COPE-TSCL-0005", "tscl build supports javascriptRuntime='node' or javascriptRuntime='browser'.");
         }
         if (!string.Equals(request.JavaScriptProfile, "production", StringComparison.Ordinal))
         {
@@ -142,11 +143,19 @@ internal static class TsclBuildContract
                 contract.Materialized,
                 IsAvailableToJavaScript: true,
                 IsAvailableToClrSidecar: false)));
-        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(sources, new CopelandCompilationOptions
+        JavaScriptRuntimeTarget runtimeTarget = request.JavaScriptRuntime == "browser"
+            ? JavaScriptRuntimeTarget.Browser
+            : JavaScriptRuntimeTarget.Node;
+        CopelandCompilationOptions options = new()
         {
             ProjectRoot = projectRoot,
             NpmDependencies = npmGraph,
-        });
+            JavaScriptHostModules = runtimeTarget == JavaScriptRuntimeTarget.Browser
+                ? [CreateBrowserHostContract()]
+                : [],
+        };
+
+        CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(sources, options);
         if (!compilation.Success)
         {
             return TsclBuildResult.FromDiagnostics(compilation.Diagnostics, sources);
@@ -157,7 +166,7 @@ internal static class TsclBuildContract
             new JavaScriptEmissionOptions
             {
                 Profile = JavaScriptEmissionProfile.Production,
-                RuntimeTarget = JavaScriptRuntimeTarget.Node,
+                RuntimeTarget = runtimeTarget,
             });
         if (!emission.Success)
         {
@@ -175,11 +184,19 @@ internal static class TsclBuildContract
 
             string entryOutput = string.IsNullOrWhiteSpace(request.EntryOutputPath) ? "entry.js" : request.EntryOutputPath;
             string entryModuleOutput = JavaScriptProjectEmitter.GetOutputPath(new Copeland.TS.Mir.MirModuleId(request.Entry!.Module));
-            WriteStagedFile(stagingDirectory, entryOutput, CreateEntryLauncher(entryModuleOutput, request.Entry.Export));
-            WriteStagedFile(stagingDirectory, "package.json", "{\n  \"type\": \"module\"\n}\n");
+            WriteStagedFile(
+                stagingDirectory,
+                entryOutput,
+                request.JavaScriptRuntime == "browser"
+                    ? CreateBrowserEntryLauncher(entryModuleOutput, request.Entry.Export)
+                    : CreateNodeEntryLauncher(entryModuleOutput, request.Entry.Export));
+            if (request.JavaScriptRuntime == "node")
+            {
+                WriteStagedFile(stagingDirectory, "package.json", "{\n  \"type\": \"module\"\n}\n");
+            }
             PublishOutput(stagingDirectory, outputDirectory);
 
-            return TsclBuildResult.Successful(outputDirectory, entryOutput, request.BuildFingerprint);
+            return TsclBuildResult.Successful(outputDirectory, entryOutput, request.BuildFingerprint, request.JavaScriptRuntime);
         }
         finally
         {
@@ -206,12 +223,49 @@ internal static class TsclBuildContract
         return new CopelandProjectSource(source.LogicalPath, sourcePath, File.ReadAllText(sourcePath));
     }
 
-    private static string CreateEntryLauncher(string entryModuleOutput, string entryExport)
+    private static string CreateNodeEntryLauncher(string entryModuleOutput, string entryExport)
     {
         string specifier = "./" + entryModuleOutput.Replace('\\', '/');
         return $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
             $"const __cope_result = await {entryExport}();\n" +
             "if (__cope_result !== undefined) {\n    console.log(__cope_result);\n}\n";
+    }
+
+    private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport)
+    {
+        string specifier = "./" + entryModuleOutput.Replace('\\', '/');
+        return $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
+            $"await {entryExport}();\n";
+    }
+
+    private static CopelandJavaScriptHostModuleContract CreateBrowserHostContract()
+    {
+        var state = new CopelandJavaScriptHostType.TypeParameter("State");
+        var @event = new CopelandJavaScriptHostType.TypeParameter("Event");
+        return new CopelandJavaScriptHostModuleContract(
+            "@copeland/browser-v1",
+            [
+                new CopelandJavaScriptHostFunctionContract(
+                    "setText",
+                    [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String],
+                    CopelandJavaScriptHostType.Void),
+                new CopelandJavaScriptHostFunctionContract(
+                    "onClick",
+                    [
+                        CopelandJavaScriptHostType.String,
+                        new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void),
+                    ],
+                    CopelandJavaScriptHostType.Void),
+                new CopelandJavaScriptHostFunctionContract(
+                    "dispatch",
+                    [
+                        state,
+                        new CopelandJavaScriptHostType.Callable([state, @event], state),
+                        new CopelandJavaScriptHostType.Callable([state], CopelandJavaScriptHostType.Void),
+                    ],
+                    new CopelandJavaScriptHostType.Callable([@event], CopelandJavaScriptHostType.Void),
+                    ["State", "Event"]),
+            ]);
     }
 
     private static void WriteStagedFile(string stagingDirectory, string relativePath, string contents)
@@ -317,6 +371,7 @@ internal static class TsclBuildContract
     private sealed class TsclBuildResult
     {
         public bool Success { get; init; }
+        public string? Target { get; init; }
         public string CompilerVersion { get; init; } = Version;
         public List<TsclDiagnostic> Diagnostics { get; init; } = [];
         public List<TsclOutput> Outputs { get; init; } = [];
@@ -353,7 +408,7 @@ internal static class TsclBuildContract
                     .ToList(),
             };
 
-        public static TsclBuildResult Successful(string outputDirectory, string entryOutputPath, string? buildFingerprint)
+        public static TsclBuildResult Successful(string outputDirectory, string entryOutputPath, string? buildFingerprint, string target)
         {
             List<TsclOutput> outputs = Directory.EnumerateFiles(outputDirectory, "*", SearchOption.AllDirectories)
                 .Select(path => new TsclOutput(
@@ -364,6 +419,7 @@ internal static class TsclBuildContract
             return new TsclBuildResult
             {
                 Success = true,
+                Target = target,
                 Outputs = outputs,
                 EntryOutputPath = entryOutputPath,
                 BuildFingerprint = buildFingerprint,

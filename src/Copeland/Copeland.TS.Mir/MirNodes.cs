@@ -543,6 +543,13 @@ public sealed record MirNpmCallExpression(
     MirRecordFieldId ResponseValueFieldId,
     MirRecordFieldId RemoteErrorValueFieldId,
     MirAsyncType AsyncType) : MirExpression(AsyncType);
+public sealed record MirNpmDirectCallExpression(
+    string LocalBinding,
+    string PackageName,
+    string PackageVersion,
+    string ExportName,
+    IReadOnlyList<MirExpression> Arguments,
+    MirType ResultType) : MirExpression(ResultType);
 public sealed record MirJavaScriptHostImport(
     string ModuleSpecifier,
     string ExportName,

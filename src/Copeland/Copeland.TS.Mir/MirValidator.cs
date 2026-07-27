@@ -332,6 +332,16 @@ public static class MirValidator
                 diagnostics.Add(new MirValidationDiagnostic($"npm call '{npm.LocalBinding}' does not resolve to module import metadata."));
             }
         }
+        if (expression is MirNpmDirectCallExpression direct)
+        {
+            if (!imports.TryGetValue(direct.LocalBinding, out MirNpmImport? import)
+                || import.PackageName != direct.PackageName
+                || import.PackageVersion != direct.PackageVersion
+                || import.ExportName != direct.ExportName)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"npm direct call '{direct.LocalBinding}' does not resolve to module import metadata."));
+            }
+        }
         foreach (MirExpression child in EnumerateTsonExpressionChildren(expression))
         {
             ValidateNpmCalls(child, imports, diagnostics);
@@ -1228,6 +1238,7 @@ public static class MirValidator
             MirTsonEncodeExpression encode => [encode.Operand],
             MirTsonTransportExpression transport => [transport.Operation, transport.Request],
             MirNpmCallExpression npm => npm.Arguments.Append(npm.ArgumentTuple),
+            MirNpmDirectCallExpression npm => npm.Arguments,
             MirAssignmentExpression assignment => [assignment.Expression],
             MirUnaryExpression unary => [unary.Operand],
             MirBinaryExpression binary => [binary.Left, binary.Right],
@@ -2273,6 +2284,12 @@ public static class MirValidator
                     ValidateExpression(argument, activeHandlers, handlerIds, diagnostics);
                 }
                 ValidateExpression(npm.ArgumentTuple, activeHandlers, handlerIds, diagnostics);
+                return;
+            case MirNpmDirectCallExpression npm:
+                foreach (MirExpression argument in npm.Arguments)
+                {
+                    ValidateExpression(argument, activeHandlers, handlerIds, diagnostics);
+                }
                 return;
         }
     }

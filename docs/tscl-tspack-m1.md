@@ -8,11 +8,11 @@ tscl build --project <project.json> --result <result.json>
 ```
 
 The project JSON supplies the project root, every project-owned source with a
-logical module identity, entry module/export, Node runtime, production
-JavaScript profile, output directory, optional resolved npm contracts, and a
-build fingerprint. Copeland never runs npm, reads a package lock, or discovers
-`node_modules`; the supplied npm rows are already resolved/materialized by
-TSPack.
+logical module identity, entry module/export, explicit `javascriptRuntime`
+(`node` or `browser`), production JavaScript profile, output directory,
+optional resolved npm contracts, and a build fingerprint. Copeland never runs
+npm, reads a package lock, or discovers `node_modules`; the supplied npm rows
+are already resolved/materialized by TSPack.
 
 The result JSON has `success`, stable diagnostic `code` values, authored source
 `file`/`line`/`column` locations when available, `outputs` with SHA-256 hashes,
@@ -20,9 +20,22 @@ The result JSON has `success`, stable diagnostic `code` values, authored source
 
 On success, output is staged and then published as a complete directory. The
 emitted graph remains native ESM: local imports use relative `.js` paths. The
-Node M1 profile is always `production`; `package.json` with `type: module` and
-an entry launcher are emitted so ordinary Node can execute the selected export.
+Both targets always use the `production` JavaScript profile. Node output keeps
+its established `package.json` with `type: module` and logging entry launcher.
+Browser output emits a browser ESM entry launcher (`await Main()`), does not
+write Node launcher metadata, and reports `target: "browser"` in the result
+manifest. Local module imports remain relative `.js` paths and package imports
+remain declared bare specifiers for the browser host/import map to realize.
 
-Current boundary: Node production JavaScript only. Vite/browser, Bun, Deno,
-CLR orchestration, sidecars, publication, watch/HMR, source maps, and arbitrary
-npm declaration ingestion remain deferred.
+For the browser target, `tscl` exposes only the supplied
+`@copeland/browser-v1` typed host contract (`setText`, `onClick`, and generic
+`dispatch`). TSPack owns its implementation, package materialization, and the
+HTML/import-map host. This maintains target separation: browser materialization
+does not reinterpret or change the Node target.
+
+Current browser boundary: direct static ESM packages with root export selection
+in `browser`, `import`, then `default` order. CommonJS entries are rejected by
+the host materializer; package subpath import maps, CommonJS transformation,
+and arbitrary assets remain TSPack follow-up work. Vite, Bun, Deno, CLR
+orchestration, sidecars, publication, watch/HMR, and source maps remain
+deferred.

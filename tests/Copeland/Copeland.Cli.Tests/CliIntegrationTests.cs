@@ -49,6 +49,47 @@ public sealed class CliIntegrationTests
     }
 
     [Fact]
+    public async Task Tscl_build_emits_a_multi_module_production_browser_project_without_node_launcher_artifacts()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        string statePath = temp.WriteFile(
+            "src/State.ts",
+            "export function Status(count: number): string { return `Count: ${count}`; }");
+        string mainPath = temp.WriteFile(
+            "src/Main.ts",
+            "import { setText } from \"@copeland/browser-v1\"; import { Status } from \"./State\"; export function Main(): void { setText(\"status\", Status(0)); }");
+        string outputDirectory = Path.Combine(temp.Path, "dist");
+        string projectPath = temp.WriteFile("project.json", JsonSerializer.Serialize(new
+        {
+            projectRoot = temp.Path,
+            sources = new[]
+            {
+                new { logicalPath = "src/Main.ts", path = mainPath },
+                new { logicalPath = "src/State.ts", path = statePath },
+            },
+            entry = new { module = "src/Main.ts", @export = "Main" },
+            javascriptRuntime = "browser",
+            javascriptProfile = "production",
+            outputDirectory,
+            entryOutputPath = "main.js",
+        }));
+        string resultPath = Path.Combine(temp.Path, "result.json");
+
+        CliResult build = await RunCliAsync(temp.Path, "build", "--project", projectPath, "--result", resultPath);
+
+        Assert.Equal(0, build.ExitCode);
+        using JsonDocument result = JsonDocument.Parse(await File.ReadAllTextAsync(resultPath));
+        Assert.True(result.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal("browser", result.RootElement.GetProperty("target").GetString());
+        Assert.Contains(result.RootElement.GetProperty("outputs").EnumerateArray(), output => output.GetProperty("path").GetString() == "src/Main.js");
+        Assert.Contains("import { setText } from \"@copeland/browser-v1\";", await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "Main.js")), StringComparison.Ordinal);
+        Assert.Contains("import { Status } from \"./State.js\";", await File.ReadAllTextAsync(Path.Combine(outputDirectory, "src", "Main.js")), StringComparison.Ordinal);
+        Assert.Contains("await Main();", await File.ReadAllTextAsync(Path.Combine(outputDirectory, "main.js")), StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(outputDirectory, "package.json")));
+    }
+
+    [Fact]
     public async Task Callable_reference_cli_emission_is_repeatable_executable_and_preserves_stale_artifacts()
     {
         using var temp = new TempDir();

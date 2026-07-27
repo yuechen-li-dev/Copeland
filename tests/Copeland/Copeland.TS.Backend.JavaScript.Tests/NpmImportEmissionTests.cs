@@ -9,6 +9,26 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class NpmImportEmissionTests
 {
     [Fact]
+    public void Emits_a_direct_named_npm_call_when_the_contract_is_synchronous()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(SynchronousSource, new CopelandCompilationOptions
+        {
+            SourcePath = "main.ts",
+            NpmDependencies = new CopelandNpmDependencyGraph(
+            [
+                new CopelandNpmPackageContract("nanoid", "5.1.16", [new CopelandNpmFunctionContract("nanoid", [], "string")]),
+            ]),
+        });
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+
+        Assert.Empty(emitted.Diagnostics);
+        Assert.Contains("import { nanoid } from \"nanoid\";", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("return nanoid();", emitted.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Emits_a_native_named_esm_import_for_npm_calls()
     {
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(Source, new CopelandCompilationOptions
@@ -183,6 +203,11 @@ public sealed class NpmImportEmissionTests
         record RemoteError { message: string; }
         function request(value: number): Request { return { value }; }
         async function load(value: number): Response ! RemoteError { const pending: Async<Response ! RemoteError> = delayedTransform(request(value)); return await pending; }
+        """;
+
+    private const string SynchronousSource = """
+        import { nanoid } from "nanoid";
+        function createId(): string { return nanoid(); }
         """;
 
     private const string AliasedSource = """

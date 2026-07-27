@@ -762,6 +762,12 @@ public static class JavaScriptBackend
                     ValidateExpression(argument, functionReturnType, context, functions, catalog, diagnostics);
                 }
                 break;
+            case MirNpmDirectCallExpression npm:
+                foreach (MirExpression argument in npm.Arguments)
+                {
+                    ValidateExpression(argument, functionReturnType, context, functions, catalog, diagnostics);
+                }
+                break;
             case MirJavaScriptHostCallExpression host:
                 foreach (MirExpression argument in host.Arguments)
                 {
@@ -2530,6 +2536,7 @@ public static class JavaScriptBackend
             MirCallExpression call => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)))})",
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, results, names),
             MirNpmCallExpression npm => EmitNpmCall(npm, results, names),
+            MirNpmDirectCallExpression npm => EmitNpmDirectCallValue(npm, results, names),
             MirOkExpression ok => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)ok.Type))}, \"ok\", [{EmitAsyncExpression(ok.Payload, results, names)}])",
             MirErrExpression err => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)err.Type))}, \"err\", [{EmitAsyncExpression(err.Payload, results, names)}])",
             _ => throw new InvalidOperationException($"Async expression '{expression.GetType().Name}' has not been lowered into an explicit state expression."),
@@ -2554,6 +2561,9 @@ public static class JavaScriptBackend
         string localBinding = JavaScriptIdentifierEncoder.Encode(npm.LocalBinding);
         return $"(() => {{ const pending = __cope_async_pending(); globalThis.Promise.resolve({localBinding}({arguments})).then(value => pending.resolve({names.MakeValue}({token}, \"ok\", [value])), error => pending.resolve({names.MakeValue}({token}, \"err\", [error]))); return pending; }})()";
     }
+
+    private static string EmitNpmDirectCallValue(MirNpmDirectCallExpression npm, ResultCatalog results, GeneratedNames names)
+        => $"{JavaScriptIdentifierEncoder.Encode(npm.LocalBinding)}({string.Join(", ", npm.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)))})";
 
     private static void EmitStatement(JavaScriptTextWriter writer, MirStatement statement, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
@@ -2796,9 +2806,31 @@ public static class JavaScriptBackend
             MirTsonEncodeExpression encode => EmitTsonEncode(encode, function, catalog, results, names, flowEnabled),
             MirTsonTransportExpression transport => EmitTsonTransport(transport, function, catalog, results, names, flowEnabled),
             MirNpmCallExpression npm => new EmittedExpression([], EmitNpmCall(npm, results, names)),
+            MirNpmDirectCallExpression npm => EmitNpmDirectCall(npm, function, catalog, results, names, flowEnabled),
             MirJavaScriptHostCallExpression host => EmitJavaScriptHostCall(host, function, catalog, results, names, flowEnabled),
             _ => throw new InvalidOperationException($"Validated JavaScript emission received unsupported expression {expression.GetType().Name}.")
         };
+    }
+
+    private static EmittedExpression EmitNpmDirectCall(
+        MirNpmDirectCallExpression npm,
+        MirFunction function,
+        EnumCatalog catalog,
+        ResultCatalog results,
+        GeneratedNames names,
+        bool flowEnabled)
+    {
+        var prelude = new List<EmittedLine>();
+        var arguments = new List<string>();
+        foreach (MirExpression argument in npm.Arguments)
+        {
+            EmittedExpression emitted = EmitExpression(argument, function, catalog, results, names, flowEnabled);
+            prelude.AddRange(emitted.Prelude);
+            arguments.Add(emitted.Value);
+        }
+
+        string localBinding = JavaScriptIdentifierEncoder.Encode(npm.LocalBinding);
+        return new EmittedExpression(prelude, $"{localBinding}({string.Join(", ", arguments)})");
     }
 
     private static EmittedExpression EmitJavaScriptHostCall(
