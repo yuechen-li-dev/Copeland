@@ -34,10 +34,10 @@ dist/
 # Standalone-web stages the current tscl payload here for TSPack. It is rebuilt
 # from the project reference on every declared generation path.
 samples/copeland-ts/standalone-web-m0/frontend/.copeland/compiler/
-# Legacy checked-in compiler payload is being retired; ignore only additional
-# files so an LSP payload cannot be accidentally added before tracked files
-# are removed in a dedicated repository cleanup commit.
-samples/copeland-ts/standalone-web-m0/frontend/compiler/*
+# Retired standalone-web compiler payload. The fixture regenerates its current
+# compiler under .copeland/compiler, so this legacy directory has no source
+# inputs and must never be tracked again.
+samples/copeland-ts/standalone-web-m0/frontend/compiler/
 
 samples/copeland-ts/standalone-web-m0/frontend/compiler/Copeland.Cli.dll
 samples/copeland-ts/standalone-web-m0/frontend/compiler/Copeland.Cli.exe
