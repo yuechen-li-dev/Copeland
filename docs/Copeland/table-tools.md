@@ -53,6 +53,13 @@ requires `--replace`, exact headers in declared order, and an existing declared
 table shape; it cannot infer schema or add columns. Use an isolated working copy
 for imports when reviewing a proposed CSV replacement.
 
+When an imported `number` or `float` value fits the existing column's plain
+decimal precision, import retains that column's decimal presentation. This
+keeps an ordinary CSV edit from rewriting unaffected values such as `18.50` to
+`18.5`. Values requiring more precision, exponent notation, or a non-decimal
+source convention retain their validated input spelling instead of being
+rounded.
+
 M0 intentionally does not include project-wide discovery, a visual grid,
 filtering/query syntax, schema inference, payload enum authoring, `.xlsx`, or
 Git/LLM integration. Localized array replacement preserves surrounding source

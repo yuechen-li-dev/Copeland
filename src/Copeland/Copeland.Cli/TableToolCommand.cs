@@ -47,12 +47,12 @@ internal static class TableToolCommand
         }
         catch (TableToolException exception)
         {
-            WriteFailure(args[1], exception.Diagnostic, HasJsonFormat(args));
+            WriteFailure("table." + args[1], exception.Diagnostic, HasJsonFormat(args));
             return FailureExitCode;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            WriteFailure(args[1], new ToolDiagnostic("COPE-TABLE-TOOL-0018", exception.Message, null, null, null), HasJsonFormat(args));
+            WriteFailure("table." + args[1], new ToolDiagnostic("COPE-TABLE-TOOL-0018", exception.Message, null, null, null), HasJsonFormat(args));
             return FileIoExitCode;
         }
     }
@@ -325,7 +325,7 @@ internal static class TableToolCommand
             for (int index = 0; index < table.Columns.Count; index += 1)
             {
                 TableColumnModel column = table.Columns[index];
-                cells[column.Name].Add(ParseCsvValue(record.Cells[index], column.Bound.Column.Type, record.Line, index + 1, resultJson));
+                cells[column.Name].Add(ParseCsvValue(record.Cells[index], column, document.SourceText, record.Line, index + 1, resultJson));
             }
         }
 
@@ -487,18 +487,89 @@ internal static class TableToolCommand
         throw Error("COPE-TABLE-TOOL-0010", $"Column type '{type.Name}' is not supported by M0 command literals. Use primitive values or zero-payload enum cases.", json);
     }
 
-    private static string ParseCsvValue(string value, TypeSymbol type, int line, int column, bool json)
+    private static string ParseCsvValue(string value, TableColumnModel column, string source, int line, int csvColumn, bool json)
     {
         try
         {
-            return type == PrimitiveTypeSymbol.String
+            string parsed = column.Bound.Column.Type == PrimitiveTypeSymbol.String
                 ? JsonSerializer.Serialize(value)
-                : ParseCommandValue(value, type, json);
+                : ParseCommandValue(value, column.Bound.Column.Type, json);
+            return PreserveNumericColumnFormatting(value, parsed, column, source);
         }
         catch (TableToolException exception)
         {
-            throw Error(exception.Diagnostic.Code, exception.Diagnostic.Message + $" (CSV line {line}, column {column}).", json);
+            throw Error(exception.Diagnostic.Code, exception.Diagnostic.Message + $" (CSV line {line}, column {csvColumn}).", json);
         }
+    }
+
+    private static string PreserveNumericColumnFormatting(string csvValue, string parsedValue, TableColumnModel column, string source)
+    {
+        TypeSymbol type = column.Bound.Column.Type;
+        if (type != PrimitiveTypeSymbol.Float && type != PrimitiveTypeSymbol.Number)
+        {
+            return parsedValue;
+        }
+
+        int? precision = ExistingDecimalPrecision(source, column.Syntax.Cells);
+        int? incomingPrecision = DecimalPrecision(csvValue);
+        if (precision is null || incomingPrecision is null || incomingPrecision > precision)
+        {
+            return parsedValue;
+        }
+
+        if (!double.TryParse(csvValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || !double.IsFinite(value))
+        {
+            return parsedValue;
+        }
+
+        return value.ToString("F" + precision.Value.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
+    }
+
+    private static int? ExistingDecimalPrecision(string source, ArrayLiteralExpressionSyntax cells)
+    {
+        int precision = 0;
+        foreach (ExpressionSyntax cell in cells.Elements)
+        {
+            int? cellPrecision = DecimalPrecision(Slice(source, SpanOf(cell)));
+            if (cellPrecision is null)
+            {
+                return null;
+            }
+
+            precision = Math.Max(precision, cellPrecision.Value);
+        }
+
+        return precision;
+    }
+
+    private static int? DecimalPrecision(string value)
+    {
+        int decimalPoint = value.IndexOf(".", StringComparison.Ordinal);
+        int start = value.StartsWith("-", StringComparison.Ordinal) ? 1 : 0;
+        if (start >= value.Length)
+        {
+            return null;
+        }
+
+        for (int index = start; index < value.Length; index += 1)
+        {
+            if (index == decimalPoint)
+            {
+                continue;
+            }
+
+            if (!char.IsAsciiDigit(value[index]))
+            {
+                return null;
+            }
+        }
+
+        if (decimalPoint < 0)
+        {
+            return 0;
+        }
+
+        return decimalPoint == value.Length - 1 ? null : value.Length - decimalPoint - 1;
     }
 
     private static Dictionary<string, string> ParseRowJson(string text, TableModel table, bool json)

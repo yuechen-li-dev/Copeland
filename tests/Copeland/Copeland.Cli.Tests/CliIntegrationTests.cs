@@ -1486,6 +1486,10 @@ function value(flag: boolean): number {
         Assert.Equal(original, await File.ReadAllBytesAsync(sourcePath));
         Assert.Contains("COPE-TABLE-TOOL-0010", invalidValue.StdOut, StringComparison.Ordinal);
         Assert.Contains("COPE-TABLE-TOOL-0009", incomplete.StdOut, StringComparison.Ordinal);
+        using (JsonDocument invalidValueJson = JsonDocument.Parse(invalidValue.StdOut))
+        {
+            Assert.Equal("table.set", invalidValueJson.RootElement.GetProperty("command").GetString());
+        }
 
         CliResult set = await RunCliAsync(temp.Path, "table", "set", sourcePath, "Scores", "--row", "1", "--column", "score", "--value", "84.0", "--format", "json");
         CliResult stringSet = await RunCliAsync(temp.Path, "table", "set", sourcePath, "Scores", "--row", "1", "--column", "name", "--value", "Bob, Jr.", "--format", "json");
@@ -1502,7 +1506,7 @@ function value(flag: boolean): number {
         string csvPath = Path.Combine(temp.Path, "Scores.csv");
         CliResult export = await RunCliAsync(temp.Path, "table", "export", sourcePath, "Scores", "--format", "csv", "--output", csvPath, "--result-format", "json");
         string firstCsv = await File.ReadAllTextAsync(csvPath);
-        CliResult import = await RunCliAsync(temp.Path, "table", "import", sourcePath, "Scores", "--format", "csv", "--input", csvPath, "--replace", "--dry-run", "--result-format", "json");
+        CliResult import = await RunCliAsync(temp.Path, "table", "import", sourcePath, "Scores", "--format", "csv", "--input", csvPath, "--replace", "--result-format", "json");
         CliResult exportAgain = await RunCliAsync(temp.Path, "table", "export", sourcePath, "Scores", "--format", "csv", "--output", csvPath);
         Assert.Equal(0, export.ExitCode);
         Assert.Equal(0, import.ExitCode);
@@ -1510,6 +1514,8 @@ function value(flag: boolean): number {
         Assert.Contains("\"Bob, Jr.\"", firstCsv, StringComparison.Ordinal);
         Assert.Contains("\"command\": \"table.export\"", export.StdOut, StringComparison.Ordinal);
         Assert.Contains("\"command\": \"table.import\"", import.StdOut, StringComparison.Ordinal);
+        string reimported = await File.ReadAllTextAsync(sourcePath);
+        Assert.Contains("score: number = [95.0, 84.0, 91.0];", reimported, StringComparison.Ordinal);
 
         CliResult validation = await RunCliAsync(temp.Path, "table", "validate", sourcePath, "--format", "json");
         CliResult csharp = await RunCliAsync(temp.Path, "compile", sourcePath, "--emit", "csharp");
