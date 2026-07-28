@@ -153,6 +153,10 @@ public sealed class Parser
             var constKeyword = Match(SyntaxKind.ConstKeyword);
             return ParseRecordDeclaration(constKeyword);
         }
+        if (Current.Kind == SyntaxKind.TemplateKeyword)
+        {
+            return ParseTemplateDeclaration();
+        }
         if (IsFunctionDeclarationAhead(0))
         {
             SyntaxToken? remoteKeyword = null;
@@ -186,7 +190,7 @@ public sealed class Parser
     private bool IsExportableDeclarationAhead()
     {
         SyntaxToken next = Peek(1);
-        return next.Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword
+        return next.Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword or SyntaxKind.TemplateKeyword
             || IsWord(next, "type")
             || IsWord(next, "interface")
             || IsWord(next, "flow")
@@ -661,6 +665,60 @@ public sealed class Parser
         return new FunctionDeclarationSyntax(remoteKeyword, asyncKeyword, functionKeyword, generatorStarToken, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParenToken, parameters, commas, closeParenToken, returnTypeColonToken, returnType, body);
     }
 
+    private TemplateDeclarationSyntax ParseTemplateDeclaration()
+    {
+        SyntaxToken templateKeyword = Match(SyntaxKind.TemplateKeyword);
+        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? lessToken = null;
+        SyntaxToken? greaterToken = null;
+        var typeParameters = new List<TypeParameterSyntax>();
+        var typeParameterCommas = new List<SyntaxToken>();
+        if (Current.Kind == SyntaxKind.LessToken)
+        {
+            lessToken = NextToken();
+            while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
+            {
+                SyntaxToken parameterName = Match(SyntaxKind.IdentifierToken);
+                SyntaxToken? extendsKeyword = null;
+                var requirementNames = new List<SyntaxToken>();
+                var ampersands = new List<SyntaxToken>();
+                if (IsWord(Current, "extends"))
+                {
+                    extendsKeyword = NextToken();
+                    requirementNames.Add(Match(SyntaxKind.IdentifierToken));
+                    while (Current.Kind == SyntaxKind.AmpersandToken)
+                    {
+                        ampersands.Add(NextToken());
+                        requirementNames.Add(Match(SyntaxKind.IdentifierToken));
+                    }
+                }
+                typeParameters.Add(new TypeParameterSyntax(parameterName, extendsKeyword, requirementNames, ampersands));
+                if (Current.Kind != SyntaxKind.CommaToken) break;
+                typeParameterCommas.Add(NextToken());
+            }
+            greaterToken = Match(SyntaxKind.GreaterToken);
+        }
+
+        SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
+        var parameters = new List<ParameterSyntax>();
+        var commas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken parameterIdentifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? colon = Current.Kind == SyntaxKind.ColonToken ? NextToken() : null;
+            TypeSyntax? type = colon is null ? null : ParseTypeSyntax();
+            parameters.Add(new ParameterSyntax(parameterIdentifier, colon, type));
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            commas.Add(NextToken());
+        }
+
+        SyntaxToken closeParen = Match(SyntaxKind.CloseParenToken);
+        SyntaxToken? returnTypeColon = Current.Kind == SyntaxKind.ColonToken ? NextToken() : null;
+        TypeSyntax? returnType = returnTypeColon is null ? null : ParseTypeSyntax();
+        BlockStatementSyntax body = ParseBlockStatement();
+        return new TemplateDeclarationSyntax(templateKeyword, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParen, parameters, commas, closeParen, returnTypeColon, returnType, body);
+    }
+
     private bool IsFunctionDeclarationAhead(int offset)
     {
         if (Peek(offset).Kind == SyntaxKind.FunctionKeyword)
@@ -793,6 +851,7 @@ public sealed class Parser
     private StatementSyntax ParseStatement()
         => Current.Kind switch
         {
+            SyntaxKind.StaticKeyword => ParseStaticStatement(),
             SyntaxKind.OpenBraceToken => ParseBlockStatement(),
             SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword => ParseVariableDeclarationStatement(requireSemicolon: true),
             SyntaxKind.IfKeyword => ParseIfStatement(),
@@ -810,6 +869,69 @@ public sealed class Parser
             SyntaxKind.AwaitKeyword when IsWord(Peek(1), "using") => ParseResourceUsingDeclaration(NextToken()),
             _ => ParseExpressionStatementOrRecovery(),
         };
+
+    private StatementSyntax ParseStaticStatement()
+    {
+        SyntaxToken staticKeyword = Match(SyntaxKind.StaticKeyword);
+        return Current.Kind switch
+        {
+            SyntaxKind.IfKeyword => ParseStaticIfStatement(staticKeyword),
+            SyntaxKind.ForKeyword => ParseStaticForStatement(staticKeyword),
+            SyntaxKind.MatchKeyword or SyntaxKind.SwitchKeyword => ParseStaticMatchStatement(staticKeyword),
+            SyntaxKind.WhileKeyword => ReportUnsupportedStaticStatement(staticKeyword),
+            _ => ReportUnsupportedStaticStatement(staticKeyword),
+        };
+    }
+
+    private StatementSyntax ReportUnsupportedStaticStatement(SyntaxToken staticKeyword)
+    {
+        _diagnostics.Report("COPE-STATIC-0003", "Unsupported static construct. Use 'static if', 'static match', or finite 'static for'.", staticKeyword.Position, staticKeyword.Text.Length);
+        return ParseExpressionStatementOrRecovery();
+    }
+
+    private StaticIfStatementSyntax ParseStaticIfStatement(SyntaxToken staticKeyword)
+    {
+        SyntaxToken ifKeyword = Match(SyntaxKind.IfKeyword);
+        SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
+        ExpressionSyntax condition = ParseExpression();
+        SyntaxToken closeParen = Match(SyntaxKind.CloseParenToken);
+        StatementSyntax thenStatement = ParseStatement();
+        SyntaxToken? elseKeyword = Current.Kind == SyntaxKind.ElseKeyword ? NextToken() : null;
+        StatementSyntax? elseStatement = elseKeyword is null ? null : ParseStatement();
+        return new StaticIfStatementSyntax(staticKeyword, ifKeyword, openParen, condition, closeParen, thenStatement, elseKeyword, elseStatement);
+    }
+
+    private StaticForStatementSyntax ParseStaticForStatement(SyntaxToken staticKeyword)
+    {
+        SyntaxToken forKeyword = Match(SyntaxKind.ForKeyword);
+        SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
+        SyntaxToken declarationKeyword = Current.Kind is SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword ? NextToken() : Match(SyntaxKind.ConstKeyword);
+        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken ofKeyword = IsWord(Current, "of") ? NextToken() : Match(SyntaxKind.IdentifierToken);
+        ExpressionSyntax iterable = ParseExpression();
+        SyntaxToken closeParen = Match(SyntaxKind.CloseParenToken);
+        StatementSyntax body = ParseStatement();
+        return new StaticForStatementSyntax(staticKeyword, forKeyword, openParen, declarationKeyword, identifier, ofKeyword, iterable, closeParen, body);
+    }
+
+    private StaticMatchStatementSyntax ParseStaticMatchStatement(SyntaxToken staticKeyword)
+    {
+        SyntaxToken matchKeyword = NextToken();
+        ExpressionSyntax expression = ParseExpression();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var arms = new List<StaticMatchArmSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            MatchPatternSyntax pattern = Current.Kind is SyntaxKind.TrueKeyword or SyntaxKind.FalseKeyword or SyntaxKind.StringToken or SyntaxKind.NumberToken
+                ? new MatchPatternSyntax(NextToken(), null, [], [], null)
+                : ParseMatchPattern();
+            SyntaxToken arrow = Match(SyntaxKind.ArrowToken);
+            StatementSyntax statement = ParseStatement();
+            SyntaxToken? comma = Current.Kind == SyntaxKind.CommaToken ? NextToken() : null;
+            arms.Add(new StaticMatchArmSyntax(pattern, arrow, statement, comma));
+        }
+        return new StaticMatchStatementSyntax(staticKeyword, matchKeyword, expression, openBrace, arms, Match(SyntaxKind.CloseBraceToken));
+    }
 
     private CSharpBlockStatementSyntax ParseCSharpBlockStatement()
     {

@@ -21,7 +21,8 @@ public sealed class BoundProgram
         IReadOnlyList<BoundJavaScriptHostImport>? javaScriptHostImports = null,
         IReadOnlyList<string>? csharpUsings = null,
         string? csharpSourcePath = null,
-        IReadOnlyList<BoundFlowDefinition>? flows = null)
+        IReadOnlyList<BoundFlowDefinition>? flows = null,
+        IReadOnlyList<BoundTemplateDeclaration>? templates = null)
     {
         Functions = functions;
         Enums = enums;
@@ -36,6 +37,7 @@ public sealed class BoundProgram
         CSharpUsings = csharpUsings ?? [];
         CSharpSourcePath = csharpSourcePath;
         Flows = flows ?? [];
+        Templates = templates ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -50,7 +52,102 @@ public sealed class BoundProgram
     public IReadOnlyList<string> CSharpUsings { get; }
     public string? CSharpSourcePath { get; }
     public IReadOnlyList<BoundFlowDefinition> Flows { get; }
+    public IReadOnlyList<BoundTemplateDeclaration> Templates { get; }
 }
+
+/// <summary>
+/// Static-phase declaration retained after ordinary symbol/type binding. Bodies
+/// remain structural syntax until the bounded evaluator selects branches.
+/// </summary>
+public sealed class BoundTemplateDeclaration(TemplateSymbol symbol, TemplateDeclarationSyntax syntax) : BoundNode
+{
+    public TemplateSymbol Symbol { get; } = symbol;
+    public TemplateDeclarationSyntax Syntax { get; } = syntax;
+    public BoundTemplateBlock? Plan { get; internal set; }
+    public IReadOnlyList<VariableSymbol> Parameters { get; internal set; } = [];
+}
+
+public abstract class BoundTemplateNode(SyntaxToken anchor) : BoundNode
+{
+    public SyntaxToken Anchor { get; } = anchor;
+}
+
+public abstract class BoundTemplateValue(SyntaxToken anchor, TypeSymbol type) : BoundTemplateNode(anchor)
+{
+    public TypeSymbol Type { get; } = type;
+}
+
+public sealed class BoundTemplateLiteral(SyntaxToken anchor, object? value, TypeSymbol type) : BoundTemplateValue(anchor, type)
+{
+    public object? Value { get; } = value;
+}
+
+public sealed class BoundTemplateArray(SyntaxToken anchor, IReadOnlyList<BoundTemplateValue> elements) : BoundTemplateValue(anchor, new ArrayTypeSymbol(elements.FirstOrDefault()?.Type ?? PrimitiveTypeSymbol.Error))
+{
+    public IReadOnlyList<BoundTemplateValue> Elements { get; } = elements;
+}
+
+public sealed class BoundTemplateString(SyntaxToken anchor, IReadOnlyList<BoundTemplateValue> parts) : BoundTemplateValue(anchor, PrimitiveTypeSymbol.String)
+{
+    public IReadOnlyList<BoundTemplateValue> Parts { get; } = parts;
+}
+
+public sealed class BoundTemplateBinary(SyntaxToken anchor, SyntaxKind operatorKind, BoundTemplateValue left, BoundTemplateValue right, TypeSymbol type) : BoundTemplateValue(anchor, type)
+{
+    public SyntaxKind OperatorKind { get; } = operatorKind;
+    public BoundTemplateValue Left { get; } = left;
+    public BoundTemplateValue Right { get; } = right;
+}
+
+public sealed class BoundTemplateRecord(SyntaxToken anchor, RecordTypeSymbol type, IReadOnlyList<BoundRecordFieldInitializer> fields) : BoundTemplateValue(anchor, type)
+{
+    public IReadOnlyList<BoundRecordFieldInitializer> Fields { get; } = fields;
+}
+
+public sealed class BoundTemplateLocalReference(SyntaxToken anchor, VariableSymbol local) : BoundTemplateValue(anchor, local.Type)
+{
+    public VariableSymbol Local { get; } = local;
+}
+
+public enum BoundArtifactIntrinsic { Project, Directory, TextFile, SourceFile }
+
+public sealed class BoundArtifactConstructor(SyntaxToken anchor, BoundArtifactIntrinsic intrinsic, IReadOnlyList<BoundTemplateValue> arguments, TypeSymbol resultType) : BoundTemplateValue(anchor, resultType)
+{
+    public BoundArtifactIntrinsic Intrinsic { get; } = intrinsic;
+    public IReadOnlyList<BoundTemplateValue> Arguments { get; } = arguments;
+}
+
+public sealed class BoundTemplateInvocation(
+    SyntaxToken anchor,
+    TemplateSymbol template,
+    IReadOnlyList<TypeSymbol> typeArguments,
+    IReadOnlyList<BoundTemplateValue> arguments) : BoundTemplateValue(anchor, template.ReturnType)
+{
+    public TemplateSymbol Template { get; } = template;
+    public IReadOnlyList<TypeSymbol> TypeArguments { get; } = typeArguments;
+    public IReadOnlyList<BoundTemplateValue> Arguments { get; } = arguments;
+}
+
+public abstract class BoundTemplateStatement(SyntaxToken anchor) : BoundTemplateNode(anchor);
+public sealed class BoundTemplateBlock(SyntaxToken anchor, IReadOnlyList<BoundTemplateStatement> statements) : BoundTemplateStatement(anchor)
+{
+    public IReadOnlyList<BoundTemplateStatement> Statements { get; } = statements;
+}
+public sealed class BoundTemplateEmit(SyntaxToken anchor, BoundTemplateValue value) : BoundTemplateStatement(anchor) { public BoundTemplateValue Value { get; } = value; }
+public sealed class BoundTemplateLocal(SyntaxToken anchor, VariableSymbol local, BoundTemplateValue initializer) : BoundTemplateStatement(anchor) { public VariableSymbol Local { get; } = local; public BoundTemplateValue Initializer { get; } = initializer; }
+public sealed class BoundStaticIf(SyntaxToken anchor, BoundTemplateValue condition, BoundTemplateStatement thenStatement, BoundTemplateStatement? elseStatement) : BoundTemplateStatement(anchor) { public BoundTemplateValue Condition { get; } = condition; public BoundTemplateStatement ThenStatement { get; } = thenStatement; public BoundTemplateStatement? ElseStatement { get; } = elseStatement; }
+public sealed class BoundStaticFor(SyntaxToken anchor, VariableSymbol local, BoundTemplateArray values, BoundTemplateStatement body) : BoundTemplateStatement(anchor) { public VariableSymbol Local { get; } = local; public BoundTemplateArray Values { get; } = values; public BoundTemplateStatement Body { get; } = body; }
+public sealed class BoundStaticMatchArm(BoundTemplateLiteral pattern, BoundTemplateStatement statement)
+{
+    public BoundTemplateLiteral Pattern { get; } = pattern;
+    public BoundTemplateStatement Statement { get; } = statement;
+}
+public sealed class BoundStaticMatch(SyntaxToken anchor, BoundTemplateValue input, IReadOnlyList<BoundStaticMatchArm> arms) : BoundTemplateStatement(anchor)
+{
+    public BoundTemplateValue Input { get; } = input;
+    public IReadOnlyList<BoundStaticMatchArm> Arms { get; } = arms;
+}
+public sealed class BoundTemplateReturn(SyntaxToken anchor, BoundTemplateValue? value) : BoundTemplateStatement(anchor) { public BoundTemplateValue? Value { get; } = value; }
 
 public sealed class BoundNpmImport(NpmFunctionSymbol function)
 {

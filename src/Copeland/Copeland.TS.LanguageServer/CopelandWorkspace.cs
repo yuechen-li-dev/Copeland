@@ -117,7 +117,7 @@ internal sealed class CopelandWorkspace
         }
         CopelandCompilation compilation = Compile(document!);
         var items = new Dictionary<string, object>(StringComparer.Ordinal);
-        foreach (string keyword in new[] { "function", "record", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote" })
+        foreach (string keyword in new[] { "function", "template", "static", "record", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
         }
@@ -466,6 +466,9 @@ internal sealed class CopelandWorkspace
             {
                 case FunctionDeclarationSyntax function:
                     yield return new DeclarationInfo(function.Identifier.Text, "function " + function.Identifier.Text, 12, function.Identifier.Position);
+                    break;
+                case TemplateDeclarationSyntax template:
+                    yield return new DeclarationInfo(template.Identifier.Text, "template " + template.Identifier.Text + "(): ProjectTree", 12, template.Identifier.Position);
                     break;
                 case RecordDeclarationSyntax record:
                     yield return new DeclarationInfo(record.Identifier.Text, "record " + record.Identifier.Text, 23, record.Identifier.Position);

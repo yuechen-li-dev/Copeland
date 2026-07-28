@@ -1523,7 +1523,11 @@ function value(flag: boolean): number {
         Assert.Equal(0, csharp.ExitCode);
         Assert.Contains("84", csharp.StdOut, StringComparison.Ordinal);
 
-        CliResult consumerBuild = await RunExecutableAsync("dotnet", temp.Path, "build", consumerProjectPath);
+        // This integration test builds a temporary consumer while the solution
+        // test runner also loads the MSBuild task assembly. Disable reusable
+        // build servers so the timeout cleanup cannot leave a worker holding
+        // Copeland.TS.dll for the next project.
+        CliResult consumerBuild = await RunExecutableAsync("dotnet", temp.Path, "build", consumerProjectPath, "--disable-build-servers");
         CliResult consumer = await RunExecutableAsync("dotnet", temp.Path, "run", "--project", consumerProjectPath, "--no-build");
         Assert.True(consumerBuild.ExitCode == 0, consumerBuild.StdOut + consumerBuild.StdErr);
         Assert.True(consumer.ExitCode == 0, consumer.StdOut + consumer.StdErr);

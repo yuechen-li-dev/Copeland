@@ -4,6 +4,7 @@ using Copeland.TS.Mir;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
+using Copeland.TS.Templates;
 
 namespace Copeland.TS.Compiler;
 
@@ -39,6 +40,21 @@ public static class CopelandCompiler
                     effectiveOptions.TsXmlProfile,
                     effectiveOptions.SourcePath);
                 diagnostics.AddRange(boundCompilation.Diagnostics);
+                if (boundCompilation.Program.Templates.Count > 0)
+                {
+                    TemplateEvaluationResult templateEvaluation = TemplateCompiler.Evaluate(boundCompilation);
+                    diagnostics.AddRange(templateEvaluation.Diagnostics.Skip(boundCompilation.Diagnostics.Count));
+                    if (effectiveOptions.TargetStage >= CopelandCompilationStage.Mir)
+                    {
+                        diagnostics.Add(new Diagnostic(
+                            "COPE-TEMPLATE-0006",
+                            "Template source is structural input. Use 'tscl template preview' or 'tscl template materialize' instead of runtime emit.",
+                            0,
+                            0,
+                            effectiveOptions.SourcePath));
+                    }
+                    return new CopelandCompilation(effectiveOptions.TargetStage, diagnostics, syntaxTree, boundCompilation, null, null, assetResolver?.Dependencies, templateEvaluation);
+                }
             }
         }
 
@@ -68,6 +84,27 @@ public static class CopelandCompiler
         return Compile(sourceText, new CopelandCompilationOptions
         {
             TargetStage = CopelandCompilationStage.Mir,
+            ModuleName = effectiveOptions.ModuleName,
+            SourcePath = effectiveOptions.SourcePath,
+            ProjectRoot = effectiveOptions.ProjectRoot,
+            TsXmlProfile = effectiveOptions.TsXmlProfile,
+            AssetSource = effectiveOptions.AssetSource,
+            NpmDependencies = effectiveOptions.NpmDependencies,
+            NpmPackages = effectiveOptions.NpmPackages,
+            JavaScriptHostModules = effectiveOptions.JavaScriptHostModules,
+            PackageContracts = effectiveOptions.PackageContracts,
+            PackageBackend = effectiveOptions.PackageBackend,
+            ClrReferences = effectiveOptions.ClrReferences,
+        });
+    }
+
+    /// <summary>Runs the shared parse/bind pipeline and returns its bounded template result.</summary>
+    public static CopelandCompilation CompileTemplates(string sourceText, CopelandCompilationOptions? options = null)
+    {
+        CopelandCompilationOptions effectiveOptions = options ?? new CopelandCompilationOptions();
+        return Compile(sourceText, new CopelandCompilationOptions
+        {
+            TargetStage = CopelandCompilationStage.Bound,
             ModuleName = effectiveOptions.ModuleName,
             SourcePath = effectiveOptions.SourcePath,
             ProjectRoot = effectiveOptions.ProjectRoot,

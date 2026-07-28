@@ -477,6 +477,48 @@ public sealed record FunctionDeclarationSyntax(
     }
 }
 
+/// <summary>A bounded structural artifact constructor, never a runtime function.</summary>
+public sealed record TemplateDeclarationSyntax(
+    SyntaxToken TemplateKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken? LessToken,
+    IReadOnlyList<TypeParameterSyntax> TypeParameters,
+    IReadOnlyList<SyntaxToken> TypeParameterCommas,
+    SyntaxToken? GreaterToken,
+    SyntaxToken OpenParenToken,
+    IReadOnlyList<ParameterSyntax> Parameters,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken CloseParenToken,
+    SyntaxToken? ReturnTypeColonToken,
+    TypeSyntax? ReturnType,
+    BlockStatementSyntax Body) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TemplateDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return TemplateKeyword;
+        yield return Identifier;
+        if (LessToken is not null) yield return LessToken;
+        for (int index = 0; index < TypeParameters.Count; index++)
+        {
+            if (index > 0) yield return TypeParameterCommas[index - 1];
+            yield return TypeParameters[index];
+        }
+        if (GreaterToken is not null) yield return GreaterToken;
+        yield return OpenParenToken;
+        for (int index = 0; index < Parameters.Count; index++)
+        {
+            if (index > 0) yield return CommaTokens[index - 1];
+            yield return Parameters[index];
+        }
+        yield return CloseParenToken;
+        if (ReturnTypeColonToken is not null) yield return ReturnTypeColonToken;
+        if (ReturnType is not null) yield return ReturnType;
+        yield return Body;
+    }
+}
+
 public sealed record EnumDeclarationSyntax(
     SyntaxToken EnumKeyword,
     SyntaxToken Identifier,
@@ -785,6 +827,92 @@ public sealed record IfStatementSyntax(
         {
             yield return ElseStatement;
         }
+    }
+}
+
+public sealed record StaticIfStatementSyntax(
+    SyntaxToken StaticKeyword,
+    SyntaxToken IfKeyword,
+    SyntaxToken OpenParenToken,
+    ExpressionSyntax Condition,
+    SyntaxToken CloseParenToken,
+    StatementSyntax ThenStatement,
+    SyntaxToken? ElseKeyword,
+    StatementSyntax? ElseStatement) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.StaticIfStatement;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return StaticKeyword;
+        yield return IfKeyword;
+        yield return OpenParenToken;
+        yield return Condition;
+        yield return CloseParenToken;
+        yield return ThenStatement;
+        if (ElseKeyword is not null) yield return ElseKeyword;
+        if (ElseStatement is not null) yield return ElseStatement;
+    }
+}
+
+public sealed record StaticForStatementSyntax(
+    SyntaxToken StaticKeyword,
+    SyntaxToken ForKeyword,
+    SyntaxToken OpenParenToken,
+    SyntaxToken DeclarationKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken OfKeyword,
+    ExpressionSyntax Iterable,
+    SyntaxToken CloseParenToken,
+    StatementSyntax Body) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.StaticForStatement;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return StaticKeyword;
+        yield return ForKeyword;
+        yield return OpenParenToken;
+        yield return DeclarationKeyword;
+        yield return Identifier;
+        yield return OfKeyword;
+        yield return Iterable;
+        yield return CloseParenToken;
+        yield return Body;
+    }
+}
+
+public sealed record StaticMatchArmSyntax(
+    MatchPatternSyntax Pattern,
+    SyntaxToken ArrowToken,
+    StatementSyntax Statement,
+    SyntaxToken? CommaToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.StaticMatchArm;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Pattern;
+        yield return ArrowToken;
+        yield return Statement;
+        if (CommaToken is not null) yield return CommaToken;
+    }
+}
+
+public sealed record StaticMatchStatementSyntax(
+    SyntaxToken StaticKeyword,
+    SyntaxToken MatchKeyword,
+    ExpressionSyntax Expression,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<StaticMatchArmSyntax> Arms,
+    SyntaxToken CloseBraceToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.StaticMatchStatement;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return StaticKeyword;
+        yield return MatchKeyword;
+        yield return Expression;
+        yield return OpenBraceToken;
+        foreach (StaticMatchArmSyntax arm in Arms) yield return arm;
+        yield return CloseBraceToken;
     }
 }
 

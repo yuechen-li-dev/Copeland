@@ -23,7 +23,7 @@ internal static class Program
 
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'language-server'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'template', 'language-server'.");
         }
 
         return args[0] switch
@@ -34,10 +34,11 @@ internal static class Program
             "database" => DatabaseCommand.Run(args),
             "markdown" => RunMarkdown(args),
             "table" => TableToolCommand.Run(args),
+            "template" => TemplateCommand.Run(args),
             "language-server" or "lsp" => RunLanguageServer(args),
             "doctor" => DistributionCommand.RunDoctor(args[1..]),
             "install-info" => DistributionCommand.RunInstallInfo(args[1..]),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'table', 'language-server'."),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'table', 'template', 'language-server'."),
         };
     }
 
@@ -446,6 +447,8 @@ internal static class Program
         Console.Error.WriteLine("  tscl build --project <project.json> --result <result.json>");
         Console.Error.WriteLine("  tscl workspace sync|validate|status|owner ...");
         Console.Error.WriteLine("  tscl table list|schema|rows|set|add-row|delete-row|validate|export|import ...");
+        Console.Error.WriteLine("  tscl template preview <source> [--entry <template>] [--format tree|json]");
+        Console.Error.WriteLine("  tscl template materialize <source> --output <path> [--entry <template>] [--tspack <path>]");
         Console.Error.WriteLine("  tscl language-server [--version]");
         Console.Error.WriteLine("  tscl doctor [--format text|json]");
         Console.Error.WriteLine("  tscl install-info [--format text|json]");

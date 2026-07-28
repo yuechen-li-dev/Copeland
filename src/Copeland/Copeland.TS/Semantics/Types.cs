@@ -36,6 +36,18 @@ public sealed class ArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
     public override string Name => TypeText.FormatArrayElement(ElementType) + "[]";
 }
 
+/// <summary>Compiler-known structural artifact value types. They have no runtime representation.</summary>
+public sealed class ArtifactTypeSymbol : TypeSymbol
+{
+    private ArtifactTypeSymbol(string name) => Name = name;
+    public static readonly ArtifactTypeSymbol ProjectTree = new("ProjectTree");
+    public static readonly ArtifactTypeSymbol FileArtifact = new("FileArtifact");
+    public static readonly ArtifactTypeSymbol DirectoryArtifact = new("DirectoryArtifact");
+    public static readonly ArtifactTypeSymbol TextFileArtifact = new("TextFileArtifact");
+    public static readonly ArtifactTypeSymbol SourceFileArtifact = new("SourceFileArtifact");
+    public override string Name { get; }
+}
+
 /// <summary>Compiler-bound CLR type identity retained independently of C# text emission.</summary>
 public sealed class ClrTypeSymbol(Type runtimeType) : TypeSymbol
 {

@@ -53,6 +53,19 @@ public sealed class FunctionSymbol(
     public TypeSymbol InvocationReturnType => IsAsync || IsRemote ? new AsyncTypeSymbol(ReturnType) : ReturnType;
 }
 
+/// <summary>Resolved template identity used by static evaluation, never runtime emission.</summary>
+public sealed class TemplateSymbol(
+    string name,
+    IReadOnlyList<ParameterSymbol> parameters,
+    TypeSymbol returnType,
+    string stableIdentity) : Symbol(name)
+{
+    public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
+    public TypeSymbol ReturnType { get; } = returnType;
+    public string StableIdentity { get; } = stableIdentity;
+    public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
+}
+
 public sealed class NpmFunctionSymbol : Symbol
 {
     public NpmFunctionSymbol(string name, string packageName, string packageVersion, string exportName, IReadOnlyList<ParameterSymbol> parameters, TypeSymbol resultType, TypeSymbol? remoteErrorType, bool isPromise, bool isAvailableToJavaScript, bool isAvailableToClrSidecar) : base(name) { PackageName = packageName; PackageVersion = packageVersion; ExportName = exportName; Parameters = parameters; ResultType = resultType; RemoteErrorType = remoteErrorType; IsPromise = isPromise; IsAvailableToJavaScript = isAvailableToJavaScript; IsAvailableToClrSidecar = isAvailableToClrSidecar; }

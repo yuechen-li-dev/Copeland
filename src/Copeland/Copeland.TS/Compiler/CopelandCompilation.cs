@@ -2,6 +2,7 @@ using Copeland.TS.Diagnostics;
 using Copeland.TS.Lowering;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
+using Copeland.TS.Templates;
 
 namespace Copeland.TS.Compiler;
 
@@ -14,7 +15,8 @@ public sealed class CopelandCompilation
         BoundCompilation? boundCompilation,
         MirCompilation? mirCompilation,
         string? mirText,
-        IReadOnlyList<CopelandAssetDependency>? assetDependencies = null)
+        IReadOnlyList<CopelandAssetDependency>? assetDependencies = null,
+        TemplateEvaluationResult? templateEvaluation = null)
     {
         TargetStage = targetStage;
         Diagnostics = diagnostics;
@@ -23,6 +25,7 @@ public sealed class CopelandCompilation
         MirCompilation = mirCompilation;
         MirText = mirText;
         AssetDependencies = assetDependencies ?? [];
+        TemplateEvaluation = templateEvaluation;
     }
 
     public CopelandCompilationStage TargetStage { get; }
@@ -40,6 +43,7 @@ public sealed class CopelandCompilation
     public string? MirText { get; }
 
     public IReadOnlyList<CopelandAssetDependency> AssetDependencies { get; }
+    public TemplateEvaluationResult? TemplateEvaluation { get; }
 
     private bool ReachedTargetStage => TargetStage switch
     {

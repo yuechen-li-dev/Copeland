@@ -4,6 +4,7 @@ using Copeland.TS.Mir;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
+using Copeland.TS.Templates;
 
 namespace Copeland.TS.Compiler;
 
@@ -18,6 +19,17 @@ public static class CopelandProjectCompiler
         IReadOnlyList<CopelandProjectSource> sources,
         CopelandCompilationOptions? options = null)
         => CreateSnapshot(sources, options).CompileToMir();
+
+    /// <summary>
+    /// Uses the ordinary project snapshot/module resolver, then evaluates the
+    /// resulting bound template plans. This deliberately shares imports,
+    /// aliases, diagnostics, and unsaved source overlays with normal compilation.
+    /// </summary>
+    public static TemplateEvaluationResult CompileTemplates(
+        IReadOnlyList<CopelandProjectSource> sources,
+        string? entryName = null,
+        CopelandCompilationOptions? options = null)
+        => CreateSnapshot(sources, options).CompileTemplates(entryName);
 
     /// <summary>
     /// Creates the one reusable source-of-truth model for a Copeland project.
@@ -632,6 +644,7 @@ public static class CopelandProjectCompiler
                 _ when tokens[index + 1].Kind == SyntaxKind.FunctionKeyword && tokens[index + 2].Kind == SyntaxKind.StarToken => index + 3,
                 _ when tokens[index + 1].Kind == SyntaxKind.FunctionKeyword => index + 2,
                 "type" or "interface" or "flow" or "class" => index + 2,
+                _ when tokens[index + 1].Kind == SyntaxKind.TemplateKeyword => index + 2,
                 _ when tokens[index + 1].Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword => index + 2,
                 "const" when index + 3 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.RecordKeyword => index + 3,
                 _ => -1,
@@ -653,6 +666,7 @@ public static class CopelandProjectCompiler
             string? kind = tokens[index].Kind switch
             {
                 SyntaxKind.FunctionKeyword => "function",
+                SyntaxKind.TemplateKeyword => "template",
                 SyntaxKind.EnumKeyword => "enum",
                 SyntaxKind.RecordKeyword => "record",
                 _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "type" => "type",
@@ -766,6 +780,20 @@ public sealed class CopelandProjectSnapshot
     }
 
     public CopelandProjectCompilation CompileToMir() => CopelandProjectCompiler.CompileSnapshot(this);
+
+    public TemplateEvaluationResult CompileTemplates(string? entryName = null)
+    {
+        CopelandProjectCompilation compilation = CompileToMir();
+        if (compilation.Diagnostics.Count > 0)
+        {
+            return new TemplateEvaluationResult(entryName ?? string.Empty, null, compilation.Diagnostics, []);
+        }
+        BoundCompilation[] modules = compilation.Modules
+            .Select(module => module.BoundCompilation)
+            .OfType<BoundCompilation>()
+            .ToArray();
+        return TemplateCompiler.Evaluate(modules, entryName);
+    }
 }
 
 public sealed record CopelandProjectImport(
