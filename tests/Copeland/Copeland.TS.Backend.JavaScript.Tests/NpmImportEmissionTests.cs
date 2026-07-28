@@ -100,7 +100,7 @@ public sealed class NpmImportEmissionTests
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
-        Assert.Contains("sum(frame.left, frame.right)", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("sum(frame.__parameter_left, frame.__parameter_right)", emitted.SourceText, StringComparison.Ordinal);
 
         string root = Path.Combine(Path.GetTempPath(), "copeland-npm-js-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "node_modules", "@fixture", "math"));
@@ -153,8 +153,8 @@ public sealed class NpmImportEmissionTests
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
         Assert.Empty(emitted.Diagnostics);
-        Assert.Contains("npmMirrorArray(frame.values, frame.increment)", emitted.SourceText, StringComparison.Ordinal);
-        Assert.Contains("npmMirrorRecord(frame.input, frame.increment)", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("npmMirrorArray(frame.__parameter_values, frame.__parameter_increment)", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("npmMirrorRecord(frame.__parameter_input, frame.__parameter_increment)", emitted.SourceText, StringComparison.Ordinal);
 
         string root = Path.Combine(Path.GetTempPath(), "copeland-npm-js-interop-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "node_modules", "@fixture", "interop"));

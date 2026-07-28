@@ -26,8 +26,8 @@ public sealed class CallableCorpusTests
 
         AssertArtifact(directory, "main.cope", 2120, "832B6A103421844A98F654EA1407A27D79445E653772B507D698D2A94ED1EC67");
         AssertArtifact(directory, "main.g.cs", 5062, "0C1FB55CFCC47E9E05BE677C53E38D9FA3C61AF3A32C3411E5C44E4C7326BA2A");
-        AssertArtifact(directory, "main.g.js", 9029, "9A750ED79A41E25D2CAFBA1C0D43AB1EEE227F797A1BD11733347D684EB1A775");
-        AssertArtifact(directory, "main.sym.js", 7560, "6D74561BEBBE54641B81E1626B6CEF6B558F14C5EC3F08E2AA46A993B15A3C6C");
+        AssertArtifact(directory, "main.g.js", 9996, "C8E51A4ACBD05F13466B5AD53BFF4F521007B51677BBED1D450EEDEDE4F29F96");
+        AssertArtifact(directory, "main.sym.js", 8491, "DD3B74099671F583A268D3EE8E0293813551FD8877AC8A869EE3164B1FB7C7AE");
     }
 
     [Fact]
@@ -46,8 +46,8 @@ public sealed class CallableCorpusTests
 
         AssertArtifact(directory, "main.cope", 865, "677CDF3157BAB9B1FD310D33727BBC5094901BF99505A69C35C25BF42E8F0C93");
         AssertArtifact(directory, "main.g.cs", 1480, "8DD27E8377923BC74A81EB2662D98D98169DE13041F35A8D63BCE5103404A945");
-        AssertArtifact(directory, "main.g.js", 1546, "E2DF6970403EDB9A74E758655DCEA5ECAFE76C286B25F3658AD916177DE0E77E");
-        AssertArtifact(directory, "main.sym.js", 1508, "B6AD9D99353FBBA8FCFFD6F546581DA688E4DE49A0FC7AD40AB99AAF43712E1A");
+        AssertArtifact(directory, "main.g.js", 2513, "4DC871B3851E4C04BACE3AE492EE7DFC8D0678727B0E111C59BF8B916FCFCFDD");
+        AssertArtifact(directory, "main.sym.js", 2439, "777A9E3F68D2F1EBDB53753B3C903251D7DCC656858409916D55B4BB47E56A4A");
     }
 
     private static void AssertArtifact(string directory, string name, int byteLength, string sha256)

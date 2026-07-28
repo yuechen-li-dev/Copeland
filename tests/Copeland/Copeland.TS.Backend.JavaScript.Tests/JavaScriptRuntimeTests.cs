@@ -458,7 +458,7 @@ public sealed class JavaScriptRuntimeTests
         JavaScriptCompilation symbolic = JavaScriptBackend.Emit(compilation.MirCompilation.Program!, new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic });
         Assert.True(diagnostic.Success, string.Join(Environment.NewLine, diagnostic.Diagnostics));
         Assert.True(symbolic.Success, string.Join(Environment.NewLine, symbolic.Diagnostics));
-        Assert.Contains("switch (frame.state)", diagnostic.SourceText, StringComparison.Ordinal);
+        Assert.Contains("switch (frame.__cope_state)", diagnostic.SourceText, StringComparison.Ordinal);
         Assert.DoesNotContain("async function", diagnostic.SourceText, StringComparison.Ordinal);
 
         const string suffix = """

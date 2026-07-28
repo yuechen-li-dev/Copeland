@@ -39,7 +39,7 @@ public sealed class JavaScriptBackendTests
             """);
 
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
-        Assert.Contains("frame.state = frame.flag ?", compilation.SourceText, StringComparison.Ordinal);
+        Assert.Contains("frame.__cope_state = frame.__parameter_flag ?", compilation.SourceText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed class JavaScriptBackendTests
 
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         Assert.DoesNotContain("__cope_async", compilation.SourceText, StringComparison.Ordinal);
-        Assert.DoesNotContain("frame.state", compilation.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("frame.__cope_state", compilation.SourceText, StringComparison.Ordinal);
     }
 
     [Fact]

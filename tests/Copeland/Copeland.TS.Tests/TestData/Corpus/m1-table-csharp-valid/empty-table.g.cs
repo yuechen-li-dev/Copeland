@@ -37,12 +37,14 @@ public abstract record TableBoundsError
 
 public abstract class CopeColumn<T>
 {
+    internal abstract int Count { get; }
     internal abstract CopeResult<T, TableBoundsError> Get(double index);
 }
 
 public sealed class __CopeTableColumn_t1_002Ec0 : CopeColumn<double>
 {
     private readonly double[] _values;
+    internal override int Count => _values.Length;
 
     internal __CopeTableColumn_t1_002Ec0(double[] values)
     {
@@ -79,6 +81,8 @@ public sealed class __CopeTableRow_t1_002Erow
 
 public sealed class __CopeTable_t1
 {
+    internal int Count => 0;
+
     private readonly double[] _column_t1_002Ec0;
 
     private __CopeTable_t1(double[] values0)

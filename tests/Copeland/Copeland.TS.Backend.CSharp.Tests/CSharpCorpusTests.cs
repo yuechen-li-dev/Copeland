@@ -38,9 +38,12 @@ public sealed class CSharpCorpusTests
     public void Table_csharp_artifact_has_a_stable_hash()
     {
         string path = Path.Combine(GetCorpusRoot(), "m1-table-csharp-valid", "empty-table.g.cs");
+        string source = File.ReadAllText(path);
         string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));
 
-        Assert.Equal("18326C9663290677C9B581F2F7BA9C7BCDE4B5408B32DC2187FD8A96156D2D30", hash);
+        Assert.Contains("internal abstract int Count { get; }", source, StringComparison.Ordinal);
+        Assert.Contains("internal override int Count => _values.Length;", source, StringComparison.Ordinal);
+        Assert.Equal("D9C8291EC48B7440A69E8F3BED37C4A7EA285384188F976DD310FEE26496369D", hash);
     }
 
     [Fact]

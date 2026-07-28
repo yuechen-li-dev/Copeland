@@ -58,7 +58,7 @@ public sealed class JavaScriptCorpusTests
         JavaScriptCompilation emitted = JavaScriptBackend.Emit(mir.Program!);
         Assert.True(emitted.Success);
         Assert.Equal(File.ReadAllText(expectedPath).Replace("\r\n", "\n", StringComparison.Ordinal), emitted.SourceText);
-        Assert.Equal("46AEAF4BAF4C83F9932AF46393D9F89E7E5CC0FACC1D497556AA1A39F178FFA5", Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedPath))));
+        Assert.Equal("9620114CDEA686AFDF1F5D7F6BE5C6F7150B1C4348E08B7A4CD39D4BE60CE135", Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(expectedPath))));
     }
 
     [Fact]

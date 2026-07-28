@@ -3767,7 +3767,10 @@ public static class Binder
                 }
             }
 
-            if (c.Target is MemberAccessExpressionSyntax tableMember)
+            if (c.Target is MemberAccessExpressionSyntax tableMember
+                && (tableMember.Target is not NameExpressionSyntax tableTargetName
+                    || (!_classTypes.ContainsKey(tableTargetName.IdentifierToken.Text)
+                        && !_enumTypes.ContainsKey(tableTargetName.IdentifierToken.Text))))
             {
                 BoundExpression tableReceiver = BindExpression(tableMember.Target);
                 if (tableReceiver.Type is TableTypeSymbol tableType

@@ -3,6 +3,7 @@
 const __cope_callable_instances = new WeakSet();
 const __cope_callable_signatures = new WeakMap();
 const __cope_callable_codes = new WeakMap();
+const __cope_callable_host_carriers = new WeakMap();
 const __cope_callable_environments = new WeakMap();
 const __cope_callable_environment_instances = new WeakSet();
 const __cope_callable_environment_values = new WeakMap();
@@ -12,6 +13,24 @@ function __cope_callable_ref(signature, code) {
     __cope_callable_codes.set(carrier, code);
     __cope_callable_instances.add(carrier);
     return Object.freeze(carrier);
+}
+function __cope_callable_host(signature, hostCallable) {
+    if (typeof hostCallable !== "function") throw new Error("COPE-PANIC-CALLABLE: host returned a non-callable value");
+    return __cope_callable_ref(signature, (...argumentsInOrder) => hostCallable(...argumentsInOrder));
+}
+function __cope_callable_host_retained(signature, hostCallable) {
+    if (typeof hostCallable !== "function") throw new Error("COPE-PANIC-CALLABLE: host supplied a non-callable callback argument");
+    let bySignature = __cope_callable_host_carriers.get(hostCallable);
+    if (bySignature === undefined) {
+        bySignature = new Map();
+        __cope_callable_host_carriers.set(hostCallable, bySignature);
+    }
+    let carrier = bySignature.get(signature);
+    if (carrier === undefined) {
+        carrier = __cope_callable_host(signature, hostCallable);
+        bySignature.set(signature, carrier);
+    }
+    return carrier;
 }
 function __cope_callable_capture(signature, code, values) {
     const environment = Object.create(null);

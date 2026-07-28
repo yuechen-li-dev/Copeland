@@ -70,12 +70,14 @@ public abstract record State
 
 public abstract class CopeColumn<T>
 {
+    internal abstract int Count { get; }
     internal abstract CopeResult<T, TableBoundsError> Get(double index);
 }
 
 public sealed class __CopeTableColumn_t1_002Ec0 : CopeColumn<bool>
 {
     private readonly bool[] _values;
+    internal override int Count => _values.Length;
 
     internal __CopeTableColumn_t1_002Ec0(bool[] values)
     {
@@ -99,6 +101,7 @@ public sealed class __CopeTableColumn_t1_002Ec0 : CopeColumn<bool>
 public sealed class __CopeTableColumn_t1_002Ec1 : CopeColumn<string>
 {
     private readonly string[] _values;
+    internal override int Count => _values.Length;
 
     internal __CopeTableColumn_t1_002Ec1(string[] values)
     {
@@ -137,6 +140,8 @@ public sealed class __CopeTableRow_t1_002Erow
 
 public sealed class __CopeTable_t1
 {
+    internal int Count => 0;
+
     private readonly bool[] _column_t1_002Ec0;
     private readonly string[] _column_t1_002Ec1;
 
@@ -183,6 +188,7 @@ public sealed class __CopeTable_t1
 public sealed class __CopeTableColumn_t2_002Ec0 : CopeColumn<bool>
 {
     private readonly bool[] _values;
+    internal override int Count => _values.Length;
 
     internal __CopeTableColumn_t2_002Ec0(bool[] values)
     {
@@ -206,6 +212,7 @@ public sealed class __CopeTableColumn_t2_002Ec0 : CopeColumn<bool>
 public sealed class __CopeTableColumn_t2_002Ec1 : CopeColumn<double>
 {
     private readonly double[] _values;
+    internal override int Count => _values.Length;
 
     internal __CopeTableColumn_t2_002Ec1(double[] values)
     {
@@ -229,6 +236,7 @@ public sealed class __CopeTableColumn_t2_002Ec1 : CopeColumn<double>
 public sealed class __CopeTableColumn_t2_002Ec2 : CopeColumn<__CopeRecord_r1>
 {
     private readonly __CopeRecord_r1[] _values;
+    internal override int Count => _values.Length;
 
     internal __CopeTableColumn_t2_002Ec2(__CopeRecord_r1[] values)
     {
@@ -252,6 +260,7 @@ public sealed class __CopeTableColumn_t2_002Ec2 : CopeColumn<__CopeRecord_r1>
 public sealed class __CopeTableColumn_t2_002Ec3 : CopeColumn<State>
 {
     private readonly State[] _values;
+    internal override int Count => _values.Length;
 
     internal __CopeTableColumn_t2_002Ec3(State[] values)
     {
@@ -275,6 +284,7 @@ public sealed class __CopeTableColumn_t2_002Ec3 : CopeColumn<State>
 public sealed class __CopeTableColumn_t2_002Ec4 : CopeColumn<double[][]>
 {
     private readonly double[][][] _values;
+    internal override int Count => _values.Length;
 
     internal __CopeTableColumn_t2_002Ec4(double[][][] values)
     {
@@ -319,6 +329,8 @@ public sealed class __CopeTableRow_t2_002Erow
 
 public sealed class __CopeTable_t2
 {
+    internal int Count => 5;
+
     private readonly bool[] _column_t2_002Ec0;
     private readonly double[] _column_t2_002Ec1;
     private readonly __CopeRecord_r1[] _column_t2_002Ec2;
