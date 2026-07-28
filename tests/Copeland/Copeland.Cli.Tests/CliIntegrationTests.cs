@@ -1530,6 +1530,108 @@ function value(flag: boolean): number {
         Assert.Equal("84\n", consumer.StdOut);
     }
 
+    [Fact]
+    public async Task Workspace_sync_partitions_sources_generates_deterministic_artifacts_and_serves_json_owner_queries()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src", "legacy"));
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src", "copeland"));
+        temp.WriteFile("src/legacy/Legacy.ts", "export const legacy: string = 'legacy';");
+        temp.WriteFile("src/copeland/Domain.ts", "export function Domain(): string { return 'domain'; }");
+        temp.WriteFile("App.csproj", "<Project />");
+        string manifest = temp.WriteFile("tsconfig.tsx", """
+            export default defineTypeScriptWorkspace({
+                tsc: {
+                    include: ["src\\legacy\\**"],
+                    compilerOptions: { strict: true, target: "ES2024", module: "ESNext" }
+                },
+                tscl: { project: "./App.csproj", include: ["src/copeland/**"] }
+            });
+            """);
+
+        CliResult firstSync = await RunCliAsync(temp.Path, "workspace", "sync", "--workspace", manifest, "--format", "json");
+        CliResult secondSync = await RunCliAsync(temp.Path, "workspace", "sync", "--workspace", manifest, "--format", "json");
+        CliResult owner = await RunCliAsync(temp.Path, "workspace", "owner", "src/copeland/Domain.ts", "--workspace", manifest, "--format", "json");
+
+        Assert.Equal(0, firstSync.ExitCode);
+        Assert.True(JsonDocument.Parse(firstSync.StdOut).RootElement.GetProperty("changed").GetBoolean());
+        Assert.Equal(0, secondSync.ExitCode);
+        Assert.False(JsonDocument.Parse(secondSync.StdOut).RootElement.GetProperty("changed").GetBoolean());
+        Assert.Equal(0, owner.ExitCode);
+        Assert.Equal("tscl", JsonDocument.Parse(owner.StdOut).RootElement.GetProperty("owner").GetString());
+
+        string generatedDirectory = Path.Combine(temp.Path, "obj", "copeland", "workspace");
+        string tscConfig = await File.ReadAllTextAsync(Path.Combine(generatedDirectory, "tsconfig.generated.json"));
+        string props = await File.ReadAllTextAsync(Path.Combine(generatedDirectory, "tscl-files.generated.props"));
+        string ownership = await File.ReadAllTextAsync(Path.Combine(generatedDirectory, "editor-ownership.generated.json"));
+        Assert.Contains("Legacy.ts", tscConfig, StringComparison.Ordinal);
+        Assert.DoesNotContain("Domain.ts", tscConfig, StringComparison.Ordinal);
+        Assert.Contains("Domain.ts", props, StringComparison.Ordinal);
+        Assert.Contains("\"owner\": \"tsc\"", ownership, StringComparison.Ordinal);
+        Assert.Contains("\"owner\": \"tscl\"", ownership, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Workspace_validate_rejects_overlap_and_strict_unowned_sources()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src", "shared"));
+        temp.WriteFile("src/shared/Model.ts", "export const model = 1;");
+        temp.WriteFile("App.csproj", "<Project />");
+        string overlapManifest = temp.WriteFile("tsconfig.tsx", """
+            export default defineTypeScriptWorkspace({
+                tsc: { include: ["src/**"], compilerOptions: { strict: true } },
+                tscl: { project: "App.csproj", include: ["src/shared/**"] }
+            });
+            """);
+
+        CliResult overlap = await RunCliAsync(temp.Path, "workspace", "validate", "--workspace", overlapManifest, "--format", "json");
+
+        Assert.Equal(1, overlap.ExitCode);
+        Assert.Contains("COPE-WORKSPACE-0021", overlap.StdOut, StringComparison.Ordinal);
+
+        string unownedManifest = temp.WriteFile("tsconfig.tsx", """
+            export default defineTypeScriptWorkspace({
+                tsc: { include: ["src/other/**"], compilerOptions: { strict: true } }
+            });
+            """);
+        CliResult unowned = await RunCliAsync(temp.Path, "workspace", "validate", "--workspace", unownedManifest, "--format", "json");
+
+        Assert.Equal(1, unowned.ExitCode);
+        Assert.Contains("COPE-WORKSPACE-0022", unowned.StdOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Workspace_supports_all_tsc_and_copeland_only_adoption_shapes_with_folder_transfer()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        temp.WriteFile("src/Only.ts", "export function Only(): string { return 'only'; }");
+        temp.WriteFile("App.csproj", "<Project />");
+        string manifest = temp.WriteFile("tsconfig.tsx", """
+            export default defineTypeScriptWorkspace({
+                tsc: { include: ["src/**"], compilerOptions: { strict: true, target: "ES2024" } }
+            });
+            """);
+
+        CliResult allTsc = await RunCliAsync(temp.Path, "workspace", "sync", "--workspace", manifest, "--format", "json");
+        Assert.Equal(0, allTsc.ExitCode);
+        string allTscConfig = await File.ReadAllTextAsync(Path.Combine(temp.Path, "obj", "copeland", "workspace", "tsconfig.generated.json"));
+        Assert.Contains("Only.ts", allTscConfig, StringComparison.Ordinal);
+
+        manifest = temp.WriteFile("tsconfig.tsx", """
+            export default defineTypeScriptWorkspace({
+                tscl: { project: "App.csproj", include: ["src/**"] }
+            });
+            """);
+        CliResult copelandOnly = await RunCliAsync(temp.Path, "workspace", "sync", "--workspace", manifest, "--format", "json");
+        Assert.Equal(0, copelandOnly.ExitCode);
+        string props = await File.ReadAllTextAsync(Path.Combine(temp.Path, "obj", "copeland", "workspace", "tscl-files.generated.props"));
+        Assert.Contains("Only.ts", props, StringComparison.Ordinal);
+        string transferredConfig = await File.ReadAllTextAsync(Path.Combine(temp.Path, "obj", "copeland", "workspace", "tsconfig.generated.json"));
+        Assert.DoesNotContain("Only.ts", transferredConfig, StringComparison.Ordinal);
+    }
+
     private static async Task<CliResult> RunCliAsync(string workingDirectory, params string[] args)
     {
         var startInfo = new ProcessStartInfo

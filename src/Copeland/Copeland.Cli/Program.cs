@@ -22,17 +22,18 @@ internal static class Program
 
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'database', 'markdown'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown'.");
         }
 
         return args[0] switch
         {
             "compile" => RunCompile(args),
             "build" => TsclBuildContract.Run(args),
+            "workspace" => WorkspaceCommand.Run(args),
             "database" => DatabaseCommand.Run(args),
             "markdown" => RunMarkdown(args),
             "table" => TableToolCommand.Run(args),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'database', 'markdown', 'table'."),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'table'."),
         };
     }
 
@@ -434,6 +435,7 @@ internal static class Program
         Console.Error.WriteLine("Usage:");
         Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic|production] [--out <path>]");
         Console.Error.WriteLine("  tscl build --project <project.json> --result <result.json>");
+        Console.Error.WriteLine("  tscl workspace sync|validate|status|owner ...");
         Console.Error.WriteLine("  tscl table list|schema|rows|set|add-row|delete-row|validate|export|import ...");
         Console.Error.WriteLine("  copeland markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
