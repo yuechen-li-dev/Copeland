@@ -169,4 +169,88 @@ export template App(): ProjectTree {
         Assert.Equal(["Program.cs", "base.txt"], result.Project!.Files.Select(file => file.Path));
         Assert.Contains(result.InstantiationChain, chain => chain.Contains("BaseProject", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void Binds_Typed_Static_Object_Arguments_And_Field_Projection()
+    {
+        const string source = """
+type ConsoleConfig = {
+    name: string;
+    includeTests: boolean;
+};
+
+template ConsoleApp(static config: ConsoleConfig): ProjectTree {
+    static if (config.includeTests) {
+        emit(textFile("Tests.txt", `Tests for ${config.name}`));
+    }
+    emit(sourceFile("Program.ts", `console.log("Hello from ${config.name}");`));
+}
+
+template Entry(): ProjectTree {
+    emit(ConsoleApp({ name: "HelloCopeland", includeTests: true }));
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Entry");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(["Program.ts", "Tests.txt"], result.Project!.Files.Select(file => file.Path).OrderBy(path => path));
+    }
+
+    [Fact]
+    public void Diagnoses_Invalid_Typed_Static_Object_Arguments()
+    {
+        const string source = """
+type Config = { port: number; };
+template Server(static config: Config): ProjectTree { emit(textFile("a.txt", "a")); }
+template Entry(): ProjectTree { emit(Server({ port: "wrong", extra: true })); }
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Entry");
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-STATIC-0007");
+    }
+
+    [Fact]
+    public void Traverses_Finite_Type_Field_Metadata_Deterministically()
+    {
+        const string source = """
+type AppSettings = {
+    host: string;
+    port: number;
+    development?: boolean;
+};
+template SettingsDocument(): ProjectTree {
+    static for (const field of fieldsOf<AppSettings>()) {
+        emit(textFile(`${field.name}.txt`, `${field.typeName}:${field.optional}`));
+    }
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "SettingsDocument");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(["development.txt", "host.txt", "port.txt"], result.Project!.Files.Select(file => file.Path).OrderBy(path => path));
+    }
+
+    [Fact]
+    public void Applies_Bounded_Structural_Projections_In_Declaration_Order()
+    {
+        const string source = """
+type Config = { name: string; internal: boolean; port?: number; };
+type PublicConfig = Pick<Config, "name">;
+type InternalConfig = Omit<Config, "name">;
+type CompleteConfig = Readonly<Required<Partial<Config>>>;
+template Document(): ProjectTree {
+    static for (const field of fieldsOf<InternalConfig>()) {
+        emit(textFile(`${field.name}.txt`, `${field.optional}:${field.readonly}`));
+    }
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Document");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(["internal.txt", "port.txt"], result.Project!.Files.Select(file => file.Path));
+    }
 }

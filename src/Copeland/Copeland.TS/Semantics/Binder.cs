@@ -1867,16 +1867,22 @@ public static class Binder
 
                 _activeTypeParameters = CreateTypeParameterScope(typeParameters);
                 var parameters = new List<ParameterSymbol>();
-                foreach (ParameterSyntax parameter in syntax.Parameters)
+                foreach (TemplateParameterSyntax parameter in syntax.Parameters)
                 {
+                    if (parameter.StaticKeyword is null)
+                    {
+                        Report("COPE-TEMPLATE-0002", "Templates accept only 'static' value parameters; runtime template parameters are not supported.", parameter.Identifier);
+                    }
                     TypeSymbol type = BindType(parameter.Type, parameter.Identifier, "COPE-TEMPLATE-0002", "template parameter");
-                    parameters.Add(new ParameterSymbol(parameter.Identifier.Text, type, GetAuthoredAliasName(parameter.Type)));
+                    parameters.Add(new ParameterSymbol(parameter.Identifier.Text, type, GetAuthoredAliasName(parameter.Type), isStatic: true));
                 }
                 TypeSymbol returnType = BindType(syntax.ReturnType, syntax.Identifier, "COPE-TEMPLATE-0005", "template result");
                 _activeTypeParameters = null;
-                if (returnType != ArtifactTypeSymbol.ProjectTree)
+                if (returnType != ArtifactTypeSymbol.ProjectTree
+                    && returnType is not StructuralObjectTypeSymbol
+                    && returnType is not IntersectionTypeSymbol)
                 {
-                    Report("COPE-TEMPLATE-0005", $"Template '{syntax.Identifier.Text}' must return ProjectTree, not '{returnType.Name}'.", syntax.Identifier);
+                    Report("COPE-TEMPLATE-0005", $"Template '{syntax.Identifier.Text}' must return an artifact contract or ProjectTree, not '{returnType.Name}'.", syntax.Identifier);
                 }
 
                 var symbol = new TemplateSymbol(
@@ -2073,6 +2079,8 @@ public static class Binder
                     return new BoundTemplateBinary(binary.OperatorToken, binary.OperatorToken.Kind, left, right, PrimitiveTypeSymbol.String);
                 case ObjectLiteralExpressionSyntax record:
                     return BindTemplateRecord(record);
+                case MemberAccessExpressionSyntax access:
+                    return BindTemplateMemberAccess(access);
                 case CallExpressionSyntax call:
                     return BindTemplateCall(call, []);
                 case GenericCallExpressionSyntax generic:
@@ -2085,8 +2093,34 @@ public static class Binder
 
         private BoundTemplateValue BindTemplateRecord(ObjectLiteralExpressionSyntax syntax)
         {
-            Report("COPE-STATIC-0003", "Object literals require an ordinary record-typed template parameter in this M0 plan.", syntax.OpenBraceToken);
-            return new BoundTemplateLiteral(syntax.OpenBraceToken, null, PrimitiveTypeSymbol.Error);
+            var fields = new List<BoundTemplateStructuralField>();
+            var fieldTypes = new List<StructuralFieldSymbol>();
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (ObjectPropertySyntax property in syntax.Properties)
+            {
+                if (!names.Add(property.NameToken.Text))
+                {
+                    Report("COPE-STATIC-0003", $"Duplicate static object field '{property.NameToken.Text}'.", property.NameToken);
+                    continue;
+                }
+                BoundTemplateValue value = BindTemplateValue(property.ValueExpression);
+                fields.Add(new BoundTemplateStructuralField(property.NameToken.Text, value));
+                fieldTypes.Add(new StructuralFieldSymbol(property.NameToken.Text, value.Type, fieldTypes.Count, false, true));
+            }
+            return new BoundTemplateStructuralObject(syntax.OpenBraceToken, new StructuralObjectTypeSymbol(fieldTypes), fields);
+        }
+
+        private BoundTemplateValue BindTemplateMemberAccess(MemberAccessExpressionSyntax syntax)
+        {
+            BoundTemplateValue receiver = BindTemplateValue(syntax.Target);
+            TypeSymbol memberType = TryGetStructuralField(receiver.Type, syntax.NameToken.Text, out StructuralFieldSymbol? field)
+                ? field!.Type
+                : PrimitiveTypeSymbol.Error;
+            if (memberType == PrimitiveTypeSymbol.Error)
+            {
+                Report("COPE-STATIC-0003", $"Static value of type '{receiver.Type.Name}' has no field '{syntax.NameToken.Text}'.", syntax.NameToken);
+            }
+            return new BoundTemplateMemberAccess(syntax.NameToken, receiver, syntax.NameToken.Text, memberType);
         }
 
         private BoundTemplateValue BindTemplateCall(ExpressionSyntax call, IReadOnlyList<TypeSyntax> typeArgumentSyntax)
@@ -2115,6 +2149,14 @@ public static class Binder
                 return new BoundTemplateLiteral(anchor, null, PrimitiveTypeSymbol.Error);
             }
             var values = arguments.Select(BindTemplateValue).ToArray();
+            if (name.IdentifierToken.Text == "fieldsOf")
+            {
+                return BindFieldsOf(name.IdentifierToken, typeArgumentSyntax, values);
+            }
+            if (name.IdentifierToken.Text == "nameOf")
+            {
+                return BindNameOf(name.IdentifierToken, typeArgumentSyntax, values);
+            }
             if (TryBindArtifactIntrinsic(name.IdentifierToken, values, out BoundTemplateValue? artifact))
             {
                 return artifact!;
@@ -2133,7 +2175,80 @@ public static class Binder
             {
                 Report("COPE-TEMPLATE-0002", $"Template '{template.Name}' expects {template.Parameters.Count} static argument(s), but received {values.Length}.", anchor);
             }
+            for (int index = 0; index < Math.Min(values.Length, template.Parameters.Count); index++)
+            {
+                if (!IsAssignable(template.Parameters[index].Type, values[index].Type))
+                {
+                    ReportStaticArgumentMismatch(template.Parameters[index], values[index], anchor);
+                }
+            }
             return new BoundTemplateInvocation(anchor, template, typeArguments, values);
+        }
+
+        private BoundTemplateValue BindFieldsOf(
+            SyntaxToken anchor,
+            IReadOnlyList<TypeSyntax> typeArguments,
+            IReadOnlyList<BoundTemplateValue> values)
+        {
+            if (values.Count != 0 || typeArguments.Count != 1)
+            {
+                Report("COPE-STATIC-0010", "fieldsOf<T>() requires exactly one type argument and no value arguments.", anchor);
+                return new BoundTemplateArray(anchor, []);
+            }
+            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-STATIC-0010", "metadata target");
+            var fields = EnumerateStructuralFields(target).ToArray();
+            if (fields.Length == 0 && target is not StructuralObjectTypeSymbol and not RecordTypeSymbol)
+            {
+                Report("COPE-STATIC-0011", $"fieldsOf<T>() requires a structural type or record, not '{target.Name}'.", anchor);
+            }
+            return new BoundTemplateArray(anchor, fields.Select(field => CreateFieldMetadata(anchor, field)).ToArray());
+        }
+
+        private BoundTemplateValue BindNameOf(
+            SyntaxToken anchor,
+            IReadOnlyList<TypeSyntax> typeArguments,
+            IReadOnlyList<BoundTemplateValue> values)
+        {
+            if (values.Count != 0 || typeArguments.Count != 1)
+            {
+                Report("COPE-STATIC-0010", "nameOf<T>() requires exactly one type argument and no value arguments.", anchor);
+                return new BoundTemplateLiteral(anchor, null, PrimitiveTypeSymbol.Error);
+            }
+            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-STATIC-0010", "metadata target");
+            return new BoundTemplateLiteral(anchor, target.Name, PrimitiveTypeSymbol.String);
+        }
+
+        private static IEnumerable<StructuralFieldSymbol> EnumerateStructuralFields(TypeSymbol type)
+        {
+            return type switch
+            {
+                StructuralObjectTypeSymbol structural => structural.Fields.OrderBy(field => field.Ordinal),
+                RecordTypeSymbol record => record.Fields
+                    .OrderBy(field => field.Id.Ordinal)
+                    .Select(field => new StructuralFieldSymbol(field.Name, field.Type, field.Id.Ordinal, false, false)),
+                _ => [],
+            };
+        }
+
+        private static BoundTemplateStructuralObject CreateFieldMetadata(SyntaxToken anchor, StructuralFieldSymbol field)
+        {
+            BoundTemplateStructuralField[] fields =
+            [
+                new("name", new BoundTemplateLiteral(anchor, field.Name, PrimitiveTypeSymbol.String)),
+                new("typeName", new BoundTemplateLiteral(anchor, field.Type.Name, PrimitiveTypeSymbol.String)),
+                new("optional", new BoundTemplateLiteral(anchor, field.IsOptional, PrimitiveTypeSymbol.Boolean)),
+                new("readonly", new BoundTemplateLiteral(anchor, field.IsReadOnly, PrimitiveTypeSymbol.Boolean)),
+            ];
+            return new BoundTemplateStructuralObject(
+                anchor,
+                new StructuralObjectTypeSymbol(
+                [
+                    new StructuralFieldSymbol("name", PrimitiveTypeSymbol.String, 0, false, true),
+                    new StructuralFieldSymbol("typeName", PrimitiveTypeSymbol.String, 1, false, true),
+                    new StructuralFieldSymbol("optional", PrimitiveTypeSymbol.Boolean, 2, false, true),
+                    new StructuralFieldSymbol("readonly", PrimitiveTypeSymbol.Boolean, 3, false, true),
+                ]),
+                fields);
         }
 
         private bool TryBindArtifactIntrinsic(SyntaxToken name, IReadOnlyList<BoundTemplateValue> arguments, out BoundTemplateValue? result)
@@ -8069,6 +8184,11 @@ public static class Binder
                     _ => PrimitiveTypeSymbol.Error
                 },
                 ArrayTypeSyntax a => new ArrayTypeSymbol(BindType(a.ElementType, anchor, missingId, missingPrefix)),
+                StructuralObjectTypeSyntax o => BindStructuralObjectType(o, anchor, missingId, missingPrefix),
+                UnionTypeSyntax u => new UnionTypeSymbol([BindType(u.Left, anchor, missingId, missingPrefix), BindType(u.Right, anchor, missingId, missingPrefix)]),
+                IntersectionTypeSyntax i => new IntersectionTypeSymbol([BindType(i.Left, anchor, missingId, missingPrefix), BindType(i.Right, anchor, missingId, missingPrefix)]),
+                GenericTypeSyntax generic => BindStructuralProjection(generic, anchor, missingId, missingPrefix),
+                LiteralTypeSyntax literal => ReportInvalidLiteralType(literal.LiteralToken),
                 AsyncTypeSyntax a => new AsyncTypeSymbol(BindType(a.EventualType, anchor, missingId, missingPrefix)),
                 IterableTypeSyntax i => new IterableTypeSymbol(BindType(i.ElementType, anchor, missingId, missingPrefix)),
                 ColumnTypeSyntax c => new ColumnTypeSymbol(BindType(c.ElementType, anchor, "COPE-TABLE-0019", "column element")),
@@ -8079,6 +8199,91 @@ public static class Binder
                 IdentifierTypeSyntax i => ResolveIdentifierType(i),
                 _ => PrimitiveTypeSymbol.Error
             };
+        }
+
+        private TypeSymbol BindStructuralProjection(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
+        {
+            string operation = syntax.Identifier.Text;
+            if (operation is not ("Pick" or "Omit" or "Partial" or "Required" or "Readonly"))
+            {
+                Report("COPE-STATIC-0009", $"Unsupported generic structural type '{operation}'.", syntax.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
+            int expectedArgumentCount = operation is "Pick" or "Omit" ? 2 : 1;
+            if (syntax.TypeArguments.Count != expectedArgumentCount)
+            {
+                Report("COPE-STATIC-0009", $"{operation} expects {expectedArgumentCount} type argument(s).", syntax.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
+            TypeSymbol source = BindType(syntax.TypeArguments[0], anchor, missingId, missingPrefix);
+            IReadOnlyList<StructuralFieldSymbol> sourceFields = EnumerateStructuralFields(source).ToArray();
+            if (sourceFields.Count == 0 && source is not StructuralObjectTypeSymbol and not RecordTypeSymbol)
+            {
+                Report("COPE-STATIC-0011", $"{operation} requires a structural type or record, not '{source.Name}'.", syntax.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
+            var fields = sourceFields.ToList();
+            if (operation is "Pick" or "Omit")
+            {
+                if (syntax.TypeArguments[1] is not LiteralTypeSyntax { LiteralToken.Value: string key })
+                {
+                    Report("COPE-STATIC-0009", $"{operation} keys must be statically known string literals.", syntax.Identifier);
+                    return PrimitiveTypeSymbol.Error;
+                }
+                bool found = fields.Any(field => field.Name == key);
+                if (!found)
+                {
+                    Report("COPE-STATIC-0009", $"{operation} key '{key}' is not a field of '{source.Name}'.", syntax.Identifier);
+                    return PrimitiveTypeSymbol.Error;
+                }
+                fields = operation == "Pick"
+                    ? fields.Where(field => field.Name == key).ToList()
+                    : fields.Where(field => field.Name != key).ToList();
+            }
+            else if (operation == "Partial")
+            {
+                fields = fields.Select(field => new StructuralFieldSymbol(field.Name, field.Type, field.Ordinal, true, field.IsReadOnly)).ToList();
+            }
+            else if (operation == "Required")
+            {
+                fields = fields.Select(field => new StructuralFieldSymbol(field.Name, field.Type, field.Ordinal, false, field.IsReadOnly)).ToList();
+            }
+            else
+            {
+                fields = fields.Select(field => new StructuralFieldSymbol(field.Name, field.Type, field.Ordinal, field.IsOptional, true)).ToList();
+            }
+            return new StructuralProjectionTypeSymbol(operation, source, fields);
+        }
+
+        private TypeSymbol ReportInvalidLiteralType(SyntaxToken token)
+        {
+            Report("COPE-STATIC-0009", $"Literal type '{token.Text}' is valid only as a Pick or Omit key.", token);
+            return PrimitiveTypeSymbol.Error;
+        }
+
+        private StructuralObjectTypeSymbol BindStructuralObjectType(
+            StructuralObjectTypeSyntax syntax,
+            SyntaxToken anchor,
+            string missingId,
+            string missingPrefix)
+        {
+            var fields = new List<StructuralFieldSymbol>();
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (StructuralTypeFieldSyntax field in syntax.Fields)
+            {
+                if (!names.Add(field.Identifier.Text))
+                {
+                    Report("COPE-STATIC-0003", $"Duplicate structural field '{field.Identifier.Text}'.", field.Identifier);
+                    continue;
+                }
+                fields.Add(new StructuralFieldSymbol(
+                    field.Identifier.Text,
+                    BindType(field.Type, field.Identifier, missingId, missingPrefix),
+                    fields.Count,
+                    field.QuestionToken is not null,
+                    field.ReadonlyKeyword is not null));
+            }
+            return new StructuralObjectTypeSymbol(fields);
         }
 
         private TypeSymbol BindCallableType(CallableTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
@@ -8331,9 +8536,90 @@ public static class Binder
         }
 
         private static bool IsAssignable(TypeSymbol target, TypeSymbol actual)
-            => target == PrimitiveTypeSymbol.Error
-                || actual == PrimitiveTypeSymbol.Error
-                || TypeFacts.AreEquivalent(target, actual);
+        {
+            if (target == PrimitiveTypeSymbol.Error || actual == PrimitiveTypeSymbol.Error || TypeFacts.AreEquivalent(target, actual))
+            {
+                return true;
+            }
+            if (target is UnionTypeSymbol union)
+            {
+                return union.Alternatives.Any(candidate => IsAssignable(candidate, actual));
+            }
+            if (target is IntersectionTypeSymbol intersection)
+            {
+                return intersection.Parts.All(candidate => IsAssignable(candidate, actual));
+            }
+            if (target is StructuralObjectTypeSymbol expected)
+            {
+                foreach (StructuralFieldSymbol required in expected.Fields.Where(field => !field.IsOptional))
+                {
+                    if (!TryGetStructuralField(actual, required.Name, out StructuralFieldSymbol? actualField)
+                        || !IsAssignable(required.Type, actualField!.Type))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private static bool TryGetStructuralField(TypeSymbol type, string name, out StructuralFieldSymbol? field)
+        {
+            switch (type)
+            {
+                case StructuralObjectTypeSymbol structural:
+                    field = structural.Fields.FirstOrDefault(candidate => candidate.Name == name);
+                    return field is not null;
+                case RecordTypeSymbol record:
+                    RecordFieldSymbol? recordField = record.Fields.FirstOrDefault(candidate => candidate.Name == name);
+                    if (recordField is not null)
+                    {
+                        field = new StructuralFieldSymbol(recordField.Name, recordField.Type, recordField.Id.Ordinal, false, false);
+                        return true;
+                    }
+                    break;
+                case IntersectionTypeSymbol intersection:
+                    foreach (TypeSymbol part in intersection.Parts)
+                    {
+                        if (TryGetStructuralField(part, name, out field)) return true;
+                    }
+                    break;
+            }
+            field = null;
+            return false;
+        }
+
+        private void ReportStaticArgumentMismatch(ParameterSymbol parameter, BoundTemplateValue value, SyntaxToken anchor)
+        {
+            if (parameter.Type is StructuralObjectTypeSymbol expected
+                && value.Type is StructuralObjectTypeSymbol actual)
+            {
+                foreach (StructuralFieldSymbol field in expected.Fields.Where(field => !field.IsOptional))
+                {
+                    StructuralFieldSymbol? actualField = actual.Fields.FirstOrDefault(candidate => candidate.Name == field.Name);
+                    if (actualField is null)
+                    {
+                        Report("COPE-STATIC-0007", $"Static argument '{parameter.Name}.{field.Name}' is required by '{parameter.Type.Name}'.", anchor);
+                        return;
+                    }
+                    if (!IsAssignable(field.Type, actualField.Type))
+                    {
+                        Report("COPE-STATIC-0007", $"Static argument '{parameter.Name}.{field.Name}' must be '{field.Type.Name}', but received '{actualField.Type.Name}'.", anchor);
+                        return;
+                    }
+                }
+                foreach (StructuralFieldSymbol supplied in actual.Fields)
+                {
+                    if (!expected.Fields.Any(field => field.Name == supplied.Name))
+                    {
+                        Report("COPE-STATIC-0008", $"Static object literal supplied unknown field '{parameter.Name}.{supplied.Name}'.", anchor);
+                        return;
+                    }
+                }
+            }
+            Report("COPE-STATIC-0007", $"Static argument '{parameter.Name}' must be '{parameter.Type.Name}', but received '{value.Type.Name}'.", anchor);
+        }
 
         private void ValidateRuntimeValueType(TypeSymbol type, SyntaxToken anchor, string position)
         {

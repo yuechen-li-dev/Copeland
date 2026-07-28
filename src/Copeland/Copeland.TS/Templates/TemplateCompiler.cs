@@ -639,6 +639,20 @@ public static class TemplateCompiler
                     return context.Values.GetValueOrDefault(local.Local);
                 case BoundTemplateArray array:
                     return array.Elements.Select(element => EvaluateValue(element, context)).ToArray();
+                case BoundTemplateStructuralObject structural:
+                    return structural.Fields.ToDictionary(
+                        field => field.Name,
+                        field => EvaluateValue(field.Value, context),
+                        StringComparer.Ordinal);
+                case BoundTemplateMemberAccess access:
+                    object? receiver = EvaluateValue(access.Receiver, context);
+                    if (receiver is IReadOnlyDictionary<string, object?> objectValue
+                        && objectValue.TryGetValue(access.MemberName, out object? member))
+                    {
+                        return member;
+                    }
+                    Report("COPE-STATIC-0003", $"Bound static value has no member '{access.MemberName}'.", access.Anchor);
+                    return null;
                 case BoundTemplateString text:
                     return string.Concat(text.Parts.Select(part => EvaluateValue(part, context)?.ToString()));
                 case BoundTemplateBinary { OperatorKind: SyntaxKind.PlusToken } binary:
@@ -789,6 +803,12 @@ public static class TemplateCompiler
             {
                 case BoundTemplateArray array:
                     foreach (BoundTemplateValue element in array.Elements) VisitValue(element, diagnostics);
+                    break;
+                case BoundTemplateStructuralObject structural:
+                    foreach (BoundTemplateStructuralField field in structural.Fields) VisitValue(field.Value, diagnostics);
+                    break;
+                case BoundTemplateMemberAccess access:
+                    VisitValue(access.Receiver, diagnostics);
                     break;
                 case BoundTemplateString text:
                     foreach (BoundTemplateValue part in text.Parts) VisitValue(part, diagnostics);

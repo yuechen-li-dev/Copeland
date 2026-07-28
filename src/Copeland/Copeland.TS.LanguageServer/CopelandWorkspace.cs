@@ -117,7 +117,7 @@ internal sealed class CopelandWorkspace
         }
         CopelandCompilation compilation = Compile(document!);
         var items = new Dictionary<string, object>(StringComparer.Ordinal);
-        foreach (string keyword in new[] { "function", "template", "static", "record", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote" })
+        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
         }
@@ -468,7 +468,11 @@ internal sealed class CopelandWorkspace
                     yield return new DeclarationInfo(function.Identifier.Text, "function " + function.Identifier.Text, 12, function.Identifier.Position);
                     break;
                 case TemplateDeclarationSyntax template:
-                    yield return new DeclarationInfo(template.Identifier.Text, "template " + template.Identifier.Text + "(): ProjectTree", 12, template.Identifier.Position);
+                    string parameters = string.Join(", ", template.Parameters.Select(parameter => (parameter.StaticKeyword is null ? string.Empty : "static ") + parameter.Identifier.Text + ": " + (parameter.Type?.ToString() ?? "<missing>")));
+                    yield return new DeclarationInfo(template.Identifier.Text, "template " + template.Identifier.Text + "(" + parameters + "): ProjectTree", 12, template.Identifier.Position);
+                    break;
+                case TypeAliasDeclarationSyntax alias:
+                    yield return new DeclarationInfo(alias.Identifier.Text, "type " + alias.Identifier.Text + " = " + alias.TargetType, 13, alias.Identifier.Position);
                     break;
                 case RecordDeclarationSyntax record:
                     yield return new DeclarationInfo(record.Identifier.Text, "record " + record.Identifier.Text, 23, record.Identifier.Position);

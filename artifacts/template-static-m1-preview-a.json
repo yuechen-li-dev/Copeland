@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "template": "ConsoleDogfood",
+  "files": [
+    {
+      "path": "ConsoleApp.Tests.cs",
+      "kind": "source",
+      "sha256": "6ea9370b6e49d5201312c216ae52c050b9f64324df5e25c17e9d0b73676fd941",
+      "encoding": "utf-8",
+      "newlines": "lf",
+      "contentBase64": null
+    },
+    {
+      "path": "Copeland.Template.Console.csproj",
+      "kind": "text",
+      "sha256": "cdd6f0b4e4b9c72196431282fc7f42508e52e0f6a10b88a948a157bbdabd220b",
+      "encoding": "utf-8",
+      "newlines": "lf",
+      "contentBase64": null
+    },
+    {
+      "path": "Program.cs",
+      "kind": "source",
+      "sha256": "822e433b846fcbf9aa6f674fb92ba3b0b5dc8c46ff2f1e3758a4cab9fba94ba1",
+      "encoding": "utf-8",
+      "newlines": "lf",
+      "contentBase64": null
+    }
+  ]
+}

@@ -435,12 +435,20 @@ public sealed class Parser
         }
 
         var unsupportedTokens = new List<SyntaxToken>();
+        bool conditionalType = IsWord(Current, "extends");
         while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.EndOfFileToken)
         {
             unsupportedTokens.Add(NextToken());
         }
 
-        if (unsupportedTokens.Count > 0)
+        if (conditionalType)
+        {
+            ReportAliasSyntax(
+                "Conditional types are recognized but not implemented by Copeland TS. Use a finite structural type alias or explicit runtime branch instead.",
+                unsupportedTokens[0],
+                "COPE-TYPE-UNIMPLEMENTED");
+        }
+        else if (unsupportedTokens.Count > 0)
         {
             ReportAliasSyntax("Unsupported type-level syntax in type alias declaration.", unsupportedTokens[0]);
         }
@@ -700,14 +708,15 @@ public sealed class Parser
         }
 
         SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
-        var parameters = new List<ParameterSyntax>();
+        var parameters = new List<TemplateParameterSyntax>();
         var commas = new List<SyntaxToken>();
         while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
         {
+            SyntaxToken? staticKeyword = Current.Kind == SyntaxKind.StaticKeyword ? NextToken() : null;
             SyntaxToken parameterIdentifier = Match(SyntaxKind.IdentifierToken);
             SyntaxToken? colon = Current.Kind == SyntaxKind.ColonToken ? NextToken() : null;
             TypeSyntax? type = colon is null ? null : ParseTypeSyntax();
-            parameters.Add(new ParameterSyntax(parameterIdentifier, colon, type));
+            parameters.Add(new TemplateParameterSyntax(staticKeyword, parameterIdentifier, colon, type));
             if (Current.Kind != SyntaxKind.CommaToken) break;
             commas.Add(NextToken());
         }
@@ -1473,6 +1482,8 @@ public sealed class Parser
             SyntaxKind.IdentifierToken when Current.Text == "Async" => ParseAsyncTypeSyntax(),
             SyntaxKind.IdentifierToken when Current.Text == "Iterable" => ParseIterableTypeSyntax(),
             SyntaxKind.IdentifierToken => ParseIdentifierOrQualifiedRowType(),
+            SyntaxKind.StringToken => new LiteralTypeSyntax(NextToken()),
+            SyntaxKind.OpenBraceToken => ParseStructuralObjectType(),
             SyntaxKind.ColumnKeyword => new ColumnTypeSyntax(NextToken(), ParsePostfixTypeSyntax()),
             SyntaxKind.OpenParenToken when IsCallableTypeAhead()
                 => ParseCallableTypeSyntax(),
@@ -1498,6 +1509,29 @@ public sealed class Parser
         }
 
         return type;
+    }
+
+    private StructuralObjectTypeSyntax ParseStructuralObjectType()
+    {
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var fields = new List<StructuralTypeFieldSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            SyntaxToken? readonlyKeyword = IsWord(Current, "readonly") ? NextToken() : null;
+            SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? question = Current.Kind == SyntaxKind.QuestionToken ? NextToken() : null;
+            SyntaxToken colon = Match(SyntaxKind.ColonToken);
+            TypeSyntax fieldType = ParseTypeSyntax();
+            SyntaxToken terminator = Match(SyntaxKind.SemicolonToken);
+            fields.Add(new StructuralTypeFieldSyntax(readonlyKeyword, identifier, question, colon, fieldType, terminator));
+            if (Current == start)
+            {
+                ReportUnexpectedToken(Current);
+                NextToken();
+            }
+        }
+        return new StructuralObjectTypeSyntax(openBrace, fields, Match(SyntaxKind.CloseBraceToken));
     }
 
     private bool IsCallableTypeAhead()
@@ -1535,6 +1569,19 @@ public sealed class Parser
     private TypeSyntax ParseIdentifierOrQualifiedRowType()
     {
         var identifier = Match(SyntaxKind.IdentifierToken);
+        if (Current.Kind == SyntaxKind.LessToken)
+        {
+            SyntaxToken less = NextToken();
+            var arguments = new List<TypeSyntax>();
+            var commas = new List<SyntaxToken>();
+            while (Current.Kind is not SyntaxKind.GreaterToken and not SyntaxKind.EndOfFileToken)
+            {
+                arguments.Add(ParseTypeSyntax());
+                if (Current.Kind != SyntaxKind.CommaToken) break;
+                commas.Add(NextToken());
+            }
+            return new GenericTypeSyntax(identifier, less, arguments, commas, Match(SyntaxKind.GreaterToken));
+        }
         if (Current.Kind == SyntaxKind.DotToken && Peek(1).Kind == SyntaxKind.IdentifierToken)
         {
             var dot = Match(SyntaxKind.DotToken);

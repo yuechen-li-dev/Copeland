@@ -27,6 +27,7 @@ public sealed class TypeAliasTests
     [InlineData("type Name = ;", "COPE-ALIAS-0001")]
     [InlineData("type Name = number", "COPE-ALIAS-0001")]
     [InlineData("type Box<T> = T[];", "COPE-ALIAS-0002")]
+    [InlineData("type Selected = string extends string ? string : number;", "COPE-TYPE-UNIMPLEMENTED")]
     [InlineData("type Name = keyof number;", "COPE-ALIAS-0001")]
     public void Parser_recovers_malformed_and_unsupported_aliases_without_general_parse_cascades(
         string source,

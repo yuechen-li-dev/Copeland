@@ -16,11 +16,12 @@ public sealed class VariableSymbol(
     public string? AuthoredAliasName { get; } = authoredAliasName;
 }
 
-public sealed class ParameterSymbol(string name, TypeSymbol type, string? authoredAliasName = null, bool isCaptured = false) : Symbol(name)
+public sealed class ParameterSymbol(string name, TypeSymbol type, string? authoredAliasName = null, bool isCaptured = false, bool isStatic = false) : Symbol(name)
 {
     public TypeSymbol Type { get; } = type;
     public string? AuthoredAliasName { get; } = authoredAliasName;
     public bool IsCaptured { get; } = isCaptured;
+    public bool IsStatic { get; } = isStatic;
 }
 
 public sealed class FunctionSymbol(

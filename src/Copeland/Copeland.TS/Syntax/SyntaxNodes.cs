@@ -99,6 +99,80 @@ public sealed record ArrayTypeSyntax(TypeSyntax ElementType, SyntaxToken OpenBra
     }
 }
 
+/// <summary>A finite, compile-time-only object shape used by <c>type</c> declarations.</summary>
+public sealed record StructuralObjectTypeSyntax(
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<StructuralTypeFieldSyntax> Fields,
+    SyntaxToken CloseBraceToken) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.StructuralObjectType;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return OpenBraceToken;
+        foreach (StructuralTypeFieldSyntax field in Fields) yield return field;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record StructuralTypeFieldSyntax(
+    SyntaxToken? ReadonlyKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken? QuestionToken,
+    SyntaxToken ColonToken,
+    TypeSyntax Type,
+    SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.StructuralTypeField;
+    public override IEnumerable<object> GetChildren()
+    {
+        if (ReadonlyKeyword is not null) yield return ReadonlyKeyword;
+        yield return Identifier;
+        if (QuestionToken is not null) yield return QuestionToken;
+        yield return ColonToken;
+        yield return Type;
+        yield return SemicolonToken;
+    }
+}
+
+public sealed record UnionTypeSyntax(TypeSyntax Left, SyntaxToken PipeToken, TypeSyntax Right) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.UnionType;
+    public override IEnumerable<object> GetChildren() => [Left, PipeToken, Right];
+}
+
+public sealed record IntersectionTypeSyntax(TypeSyntax Left, SyntaxToken AmpersandToken, TypeSyntax Right) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.IntersectionType;
+    public override IEnumerable<object> GetChildren() => [Left, AmpersandToken, Right];
+}
+
+public sealed record GenericTypeSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken LessToken,
+    IReadOnlyList<TypeSyntax> TypeArguments,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken GreaterToken) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.GenericType;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        yield return LessToken;
+        for (int index = 0; index < TypeArguments.Count; index++)
+        {
+            if (index > 0) yield return CommaTokens[index - 1];
+            yield return TypeArguments[index];
+        }
+        yield return GreaterToken;
+    }
+}
+
+public sealed record LiteralTypeSyntax(SyntaxToken LiteralToken) : TypeSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.LiteralType;
+    public override IEnumerable<object> GetChildren() => [LiteralToken];
+}
+
 /// <summary>
 /// Preserves a TypeScript import for profile-owned validation. The base language
 /// intentionally gives imports no executable meaning.
@@ -486,7 +560,7 @@ public sealed record TemplateDeclarationSyntax(
     IReadOnlyList<SyntaxToken> TypeParameterCommas,
     SyntaxToken? GreaterToken,
     SyntaxToken OpenParenToken,
-    IReadOnlyList<ParameterSyntax> Parameters,
+    IReadOnlyList<TemplateParameterSyntax> Parameters,
     IReadOnlyList<SyntaxToken> CommaTokens,
     SyntaxToken CloseParenToken,
     SyntaxToken? ReturnTypeColonToken,
@@ -516,6 +590,22 @@ public sealed record TemplateDeclarationSyntax(
         if (ReturnTypeColonToken is not null) yield return ReturnTypeColonToken;
         if (ReturnType is not null) yield return ReturnType;
         yield return Body;
+    }
+}
+
+public sealed record TemplateParameterSyntax(
+    SyntaxToken? StaticKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken? ColonToken,
+    TypeSyntax? Type) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.Parameter;
+    public override IEnumerable<object> GetChildren()
+    {
+        if (StaticKeyword is not null) yield return StaticKeyword;
+        yield return Identifier;
+        if (ColonToken is not null) yield return ColonToken;
+        if (Type is not null) yield return Type;
     }
 }
 

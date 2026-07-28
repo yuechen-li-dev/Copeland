@@ -103,10 +103,15 @@ internal static class TemplateCommand
     private static int MaterializeWithTspack(TemplateEvaluationResult evaluation, string output, string? configuredTspackPath)
     {
         string manifestPath = Path.Combine(Path.GetTempPath(), $"copeland-template-{Guid.NewGuid():N}.json");
+        string executable = configuredTspackPath ?? Environment.GetEnvironmentVariable("COPELAND_TSPACK_PATH") ?? "tspack";
         try
         {
+            if (!VerifyTspackMaterializationCapability(executable))
+            {
+                Console.Error.WriteLine("COPE-TEMPLATE-CLI-0008 error: The configured TSPack executable does not support the required 'materialize-tree' capability. Build or select a compatible TSPack artifact.");
+                return 1;
+            }
             File.WriteAllText(manifestPath, evaluation.Project!.ToPreviewJson(evaluation.TemplateName, includeContents: true));
-            string executable = configuredTspackPath ?? Environment.GetEnvironmentVariable("COPELAND_TSPACK_PATH") ?? "tspack";
             var start = new ProcessStartInfo(executable)
             {
                 UseShellExecute = false,
@@ -133,6 +138,34 @@ internal static class TemplateCommand
         finally
         {
             if (File.Exists(manifestPath)) File.Delete(manifestPath);
+        }
+    }
+
+    private static bool VerifyTspackMaterializationCapability(string executable)
+    {
+        try
+        {
+            var probe = new ProcessStartInfo(executable)
+            {
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            probe.ArgumentList.Add("materialize-tree");
+            using Process? process = Process.Start(probe);
+            if (process is null)
+            {
+                return false;
+            }
+            string standardOutput = process.StandardOutput.ReadToEnd();
+            string standardError = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            string output = standardOutput + standardError;
+            return output.Contains("TSPACK_TEMPLATE_ARGUMENTS_REQUIRED", StringComparison.Ordinal);
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
         }
     }
 

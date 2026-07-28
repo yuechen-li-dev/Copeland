@@ -104,6 +104,23 @@ public sealed class BoundTemplateRecord(SyntaxToken anchor, RecordTypeSymbol typ
     public IReadOnlyList<BoundRecordFieldInitializer> Fields { get; } = fields;
 }
 
+public sealed class BoundTemplateStructuralObject(SyntaxToken anchor, StructuralObjectTypeSymbol type, IReadOnlyList<BoundTemplateStructuralField> fields) : BoundTemplateValue(anchor, type)
+{
+    public IReadOnlyList<BoundTemplateStructuralField> Fields { get; } = fields;
+}
+
+public sealed class BoundTemplateStructuralField(string name, BoundTemplateValue value)
+{
+    public string Name { get; } = name;
+    public BoundTemplateValue Value { get; } = value;
+}
+
+public sealed class BoundTemplateMemberAccess(SyntaxToken anchor, BoundTemplateValue receiver, string memberName, TypeSymbol type) : BoundTemplateValue(anchor, type)
+{
+    public BoundTemplateValue Receiver { get; } = receiver;
+    public string MemberName { get; } = memberName;
+}
+
 public sealed class BoundTemplateLocalReference(SyntaxToken anchor, VariableSymbol local) : BoundTemplateValue(anchor, local.Type)
 {
     public VariableSymbol Local { get; } = local;

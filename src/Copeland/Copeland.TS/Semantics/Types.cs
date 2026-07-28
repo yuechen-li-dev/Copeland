@@ -36,6 +36,47 @@ public sealed class ArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
     public override string Name => TypeText.FormatArrayElement(ElementType) + "[]";
 }
 
+/// <summary>
+/// A finite, non-nominal compiler type. It describes data shape only and never
+/// causes a CLR or JavaScript runtime carrier to be emitted.
+/// </summary>
+public class StructuralObjectTypeSymbol(IReadOnlyList<StructuralFieldSymbol> fields) : TypeSymbol
+{
+    public IReadOnlyList<StructuralFieldSymbol> Fields { get; } = fields;
+    public override string Name => "{ " + string.Join("; ", Fields.Select(member => member.Name + (member.IsOptional ? "?" : "") + ": " + member.Type.Name)) + " }";
+}
+
+/// <summary>A finite compiler projection retaining its source and operation for tooling.</summary>
+public sealed class StructuralProjectionTypeSymbol(
+    string operation,
+    TypeSymbol source,
+    IReadOnlyList<StructuralFieldSymbol> fields) : StructuralObjectTypeSymbol(fields)
+{
+    public string Operation { get; } = operation;
+    public TypeSymbol Source { get; } = source;
+}
+
+public sealed class StructuralFieldSymbol(string name, TypeSymbol type, int ordinal, bool isOptional, bool isReadOnly)
+{
+    public string Name { get; } = name;
+    public TypeSymbol Type { get; } = type;
+    public int Ordinal { get; } = ordinal;
+    public bool IsOptional { get; } = isOptional;
+    public bool IsReadOnly { get; } = isReadOnly;
+}
+
+public sealed class UnionTypeSymbol(IReadOnlyList<TypeSymbol> alternatives) : TypeSymbol
+{
+    public IReadOnlyList<TypeSymbol> Alternatives { get; } = alternatives;
+    public override string Name => string.Join(" | ", Alternatives.Select(alternative => alternative.Name));
+}
+
+public sealed class IntersectionTypeSymbol(IReadOnlyList<TypeSymbol> parts) : TypeSymbol
+{
+    public IReadOnlyList<TypeSymbol> Parts { get; } = parts;
+    public override string Name => string.Join(" & ", Parts.Select(part => part.Name));
+}
+
 /// <summary>Compiler-known structural artifact value types. They have no runtime representation.</summary>
 public sealed class ArtifactTypeSymbol : TypeSymbol
 {
