@@ -54,6 +54,7 @@
     "compile": "tsc -p .",
     "test": "npm run compile && mocha --ui tdd --timeout 10000 out/**/*.test.js",
     "test:integration": "npm run compile && node ./out/runIntegration.js",
+    "test:installed-integration": "npm run compile && node ./out/runInstalledIntegration.js",
     "prepackage": "node -e \"require('fs').mkdirSync('dist', { recursive: true })\"",
     "package": "npm run compile && vsce package --out dist/copeland-ts-0.1.0.vsix --allow-missing-repository"
   },

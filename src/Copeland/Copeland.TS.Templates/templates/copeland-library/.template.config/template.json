@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Copeland",
+  "classifications": ["Copeland", "Library"],
+  "identity": "Copeland.TS.Library",
+  "name": "Copeland class library",
+  "shortName": "copeland-library",
+  "sourceName": "Copeland.Library",
+  "preferNameDirectory": true
+}

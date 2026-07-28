@@ -6,14 +6,16 @@ import { runTool, tsclCommand } from "./toolchain";
 let controllers: WorkspaceController[] = [];
 let statusBar: vscode.StatusBarItem;
 let output: vscode.OutputChannel;
+let extensionVersion: string;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     output = vscode.window.createOutputChannel("Copeland TS Language Server");
+    extensionVersion = String(context.extension.packageJSON.version);
     statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
     statusBar.command = "copeland.showFileOwner";
     context.subscriptions.push(output, statusBar);
 
-    controllers = (vscode.workspace.workspaceFolders ?? []).map((folder) => new WorkspaceController(folder, output, updateStatus));
+    controllers = (vscode.workspace.workspaceFolders ?? []).map((folder) => new WorkspaceController(folder, output, updateStatus, extensionVersion));
     context.subscriptions.push({ dispose: () => void disposeControllers() });
     registerCommands(context);
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => updateStatus()));
@@ -168,7 +170,7 @@ async function refreshWorkspaceControllers(event: vscode.WorkspaceFoldersChangeE
     }
 
     for (const added of event.added) {
-        const controller = new WorkspaceController(added, output, updateStatus);
+        const controller = new WorkspaceController(added, output, updateStatus, extensionVersion);
         controllers.push(controller);
         await controller.initialize();
     }

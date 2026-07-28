@@ -2,6 +2,12 @@
   <UsingTask TaskName="Copeland.TS.MSBuild.CopelandCompile" AssemblyFile="$(CopelandTaskAssembly)" />
   <UsingTask TaskName="Copeland.TS.MSBuild.CopelandTestCompile" AssemblyFile="$(CopelandTaskAssembly)" />
 
+  <Target Name="CopelandValidateToolchainVersion" BeforeTargets="PrepareForBuild">
+    <Error Condition="!$([System.String]::Copy('$(CopelandRequiredVersion)').StartsWith('$(CopelandSdkVersion)'))"
+           Code="COPE-DIST-0001"
+           Text="Project requires Copeland TS $(CopelandRequiredVersion). Installed Copeland SDK is $(CopelandSdkVersion). Update the Copeland toolchain." />
+  </Target>
+
   <PropertyGroup>
     <CopelandTestGeneratedDirectory Condition="'$(CopelandTestGeneratedDirectory)' == ''">$(BaseIntermediateOutputPath)CopelandTests\</CopelandTestGeneratedDirectory>
   </PropertyGroup>

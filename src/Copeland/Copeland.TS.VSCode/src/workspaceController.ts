@@ -6,7 +6,6 @@ import { isCompatibleVersion, projectPath, queryServerVersion, readProjectVersio
 
 const ownershipRelativePath = "obj/copeland/workspace/editor-ownership.generated.json";
 const manifestFileName = "tsconfig.tsx";
-const extensionVersion = "0.1.0";
 
 export type WorkspaceState = "ready" | "missing-metadata" | "language-server-unavailable" | "version-mismatch";
 
@@ -26,7 +25,8 @@ export class WorkspaceController implements vscode.Disposable {
     public constructor(
         public readonly folder: vscode.WorkspaceFolder,
         private readonly output: vscode.OutputChannel,
-        private readonly onDidChange: () => void) {
+        private readonly onDidChange: () => void,
+        private readonly extensionVersion: string) {
     }
 
     public get rootPath(): string {
@@ -194,7 +194,7 @@ export class WorkspaceController implements vscode.Disposable {
             const sampleProject = ownership.entriesFor("tscl")[0]?.project;
             const requiredProjectVersion = await readProjectVersion(projectPath(this.rootPath, sampleProject));
             this.output.appendLine("[language server] project compatibility checked");
-            if (!isCompatibleVersion({ extension: extensionVersion, server: serverVersion, project: requiredProjectVersion })) {
+            if (!isCompatibleVersion({ extension: this.extensionVersion, server: serverVersion, project: requiredProjectVersion })) {
                 this.state = "version-mismatch";
                 this.showVersionIssueOnce(serverVersion, requiredProjectVersion);
                 return;
@@ -218,8 +218,8 @@ export class WorkspaceController implements vscode.Disposable {
                     workspaceRoot: this.rootPath,
                     ownershipFile: this.ownershipUri.fsPath,
                     project: sampleProject ? projectPath(this.rootPath, sampleProject) : undefined,
-                    clientVersion: extensionVersion,
-                    expectedServerVersion: extensionVersion,
+                    clientVersion: this.extensionVersion,
+                    expectedServerVersion: this.extensionVersion,
                     loggingLevel: vscode.workspace.getConfiguration("copeland.languageServer").get<string>("trace", "off")
                 },
                 outputChannel: this.output,
@@ -289,7 +289,7 @@ export class WorkspaceController implements vscode.Disposable {
         }
 
         this.versionIssueShown = true;
-        const required = projectVersion ?? extensionVersion;
+        const required = projectVersion ?? this.extensionVersion;
         void vscode.window.showWarningMessage(`This project requires Copeland TS ${required}. Installed language server: ${serverVersion}. Update the Copeland toolchain.`);
     }
 }

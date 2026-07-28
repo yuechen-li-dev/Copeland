@@ -8,5 +8,9 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <!-- M0 distribution train. All public Copeland artifacts ship from this train. -->
+    <CopelandToolchainVersion>0.1.0</CopelandToolchainVersion>
+    <Version Condition="'$(Version)' == ''">$(CopelandToolchainVersion)</Version>
+    <PackageVersion Condition="'$(PackageVersion)' == ''">$(CopelandToolchainVersion)</PackageVersion>
   </PropertyGroup>
 </Project>

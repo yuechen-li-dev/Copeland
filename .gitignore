@@ -19,6 +19,7 @@ artifacts/cts-jit-m0/
 artifacts/cts-jit-m0-smoke/
 artifacts/cts-js-perf-m1/
 artifacts/cts-js-perf-m1-production-smoke/
+artifacts/cts-distribution-m0/
 tests/fixtures/copeland-nuget-m1/LocalFeed/
 tests/fixtures/copeland-nuget-m1/.packages*/
 
@@ -29,7 +30,10 @@ Generated/
 wwwroot/
 *.log
 dist/
-*.dll
+# Generated publish payloads are fixture-local. Do not use a repository-wide
+# DLL ignore: checked-in binary fixtures must remain visible for review.
+publish-modules-m1/
+samples/copeland-ts/authoring-food/publish*/
 
 # Standalone-web stages the current tscl payload here for TSPack. It is rebuilt
 # from the project reference on every declared generation path.

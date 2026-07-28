@@ -8,6 +8,8 @@ out/integrationSuite.js
 out/integrationSuite.js.map
 out/runIntegration.js
 out/runIntegration.js.map
+out/runInstalledIntegration.js
+out/runInstalledIntegration.js.map
 *.ts
 *.map
 *.vsix

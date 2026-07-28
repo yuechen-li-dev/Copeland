@@ -11,8 +11,8 @@ export async function run(): Promise<void> {
         const workspace = vscode.workspace.workspaceFolders?.[0];
         const root = workspace?.uri.fsPath ?? "";
         const cli = process.env.COPLAND_VSCODE_TEST_TSCL_PATH ?? "";
-        const domainUri = vscode.Uri.file(path.join(root, "src/copeland/Domain.ts"));
-        const legacyUri = vscode.Uri.file(path.join(root, "src/legacy/Legacy.ts"));
+        const domainUri = vscode.Uri.file(process.env.COPLAND_VSCODE_TEST_TSCL_FILE ?? path.join(root, "src/copeland/Domain.ts"));
+        const legacyUri = vscode.Uri.file(process.env.COPLAND_VSCODE_TEST_TSC_FILE ?? path.join(root, "src/legacy/Legacy.ts"));
         const ownershipUri = vscode.Uri.file(path.join(root, "obj/copeland/workspace/editor-ownership.generated.json"));
         let originalOwnership = "";
 

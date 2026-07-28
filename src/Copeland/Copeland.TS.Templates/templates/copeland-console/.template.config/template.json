@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Copeland",
+  "classifications": ["Copeland", "Console"],
+  "identity": "Copeland.TS.Console",
+  "name": "Copeland console application",
+  "shortName": "copeland-console",
+  "sourceName": "Copeland.Console",
+  "preferNameDirectory": true
+}

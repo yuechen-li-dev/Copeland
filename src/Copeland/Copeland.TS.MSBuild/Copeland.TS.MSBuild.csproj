@@ -4,6 +4,7 @@
     <RootNamespace>Copeland.TS.MSBuild</RootNamespace>
     <IsPackable>true</IsPackable>
     <PackageId>Copeland.TS.Sdk</PackageId>
+    <PackageVersion>$(CopelandToolchainVersion)</PackageVersion>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <Description>MSBuild integration for Copeland TypeScript source files.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>

@@ -14,6 +14,33 @@ workflow.
 
 ## Start here
 
+## Install, create, open, run
+
+M0 is packaged for a local feed; it is not yet published to NuGet or the VS
+Code Marketplace. With `<feed>` set to the directory containing the generated
+`.nupkg` and `.vsix` artifacts:
+
+```console
+dotnet tool install --global Copeland.TS.Tool --version 0.1.0 --add-source <feed>
+dotnet new install Copeland.TS.Templates@0.1.0 --nuget-source <feed>
+code --install-extension <feed>/copeland-ts-0.1.0.vsix
+dotnet new copeland-react -n HelloCopeland
+cd HelloCopeland
+dotnet run
+```
+
+The React starter opens its local URL and calls a Copeland-compiled CLR API.
+Open the folder in VS Code and run **Copeland: Workspace Sync** where a
+`tsconfig.tsx` workspace is present. The extension discovers `tscl` on PATH,
+checks its compatibility, and launches `tscl language-server`; no server DLL
+is copied into the project. Use `tscl doctor --format json` for a stable
+installation diagnosis.
+
+See [installation](docs/Copeland/installation.md), [templates](docs/Copeland/templates.md),
+[version compatibility](docs/Copeland/version-compatibility.md), and
+[troubleshooting](docs/Copeland/troubleshooting.md) for the local-feed M0
+contract.
+
 [The Copeland TypeScript authoring guide](docs/Copeland/authoring/copeland-typescript-guide.md)
 is the **canonical current language guide**. It is written for people who
 already know TypeScript and explains what stays familiar, what changes, why,

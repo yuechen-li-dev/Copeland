@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Copeland",
+  "classifications": ["Copeland", "Web", "React"],
+  "identity": "Copeland.TS.React",
+  "name": "Copeland React web application",
+  "shortName": "copeland-react",
+  "sourceName": "Copeland.React",
+  "preferNameDirectory": true
+}

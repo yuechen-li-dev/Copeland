@@ -11,6 +11,7 @@
     <Project Path="src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.AspNetCore/Copeland.TS.Backend.AspNetCore.csproj" />
     <Project Path="src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Templates/Copeland.TS.Templates.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
