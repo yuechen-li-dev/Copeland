@@ -5,6 +5,7 @@
     <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
     <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.LanguageServer/Copeland.TS.LanguageServer.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Database/Copeland.TS.Database.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj" />

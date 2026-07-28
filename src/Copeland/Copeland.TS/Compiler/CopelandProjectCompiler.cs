@@ -17,7 +17,21 @@ public static class CopelandProjectCompiler
     public static CopelandProjectCompilation CompileToMir(
         IReadOnlyList<CopelandProjectSource> sources,
         CopelandCompilationOptions? options = null)
+        => CreateSnapshot(sources, options).CompileToMir();
+
+    /// <summary>
+    /// Creates the one reusable source-of-truth model for a Copeland project.
+    /// Hosts can layer unsaved buffers without recreating module resolution or binding.
+    /// </summary>
+    public static CopelandProjectSnapshot CreateSnapshot(
+        IReadOnlyList<CopelandProjectSource> sources,
+        CopelandCompilationOptions? options = null)
+        => new(sources, options ?? new CopelandCompilationOptions());
+
+    internal static CopelandProjectCompilation CompileSnapshot(CopelandProjectSnapshot snapshot)
     {
+        IReadOnlyList<CopelandProjectSource> sources = snapshot.Sources;
+        CopelandCompilationOptions options = snapshot.Options;
         var diagnostics = new List<Diagnostic>();
         IReadOnlyList<ProjectModule> modules = CreateModules(sources, diagnostics);
         var byPath = modules.ToDictionary(module => module.LogicalPath, StringComparer.OrdinalIgnoreCase);
@@ -31,24 +45,24 @@ public static class CopelandProjectCompiler
         DetectCycles(modules, diagnostics);
         if (diagnostics.Count > 0)
         {
-            return new CopelandProjectCompilation(null, diagnostics);
+            return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
         }
 
         IReadOnlyList<ProjectModule> ordered = OrderModules(modules);
-        var npmResolver = new CopelandNpmContractResolver(options?.NpmDependencies ?? new CopelandNpmDependencyGraph(options?.NpmPackages ?? []));
-        var hostResolver = new CopelandJavaScriptHostContractResolver(options?.JavaScriptHostModules ?? []);
-        var clrResolver = new CopelandClrMetadataResolver(options?.ClrReferences ?? []);
-        var packageContracts = new CopelandPackageContractMap(options?.PackageContracts ?? []);
+        var npmResolver = new CopelandNpmContractResolver(options.NpmDependencies ?? new CopelandNpmDependencyGraph(options.NpmPackages));
+        var hostResolver = new CopelandJavaScriptHostContractResolver(options.JavaScriptHostModules);
+        var clrResolver = new CopelandClrMetadataResolver(options.ClrReferences);
+        var packageContracts = new CopelandPackageContractMap(options.PackageContracts);
         foreach (ProjectModule module in ordered)
         {
             BoundModuleImports imports = CreateImports(module, diagnostics);
             SyntaxTree tree = SyntaxTree.Parse(RewriteModule(module), module.Source.SourcePath);
-            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options?.PackageBackend ?? CopelandPackageBackend.Clr, options?.TsXmlProfile ?? CopelandTsXmlProfile.None, module.Source.SourcePath, module.LogicalPath, imports);
+            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options.PackageBackend, options.TsXmlProfile, module.Source.SourcePath, module.LogicalPath, imports);
             module.Bound = bound;
             diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
         }
 
-        if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics);
+        if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
 
         ConfigureDuplicateFunctionEmissionNames(ordered);
         ConfigureDuplicateRecordEmissionNames(ordered);
@@ -58,7 +72,7 @@ public static class CopelandProjectCompiler
             MirCompilation mir = MirLowerer.Lower(module.Bound!);
             module.Mir = mir.Program;
             diagnostics.AddRange(mir.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
-            if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics);
+            if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
         }
 
         MirProgram aggregate = CombinePrograms(ordered.Select(module => module.Mir!).ToArray());
@@ -70,8 +84,23 @@ public static class CopelandProjectCompiler
             null,
             new MirCompilation(aggregate, []),
             MirTextWriter.Write(aggregate));
-        return new CopelandProjectCompilation(compiled, diagnostics, graph);
+        return new CopelandProjectCompilation(compiled, diagnostics, graph, CreateModuleCompilations(modules));
     }
+
+    private static IReadOnlyList<CopelandProjectModuleCompilation> CreateModuleCompilations(IReadOnlyList<ProjectModule> modules)
+        => modules.Select(module => new CopelandProjectModuleCompilation(
+                module.LogicalPath,
+                module.Source,
+                module.Bound,
+                module.Exports.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
+                module.Imports.SelectMany(import => import.Bindings.Select(binding => new CopelandProjectImport(
+                    import.Specifier,
+                    import.Target?.LogicalPath,
+                    binding.ExportedName,
+                    binding.LocalName,
+                    binding.Position,
+                    binding.Length))).ToArray()))
+            .ToArray();
 
     public static bool ContainsRelativeImports(IReadOnlyList<CopelandProjectSource> sources)
         => sources.Any(source => ReadImports(source).Any(import => import.Specifier.StartsWith("./", StringComparison.Ordinal)
@@ -350,12 +379,12 @@ public static class CopelandProjectCompiler
                 continue;
             }
 
-            replacements.Add(new TextReplacement(import.Start, import.End - import.Start, string.Empty));
+            replacements.Add(new TextReplacement(import.Start, import.End - import.Start, new string(' ', import.End - import.Start)));
         }
 
         foreach (SyntaxToken token in tokenTree.Tokens.Where(token => token.Kind == SyntaxKind.IdentifierToken && token.Text == "export"))
         {
-            replacements.Add(new TextReplacement(token.Position, token.Text.Length, string.Empty));
+            replacements.Add(new TextReplacement(token.Position, token.Text.Length, new string(' ', token.Text.Length)));
         }
 
         string text = module.Source.SourceText;
@@ -689,10 +718,82 @@ public static class CopelandProjectCompiler
 
 public sealed record CopelandProjectSource(string LogicalPath, string SourcePath, string SourceText);
 
-public sealed class CopelandProjectCompilation(CopelandCompilation? compilation, IReadOnlyList<Diagnostic> diagnostics, MirProjectGraph? mirProjectGraph = null)
+/// <summary>
+/// Immutable project inputs shared by normal compilation and long-lived hosts.
+/// The snapshot owns no file handles; callers own disk discovery and may replace
+/// a source text with an in-memory editor overlay.
+/// </summary>
+public sealed class CopelandProjectSnapshot
+{
+    private readonly IReadOnlyList<CopelandProjectSource> _sources;
+
+    internal CopelandProjectSnapshot(IReadOnlyList<CopelandProjectSource> sources, CopelandCompilationOptions options)
+    {
+        _sources = sources
+            .OrderBy(source => source.LogicalPath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Options = options;
+    }
+
+    public IReadOnlyList<CopelandProjectSource> Sources => _sources;
+    public CopelandCompilationOptions Options { get; }
+
+    public CopelandProjectSnapshot WithSourceText(string sourcePath, string sourceText)
+    {
+        bool replaced = false;
+        CopelandProjectSource[] sources = _sources.Select(source =>
+        {
+            if (!string.Equals(Path.GetFullPath(source.SourcePath), Path.GetFullPath(sourcePath), StringComparison.OrdinalIgnoreCase))
+            {
+                return source;
+            }
+
+            replaced = true;
+            return source with { SourceText = sourceText };
+        }).ToArray();
+        if (!replaced)
+        {
+            throw new ArgumentException("The source overlay must target a source already present in this project snapshot.", nameof(sourcePath));
+        }
+
+        return new CopelandProjectSnapshot(sources, Options);
+    }
+
+    public CopelandProjectCompilation CompileToMir() => CopelandProjectCompiler.CompileSnapshot(this);
+}
+
+public sealed record CopelandProjectImport(
+    string Specifier,
+    string? TargetLogicalPath,
+    string ExportedName,
+    string LocalName,
+    int Position,
+    int Length);
+
+/// <summary>Per-module compiler facts retained by the project compilation for language hosts.</summary>
+public sealed class CopelandProjectModuleCompilation(
+    string logicalPath,
+    CopelandProjectSource source,
+    BoundCompilation? boundCompilation,
+    IReadOnlyList<string> exports,
+    IReadOnlyList<CopelandProjectImport> imports)
+{
+    public string LogicalPath { get; } = logicalPath;
+    public CopelandProjectSource Source { get; } = source;
+    public BoundCompilation? BoundCompilation { get; } = boundCompilation;
+    public IReadOnlyList<string> Exports { get; } = exports;
+    public IReadOnlyList<CopelandProjectImport> Imports { get; } = imports;
+}
+
+public sealed class CopelandProjectCompilation(
+    CopelandCompilation? compilation,
+    IReadOnlyList<Diagnostic> diagnostics,
+    MirProjectGraph? mirProjectGraph = null,
+    IReadOnlyList<CopelandProjectModuleCompilation>? modules = null)
 {
     public CopelandCompilation? Compilation { get; } = compilation;
     public IReadOnlyList<Diagnostic> Diagnostics { get; } = diagnostics;
     public MirProjectGraph? MirProjectGraph { get; } = mirProjectGraph;
+    public IReadOnlyList<CopelandProjectModuleCompilation> Modules { get; } = modules ?? [];
     public bool Success => Compilation is not null && Diagnostics.Count == 0 && Compilation.Success;
 }

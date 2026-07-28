@@ -15,8 +15,10 @@
         CSharpSources="@(Compile)"
         ClrReferencePaths="@(ReferencePath);@(ReferencePathWithRefAssemblies)"
         CopelandPackageContracts="@(CopelandPackageContract)"
+        CopelandNpmContracts="@(CopelandNpmContract)"
         IntermediateOutputPath="$(IntermediateOutputPath)"
         ProjectDirectory="$(MSBuildProjectDirectory)"
+        TsXmlProfile="$(CopelandTsXmlProfile)"
         AssemblyName="$(AssemblyName)"
         LangVersion="$(LangVersion)"
         DefineConstants="$(DefineConstants)"
@@ -29,6 +31,39 @@
       <Compile Include="@(CopelandGeneratedCompile)" />
       <FileWrites Include="@(CopelandGeneratedCompile)" />
     </ItemGroup>
+  </Target>
+
+  <!-- Public, non-mutating evaluation surface shared with editor hosts. -->
+  <Target Name="CopelandCollectLanguageServiceModel"
+          DependsOnTargets="ResolveReferences"
+          Returns="@(CopelandLanguageServiceInput)">
+    <ItemGroup>
+      <CopelandLanguageServiceInput Include="@(CopelandCompile)">
+        <CopelandModelKind>Source</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+      <CopelandLanguageServiceInput Include="@(ReferencePath);@(ReferencePathWithRefAssemblies)">
+        <CopelandModelKind>ClrReference</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+      <CopelandLanguageServiceInput Include="@(CopelandPackageContract)">
+        <CopelandModelKind>PackageContract</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+      <CopelandLanguageServiceInput Include="@(CopelandNpmContract)">
+        <CopelandModelKind>NpmContract</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopelandWriteLanguageServiceModel"
+          DependsOnTargets="CopelandCollectLanguageServiceModel"
+          Condition="'$(CopelandLanguageServiceModelFile)' != ''">
+    <ItemGroup>
+      <CopelandLanguageServiceLine Include="property|projectDirectory|$(MSBuildProjectDirectory)" />
+      <CopelandLanguageServiceLine Include="property|tsXmlProfile|$(CopelandTsXmlProfile)" />
+      <CopelandLanguageServiceLine Include="@(CopelandLanguageServiceInput->'%(CopelandModelKind)|%(FullPath)')" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(CopelandLanguageServiceModelFile)"
+                      Lines="@(CopelandLanguageServiceLine)"
+                      Overwrite="true" />
   </Target>
 
   <Target Name="CopelandCompileTests"

@@ -33,12 +33,12 @@
            Text="COPE-HOST-1001: TSPack executable was not found at '$(TSPackExecutable)'. Set TSPackExecutable to a built TSPack executable." />
     <RemoveDir Directories="$(CopelandWebStagingDirectory);$(CopelandWebGeneratedDirectory)" />
     <MakeDir Directories="$(CopelandWebStagingDirectory);$(CopelandWebGeneratedDirectory)" />
-    <RemoveDir Directories="$(MSBuildProjectDirectory)\frontend\compiler" />
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\frontend\.copeland\compiler" />
     <ItemGroup>
       <CopelandStandaloneCompiler Include="$(CopelandCliOutputDirectory)\**\*" />
     </ItemGroup>
     <Copy SourceFiles="@(CopelandStandaloneCompiler)"
-          DestinationFiles="@(CopelandStandaloneCompiler->'$(MSBuildProjectDirectory)\frontend\compiler\%(RecursiveDir)%(Filename)%(Extension)')" />
+          DestinationFiles="@(CopelandStandaloneCompiler->'$(MSBuildProjectDirectory)\frontend\.copeland\compiler\%(RecursiveDir)%(Filename)%(Extension)')" />
     <Exec Command="&quot;$(TSPackExecutable)&quot; update --root &quot;$(MSBuildProjectDirectory)\frontend&quot;" />
     <Exec Command="&quot;$(TSPackExecutable)&quot; sync --root &quot;$(MSBuildProjectDirectory)\frontend&quot;" />
     <Exec Command="&quot;$(TSPackExecutable)&quot; build --root &quot;$(MSBuildProjectDirectory)\frontend&quot; browser-materialization" />

@@ -1,4 +1,5 @@
 using Copeland.TS.Manifest;
+using System.Text.Json;
 
 namespace Copeland.TS.Compiler;
 
@@ -15,7 +16,8 @@ public sealed record CopelandNpmPackageContract(
     bool IsMaterialized = true,
     bool IsAvailableToJavaScript = true,
     bool IsAvailableToClrSidecar = true,
-    IReadOnlyList<CopelandNpmComponentContract>? Components = null)
+    IReadOnlyList<CopelandNpmComponentContract>? Components = null,
+    string? SourcePath = null)
 {
     public IReadOnlyList<CopelandNpmComponentContract> ComponentExports { get; } = Components ?? [];
 }
@@ -55,12 +57,180 @@ public sealed record CopelandNpmComponentPropertyContract(
 /// this shape directly, but production callers obtain it from the manifest
 /// projection rather than maintaining a second package registry.
 /// </summary>
-public sealed class CopelandNpmDependencyGraph(IEnumerable<CopelandNpmPackageContract> packages)
+public sealed class CopelandNpmDependencyGraph
 {
-    private readonly Dictionary<string, CopelandNpmPackageContract> _packages = packages.ToDictionary(package => package.PackageName, StringComparer.Ordinal);
+    private readonly Dictionary<string, CopelandNpmPackageContract> _packages;
+
+    public CopelandNpmDependencyGraph(IEnumerable<CopelandNpmPackageContract> packages)
+    {
+        Packages = packages
+            .OrderBy(package => package.PackageName, StringComparer.Ordinal)
+            .ToArray();
+        _packages = Packages.ToDictionary(package => package.PackageName, StringComparer.Ordinal);
+    }
+
+    public IReadOnlyList<CopelandNpmPackageContract> Packages { get; }
 
     public bool TryGetPackage(string name, out CopelandNpmPackageContract? package)
         => _packages.TryGetValue(name, out package);
+}
+
+/// <summary>
+/// Reads the exact npm contract item supplied by a project build target. This
+/// is a resolved package-manager result: the compiler neither inspects
+/// node_modules nor resolves package versions.
+/// </summary>
+public static class CopelandNpmContractReader
+{
+    public const int SchemaVersion = 1;
+
+    public static bool TryRead(string path, out CopelandNpmPackageContract? contract, out string? error)
+    {
+        contract = null;
+        error = null;
+        if (!File.Exists(path))
+        {
+            error = "COPE-NPM-CONTRACT-0001: npm contract item path does not exist.";
+            return false;
+        }
+
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path));
+            JsonElement root = document.RootElement;
+            if (!root.TryGetProperty("schemaVersion", out JsonElement schemaVersion)
+                || schemaVersion.ValueKind != JsonValueKind.Number
+                || schemaVersion.GetInt32() != SchemaVersion)
+            {
+                error = "COPE-NPM-CONTRACT-0002: npm contract has an unsupported schema version.";
+                return false;
+            }
+
+            string packageName = RequiredString(root, "package");
+            string version = RequiredString(root, "version");
+            bool materialized = OptionalBoolean(root, "materialized", defaultValue: true);
+            bool javascriptAvailable = OptionalBoolean(root, "javascriptAvailable", defaultValue: true);
+            bool clrSidecarAvailable = OptionalBoolean(root, "clrSidecarAvailable", defaultValue: true);
+            string? materialization = OptionalString(root, "materialization");
+            CopelandNpmFunctionContract[] exports = ReadExports(root).ToArray();
+            CopelandNpmComponentContract[] components = ReadComponents(root).ToArray();
+            contract = new CopelandNpmPackageContract(
+                packageName,
+                version,
+                exports,
+                materialization,
+                materialized,
+                javascriptAvailable,
+                clrSidecarAvailable,
+                components,
+                Path.GetFullPath(path));
+            return true;
+        }
+        catch (JsonException exception)
+        {
+            error = "COPE-NPM-CONTRACT-0003: npm contract contains malformed JSON: " + exception.Message;
+            return false;
+        }
+        catch (InvalidDataException exception)
+        {
+            error = "COPE-NPM-CONTRACT-0003: npm contract is malformed: " + exception.Message;
+            return false;
+        }
+    }
+
+    private static IEnumerable<CopelandNpmFunctionContract> ReadExports(JsonElement root)
+    {
+        if (!root.TryGetProperty("exports", out JsonElement exports) || exports.ValueKind != JsonValueKind.Array)
+        {
+            yield break;
+        }
+
+        foreach (JsonElement export in exports.EnumerateArray())
+        {
+            string name = RequiredString(export, "name");
+            string result = RequiredString(export, "result");
+            string[] parameters = export.TryGetProperty("parameters", out JsonElement parameterElement)
+                && parameterElement.ValueKind == JsonValueKind.Array
+                ? parameterElement.EnumerateArray().Select(value => value.ValueKind == JsonValueKind.String
+                    ? value.GetString() ?? throw new InvalidDataException("npm export parameter types must be strings.")
+                    : throw new InvalidDataException("npm export parameter types must be strings.")).ToArray()
+                : [];
+            yield return new CopelandNpmFunctionContract(
+                name,
+                parameters,
+                result,
+                OptionalString(export, "remoteError"),
+                OptionalBoolean(export, "promise", defaultValue: false));
+        }
+    }
+
+    private static IEnumerable<CopelandNpmComponentContract> ReadComponents(JsonElement root)
+    {
+        if (!root.TryGetProperty("components", out JsonElement components) || components.ValueKind != JsonValueKind.Array)
+        {
+            yield break;
+        }
+
+        foreach (JsonElement component in components.EnumerateArray())
+        {
+            yield return new CopelandNpmComponentContract(
+                RequiredString(component, "name"),
+                ReadProperties(component, "properties").ToArray(),
+                ReadMembers(component).ToArray());
+        }
+    }
+
+    private static IEnumerable<CopelandNpmComponentMemberContract> ReadMembers(JsonElement component)
+    {
+        if (!component.TryGetProperty("members", out JsonElement members) || members.ValueKind != JsonValueKind.Array)
+        {
+            yield break;
+        }
+
+        foreach (JsonElement member in members.EnumerateArray())
+        {
+            yield return new CopelandNpmComponentMemberContract(
+                RequiredString(member, "name"),
+                ReadProperties(member, "properties").ToArray());
+        }
+    }
+
+    private static IEnumerable<CopelandNpmComponentPropertyContract> ReadProperties(JsonElement owner, string name)
+    {
+        if (!owner.TryGetProperty(name, out JsonElement properties) || properties.ValueKind != JsonValueKind.Array)
+        {
+            yield break;
+        }
+
+        foreach (JsonElement property in properties.EnumerateArray())
+        {
+            yield return new CopelandNpmComponentPropertyContract(
+                RequiredString(property, "name"),
+                RequiredString(property, "type"),
+                OptionalBoolean(property, "required", defaultValue: false));
+        }
+    }
+
+    private static string RequiredString(JsonElement element, string name)
+        => element.TryGetProperty(name, out JsonElement value)
+            && value.ValueKind == JsonValueKind.String
+            && !string.IsNullOrWhiteSpace(value.GetString())
+            ? value.GetString()!
+            : throw new InvalidDataException("Property '" + name + "' must be a non-empty string.");
+
+    private static string? OptionalString(JsonElement element, string name)
+        => element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    private static bool OptionalBoolean(JsonElement element, string name, bool defaultValue)
+        => element.TryGetProperty(name, out JsonElement value)
+            ? value.ValueKind == JsonValueKind.True
+                ? true
+                : value.ValueKind == JsonValueKind.False
+                    ? false
+                    : throw new InvalidDataException("Property '" + name + "' must be a boolean.")
+            : defaultValue;
 }
 
 internal sealed class CopelandNpmContractResolver(CopelandNpmDependencyGraph graph)

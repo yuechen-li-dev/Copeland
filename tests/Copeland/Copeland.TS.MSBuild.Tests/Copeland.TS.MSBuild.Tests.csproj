@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" />
+    <ProjectReference Include="../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
     <None Include="../../../src/Copeland/Copeland.TS.MSBuild/build/Copeland.TS.Sdk.targets"
           Link="Copeland.TS.Sdk.targets"
           CopyToOutputDirectory="PreserveNewest" />

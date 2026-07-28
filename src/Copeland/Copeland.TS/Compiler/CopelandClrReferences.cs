@@ -64,6 +64,26 @@ public sealed class CopelandClrMetadataResolver
             .Where(type => string.Equals(type.Assembly.GetName().Name, assemblyIdentity, StringComparison.Ordinal))
             .ToArray();
 
+    /// <summary>Bounded metadata query for editor hosts; it returns only visible types.</summary>
+    public IReadOnlyList<Type> FindTypesBySimpleName(string name)
+        => EnumeratePublicTypes()
+            .Where(type => string.Equals(type.Name, name, StringComparison.Ordinal))
+            .ToArray();
+
+    /// <summary>Returns immediate namespace/type children without exposing a raw assembly dump.</summary>
+    public IReadOnlyList<string> FindNamespaceChildren(string @namespace)
+    {
+        string prefix = string.IsNullOrEmpty(@namespace) ? string.Empty : @namespace + ".";
+        return EnumeratePublicTypes()
+            .Select(type => type.Namespace)
+            .Where(name => name is not null && name.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(name => name![prefix.Length..].Split('.')[0])
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .Take(100)
+            .ToArray();
+    }
+
     public bool IsTypeVisible(Type type)
     {
         bool includeInternal = _internalVisibility.TryGetValue(type.Assembly, out bool value) && value;

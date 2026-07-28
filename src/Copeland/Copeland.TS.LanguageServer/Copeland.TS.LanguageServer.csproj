@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Copeland.TS.LanguageServer</AssemblyName>
+    <RootNamespace>Copeland.TS.LanguageServer</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" />
+  </ItemGroup>
+</Project>

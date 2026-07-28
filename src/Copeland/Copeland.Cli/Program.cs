@@ -2,6 +2,7 @@ using Copeland.Markdown;
 using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
+using Copeland.TS.LanguageServer;
 
 namespace Copeland.Cli;
 
@@ -22,7 +23,7 @@ internal static class Program
 
         if (args.Length == 0)
         {
-            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown'.");
+            return UsageError("COPE-CLI-0004", "Missing command. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'language-server'.");
         }
 
         return args[0] switch
@@ -33,8 +34,14 @@ internal static class Program
             "database" => DatabaseCommand.Run(args),
             "markdown" => RunMarkdown(args),
             "table" => TableToolCommand.Run(args),
-            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'table'."),
+            "language-server" or "lsp" => RunLanguageServer(args),
+            _ => UsageError("COPE-CLI-0004", $"Unknown command '{args[0]}'. Supported commands: 'compile', 'build', 'workspace', 'database', 'markdown', 'table', 'language-server'."),
         };
+    }
+
+    private static int RunLanguageServer(string[] args)
+    {
+        return Copeland.TS.LanguageServer.Program.Main(args.Skip(1).ToArray());
     }
 
     private static int RunCompile(string[] args)
@@ -437,6 +444,7 @@ internal static class Program
         Console.Error.WriteLine("  tscl build --project <project.json> --result <result.json>");
         Console.Error.WriteLine("  tscl workspace sync|validate|status|owner ...");
         Console.Error.WriteLine("  tscl table list|schema|rows|set|add-row|delete-row|validate|export|import ...");
+        Console.Error.WriteLine("  tscl language-server [--version]");
         Console.Error.WriteLine("  copeland markdown parse <source-file> --emit ast|mir|tokens|diagnostics [--format text|json] [--out <path>]");
         Console.Error.WriteLine("  copeland markdown export-corpus --output-dir <path>");
         Console.Error.WriteLine($"{id} error: {message}");

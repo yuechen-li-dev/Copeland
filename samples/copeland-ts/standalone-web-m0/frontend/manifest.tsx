@@ -13,7 +13,7 @@ export default define(
       version="1.0.0"
       kind="app"
       compiler="tscl"
-      compilerPath="compiler/Copeland.Cli.exe"
+      compilerPath=".copeland/compiler/Copeland.Cli.exe"
       dependencies={{ values: [deps.react, deps.reactDom, deps.browserHost] }}
     >
       <Policies types={{ missingTypes: "ignore" }} />
