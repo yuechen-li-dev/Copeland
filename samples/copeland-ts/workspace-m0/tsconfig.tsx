@@ -8,6 +8,7 @@ export default defineTypeScriptWorkspace({
             target: "ES2024",
             module: "ESNext",
             moduleResolution: "bundler",
+            rootDir: ".",
             outDir: "obj/tsc",
             skipLibCheck: true
         }

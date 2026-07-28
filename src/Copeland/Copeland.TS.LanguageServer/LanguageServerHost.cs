@@ -97,7 +97,11 @@ public sealed class LanguageServerHost
             serverInfo = new { name = "Copeland TS Language Server", version = Version },
             capabilities = new
             {
-                textDocumentSync = 2,
+                // The M0 server accepts a single complete replacement in each
+                // didChange notification. LSP value 1 is Full; value 2 would
+                // advertise incremental ranges that this host deliberately
+                // does not implement.
+                textDocumentSync = 1,
                 hoverProvider = true,
                 completionProvider = new { triggerCharacters = new[] { ".", "<" } },
                 definitionProvider = true,
@@ -124,7 +128,8 @@ public sealed class LanguageServerHost
     {
         JsonElement document = parameters.GetProperty("textDocument");
         string uri = document.GetProperty("uri").GetString()!;
-        _workspace.Open(uri, document.GetProperty("version").GetInt32(), document.GetProperty("text").GetString() ?? string.Empty);
+        int version = document.GetProperty("version").GetInt32();
+        _workspace.Open(uri, version, document.GetProperty("text").GetString() ?? string.Empty);
         PublishDiagnostics(uri);
         return null;
     }
@@ -139,7 +144,10 @@ public sealed class LanguageServerHost
             throw new LanguageServerException("CTS-LSP-0001: M0 accepts one full-text content change per notification.");
         }
 
-        if (_workspace.Change(uri, document.GetProperty("version").GetInt32(), text.GetString() ?? string.Empty)) PublishDiagnostics(uri);
+        int version = document.GetProperty("version").GetInt32();
+        string changedText = text.GetString() ?? string.Empty;
+        bool changed = _workspace.Change(uri, version, changedText);
+        if (changed) PublishDiagnostics(uri);
         return null;
     }
 
@@ -160,7 +168,8 @@ public sealed class LanguageServerHost
 
     private void PublishDiagnostics(string uri)
     {
-        Write(new { jsonrpc = "2.0", method = "textDocument/publishDiagnostics", @params = new { uri, diagnostics = _workspace.Diagnostics(uri) } });
+        object[] diagnostics = _workspace.Diagnostics(uri);
+        Write(new { jsonrpc = "2.0", method = "textDocument/publishDiagnostics", @params = new { uri, diagnostics } });
     }
 
     private static string Uri(JsonElement parameters) => parameters.GetProperty("textDocument").GetProperty("uri").GetString()!;

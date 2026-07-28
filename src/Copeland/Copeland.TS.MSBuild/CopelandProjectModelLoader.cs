@@ -35,6 +35,7 @@ public static class CopelandProjectModelLoader
             startInfo.ArgumentList.Add("/property:Configuration=Debug");
             startInfo.ArgumentList.Add("/nologo");
             startInfo.ArgumentList.Add("/verbosity:quiet");
+            startInfo.ArgumentList.Add("/nodeReuse:false");
             if (globalProperties is not null)
             {
                 foreach ((string key, string value) in globalProperties.OrderBy(pair => pair.Key, StringComparer.Ordinal))
@@ -44,9 +45,11 @@ public static class CopelandProjectModelLoader
             }
 
             using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start dotnet msbuild.");
-            string standardError = process.StandardError.ReadToEnd();
-            string standardOutput = process.StandardOutput.ReadToEnd();
+            Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
+            Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync();
             process.WaitForExit();
+            string standardError = standardErrorTask.GetAwaiter().GetResult();
+            string standardOutput = standardOutputTask.GetAwaiter().GetResult();
             if (process.ExitCode != 0 || !File.Exists(modelPath))
             {
                 throw new InvalidOperationException("MSBuild could not evaluate the Copeland language-service model: " + (standardError + standardOutput).Trim());

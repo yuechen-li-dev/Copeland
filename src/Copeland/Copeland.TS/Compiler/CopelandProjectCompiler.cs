@@ -57,6 +57,12 @@ public static class CopelandProjectCompiler
         {
             BoundModuleImports imports = CreateImports(module, diagnostics);
             SyntaxTree tree = SyntaxTree.Parse(RewriteModule(module), module.Source.SourcePath);
+            diagnostics.AddRange(tree.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
+            if (tree.Diagnostics.Count > 0)
+            {
+                continue;
+            }
+
             BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options.PackageBackend, options.TsXmlProfile, module.Source.SourcePath, module.LogicalPath, imports);
             module.Bound = bound;
             diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));

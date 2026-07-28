@@ -66,10 +66,12 @@ public sealed class LanguageServerProtocolTests
             """);
         Restore(projectPath);
         using var client = new LspClient();
+        string sourceUri = VsCodeFileUri(sourcePath);
         JsonElement initialized = client.Request(1, "initialize", new { initializationOptions = new { workspaceRoot = workspace.Path } });
         Assert.True(initialized.GetProperty("capabilities").GetProperty("hoverProvider").GetBoolean());
+        Assert.Equal(1, initialized.GetProperty("capabilities").GetProperty("textDocumentSync").GetInt32());
 
-        client.Notify("textDocument/didOpen", new { textDocument = new { uri = new Uri(sourcePath).AbsoluteUri, version = 1, text = appText } });
+        client.Notify("textDocument/didOpen", new { textDocument = new { uri = sourceUri, version = 1, text = appText } });
         JsonElement diagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.Empty(diagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 
@@ -77,26 +79,39 @@ public sealed class LanguageServerProtocolTests
         JsonElement reactDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.Empty(reactDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 
-        JsonElement completion = client.Request(2, "textDocument/completion", new { textDocument = new { uri = new Uri(sourcePath).AbsoluteUri }, position = new { line = 0, character = 0 } });
+        JsonElement completion = client.Request(2, "textDocument/completion", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = 0 } });
         Assert.Contains(completion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "Score");
         Assert.Contains(completion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "transform");
 
-        JsonElement definition = client.Request(3, "textDocument/definition", new { textDocument = new { uri = new Uri(sourcePath).AbsoluteUri }, position = new { line = 0, character = appText.LastIndexOf("Score", StringComparison.Ordinal) + 1 } });
+        JsonElement definition = client.Request(3, "textDocument/definition", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = appText.LastIndexOf("Score", StringComparison.Ordinal) + 1 } });
         Assert.Equal(new Uri(libraryPath).AbsoluteUri, definition.GetProperty("uri").GetString());
 
-        JsonElement npmHover = client.Request(4, "textDocument/hover", new { textDocument = new { uri = new Uri(sourcePath).AbsoluteUri }, position = new { line = 0, character = appText.LastIndexOf("transform", StringComparison.Ordinal) + 1 } });
+        JsonElement npmHover = client.Request(4, "textDocument/hover", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = appText.LastIndexOf("transform", StringComparison.Ordinal) + 1 } });
         Assert.Contains("npm function transform", npmHover.GetProperty("contents").GetProperty("value").GetString());
 
-        JsonElement npmDefinition = client.Request(5, "textDocument/definition", new { textDocument = new { uri = new Uri(sourcePath).AbsoluteUri }, position = new { line = 0, character = appText.LastIndexOf("transform", StringComparison.Ordinal) + 1 } });
+        JsonElement npmDefinition = client.Request(5, "textDocument/definition", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = appText.LastIndexOf("transform", StringComparison.Ordinal) + 1 } });
         Assert.Equal(new Uri(npmContractPath).AbsoluteUri, npmDefinition.GetProperty("uri").GetString());
 
-        client.Notify("textDocument/didChange", new { textDocument = new { uri = new Uri(sourcePath).AbsoluteUri, version = 2 }, contentChanges = new[] { new { text = "import { Score } from \"./Library\"; function Main(): number { return ; }" } } });
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 2 }, contentChanges = new[] { new { text = "import { Score } from \"./Library\"; function Main(): number { return ; }" } } });
         JsonElement changedDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.NotEmpty(changedDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 3 }, contentChanges = new[] { new { text = "function Main(" } } });
+        JsonElement syntaxDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.NotEmpty(syntaxDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 
         client.Notify("textDocument/didOpen", new { textDocument = new { uri = new Uri(tscPath).AbsoluteUri, version = 1, text = "const normal = true;" } });
         JsonElement tscDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.Empty(tscDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+    }
+
+    private static string VsCodeFileUri(string path)
+    {
+        string uri = new Uri(path).AbsoluteUri;
+        if (!OperatingSystem.IsWindows()) return uri;
+
+        string drive = Path.GetPathRoot(path)!.TrimEnd(Path.DirectorySeparatorChar);
+        return uri.Replace(drive, Uri.EscapeDataString(drive.ToLowerInvariant()), StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class LspClient : IDisposable

@@ -54,3 +54,12 @@ samples/copeland-ts/standalone-web-m0/frontend/compiler/Copeland.TS.dll
 samples/copeland-ts/standalone-web-m0/frontend/compiler/Copeland.TS.Mir.dll
 samples/copeland-ts/standalone-web-m0/frontend/compiler/Copeland.TS.Mir.pdb
 samples/copeland-ts/standalone-web-m0/frontend/compiler/Copeland.TS.pdb
+
+# Copeland VS Code extension build and extension-host test outputs. Source,
+# package metadata, grammars, fixtures, and lock files remain tracked.
+src/Copeland/Copeland.TS.VSCode/node_modules/
+src/Copeland/Copeland.TS.VSCode/out/
+src/Copeland/Copeland.TS.VSCode/dist/
+src/Copeland/Copeland.TS.VSCode/.vscode-test/
+src/Copeland/Copeland.TS.VSCode/*.vsix
+src/Copeland/Copeland.TS.VSCode/test-workspaces/output/

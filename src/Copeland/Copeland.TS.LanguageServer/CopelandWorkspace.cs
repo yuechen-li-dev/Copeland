@@ -77,7 +77,11 @@ internal sealed class CopelandWorkspace
         if (!string.Equals(owner, "tscl", StringComparison.Ordinal)) return [];
         if (_loadError is not null) return [DiagnosticObject(_loadError, "CTS-LSP-OWNERSHIP", 1, document!.Text, 0, 1)];
         if (IsWorkspaceManifest(document!.Path)) return WorkspaceManifestDiagnostics(document.Text);
-        return Compile(document).Diagnostics
+        IReadOnlyList<Diagnostic> projectDiagnostics = Compile(document).Diagnostics;
+        IReadOnlyList<Diagnostic> syntaxDiagnostics = SyntaxTree.Parse(document.Text, document.Path).Diagnostics;
+        return projectDiagnostics
+            .Concat(syntaxDiagnostics)
+            .DistinctBy(diagnostic => (diagnostic.Id, diagnostic.Position, diagnostic.Length, diagnostic.Message))
             .Where(diagnostic => diagnostic.SourcePath is null || PathsEqual(diagnostic.SourcePath, document.Path))
             .OrderBy(diagnostic => diagnostic.Position)
             .ThenBy(diagnostic => diagnostic.Id, StringComparer.Ordinal)
@@ -210,8 +214,17 @@ internal sealed class CopelandWorkspace
         var data = new List<int>();
         int previousLine = 0;
         int previousCharacter = 0;
-        foreach (SyntaxToken token in compilation.SyntaxTree.Tokens.Where(token => token.Kind != SyntaxKind.EndOfFileToken))
+        int previousTokenEnd = -1;
+        foreach (SyntaxToken token in compilation.SyntaxTree.Tokens
+            .Where(token => token.Kind != SyntaxKind.EndOfFileToken)
+            .OrderBy(token => token.Position)
+            .ThenByDescending(token => token.Text.Length))
         {
+            if (token.Position < previousTokenEnd)
+            {
+                continue;
+            }
+
             int kind = TokenKind(token, compilation);
             if (kind < 0) continue;
             (int line, int character) = LineCharacter(document.Text, token.Position);
@@ -222,6 +235,7 @@ internal sealed class CopelandWorkspace
             data.Add(0);
             previousLine = line;
             previousCharacter = character;
+            previousTokenEnd = token.Position + Math.Max(1, token.Text.Length);
         }
         return new { data };
     }
@@ -363,7 +377,24 @@ internal sealed class CopelandWorkspace
             document = new DocumentSnapshot(path, 0, File.ReadAllText(path));
         }
         if (IsWorkspaceManifest(document.Path)) { owner = "tscl"; return true; }
-        return _owners.TryGetValue(Path.GetFullPath(document.Path), out owner);
+        if (_owners.TryGetValue(Path.GetFullPath(document.Path), out owner))
+        {
+            return true;
+        }
+
+        foreach ((string path, string candidateOwner) in _owners)
+        {
+            if (!PathsEqual(path, document.Path))
+            {
+                continue;
+            }
+
+            owner = candidateOwner;
+            return true;
+        }
+
+        owner = null;
+        return false;
     }
 
     private bool TryGetCopelandDocument(string uri, out DocumentSnapshot? document)
@@ -392,8 +423,29 @@ internal sealed class CopelandWorkspace
     }
     private bool IsWorkspaceManifest(string path) => _rootPath is not null && PathsEqual(path, Path.Combine(_rootPath, "tsconfig.tsx"));
     private static string? ReadOptionalString(JsonElement element, string name) => element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
-    private static string? UriToPath(string? uri) => uri is not null && Uri.TryCreate(uri, UriKind.Absolute, out Uri? value) && value.IsFile ? value.LocalPath : null;
-    private static bool PathsEqual(string left, string right) => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
+    private static string? UriToPath(string? uri)
+    {
+        if (uri is null || !Uri.TryCreate(uri, UriKind.Absolute, out Uri? value) || !value.IsFile)
+        {
+            return null;
+        }
+
+        string localPath = value.LocalPath;
+        if (localPath.Length >= 3 && localPath[0] == '/' && localPath[2] == ':')
+        {
+            localPath = localPath[1..];
+        }
+
+        return Path.GetFullPath(localPath);
+    }
+
+    private static bool PathsEqual(string left, string right)
+        => string.Equals(NormalizePath(left), NormalizePath(right), StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizePath(string path)
+    {
+        return UriToPath(path) ?? Path.GetFullPath(path);
+    }
 
     private static Symbol? FindSymbol(CopelandCompilation compilation, string name)
     {

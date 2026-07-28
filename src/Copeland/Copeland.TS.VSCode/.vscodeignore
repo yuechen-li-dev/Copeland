@@ -1,0 +1,14 @@
+.vscode/**
+.github/**
+src/**
+test/**
+out/**/*.test.js
+out/**/*.test.js.map
+out/integrationSuite.js
+out/integrationSuite.js.map
+out/runIntegration.js
+out/runIntegration.js.map
+*.ts
+*.map
+*.vsix
+dist/**
