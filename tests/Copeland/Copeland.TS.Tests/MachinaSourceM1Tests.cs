@@ -79,6 +79,42 @@ public sealed class MachinaSourceM1Tests
         Assert.DoesNotContain("display: grid", page, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Nested_stack_can_use_tracks_without_an_irrelevant_absolute_frame()
+    {
+        MachinaSourceCompilation compilation = MachinaSourceCompiler.Compile("""
+            enum WebsiteEvent { Copy, }
+
+            function WebsitePage(): View {
+                return Root([
+                    VStack(
+                        [
+                            Text("Title", { main: Fixed(30px), cross: Fill() }),
+                            HStack(
+                                [
+                                    Button("Copy", WebsiteEvent.Copy, { main: Fill(), cross: Fill() }),
+                                    Text("Proof", { main: Fixed(80px), cross: Fill() })
+                                ],
+                                { main: Fill(), cross: Fill(), gap: 10px }
+                            )
+                        ],
+                        {
+                            frame: Anchor({ left: 10px, right: 10px, top: 10px, bottom: 10px }),
+                            gap: 8px
+                        }
+                    )
+                ]);
+            }
+            """, "Website.machina.ts", "WebsitePage");
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics.Select(diagnostic => diagnostic.Id + ": " + diagnostic.Message)));
+        MachinaResolvedDocument resolved = MachinaLayoutResolver.Resolve(compilation.View!, new MachinaRect(0, 0, 300, 160));
+
+        Assert.Equal(300 - 20, resolved.Nodes.Single(node => node.Identity == "root/0/1").Frame.Width);
+        Assert.Equal(80, resolved.Nodes.Single(node => node.Authored.Text == "Proof").Frame.Width);
+        Assert.Equal(190, resolved.Nodes.Single(node => node.Authored.EventName == "WebsiteEvent.Copy").Frame.Width);
+    }
+
     private static IReadOnlyList<string> Shape(MachinaResolvedDocument document)
         => document.Nodes.Select(node => $"{node.Identity}|{node.Kind}|{node.Authored.Text}|{node.Authored.EventName}|{node.Frame.X}|{node.Frame.Y}|{node.Frame.Width}|{node.Frame.Height}|{node.MeasurementDependency}").ToArray();
 

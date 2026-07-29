@@ -241,11 +241,11 @@ public static class Machina
     public static MachinaView Container(IReadOnlyList<MachinaView> children, MachinaFrameIntent frame, MachinaStyle? style = null, MachinaOffset? offset = null, MachinaSourceSpan? source = null)
         => new(MachinaViewKind.Container, children, frame, Style: style, Offset: offset, Source: source);
 
-    public static MachinaView VStack(IReadOnlyList<MachinaView> children, MachinaFrameIntent frame, MachinaLength gap, MachinaInsets? padding = null, MachinaStyle? style = null, MachinaOffset? offset = null, MachinaSourceSpan? source = null)
-        => new(MachinaViewKind.VStack, children, frame, MachinaStackOptions.Vertical(gap, padding), Style: style, Offset: offset, Source: source);
+    public static MachinaView VStack(IReadOnlyList<MachinaView> children, MachinaFrameIntent? frame, MachinaLength gap, MachinaInsets? padding = null, MachinaStyle? style = null, MachinaOffset? offset = null, MachinaTrack? mainTrack = null, MachinaTrack? crossTrack = null, MachinaSourceSpan? source = null)
+        => new(MachinaViewKind.VStack, children, frame, MachinaStackOptions.Vertical(gap, padding), MainTrack: mainTrack, CrossTrack: crossTrack, Style: style, Offset: offset, Source: source);
 
-    public static MachinaView HStack(IReadOnlyList<MachinaView> children, MachinaFrameIntent frame, MachinaLength gap, MachinaInsets? padding = null, MachinaStyle? style = null, MachinaOffset? offset = null, MachinaSourceSpan? source = null)
-        => new(MachinaViewKind.HStack, children, frame, MachinaStackOptions.Horizontal(gap, padding), Style: style, Offset: offset, Source: source);
+    public static MachinaView HStack(IReadOnlyList<MachinaView> children, MachinaFrameIntent? frame, MachinaLength gap, MachinaInsets? padding = null, MachinaStyle? style = null, MachinaOffset? offset = null, MachinaTrack? mainTrack = null, MachinaTrack? crossTrack = null, MachinaSourceSpan? source = null)
+        => new(MachinaViewKind.HStack, children, frame, MachinaStackOptions.Horizontal(gap, padding), MainTrack: mainTrack, CrossTrack: crossTrack, Style: style, Offset: offset, Source: source);
 
     public static MachinaView Text(string text, MachinaFrameIntent? frame = null, MachinaStyle? style = null, MachinaOffset? offset = null, bool requiresTextMeasurement = false, MachinaTrack? mainTrack = null, MachinaTrack? crossTrack = null, MachinaSourceSpan? source = null)
         => new(MachinaViewKind.Text, [], frame, MainTrack: mainTrack, CrossTrack: crossTrack, Style: style, Offset: offset, Text: text, RequiresTextMeasurement: requiresTextMeasurement, Source: source);
@@ -556,6 +556,15 @@ public static class MachinaLayoutResolver
 public sealed record MachinaBrowserArtifact(string Html, string Css);
 
 /// <summary>
+/// React adapters consume the same resolved geometry and immutable style CSS as
+/// the standalone browser proof. The class map deliberately contains no React
+/// dependency: callers remain free to select semantic React elements.
+/// </summary>
+public sealed record MachinaReactArtifact(
+    string Css,
+    IReadOnlyDictionary<string, string> ClassesByIdentity);
+
+/// <summary>
 /// Small M1 browser host. State is held by one reducer-owned value and every
 /// DOM event carries the compiler profile's static event symbol. Rebuilding a
 /// full view tree is intentionally unnecessary for this bounded proof.
@@ -659,6 +668,28 @@ public static class MachinaBrowserLowerer
             .ToDictionary(group => group.Key, group => group.ToList());
         WriteNode("root", document.Nodes.Single(node => node.Identity == "root"), null, builder, css, styleClasses, byParent);
         return new MachinaBrowserArtifact(builder.ToString(), css.ToString());
+    }
+
+    /// <summary>
+    /// Projects native Machina MIR into classes that a React component can
+    /// attach to its own semantic DOM. This preserves Machina's resolved
+    /// absolute/anchor/stack layout while leaving browser realization and
+    /// accessibility semantics with React.
+    /// </summary>
+    public static MachinaReactArtifact LowerForReact(MachinaResolvedDocument document)
+    {
+        MachinaBrowserArtifact browserArtifact = Lower(document);
+        Dictionary<MachinaStyle, string> styleClasses = BuildStyleClasses(document.Nodes);
+        var classesByIdentity = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (MachinaResolvedNode node in document.Nodes)
+        {
+            string frameClass = "m-frame-" + node.Identity.Replace('/', '-');
+            string styleClass = styleClasses[node.Authored.EffectiveStyle];
+            classesByIdentity.Add(node.Identity, "m-node " + frameClass + " " + styleClass);
+        }
+
+        return new MachinaReactArtifact(browserArtifact.Css, classesByIdentity);
     }
 
     private static Dictionary<MachinaStyle, string> BuildStyleClasses(IReadOnlyList<MachinaResolvedNode> nodes)

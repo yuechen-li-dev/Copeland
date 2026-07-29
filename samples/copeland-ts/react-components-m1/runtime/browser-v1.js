@@ -37,3 +37,12 @@ export function dispatchReact(initialState, reduce, render) {
   render(currentState, send);
   return send;
 }
+
+export function copyText(text, onSuccess, onFailure) {
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+    onFailure();
+    return;
+  }
+
+  navigator.clipboard.writeText(text).then(onSuccess, onFailure);
+}

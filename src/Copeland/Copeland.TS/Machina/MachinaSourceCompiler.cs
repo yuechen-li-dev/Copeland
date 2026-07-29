@@ -173,10 +173,10 @@ public static class MachinaSourceCompiler
             if (!RequireArgumentCount(call, 2, name)) return null;
             IReadOnlyList<MachinaView>? children = BindChildren(call.Arguments[0]);
             MachinaOptions? options = BindOptions(call.Arguments[1]);
-            if (children is null || options is null || options.Frame is null || options.Gap is null) return null;
+            if (children is null || options is null || options.Gap is null) return null;
             return axis == MachinaAxis.Vertical
-                ? MachinaFactory.VStack(children, options.Frame, options.Gap.Value, options.Padding, options.Style, options.Offset, Source(call))
-                : MachinaFactory.HStack(children, options.Frame, options.Gap.Value, options.Padding, options.Style, options.Offset, Source(call));
+                ? MachinaFactory.VStack(children, options.Frame, options.Gap.Value, options.Padding, options.Style, options.Offset, options.MainTrack, options.CrossTrack, Source(call))
+                : MachinaFactory.HStack(children, options.Frame, options.Gap.Value, options.Padding, options.Style, options.Offset, options.MainTrack, options.CrossTrack, Source(call));
         }
 
         private MachinaView? BindText(CallExpressionSyntax call)

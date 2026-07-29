@@ -3549,7 +3549,27 @@ public static class Binder
         }
 
         private static bool IsSupportedReactIntrinsic(string name)
-            => name is "main" or "h1" or "p" or "pre" or "button";
+            => name is "a"
+                or "article"
+                or "aside"
+                or "br"
+                or "button"
+                or "code"
+                or "div"
+                or "footer"
+                or "h1"
+                or "h2"
+                or "h3"
+                or "header"
+                or "i"
+                or "main"
+                or "nav"
+                or "p"
+                or "pre"
+                or "section"
+                or "small"
+                or "span"
+                or "strong";
 
         private static bool IsReactChild(TypeSymbol type)
             => type == PrimitiveTypeSymbol.String || TypeFacts.IsNumeric(type) || type == ReactNodeTypeSymbol.Instance;

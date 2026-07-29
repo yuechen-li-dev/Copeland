@@ -161,6 +161,46 @@ public sealed class MachinaLayoutM1Tests
     }
 
     [Fact]
+    public void React_projection_reuses_native_resolved_geometry_and_leaves_semantic_elements_to_the_caller()
+    {
+        MachinaStyle panel = new(
+            Surface: new MachinaSurfaceStyle("#0b1024", MachinaLength.Pixels(16)),
+            Border: new MachinaBorderStyle(MachinaLength.Pixels(1), "#22d8ff", "solid"));
+        MachinaView document = Machina.Root(
+        [
+            Machina.VStack(
+            [
+                Machina.Text("Heading", mainTrack: Machina.Fixed(MachinaLength.Pixels(40))),
+                Machina.Button("Copy", "WebsiteEvent.Copy", mainTrack: Machina.Fill()),
+            ],
+            Machina.Anchor(
+                left: MachinaLength.Pixels(20),
+                right: MachinaLength.Pixels(20),
+                top: MachinaLength.Pixels(16),
+                bottom: MachinaLength.Pixels(16)),
+            MachinaLength.Pixels(8),
+            style: panel),
+        ]);
+
+        MachinaResolvedDocument resolved = MachinaLayoutResolver.Resolve(document, new MachinaRect(0, 0, 320, 160));
+        MachinaReactArtifact first = MachinaBrowserLowerer.LowerForReact(resolved);
+        MachinaReactArtifact second = MachinaBrowserLowerer.LowerForReact(resolved);
+
+        Assert.Equal(first.Css, second.Css);
+        Assert.Equal(first.ClassesByIdentity.Count, second.ClassesByIdentity.Count);
+        foreach ((string identity, string classes) in first.ClassesByIdentity)
+        {
+            Assert.Equal(classes, second.ClassesByIdentity[identity]);
+        }
+        Assert.StartsWith("m-node m-frame-root m-style-", first.ClassesByIdentity["root"], StringComparison.Ordinal);
+        Assert.Contains("m-frame-root-0", first.ClassesByIdentity["root/0"], StringComparison.Ordinal);
+        Assert.Contains("position: absolute", first.Css, StringComparison.Ordinal);
+        Assert.DoesNotContain("display: flex", first.Css, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("display: grid", first.Css, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    [Fact]
     public void Ui_literal_range_is_checked_at_the_language_boundary()
     {
         MachinaLayoutException exception = Assert.Throws<MachinaLayoutException>(() => MachinaLength.Normalized(1.01));

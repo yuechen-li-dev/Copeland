@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Copeland.Website.MachinaProjection</AssemblyName>
+    <RootNamespace>Copeland.Website.MachinaProjection</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <ProjectReference Include="../../../../src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+  </ItemGroup>
+</Project>

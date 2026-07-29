@@ -285,6 +285,14 @@ internal static class TsclBuildContract
                     ],
                     new CopelandJavaScriptHostType.Callable([@event], CopelandJavaScriptHostType.Void),
                     ["State", "Event"]),
+                new CopelandJavaScriptHostFunctionContract(
+                    "copyText",
+                    [
+                        CopelandJavaScriptHostType.String,
+                        new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void),
+                        new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void),
+                    ],
+                    CopelandJavaScriptHostType.Void),
             ]);
     }
 

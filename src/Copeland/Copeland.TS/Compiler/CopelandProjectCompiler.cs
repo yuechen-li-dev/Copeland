@@ -425,7 +425,16 @@ public static class CopelandProjectCompiler
         var genericBodies = new Dictionary<FunctionSymbol, BoundFunctionDeclaration>();
         foreach (ProjectImport import in module.Imports.Where(import => import.Target is not null))
         {
-            BoundModuleScope scope = import.Target!.Bound!.ModuleScope!;
+            if (import.Target!.Bound?.ModuleScope is not BoundModuleScope scope)
+            {
+                diagnostics.Add(new Diagnostic(
+                    "COPE-MODULE-0009",
+                    $"Module '{import.Target.LogicalPath}' could not be bound because it contains earlier diagnostics.",
+                    import.Start,
+                    import.End - import.Start,
+                    module.Source.SourcePath));
+                continue;
+            }
             foreach (ProjectImportBinding binding in import.Bindings)
             {
                 if (import.Target.Declarations.Any(declaration => declaration.Name == binding.ExportedName && declaration.Kind == "flow"))
