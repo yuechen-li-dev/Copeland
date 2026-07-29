@@ -117,7 +117,7 @@ h2 { margin: 12px 0 15px; font-size: 44px; line-height: 1.05; letter-spacing: -.
 .desktop-site .desktop-hero { box-shadow: -2px 0 25px rgb(240 77 216 / 46%), 2px 0 30px rgb(34 216 255 / 38%), inset 0 0 80px rgb(81 89 216 / 8%); }
 .desktop-site .hero-content { padding: 90px 52px 40px; text-align: left; }
 .desktop-site .desktop-hero .commands { width: 530px; margin-top: 21px; }
-.desktop-site .desktop-hero .capabilities { position: absolute; right: 52px; bottom: 34px; left: 52px; justify-content: center; }
+.desktop-site .desktop-hero .capabilities { margin-top: 22px; justify-content: center; }
 .desktop-site .live-proof { position: absolute; top: 24px; right: 24px; width: 150px; }
 .desktop-site .site-footer { position: absolute; right: 0; bottom: 0; left: 0; }
 .desktop-site .feature-card a { bottom: 65px; }
