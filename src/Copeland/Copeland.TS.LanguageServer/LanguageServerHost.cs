@@ -225,7 +225,7 @@ public sealed class LanguageServerHost
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-    private static readonly string[] SemanticTokenKinds = ["keyword", "type", "enum", "enumMember", "function", "parameter", "variable", "property", "namespace", "class"];
+    private static readonly string[] SemanticTokenKinds = ["keyword", "type", "enum", "enumMember", "function", "parameter", "variable", "property", "namespace", "class", "layout", "layoutProfile", "layoutNode", "layoutSlot", "layoutDimension", "layoutCoordinate"];
 }
 
 internal sealed class LanguageServerException(string message) : Exception(message);

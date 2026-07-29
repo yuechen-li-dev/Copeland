@@ -654,6 +654,7 @@ public static class CopelandProjectCompiler
                 _ when tokens[index + 1].Kind == SyntaxKind.FunctionKeyword => index + 2,
                 "type" or "interface" or "flow" or "class" => index + 2,
                 _ when tokens[index + 1].Kind == SyntaxKind.TemplateKeyword => index + 2,
+                _ when tokens[index + 1].Kind == SyntaxKind.LayoutKeyword => LayoutNameIndex(tokens, index + 2),
                 _ when tokens[index + 1].Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword => index + 2,
                 "const" when index + 3 < tokens.Length && tokens[index + 2].Kind == SyntaxKind.RecordKeyword => index + 3,
                 _ => -1,
@@ -678,13 +679,16 @@ public static class CopelandProjectCompiler
                 SyntaxKind.TemplateKeyword => "template",
                 SyntaxKind.EnumKeyword => "enum",
                 SyntaxKind.RecordKeyword => "record",
+                SyntaxKind.LayoutKeyword => "layout",
                 _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "type" => "type",
                 _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "interface" => "interface",
                 _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "flow" => "flow",
                 _ when tokens[index].Kind == SyntaxKind.IdentifierToken && tokens[index].Text == "class" => "class",
                 _ => null,
             };
-            int nameIndex = kind == "function" && tokens[index + 1].Kind == SyntaxKind.StarToken
+            int nameIndex = kind == "layout"
+                ? LayoutNameIndex(tokens, index + 1)
+                : kind == "function" && tokens[index + 1].Kind == SyntaxKind.StarToken
                 ? index + 2
                 : index + 1;
             if (kind is null || nameIndex >= tokens.Length || tokens[nameIndex].Kind != SyntaxKind.IdentifierToken)
@@ -695,6 +699,18 @@ public static class CopelandProjectCompiler
             declarations.Add(new ProjectDeclaration(tokens[nameIndex].Text, kind));
         }
         return declarations;
+    }
+
+    private static int LayoutNameIndex(IReadOnlyList<SyntaxToken> tokens, int candidate)
+    {
+        if (candidate + 2 < tokens.Count
+            && tokens[candidate].Kind is SyntaxKind.IdentifierToken or SyntaxKind.TableKeyword
+            && tokens[candidate + 1].Kind == SyntaxKind.IdentifierToken
+            && tokens[candidate + 2].Kind is SyntaxKind.LessToken or SyntaxKind.OpenBraceToken or SyntaxKind.EqualsToken)
+        {
+            return candidate + 1;
+        }
+        return candidate;
     }
 
     private static bool IsRelative(string specifier) => specifier.StartsWith("./", StringComparison.Ordinal) || specifier.StartsWith("../", StringComparison.Ordinal);

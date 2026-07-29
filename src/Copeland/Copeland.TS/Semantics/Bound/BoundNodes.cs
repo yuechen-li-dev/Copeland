@@ -1,5 +1,7 @@
 using Copeland.TS.Syntax;
 
+using Copeland.TS.MachinaSource;
+
 namespace Copeland.TS.Semantics.Bound;
 
 public abstract class BoundNode;
@@ -22,7 +24,8 @@ public sealed class BoundProgram
         IReadOnlyList<string>? csharpUsings = null,
         string? csharpSourcePath = null,
         IReadOnlyList<BoundFlowDefinition>? flows = null,
-        IReadOnlyList<BoundTemplateDeclaration>? templates = null)
+        IReadOnlyList<BoundTemplateDeclaration>? templates = null,
+        IReadOnlyList<BoundLayoutDeclaration>? layouts = null)
     {
         Functions = functions;
         Enums = enums;
@@ -38,6 +41,7 @@ public sealed class BoundProgram
         CSharpSourcePath = csharpSourcePath;
         Flows = flows ?? [];
         Templates = templates ?? [];
+        Layouts = layouts ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -53,6 +57,7 @@ public sealed class BoundProgram
     public string? CSharpSourcePath { get; }
     public IReadOnlyList<BoundFlowDefinition> Flows { get; }
     public IReadOnlyList<BoundTemplateDeclaration> Templates { get; }
+    public IReadOnlyList<BoundLayoutDeclaration> Layouts { get; }
 }
 
 /// <summary>

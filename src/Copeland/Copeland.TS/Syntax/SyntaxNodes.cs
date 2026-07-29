@@ -609,6 +609,105 @@ public sealed record TemplateParameterSyntax(
     }
 }
 
+/// <summary>
+/// A layout declaration is syntax for finite, immutable spatial data. It is not
+/// a function body and therefore has no statements, parameters, or return value.
+/// </summary>
+public sealed record LayoutDeclarationSyntax(
+    SyntaxToken LayoutKeyword,
+    SyntaxToken? Profile,
+    SyntaxToken Identifier,
+    LayoutOriginSyntax? Origin,
+    SyntaxToken? EqualsToken,
+    SyntaxToken? ComposedLayout,
+    SyntaxToken? WithKeyword,
+    IReadOnlyList<LayoutPropertySyntax> CompositionProperties,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<LayoutPropertySyntax> Properties,
+    IReadOnlyList<LayoutNodeSyntax> Nodes,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.LayoutDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return LayoutKeyword;
+        if (Profile is not null) yield return Profile;
+        yield return Identifier;
+        if (Origin is not null) yield return Origin;
+        if (EqualsToken is not null) yield return EqualsToken;
+        if (ComposedLayout is not null) yield return ComposedLayout;
+        if (WithKeyword is not null) yield return WithKeyword;
+        foreach (LayoutPropertySyntax property in CompositionProperties) yield return property;
+        yield return OpenBraceToken;
+        foreach (LayoutPropertySyntax property in Properties) yield return property;
+        foreach (LayoutNodeSyntax node in Nodes) yield return node;
+        yield return CloseBraceToken;
+    }
+}
+
+/// <summary>
+/// Required local coordinate-space anchor for a layout declaration. This is
+/// declaration geometry, rather than an optional property in the layout body.
+/// </summary>
+public sealed record LayoutOriginSyntax(
+    SyntaxToken LessToken,
+    ExpressionSyntax X,
+    SyntaxToken CommaToken,
+    ExpressionSyntax Y,
+    SyntaxToken GreaterToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.LayoutDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return LessToken;
+        yield return X;
+        yield return CommaToken;
+        yield return Y;
+        yield return GreaterToken;
+    }
+}
+
+public sealed record LayoutNodeSyntax(
+    SyntaxToken KindToken,
+    SyntaxToken Identifier,
+    SyntaxToken? SemicolonToken,
+    SyntaxToken? OpenBraceToken,
+    IReadOnlyList<LayoutPropertySyntax> Properties,
+    IReadOnlyList<LayoutNodeSyntax> Children,
+    SyntaxToken? CloseBraceToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.LayoutNode;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return KindToken;
+        yield return Identifier;
+        if (SemicolonToken is not null) yield return SemicolonToken;
+        if (OpenBraceToken is not null) yield return OpenBraceToken;
+        foreach (LayoutPropertySyntax property in Properties) yield return property;
+        foreach (LayoutNodeSyntax child in Children) yield return child;
+        if (CloseBraceToken is not null) yield return CloseBraceToken;
+    }
+}
+
+public sealed record LayoutPropertySyntax(
+    SyntaxToken Identifier,
+    SyntaxToken ColonToken,
+    ExpressionSyntax Value,
+    SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.LayoutProperty;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        yield return ColonToken;
+        yield return Value;
+        yield return SemicolonToken;
+    }
+}
+
 public sealed record EnumDeclarationSyntax(
     SyntaxToken EnumKeyword,
     SyntaxToken Identifier,

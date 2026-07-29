@@ -5,6 +5,8 @@ using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using Copeland.TS.MSBuild;
+using Copeland.TS.MachinaSource;
+using Copeland.TS.Mir.Machina;
 
 namespace Copeland.TS.LanguageServer;
 
@@ -79,8 +81,10 @@ internal sealed class CopelandWorkspace
         if (IsWorkspaceManifest(document!.Path)) return WorkspaceManifestDiagnostics(document.Text);
         IReadOnlyList<Diagnostic> projectDiagnostics = Compile(document).Diagnostics;
         IReadOnlyList<Diagnostic> syntaxDiagnostics = SyntaxTree.Parse(document.Text, document.Path).Diagnostics;
+        IReadOnlyList<Diagnostic> layoutDiagnostics = LayoutDataCompiler.Compile(document.Text, document.Path).Diagnostics;
         return projectDiagnostics
             .Concat(syntaxDiagnostics)
+            .Concat(layoutDiagnostics)
             .DistinctBy(diagnostic => (diagnostic.Id, diagnostic.Position, diagnostic.Length, diagnostic.Message))
             .Where(diagnostic => diagnostic.SourcePath is null || PathsEqual(diagnostic.SourcePath, document.Path))
             .OrderBy(diagnostic => diagnostic.Position)
@@ -99,7 +103,9 @@ internal sealed class CopelandWorkspace
         if (token is null) return null;
         Symbol? symbol = FindSymbol(compilation, token.Text);
         DeclarationInfo? declaration = FindDeclaration(compilation.SyntaxTree, token.Text);
-        string contents = symbol is not null ? Describe(symbol) : declaration?.Detail ?? (token.Kind == SyntaxKind.IdentifierToken ? token.Text : string.Empty);
+        string contents = symbol is LayoutSymbol { BoundLayout: not null } layout
+            ? DescribeLayout(layout)
+            : symbol is not null ? Describe(symbol) : declaration?.Detail ?? (token.Kind == SyntaxKind.IdentifierToken ? token.Text : string.Empty);
         if (symbol is null && declaration is null && token.Kind == SyntaxKind.IdentifierToken)
         {
             contents = DescribeClrType(token.Text) ?? contents;
@@ -117,7 +123,18 @@ internal sealed class CopelandWorkspace
         }
         CopelandCompilation compilation = Compile(document!);
         var items = new Dictionary<string, object>(StringComparer.Ordinal);
-        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
+        if (IsAwaitingLayoutOrigin(document.Text, compilation.SyntaxTree, ToOffset(document.Text, position)))
+        {
+            items["<0px, 0px>"] = new
+            {
+                label = "<0px, 0px>",
+                kind = 15,
+                detail = "required layout origin",
+                insertText = "<${1:0px}, ${2:0px}>",
+                insertTextFormat = 2,
+            };
+        }
+        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "row", "column", "grid", "anchor", "overlay", "slot", "width", "height", "gap", "padding", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
         }
@@ -188,6 +205,15 @@ internal sealed class CopelandWorkspace
             }
         }
         Symbol? externalSymbol = FindSymbol(compilation, token.Text);
+        if (externalSymbol is LayoutSymbol layout)
+        {
+            CopelandProjectModuleCompilation? target = project.Modules.FirstOrDefault(module =>
+                module.BoundCompilation?.ModuleScope?.Declarations.Values.OfType<LayoutSymbol>().Any(candidate => ReferenceEquals(candidate, layout)) == true);
+            if (target is not null)
+            {
+                return new { uri = new Uri(target.Source.SourcePath).AbsoluteUri, range = Range(target.Source.SourceText, layout.Declaration.Identifier.Position, layout.Declaration.Identifier.Text.Length) };
+            }
+        }
         object? externalDefinition = ExternalDefinition(externalSymbol);
         if (externalDefinition is not null) return externalDefinition;
         SyntaxToken? declaration = compilation.SyntaxTree?.Tokens.FirstOrDefault(candidate => candidate.Kind == SyntaxKind.IdentifierToken && candidate.Text == token.Text);
@@ -478,6 +504,13 @@ internal sealed class CopelandWorkspace
                     yield return new DeclarationInfo(record.Identifier.Text, "record " + record.Identifier.Text, 23, record.Identifier.Position);
                     foreach (RecordFieldSyntax field in record.Fields) yield return new DeclarationInfo(field.Identifier.Text, "field of " + record.Identifier.Text, 7, field.Identifier.Position);
                     break;
+                case LayoutDeclarationSyntax layout:
+                    yield return new DeclarationInfo(layout.Identifier.Text, "layout " + (layout.Profile is null ? string.Empty : layout.Profile.Text + " ") + layout.Identifier.Text, 23, layout.Identifier.Position);
+                    foreach (LayoutNodeSyntax node in layout.Nodes)
+                    {
+                        foreach (DeclarationInfo slot in LayoutSlots(node, layout.Identifier.Text)) yield return slot;
+                    }
+                    break;
                 case EnumDeclarationSyntax @enum:
                     yield return new DeclarationInfo(@enum.Identifier.Text, "enum " + @enum.Identifier.Text, 10, @enum.Identifier.Position);
                     foreach (EnumCaseSyntax @case in @enum.Cases) yield return new DeclarationInfo(@case.Identifier.Text, "case of " + @enum.Identifier.Text, 20, @case.Identifier.Position);
@@ -489,12 +522,21 @@ internal sealed class CopelandWorkspace
             }
         }
     }
+    private static IEnumerable<DeclarationInfo> LayoutSlots(LayoutNodeSyntax node, string layoutName)
+    {
+        yield return new DeclarationInfo(node.Identifier.Text, node.KindToken.Text + " slot of " + layoutName, 7, node.Identifier.Position);
+        foreach (LayoutNodeSyntax child in node.Children)
+        {
+            foreach (DeclarationInfo slot in LayoutSlots(child, layoutName)) yield return slot;
+        }
+    }
     private static int DeclarationPosition(SyntaxTree? tree, string name) => tree?.Tokens.FirstOrDefault(token => token.Kind == SyntaxKind.IdentifierToken && token.Text == name)?.Position ?? 0;
     private static SyntaxToken? TokenAt(SyntaxTree? tree, int offset) => tree?.Tokens.FirstOrDefault(token => offset >= token.Position && offset <= token.Position + token.Text.Length);
     private static int CompletionKind(Symbol symbol) => symbol switch { FunctionSymbol => 3, VariableSymbol => 6, ParameterSymbol => 6, _ => 13 };
     private static object CompletionItem(string label, int kind, string detail) => new { label, kind, detail };
     private static string Describe(Symbol symbol) => symbol switch
     {
+        LayoutSymbol layout => "layout " + (layout.Profile is null ? string.Empty : layout.Profile + " ") + layout.Name,
         FunctionSymbol function => (function.IsRemote ? "remote " : string.Empty) + "function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.InvocationReturnType.Name,
         NpmFunctionSymbol function => "npm function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.InvocationReturnType.Name,
         CopelandPackageFunctionSymbol function => "package function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.ReturnType.Name,
@@ -507,10 +549,87 @@ internal sealed class CopelandWorkspace
 
     private static int TokenKind(SyntaxToken token, CopelandCompilation compilation)
     {
+        int layoutKind = LayoutTokenKind(compilation.SyntaxTree, token);
+        if (layoutKind >= 0) return layoutKind;
         if (token.Kind.ToString().EndsWith("Keyword", StringComparison.Ordinal)) return 0;
         Symbol? symbol = FindSymbol(compilation, token.Text);
         return symbol switch { FunctionSymbol => 4, VariableSymbol => 6, ParameterSymbol => 6, _ when token.Kind == SyntaxKind.IdentifierToken => 6, _ => -1 };
     }
+
+    private static int LayoutTokenKind(SyntaxTree? tree, SyntaxToken token)
+    {
+        if (tree is null) return -1;
+        foreach (LayoutDeclarationSyntax layout in tree.Root.Members.OfType<LayoutDeclarationSyntax>())
+        {
+            if (SameToken(layout.LayoutKeyword, token) || SameToken(layout.Identifier, token)) return 10;
+            if (layout.Profile is not null && SameToken(layout.Profile, token)) return 11;
+            if (layout.Origin is not null
+                && token.Kind == SyntaxKind.NumberToken
+                && token.Position >= layout.Origin.LessToken.Position
+                && token.Position < layout.Origin.GreaterToken.Position) return 15;
+            foreach (LayoutNodeSyntax node in layout.Nodes)
+            {
+                int nodeKind = LayoutNodeTokenKind(node, token);
+                if (nodeKind >= 0) return nodeKind;
+            }
+        }
+        return -1;
+    }
+
+    private static int LayoutNodeTokenKind(LayoutNodeSyntax node, SyntaxToken token)
+    {
+        if (SameToken(node.KindToken, token)) return 12;
+        if (SameToken(node.Identifier, token)) return 13;
+        foreach (LayoutPropertySyntax property in node.Properties)
+        {
+            if (property.Value is NameExpressionSyntax name
+                && name.IdentifierToken.Text is "fill" or "fit"
+                && SameToken(name.IdentifierToken, token)) return 14;
+        }
+        foreach (LayoutNodeSyntax child in node.Children)
+        {
+            int childKind = LayoutNodeTokenKind(child, token);
+            if (childKind >= 0) return childKind;
+        }
+        return -1;
+    }
+
+    private static bool SameToken(SyntaxToken left, SyntaxToken right)
+        => left.Position == right.Position && left.Text.Length == right.Text.Length;
+
+    private static bool IsAwaitingLayoutOrigin(string text, SyntaxTree? tree, int offset)
+    {
+        bool parserRecognizesMissingOrigin = tree?.Root.Members
+            .OfType<LayoutDeclarationSyntax>()
+            .Any(layout => layout.Origin is null
+                && offset >= layout.Identifier.Position + layout.Identifier.Text.Length
+                && offset <= layout.Identifier.Position + layout.Identifier.Text.Length + 1) == true;
+        if (parserRecognizesMissingOrigin) return true;
+
+        string prefix = text[..Math.Clamp(offset, 0, text.Length)];
+        return System.Text.RegularExpressions.Regex.IsMatch(
+            prefix,
+            @"\blayout\s+(?:(?:page)\s+)?[A-Za-z_][A-Za-z0-9_]*\s*$");
+    }
+
+    private static string DescribeLayout(LayoutSymbol layout)
+    {
+        BoundLayoutDeclaration bound = layout.BoundLayout!;
+        string width = DescribeDimension(bound.Root.Dimensions.GetValueOrDefault("width"));
+        string height = DescribeDimension(bound.Root.Dimensions.GetValueOrDefault("height"));
+        return "layout " + (layout.Profile is null ? string.Empty : layout.Profile + " ") + layout.Name
+            + "\norigin: (" + DescribeCoordinate(bound.Origin.X) + ", " + DescribeCoordinate(bound.Origin.Y) + ")"
+            + "\nsize: " + width + " × " + height;
+    }
+
+    private static string DescribeDimension(BoundLayoutDimension? dimension)
+        => dimension is { Kind: LayoutDimensionKind.Fixed, Length: MachinaLength length }
+            ? length.Describe("host axis")
+            : dimension?.Kind.ToString().ToLowerInvariant() ?? "unspecified";
+
+    private static string DescribeCoordinate(BoundLayoutCoordinate coordinate)
+        => coordinate.Value.ToString("0.################", System.Globalization.CultureInfo.InvariantCulture)
+            + (coordinate.Unit == LayoutCoordinateUnit.Px ? "px" : "ui");
 
     private string? DescribeClrType(string name)
     {

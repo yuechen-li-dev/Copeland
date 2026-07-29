@@ -1,3 +1,6 @@
+using Copeland.TS.MachinaSource;
+using Copeland.TS.Syntax;
+
 namespace Copeland.TS.Semantics;
 
 public abstract class Symbol(string name)
@@ -65,6 +68,30 @@ public sealed class TemplateSymbol(
     public TypeSymbol ReturnType { get; } = returnType;
     public string StableIdentity { get; } = stableIdentity;
     public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
+}
+
+/// <summary>
+/// A normal module declaration for compiler-known immutable layout data. It is
+/// intentionally not a callable or runtime value symbol.
+/// </summary>
+public sealed class LayoutSymbol(
+    string name,
+    string stableIdentity,
+    string? profile,
+    LayoutDeclarationSyntax declaration) : Symbol(name)
+{
+    public string StableIdentity { get; } = stableIdentity;
+    public string? Profile { get; } = profile;
+    public LayoutDeclarationSyntax Declaration { get; } = declaration;
+    public BoundLayoutDeclaration? BoundLayout { get; internal set; }
+    public IReadOnlyDictionary<string, LayoutSlotSymbol> Slots { get; internal set; } = new Dictionary<string, LayoutSlotSymbol>(StringComparer.Ordinal);
+}
+
+/// <summary>Stable authored slot identity within one resolved layout symbol.</summary>
+public sealed class LayoutSlotSymbol(string name, LayoutSymbol layout, string semanticPath) : Symbol(name)
+{
+    public LayoutSymbol Layout { get; } = layout;
+    public string SemanticPath { get; } = semanticPath;
 }
 
 public sealed class NpmFunctionSymbol : Symbol

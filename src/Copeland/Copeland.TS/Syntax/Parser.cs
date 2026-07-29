@@ -153,6 +153,10 @@ public sealed class Parser
             var constKeyword = Match(SyntaxKind.ConstKeyword);
             return ParseRecordDeclaration(constKeyword);
         }
+        if (Current.Kind == SyntaxKind.LayoutKeyword)
+        {
+            return ParseLayoutDeclaration();
+        }
         if (Current.Kind == SyntaxKind.TemplateKeyword)
         {
             return ParseTemplateDeclaration();
@@ -190,7 +194,7 @@ public sealed class Parser
     private bool IsExportableDeclarationAhead()
     {
         SyntaxToken next = Peek(1);
-        return next.Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword or SyntaxKind.TemplateKeyword
+        return next.Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword or SyntaxKind.LayoutKeyword or SyntaxKind.TemplateKeyword
             || IsWord(next, "type")
             || IsWord(next, "interface")
             || IsWord(next, "flow")
@@ -726,6 +730,164 @@ public sealed class Parser
         TypeSyntax? returnType = returnTypeColon is null ? null : ParseTypeSyntax();
         BlockStatementSyntax body = ParseBlockStatement();
         return new TemplateDeclarationSyntax(templateKeyword, identifier, lessToken, typeParameters, typeParameterCommas, greaterToken, openParen, parameters, commas, closeParen, returnTypeColon, returnType, body);
+    }
+
+    private LayoutDeclarationSyntax ParseLayoutDeclaration()
+    {
+        SyntaxToken layoutKeyword = Match(SyntaxKind.LayoutKeyword);
+        SyntaxToken? profile = null;
+        if (IsLayoutNameToken(Current) && IsLayoutNameToken(Peek(1)))
+        {
+            profile = NextToken();
+        }
+
+        SyntaxToken identifier = MatchLayoutName();
+        LayoutOriginSyntax? origin = ParseLayoutOrigin(identifier);
+        SyntaxToken? equalsToken = null;
+        SyntaxToken? composedLayout = null;
+        SyntaxToken? withKeyword = null;
+        var compositionProperties = new List<LayoutPropertySyntax>();
+        if (Current.Kind == SyntaxKind.EqualsToken)
+        {
+            equalsToken = NextToken();
+            composedLayout = MatchLayoutName();
+            if (Current.Kind == SyntaxKind.WithKeyword)
+            {
+                withKeyword = NextToken();
+                SyntaxToken compositionOpen = Match(SyntaxKind.OpenBraceToken);
+                compositionProperties = ParseLayoutPropertiesUntilCloseBrace();
+                _ = Match(SyntaxKind.CloseBraceToken);
+            }
+            if (Current.Kind == SyntaxKind.SemicolonToken) _ = NextToken();
+            return new LayoutDeclarationSyntax(layoutKeyword, profile, identifier, origin, equalsToken, composedLayout, withKeyword, compositionProperties, MissingToken(SyntaxKind.OpenBraceToken, Current.Position), [], [], MissingToken(SyntaxKind.CloseBraceToken, Current.Position));
+        }
+
+        SyntaxToken openBraceToken = Match(SyntaxKind.OpenBraceToken);
+        var properties = new List<LayoutPropertySyntax>();
+        var nodes = new List<LayoutNodeSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            if (IsLayoutNodeKind(Current)) nodes.Add(ParseLayoutNode());
+            else if (IsLayoutNameToken(Current)) properties.Add(ParseLayoutProperty());
+            else { ReportUnexpectedToken(Current); NextToken(); }
+            if (Current == start) NextToken();
+        }
+
+        return new LayoutDeclarationSyntax(layoutKeyword, profile, identifier, origin, null, null, null, [], openBraceToken, properties, nodes, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private LayoutOriginSyntax? ParseLayoutOrigin(SyntaxToken identifier)
+    {
+        if (Current.Kind != SyntaxKind.LessToken)
+        {
+            _diagnostics.Report(
+                "COPE-LAYOUT-ORIGIN-0001",
+                $"Layout '{identifier.Text}' must declare an origin. Use: layout {identifier.Text}<0px, 0px> {{ ... }}",
+                identifier.Position,
+                Math.Max(1, identifier.Text.Length));
+            return null;
+        }
+
+        SyntaxToken lessToken = NextToken();
+        ExpressionSyntax x = ParseLayoutCoordinateExpression();
+        SyntaxToken commaToken;
+        if (Current.Kind == SyntaxKind.CommaToken)
+        {
+            commaToken = NextToken();
+        }
+        else
+        {
+            _diagnostics.Report("COPE-LAYOUT-ORIGIN-0002", "A layout origin must use the coordinate pair '<x, y>'.", Current.Position, Math.Max(1, Current.Text.Length));
+            commaToken = MissingToken(SyntaxKind.CommaToken, Current.Position);
+        }
+        ExpressionSyntax y = ParseLayoutCoordinateExpression();
+        SyntaxToken greaterToken;
+        if (Current.Kind == SyntaxKind.GreaterToken)
+        {
+            greaterToken = NextToken();
+        }
+        else
+        {
+            _diagnostics.Report("COPE-LAYOUT-ORIGIN-0002", "A layout origin must end with '>'.", Current.Position, Math.Max(1, Current.Text.Length));
+            greaterToken = MissingToken(SyntaxKind.GreaterToken, Current.Position);
+        }
+        return new LayoutOriginSyntax(lessToken, x, commaToken, y, greaterToken);
+    }
+
+    private ExpressionSyntax ParseLayoutCoordinateExpression()
+    {
+        if (Current.Kind == SyntaxKind.MinusToken)
+        {
+            SyntaxToken minusToken = NextToken();
+            return new UnaryExpressionSyntax(minusToken, ParseLayoutCoordinateExpression());
+        }
+
+        if (Current.Kind is SyntaxKind.NumberToken or SyntaxKind.IdentifierToken)
+        {
+            return ParsePrimaryExpression();
+        }
+
+        _diagnostics.Report("COPE-LAYOUT-ORIGIN-0002", "A layout origin coordinate requires a signed px or ui literal.", Current.Position, Math.Max(1, Current.Text.Length));
+        return new MissingExpressionSyntax(MissingToken(SyntaxKind.NumberToken, Current.Position));
+    }
+
+    private LayoutNodeSyntax ParseLayoutNode()
+    {
+        SyntaxToken kind = NextToken();
+        SyntaxToken identifier = MatchLayoutName();
+        if (Current.Kind == SyntaxKind.SemicolonToken)
+        {
+            return new LayoutNodeSyntax(kind, identifier, NextToken(), null, [], [], null);
+        }
+
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var properties = new List<LayoutPropertySyntax>();
+        var children = new List<LayoutNodeSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            if (IsLayoutNodeKind(Current)) children.Add(ParseLayoutNode());
+            else if (IsLayoutNameToken(Current)) properties.Add(ParseLayoutProperty());
+            else { ReportUnexpectedToken(Current); NextToken(); }
+            if (Current == start) NextToken();
+        }
+        return new LayoutNodeSyntax(kind, identifier, null, openBrace, properties, children, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private List<LayoutPropertySyntax> ParseLayoutPropertiesUntilCloseBrace()
+    {
+        var properties = new List<LayoutPropertySyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            if (IsLayoutNameToken(Current)) properties.Add(ParseLayoutProperty());
+            else { ReportUnexpectedToken(Current); NextToken(); }
+            if (Current == start) NextToken();
+        }
+        return properties;
+    }
+
+    private LayoutPropertySyntax ParseLayoutProperty()
+    {
+        SyntaxToken identifier = NextToken();
+        SyntaxToken colon = Match(SyntaxKind.ColonToken);
+        ExpressionSyntax value = Current.Kind is SyntaxKind.SemicolonToken or SyntaxKind.CloseBraceToken
+            ? new MissingExpressionSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position))
+            : ParseExpression();
+        return new LayoutPropertySyntax(identifier, colon, value, Match(SyntaxKind.SemicolonToken));
+    }
+
+    private static bool IsLayoutNodeKind(SyntaxToken token)
+        => token.Text is "row" or "column" or "grid" or "anchor" or "overlay" or "slot";
+
+    private static bool IsLayoutNameToken(SyntaxToken token)
+        => token.Kind is SyntaxKind.IdentifierToken or SyntaxKind.TableKeyword or SyntaxKind.ColumnKeyword;
+
+    private SyntaxToken MatchLayoutName()
+    {
+        if (IsLayoutNameToken(Current)) return NextToken();
+        return Match(SyntaxKind.IdentifierToken);
     }
 
     private bool IsFunctionDeclarationAhead(int offset)

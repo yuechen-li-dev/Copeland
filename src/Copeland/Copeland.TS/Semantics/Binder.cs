@@ -1,4 +1,5 @@
 using Copeland.TS.Diagnostics;
+using Copeland.TS.MachinaSource;
 using Copeland.TS.Compiler;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
@@ -123,6 +124,8 @@ public static class Binder
         private readonly List<BoundTableDefinition> _tables = [];
         private readonly List<BoundFlowDefinition> _flows = [];
         private readonly List<BoundTemplateDeclaration> _templates = [];
+        private readonly List<BoundLayoutDeclaration> _layouts = [];
+        private readonly Dictionary<string, LayoutSymbol> _layoutSymbols = new(StringComparer.Ordinal);
         private readonly List<BoundStatement> _globals = [];
         private readonly List<BoundNpmImport> _npmImports = [];
         private readonly List<BoundNpmComponentImport> _npmComponentImports = [];
@@ -188,6 +191,7 @@ public static class Binder
             PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
             PredeclareNominalUnions(_tree.Root);
+            PredeclareLayouts(_tree.Root);
             ResolveAliases();
             BindInterfaceBodies(_tree.Root);
             PredeclareFunctions(_tree.Root);
@@ -203,6 +207,7 @@ public static class Binder
             BindNominalUnionBodies(_tree.Root);
             BindTableBodies(_tree.Root);
             BindTemplatePlans();
+            BindLayouts();
             BindFlows(_tree.Root);
             ValidateRecordCycles();
             foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0))
@@ -254,7 +259,8 @@ public static class Binder
                     _clrNamespaces.OrderBy(name => name, StringComparer.Ordinal).ToArray(),
                     _sourcePath,
                     _flows,
-                    _templates),
+                    _templates,
+                    _layouts),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray(),
                 CreateModuleScope());
         }
@@ -1676,6 +1682,53 @@ public static class Binder
                         foreach (var nested in EnumerateContainedRecordTypes(payloadType, visited)) yield return nested;
                     }
                     break;
+            }
+        }
+
+        private void PredeclareLayouts(CompilationUnitSyntax root)
+        {
+            foreach (LayoutDeclarationSyntax declaration in root.Members.OfType<LayoutDeclarationSyntax>())
+            {
+                string identity = (_moduleIdentity ?? _sourcePath ?? "<standalone>") + "::layout::" + declaration.Identifier.Text;
+                var symbol = new LayoutSymbol(declaration.Identifier.Text, identity, declaration.Profile?.Text, declaration);
+                if (!_global.TryDeclare(symbol))
+                {
+                    Report("COPE-LAYOUT-DECLARATION-0001", $"Duplicate declaration '{symbol.Name}'.", declaration.Identifier);
+                    continue;
+                }
+                _layoutSymbols.Add(symbol.Name, symbol);
+            }
+        }
+
+        private void BindLayouts()
+        {
+            if (_layoutSymbols.Count == 0) return;
+            var imported = new Dictionary<string, BoundLayoutDeclaration>(StringComparer.Ordinal);
+            if (_imports is not null)
+            {
+                foreach ((string localName, Symbol symbol) in _imports.Declarations)
+                {
+                    if (symbol is LayoutSymbol { BoundLayout: not null } layout)
+                    {
+                        imported.Add(localName, layout.BoundLayout);
+                    }
+                }
+            }
+
+            LayoutDataCompilation compilation = LayoutDataCompiler.Bind(_tree, _sourcePath ?? "<memory>", imported);
+            foreach (Diagnostic diagnostic in compilation.Diagnostics.Where(diagnostic => diagnostic.Id.StartsWith("COPE-LAYOUT-", StringComparison.Ordinal)))
+            {
+                _diagnostics.Report(diagnostic.Id, diagnostic.Message, diagnostic.Position, diagnostic.Length);
+            }
+            foreach ((string name, LayoutSymbol symbol) in _layoutSymbols)
+            {
+                if (!compilation.Layouts.TryGetValue(name, out BoundLayoutDeclaration? bound)) continue;
+                symbol.BoundLayout = bound;
+                NormalizedLayoutGraph graph = LayoutDataCompiler.Normalize(bound);
+                symbol.Slots = graph.SlotIdentities
+                    .OrderBy(pair => pair.Value, StringComparer.Ordinal)
+                    .ToDictionary(pair => pair.Key, pair => new LayoutSlotSymbol(pair.Key, symbol, pair.Value), StringComparer.Ordinal);
+                _layouts.Add(bound);
             }
         }
 

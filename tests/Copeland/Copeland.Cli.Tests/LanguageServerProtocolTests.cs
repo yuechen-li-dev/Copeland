@@ -92,11 +92,34 @@ public sealed class LanguageServerProtocolTests
         JsonElement npmDefinition = client.Request(5, "textDocument/definition", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = appText.LastIndexOf("transform", StringComparison.Ordinal) + 1 } });
         Assert.Equal(new Uri(npmContractPath).AbsoluteUri, npmDefinition.GetProperty("uri").GetString());
 
-        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 2 }, contentChanges = new[] { new { text = "import { Score } from \"./Library\"; function Main(): number { return ; }" } } });
+        const string layoutText = "layout Shell<12px, 8px> { width: 320px; height: 160px; slot content { frame: { x: 0px, y: 0px, width: 320px, height: 160px }; } }";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 2 }, contentChanges = new[] { new { text = layoutText } } });
+        JsonElement layoutDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Empty(layoutDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+
+        JsonElement layoutHover = client.Request(6, "textDocument/hover", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = layoutText.IndexOf("Shell", StringComparison.Ordinal) + 1 } });
+        Assert.Contains("origin: (12px, 8px)", layoutHover.GetProperty("contents").GetProperty("value").GetString());
+
+        JsonElement layoutTokens = client.Request(7, "textDocument/semanticTokens/full", new { textDocument = new { uri = sourceUri } });
+        Assert.NotEmpty(layoutTokens.GetProperty("data").EnumerateArray());
+
+        const string missingOrigin = "layout Draft";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 3 }, contentChanges = new[] { new { text = missingOrigin } } });
+        JsonElement missingOriginDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Contains(missingOriginDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "COPE-LAYOUT-ORIGIN-0001");
+
+        JsonElement originCompletion = client.Request(8, "textDocument/completion", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = missingOrigin.Length } });
+        Assert.Contains(originCompletion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "<0px, 0px>");
+
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 4 }, contentChanges = new[] { new { text = layoutText } } });
+        JsonElement clearedOriginDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Empty(clearedOriginDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 5 }, contentChanges = new[] { new { text = "import { Score } from \"./Library\"; function Main(): number { return ; }" } } });
         JsonElement changedDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.NotEmpty(changedDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 
-        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 3 }, contentChanges = new[] { new { text = "function Main(" } } });
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 6 }, contentChanges = new[] { new { text = "function Main(" } } });
         JsonElement syntaxDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.NotEmpty(syntaxDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 

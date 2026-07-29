@@ -168,13 +168,14 @@ internal static class TsclBuildContract
             return TsclBuildResult.FromDiagnostics(compilation.Diagnostics, sources);
         }
 
-        JavaScriptProjectCompilation emission = JavaScriptProjectEmitter.Emit(
+        JavaScriptProjectCompilation baseEmission = JavaScriptProjectEmitter.Emit(
             compilation.MirProjectGraph!,
             new JavaScriptEmissionOptions
             {
                 Profile = JavaScriptEmissionProfile.Production,
                 RuntimeTarget = runtimeTarget,
             });
+        JavaScriptProjectCompilation emission = LayoutJavaScriptProjectEmitter.AddLayouts(baseEmission, compilation.Modules);
         if (!emission.Success)
         {
             return TsclBuildResult.FromJavaScriptDiagnostics(emission.Diagnostics);
@@ -195,7 +196,7 @@ internal static class TsclBuildContract
                 stagingDirectory,
                 entryOutput,
                 request.JavaScriptRuntime == "browser"
-                    ? CreateBrowserEntryLauncher(entryModuleOutput, request.Entry.Export)
+                    ? CreateBrowserEntryLauncher(entryModuleOutput, request.Entry.Export, emission.Files.ContainsKey("generated/layouts.css"))
                     : CreateNodeEntryLauncher(entryModuleOutput, request.Entry.Export));
             if (request.JavaScriptRuntime == "node")
             {
@@ -238,10 +239,11 @@ internal static class TsclBuildContract
             "if (__cope_result !== undefined) {\n    console.log(__cope_result);\n}\n";
     }
 
-    private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport)
+    private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport, bool hasLayouts)
     {
         string specifier = "./" + entryModuleOutput.Replace('\\', '/');
-        return $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
+        string cssImport = hasLayouts ? "import \"./generated/layouts.css\";\n" : string.Empty;
+        return cssImport + $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
             $"await {entryExport}();\n";
     }
 
