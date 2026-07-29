@@ -323,7 +323,7 @@ public static class MachinaSourceCompiler
         {
             if (expression is not CallExpressionSyntax call || CallName(call) is not string name)
             {
-                Report("COPE-MACHINA-TRACK-0001", "Track must be Fixed(length) or Fill(weight?).", expression);
+                Report("COPE-MACHINA-TRACK-0001", "Track must be Fixed(length), Fill(weight?), or Content().", expression);
                 return null;
             }
             if (name == "Fixed" && RequireArgumentCount(call, 1, name))
@@ -337,7 +337,11 @@ public static class MachinaSourceCompiler
                 try { return MachinaFactory.Fill(weight); }
                 catch (MachinaLayoutException exception) { Report(exception.Code, exception.Message, call); return null; }
             }
-            Report("COPE-MACHINA-TRACK-0002", "Track must be Fixed(length) or Fill(weight?).", call);
+            if (name == "Content" && RequireArgumentCount(call, 0, name))
+            {
+                return MachinaFactory.Content();
+            }
+            Report("COPE-MACHINA-TRACK-0002", "Track must be Fixed(length), Fill(weight?), or Content().", call);
             return null;
         }
 

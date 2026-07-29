@@ -274,7 +274,8 @@ public sealed record MachinaResolvedNode(
     MachinaRect Frame,
     MachinaView Authored,
     IReadOnlyList<string> GeometryExplanation,
-    MachinaMeasurementDependency? MeasurementDependency);
+    MachinaMeasurementDependency? MeasurementDependency,
+    bool ChildrenFlowLaidOut = false);
 
 public sealed class MachinaResolvedDocument(
     IReadOnlyList<MachinaResolvedNode> nodes,
@@ -338,7 +339,9 @@ public static class MachinaLayoutResolver
         MachinaMeasurementDependency? measurement = node.Kind == MachinaViewKind.Text && node.RequiresTextMeasurement
             ? MachinaMeasurementDependency.TextWrap
             : null;
-        nodes.Add(new MachinaResolvedNode(identity, parentIdentity, node.Kind, offsetFrame, node, explanation, measurement));
+        bool childrenFlowLaidOut = node.Stack is not null
+            && node.Children.Any(child => child.MainTrack is MachinaContentTrack);
+        nodes.Add(new MachinaResolvedNode(identity, parentIdentity, node.Kind, offsetFrame, node, explanation, measurement, childrenFlowLaidOut));
 
         if (node.Stack is not null)
         {
@@ -365,6 +368,36 @@ public static class MachinaLayoutResolver
         if (gap < 0)
         {
             throw new MachinaLayoutException("COPE-MACHINA-STACK-0002", "A stack gap must resolve to a non-negative value.");
+        }
+
+        if (parent.Children.Any(child => child.MainTrack is MachinaContentTrack))
+        {
+            // A Content() track means the true main-axis size is only known once
+            // the browser measures real text. The compiler cannot compute exact
+            // cursor/width math for this stack's children, so it deliberately
+            // stops trying: every direct child is handed to the browser as a
+            // real flex item (see ChildrenFlowLaidOut in the lowerers) instead
+            // of a compiler-computed absolute pixel box.
+            for (int flowIndex = 0; flowIndex < parent.Children.Count; flowIndex++)
+            {
+                MachinaView flowChild = parent.Children[flowIndex];
+                if (flowChild.MainTrack is null)
+                {
+                    throw new MachinaLayoutException(
+                        "COPE-MACHINA-STACK-0003",
+                        $"Stack child {flowIndex.ToString(CultureInfo.InvariantCulture)} requires an explicit main-axis Fixed, Fill, or Content track.");
+                }
+
+                string flowChildIdentity = parentIdentity + "/" + flowIndex.ToString(CultureInfo.InvariantCulture);
+                var flowExplanation = new List<string>
+                {
+                    $"stack axis = {stack.Axis}",
+                    "flow-laid out: this stack contains a Content() track, so the browser resolves real geometry for every direct child at runtime.",
+                };
+                ResolveNode(flowChild, flowChildIdentity, parentIdentity, parentFrame, content, nodes, flowExplanation);
+            }
+
+            return;
         }
 
         var mainSizes = new double[parent.Children.Count];
@@ -744,6 +777,12 @@ public static class MachinaBrowserLowerer
         string frameClass,
         StringBuilder css)
     {
+        if (parent is not null && parent.ChildrenFlowLaidOut)
+        {
+            WriteReactFlowChildRule(node, parent, frameClass, css);
+            return;
+        }
+
         double left = parent is null ? node.Frame.X : node.Frame.X - parent.Frame.X;
         double top = parent is null ? node.Frame.Y : node.Frame.Y - parent.Frame.Y;
         css.Append('.').Append(frameClass).Append(" {\n  position: ").Append(parent is null ? "relative" : "absolute").Append(";\n");
@@ -754,8 +793,60 @@ public static class MachinaBrowserLowerer
         }
         css.Append("  width: ").Append(MachinaLength.Format(node.Frame.Width)).Append("px;\n")
             .Append("  height: ").Append(MachinaLength.Format(node.Frame.Height)).Append("px;\n")
-            .Append("  box-sizing: border-box;\n}\n\n");
+            .Append("  box-sizing: border-box;\n");
+        if (node.ChildrenFlowLaidOut)
+        {
+            AppendFlowContainerDeclarations(node, css);
+        }
+        css.Append("}\n\n");
     }
+
+    /// <summary>
+    /// A child of a flow-laid-out stack gets no compiler-computed position at
+    /// all: the browser measures and places it, same as ordinary flex-item
+    /// content. This is the offload MeasurementDependency/RequiresTextMeasurement
+    /// were scaffolded for; it was previously recorded but never lowered.
+    /// </summary>
+    private static void WriteReactFlowChildRule(
+        MachinaResolvedNode node,
+        MachinaResolvedNode parent,
+        string frameClass,
+        StringBuilder css)
+    {
+        bool horizontal = parent.Authored.Stack!.Axis == MachinaAxis.Horizontal;
+        css.Append('.').Append(frameClass).Append(" {\n  box-sizing: border-box;\n");
+        css.Append("  flex: ").Append(FlexShorthand(node.Authored.MainTrack)).Append(";\n");
+        if (node.Authored.CrossTrack is MachinaFixedTrack fixedCross)
+        {
+            string crossProperty = horizontal ? "height" : "width";
+            css.Append("  ").Append(crossProperty).Append(": ")
+                .Append(ToStaticCssLength(fixedCross.Size, "cross track")).Append(";\n");
+        }
+        if (node.ChildrenFlowLaidOut)
+        {
+            AppendFlowContainerDeclarations(node, css);
+        }
+        css.Append("}\n\n");
+    }
+
+    private static void AppendFlowContainerDeclarations(MachinaResolvedNode node, StringBuilder css)
+    {
+        MachinaStackOptions stack = node.Authored.Stack!;
+        bool horizontal = stack.Axis == MachinaAxis.Horizontal;
+        css.Append("  display: flex;\n")
+            .Append("  flex-direction: ").Append(horizontal ? "row" : "column").Append(";\n")
+            .Append("  flex-wrap: wrap;\n")
+            .Append("  gap: ").Append(ToStaticCssLength(stack.Gap, "stack.gap")).Append(";\n");
+    }
+
+    private static string FlexShorthand(MachinaTrack? track) => track switch
+    {
+        MachinaFixedTrack fixedTrack => "0 0 " + ToStaticCssLength(fixedTrack.Size, "fixed track"),
+        MachinaFillTrack fillTrack => FormattableString.Invariant($"{fillTrack.Weight} 1 0%"),
+        MachinaContentTrack => "0 0 auto",
+        null => throw new MachinaLayoutException("COPE-MACHINA-STACK-0003", "A flow-laid-out stack child requires an explicit main-axis Fixed, Fill, or Content track."),
+        _ => throw new UnreachableException(),
+    };
 
     private static Dictionary<MachinaStyle, string> BuildStyleClasses(IReadOnlyList<MachinaResolvedNode> nodes)
     {
@@ -802,6 +893,12 @@ public static class MachinaBrowserLowerer
         }
         html.Append("</").Append(tag).Append('>');
 
+        if (parent is not null && parent.ChildrenFlowLaidOut)
+        {
+            WriteReactFlowChildRule(node, parent, frameClass, css);
+            return;
+        }
+
         double left = parent is null ? node.Frame.X : node.Frame.X - parent.Frame.X;
         double top = parent is null ? node.Frame.Y : node.Frame.Y - parent.Frame.Y;
         css.Append('.').Append(frameClass).Append(" {\n  position: ").Append(parent is null ? "relative" : "absolute").Append(";\n");
@@ -812,7 +909,12 @@ public static class MachinaBrowserLowerer
         }
         css.Append("  width: ").Append(MachinaLength.Format(node.Frame.Width)).Append("px;\n")
             .Append("  height: ").Append(MachinaLength.Format(node.Frame.Height)).Append("px;\n")
-            .Append("  box-sizing: border-box;\n}\n\n");
+            .Append("  box-sizing: border-box;\n");
+        if (node.ChildrenFlowLaidOut)
+        {
+            AppendFlowContainerDeclarations(node, css);
+        }
+        css.Append("}\n\n");
     }
 
     private static string CanonicalStyle(MachinaStyle style)
