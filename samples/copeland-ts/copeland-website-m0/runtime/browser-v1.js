@@ -19,10 +19,39 @@ export function dispatchReact(initialState, reduce, render) {
 }
 
 export function copyText(text, onSuccess, onFailure) {
-  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
-    onFailure();
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    navigator.clipboard.writeText(text).then(onSuccess, () => copyTextWithDocument(text, onSuccess, onFailure));
     return;
   }
 
-  navigator.clipboard.writeText(text).then(onSuccess, onFailure);
+  copyTextWithDocument(text, onSuccess, onFailure);
+}
+
+function copyTextWithDocument(text, onSuccess, onFailure) {
+  const element = document.createElement("textarea");
+  element.value = text;
+  element.setAttribute("readonly", "");
+  element.style.position = "fixed";
+  element.style.opacity = "0";
+  document.body.appendChild(element);
+  element.select();
+
+  const copied = document.execCommand("copy");
+  element.remove();
+  if (copied) onSuccess();
+  else onFailure();
+}
+
+export function getViewportWidth() {
+  return window.innerWidth;
+}
+
+export function subscribeViewport(onChange) {
+  window.addEventListener("resize", onChange, { passive: true });
+  window.addEventListener("orientationchange", onChange, { passive: true });
+
+  return () => {
+    window.removeEventListener("resize", onChange);
+    window.removeEventListener("orientationchange", onChange);
+  };
 }

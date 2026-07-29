@@ -1,0 +1,79 @@
+{
+  "artifactDirectory": "../artifacts/cts-machina-layout-profiles-m1",
+  "scenarios": [
+    {
+      "name": "desktop",
+      "viewport": { "width": 1440, "height": 900 },
+      "assertions": [
+        { "kind": "visible", "selector": ".desktop-sidebar" },
+        { "kind": "hidden", "selector": ".mobile-header" },
+        { "kind": "visible", "selector": ".desktop-hero h1" },
+        { "kind": "count", "selector": ".desktop-site .feature-card", "value": 4 },
+        { "kind": "no-horizontal-overflow" }
+      ],
+      "steps": [
+        { "kind": "press", "key": "Tab" },
+        { "kind": "check", "check": { "kind": "focused", "selector": ".desktop-sidebar .brand" } },
+        { "kind": "click", "selector": ".desktop-site .primary-command button" },
+        { "kind": "check", "check": { "kind": "text", "selector": ".desktop-site .primary-command button", "value": "Primary command copied" } }
+      ],
+      "screenshot": "desktop-1440x900.png"
+    },
+    {
+      "name": "tablet",
+      "viewport": { "width": 768, "height": 1024 },
+      "assertions": [
+        { "kind": "visible", "selector": ".tablet-header" },
+        { "kind": "hidden", "selector": ".desktop-sidebar" },
+        { "kind": "visible", "selector": ".tablet-hero" },
+        { "kind": "count", "selector": ".tablet-site .feature-card", "value": 4 },
+        { "kind": "no-horizontal-overflow" }
+      ],
+      "steps": [
+        { "kind": "click", "selector": ".tablet-site .command-card:not(.primary-command) button" },
+        { "kind": "check", "check": { "kind": "text", "selector": ".tablet-site .command-card:not(.primary-command) button", "value": "Secondary command copied" } }
+      ],
+      "screenshot": "tablet-768x1024.png"
+    },
+    {
+      "name": "mobile",
+      "viewport": { "width": 390, "height": 844 },
+      "reducedMotion": "reduce",
+      "assertions": [
+        { "kind": "visible", "selector": ".mobile-header" },
+        { "kind": "hidden", "selector": ".desktop-sidebar" },
+        { "kind": "count", "selector": ".mobile-site .feature-card", "value": 4 },
+        { "kind": "count", "selector": ".mobile-command-stack .command-card", "value": 2 },
+        { "kind": "no-horizontal-overflow" },
+        { "kind": "reduced-motion" }
+      ],
+      "steps": [
+        { "kind": "click", "selector": ".menu-button" },
+        { "kind": "check", "check": { "kind": "visible", "selector": ".mobile-navigation-open" } },
+        { "kind": "click", "selector": ".mobile-navigation-open a:first-child" },
+        { "kind": "check", "check": { "kind": "hidden", "selector": ".mobile-navigation-open" } }
+      ],
+      "screenshot": "mobile-390x844.png"
+    },
+    {
+      "name": "boundary-mobile-599",
+      "viewport": { "width": 599, "height": 844 },
+      "assertions": [ { "kind": "visible", "selector": ".mobile-site" } ]
+    },
+    {
+      "name": "boundary-tablet-600",
+      "viewport": { "width": 600, "height": 1024 },
+      "assertions": [ { "kind": "visible", "selector": ".tablet-site" } ]
+    },
+    {
+      "name": "boundary-tablet-1023",
+      "viewport": { "width": 1023, "height": 900 },
+      "assertions": [ { "kind": "visible", "selector": ".tablet-site" } ]
+    },
+    {
+      "name": "boundary-desktop-1024",
+      "viewport": { "width": 1024, "height": 800 },
+      "assertions": [ { "kind": "visible", "selector": ".desktop-site" } ]
+    }
+  ]
+}

@@ -34,6 +34,7 @@ dist/
 # DLL ignore: checked-in binary fixtures must remain visible for review.
 publish-modules-m1/
 samples/copeland-ts/authoring-food/publish*/
+samples/copeland-ts/copeland-website-m0/artifacts/
 
 # Standalone-web stages the current tscl payload here for TSPack. It is rebuilt
 # from the project reference on every declared generation path.

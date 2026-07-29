@@ -199,6 +199,31 @@ public sealed class MachinaLayoutM1Tests
         Assert.DoesNotContain("display: grid", first.Css, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Named_react_artifacts_have_stable_non_colliding_frame_classes()
+    {
+        MachinaView document = Machina.Root(
+        [
+            Machina.Container(
+                [],
+                Machina.Absolute(
+                    MachinaLength.Pixels(0),
+                    MachinaLength.Pixels(0),
+                    MachinaLength.Pixels(100),
+                    MachinaLength.Pixels(50))),
+        ]);
+
+        MachinaResolvedDocument resolved = MachinaLayoutResolver.Resolve(document, new MachinaRect(0, 0, 100, 50));
+        MachinaReactArtifact desktop = MachinaBrowserLowerer.LowerForReact(resolved, "desktop");
+        MachinaReactArtifact tablet = MachinaBrowserLowerer.LowerForReact(resolved, "tablet");
+
+        Assert.Contains("m-frame-desktop-root", desktop.ClassesByIdentity["root"], StringComparison.Ordinal);
+        Assert.Contains("m-frame-tablet-root", tablet.ClassesByIdentity["root"], StringComparison.Ordinal);
+        Assert.DoesNotContain("m-frame-tablet-root", desktop.Css, StringComparison.Ordinal);
+        Assert.DoesNotContain("m-frame-desktop-root", tablet.Css, StringComparison.Ordinal);
+        Assert.Equal(desktop.Css, MachinaBrowserLowerer.LowerForReact(resolved, "desktop").Css);
+    }
+
 
     [Fact]
     public void Ui_literal_range_is_checked_at_the_language_boundary()

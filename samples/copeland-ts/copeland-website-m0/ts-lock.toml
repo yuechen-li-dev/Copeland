@@ -41,7 +41,7 @@ Workspace = ''
 Hash = 'sha256:ab26ce35ce4032f04b78cfc5bbb4cfe13358e9fe7a5433a8aa6315c3debc5095'
 
 [[package]]
-ID = 'path:runtime#08f526fc489bcdf459e787892d25e4b52ae1fe65752b7d4868fe8930ff19808a'
+ID = 'path:runtime#a7d8ef26dc2e6d31425e932191cd44ca277ab218297e07c49c87e7a569051639'
 Name = '@copeland/browser-v1'
 Version = '0.1.0'
 Source = 'path'
@@ -51,7 +51,7 @@ Rev = ''
 TreeHash = ''
 Path = 'runtime'
 Workspace = ''
-Hash = 'sha256:08f526fc489bcdf459e787892d25e4b52ae1fe65752b7d4868fe8930ff19808a'
+Hash = 'sha256:a7d8ef26dc2e6d31425e932191cd44ca277ab218297e07c49c87e7a569051639'
 
 [[edge]]
 From = 'copeland-website-m0:target:browser'
@@ -67,7 +67,7 @@ Optional = false
 
 [[edge]]
 From = 'copeland-website-m0:target:browser'
-To = 'path:runtime#08f526fc489bcdf459e787892d25e4b52ae1fe65752b7d4868fe8930ff19808a'
+To = 'path:runtime#a7d8ef26dc2e6d31425e932191cd44ca277ab218297e07c49c87e7a569051639'
 Kind = 'runtime'
 Optional = false
 

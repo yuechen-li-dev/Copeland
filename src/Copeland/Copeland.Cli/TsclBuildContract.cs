@@ -293,6 +293,14 @@ internal static class TsclBuildContract
                         new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void),
                     ],
                     CopelandJavaScriptHostType.Void),
+                new CopelandJavaScriptHostFunctionContract(
+                    "getViewportWidth",
+                    [],
+                    CopelandJavaScriptHostType.Int),
+                new CopelandJavaScriptHostFunctionContract(
+                    "subscribeViewport",
+                    [new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)],
+                    new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)),
             ]);
     }
 
