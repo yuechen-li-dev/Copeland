@@ -1,4 +1,5 @@
 using Copeland.TS.Mir;
+using Copeland.TS.MachinaSource;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
@@ -34,7 +35,9 @@ public static class MirLowerer
         }).ToArray();
         var tables = program.Tables.Select(LowerTable).ToArray();
         var tsonEncodingPlans = program.TsonEncodingPlans.Select(LowerTsonEncodingPlan).ToArray();
-        var functions = program.Functions.Select(LowerFunction).ToArray();
+        var functions = program.Functions.Select(LowerFunction)
+            .Concat(program.LayoutBindings.Select(LowerLayoutBinding))
+            .ToArray();
         MirNpmImport[] npmImports = program.NpmImports.Select(import => new MirNpmImport(
             import.Function.PackageName,
             import.Function.PackageVersion,
@@ -250,6 +253,49 @@ public static class MirLowerer
             automaton,
             isRemote: function.Symbol.IsRemote);
     }
+
+    private static MirFunction LowerLayoutBinding(BoundLayoutBinding binding)
+    {
+        var entriesBySlot = binding.Entries.ToDictionary(entry => entry.Slot.Name, StringComparer.Ordinal);
+        MirExpression root = LowerLayoutHost(binding, binding.Realization.Root, entriesBySlot);
+        return new MirFunction(
+            binding.RuntimeFunction.EmissionName,
+            [],
+            ToMirType(ReactNodeTypeSymbol.Instance),
+            [],
+            [new MirReturnStatement(root)]);
+    }
+
+    private static MirExpression LowerLayoutHost(
+        BoundLayoutBinding binding,
+        BoundLayoutNode node,
+        IReadOnlyDictionary<string, BoundLayoutBindingEntry> entriesBySlot)
+    {
+        if (!binding.Realization.ClassesByNode.TryGetValue(node.Name, out string? className))
+        {
+            throw new InvalidOperationException($"Layout binding '{binding.Layout.Name}' has no generated class for realized node '{node.Name}'.");
+        }
+
+        BoundStreamCollection? collection = binding.Collections.FirstOrDefault(candidate => ReferenceEquals(candidate.Region, node));
+        IReadOnlyList<MirExpression> children = collection is not null
+            ? collection.Items.Select(LowerExpression).ToArray()
+            : node.Kind == LayoutNodeKind.Slot
+            ? [LowerExpression(entriesBySlot[node.Name].Component)]
+            : node.Children.Select(child => LowerLayoutHost(binding, child, entriesBySlot)).ToArray();
+        string hostClassName = collection is null
+            ? className
+            : className + " " + CollectionClassName(binding.Layout.Name, node.Name);
+        return new MirReactElementExpression(
+            binding.CreateElementBinding,
+            new MirLiteralExpression("div", new MirType("string")),
+            IsIntrinsic: true,
+            [new MirReactProperty("className", new MirLiteralExpression(hostClassName, new MirType("string")))],
+            children,
+            ToMirType(ReactNodeTypeSymbol.Instance));
+    }
+
+    private static string CollectionClassName(string layoutName, string regionName)
+        => "m-stream-collection-" + layoutName + "-" + regionName;
 
     /// <summary>
     /// Creates the backend-neutral control-flow skeleton used by the async

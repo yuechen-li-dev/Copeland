@@ -1,4 +1,5 @@
 using Copeland.TS.MachinaSource;
+using Copeland.TS.Mir.Machina;
 using Copeland.TS.Syntax;
 
 namespace Copeland.TS.Semantics;
@@ -78,20 +79,54 @@ public sealed class LayoutSymbol(
     string name,
     string stableIdentity,
     string? profile,
-    LayoutDeclarationSyntax declaration) : Symbol(name)
+    LayoutDeclarationSyntax? declaration) : Symbol(name)
 {
+    public LayoutSymbol(string name, string stableIdentity, StreamDeclarationSyntax stream)
+        : this(name, stableIdentity, null, null)
+    {
+        StreamDeclaration = stream;
+    }
+
     public string StableIdentity { get; } = stableIdentity;
     public string? Profile { get; } = profile;
-    public LayoutDeclarationSyntax Declaration { get; } = declaration;
+    public LayoutDeclarationSyntax? Declaration { get; } = declaration;
+    public StreamDeclarationSyntax? StreamDeclaration { get; }
     public BoundLayoutDeclaration? BoundLayout { get; internal set; }
     public IReadOnlyDictionary<string, LayoutSlotSymbol> Slots { get; internal set; } = new Dictionary<string, LayoutSlotSymbol>(StringComparer.Ordinal);
 }
 
+/// <summary>
+/// A compile-time-only spatial contract symbol. It is deliberately neither a
+/// runtime value nor an interface: conformance is exact topology checking.
+/// </summary>
+public sealed class LayoutTypeSymbol(
+    string name,
+    string stableIdentity,
+    LayoutTypeDeclarationSyntax? declaration) : Symbol(name)
+{
+    public LayoutTypeSymbol(string name, string stableIdentity, BoundLayoutTypeDeclaration boundLayoutType)
+        : this(name, stableIdentity, (LayoutTypeDeclarationSyntax?)null)
+    {
+        BoundLayoutType = boundLayoutType;
+    }
+    public string StableIdentity { get; } = stableIdentity;
+    public LayoutTypeDeclarationSyntax? Declaration { get; } = declaration;
+    public BoundLayoutTypeDeclaration? BoundLayoutType { get; internal set; }
+}
+
 /// <summary>Stable authored slot identity within one resolved layout symbol.</summary>
-public sealed class LayoutSlotSymbol(string name, LayoutSymbol layout, string semanticPath) : Symbol(name)
+public sealed class LayoutSlotSymbol(
+    string name,
+    LayoutSymbol layout,
+    string semanticPath,
+    LayoutNodeKind kind,
+    MachinaSourceSpan source) : Symbol(name)
 {
     public LayoutSymbol Layout { get; } = layout;
     public string SemanticPath { get; } = semanticPath;
+    public LayoutNodeKind Kind { get; } = kind;
+    public MachinaSourceSpan Source { get; } = source;
+    public bool IsBindable => Kind == LayoutNodeKind.Slot;
 }
 
 public sealed class NpmFunctionSymbol : Symbol

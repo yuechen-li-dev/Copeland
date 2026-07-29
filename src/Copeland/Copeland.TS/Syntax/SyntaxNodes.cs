@@ -618,6 +618,8 @@ public sealed record LayoutDeclarationSyntax(
     SyntaxToken? Profile,
     SyntaxToken Identifier,
     LayoutOriginSyntax? Origin,
+    SyntaxToken? SatisfiesKeyword,
+    SyntaxToken? ContractIdentifier,
     SyntaxToken? EqualsToken,
     SyntaxToken? ComposedLayout,
     SyntaxToken? WithKeyword,
@@ -635,6 +637,8 @@ public sealed record LayoutDeclarationSyntax(
         if (Profile is not null) yield return Profile;
         yield return Identifier;
         if (Origin is not null) yield return Origin;
+        if (SatisfiesKeyword is not null) yield return SatisfiesKeyword;
+        if (ContractIdentifier is not null) yield return ContractIdentifier;
         if (EqualsToken is not null) yield return EqualsToken;
         if (ComposedLayout is not null) yield return ComposedLayout;
         if (WithKeyword is not null) yield return WithKeyword;
@@ -643,6 +647,132 @@ public sealed record LayoutDeclarationSyntax(
         foreach (LayoutPropertySyntax property in Properties) yield return property;
         foreach (LayoutNodeSyntax node in Nodes) yield return node;
         yield return CloseBraceToken;
+    }
+}
+
+/// <summary>
+/// A finite compile-time spatial topology contract. It deliberately reuses the
+/// layout node grammar while excluding origins, geometry, and executable code.
+/// </summary>
+public sealed record LayoutTypeDeclarationSyntax(
+    SyntaxToken LayoutKeyword,
+    SyntaxToken TypeKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<LayoutNodeSyntax> Nodes,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.LayoutTypeDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return LayoutKeyword;
+        yield return TypeKeyword;
+        yield return Identifier;
+        yield return OpenBraceToken;
+        foreach (LayoutNodeSyntax node in Nodes) yield return node;
+        yield return CloseBraceToken;
+    }
+}
+
+/// <summary>
+/// Associates renderable component expressions with the authored slot names of
+/// one concrete layout. Binding has no geometry syntax: the layout remains the
+/// sole owner of spatial constraints.
+/// </summary>
+public sealed record LayoutBindingDeclarationSyntax(
+    SyntaxToken BindKeyword,
+    SyntaxToken LayoutIdentifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<LayoutBindingEntrySyntax> Entries,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.LayoutBindingDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return BindKeyword;
+        yield return LayoutIdentifier;
+        yield return OpenBraceToken;
+        foreach (LayoutBindingEntrySyntax entry in Entries) yield return entry;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record LayoutBindingEntrySyntax(
+    SyntaxToken SlotIdentifier,
+    SyntaxToken ColonToken,
+    ExpressionSyntax Value,
+    SyntaxToken? SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.LayoutBindingEntry;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return SlotIdentifier;
+        yield return ColonToken;
+        yield return Value;
+        if (SemicolonToken is not null) yield return SemicolonToken;
+    }
+}
+
+/// <summary>
+/// Ergonomic static layout composition. A stream is bound into the same
+/// immutable layout and exact singular binding concepts as explicit authoring.
+/// </summary>
+public sealed record StreamDeclarationSyntax(
+    SyntaxToken StreamKeyword,
+    SyntaxToken Identifier,
+    LayoutOriginSyntax? Origin,
+    SyntaxToken? SatisfiesKeyword,
+    SyntaxToken? ContractIdentifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<LayoutPropertySyntax> Properties,
+    IReadOnlyList<StreamNodeSyntax> Nodes,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.StreamDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return StreamKeyword;
+        yield return Identifier;
+        if (Origin is not null) yield return Origin;
+        if (SatisfiesKeyword is not null) yield return SatisfiesKeyword;
+        if (ContractIdentifier is not null) yield return ContractIdentifier;
+        yield return OpenBraceToken;
+        foreach (LayoutPropertySyntax property in Properties) yield return property;
+        foreach (StreamNodeSyntax node in Nodes) yield return node;
+        yield return CloseBraceToken;
+    }
+}
+
+/// <summary>
+/// A structural container has an explicit kind; an unkinded node is a singular
+/// content region and therefore synthesizes an exact slot.
+/// </summary>
+public sealed record StreamNodeSyntax(
+    SyntaxToken? KindToken,
+    SyntaxToken Identifier,
+    SyntaxToken? ColonToken,
+    ExpressionSyntax? Content,
+    SyntaxToken? OpenBraceToken,
+    IReadOnlyList<LayoutPropertySyntax> Properties,
+    IReadOnlyList<StreamNodeSyntax> Children,
+    SyntaxToken? CloseBraceToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.StreamNode;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        if (KindToken is not null) yield return KindToken;
+        yield return Identifier;
+        if (ColonToken is not null) yield return ColonToken;
+        if (Content is not null) yield return Content;
+        if (OpenBraceToken is not null) yield return OpenBraceToken;
+        foreach (LayoutPropertySyntax property in Properties) yield return property;
+        foreach (StreamNodeSyntax child in Children) yield return child;
+        if (CloseBraceToken is not null) yield return CloseBraceToken;
     }
 }
 

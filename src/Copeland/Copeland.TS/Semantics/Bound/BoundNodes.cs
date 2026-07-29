@@ -25,7 +25,8 @@ public sealed class BoundProgram
         string? csharpSourcePath = null,
         IReadOnlyList<BoundFlowDefinition>? flows = null,
         IReadOnlyList<BoundTemplateDeclaration>? templates = null,
-        IReadOnlyList<BoundLayoutDeclaration>? layouts = null)
+        IReadOnlyList<BoundLayoutDeclaration>? layouts = null,
+        IReadOnlyList<BoundLayoutBinding>? layoutBindings = null)
     {
         Functions = functions;
         Enums = enums;
@@ -42,6 +43,7 @@ public sealed class BoundProgram
         Flows = flows ?? [];
         Templates = templates ?? [];
         Layouts = layouts ?? [];
+        LayoutBindings = layoutBindings ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -58,6 +60,66 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundFlowDefinition> Flows { get; }
     public IReadOnlyList<BoundTemplateDeclaration> Templates { get; }
     public IReadOnlyList<BoundLayoutDeclaration> Layouts { get; }
+    public IReadOnlyList<BoundLayoutBinding> LayoutBindings { get; }
+}
+
+/// <summary>
+/// A validated semantic attachment between a concrete immutable layout and
+/// renderable component values. It intentionally contains no resolved pixels.
+/// </summary>
+public sealed class BoundLayoutBinding(
+    LayoutSymbol layout,
+    LayoutTypeSymbol contract,
+    LayoutBindingDeclarationSyntax syntax,
+    FunctionSymbol runtimeFunction,
+    string createElementBinding,
+    BoundLayoutReactRealization realization,
+    IReadOnlyList<BoundLayoutBindingEntry> entries,
+    IReadOnlyList<BoundStreamCollection>? collections = null) : BoundNode
+{
+    public LayoutSymbol Layout { get; } = layout;
+    public LayoutTypeSymbol Contract { get; } = contract;
+    public LayoutBindingDeclarationSyntax Syntax { get; } = syntax;
+    public FunctionSymbol RuntimeFunction { get; } = runtimeFunction;
+    public string CreateElementBinding { get; } = createElementBinding;
+    public BoundLayoutReactRealization Realization { get; } = realization;
+    public IReadOnlyList<BoundLayoutBindingEntry> Entries { get; } = entries;
+    public IReadOnlyList<BoundStreamCollection> Collections { get; } = collections ?? [];
+}
+
+/// <summary>Bounded ordered content attached to one named structural region.
+/// Items intentionally have no authored slot identities.</summary>
+public sealed class BoundStreamCollection(
+    BoundLayoutNode region,
+    StreamNodeSyntax syntax,
+    IReadOnlyList<BoundExpression> items) : BoundNode
+{
+    public BoundLayoutNode Region { get; } = region;
+    public StreamNodeSyntax Syntax { get; } = syntax;
+    public IReadOnlyList<BoundExpression> Items { get; } = items;
+}
+
+/// <summary>
+/// Compiler-owned React host plan for a concrete layout. Host nodes are an
+/// explicit backend realization of declared layout boxes; component expressions
+/// remain children and are never inspected or mutated for layout attachment.
+/// </summary>
+public sealed class BoundLayoutReactRealization(
+    BoundLayoutNode root,
+    IReadOnlyDictionary<string, string> classesByNode)
+{
+    public BoundLayoutNode Root { get; } = root;
+    public IReadOnlyDictionary<string, string> ClassesByNode { get; } = classesByNode;
+}
+
+public sealed class BoundLayoutBindingEntry(
+    LayoutSlotSymbol slot,
+    LayoutBindingEntrySyntax syntax,
+    BoundExpression component) : BoundNode
+{
+    public LayoutSlotSymbol Slot { get; } = slot;
+    public LayoutBindingEntrySyntax Syntax { get; } = syntax;
+    public BoundExpression Component { get; } = component;
 }
 
 /// <summary>

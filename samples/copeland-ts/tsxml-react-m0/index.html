@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Copeland TS + React + CLR</title>
+  <link rel="stylesheet" href="./generated/layouts.css">
   <script type="importmap">
     {"imports":{"@copeland/browser-v1":"./packages/copeland-browser-v1/index.js","react":"./packages/react/entry.mjs","react-dom":"./packages/react-dom/entry.mjs","react-dom/client":"./packages/react-dom-client/entry.mjs"}}
   </script>
@@ -12,8 +13,9 @@
   <div id="app"></div>
   <script type="module" src="./react-preflight.js"></script>
   <script type="module">
-    import { Main } from "./Main.js";
-    Main();
+    import { createRoot } from "react-dom/client";
+    import { StreamProof } from "./StreamProof.js";
+    createRoot(document.getElementById("app")).render(StreamProof());
   </script>
 </body>
 </html>

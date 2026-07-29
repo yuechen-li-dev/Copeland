@@ -30,7 +30,23 @@ public sealed record BoundLayoutNode(
     MachinaStyle Style,
     IReadOnlyList<BoundLayoutNode> Children,
     MachinaSourceSpan Source);
-public sealed record BoundLayoutDeclaration(string Name, string? Profile, BoundLayoutOrigin Origin, BoundLayoutNode Root, IReadOnlyDictionary<string, BoundLayoutNode> Slots);
+/// <summary>Closed compile-time topology node. Geometry is intentionally absent.</summary>
+public sealed record BoundLayoutTypeNode(
+    string Name,
+    LayoutNodeKind Kind,
+    int? Columns,
+    IReadOnlyList<BoundLayoutTypeNode> Children,
+    MachinaSourceSpan Source);
+public sealed record BoundLayoutTypeDeclaration(string Name, BoundLayoutTypeNode Root);
+public sealed record InferredLayoutShape(string Name, LayoutNodeKind Kind, int? Columns, IReadOnlyList<InferredLayoutShape> Children);
+public sealed record BoundLayoutSatisfaction(string ContractName, bool IsSatisfied, InferredLayoutShape InferredShape);
+public sealed record BoundLayoutDeclaration(
+    string Name,
+    string? Profile,
+    BoundLayoutOrigin Origin,
+    BoundLayoutNode Root,
+    IReadOnlyDictionary<string, BoundLayoutNode> Slots,
+    BoundLayoutSatisfaction? Satisfaction = null);
 public sealed record NormalizedLayoutNode(
     string Name,
     LayoutNodeKind Kind,
@@ -42,11 +58,16 @@ public sealed record NormalizedLayoutGraph(string LayoutName, NormalizedLayoutNo
 public sealed record LayoutReactArtifact(string Css, IReadOnlyDictionary<string, string> ClassesBySlot);
 /// <summary>Deterministic typed TypeScript surface for semantic React attachment.</summary>
 public sealed record LayoutReactProjection(string Css, string TypeScript, IReadOnlyDictionary<string, string> ClassesBySlot);
-public sealed class LayoutDataCompilation(SyntaxTree syntaxTree, IReadOnlyList<Diagnostic> diagnostics, IReadOnlyDictionary<string, BoundLayoutDeclaration> layouts)
+public sealed class LayoutDataCompilation(
+    SyntaxTree syntaxTree,
+    IReadOnlyList<Diagnostic> diagnostics,
+    IReadOnlyDictionary<string, BoundLayoutDeclaration> layouts,
+    IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> layoutTypes)
 {
     public SyntaxTree SyntaxTree { get; } = syntaxTree;
     public IReadOnlyList<Diagnostic> Diagnostics { get; } = diagnostics;
     public IReadOnlyDictionary<string, BoundLayoutDeclaration> Layouts { get; } = layouts;
+    public IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> LayoutTypes { get; } = layoutTypes;
     public bool Success => Diagnostics.Count == 0;
 }
 
@@ -66,11 +87,19 @@ public static class LayoutDataCompiler
     /// Binds layouts from the parser tree owned by the ordinary compiler. Imported
     /// layouts arrive as already-bound immutable declarations from module binding.
     /// </summary>
-    public static LayoutDataCompilation Bind(SyntaxTree tree, string sourcePath, IReadOnlyDictionary<string, BoundLayoutDeclaration>? importedLayouts = null)
+    public static LayoutDataCompilation Bind(
+        SyntaxTree tree,
+        string sourcePath,
+        IReadOnlyDictionary<string, BoundLayoutDeclaration>? importedLayouts = null,
+        IReadOnlyDictionary<string, BoundLayoutTypeDeclaration>? importedLayoutTypes = null)
     {
-        var binder = new Binder(tree, sourcePath, importedLayouts ?? new Dictionary<string, BoundLayoutDeclaration>(StringComparer.Ordinal));
+        var binder = new Binder(
+            tree,
+            sourcePath,
+            importedLayouts ?? new Dictionary<string, BoundLayoutDeclaration>(StringComparer.Ordinal),
+            importedLayoutTypes ?? new Dictionary<string, BoundLayoutTypeDeclaration>(StringComparer.Ordinal));
         IReadOnlyDictionary<string, BoundLayoutDeclaration> layouts = binder.Bind();
-        return new LayoutDataCompilation(tree, tree.Diagnostics.Concat(binder.Diagnostics).ToArray(), layouts);
+        return new LayoutDataCompilation(tree, tree.Diagnostics.Concat(binder.Diagnostics).ToArray(), layouts, binder.LayoutTypes);
     }
 
     public static NormalizedLayoutGraph Normalize(BoundLayoutDeclaration layout)
@@ -219,6 +248,10 @@ public static class LayoutDataCompiler
         {
             LayoutNodeKind.Row => Machina.HStack(children, frame, node.Gap, node.Padding, node.Style, mainTrack: main, crossTrack: cross, source: node.Source),
             LayoutNodeKind.Column => Machina.VStack(children, frame, node.Gap, node.Padding, node.Style, mainTrack: main, crossTrack: cross, source: node.Source),
+            // M0 grid tracks are a finite horizontal layout realization. Named
+            // children remain topology, while the track count stays a distinct
+            // contract property; variable collection reconciliation is deferred.
+            LayoutNodeKind.Grid => Machina.HStack(children, frame, node.Gap, node.Padding, node.Style, mainTrack: main, crossTrack: cross, source: node.Source),
             _ => new MachinaView(MachinaViewKind.Container, children, frame, MainTrack: main, CrossTrack: cross, Style: node.Style, Source: node.Source),
         };
     }
@@ -273,17 +306,26 @@ public static class LayoutDataCompiler
     private sealed class Binder
     {
         private readonly Dictionary<string, LayoutDeclarationSyntax> _syntax = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, LayoutTypeDeclarationSyntax> _typeSyntax = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, StreamDeclarationSyntax> _streamSyntax = new(StringComparer.Ordinal);
         private readonly Dictionary<string, BoundLayoutDeclaration> _layouts = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, BoundLayoutTypeDeclaration> _layoutTypes = new(StringComparer.Ordinal);
         private readonly HashSet<string> _binding = new(StringComparer.Ordinal);
         private readonly List<Diagnostic> _diagnostics = [];
         private readonly string _sourcePath;
 
         private readonly IReadOnlyDictionary<string, BoundLayoutDeclaration> _importedLayouts;
+        private readonly IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> _importedLayoutTypes;
 
-        public Binder(SyntaxTree tree, string sourcePath, IReadOnlyDictionary<string, BoundLayoutDeclaration> importedLayouts)
+        public Binder(
+            SyntaxTree tree,
+            string sourcePath,
+            IReadOnlyDictionary<string, BoundLayoutDeclaration> importedLayouts,
+            IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> importedLayoutTypes)
         {
             _sourcePath = sourcePath;
             _importedLayouts = importedLayouts;
+            _importedLayoutTypes = importedLayoutTypes;
             foreach (LayoutDeclarationSyntax layout in tree.Root.Members.OfType<LayoutDeclarationSyntax>())
             {
                 if (!_syntax.TryAdd(layout.Identifier.Text, layout))
@@ -291,14 +333,212 @@ public static class LayoutDataCompiler
                     Report("COPE-LAYOUT-DECLARATION-0001", $"Layout '{layout.Identifier.Text}' is already declared.", layout.Identifier);
                 }
             }
+            foreach (LayoutTypeDeclarationSyntax layoutType in tree.Root.Members.OfType<LayoutTypeDeclarationSyntax>())
+            {
+                if (!_typeSyntax.TryAdd(layoutType.Identifier.Text, layoutType))
+                {
+                    Report("COPE-LAYOUT-TYPE-0003", $"Layout type '{layoutType.Identifier.Text}' is already declared.", layoutType.Identifier);
+                }
+            }
+            foreach (StreamDeclarationSyntax stream in tree.Root.Members.OfType<StreamDeclarationSyntax>())
+            {
+                if (!_streamSyntax.TryAdd(stream.Identifier.Text, stream))
+                {
+                    Report("COPE-STREAM-0003", $"Stream '{stream.Identifier.Text}' is already declared.", stream.Identifier);
+                }
+            }
         }
 
         public IReadOnlyList<Diagnostic> Diagnostics => _diagnostics;
+        public IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> LayoutTypes => _layoutTypes;
 
         public IReadOnlyDictionary<string, BoundLayoutDeclaration> Bind()
         {
+            foreach (LayoutTypeDeclarationSyntax declaration in _typeSyntax.Values.OrderBy(item => item.Identifier.Position))
+            {
+                BindLayoutType(declaration);
+            }
             foreach (LayoutDeclarationSyntax declaration in _syntax.Values.OrderBy(item => item.Identifier.Position)) _ = BindDeclaration(declaration);
+            foreach (StreamDeclarationSyntax declaration in _streamSyntax.Values.OrderBy(item => item.Identifier.Position)) _ = BindStream(declaration);
             return _layouts;
+        }
+
+        private BoundLayoutDeclaration? BindStream(StreamDeclarationSyntax declaration)
+        {
+            string name = declaration.Identifier.Text;
+            if (_layouts.ContainsKey(name))
+            {
+                Report("COPE-STREAM-0003", $"Stream '{name}' conflicts with an existing layout declaration.", declaration.Identifier);
+                return null;
+            }
+
+            BoundLayoutOrigin? origin = BindOrigin(declaration.Origin);
+            if (origin is null) return null;
+
+            ValidateProperties(declaration.Properties, null);
+            var slots = new Dictionary<string, BoundLayoutNode>(StringComparer.Ordinal);
+            BoundLayoutNode[] children = declaration.Nodes
+                .Select(node => BindStreamNode(node, slots, LayoutNodeKind.Column))
+                .Where(node => node is not null)
+                .Cast<BoundLayoutNode>()
+                .ToArray();
+            bool hasExplicitRoot = declaration.Nodes.Count == 1
+                && declaration.Nodes[0].KindToken is not null
+                && declaration.Nodes[0].Identifier.Text == "root";
+            BoundLayoutNode[] rootChildren;
+            if (hasExplicitRoot)
+            {
+                rootChildren = children;
+            }
+            else
+            {
+                var implicitRoot = new BoundLayoutNode(
+                    "root",
+                    LayoutNodeKind.Column,
+                    BindDimensions(declaration.Properties),
+                    BindPositions(declaration.Properties),
+                    Gap(declaration.Properties),
+                    null,
+                    Padding(declaration.Properties),
+                    Style(declaration.Properties),
+                    children,
+                    Span(declaration));
+                rootChildren = [implicitRoot];
+            }
+            var root = new BoundLayoutNode(
+                name,
+                LayoutNodeKind.Overlay,
+                BindDimensions(declaration.Properties),
+                BindPositions(declaration.Properties),
+                MachinaLength.Pixels(0),
+                null,
+                MachinaInsets.None,
+                MachinaStyle.Empty,
+                rootChildren,
+                Span(declaration));
+            var layout = new BoundLayoutDeclaration(name, null, origin, root, slots);
+
+            string inferredContractName = name + "Shape";
+            BoundLayoutTypeNode inferredRoot = InferTypeNode(root);
+            _layoutTypes[inferredContractName] = new BoundLayoutTypeDeclaration(inferredContractName, inferredRoot);
+            if (declaration.ContractIdentifier is not null)
+            {
+                layout = CheckSatisfaction(name, declaration.ContractIdentifier, layout);
+            }
+            else
+            {
+                layout = layout with { Satisfaction = new BoundLayoutSatisfaction(inferredContractName, true, InferShape(root)) };
+            }
+
+            _layouts.Add(name, layout);
+            return layout;
+        }
+
+        private BoundLayoutNode? BindStreamNode(StreamNodeSyntax syntax, Dictionary<string, BoundLayoutNode> slots, LayoutNodeKind parentKind)
+        {
+            if (syntax.KindToken is null)
+            {
+                if (syntax.Content is null)
+                {
+                    Report("COPE-STREAM-0004", $"Stream region '{syntax.Identifier.Text}' requires renderable content.", syntax.Identifier);
+                }
+                if (syntax.Children.Count > 0)
+                {
+                    Report("COPE-STREAM-0005", $"Singular stream region '{syntax.Identifier.Text}' cannot contain child regions.", syntax.Identifier);
+                }
+                ValidateProperties(syntax.Properties, LayoutNodeKind.Slot);
+                var slot = new BoundLayoutNode(syntax.Identifier.Text, LayoutNodeKind.Slot, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), MachinaLength.Pixels(0), null, Padding(syntax.Properties), Style(syntax.Properties), [], Span(syntax));
+                if (!slots.TryAdd(slot.Name, slot))
+                {
+                    Report("COPE-STREAM-0006", $"Stream declares region '{slot.Name}' more than once.", syntax.Identifier);
+                }
+                return slot;
+            }
+
+            if (!Enum.TryParse(syntax.KindToken.Text, true, out LayoutNodeKind kind) || kind == LayoutNodeKind.Slot)
+            {
+                Report("COPE-STREAM-0007", $"'{syntax.KindToken.Text}' is not a supported stream structural node kind.", syntax.KindToken);
+                return null;
+            }
+            if (syntax.Content is not null && syntax.Content is not ArrayLiteralExpressionSyntax)
+            {
+                Report("COPE-STREAM-0008", $"Structural stream region '{syntax.Identifier.Text}' cannot bind content directly in M0; add a named singular child region.", syntax.Identifier);
+            }
+            if (syntax.Content is ArrayLiteralExpressionSyntax && kind != LayoutNodeKind.Grid)
+            {
+                Report("COPE-STREAM-COLLECTION-0001", $"Fixed collection content is supported only by a grid region; '{syntax.Identifier.Text}' is {kind.ToString().ToLowerInvariant()}.", syntax.Identifier);
+            }
+            ValidateProperties(syntax.Properties, kind);
+            if (kind == LayoutNodeKind.Grid && Columns(syntax.Properties) is null)
+            {
+                Report("COPE-LAYOUT-GRID-0001", "A grid requires a positive integer 'columns' property.", syntax.Identifier);
+            }
+            BoundLayoutNode[] children = syntax.Children
+                .Select(child => BindStreamNode(child, slots, kind))
+                .Where(child => child is not null)
+                .Cast<BoundLayoutNode>()
+                .ToArray();
+            var node = new BoundLayoutNode(syntax.Identifier.Text, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax));
+            if (parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && kind != LayoutNodeKind.Anchor && (!HasFixedDimension(node, "width") || !HasFixedDimension(node, "height")))
+            {
+                Report("COPE-LAYOUT-FRAME-0002", $"'{node.Name}' requires fixed width and height inside {parentKind.ToString().ToLowerInvariant()} composition.", syntax.Identifier);
+            }
+            return node;
+        }
+
+        private static BoundLayoutTypeNode InferTypeNode(BoundLayoutNode node)
+            => new(node.Name, node.Kind, node.Columns, node.Children.Select(InferTypeNode).ToArray(), node.Source);
+
+        private void BindLayoutType(LayoutTypeDeclarationSyntax declaration)
+        {
+            var childNames = new HashSet<string>(StringComparer.Ordinal);
+            BoundLayoutTypeNode[] children = declaration.Nodes
+                .Select(node => BindLayoutTypeNode(node, childNames))
+                .Where(node => node is not null)
+                .Cast<BoundLayoutTypeNode>()
+                .ToArray();
+            if (children.Length != 1)
+            {
+                Report("COPE-LAYOUT-TYPE-0004", $"Layout type '{declaration.Identifier.Text}' requires exactly one named root node.", declaration.Identifier);
+            }
+            BoundLayoutTypeNode root = new(
+                declaration.Identifier.Text,
+                LayoutNodeKind.Overlay,
+                null,
+                children,
+                Span(declaration));
+            _layoutTypes[declaration.Identifier.Text] = new BoundLayoutTypeDeclaration(declaration.Identifier.Text, root);
+        }
+
+        private BoundLayoutTypeNode? BindLayoutTypeNode(LayoutNodeSyntax syntax, HashSet<string> siblingNames)
+        {
+            if (!Enum.TryParse(syntax.KindToken.Text, true, out LayoutNodeKind kind))
+            {
+                Report("COPE-LAYOUT-TYPE-0005", $"'{syntax.KindToken.Text}' is not a supported layout type node kind.", syntax.KindToken);
+                return null;
+            }
+            if (!siblingNames.Add(syntax.Identifier.Text))
+            {
+                Report("COPE-LAYOUT-TYPE-0006", $"Layout type child '{syntax.Identifier.Text}' is duplicated.", syntax.Identifier);
+            }
+            foreach (LayoutPropertySyntax property in syntax.Properties)
+            {
+                if (kind != LayoutNodeKind.Grid || !string.Equals(property.Identifier.Text, "columns", StringComparison.Ordinal))
+                {
+                    Report("COPE-LAYOUT-TYPE-0007", "Layout types constrain topology only; only 'columns' on a grid is supported in M0.", property.Identifier);
+                }
+            }
+            if (kind == LayoutNodeKind.Slot && syntax.Children.Count > 0)
+            {
+                Report("COPE-LAYOUT-TYPE-0008", "A layout type slot cannot contain child nodes.", syntax.KindToken);
+            }
+            var childNames = new HashSet<string>(StringComparer.Ordinal);
+            BoundLayoutTypeNode[] children = syntax.Children
+                .Select(child => BindLayoutTypeNode(child, childNames))
+                .Where(child => child is not null)
+                .Cast<BoundLayoutTypeNode>()
+                .ToArray();
+            return new BoundLayoutTypeNode(syntax.Identifier.Text, kind, Columns(syntax.Properties), children, Span(syntax));
         }
 
         private BoundLayoutDeclaration? BindDeclaration(LayoutDeclarationSyntax declaration)
@@ -357,19 +597,88 @@ public static class LayoutDataCompiler
             }
 
             _binding.Remove(name);
+            if (result is not null && declaration.ContractIdentifier is not null)
+            {
+                result = CheckSatisfaction(declaration, result);
+            }
             if (result is not null) _layouts.Add(name, result);
             return result;
         }
 
-        private BoundLayoutOrigin? BindOrigin(LayoutDeclarationSyntax declaration)
+        private BoundLayoutDeclaration CheckSatisfaction(LayoutDeclarationSyntax declaration, BoundLayoutDeclaration layout)
+            => CheckSatisfaction(declaration.Identifier.Text, declaration.ContractIdentifier!, layout);
+
+        private BoundLayoutDeclaration CheckSatisfaction(string layoutName, SyntaxToken contractIdentifier, BoundLayoutDeclaration layout)
         {
-            if (declaration.Origin is null)
+            string contractName = contractIdentifier.Text;
+            if (!_layoutTypes.TryGetValue(contractName, out BoundLayoutTypeDeclaration? contract)
+                && !_importedLayoutTypes.TryGetValue(contractName, out contract))
+            {
+                Report("COPE-LAYOUT-TYPE-0009", $"Layout '{layout.Name}' satisfies '{contractName}', but no layout type with that name is visible.", contractIdentifier);
+                return layout with { Satisfaction = new BoundLayoutSatisfaction(contractName, false, InferShape(layout.Root)) };
+            }
+
+            bool satisfied = CompareNodes(layout.Name, contract.Name, layout.Root, contract.Root, layout.Name);
+            return layout with { Satisfaction = new BoundLayoutSatisfaction(contract.Name, satisfied, InferShape(layout.Root)) };
+        }
+
+        private bool CompareNodes(string layoutName, string contractName, BoundLayoutNode actual, BoundLayoutTypeNode expected, string path)
+        {
+            bool matches = true;
+            if (actual.Kind != expected.Kind && expected.Name != contractName)
+            {
+                Report("COPE-LAYOUT-TYPE-0010", $"Layout '{layoutName}' does not satisfy '{contractName}' at '{path}': expected {expected.Kind.ToString().ToLowerInvariant()} '{expected.Name}', but found {actual.Kind.ToString().ToLowerInvariant()}.", actual.Source);
+                matches = false;
+            }
+            if (expected.Columns is int expectedColumns && actual.Columns != expectedColumns)
+            {
+                Report("COPE-LAYOUT-TYPE-0011", $"Layout '{layoutName}' does not satisfy '{contractName}' at '{path}': expected grid columns: {expectedColumns}, but found {(actual.Columns?.ToString() ?? "none")}.", actual.Source);
+                matches = false;
+            }
+
+            var expectedByName = expected.Children.ToDictionary(child => child.Name, StringComparer.Ordinal);
+            var actualByName = actual.Children.GroupBy(child => child.Name, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
+            foreach (BoundLayoutTypeNode required in expected.Children)
+            {
+                if (!actualByName.TryGetValue(required.Name, out BoundLayoutNode[]? candidates))
+                {
+                    Report("COPE-LAYOUT-TYPE-0012", $"Layout '{layoutName}' does not satisfy '{contractName}' at '{path}': missing required {required.Kind.ToString().ToLowerInvariant()} '{required.Name}'.", actual.Source);
+                    matches = false;
+                    continue;
+                }
+                if (candidates.Length != 1)
+                {
+                    Report("COPE-LAYOUT-TYPE-0013", $"Layout '{layoutName}' does not satisfy '{contractName}' at '{path}': child '{required.Name}' is duplicated.", candidates[1].Source);
+                    matches = false;
+                }
+                matches &= CompareNodes(layoutName, contractName, candidates[0], required, path + "." + required.Name);
+            }
+            foreach (BoundLayoutNode child in actual.Children)
+            {
+                if (!expectedByName.ContainsKey(child.Name))
+                {
+                    Report("COPE-LAYOUT-TYPE-0014", $"Layout '{layoutName}' does not satisfy '{contractName}' at '{path}': unexpected {child.Kind.ToString().ToLowerInvariant()} '{child.Name}'.", child.Source);
+                    matches = false;
+                }
+            }
+            return matches;
+        }
+
+        private static InferredLayoutShape InferShape(BoundLayoutNode node)
+            => new(node.Name, node.Kind, node.Columns, node.Children.Select(InferShape).ToArray());
+
+        private BoundLayoutOrigin? BindOrigin(LayoutDeclarationSyntax declaration)
+            => BindOrigin(declaration.Origin);
+
+        private BoundLayoutOrigin? BindOrigin(LayoutOriginSyntax? origin)
+        {
+            if (origin is null)
             {
                 return null;
             }
 
-            BoundLayoutCoordinate? x = Coordinate(declaration.Origin.X);
-            BoundLayoutCoordinate? y = Coordinate(declaration.Origin.Y);
+            BoundLayoutCoordinate? x = Coordinate(origin.X);
+            BoundLayoutCoordinate? y = Coordinate(origin.Y);
             return x is null || y is null ? null : new BoundLayoutOrigin(x, y);
         }
 
@@ -596,5 +905,6 @@ public static class LayoutDataCompiler
         private MachinaSourceSpan Span(SyntaxNode node) { SyntaxToken token = FirstToken(node); return new MachinaSourceSpan(_sourcePath, token.Position, Math.Max(1, token.Text.Length)); }
         private static SyntaxToken FirstToken(SyntaxNode node) => node.GetChildren().OfType<SyntaxToken>().FirstOrDefault() ?? new SyntaxToken(SyntaxKind.BadToken, 0, string.Empty, null);
         private void Report(string id, string message, SyntaxToken token) => _diagnostics.Add(new Diagnostic(id, message, token.Position, Math.Max(1, token.Text.Length), _sourcePath));
+        private void Report(string id, string message, MachinaSourceSpan source) => _diagnostics.Add(new Diagnostic(id, message, source.Start, source.Length, source.SourcePath));
     }
 }

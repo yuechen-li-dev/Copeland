@@ -125,7 +125,10 @@ public static class Binder
         private readonly List<BoundFlowDefinition> _flows = [];
         private readonly List<BoundTemplateDeclaration> _templates = [];
         private readonly List<BoundLayoutDeclaration> _layouts = [];
+        private readonly List<BoundLayoutBinding> _layoutBindings = [];
         private readonly Dictionary<string, LayoutSymbol> _layoutSymbols = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, LayoutTypeSymbol> _layoutTypeSymbols = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, LayoutTypeSymbol> _inferredStreamTypeSymbols = new(StringComparer.Ordinal);
         private readonly List<BoundStatement> _globals = [];
         private readonly List<BoundNpmImport> _npmImports = [];
         private readonly List<BoundNpmComponentImport> _npmComponentImports = [];
@@ -191,6 +194,7 @@ public static class Binder
             PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
             PredeclareNominalUnions(_tree.Root);
+            PredeclareLayoutTypes(_tree.Root);
             PredeclareLayouts(_tree.Root);
             ResolveAliases();
             BindInterfaceBodies(_tree.Root);
@@ -208,6 +212,8 @@ public static class Binder
             BindTableBodies(_tree.Root);
             BindTemplatePlans();
             BindLayouts();
+            BindLayoutBindings(_tree.Root);
+            BindStreamBindings(_tree.Root);
             BindFlows(_tree.Root);
             ValidateRecordCycles();
             foreach (var generic in _tree.Root.Members.OfType<FunctionDeclarationSyntax>().Where(function => function.TypeParameters.Count > 0))
@@ -260,7 +266,8 @@ public static class Binder
                     _sourcePath,
                     _flows,
                     _templates,
-                    _layouts),
+                    _layouts,
+                    _layoutBindings),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray(),
                 CreateModuleScope());
         }
@@ -1698,12 +1705,39 @@ public static class Binder
                 }
                 _layoutSymbols.Add(symbol.Name, symbol);
             }
+            foreach (StreamDeclarationSyntax declaration in root.Members.OfType<StreamDeclarationSyntax>())
+            {
+                string identity = (_moduleIdentity ?? _sourcePath ?? "<standalone>") + "::stream::" + declaration.Identifier.Text;
+                var symbol = new LayoutSymbol(declaration.Identifier.Text, identity, declaration);
+                if (!_global.TryDeclare(symbol))
+                {
+                    Report("COPE-STREAM-0003", $"Duplicate declaration '{symbol.Name}'.", declaration.Identifier);
+                    continue;
+                }
+                _layoutSymbols.Add(symbol.Name, symbol);
+            }
+        }
+
+        private void PredeclareLayoutTypes(CompilationUnitSyntax root)
+        {
+            foreach (LayoutTypeDeclarationSyntax declaration in root.Members.OfType<LayoutTypeDeclarationSyntax>())
+            {
+                string identity = (_moduleIdentity ?? _sourcePath ?? "<standalone>") + "::layout-type::" + declaration.Identifier.Text;
+                var symbol = new LayoutTypeSymbol(declaration.Identifier.Text, identity, declaration);
+                if (!_global.TryDeclare(symbol))
+                {
+                    Report("COPE-LAYOUT-TYPE-0015", $"Duplicate declaration '{symbol.Name}'.", declaration.Identifier);
+                    continue;
+                }
+                _layoutTypeSymbols.Add(symbol.Name, symbol);
+            }
         }
 
         private void BindLayouts()
         {
-            if (_layoutSymbols.Count == 0) return;
+            if (_layoutSymbols.Count == 0 && _layoutTypeSymbols.Count == 0) return;
             var imported = new Dictionary<string, BoundLayoutDeclaration>(StringComparer.Ordinal);
+            var importedTypes = new Dictionary<string, BoundLayoutTypeDeclaration>(StringComparer.Ordinal);
             if (_imports is not null)
             {
                 foreach ((string localName, Symbol symbol) in _imports.Declarations)
@@ -1712,24 +1746,342 @@ public static class Binder
                     {
                         imported.Add(localName, layout.BoundLayout);
                     }
+                    if (symbol is LayoutTypeSymbol { BoundLayoutType: not null } layoutType)
+                    {
+                        importedTypes.Add(localName, layoutType.BoundLayoutType);
+                    }
                 }
             }
 
-            LayoutDataCompilation compilation = LayoutDataCompiler.Bind(_tree, _sourcePath ?? "<memory>", imported);
-            foreach (Diagnostic diagnostic in compilation.Diagnostics.Where(diagnostic => diagnostic.Id.StartsWith("COPE-LAYOUT-", StringComparison.Ordinal)))
+            LayoutDataCompilation compilation = LayoutDataCompiler.Bind(_tree, _sourcePath ?? "<memory>", imported, importedTypes);
+            foreach (Diagnostic diagnostic in compilation.Diagnostics.Where(diagnostic => diagnostic.Id.StartsWith("COPE-LAYOUT-", StringComparison.Ordinal) || diagnostic.Id.StartsWith("COPE-STREAM-", StringComparison.Ordinal)))
             {
+                if (diagnostic.Id == "COPE-LAYOUT-TYPE-0009"
+                    && TryReportNonLayoutContractUse(diagnostic.Position))
+                {
+                    continue;
+                }
                 _diagnostics.Report(diagnostic.Id, diagnostic.Message, diagnostic.Position, diagnostic.Length);
             }
             foreach ((string name, LayoutSymbol symbol) in _layoutSymbols)
             {
                 if (!compilation.Layouts.TryGetValue(name, out BoundLayoutDeclaration? bound)) continue;
                 symbol.BoundLayout = bound;
-                NormalizedLayoutGraph graph = LayoutDataCompiler.Normalize(bound);
-                symbol.Slots = graph.SlotIdentities
-                    .OrderBy(pair => pair.Value, StringComparer.Ordinal)
-                    .ToDictionary(pair => pair.Key, pair => new LayoutSlotSymbol(pair.Key, symbol, pair.Value), StringComparer.Ordinal);
+                symbol.Slots = bound.Slots
+                    .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .ToDictionary(
+                        pair => pair.Key,
+                        pair => new LayoutSlotSymbol(
+                            pair.Key,
+                            symbol,
+                            GetLayoutSemanticPath(bound.Root, pair.Value),
+                            pair.Value.Kind,
+                            pair.Value.Source),
+                        StringComparer.Ordinal);
                 _layouts.Add(bound);
             }
+            foreach ((string name, LayoutTypeSymbol symbol) in _layoutTypeSymbols)
+            {
+                if (compilation.LayoutTypes.TryGetValue(name, out BoundLayoutTypeDeclaration? bound))
+                {
+                    symbol.BoundLayoutType = bound;
+                }
+            }
+            foreach (StreamDeclarationSyntax stream in _tree.Root.Members.OfType<StreamDeclarationSyntax>())
+            {
+                if (stream.ContractIdentifier is not null || !compilation.LayoutTypes.TryGetValue(stream.Identifier.Text + "Shape", out BoundLayoutTypeDeclaration? inferred)) continue;
+                string identity = (_moduleIdentity ?? _sourcePath ?? "<standalone>") + "::stream-shape::" + stream.Identifier.Text;
+                _inferredStreamTypeSymbols.Add(stream.Identifier.Text, new LayoutTypeSymbol(inferred.Name, identity, inferred));
+            }
+        }
+
+        private void BindStreamBindings(CompilationUnitSyntax root)
+        {
+            foreach (StreamDeclarationSyntax syntax in root.Members.OfType<StreamDeclarationSyntax>())
+            {
+                if (!_layoutSymbols.TryGetValue(syntax.Identifier.Text, out LayoutSymbol? layout) || layout.BoundLayout is null) continue;
+                StreamNodeSyntax[] contentNodes = EnumerateStreamContent(syntax.Nodes).ToArray();
+                if (contentNodes.GroupBy(node => node.Identifier.Text, StringComparer.Ordinal).Any(group => group.Count() > 1)
+                    || EnumerateStreamNodes(syntax.Nodes).Any(node => node.KindToken is not null && node.Content is not null && node.Content is not ArrayLiteralExpressionSyntax))
+                {
+                    // Layout binding only realizes exact graphs. The stream data
+                    // binder has already reported the authored structural error.
+                    continue;
+                }
+                LayoutTypeSymbol? contract = null;
+                if (syntax.ContractIdentifier is not null)
+                {
+                    if (!_scope.TryLookup(syntax.ContractIdentifier.Text, out Symbol? visible) || visible is not LayoutTypeSymbol declared)
+                    {
+                        continue;
+                    }
+                    contract = declared;
+                }
+                else
+                {
+                    _inferredStreamTypeSymbols.TryGetValue(syntax.Identifier.Text, out contract);
+                }
+                if (contract is null || layout.BoundLayout.Satisfaction is not { IsSatisfied: true }) continue;
+
+                if (!_scope.TryLookup("createElement", out Symbol? createElementSymbol)
+                    || createElementSymbol is not NpmFunctionSymbol createElement
+                    || createElement.PackageName != "react"
+                    || createElement.ExportName != "createElement")
+                {
+                    Report("COPE-STREAM-0009", $"Stream '{layout.Name}' requires the bounded React createElement import because declared layout boxes lower to React hosts.", syntax.Identifier);
+                    continue;
+                }
+
+                string runtimeName = layout.Name + "Stream";
+                var runtimeFunction = new FunctionSymbol(runtimeName, [], ReactNodeTypeSymbol.Instance, stableIdentity: layout.StableIdentity + "::stream");
+                if (!_global.TryDeclare(runtimeFunction))
+                {
+                    Report("COPE-STREAM-0010", $"Generated stream render value '{runtimeName}' conflicts with an existing declaration.", syntax.Identifier);
+                    continue;
+                }
+
+                IReadOnlyDictionary<string, string> classesByNode;
+                try
+                {
+                    classesByNode = LayoutDataCompiler.ProjectReact(layout.BoundLayout).ClassesBySlot;
+                }
+                catch (InvalidOperationException exception)
+                {
+                    Report("COPE-STREAM-0011", $"Stream '{layout.Name}' cannot realize layout hosts: {exception.Message}", syntax.Identifier);
+                    continue;
+                }
+
+                var entries = new List<BoundLayoutBindingEntry>();
+                var collections = new List<BoundStreamCollection>();
+                foreach (StreamNodeSyntax node in contentNodes)
+                {
+                    if (!layout.Slots.TryGetValue(node.Identifier.Text, out LayoutSlotSymbol? slot) || node.Content is null) continue;
+                    BoundExpression content = BindExpression(node.Content, ReactNodeTypeSymbol.Instance);
+                    if (content.Type != ReactNodeTypeSymbol.Instance)
+                    {
+                        Report("COPE-STREAM-0012", $"Content for stream region '{slot.SemanticPath}' must be a renderable ReactNode expression; got '{content.Type.Name}'.", node.Identifier);
+                        continue;
+                    }
+                    var entrySyntax = new LayoutBindingEntrySyntax(node.Identifier, node.ColonToken ?? node.Identifier, node.Content, null);
+                    entries.Add(new BoundLayoutBindingEntry(slot, entrySyntax, content));
+                }
+
+                foreach (StreamNodeSyntax node in EnumerateStreamNodes(syntax.Nodes).Where(node => node.Content is ArrayLiteralExpressionSyntax))
+                {
+                    if (node.KindToken?.Text != "grid" || node.Content is not ArrayLiteralExpressionSyntax literal) continue;
+                    BoundLayoutNode? region = FindLayoutNode(layout.BoundLayout.Root, node.Identifier.Text);
+                    if (region is null) continue;
+                    var items = new List<BoundExpression>();
+                    for (int index = 0; index < literal.Elements.Count; index++)
+                    {
+                        BoundExpression item = BindExpression(literal.Elements[index], ReactNodeTypeSymbol.Instance);
+                        if (item.Type != ReactNodeTypeSymbol.Instance)
+                        {
+                            Report("COPE-STREAM-COLLECTION-0003", $"Item {index + 1} in stream region '{layout.Name}.{region.Name}' is not renderable. Expected ReactNode; received '{item.Type.Name}'.", node.Identifier);
+                            continue;
+                        }
+                        items.Add(item);
+                    }
+                    collections.Add(new BoundStreamCollection(region, node, items));
+                }
+
+                LayoutSlotSymbol[] missing = layout.Slots.Values.Where(slot => slot.IsBindable && entries.All(entry => entry.Slot.Name != slot.Name)).OrderBy(slot => slot.SemanticPath, StringComparer.Ordinal).ToArray();
+                if (missing.Length > 0)
+                {
+                    Report("COPE-STREAM-0013", $"Stream '{layout.Name}' is incomplete. Missing renderable content for: {string.Join(", ", missing.Select(slot => slot.SemanticPath))}.", syntax.Identifier);
+                    continue;
+                }
+
+                BoundLayoutNode realizationRoot = layout.BoundLayout.Root.Children.Count == 1 ? layout.BoundLayout.Root.Children[0] : layout.BoundLayout.Root;
+                _layoutBindings.Add(new BoundLayoutBinding(layout, contract, new LayoutBindingDeclarationSyntax(syntax.StreamKeyword, syntax.Identifier, syntax.OpenBraceToken, [], syntax.CloseBraceToken), runtimeFunction, createElement.Name, new BoundLayoutReactRealization(realizationRoot, classesByNode), entries, collections));
+            }
+        }
+
+        private static IEnumerable<StreamNodeSyntax> EnumerateStreamContent(IEnumerable<StreamNodeSyntax> nodes)
+        {
+            foreach (StreamNodeSyntax node in nodes)
+            {
+                if (node.KindToken is null) yield return node;
+                foreach (StreamNodeSyntax child in EnumerateStreamContent(node.Children)) yield return child;
+            }
+        }
+
+        private static IEnumerable<StreamNodeSyntax> EnumerateStreamNodes(IEnumerable<StreamNodeSyntax> nodes)
+        {
+            foreach (StreamNodeSyntax node in nodes)
+            {
+                yield return node;
+                foreach (StreamNodeSyntax child in EnumerateStreamNodes(node.Children)) yield return child;
+            }
+        }
+
+        private static BoundLayoutNode? FindLayoutNode(BoundLayoutNode node, string name)
+        {
+            if (node.Name == name) return node;
+            foreach (BoundLayoutNode child in node.Children)
+            {
+                BoundLayoutNode? found = FindLayoutNode(child, name);
+                if (found is not null) return found;
+            }
+            return null;
+        }
+
+        private static string GetLayoutSemanticPath(BoundLayoutNode root, BoundLayoutNode target)
+        {
+            var path = new List<string>();
+            return Find(root) ? string.Join('.', path) : target.Name;
+
+            bool Find(BoundLayoutNode node)
+            {
+                path.Add(node.Name);
+                if (ReferenceEquals(node, target)) return true;
+                foreach (BoundLayoutNode child in node.Children)
+                {
+                    if (Find(child)) return true;
+                }
+                path.RemoveAt(path.Count - 1);
+                return false;
+            }
+        }
+
+        private void BindLayoutBindings(CompilationUnitSyntax root)
+        {
+            foreach (LayoutBindingDeclarationSyntax syntax in root.Members.OfType<LayoutBindingDeclarationSyntax>())
+            {
+                if (!_scope.TryLookup(syntax.LayoutIdentifier.Text, out Symbol? target))
+                {
+                    Report("COPE-LAYOUT-BIND-0002", $"Layout binding target '{syntax.LayoutIdentifier.Text}' could not be resolved.", syntax.LayoutIdentifier);
+                    continue;
+                }
+
+                if (target is LayoutTypeSymbol)
+                {
+                    Report("COPE-LAYOUT-BIND-0003", $"'{syntax.LayoutIdentifier.Text}' is a layout type, not a concrete layout realization. Bind a concrete layout that satisfies the contract.", syntax.LayoutIdentifier);
+                    continue;
+                }
+
+                if (target is not LayoutSymbol layout || layout.BoundLayout is null)
+                {
+                    Report("COPE-LAYOUT-BIND-0002", $"'{syntax.LayoutIdentifier.Text}' is not a concrete compiler-known layout.", syntax.LayoutIdentifier);
+                    continue;
+                }
+
+                BoundLayoutSatisfaction? satisfaction = layout.BoundLayout.Satisfaction;
+                if (satisfaction is not { IsSatisfied: true }
+                    || !_scope.TryLookup(satisfaction.ContractName, out Symbol? contractSymbol)
+                    || contractSymbol is not LayoutTypeSymbol contract)
+                {
+                    Report("COPE-LAYOUT-BIND-0004", $"Layout '{layout.Name}' must satisfy a known layout type before it can be bound.", syntax.LayoutIdentifier);
+                    continue;
+                }
+
+                if (!_scope.TryLookup("createElement", out Symbol? createElementSymbol)
+                    || createElementSymbol is not NpmFunctionSymbol createElement
+                    || createElement.PackageName != "react"
+                    || createElement.ExportName != "createElement")
+                {
+                    Report("COPE-LAYOUT-BIND-0010", $"Binding '{layout.Name}' requires the bounded React createElement import because declared layout boxes lower to React hosts.", syntax.LayoutIdentifier);
+                    continue;
+                }
+
+                string runtimeName = layout.Name + "Binding";
+                var runtimeFunction = new FunctionSymbol(
+                    runtimeName,
+                    [],
+                    ReactNodeTypeSymbol.Instance,
+                    stableIdentity: layout.StableIdentity + "::binding");
+                if (!_global.TryDeclare(runtimeFunction))
+                {
+                    Report("COPE-LAYOUT-BIND-0011", $"Generated binding value '{runtimeName}' conflicts with an existing declaration.", syntax.LayoutIdentifier);
+                    continue;
+                }
+
+                IReadOnlyDictionary<string, string> classesByNode;
+                try
+                {
+                    classesByNode = LayoutDataCompiler.ProjectReact(layout.BoundLayout).ClassesBySlot;
+                }
+                catch (InvalidOperationException exception)
+                {
+                    Report("COPE-LAYOUT-BIND-0012", $"Binding '{layout.Name}' cannot realize its layout hosts: {exception.Message}", syntax.LayoutIdentifier);
+                    continue;
+                }
+
+
+                var entries = new List<BoundLayoutBindingEntry>();
+                var boundNames = new HashSet<string>(StringComparer.Ordinal);
+                foreach (LayoutBindingEntrySyntax entry in syntax.Entries)
+                {
+                    string slotName = entry.SlotIdentifier.Text;
+                    if (!boundNames.Add(slotName))
+                    {
+                        Report("COPE-LAYOUT-BIND-0005", $"Slot '{layout.Name}.{slotName}' is bound more than once. Singular slots require exactly one component.", entry.SlotIdentifier);
+                        continue;
+                    }
+
+                    if (!layout.Slots.TryGetValue(slotName, out LayoutSlotSymbol? slot))
+                    {
+                        Report("COPE-LAYOUT-BIND-0006", $"'{slotName}' is not a named region of layout '{layout.Name}'.", entry.SlotIdentifier);
+                        continue;
+                    }
+
+                    if (!slot.IsBindable)
+                    {
+                        Report("COPE-LAYOUT-BIND-0007", $"'{slot.SemanticPath}' is a structural {slot.Kind.ToString().ToLowerInvariant()} region, not a bindable slot.", entry.SlotIdentifier);
+                        continue;
+                    }
+
+                    BoundExpression component = BindExpression(entry.Value, ReactNodeTypeSymbol.Instance);
+                    if (component.Type != ReactNodeTypeSymbol.Instance)
+                    {
+                        Report("COPE-LAYOUT-BIND-0008", $"Binding for '{slot.SemanticPath}' must be a renderable ReactNode component/view expression; got '{component.Type.Name}'.", entry.Value is NameExpressionSyntax name ? name.IdentifierToken : entry.SlotIdentifier);
+                        continue;
+                    }
+
+                    entries.Add(new BoundLayoutBindingEntry(slot, entry, component));
+                }
+
+                LayoutSlotSymbol[] missing = layout.Slots.Values
+                    .Where(slot => slot.IsBindable && !boundNames.Contains(slot.Name))
+                    .OrderBy(slot => slot.SemanticPath, StringComparer.Ordinal)
+                    .ToArray();
+                if (missing.Length > 0)
+                {
+                    Report("COPE-LAYOUT-BIND-0009", $"Binding for '{layout.Name}' is incomplete. Missing required slots: {string.Join(", ", missing.Select(slot => slot.SemanticPath))}.", syntax.LayoutIdentifier);
+                }
+
+                BoundLayoutNode realizationRoot = layout.BoundLayout.Root.Children.Count == 1
+                    ? layout.BoundLayout.Root.Children[0]
+                    : layout.BoundLayout.Root;
+                _layoutBindings.Add(new BoundLayoutBinding(
+                    layout,
+                    contract,
+                    syntax,
+                    runtimeFunction,
+                    createElement.Name,
+                    new BoundLayoutReactRealization(realizationRoot, classesByNode),
+                    entries));
+            }
+        }
+
+        private bool TryReportNonLayoutContractUse(int position)
+        {
+            LayoutDeclarationSyntax? layout = _tree.Root.Members
+                .OfType<LayoutDeclarationSyntax>()
+                .FirstOrDefault(candidate => candidate.ContractIdentifier?.Position == position);
+            if (layout?.ContractIdentifier is null) return false;
+            string name = layout.ContractIdentifier.Text;
+            if (_aliases.ContainsKey(name))
+            {
+                Report("COPE-LAYOUT-TYPE-0016", $"'{name}' is an ordinary type and cannot be used as a layout contract. Declare 'layout type {name} {{ ... }}' instead.", layout.ContractIdentifier);
+                return true;
+            }
+            if (_interfaces.ContainsKey(name))
+            {
+                Report("COPE-LAYOUT-TYPE-0017", $"'{name}' is a runtime interface and cannot be used as a layout contract. Layout conformance requires a 'layout type'.", layout.ContractIdentifier);
+                return true;
+            }
+            return false;
         }
 
         private void PredeclareFunctions(CompilationUnitSyntax root)

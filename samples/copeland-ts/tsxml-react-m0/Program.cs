@@ -93,6 +93,7 @@ JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(
         Profile = JavaScriptEmissionProfile.Production,
         RemoteOperationRoutes = bridge.Routes,
     });
+emitted = LayoutJavaScriptProjectEmitter.AddLayouts(emitted, project.Modules);
 if (!emitted.Success)
 {
     throw new InvalidOperationException(string.Join(Environment.NewLine, emitted.Diagnostics.Select(diagnostic => diagnostic.Id + ": " + diagnostic.Message)));

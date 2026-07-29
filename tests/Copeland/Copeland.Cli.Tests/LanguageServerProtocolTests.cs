@@ -115,11 +115,40 @@ public sealed class LanguageServerProtocolTests
         JsonElement clearedOriginDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.Empty(clearedOriginDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 
-        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 5 }, contentChanges = new[] { new { text = "import { Score } from \"./Library\"; function Main(): number { return ; }" } } });
+        const string layoutTypeText = "layout type ShellContract { row root { column left; column right; } } layout Typed<0px, 0px> satisfies ShellContract { width: 320px; height: 160px; row root { column left { width: 80px; height: fill; } column right { width: fill; height: fill; } } }";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 5 }, contentChanges = new[] { new { text = layoutTypeText } } });
+        JsonElement layoutTypeDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Empty(layoutTypeDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+        JsonElement layoutTypeHover = client.Request(9, "textDocument/hover", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = layoutTypeText.IndexOf("ShellContract", StringComparison.Ordinal) + 1 } });
+        Assert.Contains("layout type ShellContract", layoutTypeHover.GetProperty("contents").GetProperty("value").GetString());
+        JsonElement layoutTypeCompletion = client.Request(10, "textDocument/completion", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = layoutTypeText.IndexOf("satisfies", StringComparison.Ordinal) + 1 } });
+        Assert.Contains(layoutTypeCompletion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "ShellContract");
+        JsonElement layoutTypeSymbols = client.Request(11, "textDocument/documentSymbol", new { textDocument = new { uri = sourceUri } });
+        Assert.Contains(layoutTypeSymbols.EnumerateArray(), symbol => symbol.GetProperty("name").GetString() == "ShellContract");
+
+        const string missingChild = "layout type ShellContract { row root { column left; column right; } } layout Typed<0px, 0px> satisfies ShellContract { width: 320px; height: 160px; row root { column left { width: 80px; height: fill; } } }";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 6 }, contentChanges = new[] { new { text = missingChild } } });
+        JsonElement missingChildDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Contains(missingChildDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "COPE-LAYOUT-TYPE-0012");
+
+        const string streamText = "import { createElement } from \"react\"; function Header(): ReactNode { return createElement(); } function Content(): ReactNode { return createElement(); } stream Page<0px, 0px> { width: 320px; height: 160px; header: Header() { height: 32px; } content: Content() { height: fill; } }";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 7 }, contentChanges = new[] { new { text = streamText } } });
+        JsonElement streamDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Empty(streamDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+        JsonElement streamHover = client.Request(12, "textDocument/hover", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = streamText.IndexOf("Page", StringComparison.Ordinal) + 1 } });
+        Assert.Contains("origin: (0px, 0px)", streamHover.GetProperty("contents").GetProperty("value").GetString());
+        JsonElement streamSymbols = client.Request(13, "textDocument/documentSymbol", new { textDocument = new { uri = sourceUri } });
+        Assert.Contains(streamSymbols.EnumerateArray(), symbol => symbol.GetProperty("name").GetString() == "Page");
+        JsonElement streamTokens = client.Request(14, "textDocument/semanticTokens/full", new { textDocument = new { uri = sourceUri } });
+        Assert.NotEmpty(streamTokens.GetProperty("data").EnumerateArray());
+        JsonElement streamCompletion = client.Request(15, "textDocument/completion", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = 0 } });
+        Assert.Contains(streamCompletion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "stream");
+
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 8 }, contentChanges = new[] { new { text = "import { Score } from \"./Library\"; function Main(): number { return ; }" } } });
         JsonElement changedDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.NotEmpty(changedDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 
-        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 6 }, contentChanges = new[] { new { text = "function Main(" } } });
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 9 }, contentChanges = new[] { new { text = "function Main(" } } });
         JsonElement syntaxDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.NotEmpty(syntaxDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 

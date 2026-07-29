@@ -212,14 +212,17 @@ public static class CopelandProjectCompiler
         target = null;
         error = null;
         string extension = Path.GetExtension(specifier);
-        if (extension.Length > 0 && !string.Equals(extension, ".ts", StringComparison.OrdinalIgnoreCase) && !string.Equals(extension, ".tsx", StringComparison.OrdinalIgnoreCase))
+        bool isSourceExtension = string.Equals(extension, ".ts", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".tsx", StringComparison.OrdinalIgnoreCase);
+        bool isLayoutTypeStem = specifier.EndsWith(".layout-type", StringComparison.OrdinalIgnoreCase);
+        if (extension.Length > 0 && !isSourceExtension && !isLayoutTypeStem)
         {
             error = $"Local Copeland module '{specifier}' has unsupported extension '{extension}'. Relative imports support only project-owned .ts and .tsx modules.";
             return false;
         }
 
         string basePath = NormalizeLogicalPath(Path.Combine(Path.GetDirectoryName(importingPath) ?? string.Empty, specifier));
-        string[] candidates = extension.Length == 0
+        string[] candidates = !isSourceExtension
             ? [basePath + ".ts", basePath + ".tsx"]
             : [basePath];
         ProjectModule[] matches = candidates
@@ -475,7 +478,10 @@ public static class CopelandProjectCompiler
             programs.SelectMany(program => program.Records).ToArray(),
             programs.SelectMany(program => program.Tables).ToArray(),
             programs.SelectMany(program => program.TsonEncodingPlans).ToArray(),
-            programs.SelectMany(program => program.NpmImports).ToArray(),
+            programs.SelectMany(program => program.NpmImports)
+                .GroupBy(import => import.LocalBinding, StringComparer.Ordinal)
+                .Select(group => group.First())
+                .ToArray(),
             programs.SelectMany(program => program.Functions).ToArray(),
             programs.SelectMany(program => program.CSharpUsings).Distinct(StringComparer.Ordinal).ToArray(),
             null,

@@ -39,6 +39,18 @@ public static class LayoutJavaScriptProjectEmitter
                     files.Add(moduleName, ToJavaScript(projection.TypeScript));
                     css.Append("/* ").Append(module.LogicalPath).Append(" :: ").Append(layout.Name).Append(" */\n")
                         .Append(projection.Css).Append('\n');
+                    foreach (BoundLayoutBinding binding in module.BoundCompilation!.Program.LayoutBindings.Where(binding => binding.Layout.Name == layout.Name))
+                    {
+                        foreach (BoundStreamCollection collection in binding.Collections)
+                        {
+                            int columns = collection.Region.Columns ?? 1;
+                            css.Append(".m-stream-collection-").Append(Sanitize(layout.Name)).Append('-').Append(Sanitize(collection.Region.Name)).Append(" {\n")
+                                .Append("  display: grid;\n")
+                                .Append("  grid-template-columns: repeat(").Append(columns).Append(", minmax(0, 1fr));\n")
+                                .Append("  gap: ").Append(collection.Region.Gap.Px.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("px;\n")
+                                .Append("}\n\n");
+                        }
+                    }
                 }
                 catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
                 {

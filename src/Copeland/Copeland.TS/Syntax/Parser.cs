@@ -155,7 +155,19 @@ public sealed class Parser
         }
         if (Current.Kind == SyntaxKind.LayoutKeyword)
         {
+            if (IsWord(Peek(1), "type"))
+            {
+                return ParseLayoutTypeDeclaration();
+            }
             return ParseLayoutDeclaration();
+        }
+        if (IsWord(Current, "bind"))
+        {
+            return ParseLayoutBindingDeclaration();
+        }
+        if (IsWord(Current, "stream"))
+        {
+            return ParseStreamDeclaration();
         }
         if (Current.Kind == SyntaxKind.TemplateKeyword)
         {
@@ -743,6 +755,13 @@ public sealed class Parser
 
         SyntaxToken identifier = MatchLayoutName();
         LayoutOriginSyntax? origin = ParseLayoutOrigin(identifier);
+        SyntaxToken? satisfiesKeyword = null;
+        SyntaxToken? contractIdentifier = null;
+        if (IsWord(Current, "satisfies"))
+        {
+            satisfiesKeyword = NextToken();
+            contractIdentifier = MatchLayoutName();
+        }
         SyntaxToken? equalsToken = null;
         SyntaxToken? composedLayout = null;
         SyntaxToken? withKeyword = null;
@@ -759,7 +778,11 @@ public sealed class Parser
                 _ = Match(SyntaxKind.CloseBraceToken);
             }
             if (Current.Kind == SyntaxKind.SemicolonToken) _ = NextToken();
-            return new LayoutDeclarationSyntax(layoutKeyword, profile, identifier, origin, equalsToken, composedLayout, withKeyword, compositionProperties, MissingToken(SyntaxKind.OpenBraceToken, Current.Position), [], [], MissingToken(SyntaxKind.CloseBraceToken, Current.Position));
+            if (satisfiesKeyword is not null)
+            {
+                _diagnostics.Report("COPE-LAYOUT-TYPE-0001", "A composed layout cannot declare 'satisfies' in M0; declare the contract on the concrete layout body.", satisfiesKeyword.Position, satisfiesKeyword.Text.Length);
+            }
+            return new LayoutDeclarationSyntax(layoutKeyword, profile, identifier, origin, satisfiesKeyword, contractIdentifier, equalsToken, composedLayout, withKeyword, compositionProperties, MissingToken(SyntaxKind.OpenBraceToken, Current.Position), [], [], MissingToken(SyntaxKind.CloseBraceToken, Current.Position));
         }
 
         SyntaxToken openBraceToken = Match(SyntaxKind.OpenBraceToken);
@@ -774,7 +797,158 @@ public sealed class Parser
             if (Current == start) NextToken();
         }
 
-        return new LayoutDeclarationSyntax(layoutKeyword, profile, identifier, origin, null, null, null, [], openBraceToken, properties, nodes, Match(SyntaxKind.CloseBraceToken));
+        return new LayoutDeclarationSyntax(layoutKeyword, profile, identifier, origin, satisfiesKeyword, contractIdentifier, null, null, null, [], openBraceToken, properties, nodes, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private LayoutTypeDeclarationSyntax ParseLayoutTypeDeclaration()
+    {
+        SyntaxToken layoutKeyword = Match(SyntaxKind.LayoutKeyword);
+        SyntaxToken typeKeyword = NextToken();
+        SyntaxToken identifier = MatchLayoutName();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var nodes = new List<LayoutNodeSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            if (IsLayoutNodeKind(Current))
+            {
+                nodes.Add(ParseLayoutNode());
+            }
+            else
+            {
+                _diagnostics.Report("COPE-LAYOUT-TYPE-0002", "A layout type contains only named layout nodes; geometry and arbitrary properties belong to a concrete layout.", Current.Position, Math.Max(1, Current.Text.Length));
+                NextToken();
+            }
+            if (Current == start) NextToken();
+        }
+        return new LayoutTypeDeclarationSyntax(layoutKeyword, typeKeyword, identifier, openBrace, nodes, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private LayoutBindingDeclarationSyntax ParseLayoutBindingDeclaration()
+    {
+        SyntaxToken bindKeyword = NextToken();
+        SyntaxToken layoutIdentifier = MatchLayoutName();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var entries = new List<LayoutBindingEntrySyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            if (!IsLayoutNameToken(Current))
+            {
+                _diagnostics.Report("COPE-LAYOUT-BIND-0001", "A layout binding entry must start with a named layout slot.", Current.Position, Math.Max(1, Current.Text.Length));
+                NextToken();
+                continue;
+            }
+
+            SyntaxToken slot = NextToken();
+            SyntaxToken colon = Match(SyntaxKind.ColonToken);
+            ExpressionSyntax value = ParseExpression();
+            SyntaxToken? semicolon = Current.Kind == SyntaxKind.SemicolonToken ? NextToken() : null;
+            entries.Add(new LayoutBindingEntrySyntax(slot, colon, value, semicolon));
+            if (Current == start) NextToken();
+        }
+
+        return new LayoutBindingDeclarationSyntax(bindKeyword, layoutIdentifier, openBrace, entries, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private StreamDeclarationSyntax ParseStreamDeclaration()
+    {
+        SyntaxToken streamKeyword = NextToken();
+        SyntaxToken identifier = MatchLayoutName();
+        LayoutOriginSyntax? origin = ParseStreamOrigin(identifier);
+        SyntaxToken? satisfiesKeyword = null;
+        SyntaxToken? contractIdentifier = null;
+        if (IsWord(Current, "satisfies"))
+        {
+            satisfiesKeyword = NextToken();
+            contractIdentifier = MatchLayoutName();
+        }
+
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var properties = new List<LayoutPropertySyntax>();
+        var nodes = new List<StreamNodeSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            if (IsStreamStructuralKind(Current) || IsLayoutNameToken(Current) && Peek(1).Kind == SyntaxKind.ColonToken && !IsLayoutPropertyName(Current))
+            {
+                nodes.Add(ParseStreamNode());
+            }
+            else if (IsLayoutNameToken(Current))
+            {
+                properties.Add(ParseLayoutProperty());
+            }
+            else
+            {
+                ReportUnexpectedToken(Current);
+                NextToken();
+            }
+            if (Current == start) NextToken();
+        }
+
+        return new StreamDeclarationSyntax(streamKeyword, identifier, origin, satisfiesKeyword, contractIdentifier, openBrace, properties, nodes, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private LayoutOriginSyntax? ParseStreamOrigin(SyntaxToken identifier)
+    {
+        if (Current.Kind != SyntaxKind.LessToken)
+        {
+            _diagnostics.Report("COPE-STREAM-0001", $"Stream '{identifier.Text}' must declare an origin. Use: stream {identifier.Text}<0px, 0px> {{ ... }}", identifier.Position, Math.Max(1, identifier.Text.Length));
+            return null;
+        }
+
+        SyntaxToken lessToken = NextToken();
+        ExpressionSyntax x = ParseLayoutCoordinateExpression();
+        SyntaxToken comma = Match(SyntaxKind.CommaToken);
+        ExpressionSyntax y = ParseLayoutCoordinateExpression();
+        SyntaxToken greater = Match(SyntaxKind.GreaterToken);
+        return new LayoutOriginSyntax(lessToken, x, comma, y, greater);
+    }
+
+    private StreamNodeSyntax ParseStreamNode()
+    {
+        SyntaxToken? kind = IsStreamStructuralKind(Current) ? NextToken() : null;
+        SyntaxToken identifier = MatchLayoutName();
+        SyntaxToken? colon = null;
+        ExpressionSyntax? content = null;
+        if (Current.Kind == SyntaxKind.ColonToken)
+        {
+            colon = NextToken();
+            content = ParseExpression();
+        }
+
+        if (Current.Kind != SyntaxKind.OpenBraceToken)
+        {
+            if (kind is not null)
+            {
+                _diagnostics.Report("COPE-STREAM-0002", $"Structural stream node '{identifier.Text}' requires a body.", identifier.Position, Math.Max(1, identifier.Text.Length));
+            }
+            return new StreamNodeSyntax(kind, identifier, colon, content, null, [], [], null);
+        }
+
+        SyntaxToken openBrace = NextToken();
+        var properties = new List<LayoutPropertySyntax>();
+        var children = new List<StreamNodeSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            if (IsStreamStructuralKind(Current) || IsLayoutNameToken(Current) && Peek(1).Kind == SyntaxKind.ColonToken && !IsLayoutPropertyName(Current))
+            {
+                children.Add(ParseStreamNode());
+            }
+            else if (IsLayoutNameToken(Current))
+            {
+                properties.Add(ParseLayoutProperty());
+            }
+            else
+            {
+                ReportUnexpectedToken(Current);
+                NextToken();
+            }
+            if (Current == start) NextToken();
+        }
+
+        return new StreamNodeSyntax(kind, identifier, colon, content, openBrace, properties, children, Match(SyntaxKind.CloseBraceToken));
     }
 
     private LayoutOriginSyntax? ParseLayoutOrigin(SyntaxToken identifier)
@@ -880,6 +1054,13 @@ public sealed class Parser
 
     private static bool IsLayoutNodeKind(SyntaxToken token)
         => token.Text is "row" or "column" or "grid" or "anchor" or "overlay" or "slot";
+
+    private static bool IsStreamStructuralKind(SyntaxToken token)
+        => token.Text is "row" or "column" or "grid" or "anchor" or "overlay";
+
+    private static bool IsLayoutPropertyName(SyntaxToken token)
+        => token.Text is "width" or "height" or "frame" or "gap" or "padding" or "style"
+            or "columns" or "x" or "y" or "position" or "left" or "right" or "top" or "bottom";
 
     private static bool IsLayoutNameToken(SyntaxToken token)
         => token.Kind is SyntaxKind.IdentifierToken or SyntaxKind.TableKeyword or SyntaxKind.ColumnKeyword;
