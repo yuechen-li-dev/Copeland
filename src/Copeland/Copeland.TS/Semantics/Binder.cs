@@ -139,6 +139,7 @@ public static class Binder
         private readonly List<BoundLayoutBinding> _layoutBindings = [];
         private readonly List<BoundComponentDefinition> _componentDefinitions = [];
         private readonly List<BoundComponentInstance> _componentInstances = [];
+        private readonly List<HostAttachmentMir> _hostAttachments = [];
         private readonly Dictionary<string, LayoutSymbol> _layoutSymbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, LayoutTypeSymbol> _layoutTypeSymbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, LayerSetSymbol> _layerSetSymbols = new(StringComparer.Ordinal);
@@ -290,7 +291,8 @@ public static class Binder
                     _layouts,
                     _layoutBindings,
                     _componentDefinitions,
-                    _componentInstances),
+                    _componentInstances,
+                    _hostAttachments),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).Concat(_textDocumentCompilation.Diagnostics).ToArray(),
                 CreateModuleScope(),
                 _textDocumentCompilation.Documents);
@@ -304,6 +306,7 @@ public static class Binder
         private void BindComponentCapsules()
         {
             var definitionByFunction = new Dictionary<FunctionSymbol, BoundComponentDefinition>();
+            var functionBySymbol = new Dictionary<FunctionSymbol, BoundFunctionDeclaration>();
             foreach (BoundFunctionDeclaration function in _functions
                 .Where(function => function.Symbol.ReturnType == ReactNodeTypeSymbol.Instance)
                 .OrderBy(function => function.Symbol.StableIdentity, StringComparer.Ordinal))
@@ -312,16 +315,20 @@ public static class Binder
                 ComponentImplementationKind implementation = localStream is null
                     ? ComponentImplementationKind.React
                     : ComponentImplementationKind.NativeMachina;
-                BoundComponentPresentation presentation = localStream is null && ReturnsCustomElement(function.Body)
-                    ? BoundComponentPresentation.CustomElementBridge()
-                    : BoundComponentPresentation.ReactBridge(localStream is not null);
+                BoundComponentPresentation presentation = TryGetExplicitForeignPresentation(function.Body)
+                    ?? (localStream is null && ReturnsCustomElement(function.Body)
+                        ? BoundComponentPresentation.CustomElementBridge()
+                        : BoundComponentPresentation.ReactBridge(localStream is not null));
+                AttachmentPlanPayload? payload = TryGetAttachmentPayload(function.Body, presentation);
                 var definition = new BoundComponentDefinition(
                     function.Symbol,
                     implementation,
                     localStream,
-                    presentation);
+                    presentation,
+                    payload);
                 _componentDefinitions.Add(definition);
                 definitionByFunction.Add(function.Symbol, definition);
+                functionBySymbol.Add(function.Symbol, function);
             }
 
             foreach (BoundLayoutBinding pageBinding in _layoutBindings
@@ -398,6 +405,30 @@ public static class Binder
                         parentComponentInstance,
                         supplied);
                     _componentInstances.Add(instance);
+                    _hostAttachments.Add(HostAttachmentMir.Create(instance));
+
+                    // A renderer-host marker is ordinary component source, not
+                    // application attachment glue. M0 gives the first item in
+                    // each semantic collection its own stable adapter child.
+                    if (!binding.IsPrivate
+                        && ordinal == 0
+                        && definition.RendererAdapter != RendererAdapterIdentity.CustomElement
+                        && FindRendererHostDefinition(definition, definitionByFunction, functionBySymbol) is BoundComponentDefinition rendererHost)
+                    {
+                        string childIdentity = instance.StableIdentity + "::renderer-host::" + rendererHost.Function.StableIdentity;
+                        var child = new BoundComponentInstance(
+                            childIdentity,
+                            rendererHost,
+                            binding,
+                            host,
+                            [],
+                            0,
+                            instance.AuthoredCallIdentity + "::renderer-host",
+                            instance,
+                            supplied);
+                        _componentInstances.Add(child);
+                        _hostAttachments.Add(HostAttachmentMir.Create(child));
+                    }
 
                     if (definition.LocalStream is not { IsPrivate: true } localPresentation)
                     {
@@ -410,6 +441,52 @@ public static class Binder
                     };
                     AddInstancesForBinding(localPresentation, instance, descendants);
                 }
+            }
+
+            static BoundComponentDefinition? FindRendererHostDefinition(
+                BoundComponentDefinition root,
+                IReadOnlyDictionary<FunctionSymbol, BoundComponentDefinition> definitions,
+                IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> functions)
+            {
+                var visited = new HashSet<FunctionSymbol>();
+                return VisitDefinition(root);
+
+                BoundComponentDefinition? VisitDefinition(BoundComponentDefinition definition)
+                {
+                    if (!visited.Add(definition.Function)) return null;
+                    if (definition.RendererAdapter == RendererAdapterIdentity.CustomElement && definition.AttachmentPayload is not null)
+                    {
+                        return definition;
+                    }
+                    if (definition.LocalStream is BoundLayoutBinding stream)
+                    {
+                        foreach (BoundLayoutBindingEntry entry in stream.Entries)
+                        {
+                            BoundComponentDefinition? nested = VisitExpression(entry.Component);
+                            if (nested is not null) return nested;
+                        }
+                    }
+                    return functions.TryGetValue(definition.Function, out BoundFunctionDeclaration? function)
+                        ? VisitStatement(function.Body)
+                        : null;
+                }
+
+                BoundComponentDefinition? VisitStatement(BoundStatement statement)
+                    => statement switch
+                    {
+                        BoundBlockStatement block => block.Statements.Select(VisitStatement).FirstOrDefault(result => result is not null),
+                        BoundReturnStatement { Expression: not null } @return => VisitExpression(@return.Expression),
+                        _ => null,
+                    };
+
+                BoundComponentDefinition? VisitExpression(BoundExpression expression)
+                    => expression switch
+                    {
+                        BoundCallExpression call when definitions.TryGetValue(call.Function, out BoundComponentDefinition? nested) => VisitDefinition(nested),
+                        BoundReactElementExpression element => element.Children.Select(VisitExpression).Concat(element.Properties.Select(property => VisitExpression(property.Value))).FirstOrDefault(result => result is not null),
+                        BoundForeignComponentExpression foreign => VisitExpression(foreign.Payload),
+                        _ => null,
+                    };
             }
         }
 
@@ -453,7 +530,8 @@ public static class Binder
             IReadOnlyList<RendererAdapterValidation> validations = RendererAdapterContracts.Validate(
                 definition.RendererAdapter,
                 definition.RequiredContentCapabilities,
-                supplied);
+                supplied,
+                definition.Presentation.PayloadContract);
             if (validations.Count == 0)
             {
                 return;
@@ -487,9 +565,72 @@ public static class Binder
                 BoundBlockStatement block => block.Statements.Any(ReturnsCustomElement),
                 BoundIfStatement conditional => ReturnsCustomElement(conditional.ThenStatement)
                     || conditional.ElseStatement is not null && ReturnsCustomElement(conditional.ElseStatement),
-                BoundReturnStatement { Expression: BoundReactElementExpression { ElementType: BoundLiteralExpression { Value: string name } } }
-                    => name.Contains('-', StringComparison.Ordinal),
+                BoundReturnStatement { Expression: BoundReactElementExpression { ElementType: BoundLiteralExpression { Value: string name } } element }
+                    => name.Contains('-', StringComparison.Ordinal)
+                        || element.Properties.Any(property => property.Name == "data-copeland-renderer-tag"),
                 _ => false,
+            };
+        }
+
+        private static AttachmentPlanPayload? TryGetAttachmentPayload(
+            BoundStatement statement,
+            BoundComponentPresentation presentation)
+        {
+            if (presentation.RendererAdapter != RendererAdapterIdentity.CustomElement)
+            {
+                return null;
+            }
+
+            BoundExpression? expression = statement switch
+            {
+                BoundReturnStatement { Expression: not null } @return => @return.Expression,
+                BoundBlockStatement { Statements.Count: 1 } block => TryGetAttachmentPayloadExpression(block.Statements[0]),
+                _ => null,
+            };
+            if (expression is BoundForeignComponentExpression foreign)
+            {
+                expression = foreign.Payload;
+            }
+            if (expression is not BoundReactElementExpression
+                {
+                    IsIntrinsic: true,
+                    ElementType: BoundLiteralExpression { Value: string tagName },
+                } element)
+            {
+                return null;
+            }
+
+            BoundReactProperty? label = element.Properties.SingleOrDefault(property => property.Name == "label" || property.Name == "data-copeland-renderer-label");
+            if (label is not null && label.Value is not BoundLiteralExpression { Value: string })
+            {
+                return null;
+            }
+            string? labelValue = label?.Value is BoundLiteralExpression { Value: string value }
+                ? value
+                : null;
+            BoundReactProperty? tag = element.Properties.SingleOrDefault(property => property.Name == "data-copeland-renderer-tag");
+            if (tag?.Value is BoundLiteralExpression { Value: string markerTag })
+            {
+                return new AttachmentPlanPayload(markerTag, labelValue, " [data-copeland-renderer-host='CustomElement']");
+            }
+            return new AttachmentPlanPayload(tagName, labelValue);
+        }
+
+        private static BoundExpression? TryGetAttachmentPayloadExpression(BoundStatement statement)
+            => statement is BoundReturnStatement { Expression: not null } @return ? @return.Expression : null;
+
+        private static BoundComponentPresentation? TryGetExplicitForeignPresentation(BoundStatement statement)
+        {
+            return statement switch
+            {
+                BoundBlockStatement block => block.Statements
+                    .Select(TryGetExplicitForeignPresentation)
+                    .FirstOrDefault(presentation => presentation is not null),
+                BoundIfStatement conditional => TryGetExplicitForeignPresentation(conditional.ThenStatement)
+                    ?? (conditional.ElseStatement is null ? null : TryGetExplicitForeignPresentation(conditional.ElseStatement)),
+                BoundReturnStatement { Expression: BoundForeignComponentExpression foreign }
+                    => BoundComponentPresentation.ForeignBridge(foreign.Adapter),
+                _ => null,
             };
         }
 
@@ -5435,6 +5576,11 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (c.Target is NameExpressionSyntax { IdentifierToken.Text: "ForeignComponent" } foreignTarget)
+            {
+                return BindForeignComponent(c, foreignTarget.IdentifierToken);
+            }
+
             if (c.Target is MemberAccessExpressionSyntax { Target: NameExpressionSyntax componentName } privateMember
                 && TryFindPrivatePresentation(componentName.IdentifierToken.Text, privateMember.NameToken.Text, out string? owner))
             {
@@ -5636,6 +5782,73 @@ public static class Binder
                         fn.Parameters[i].AuthoredAliasName);
                 }
             return new BoundCallExpression(fn, args);
+        }
+
+        private BoundExpression BindForeignComponent(CallExpressionSyntax call, SyntaxToken anchor)
+        {
+            if (call.Arguments.Count != 2)
+            {
+                foreach (ExpressionSyntax argument in call.Arguments)
+                {
+                    _ = BindExpression(argument);
+                }
+
+                Report(
+                    "COPE-RENDERER-0012",
+                    "ForeignComponent requires an explicit adapter literal and one payload: ForeignComponent(\"React\", payload).",
+                    anchor);
+                return new BoundErrorExpression();
+            }
+
+            if (call.Arguments[0] is not LiteralExpressionSyntax { LiteralToken.Value: string adapterName }
+                || !Enum.TryParse(adapterName, ignoreCase: false, out RendererAdapterIdentity adapter))
+            {
+                _ = BindExpression(call.Arguments[0]);
+                _ = BindExpression(call.Arguments[1]);
+                Report("COPE-RENDERER-0001", "ForeignComponent adapter must name an available registered adapter.", anchor);
+                return new BoundErrorExpression();
+            }
+
+            BoundExpression payload = BindExpression(call.Arguments[1], ReactNodeTypeSymbol.Instance);
+            BoundComponentPresentation presentation;
+            try
+            {
+                presentation = BoundComponentPresentation.ForeignBridge(adapter);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                Report("COPE-RENDERER-0001", $"Renderer adapter '{adapterName}' is unavailable.", anchor);
+                return new BoundErrorExpression();
+            }
+
+            if (adapter == RendererAdapterIdentity.CustomElement
+                && (payload is not BoundReactElementExpression
+                    {
+                        IsIntrinsic: true,
+                        ElementType: BoundLiteralExpression { Value: string elementName },
+                    }
+                    || !elementName.Contains('-', StringComparison.Ordinal)))
+            {
+                Report("COPE-RENDERER-0008", "CustomElement payload must be one typed hyphenated Custom Element.", anchor);
+                return new BoundErrorExpression();
+            }
+
+            IReadOnlyList<RendererAdapterValidation> validation = RendererAdapterContracts.Validate(
+                adapter,
+                presentation.RequiredContentCapabilities,
+                presentation.RequiredHostCapabilities,
+                presentation.PayloadContract);
+            if (validation.Count > 0)
+            {
+                foreach (RendererAdapterValidation item in validation)
+                {
+                    Report(item.Id, item.Message, anchor);
+                }
+
+                return new BoundErrorExpression();
+            }
+
+            return new BoundForeignComponentExpression(adapter, payload, presentation.PayloadContract);
         }
 
         private BoundExpression BindTableRowsCall(
@@ -7910,6 +8123,10 @@ public static class Binder
                     (CallableTypeSymbol)SubstituteType(construction.CallableType, substitutions)),
                 BoundInvokeExpression invoke => new BoundInvokeExpression(RewriteExpression(invoke.Callee), invoke.Arguments.Select(RewriteExpression).ToArray(), (CallableTypeSymbol)SubstituteType(invoke.CallableType, substitutions)),
                 BoundEnumValueExpression value => new BoundEnumValueExpression(value.Case, value.Arguments.Select(RewriteExpression).ToArray()),
+                BoundForeignComponentExpression foreign => new BoundForeignComponentExpression(
+                    foreign.Adapter,
+                    RewriteExpression(foreign.Payload),
+                    foreign.PayloadContract),
                 BoundPropagateExpression propagate => new BoundPropagateExpression(RewriteExpression(propagate.Operand), (ResultTypeSymbol)SubstituteType(propagate.ResultType, substitutions), propagate.Target),
                 BoundUnwrapExpression unwrap => new BoundUnwrapExpression(RewriteExpression(unwrap.Operand), (ResultTypeSymbol)SubstituteType(unwrap.ResultType, substitutions)),
                 BoundOkExpression ok => new BoundOkExpression(RewriteExpression(ok.Payload), (ResultTypeSymbol)SubstituteType(ok.Type, substitutions)),

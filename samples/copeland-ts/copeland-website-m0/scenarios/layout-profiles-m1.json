@@ -7,7 +7,7 @@
       "assertions": [
         { "kind": "count", "selector": "[data-machina-layout='CopelandDesktop'][data-machina-box='root']", "value": 1 },
         { "kind": "visible", "selector": ".command-bar" },
-        { "kind": "visible", "selector": ".hero-copy h1" },
+        { "kind": "visible", "selector": "[data-machina-layout='CopelandDesktop'][data-machina-box='hero'] .hero-title .text-fit-target" },
         { "kind": "count", "selector": ".feature-card", "value": 4 },
         { "kind": "no-horizontal-overflow" }
       ],

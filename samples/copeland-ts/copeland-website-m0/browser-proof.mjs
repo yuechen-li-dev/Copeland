@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -11,6 +11,7 @@ const tolerance = 1;
 const server = spawn("node", ["server.mjs"], { stdio: ["ignore", "pipe", "pipe"] });
 const diagnostics = { console: [], page: [], request: [] };
 const evidence = [];
+const attachmentArtifact = JSON.parse(await readFile("dist/browser/attachments.json", "utf8"));
 let browser;
 
 try {
@@ -30,6 +31,7 @@ try {
     page.on("response", response => { if (response.status() >= 400) diagnostics.request.push({ url: response.url(), status: response.status() }); });
     await page.goto(baseUrl, { waitUntil: "networkidle" });
     await page.waitForFunction(layout => document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='hero'] .hero-title .text-fit-target`) !== null, profile.layout);
+    await page.waitForFunction(layout => document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] [data-copeland-renderer-host='CustomElement'] [data-copeland-attachment]`) !== null, profile.layout);
 
     const initial = await page.evaluate(({ layout, source }) => (0, eval)(`(${source})`)(layout), { layout: profile.layout, source: snapshot.toString() });
     equal(`${profile.name} root width`, initial.root.width, profile.width, initial);
@@ -46,7 +48,24 @@ try {
     if (initial.featureCards.length !== 4) throw new Error(`${profile.name} did not render four FeatureCard instances.`);
     for (const card of initial.featureCards) assertInside(`${profile.name} feature card`, card, initial.featureGrid);
     await page.screenshot({ path: `${artifactDirectory}/${profile.name}-initial.png` });
-
+    const plan = attachmentArtifact.plans.find(candidate => candidate.adapterId === "CustomElement" && candidate.hostSelector.includes(`data-machina-layout='${profile.layout}'`));
+    if (!plan) throw new Error(`${profile.name} emitted plan artifact has no Custom Element plan.`);
+    const lifecycle = await page.evaluate(async plan => {
+      const host = await import("@copeland/browser-v1");
+      host.detachRenderer(plan.attachmentId, plan.componentInstanceId);
+      const removedAfterDetach = document.querySelector(`[data-copeland-attachment='${plan.attachmentId}']`) === null;
+      host.attachRenderer(plan.attachmentId, plan.componentInstanceId, plan.hostSelector, plan.adapterId, plan.payload.tagName, "Mounted Custom Element");
+      const mounted = document.querySelector(`[data-copeland-attachment='${plan.attachmentId}']`);
+      const mountedText = mounted?.shadowRoot?.querySelector("span")?.textContent ?? null;
+      host.updateRenderer(plan.attachmentId, plan.componentInstanceId, plan.hostSelector, "Updated Custom Element");
+      const updatedText = mounted?.shadowRoot?.querySelector("span")?.textContent ?? null;
+      host.detachRenderer(plan.attachmentId, plan.componentInstanceId);
+      const removedAfterCleanup = document.querySelector(`[data-copeland-attachment='${plan.attachmentId}']`) === null;
+      return { removedAfterDetach, mountedText, updatedText, removedAfterCleanup };
+    }, plan);
+    if (!lifecycle.removedAfterDetach || lifecycle.mountedText !== "Mounted Custom Element" || lifecycle.updatedText !== "Updated Custom Element" || !lifecycle.removedAfterCleanup) {
+      throw new Error(`${profile.name} Custom Element attachment lifecycle failed: ${JSON.stringify(lifecycle)}`);
+    }
     const locality = [];
     for (const fixture of [
       { name: "short", text: "Copeland TS." },
@@ -94,12 +113,90 @@ try {
     await page.close();
   }
 
+  await runReactHostReplacementProof();
+
   if (diagnostics.console.length || diagnostics.page.length || diagnostics.request.length) throw new Error(`Browser diagnostics: ${JSON.stringify(diagnostics)}`);
   await writeFile(`${artifactDirectory}/report.json`, `${JSON.stringify({ success: true, tolerance, diagnostics, evidence }, null, 2)}\n`);
   process.stdout.write(`${JSON.stringify({ success: true, profiles: evidence.map(item => item.profile.name) }, null, 2)}\n`);
 } finally {
   await browser?.close();
   if (!server.killed) server.kill();
+}
+
+async function runReactHostReplacementProof() {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page.on("console", message => { if (message.type() === "error") diagnostics.console.push(message.text()); });
+  page.on("pageerror", error => diagnostics.page.push(error.message));
+  page.on("requestfailed", request => diagnostics.request.push({ url: request.url(), error: request.failure()?.errorText ?? "unknown" }));
+  page.on("response", response => { if (response.status() >= 400) diagnostics.request.push({ url: response.url(), status: response.status() }); });
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  const result = await page.evaluate(async () => {
+    const hostRuntime = await import("@copeland/browser-v1");
+    const React = await import("react");
+    const { createRoot } = await import("react-dom/client");
+    const attachmentId = "browser-proof::semantic-recovery::attachment";
+    const componentInstanceId = "browser-proof::semantic-recovery";
+    const plan = {
+      attachmentId,
+      componentDefinitionId: "browser-proof::definition",
+      componentInstanceId,
+      parentComponentInstanceId: null,
+      hostBoxId: "BrowserProof.recoveryHost",
+      hostSelector: "[data-copeland-recovery-host='stable']",
+      adapterId: "CustomElement",
+      requiredHostCapabilities: ["RendererAttachment", "StableMountPoint"],
+      requiredContentCapabilities: ["CustomElement"],
+      payloadContract: "custom-element-bridge",
+      payload: { tagName: "copeland-renderer-badge", label: "Recovery initial" },
+      lifecycle: { mount: true, update: true, unmount: true },
+      source: { path: "browser-proof", line: 1, column: 1, provenance: "runtime" }
+    };
+    const shell = document.createElement("section");
+    document.body.appendChild(shell);
+    const root = createRoot(shell);
+    const renderHost = tag => root.render(React.createElement(tag, { "data-copeland-recovery-host": "stable" }));
+    const waitFor = async predicate => {
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        if (predicate()) return;
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      throw new Error("Timed out waiting for recovery runtime state.");
+    };
+
+    hostRuntime.registerAttachmentPlans({ schemaVersion: 1, projectId: "browser-proof", plans: [plan] });
+    renderHost("span");
+    await waitFor(() => document.querySelector(`[data-copeland-attachment='${attachmentId}']`) !== null);
+    const oldHost = document.querySelector(plan.hostSelector);
+    const oldElement = document.querySelector(`[data-copeland-attachment='${attachmentId}']`);
+    renderHost("div");
+    await waitFor(() => {
+      const current = document.querySelector(`[data-copeland-attachment='${attachmentId}']`);
+      return current !== null && current !== oldElement && document.querySelector(plan.hostSelector) !== oldHost;
+    });
+    const recovered = document.querySelector(`[data-copeland-attachment='${attachmentId}']`);
+    const recoveredText = recovered?.shadowRoot?.querySelector("span")?.textContent ?? null;
+    const updatedPlan = { ...plan, payload: { ...plan.payload, label: "Recovery updated" } };
+    hostRuntime.registerAttachmentPlans({ schemaVersion: 1, projectId: "browser-proof", plans: [updatedPlan] });
+    await waitFor(() => recovered?.shadowRoot?.querySelector("span")?.textContent === "Recovery updated");
+    const countsAfterUpdate = hostRuntime.inspectAttachmentRuntime(attachmentId);
+    hostRuntime.registerAttachmentPlans({ schemaVersion: 1, projectId: "browser-proof", plans: [] });
+    await waitFor(() => document.querySelector(`[data-copeland-attachment='${attachmentId}']`) === null);
+    const finalCounts = hostRuntime.inspectAttachmentRuntime(attachmentId);
+    root.unmount();
+    shell.remove();
+    return {
+      oldHostConnected: oldHost?.isConnected ?? true,
+      oldElementConnected: oldElement?.isConnected ?? true,
+      recoveredText,
+      liveCount: document.querySelectorAll(`[data-copeland-attachment='${attachmentId}']`).length,
+      countsAfterUpdate,
+      finalCounts
+    };
+  });
+  if (result.oldHostConnected || result.oldElementConnected || result.recoveredText !== "Recovery initial" || result.liveCount !== 0 || result.countsAfterUpdate.mounts !== 2 || result.countsAfterUpdate.updates !== 1 || result.countsAfterUpdate.unmounts !== 1 || result.finalCounts.unmounts !== 2 || result.finalCounts.mounted || result.finalCounts.pending) {
+    throw new Error(`React semantic host replacement proof failed: ${JSON.stringify(result)}`);
+  }
+  await page.close();
 }
 
 function snapshot(layout) {
@@ -126,7 +223,7 @@ function snapshot(layout) {
   const featureCards = Array.from(document.querySelectorAll(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] .feature-card`)).map(rectangle);
   const customElement = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] copeland-renderer-badge`);
   return {
-    root: box("root"), page: { ...rectangle(page), scrollHeight: page.scrollHeight, clientHeight: page.clientHeight, scrollTop: page.scrollTop }, content: box("content"), hero: rectangle(heroHost), heroTitle: rectangle(heroTitleHost), heroActions: rectangle(heroActionsHost), featureGrid, featureCards, heroTitleTarget: { ...rectangle(titleTarget), scrollWidth: titleTarget.scrollWidth, clientWidth: titleTarget.clientWidth }, heroActionsContent: rectangle(actionsContent), codeBadge: { ...rectangle(code), scrollWidth: code.scrollWidth, clientWidth: code.clientWidth }, footer: box("footer"), document: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }, semantics: { heroHeading: heroTitleHost.querySelector("h1") !== null, strong: document.querySelector("strong") !== null, link: footer.querySelector("a[href='#architecture']") !== null, list: architecture.querySelector("ul > li") !== null, code: code.querySelector("pre") !== null, customElement: customElement instanceof HTMLElement && customElement.shadowRoot?.querySelector("span")?.textContent === "Custom Element" }
+    root: box("root"), page: { ...rectangle(page), scrollHeight: page.scrollHeight, clientHeight: page.clientHeight, scrollTop: page.scrollTop }, content: box("content"), hero: rectangle(heroHost), heroTitle: rectangle(heroTitleHost), heroActions: rectangle(heroActionsHost), featureGrid, featureCards, heroTitleTarget: { ...rectangle(titleTarget), scrollWidth: titleTarget.scrollWidth, clientWidth: titleTarget.clientWidth }, heroActionsContent: rectangle(actionsContent), codeBadge: { ...rectangle(code), scrollWidth: code.scrollWidth, clientWidth: code.clientWidth }, footer: box("footer"), document: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }, semantics: { heroHeading: heroTitleHost.querySelector("h1") !== null, strong: document.querySelector("strong") !== null, link: footer.querySelector("a[href='#architecture']") !== null, list: architecture.querySelector("ul > li") !== null, code: code.querySelector("pre") !== null, customElement: customElement instanceof HTMLElement && customElement.hasAttribute("data-copeland-attachment") && customElement.shadowRoot?.querySelector("span")?.textContent?.startsWith("Custom Elements work") === true }
   };
 }
 

@@ -12,14 +12,22 @@
   <script>
     if (!customElements.get("copeland-renderer-badge")) {
       customElements.define("copeland-renderer-badge", class extends HTMLElement {
+        static get observedAttributes() {
+          return ["label"];
+        }
         connectedCallback() {
           if (this.shadowRoot) return;
           const root = this.attachShadow({ mode: "open" });
           const badge = document.createElement("span");
+          badge.setAttribute("data-copeland-badge-text", "true");
           badge.textContent = this.getAttribute("label") ?? "Custom Element";
           const style = document.createElement("style");
           style.textContent = ":host { display: inline-block; } span { color: #66e3c4; font: 600 0.64rem/1 system-ui, sans-serif; letter-spacing: .07em; text-transform: uppercase; }";
           root.append(style, badge);
+        }
+        attributeChangedCallback(name, previous, next) {
+          if (name !== "label" || previous === next) return;
+          this.shadowRoot?.querySelector("[data-copeland-badge-text='true']")?.replaceChildren(next ?? "Custom Element");
         }
       });
     }

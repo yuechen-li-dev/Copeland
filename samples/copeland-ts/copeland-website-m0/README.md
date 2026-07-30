@@ -16,9 +16,14 @@ locally. Hero text uses fixed local profile hosts, `clamp`, and line clamping;
 actions remain separate from text so copy changes do not alter page geometry.
 
 The compiler projects component definitions, stream-attached instances,
-private local presentations, and lexical captures. Parent placement stays a
-neutral generated host; private stream wrappers flatten in browser realization
-so the parent sees only the assigned host geometry.
+immutable renderer attachment plans, private local presentations, and lexical
+captures. Parent placement stays a neutral generated host; private stream
+wrappers flatten in browser realization so the parent sees only the assigned
+host geometry. `Main.ts` mounts the application through a host-attachment plan;
+the React root remains adapter-private. The generated browser host separately
+mounts the Custom Element badge into a Copeland/Machina renderer host through
+`attachRenderer`, updates its label through `updateRenderer`, and releases
+it through `detachRenderer`; React never creates the badge element.
 
 Run from the sibling TSPack checkout:
 
@@ -47,6 +52,7 @@ $cli = C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Cli\bin\Debug\
 & $cli table rows component::Bindings --project .\manifest.tsx --format json
 & $cli table rows component::Captures --project .\manifest.tsx --format json
 & $cli table rows component::LocalPresentations --project .\manifest.tsx --format json
+& $cli table rows renderer::Attachments --project .\manifest.tsx --format json
 & $cli layout inspect CopelandDesktop --project .\manifest.tsx --json
 ```
 

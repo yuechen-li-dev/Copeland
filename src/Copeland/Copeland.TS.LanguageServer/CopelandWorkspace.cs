@@ -129,10 +129,11 @@ internal sealed class CopelandWorkspace
         string? tableContents = DescribeTableCellAt(compilation, token.Position);
         string? paintContents = DescribePaintAt(compilation, token.Position);
         string? relativeContents = DescribeRelativeDerivationAt(compilation.SyntaxTree, token);
+        string? adapterContents = DescribeRendererAdapter(token.Text);
         Symbol? symbol = FindSymbol(compilation, token.Text);
         string? componentContents = DescribeComponent(compilation, symbol);
         DeclarationInfo? declaration = FindDeclaration(compilation.SyntaxTree, token.Text);
-        string contents = relativeContents ?? contentPolicyContents ?? tableContents ?? paintContents ?? (bindingSlot is not null
+        string contents = adapterContents ?? relativeContents ?? contentPolicyContents ?? tableContents ?? paintContents ?? (bindingSlot is not null
             ? "slot " + bindingSlot.SemanticPath + "\ncardinality: exactly one renderable component/view\nhost: compiler-generated div layout region"
             : symbol is LayoutSymbol { BoundLayout: not null } layout
             ? DescribeLayout(layout)
@@ -157,7 +158,18 @@ internal sealed class CopelandWorkspace
         }
         CopelandCompilation compilation = Compile(document!);
         var items = new Dictionary<string, object>(StringComparer.Ordinal);
-        TextDocumentSemanticFact? documentFact = FindTextDocumentFact(compilation.BoundCompilation, ToOffset(document.Text, position));
+        int completionOffset = ToOffset(document.Text, position);
+        if (document.Text[..Math.Min(completionOffset, document.Text.Length)].LastIndexOf("ForeignComponent(", StringComparison.Ordinal) >= 0)
+        {
+            foreach (RendererAdapterContract adapter in RendererAdapterContracts.All)
+            {
+                items[adapter.Identity.ToString()] = CompletionItem(
+                    adapter.Identity.ToString(),
+                    13,
+                    "renderer adapter: " + string.Join(", ", adapter.PayloadContracts));
+            }
+        }
+        TextDocumentSemanticFact? documentFact = FindTextDocumentFact(compilation.BoundCompilation, completionOffset);
         if (documentFact is { Kind: "List" })
         {
             items["Item"] = CompletionItem("Item", 14, "legal canonical child of List");
@@ -668,12 +680,46 @@ internal sealed class CopelandWorkspace
             .SingleOrDefault(candidate => candidate.Function == function);
         if (definition is null) return null;
 
+        BoundProgram program = compilation.BoundCompilation!.Program;
+        BoundComponentInstance[] instances = program.ComponentInstances
+            .Where(instance => instance.Definition == definition)
+            .OrderBy(instance => instance.StableIdentity, StringComparer.Ordinal)
+            .ToArray();
+        HostAttachmentMir[] attachments = program.HostAttachments
+            .Where(attachment => attachment.ComponentDefinitionId == definition.StableIdentity)
+            .OrderBy(attachment => attachment.AttachmentId, StringComparer.Ordinal)
+            .ToArray();
+
         return "component " + definition.Function.Name
             + "\npresentation: " + definition.Presentation.Kind
             + "\nrenderer adapter: " + definition.RendererAdapter
             + "\ncontent capabilities: " + definition.RequiredContentCapabilities
             + "\nrequired host capabilities: " + definition.RequiredHostCapabilities
-            + "\npayload contract: " + definition.Presentation.PayloadContract;
+            + "\npayload contract: " + definition.Presentation.PayloadContract
+            + "\ninstances: " + instances.Length
+            + "\nattachments: " + attachments.Length
+            + (attachments.Length == 0
+                ? string.Empty
+                : "\nattachment: " + attachments[0].AttachmentId
+                    + "\nhost: " + attachments[0].HostBoxId
+                    + "\nadapter registry entry: " + attachments[0].AdapterId);
+    }
+
+    private static string? DescribeRendererAdapter(string token)
+    {
+        string adapterName = token.Trim('"');
+        if (!Enum.TryParse(adapterName, ignoreCase: false, out RendererAdapterIdentity identity)
+            || !RendererAdapterContracts.TryGet(identity, out RendererAdapterContract? adapter)
+            || adapter is null)
+        {
+            return null;
+        }
+
+        return "renderer adapter " + adapter.Identity
+            + "\nsupported content: " + adapter.SupportedContentCapabilities
+            + "\nrequired host: " + adapter.RequiredHostCapabilities
+            + "\npayload contracts: " + string.Join(", ", adapter.PayloadContracts)
+            + "\nregistry: RendererAdapterContracts.Default";
     }
 
     private static string? DescribeContentPolicyAt(CopelandCompilation compilation, int position)

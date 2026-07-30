@@ -173,6 +173,13 @@ internal static class TsclBuildContract
                 WriteStagedFile(stagingDirectory, relativePath, contents);
             }
 
+            // HostAttachmentMir is the compiler fact. Emit its transport form
+            // beside browser output; TSPack owns all later materialization.
+            WriteStagedFile(
+                stagingDirectory,
+                AttachmentPlanArtifactEmitter.ArtifactFileName,
+                AttachmentPlanArtifactEmitter.Emit(compilation, projectRoot));
+
             string entryOutput = string.IsNullOrWhiteSpace(request.EntryOutputPath) ? "entry.js" : request.EntryOutputPath;
             string entryModuleOutput = JavaScriptProjectEmitter.GetOutputPath(new Copeland.TS.Mir.MirModuleId(request.Entry!.Module));
             WriteStagedFile(

@@ -28,7 +28,8 @@ public sealed class BoundProgram
         IReadOnlyList<BoundLayoutDeclaration>? layouts = null,
         IReadOnlyList<BoundLayoutBinding>? layoutBindings = null,
         IReadOnlyList<BoundComponentDefinition>? componentDefinitions = null,
-        IReadOnlyList<BoundComponentInstance>? componentInstances = null)
+        IReadOnlyList<BoundComponentInstance>? componentInstances = null,
+        IReadOnlyList<HostAttachmentMir>? hostAttachments = null)
     {
         Functions = functions;
         Enums = enums;
@@ -48,6 +49,7 @@ public sealed class BoundProgram
         LayoutBindings = layoutBindings ?? [];
         ComponentDefinitions = componentDefinitions ?? [];
         ComponentInstances = componentInstances ?? [];
+        HostAttachments = hostAttachments ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -69,6 +71,11 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundComponentDefinition> ComponentDefinitions { get; }
     /// <summary>Concrete calls attached to compiler-owned parent layout hosts.</summary>
     public IReadOnlyList<BoundComponentInstance> ComponentInstances { get; }
+    /// <summary>
+    /// Immutable compiler-owned attachment plans. These are deliberately
+    /// separate from component presentations and renderer-private roots.
+    /// </summary>
+    public IReadOnlyList<HostAttachmentMir> HostAttachments { get; }
 }
 
 /// <summary>
@@ -80,7 +87,8 @@ public sealed class BoundComponentDefinition(
     FunctionSymbol function,
     ComponentImplementationKind implementationKind,
     BoundLayoutBinding? localStream = null,
-    BoundComponentPresentation? presentation = null)
+    BoundComponentPresentation? presentation = null,
+    AttachmentPlanPayload? attachmentPayload = null)
     : BoundNode
 {
     public FunctionSymbol Function { get; } = function;
@@ -99,7 +107,15 @@ public sealed class BoundComponentDefinition(
     public ComponentHostCapabilities RequiredHostCapabilities => Presentation.RequiredHostCapabilities;
     public ComponentContentCapabilities RequiredContentCapabilities => Presentation.RequiredContentCapabilities;
     public RendererAdapterIdentity RendererAdapter => Presentation.RendererAdapter;
+    /// <summary>Adapter-constrained, browser-safe payload facts when static source permits transport.</summary>
+    public AttachmentPlanPayload? AttachmentPayload { get; } = attachmentPayload;
 }
+
+/// <summary>
+/// Opaque adapter payload facts which are safe to cross the attachment wire.
+/// It deliberately contains no renderer object or executable source.
+/// </summary>
+public sealed record AttachmentPlanPayload(string TagName, string? Label, string? HostSelectorSuffix = null);
 
 /// <summary>
 /// A presentation is Copeland's result at the renderer boundary. It identifies
@@ -134,6 +150,22 @@ public sealed record BoundComponentPresentation(
             ComponentHostCapabilities.ResolvedWidth |
             ComponentHostCapabilities.ResolvedHeight,
             "custom-element-bridge");
+
+    public static BoundComponentPresentation ForeignBridge(RendererAdapterIdentity adapter)
+        => adapter switch
+        {
+            RendererAdapterIdentity.React => ReactBridge(false),
+            RendererAdapterIdentity.CustomElement => CustomElementBridge(),
+            RendererAdapterIdentity.NativeMachina => new(
+                ComponentPresentationKind.RendererPayload,
+                RendererAdapterIdentity.NativeMachina,
+                ComponentContentCapabilities.NativeMachina,
+                ComponentHostCapabilities.FillAssignedBox |
+                ComponentHostCapabilities.ResolvedWidth |
+                ComponentHostCapabilities.ResolvedHeight,
+                "native-machina-plan"),
+            _ => throw new ArgumentOutOfRangeException(nameof(adapter)),
+        };
 }
 
 public enum ComponentPresentationKind
@@ -209,6 +241,51 @@ public sealed class BoundComponentInstance(
     public ComponentHostCapabilities HostCapabilities { get; } = hostCapabilities;
 }
 
+/// <summary>
+/// Renderer-neutral plan for realizing one canonical component instance in one
+/// Copeland-owned host. The payload contract is descriptive only: renderer
+/// payload values never cross back into compiler semantics.
+/// </summary>
+public sealed record HostAttachmentMir(
+    string AttachmentId,
+    string ComponentDefinitionId,
+    string ComponentInstanceId,
+    string? ParentComponentInstanceId,
+    string HostBoxId,
+    RendererAdapterIdentity AdapterId,
+    ComponentHostCapabilities RequiredHostCapabilities,
+    ComponentHostCapabilities SuppliedHostCapabilities,
+    ComponentContentCapabilities RequiredContentCapabilities,
+    string PayloadContract,
+    AttachmentLifecyclePolicy LifecyclePolicy,
+    string SourceProvenance,
+    AttachmentPlanPayload? Payload = null)
+{
+    public static HostAttachmentMir Create(BoundComponentInstance instance)
+    {
+        BoundComponentDefinition definition = instance.Definition;
+        return new HostAttachmentMir(
+            instance.StableIdentity + "::attachment",
+            definition.StableIdentity,
+            instance.StableIdentity,
+            instance.ParentComponentInstance?.StableIdentity,
+            instance.ParentHostBox,
+            definition.RendererAdapter,
+            definition.RequiredHostCapabilities,
+            instance.HostCapabilities,
+            definition.RequiredContentCapabilities,
+            definition.Presentation.PayloadContract,
+            AttachmentLifecyclePolicy.MountUpdateUnmountRelease,
+            instance.ParentBinding.Layout.StableIdentity + "::" + instance.AuthoredCallIdentity,
+            definition.AttachmentPayload);
+    }
+}
+
+public enum AttachmentLifecyclePolicy
+{
+    MountUpdateUnmountRelease,
+}
+
 public enum ComponentImplementationKind
 {
     NativeMachina,
@@ -241,43 +318,85 @@ public sealed record RendererAdapterContract(
     RendererAdapterIdentity Identity,
     ComponentContentCapabilities SupportedContentCapabilities,
     ComponentHostCapabilities RequiredHostCapabilities,
-    bool IsBrowserAdapter);
+    bool IsBrowserAdapter,
+    IReadOnlyList<string> PayloadContracts);
 
 public sealed record RendererAdapterValidation(string Id, string Message);
 
 public static class RendererAdapterContracts
 {
-    private static readonly IReadOnlyDictionary<RendererAdapterIdentity, RendererAdapterContract> Contracts =
-        new Dictionary<RendererAdapterIdentity, RendererAdapterContract>
-        {
-            [RendererAdapterIdentity.React] = new(
+    public static RendererAdapterRegistry Default { get; } = new(
+        [
+            new(
                 RendererAdapterIdentity.React,
                 ComponentContentCapabilities.ReactSubtree | ComponentContentCapabilities.DocumentMir | ComponentContentCapabilities.SemanticText | ComponentContentCapabilities.InteractiveControls,
                 BoundComponentPresentation.ReactBridge(false).RequiredHostCapabilities,
-                true),
-            [RendererAdapterIdentity.CustomElement] = new(
+                true,
+                ["react-node-bridge", "private-layout/react-bridge"]),
+            new(
                 RendererAdapterIdentity.CustomElement,
                 ComponentContentCapabilities.CustomElement | ComponentContentCapabilities.InteractiveControls,
                 ComponentHostCapabilities.RendererAttachment | ComponentHostCapabilities.StableMountPoint | ComponentHostCapabilities.ResolvedWidth | ComponentHostCapabilities.ResolvedHeight,
-                true),
-            [RendererAdapterIdentity.NativeMachina] = new(
+                true,
+                ["custom-element-bridge"]),
+            new(
                 RendererAdapterIdentity.NativeMachina,
                 ComponentContentCapabilities.NativeMachina | ComponentContentCapabilities.DocumentMir | ComponentContentCapabilities.SemanticText,
                 ComponentHostCapabilities.FillAssignedBox | ComponentHostCapabilities.ResolvedWidth | ComponentHostCapabilities.ResolvedHeight,
-                false),
-        };
+                false,
+                ["native-machina-plan"]),
+        ]);
 
-    public static IReadOnlyList<RendererAdapterContract> All => Contracts.Values.OrderBy(contract => contract.Identity).ToArray();
+    public static IReadOnlyList<RendererAdapterContract> All => Default.All;
 
     public static bool TryGet(RendererAdapterIdentity identity, out RendererAdapterContract? contract)
-        => Contracts.TryGetValue(identity, out contract);
+        => Default.TryGet(identity, out contract);
 
     public static IReadOnlyList<RendererAdapterValidation> Validate(
         RendererAdapterIdentity adapter,
         ComponentContentCapabilities requiredContent,
-        ComponentHostCapabilities suppliedHost)
+        ComponentHostCapabilities suppliedHost,
+        string? payloadContract = null)
+        => Default.Validate(adapter, requiredContent, suppliedHost, payloadContract);
+}
+
+/// <summary>
+/// The only registry used to select renderer adapters. It is intentionally a
+/// small deterministic contract registry, never an application service
+/// locator. Duplicate identities are rejected at construction time.
+/// </summary>
+public sealed class RendererAdapterRegistry
+{
+    private readonly IReadOnlyDictionary<RendererAdapterIdentity, RendererAdapterContract> _contracts;
+
+    public RendererAdapterRegistry(IEnumerable<RendererAdapterContract> contracts)
     {
-        if (!Contracts.TryGetValue(adapter, out RendererAdapterContract? contract))
+        var byIdentity = new Dictionary<RendererAdapterIdentity, RendererAdapterContract>();
+        foreach (RendererAdapterContract contract in contracts)
+        {
+            if (!byIdentity.TryAdd(contract.Identity, contract))
+            {
+                throw new ArgumentException($"Renderer adapter '{contract.Identity}' was registered more than once.", nameof(contracts));
+            }
+        }
+
+        _contracts = byIdentity;
+    }
+
+    public IReadOnlyList<RendererAdapterContract> All => _contracts.Values
+        .OrderBy(contract => contract.Identity)
+        .ToArray();
+
+    public bool TryGet(RendererAdapterIdentity identity, out RendererAdapterContract? contract)
+        => _contracts.TryGetValue(identity, out contract);
+
+    public IReadOnlyList<RendererAdapterValidation> Validate(
+        RendererAdapterIdentity adapter,
+        ComponentContentCapabilities requiredContent,
+        ComponentHostCapabilities suppliedHost,
+        string? payloadContract = null)
+    {
+        if (!_contracts.TryGetValue(adapter, out RendererAdapterContract? contract))
         {
             return [new RendererAdapterValidation("COPE-RENDERER-0001", $"Renderer adapter '{adapter}' is unavailable.")];
         }
@@ -289,9 +408,17 @@ public static class RendererAdapterContracts
         }
 
         ComponentHostCapabilities missing = contract.RequiredHostCapabilities & ~suppliedHost;
-        return missing == ComponentHostCapabilities.None
-            ? []
-            : [new RendererAdapterValidation("COPE-RENDERER-0003", $"Host lacks renderer adapter '{adapter}' required capability '{missing}'.")];
+        if (missing != ComponentHostCapabilities.None)
+        {
+            return [new RendererAdapterValidation("COPE-RENDERER-0003", $"Host lacks renderer adapter '{adapter}' required capability '{missing}'.")];
+        }
+
+        if (payloadContract is not null && !contract.PayloadContracts.Contains(payloadContract, StringComparer.Ordinal))
+        {
+            return [new RendererAdapterValidation("COPE-RENDERER-0008", $"Renderer adapter '{adapter}' does not accept payload contract '{payloadContract}'.")];
+        }
+
+        return [];
     }
 }
 
@@ -304,6 +431,138 @@ public sealed class RendererAttachmentRegistry
 {
     private readonly Dictionary<string, RendererAttachment> _attachmentsByHost = new(StringComparer.Ordinal);
     private readonly Dictionary<string, RendererAttachment> _attachmentsByInstance = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, MountedRendererAttachment> _mountedAttachments = new(StringComparer.Ordinal);
+    private readonly RendererAdapterRegistry _contracts;
+    private readonly IReadOnlyDictionary<RendererAdapterIdentity, IRendererAttachmentAdapter> _adapters;
+
+    public RendererAttachmentRegistry(
+        RendererAdapterRegistry? contracts = null,
+        IEnumerable<IRendererAttachmentAdapter>? adapters = null)
+    {
+        _contracts = contracts ?? RendererAdapterContracts.Default;
+        var byIdentity = new Dictionary<RendererAdapterIdentity, IRendererAttachmentAdapter>();
+        foreach (IRendererAttachmentAdapter adapter in adapters ?? _contracts.All.Select(contract => new NoOpRendererAttachmentAdapter(contract.Identity)))
+        {
+            if (!byIdentity.TryAdd(adapter.Identity, adapter))
+            {
+                throw new ArgumentException($"Renderer runtime adapter '{adapter.Identity}' was registered more than once.", nameof(adapters));
+            }
+        }
+
+        _adapters = byIdentity;
+    }
+
+    /// <summary>
+    /// Mounts a canonical attachment plan through exactly one adapter. The
+    /// opaque return value is retained only by this runtime registry.
+    /// </summary>
+    public RendererRuntimeDiagnostic? Mount(HostAttachmentMir attachment, object? payload)
+    {
+        RendererRuntimeDiagnostic? validation = ValidateAttachment(attachment);
+        if (validation is not null)
+        {
+            return validation;
+        }
+
+        if (!_adapters.TryGetValue(attachment.AdapterId, out IRendererAttachmentAdapter? adapter))
+        {
+            return Diagnostic("COPE-RENDERER-0001", attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, "Renderer adapter is unavailable at runtime.");
+        }
+
+        RendererRuntimeDiagnostic? claim = Mount(attachment.ComponentInstanceId, attachment.HostBoxId, attachment.AdapterId);
+        if (claim is not null)
+        {
+            return claim with { AttachmentId = attachment.AttachmentId };
+        }
+
+        try
+        {
+            object? rendererRoot = adapter.Mount(attachment, payload);
+            _mountedAttachments.Add(attachment.AttachmentId, new MountedRendererAttachment(attachment, adapter, rendererRoot));
+            return null;
+        }
+        catch (Exception exception)
+        {
+            RemoveClaim(attachment.ComponentInstanceId);
+            return Diagnostic("COPE-RENDERER-0010", attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, "Renderer mount failed: " + exception.Message);
+        }
+    }
+
+    public RendererRuntimeDiagnostic? Update(HostAttachmentMir attachment, object? payload)
+    {
+        if (!_mountedAttachments.TryGetValue(attachment.AttachmentId, out MountedRendererAttachment? mounted))
+        {
+            return Diagnostic("COPE-RENDERER-0005", attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, "Renderer update was delivered before mount or after release.");
+        }
+
+        if (mounted.Attachment.AdapterId != attachment.AdapterId)
+        {
+            return Diagnostic("COPE-RENDERER-0009", attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, "Adapter replacement requires explicit unmount followed by mount.");
+        }
+
+        try
+        {
+            mounted.Adapter.Update(attachment, mounted.RendererRoot, payload);
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return Diagnostic("COPE-RENDERER-0011", attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, "Renderer update failed: " + exception.Message);
+        }
+    }
+
+    public RendererRuntimeDiagnostic? Unmount(HostAttachmentMir attachment)
+    {
+        if (!_mountedAttachments.TryGetValue(attachment.AttachmentId, out MountedRendererAttachment? mounted))
+        {
+            return Diagnostic("COPE-RENDERER-0005", attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, "Renderer unmount was requested before mount or after release.");
+        }
+
+        try
+        {
+            mounted.Adapter.Unmount(mounted.Attachment, mounted.RendererRoot);
+            _mountedAttachments.Remove(attachment.AttachmentId);
+            RemoveClaim(attachment.ComponentInstanceId);
+            return null;
+        }
+        catch (Exception exception)
+        {
+            // Keep the ownership claim so a failed cleanup remains visible and
+            // can be retried; silently releasing it would leak renderer state.
+            return Diagnostic("COPE-RENDERER-0006", attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, "Renderer cleanup failed: " + exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// Releases a mounted component subtree deepest-first. The canonical
+    /// component parent links in attachment plans, not renderer DOM traversal,
+    /// define the order.
+    /// </summary>
+    public IReadOnlyList<RendererRuntimeDiagnostic> UnmountSubtree(HostAttachmentMir root)
+    {
+        MountedRendererAttachment[] mounted = _mountedAttachments.Values.ToArray();
+        var byComponentInstance = mounted.ToDictionary(
+            entry => entry.Attachment.ComponentInstanceId,
+            entry => entry.Attachment,
+            StringComparer.Ordinal);
+        HostAttachmentMir[] plans = mounted
+            .Select(entry => entry.Attachment)
+            .Where(plan => IsInSubtree(plan, root.ComponentInstanceId, byComponentInstance))
+            .OrderByDescending(plan => AttachmentDepth(plan, byComponentInstance))
+            .ThenBy(plan => plan.AttachmentId, StringComparer.Ordinal)
+            .ToArray();
+        var diagnostics = new List<RendererRuntimeDiagnostic>();
+        foreach (HostAttachmentMir plan in plans)
+        {
+            RendererRuntimeDiagnostic? diagnostic = Unmount(plan);
+            if (diagnostic is not null)
+            {
+                diagnostics.Add(diagnostic);
+            }
+        }
+
+        return diagnostics;
+    }
 
     public RendererRuntimeDiagnostic? Mount(string? componentInstanceId, string hostId, RendererAdapterIdentity adapter)
     {
@@ -325,21 +584,33 @@ public sealed class RendererAttachmentRegistry
     }
 
     public RendererRuntimeDiagnostic? Update(string componentInstanceId, RendererAdapterIdentity adapter)
-        => _attachmentsByInstance.ContainsKey(componentInstanceId)
+    {
+        if (!_attachmentsByInstance.TryGetValue(componentInstanceId, out RendererAttachment? attachment))
+        {
+            return Diagnostic("COPE-RENDERER-0005", adapter, componentInstanceId, "Renderer update was delivered to an unmounted component instance.");
+        }
+
+        return attachment.Adapter == adapter
             ? null
-            : Diagnostic("COPE-RENDERER-0005", adapter, componentInstanceId, "Renderer update was delivered to an unmounted component instance.");
+            : Diagnostic("COPE-RENDERER-0009", adapter, componentInstanceId, "Adapter replacement requires explicit unmount followed by mount.");
+    }
 
     public RendererRuntimeDiagnostic? Unmount(string componentInstanceId, RendererAdapterIdentity adapter, Action cleanup)
     {
-        if (!_attachmentsByInstance.Remove(componentInstanceId, out RendererAttachment? attachment))
+        if (!_attachmentsByInstance.TryGetValue(componentInstanceId, out RendererAttachment? attachment))
         {
             return Diagnostic("COPE-RENDERER-0005", adapter, componentInstanceId, "Renderer unmount was requested for an unknown component instance.");
         }
 
-        _attachmentsByHost.Remove(attachment.HostId);
+        if (attachment.Adapter != adapter)
+        {
+            return Diagnostic("COPE-RENDERER-0009", adapter, componentInstanceId, "Adapter replacement requires explicit unmount followed by mount.");
+        }
+
         try
         {
             cleanup();
+            RemoveClaim(componentInstanceId);
             return null;
         }
         catch (Exception exception)
@@ -348,16 +619,99 @@ public sealed class RendererAttachmentRegistry
         }
     }
 
+    private RendererRuntimeDiagnostic? ValidateAttachment(HostAttachmentMir attachment)
+    {
+        if (string.IsNullOrWhiteSpace(attachment.ComponentInstanceId))
+        {
+            return Diagnostic("COPE-RENDERER-0007", attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, "Renderer subtree requires a canonical component instance.");
+        }
+
+        RendererAdapterValidation? validation = _contracts.Validate(
+                attachment.AdapterId,
+                attachment.RequiredContentCapabilities,
+                attachment.SuppliedHostCapabilities,
+                attachment.PayloadContract)
+            .FirstOrDefault();
+        return validation is null
+            ? null
+            : Diagnostic(validation.Id, attachment.AdapterId, attachment.ComponentInstanceId, attachment.AttachmentId, validation.Message);
+    }
+
+    private void RemoveClaim(string componentInstanceId)
+    {
+        if (_attachmentsByInstance.Remove(componentInstanceId, out RendererAttachment? attachment))
+        {
+            _attachmentsByHost.Remove(attachment.HostId);
+        }
+    }
+
+    private static bool IsInSubtree(
+        HostAttachmentMir plan,
+        string rootComponentInstanceId,
+        IReadOnlyDictionary<string, HostAttachmentMir> byComponentInstance)
+    {
+        string? current = plan.ComponentInstanceId;
+        while (current is not null)
+        {
+            if (current == rootComponentInstanceId)
+            {
+                return true;
+            }
+
+            current = byComponentInstance.TryGetValue(current, out HostAttachmentMir? currentPlan)
+                ? currentPlan.ParentComponentInstanceId
+                : null;
+        }
+
+        return false;
+    }
+
+    private static int AttachmentDepth(
+        HostAttachmentMir plan,
+        IReadOnlyDictionary<string, HostAttachmentMir> byComponentInstance)
+    {
+        int depth = 0;
+        string? current = plan.ParentComponentInstanceId;
+        while (current is not null && byComponentInstance.TryGetValue(current, out HostAttachmentMir? parent))
+        {
+            depth += 1;
+            current = parent.ParentComponentInstanceId;
+        }
+
+        return depth;
+    }
+
     private static RendererRuntimeDiagnostic Diagnostic(string id, RendererAdapterIdentity adapter, string? instance, string message)
-        => new(id, adapter, instance, message);
+        => new(id, adapter, instance, null, message);
+
+    private static RendererRuntimeDiagnostic Diagnostic(string id, RendererAdapterIdentity adapter, string? instance, string? attachmentId, string message)
+        => new(id, adapter, instance, attachmentId, message);
 
     private sealed record RendererAttachment(string ComponentInstanceId, string HostId, RendererAdapterIdentity Adapter);
+    private sealed record MountedRendererAttachment(HostAttachmentMir Attachment, IRendererAttachmentAdapter Adapter, object? RendererRoot);
+    private sealed class NoOpRendererAttachmentAdapter(RendererAdapterIdentity identity) : IRendererAttachmentAdapter
+    {
+        public RendererAdapterIdentity Identity { get; } = identity;
+        public object? Mount(HostAttachmentMir attachment, object? payload) => null;
+        public void Update(HostAttachmentMir attachment, object? rendererRoot, object? payload) { }
+        public void Unmount(HostAttachmentMir attachment, object? rendererRoot) { }
+    }
+}
+
+/// <summary>Adapter-private renderer-root operations. Payload and root values are opaque to Copeland semantics.</summary>
+public interface IRendererAttachmentAdapter
+{
+    RendererAdapterIdentity Identity { get; }
+    object? Mount(HostAttachmentMir attachment, object? payload);
+    void Update(HostAttachmentMir attachment, object? rendererRoot, object? payload);
+    void Unmount(HostAttachmentMir attachment, object? rendererRoot);
 }
 
 public sealed record RendererRuntimeDiagnostic(
     string Id,
     RendererAdapterIdentity Adapter,
     string? ComponentInstanceId,
+    string? AttachmentId,
     string Message);
 
 /// <summary>
@@ -858,6 +1212,21 @@ public sealed class BoundReactElementExpression(
     public bool IsIntrinsic { get; } = isIntrinsic;
     public IReadOnlyList<BoundReactProperty> Properties { get; } = properties;
     public IReadOnlyList<BoundExpression> Children { get; } = children;
+    public override TypeSymbol Type => ReactNodeTypeSymbol.Instance;
+}
+
+/// <summary>
+/// Explicit selection for generic foreign render payload. This is a compiler
+/// fact, not a renderer call: lowering passes only the opaque payload onward.
+/// </summary>
+public sealed class BoundForeignComponentExpression(
+    RendererAdapterIdentity adapter,
+    BoundExpression payload,
+    string payloadContract) : BoundExpression
+{
+    public RendererAdapterIdentity Adapter { get; } = adapter;
+    public BoundExpression Payload { get; } = payload;
+    public string PayloadContract { get; } = payloadContract;
     public override TypeSymbol Type => ReactNodeTypeSymbol.Instance;
 }
 

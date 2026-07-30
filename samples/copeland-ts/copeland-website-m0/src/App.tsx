@@ -39,7 +39,7 @@ function Text(value: string): ReactNode {
 // React remains an opaque child renderer. FeatureCard owns the compiler-visible
 // private stream that contains this child and its typed props capture.
 function RendererBoundaryBadge(): ReactNode {
-    return <copeland-renderer-badge label="Custom Element"></copeland-renderer-badge>;
+    return <span className="renderer-badge-host" data-copeland-renderer-host="CustomElement" data-copeland-renderer-tag="copeland-renderer-badge" data-copeland-renderer-label="Custom Elements work"></span>;
 }
 
 function FeatureCardContent(props: FeatureCardProps): ReactNode {

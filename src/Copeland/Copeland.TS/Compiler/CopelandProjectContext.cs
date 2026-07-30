@@ -408,6 +408,10 @@ public static class CopelandProjectHostContracts
             new CopelandJavaScriptHostFunctionContract("copyText", [CopelandJavaScriptHostType.String, new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void), new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)], CopelandJavaScriptHostType.Void),
             new CopelandJavaScriptHostFunctionContract("getViewportWidth", [], CopelandJavaScriptHostType.Int),
             new CopelandJavaScriptHostFunctionContract("subscribeViewport", [new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)], new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)),
+            new CopelandJavaScriptHostFunctionContract("scheduleRendererAttachment", [new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)], CopelandJavaScriptHostType.Void),
+            new CopelandJavaScriptHostFunctionContract("attachRenderer", [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String], CopelandJavaScriptHostType.Void),
+            new CopelandJavaScriptHostFunctionContract("updateRenderer", [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String], CopelandJavaScriptHostType.Void),
+            new CopelandJavaScriptHostFunctionContract("detachRenderer", [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String], CopelandJavaScriptHostType.Void),
             new CopelandJavaScriptHostFunctionContract("scheduleTextFit", [], CopelandJavaScriptHostType.Void),
         ]);
     }

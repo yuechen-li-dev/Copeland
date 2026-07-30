@@ -26,6 +26,7 @@ public sealed class RendererBoundaryM0Tests
         Assert.Empty(project.Diagnostics);
         BoundComponentDefinition badge = Assert.Single(project.Modules.Single().BoundCompilation!.Program.ComponentDefinitions);
         BoundComponentInstance instance = Assert.Single(project.Modules.Single().BoundCompilation!.Program.ComponentInstances);
+        HostAttachmentMir attachment = Assert.Single(project.Modules.Single().BoundCompilation!.Program.HostAttachments);
 
         Assert.Equal(RendererAdapterIdentity.React, badge.RendererAdapter);
         Assert.Equal(ComponentPresentationKind.RendererPayload, badge.Presentation.Kind);
@@ -34,6 +35,11 @@ public sealed class RendererBoundaryM0Tests
         Assert.Equal(badge.StableIdentity, instance.Definition.StableIdentity);
         Assert.NotEqual(instance.StableIdentity, instance.Definition.StableIdentity);
         Assert.True(instance.HostCapabilities.HasFlag(ComponentHostCapabilities.StableMountPoint));
+        Assert.Equal(instance.StableIdentity + "::attachment", attachment.AttachmentId);
+        Assert.Equal(instance.StableIdentity, attachment.ComponentInstanceId);
+        Assert.Equal(instance.ParentHostBox, attachment.HostBoxId);
+        Assert.Equal(RendererAdapterIdentity.React, attachment.AdapterId);
+        Assert.Equal(instance.HostCapabilities, attachment.SuppliedHostCapabilities);
     }
 
     [Fact]
@@ -79,6 +85,35 @@ public sealed class RendererBoundaryM0Tests
     }
 
     [Fact]
+    public void Attachment_registry_preserves_identity_across_update_and_releases_adapter_root()
+    {
+        var adapter = new RecordingAdapter();
+        var registry = new RendererAttachmentRegistry(adapters: [adapter]);
+        var attachment = new HostAttachmentMir(
+            "attachment-a",
+            "definition-a",
+            "component-a",
+            null,
+            "host-a",
+            RendererAdapterIdentity.React,
+            BoundComponentPresentation.ReactBridge(false).RequiredHostCapabilities,
+            BoundComponentPresentation.ReactBridge(false).RequiredHostCapabilities,
+            ComponentContentCapabilities.ReactSubtree,
+            "react-node-bridge",
+            AttachmentLifecyclePolicy.MountUpdateUnmountRelease,
+            "Page.tsx::call@10");
+
+        Assert.Null(registry.Mount(attachment, "first"));
+        Assert.Null(registry.Update(attachment, "second"));
+        Assert.Null(registry.Unmount(attachment));
+
+        Assert.Equal(["mount:attachment-a:first", "update:attachment-a:second", "unmount:attachment-a"], adapter.Events);
+        RendererRuntimeDiagnostic? afterRelease = registry.Update(attachment, "third");
+        Assert.Equal("COPE-RENDERER-0005", Assert.IsType<RendererRuntimeDiagnostic>(afterRelease).Id);
+        Assert.Equal("attachment-a", afterRelease.AttachmentId);
+    }
+
+    [Fact]
     public void Custom_element_bridge_is_a_component_presentation_not_a_react_host_capability()
     {
         CopelandProjectCompilation project = CopelandProjectCompiler.CompileToMir(
@@ -98,10 +133,57 @@ public sealed class RendererBoundaryM0Tests
         Assert.Empty(project.Diagnostics);
         BoundComponentDefinition status = Assert.Single(project.Modules.Single().BoundCompilation!.Program.ComponentDefinitions);
         BoundComponentInstance instance = Assert.Single(project.Modules.Single().BoundCompilation!.Program.ComponentInstances);
+        HostAttachmentMir attachment = Assert.Single(project.Modules.Single().BoundCompilation!.Program.HostAttachments);
 
         Assert.Equal(RendererAdapterIdentity.CustomElement, status.RendererAdapter);
         Assert.Equal(ComponentContentCapabilities.CustomElement, status.RequiredContentCapabilities);
         Assert.Equal(status.RendererAdapter, instance.Definition.RendererAdapter);
+        Assert.Equal(RendererAdapterIdentity.CustomElement, attachment.AdapterId);
+        Assert.Equal("custom-element-bridge", attachment.PayloadContract);
+    }
+
+    [Fact]
+    public void Explicit_foreign_component_selection_lowers_to_custom_element_attachment()
+    {
+        CopelandProjectCompilation project = CopelandProjectCompiler.CompileToMir(
+            [new CopelandProjectSource("Page.tsx", "Page.tsx", """
+                import { createElement } from "react";
+
+                function Status(): ReactNode {
+                    return ForeignComponent("CustomElement", <copeland-status-badge></copeland-status-badge>);
+                }
+
+                stream Page<0px, 0px> {
+                    width: 120px;
+                    height: 40px;
+                    content: Status() { height: fill; }
+                }
+                """)],
+            ReactOptions());
+
+        Assert.Empty(project.Diagnostics);
+        BoundComponentDefinition status = Assert.Single(project.Modules.Single().BoundCompilation!.Program.ComponentDefinitions);
+        HostAttachmentMir attachment = Assert.Single(project.Modules.Single().BoundCompilation!.Program.HostAttachments);
+
+        Assert.Equal(RendererAdapterIdentity.CustomElement, status.RendererAdapter);
+        Assert.Equal(RendererAdapterIdentity.CustomElement, attachment.AdapterId);
+        Assert.Equal("custom-element-bridge", attachment.PayloadContract);
+    }
+
+    [Fact]
+    public void Explicit_foreign_component_requires_a_known_adapter_and_compatible_payload()
+    {
+        CopelandProjectCompilation project = CopelandProjectCompiler.CompileToMir(
+            [new CopelandProjectSource("Page.tsx", "Page.tsx", """
+                import { createElement } from "react";
+
+                function Status(): ReactNode {
+                    return ForeignComponent("CustomElement", <span>not an element bridge</span>);
+                }
+                """)],
+            ReactOptions());
+
+        Assert.Contains(project.Diagnostics, diagnostic => diagnostic.Id == "COPE-RENDERER-0008");
     }
 
     private static CopelandCompilationOptions ReactOptions()
@@ -117,4 +199,26 @@ public sealed class RendererBoundaryM0Tests
                     [new CopelandNpmFunctionContract("createElement", [], "ReactNode")]),
             ],
         };
+
+    private sealed class RecordingAdapter : IRendererAttachmentAdapter
+    {
+        public RendererAdapterIdentity Identity => RendererAdapterIdentity.React;
+        public List<string> Events { get; } = [];
+
+        public object? Mount(HostAttachmentMir attachment, object? payload)
+        {
+            Events.Add("mount:" + attachment.AttachmentId + ":" + payload);
+            return new object();
+        }
+
+        public void Update(HostAttachmentMir attachment, object? rendererRoot, object? payload)
+        {
+            Events.Add("update:" + attachment.AttachmentId + ":" + payload);
+        }
+
+        public void Unmount(HostAttachmentMir attachment, object? rendererRoot)
+        {
+            Events.Add("unmount:" + attachment.AttachmentId);
+        }
+    }
 }

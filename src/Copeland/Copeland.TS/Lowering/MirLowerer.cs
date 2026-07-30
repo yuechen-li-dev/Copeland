@@ -1169,6 +1169,7 @@ public static class MirLowerer
                 element.Properties.Select(property => new MirReactProperty(property.Name, LowerExpression(property.Value))).ToArray(),
                 element.Children.Select(LowerExpression).ToArray(),
                 ToMirType(element.Type)),
+            BoundForeignComponentExpression foreign => LowerExpression(foreign.Payload),
             BoundReactRootRenderExpression render => new MirReactRootRenderExpression(
                 LowerExpression(render.Root),
                 LowerExpression(render.Node)),

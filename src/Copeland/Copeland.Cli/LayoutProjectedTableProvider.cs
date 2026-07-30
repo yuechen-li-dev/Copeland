@@ -27,6 +27,7 @@ internal static class LayoutProjectedTableProvider
     public const string ComponentCaptures = "component::Captures";
     public const string ComponentLocalPresentations = "component::LocalPresentations";
     public const string RendererAdapters = "renderer::Adapters";
+    public const string RendererAttachments = "renderer::Attachments";
     public const string Sources = "layout::Sources";
 
     public static ProjectedTableSet Create(CopelandProjectCompilation compilation, string projectRoot)
@@ -61,6 +62,7 @@ internal static class LayoutProjectedTableProvider
         var componentCaptureRows = new List<IReadOnlyDictionary<string, object?>>();
         var componentLocalPresentationRows = new List<IReadOnlyDictionary<string, object?>>();
         var rendererAdapterRows = new List<IReadOnlyDictionary<string, object?>>();
+        var rendererAttachmentRows = new List<IReadOnlyDictionary<string, object?>>();
         foreach (LayoutInspectionDocument document in documents)
         {
             string layoutId = document.Layout.Module + "::" + document.Layout.Name;
@@ -187,13 +189,39 @@ internal static class LayoutProjectedTableProvider
             }
         }
 
+        foreach (HostAttachmentMir attachment in compilation.Modules
+            .SelectMany(module => module.BoundCompilation?.Program.HostAttachments ?? [])
+            .OrderBy(attachment => attachment.AttachmentId, StringComparer.Ordinal))
+        {
+            CopelandProjectModuleCompilation module = compilation.Modules.Single(module => module.BoundCompilation?.Program.HostAttachments.Contains(attachment) == true);
+            string relativePath = Path.GetRelativePath(projectRoot, module.Source.SourcePath).Replace('\\', '/');
+            int sourceStart = module.BoundCompilation!.Program.ComponentInstances
+                .Single(instance => instance.StableIdentity == attachment.ComponentInstanceId)
+                .ParentBinding.Syntax.LayoutIdentifier.Position;
+            string sourceId = AddSource(new LayoutInspectionSource(relativePath, sourceStart, sourceStart + 1))!;
+            rendererAttachmentRows.Add(Row(
+                ("attachmentId", attachment.AttachmentId),
+                ("componentDefinitionId", attachment.ComponentDefinitionId),
+                ("componentInstanceId", attachment.ComponentInstanceId),
+                ("parentComponentInstanceId", attachment.ParentComponentInstanceId),
+                ("hostBoxId", attachment.HostBoxId),
+                ("adapterId", attachment.AdapterId.ToString()),
+                ("requiredHostCapabilities", attachment.RequiredHostCapabilities.ToString()),
+                ("suppliedHostCapabilities", attachment.SuppliedHostCapabilities.ToString()),
+                ("requiredContentCapabilities", attachment.RequiredContentCapabilities.ToString()),
+                ("payloadContract", attachment.PayloadContract),
+                ("lifecyclePolicy", attachment.LifecyclePolicy.ToString()),
+                ("sourceId", sourceId)));
+        }
+
         foreach (RendererAdapterContract adapter in RendererAdapterContracts.All)
         {
             rendererAdapterRows.Add(Row(
                 ("adapterId", adapter.Identity.ToString()),
                 ("supportedContentCapabilities", adapter.SupportedContentCapabilities.ToString()),
                 ("requiredHostCapabilities", adapter.RequiredHostCapabilities.ToString()),
-                ("browserAdapter", adapter.IsBrowserAdapter)));
+                ("browserAdapter", adapter.IsBrowserAdapter),
+                ("payloadContracts", adapter.PayloadContracts.ToArray())));
         }
 
         IReadOnlyDictionary<string, LayoutInspectionBox> boxesById = documents
@@ -234,6 +262,7 @@ internal static class LayoutProjectedTableProvider
                 new ProjectedTable(ComponentCaptures, ComponentCaptureSchema, componentCaptureRows.OrderBy(row => (string)row["captureId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(ComponentLocalPresentations, ComponentLocalPresentationSchema, componentLocalPresentationRows.OrderBy(row => (string)row["localPresentationId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(RendererAdapters, RendererAdapterSchema, rendererAdapterRows.OrderBy(row => (string)row["adapterId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(RendererAttachments, RendererAttachmentSchema, rendererAttachmentRows.OrderBy(row => (string)row["attachmentId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(Sources, SourceSchema, sources.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => (IReadOnlyDictionary<string, object?>)pair.Value).ToArray()),
             ]);
 
@@ -453,7 +482,9 @@ internal static class LayoutProjectedTableProvider
     private static readonly IReadOnlyList<ProjectedColumn> ComponentLocalPresentationSchema =
     [ new("localPresentationId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("name", "string"), new("rootBox", "identity"), new("accessibility", "accessibility"), new("implementationKind", "componentImplementationKind") ];
     private static readonly IReadOnlyList<ProjectedColumn> RendererAdapterSchema =
-    [ new("adapterId", "identity"), new("supportedContentCapabilities", "contentCapabilitySet"), new("requiredHostCapabilities", "hostCapabilitySet"), new("browserAdapter", "bool") ];
+    [ new("adapterId", "identity"), new("supportedContentCapabilities", "contentCapabilitySet"), new("requiredHostCapabilities", "hostCapabilitySet"), new("browserAdapter", "bool"), new("payloadContracts", "rendererPayloadContractSet") ];
+    private static readonly IReadOnlyList<ProjectedColumn> RendererAttachmentSchema =
+    [ new("attachmentId", "identity"), new("componentDefinitionId", "foreignKey<Definitions>"), new("componentInstanceId", "foreignKey<Instances>"), new("parentComponentInstanceId", "foreignKey<Instances>?"), new("hostBoxId", "foreignKey<Boxes>"), new("adapterId", "foreignKey<Adapters>"), new("requiredHostCapabilities", "hostCapabilitySet"), new("suppliedHostCapabilities", "hostCapabilitySet"), new("requiredContentCapabilities", "contentCapabilitySet"), new("payloadContract", "rendererPayloadContract"), new("lifecyclePolicy", "attachmentLifecyclePolicy"), new("sourceId", "foreignKey<Sources>") ];
     private static readonly IReadOnlyList<ProjectedColumn> SourceSchema =
     [ new("sourceId", "identity"), new("projectRelativePath", "path"), new("startLine", "int"), new("startColumn", "int"), new("endLine", "int"), new("endColumn", "int") ];
 }
