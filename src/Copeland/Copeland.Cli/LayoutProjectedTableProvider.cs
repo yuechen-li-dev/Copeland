@@ -21,6 +21,12 @@ internal static class LayoutProjectedTableProvider
     public const string TextBlocks = "text::Blocks";
     public const string TextInlines = "text::Inlines";
     public const string TextBindings = "text::Bindings";
+    public const string ComponentDefinitions = "component::Definitions";
+    public const string ComponentInstances = "component::Instances";
+    public const string ComponentBindings = "component::Bindings";
+    public const string ComponentCaptures = "component::Captures";
+    public const string ComponentLocalPresentations = "component::LocalPresentations";
+    public const string RendererAdapters = "renderer::Adapters";
     public const string Sources = "layout::Sources";
 
     public static ProjectedTableSet Create(CopelandProjectCompilation compilation, string projectRoot)
@@ -49,6 +55,12 @@ internal static class LayoutProjectedTableProvider
         var textBlockRows = new List<IReadOnlyDictionary<string, object?>>();
         var textInlineRows = new List<IReadOnlyDictionary<string, object?>>();
         var textBindingRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentDefinitionRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentInstanceRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentBindingRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentCaptureRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentLocalPresentationRows = new List<IReadOnlyDictionary<string, object?>>();
+        var rendererAdapterRows = new List<IReadOnlyDictionary<string, object?>>();
         foreach (LayoutInspectionDocument document in documents)
         {
             string layoutId = document.Layout.Module + "::" + document.Layout.Name;
@@ -106,6 +118,84 @@ internal static class LayoutProjectedTableProvider
             }
         }
 
+        foreach (BoundComponentDefinition definition in compilation.Modules
+            .SelectMany(module => module.BoundCompilation?.Program.ComponentDefinitions ?? [])
+            .OrderBy(definition => definition.StableIdentity, StringComparer.Ordinal))
+        {
+            componentDefinitionRows.Add(Row(
+                ("definitionId", definition.StableIdentity),
+                ("name", definition.Function.Name),
+                ("props", definition.Function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name).ToArray()),
+                ("implementationKind", definition.ImplementationKind.ToString()),
+                ("presentationKind", definition.Presentation.Kind.ToString()),
+                ("localLayoutId", definition.LocalStream is null ? null : definition.LocalStream.Layout.StableIdentity),
+                ("rendererAdapter", definition.RendererAdapter.ToString()),
+                ("requiredContentCapabilities", definition.RequiredContentCapabilities.ToString()),
+                ("requiredHostCapabilities", definition.RequiredHostCapabilities.ToString()),
+                ("payloadContract", definition.Presentation.PayloadContract)));
+
+            if (definition.LocalStream is { IsPrivate: true } localPresentation)
+            {
+                componentLocalPresentationRows.Add(Row(
+                    ("localPresentationId", localPresentation.Layout.StableIdentity),
+                    ("definitionId", definition.StableIdentity),
+                    ("name", localPresentation.Layout.Name),
+                    ("rootBox", localPresentation.Realization.Root.Name),
+                    ("accessibility", localPresentation.IsPrivate ? "private" : "public"),
+                    ("implementationKind", definition.ImplementationKind.ToString())));
+            }
+
+            foreach (BoundComponentCapture capture in definition.Captures)
+            {
+                componentCaptureRows.Add(Row(
+                    ("captureId", capture.StableIdentity),
+                    ("definitionId", definition.StableIdentity),
+                    ("name", capture.Source.Name),
+                    ("kind", capture.Kind.ToString()),
+                    ("type", capture.Type.Name),
+                    ("sourceSymbol", capture.Source.Name)));
+            }
+        }
+
+        foreach (BoundComponentInstance instance in compilation.Modules
+            .SelectMany(module => module.BoundCompilation?.Program.ComponentInstances ?? [])
+            .OrderBy(instance => instance.StableIdentity, StringComparer.Ordinal))
+        {
+            componentInstanceRows.Add(Row(
+                ("instanceId", instance.StableIdentity),
+                ("definitionId", instance.Definition.StableIdentity),
+                ("parentComponentInstanceId", instance.ParentComponentInstance?.StableIdentity),
+                ("parentHostBoxId", instance.ParentHostBox),
+                ("authoredCallIdentity", instance.AuthoredCallIdentity),
+                ("mountIdentity", instance.StableIdentity + "::mount"),
+                ("suppliedHostCapabilities", instance.HostCapabilities.ToString()),
+                ("localRoot", instance.Definition.LocalStream is null ? null : instance.Definition.LocalStream.Layout.Name + "." + instance.Definition.LocalStream.Realization.Root.Name),
+                ("rendererAdapter", instance.Definition.RendererAdapter.ToString()),
+                ("ordinal", instance.Ordinal)));
+
+            for (int index = 0; index < instance.Props.Count; index += 1)
+            {
+                string parameter = index < instance.Definition.Function.Parameters.Count
+                    ? instance.Definition.Function.Parameters[index].Name
+                    : "arg" + index;
+                componentBindingRows.Add(Row(
+                    ("bindingId", instance.StableIdentity + "::props::" + parameter),
+                    ("instanceId", instance.StableIdentity),
+                    ("parameter", parameter),
+                    ("valueType", instance.Props[index].Type.Name),
+                    ("valueKind", instance.Props[index].GetType().Name)));
+            }
+        }
+
+        foreach (RendererAdapterContract adapter in RendererAdapterContracts.All)
+        {
+            rendererAdapterRows.Add(Row(
+                ("adapterId", adapter.Identity.ToString()),
+                ("supportedContentCapabilities", adapter.SupportedContentCapabilities.ToString()),
+                ("requiredHostCapabilities", adapter.RequiredHostCapabilities.ToString()),
+                ("browserAdapter", adapter.IsBrowserAdapter)));
+        }
+
         IReadOnlyDictionary<string, LayoutInspectionBox> boxesById = documents
             .SelectMany(document => document.Boxes)
             .ToDictionary(box => box.SemanticPath, StringComparer.Ordinal);
@@ -138,6 +228,12 @@ internal static class LayoutProjectedTableProvider
                 new ProjectedTable(TextBlocks, TextBlockSchema, textBlockRows.OrderBy(row => (string)row["documentId"]!, StringComparer.Ordinal).ThenBy(row => (int)row["authoredOrder"]!).ToArray()),
                 new ProjectedTable(TextInlines, TextInlineSchema, textInlineRows.OrderBy(row => (string)row["blockId"]!, StringComparer.Ordinal).ThenBy(row => (int)row["authoredOrder"]!).ToArray()),
                 new ProjectedTable(TextBindings, TextBindingSchema, textBindingRows.OrderBy(row => (string)row["bindingId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentDefinitions, ComponentDefinitionSchema, componentDefinitionRows.OrderBy(row => (string)row["definitionId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentInstances, ComponentInstanceSchema, componentInstanceRows.OrderBy(row => (string)row["instanceId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentBindings, ComponentBindingSchema, componentBindingRows.OrderBy(row => (string)row["bindingId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentCaptures, ComponentCaptureSchema, componentCaptureRows.OrderBy(row => (string)row["captureId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentLocalPresentations, ComponentLocalPresentationSchema, componentLocalPresentationRows.OrderBy(row => (string)row["localPresentationId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(RendererAdapters, RendererAdapterSchema, rendererAdapterRows.OrderBy(row => (string)row["adapterId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(Sources, SourceSchema, sources.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => (IReadOnlyDictionary<string, object?>)pair.Value).ToArray()),
             ]);
 
@@ -346,6 +442,18 @@ internal static class LayoutProjectedTableProvider
     [ new("inlineId", "identity"), new("blockId", "foreignKey<Blocks>"), new("parentInlineId", "foreignKey<Inlines>?"), new("kind", "textInlineKind"), new("authoredOrder", "int"), new("text", "string"), new("target", "url?"), new("role", "textRole?"), new("sourceId", "foreignKey<Sources>") ];
     private static readonly IReadOnlyList<ProjectedColumn> TextBindingSchema =
     [ new("bindingId", "identity"), new("documentId", "foreignKey<Documents>"), new("owningBoxId", "foreignKey<Boxes>"), new("semanticHostId", "identity"), new("themeId", "identity"), new("fitMode", "textFitMode"), new("preferredFontSize", "px?"), new("minimumFontSize", "px?"), new("lineLimit", "int?"), new("wrapMode", "textWrapMode?"), new("overflowPolicy", "overflowPolicy"), new("documentClassName", "presentationClass?"), new("sourceId", "foreignKey<Sources>") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentDefinitionSchema =
+    [ new("definitionId", "identity"), new("name", "string"), new("props", "componentProps"), new("implementationKind", "componentImplementationKind"), new("presentationKind", "componentPresentationKind"), new("localLayoutId", "identity?"), new("rendererAdapter", "rendererAdapter"), new("requiredContentCapabilities", "contentCapabilitySet"), new("requiredHostCapabilities", "hostCapabilitySet"), new("payloadContract", "rendererPayloadContract") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentInstanceSchema =
+    [ new("instanceId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("parentComponentInstanceId", "foreignKey<Instances>?"), new("parentHostBoxId", "identity"), new("authoredCallIdentity", "identity"), new("mountIdentity", "identity"), new("suppliedHostCapabilities", "hostCapabilitySet"), new("localRoot", "identity?"), new("rendererAdapter", "rendererAdapter"), new("ordinal", "int") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentBindingSchema =
+    [ new("bindingId", "identity"), new("instanceId", "foreignKey<Instances>"), new("parameter", "string"), new("valueType", "type"), new("valueKind", "componentArgumentKind") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentCaptureSchema =
+    [ new("captureId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("name", "string"), new("kind", "componentCaptureKind"), new("type", "type"), new("sourceSymbol", "identity") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentLocalPresentationSchema =
+    [ new("localPresentationId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("name", "string"), new("rootBox", "identity"), new("accessibility", "accessibility"), new("implementationKind", "componentImplementationKind") ];
+    private static readonly IReadOnlyList<ProjectedColumn> RendererAdapterSchema =
+    [ new("adapterId", "identity"), new("supportedContentCapabilities", "contentCapabilitySet"), new("requiredHostCapabilities", "hostCapabilitySet"), new("browserAdapter", "bool") ];
     private static readonly IReadOnlyList<ProjectedColumn> SourceSchema =
     [ new("sourceId", "identity"), new("projectRelativePath", "path"), new("startLine", "int"), new("startColumn", "int"), new("endLine", "int"), new("endColumn", "int") ];
 }

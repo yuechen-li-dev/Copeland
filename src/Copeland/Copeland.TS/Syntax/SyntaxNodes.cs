@@ -1768,6 +1768,30 @@ public sealed record NestedTableDeclarationStatementSyntax(TableDeclarationSynta
     }
 }
 
+/// <summary>
+/// A layout or stream declared in an ordinary function body. The declaration is
+/// semantically private to that lexical function; it is not a module member.
+/// </summary>
+public sealed record LocalPresentationDeclarationStatementSyntax(
+    LayoutDeclarationSyntax? Layout,
+    StreamDeclarationSyntax? Stream) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.LocalPresentationDeclarationStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        if (Layout is not null)
+        {
+            yield return Layout;
+        }
+
+        if (Stream is not null)
+        {
+            yield return Stream;
+        }
+    }
+}
+
 public sealed record RecordDeclarationSyntax(
     SyntaxToken? ConstKeyword,
     SyntaxToken RecordKeyword,

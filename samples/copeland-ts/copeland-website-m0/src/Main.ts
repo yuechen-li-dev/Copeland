@@ -1,7 +1,7 @@
-import { createRoot } from "react-dom/client";
 import { dispatchReact, getMountElement, getViewportWidth, subscribeViewport } from "@copeland/browser-v1";
 import { CopelandSite } from "./App";
 import { ClassifyViewport } from "./LayoutProfiles";
+import { MountReactRenderer, UnmountReactRenderer, UpdateReactRenderer } from "./ReactRendererAdapter";
 
 export record SiteState {
     profile: int;
@@ -16,12 +16,12 @@ function Reduce(state: SiteState, profile: int): SiteState {
 }
 
 export function Main(): void {
-    const root: ReactRoot = createRoot(getMountElement("app"));
+    const root: ReactRoot = MountReactRenderer(getMountElement("app"));
     const send: (profile: int) => void = dispatchReact<SiteState, int>(
         InitialState(),
         Reduce,
         capture { root } (state: SiteState, send: (profile: int) => void) => {
-            root.render(CopelandSite(state.profile));
+            UpdateReactRenderer(root, CopelandSite(state.profile));
         });
 
     subscribeViewport(capture { send } () => send(ClassifyViewport(getViewportWidth())));

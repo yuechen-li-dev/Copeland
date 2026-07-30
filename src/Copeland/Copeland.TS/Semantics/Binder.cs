@@ -1,6 +1,7 @@
 using Copeland.TS.Diagnostics;
 using Copeland.Markdown;
 using Copeland.TS.MachinaSource;
+using Copeland.TS.Mir.Machina;
 using Copeland.TS.Compiler;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
@@ -80,6 +81,11 @@ public static class Binder
             public HashSet<Symbol> Captures { get; } = [];
         }
 
+        private sealed class ComponentCaptureContext
+        {
+            public Dictionary<Symbol, BoundComponentCapture> Captures { get; } = [];
+        }
+
         private const int MaxTypeParametersPerFunction = 8;
         private const int MaxRequirementInterfacesPerTypeParameter = 8;
         private const int MaxNormalizedRequirementFields = 32;
@@ -103,6 +109,8 @@ public static class Binder
 
         private int _loopDepth;
         private readonly Stack<BatchBindingContext> _batchContexts = [];
+        private readonly Stack<ComponentCaptureContext> _componentCaptureContexts = [];
+        private readonly Dictionary<FunctionSymbol, IReadOnlyList<BoundExpression>> _localPresentationCaptureArguments = [];
         private readonly SyntaxTree _tree = tree;
         private readonly CopelandAssetResolver? _assetResolver = assetResolver;
         private readonly CopelandNpmContractResolver _npmResolver = npmResolver;
@@ -129,6 +137,8 @@ public static class Binder
         private readonly List<BoundTemplateDeclaration> _templates = [];
         private readonly List<BoundLayoutDeclaration> _layouts = [];
         private readonly List<BoundLayoutBinding> _layoutBindings = [];
+        private readonly List<BoundComponentDefinition> _componentDefinitions = [];
+        private readonly List<BoundComponentInstance> _componentInstances = [];
         private readonly Dictionary<string, LayoutSymbol> _layoutSymbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, LayoutTypeSymbol> _layoutTypeSymbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, LayerSetSymbol> _layerSetSymbols = new(StringComparer.Ordinal);
@@ -259,6 +269,7 @@ public static class Binder
             {
                 _enums.Insert(0, new BoundEnumDeclaration(_tsonEncodeErrorType));
             }
+            BindComponentCapsules();
             return new BoundCompilation(
                 _tree,
                 new BoundProgram(
@@ -277,10 +288,209 @@ public static class Binder
                     _flows,
                     _templates,
                     _layouts,
-                    _layoutBindings),
+                    _layoutBindings,
+                    _componentDefinitions,
+                    _componentInstances),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).Concat(_textDocumentCompilation.Diagnostics).ToArray(),
                 CreateModuleScope(),
                 _textDocumentCompilation.Documents);
+        }
+
+        /// <summary>
+        /// Component capsules deliberately reuse normal functions and the
+        /// existing stream binder. A parent sees the call and its assigned host;
+        /// only compiler inspection follows a component's private stream.
+        /// </summary>
+        private void BindComponentCapsules()
+        {
+            var definitionByFunction = new Dictionary<FunctionSymbol, BoundComponentDefinition>();
+            foreach (BoundFunctionDeclaration function in _functions
+                .Where(function => function.Symbol.ReturnType == ReactNodeTypeSymbol.Instance)
+                .OrderBy(function => function.Symbol.StableIdentity, StringComparer.Ordinal))
+            {
+                BoundLayoutBinding? localStream = FindReturnedStream(function.Body);
+                ComponentImplementationKind implementation = localStream is null
+                    ? ComponentImplementationKind.React
+                    : ComponentImplementationKind.NativeMachina;
+                BoundComponentPresentation presentation = localStream is null && ReturnsCustomElement(function.Body)
+                    ? BoundComponentPresentation.CustomElementBridge()
+                    : BoundComponentPresentation.ReactBridge(localStream is not null);
+                var definition = new BoundComponentDefinition(
+                    function.Symbol,
+                    implementation,
+                    localStream,
+                    presentation);
+                _componentDefinitions.Add(definition);
+                definitionByFunction.Add(function.Symbol, definition);
+            }
+
+            foreach (BoundLayoutBinding pageBinding in _layoutBindings
+                .Where(binding => !binding.IsPrivate)
+                .OrderBy(binding => binding.Layout.StableIdentity, StringComparer.Ordinal))
+            {
+                AddInstancesForBinding(pageBinding, parentComponentInstance: null, new HashSet<FunctionSymbol>());
+            }
+
+            void AddInstancesForBinding(
+                BoundLayoutBinding binding,
+                BoundComponentInstance? parentComponentInstance,
+                HashSet<FunctionSymbol> ancestorDefinitions)
+            {
+                foreach (BoundLayoutBindingEntry entry in binding.Entries)
+                {
+                    BoundLayoutNode hostNode = FindLayoutNode(binding.Layout.BoundLayout!.Root, entry.Slot.Name)
+                        ?? throw new InvalidOperationException($"Binding host '{entry.Slot.Name}' is absent from layout '{binding.Layout.Name}'.");
+                    AddInstance(entry.Component, entry.Slot.SemanticPath, hostNode, entry.Syntax.SlotIdentifier.Position);
+                }
+
+                foreach (BoundStreamCollection collection in binding.Collections)
+                {
+                    string host = binding.Layout.Name + "." + collection.Region.Name;
+                    for (int index = 0; index < collection.Items.Count; index += 1)
+                    {
+                        AddInstance(
+                            collection.Items[index],
+                            host,
+                            collection.Region,
+                            collection.Syntax.Identifier.Position + index);
+                    }
+                }
+
+                void AddInstance(BoundExpression expression, string host, BoundLayoutNode hostNode, int authoredPosition)
+                {
+                    if (expression is not BoundCallExpression call
+                        || !definitionByFunction.TryGetValue(call.Function, out BoundComponentDefinition? definition))
+                    {
+                        return;
+                    }
+
+                    if (ancestorDefinitions.Contains(definition.Function))
+                    {
+                        Report(
+                            "COPE-COMPONENT-CAPSULE-0004",
+                            $"Component '{definition.Function.Name}' recursively realizes itself through private presentation '{binding.Layout.Name}'. Component-definition recursion is not supported in M1.",
+                            binding.Syntax.LayoutIdentifier);
+                        return;
+                    }
+
+                    ComponentHostCapabilities supplied = GetHostCapabilities(hostNode);
+                    ValidateComponentHost(definition, binding, host, supplied, hostNode.Source);
+                    int ordinal = _componentInstances.Count(instance => instance.ParentBinding == binding
+                        && instance.ParentComponentInstance == parentComponentInstance
+                        && instance.ParentHostBox == host);
+                    string authoredCallIdentity = binding.Layout.StableIdentity
+                        + "::call@"
+                        + authoredPosition.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                        + "::ordinal="
+                        + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string identityPrefix = parentComponentInstance is null
+                        ? binding.Layout.StableIdentity
+                        : parentComponentInstance.StableIdentity;
+                    string identity = identityPrefix + "::component-host::" + host + "::" + authoredCallIdentity;
+                    var instance = new BoundComponentInstance(
+                        identity,
+                        definition,
+                        binding,
+                        host,
+                        call.Arguments,
+                        ordinal,
+                        authoredCallIdentity,
+                        parentComponentInstance,
+                        supplied);
+                    _componentInstances.Add(instance);
+
+                    if (definition.LocalStream is not { IsPrivate: true } localPresentation)
+                    {
+                        return;
+                    }
+
+                    var descendants = new HashSet<FunctionSymbol>(ancestorDefinitions)
+                    {
+                        definition.Function,
+                    };
+                    AddInstancesForBinding(localPresentation, instance, descendants);
+                }
+            }
+        }
+
+        private static ComponentHostCapabilities GetHostCapabilities(BoundLayoutNode host)
+        {
+            ComponentHostCapabilities capabilities =
+                ComponentHostCapabilities.FillAssignedBox |
+                ComponentHostCapabilities.RendererAttachment |
+                ComponentHostCapabilities.StableMountPoint |
+                ComponentHostCapabilities.ResolvedWidth |
+                ComponentHostCapabilities.ResolvedHeight;
+            if (host.ResolvedOverflow.Policy == LayoutOverflowPolicy.Clip)
+            {
+                capabilities |= ComponentHostCapabilities.Clip;
+            }
+            if (host.ResolvedOverflow.Policy is LayoutOverflowPolicy.Auto or LayoutOverflowPolicy.Scroll)
+            {
+                capabilities |= ComponentHostCapabilities.Scroll |
+                    ComponentHostCapabilities.ScrollX |
+                    ComponentHostCapabilities.ScrollY;
+            }
+            else if (host.ResolvedOverflow.Policy == LayoutOverflowPolicy.ScrollX)
+            {
+                capabilities |= ComponentHostCapabilities.Scroll | ComponentHostCapabilities.ScrollX;
+            }
+            else if (host.ResolvedOverflow.Policy == LayoutOverflowPolicy.ScrollY)
+            {
+                capabilities |= ComponentHostCapabilities.Scroll | ComponentHostCapabilities.ScrollY;
+            }
+
+            return capabilities;
+        }
+
+        private void ValidateComponentHost(
+            BoundComponentDefinition definition,
+            BoundLayoutBinding binding,
+            string host,
+            ComponentHostCapabilities supplied,
+            MachinaSourceSpan source)
+        {
+            IReadOnlyList<RendererAdapterValidation> validations = RendererAdapterContracts.Validate(
+                definition.RendererAdapter,
+                definition.RequiredContentCapabilities,
+                supplied);
+            if (validations.Count == 0)
+            {
+                return;
+            }
+
+            var anchor = new SyntaxToken(SyntaxKind.IdentifierToken, source.Start, host, null);
+            foreach (RendererAdapterValidation validation in validations)
+            {
+                Report(
+                    validation.Id,
+                    $"Component '{definition.Function.Name}' cannot attach to host '{binding.Layout.Name}.{host}'. {validation.Message} Supplied: '{supplied}'.",
+                    anchor);
+            }
+        }
+
+        private BoundLayoutBinding? FindReturnedStream(BoundStatement statement)
+        {
+            return statement switch
+            {
+                BoundBlockStatement block => block.Statements.Select(FindReturnedStream).FirstOrDefault(binding => binding is not null),
+                BoundIfStatement conditional => FindReturnedStream(conditional.ThenStatement) ?? (conditional.ElseStatement is null ? null : FindReturnedStream(conditional.ElseStatement)),
+                BoundReturnStatement { Expression: BoundCallExpression call } => _layoutBindings.FirstOrDefault(binding => binding.RuntimeFunction == call.Function),
+                _ => null,
+            };
+        }
+
+        private static bool ReturnsCustomElement(BoundStatement statement)
+        {
+            return statement switch
+            {
+                BoundBlockStatement block => block.Statements.Any(ReturnsCustomElement),
+                BoundIfStatement conditional => ReturnsCustomElement(conditional.ThenStatement)
+                    || conditional.ElseStatement is not null && ReturnsCustomElement(conditional.ElseStatement),
+                BoundReturnStatement { Expression: BoundReactElementExpression { ElementType: BoundLiteralExpression { Value: string name } } }
+                    => name.Contains('-', StringComparison.Ordinal),
+                _ => false,
+            };
         }
 
         private void ImportModuleSymbols()
@@ -3256,6 +3466,7 @@ public static class Binder
         private BoundStatement BindStatement(StatementSyntax s) => s switch
         {
             BlockStatementSyntax b => BindBlock(b),
+            LocalPresentationDeclarationStatementSyntax presentation => BindLocalPresentation(presentation),
             VariableDeclarationStatementSyntax v => BindVariable(v),
             ResourceUsingDeclarationStatementSyntax u => BindResourceUsing(u),
             CSharpBlockStatementSyntax c => BindCSharpBlock(c),
@@ -3272,6 +3483,179 @@ public static class Binder
             NestedTableDeclarationStatementSyntax nested => BindNestedTable(nested),
             _ => new BoundExpressionStatement(new BoundErrorExpression())
         };
+
+        private BoundStatement BindLocalPresentation(LocalPresentationDeclarationStatementSyntax presentation)
+        {
+            if (_currentFunction is null || _currentFunction.ReturnType != ReactNodeTypeSymbol.Instance)
+            {
+                SyntaxToken anchor = presentation.Stream?.StreamKeyword ?? presentation.Layout!.LayoutKeyword;
+                Report("COPE-COMPONENT-CAPSULE-0001", "Local layout and stream declarations are supported only inside a ReactNode component function.", anchor);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            MemberSyntax declaration = presentation.Stream is not null
+                ? presentation.Stream
+                : presentation.Layout!;
+            string name = presentation.Stream?.Identifier.Text ?? presentation.Layout!.Identifier.Text;
+            LayoutDataCompilation compilation = LayoutDataCompiler.BindDeclarations(
+                _tree,
+                _sourcePath ?? "<memory>",
+                [declaration]);
+            foreach (Diagnostic diagnostic in compilation.Diagnostics)
+            {
+                _diagnostics.Report(diagnostic.Id, diagnostic.Message, diagnostic.Position, diagnostic.Length);
+            }
+
+            if (!compilation.Layouts.TryGetValue(name, out BoundLayoutDeclaration? boundLayout))
+            {
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            string identity = _currentFunction.StableIdentity + "::presentation::" + name;
+            var layout = presentation.Stream is not null
+                ? new LayoutSymbol(name, identity, presentation.Stream)
+                : new LayoutSymbol(name, identity, profile: null, presentation.Layout);
+            layout.BoundLayout = boundLayout with { Name = _currentFunction.Name + "::" + name };
+            layout.Slots = layout.BoundLayout.Slots
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => new LayoutSlotSymbol(pair.Key, layout, GetLayoutSemanticPath(layout.BoundLayout.Root, pair.Value), pair.Value.Kind, pair.Value.Source),
+                    StringComparer.Ordinal);
+
+            var captureContext = new ComponentCaptureContext();
+            _componentCaptureContexts.Push(captureContext);
+            try
+            {
+                var entries = new List<BoundLayoutBindingEntry>();
+                var collections = new List<BoundStreamCollection>();
+                if (presentation.Stream is not null)
+                {
+                    foreach (StreamContentNode node in EnumerateStreamContent(presentation.Stream.Nodes, presentation.Stream.Tables))
+                    {
+                        if (!layout.Slots.TryGetValue(node.Identifier.Text, out LayoutSlotSymbol? slot))
+                        {
+                            continue;
+                        }
+
+                        BoundExpression content = BindExpression(node.Content, ReactNodeTypeSymbol.Instance);
+                        if (content.Type != ReactNodeTypeSymbol.Instance)
+                        {
+                            Report("COPE-STREAM-0012", $"Content for private stream region '{name}.{slot.SemanticPath}' must be a renderable ReactNode expression; got '{content.Type.Name}'.", node.Identifier);
+                            continue;
+                        }
+
+                        entries.Add(new BoundLayoutBindingEntry(slot, new LayoutBindingEntrySyntax(node.Identifier, node.ColonToken ?? node.Identifier, node.Content, null), content));
+                    }
+
+                    foreach (StreamNodeSyntax node in EnumerateStreamNodes(presentation.Stream.Nodes).Where(node => node.KindToken?.Text == "grid" && node.Content is ArrayLiteralExpressionSyntax))
+                    {
+                        BoundLayoutNode? region = FindLayoutNode(layout.BoundLayout.Root, node.Identifier.Text);
+                        if (region is null || node.Content is not ArrayLiteralExpressionSyntax itemsSyntax)
+                        {
+                            continue;
+                        }
+
+                        var items = new List<BoundExpression>();
+                        foreach (ExpressionSyntax itemSyntax in itemsSyntax.Elements)
+                        {
+                            BoundExpression item = BindExpression(itemSyntax, ReactNodeTypeSymbol.Instance);
+                            if (item.Type == ReactNodeTypeSymbol.Instance)
+                            {
+                                items.Add(item);
+                            }
+                        }
+                        collections.Add(new BoundStreamCollection(region, node, items));
+                    }
+                }
+
+                LayoutSlotSymbol[] missing = layout.Slots.Values
+                    .Where(slot => slot.IsBindable && entries.All(entry => entry.Slot.Name != slot.Name))
+                    .OrderBy(slot => slot.SemanticPath, StringComparer.Ordinal)
+                    .ToArray();
+                if (missing.Length > 0)
+                {
+                    Report("COPE-STREAM-0013", $"Private stream '{name}' is incomplete. Missing renderable content for: {string.Join(", ", missing.Select(slot => slot.SemanticPath))}.", presentation.Stream?.Identifier ?? presentation.Layout!.Identifier);
+                }
+
+                BoundComponentCapture[] captures = captureContext.Captures.Values
+                    .OrderBy(capture => capture.StableIdentity, StringComparer.Ordinal)
+                    .ToArray();
+                var parameters = captures.Select(capture => new ParameterSymbol(capture.Source.Name, capture.Type)).ToArray();
+                var runtimeFunction = new FunctionSymbol(name, parameters, ReactNodeTypeSymbol.Instance, stableIdentity: identity + "::runtime");
+                runtimeFunction.EmissionName = "__cope_component_" + SanitizeJavaScriptIdentifier(_currentFunction.Name) + "_" + SanitizeJavaScriptIdentifier(name);
+                if (!_scope.TryDeclare(runtimeFunction))
+                {
+                    Report("COPE-COMPONENT-CAPSULE-0002", $"Duplicate local presentation declaration '{name}'.", presentation.Stream?.Identifier ?? presentation.Layout!.Identifier);
+                    return new BoundExpressionStatement(new BoundErrorExpression());
+                }
+
+                IReadOnlyDictionary<string, string> classes = BuildPrivatePresentationClasses(layout.BoundLayout, identity);
+                BoundLayoutNode root = layout.BoundLayout.Root.Children.Count == 1 ? layout.BoundLayout.Root.Children[0] : layout.BoundLayout.Root;
+                var binding = new BoundLayoutBinding(
+                    layout,
+                    new LayoutTypeSymbol(name + "Shape", identity + "::shape", new BoundLayoutTypeDeclaration(name + "Shape", new BoundLayoutTypeNode(name, LayoutNodeKind.Overlay, null, [] , layout.BoundLayout.Root.Source))),
+                    new LayoutBindingDeclarationSyntax(presentation.Stream?.StreamKeyword ?? presentation.Layout!.LayoutKeyword, presentation.Stream?.Identifier ?? presentation.Layout!.Identifier, presentation.Stream?.OpenBraceToken ?? presentation.Layout!.OpenBraceToken, [], presentation.Stream?.CloseBraceToken ?? presentation.Layout!.CloseBraceToken),
+                    runtimeFunction,
+                    "createElement",
+                    new BoundLayoutReactRealization(root, classes),
+                    entries,
+                    collections,
+                    captures,
+                    _currentFunction);
+                _layoutBindings.Add(binding);
+                _layouts.Add(layout.BoundLayout);
+                _localPresentationCaptureArguments.Add(runtimeFunction, captures.Select(capture => CaptureExpression(capture.Source)).ToArray());
+                return new BoundLocalPresentationDeclaration(binding);
+            }
+            finally
+            {
+                _componentCaptureContexts.Pop();
+            }
+        }
+
+        private static string SanitizeJavaScriptIdentifier(string value)
+        {
+            var builder = new StringBuilder(value.Length);
+            foreach (char character in value)
+            {
+                builder.Append(char.IsAsciiLetterOrDigit(character) ? character : '_');
+            }
+
+            return builder.ToString();
+        }
+
+        private static IReadOnlyDictionary<string, string> BuildPrivatePresentationClasses(BoundLayoutDeclaration layout, string identity)
+        {
+            string prefix = "m-component-" + SanitizeJavaScriptIdentifier(identity);
+            var classes = new Dictionary<string, string>(StringComparer.Ordinal);
+            var used = new HashSet<string>(StringComparer.Ordinal);
+            Add(layout.Root, "root");
+            return classes;
+
+            void Add(BoundLayoutNode node, string path)
+            {
+                string className = prefix + "-" + SanitizeJavaScriptIdentifier(path);
+                if (!used.Add(className))
+                {
+                    className += "-" + used.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    used.Add(className);
+                }
+                classes[node.Name] = className;
+                for (int index = 0; index < node.Children.Count; index += 1)
+                {
+                    Add(node.Children[index], path + "-" + node.Children[index].Name + "-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                }
+            }
+        }
+
+        private static BoundExpression CaptureExpression(Symbol symbol)
+            => symbol switch
+            {
+                VariableSymbol variable => new BoundVariableExpression(variable),
+                ParameterSymbol parameter => new BoundVariableExpression(new VariableSymbol(parameter.Name, parameter.Type, true)),
+                _ => new BoundErrorExpression(),
+            };
 
         private BoundStatement BindNestedRecord(NestedRecordDeclarationStatementSyntax nested)
         {
@@ -4291,7 +4675,12 @@ public static class Binder
                 or "section"
                 or "small"
                 or "span"
-                or "strong";
+                or "strong"
+                || IsCustomElementName(name);
+
+        private static bool IsCustomElementName(string name)
+            => name.Contains('-', StringComparison.Ordinal)
+                && name.All(character => char.IsLower(character) || char.IsDigit(character) || character == '-');
 
         private static bool IsTextDocumentElement(string name)
             => name is "Text"
@@ -4405,6 +4794,7 @@ public static class Binder
                 return new BoundErrorExpression();
             }
             RecordBatchCapture(symbol);
+            RecordComponentPresentationCapture(symbol);
             return symbol switch
             {
                 ClassValueSymbol classValue => ReportClassValueUse(classValue, n.IdentifierToken),
@@ -4419,6 +4809,40 @@ public static class Binder
                 _ => new BoundErrorExpression()
             };
         }
+
+        private void RecordComponentPresentationCapture(Symbol symbol)
+        {
+            if (_componentCaptureContexts.Count == 0 || symbol is not VariableSymbol and not ParameterSymbol)
+            {
+                return;
+            }
+
+            ComponentCaptureContext context = _componentCaptureContexts.Peek();
+            if (context.Captures.ContainsKey(symbol))
+            {
+                return;
+            }
+
+            ComponentCaptureKind kind = symbol switch
+            {
+                ParameterSymbol => ComponentCaptureKind.Parameter,
+                VariableSymbol { IsReadOnly: true } when ReferenceEquals(_scope, _global) => ComponentCaptureKind.ModuleConstant,
+                VariableSymbol { IsReadOnly: true } => ComponentCaptureKind.ImmutableLocal,
+                VariableSymbol => ComponentCaptureKind.ImmutableLocal,
+                _ => throw new InvalidOperationException("Unreachable component capture kind."),
+            };
+            if (symbol is VariableSymbol { IsReadOnly: false })
+            {
+                Report("COPE-COMPONENT-CAPSULE-0003", $"Component-local presentation captures mutable local '{symbol.Name}'. Lexical component presentation may capture only immutable values in M1.", AnchorTokenForSymbol(symbol));
+            }
+
+            string owner = _currentFunction?.StableIdentity ?? "<component>";
+            context.Captures.Add(symbol, new BoundComponentCapture(symbol, symbol is VariableSymbol variable ? variable.Type : ((ParameterSymbol)symbol).Type, kind, owner + "::capture::" + symbol.Name));
+        }
+
+        private SyntaxToken AnchorTokenForSymbol(Symbol symbol)
+            => _tree.Tokens.FirstOrDefault(token => string.Equals(token.Text, symbol.Name, StringComparison.Ordinal))
+                ?? new SyntaxToken(SyntaxKind.IdentifierToken, 0, symbol.Name, null);
 
         private BoundExpression BindBatch(BatchExpressionSyntax batch)
         {
@@ -5011,6 +5435,16 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (c.Target is MemberAccessExpressionSyntax { Target: NameExpressionSyntax componentName } privateMember
+                && TryFindPrivatePresentation(componentName.IdentifierToken.Text, privateMember.NameToken.Text, out string? owner))
+            {
+                Report(
+                    "COPE-COMPONENT-PRIVACY-0001",
+                    $"'{owner}::{privateMember.NameToken.Text}' is private to component '{owner}'. The parent may position the component's outer host, but may not address its internal layout.",
+                    privateMember.NameToken);
+                return new BoundErrorExpression();
+            }
+
             if (_tsXmlProfile == CopelandTsXmlProfile.ReactM0
                 && c.Target is NameExpressionSyntax { IdentifierToken.Text: "Text" } textTarget
                 && _textDocumentsByRootStart.TryGetValue(textTarget.IdentifierToken.Position, out BoundTextDocument? document)
@@ -5184,6 +5618,11 @@ public static class Binder
             if (s is JavaScriptHostFunctionSymbol host) return BindJavaScriptHostCall(c, host);
             if (s is not FunctionSymbol fn) { Report("COPE-BIND-0006", $"Cannot call non-function '{s.Name}'.", c.OpenParenToken); return new BoundErrorExpression(); }
             if (fn.IsGeneric) return BindInferredGenericCall(c, fn);
+            if (_localPresentationCaptureArguments.TryGetValue(fn, out IReadOnlyList<BoundExpression>? captures)
+                && c.Arguments.Count == 0)
+            {
+                return new BoundCallExpression(fn, captures);
+            }
             if (c.Arguments.Count != fn.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {fn.Parameters.Count}, got {c.Arguments.Count}.", c.OpenParenToken);
             var args = c.Arguments.Select((a, index) => BindExpression(a, index < fn.Parameters.Count ? fn.Parameters[index].Type : null)).ToArray();
             for (var i = 0; i < Math.Min(args.Length, fn.Parameters.Count); i++)
@@ -8609,6 +9048,16 @@ public static class Binder
 
         private BoundExpression BindMember(MemberAccessExpressionSyntax m)
         {
+            if (m.Target is NameExpressionSyntax componentName
+                && TryFindPrivatePresentation(componentName.IdentifierToken.Text, m.NameToken.Text, out string? owner))
+            {
+                Report(
+                    "COPE-COMPONENT-PRIVACY-0001",
+                    $"'{owner}::{m.NameToken.Text}' is private to component '{owner}'. The parent may position the component's outer host, but may not address its internal layout.",
+                    m.NameToken);
+                return new BoundErrorExpression();
+            }
+
             if (TryResolveClrTypeReference(m.Target, out Type? staticType))
             {
                 return BindClrProperty(m, staticType!, receiver: null);
@@ -8721,6 +9170,32 @@ public static class Binder
             }
             Report("COPE-REC-0010", $"Field access requires a record receiver, got '{receiver.Type.Name}'.", m.DotToken);
             return new BoundErrorExpression();
+        }
+
+        private bool TryFindPrivatePresentation(string componentName, string presentationName, out string? owner)
+        {
+            owner = null;
+            FunctionDeclarationSyntax? component = _tree.Root.Members
+                .OfType<FunctionDeclarationSyntax>()
+                .FirstOrDefault(function => function.Identifier.Text == componentName);
+            if (component is null)
+            {
+                return false;
+            }
+
+            foreach (LocalPresentationDeclarationStatementSyntax declaration in component.Body.Statements.OfType<LocalPresentationDeclarationStatementSyntax>())
+            {
+                string? name = declaration.Stream?.Identifier.Text ?? declaration.Layout?.Identifier.Text;
+                if (!string.Equals(name, presentationName, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                owner = componentName;
+                return true;
+            }
+
+            return false;
         }
 
         private BoundExpression BindClrProperty(MemberAccessExpressionSyntax syntax, Type declaringType, BoundExpression? receiver)

@@ -130,6 +130,7 @@ internal sealed class CopelandWorkspace
         string? paintContents = DescribePaintAt(compilation, token.Position);
         string? relativeContents = DescribeRelativeDerivationAt(compilation.SyntaxTree, token);
         Symbol? symbol = FindSymbol(compilation, token.Text);
+        string? componentContents = DescribeComponent(compilation, symbol);
         DeclarationInfo? declaration = FindDeclaration(compilation.SyntaxTree, token.Text);
         string contents = relativeContents ?? contentPolicyContents ?? tableContents ?? paintContents ?? (bindingSlot is not null
             ? "slot " + bindingSlot.SemanticPath + "\ncardinality: exactly one renderable component/view\nhost: compiler-generated div layout region"
@@ -137,6 +138,7 @@ internal sealed class CopelandWorkspace
             ? DescribeLayout(layout)
             : symbol is LayoutTypeSymbol { BoundLayoutType: not null } layoutType
                 ? DescribeLayoutType(layoutType)
+            : componentContents is not null ? componentContents
             : symbol is not null ? Describe(symbol) : declaration?.Detail ?? (token.Kind == SyntaxKind.IdentifierToken ? token.Text : string.Empty));
         if (symbol is null && declaration is null && token.Kind == SyntaxKind.IdentifierToken)
         {
@@ -227,6 +229,10 @@ internal sealed class CopelandWorkspace
         {
             items[declaration.Name] = CompletionItem(declaration.Name, declaration.Kind, declaration.Detail);
         }
+        foreach (DeclarationInfo declaration in LexicalDeclarationsAt(compilation.SyntaxTree, ToOffset(document.Text, position)))
+        {
+            items[declaration.Name] = CompletionItem(declaration.Name, declaration.Kind, declaration.Detail);
+        }
         CopelandProjectCompilation project = CompileProject();
         CopelandProjectModuleCompilation? currentModule = project.Modules.FirstOrDefault(module => PathsEqual(module.Source.SourcePath, document.Path));
         if (currentModule is not null)
@@ -275,6 +281,12 @@ internal sealed class CopelandWorkspace
         if (TryFindRelativeSourceDefinition(compilation.SyntaxTree, token, out SyntaxToken? boxDeclaration))
         {
             return new { uri, range = Range(current.Text, boxDeclaration!.Position, boxDeclaration.Text.Length) };
+        }
+        DeclarationInfo? lexicalDeclaration = LexicalDeclarationsAt(compilation.SyntaxTree, token.Position)
+            .FirstOrDefault(candidate => candidate.Name == token.Text);
+        if (lexicalDeclaration is not null)
+        {
+            return new { uri, range = Range(current.Text, lexicalDeclaration.Position, lexicalDeclaration.Name.Length) };
         }
         CopelandProjectModuleCompilation? sourceModule = project.Modules.FirstOrDefault(module => PathsEqual(module.Source.SourcePath, current.Path));
         CopelandProjectImport? import = sourceModule?.Imports.FirstOrDefault(candidate => candidate.LocalName == token.Text && candidate.TargetLogicalPath is not null);
@@ -649,6 +661,21 @@ internal sealed class CopelandWorkspace
             ?? program?.NpmComponentImports.Select(import => (Symbol)import.Component).FirstOrDefault(symbol => symbol.Name == name);
     }
 
+    private static string? DescribeComponent(CopelandCompilation compilation, Symbol? symbol)
+    {
+        if (symbol is not FunctionSymbol function) return null;
+        BoundComponentDefinition? definition = compilation.BoundCompilation?.Program.ComponentDefinitions
+            .SingleOrDefault(candidate => candidate.Function == function);
+        if (definition is null) return null;
+
+        return "component " + definition.Function.Name
+            + "\npresentation: " + definition.Presentation.Kind
+            + "\nrenderer adapter: " + definition.RendererAdapter
+            + "\ncontent capabilities: " + definition.RequiredContentCapabilities
+            + "\nrequired host capabilities: " + definition.RequiredHostCapabilities
+            + "\npayload contract: " + definition.Presentation.PayloadContract;
+    }
+
     private static string? DescribeContentPolicyAt(CopelandCompilation compilation, int position)
     {
         SyntaxTree? tree = compilation.SyntaxTree;
@@ -882,6 +909,119 @@ internal sealed class CopelandWorkspace
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Local component presentations are intentionally absent from module
+    /// declarations. They are offered only while the request position remains
+    /// inside their defining function body and after their declaration point.
+    /// </summary>
+    private static IEnumerable<DeclarationInfo> LexicalDeclarationsAt(SyntaxTree? tree, int offset)
+    {
+        if (tree is null)
+        {
+            yield break;
+        }
+
+        foreach (FunctionDeclarationSyntax function in tree.Root.Members.OfType<FunctionDeclarationSyntax>())
+        {
+            if (offset < function.Body.OpenBraceToken.Position || offset > function.Body.CloseBraceToken.Position)
+            {
+                continue;
+            }
+
+            foreach (ParameterSyntax parameter in function.Parameters)
+            {
+                yield return new DeclarationInfo(parameter.Identifier.Text, "parameter of " + function.Identifier.Text, 6, parameter.Identifier.Position);
+            }
+
+            foreach (StatementSyntax statement in function.Body.Statements)
+            {
+                if (FirstStatementPosition(statement) >= offset)
+                {
+                    break;
+                }
+
+                foreach (DeclarationInfo declaration in DeclarationsFromStatement(statement, function.Identifier.Text))
+                {
+                    yield return declaration;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<DeclarationInfo> DeclarationsFromStatement(StatementSyntax statement, string functionName)
+    {
+        switch (statement)
+        {
+            case VariableDeclarationStatementSyntax variable:
+                yield return new DeclarationInfo(variable.Identifier.Text, "local value of " + functionName, 6, variable.Identifier.Position);
+                yield break;
+            case LocalPresentationDeclarationStatementSyntax { Stream: not null } localStream:
+                yield return new DeclarationInfo(localStream.Stream.Identifier.Text, "private stream of component " + functionName, 12, localStream.Stream.Identifier.Position);
+                foreach (StreamNodeSyntax node in localStream.Stream.Nodes)
+                {
+                    foreach (DeclarationInfo region in StreamRegions(node, functionName + "::" + localStream.Stream.Identifier.Text))
+                    {
+                        yield return region;
+                    }
+                }
+                yield break;
+            case LocalPresentationDeclarationStatementSyntax { Layout: not null } localLayout:
+                yield return new DeclarationInfo(localLayout.Layout.Identifier.Text, "private layout of component " + functionName, 23, localLayout.Layout.Identifier.Position);
+                foreach (LayoutNodeSyntax node in localLayout.Layout.Nodes)
+                {
+                    foreach (DeclarationInfo box in LayoutSlots(node, functionName + "::" + localLayout.Layout.Identifier.Text))
+                    {
+                        yield return box;
+                    }
+                }
+                yield break;
+        }
+    }
+
+    private static int FirstStatementPosition(StatementSyntax statement)
+    {
+        foreach (object child in statement.GetChildren())
+        {
+            if (child is SyntaxToken token)
+            {
+                return token.Position;
+            }
+
+            if (child is SyntaxNode node)
+            {
+                SyntaxToken? nestedToken = FindFirstToken(node);
+                if (nestedToken is not null)
+                {
+                    return nestedToken.Position;
+                }
+            }
+        }
+
+        return int.MaxValue;
+    }
+
+    private static SyntaxToken? FindFirstToken(SyntaxNode node)
+    {
+        foreach (object child in node.GetChildren())
+        {
+            if (child is SyntaxToken token)
+            {
+                return token;
+            }
+
+            if (child is SyntaxNode nested)
+            {
+                SyntaxToken? nestedToken = FindFirstToken(nested);
+                if (nestedToken is not null)
+                {
+                    return nestedToken;
+                }
+            }
+        }
+
+        return null;
     }
     private static IEnumerable<DeclarationInfo> LayoutSlots(LayoutNodeSyntax node, string layoutName)
     {

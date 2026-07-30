@@ -260,7 +260,7 @@ public static class MirLowerer
         MirExpression root = LowerLayoutHost(binding, binding.Realization.Root, entriesBySlot);
         return new MirFunction(
             binding.RuntimeFunction.EmissionName,
-            [],
+            binding.RuntimeFunction.Parameters.Select(parameter => new MirParameter(parameter.Name, ToMirType(parameter.Type))).ToArray(),
             ToMirType(ReactNodeTypeSymbol.Instance),
             [],
             [new MirReturnStatement(root)]);

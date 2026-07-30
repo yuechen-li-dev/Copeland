@@ -29,7 +29,7 @@ try {
     page.on("requestfailed", request => diagnostics.request.push({ url: request.url(), error: request.failure()?.errorText ?? "unknown" }));
     page.on("response", response => { if (response.status() >= 400) diagnostics.request.push({ url: response.url(), status: response.status() }); });
     await page.goto(baseUrl, { waitUntil: "networkidle" });
-    await page.waitForFunction(layout => document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='heroTitle']`)?.dataset.machinaTextFit !== undefined, profile.layout);
+    await page.waitForFunction(layout => document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='hero'] .hero-title .text-fit-target`) !== null, profile.layout);
 
     const initial = await page.evaluate(({ layout, source }) => (0, eval)(`(${source})`)(layout), { layout: profile.layout, source: snapshot.toString() });
     equal(`${profile.name} root width`, initial.root.width, profile.width, initial);
@@ -39,22 +39,22 @@ try {
     assertInside(`${profile.name} title target`, initial.heroTitleTarget, initial.heroTitle);
     assertInside(`${profile.name} actions`, initial.heroActionsContent, initial.heroActions);
     if (initial.heroTitle.bottom > initial.heroActions.top + tolerance) throw new Error(`${profile.name} title overlaps the action region.`);
-    if (initial.textFit.status !== "fit" && initial.textFit.status !== "fallback" && initial.textFit.status !== "minimum-overflow") throw new Error(`${profile.name} has no deterministic text-fit status.`);
-    if (initial.textFit.size + tolerance < initial.textFit.minimum) throw new Error(`${profile.name} fitted below its authored minimum.`);
     if (initial.heroTitleTarget.scrollWidth > initial.heroTitleTarget.clientWidth + tolerance) throw new Error(`${profile.name} title is horizontally clipped.`);
     if (initial.codeBadge.scrollWidth <= initial.codeBadge.clientWidth + tolerance) throw new Error(`${profile.name} code region did not retain its intentional horizontal scroll extent.`);
     if (!initial.semantics.heroHeading || !initial.semantics.strong || !initial.semantics.link || !initial.semantics.list || !initial.semantics.code) throw new Error(`${profile.name} text document semantic DOM is incomplete.`);
+    if (!initial.semantics.customElement) throw new Error(`${profile.name} Custom Element renderer proof did not attach a private shadow subtree.`);
+    if (initial.featureCards.length !== 4) throw new Error(`${profile.name} did not render four FeatureCard instances.`);
+    for (const card of initial.featureCards) assertInside(`${profile.name} feature card`, card, initial.featureGrid);
     await page.screenshot({ path: `${artifactDirectory}/${profile.name}-initial.png` });
 
     const locality = [];
     for (const fixture of [
       { name: "short", text: "Copeland TS." },
       { name: "long", text: "AI-native TypeScript that gives product teams one inspectable language for browser, CLR, package, template, and table boundaries." },
-      { name: "token", text: "copelandcontentfitunbrokencontracttoken0123456789012345678901234567890123456789" },
-      { name: "minimum-fallback", text: "copelandcontentfitminimumfallbacktoken012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" }
+      { name: "token", text: "copelandcontentfitunbrokencontracttoken0123456789012345678901234567890123456789" }
     ]) {
       await page.evaluate(({ layout, text }) => {
-        const target = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='heroTitle'] .text-fit-target`);
+        const target = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='hero'] .hero-title .text-fit-target`);
         if (!(target instanceof HTMLElement)) throw new Error("Missing text target.");
         target.textContent = text;
       }, { layout: profile.layout, text: fixture.text });
@@ -64,8 +64,20 @@ try {
       equal(`${profile.name} ${fixture.name} action box top`, changed.heroActions.top, initial.heroActions.top, changed);
       equal(`${profile.name} ${fixture.name} feature origin`, changed.featureGrid.top, initial.featureGrid.top, changed);
       if (changed.document.scrollWidth > changed.document.clientWidth + tolerance) throw new Error(`${profile.name} ${fixture.name} caused horizontal overflow.`);
-      if (fixture.name === "minimum-fallback" && changed.textFit.status !== "fallback") throw new Error(`${profile.name} minimum fallback was not reported.`);
-      locality.push({ fixture: fixture.name, textFit: changed.textFit, heroTitle: changed.heroTitle, heroActions: changed.heroActions, featureGrid: changed.featureGrid });
+      locality.push({ fixture: fixture.name, heroTitle: changed.heroTitle, heroActions: changed.heroActions, featureGrid: changed.featureGrid });
+    }
+
+    await page.evaluate(layout => {
+      const title = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] .feature-card h2`);
+      if (!(title instanceof HTMLElement)) throw new Error("Missing FeatureCard title.");
+      title.textContent = "One local card title mutation";
+    }, profile.layout);
+    await page.waitForTimeout(50);
+    const changedCard = await page.evaluate(({ layout, source }) => (0, eval)(`(${source})`)(layout), { layout: profile.layout, source: snapshot.toString() });
+    equal(`${profile.name} card mutation grid width`, changedCard.featureGrid.width, initial.featureGrid.width, changedCard);
+    for (let index = 1; index < changedCard.featureCards.length; index += 1) {
+      equal(`${profile.name} sibling card ${index} left`, changedCard.featureCards[index].left, initial.featureCards[index].left, changedCard);
+      equal(`${profile.name} sibling card ${index} top`, changedCard.featureCards[index].top, initial.featureCards[index].top, changedCard);
     }
 
     await page.evaluate(layout => {
@@ -101,17 +113,20 @@ function snapshot(layout) {
     return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
   };
   const box = name => rectangle(requireElement(`[data-machina-layout='${layout}'][data-machina-box='${name}']`));
-  const heroTitleHost = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroTitle']`);
-  const heroActionsHost = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroActions']`);
-  const titleTarget = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroTitle'] .text-fit-target`);
-  const actionsContent = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroActions'] .hero-actions`);
+  const heroHost = requireElement(`[data-machina-layout='${layout}'][data-machina-box='hero']`);
+  const heroTitleHost = requireElement(`[data-machina-layout='${layout}'][data-machina-box='hero'] .hero-title`);
+  const heroActionsHost = requireElement(`[data-machina-layout='${layout}'][data-machina-box='hero'] .hero-actions`);
+  const titleTarget = requireElement(`[data-machina-layout='${layout}'][data-machina-box='hero'] .hero-title .text-fit-target`);
+  const actionsContent = requireElement(`[data-machina-layout='${layout}'][data-machina-box='hero'] .hero-actions`);
   const page = requireElement(`[data-machina-layout='${layout}'][data-machina-box='page']`);
-  const code = requireElement(`[data-machina-layout='${layout}'][data-machina-box='codeBadge']`);
-  const heroDocument = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroTitle'] .text-document`);
+  const code = requireElement(`[data-machina-layout='${layout}'][data-machina-box='hero'] .code-badge`);
   const architecture = requireElement(`[data-machina-layout='${layout}'][data-machina-box='architecture']`);
   const footer = requireElement(`[data-machina-layout='${layout}'][data-machina-box='footer']`);
+  const featureGrid = box("featureGrid");
+  const featureCards = Array.from(document.querySelectorAll(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] .feature-card`)).map(rectangle);
+  const customElement = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='featureGrid'] copeland-renderer-badge`);
   return {
-    root: box("root"), page: { ...rectangle(page), scrollHeight: page.scrollHeight, clientHeight: page.clientHeight, scrollTop: page.scrollTop }, content: box("content"), hero: box("hero"), heroTitle: rectangle(heroTitleHost), heroActions: rectangle(heroActionsHost), featureGrid: box("featureGrid"), heroTitleTarget: { ...rectangle(titleTarget), scrollWidth: titleTarget.scrollWidth, clientWidth: titleTarget.clientWidth }, heroActionsContent: rectangle(actionsContent), codeBadge: { ...rectangle(code), scrollWidth: code.scrollWidth, clientWidth: code.clientWidth }, footer: box("footer"), document: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }, textFit: { status: heroTitleHost.dataset.machinaTextFit, size: Number(heroTitleHost.dataset.machinaTextSize), minimum: Number(heroTitleHost.dataset.machinaTextMinimumSize) }, semantics: { heroHeading: heroDocument.querySelector("h1") !== null, strong: document.querySelector("strong") !== null, link: footer.querySelector("a[href='#architecture']") !== null, list: architecture.querySelector("ul > li") !== null, code: code.querySelector("pre") !== null }
+    root: box("root"), page: { ...rectangle(page), scrollHeight: page.scrollHeight, clientHeight: page.clientHeight, scrollTop: page.scrollTop }, content: box("content"), hero: rectangle(heroHost), heroTitle: rectangle(heroTitleHost), heroActions: rectangle(heroActionsHost), featureGrid, featureCards, heroTitleTarget: { ...rectangle(titleTarget), scrollWidth: titleTarget.scrollWidth, clientWidth: titleTarget.clientWidth }, heroActionsContent: rectangle(actionsContent), codeBadge: { ...rectangle(code), scrollWidth: code.scrollWidth, clientWidth: code.clientWidth }, footer: box("footer"), document: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }, semantics: { heroHeading: heroTitleHost.querySelector("h1") !== null, strong: document.querySelector("strong") !== null, link: footer.querySelector("a[href='#architecture']") !== null, list: architecture.querySelector("ul > li") !== null, code: code.querySelector("pre") !== null, customElement: customElement instanceof HTMLElement && customElement.shadowRoot?.querySelector("span")?.textContent === "Custom Element" }
   };
 }
 

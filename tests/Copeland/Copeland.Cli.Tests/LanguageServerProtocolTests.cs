@@ -9,6 +9,47 @@ namespace Copeland.Cli.Tests;
 public sealed class LanguageServerProtocolTests
 {
     [Fact]
+    public void Language_server_keeps_component_presentations_lexical_and_reports_private_references()
+    {
+        using var workspace = new TempWorkspace();
+        const string sourceText = "import { createElement } from \"react\"; record CardProps { title: string; } function Child(value: string): ReactNode { return <span>{value}</span>; } function Card(props: CardProps): ReactNode { const copy: string = props.title; stream Surface<0px, 0px> { width: fill; height: fill; content: Child(copy) { height: fill; } } return Surface(); } stream Page<0px, 0px> { width: 320px; height: 180px; card: Card({ title: \"One\" }) { height: fill; } }";
+        string sourcePath = workspace.Write("src/App.tsx", sourceText);
+        workspace.Write("manifest.tsx", "export default manifest({});");
+        workspace.Write(".tspack/build-manifests/site-browser.request.json", $$"""
+            { "projectRoot":"{{workspace.Path.Replace("\\", "\\\\")}}", "sources":[{"logicalPath":"src/App.tsx","path":"{{sourcePath.Replace("\\", "\\\\")}}"}], "javascriptRuntime":"browser", "tsXmlProfile":"react-m0", "npmContracts":[{"packageName":"react","version":"19.2.7","materialized":true,"exports":[{"name":"createElement","parameters":[],"result":"ReactNode"}],"components":[]}] }
+            """);
+
+        using var client = new LspClient();
+        string uri = VsCodeFileUri(sourcePath);
+        client.Request(1, "initialize", new { initializationOptions = new { workspaceRoot = workspace.Path } });
+        client.Notify("textDocument/didOpen", new { textDocument = new { uri, version = 1, text = sourceText } });
+        Assert.Empty(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+
+        int localPosition = sourceText.IndexOf("return Surface", StringComparison.Ordinal) + "return ".Length;
+        JsonElement localCompletion = client.Request(2, "textDocument/completion", new { textDocument = new { uri }, position = new { line = 0, character = localPosition } });
+        string[] localLabels = localCompletion.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("label").GetString()!).ToArray();
+        Assert.Contains("Surface", localLabels);
+        Assert.Contains("copy", localLabels);
+        Assert.Contains("props", localLabels);
+
+        JsonElement pageCompletion = client.Request(3, "textDocument/completion", new { textDocument = new { uri }, position = new { line = 0, character = sourceText.IndexOf("stream Page", StringComparison.Ordinal) } });
+        string[] pageLabels = pageCompletion.GetProperty("items").EnumerateArray().Select(item => item.GetProperty("label").GetString()!).ToArray();
+        Assert.DoesNotContain("Surface", pageLabels);
+        Assert.DoesNotContain("copy", pageLabels);
+
+        JsonElement componentDefinition = client.Request(4, "textDocument/definition", new { textDocument = new { uri }, position = new { line = 0, character = sourceText.LastIndexOf("Card({", StringComparison.Ordinal) + 1 } });
+        Assert.Equal(uri, componentDefinition.GetProperty("uri").GetString());
+        JsonElement capturedLocalDefinition = client.Request(5, "textDocument/definition", new { textDocument = new { uri }, position = new { line = 0, character = sourceText.LastIndexOf("copy", StringComparison.Ordinal) + 1 } });
+        Assert.Equal(sourceText.IndexOf("copy", StringComparison.Ordinal), PositionOffset(sourceText, capturedLocalDefinition.GetProperty("range").GetProperty("start")));
+
+        string invalid = sourceText + " function Invalid(): ReactNode { return Card.Surface(); }";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri, version = 2 }, contentChanges = new[] { new { text = invalid } } });
+        Assert.Contains(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "COPE-COMPONENT-PRIVACY-0001");
+        client.Notify("textDocument/didChange", new { textDocument = new { uri, version = 3 }, contentChanges = new[] { new { text = sourceText } } });
+        Assert.Empty(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+    }
+
+    [Fact]
     public void Language_server_uses_manifest_project_context_for_react_stream_overlays()
     {
         using var workspace = new TempWorkspace();
@@ -241,6 +282,18 @@ public sealed class LanguageServerProtocolTests
         client.Notify("textDocument/didOpen", new { textDocument = new { uri = new Uri(tscPath).AbsoluteUri, version = 1, text = "const normal = true;" } });
         JsonElement tscDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.Empty(tscDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+    }
+
+    private static int PositionOffset(string text, JsonElement position)
+    {
+        int line = position.GetProperty("line").GetInt32();
+        int character = position.GetProperty("character").GetInt32();
+        int offset = 0;
+        for (int index = 0; index < line; index += 1)
+        {
+            offset = text.IndexOf('\n', offset) + 1;
+        }
+        return offset + character;
     }
 
     private static string VsCodeFileUri(string path)

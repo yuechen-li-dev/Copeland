@@ -128,6 +128,7 @@ public enum SyntaxKind
     EnumPayloadField,
     RecordDeclaration,
     LayoutDeclaration,
+    LocalPresentationDeclarationStatement,
     LayoutNode,
     LayoutProperty,
     StreamTable,

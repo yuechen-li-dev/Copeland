@@ -45,9 +45,29 @@ a { color: inherit; }
 .compact-command-bar nav { display: flex; gap: 4px; }
 .compact-command-bar nav a { padding: 7px; font-size: 12px; }
 
-.hero-intro, .hero-title, .hero-summary, .hero-actions { position: relative; z-index: 2; }
+.hero-capsule { position: relative; isolation: isolate; width: 100%; height: 100%; overflow: hidden; }
+.hero-capsule .hero-halo { position: absolute; z-index: 1; }
+.hero-capsule .hero-intro, .hero-capsule .hero-title, .hero-capsule .hero-summary, .hero-capsule .hero-actions, .hero-capsule .hero-accent, .hero-capsule .code-badge { position: absolute; z-index: 2; }
+.hero-desktop .hero-intro { left: 52px; top: 60px; width: 600px; height: 18px; }
+.hero-desktop .hero-title { left: 52px; top: 84px; width: 600px; height: 104px; overflow: hidden; }
+.hero-desktop .hero-summary { left: 52px; top: 198px; width: 600px; height: 52px; overflow: hidden; }
+.hero-desktop .hero-actions { left: 52px; top: 266px; width: 360px; height: 40px; overflow: hidden; }
+.hero-desktop .hero-accent { left: 212px; top: 306px; width: 280px; }
+.hero-desktop .code-badge { left: 684px; top: 106px; width: 300px; height: 118px; overflow: auto; }
+.hero-tablet .hero-intro { left: 42px; top: 44px; width: 480px; height: 18px; }
+.hero-tablet .hero-title { left: 42px; top: 68px; width: 480px; height: 118px; overflow: hidden; }
+.hero-tablet .hero-summary { left: 42px; top: 194px; width: 480px; height: 58px; overflow: hidden; }
+.hero-tablet .hero-actions { left: 42px; top: 268px; width: 360px; height: 40px; overflow: hidden; }
+.hero-tablet .hero-accent { left: 147px; top: 308px; width: 270px; }
+.hero-tablet .code-badge { left: 540px; top: 46px; width: 190px; height: 90px; overflow: auto; }
+.hero-mobile .hero-intro { left: 22px; top: 44px; width: 346px; height: 18px; }
+.hero-mobile .hero-title { left: 22px; top: 68px; width: 346px; height: 112px; overflow: hidden; }
+.hero-mobile .hero-summary { left: 22px; top: 190px; width: 346px; height: 62px; overflow: hidden; }
+.hero-mobile .hero-actions { left: 22px; top: 266px; width: 330px; height: 36px; overflow: hidden; }
+.hero-mobile .hero-accent { left: 70px; top: 304px; width: 250px; }
+.hero-mobile .code-badge { left: 22px; top: 316px; width: 346px; height: 48px; overflow: auto; }
 .eyebrow { margin: 0 0 10px; color: var(--cyan); font-family: ui-monospace, Consolas, monospace; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
-.hero-title h1 { margin: 0; color: var(--text); font-size: 54px; line-height: 1.02; letter-spacing: -.06em; }
+.hero-title h1 { display: -webkit-box; height: 100%; margin: 0; overflow: hidden; color: var(--text); font-size: clamp(30px, 4vw, 54px); line-height: 1.02; letter-spacing: -.06em; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .hero-summary { margin: 0; overflow-wrap: anywhere; color: var(--secondary); font-size: 17px; line-height: 1.55; }
 .hero-summary p, .text-document p { margin: 0; }
 .text-document strong { color: var(--text); }
@@ -56,9 +76,9 @@ a { color: inherit; }
 .hero-actions { display: flex; height: 100%; align-items: start; flex-wrap: wrap; gap: 10px; }
 .hero-actions a { padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: rgb(8 10 23 / 65%); font-size: 13px; font-weight: 700; text-decoration: none; }
 .hero-actions a:first-child { border-color: var(--pink); box-shadow: 0 0 18px rgb(250 101 214 / 20%); }
-.hero-halo { width: 100%; height: 100%; border: 1px solid rgb(250 101 214 / 42%); border-radius: 22px; background: radial-gradient(circle at 60% 20%, rgb(75 219 255 / 14%), transparent 45%); pointer-events: none; }
+.hero-halo { inset: 0; width: 100%; height: 100%; border: 1px solid rgb(250 101 214 / 42%); border-radius: 22px; background: radial-gradient(circle at 60% 20%, rgb(75 219 255 / 14%), transparent 45%); pointer-events: none; }
 .hero-accent { margin: 0; color: var(--pink); font-family: ui-monospace, Consolas, monospace; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-align: center; white-space: nowrap; }
-.code-badge { position: relative; z-index: 2; height: 100%; margin: 0; padding: 15px; overflow: visible; border: 1px solid rgb(75 219 255 / 48%); border-radius: 12px; color: #c8efff; background: rgb(5 7 16 / 85%); box-shadow: 0 0 25px rgb(75 219 255 / 12%); font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.5; white-space: pre; }
+.code-badge { margin: 0; padding: 15px; border: 1px solid rgb(75 219 255 / 48%); border-radius: 12px; color: #c8efff; background: rgb(5 7 16 / 85%); box-shadow: 0 0 25px rgb(75 219 255 / 12%); font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.5; white-space: pre; }
 .code-badge pre { margin: 0; white-space: pre; }
 
 .language-example { display: flex; height: 100%; align-items: center; justify-content: center; gap: 20px; color: #cbb6ff; font-family: ui-monospace, Consolas, monospace; font-size: 14px; font-weight: 750; white-space: nowrap; }
@@ -115,3 +135,7 @@ a { color: inherit; }
 
 :focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+
+.hero-desktop .hero-title h1 { font-size: 50px; }
+.hero-tablet .hero-title h1 { font-size: 38px; }
+.hero-mobile .hero-title h1 { font-size: 34px; }

@@ -56,6 +56,7 @@ export function subscribeViewport(onChange) {
   };
 }
 
+
 const textFitHosts = new WeakMap();
 let textFitFrame = 0;
 

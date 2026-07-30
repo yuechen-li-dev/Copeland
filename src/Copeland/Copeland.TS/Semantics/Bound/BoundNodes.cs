@@ -26,7 +26,9 @@ public sealed class BoundProgram
         IReadOnlyList<BoundFlowDefinition>? flows = null,
         IReadOnlyList<BoundTemplateDeclaration>? templates = null,
         IReadOnlyList<BoundLayoutDeclaration>? layouts = null,
-        IReadOnlyList<BoundLayoutBinding>? layoutBindings = null)
+        IReadOnlyList<BoundLayoutBinding>? layoutBindings = null,
+        IReadOnlyList<BoundComponentDefinition>? componentDefinitions = null,
+        IReadOnlyList<BoundComponentInstance>? componentInstances = null)
     {
         Functions = functions;
         Enums = enums;
@@ -44,6 +46,8 @@ public sealed class BoundProgram
         Templates = templates ?? [];
         Layouts = layouts ?? [];
         LayoutBindings = layoutBindings ?? [];
+        ComponentDefinitions = componentDefinitions ?? [];
+        ComponentInstances = componentInstances ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
@@ -61,7 +65,300 @@ public sealed class BoundProgram
     public IReadOnlyList<BoundTemplateDeclaration> Templates { get; }
     public IReadOnlyList<BoundLayoutDeclaration> Layouts { get; }
     public IReadOnlyList<BoundLayoutBinding> LayoutBindings { get; }
+    /// <summary>Renderer-neutral capsules inferred from ordinary render functions.</summary>
+    public IReadOnlyList<BoundComponentDefinition> ComponentDefinitions { get; }
+    /// <summary>Concrete calls attached to compiler-owned parent layout hosts.</summary>
+    public IReadOnlyList<BoundComponentInstance> ComponentInstances { get; }
 }
+
+/// <summary>
+/// A component is an ordinary callable render function plus a private
+/// presentation domain. React is one implementation kind, never the component
+/// identity itself.
+/// </summary>
+public sealed class BoundComponentDefinition(
+    FunctionSymbol function,
+    ComponentImplementationKind implementationKind,
+    BoundLayoutBinding? localStream = null,
+    BoundComponentPresentation? presentation = null)
+    : BoundNode
+{
+    public FunctionSymbol Function { get; } = function;
+    public ComponentImplementationKind ImplementationKind { get; } = implementationKind;
+    /// <summary>Optional private stream. Its layout boxes remain tooling facts only.</summary>
+    public BoundLayoutBinding? LocalStream { get; } = localStream;
+    public IReadOnlyList<BoundComponentCapture> Captures { get; } = localStream?.Captures ?? [];
+    public string StableIdentity => Function.StableIdentity + "::component";
+    /// <summary>
+    /// Canonical renderer-neutral component result. Its payload remains private
+    /// to the selected adapter; layout and identity never do.
+    /// </summary>
+    public BoundComponentPresentation Presentation { get; } = presentation ?? BoundComponentPresentation.ReactBridge(localStream is not null);
+    /// <summary>Compatibility alias for existing capsule consumers.</summary>
+    public ComponentHostCapabilities HostCapabilities => Presentation.RequiredHostCapabilities;
+    public ComponentHostCapabilities RequiredHostCapabilities => Presentation.RequiredHostCapabilities;
+    public ComponentContentCapabilities RequiredContentCapabilities => Presentation.RequiredContentCapabilities;
+    public RendererAdapterIdentity RendererAdapter => Presentation.RendererAdapter;
+}
+
+/// <summary>
+/// A presentation is Copeland's result at the renderer boundary. It identifies
+/// the component and assigned host without exposing renderer node identity.
+/// </summary>
+public sealed record BoundComponentPresentation(
+    ComponentPresentationKind Kind,
+    RendererAdapterIdentity RendererAdapter,
+    ComponentContentCapabilities RequiredContentCapabilities,
+    ComponentHostCapabilities RequiredHostCapabilities,
+    string PayloadContract)
+{
+    public static BoundComponentPresentation ReactBridge(bool hasPrivateLayout)
+        => new(
+            hasPrivateLayout ? ComponentPresentationKind.PrivateLayout : ComponentPresentationKind.RendererPayload,
+            RendererAdapterIdentity.React,
+            ComponentContentCapabilities.ReactSubtree,
+            ComponentHostCapabilities.FillAssignedBox |
+            ComponentHostCapabilities.RendererAttachment |
+            ComponentHostCapabilities.StableMountPoint |
+            ComponentHostCapabilities.ResolvedWidth |
+            ComponentHostCapabilities.ResolvedHeight,
+            hasPrivateLayout ? "private-layout/react-bridge" : "react-node-bridge");
+
+    public static BoundComponentPresentation CustomElementBridge()
+        => new(
+            ComponentPresentationKind.RendererPayload,
+            RendererAdapterIdentity.CustomElement,
+            ComponentContentCapabilities.CustomElement,
+            ComponentHostCapabilities.RendererAttachment |
+            ComponentHostCapabilities.StableMountPoint |
+            ComponentHostCapabilities.ResolvedWidth |
+            ComponentHostCapabilities.ResolvedHeight,
+            "custom-element-bridge");
+}
+
+public enum ComponentPresentationKind
+{
+    RendererPayload,
+    PrivateLayout,
+}
+
+public enum RendererAdapterIdentity
+{
+    React,
+    CustomElement,
+    NativeMachina,
+}
+
+[Flags]
+public enum ComponentContentCapabilities
+{
+    None = 0,
+    DocumentMir = 1,
+    SemanticText = 2,
+    InteractiveControls = 4,
+    ReactSubtree = 8,
+    VueSubtree = 16,
+    SvelteComponent = 32,
+    CustomElement = 64,
+    Canvas = 128,
+    NativeMachina = 256,
+}
+
+/// <summary>One typed lexical value consumed by a component-private presentation.</summary>
+public sealed class BoundComponentCapture(
+    Symbol source,
+    TypeSymbol type,
+    ComponentCaptureKind kind,
+    string stableIdentity)
+{
+    public Symbol Source { get; } = source;
+    public TypeSymbol Type { get; } = type;
+    public ComponentCaptureKind Kind { get; } = kind;
+    public string StableIdentity { get; } = stableIdentity;
+}
+
+public enum ComponentCaptureKind
+{
+    Parameter,
+    ImmutableLocal,
+    ModuleConstant,
+}
+
+public sealed class BoundComponentInstance(
+    string stableIdentity,
+    BoundComponentDefinition definition,
+    BoundLayoutBinding parentBinding,
+    string parentHostBox,
+    IReadOnlyList<BoundExpression> props,
+    int ordinal,
+    string authoredCallIdentity,
+    BoundComponentInstance? parentComponentInstance,
+    ComponentHostCapabilities hostCapabilities)
+    : BoundNode
+{
+    public string StableIdentity { get; } = stableIdentity;
+    public BoundComponentDefinition Definition { get; } = definition;
+    public BoundLayoutBinding ParentBinding { get; } = parentBinding;
+    public string ParentHostBox { get; } = parentHostBox;
+    public IReadOnlyList<BoundExpression> Props { get; } = props;
+    public int Ordinal { get; } = ordinal;
+    /// <summary>Stable authored call fallback when no explicit collection key exists.</summary>
+    public string AuthoredCallIdentity { get; } = authoredCallIdentity;
+    /// <summary>Null only for a call attached directly to a page/layout host.</summary>
+    public BoundComponentInstance? ParentComponentInstance { get; } = parentComponentInstance;
+    public ComponentHostCapabilities HostCapabilities { get; } = hostCapabilities;
+}
+
+public enum ComponentImplementationKind
+{
+    NativeMachina,
+    React,
+    ForeignRenderer,
+}
+
+[Flags]
+public enum ComponentHostCapabilities
+{
+    None = 0,
+    FillAssignedBox = 1,
+    RendererAttachment = 2,
+    ResolvedWidth = 4,
+    ResolvedHeight = 8,
+    Scroll = 16,
+    Clip = 32,
+    ScrollX = 64,
+    ScrollY = 128,
+    FocusContainer = 256,
+    StableMountPoint = 512,
+}
+
+/// <summary>
+/// Adapter declarations are capability contracts, not a shared virtual DOM.
+/// Individual adapters keep their renderer objects and reconciliation models
+/// private behind this small ownership boundary.
+/// </summary>
+public sealed record RendererAdapterContract(
+    RendererAdapterIdentity Identity,
+    ComponentContentCapabilities SupportedContentCapabilities,
+    ComponentHostCapabilities RequiredHostCapabilities,
+    bool IsBrowserAdapter);
+
+public sealed record RendererAdapterValidation(string Id, string Message);
+
+public static class RendererAdapterContracts
+{
+    private static readonly IReadOnlyDictionary<RendererAdapterIdentity, RendererAdapterContract> Contracts =
+        new Dictionary<RendererAdapterIdentity, RendererAdapterContract>
+        {
+            [RendererAdapterIdentity.React] = new(
+                RendererAdapterIdentity.React,
+                ComponentContentCapabilities.ReactSubtree | ComponentContentCapabilities.DocumentMir | ComponentContentCapabilities.SemanticText | ComponentContentCapabilities.InteractiveControls,
+                BoundComponentPresentation.ReactBridge(false).RequiredHostCapabilities,
+                true),
+            [RendererAdapterIdentity.CustomElement] = new(
+                RendererAdapterIdentity.CustomElement,
+                ComponentContentCapabilities.CustomElement | ComponentContentCapabilities.InteractiveControls,
+                ComponentHostCapabilities.RendererAttachment | ComponentHostCapabilities.StableMountPoint | ComponentHostCapabilities.ResolvedWidth | ComponentHostCapabilities.ResolvedHeight,
+                true),
+            [RendererAdapterIdentity.NativeMachina] = new(
+                RendererAdapterIdentity.NativeMachina,
+                ComponentContentCapabilities.NativeMachina | ComponentContentCapabilities.DocumentMir | ComponentContentCapabilities.SemanticText,
+                ComponentHostCapabilities.FillAssignedBox | ComponentHostCapabilities.ResolvedWidth | ComponentHostCapabilities.ResolvedHeight,
+                false),
+        };
+
+    public static IReadOnlyList<RendererAdapterContract> All => Contracts.Values.OrderBy(contract => contract.Identity).ToArray();
+
+    public static bool TryGet(RendererAdapterIdentity identity, out RendererAdapterContract? contract)
+        => Contracts.TryGetValue(identity, out contract);
+
+    public static IReadOnlyList<RendererAdapterValidation> Validate(
+        RendererAdapterIdentity adapter,
+        ComponentContentCapabilities requiredContent,
+        ComponentHostCapabilities suppliedHost)
+    {
+        if (!Contracts.TryGetValue(adapter, out RendererAdapterContract? contract))
+        {
+            return [new RendererAdapterValidation("COPE-RENDERER-0001", $"Renderer adapter '{adapter}' is unavailable.")];
+        }
+
+        ComponentContentCapabilities unsupported = requiredContent & ~contract.SupportedContentCapabilities;
+        if (unsupported != ComponentContentCapabilities.None)
+        {
+            return [new RendererAdapterValidation("COPE-RENDERER-0002", $"Renderer adapter '{adapter}' does not support content capability '{unsupported}'.")];
+        }
+
+        ComponentHostCapabilities missing = contract.RequiredHostCapabilities & ~suppliedHost;
+        return missing == ComponentHostCapabilities.None
+            ? []
+            : [new RendererAdapterValidation("COPE-RENDERER-0003", $"Host lacks renderer adapter '{adapter}' required capability '{missing}'.")];
+    }
+}
+
+/// <summary>
+/// Small deterministic ownership registry for adapter hosts. M0 keeps this as
+/// a runtime-contract model so browser/native hosts can share the same failure
+/// semantics without exposing renderer-internal objects to the compiler.
+/// </summary>
+public sealed class RendererAttachmentRegistry
+{
+    private readonly Dictionary<string, RendererAttachment> _attachmentsByHost = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, RendererAttachment> _attachmentsByInstance = new(StringComparer.Ordinal);
+
+    public RendererRuntimeDiagnostic? Mount(string? componentInstanceId, string hostId, RendererAdapterIdentity adapter)
+    {
+        if (string.IsNullOrWhiteSpace(componentInstanceId))
+        {
+            return Diagnostic("COPE-RENDERER-0007", adapter, componentInstanceId, "Renderer subtree requires a canonical component instance.");
+        }
+
+        if (_attachmentsByHost.TryGetValue(hostId, out RendererAttachment? existing)
+            || _attachmentsByInstance.TryGetValue(componentInstanceId, out existing))
+        {
+            return Diagnostic("COPE-RENDERER-0004", adapter, componentInstanceId, $"Host '{hostId}' is already claimed by adapter '{existing.Adapter}' for component instance '{existing.ComponentInstanceId}'.");
+        }
+
+        var attachment = new RendererAttachment(componentInstanceId, hostId, adapter);
+        _attachmentsByHost.Add(hostId, attachment);
+        _attachmentsByInstance.Add(componentInstanceId, attachment);
+        return null;
+    }
+
+    public RendererRuntimeDiagnostic? Update(string componentInstanceId, RendererAdapterIdentity adapter)
+        => _attachmentsByInstance.ContainsKey(componentInstanceId)
+            ? null
+            : Diagnostic("COPE-RENDERER-0005", adapter, componentInstanceId, "Renderer update was delivered to an unmounted component instance.");
+
+    public RendererRuntimeDiagnostic? Unmount(string componentInstanceId, RendererAdapterIdentity adapter, Action cleanup)
+    {
+        if (!_attachmentsByInstance.Remove(componentInstanceId, out RendererAttachment? attachment))
+        {
+            return Diagnostic("COPE-RENDERER-0005", adapter, componentInstanceId, "Renderer unmount was requested for an unknown component instance.");
+        }
+
+        _attachmentsByHost.Remove(attachment.HostId);
+        try
+        {
+            cleanup();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return Diagnostic("COPE-RENDERER-0006", adapter, componentInstanceId, "Renderer cleanup failed: " + exception.Message);
+        }
+    }
+
+    private static RendererRuntimeDiagnostic Diagnostic(string id, RendererAdapterIdentity adapter, string? instance, string message)
+        => new(id, adapter, instance, message);
+
+    private sealed record RendererAttachment(string ComponentInstanceId, string HostId, RendererAdapterIdentity Adapter);
+}
+
+public sealed record RendererRuntimeDiagnostic(
+    string Id,
+    RendererAdapterIdentity Adapter,
+    string? ComponentInstanceId,
+    string Message);
 
 /// <summary>
 /// A validated semantic attachment between a concrete immutable layout and
@@ -75,7 +372,9 @@ public sealed class BoundLayoutBinding(
     string createElementBinding,
     BoundLayoutReactRealization realization,
     IReadOnlyList<BoundLayoutBindingEntry> entries,
-    IReadOnlyList<BoundStreamCollection>? collections = null) : BoundNode
+    IReadOnlyList<BoundStreamCollection>? collections = null,
+    IReadOnlyList<BoundComponentCapture>? captures = null,
+    FunctionSymbol? owningComponent = null) : BoundNode
 {
     public LayoutSymbol Layout { get; } = layout;
     public LayoutTypeSymbol Contract { get; } = contract;
@@ -85,6 +384,9 @@ public sealed class BoundLayoutBinding(
     public BoundLayoutReactRealization Realization { get; } = realization;
     public IReadOnlyList<BoundLayoutBindingEntry> Entries { get; } = entries;
     public IReadOnlyList<BoundStreamCollection> Collections { get; } = collections ?? [];
+    public IReadOnlyList<BoundComponentCapture> Captures { get; } = captures ?? [];
+    public FunctionSymbol? OwningComponent { get; } = owningComponent;
+    public bool IsPrivate => OwningComponent is not null;
 }
 
 /// <summary>Bounded ordered content attached to one named structural region.
@@ -461,6 +763,10 @@ public sealed class BoundTableColumnDefinition(TableColumnSymbol column, IReadOn
 { public TableColumnSymbol Column { get; } = column; public IReadOnlyList<BoundTableConstant> Cells { get; } = cells; }
 public sealed class BoundBlockStatement : BoundStatement { public BoundBlockStatement(IReadOnlyList<BoundStatement> statements) => Statements = statements; public IReadOnlyList<BoundStatement> Statements { get; } }
 public sealed class BoundVariableDeclaration : BoundStatement { public BoundVariableDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
+public sealed class BoundLocalPresentationDeclaration(BoundLayoutBinding binding) : BoundStatement
+{
+    public BoundLayoutBinding Binding { get; } = binding;
+}
 public sealed class BoundResourceUsingDeclaration : BoundStatement { public BoundResourceUsingDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
 public sealed class BoundCSharpCapture(string name, TypeSymbol type)
 {

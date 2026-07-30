@@ -1,21 +1,24 @@
-# Copeland website — canonical stream/table layout M0
+# Copeland website — lexical component capsule M1 dogfood
 
-`src/App.tsx` contains ordinary React content components and three explicit
+`src/App.tsx` contains ordinary typed render functions and three explicit
 stream roots: `CopelandDesktop`, `CopelandTablet`, and `CopelandMobile`.
-The compiler owns their neutral hosts, topology, geometry, bounded feature
-collections, paint order, and `with` derivations. Components do not import
-generated positional classes or receive layout classes.
+`FeatureCard(props)` and `Hero(profile)` each declare a private local
+`Surface` stream, capture their typed arguments lexically, and explicitly
+`return Surface()`. The page owns only each component's outer host; the local
+stream attaches an opaque React-backed child inside that host.
 
 The profile law is `<600` mobile, `600–1023` tablet, and `>=1024` desktop.
-`src/Main.ts` uses explicit state capture to select the profile. The streams
-dogfood `centerXIn`, `placeRightOf`, `placeBelow`, and `expandFrom`.
+`src/Main.ts` uses explicit state capture to select the profile.
 
 Each profile root is fixed to its viewport and owns one `page` `scrollY`
 surface. The page's taller `content` box is deliberately stable and scrolls
-locally. Hero title slots declare `fontSize`, `minFontSize`, `lines`, `wrap`,
-`textFit: scaleDown`, and `textFallback`; the browser selects a final size from
-actual font metrics without changing any layout row. The title component marks
-one `.text-fit-target`; actions are separate boxes and are never scaled.
+locally. Hero text uses fixed local profile hosts, `clamp`, and line clamping;
+actions remain separate from text so copy changes do not alter page geometry.
+
+The compiler projects component definitions, stream-attached instances,
+private local presentations, and lexical captures. Parent placement stays a
+neutral generated host; private stream wrappers flatten in browser realization
+so the parent sees only the assigned host geometry.
 
 Run from the sibling TSPack checkout:
 
@@ -39,6 +42,11 @@ $cli = C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Cli\bin\Debug\
 & $cli table rows text::Blocks --project .\manifest.tsx --format json
 & $cli table rows text::Inlines --project .\manifest.tsx --format json
 & $cli table rows text::Bindings --project .\manifest.tsx --format json
+& $cli table rows component::Definitions --project .\manifest.tsx --format json
+& $cli table rows component::Instances --project .\manifest.tsx --format json
+& $cli table rows component::Bindings --project .\manifest.tsx --format json
+& $cli table rows component::Captures --project .\manifest.tsx --format json
+& $cli table rows component::LocalPresentations --project .\manifest.tsx --format json
 & $cli layout inspect CopelandDesktop --project .\manifest.tsx --json
 ```
 

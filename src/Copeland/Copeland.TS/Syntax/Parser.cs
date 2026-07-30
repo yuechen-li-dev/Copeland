@@ -1334,6 +1334,8 @@ public sealed class Parser
         {
             SyntaxKind.StaticKeyword => ParseStaticStatement(),
             SyntaxKind.OpenBraceToken => ParseBlockStatement(),
+            SyntaxKind.LayoutKeyword => new LocalPresentationDeclarationStatementSyntax(ParseLayoutDeclaration(), null),
+            SyntaxKind.IdentifierToken when IsWord(Current, "stream") => new LocalPresentationDeclarationStatementSyntax(null, ParseStreamDeclaration()),
             SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword => ParseVariableDeclarationStatement(requireSemicolon: true),
             SyntaxKind.IfKeyword => ParseIfStatement(),
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
@@ -3206,25 +3208,27 @@ public sealed class Parser
         if (IsTsXmlName(Current))
         {
             SyntaxToken first = NextToken();
-            if (Current.Kind != SyntaxKind.DotToken)
+            if (Current.Kind is not (SyntaxKind.DotToken or SyntaxKind.MinusToken))
             {
                 return first;
             }
 
             var parts = new List<string> { first.Text };
-            while (Current.Kind == SyntaxKind.DotToken)
+            while (Current.Kind is SyntaxKind.DotToken or SyntaxKind.MinusToken)
             {
-                NextToken();
+                SyntaxToken separator = NextToken();
                 if (!IsTsXmlName(Current))
                 {
-                    ReportTsXml("COPE-TSXML-0002", "Expected an identifier after '.' in a qualified TS-XML name.", Current);
+                    string separatorText = separator.Kind == SyntaxKind.DotToken ? "." : "-";
+                    ReportTsXml("COPE-TSXML-0002", "Expected an identifier after '" + separatorText + "' in a TS-XML name.", Current);
                     break;
                 }
 
+                parts.Add(separator.Kind == SyntaxKind.DotToken ? "." : "-");
                 parts.Add(NextToken().Text);
             }
 
-            return new SyntaxToken(SyntaxKind.IdentifierToken, first.Position, string.Join(".", parts), null);
+            return new SyntaxToken(SyntaxKind.IdentifierToken, first.Position, string.Concat(parts), null);
         }
 
         ReportTsXml("COPE-TSXML-0002", message, Current);

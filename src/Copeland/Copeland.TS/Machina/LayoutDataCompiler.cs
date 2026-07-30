@@ -212,6 +212,29 @@ public static class LayoutDataCompiler
         return new LayoutDataCompilation(tree, tree.Diagnostics.Concat(binder.Diagnostics).ToArray(), layouts, binder.LayoutTypes, binder.LayerSets);
     }
 
+    /// <summary>
+    /// Binds a small lexical presentation domain while retaining the owning
+    /// compilation tree for diagnostics and source provenance.
+    /// </summary>
+    public static LayoutDataCompilation BindDeclarations(
+        SyntaxTree tree,
+        string sourcePath,
+        IReadOnlyList<MemberSyntax> declarations,
+        IReadOnlyDictionary<string, BoundLayoutDeclaration>? importedLayouts = null,
+        IReadOnlyDictionary<string, BoundLayoutTypeDeclaration>? importedLayoutTypes = null,
+        IReadOnlyDictionary<string, BoundLayerSet>? importedLayerSets = null)
+    {
+        var binder = new Binder(
+            tree,
+            sourcePath,
+            importedLayouts ?? new Dictionary<string, BoundLayoutDeclaration>(StringComparer.Ordinal),
+            importedLayoutTypes ?? new Dictionary<string, BoundLayoutTypeDeclaration>(StringComparer.Ordinal),
+            importedLayerSets ?? new Dictionary<string, BoundLayerSet>(StringComparer.Ordinal),
+            declarations);
+        IReadOnlyDictionary<string, BoundLayoutDeclaration> layouts = binder.Bind();
+        return new LayoutDataCompilation(tree, binder.Diagnostics.ToArray(), layouts, binder.LayoutTypes, binder.LayerSets);
+    }
+
     public static NormalizedLayoutGraph Normalize(BoundLayoutDeclaration layout)
     {
         var slots = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -537,34 +560,36 @@ public static class LayoutDataCompiler
             string sourcePath,
             IReadOnlyDictionary<string, BoundLayoutDeclaration> importedLayouts,
             IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> importedLayoutTypes,
-            IReadOnlyDictionary<string, BoundLayerSet> importedLayerSets)
+            IReadOnlyDictionary<string, BoundLayerSet> importedLayerSets,
+            IReadOnlyList<MemberSyntax>? declarations = null)
         {
             _sourcePath = sourcePath;
             _importedLayouts = importedLayouts;
             _importedLayoutTypes = importedLayoutTypes;
             _importedLayerSets = importedLayerSets;
-            foreach (LayerSetDeclarationSyntax layerSet in tree.Root.Members.OfType<LayerSetDeclarationSyntax>())
+            IEnumerable<MemberSyntax> members = declarations ?? tree.Root.Members;
+            foreach (LayerSetDeclarationSyntax layerSet in members.OfType<LayerSetDeclarationSyntax>())
             {
                 if (!_layerSyntax.TryAdd(layerSet.Identifier.Text, layerSet))
                 {
                     Report("COPE-LAYOUT-LAYER-0003", $"Semantic layer set '{layerSet.Identifier.Text}' is already declared.", layerSet.Identifier);
                 }
             }
-            foreach (LayoutDeclarationSyntax layout in tree.Root.Members.OfType<LayoutDeclarationSyntax>())
+            foreach (LayoutDeclarationSyntax layout in members.OfType<LayoutDeclarationSyntax>())
             {
                 if (!_syntax.TryAdd(layout.Identifier.Text, layout))
                 {
                     Report("COPE-LAYOUT-DECLARATION-0001", $"Layout '{layout.Identifier.Text}' is already declared.", layout.Identifier);
                 }
             }
-            foreach (LayoutTypeDeclarationSyntax layoutType in tree.Root.Members.OfType<LayoutTypeDeclarationSyntax>())
+            foreach (LayoutTypeDeclarationSyntax layoutType in members.OfType<LayoutTypeDeclarationSyntax>())
             {
                 if (!_typeSyntax.TryAdd(layoutType.Identifier.Text, layoutType))
                 {
                     Report("COPE-LAYOUT-TYPE-0003", $"Layout type '{layoutType.Identifier.Text}' is already declared.", layoutType.Identifier);
                 }
             }
-            foreach (StreamDeclarationSyntax stream in tree.Root.Members.OfType<StreamDeclarationSyntax>())
+            foreach (StreamDeclarationSyntax stream in members.OfType<StreamDeclarationSyntax>())
             {
                 if (!_streamSyntax.TryAdd(stream.Identifier.Text, stream))
                 {
