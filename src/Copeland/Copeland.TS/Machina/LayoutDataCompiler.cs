@@ -97,7 +97,12 @@ public sealed record NormalizedLayoutNode(
     int LayerRank = 0,
     int LocalZ = 0,
     int AuthoredNodeOrder = 0,
-    NormalizedPaintOrder? ResolvedPaintOrder = null)
+    NormalizedPaintOrder? ResolvedPaintOrder = null,
+    IReadOnlyDictionary<string, BoundLayoutDimension>? Dimensions = null,
+    IReadOnlyDictionary<string, MachinaLength>? Positions = null,
+    MachinaLength? Gap = null,
+    int? Columns = null,
+    MachinaSourceSpan? Source = null)
 {
     public NormalizedPaintOrder PaintOrder => ResolvedPaintOrder ?? new NormalizedPaintOrder(LayerRank, LocalZ, AuthoredNodeOrder);
 }
@@ -156,7 +161,10 @@ public static class LayoutDataCompiler
     public static NormalizedLayoutGraph Normalize(BoundLayoutDeclaration layout)
     {
         var slots = new Dictionary<string, string>(StringComparer.Ordinal);
-        BoundLayoutNode rootNode = layout.Root.Children.Count == 1 ? layout.Root.Children[0] : layout.Root;
+        // The normalized root follows the same composed frame law as backend
+        // projection: declaration-level dimensions remain true of an explicit
+        // single root rather than disappearing from the inspection surface.
+        BoundLayoutNode rootNode = ProjectionRoot(layout.Root);
         int authoredNodeOrder = 0;
         NormalizedLayoutNode root = NormalizeNode(
             rootNode,
@@ -237,7 +245,12 @@ public static class LayoutDataCompiler
             layerSet.RankOf(paint.Layer),
             paint.LocalZ,
             order,
-            new NormalizedPaintOrder(layerSet.RankOf(paint.Layer), paint.LocalZ, order));
+            new NormalizedPaintOrder(layerSet.RankOf(paint.Layer), paint.LocalZ, order),
+            node.Dimensions,
+            node.Positions,
+            node.Gap,
+            node.Columns,
+            node.Source);
     }
 
     private static string AppendPaintOrderCss(

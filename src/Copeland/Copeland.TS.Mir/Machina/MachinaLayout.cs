@@ -20,19 +20,22 @@ public sealed record MachinaSourceSpan(string SourcePath, int Start, int Length)
 /// </summary>
 public readonly record struct MachinaLength
 {
-    private MachinaLength(double ui, double px)
+    private MachinaLength(double ui, double px, MachinaLengthLiteralUnit? literalUnit = null)
     {
         Ui = ui;
         Px = px;
+        LiteralUnit = literalUnit;
     }
 
     public double Ui { get; }
     public double Px { get; }
+    /// <summary>Retains the authored unit of an otherwise numerically-zero literal.</summary>
+    public MachinaLengthLiteralUnit? LiteralUnit { get; }
 
     public static MachinaLength Pixels(double value)
     {
         RequireFinite(value, "px value");
-        return new MachinaLength(0, value);
+        return new MachinaLength(0, value, MachinaLengthLiteralUnit.Px);
     }
 
     public static MachinaLength Normalized(double value)
@@ -45,7 +48,7 @@ public readonly record struct MachinaLength
                 $"A ui literal must be in the inclusive range [0, 1]; received {Format(value)}.");
         }
 
-        return new MachinaLength(value, 0);
+        return new MachinaLength(value, 0, MachinaLengthLiteralUnit.Ui);
     }
 
     public static MachinaLength operator +(MachinaLength left, MachinaLength right)
@@ -90,6 +93,8 @@ public readonly record struct MachinaLength
         }
     }
 }
+
+public enum MachinaLengthLiteralUnit { Px, Ui }
 
 public sealed class MachinaLayoutException(string code, string message) : InvalidOperationException(message)
 {

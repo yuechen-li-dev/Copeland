@@ -102,7 +102,7 @@ internal sealed class CopelandWorkspace
         SyntaxToken? token = TokenAt(compilation.SyntaxTree, ToOffset(document.Text, position));
         if (token is null) return null;
         LayoutSlotSymbol? bindingSlot = FindBindingSlot(compilation, token);
-        string? tableContents = DescribeTableCellAt(compilation.SyntaxTree, token.Position);
+        string? tableContents = DescribeTableCellAt(compilation, token.Position);
         string? paintContents = DescribePaintAt(compilation, token.Position);
         Symbol? symbol = FindSymbol(compilation, token.Text);
         DeclarationInfo? declaration = FindDeclaration(compilation.SyntaxTree, token.Text);
@@ -525,23 +525,20 @@ internal sealed class CopelandWorkspace
     {
         foreach (BoundLayoutDeclaration layout in compilation.BoundCompilation?.Program.Layouts ?? [])
         {
-            int order = 0;
-            string? description = Find(layout.Root);
+            string? description = Find(LayoutDataCompiler.Normalize(layout).Root);
             if (description is not null) return description;
 
-            string? Find(BoundLayoutNode node)
+            string? Find(NormalizedLayoutNode node)
             {
-                int nodeOrder = order++;
-                if (position >= node.Source.Start && position <= node.Source.Start + node.Source.Length)
+                if (node.Source is { } source && position >= source.Start && position <= source.Start + source.Length)
                 {
-                    BoundPaintProperties paint = node.ResolvedPaint;
-                    int rank = layout.ResolvedLayerSet.RankOf(paint.Layer);
-                    return "layer: " + paint.Layer
-                        + "\nlocal z: " + paint.LocalZ
-                        + "\nnode order: " + nodeOrder
-                        + "\nresolved paint rank: (" + rank + ", " + paint.LocalZ + ", " + nodeOrder + ")";
+                    return "semantic path: " + node.StableIdentity
+                        + "\nlayer: " + node.LayerIdentity
+                        + "\nlocal z: " + node.LocalZ
+                        + "\nauthored order: " + node.AuthoredNodeOrder
+                        + "\nresolved paint rank: (" + node.PaintOrder.LayerRank + ", " + node.PaintOrder.LocalZ + ", " + node.PaintOrder.AuthoredNodeOrder + ")";
                 }
-                foreach (BoundLayoutNode child in node.Children)
+                foreach (NormalizedLayoutNode child in node.Children)
                 {
                     string? nested = Find(child);
                     if (nested is not null) return nested;
@@ -552,8 +549,9 @@ internal sealed class CopelandWorkspace
         return null;
     }
 
-    private static string? DescribeTableCellAt(SyntaxTree? tree, int position)
+    private static string? DescribeTableCellAt(CopelandCompilation compilation, int position)
     {
+        SyntaxTree? tree = compilation.SyntaxTree;
         if (tree is null) return null;
         foreach (StreamDeclarationSyntax stream in tree.Root.Members.OfType<StreamDeclarationSyntax>())
         {
@@ -577,15 +575,42 @@ internal sealed class CopelandWorkspace
                     {
                         if (FirstToken(row.Cells[columnIndex]).Position != position) continue;
                         string column = table.Headers[columnIndex].Text;
+                        string normalized = DescribeNormalizedBox(compilation, stream.Identifier.Text, rowName);
                         return "row: " + rowName
                             + "\nparent: " + stream.Identifier.Text + "." + table.Identifier.Text
                             + "\ncolumn: " + column
-                            + "\nexpected: " + TableColumnExpectation(column);
+                            + "\nexpected: " + TableColumnExpectation(column)
+                            + (normalized.Length == 0 ? string.Empty : "\n" + normalized);
                     }
                 }
             }
         }
         return null;
+    }
+
+    private static string DescribeNormalizedBox(CopelandCompilation compilation, string layoutName, string boxName)
+    {
+        BoundLayoutDeclaration? layout = compilation.BoundCompilation?.Program.Layouts
+            .SingleOrDefault(candidate => candidate.Name == layoutName);
+        if (layout is null) return string.Empty;
+        NormalizedLayoutNode? box = Find(LayoutDataCompiler.Normalize(layout).Root);
+        if (box is null) return string.Empty;
+        return "semantic path: " + box.StableIdentity
+            + "\nlayer: " + box.LayerIdentity
+            + "\nlocal z: " + box.LocalZ
+            + "\nauthored order: " + box.AuthoredNodeOrder
+            + "\npaint order: (" + box.PaintOrder.LayerRank + ", " + box.PaintOrder.LocalZ + ", " + box.PaintOrder.AuthoredNodeOrder + ")";
+
+        NormalizedLayoutNode? Find(NormalizedLayoutNode node)
+        {
+            if (node.Name == boxName) return node;
+            foreach (NormalizedLayoutNode child in node.Children)
+            {
+                NormalizedLayoutNode? found = Find(child);
+                if (found is not null) return found;
+            }
+            return null;
+        }
     }
 
     private static IEnumerable<StreamTableSyntax> EnumerateTables(IEnumerable<StreamNodeSyntax> nodes, IEnumerable<StreamTableSyntax> tables)
@@ -918,9 +943,13 @@ internal sealed class CopelandWorkspace
         BoundLayoutDeclaration bound = layout.BoundLayout!;
         string width = DescribeDimension(bound.Root.Dimensions.GetValueOrDefault("width"));
         string height = DescribeDimension(bound.Root.Dimensions.GetValueOrDefault("height"));
+        int boxCount = Count(LayoutDataCompiler.Normalize(bound).Root);
         return "layout " + (layout.Profile is null ? string.Empty : layout.Profile + " ") + layout.Name
             + "\norigin: (" + DescribeCoordinate(bound.Origin.X) + ", " + DescribeCoordinate(bound.Origin.Y) + ")"
-            + "\nsize: " + width + " × " + height;
+            + "\nsize: " + width + " × " + height
+            + "\nnormalized boxes: " + boxCount;
+
+        static int Count(NormalizedLayoutNode node) => 1 + node.Children.Sum(Count);
     }
 
     private static string DescribeLayoutType(LayoutTypeSymbol layoutType)

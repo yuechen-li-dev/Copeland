@@ -428,3 +428,12 @@ nodes remain structural. See [CTS stream composition M0](reviews/cts-stream-comp
 For finite grid content, `grid features: [A(), B()] { columns: 4; }` attaches
 an ordered bounded collection to the single named `features` box. Collection
 positions are not synthesized semantic region names.
+
+# Normalized layout inspection (M0)
+
+Use `tscl table list --source <entry.ts>` to discover read-only projected
+`layout::` tables, then use ordinary `table schema`, `table rows`, and `table
+export` commands with `--source <entry.ts>`. `tscl layout inspect
+<layout|module::layout> --source <entry.ts>` is their focused convenience view.
+`fill`, `fit`, and host-dependent values remain typed constraints; this
+compiler command does not measure runtime components or inspect a browser DOM.

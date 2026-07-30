@@ -99,6 +99,7 @@ public sealed class LanguageServerProtocolTests
 
         JsonElement layoutHover = client.Request(6, "textDocument/hover", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = layoutText.IndexOf("Shell", StringComparison.Ordinal) + 1 } });
         Assert.Contains("origin: (12px, 8px)", layoutHover.GetProperty("contents").GetProperty("value").GetString());
+        Assert.Contains("normalized boxes:", layoutHover.GetProperty("contents").GetProperty("value").GetString());
 
         JsonElement layoutTokens = client.Request(7, "textDocument/semanticTokens/full", new { textDocument = new { uri = sourceUri } });
         Assert.NotEmpty(layoutTokens.GetProperty("data").EnumerateArray());

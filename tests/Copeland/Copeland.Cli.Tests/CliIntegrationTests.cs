@@ -1636,6 +1636,36 @@ function value(flag: boolean): number {
         Assert.DoesNotContain("Only.ts", transferredConfig, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Layout_inspection_is_a_read_only_projected_table_surface()
+    {
+        using var temp = new TempDir();
+        string sourcePath = temp.WriteFile("DialogScene.ts", """
+            layout DialogScene<0px, 0px> {
+                width: 320px;
+                height: 180px;
+                overlay root {
+                    slot dialog { frame: { x: 20px, y: 20px, width: 260px, height: 120px }; z: 1; }
+                }
+            }
+            """);
+
+        CliResult list = await RunCliAsync(temp.Path, "table", "list", "--source", sourcePath, "--format", "json");
+        CliResult rows = await RunCliAsync(temp.Path, "table", "rows", "layout::Boxes", "--source", sourcePath, "--format", "json");
+        CliResult mutation = await RunCliAsync(temp.Path, "table", "set", "layout::Boxes", "--source", sourcePath, "--row", "0", "--column", "kind", "--value", "slot", "--format", "json");
+        CliResult inspect = await RunCliAsync(temp.Path, "layout", "inspect", "DialogScene", "--source", sourcePath, "--json");
+
+        Assert.Equal(0, list.ExitCode);
+        Assert.Equal(0, rows.ExitCode);
+        Assert.Equal(1, mutation.ExitCode);
+        Assert.Equal(0, inspect.ExitCode);
+        Assert.Contains("layout::Boxes", list.StdOut, StringComparison.Ordinal);
+        Assert.Contains("DialogScene.root.dialog", rows.StdOut, StringComparison.Ordinal);
+        Assert.Contains("COPE-TABLE-PROJECTED-0001", mutation.StdOut, StringComparison.Ordinal);
+        Assert.Contains("DialogScene.root.dialog", inspect.StdOut, StringComparison.Ordinal);
+        Assert.Contains("sourceKind", inspect.StdOut, StringComparison.Ordinal);
+    }
+
     private static async Task<CliResult> RunCliAsync(string workingDirectory, params string[] args)
     {
         var startInfo = new ProcessStartInfo

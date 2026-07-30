@@ -31,6 +31,11 @@ internal static class TableToolCommand
 
         try
         {
+            if (args.Contains("--source", StringComparer.Ordinal))
+            {
+                return RunProjectedLayoutTable(args);
+            }
+
             return args[1] switch
             {
                 "list" => RunList(args),
@@ -55,6 +60,162 @@ internal static class TableToolCommand
             WriteFailure("table." + args[1], new ToolDiagnostic("COPE-TABLE-TOOL-0018", exception.Message, null, null, null), HasJsonFormat(args));
             return FileIoExitCode;
         }
+    }
+
+    private static int RunProjectedLayoutTable(string[] args)
+    {
+        string sourcePath = RequiredOption(args, "--source");
+        bool json = OptionValue(args, "--format") == "json" || OptionValue(args, "--result-format") == "json";
+        CopelandProjectCompilation compilation = LayoutInspectionCommand.CompileProject(sourcePath, out string projectRoot);
+        if (!compilation.Success)
+        {
+            return WriteProjectedCompilationFailure(compilation.Diagnostics, json);
+        }
+
+        ProjectedTableSet tables = LayoutProjectedTableProvider.Create(compilation, projectRoot);
+        string command = args[1];
+        string[] positional = PositionalArguments(args, 2);
+        if (command is "set" or "add-row" or "delete-row" or "import")
+        {
+            throw Error("COPE-TABLE-PROJECTED-0001", "This table is compiler-projected and read-only. Edit the originating layout/stream source instead.", json);
+        }
+
+        if (command == "list")
+        {
+            if (json)
+            {
+                WriteJson(new
+                {
+                    schemaVersion = SchemaVersion,
+                    success = true,
+                    command = "table.list",
+                    tables = tables.Tables.Select(projected => new { name = projected.Name, sourceKind = "projected", readOnly = true, rowCount = projected.Rows.Count }),
+                });
+            }
+            else
+            {
+                foreach (ProjectedTable projected in tables.Tables)
+                {
+                    Console.Out.WriteLine($"{projected.Name}\t{projected.Rows.Count} rows\tprojected read-only");
+                }
+            }
+            return SuccessExitCode;
+        }
+
+        if (positional.Length != 1)
+        {
+            throw Error("COPE-TABLE-TOOL-0001", $"Projected table command '{command}' requires one table identity.", json);
+        }
+
+        ProjectedTable table;
+        try { table = tables.Require(positional[0]); }
+        catch (InvalidOperationException exception) { throw Error("COPE-TABLE-TOOL-0005", exception.Message, json); }
+        if (command == "schema")
+        {
+            if (json)
+            {
+                WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.schema", table = table.Name, sourceKind = "projected", readOnly = true, rowCount = table.Rows.Count, columns = table.Columns.Select(column => new { name = column.Name, type = column.Type }) });
+            }
+            else
+            {
+                Console.Out.WriteLine($"{table.Name} ({table.Rows.Count} rows) projected read-only");
+                foreach (ProjectedColumn column in table.Columns) Console.Out.WriteLine($"{column.Name}: {column.Type}");
+            }
+            return SuccessExitCode;
+        }
+
+        if (command == "rows")
+        {
+            int offset = ParseNonNegative(OptionValue(args, "--offset") ?? "0", "--offset", json);
+            int limit = ParseNonNegative(OptionValue(args, "--limit") ?? table.Rows.Count.ToString(CultureInfo.InvariantCulture), "--limit", json);
+            IReadOnlyList<ProjectedColumn> columns = SelectProjectedColumns(table, OptionValue(args, "--columns"), json);
+            IReadOnlyList<IReadOnlyDictionary<string, object?>> rows = table.Rows.Skip(offset).Take(limit).Select(row => FilterProjectedRow(row, columns)).ToArray();
+            if (json)
+            {
+                WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.rows", table = table.Name, sourceKind = "projected", readOnly = true, offset, rows = rows.Select((values, index) => new { row = offset + index, values }) });
+            }
+            else
+            {
+                WriteProjectedTextRows(columns, rows);
+            }
+            return SuccessExitCode;
+        }
+
+        if (command == "export")
+        {
+            if (OptionValue(args, "--format") != "csv") throw Error("COPE-TABLE-TOOL-0015", "Table export currently supports '--format csv'.", json);
+            string csv = Csv.Write(table.Columns.Select(column => column.Name).ToArray(), table.Rows.Select(row => table.Columns.Select(column => ProjectedCsvValue(row[column.Name])).ToArray()).ToArray());
+            string? output = OptionValue(args, "--output");
+            if (output is null) Console.Out.Write(csv); else AtomicWrite(Path.GetFullPath(output), csv, expectedHash: null);
+            if (json) WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.export", table = table.Name, sourceKind = "projected", readOnly = true, format = "csv", output, rowCount = table.Rows.Count });
+            return SuccessExitCode;
+        }
+
+        throw Error("COPE-TABLE-TOOL-0001", $"Unknown table subcommand '{command}'.", json);
+    }
+
+    private static string RequiredOption(string[] args, string name)
+        => OptionValue(args, name) ?? throw Error("COPE-TABLE-TOOL-0004", $"Option '{name}' requires a value.", HasJsonFormat(args));
+
+    private static string? OptionValue(string[] args, string name)
+    {
+        for (int index = 0; index + 1 < args.Length; index += 1)
+        {
+            if (args[index] == name) return args[index + 1];
+        }
+        return null;
+    }
+
+    private static string[] PositionalArguments(string[] args, int start)
+    {
+        var values = new List<string>();
+        for (int index = start; index < args.Length; index += 1)
+        {
+            if (args[index].StartsWith("--", StringComparison.Ordinal)) { index += 1; continue; }
+            values.Add(args[index]);
+        }
+        return values.ToArray();
+    }
+
+    private static IReadOnlyList<ProjectedColumn> SelectProjectedColumns(ProjectedTable table, string? selected, bool json)
+    {
+        if (string.IsNullOrWhiteSpace(selected)) return table.Columns;
+        var result = new List<ProjectedColumn>();
+        foreach (string name in selected.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            ProjectedColumn? column = table.Columns.SingleOrDefault(column => column.Name == name);
+            if (column is null || !result.Contains(column)) result.Add(column ?? throw Error("COPE-TABLE-TOOL-0008", $"Column '{name}' is not a column of table '{table.Name}'.", json));
+        }
+        return result;
+    }
+
+    private static IReadOnlyDictionary<string, object?> FilterProjectedRow(IReadOnlyDictionary<string, object?> row, IReadOnlyList<ProjectedColumn> columns)
+        => columns.ToDictionary(column => column.Name, column => row[column.Name], StringComparer.Ordinal);
+
+    private static void WriteProjectedTextRows(IReadOnlyList<ProjectedColumn> columns, IReadOnlyList<IReadOnlyDictionary<string, object?>> rows)
+    {
+        string[] headers = columns.Select(column => column.Name).ToArray();
+        string[][] values = rows.Select(row => columns.Select(column => ProjectedCsvValue(row[column.Name])).ToArray()).ToArray();
+        int[] widths = headers.Select((header, index) => Math.Max(header.Length, values.Length == 0 ? 0 : values.Max(row => row[index].Length))).ToArray();
+        Console.Out.WriteLine(string.Join("  ", headers.Select((header, index) => header.PadRight(widths[index]))));
+        foreach (string[] row in values) Console.Out.WriteLine(string.Join("  ", row.Select((value, index) => value.PadRight(widths[index]))));
+    }
+
+    private static string ProjectedCsvValue(object? value)
+        => value switch
+        {
+            null => string.Empty,
+            string text => text,
+            int number => number.ToString(CultureInfo.InvariantCulture),
+            bool boolean => boolean ? "true" : "false",
+            _ => JsonSerializer.Serialize(value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }),
+        };
+
+    private static int WriteProjectedCompilationFailure(IReadOnlyList<Diagnostic> diagnostics, bool json)
+    {
+        if (json) WriteJson(new { schemaVersion = SchemaVersion, success = false, diagnostics = diagnostics.Select(diagnostic => new { code = diagnostic.Id, severity = "error", message = diagnostic.Message }) });
+        else foreach (Diagnostic diagnostic in diagnostics) Console.Error.WriteLine($"{diagnostic.Id} error: {diagnostic.Message}");
+        return FailureExitCode;
     }
 
     private static int RunList(string[] args)
