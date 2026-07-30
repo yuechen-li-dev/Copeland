@@ -285,15 +285,27 @@ public static class MirLowerer
         string hostClassName = collection is null
             ? className
             : className + " " + CollectionClassName(binding.Layout.Name, node.Name);
+        var properties = new List<MirReactProperty>
+        {
+            new("className", new MirLiteralExpression(hostClassName, new MirType("string"))),
+            new("data-machina-layout", new MirLiteralExpression(binding.Layout.Name, new MirType("string"))),
+            new("data-machina-box", new MirLiteralExpression(node.Name, new MirType("string"))),
+            new("data-machina-overflow", new MirLiteralExpression(node.ResolvedOverflow.Policy.ToString().ToLowerInvariant(), new MirType("string"))),
+        };
+        if (node.TextFit is BoundTextFitPolicy textFit)
+        {
+            properties.Add(new MirReactProperty("data-machina-text-fit", new MirLiteralExpression(textFit.Fit.ToString().ToLowerInvariant(), new MirType("string"))));
+            properties.Add(new MirReactProperty("data-machina-text-preferred-size", new MirLiteralExpression(textFit.PreferredFontSize.Px.ToString(System.Globalization.CultureInfo.InvariantCulture), new MirType("string"))));
+            properties.Add(new MirReactProperty("data-machina-text-minimum-size", new MirLiteralExpression(textFit.MinimumFontSize.Px.ToString(System.Globalization.CultureInfo.InvariantCulture), new MirType("string"))));
+            properties.Add(new MirReactProperty("data-machina-text-lines", new MirLiteralExpression(textFit.MaximumLines.ToString(System.Globalization.CultureInfo.InvariantCulture), new MirType("string"))));
+            properties.Add(new MirReactProperty("data-machina-text-wrap", new MirLiteralExpression(textFit.Wrap.ToString().ToLowerInvariant(), new MirType("string"))));
+            properties.Add(new MirReactProperty("data-machina-text-fallback", new MirLiteralExpression(textFit.Fallback.ToString().ToLowerInvariant(), new MirType("string"))));
+        }
         return new MirReactElementExpression(
             binding.CreateElementBinding,
             new MirLiteralExpression("div", new MirType("string")),
             IsIntrinsic: true,
-            [
-                new MirReactProperty("className", new MirLiteralExpression(hostClassName, new MirType("string"))),
-                new MirReactProperty("data-machina-layout", new MirLiteralExpression(binding.Layout.Name, new MirType("string"))),
-                new MirReactProperty("data-machina-box", new MirLiteralExpression(node.Name, new MirType("string"))),
-            ],
+            properties,
             children,
             ToMirType(ReactNodeTypeSymbol.Instance));
     }

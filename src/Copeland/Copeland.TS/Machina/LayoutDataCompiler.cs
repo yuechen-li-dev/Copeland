@@ -11,6 +11,26 @@ public enum LayoutCoordinateUnit { Px, Ui }
 public enum NormalizedLayoutOriginRelation { DeclaredRoot, FlowDerived, AnchorDerived, OverlayDerived }
 public enum LayoutRelativeTransform { CenterIn, CenterXIn, CenterYIn, AlignLeft, AlignRight, AlignTop, AlignBottom, PlaceLeftOf, PlaceRightOf, PlaceAbove, PlaceBelow, InsetFrom, ExpandFrom }
 public enum LayoutDerivationStatus { Resolved, HostUnresolved }
+public enum LayoutOverflowPolicy { Visible, Clip, Auto, Scroll, ScrollX, ScrollY }
+public enum LayoutOverflowAxis { Visible, Clip, Auto, Scroll }
+public enum TextWrapMode { Wrap, NoWrap }
+public enum TextFitMode { None, ScaleDown }
+public enum TextOverflowFallback { Clip, Ellipsis, Overflow }
+
+public sealed record BoundBoxOverflowPolicy(LayoutOverflowPolicy Policy, LayoutOverflowAxis X, LayoutOverflowAxis Y)
+{
+    public static BoundBoxOverflowPolicy Visible { get; } = new(LayoutOverflowPolicy.Visible, LayoutOverflowAxis.Visible, LayoutOverflowAxis.Visible);
+}
+
+/// <summary>Stable-region text policy; final font metrics remain host-resolved.</summary>
+public sealed record BoundTextFitPolicy(
+    MachinaLength PreferredFontSize,
+    MachinaLength MinimumFontSize,
+    int MaximumLines,
+    TextWrapMode Wrap,
+    TextFitMode Fit,
+    TextOverflowFallback Fallback,
+    MachinaSourceSpan Source);
 
 /// <summary>
 /// Compiler-generic description of a bounded immutable row derivation. M0 has
@@ -77,9 +97,12 @@ public sealed record BoundLayoutNode(
     IReadOnlyList<BoundLayoutNode> Children,
     MachinaSourceSpan Source,
     BoundPaintProperties? Paint = null,
-    IReadOnlyList<BoundRelativeDerivationSpec>? RelativeDerivationSpecs = null)
+    IReadOnlyList<BoundRelativeDerivationSpec>? RelativeDerivationSpecs = null,
+    BoundBoxOverflowPolicy? Overflow = null,
+    BoundTextFitPolicy? TextFit = null)
 {
     public BoundPaintProperties ResolvedPaint => Paint ?? BoundPaintProperties.Default;
+    public BoundBoxOverflowPolicy ResolvedOverflow => Overflow ?? BoundBoxOverflowPolicy.Visible;
 }
 /// <summary>Closed compile-time topology node. Geometry is intentionally absent.</summary>
 public sealed record BoundLayoutTypeNode(
@@ -131,7 +154,9 @@ public sealed record NormalizedLayoutNode(
     IReadOnlyDictionary<string, MachinaLength>? Positions = null,
     MachinaLength? Gap = null,
     int? Columns = null,
-    MachinaSourceSpan? Source = null)
+    MachinaSourceSpan? Source = null,
+    BoundBoxOverflowPolicy? Overflow = null,
+    BoundTextFitPolicy? TextFit = null)
 {
     public NormalizedPaintOrder PaintOrder => ResolvedPaintOrder ?? new NormalizedPaintOrder(LayerRank, LocalZ, AuthoredNodeOrder);
 }
@@ -224,6 +249,7 @@ public static class LayoutDataCompiler
         string rootClass = artifact.ClassesByIdentity["root/0"].Split(' ', StringSplitOptions.RemoveEmptyEntries)[1];
         string css = ApplyRootOrigin(artifact.Css, rootClass, layout.Origin);
         css = AppendPaintOrderCss(css, projectionRoot, "root/0", artifact.ClassesByIdentity, layout.ResolvedLayerSet);
+        css = AppendOverflowCss(css, projectionRoot, "root/0", artifact.ClassesByIdentity);
         return new LayoutReactArtifact(css, named);
     }
 
@@ -279,7 +305,9 @@ public static class LayoutDataCompiler
             node.Positions,
             node.Gap,
             node.Columns,
-            node.Source);
+            node.Source,
+            node.ResolvedOverflow,
+            node.TextFit);
     }
 
     private static string AppendPaintOrderCss(
@@ -312,6 +340,40 @@ public static class LayoutDataCompiler
             }
         }
     }
+
+    private static string AppendOverflowCss(
+        string css,
+        BoundLayoutNode root,
+        string rootIdentity,
+        IReadOnlyDictionary<string, string> classesByIdentity)
+    {
+        var rules = new System.Text.StringBuilder("/* Copeland explicit overflow policy. */\n");
+        Append(root, rootIdentity);
+        return css + "\n" + rules;
+
+        void Append(BoundLayoutNode node, string identity)
+        {
+            string frameClass = classesByIdentity[identity].Split(' ', StringSplitOptions.RemoveEmptyEntries)[1];
+            BoundBoxOverflowPolicy overflow = node.ResolvedOverflow;
+            rules.Append('.').Append(frameClass).Append(" {\n")
+                .Append("  overflow-x: ").Append(CssOverflow(overflow.X)).Append(";\n")
+                .Append("  overflow-y: ").Append(CssOverflow(overflow.Y)).Append(";\n")
+                .Append("}\n\n");
+            for (int index = 0; index < node.Children.Count; index++)
+            {
+                Append(node.Children[index], identity + "/" + index);
+            }
+        }
+    }
+
+    private static string CssOverflow(LayoutOverflowAxis axis) => axis switch
+    {
+        LayoutOverflowAxis.Visible => "visible",
+        LayoutOverflowAxis.Clip => "hidden",
+        LayoutOverflowAxis.Auto => "auto",
+        LayoutOverflowAxis.Scroll => "scroll",
+        _ => throw new InvalidOperationException("Unknown overflow axis."),
+    };
 
     private static NormalizedLayoutOriginRelation OriginRelationForChild(BoundLayoutNode parent, BoundLayoutNode child)
     {
@@ -582,6 +644,7 @@ public static class LayoutDataCompiler
                     Positions = BindPositions(declaration.Properties),
                     Padding = Padding(declaration.Properties),
                     Style = Style(declaration.Properties),
+                    Overflow = Overflow(declaration.Properties),
                 };
             }
             BoundLayoutNode[] rootChildren;
@@ -602,7 +665,8 @@ public static class LayoutDataCompiler
                     Style(declaration.Properties),
                     children,
                     Span(declaration),
-                    BoundPaintProperties.Default);
+                    BoundPaintProperties.Default,
+                    Overflow: Overflow(declaration.Properties));
                 rootChildren = [implicitRoot];
             }
             var root = new BoundLayoutNode(
@@ -616,7 +680,8 @@ public static class LayoutDataCompiler
                 MachinaStyle.Empty,
                 rootChildren,
                 Span(declaration),
-                BoundPaintProperties.Default);
+                BoundPaintProperties.Default,
+                Overflow: Overflow(declaration.Properties));
             var layout = new BoundLayoutDeclaration(name, null, origin, root, slots, LayerSet: layerSet);
             layout = ApplyRelativeDerivations(layout);
 
@@ -649,7 +714,7 @@ public static class LayoutDataCompiler
                     Report("COPE-STREAM-0005", $"Singular stream region '{syntax.Identifier.Text}' cannot contain child regions.", syntax.Identifier);
                 }
                 ValidateProperties(syntax.Properties, LayoutNodeKind.Slot);
-                var slot = new BoundLayoutNode(syntax.Identifier.Text, LayoutNodeKind.Slot, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), MachinaLength.Pixels(0), null, Padding(syntax.Properties), Style(syntax.Properties), [], Span(syntax), BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer), BindRelativeDerivations(syntax.Identifier.Text, syntax.RelativeDerivations));
+                var slot = new BoundLayoutNode(syntax.Identifier.Text, LayoutNodeKind.Slot, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), MachinaLength.Pixels(0), null, Padding(syntax.Properties), Style(syntax.Properties), [], Span(syntax), BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer), BindRelativeDerivations(syntax.Identifier.Text, syntax.RelativeDerivations), Overflow(syntax.Properties), TextFit(syntax.Properties, LayoutNodeKind.Slot));
                 if (!slots.TryAdd(slot.Name, slot))
                 {
                     Report("COPE-STREAM-0006", $"Stream declares region '{slot.Name}' more than once.", syntax.Identifier);
@@ -677,7 +742,7 @@ public static class LayoutDataCompiler
             }
             BoundPaintProperties paint = BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer);
             BoundLayoutNode[] children = BindStreamChildren(syntax.Children, syntax.Tables, slots, kind, layerSet, layoutName, paint.Layer);
-            var node = new BoundLayoutNode(syntax.Identifier.Text, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint, BindRelativeDerivations(syntax.Identifier.Text, syntax.RelativeDerivations));
+            var node = new BoundLayoutNode(syntax.Identifier.Text, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint, BindRelativeDerivations(syntax.Identifier.Text, syntax.RelativeDerivations), Overflow(syntax.Properties), TextFit(syntax.Properties, kind));
             if (parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && kind != LayoutNodeKind.Anchor && (!HasFrameWriter(node, "width") || !HasFrameWriter(node, "height")))
             {
                 Report("COPE-LAYOUT-FRAME-0002", $"'{node.Name}' requires fixed width and height inside {parentKind.ToString().ToLowerInvariant()} composition.", syntax.Identifier);
@@ -823,7 +888,9 @@ public static class LayoutDataCompiler
                     [],
                     Span(nameToken),
                     BindPaint(properties, layerSet, layoutName, inheritedLayer),
-                    derivations);
+                    derivations,
+                    Overflow(properties),
+                    TextFit(properties, LayoutNodeKind.Slot));
                 slots[rowName] = slot;
                 children.Add(slot);
             }
@@ -985,7 +1052,7 @@ public static class LayoutDataCompiler
             {
                 var slots = new Dictionary<string, BoundLayoutNode>(StringComparer.Ordinal);
                 ValidateProperties(declaration.Properties, null);
-                BoundLayoutNode root = new(name, LayoutNodeKind.Overlay, BindDimensions(declaration.Properties), BindPositions(declaration.Properties), Gap(declaration.Properties), null, Padding(declaration.Properties), Style(declaration.Properties), declaration.Nodes.Select(node => BindNode(node, slots, null, declaredLayerSet, name, declaredLayerSet.Layers[0])).Where(node => node is not null).Cast<BoundLayoutNode>().ToArray(), Span(declaration), new BoundPaintProperties(declaredLayerSet.Layers[0], 0));
+                BoundLayoutNode root = new(name, LayoutNodeKind.Overlay, BindDimensions(declaration.Properties), BindPositions(declaration.Properties), Gap(declaration.Properties), null, Padding(declaration.Properties), Style(declaration.Properties), declaration.Nodes.Select(node => BindNode(node, slots, null, declaredLayerSet, name, declaredLayerSet.Layers[0])).Where(node => node is not null).Cast<BoundLayoutNode>().ToArray(), Span(declaration), new BoundPaintProperties(declaredLayerSet.Layers[0], 0), Overflow: Overflow(declaration.Properties));
                 if (root.Children.Count != 1) slots[name] = root;
                 result = new BoundLayoutDeclaration(name, declaration.Profile?.Text, origin, root, slots, LayerSet: declaredLayerSet);
             }
@@ -1121,7 +1188,7 @@ public static class LayoutDataCompiler
             if (kind == LayoutNodeKind.Grid && Columns(syntax.Properties) is null) Report("COPE-LAYOUT-GRID-0001", "A grid requires a positive integer 'columns' property.", syntax.Identifier);
             BoundPaintProperties paint = BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer);
             var children = syntax.Children.Select(child => BindNode(child, slots, kind, layerSet, layoutName, paint.Layer)).Where(child => child is not null).Cast<BoundLayoutNode>().ToArray();
-            var node = new BoundLayoutNode(name, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint, BindRelativeDerivations(name, syntax.RelativeDerivations));
+            var node = new BoundLayoutNode(name, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint, BindRelativeDerivations(name, syntax.RelativeDerivations), Overflow(syntax.Properties), TextFit(syntax.Properties, kind));
             if (parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && kind != LayoutNodeKind.Anchor && (!HasFrameWriter(node, "width") || !HasFrameWriter(node, "height")))
             {
                 Report("COPE-LAYOUT-FRAME-0002", $"'{name}' requires fixed width and height inside {parentKind.Value.ToString().ToLowerInvariant()} composition.", syntax.Identifier);
@@ -1512,7 +1579,14 @@ public static class LayoutDataCompiler
         {
             var dimensions = root.Dimensions.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
             foreach ((string key, BoundLayoutDimension value) in BindDimensions(properties)) dimensions[key] = value;
-            return root with { Dimensions = dimensions, Gap = Has(properties, "gap") ? Gap(properties) : root.Gap, Padding = Has(properties, "padding") ? Padding(properties) : root.Padding, Style = Has(properties, "style") ? Style(properties) : root.Style };
+            return root with
+            {
+                Dimensions = dimensions,
+                Gap = Has(properties, "gap") ? Gap(properties) : root.Gap,
+                Padding = Has(properties, "padding") ? Padding(properties) : root.Padding,
+                Style = Has(properties, "style") ? Style(properties) : root.Style,
+                Overflow = Has(properties, "overflow") ? Overflow(properties) : root.Overflow,
+            };
         }
 
         private void ValidateAnchor(BoundLayoutNode node, SyntaxToken token)
@@ -1549,12 +1623,12 @@ public static class LayoutDataCompiler
                 }
                 bool allowed = kind switch
                 {
-                    null => property.Identifier.Text is "width" or "height" or "frame" or "gap" or "padding" or "style" or "layers",
-                    LayoutNodeKind.Row or LayoutNodeKind.Column => property.Identifier.Text is "width" or "height" or "frame" or "gap" or "padding" or "style" or "layer" or "z",
-                    LayoutNodeKind.Grid => property.Identifier.Text is "x" or "y" or "position" or "width" or "height" or "frame" or "gap" or "padding" or "style" or "columns" or "layer" or "z",
-                    LayoutNodeKind.Anchor => property.Identifier.Text is "left" or "right" or "top" or "bottom" or "width" or "height" or "frame" or "gap" or "padding" or "style" or "layer" or "z",
-                    LayoutNodeKind.Overlay => property.Identifier.Text is "x" or "y" or "position" or "width" or "height" or "frame" or "gap" or "padding" or "style" or "layer" or "z",
-                    LayoutNodeKind.Slot => property.Identifier.Text is "x" or "y" or "position" or "width" or "height" or "frame" or "style" or "layer" or "z",
+                    null => property.Identifier.Text is "width" or "height" or "frame" or "gap" or "padding" or "style" or "layers" or "overflow",
+                    LayoutNodeKind.Row or LayoutNodeKind.Column => property.Identifier.Text is "x" or "y" or "position" or "width" or "height" or "frame" or "gap" or "padding" or "style" or "layer" or "z" or "overflow",
+                    LayoutNodeKind.Grid => property.Identifier.Text is "x" or "y" or "position" or "width" or "height" or "frame" or "gap" or "padding" or "style" or "columns" or "layer" or "z" or "overflow",
+                    LayoutNodeKind.Anchor => property.Identifier.Text is "left" or "right" or "top" or "bottom" or "width" or "height" or "frame" or "gap" or "padding" or "style" or "layer" or "z" or "overflow",
+                    LayoutNodeKind.Overlay => property.Identifier.Text is "x" or "y" or "position" or "width" or "height" or "frame" or "gap" or "padding" or "style" or "layer" or "z" or "overflow",
+                    LayoutNodeKind.Slot => property.Identifier.Text is "x" or "y" or "position" or "width" or "height" or "frame" or "style" or "layer" or "z" or "overflow" or "fontSize" or "minFontSize" or "lines" or "wrap" or "textFit" or "textFallback",
                     _ => false,
                 };
                 if (!allowed) Report("COPE-LAYOUT-PROPERTY-0002", $"Property '{property.Identifier.Text}' is not valid for this layout node.", property.Identifier);
@@ -1694,6 +1768,93 @@ public static class LayoutDataCompiler
             if (length is not null) return new BoundLayoutDimension(LayoutDimensionKind.Fixed, length);
             Report("COPE-LAYOUT-DIMENSION-0001", "A layout dimension must be a length, 'fill', or 'fit'.", FirstToken(expression));
             return null;
+        }
+
+        private BoundBoxOverflowPolicy? Overflow(IReadOnlyList<LayoutPropertySyntax> properties)
+        {
+            LayoutPropertySyntax? property = Property(properties, "overflow");
+            if (property is null) return null;
+            if (property.Value is not NameExpressionSyntax name || !Enum.TryParse(name.IdentifierToken.Text, true, out LayoutOverflowPolicy policy))
+            {
+                Report("COPE-LAYOUT-OVERFLOW-0001", "Overflow must be one of: visible, clip, auto, scroll, scrollX, scrollY.", property.Identifier);
+                return BoundBoxOverflowPolicy.Visible;
+            }
+
+            return policy switch
+            {
+                LayoutOverflowPolicy.Visible => BoundBoxOverflowPolicy.Visible,
+                LayoutOverflowPolicy.Clip => new BoundBoxOverflowPolicy(policy, LayoutOverflowAxis.Clip, LayoutOverflowAxis.Clip),
+                LayoutOverflowPolicy.Auto => new BoundBoxOverflowPolicy(policy, LayoutOverflowAxis.Auto, LayoutOverflowAxis.Auto),
+                LayoutOverflowPolicy.Scroll => new BoundBoxOverflowPolicy(policy, LayoutOverflowAxis.Scroll, LayoutOverflowAxis.Scroll),
+                LayoutOverflowPolicy.ScrollX => new BoundBoxOverflowPolicy(policy, LayoutOverflowAxis.Auto, LayoutOverflowAxis.Clip),
+                LayoutOverflowPolicy.ScrollY => new BoundBoxOverflowPolicy(policy, LayoutOverflowAxis.Clip, LayoutOverflowAxis.Auto),
+                _ => throw new InvalidOperationException("Unknown overflow policy."),
+            };
+        }
+
+        private BoundTextFitPolicy? TextFit(IReadOnlyList<LayoutPropertySyntax> properties, LayoutNodeKind kind)
+        {
+            string[] names = ["fontSize", "minFontSize", "lines", "wrap", "textFit", "textFallback"];
+            if (!properties.Any(property => names.Contains(property.Identifier.Text, StringComparer.Ordinal))) return null;
+            if (kind != LayoutNodeKind.Slot)
+            {
+                LayoutPropertySyntax property = properties.First(property => names.Contains(property.Identifier.Text, StringComparer.Ordinal));
+                Report("COPE-TEXT-FIT-0001", "Text fitting is valid only on a declared text slot, never a structural or mixed-content box.", property.Identifier);
+                return null;
+            }
+
+            LayoutPropertySyntax? fontSize = Property(properties, "fontSize");
+            LayoutPropertySyntax? minimum = Property(properties, "minFontSize");
+            LayoutPropertySyntax? lines = Property(properties, "lines");
+            LayoutPropertySyntax? fit = Property(properties, "textFit");
+            if (fontSize is null || minimum is null || lines is null || fit is null)
+            {
+                LayoutPropertySyntax source = fontSize ?? minimum ?? lines ?? fit ?? properties[0];
+                Report("COPE-TEXT-FIT-0002", "A text-fit slot requires fontSize, minFontSize, lines, and textFit.", source.Identifier);
+                return null;
+            }
+
+            MachinaLength? preferred = Length(fontSize.Value);
+            MachinaLength? min = Length(minimum.Value);
+            if (preferred is null || min is null || preferred.Value.Px <= 0 || preferred.Value.Ui != 0 || min.Value.Px <= 0 || min.Value.Ui != 0)
+            {
+                Report("COPE-TEXT-FIT-0003", "fontSize and minFontSize must be positive px lengths.", fontSize.Identifier);
+                return null;
+            }
+            if (min.Value.Px > preferred.Value.Px)
+            {
+                Report("COPE-TEXT-FIT-0004", "minFontSize cannot exceed fontSize.", minimum.Identifier);
+                return null;
+            }
+            if (!TryStaticInteger(lines.Value, out int maximumLines) || maximumLines <= 0)
+            {
+                Report("COPE-TEXT-FIT-0005", "lines must be a positive static integer.", lines.Identifier);
+                return null;
+            }
+            if (fit.Value is not NameExpressionSyntax fitName || !Enum.TryParse(fitName.IdentifierToken.Text, true, out TextFitMode fitMode))
+            {
+                Report("COPE-TEXT-FIT-0006", "textFit must be one of: none, scaleDown.", fit.Identifier);
+                return null;
+            }
+
+            TextWrapMode wrapMode = TextWrapMode.Wrap;
+            if (Property(properties, "wrap") is { } wrap && (wrap.Value is not NameExpressionSyntax wrapName || !Enum.TryParse(wrapName.IdentifierToken.Text, true, out wrapMode)))
+            {
+                Report("COPE-TEXT-FIT-0007", "wrap must be one of: wrap, noWrap.", wrap.Identifier);
+                return null;
+            }
+            TextOverflowFallback fallback = TextOverflowFallback.Clip;
+            if (Property(properties, "textFallback") is { } fallbackProperty && (fallbackProperty.Value is not NameExpressionSyntax fallbackName || !Enum.TryParse(fallbackName.IdentifierToken.Text, true, out fallback)))
+            {
+                Report("COPE-TEXT-FIT-0008", "textFallback must be one of: clip, ellipsis, overflow.", fallbackProperty.Identifier);
+                return null;
+            }
+            if (fitMode == TextFitMode.None && min.Value.Px != preferred.Value.Px)
+            {
+                Report("COPE-TEXT-FIT-0009", "textFit: none requires minFontSize to equal fontSize.", fit.Identifier);
+                return null;
+            }
+            return new BoundTextFitPolicy(preferred.Value, min.Value, maximumLines, wrapMode, fitMode, fallback, Span(fit));
         }
 
         private MachinaLength Gap(IReadOnlyList<LayoutPropertySyntax> properties)

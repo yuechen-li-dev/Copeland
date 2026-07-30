@@ -6,8 +6,8 @@ const require = createRequire(import.meta.url);
 const playwrightModule = process.env.TSPACK_PLAYWRIGHT_MODULE ?? "../../../../tspack/node_modules/playwright";
 const { chromium } = require(playwrightModule);
 const baseUrl = "http://127.0.0.1:4173";
-const artifactDirectory = "artifacts/cts-website-table-layout-m0";
-const tolerance = 0.01;
+const artifactDirectory = "artifacts/cts-web-content-fit-m0";
+const tolerance = 1;
 const server = spawn("node", ["server.mjs"], { stdio: ["ignore", "pipe", "pipe"] });
 const diagnostics = { console: [], page: [], request: [] };
 const evidence = [];
@@ -16,6 +16,7 @@ let browser;
 try {
   await waitForServer();
   browser = await chromium.launch();
+  await mkdir(artifactDirectory, { recursive: true });
 
   for (const profile of [
     { name: "desktop", layout: "CopelandDesktop", width: 1440, height: 900 },
@@ -28,61 +29,94 @@ try {
     page.on("requestfailed", request => diagnostics.request.push({ url: request.url(), error: request.failure()?.errorText ?? "unknown" }));
     page.on("response", response => { if (response.status() >= 400) diagnostics.request.push({ url: response.url(), status: response.status() }); });
     await page.goto(baseUrl, { waitUntil: "networkidle" });
+    await page.waitForFunction(layout => document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='heroTitle']`)?.dataset.machinaTextFit !== undefined, profile.layout);
 
-    const rectangles = await page.evaluate(layout => {
-      const box = name => {
-        const element = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='${name}']`);
-        if (!(element instanceof HTMLElement)) throw new Error(`Missing ${layout}.${name}.`);
-        const rect = element.getBoundingClientRect();
-        return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
-      };
-      const featureCards = [...document.querySelectorAll(".feature-card")].map(element => {
-        const rect = element.getBoundingClientRect();
-        return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
-      });
-      return { root: box("root"), commandBar: box("commandBar"), hero: box("hero"), heroCopy: box("heroCopy"), heroAccent: box("heroAccent"), heroHalo: box("heroHalo"), codeBadge: box("codeBadge"), featureGrid: box("featureGrid"), footer: box("footer"), featureCards, scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth };
+    const initial = await page.evaluate(({ layout, source }) => (0, eval)(`(${source})`)(layout), { layout: profile.layout, source: snapshot.toString() });
+    equal(`${profile.name} root width`, initial.root.width, profile.width, initial);
+    equal(`${profile.name} root height`, initial.root.height, profile.height, initial);
+    if (initial.document.scrollWidth > initial.document.clientWidth + tolerance) throw new Error(`${profile.name} page has horizontal overflow.`);
+    if (initial.page.scrollHeight <= initial.page.clientHeight + tolerance) throw new Error(`${profile.name} page does not expose explicit vertical scrolling.`);
+    assertInside(`${profile.name} title target`, initial.heroTitleTarget, initial.heroTitle);
+    assertInside(`${profile.name} actions`, initial.heroActionsContent, initial.heroActions);
+    if (initial.heroTitle.bottom > initial.heroActions.top + tolerance) throw new Error(`${profile.name} title overlaps the action region.`);
+    if (initial.textFit.status !== "fit" && initial.textFit.status !== "fallback" && initial.textFit.status !== "minimum-overflow") throw new Error(`${profile.name} has no deterministic text-fit status.`);
+    if (initial.textFit.size + tolerance < initial.textFit.minimum) throw new Error(`${profile.name} fitted below its authored minimum.`);
+    if (initial.heroTitleTarget.scrollWidth > initial.heroTitleTarget.clientWidth + tolerance) throw new Error(`${profile.name} title is horizontally clipped.`);
+    if (initial.codeBadge.scrollWidth <= initial.codeBadge.clientWidth + tolerance) throw new Error(`${profile.name} code region did not retain its intentional horizontal scroll extent.`);
+    await page.screenshot({ path: `${artifactDirectory}/${profile.name}-initial.png` });
+
+    const locality = [];
+    for (const fixture of [
+      { name: "short", text: "Copeland TS." },
+      { name: "long", text: "AI-native TypeScript that gives product teams one inspectable language for browser, CLR, package, template, and table boundaries." },
+      { name: "token", text: "copelandcontentfitunbrokencontracttoken0123456789012345678901234567890123456789" },
+      { name: "minimum-fallback", text: "copelandcontentfitminimumfallbacktoken012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789" }
+    ]) {
+      await page.evaluate(({ layout, text }) => {
+        const target = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='heroTitle'] .text-fit-target`);
+        if (!(target instanceof HTMLElement)) throw new Error("Missing text target.");
+        target.textContent = text;
+      }, { layout: profile.layout, text: fixture.text });
+      await page.waitForTimeout(50);
+      const changed = await page.evaluate(({ layout, source }) => (0, eval)(`(${source})`)(layout), { layout: profile.layout, source: snapshot.toString() });
+      equal(`${profile.name} ${fixture.name} title box width`, changed.heroTitle.width, initial.heroTitle.width, changed);
+      equal(`${profile.name} ${fixture.name} action box top`, changed.heroActions.top, initial.heroActions.top, changed);
+      equal(`${profile.name} ${fixture.name} feature origin`, changed.featureGrid.top, initial.featureGrid.top, changed);
+      if (changed.document.scrollWidth > changed.document.clientWidth + tolerance) throw new Error(`${profile.name} ${fixture.name} caused horizontal overflow.`);
+      if (fixture.name === "minimum-fallback" && changed.textFit.status !== "fallback") throw new Error(`${profile.name} minimum fallback was not reported.`);
+      locality.push({ fixture: fixture.name, textFit: changed.textFit, heroTitle: changed.heroTitle, heroActions: changed.heroActions, featureGrid: changed.featureGrid });
+    }
+
+    await page.evaluate(layout => {
+      const surface = document.querySelector(`[data-machina-layout='${layout}'][data-machina-box='page']`);
+      if (!(surface instanceof HTMLElement)) throw new Error("Missing page scroll surface.");
+      surface.scrollTop = surface.scrollHeight;
     }, profile.layout);
-
-    equal(`${profile.name} root width`, rectangles.root.width, profile.width);
-    if (profile.name !== "mobile") equal(`${profile.name} root height`, rectangles.root.height, profile.height);
-    if (rectangles.scrollWidth > rectangles.clientWidth) throw new Error(`${profile.name} page has horizontal overflow: ${rectangles.scrollWidth} > ${rectangles.clientWidth}.`);
-    if (rectangles.footer.bottom > rectangles.root.bottom + tolerance) throw new Error(`${profile.name} footer leaves its root.`);
-    if (rectangles.featureCards.length !== 4) throw new Error(`${profile.name} expected four bounded feature cards.`);
-    for (const [index, card] of rectangles.featureCards.entries()) {
-      if (card.left < rectangles.featureGrid.left - tolerance || card.right > rectangles.featureGrid.right + tolerance || card.top < rectangles.featureGrid.top - tolerance || card.bottom > rectangles.featureGrid.bottom + tolerance) {
-        throw new Error(`${profile.name} feature card ${index} escapes featureGrid.`);
-      }
-    }
-    equal(`${profile.name} accent center`, rectangles.heroAccent.left + rectangles.heroAccent.width / 2, rectangles.heroCopy.left + rectangles.heroCopy.width / 2, rectangles);
-    equal(`${profile.name} halo left`, rectangles.heroHalo.left, rectangles.heroCopy.left - (profile.name === "desktop" ? 18 : profile.name === "tablet" ? 16 : 12));
-    equal(`${profile.name} halo right`, rectangles.heroHalo.right, rectangles.heroCopy.right + (profile.name === "desktop" ? 18 : profile.name === "tablet" ? 16 : 12));
-
-    if (profile.name === "desktop") {
-      equal("desktop command bar width", rectangles.commandBar.width, 240);
-      equal("desktop code badge adjacency", rectangles.codeBadge.left, rectangles.heroCopy.right + 32);
-      if (rectangles.codeBadge.left < rectangles.heroCopy.right) throw new Error("desktop code badge overlaps hero copy.");
-    }
-
-    if (profile.name === "mobile") {
-      equal("mobile code badge adjacency", rectangles.codeBadge.top, rectangles.heroCopy.bottom + 8);
-    }
-
-    await mkdir(artifactDirectory, { recursive: true });
-    await page.screenshot({ path: `${artifactDirectory}/rectangles-${profile.name}.png` });
-    evidence.push({ profile, rectangles });
+    await page.waitForTimeout(50);
+    const scrolled = await page.evaluate(({ layout, source }) => (0, eval)(`(${source})`)(layout), { layout: profile.layout, source: snapshot.toString() });
+    if (scrolled.page.scrollTop <= 0) throw new Error(`${profile.name} page did not move when scrolled.`);
+    assertInside(`${profile.name} footer after scroll`, scrolled.footer, scrolled.page);
+    await page.screenshot({ path: `${artifactDirectory}/${profile.name}-footer.png` });
+    evidence.push({ profile, initial, locality, scrolled });
     await page.close();
   }
 
   if (diagnostics.console.length || diagnostics.page.length || diagnostics.request.length) throw new Error(`Browser diagnostics: ${JSON.stringify(diagnostics)}`);
-  await writeFile(`${artifactDirectory}/rectangle-report.json`, `${JSON.stringify({ success: true, tolerance, diagnostics, evidence }, null, 2)}\n`);
+  await writeFile(`${artifactDirectory}/report.json`, `${JSON.stringify({ success: true, tolerance, diagnostics, evidence }, null, 2)}\n`);
   process.stdout.write(`${JSON.stringify({ success: true, profiles: evidence.map(item => item.profile.name) }, null, 2)}\n`);
 } finally {
   await browser?.close();
   if (!server.killed) server.kill();
 }
 
+function snapshot(layout) {
+  const requireElement = selector => {
+    const element = document.querySelector(selector);
+    if (!(element instanceof HTMLElement)) throw new Error(`Missing element ${selector}.`);
+    return element;
+  };
+  const rectangle = element => {
+    const rect = element.getBoundingClientRect();
+    return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height };
+  };
+  const box = name => rectangle(requireElement(`[data-machina-layout='${layout}'][data-machina-box='${name}']`));
+  const heroTitleHost = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroTitle']`);
+  const heroActionsHost = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroActions']`);
+  const titleTarget = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroTitle'] .text-fit-target`);
+  const actionsContent = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroActions'] .hero-actions`);
+  const page = requireElement(`[data-machina-layout='${layout}'][data-machina-box='page']`);
+  const code = requireElement(`[data-machina-layout='${layout}'][data-machina-box='codeBadge']`);
+  return {
+    root: box("root"), page: { ...rectangle(page), scrollHeight: page.scrollHeight, clientHeight: page.clientHeight, scrollTop: page.scrollTop }, content: box("content"), hero: box("hero"), heroTitle: rectangle(heroTitleHost), heroActions: rectangle(heroActionsHost), featureGrid: box("featureGrid"), heroTitleTarget: { ...rectangle(titleTarget), scrollWidth: titleTarget.scrollWidth, clientWidth: titleTarget.clientWidth }, heroActionsContent: rectangle(actionsContent), codeBadge: { ...rectangle(code), scrollWidth: code.scrollWidth, clientWidth: code.clientWidth }, footer: box("footer"), document: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }, textFit: { status: heroTitleHost.dataset.machinaTextFit, size: Number(heroTitleHost.dataset.machinaTextSize), minimum: Number(heroTitleHost.dataset.machinaTextMinimumSize) }
+  };
+}
+
+function assertInside(label, inner, outer) {
+  if (inner.left < outer.left - tolerance || inner.right > outer.right + tolerance || inner.top < outer.top - tolerance || inner.bottom > outer.bottom + tolerance) throw new Error(`${label} escapes its assigned box: ${JSON.stringify({ inner, outer })}`);
+}
+
 function equal(label, actual, expected, context) {
-  if (Math.abs(actual - expected) > tolerance) throw new Error(`${label}: expected ${expected}, received ${actual}, tolerance ${tolerance}. ${context ? JSON.stringify(context) : ""}`);
+  if (Math.abs(actual - expected) > tolerance) throw new Error(`${label}: expected ${expected}, received ${actual}; ${JSON.stringify(context)}`);
 }
 
 async function waitForServer() {

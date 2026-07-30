@@ -47,3 +47,9 @@ fingerprint over ordered logical sources and contents, package contracts,
 runtime, and TSX profile; it deliberately excludes absolute paths and
 timestamps. It lets table, layout, TSPack build, and editor tests assert that
 they are using one compiler-visible graph.
+
+`layout::Boxes` also projects `overflowPolicy`, `overflowX`, and `overflowY`.
+`text::Regions` is a read-only projection of declared stable text regions:
+`textRegionId`, owning `boxId`, preferred/minimum px sizes, maximum line count,
+wrap mode, fit mode, fallback mode, and source provenance. Runtime-selected
+font size and scroll position are intentionally excluded.

@@ -20,7 +20,9 @@ export function Main(): void {
     const send: (profile: int) => void = dispatchReact<SiteState, int>(
         InitialState(),
         Reduce,
-        capture { root } (state: SiteState, send: (profile: int) => void) => root.render(CopelandSite(state.profile)));
+        capture { root } (state: SiteState, send: (profile: int) => void) => {
+            root.render(CopelandSite(state.profile));
+        });
 
     subscribeViewport(capture { send } () => send(ClassifyViewport(getViewportWidth())));
 }

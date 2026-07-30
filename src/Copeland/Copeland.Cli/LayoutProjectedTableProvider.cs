@@ -15,6 +15,7 @@ internal static class LayoutProjectedTableProvider
     public const string Derivations = "layout::Derivations";
     public const string Bindings = "layout::Bindings";
     public const string CollectionItems = "layout::CollectionItems";
+    public const string TextRegions = "text::Regions";
     public const string Sources = "layout::Sources";
 
     public static ProjectedTableSet Create(CopelandProjectCompilation compilation, string projectRoot)
@@ -38,6 +39,7 @@ internal static class LayoutProjectedTableProvider
         var derivationRows = new List<IReadOnlyDictionary<string, object?>>();
         var bindingRows = new List<IReadOnlyDictionary<string, object?>>();
         var collectionItemRows = new List<IReadOnlyDictionary<string, object?>>();
+        var textRegionRows = new List<IReadOnlyDictionary<string, object?>>();
         foreach (LayoutInspectionDocument document in documents)
         {
             string layoutId = document.Layout.Module + "::" + document.Layout.Name;
@@ -53,11 +55,21 @@ internal static class LayoutProjectedTableProvider
                     ("boxId", box.SemanticPath), ("layoutId", layoutId), ("semanticPath", box.SemanticPath), ("parentBoxId", box.Parent), ("kind", box.Kind),
                     ("x", box.OriginX), ("y", box.OriginY), ("width", box.Width), ("height", box.Height), ("layer", box.Layer),
                     ("layerRank", box.LayerRank), ("z", box.Z), ("authoredOrder", box.AuthoredOrder), ("paintOrder", box.PaintOrder),
-                    ("paintKey", box.PaintKey), ("sourceId", boxSourceId)));
+                    ("paintKey", box.PaintKey), ("overflowPolicy", box.OverflowPolicy), ("overflowX", box.OverflowX), ("overflowY", box.OverflowY), ("sourceId", boxSourceId)));
                 if (box.Content is not null)
                 {
                     string bindingId = box.SemanticPath + "::binding";
                     bindingRows.Add(Row(("bindingId", bindingId), ("boxId", box.SemanticPath), ("kind", box.Content.Kind), ("symbol", box.Content.Symbol), ("display", box.Content.Display), ("sourceId", boxSourceId)));
+                }
+                if (box.TextPolicy is not null)
+                {
+                    string textRegionId = box.SemanticPath + "::text";
+                    string? textSourceId = AddSource(box.TextPolicy.Source);
+                    textRegionRows.Add(Row(
+                        ("textRegionId", textRegionId), ("boxId", box.SemanticPath), ("preferredFontSize", box.TextPolicy.PreferredFontSize),
+                        ("minimumFontSize", box.TextPolicy.MinimumFontSize), ("maximumLines", box.TextPolicy.MaximumLines),
+                        ("wrapMode", box.TextPolicy.WrapMode), ("fitMode", box.TextPolicy.FitMode), ("fallbackMode", box.TextPolicy.FallbackMode),
+                        ("sourceId", textSourceId)));
                 }
             }
             foreach (LayoutInspectionDerivation derivation in document.Derivations ?? [])
@@ -93,6 +105,7 @@ internal static class LayoutProjectedTableProvider
                 new ProjectedTable(Derivations, DerivationSchema, derivationRows.OrderBy(row => (string)row["layoutId"]!, StringComparer.Ordinal).ThenBy(row => (int)row["authoredOrder"]!).ToArray()),
                 new ProjectedTable(Bindings, BindingSchema, bindingRows.OrderBy(row => (string)row["bindingId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(CollectionItems, CollectionItemSchema, collectionItemRows.OrderBy(row => (string)row["bindingId"]!, StringComparer.Ordinal).ThenBy(row => (int)row["itemIndex"]!).ToArray()),
+                new ProjectedTable(TextRegions, TextRegionSchema, textRegionRows.OrderBy(row => (string)row["textRegionId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(Sources, SourceSchema, sources.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => (IReadOnlyDictionary<string, object?>)pair.Value).ToArray()),
             ]);
 
@@ -135,7 +148,7 @@ internal static class LayoutProjectedTableProvider
     [
         new("boxId", "identity"), new("layoutId", "foreignKey<Layouts>"), new("semanticPath", "identity"), new("parentBoxId", "foreignKey<Boxes>?"), new("kind", "layoutNodeKind"),
         new("x", "constraint"), new("y", "constraint"), new("width", "constraint"), new("height", "constraint"), new("layer", "identity"), new("layerRank", "int"), new("z", "int"),
-        new("authoredOrder", "int"), new("paintOrder", "int"), new("paintKey", "paintOrderKey"), new("sourceId", "foreignKey<Sources>?"),
+        new("authoredOrder", "int"), new("paintOrder", "int"), new("paintKey", "paintOrderKey"), new("overflowPolicy", "overflowPolicy"), new("overflowX", "overflowAxis"), new("overflowY", "overflowAxis"), new("sourceId", "foreignKey<Sources>?"),
     ];
     private static readonly IReadOnlyList<ProjectedColumn> DerivationSchema =
     [
@@ -147,6 +160,8 @@ internal static class LayoutProjectedTableProvider
     [ new("bindingId", "identity"), new("boxId", "foreignKey<Boxes>"), new("kind", "bindingKind"), new("symbol", "identity?"), new("display", "string"), new("sourceId", "foreignKey<Sources>?") ];
     private static readonly IReadOnlyList<ProjectedColumn> CollectionItemSchema =
     [ new("bindingId", "foreignKey<Bindings>"), new("itemIndex", "int"), new("symbol", "identity?"), new("display", "string"), new("sourceId", "foreignKey<Sources>?") ];
+    private static readonly IReadOnlyList<ProjectedColumn> TextRegionSchema =
+    [ new("textRegionId", "identity"), new("boxId", "foreignKey<Boxes>"), new("preferredFontSize", "px"), new("minimumFontSize", "px"), new("maximumLines", "int"), new("wrapMode", "textWrapMode"), new("fitMode", "textFitMode"), new("fallbackMode", "textFallbackMode"), new("sourceId", "foreignKey<Sources>?") ];
     private static readonly IReadOnlyList<ProjectedColumn> SourceSchema =
     [ new("sourceId", "identity"), new("projectRelativePath", "path"), new("startLine", "int"), new("startColumn", "int"), new("endLine", "int"), new("endColumn", "int") ];
 }

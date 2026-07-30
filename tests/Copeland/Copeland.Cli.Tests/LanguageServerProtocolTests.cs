@@ -58,6 +58,31 @@ public sealed class LanguageServerProtocolTests
     }
 
     [Fact]
+    public void Manifest_project_lsp_exposes_declared_content_fit_policy_and_unsaved_diagnostics()
+    {
+        using var workspace = new TempWorkspace();
+        const string text = "import { createElement } from \"react\"; function Title(): ReactNode { return createElement(); } stream Site<0px, 0px> { width: 320px; height: 180px; overlay root { title: Title() { x: 0px; y: 0px; width: 300px; height: 80px; overflow: clip; fontSize: 48px; minFontSize: 32px; lines: 2; wrap: wrap; textFit: scaleDown; textFallback: ellipsis; } } }";
+        string source = workspace.Write("src/App.tsx", text);
+        workspace.Write("manifest.tsx", "export default manifest({});");
+        workspace.Write(".tspack/build-manifests/site.request.json", $$"""{ "projectRoot":"{{workspace.Path.Replace("\\", "\\\\")}}", "sources":[{"logicalPath":"src/App.tsx","path":"{{source.Replace("\\", "\\\\")}}"}], "javascriptRuntime":"browser", "tsXmlProfile":"react-m0", "npmContracts":[{"packageName":"react","version":"19.2.7","materialized":true,"exports":[{"name":"createElement","parameters":[],"result":"ReactNode"}],"components":[]}] }""");
+        using var client = new LspClient();
+        string uri = VsCodeFileUri(source);
+        client.Request(1, "initialize", new { initializationOptions = new { workspaceRoot = workspace.Path } });
+        client.Notify("textDocument/didOpen", new { textDocument = new { uri, version = 1, text } });
+        Assert.Empty(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+        JsonElement hover = client.Request(2, "textDocument/hover", new { textDocument = new { uri }, position = new { line = 0, character = text.IndexOf("textFit", StringComparison.Ordinal) + 1 } });
+        Assert.Contains("projected relation: text::Regions", hover.GetProperty("contents").GetProperty("value").GetString());
+        JsonElement completion = client.Request(3, "textDocument/completion", new { textDocument = new { uri }, position = new { line = 0, character = 0 } });
+        Assert.Contains(completion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "scrollY");
+        Assert.Contains(completion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "scaleDown");
+        string invalid = text.Replace("minFontSize: 32px", "minFontSize: 64px", StringComparison.Ordinal);
+        client.Notify("textDocument/didChange", new { textDocument = new { uri, version = 2 }, contentChanges = new[] { new { text = invalid } } });
+        Assert.Contains(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray(), item => item.GetProperty("code").GetString() == "COPE-TEXT-FIT-0004");
+        client.Notify("textDocument/didChange", new { textDocument = new { uri, version = 3 }, contentChanges = new[] { new { text } } });
+        Assert.Empty(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+    }
+
+    [Fact]
     public void Language_server_uses_generated_ownership_and_compiles_open_buffers()
     {
         using var workspace = new TempWorkspace();

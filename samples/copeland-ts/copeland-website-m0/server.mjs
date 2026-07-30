@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 const host = "127.0.0.1";
 const port = 4173;
 const assetRoot = resolve("dist/browser");
+const textFitRuntime = resolve("runtime/browser-v1.js");
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -24,7 +25,8 @@ function assetPath(requestUrl) {
 }
 
 const server = createServer(async (request, response) => {
-  const filePath = assetPath(request.url);
+  const requestPath = new URL(request.url ?? "/", "http://localhost").pathname;
+  const filePath = requestPath === "/text-fit.js" ? textFitRuntime : assetPath(request.url);
   if (filePath === null) {
     response.writeHead(403).end("Forbidden");
     return;

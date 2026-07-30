@@ -1188,7 +1188,8 @@ public sealed class Parser
     private static bool IsLayoutPropertyName(SyntaxToken token)
         => token.Text is "width" or "height" or "frame" or "gap" or "padding" or "style"
             or "columns" or "x" or "y" or "position" or "left" or "right" or "top" or "bottom"
-            or "layers" or "layer" or "z";
+            or "layers" or "layer" or "z" or "overflow"
+            or "fontSize" or "minFontSize" or "lines" or "wrap" or "textFit" or "textFallback";
 
     private static bool IsLayoutNameToken(SyntaxToken token)
         => token.Kind is SyntaxKind.IdentifierToken or SyntaxKind.TableKeyword or SyntaxKind.ColumnKeyword;

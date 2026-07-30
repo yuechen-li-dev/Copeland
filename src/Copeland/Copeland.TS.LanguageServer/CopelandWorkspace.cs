@@ -112,12 +112,13 @@ internal sealed class CopelandWorkspace
         SyntaxToken? token = TokenAt(compilation.SyntaxTree, ToOffset(document.Text, position));
         if (token is null) return null;
         LayoutSlotSymbol? bindingSlot = FindBindingSlot(compilation, token);
+        string? contentPolicyContents = DescribeContentPolicyAt(compilation, token.Position);
         string? tableContents = DescribeTableCellAt(compilation, token.Position);
         string? paintContents = DescribePaintAt(compilation, token.Position);
         string? relativeContents = DescribeRelativeDerivationAt(compilation.SyntaxTree, token);
         Symbol? symbol = FindSymbol(compilation, token.Text);
         DeclarationInfo? declaration = FindDeclaration(compilation.SyntaxTree, token.Text);
-        string contents = relativeContents ?? tableContents ?? paintContents ?? (bindingSlot is not null
+        string contents = relativeContents ?? contentPolicyContents ?? tableContents ?? paintContents ?? (bindingSlot is not null
             ? "slot " + bindingSlot.SemanticPath + "\ncardinality: exactly one renderable component/view\nhost: compiler-generated div layout region"
             : symbol is LayoutSymbol { BoundLayout: not null } layout
             ? DescribeLayout(layout)
@@ -152,7 +153,7 @@ internal sealed class CopelandWorkspace
                 insertTextFormat = 2,
             };
         }
-        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
+        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "overflow", "visible", "clip", "auto", "scroll", "scrollX", "scrollY", "fontSize", "minFontSize", "lines", "wrap", "textFit", "scaleDown", "textFallback", "ellipsis", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
         }
@@ -608,6 +609,66 @@ internal sealed class CopelandWorkspace
             ?? program?.PackageImports.Select(import => (Symbol)import.Function).FirstOrDefault(symbol => symbol.Name == name)
             ?? program?.JavaScriptHostImports.Select(import => (Symbol)import.Function).FirstOrDefault(symbol => symbol.Name == name)
             ?? program?.NpmComponentImports.Select(import => (Symbol)import.Component).FirstOrDefault(symbol => symbol.Name == name);
+    }
+
+    private static string? DescribeContentPolicyAt(CopelandCompilation compilation, int position)
+    {
+        SyntaxTree? tree = compilation.SyntaxTree;
+        if (tree is null) return null;
+        foreach (StreamDeclarationSyntax stream in tree.Root.Members.OfType<StreamDeclarationSyntax>())
+        {
+            BoundLayoutDeclaration? layout = compilation.BoundCompilation?.Program.Layouts.SingleOrDefault(candidate => candidate.Name == stream.Identifier.Text);
+            if (layout is null) continue;
+            foreach (StreamNodeSyntax node in Enumerate(stream.Nodes))
+            {
+                LayoutPropertySyntax? property = node.Properties.FirstOrDefault(candidate =>
+                    position >= candidate.Identifier.Position && position <= FirstToken(candidate.Value).Position + Math.Max(1, FirstToken(candidate.Value).Text.Length));
+                if (property is null) continue;
+                BoundLayoutNode? bound = Find(layout.Root, node.Identifier.Text);
+                if (bound is null) return null;
+                if (property.Identifier.Text == "overflow")
+                {
+                    BoundBoxOverflowPolicy overflow = bound.ResolvedOverflow;
+                    return "overflow policy: " + overflow.Policy.ToString().ToLowerInvariant()
+                        + "\noverflowX: " + overflow.X.ToString().ToLowerInvariant()
+                        + "\noverflowY: " + overflow.Y.ToString().ToLowerInvariant()
+                        + "\nbox: " + node.Identifier.Text;
+                }
+                if (bound.TextFit is not null && property.Identifier.Text is "fontSize" or "minFontSize" or "lines" or "wrap" or "textFit" or "textFallback")
+                {
+                    BoundTextFitPolicy text = bound.TextFit;
+                    return "text region: " + node.Identifier.Text
+                        + "\npreferred: " + text.PreferredFontSize.Px.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px"
+                        + "\nminimum: " + text.MinimumFontSize.Px.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px"
+                        + "\nlines: " + text.MaximumLines
+                        + "\nwrap: " + text.Wrap.ToString().ToLowerInvariant()
+                        + "\nfit: " + text.Fit.ToString().ToLowerInvariant()
+                        + "\nfallback: " + text.Fallback.ToString().ToLowerInvariant()
+                        + "\nprojected relation: text::Regions";
+                }
+            }
+        }
+        return null;
+
+        static IEnumerable<StreamNodeSyntax> Enumerate(IEnumerable<StreamNodeSyntax> nodes)
+        {
+            foreach (StreamNodeSyntax node in nodes)
+            {
+                yield return node;
+                foreach (StreamNodeSyntax child in Enumerate(node.Children)) yield return child;
+            }
+        }
+
+        static BoundLayoutNode? Find(BoundLayoutNode node, string name)
+        {
+            if (node.Name == name) return node;
+            foreach (BoundLayoutNode child in node.Children)
+            {
+                BoundLayoutNode? found = Find(child, name);
+                if (found is not null) return found;
+            }
+            return null;
+        }
     }
 
     private static string? DescribePaintAt(CopelandCompilation compilation, int position)

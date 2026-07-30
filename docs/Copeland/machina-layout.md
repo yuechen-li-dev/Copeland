@@ -484,3 +484,23 @@ cross. The website regression test protects this lowering law.
 Its hero uses `centerXIn`, `placeRightOf`/`placeBelow`, and `expandFrom` as
 resolved directed derivations. Components provide content under generated
 hosts; browser text shaping remains inside the host's compiler-known region.
+
+# Overflow and bounded text fitting (M0)
+
+The layout owns the region. Text owns how it survives inside that region.
+Changing a sentence should not silently restructure the page.
+
+Every box has a typed `overflow` policy: `visible`, `clip`, `auto`, `scroll`,
+`scrollX`, or `scrollY`. It is normalized to deterministic `overflowX` and
+`overflowY` axes; `scrollX` means horizontal `auto` plus vertical `clip`, and
+`scrollY` means vertical `auto` plus horizontal `clip`. Browser scroll state
+and measured scroll extent remain runtime facts, never `layout::Boxes` rows.
+
+An explicit text slot can declare `fontSize`, `minFontSize`, `lines`, `wrap`,
+`textFit: scaleDown`, and `textFallback`. The compiler retains that bounded
+policy and the assigned box. The browser performs glyph shaping and selects
+the final fitting size with a finite descending search, rerunning for local
+box resize and `document.fonts.ready`. It never changes the box or ancestors.
+The policy applies only to the component's explicit `.text-fit-target`, never
+to buttons or arbitrary descendant subtrees. Intrinsic text-driven box growth
+is deliberately not part of M0.

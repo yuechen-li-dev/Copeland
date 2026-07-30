@@ -58,6 +58,7 @@ public static class LayoutInspection
 
         void Add(NormalizedLayoutNode node, string? parent)
         {
+            BoundBoxOverflowPolicy overflow = node.Overflow ?? BoundBoxOverflowPolicy.Visible;
             boxes.Add(new LayoutInspectionBox(
                 node.Name,
                 node.StableIdentity,
@@ -76,7 +77,18 @@ public static class LayoutInspection
                 node.OriginRelation.ToString(),
                 node.Columns,
                 node.Gap is MachinaLength gap ? Length(gap) : null,
-                node.Source is null ? null : Source(node.Source, projectRoot)));
+                node.Source is null ? null : Source(node.Source, projectRoot),
+                OverflowPolicy: overflow.Policy.ToString().ToLowerInvariant(),
+                OverflowX: overflow.X.ToString().ToLowerInvariant(),
+                OverflowY: overflow.Y.ToString().ToLowerInvariant(),
+                TextPolicy: node.TextFit is null ? null : new LayoutInspectionTextPolicy(
+                    node.TextFit.PreferredFontSize.Px,
+                    node.TextFit.MinimumFontSize.Px,
+                    node.TextFit.MaximumLines,
+                    node.TextFit.Wrap.ToString().ToLowerInvariant(),
+                    node.TextFit.Fit.ToString().ToLowerInvariant(),
+                    node.TextFit.Fallback.ToString().ToLowerInvariant(),
+                    Source(node.TextFit.Source, projectRoot))));
             foreach (NormalizedLayoutNode child in node.Children)
             {
                 Add(child, node.StableIdentity);
@@ -144,9 +156,10 @@ public static class LayoutInspection
 
 public sealed record LayoutInspectionDocument(int SchemaVersion, LayoutInspectionLayout Layout, IReadOnlyList<LayoutInspectionBox> Boxes, IReadOnlyList<LayoutInspectionDerivation>? Derivations = null);
 public sealed record LayoutInspectionLayout(string Name, string Module, string? Profile, LayoutInspectionConstraint OriginX, LayoutInspectionConstraint OriginY, LayoutInspectionLength? Width, LayoutInspectionLength? Height, string LayerSet, string? Contract, bool? Conformance);
-public sealed record LayoutInspectionBox(string Name, string SemanticPath, string? Parent, string Kind, LayoutInspectionConstraint OriginX, LayoutInspectionConstraint OriginY, LayoutInspectionLength? Width, LayoutInspectionLength? Height, string LayerSetIdentity, string Layer, int LayerRank, int Z, int AuthoredOrder, NormalizedPaintOrder PaintKey, string OriginRelation, int? Columns, LayoutInspectionLength? Gap, LayoutInspectionSource? Source, int PaintOrder = 0, LayoutInspectionContent? Content = null);
+public sealed record LayoutInspectionBox(string Name, string SemanticPath, string? Parent, string Kind, LayoutInspectionConstraint OriginX, LayoutInspectionConstraint OriginY, LayoutInspectionLength? Width, LayoutInspectionLength? Height, string LayerSetIdentity, string Layer, int LayerRank, int Z, int AuthoredOrder, NormalizedPaintOrder PaintKey, string OriginRelation, int? Columns, LayoutInspectionLength? Gap, LayoutInspectionSource? Source, int PaintOrder = 0, LayoutInspectionContent? Content = null, string OverflowPolicy = "visible", string OverflowX = "visible", string OverflowY = "visible", LayoutInspectionTextPolicy? TextPolicy = null);
 public sealed record LayoutInspectionConstraint(string Kind, LayoutInspectionLength? Value);
 public sealed record LayoutInspectionLength(string Kind, double? Value, string? Unit);
 public sealed record LayoutInspectionSource(string Path, int Start, int End);
 public sealed record LayoutInspectionContent(string Kind, string Display, string? Symbol, int? ItemCount = null);
+public sealed record LayoutInspectionTextPolicy(double PreferredFontSize, double MinimumFontSize, int MaximumLines, string WrapMode, string FitMode, string FallbackMode, LayoutInspectionSource Source);
 public sealed record LayoutInspectionDerivation(string DerivationId, string TargetBoxId, string Transform, string SourceBoxId, IReadOnlyList<string> FieldsRead, IReadOnlyList<string> FieldsWritten, int AuthoredOrder, string Status, LayoutInspectionLength? GapOrPadding, LayoutInspectionSource Source);

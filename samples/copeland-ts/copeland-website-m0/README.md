@@ -10,6 +10,13 @@ The profile law is `<600` mobile, `600–1023` tablet, and `>=1024` desktop.
 `src/Main.ts` uses explicit state capture to select the profile. The streams
 dogfood `centerXIn`, `placeRightOf`, `placeBelow`, and `expandFrom`.
 
+Each profile root is fixed to its viewport and owns one `page` `scrollY`
+surface. The page's taller `content` box is deliberately stable and scrolls
+locally. Hero title slots declare `fontSize`, `minFontSize`, `lines`, `wrap`,
+`textFit: scaleDown`, and `textFallback`; the browser selects a final size from
+actual font metrics without changing any layout row. The title component marks
+one `.text-fit-target`; actions are separate boxes and are never scaled.
+
 Run from the sibling TSPack checkout:
 
 ```powershell
@@ -19,7 +26,7 @@ go run ./cmd/tspack run --root C:\Users\yuech\source\repos\Copeland\samples\cope
 ```
 
 Screenshots and numerical rectangle evidence are generated under
-`artifacts/cts-website-table-layout-m0/` and ignored by Git.
+`artifacts/cts-web-content-fit-m0/` and ignored by Git.
 
 After the normal TSPack build materializes the compiler context, inspect the
 same website project without starting a browser:
@@ -28,6 +35,7 @@ same website project without starting a browser:
 $cli = C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Cli\bin\Debug\net10.0\Copeland.Cli.exe
 & $cli table list --project .\manifest.tsx --format json
 & $cli table rows layout::Boxes --project .\manifest.tsx --format json
+& $cli table rows text::Regions --project .\manifest.tsx --format json
 & $cli layout inspect CopelandDesktop --project .\manifest.tsx --json
 ```
 

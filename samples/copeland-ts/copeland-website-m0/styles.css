@@ -20,7 +20,6 @@ body { min-width: 320px; margin: 0; background: radial-gradient(circle at 80% 4%
 button, code { font: inherit; }
 a { color: inherit; }
 
-[data-machina-layout] { overflow: hidden; }
 [data-machina-box="root"] { background: var(--canvas); }
 [data-machina-box="page"] { background: var(--canvas); }
 [data-machina-box="commandBar"] { border-right: 1px solid var(--border); background: rgb(8 10 23 / 90%); }
@@ -46,16 +45,16 @@ a { color: inherit; }
 .compact-command-bar nav { display: flex; gap: 4px; }
 .compact-command-bar nav a { padding: 7px; font-size: 12px; }
 
-.hero-copy { position: relative; z-index: 2; }
+.hero-intro, .hero-title, .hero-summary, .hero-actions { position: relative; z-index: 2; }
 .eyebrow { margin: 0 0 10px; color: var(--cyan); font-family: ui-monospace, Consolas, monospace; font-size: 11px; font-weight: 800; letter-spacing: .12em; }
-.hero-copy h1 { max-width: 670px; margin: 0; color: var(--text); font-size: 54px; line-height: 1.02; letter-spacing: -.06em; }
-.hero-copy > p:not(.eyebrow) { max-width: 610px; margin: 17px 0 0; color: var(--secondary); font-size: 17px; line-height: 1.55; }
-.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.hero-title h1 { margin: 0; color: var(--text); font-size: 54px; line-height: 1.02; letter-spacing: -.06em; }
+.hero-summary { margin: 0; overflow-wrap: anywhere; color: var(--secondary); font-size: 17px; line-height: 1.55; }
+.hero-actions { display: flex; height: 100%; align-items: start; flex-wrap: wrap; gap: 10px; }
 .hero-actions a { padding: 9px 12px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: rgb(8 10 23 / 65%); font-size: 13px; font-weight: 700; text-decoration: none; }
 .hero-actions a:first-child { border-color: var(--pink); box-shadow: 0 0 18px rgb(250 101 214 / 20%); }
 .hero-halo { width: 100%; height: 100%; border: 1px solid rgb(250 101 214 / 42%); border-radius: 22px; background: radial-gradient(circle at 60% 20%, rgb(75 219 255 / 14%), transparent 45%); pointer-events: none; }
 .hero-accent { margin: 0; color: var(--pink); font-family: ui-monospace, Consolas, monospace; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-align: center; white-space: nowrap; }
-.code-badge { position: relative; z-index: 2; height: 100%; margin: 0; padding: 15px; overflow: hidden; border: 1px solid rgb(75 219 255 / 48%); border-radius: 12px; color: #c8efff; background: rgb(5 7 16 / 85%); box-shadow: 0 0 25px rgb(75 219 255 / 12%); font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+.code-badge { position: relative; z-index: 2; height: 100%; margin: 0; padding: 15px; overflow: visible; border: 1px solid rgb(75 219 255 / 48%); border-radius: 12px; color: #c8efff; background: rgb(5 7 16 / 85%); box-shadow: 0 0 25px rgb(75 219 255 / 12%); font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.5; white-space: pre; }
 
 .language-example { display: flex; height: 100%; align-items: center; justify-content: center; gap: 20px; color: #cbb6ff; font-family: ui-monospace, Consolas, monospace; font-size: 14px; font-weight: 750; white-space: nowrap; }
 .language-example .arrow { color: var(--cyan); }
@@ -80,7 +79,7 @@ a { color: inherit; }
 
 @media (max-width: 1023px) {
   [data-machina-layout="CopelandTablet"] [data-machina-box="commandBar"] { border-right: 0; border-bottom: 1px solid var(--border); }
-  .hero-copy h1 { font-size: 45px; }
+  .hero-title h1 { font-size: 45px; }
   .architecture { padding: 18px 28px; }
   .architecture-steps { gap: 14px; }
 }
@@ -92,9 +91,8 @@ a { color: inherit; }
   .compact-command-bar .brand small { display: none; }
   .compact-command-bar nav { gap: 0; }
   .compact-command-bar nav a { padding: 6px 4px; font-size: 10px; }
-  .hero-copy h1 { font-size: 35px; }
-  .hero-copy > p:not(.eyebrow) { font-size: 14px; }
-  .hero-actions { margin-top: 13px; }
+  .hero-title h1 { font-size: 35px; }
+  .hero-summary { font-size: 14px; }
   .hero-actions a { padding: 7px 8px; font-size: 11px; }
   .language-example { gap: 8px; font-size: 11px; }
   .m-stream-collection-CopelandMobile-featureGrid { padding: 12px; }

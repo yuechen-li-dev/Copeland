@@ -26,17 +26,13 @@ function CompactCommandBar(): ReactNode {
     return <header className="compact-command-bar">{Brand()}<nav><a href="#features">Features</a><a href="#architecture">Architecture</a><a href="#tables">Tables</a></nav></header>;
 }
 
-function HeroCopy(): ReactNode {
-    return <div className="hero-copy">
-        <p className="eyebrow">ONE LANGUAGE / REAL BOUNDARIES</p>
-        <h1>AI-native TypeScript for the next ChatGPT.</h1>
-        <p>Copeland TS unifies React, .NET, npm, templates, and typed browser-to-CLR workflows—so AI writes less glue code and more product.</p>
-        <div className="hero-actions"><a href="#features">Explore the model</a><a href="#architecture">See architecture</a></div>
-    </div>;
-}
+function HeroIntro(): ReactNode { return <p className="eyebrow hero-intro">ONE LANGUAGE / REAL BOUNDARIES</p>; }
+function HeroTitle(): ReactNode { return <h1 className="text-fit-target">AI-native TypeScript for the next ChatGPT.</h1>; }
+function HeroSummary(): ReactNode { return <p className="hero-summary">Copeland TS unifies React, .NET, npm, templates, and typed browser-to-CLR workflows—so AI writes less glue code and more product.</p>; }
+function HeroActions(): ReactNode { return <div className="hero-actions"><a href="#features">Explore the model</a><a href="#architecture">See architecture</a></div>; }
 
 function CodeBadge(): ReactNode {
-    return <pre className="code-badge"><code>stream Copeland — featureGrid: Features();</code></pre>;
+    return <pre className="code-badge"><code>stream Copeland — featureGrid: Features(); typed-browser-to-clr-contract-token-0123456789</code></pre>;
 }
 
 function HeroAccent(): ReactNode {
@@ -79,18 +75,23 @@ stream CopelandDesktop<0px, 0px> {
     height: 900px;
     row root {
         commandBar: CommandBar() { width: 240px; height: fill; }
-        column page { width: fill; height: fill;
+        overlay page { width: fill; height: fill; overflow: scrollY;
+          column content { x: 0px; y: 0px; width: 1200px; height: 1012px;
             overlay hero { height: 362px;
-                heroHalo: HeroHalo() { } with expandFrom(heroCopy, 18px);
-                heroCopy: HeroCopy() { x: 52px; y: 76px; width: 600px; height: 226px; }
-                heroAccent: HeroAccent() { width: 280px; height: 28px; } with centerXIn(heroCopy);
-                codeBadge: CodeBadge() { y: 106px; width: 300px; height: 118px; } with placeRightOf(heroCopy, 32px);
+                heroHalo: HeroHalo() { } with expandFrom(heroTitle, 18px);
+                heroIntro: HeroIntro() { x: 52px; y: 60px; width: 600px; height: 18px; }
+                heroTitle: HeroTitle() { x: 52px; y: 84px; width: 600px; height: 104px; overflow: clip; fontSize: 54px; minFontSize: 42px; lines: 2; wrap: wrap; textFit: scaleDown; textFallback: ellipsis; }
+                heroSummary: HeroSummary() { x: 52px; y: 198px; width: 600px; height: 52px; overflow: clip; }
+                heroActions: HeroActions() { x: 52px; y: 266px; width: 360px; height: 40px; overflow: clip; }
+                heroAccent: HeroAccent() { width: 280px; height: 28px; } with centerXIn(heroTitle);
+                codeBadge: CodeBadge() { y: 106px; width: 300px; height: 118px; overflow: auto; } with placeRightOf(heroTitle, 32px);
             }
             languageExample: LanguageExample() { height: 56px; }
-            grid featureGrid: [BridgeCard(), ReactCard(), TemplatesCard(), TablesCard()] { columns: 4; gap: 16px; height: 230px; }
-            architecture: Architecture() { height: 148px; }
-            callToAction: CallToAction() { height: 68px; }
-            footer: Footer() { height: 36px; }
+            grid featureGrid: [BridgeCard(), ReactCard(), TemplatesCard(), TablesCard()] { columns: 4; gap: 16px; height: 260px; }
+            architecture: Architecture() { height: 170px; }
+            callToAction: CallToAction() { height: 100px; }
+            footer: Footer() { height: 64px; }
+          }
         }
     }
 }
@@ -100,36 +101,50 @@ stream CopelandTablet<0px, 0px> {
     height: 1024px;
     column root {
         commandBar: CompactCommandBar() { height: 72px; }
-        overlay hero { height: 318px;
-            heroHalo: HeroHalo() { } with expandFrom(heroCopy, 16px);
-            heroCopy: HeroCopy() { x: 42px; y: 62px; width: 480px; height: 204px; }
-            heroAccent: HeroAccent() { width: 270px; height: 28px; } with centerXIn(heroCopy);
-            codeBadge: CodeBadge() { x: 540px; y: 46px; width: 190px; height: 90px; }
+        overlay page { height: fill; overflow: scrollY;
+          column content { x: 0px; y: 0px; width: 768px; height: 1042px;
+          overlay hero { height: 340px;
+            heroHalo: HeroHalo() { } with expandFrom(heroTitle, 16px);
+            heroIntro: HeroIntro() { x: 42px; y: 44px; width: 480px; height: 18px; }
+            heroTitle: HeroTitle() { x: 42px; y: 68px; width: 480px; height: 118px; overflow: clip; fontSize: 48px; minFontSize: 36px; lines: 3; wrap: wrap; textFit: scaleDown; textFallback: ellipsis; }
+            heroSummary: HeroSummary() { x: 42px; y: 194px; width: 480px; height: 58px; overflow: clip; }
+            heroActions: HeroActions() { x: 42px; y: 268px; width: 360px; height: 40px; overflow: clip; }
+            heroAccent: HeroAccent() { width: 270px; height: 28px; } with centerXIn(heroTitle);
+            codeBadge: CodeBadge() { x: 540px; y: 46px; width: 190px; height: 90px; overflow: auto; }
         }
         languageExample: LanguageExample() { height: 58px; }
-        grid featureGrid: [BridgeCard(), ReactCard(), TemplatesCard(), TablesCard()] { columns: 2; gap: 14px; height: 286px; }
-        architecture: Architecture() { height: 152px; }
-        callToAction: CallToAction() { height: 92px; }
-        footer: Footer() { height: 46px; }
+        grid featureGrid: [BridgeCard(), ReactCard(), TemplatesCard(), TablesCard()] { columns: 2; gap: 14px; height: 300px; }
+        architecture: Architecture() { height: 180px; }
+        callToAction: CallToAction() { height: 110px; }
+        footer: Footer() { height: 54px; }
+          }
+        }
     }
 }
 
 stream CopelandMobile<0px, 0px> {
     width: 390px;
-    height: 1620px;
+    height: 844px;
     column root {
         commandBar: CompactCommandBar() { height: 74px; }
-        overlay hero { height: 344px;
-            heroHalo: HeroHalo() { } with expandFrom(heroCopy, 12px);
-            heroCopy: HeroCopy() { x: 22px; y: 64px; width: 346px; height: 228px; }
-            heroAccent: HeroAccent() { width: 250px; height: 28px; } with centerXIn(heroCopy);
-            codeBadge: CodeBadge() { width: 346px; height: 36px; } with centerXIn(hero) with placeBelow(heroCopy, 8px);
+        overlay page { height: fill; overflow: scrollY;
+          column content { x: 0px; y: 0px; width: 390px; height: 1544px;
+          overlay hero { height: 390px;
+            heroHalo: HeroHalo() { } with expandFrom(heroTitle, 12px);
+            heroIntro: HeroIntro() { x: 22px; y: 44px; width: 346px; height: 18px; }
+            heroTitle: HeroTitle() { x: 22px; y: 68px; width: 346px; height: 112px; overflow: clip; fontSize: 40px; minFontSize: 30px; lines: 3; wrap: wrap; textFit: scaleDown; textFallback: ellipsis; }
+            heroSummary: HeroSummary() { x: 22px; y: 190px; width: 346px; height: 62px; overflow: clip; }
+            heroActions: HeroActions() { x: 22px; y: 266px; width: 330px; height: 36px; overflow: clip; }
+            heroAccent: HeroAccent() { width: 250px; height: 28px; } with centerXIn(heroTitle);
+            codeBadge: CodeBadge() { width: 346px; height: 48px; overflow: auto; } with centerXIn(hero) with placeBelow(heroActions, 14px);
         }
         languageExample: LanguageExample() { height: 62px; }
-        grid featureGrid: [BridgeCard(), ReactCard(), TemplatesCard(), TablesCard()] { columns: 1; gap: 12px; height: 488px; }
+        grid featureGrid: [BridgeCard(), ReactCard(), TemplatesCard(), TablesCard()] { columns: 1; gap: 12px; height: 520px; }
         architecture: Architecture() { height: 250px; }
         callToAction: CallToAction() { height: 244px; }
         footer: Footer() { height: 78px; }
+          }
+        }
     }
 }
 
