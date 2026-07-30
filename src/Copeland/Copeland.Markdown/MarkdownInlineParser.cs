@@ -1,6 +1,10 @@
 namespace Copeland.Markdown;
 
-internal static class MarkdownInlineParser
+/// <summary>
+/// Shared bounded inline frontend used by Markdown and Text XML. Callers keep
+/// their own outer syntax tree; this parser only recognizes inline meaning.
+/// </summary>
+public static class MarkdownInlineParser
 {
     public static InlineParseResult Parse(MarkdownSourceText source, int start, string text)
     {
@@ -217,6 +221,6 @@ internal static class MarkdownInlineParser
     }
 }
 
-internal sealed record InlineParseResult(
+public sealed record InlineParseResult(
     IReadOnlyList<MarkdownInline> Inlines,
     IReadOnlyList<MarkdownDiagnostic> Diagnostics);

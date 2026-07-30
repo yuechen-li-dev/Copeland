@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Copeland.TS.Compiler;
+using Copeland.Markdown;
 using Copeland.TS.Diagnostics;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
@@ -109,7 +110,19 @@ internal sealed class CopelandWorkspace
         if (!TryGetCopelandDocument(uri, out DocumentSnapshot? document)) return null;
         if (IsWorkspaceManifest(document!.Path)) return ManifestHover(document.Text, ToOffset(document.Text, position));
         CopelandCompilation compilation = Compile(document);
-        SyntaxToken? token = TokenAt(compilation.SyntaxTree, ToOffset(document.Text, position));
+        int offset = ToOffset(document.Text, position);
+        TextDocumentSemanticFact? documentFact = FindTextDocumentFact(compilation.BoundCompilation, offset);
+        if (documentFact is not null)
+        {
+            LayoutSlotSymbol? host = FindTextHost(compilation.BoundCompilation, documentFact.Presentation.SemanticHostId);
+            string canonicalContents = DescribeTextDocumentFact(documentFact, host);
+            return new
+            {
+                contents = new { kind = "markdown", value = "```copeland\n" + canonicalContents + "\n```" },
+                range = Range(document.Text, documentFact.Source.Start, Math.Max(1, documentFact.Source.Length)),
+            };
+        }
+        SyntaxToken? token = TokenAt(compilation.SyntaxTree, offset);
         if (token is null) return null;
         LayoutSlotSymbol? bindingSlot = FindBindingSlot(compilation, token);
         string? contentPolicyContents = DescribeContentPolicyAt(compilation, token.Position);
@@ -142,6 +155,18 @@ internal sealed class CopelandWorkspace
         }
         CopelandCompilation compilation = Compile(document!);
         var items = new Dictionary<string, object>(StringComparer.Ordinal);
+        TextDocumentSemanticFact? documentFact = FindTextDocumentFact(compilation.BoundCompilation, ToOffset(document.Text, position));
+        if (documentFact is { Kind: "List" })
+        {
+            items["Item"] = CompletionItem("Item", 14, "legal canonical child of List");
+        }
+        else if (documentFact is { Kind: "Document" or "ListItem" })
+        {
+            foreach (string block in new[] { "Heading", "Paragraph", "List", "CodeBlock", "Quote", "Callout", "Break" })
+            {
+                items[block] = CompletionItem(block, 14, "legal canonical document block");
+            }
+        }
         if (IsAwaitingLayoutOrigin(document.Text, compilation.SyntaxTree, ToOffset(document.Text, position)))
         {
             items["<0px, 0px>"] = new
@@ -153,7 +178,7 @@ internal sealed class CopelandWorkspace
                 insertTextFormat = 2,
             };
         }
-        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "overflow", "visible", "clip", "auto", "scroll", "scrollX", "scrollY", "fontSize", "minFontSize", "lines", "wrap", "textFit", "scaleDown", "textFallback", "ellipsis", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
+        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "overflow", "visible", "clip", "auto", "scroll", "scrollX", "scrollY", "fontSize", "minFontSize", "lines", "wrap", "textFit", "scaleDown", "textFallback", "ellipsis", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf", "Text", "Document", "Heading", "Paragraph", "List", "Item", "CodeBlock", "Quote", "Callout", "Break", "HeroHeading", "SectionHeading", "CardHeading", "Body", "Eyebrow", "Caption" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
         }
@@ -223,6 +248,19 @@ internal sealed class CopelandWorkspace
         DocumentSnapshot current = document!;
         CopelandProjectCompilation project = CompileProject();
         CopelandCompilation compilation = Compile(current, project);
+        TextDocumentSemanticFact? documentFact = FindTextDocumentFact(compilation.BoundCompilation, ToOffset(current.Text, position));
+        if (documentFact is not null)
+        {
+            LayoutSlotSymbol? host = FindTextHost(compilation.BoundCompilation, documentFact.Presentation.SemanticHostId);
+            if (host is not null)
+            {
+                string hostText = PathsEqual(host.Source.SourcePath, current.Path) ? current.Text : File.ReadAllText(host.Source.SourcePath);
+                return new { uri = new Uri(host.Source.SourcePath).AbsoluteUri, range = Range(hostText, host.Source.Start, Math.Max(1, host.Source.Length) ) };
+            }
+            // Bounded roles are semantic identities, not declarations. A
+            // document node therefore has no fabricated definition target.
+            return null;
+        }
         SyntaxToken? token = TokenAt(compilation.SyntaxTree, ToOffset(current.Text, position));
         if (token is null || token.Kind != SyntaxKind.IdentifierToken) return null;
         LayoutSlotSymbol? bindingSlot = FindBindingSlot(compilation, token);
@@ -880,6 +918,124 @@ internal sealed class CopelandWorkspace
     private static SyntaxToken? TokenAt(SyntaxTree? tree, int offset) => tree?.Tokens.FirstOrDefault(token => offset >= token.Position && offset <= token.Position + token.Text.Length);
     private static int CompletionKind(Symbol symbol) => symbol switch { FunctionSymbol => 3, VariableSymbol => 6, ParameterSymbol => 6, LayerSetSymbol => 13, _ => 13 };
     private static object CompletionItem(string label, int kind, string detail) => new { label, kind, detail };
+    private static TextDocumentSemanticFact? FindTextDocumentFact(BoundCompilation? compilation, int offset)
+    {
+        if (compilation is null) return null;
+        var candidates = new List<TextDocumentSemanticFact>();
+        foreach (BoundTextDocument document in compilation.TextDocuments)
+        {
+            Add("Document", document.Document.Metadata.DocumentId, null, document.Document.Metadata.Provenance, document.Presentation);
+            foreach (DocumentBlockMir block in document.Document.Blocks) AddBlock(block, document.Presentation);
+        }
+        return candidates
+            .Where(candidate => offset >= candidate.Source.Start && offset <= candidate.Source.End)
+            .OrderBy(candidate => candidate.Source.Length)
+            .FirstOrDefault();
+
+        void AddBlock(DocumentBlockMir block, TextPresentationBinding presentation)
+        {
+            Add(BlockKind(block), block.Metadata.NodeId, block.Metadata.Role, block.Metadata.Provenance, presentation);
+            switch (block)
+            {
+                case HeadingMir heading:
+                    AddInlines(heading.Inlines, presentation);
+                    break;
+                case ParagraphMir paragraph:
+                    AddInlines(paragraph.Inlines, presentation);
+                    break;
+                case QuoteMir quote:
+                    AddInlines(quote.Inlines, presentation);
+                    break;
+                case CalloutMir callout:
+                    AddInlines(callout.Inlines, presentation);
+                    break;
+                case ListMir list:
+                    foreach (ListItemMir item in list.Items)
+                    {
+                        Add("ListItem", item.Metadata.NodeId, item.Metadata.Role, item.Metadata.Provenance, presentation);
+                        AddInlines(item.Inlines, presentation);
+                        foreach (DocumentBlockMir child in item.ChildBlocks) AddBlock(child, presentation);
+                    }
+                    break;
+            }
+        }
+
+        void AddInlines(IReadOnlyList<DocumentInlineMir> inlines, TextPresentationBinding presentation)
+        {
+            foreach (DocumentInlineMir inline in inlines)
+            {
+                Add(InlineKind(inline), inline.Metadata.NodeId, null, inline.Metadata.Provenance, presentation);
+                switch (inline)
+                {
+                    case StrongMir strong:
+                        AddInlines(strong.Children, presentation);
+                        break;
+                    case EmphasisMir emphasis:
+                        AddInlines(emphasis.Children, presentation);
+                        break;
+                    case LinkMir link:
+                        AddInlines(link.Label, presentation);
+                        break;
+                }
+            }
+        }
+
+        void Add(string kind, string nodeId, string? role, DocumentProvenance source, TextPresentationBinding presentation)
+            => candidates.Add(new TextDocumentSemanticFact(kind, nodeId, role, source, presentation));
+    }
+
+    private static LayoutSlotSymbol? FindTextHost(BoundCompilation? compilation, string ownerFunction)
+        => compilation?.Program.LayoutBindings
+            .SelectMany(binding => binding.Entries)
+            .FirstOrDefault(entry => entry.Component is BoundCallExpression call && call.Function.Name == ownerFunction)
+            ?.Slot;
+
+    private static string DescribeTextDocumentFact(TextDocumentSemanticFact fact, LayoutSlotSymbol? host)
+    {
+        TextNodePresentation? presentation = fact.Presentation.NodePresentations.GetValueOrDefault(fact.NodeId);
+        var lines = new List<string>
+        {
+            "canonical document " + fact.Kind,
+            "node: " + fact.NodeId,
+            "frontend: " + fact.Source.SourceKind,
+            "theme: " + fact.Presentation.ThemeId,
+            "host: " + fact.Presentation.SemanticHostId,
+        };
+        if (!string.IsNullOrWhiteSpace(fact.Role)) lines.Add("role: " + fact.Role);
+        if (!string.IsNullOrWhiteSpace(presentation?.ClassName)) lines.Add("presentation class: " + presentation.ClassName);
+        if (host is not null) lines.Add("owning box: " + host.SemanticPath);
+        return string.Join('\n', lines);
+    }
+
+    private static string BlockKind(DocumentBlockMir block) => block switch
+    {
+        HeadingMir => "Heading",
+        ParagraphMir => "Paragraph",
+        ListMir => "List",
+        CodeBlockMir => "CodeBlock",
+        QuoteMir => "Quote",
+        CalloutMir => "Callout",
+        BreakMir => "Break",
+        ThematicBreakMir => "ThematicBreak",
+        _ => block.GetType().Name,
+    };
+
+    private static string InlineKind(DocumentInlineMir inline) => inline switch
+    {
+        TextMir => "TextRun",
+        CodeSpanMir => "InlineCode",
+        StrongMir => "Strong",
+        EmphasisMir => "Emphasis",
+        LinkMir => "Link",
+        _ => inline.GetType().Name,
+    };
+
+    private sealed record TextDocumentSemanticFact(
+        string Kind,
+        string NodeId,
+        string? Role,
+        DocumentProvenance Source,
+        TextPresentationBinding Presentation);
     private static string Describe(Symbol symbol) => symbol switch
     {
         LayoutSymbol layout => "layout " + (layout.Profile is null ? string.Empty : layout.Profile + " ") + layout.Name,

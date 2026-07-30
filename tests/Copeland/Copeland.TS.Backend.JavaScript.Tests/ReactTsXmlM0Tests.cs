@@ -7,6 +7,71 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class ReactTsXmlM0Tests
 {
     [Fact]
+    public void Plain_text_call_uses_the_canonical_document_renderer()
+    {
+        var project = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource(
+                "Plain.tsx",
+                "Plain.tsx",
+                """
+                import { createElement } from "react";
+                export function Label(): ReactNode { return Text("<safe> & **strong**"); }
+                """),
+        ],
+        new CopelandCompilationOptions
+        {
+            TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+            NpmPackages =
+            [
+                new CopelandNpmPackageContract("react", "19.2.7", [new CopelandNpmFunctionContract("createElement", [], "ReactNode")]),
+            ],
+        });
+
+        Assert.True(project.Success, string.Join(Environment.NewLine, project.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(project.MirProjectGraph!);
+        string output = emitted.Files["Plain.js"];
+        Assert.Contains("createElement(\"div\"", output, StringComparison.Ordinal);
+        Assert.Contains("createElement(\"p\"", output, StringComparison.Ordinal);
+        Assert.Contains("createElement(\"strong\"", output, StringComparison.Ordinal);
+        Assert.Contains("<safe> &", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Canonical_document_binding_renders_semantic_react_elements_without_source_inline_parsing()
+    {
+        var project = CopelandProjectCompiler.CompileToMir(
+        [
+            new CopelandProjectSource(
+                "Document.tsx",
+                "Document.tsx",
+                """
+                import { createElement } from "react";
+                export function DocumentView(): ReactNode {
+                    return <Document className="document-shell"><Heading className="text-fit-target" role="HeroHeading">Build **real software** with `Copeland` and [docs](#docs).</Heading><List><Item><Paragraph>First</Paragraph></Item></List><CodeBlock>const x = 1;</CodeBlock></Document>;
+                }
+                """),
+        ],
+        new CopelandCompilationOptions
+        {
+            TsXmlProfile = CopelandTsXmlProfile.ReactM0,
+            NpmPackages =
+            [
+                new CopelandNpmPackageContract("react", "19.2.7", [new CopelandNpmFunctionContract("createElement", [], "ReactNode")]),
+            ],
+        });
+
+        Assert.True(project.Success, string.Join(Environment.NewLine, project.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        JavaScriptProjectCompilation emitted = JavaScriptProjectEmitter.Emit(project.MirProjectGraph!);
+        string output = emitted.Files["Document.js"];
+        Assert.Contains("createElement(\"h1\", { className: \"text-fit-target\"", output, StringComparison.Ordinal);
+        Assert.Contains("createElement(\"strong\"", output, StringComparison.Ordinal);
+        Assert.Contains("createElement(\"code\"", output, StringComparison.Ordinal);
+        Assert.Contains("href: \"#docs\"", output, StringComparison.Ordinal);
+        Assert.Contains("createElement(\"ul\"", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Explicit_react_profile_lowers_bounded_tsxml_to_imported_createElement_and_root_render()
     {
         var project = CopelandProjectCompiler.CompileToMir(

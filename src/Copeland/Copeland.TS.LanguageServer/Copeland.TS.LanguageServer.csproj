@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Copeland.Markdown/Copeland.Markdown.csproj" />
     <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" />
   </ItemGroup>

@@ -8,10 +8,19 @@ public sealed record MarkdownCompilation(
 public static class MarkdownCompiler
 {
     public static MarkdownCompilation Compile(string sourceText)
+        => Compile(sourceText, "<memory>");
+
+    public static MarkdownCompilation Compile(string sourceText, string sourcePath)
     {
         MarkdownTokenizedSource tokenizedSource = MarkdownLexer.Tokenize(sourceText);
         MarkdownDocument syntax = MarkdownParser.Parse(tokenizedSource);
-        DocumentMir mir = MarkdownToDocumentMirLowerer.Lower(syntax);
+        DocumentMir lowered = MarkdownToDocumentMirLowerer.Lower(syntax);
+        DocumentMir mir = DocumentMirBinder.Bind(
+            lowered,
+            "markdown::" + sourcePath,
+            ownerSymbol: null,
+            DocumentSourceKind.Markdown,
+            sourcePath);
         return new MarkdownCompilation(tokenizedSource, syntax, mir);
     }
 }

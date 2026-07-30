@@ -35,7 +35,10 @@ same website project without starting a browser:
 $cli = C:\Users\yuech\source\repos\Copeland\src\Copeland\Copeland.Cli\bin\Debug\net10.0\Copeland.Cli.exe
 & $cli table list --project .\manifest.tsx --format json
 & $cli table rows layout::Boxes --project .\manifest.tsx --format json
-& $cli table rows text::Regions --project .\manifest.tsx --format json
+& $cli table rows text::Documents --project .\manifest.tsx --format json
+& $cli table rows text::Blocks --project .\manifest.tsx --format json
+& $cli table rows text::Inlines --project .\manifest.tsx --format json
+& $cli table rows text::Bindings --project .\manifest.tsx --format json
 & $cli layout inspect CopelandDesktop --project .\manifest.tsx --json
 ```
 

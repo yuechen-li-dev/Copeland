@@ -1,5 +1,6 @@
 using Copeland.TS.Diagnostics;
 using Copeland.TS.Lowering;
+using Copeland.TS.MachinaSource;
 using Copeland.TS.Mir;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
@@ -862,5 +863,11 @@ public sealed class CopelandProjectCompilation(
     public IReadOnlyList<Diagnostic> Diagnostics { get; } = diagnostics;
     public MirProjectGraph? MirProjectGraph { get; } = mirProjectGraph;
     public IReadOnlyList<CopelandProjectModuleCompilation> Modules { get; } = modules ?? [];
+    /// <summary>Canonical documents retained by the normal bound compiler phase.</summary>
+    public IReadOnlyList<BoundTextDocument> TextDocuments { get; } = (modules ?? [])
+        .SelectMany(module => module.BoundCompilation is null
+            ? []
+            : module.BoundCompilation.TextDocuments)
+        .ToArray();
     public bool Success => Compilation is not null && Diagnostics.Count == 0 && Compilation.Success;
 }

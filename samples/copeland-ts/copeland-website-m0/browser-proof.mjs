@@ -43,6 +43,7 @@ try {
     if (initial.textFit.size + tolerance < initial.textFit.minimum) throw new Error(`${profile.name} fitted below its authored minimum.`);
     if (initial.heroTitleTarget.scrollWidth > initial.heroTitleTarget.clientWidth + tolerance) throw new Error(`${profile.name} title is horizontally clipped.`);
     if (initial.codeBadge.scrollWidth <= initial.codeBadge.clientWidth + tolerance) throw new Error(`${profile.name} code region did not retain its intentional horizontal scroll extent.`);
+    if (!initial.semantics.heroHeading || !initial.semantics.strong || !initial.semantics.link || !initial.semantics.list || !initial.semantics.code) throw new Error(`${profile.name} text document semantic DOM is incomplete.`);
     await page.screenshot({ path: `${artifactDirectory}/${profile.name}-initial.png` });
 
     const locality = [];
@@ -106,8 +107,11 @@ function snapshot(layout) {
   const actionsContent = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroActions'] .hero-actions`);
   const page = requireElement(`[data-machina-layout='${layout}'][data-machina-box='page']`);
   const code = requireElement(`[data-machina-layout='${layout}'][data-machina-box='codeBadge']`);
+  const heroDocument = requireElement(`[data-machina-layout='${layout}'][data-machina-box='heroTitle'] .text-document`);
+  const architecture = requireElement(`[data-machina-layout='${layout}'][data-machina-box='architecture']`);
+  const footer = requireElement(`[data-machina-layout='${layout}'][data-machina-box='footer']`);
   return {
-    root: box("root"), page: { ...rectangle(page), scrollHeight: page.scrollHeight, clientHeight: page.clientHeight, scrollTop: page.scrollTop }, content: box("content"), hero: box("hero"), heroTitle: rectangle(heroTitleHost), heroActions: rectangle(heroActionsHost), featureGrid: box("featureGrid"), heroTitleTarget: { ...rectangle(titleTarget), scrollWidth: titleTarget.scrollWidth, clientWidth: titleTarget.clientWidth }, heroActionsContent: rectangle(actionsContent), codeBadge: { ...rectangle(code), scrollWidth: code.scrollWidth, clientWidth: code.clientWidth }, footer: box("footer"), document: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }, textFit: { status: heroTitleHost.dataset.machinaTextFit, size: Number(heroTitleHost.dataset.machinaTextSize), minimum: Number(heroTitleHost.dataset.machinaTextMinimumSize) }
+    root: box("root"), page: { ...rectangle(page), scrollHeight: page.scrollHeight, clientHeight: page.clientHeight, scrollTop: page.scrollTop }, content: box("content"), hero: box("hero"), heroTitle: rectangle(heroTitleHost), heroActions: rectangle(heroActionsHost), featureGrid: box("featureGrid"), heroTitleTarget: { ...rectangle(titleTarget), scrollWidth: titleTarget.scrollWidth, clientWidth: titleTarget.clientWidth }, heroActionsContent: rectangle(actionsContent), codeBadge: { ...rectangle(code), scrollWidth: code.scrollWidth, clientWidth: code.clientWidth }, footer: box("footer"), document: { scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }, textFit: { status: heroTitleHost.dataset.machinaTextFit, size: Number(heroTitleHost.dataset.machinaTextSize), minimum: Number(heroTitleHost.dataset.machinaTextMinimumSize) }, semantics: { heroHeading: heroDocument.querySelector("h1") !== null, strong: document.querySelector("strong") !== null, link: footer.querySelector("a[href='#architecture']") !== null, list: architecture.querySelector("ul > li") !== null, code: code.querySelector("pre") !== null }
   };
 }
 

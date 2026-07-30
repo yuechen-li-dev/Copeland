@@ -504,3 +504,17 @@ box resize and `document.fonts.ready`. It never changes the box or ancestors.
 The policy applies only to the component's explicit `.text-fit-target`, never
 to buttons or arbitrary descendant subtrees. Intrinsic text-driven box growth
 is deliberately not part of M0.
+
+# Local text documents (CTS-TEXT-DOCUMENT-M0)
+
+> Use the data structure that matches the domain: functions for behavior,
+> tables for spatial relations, and trees for documents.
+
+`Document` trees flow only inside a layout-assigned box. They do not own page
+geometry, change sibling rows, or return runtime measurements to layout.
+Structured blocks use `Document`, `Heading`, `Paragraph`, `List`, `Item`, and
+`CodeBlock`; ordinary inline meaning uses bounded `**strong**`, `*emphasis*`,
+`[link](target)`, and `` `code` `` shorthand. The compiler lowers that subset
+to safe semantic browser DOM and exposes read-only `text::Documents`,
+`text::Blocks`, and `text::Inlines` projections. Raw HTML and full CommonMark
+are intentionally unsupported.

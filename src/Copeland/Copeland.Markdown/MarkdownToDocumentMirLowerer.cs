@@ -51,7 +51,7 @@ public static class MarkdownToDocumentMirLowerer
         return new ListItemMir(LowerInlineList(item.Inlines), item.Span);
     }
 
-    private static IReadOnlyList<DocumentInlineMir> LowerInlineList(IReadOnlyList<MarkdownInline> inlines)
+    public static IReadOnlyList<DocumentInlineMir> LowerInlineList(IReadOnlyList<MarkdownInline> inlines)
     {
         return inlines.Select(LowerInline).ToArray();
     }

@@ -9,6 +9,8 @@ summary and action controls are separate stable boxes. The browser fitter only
 measures the title target, uses actual loaded-font metrics, respects the
 authored minimum, and records `data-machina-text-fit` plus selected size.
 Code badges use `overflow: auto` and retain long tokens for local scrolling.
+CTS-TEXT-DOCUMENT-M0 now realizes the title, card, pipeline, code, and footer
+copy as local immutable document trees; the fit contract remains unchanged.
 
 Inspection projects box overflow facts and `text::Regions`. This is
 layout-adjacent content policy, not an implicit typography or intrinsic-sizing

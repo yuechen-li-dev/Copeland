@@ -1,4 +1,5 @@
 using Copeland.TS.Diagnostics;
+using Copeland.Markdown;
 using Copeland.TS.MachinaSource;
 using Copeland.TS.Compiler;
 using Copeland.TS.Semantics.Bound;
@@ -114,6 +115,8 @@ public static class Binder
         private readonly string? _moduleIdentity = moduleIdentity;
         private readonly BoundModuleImports? _imports = imports;
         private readonly DiagnosticBag _diagnostics = new();
+        private TextDocumentCompilation _textDocumentCompilation = new([], []);
+        private readonly Dictionary<int, BoundTextDocument> _textDocumentsByRootStart = [];
         private readonly Scope _global = new(null);
         private Scope _scope = null!;
         private FunctionSymbol? _currentFunction;
@@ -181,6 +184,11 @@ public static class Binder
 
         public BoundCompilation Bind()
         {
+            _textDocumentCompilation = TextDocumentCompiler.Compile(_tree, _sourcePath ?? "<memory>");
+            foreach (BoundTextDocument document in _textDocumentCompilation.Documents)
+            {
+                _textDocumentsByRootStart[document.Source.Start] = document;
+            }
             _scope = _global;
             InitializeModuleOwnedTypeIdentityRange();
             ImportModuleSymbols();
@@ -270,8 +278,9 @@ public static class Binder
                     _templates,
                     _layouts,
                     _layoutBindings),
-                _tree.Diagnostics.Concat(_diagnostics.Diagnostics).ToArray(),
-                CreateModuleScope());
+                _tree.Diagnostics.Concat(_diagnostics.Diagnostics).Concat(_textDocumentCompilation.Diagnostics).ToArray(),
+                CreateModuleScope(),
+                _textDocumentCompilation.Documents);
         }
 
         private void ImportModuleSymbols()
@@ -3870,17 +3879,32 @@ public static class Binder
             }
 
             string elementName = element.NameToken.Text;
-            bool isIntrinsic = elementName.Length > 0 && char.IsLower(elementName[0]);
+            if (elementName == "Document")
+            {
+                if (!_textDocumentsByRootStart.TryGetValue(element.LessToken.Position, out BoundTextDocument? document))
+                {
+                    Report("COPE-DOC-RENDER-0001", "Canonical document binding is missing for this Document root.", element.NameToken);
+                    return new BoundErrorExpression();
+                }
+                return BindCanonicalDocument(document, createElement.Name);
+            }
+            // Text documents are a compiler-owned semantic surface. They lower
+            // to ordinary safe HTML elements, but remain distinguishable from
+            // arbitrary React components while binding and inspection run.
+            bool isTextDocumentElement = IsTextDocumentElement(elementName);
+            bool isIntrinsic = elementName.Length > 0 && char.IsLower(elementName[0]) || isTextDocumentElement;
             BoundExpression elementType;
             IReadOnlyList<NpmComponentPropertySymbol> componentProperties;
             if (isIntrinsic)
             {
-                if (!IsSupportedReactIntrinsic(elementName))
+                if (!isTextDocumentElement && !IsSupportedReactIntrinsic(elementName))
                 {
                     Report("COPE-REACT-0002", $"React TS-XML intrinsic '<{elementName}>' is not supported by the bounded React M0 profile.", element.NameToken);
                 }
 
-                elementType = new BoundLiteralExpression(elementName, PrimitiveTypeSymbol.String);
+                elementType = new BoundLiteralExpression(
+                    isTextDocumentElement ? TextDocumentDomElement(element) : elementName,
+                    PrimitiveTypeSymbol.String);
                 componentProperties = [];
             }
             else if (TryResolveReactComponent(elementName, element.NameToken, out BoundExpression? resolvedComponent, out IReadOnlyList<NpmComponentPropertySymbol>? resolvedProperties))
@@ -3902,6 +3926,14 @@ public static class Binder
                 if (!seenProperties.Add(propertyName))
                 {
                     Report("COPE-REACT-0012", $"React TS-XML property '{propertyName}' is specified more than once on '<{elementName}>'.", attribute.NameToken);
+                    continue;
+                }
+
+                // Semantic text roles are compiler metadata, not ARIA role
+                // names. The DOM element chosen above carries the accessible
+                // native semantics without emitting an invalid role value.
+                if (isTextDocumentElement && propertyName == "role")
+                {
                     continue;
                 }
 
@@ -3946,7 +3978,99 @@ public static class Binder
                 }
             }
 
-            return new BoundReactElementExpression(createElement.Name, elementType, isIntrinsic, properties, BindReactChildren(element.Children));
+            IReadOnlyList<BoundExpression> children = BindReactChildren(element.Children);
+            return new BoundReactElementExpression(createElement.Name, elementType, isIntrinsic, properties, children);
+        }
+
+        private BoundExpression BindCanonicalDocument(BoundTextDocument document, string createElementBinding)
+        {
+            IReadOnlyList<BoundExpression> children = document.Document.Blocks
+                .Select(block => BindDocumentBlock(block, document.Presentation, createElementBinding))
+                .ToArray();
+            return DocumentElement("div", document.Presentation.DocumentClassName, children, createElementBinding);
+        }
+
+        private BoundExpression BindDocumentBlock(
+            DocumentBlockMir block,
+            TextPresentationBinding presentation,
+            string createElementBinding)
+        {
+            string? className = presentation.NodePresentations.GetValueOrDefault(block.Metadata.NodeId)?.ClassName;
+            return block switch
+            {
+                HeadingMir heading => DocumentElement(
+                    heading.Metadata.Role == "HeroHeading" ? "h1" : "h2",
+                    className,
+                    BindDocumentInlines(heading.Inlines, presentation, createElementBinding),
+                    createElementBinding),
+                ParagraphMir paragraph => DocumentElement("p", className, BindDocumentInlines(paragraph.Inlines, presentation, createElementBinding), createElementBinding),
+                QuoteMir quote => DocumentElement("blockquote", className, BindDocumentInlines(quote.Inlines, presentation, createElementBinding), createElementBinding),
+                CalloutMir callout => DocumentElement("aside", className, BindDocumentInlines(callout.Inlines, presentation, createElementBinding), createElementBinding),
+                CodeBlockMir code => DocumentElement("pre", className, [DocumentElement("code", null, [new BoundLiteralExpression(code.Text, PrimitiveTypeSymbol.String)], createElementBinding)], createElementBinding),
+                BreakMir => DocumentElement("br", className, [], createElementBinding),
+                ThematicBreakMir => DocumentElement("hr", className, [], createElementBinding),
+                ListMir list => DocumentElement("ul", className, list.Items.Select(item => BindDocumentListItem(item, presentation, createElementBinding)).ToArray(), createElementBinding),
+                _ => UnsupportedDocumentNode(block, createElementBinding),
+            };
+        }
+
+        private BoundExpression BindDocumentListItem(ListItemMir item, TextPresentationBinding presentation, string createElementBinding)
+        {
+            string? className = presentation.NodePresentations.GetValueOrDefault(item.Metadata.NodeId)?.ClassName;
+            var children = new List<BoundExpression>();
+            children.AddRange(BindDocumentInlines(item.Inlines, presentation, createElementBinding));
+            children.AddRange(item.ChildBlocks.Select(block => BindDocumentBlock(block, presentation, createElementBinding)));
+            return DocumentElement("li", className, children, createElementBinding);
+        }
+
+        private IReadOnlyList<BoundExpression> BindDocumentInlines(
+            IReadOnlyList<DocumentInlineMir> inlines,
+            TextPresentationBinding presentation,
+            string createElementBinding)
+            => inlines.Select(inline => BindDocumentInline(inline, presentation, createElementBinding)).ToArray();
+
+        private BoundExpression BindDocumentInline(DocumentInlineMir inline, TextPresentationBinding presentation, string createElementBinding)
+        {
+            string? className = presentation.NodePresentations.GetValueOrDefault(inline.Metadata.NodeId)?.ClassName;
+            return inline switch
+            {
+                TextMir text => new BoundLiteralExpression(text.Text, PrimitiveTypeSymbol.String),
+                CodeSpanMir code => DocumentElement("code", className, [new BoundLiteralExpression(code.Text, PrimitiveTypeSymbol.String)], createElementBinding),
+                StrongMir strong => DocumentElement("strong", className, BindDocumentInlines(strong.Children, presentation, createElementBinding), createElementBinding),
+                EmphasisMir emphasis => DocumentElement("em", className, BindDocumentInlines(emphasis.Children, presentation, createElementBinding), createElementBinding),
+                LinkMir link => DocumentElement("a", className, BindDocumentInlines(link.Label, presentation, createElementBinding), createElementBinding, link.Target),
+                _ => UnsupportedDocumentNode(inline, createElementBinding),
+            };
+        }
+
+        private BoundExpression UnsupportedDocumentNode(object node, string createElementBinding)
+        {
+            Report("COPE-DOC-RENDER-0002", $"React renderer does not support canonical document node '{node.GetType().Name}'.", FirstToken(_tree.Root));
+            return DocumentElement("span", null, [], createElementBinding);
+        }
+
+        private static BoundExpression DocumentElement(
+            string name,
+            string? className,
+            IReadOnlyList<BoundExpression> children,
+            string createElementBinding,
+            string? href = null)
+        {
+            var properties = new List<BoundReactProperty>();
+            if (!string.IsNullOrWhiteSpace(className))
+            {
+                properties.Add(new BoundReactProperty("className", new BoundLiteralExpression(className, PrimitiveTypeSymbol.String)));
+            }
+            if (href is not null)
+            {
+                properties.Add(new BoundReactProperty("href", new BoundLiteralExpression(href, PrimitiveTypeSymbol.String)));
+            }
+            return new BoundReactElementExpression(
+                createElementBinding,
+                new BoundLiteralExpression(name, PrimitiveTypeSymbol.String),
+                true,
+                properties,
+                children);
         }
 
         private bool TryResolveReactComponent(string elementName, SyntaxToken anchor, out BoundExpression? component, out IReadOnlyList<NpmComponentPropertySymbol>? properties)
@@ -4026,6 +4150,126 @@ public static class Binder
             return result;
         }
 
+        private IReadOnlyList<BoundExpression> BindTextDocumentChildren(IReadOnlyList<TsXmlChildSyntax> children, string createElementBinding)
+        {
+            var result = new List<BoundExpression>();
+            foreach (TsXmlChildSyntax child in children)
+            {
+                if (child is TsXmlTextSyntax text && !string.IsNullOrWhiteSpace(text.TextToken.Text))
+                {
+                    result.AddRange(BindInlineMarkdown(text.TextToken.Text.Trim(), text.TextToken, createElementBinding));
+                    continue;
+                }
+                if (child is TsXmlExpressionChildSyntax expression)
+                {
+                    BoundExpression value = BindExpression(expression.Expression);
+                    if (IsReactChild(value.Type)) result.Add(value);
+                    else Report("COPE-TEXT-0012", "Text interpolation must be a string, number, or safe React text value.", expression.OpenBraceToken);
+                    continue;
+                }
+                SyntaxToken invalidAnchor = child is TsXmlElementChildSyntax { Element: TsXmlElementExpressionSyntax element }
+                    ? element.NameToken
+                    : throw new InvalidOperationException("Unexpected TS-XML child kind.");
+                Report("COPE-TEXT-0002", "Inline text blocks accept text and typed interpolation only.", invalidAnchor);
+            }
+            return result;
+        }
+
+        private IReadOnlyList<BoundExpression> BindInlineMarkdown(string text, SyntaxToken anchor, string createElementBinding)
+        {
+            var result = new List<BoundExpression>();
+            var plain = new System.Text.StringBuilder();
+            int cursor = 0;
+            void FlushPlain()
+            {
+                if (plain.Length == 0) return;
+                result.Add(new BoundLiteralExpression(plain.ToString(), PrimitiveTypeSymbol.String));
+                plain.Clear();
+            }
+            BoundExpression Element(string name, IReadOnlyList<BoundExpression> children, IReadOnlyList<BoundReactProperty>? properties = null)
+                => new BoundReactElementExpression(
+                    createElementBinding,
+                    new BoundLiteralExpression(name, PrimitiveTypeSymbol.String),
+                    true,
+                    properties ?? [],
+                    children);
+
+            while (cursor < text.Length)
+            {
+                if (text[cursor] == '\\' && cursor + 1 < text.Length && "*`[]()\\".Contains(text[cursor + 1]))
+                {
+                    plain.Append(text[cursor + 1]);
+                    cursor += 2;
+                    continue;
+                }
+                if (text.AsSpan(cursor).StartsWith("**", StringComparison.Ordinal))
+                {
+                    int close = text.IndexOf("**", cursor + 2, StringComparison.Ordinal);
+                    if (close > cursor + 2)
+                    {
+                        FlushPlain();
+                        result.Add(Element("strong", [new BoundLiteralExpression(text[(cursor + 2)..close], PrimitiveTypeSymbol.String)]));
+                        cursor = close + 2;
+                        continue;
+                    }
+                    Report("COPE-TEXT-0005", "Malformed inline emphasis; treating marker as text.", anchor);
+                }
+                if (text[cursor] == '*')
+                {
+                    int close = text.IndexOf('*', cursor + 1);
+                    if (close > cursor + 1)
+                    {
+                        FlushPlain();
+                        result.Add(Element("em", [new BoundLiteralExpression(text[(cursor + 1)..close], PrimitiveTypeSymbol.String)]));
+                        cursor = close + 1;
+                        continue;
+                    }
+                }
+                if (text[cursor] == '`')
+                {
+                    int close = text.IndexOf('`', cursor + 1);
+                    if (close > cursor)
+                    {
+                        FlushPlain();
+                        result.Add(Element("code", [new BoundLiteralExpression(text[(cursor + 1)..close], PrimitiveTypeSymbol.String)]));
+                        cursor = close + 1;
+                        continue;
+                    }
+                    Report("COPE-TEXT-0006", "Unclosed inline code; treating marker as text.", anchor);
+                }
+                if (text[cursor] == '[')
+                {
+                    int closeLabel = text.IndexOf("](", cursor + 1, StringComparison.Ordinal);
+                    int closeTarget = closeLabel < 0 ? -1 : text.IndexOf(')', closeLabel + 2);
+                    if (closeLabel > cursor + 1 && closeTarget > closeLabel + 2)
+                    {
+                        string target = text[(closeLabel + 2)..closeTarget];
+                        if (IsSafeTextLinkTarget(target))
+                        {
+                            FlushPlain();
+                            result.Add(Element("a", [new BoundLiteralExpression(text[(cursor + 1)..closeLabel], PrimitiveTypeSymbol.String)], [new BoundReactProperty("href", new BoundLiteralExpression(target, PrimitiveTypeSymbol.String))]));
+                            cursor = closeTarget + 1;
+                            continue;
+                        }
+                        Report("COPE-TEXT-0008", "Unsafe link target; treating markup as text.", anchor);
+                    }
+                    else Report("COPE-TEXT-0007", "Malformed inline link; treating marker as text.", anchor);
+                }
+                plain.Append(text[cursor]);
+                cursor += 1;
+            }
+            FlushPlain();
+            return result;
+        }
+
+        private static bool IsInlineTextDocumentBlock(string name)
+            => name is "Heading" or "Paragraph" or "Quote" or "Callout";
+
+        private static bool IsSafeTextLinkTarget(string target)
+            => target.StartsWith("/", StringComparison.Ordinal)
+                || target.StartsWith("#", StringComparison.Ordinal)
+                || Uri.TryCreate(target, UriKind.Absolute, out Uri? uri) && uri.Scheme is "http" or "https" or "mailto";
+
         private static bool IsSupportedReactIntrinsic(string name)
             => name is "a"
                 or "article"
@@ -4048,6 +4292,17 @@ public static class Binder
                 or "small"
                 or "span"
                 or "strong";
+
+        private static bool IsTextDocumentElement(string name)
+            => name is "Text"
+                or "Document";
+
+        private static string TextDocumentDomElement(TsXmlElementExpressionSyntax element)
+            => element.NameToken.Text switch
+            {
+                "Text" or "Document" => "div",
+                _ => "div",
+            };
 
         private static bool IsReactChild(TypeSymbol type)
             => type == PrimitiveTypeSymbol.String || TypeFacts.IsNumeric(type) || type == ReactNodeTypeSymbol.Instance;
@@ -4756,6 +5011,19 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (_tsXmlProfile == CopelandTsXmlProfile.ReactM0
+                && c.Target is NameExpressionSyntax { IdentifierToken.Text: "Text" } textTarget
+                && _textDocumentsByRootStart.TryGetValue(textTarget.IdentifierToken.Position, out BoundTextDocument? document)
+                && document.Document.Metadata.Provenance.SourceKind == DocumentSourceKind.TextPlain)
+            {
+                if (_scope.TryLookup("createElement", out Symbol? createElementSymbol)
+                    && createElementSymbol is NpmFunctionSymbol { PackageName: "react", ExportName: "createElement" } createElement)
+                {
+                    return BindCanonicalDocument(document, createElement.Name);
+                }
+                Report("COPE-DOC-RENDER-0001", "Canonical plain Text requires the bounded React createElement import.", textTarget.IdentifierToken);
+                return new BoundErrorExpression();
+            }
             if (TryBindNumericConversion(c, out BoundExpression? conversion))
             {
                 return conversion!;

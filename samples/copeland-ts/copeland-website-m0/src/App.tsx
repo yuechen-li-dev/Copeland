@@ -26,13 +26,20 @@ function CompactCommandBar(): ReactNode {
     return <header className="compact-command-bar">{Brand()}<nav><a href="#features">Features</a><a href="#architecture">Architecture</a><a href="#tables">Tables</a></nav></header>;
 }
 
-function HeroIntro(): ReactNode { return <p className="eyebrow hero-intro">ONE LANGUAGE / REAL BOUNDARIES</p>; }
-function HeroTitle(): ReactNode { return <h1 className="text-fit-target">AI-native TypeScript for the next ChatGPT.</h1>; }
-function HeroSummary(): ReactNode { return <p className="hero-summary">Copeland TS unifies React, .NET, npm, templates, and typed browser-to-CLR workflows—so AI writes less glue code and more product.</p>; }
+// The plain-string convenience form normalizes to one Body paragraph.
+function Text(value: string): ReactNode { return <p className="text-document text-body">{value}</p>; }
+
+function HeroIntro(): ReactNode { return <div className="eyebrow hero-intro">{Text("ONE LANGUAGE / REAL BOUNDARIES")}</div>; }
+function HeroTitle(): ReactNode {
+    return <Text className="text-document"><Document><Heading className="text-fit-target" role="HeroHeading">AI-native TypeScript for the next **ChatGPT**.</Heading></Document></Text>;
+}
+function HeroSummary(): ReactNode {
+    return <Text className="text-document hero-summary"><Document><Paragraph role="Body">Copeland TS unifies **React**, .NET, npm, templates, and typed browser-to-CLR workflows—so AI writes less glue code and more product.</Paragraph></Document></Text>;
+}
 function HeroActions(): ReactNode { return <div className="hero-actions"><a href="#features">Explore the model</a><a href="#architecture">See architecture</a></div>; }
 
 function CodeBadge(): ReactNode {
-    return <pre className="code-badge"><code>stream Copeland — featureGrid: Features(); typed-browser-to-clr-contract-token-0123456789</code></pre>;
+    return <Text className="text-document code-badge"><Document><CodeBlock language="ts">stream Copeland — featureGrid: Features(); typed-browser-to-clr-contract-token-0123456789</CodeBlock></Document></Text>;
 }
 
 function HeroAccent(): ReactNode {
@@ -47,25 +54,21 @@ function LanguageExample(): ReactNode {
     return <section className="language-example"><span>TypeScript</span><span className="arrow">→</span><span>TableScript</span><span className="arrow">→</span><span>TemplateScript</span></section>;
 }
 
-function FeatureCard(symbol: string, title: string, copy: string): ReactNode {
-    return <article className="feature-card"><span>{symbol}</span><h2>{title}</h2><p>{copy}</p></article>;
-}
-
-function BridgeCard(): ReactNode { return FeatureCard("⌇⌁⌇", "Typed browser ↔ CLR", "End-to-end types across browser and .NET without a JSON tax."); }
-function ReactCard(): ReactNode { return FeatureCard("◉ ◈", "React components", "Use ordinary third-party React components beneath generated hosts."); }
-function TemplatesCard(): ReactNode { return FeatureCard("▤ </>", "Static templates", "Bounded compile-time structure with no hidden second runtime."); }
-function TablesCard(): ReactNode { return FeatureCard("▦ ⎇", "Inspectable tables", "Typed, diffable, reviewable layout facts stored as ordinary source."); }
+function BridgeCard(): ReactNode { return <article className="feature-card"><span>⌇⌁⌇</span><Document><Heading role="CardHeading">Typed browser ↔ CLR</Heading><Paragraph role="Body">End-to-end types across browser and .NET without a JSON tax.</Paragraph></Document></article>; }
+function ReactCard(): ReactNode { return <article className="feature-card"><span>◉ ◈</span><Document><Heading role="CardHeading">React components</Heading><Paragraph role="Body">Use ordinary third-party **React components** beneath generated hosts.</Paragraph></Document></article>; }
+function TemplatesCard(): ReactNode { return <article className="feature-card"><span>{"▤ </>"}</span><Document><Heading role="CardHeading">Static templates</Heading><Paragraph role="Body">Bounded compile-time structure with no hidden second runtime.</Paragraph></Document></article>; }
+function TablesCard(): ReactNode { return <article className="feature-card"><span>▦ ⎇</span><Document><Heading role="CardHeading">Inspectable tables</Heading><Paragraph role="Body">Typed, diffable, **reviewable** layout facts stored as ordinary source.</Paragraph></Document></article>; }
 
 function Architecture(): ReactNode {
-    return <section id="architecture" className="architecture"><p className="eyebrow">CANONICAL PIPELINE</p><h2>Components execute. Layouts describe spatial relations.</h2><div className="architecture-steps"><p>1. Components provide behavior and content.</p><p>2. Streams bind that content to named regions.</p><p>3. Compiler-projected tables produce neutral browser hosts.</p></div></section>;
+    return <section id="architecture" className="architecture"><Document><Paragraph className="eyebrow" role="Eyebrow">CANONICAL PIPELINE</Paragraph><Heading role="SectionHeading">Components execute. Layouts describe spatial relations.</Heading><List><Item><Paragraph>Components provide behavior and content.</Paragraph></Item><Item><Paragraph>Streams bind that content to named regions.</Paragraph></Item><Item><Paragraph>Compiler-projected tables produce **neutral** browser hosts.</Paragraph></Item></List></Document></section>;
 }
 
 function CallToAction(): ReactNode {
-    return <section className="call-to-action"><div><p className="eyebrow">START WITH A REAL HOST</p><h2>Build the bridge, then inspect the tables.</h2></div><div className="command-actions"><button onClick={() => Copy("dotnet new copeland-react")}>Copy starter command</button><code>dotnet new copeland-react</code></div></section>;
+    return <section className="call-to-action"><Document><Paragraph className="eyebrow" role="Eyebrow">START WITH A REAL HOST</Paragraph><Heading role="SectionHeading">Build the bridge, then inspect the tables.</Heading></Document><div className="command-actions"><button onClick={() => Copy("dotnet new copeland-react")}>Copy starter command</button><Text className="text-document"><Document><CodeBlock language="console">dotnet new copeland-react</CodeBlock></Document></Text></div></section>;
 }
 
 function Footer(): ReactNode {
-    return <footer className="site-footer"><span>Copeland TS / React / Machina / TSPack</span><a href="#overview">Back to overview ↑</a></footer>;
+    return <footer className="site-footer"><Document><Paragraph role="Caption">Copeland TS / React / Machina / TSPack — read the [architecture guide](#architecture).</Paragraph></Document><a href="#overview">Back to overview ↑</a></footer>;
 }
 
 // The three roots deliberately have independent topology. Their nested hosts

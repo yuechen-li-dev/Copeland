@@ -53,3 +53,9 @@ they are using one compiler-visible graph.
 `textRegionId`, owning `boxId`, preferred/minimum px sizes, maximum line count,
 wrap mode, fit mode, fallback mode, and source provenance. Runtime-selected
 font size and scroll position are intentionally excluded.
+
+`text::Documents`, `text::Blocks`, and `text::Inlines` are the corresponding
+tree projections. Documents retain owning box/binding/theme/fit/overflow facts;
+blocks retain parent, kind, role, order, and source; inlines retain their block,
+kind, text, safe link target, order, and source. The document tree remains the
+semantic truth—tables are inspection views only.

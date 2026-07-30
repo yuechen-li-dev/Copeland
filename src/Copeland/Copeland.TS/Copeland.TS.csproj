@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Copeland.Markdown/Copeland.Markdown.csproj" />
     <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
   </ItemGroup>
 </Project>

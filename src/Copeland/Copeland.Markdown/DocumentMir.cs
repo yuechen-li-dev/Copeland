@@ -2,7 +2,56 @@ namespace Copeland.Markdown;
 
 public sealed record DocumentMir(
     IReadOnlyList<DocumentBlockMir> Blocks,
-    IReadOnlyList<DocumentDiagnostic> Diagnostics);
+    IReadOnlyList<DocumentDiagnostic> Diagnostics)
+{
+    /// <summary>
+    /// Binding facts are deliberately separate from syntax. Every document
+    /// frontend assigns this metadata before any consumer observes the MIR.
+    /// </summary>
+    public DocumentMetadata Metadata { get; init; } = DocumentMetadata.Unbound;
+}
+
+public enum DocumentSourceKind
+{
+    Markdown,
+    TextXml,
+    TextPlain,
+}
+
+public sealed record DocumentProvenance(
+    DocumentSourceKind SourceKind,
+    string SourcePath,
+    int Start,
+    int Length)
+{
+    public int End => Start + Length;
+}
+
+public sealed record DocumentMetadata(
+    string DocumentId,
+    string? OwnerSymbol,
+    DocumentProvenance Provenance)
+{
+    public static DocumentMetadata Unbound { get; } = new(
+        "<unbound-document>",
+        null,
+        new DocumentProvenance(DocumentSourceKind.Markdown, "<memory>", 0, 0));
+}
+
+public sealed record DocumentNodeMetadata(
+    string NodeId,
+    string? ParentNodeId,
+    int AuthoredOrder,
+    string? Role,
+    DocumentProvenance Provenance)
+{
+    public static DocumentNodeMetadata Unbound { get; } = new(
+        "<unbound-node>",
+        null,
+        0,
+        null,
+        new DocumentProvenance(DocumentSourceKind.Markdown, "<memory>", 0, 0));
+}
 
 public enum DocumentListKind
 {
@@ -10,7 +59,10 @@ public enum DocumentListKind
     Ordered,
 }
 
-public abstract record DocumentBlockMir(SourceSpan Span);
+public abstract record DocumentBlockMir(SourceSpan Span)
+{
+    public DocumentNodeMetadata Metadata { get; init; } = DocumentNodeMetadata.Unbound;
+}
 
 public sealed record HeadingMir(
     int Level,
@@ -28,7 +80,11 @@ public sealed record ListMir(
 
 public sealed record ListItemMir(
     IReadOnlyList<DocumentInlineMir> Inlines,
-    SourceSpan Span);
+    SourceSpan Span)
+{
+    public DocumentNodeMetadata Metadata { get; init; } = DocumentNodeMetadata.Unbound;
+    public IReadOnlyList<DocumentBlockMir> ChildBlocks { get; init; } = [];
+}
 
 public sealed record CodeBlockMir(
     string? Language,
@@ -37,7 +93,20 @@ public sealed record CodeBlockMir(
 
 public sealed record ThematicBreakMir(SourceSpan Span) : DocumentBlockMir(Span);
 
-public abstract record DocumentInlineMir(SourceSpan Span);
+public sealed record QuoteMir(
+    IReadOnlyList<DocumentInlineMir> Inlines,
+    SourceSpan Span) : DocumentBlockMir(Span);
+
+public sealed record CalloutMir(
+    IReadOnlyList<DocumentInlineMir> Inlines,
+    SourceSpan Span) : DocumentBlockMir(Span);
+
+public sealed record BreakMir(SourceSpan Span) : DocumentBlockMir(Span);
+
+public abstract record DocumentInlineMir(SourceSpan Span)
+{
+    public DocumentNodeMetadata Metadata { get; init; } = DocumentNodeMetadata.Unbound;
+}
 
 public sealed record TextMir(string Text, SourceSpan Span) : DocumentInlineMir(Span);
 

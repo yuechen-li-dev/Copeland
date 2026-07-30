@@ -286,10 +286,24 @@ public sealed class BoundTsonTableColumnPlan(
 }
 public sealed class BoundCompilation
 {
-    public BoundCompilation(SyntaxTree syntaxTree, BoundProgram program, IReadOnlyList<Diagnostics.Diagnostic> diagnostics, BoundModuleScope? moduleScope = null) { SyntaxTree = syntaxTree; Program = program; Diagnostics = diagnostics; ModuleScope = moduleScope; }
+    public BoundCompilation(
+        SyntaxTree syntaxTree,
+        BoundProgram program,
+        IReadOnlyList<Diagnostics.Diagnostic> diagnostics,
+        BoundModuleScope? moduleScope = null,
+        IReadOnlyList<MachinaSource.BoundTextDocument>? textDocuments = null)
+    {
+        SyntaxTree = syntaxTree;
+        Program = program;
+        Diagnostics = diagnostics;
+        ModuleScope = moduleScope;
+        TextDocuments = textDocuments ?? [];
+    }
     public SyntaxTree SyntaxTree { get; }
     public BoundProgram Program { get; }
     public IReadOnlyList<Diagnostics.Diagnostic> Diagnostics { get; }
+    /// <summary>Canonical documents bound from this exact parsed source snapshot.</summary>
+    public IReadOnlyList<MachinaSource.BoundTextDocument> TextDocuments { get; }
     /// <summary>Compiler-owned declarations of this source module. Imported names are deliberately absent.</summary>
     public BoundModuleScope? ModuleScope { get; }
 }
