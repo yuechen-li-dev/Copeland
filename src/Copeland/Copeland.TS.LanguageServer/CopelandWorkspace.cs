@@ -104,9 +104,10 @@ internal sealed class CopelandWorkspace
         LayoutSlotSymbol? bindingSlot = FindBindingSlot(compilation, token);
         string? tableContents = DescribeTableCellAt(compilation, token.Position);
         string? paintContents = DescribePaintAt(compilation, token.Position);
+        string? relativeContents = DescribeRelativeDerivationAt(compilation.SyntaxTree, token);
         Symbol? symbol = FindSymbol(compilation, token.Text);
         DeclarationInfo? declaration = FindDeclaration(compilation.SyntaxTree, token.Text);
-        string contents = tableContents ?? paintContents ?? (bindingSlot is not null
+        string contents = relativeContents ?? tableContents ?? paintContents ?? (bindingSlot is not null
             ? "slot " + bindingSlot.SemanticPath + "\ncardinality: exactly one renderable component/view\nhost: compiler-generated div layout region"
             : symbol is LayoutSymbol { BoundLayout: not null } layout
             ? DescribeLayout(layout)
@@ -141,11 +142,11 @@ internal sealed class CopelandWorkspace
                 insertTextFormat = 2,
             };
         }
-        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "width", "height", "gap", "padding", "layer", "z", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
+        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
         }
-        foreach (string column in new[] { "name", "content", "x", "y", "width", "height", "layer", "z" })
+        foreach (string column in new[] { "name", "content", "x", "y", "width", "height", "derivations", "layer", "z" })
         {
             items[column] = CompletionItem(column, 10, "CSV overlay column: " + TableColumnExpectation(column));
         }
@@ -165,6 +166,7 @@ internal sealed class CopelandWorkspace
             }
         }
         AddLayoutBindingSlotCompletions(items, compilation, ToOffset(document.Text, position));
+        AddRelativeLayoutCompletions(items, compilation.SyntaxTree);
         if (compilation.BoundCompilation is not null)
         {
             foreach (BoundNpmImport import in compilation.BoundCompilation.Program.NpmImports)
@@ -220,6 +222,10 @@ internal sealed class CopelandWorkspace
                 uri = new Uri(bindingSlot.Source.SourcePath).AbsoluteUri,
                 range = Range(bindingSlot.Source.SourcePath == current.Path ? current.Text : File.ReadAllText(bindingSlot.Source.SourcePath), bindingSlot.Source.Start, bindingSlot.Name.Length),
             };
+        }
+        if (TryFindRelativeSourceDefinition(compilation.SyntaxTree, token, out SyntaxToken? boxDeclaration))
+        {
+            return new { uri, range = Range(current.Text, boxDeclaration!.Position, boxDeclaration.Text.Length) };
         }
         CopelandProjectModuleCompilation? sourceModule = project.Modules.FirstOrDefault(module => PathsEqual(module.Source.SourcePath, current.Path));
         CopelandProjectImport? import = sourceModule?.Imports.FirstOrDefault(candidate => candidate.LocalName == token.Text && candidate.TargetLogicalPath is not null);
@@ -627,7 +633,8 @@ internal sealed class CopelandWorkspace
         "name" => "semantic box identifier",
         "content" => "renderable ReactNode expression",
         "x" or "y" => "px or ui coordinate",
-        "width" or "height" => "length, fill, or fit",
+        "width" or "height" => "length, fill, fit, or derived",
+        "derivations" => "static list of compiler-known relative layout transforms",
         "layer" => "symbol from the active layer set",
         "z" => "integral value from -5 through 5",
         _ => "supported CSV overlay column",
@@ -848,6 +855,8 @@ internal sealed class CopelandWorkspace
     {
         if (SameToken(node.KindToken, token)) return 12;
         if (SameToken(node.Identifier, token)) return 13;
+        int derivationKind = RelativeDerivationTokenKind(node.RelativeDerivations, token);
+        if (derivationKind >= 0) return derivationKind;
         foreach (LayoutPropertySyntax property in node.Properties)
         {
             if (SameToken(property.Identifier, token)) return property.Identifier.Text is "layer" or "z" ? 10 : -1;
@@ -867,6 +876,8 @@ internal sealed class CopelandWorkspace
     {
         if (node.KindToken is not null && SameToken(node.KindToken, token)) return 0;
         if (SameToken(node.Identifier, token)) return 13;
+        int derivationKind = RelativeDerivationTokenKind(node.RelativeDerivations, token);
+        if (derivationKind >= 0) return derivationKind;
         foreach (LayoutPropertySyntax property in node.Properties)
         {
             if (SameToken(property.Identifier, token)) return 10;
@@ -882,6 +893,122 @@ internal sealed class CopelandWorkspace
             if (tableKind >= 0) return tableKind;
         }
         return -1;
+    }
+
+    private static int RelativeDerivationTokenKind(IReadOnlyList<LayoutRelativeDerivationSyntax>? derivations, SyntaxToken token)
+    {
+        foreach (LayoutRelativeDerivationSyntax derivation in derivations ?? [])
+        {
+            if (SameToken(derivation.WithKeyword, token)) return 0;
+            if (SameToken(derivation.TransformIdentifier, token)) return 4;
+            if (SameToken(derivation.SourceIdentifier, token)) return 13;
+            if (derivation.GapOrPadding is LiteralExpressionSyntax { LiteralToken: var lengthToken } && SameToken(lengthToken, token)) return 15;
+        }
+        return -1;
+    }
+
+    private static readonly IReadOnlyDictionary<string, string> RelativeTransformDetails = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["centerIn"] = "relative layout intrinsic\nreads: source.x, source.y, source.width, source.height, self.width, self.height\nwrites: self.x, self.y",
+        ["centerXIn"] = "relative layout intrinsic\nreads: source.x, source.width, self.width\nwrites: self.x",
+        ["centerYIn"] = "relative layout intrinsic\nreads: source.y, source.height, self.height\nwrites: self.y",
+        ["alignLeft"] = "relative layout intrinsic\nreads: source.x\nwrites: self.x",
+        ["alignRight"] = "relative layout intrinsic\nreads: source.x, source.width, self.width\nwrites: self.x",
+        ["alignTop"] = "relative layout intrinsic\nreads: source.y\nwrites: self.y",
+        ["alignBottom"] = "relative layout intrinsic\nreads: source.y, source.height, self.height\nwrites: self.y",
+        ["placeLeftOf"] = "relative layout intrinsic\nreads: source.x, self.width, gap\nwrites: self.x",
+        ["placeRightOf"] = "relative layout intrinsic\nreads: source.x, source.width, gap\nwrites: self.x",
+        ["placeAbove"] = "relative layout intrinsic\nreads: source.y, self.height, gap\nwrites: self.y",
+        ["placeBelow"] = "relative layout intrinsic\nreads: source.y, source.height, gap\nwrites: self.y",
+        ["insetFrom"] = "relative layout intrinsic\nreads: source frame, padding\nwrites: self frame",
+        ["expandFrom"] = "relative layout intrinsic\nreads: source frame, padding\nwrites: self frame",
+    };
+
+    private static string? DescribeRelativeDerivationAt(SyntaxTree? tree, SyntaxToken token)
+    {
+        if (tree is null) return null;
+        foreach (LayoutRelativeDerivationSyntax derivation in RelativeDerivations(tree))
+        {
+            if (SameToken(derivation.TransformIdentifier, token)) return RelativeTransformDetails.GetValueOrDefault(derivation.TransformIdentifier.Text);
+            if (SameToken(derivation.SourceIdentifier, token)) return "relative layout source box " + derivation.SourceIdentifier.Text;
+        }
+        return null;
+    }
+
+    private static void AddRelativeLayoutCompletions(Dictionary<string, object> items, SyntaxTree? tree)
+    {
+        foreach ((string transform, string detail) in RelativeTransformDetails)
+        {
+            items[transform] = CompletionItem(transform, 3, detail);
+        }
+        foreach (SyntaxToken box in LayoutBoxDeclarations(tree))
+        {
+            items[box.Text] = CompletionItem(box.Text, 7, "relative layout box");
+        }
+    }
+
+    private static bool TryFindRelativeSourceDefinition(SyntaxTree? tree, SyntaxToken token, out SyntaxToken? declaration)
+    {
+        declaration = null;
+        if (!RelativeDerivations(tree).Any(derivation => SameToken(derivation.SourceIdentifier, token))) return false;
+        declaration = LayoutBoxDeclarations(tree).FirstOrDefault(candidate => candidate.Text == token.Text);
+        return declaration is not null;
+    }
+
+    private static IEnumerable<LayoutRelativeDerivationSyntax> RelativeDerivations(SyntaxTree? tree)
+    {
+        if (tree is null) yield break;
+        foreach (LayoutDeclarationSyntax layout in tree.Root.Members.OfType<LayoutDeclarationSyntax>())
+        {
+            foreach (LayoutNodeSyntax node in layout.Nodes)
+            {
+                foreach (LayoutRelativeDerivationSyntax derivation in NodeDerivations(node)) yield return derivation;
+            }
+        }
+        foreach (StreamDeclarationSyntax stream in tree.Root.Members.OfType<StreamDeclarationSyntax>())
+        {
+            foreach (StreamNodeSyntax node in stream.Nodes)
+            {
+                foreach (LayoutRelativeDerivationSyntax derivation in StreamDerivations(node)) yield return derivation;
+            }
+        }
+    }
+
+    private static IEnumerable<SyntaxToken> LayoutBoxDeclarations(SyntaxTree? tree)
+    {
+        if (tree is null) yield break;
+        foreach (LayoutDeclarationSyntax layout in tree.Root.Members.OfType<LayoutDeclarationSyntax>())
+        {
+            foreach (LayoutNodeSyntax node in layout.Nodes) foreach (SyntaxToken box in NodeBoxes(node)) yield return box;
+        }
+        foreach (StreamDeclarationSyntax stream in tree.Root.Members.OfType<StreamDeclarationSyntax>())
+        {
+            foreach (StreamNodeSyntax node in stream.Nodes) foreach (SyntaxToken box in StreamBoxes(node)) yield return box;
+        }
+    }
+
+    private static IEnumerable<LayoutRelativeDerivationSyntax> NodeDerivations(LayoutNodeSyntax node)
+    {
+        foreach (LayoutRelativeDerivationSyntax derivation in node.RelativeDerivations ?? []) yield return derivation;
+        foreach (LayoutNodeSyntax child in node.Children) foreach (LayoutRelativeDerivationSyntax derivation in NodeDerivations(child)) yield return derivation;
+    }
+
+    private static IEnumerable<LayoutRelativeDerivationSyntax> StreamDerivations(StreamNodeSyntax node)
+    {
+        foreach (LayoutRelativeDerivationSyntax derivation in node.RelativeDerivations ?? []) yield return derivation;
+        foreach (StreamNodeSyntax child in node.Children) foreach (LayoutRelativeDerivationSyntax derivation in StreamDerivations(child)) yield return derivation;
+    }
+
+    private static IEnumerable<SyntaxToken> NodeBoxes(LayoutNodeSyntax node)
+    {
+        yield return node.Identifier;
+        foreach (LayoutNodeSyntax child in node.Children) foreach (SyntaxToken box in NodeBoxes(child)) yield return box;
+    }
+
+    private static IEnumerable<SyntaxToken> StreamBoxes(StreamNodeSyntax node)
+    {
+        yield return node.Identifier;
+        foreach (StreamNodeSyntax child in node.Children) foreach (SyntaxToken box in StreamBoxes(child)) yield return box;
     }
 
     private static int StreamTableTokenKind(StreamTableSyntax table, SyntaxToken token)

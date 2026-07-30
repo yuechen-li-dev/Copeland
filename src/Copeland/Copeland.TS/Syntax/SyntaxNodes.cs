@@ -787,7 +787,8 @@ public sealed record StreamNodeSyntax(
     IReadOnlyList<LayoutPropertySyntax> Properties,
     IReadOnlyList<StreamNodeSyntax> Children,
     IReadOnlyList<StreamTableSyntax> Tables,
-    SyntaxToken? CloseBraceToken) : SyntaxNode
+    SyntaxToken? CloseBraceToken,
+    IReadOnlyList<LayoutRelativeDerivationSyntax>? RelativeDerivations = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.StreamNode;
 
@@ -802,6 +803,7 @@ public sealed record StreamNodeSyntax(
         foreach (StreamNodeSyntax child in Children) yield return child;
         foreach (StreamTableSyntax table in Tables) yield return table;
         if (CloseBraceToken is not null) yield return CloseBraceToken;
+        foreach (LayoutRelativeDerivationSyntax derivation in RelativeDerivations ?? []) yield return derivation;
     }
 }
 
@@ -882,7 +884,8 @@ public sealed record LayoutNodeSyntax(
     SyntaxToken? OpenBraceToken,
     IReadOnlyList<LayoutPropertySyntax> Properties,
     IReadOnlyList<LayoutNodeSyntax> Children,
-    SyntaxToken? CloseBraceToken) : SyntaxNode
+    SyntaxToken? CloseBraceToken,
+    IReadOnlyList<LayoutRelativeDerivationSyntax>? RelativeDerivations = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.LayoutNode;
 
@@ -895,6 +898,36 @@ public sealed record LayoutNodeSyntax(
         foreach (LayoutPropertySyntax property in Properties) yield return property;
         foreach (LayoutNodeSyntax child in Children) yield return child;
         if (CloseBraceToken is not null) yield return CloseBraceToken;
+        foreach (LayoutRelativeDerivationSyntax derivation in RelativeDerivations ?? []) yield return derivation;
+    }
+}
+
+/// <summary>
+/// A closed layout-profile derivation. It deliberately is not an ordinary call
+/// expression: the binder owns its transform vocabulary and field contract.
+/// </summary>
+public sealed record LayoutRelativeDerivationSyntax(
+    SyntaxToken WithKeyword,
+    SyntaxToken TransformIdentifier,
+    SyntaxToken OpenParenToken,
+    SyntaxToken SourceIdentifier,
+    SyntaxToken? CommaToken,
+    ExpressionSyntax? GapOrPadding,
+    SyntaxToken CloseParenToken,
+    SyntaxToken? SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.LayoutNode;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return WithKeyword;
+        yield return TransformIdentifier;
+        yield return OpenParenToken;
+        yield return SourceIdentifier;
+        if (CommaToken is not null) yield return CommaToken;
+        if (GapOrPadding is not null) yield return GapOrPadding;
+        yield return CloseParenToken;
+        if (SemicolonToken is not null) yield return SemicolonToken;
     }
 }
 

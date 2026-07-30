@@ -217,6 +217,15 @@ internal static class LayoutInspectionCommand
         Console.Out.WriteLine();
         Console.Out.WriteLine(string.Join("  ", headers.Select((header, index) => header.PadRight(widths[index]))));
         foreach (string[] row in rows) Console.Out.WriteLine(string.Join("  ", row.Select((value, index) => value.PadRight(widths[index]))));
+        if (document.Derivations is { Count: > 0 })
+        {
+            Console.Out.WriteLine();
+            Console.Out.WriteLine("Relative derivations:");
+            foreach (LayoutInspectionDerivation derivation in document.Derivations.OrderBy(item => item.AuthoredOrder))
+            {
+                Console.Out.WriteLine($"  {derivation.TargetBoxId}: {derivation.Transform}({derivation.SourceBoxId}) reads {string.Join(", ", derivation.FieldsRead)}; writes {string.Join(", ", derivation.FieldsWritten)}.");
+            }
+        }
     }
 
     private static string Value(LayoutInspectionConstraint value) => value.Value is null ? value.Kind : LayoutInspection.FormatLength(value.Value);
@@ -226,21 +235,24 @@ internal static class LayoutInspectionCommand
         string layoutId = inspection.Layout.Module + "::" + inspection.Layout.Name;
         ProjectedTable layouts = tableSet.Require(LayoutProjectedTableProvider.Layouts);
         ProjectedTable boxes = tableSet.Require(LayoutProjectedTableProvider.Boxes);
+        ProjectedTable derivations = tableSet.Require(LayoutProjectedTableProvider.Derivations);
         IReadOnlyList<IReadOnlyDictionary<string, object?>> layoutRows = layouts.Rows.Where(row => (string)row["layoutId"]! == layoutId).ToArray();
         IReadOnlyList<IReadOnlyDictionary<string, object?>> boxRows = boxes.Rows.Where(row => (string)row["layoutId"]! == layoutId).ToArray();
+        IReadOnlyList<IReadOnlyDictionary<string, object?>> derivationRows = derivations.Rows.Where(row => (string)row["layoutId"]! == layoutId).ToArray();
         HashSet<string> boxIds = boxRows.Select(row => (string)row["boxId"]!).ToHashSet(StringComparer.Ordinal);
         ProjectedTable bindings = tableSet.Require(LayoutProjectedTableProvider.Bindings);
         IReadOnlyList<IReadOnlyDictionary<string, object?>> bindingRows = bindings.Rows.Where(row => boxIds.Contains((string)row["boxId"]!)).ToArray();
         HashSet<string> bindingIds = bindingRows.Select(row => (string)row["bindingId"]!).ToHashSet(StringComparer.Ordinal);
         ProjectedTable collectionItems = tableSet.Require(LayoutProjectedTableProvider.CollectionItems);
         IReadOnlyList<IReadOnlyDictionary<string, object?>> collectionItemRows = collectionItems.Rows.Where(row => bindingIds.Contains((string)row["bindingId"]!)).ToArray();
-        HashSet<string> sourceIds = layoutRows.Concat(boxRows).Select(row => row["sourceId"] as string).Where(id => id is not null).Cast<string>().ToHashSet(StringComparer.Ordinal);
+        HashSet<string> sourceIds = layoutRows.Concat(boxRows).Concat(derivationRows).Select(row => row["sourceId"] as string).Where(id => id is not null).Cast<string>().ToHashSet(StringComparer.Ordinal);
         ProjectedTable sources = tableSet.Require(LayoutProjectedTableProvider.Sources);
         IReadOnlyList<IReadOnlyDictionary<string, object?>> sourceRows = sources.Rows.Where(row => sourceIds.Contains((string)row["sourceId"]!)).ToArray();
         object[] tables =
         [
             TableEnvelope(layouts, layoutRows),
             TableEnvelope(boxes, boxRows),
+            TableEnvelope(derivations, derivationRows),
             TableEnvelope(bindings, bindingRows),
             TableEnvelope(collectionItems, collectionItemRows),
             TableEnvelope(sources, sourceRows),

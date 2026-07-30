@@ -52,13 +52,20 @@ public readonly record struct MachinaLength
     }
 
     public static MachinaLength operator +(MachinaLength left, MachinaLength right)
-        => new(left.Ui + right.Ui, left.Px + right.Px);
+        => new(left.Ui + right.Ui, left.Px + right.Px, PreservedLiteralUnit(left, right, subtract: false));
 
     public static MachinaLength operator -(MachinaLength left, MachinaLength right)
-        => new(left.Ui - right.Ui, left.Px - right.Px);
+        => new(left.Ui - right.Ui, left.Px - right.Px, PreservedLiteralUnit(left, right, subtract: true));
 
     public static MachinaLength operator -(MachinaLength value)
         => new(-value.Ui, -value.Px);
+
+    /// <summary>Scales a bounded layout length while retaining a zero literal's unit identity.</summary>
+    public MachinaLength Scale(double factor)
+    {
+        RequireFinite(factor, "length scale");
+        return new MachinaLength(Ui * factor, Px * factor, LiteralUnit);
+    }
 
     public double Resolve(double axisSize)
     {
@@ -91,6 +98,15 @@ public readonly record struct MachinaLength
         {
             throw new MachinaLayoutException("COPE-MACHINA-LENGTH-0001", $"{name} must be finite.");
         }
+    }
+
+    private static MachinaLengthLiteralUnit? PreservedLiteralUnit(MachinaLength left, MachinaLength right, bool subtract)
+    {
+        if (left.Ui != (subtract ? right.Ui : -right.Ui) || left.Px != (subtract ? right.Px : -right.Px))
+        {
+            return null;
+        }
+        return left.LiteralUnit == right.LiteralUnit ? left.LiteralUnit : null;
     }
 }
 

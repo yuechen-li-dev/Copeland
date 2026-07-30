@@ -12,6 +12,7 @@ internal static class LayoutProjectedTableProvider
 {
     public const string Layouts = "layout::Layouts";
     public const string Boxes = "layout::Boxes";
+    public const string Derivations = "layout::Derivations";
     public const string Bindings = "layout::Bindings";
     public const string CollectionItems = "layout::CollectionItems";
     public const string Sources = "layout::Sources";
@@ -34,6 +35,7 @@ internal static class LayoutProjectedTableProvider
             .ToDictionary(module => Path.GetRelativePath(projectRoot, module.Source.SourcePath).Replace('\\', '/'), module => module.Source.SourceText, StringComparer.Ordinal);
         var layoutRows = new List<IReadOnlyDictionary<string, object?>>();
         var boxRows = new List<IReadOnlyDictionary<string, object?>>();
+        var derivationRows = new List<IReadOnlyDictionary<string, object?>>();
         var bindingRows = new List<IReadOnlyDictionary<string, object?>>();
         var collectionItemRows = new List<IReadOnlyDictionary<string, object?>>();
         foreach (LayoutInspectionDocument document in documents)
@@ -58,6 +60,15 @@ internal static class LayoutProjectedTableProvider
                     bindingRows.Add(Row(("bindingId", bindingId), ("boxId", box.SemanticPath), ("kind", box.Content.Kind), ("symbol", box.Content.Symbol), ("display", box.Content.Display), ("sourceId", boxSourceId)));
                 }
             }
+            foreach (LayoutInspectionDerivation derivation in document.Derivations ?? [])
+            {
+                string? derivationSourceId = AddSource(derivation.Source);
+                derivationRows.Add(Row(
+                    ("derivationId", derivation.DerivationId), ("layoutId", layoutId), ("targetBoxId", derivation.TargetBoxId),
+                    ("transform", derivation.Transform), ("sourceBoxId", derivation.SourceBoxId),
+                    ("fieldsRead", derivation.FieldsRead), ("fieldsWritten", derivation.FieldsWritten),
+                    ("authoredOrder", derivation.AuthoredOrder), ("status", derivation.Status), ("gapOrPadding", derivation.GapOrPadding), ("sourceId", derivationSourceId)));
+            }
         }
 
         foreach (BoundLayoutBinding binding in compilation.Modules.SelectMany(module => module.BoundCompilation?.Program.LayoutBindings ?? []))
@@ -79,6 +90,7 @@ internal static class LayoutProjectedTableProvider
             [
                 new ProjectedTable(Layouts, LayoutSchema, layoutRows),
                 new ProjectedTable(Boxes, BoxSchema, boxRows),
+                new ProjectedTable(Derivations, DerivationSchema, derivationRows.OrderBy(row => (string)row["layoutId"]!, StringComparer.Ordinal).ThenBy(row => (int)row["authoredOrder"]!).ToArray()),
                 new ProjectedTable(Bindings, BindingSchema, bindingRows.OrderBy(row => (string)row["bindingId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(CollectionItems, CollectionItemSchema, collectionItemRows.OrderBy(row => (string)row["bindingId"]!, StringComparer.Ordinal).ThenBy(row => (int)row["itemIndex"]!).ToArray()),
                 new ProjectedTable(Sources, SourceSchema, sources.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => (IReadOnlyDictionary<string, object?>)pair.Value).ToArray()),
@@ -124,6 +136,12 @@ internal static class LayoutProjectedTableProvider
         new("boxId", "identity"), new("layoutId", "foreignKey<Layouts>"), new("semanticPath", "identity"), new("parentBoxId", "foreignKey<Boxes>?"), new("kind", "layoutNodeKind"),
         new("x", "constraint"), new("y", "constraint"), new("width", "constraint"), new("height", "constraint"), new("layer", "identity"), new("layerRank", "int"), new("z", "int"),
         new("authoredOrder", "int"), new("paintOrder", "int"), new("paintKey", "paintOrderKey"), new("sourceId", "foreignKey<Sources>?"),
+    ];
+    private static readonly IReadOnlyList<ProjectedColumn> DerivationSchema =
+    [
+        new("derivationId", "identity"), new("layoutId", "foreignKey<Layouts>"), new("targetBoxId", "foreignKey<Boxes>"), new("transform", "layoutRelativeTransform"),
+        new("sourceBoxId", "foreignKey<Boxes>"), new("fieldsRead", "fieldSet"), new("fieldsWritten", "fieldSet"), new("authoredOrder", "int"),
+        new("status", "derivationStatus"), new("gapOrPadding", "constraint?"), new("sourceId", "foreignKey<Sources>"),
     ];
     private static readonly IReadOnlyList<ProjectedColumn> BindingSchema =
     [ new("bindingId", "identity"), new("boxId", "foreignKey<Boxes>"), new("kind", "bindingKind"), new("symbol", "identity?"), new("display", "string"), new("sourceId", "foreignKey<Sources>?") ];

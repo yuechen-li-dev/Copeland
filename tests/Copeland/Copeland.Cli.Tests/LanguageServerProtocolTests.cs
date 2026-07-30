@@ -145,11 +145,22 @@ public sealed class LanguageServerProtocolTests
         JsonElement streamCompletion = client.Request(15, "textDocument/completion", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = 0 } });
         Assert.Contains(streamCompletion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "stream");
 
-        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 8 }, contentChanges = new[] { new { text = "import { Score } from \"./Library\"; function Main(): number { return ; }" } } });
+        const string relativeLayoutText = "layout Dialog<0px, 0px> { width: 600px; height: 400px; overlay root { width: 600px; height: 400px; slot dialog { width: 200px; height: 100px; } with centerIn(root); } }";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 8 }, contentChanges = new[] { new { text = relativeLayoutText } } });
+        JsonElement relativeDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Empty(relativeDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+        JsonElement relativeCompletion = client.Request(16, "textDocument/completion", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = relativeLayoutText.IndexOf("centerIn", StringComparison.Ordinal) + 1 } });
+        Assert.Contains(relativeCompletion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "centerIn");
+        JsonElement relativeHover = client.Request(17, "textDocument/hover", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = relativeLayoutText.IndexOf("centerIn", StringComparison.Ordinal) + 1 } });
+        Assert.Contains("reads: source.x", relativeHover.GetProperty("contents").GetProperty("value").GetString());
+        JsonElement relativeDefinition = client.Request(18, "textDocument/definition", new { textDocument = new { uri = sourceUri }, position = new { line = 0, character = relativeLayoutText.LastIndexOf("root", StringComparison.Ordinal) + 1 } });
+        Assert.Equal(sourceUri, relativeDefinition.GetProperty("uri").GetString());
+
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 9 }, contentChanges = new[] { new { text = "import { Score } from \"./Library\"; function Main(): number { return ; }" } } });
         JsonElement changedDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.NotEmpty(changedDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 
-        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 9 }, contentChanges = new[] { new { text = "function Main(" } } });
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 10 }, contentChanges = new[] { new { text = "function Main(" } } });
         JsonElement syntaxDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
         Assert.NotEmpty(syntaxDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
 

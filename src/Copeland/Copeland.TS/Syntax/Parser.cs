@@ -985,7 +985,8 @@ public sealed class Parser
             if (Current == start) NextToken();
         }
 
-        return new StreamNodeSyntax(kind, identifier, colon, content, openBrace, properties, children, tables, Match(SyntaxKind.CloseBraceToken));
+        SyntaxToken closeBrace = Match(SyntaxKind.CloseBraceToken);
+        return new StreamNodeSyntax(kind, identifier, colon, content, openBrace, properties, children, tables, closeBrace, ParseRelativeDerivations());
     }
 
     private StreamTableSyntax ParseStreamTable()
@@ -1126,7 +1127,33 @@ public sealed class Parser
             else { ReportUnexpectedToken(Current); NextToken(); }
             if (Current == start) NextToken();
         }
-        return new LayoutNodeSyntax(kind, identifier, null, openBrace, properties, children, Match(SyntaxKind.CloseBraceToken));
+        SyntaxToken closeBrace = Match(SyntaxKind.CloseBraceToken);
+        return new LayoutNodeSyntax(kind, identifier, null, openBrace, properties, children, closeBrace, ParseRelativeDerivations());
+    }
+
+    private IReadOnlyList<LayoutRelativeDerivationSyntax> ParseRelativeDerivations()
+    {
+        var derivations = new List<LayoutRelativeDerivationSyntax>();
+        while (Current.Kind == SyntaxKind.WithKeyword)
+        {
+            SyntaxToken withKeyword = NextToken();
+            SyntaxToken transform = MatchLayoutName();
+            SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
+            SyntaxToken source = MatchLayoutName();
+            SyntaxToken? comma = null;
+            ExpressionSyntax? gapOrPadding = null;
+            if (Current.Kind == SyntaxKind.CommaToken)
+            {
+                comma = NextToken();
+                gapOrPadding = Current.Kind == SyntaxKind.CloseParenToken
+                    ? new MissingExpressionSyntax(MissingToken(SyntaxKind.NumberToken, Current.Position))
+                    : ParseExpression();
+            }
+            SyntaxToken closeParen = Match(SyntaxKind.CloseParenToken);
+            SyntaxToken? semicolon = Current.Kind == SyntaxKind.SemicolonToken ? NextToken() : null;
+            derivations.Add(new LayoutRelativeDerivationSyntax(withKeyword, transform, openParen, source, comma, gapOrPadding, closeParen, semicolon));
+        }
+        return derivations;
     }
 
     private List<LayoutPropertySyntax> ParseLayoutPropertiesUntilCloseBrace()

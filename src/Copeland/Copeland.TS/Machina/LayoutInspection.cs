@@ -15,11 +15,31 @@ public static class LayoutInspection
     {
         NormalizedLayoutGraph graph = LayoutDataCompiler.Normalize(layout);
         var boxes = new List<LayoutInspectionBox>();
+        var derivedFields = (layout.Derivations ?? [])
+            .SelectMany(derivation => derivation.FieldsWritten.Select(field => (derivation.TargetBox, Field: field)))
+            .ToHashSet();
         Add(graph.Root, parent: null);
         IReadOnlyDictionary<string, int> paintOrders = boxes
             .OrderBy(box => box.PaintKey)
             .Select((box, index) => new { box.SemanticPath, Index = index })
             .ToDictionary(item => item.SemanticPath, item => item.Index, StringComparer.Ordinal);
+        IReadOnlyDictionary<string, string> pathByName = boxes
+            .GroupBy(box => box.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First().SemanticPath, StringComparer.Ordinal);
+        IReadOnlyList<LayoutInspectionDerivation> derivations = (layout.Derivations ?? [])
+            .OrderBy(derivation => derivation.AuthoredOrder)
+            .Select(derivation => new LayoutInspectionDerivation(
+                derivation.DerivationId,
+                pathByName.GetValueOrDefault(derivation.TargetBox, derivation.TargetBox),
+                derivation.Transform.ToString(),
+                pathByName.GetValueOrDefault(derivation.SourceBox, derivation.SourceBox),
+                derivation.FieldsRead,
+                derivation.FieldsWritten,
+                derivation.AuthoredOrder,
+                derivation.Status.ToString(),
+                derivation.GapOrPadding is MachinaLength length ? Length(length) : null,
+                Source(derivation.Source, projectRoot)))
+            .ToArray();
         return new LayoutInspectionDocument(
             SchemaVersion,
             new LayoutInspectionLayout(
@@ -28,12 +48,13 @@ public static class LayoutInspection
                 layout.Profile,
                 Coordinate(layout.Origin.X),
                 Coordinate(layout.Origin.Y),
-                Dimension(graph.Root.Dimensions, "width"),
-                Dimension(graph.Root.Dimensions, "height"),
+                Dimension(graph.Root.Dimensions, "width", relativeDerived: false),
+                Dimension(graph.Root.Dimensions, "height", relativeDerived: false),
                 layout.ResolvedLayerSet.Name,
                 layout.Satisfaction?.ContractName,
                 layout.Satisfaction is null ? null : layout.Satisfaction.IsSatisfied),
-            boxes.Select(box => box with { PaintOrder = paintOrders[box.SemanticPath] }).ToArray());
+            boxes.Select(box => box with { PaintOrder = paintOrders[box.SemanticPath] }).ToArray(),
+            derivations);
 
         void Add(NormalizedLayoutNode node, string? parent)
         {
@@ -42,10 +63,10 @@ public static class LayoutInspection
                 node.StableIdentity,
                 parent,
                 node.Kind.ToString().ToLowerInvariant(),
-                Origin(node, "x"),
-                Origin(node, "y"),
-                Dimension(node.Dimensions, "width"),
-                Dimension(node.Dimensions, "height"),
+                Origin(node, "x", derivedFields.Contains((node.Name, "x"))),
+                Origin(node, "y", derivedFields.Contains((node.Name, "y"))),
+                Dimension(node.Dimensions, "width", derivedFields.Contains((node.Name, "width"))),
+                Dimension(node.Dimensions, "height", derivedFields.Contains((node.Name, "height"))),
                 node.LayerSetIdentity,
                 node.LayerIdentity,
                 node.LayerRank,
@@ -64,27 +85,28 @@ public static class LayoutInspection
     }
 
     public static string FormatLength(LayoutInspectionLength? value)
-        => value is null ? "—" : value.Kind == "fixed" ? FormatNumber(value.Value!.Value) + value.Unit : value.Kind;
+        => value is null ? "—" : value.Value is not null && value.Unit is not null ? FormatNumber(value.Value.Value) + value.Unit : value.Kind;
 
-    private static LayoutInspectionConstraint Origin(NormalizedLayoutNode node, string name)
+    private static LayoutInspectionConstraint Origin(NormalizedLayoutNode node, string name, bool relativeDerived)
     {
         if (node.Origin is not null && node.OriginRelation == NormalizedLayoutOriginRelation.DeclaredRoot)
         {
             return Coordinate(name == "x" ? node.Origin.Local.X : node.Origin.Local.Y);
         }
         return node.Positions is not null && node.Positions.TryGetValue(name, out MachinaLength position)
-            ? new LayoutInspectionConstraint("declared", Length(position))
+            ? new LayoutInspectionConstraint(relativeDerived ? "relative-derived" : "declared", Length(position))
             : new LayoutInspectionConstraint(node.OriginRelation == NormalizedLayoutOriginRelation.FlowDerived ? "derived" : "host-unresolved", null);
     }
 
     private static LayoutInspectionConstraint Coordinate(BoundLayoutCoordinate value)
         => new("declared", new LayoutInspectionLength("fixed", value.Value, value.Unit == LayoutCoordinateUnit.Px ? "px" : "ui"));
 
-    private static LayoutInspectionLength? Dimension(IReadOnlyDictionary<string, BoundLayoutDimension>? dimensions, string name)
+    private static LayoutInspectionLength? Dimension(IReadOnlyDictionary<string, BoundLayoutDimension>? dimensions, string name, bool relativeDerived)
     {
         if (dimensions is null || !dimensions.TryGetValue(name, out BoundLayoutDimension? value)) return new LayoutInspectionLength("host-unresolved", null, null);
         return value.Kind switch
         {
+            LayoutDimensionKind.Fixed when relativeDerived => Length(value.Length!.Value) with { Kind = "relative-derived" },
             LayoutDimensionKind.Fixed => Length(value.Length!.Value),
             LayoutDimensionKind.Fill => new LayoutInspectionLength("fill", null, null),
             LayoutDimensionKind.Fit => new LayoutInspectionLength("fit", null, null),
@@ -120,10 +142,11 @@ public static class LayoutInspection
     private static string FormatNumber(double value) => value.ToString("0.################", CultureInfo.InvariantCulture);
 }
 
-public sealed record LayoutInspectionDocument(int SchemaVersion, LayoutInspectionLayout Layout, IReadOnlyList<LayoutInspectionBox> Boxes);
+public sealed record LayoutInspectionDocument(int SchemaVersion, LayoutInspectionLayout Layout, IReadOnlyList<LayoutInspectionBox> Boxes, IReadOnlyList<LayoutInspectionDerivation>? Derivations = null);
 public sealed record LayoutInspectionLayout(string Name, string Module, string? Profile, LayoutInspectionConstraint OriginX, LayoutInspectionConstraint OriginY, LayoutInspectionLength? Width, LayoutInspectionLength? Height, string LayerSet, string? Contract, bool? Conformance);
 public sealed record LayoutInspectionBox(string Name, string SemanticPath, string? Parent, string Kind, LayoutInspectionConstraint OriginX, LayoutInspectionConstraint OriginY, LayoutInspectionLength? Width, LayoutInspectionLength? Height, string LayerSetIdentity, string Layer, int LayerRank, int Z, int AuthoredOrder, NormalizedPaintOrder PaintKey, string OriginRelation, int? Columns, LayoutInspectionLength? Gap, LayoutInspectionSource? Source, int PaintOrder = 0, LayoutInspectionContent? Content = null);
 public sealed record LayoutInspectionConstraint(string Kind, LayoutInspectionLength? Value);
 public sealed record LayoutInspectionLength(string Kind, double? Value, string? Unit);
 public sealed record LayoutInspectionSource(string Path, int Start, int End);
 public sealed record LayoutInspectionContent(string Kind, string Display, string? Symbol, int? ItemCount = null);
+public sealed record LayoutInspectionDerivation(string DerivationId, string TargetBoxId, string Transform, string SourceBoxId, IReadOnlyList<string> FieldsRead, IReadOnlyList<string> FieldsWritten, int AuthoredOrder, string Status, LayoutInspectionLength? GapOrPadding, LayoutInspectionSource Source);

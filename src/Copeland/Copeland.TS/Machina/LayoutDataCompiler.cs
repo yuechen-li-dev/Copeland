@@ -9,6 +9,33 @@ public enum LayoutNodeKind { Row, Column, Grid, Anchor, Overlay, Slot }
 public enum LayoutDimensionKind { Fixed, Fill, Fit }
 public enum LayoutCoordinateUnit { Px, Ui }
 public enum NormalizedLayoutOriginRelation { DeclaredRoot, FlowDerived, AnchorDerived, OverlayDerived }
+public enum LayoutRelativeTransform { CenterIn, CenterXIn, CenterYIn, AlignLeft, AlignRight, AlignTop, AlignBottom, PlaceLeftOf, PlaceRightOf, PlaceAbove, PlaceBelow, InsetFrom, ExpandFrom }
+public enum LayoutDerivationStatus { Resolved, HostUnresolved }
+
+/// <summary>
+/// Compiler-generic description of a bounded immutable row derivation. M0 has
+/// one public profile: rows in <c>layout::Boxes</c>.
+/// </summary>
+public sealed record BoundRowDerivation(
+    string DerivationId,
+    string Relation,
+    string TargetBox,
+    LayoutRelativeTransform Transform,
+    string SourceBox,
+    IReadOnlyList<string> FieldsRead,
+    IReadOnlyList<string> FieldsWritten,
+    int AuthoredOrder,
+    LayoutDerivationStatus Status,
+    MachinaSourceSpan Source,
+    MachinaLength? GapOrPadding = null);
+
+public sealed record BoundRelativeDerivationSpec(
+    string TargetBox,
+    LayoutRelativeTransform Transform,
+    string SourceBox,
+    MachinaLength? GapOrPadding,
+    int AuthoredOrder,
+    MachinaSourceSpan Source);
 
 /// <summary>A typed, authored coordinate. It intentionally is not a node position property.</summary>
 public sealed record BoundLayoutCoordinate(double Value, LayoutCoordinateUnit Unit);
@@ -49,7 +76,8 @@ public sealed record BoundLayoutNode(
     MachinaStyle Style,
     IReadOnlyList<BoundLayoutNode> Children,
     MachinaSourceSpan Source,
-    BoundPaintProperties? Paint = null)
+    BoundPaintProperties? Paint = null,
+    IReadOnlyList<BoundRelativeDerivationSpec>? RelativeDerivationSpecs = null)
 {
     public BoundPaintProperties ResolvedPaint => Paint ?? BoundPaintProperties.Default;
 }
@@ -70,7 +98,8 @@ public sealed record BoundLayoutDeclaration(
     BoundLayoutNode Root,
     IReadOnlyDictionary<string, BoundLayoutNode> Slots,
     BoundLayoutSatisfaction? Satisfaction = null,
-    BoundLayerSet? LayerSet = null)
+    BoundLayerSet? LayerSet = null,
+    IReadOnlyList<BoundRowDerivation>? Derivations = null)
 {
     public BoundLayerSet ResolvedLayerSet => LayerSet ?? BoundLayerSet.Default;
 }
@@ -429,6 +458,7 @@ public static class LayoutDataCompiler
         private readonly HashSet<string> _binding = new(StringComparer.Ordinal);
         private readonly List<Diagnostic> _diagnostics = [];
         private readonly string _sourcePath;
+        private int _relativeDerivationOrder;
 
         private readonly IReadOnlyDictionary<string, BoundLayoutDeclaration> _importedLayouts;
         private readonly IReadOnlyDictionary<string, BoundLayoutTypeDeclaration> _importedLayoutTypes;
@@ -538,7 +568,7 @@ public static class LayoutDataCompiler
             bool hasExplicitRoot = declaration.Nodes.Count + declaration.Tables.Count == 1
                 && (declaration.Nodes.SingleOrDefault() is { KindToken: not null, Identifier.Text: "root" }
                     || declaration.Tables.SingleOrDefault() is { ContainerKindToken.Text: "overlay", Identifier.Text: "root" });
-            if (hasExplicitRoot && declaration.Tables.Count == 1 && children.Length == 1)
+            if (hasExplicitRoot && children.Length == 1)
             {
                 children[0] = children[0] with
                 {
@@ -582,6 +612,7 @@ public static class LayoutDataCompiler
                 Span(declaration),
                 BoundPaintProperties.Default);
             var layout = new BoundLayoutDeclaration(name, null, origin, root, slots, LayerSet: layerSet);
+            layout = ApplyRelativeDerivations(layout);
 
             string inferredContractName = name + "Shape";
             BoundLayoutTypeNode inferredRoot = InferTypeNode(root);
@@ -612,7 +643,7 @@ public static class LayoutDataCompiler
                     Report("COPE-STREAM-0005", $"Singular stream region '{syntax.Identifier.Text}' cannot contain child regions.", syntax.Identifier);
                 }
                 ValidateProperties(syntax.Properties, LayoutNodeKind.Slot);
-                var slot = new BoundLayoutNode(syntax.Identifier.Text, LayoutNodeKind.Slot, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), MachinaLength.Pixels(0), null, Padding(syntax.Properties), Style(syntax.Properties), [], Span(syntax), BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer));
+                var slot = new BoundLayoutNode(syntax.Identifier.Text, LayoutNodeKind.Slot, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), MachinaLength.Pixels(0), null, Padding(syntax.Properties), Style(syntax.Properties), [], Span(syntax), BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer), BindRelativeDerivations(syntax.Identifier.Text, syntax.RelativeDerivations));
                 if (!slots.TryAdd(slot.Name, slot))
                 {
                     Report("COPE-STREAM-0006", $"Stream declares region '{slot.Name}' more than once.", syntax.Identifier);
@@ -640,8 +671,8 @@ public static class LayoutDataCompiler
             }
             BoundPaintProperties paint = BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer);
             BoundLayoutNode[] children = BindStreamChildren(syntax.Children, syntax.Tables, slots, kind, layerSet, layoutName, paint.Layer);
-            var node = new BoundLayoutNode(syntax.Identifier.Text, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint);
-            if (parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && kind != LayoutNodeKind.Anchor && (!HasFixedDimension(node, "width") || !HasFixedDimension(node, "height")))
+            var node = new BoundLayoutNode(syntax.Identifier.Text, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint, BindRelativeDerivations(syntax.Identifier.Text, syntax.RelativeDerivations));
+            if (parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && kind != LayoutNodeKind.Anchor && (!HasFrameWriter(node, "width") || !HasFrameWriter(node, "height")))
             {
                 Report("COPE-LAYOUT-FRAME-0002", $"'{node.Name}' requires fixed width and height inside {parentKind.ToString().ToLowerInvariant()} composition.", syntax.Identifier);
             }
@@ -685,8 +716,8 @@ public static class LayoutDataCompiler
                 return null;
             }
 
-            string[] required = ["name", "content", "x", "y", "width", "height"];
-            string[] supported = ["name", "content", "x", "y", "width", "height", "layer", "z"];
+            string[] required = ["name", "content", "width", "height"];
+            string[] supported = ["name", "content", "x", "y", "width", "height", "layer", "z", "derivations"];
             var headers = new Dictionary<string, int>(StringComparer.Ordinal);
             for (int index = 0; index < table.Headers.Count; index++)
             {
@@ -701,7 +732,8 @@ public static class LayoutDataCompiler
                     Report("COPE-LAYOUT-TABLE-0002", $"Column '{header.Text}' is declared more than once in CSV layout table '{table.Identifier.Text}'.", header);
                 }
             }
-            foreach (string column in required)
+            bool hasDerivationsColumn = headers.ContainsKey("derivations");
+            foreach (string column in hasDerivationsColumn ? required : required.Concat(["x", "y"]))
             {
                 if (!headers.ContainsKey(column))
                 {
@@ -770,6 +802,9 @@ public static class LayoutDataCompiler
                     Report("COPE-LAYOUT-TABLE-0012", $"Invalid value in row '{rowName}', column 'z'. Expected an integral z value from -5 through 5.", FirstToken(row.Cells[zIndex]));
                 }
 
+                IReadOnlyList<BoundRelativeDerivationSpec> derivations = headers.TryGetValue("derivations", out int derivationsIndex)
+                    ? BindCsvRelativeDerivations(rowName, row.Cells[derivationsIndex])
+                    : [];
                 BoundLayoutNode slot = new(
                     rowName,
                     LayoutNodeKind.Slot,
@@ -781,7 +816,8 @@ public static class LayoutDataCompiler
                     MachinaStyle.Empty,
                     [],
                     Span(nameToken),
-                    BindPaint(properties, layerSet, layoutName, inheritedLayer));
+                    BindPaint(properties, layerSet, layoutName, inheritedLayer),
+                    derivations);
                 slots[rowName] = slot;
                 children.Add(slot);
             }
@@ -813,6 +849,7 @@ public static class LayoutDataCompiler
             foreach (string column in new[] { "x", "y", "width", "height", "layer", "z" })
             {
                 if (!headers.TryGetValue(column, out int index)) continue;
+                if (column is "width" or "height" && row.Cells[index] is NameExpressionSyntax { IdentifierToken.Text: "derived" }) continue;
                 SyntaxToken cellToken = FirstToken(row.Cells[index]);
                 SyntaxToken identifier = new(SyntaxKind.IdentifierToken, cellToken.Position, column, null);
                 properties.Add(new LayoutPropertySyntax(identifier, table.CsvKeyword, row.Cells[index], row.SemicolonToken));
@@ -821,7 +858,7 @@ public static class LayoutDataCompiler
         }
 
         private bool IsTableDimension(ExpressionSyntax expression)
-            => expression is NameExpressionSyntax { IdentifierToken.Text: "fill" or "fit" } || Length(expression) is not null;
+            => expression is NameExpressionSyntax { IdentifierToken.Text: "fill" or "fit" or "derived" } || Length(expression) is not null;
 
         private static SyntaxToken FirstTableRowToken(StreamTableRowSyntax row)
             => row.Cells.Count > 0 ? FirstToken(row.Cells[0]) : row.SemicolonToken;
@@ -948,6 +985,10 @@ public static class LayoutDataCompiler
             }
 
             _binding.Remove(name);
+            if (result is not null)
+            {
+                result = ApplyRelativeDerivations(result);
+            }
             if (result is not null && declaration.ContractIdentifier is not null)
             {
                 result = CheckSatisfaction(declaration, result);
@@ -1074,8 +1115,8 @@ public static class LayoutDataCompiler
             if (kind == LayoutNodeKind.Grid && Columns(syntax.Properties) is null) Report("COPE-LAYOUT-GRID-0001", "A grid requires a positive integer 'columns' property.", syntax.Identifier);
             BoundPaintProperties paint = BindPaint(syntax.Properties, layerSet, layoutName, inheritedLayer);
             var children = syntax.Children.Select(child => BindNode(child, slots, kind, layerSet, layoutName, paint.Layer)).Where(child => child is not null).Cast<BoundLayoutNode>().ToArray();
-            var node = new BoundLayoutNode(name, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint);
-            if (parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && kind != LayoutNodeKind.Anchor && (!HasFixedDimension(node, "width") || !HasFixedDimension(node, "height")))
+            var node = new BoundLayoutNode(name, kind, BindDimensions(syntax.Properties), BindPositions(syntax.Properties), Gap(syntax.Properties), Columns(syntax.Properties), Padding(syntax.Properties), Style(syntax.Properties), children, Span(syntax), paint, BindRelativeDerivations(name, syntax.RelativeDerivations));
+            if (parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay && kind != LayoutNodeKind.Anchor && (!HasFrameWriter(node, "width") || !HasFrameWriter(node, "height")))
             {
                 Report("COPE-LAYOUT-FRAME-0002", $"'{name}' requires fixed width and height inside {parentKind.Value.ToString().ToLowerInvariant()} composition.", syntax.Identifier);
             }
@@ -1083,6 +1124,383 @@ public static class LayoutDataCompiler
             slots.TryAdd(name, node);
             return node;
         }
+
+        private IReadOnlyList<BoundRelativeDerivationSpec> BindRelativeDerivations(string targetBox, IReadOnlyList<LayoutRelativeDerivationSyntax>? syntax)
+        {
+            if (syntax is null || syntax.Count == 0) return [];
+
+            var result = new List<BoundRelativeDerivationSpec>();
+            foreach (LayoutRelativeDerivationSyntax derivation in syntax)
+            {
+                BoundRelativeDerivationSpec? bound = BindRelativeDerivation(
+                    targetBox,
+                    derivation.TransformIdentifier,
+                    derivation.SourceIdentifier,
+                    derivation.GapOrPadding,
+                    Span(derivation));
+                if (bound is not null) result.Add(bound);
+            }
+            return result;
+        }
+
+        private IReadOnlyList<BoundRelativeDerivationSpec> BindCsvRelativeDerivations(string targetBox, ExpressionSyntax expression)
+        {
+            if (expression is not ArrayLiteralExpressionSyntax list)
+            {
+                Report("COPE-TABLE-DERIVE-0003", "CSV column 'derivations' must be a static list of compiler-known relative layout transforms.", FirstToken(expression));
+                return [];
+            }
+
+            var result = new List<BoundRelativeDerivationSpec>();
+            foreach (ExpressionSyntax element in list.Elements)
+            {
+                if (element is not CallExpressionSyntax { Target: NameExpressionSyntax transformName } call
+                    || call.Arguments.Count is < 1 or > 2
+                    || call.Arguments[0] is not NameExpressionSyntax sourceName)
+                {
+                    Report("COPE-TABLE-DERIVE-0003", "Each CSV derivation must be a closed relative transform call such as centerIn(root) or placeAbove(dialog, 8px).", FirstToken(element));
+                    continue;
+                }
+
+                ExpressionSyntax? gapOrPadding = call.Arguments.Count == 2 ? call.Arguments[1] : null;
+                BoundRelativeDerivationSpec? bound = BindRelativeDerivation(targetBox, transformName.IdentifierToken, sourceName.IdentifierToken, gapOrPadding, Span(call));
+                if (bound is not null) result.Add(bound);
+            }
+            return result;
+        }
+
+        private BoundRelativeDerivationSpec? BindRelativeDerivation(
+            string targetBox,
+            SyntaxToken transformToken,
+            SyntaxToken sourceToken,
+            ExpressionSyntax? gapOrPadding,
+            MachinaSourceSpan source)
+        {
+            if (!Enum.TryParse(transformToken.Text, ignoreCase: true, out LayoutRelativeTransform transform))
+            {
+                Report("COPE-TABLE-DERIVE-0003", $"'{transformToken.Text}' is not a compiler-known relative layout transform.", transformToken);
+                return null;
+            }
+
+            bool requiresLength = transform is LayoutRelativeTransform.PlaceLeftOf
+                or LayoutRelativeTransform.PlaceRightOf
+                or LayoutRelativeTransform.PlaceAbove
+                or LayoutRelativeTransform.PlaceBelow
+                or LayoutRelativeTransform.InsetFrom
+                or LayoutRelativeTransform.ExpandFrom;
+            if (requiresLength != (gapOrPadding is not null))
+            {
+                string parameter = transform is LayoutRelativeTransform.InsetFrom or LayoutRelativeTransform.ExpandFrom ? "padding" : "gap";
+                Report("COPE-TABLE-DERIVE-0007", $"{transformToken.Text} requires one static {parameter} length.", transformToken);
+                return null;
+            }
+            if (!requiresLength && gapOrPadding is not null)
+            {
+                Report("COPE-TABLE-DERIVE-0007", $"{transformToken.Text} does not accept a gap or padding argument.", FirstToken(gapOrPadding));
+                return null;
+            }
+
+            MachinaLength? length = null;
+            if (gapOrPadding is not null)
+            {
+                length = Length(gapOrPadding);
+                if (length is null)
+                {
+                    Report("COPE-TABLE-DERIVE-0006", "Relative layout gap and padding arguments must be static px or ui lengths; runtime values and unitless numbers are not supported.", FirstToken(gapOrPadding));
+                    return null;
+                }
+            }
+
+            return new BoundRelativeDerivationSpec(targetBox, transform, sourceToken.Text, length, _relativeDerivationOrder++, source);
+        }
+
+        private BoundLayoutDeclaration ApplyRelativeDerivations(BoundLayoutDeclaration layout)
+        {
+            var nodes = new Dictionary<string, BoundLayoutNode>(StringComparer.Ordinal);
+            var parents = new Dictionary<string, LayoutNodeKind?>(StringComparer.Ordinal);
+            Collect(layout.Root, parentKind: null);
+            List<BoundRelativeDerivationSpec> specs = nodes.Values
+                .SelectMany(node => node.RelativeDerivationSpecs ?? [])
+                .OrderBy(spec => spec.AuthoredOrder)
+                .ToList();
+            if (specs.Count == 0) return layout;
+
+            var valid = new List<BoundRelativeDerivationSpec>();
+            var writtenBy = new Dictionary<(string Target, string Field), MachinaSourceSpan>();
+            foreach (BoundRelativeDerivationSpec spec in specs)
+            {
+                if (!nodes.ContainsKey(spec.SourceBox))
+                {
+                    Report("COPE-TABLE-DERIVE-0003", $"Relative transform '{spec.Transform}' for '{layout.Name}.{spec.TargetBox}' references unknown box '{spec.SourceBox}'.", spec.Source);
+                    continue;
+                }
+                if (parents.GetValueOrDefault(spec.TargetBox) != LayoutNodeKind.Overlay)
+                {
+                    Report("COPE-TABLE-DERIVE-0003", $"Relative transform '{spec.Transform}' is legal only for a box directly contained by an overlay. '{layout.Name}.{spec.TargetBox}' is flow-derived.", spec.Source);
+                    continue;
+                }
+
+                bool conflict = false;
+                BoundLayoutNode target = nodes[spec.TargetBox];
+                foreach (string field in FieldsWritten(spec.Transform))
+                {
+                    bool direct = field is "x" or "y"
+                        ? target.Positions.ContainsKey(field)
+                        : target.Dimensions.ContainsKey(field);
+                    if (direct)
+                    {
+                        Report("COPE-TABLE-DERIVE-0001", $"Field '{layout.Name}.{spec.TargetBox}.{field}' has more than one writer: a direct authored value and {spec.Transform}({spec.SourceBox}). Copeland does not solve competing geometric constraints.", spec.Source);
+                        conflict = true;
+                    }
+                    else if (writtenBy.ContainsKey((spec.TargetBox, field)))
+                    {
+                        Report("COPE-TABLE-DERIVE-0004", $"Field '{layout.Name}.{spec.TargetBox}.{field}' is written by more than one relative transform. Copeland relative layout uses directed derivation; it does not solve simultaneous constraints.", spec.Source);
+                        conflict = true;
+                    }
+                    else
+                    {
+                        writtenBy[(spec.TargetBox, field)] = spec.Source;
+                    }
+                }
+                if (!conflict) valid.Add(spec);
+            }
+
+            var byTarget = valid.GroupBy(spec => spec.TargetBox, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.OrderBy(spec => spec.AuthoredOrder).ToArray(), StringComparer.Ordinal);
+            var ordered = new List<BoundRelativeDerivationSpec>();
+            var visiting = new HashSet<string>(StringComparer.Ordinal);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            var path = new List<string>();
+            foreach (string target in byTarget.Keys.OrderBy(name => name, StringComparer.Ordinal)) Visit(target);
+
+            var current = new Dictionary<string, BoundLayoutNode>(nodes, StringComparer.Ordinal);
+            var derivations = new List<BoundRowDerivation>();
+            foreach (BoundRelativeDerivationSpec spec in ordered)
+            {
+                if (!TryApply(spec, current, layout.Name, out BoundRowDerivation? derivation)) continue;
+                derivations.Add(derivation!);
+            }
+
+            BoundLayoutNode rewrittenRoot = Rewrite(layout.Root);
+            return layout with { Root = rewrittenRoot, Slots = CollectSlots(rewrittenRoot), Derivations = derivations };
+
+            void Collect(BoundLayoutNode node, LayoutNodeKind? parentKind)
+            {
+                if (!nodes.TryAdd(node.Name, node))
+                {
+                    Report("COPE-TABLE-DERIVE-0003", $"Relative derivation requires unique box names; '{node.Name}' is declared more than once.", node.Source);
+                    return;
+                }
+                parents[node.Name] = parentKind;
+                foreach (BoundLayoutNode child in node.Children) Collect(child, node.Kind);
+            }
+
+            void Visit(string target)
+            {
+                if (visited.Contains(target)) return;
+                if (!visiting.Add(target))
+                {
+                    int start = path.IndexOf(target);
+                    string cycle = string.Join(" → ", path.Skip(start).Append(target).Select(name => layout.Name + "." + name));
+                    BoundRelativeDerivationSpec source = byTarget[target][0];
+                    Report("COPE-TABLE-DERIVE-0002", $"Relative derivation cycle: {cycle}. Copeland performs directed immutable derivation; it does not solve simultaneous constraints.", source.Source);
+                    return;
+                }
+                path.Add(target);
+                foreach (BoundRelativeDerivationSpec dependency in byTarget[target])
+                {
+                    if (byTarget.ContainsKey(dependency.SourceBox)) Visit(dependency.SourceBox);
+                }
+                path.RemoveAt(path.Count - 1);
+                visiting.Remove(target);
+                visited.Add(target);
+                ordered.AddRange(byTarget[target]);
+            }
+
+            BoundLayoutNode Rewrite(BoundLayoutNode node)
+            {
+                BoundLayoutNode rewritten = current[node.Name];
+                return rewritten with { Children = node.Children.Select(Rewrite).ToArray() };
+            }
+        }
+
+        private bool TryApply(BoundRelativeDerivationSpec spec, Dictionary<string, BoundLayoutNode> nodes, string layoutName, out BoundRowDerivation? derivation)
+        {
+            derivation = null;
+            BoundLayoutNode source = nodes[spec.SourceBox];
+            BoundLayoutNode target = nodes[spec.TargetBox];
+            string[] reads = FieldsRead(spec.Transform).Select(field => field switch
+            {
+                _ when field.StartsWith("self.", StringComparison.Ordinal) => spec.TargetBox + field[4..],
+                _ when field.StartsWith("source.", StringComparison.Ordinal) => spec.SourceBox + field[6..],
+                _ => field,
+            }).ToArray();
+            string[] writes = FieldsWritten(spec.Transform).ToArray();
+            var required = new List<MachinaLength>();
+
+            bool Need(BoundLayoutNode node, string field, out MachinaLength value)
+            {
+                if (field is "x" or "y")
+                {
+                    if (node.Positions.TryGetValue(field, out value))
+                    {
+                        required.Add(value);
+                        return true;
+                    }
+                    value = ZeroFor(node);
+                    required.Add(value);
+                    return true;
+                }
+                if (node.Dimensions.TryGetValue(field, out BoundLayoutDimension? dimension) && dimension.Kind == LayoutDimensionKind.Fixed && dimension.Length is MachinaLength length)
+                {
+                    value = length;
+                    required.Add(value);
+                    return true;
+                }
+                value = default;
+                Report("COPE-TABLE-DERIVE-0005", $"Cannot evaluate {spec.Transform}({spec.SourceBox}) for '{layoutName}.{spec.TargetBox}'. Required field '{node.Name}.{field}' is not statically or host-resolvably available. Intrinsic component measurement is not available to layout derivation.", spec.Source);
+                return false;
+            }
+
+            MachinaLength sx = default, sy = default, sw = default, sh = default, tw = default, th = default;
+            bool inputs = spec.Transform switch
+            {
+                LayoutRelativeTransform.CenterIn => Need(source, "x", out sx) && Need(source, "y", out sy) && Need(source, "width", out sw) && Need(source, "height", out sh) && Need(target, "width", out tw) && Need(target, "height", out th),
+                LayoutRelativeTransform.CenterXIn or LayoutRelativeTransform.AlignRight => Need(source, "x", out sx) && Need(source, "width", out sw) && Need(target, "width", out tw),
+                LayoutRelativeTransform.CenterYIn or LayoutRelativeTransform.AlignBottom => Need(source, "y", out sy) && Need(source, "height", out sh) && Need(target, "height", out th),
+                LayoutRelativeTransform.AlignLeft => Need(source, "x", out sx),
+                LayoutRelativeTransform.AlignTop => Need(source, "y", out sy),
+                LayoutRelativeTransform.PlaceLeftOf => Need(source, "x", out sx) && Need(target, "width", out tw),
+                LayoutRelativeTransform.PlaceRightOf => Need(source, "x", out sx) && Need(source, "width", out sw),
+                LayoutRelativeTransform.PlaceAbove => Need(source, "y", out sy) && Need(target, "height", out th),
+                LayoutRelativeTransform.PlaceBelow => Need(source, "y", out sy) && Need(source, "height", out sh),
+                LayoutRelativeTransform.InsetFrom or LayoutRelativeTransform.ExpandFrom => Need(source, "x", out sx) && Need(source, "y", out sy) && Need(source, "width", out sw) && Need(source, "height", out sh),
+                _ => false,
+            };
+            if (!inputs) return false;
+            if (spec.GapOrPadding is MachinaLength gap) required.Add(gap);
+            if (!TryCommonUnit(required, spec.Source, out _)) return false;
+
+            var positions = target.Positions.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            var dimensions = target.Dimensions.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            MachinaLength gapOrPadding = spec.GapOrPadding ?? MachinaLength.Pixels(0);
+            switch (spec.Transform)
+            {
+                case LayoutRelativeTransform.CenterIn:
+                    positions["x"] = sx + (sw - tw).Scale(0.5);
+                    positions["y"] = sy + (sh - th).Scale(0.5);
+                    break;
+                case LayoutRelativeTransform.CenterXIn: positions["x"] = sx + (sw - tw).Scale(0.5); break;
+                case LayoutRelativeTransform.CenterYIn: positions["y"] = sy + (sh - th).Scale(0.5); break;
+                case LayoutRelativeTransform.AlignLeft: positions["x"] = sx; break;
+                case LayoutRelativeTransform.AlignRight: positions["x"] = sx + sw - tw; break;
+                case LayoutRelativeTransform.AlignTop: positions["y"] = sy; break;
+                case LayoutRelativeTransform.AlignBottom: positions["y"] = sy + sh - th; break;
+                case LayoutRelativeTransform.PlaceLeftOf: positions["x"] = sx - tw - gapOrPadding; break;
+                case LayoutRelativeTransform.PlaceRightOf: positions["x"] = sx + sw + gapOrPadding; break;
+                case LayoutRelativeTransform.PlaceAbove: positions["y"] = sy - th - gapOrPadding; break;
+                case LayoutRelativeTransform.PlaceBelow: positions["y"] = sy + sh + gapOrPadding; break;
+                case LayoutRelativeTransform.InsetFrom:
+                    positions["x"] = sx + gapOrPadding; positions["y"] = sy + gapOrPadding;
+                    dimensions["width"] = new BoundLayoutDimension(LayoutDimensionKind.Fixed, sw - gapOrPadding.Scale(2));
+                    dimensions["height"] = new BoundLayoutDimension(LayoutDimensionKind.Fixed, sh - gapOrPadding.Scale(2));
+                    break;
+                case LayoutRelativeTransform.ExpandFrom:
+                    positions["x"] = sx - gapOrPadding; positions["y"] = sy - gapOrPadding;
+                    dimensions["width"] = new BoundLayoutDimension(LayoutDimensionKind.Fixed, sw + gapOrPadding.Scale(2));
+                    dimensions["height"] = new BoundLayoutDimension(LayoutDimensionKind.Fixed, sh + gapOrPadding.Scale(2));
+                    break;
+            }
+            if (dimensions.TryGetValue("width", out BoundLayoutDimension? width) && width.Length is MachinaLength resolvedWidth && IsNegative(resolvedWidth)
+                || dimensions.TryGetValue("height", out BoundLayoutDimension? height) && height.Length is MachinaLength resolvedHeight && IsNegative(resolvedHeight))
+            {
+                Report("COPE-TABLE-DERIVE-0008", $"{spec.Transform}({spec.SourceBox}) produces a negative extent for '{layoutName}.{spec.TargetBox}'.", spec.Source);
+                return false;
+            }
+
+            nodes[spec.TargetBox] = target with { Positions = positions, Dimensions = dimensions };
+            derivation = new BoundRowDerivation(
+                layoutName + "::" + spec.TargetBox + "::" + spec.AuthoredOrder,
+                "layout::Boxes",
+                spec.TargetBox,
+                spec.Transform,
+                spec.SourceBox,
+                reads,
+                writes,
+                spec.AuthoredOrder,
+                LayoutDerivationStatus.Resolved,
+                spec.Source,
+                spec.GapOrPadding);
+            return true;
+        }
+
+        private bool TryCommonUnit(IEnumerable<MachinaLength> values, MachinaSourceSpan source, out LayoutCoordinateUnit unit)
+        {
+            LayoutCoordinateUnit? expected = null;
+            foreach (MachinaLength value in values)
+            {
+                LayoutCoordinateUnit? actual = UnitOf(value);
+                if (actual is null)
+                {
+                    Report("COPE-TABLE-DERIVE-0006", "Relative layout inputs must use one compatible px or ui coordinate space; affine px/ui mixtures are not supported.", source);
+                    unit = LayoutCoordinateUnit.Px;
+                    return false;
+                }
+                if (expected is not null && expected != actual)
+                {
+                    Report("COPE-TABLE-DERIVE-0006", "Relative layout gap, padding, coordinates, and extents must use compatible units. Copeland does not implicitly mix px and ui.", source);
+                    unit = LayoutCoordinateUnit.Px;
+                    return false;
+                }
+                expected = actual;
+            }
+            unit = expected ?? LayoutCoordinateUnit.Px;
+            return true;
+        }
+
+        private static LayoutCoordinateUnit? UnitOf(MachinaLength value)
+        {
+            if (value.Ui != 0 && value.Px != 0) return null;
+            if (value.Ui != 0 || value.LiteralUnit == MachinaLengthLiteralUnit.Ui) return LayoutCoordinateUnit.Ui;
+            return LayoutCoordinateUnit.Px;
+        }
+
+        private static MachinaLength ZeroFor(BoundLayoutNode node)
+        {
+            LayoutCoordinateUnit unit = node.Dimensions.Values.Select(dimension => dimension.Length).OfType<MachinaLength>()
+                .Concat(node.Positions.Values)
+                .Select(UnitOf)
+                .FirstOrDefault(value => value is not null) ?? LayoutCoordinateUnit.Px;
+            return unit == LayoutCoordinateUnit.Ui ? MachinaLength.Normalized(0) : MachinaLength.Pixels(0);
+        }
+
+        private static bool IsNegative(MachinaLength value) => value.Px < 0 || value.Ui < 0;
+
+        private static IReadOnlyList<string> FieldsWritten(LayoutRelativeTransform transform) => transform switch
+        {
+            LayoutRelativeTransform.CenterIn => ["x", "y"],
+            LayoutRelativeTransform.CenterXIn or LayoutRelativeTransform.AlignLeft or LayoutRelativeTransform.AlignRight or LayoutRelativeTransform.PlaceLeftOf or LayoutRelativeTransform.PlaceRightOf => ["x"],
+            LayoutRelativeTransform.CenterYIn or LayoutRelativeTransform.AlignTop or LayoutRelativeTransform.AlignBottom or LayoutRelativeTransform.PlaceAbove or LayoutRelativeTransform.PlaceBelow => ["y"],
+            LayoutRelativeTransform.InsetFrom or LayoutRelativeTransform.ExpandFrom => ["x", "y", "width", "height"],
+            _ => [],
+        };
+
+        private static IReadOnlyList<string> FieldsRead(LayoutRelativeTransform transform) => transform switch
+        {
+            LayoutRelativeTransform.CenterIn => ["source.x", "source.y", "source.width", "source.height", "self.width", "self.height"],
+            LayoutRelativeTransform.CenterXIn => ["source.x", "source.width", "self.width"],
+            LayoutRelativeTransform.CenterYIn => ["source.y", "source.height", "self.height"],
+            LayoutRelativeTransform.AlignLeft => ["source.x"],
+            LayoutRelativeTransform.AlignRight => ["source.x", "source.width", "self.width"],
+            LayoutRelativeTransform.AlignTop => ["source.y"],
+            LayoutRelativeTransform.AlignBottom => ["source.y", "source.height", "self.height"],
+            LayoutRelativeTransform.PlaceLeftOf => ["source.x", "self.width", "gap"],
+            LayoutRelativeTransform.PlaceRightOf => ["source.x", "source.width", "gap"],
+            LayoutRelativeTransform.PlaceAbove => ["source.y", "self.height", "gap"],
+            LayoutRelativeTransform.PlaceBelow => ["source.y", "source.height", "gap"],
+            LayoutRelativeTransform.InsetFrom or LayoutRelativeTransform.ExpandFrom => ["source.x", "source.y", "source.width", "source.height", "padding"],
+            _ => [],
+        };
 
         private BoundLayoutNode ApplyOverrides(BoundLayoutNode root, IReadOnlyList<LayoutPropertySyntax> properties)
         {
@@ -1108,6 +1526,10 @@ public static class LayoutDataCompiler
 
         private static bool HasFixedDimension(BoundLayoutNode node, string name)
             => node.Dimensions.TryGetValue(name, out BoundLayoutDimension? value) && value.Kind == LayoutDimensionKind.Fixed;
+
+        private static bool HasFrameWriter(BoundLayoutNode node, string field)
+            => HasFixedDimension(node, field)
+                || (node.RelativeDerivationSpecs ?? []).Any(spec => FieldsWritten(spec.Transform).Contains(field, StringComparer.Ordinal));
 
         private void ValidateProperties(IReadOnlyList<LayoutPropertySyntax> properties, LayoutNodeKind? kind)
         {

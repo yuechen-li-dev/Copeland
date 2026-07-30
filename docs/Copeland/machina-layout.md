@@ -437,3 +437,29 @@ export` commands with `--source <entry.ts>`. `tscl layout inspect
 <layout|module::layout> --source <entry.ts>` is their focused convenience view.
 `fill`, `fit`, and host-dependent values remain typed constraints; this
 compiler command does not measure runtime components or inspect a browser DOM.
+
+# Relative immutable alignment (M0)
+
+`with` can apply a compiler-known relative transform to a fixed-frame overlay box:
+
+```ts
+dialog: Dialog() { width: 480px; height: 320px; } with centerIn(root);
+tooltip: Tooltip() { width: 180px; height: 48px; }
+  with placeAbove(dialog, 8px)
+  with alignRight(dialog);
+```
+
+Relative positioning in Copeland is derivation, not solving. Each transform has a fixed typed read/write contract, every derived field has exactly one writer, and the compiler rejects competing writers, cycles, missing fixed inputs, incompatible `px`/`ui` values, and intrinsic runtime measurement. The normalized `layout::Derivations` relation preserves transform provenance while `layout::Boxes` preserves the resulting immutable geometry. No browser-side formula evaluator or general 2D constraint solver is introduced.
+
+The CSV overlay surface uses the same model. `derivations` is a normal array expression cell, restricted to closed profile-owned transform calls; `[]` is legal. A `derived` width or height cell deliberately supplies no direct writer, for use with `insetFrom` and `expandFrom`:
+
+```ts
+csv overlay root {
+    name, content, width, height, derivations;
+    dialog, Dialog(), 480px, 320px, [centerIn(root)];
+    tooltip, Tooltip(), 180px, 48px, [placeAbove(dialog, 8px), alignRight(dialog)];
+    halo, Halo(), derived, derived, [expandFrom(dialog, 16px)];
+}
+```
+
+The two surfaces bind to the same immutable `BoundRowDerivation` rows. A derivation may use one coherent existing `px` or `ui` space; Copeland preserves the unit identity and rejects a mixed space. Responsive-root derivation remains deliberately deferred.
