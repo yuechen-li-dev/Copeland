@@ -74,6 +74,31 @@ public sealed class StreamCompositionM0Tests
         Assert.Equal(["Desktop.root.sidebar.navigation", "Desktop.root.main.hero", "Desktop.root.main.content"], binding.Entries.Select(entry => entry.Slot.SemanticPath));
     }
 
+    [Fact]
+    public void Stream_row_and_column_keep_width_and_height_on_their_geometric_axes()
+    {
+        LayoutDataCompilation compilation = LayoutDataCompiler.Compile("""
+            stream Page<0px, 0px> {
+                width: 1000px;
+                height: 600px;
+                row root {
+                    sidebar: Sidebar() { width: 200px; height: fill; }
+                    column main { width: fill; height: fill;
+                        header: Header() { width: fill; height: 100px; }
+                        content: Content() { width: fill; height: fill; }
+                    }
+                }
+            }
+            """, "Page.ts");
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        LayoutReactArtifact artifact = LayoutDataCompiler.LowerForReact(compilation.Layouts["Page"]);
+
+        Assert.Contains("left: 0px;\n  top: 0px;\n  width: 200px;\n  height: 600px;", artifact.Css, StringComparison.Ordinal);
+        Assert.Contains("left: 200px;\n  top: 0px;\n  width: 800px;\n  height: 600px;", artifact.Css, StringComparison.Ordinal);
+        Assert.Contains("left: 0px;\n  top: 0px;\n  width: 800px;\n  height: 100px;", artifact.Css, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("header: Header() { height: 32px; } header: Header() { height: 32px; }", "COPE-STREAM-0006")]
     [InlineData("header: 1 { height: 32px; }", "COPE-STREAM-0012")]

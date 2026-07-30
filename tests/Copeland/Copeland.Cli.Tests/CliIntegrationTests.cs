@@ -1666,6 +1666,38 @@ function value(flag: boolean): number {
         Assert.Contains("sourceKind", inspect.StdOut, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Projected_layout_tools_use_the_materialized_manifest_context()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        Directory.CreateDirectory(Path.Combine(temp.Path, ".tspack", "build-manifests"));
+        string sourcePath = temp.WriteFile("src/Site.ts", "layout Site<0px, 0px> { width: 320px; height: 180px; slot hero { frame: { x: 0px, y: 0px, width: 320px, height: 180px }; } }");
+        string manifestPath = temp.WriteFile("manifest.tsx", "export default manifest({});");
+        temp.WriteFile(".tspack/build-manifests/site-browser.request.json", $$"""
+            {
+              "projectRoot": "{{temp.Path.Replace("\\", "\\\\")}}",
+              "sources": [
+                { "logicalPath": "src/Site.ts", "path": "{{sourcePath.Replace("\\", "\\\\")}}" }
+              ],
+              "javascriptRuntime": "browser",
+              "npmContracts": []
+            }
+            """);
+
+        CliResult byProject = await RunCliAsync(temp.Path, "table", "list", "--project", manifestPath, "--format", "json");
+        CliResult bySource = await RunCliAsync(temp.Path, "table", "rows", "layout::Boxes", "--source", sourcePath, "--format", "json");
+        CliResult inspection = await RunCliAsync(temp.Path, "layout", "inspect", "Site", "--project", manifestPath, "--json");
+
+        Assert.Equal(0, byProject.ExitCode);
+        Assert.Equal(0, bySource.ExitCode);
+        Assert.Equal(0, inspection.ExitCode);
+        Assert.Contains("graphFingerprint", byProject.StdOut, StringComparison.Ordinal);
+        Assert.Contains("graphFingerprint", bySource.StdOut, StringComparison.Ordinal);
+        Assert.Contains("graphFingerprint", inspection.StdOut, StringComparison.Ordinal);
+        Assert.Contains("Site.hero", inspection.StdOut, StringComparison.Ordinal);
+    }
+
     private static async Task<CliResult> RunCliAsync(string workingDirectory, params string[] args)
     {
         var startInfo = new ProcessStartInfo

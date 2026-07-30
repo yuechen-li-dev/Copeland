@@ -11,8 +11,8 @@ using Copeland.TS.Mir.Machina;
 namespace Copeland.TS.LanguageServer;
 
 /// <summary>
-/// Resident, editor-neutral project snapshot. Open buffers overlay disk content;
-/// the generated workspace artifact remains the sole source of ownership.
+/// Resident, editor-neutral project snapshot. Open buffers overlay disk content
+/// over either a manifest-resolved compiler context or a legacy MSBuild project.
 /// </summary>
 internal sealed class CopelandWorkspace
 {
@@ -28,6 +28,12 @@ internal sealed class CopelandWorkspace
     private string? _projectPath;
     private DateTime _projectLastWriteUtc;
     private CopelandEvaluatedProject? _evaluatedProject;
+    private string? _manifestPath;
+    private DateTime _manifestLastWriteUtc;
+    private CopelandProjectContext? _manifestProjectContext;
+    private DateTime _manifestContextLastWriteUtc;
+    private string? _manifestContextDirectory;
+    private DateTime _manifestContextDirectoryLastWriteUtc;
 
     public void Initialize(JsonElement parameters)
     {
@@ -45,8 +51,12 @@ internal sealed class CopelandWorkspace
         _profile = string.Equals(requestedProfile, "react-m0", StringComparison.OrdinalIgnoreCase)
             ? CopelandTsXmlProfile.ReactM0
             : CopelandTsXmlProfile.None;
-        LoadOwnership();
-        LoadProjectModel();
+        if (!TryLoadManifestProjectContext())
+        {
+            LoadOwnership();
+            LoadProjectModel();
+        }
+
         RebuildSnapshot();
     }
 
@@ -357,6 +367,23 @@ internal sealed class CopelandWorkspace
 
     private void ReloadIfOwnershipChanged()
     {
+        if (_manifestPath is not null)
+        {
+            bool manifestChanged = File.Exists(_manifestPath) &&
+                File.GetLastWriteTimeUtc(_manifestPath) != _manifestLastWriteUtc;
+            bool contextChanged = _manifestContextDirectory is not null &&
+                Directory.Exists(_manifestContextDirectory) &&
+                Directory.GetLastWriteTimeUtc(_manifestContextDirectory) != _manifestContextDirectoryLastWriteUtc;
+            if (!manifestChanged && !contextChanged)
+            {
+                return;
+            }
+
+            TryLoadManifestProjectContext();
+            RebuildSnapshot();
+            return;
+        }
+
         if (_ownershipPath is null || !File.Exists(_ownershipPath)) return;
         bool ownershipChanged = File.GetLastWriteTimeUtc(_ownershipPath) != _ownershipLastWriteUtc;
         bool projectChanged = _projectPath is not null && File.Exists(_projectPath) && File.GetLastWriteTimeUtc(_projectPath) != _projectLastWriteUtc;
@@ -394,11 +421,64 @@ internal sealed class CopelandWorkspace
         }
     }
 
+    private bool TryLoadManifestProjectContext()
+    {
+        _manifestProjectContext = null;
+        _manifestPath = _rootPath is null
+            ? null
+            : CopelandProjectContextResolver.DiscoverManifest(_rootPath);
+        if (_manifestPath is null)
+        {
+            return false;
+        }
+
+        _owners.Clear();
+        _loadError = null;
+        try
+        {
+            _manifestContextDirectory = Path.Combine(
+                Path.GetDirectoryName(_manifestPath)!,
+                ".tspack",
+                "build-manifests");
+            _manifestContextDirectoryLastWriteUtc = Directory.Exists(_manifestContextDirectory)
+                ? Directory.GetLastWriteTimeUtc(_manifestContextDirectory)
+                : DateTime.MinValue;
+            CopelandProjectContext context = CopelandProjectContextResolver.Load(_manifestPath);
+            _manifestProjectContext = context;
+            _manifestLastWriteUtc = File.GetLastWriteTimeUtc(_manifestPath);
+            _manifestContextLastWriteUtc = File.GetLastWriteTimeUtc(context.DescriptorPath);
+            _profile = context.Options.TsXmlProfile;
+            foreach (CopelandProjectSource source in context.Sources)
+            {
+                _owners[Path.GetFullPath(source.SourcePath)] = "tscl";
+            }
+
+            return true;
+        }
+        catch (CopelandProjectContextException exception)
+        {
+            _loadError = exception.Code + ": " + exception.Message;
+            return true;
+        }
+    }
+
     private void RebuildSnapshot()
     {
         if (_rootPath is null || _loadError is not null)
         {
             _snapshot = null;
+            return;
+        }
+
+        if (_manifestProjectContext is not null)
+        {
+            var overlays = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (DocumentSnapshot document in _documents.Values)
+            {
+                overlays[Path.GetFullPath(document.Path)] = document.Text;
+            }
+
+            _snapshot = _manifestProjectContext.CreateSnapshot(overlays);
             return;
         }
 
@@ -491,7 +571,10 @@ internal sealed class CopelandWorkspace
             null,
             null);
     }
-    private bool IsWorkspaceManifest(string path) => _rootPath is not null && PathsEqual(path, Path.Combine(_rootPath, "tsconfig.tsx"));
+    private bool IsWorkspaceManifest(string path)
+        => _rootPath is not null &&
+            (PathsEqual(path, Path.Combine(_rootPath, "tsconfig.tsx")) ||
+             (_manifestPath is not null && PathsEqual(path, _manifestPath)));
     private static string? ReadOptionalString(JsonElement element, string name) => element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
     private static string? UriToPath(string? uri)
     {

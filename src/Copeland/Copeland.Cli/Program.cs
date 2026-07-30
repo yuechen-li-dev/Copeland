@@ -448,8 +448,8 @@ internal static class Program
         Console.Error.WriteLine("  tscl build --project <project.json> --result <result.json>");
         Console.Error.WriteLine("  tscl workspace sync|validate|status|owner ...");
         Console.Error.WriteLine("  tscl table list|schema|rows|set|add-row|delete-row|validate|export|import ...");
-        Console.Error.WriteLine("  tscl table list --source <entry.ts>  (compiler-projected layout tables)");
-        Console.Error.WriteLine("  tscl layout inspect <layout|module::layout> --source <entry.ts> [--json]");
+        Console.Error.WriteLine("  tscl table list (--project <manifest.tsx> | --source <entry.ts>)  (compiler-projected layout tables)");
+        Console.Error.WriteLine("  tscl layout inspect <layout|module::layout> (--project <manifest.tsx> | --source <entry.ts>) [--json]");
         Console.Error.WriteLine("  tscl template preview <source> [--entry <template>] [--format tree|json]");
         Console.Error.WriteLine("  tscl template materialize <source> --output <path> [--entry <template>] [--tspack <path>]");
         Console.Error.WriteLine("  tscl language-server [--version]");

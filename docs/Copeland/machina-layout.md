@@ -431,12 +431,21 @@ positions are not synthesized semantic region names.
 
 # Normalized layout inspection (M0)
 
-Use `tscl table list --source <entry.ts>` to discover read-only projected
+Use `tscl table list --project <manifest.tsx>` to discover read-only projected
 `layout::` tables, then use ordinary `table schema`, `table rows`, and `table
-export` commands with `--source <entry.ts>`. `tscl layout inspect
-<layout|module::layout> --source <entry.ts>` is their focused convenience view.
-`fill`, `fit`, and host-dependent values remain typed constraints; this
-compiler command does not measure runtime components or inspect a browser DOM.
+export` commands with the same project. `tscl layout inspect
+<layout|module::layout> --project <manifest.tsx>` is their focused convenience
+view. `--source <entry.ts>` is a convenience form: it discovers a manifest
+upward and resolves the same materialized project context, or enters the
+bounded source-only mode when no manifest exists. `fill`, `fit`, and
+host-dependent values remain typed constraints; inspection does not measure
+runtime components or inspect a browser DOM.
+
+For manifest projects, TSPack owns package/browser materialization and writes a
+resolved compiler-context descriptor. The CLI and language server consume that
+descriptor directly, so layout inspection is correct by compiling the actual
+project rather than by knowing special facts about React. Read-only inspection
+never installs packages or starts TSPack/browser lifecycle work.
 
 # Relative immutable alignment (M0)
 
@@ -463,3 +472,15 @@ csv overlay root {
 ```
 
 The two surfaces bind to the same immutable `BoundRowDerivation` rows. A derivation may use one coherent existing `px` or `ui` space; Copeland preserves the unit identity and rejects a mixed space. Responsive-root derivation remains deliberately deferred.
+
+# Website stream dogfood (M0)
+
+The Copeland website uses `CopelandDesktop`, `CopelandTablet`, and
+`CopelandMobile` stream roots with stable named regions and independent
+topology. `row` preserves ordinary physical meaning (`width` is main,
+`height` cross); `column` likewise preserves `height` as main and `width` as
+cross. The website regression test protects this lowering law.
+
+Its hero uses `centerXIn`, `placeRightOf`/`placeBelow`, and `expandFrom` as
+resolved directed derivations. Components provide content under generated
+hosts; browser text shaping remains inside the host's compiler-known region.

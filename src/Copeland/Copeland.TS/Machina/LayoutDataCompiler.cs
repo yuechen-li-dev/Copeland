@@ -384,8 +384,14 @@ public static class LayoutDataCompiler
             : parentKind is LayoutNodeKind.Anchor or LayoutNodeKind.Overlay
                 ? node.Kind == LayoutNodeKind.Anchor ? AnchorFrame(node) : AbsoluteFrame(node)
                 : null;
-        MachinaTrack? main = parentKind is null or LayoutNodeKind.Anchor or LayoutNodeKind.Overlay ? null : Track(node, parentKind == LayoutNodeKind.Row ? "height" : "width");
-        MachinaTrack? cross = parentKind is null or LayoutNodeKind.Anchor or LayoutNodeKind.Overlay ? null : Track(node, parentKind == LayoutNodeKind.Row ? "width" : "height");
+        // A row realizes through HStack: width is its horizontal main axis and
+        // height is its vertical cross axis. A column realizes through VStack
+        // with the opposite relationship. Keep source property names in their
+        // ordinary geometric meaning rather than leaking the underlying track
+        // vocabulary into stream authoring.
+        bool horizontalParent = parentKind is LayoutNodeKind.Row or LayoutNodeKind.Grid;
+        MachinaTrack? main = parentKind is null or LayoutNodeKind.Anchor or LayoutNodeKind.Overlay ? null : Track(node, horizontalParent ? "width" : "height");
+        MachinaTrack? cross = parentKind is null or LayoutNodeKind.Anchor or LayoutNodeKind.Overlay ? null : Track(node, horizontalParent ? "height" : "width");
         IReadOnlyList<MachinaView> children = node.Children.Select((child, index) => LowerNode(child, node.Kind, false, identity + "/" + index, paths)).ToArray();
         return node.Kind switch
         {

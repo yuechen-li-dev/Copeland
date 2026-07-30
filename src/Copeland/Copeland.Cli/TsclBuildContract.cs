@@ -124,43 +124,26 @@ internal static class TsclBuildContract
     {
         string projectRoot = Path.GetFullPath(request.ProjectRoot);
         string outputDirectory = Path.GetFullPath(request.OutputDirectory);
-        CopelandProjectSource[] sources = request.Sources
-            .OrderBy(source => source.LogicalPath, StringComparer.Ordinal)
-            .Select(source => ReadSource(projectRoot, source))
-            .ToArray();
+        CopelandProjectContext context = CopelandProjectContext.Create(
+            "<tscl-build-request>",
+            new CopelandProjectContextDescriptor
+            {
+                ProjectRoot = request.ProjectRoot,
+                JavaScriptRuntime = request.JavaScriptRuntime,
+                TsXmlProfile = request.TsXmlProfile,
+                Sources = request.Sources.Select(source => new CopelandProjectContextSource { LogicalPath = source.LogicalPath, Path = source.Path }).ToList(),
+                NpmContracts = request.NpmContracts.Select(ToContextContract).ToList(),
+            });
+        CopelandProjectSource[] sources = context.Sources.ToArray();
         if (!sources.Any(source => string.Equals(source.LogicalPath, request.Entry!.Module, StringComparison.OrdinalIgnoreCase)))
         {
             throw new TsclContractException("COPE-TSCL-0010", $"Entry module '{request.Entry!.Module}' is not a project source.");
         }
 
-        CopelandNpmDependencyGraph npmGraph = new(request.NpmContracts
-            .OrderBy(contract => contract.PackageName, StringComparer.Ordinal)
-            .Select(contract => new CopelandNpmPackageContract(
-                contract.PackageName,
-                contract.Version,
-                contract.Exports.Select(export => new CopelandNpmFunctionContract(export.Name, export.Parameters, export.Result, export.RemoteError, export.Promise)).ToArray(),
-                contract.MaterializationPath,
-                contract.Materialized,
-                IsAvailableToJavaScript: true,
-                IsAvailableToClrSidecar: false,
-                Components: contract.Components.Select(component => new CopelandNpmComponentContract(
-                    component.Name,
-                    component.Properties.Select(property => new CopelandNpmComponentPropertyContract(property.Name, property.Type, property.Required)).ToArray(),
-                    component.Members.Select(member => new CopelandNpmComponentMemberContract(
-                        member.Name,
-                        member.Properties.Select(property => new CopelandNpmComponentPropertyContract(property.Name, property.Type, property.Required)).ToArray())).ToArray())).ToArray())));
         JavaScriptRuntimeTarget runtimeTarget = request.JavaScriptRuntime == "browser"
             ? JavaScriptRuntimeTarget.Browser
             : JavaScriptRuntimeTarget.Node;
-        CopelandCompilationOptions options = new()
-        {
-            ProjectRoot = projectRoot,
-            NpmDependencies = npmGraph,
-            JavaScriptHostModules = runtimeTarget == JavaScriptRuntimeTarget.Browser
-                ? [CreateBrowserHostContract()]
-                : [],
-            TsXmlProfile = request.TsXmlProfile == "react-m0" ? CopelandTsXmlProfile.ReactM0 : CopelandTsXmlProfile.None,
-        };
+        CopelandCompilationOptions options = context.Options;
 
         CopelandProjectCompilation compilation = CopelandProjectCompiler.CompileToMir(sources, options);
         if (!compilation.Success)
@@ -204,7 +187,12 @@ internal static class TsclBuildContract
             }
             PublishOutput(stagingDirectory, outputDirectory);
 
-            return TsclBuildResult.Successful(outputDirectory, entryOutput, request.BuildFingerprint, request.JavaScriptRuntime);
+            return TsclBuildResult.Successful(
+                outputDirectory,
+                entryOutput,
+                request.BuildFingerprint,
+                context.Fingerprint,
+                request.JavaScriptRuntime);
         }
         finally
         {
@@ -215,21 +203,25 @@ internal static class TsclBuildContract
         }
     }
 
-    private static CopelandProjectSource ReadSource(string projectRoot, TsclSource source)
-    {
-        if (string.IsNullOrWhiteSpace(source.LogicalPath) || string.IsNullOrWhiteSpace(source.Path))
+    private static CopelandProjectContextNpmContract ToContextContract(TsclNpmContract contract)
+        => new()
         {
-            throw new TsclContractException("COPE-TSCL-0011", "Each source requires logicalPath and path.");
-        }
-
-        string sourcePath = Path.GetFullPath(source.Path);
-        if (!sourcePath.StartsWith(projectRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && !string.Equals(sourcePath, projectRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new TsclContractException("COPE-TSCL-0012", $"Source '{source.LogicalPath}' escapes projectRoot.");
-        }
-
-        return new CopelandProjectSource(source.LogicalPath, sourcePath, File.ReadAllText(sourcePath));
-    }
+            PackageName = contract.PackageName,
+            Version = contract.Version,
+            MaterializationPath = contract.MaterializationPath,
+            Materialized = contract.Materialized,
+            Exports = contract.Exports.Select(export => new CopelandProjectContextNpmExport { Name = export.Name, Parameters = export.Parameters, Result = export.Result, RemoteError = export.RemoteError, Promise = export.Promise }).ToList(),
+            Components = contract.Components.Select(component => new CopelandProjectContextNpmComponent
+            {
+                Name = component.Name,
+                Properties = component.Properties.Select(property => new CopelandProjectContextNpmProperty { Name = property.Name, Type = property.Type, Required = property.Required }).ToList(),
+                Members = component.Members.Select(member => new CopelandProjectContextNpmMember
+                {
+                    Name = member.Name,
+                    Properties = member.Properties.Select(property => new CopelandProjectContextNpmProperty { Name = property.Name, Type = property.Type, Required = property.Required }).ToList(),
+                }).ToList(),
+            }).ToList(),
+        };
 
     private static string CreateNodeEntryLauncher(string entryModuleOutput, string entryExport)
     {
@@ -260,65 +252,6 @@ internal static class TsclBuildContract
             : string.Empty;
         return cssLoader + $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
             $"await {entryExport}();\n";
-    }
-
-    private static CopelandJavaScriptHostModuleContract CreateBrowserHostContract()
-    {
-        var state = new CopelandJavaScriptHostType.TypeParameter("State");
-        var @event = new CopelandJavaScriptHostType.TypeParameter("Event");
-        return new CopelandJavaScriptHostModuleContract(
-            "@copeland/browser-v1",
-            [
-                new CopelandJavaScriptHostFunctionContract(
-                    "setText",
-                    [CopelandJavaScriptHostType.String, CopelandJavaScriptHostType.String],
-                    CopelandJavaScriptHostType.Void),
-                new CopelandJavaScriptHostFunctionContract(
-                    "onClick",
-                    [
-                        CopelandJavaScriptHostType.String,
-                        new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void),
-                    ],
-                    CopelandJavaScriptHostType.Void),
-                new CopelandJavaScriptHostFunctionContract(
-                    "dispatch",
-                    [
-                        state,
-                        new CopelandJavaScriptHostType.Callable([state, @event], state),
-                        new CopelandJavaScriptHostType.Callable([state], CopelandJavaScriptHostType.Void),
-                    ],
-                    new CopelandJavaScriptHostType.Callable([@event], CopelandJavaScriptHostType.Void),
-                    ["State", "Event"]),
-                new CopelandJavaScriptHostFunctionContract(
-                    "getMountElement",
-                    [CopelandJavaScriptHostType.String],
-                    new CopelandJavaScriptHostType.Named("ReactMountElement")),
-                new CopelandJavaScriptHostFunctionContract(
-                    "dispatchReact",
-                    [
-                        state,
-                        new CopelandJavaScriptHostType.Callable([state, @event], state),
-                        new CopelandJavaScriptHostType.Callable([state, new CopelandJavaScriptHostType.Callable([@event], CopelandJavaScriptHostType.Void)], CopelandJavaScriptHostType.Void),
-                    ],
-                    new CopelandJavaScriptHostType.Callable([@event], CopelandJavaScriptHostType.Void),
-                    ["State", "Event"]),
-                new CopelandJavaScriptHostFunctionContract(
-                    "copyText",
-                    [
-                        CopelandJavaScriptHostType.String,
-                        new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void),
-                        new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void),
-                    ],
-                    CopelandJavaScriptHostType.Void),
-                new CopelandJavaScriptHostFunctionContract(
-                    "getViewportWidth",
-                    [],
-                    CopelandJavaScriptHostType.Int),
-                new CopelandJavaScriptHostFunctionContract(
-                    "subscribeViewport",
-                    [new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)],
-                    new CopelandJavaScriptHostType.Callable([], CopelandJavaScriptHostType.Void)),
-            ]);
     }
 
     private static void WriteStagedFile(string stagingDirectory, string relativePath, string contents)
@@ -452,6 +385,7 @@ internal static class TsclBuildContract
         public List<TsclOutput> Outputs { get; init; } = [];
         public string? EntryOutputPath { get; init; }
         public string? BuildFingerprint { get; init; }
+        public string? GraphFingerprint { get; init; }
 
         public static TsclBuildResult Failure(string code, string message)
             => new()
@@ -483,7 +417,12 @@ internal static class TsclBuildContract
                     .ToList(),
             };
 
-        public static TsclBuildResult Successful(string outputDirectory, string entryOutputPath, string? buildFingerprint, string target)
+        public static TsclBuildResult Successful(
+            string outputDirectory,
+            string entryOutputPath,
+            string? buildFingerprint,
+            string graphFingerprint,
+            string target)
         {
             List<TsclOutput> outputs = Directory.EnumerateFiles(outputDirectory, "*", SearchOption.AllDirectories)
                 .Select(path => new TsclOutput(
@@ -498,6 +437,7 @@ internal static class TsclBuildContract
                 Outputs = outputs,
                 EntryOutputPath = entryOutputPath,
                 BuildFingerprint = buildFingerprint,
+                GraphFingerprint = graphFingerprint,
             };
         }
 

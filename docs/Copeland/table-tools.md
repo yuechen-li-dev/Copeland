@@ -4,6 +4,19 @@
 does not use an LLM. It exists so humans and LLMs do not need to rewrite table
 columns manually.
 
+Compiler-projected layout tables use the manifest-aware project context:
+
+```console
+tscl table list --project ./manifest.tsx
+tscl table rows layout::Boxes --project ./manifest.tsx --format json
+```
+
+`--source <entry.ts>` searches upward for `manifest.tsx`; when found, it opens
+the same materialized package/backend contracts as TSPack. These projected
+commands are read-only, report a deterministic `graphFingerprint` in JSON, and
+never install packages or start a browser. A source without a manifest remains
+the intentionally limited source-only mode.
+
 Record tables remain typed, immutable, columnar Copeland source. A row is only
 a projected view and an editing intent.
 

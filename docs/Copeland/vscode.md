@@ -4,6 +4,14 @@ Copeland TS is a project-aware VS Code extension for workspaces that use
 `tsconfig.tsx`. It does not replace VS Code TypeScript globally. The generated
 workspace metadata decides which implementation owns each source file.
 
+For a TSPack workspace rooted at `manifest.tsx`, the language server instead
+opens the materialized manifest project context under
+`.tspack/build-manifests`. It sees the same sources, npm contracts, browser
+contracts, and TSX profile as the TSPack compiler invocation. Open buffers are
+immutable text overlays on that context, so stream/layout hover and diagnostics
+update before a document is saved. TSPack materialization remains explicit: the
+language server never installs packages or starts a browser.
+
 ## Install and build
 
 From the repository checkout:

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Copeland.TS.Compiler;
 using Copeland.TS.Diagnostics;
 using Copeland.TS.MachinaSource;
@@ -19,11 +20,12 @@ internal static class LayoutInspectionCommand
     {
         if (args.Length < 3 || args[1] != "inspect")
         {
-            return Usage("COPE-LAYOUT-INSPECT-0001", "Usage: tscl layout inspect <layout|module::layout> --source <entry.ts> [--json].");
+            return Usage("COPE-LAYOUT-INSPECT-0001", "Usage: tscl layout inspect <layout|module::layout> (--project <manifest.tsx|context.request.json> | --source <entry.ts>) [--json].");
         }
 
         string target = args[2];
         string? sourcePath = null;
+        string? projectPath = null;
         bool json = false;
         for (int index = 3; index < args.Length; index += 1)
         {
@@ -31,6 +33,9 @@ internal static class LayoutInspectionCommand
             {
                 case "--source" when index + 1 < args.Length:
                     sourcePath = args[++index];
+                    break;
+                case "--project" when index + 1 < args.Length:
+                    projectPath = args[++index];
                     break;
                 case "--json":
                     json = true;
@@ -40,20 +45,20 @@ internal static class LayoutInspectionCommand
             }
         }
 
-        if (string.IsNullOrWhiteSpace(sourcePath))
+        if (string.IsNullOrWhiteSpace(sourcePath) && string.IsNullOrWhiteSpace(projectPath))
         {
-            return Usage("COPE-LAYOUT-INSPECT-0003", "Layout inspection requires '--source <entry.ts>' to establish the normal project snapshot.");
+            return Usage("COPE-LAYOUT-INSPECT-0003", "Layout inspection requires '--project <manifest.tsx>' or '--source <entry.ts>' to establish the normal project snapshot.");
         }
 
         try
         {
-            string fullSourcePath = Path.GetFullPath(sourcePath);
-            if (!File.Exists(fullSourcePath))
+            string? fullSourcePath = string.IsNullOrWhiteSpace(sourcePath) ? null : Path.GetFullPath(sourcePath);
+            if (fullSourcePath is not null && !File.Exists(fullSourcePath))
             {
                 return Failure("COPE-LAYOUT-INSPECT-0004", $"Source '{sourcePath}' does not exist.", json, FileFailure);
             }
 
-            CopelandProjectCompilation compilation = CompileProject(fullSourcePath, out string projectRoot);
+            CopelandProjectCompilation compilation = CompileProject(fullSourcePath, projectPath, out string projectRoot, out string? graphFingerprint);
             if (!compilation.Success)
             {
                 return CompilationFailure(compilation.Diagnostics, json);
@@ -70,7 +75,7 @@ internal static class LayoutInspectionCommand
                 document.Layout.Module == resolved.Module.LogicalPath);
             if (json)
             {
-                WriteProjectedJson(projectedTables, inspection);
+                WriteProjectedJson(projectedTables, inspection, graphFingerprint);
             }
             else
             {
@@ -78,6 +83,10 @@ internal static class LayoutInspectionCommand
             }
 
             return Success;
+        }
+        catch (CopelandProjectContextException exception)
+        {
+            return Failure(exception.Code, exception.Message, json, FileFailure);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -87,15 +96,75 @@ internal static class LayoutInspectionCommand
 
     internal static CopelandProjectCompilation CompileProject(string sourcePath, out string projectRoot)
     {
-        projectRoot = Path.GetDirectoryName(Path.GetFullPath(sourcePath))!;
+        return CompileProject(sourcePath, projectPath: null, out projectRoot, out _);
+    }
+
+    internal static CopelandProjectCompilation CompileProject(
+        string? sourcePath,
+        string? projectPath,
+        out string projectRoot,
+        out string? graphFingerprint)
+    {
+        if (!string.IsNullOrWhiteSpace(projectPath))
+        {
+            CopelandProjectContext context = CopelandProjectContextResolver.Load(projectPath, sourcePath);
+            if (sourcePath is not null)
+            {
+                string? discoveredManifest = CopelandProjectContextResolver.DiscoverManifest(sourcePath);
+                if (discoveredManifest is not null &&
+                    projectPath.EndsWith("manifest.tsx", StringComparison.OrdinalIgnoreCase) &&
+                    !PathsEqual(discoveredManifest, projectPath))
+                {
+                    throw new CopelandProjectContextException(
+                        "COPE-PROJECT-0010",
+                        $"Source '{Path.GetFullPath(sourcePath)}' belongs to manifest '{discoveredManifest}', not requested project '{Path.GetFullPath(projectPath)}'.");
+                }
+            }
+
+            projectRoot = context.ProjectRoot;
+            graphFingerprint = context.Fingerprint;
+            return context.CreateSnapshot().CompileToMir();
+        }
+
+        if (sourcePath is null)
+        {
+            throw new CopelandProjectContextException(
+                "COPE-PROJECT-0001",
+                "A source path or project manifest is required.");
+        }
+
+        string fullSourcePath = Path.GetFullPath(sourcePath);
+        string? manifestPath = CopelandProjectContextResolver.DiscoverManifest(fullSourcePath);
+        if (manifestPath is not null)
+        {
+            CopelandProjectContext context = CopelandProjectContextResolver.Load(manifestPath, fullSourcePath);
+            projectRoot = context.ProjectRoot;
+            graphFingerprint = context.Fingerprint;
+            return context.CreateSnapshot().CompileToMir();
+        }
+
+        projectRoot = Path.GetDirectoryName(fullSourcePath)!;
+        IReadOnlyList<CopelandProjectSource> sources = ReadProjectSources(projectRoot);
+        if (sources.Any(source => HasExternalModuleImport(source.SourceText)))
+        {
+            throw new CopelandProjectContextException(
+                "COPE-PROJECT-0011",
+                $"Source-only inspection cannot resolve package or backend imports in '{fullSourcePath}'. Add a project manifest and materialize its compiler contracts.");
+        }
+
+        graphFingerprint = null;
         return CopelandProjectCompiler.CompileToMir(
-            ReadProjectSources(projectRoot),
+            sources,
             new CopelandCompilationOptions { ProjectRoot = projectRoot });
     }
+
+    private static bool PathsEqual(string left, string right)
+        => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.OrdinalIgnoreCase);
 
     private static IReadOnlyList<CopelandProjectSource> ReadProjectSources(string root)
     {
         return Directory.EnumerateFiles(root, "*.ts", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(root, "*.tsx", SearchOption.AllDirectories))
             .Where(path => !path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Any(part => part is "node_modules" or "bin" or "obj" or ".git"))
             .Where(path => !path.EndsWith(".generated.ts", StringComparison.OrdinalIgnoreCase))
@@ -106,6 +175,25 @@ internal static class LayoutInspectionCommand
                 File.ReadAllText(path)))
             .ToArray();
     }
+
+    private static bool HasExternalModuleImport(string sourceText)
+    {
+        foreach (Match match in ExternalModuleImport.Matches(sourceText))
+        {
+            string module = match.Groups["module"].Value;
+            if (!module.StartsWith(".", StringComparison.Ordinal) &&
+                !module.StartsWith("/", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static readonly Regex ExternalModuleImport = new(
+        "\\bfrom\\s+[\\\"'](?<module>[^\\\"']+)[\\\"']",
+        RegexOptions.CultureInvariant);
 
     private static bool TryResolve(CopelandProjectCompilation compilation, string target, out LayoutTarget? result, out string code, out string message)
     {
@@ -230,7 +318,10 @@ internal static class LayoutInspectionCommand
 
     private static string Value(LayoutInspectionConstraint value) => value.Value is null ? value.Kind : LayoutInspection.FormatLength(value.Value);
 
-    private static void WriteProjectedJson(ProjectedTableSet tableSet, LayoutInspectionDocument inspection)
+    private static void WriteProjectedJson(
+        ProjectedTableSet tableSet,
+        LayoutInspectionDocument inspection,
+        string? graphFingerprint)
     {
         string layoutId = inspection.Layout.Module + "::" + inspection.Layout.Name;
         ProjectedTable layouts = tableSet.Require(LayoutProjectedTableProvider.Layouts);
@@ -257,7 +348,20 @@ internal static class LayoutInspectionCommand
             TableEnvelope(collectionItems, collectionItemRows),
             TableEnvelope(sources, sourceRows),
         ];
-        Console.Out.WriteLine(JsonSerializer.Serialize(new { schemaVersion = LayoutInspection.SchemaVersion, success = true, command = "layout.inspect", sourceKind = "projected", readOnly = true, tables }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+        Console.Out.WriteLine(JsonSerializer.Serialize(new
+        {
+            schemaVersion = LayoutInspection.SchemaVersion,
+            success = true,
+            command = "layout.inspect",
+            sourceKind = "projected",
+            readOnly = true,
+            graphFingerprint,
+            tables,
+        }, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        }));
     }
 
     private static object TableEnvelope(ProjectedTable table, IReadOnlyList<IReadOnlyDictionary<string, object?>> rows)
@@ -282,7 +386,7 @@ internal static class LayoutInspectionCommand
 
     private static int Usage(string code, string message)
     {
-        Console.Error.WriteLine("Usage: tscl layout inspect <layout|module::layout> --source <entry.ts> [--json]");
+        Console.Error.WriteLine("Usage: tscl layout inspect <layout|module::layout> (--project <manifest.tsx|context.request.json> | --source <entry.ts>) [--json]");
         Console.Error.WriteLine($"{code} error: {message}");
         return UsageFailure;
     }

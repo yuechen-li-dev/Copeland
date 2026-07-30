@@ -31,7 +31,7 @@ internal static class TableToolCommand
 
         try
         {
-            if (args.Contains("--source", StringComparer.Ordinal))
+            if (args.Contains("--source", StringComparer.Ordinal) || args.Contains("--project", StringComparer.Ordinal))
             {
                 return RunProjectedLayoutTable(args);
             }
@@ -55,6 +55,14 @@ internal static class TableToolCommand
             WriteFailure("table." + args[1], exception.Diagnostic, HasJsonFormat(args));
             return FailureExitCode;
         }
+        catch (CopelandProjectContextException exception)
+        {
+            WriteFailure(
+                "table." + args[1],
+                new ToolDiagnostic(exception.Code, exception.Message, null, null, null),
+                HasJsonFormat(args));
+            return FailureExitCode;
+        }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             WriteFailure("table." + args[1], new ToolDiagnostic("COPE-TABLE-TOOL-0018", exception.Message, null, null, null), HasJsonFormat(args));
@@ -64,9 +72,22 @@ internal static class TableToolCommand
 
     private static int RunProjectedLayoutTable(string[] args)
     {
-        string sourcePath = RequiredOption(args, "--source");
+        string? sourcePath = OptionValue(args, "--source");
+        string? projectPath = OptionValue(args, "--project");
+        if (sourcePath is null && projectPath is null)
+        {
+            throw Error(
+                "COPE-TABLE-TOOL-0004",
+                "Projected table inspection requires '--project <manifest.tsx>' or '--source <entry.ts>'.",
+                HasJsonFormat(args));
+        }
+
         bool json = OptionValue(args, "--format") == "json" || OptionValue(args, "--result-format") == "json";
-        CopelandProjectCompilation compilation = LayoutInspectionCommand.CompileProject(sourcePath, out string projectRoot);
+        CopelandProjectCompilation compilation = LayoutInspectionCommand.CompileProject(
+            sourcePath,
+            projectPath,
+            out string projectRoot,
+            out string? graphFingerprint);
         if (!compilation.Success)
         {
             return WriteProjectedCompilationFailure(compilation.Diagnostics, json);
@@ -89,6 +110,7 @@ internal static class TableToolCommand
                     schemaVersion = SchemaVersion,
                     success = true,
                     command = "table.list",
+                    graphFingerprint,
                     tables = tables.Tables.Select(projected => new { name = projected.Name, sourceKind = "projected", readOnly = true, rowCount = projected.Rows.Count }),
                 });
             }
@@ -114,7 +136,7 @@ internal static class TableToolCommand
         {
             if (json)
             {
-                WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.schema", table = table.Name, sourceKind = "projected", readOnly = true, rowCount = table.Rows.Count, columns = table.Columns.Select(column => new { name = column.Name, type = column.Type }) });
+                WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.schema", table = table.Name, sourceKind = "projected", readOnly = true, graphFingerprint, rowCount = table.Rows.Count, columns = table.Columns.Select(column => new { name = column.Name, type = column.Type }) });
             }
             else
             {
@@ -132,7 +154,7 @@ internal static class TableToolCommand
             IReadOnlyList<IReadOnlyDictionary<string, object?>> rows = table.Rows.Skip(offset).Take(limit).Select(row => FilterProjectedRow(row, columns)).ToArray();
             if (json)
             {
-                WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.rows", table = table.Name, sourceKind = "projected", readOnly = true, offset, rows = rows.Select((values, index) => new { row = offset + index, values }) });
+                WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.rows", table = table.Name, sourceKind = "projected", readOnly = true, graphFingerprint, offset, rows = rows.Select((values, index) => new { row = offset + index, values }) });
             }
             else
             {
@@ -147,7 +169,7 @@ internal static class TableToolCommand
             string csv = Csv.Write(table.Columns.Select(column => column.Name).ToArray(), table.Rows.Select(row => table.Columns.Select(column => ProjectedCsvValue(row[column.Name])).ToArray()).ToArray());
             string? output = OptionValue(args, "--output");
             if (output is null) Console.Out.Write(csv); else AtomicWrite(Path.GetFullPath(output), csv, expectedHash: null);
-            if (json) WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.export", table = table.Name, sourceKind = "projected", readOnly = true, format = "csv", output, rowCount = table.Rows.Count });
+            if (json) WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.export", table = table.Name, sourceKind = "projected", readOnly = true, graphFingerprint, format = "csv", output, rowCount = table.Rows.Count });
             return SuccessExitCode;
         }
 

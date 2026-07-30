@@ -9,6 +9,55 @@ namespace Copeland.Cli.Tests;
 public sealed class LanguageServerProtocolTests
 {
     [Fact]
+    public void Language_server_uses_manifest_project_context_for_react_stream_overlays()
+    {
+        using var workspace = new TempWorkspace();
+        const string sourceText = "import { createElement } from \"react\"; function Hero(): ReactNode { return createElement(); } stream Site<0px, 0px> { width: 320px; height: 180px; hero: Hero() { height: fill; } }";
+        string sourcePath = workspace.Write("src/App.tsx", sourceText);
+        workspace.Write("manifest.tsx", "export default manifest({});");
+        workspace.Write(".tspack/build-manifests/site-browser.request.json", $$"""
+            {
+              "projectRoot": "{{workspace.Path.Replace("\\", "\\\\")}}",
+              "sources": [
+                { "logicalPath": "src/App.tsx", "path": "{{sourcePath.Replace("\\", "\\\\")}}" }
+              ],
+              "javascriptRuntime": "browser",
+              "tsXmlProfile": "react-m0",
+              "npmContracts": [
+                {
+                  "packageName": "react",
+                  "version": "19.2.7",
+                  "materialized": true,
+                  "exports": [
+                    { "name": "createElement", "parameters": [], "result": "ReactNode" }
+                  ],
+                  "components": []
+                }
+              ]
+            }
+            """);
+
+        using var client = new LspClient();
+        string sourceUri = VsCodeFileUri(sourcePath);
+        client.Request(1, "initialize", new { initializationOptions = new { workspaceRoot = workspace.Path } });
+        client.Notify("textDocument/didOpen", new { textDocument = new { uri = sourceUri, version = 1, text = sourceText } });
+        JsonElement diagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Empty(diagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+
+        JsonElement hover = client.Request(2, "textDocument/hover", new
+        {
+            textDocument = new { uri = sourceUri },
+            position = new { line = 0, character = sourceText.IndexOf("Site", StringComparison.Ordinal) + 1 },
+        });
+        Assert.Contains("origin: (0px, 0px)", hover.GetProperty("contents").GetProperty("value").GetString());
+
+        const string invalidOverlay = "import { createElement } from \"react\"; function Hero(): ReactNode { return createElement(); } stream Site { width: 320px; height: 180px; hero: Hero() { height: fill; } }";
+        client.Notify("textDocument/didChange", new { textDocument = new { uri = sourceUri, version = 2 }, contentChanges = new[] { new { text = invalidOverlay } } });
+        JsonElement invalidDiagnostics = client.ReadNotification("textDocument/publishDiagnostics");
+        Assert.Contains(invalidDiagnostics.GetProperty("params").GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "COPE-STREAM-0001");
+    }
+
+    [Fact]
     public void Language_server_uses_generated_ownership_and_compiles_open_buffers()
     {
         using var workspace = new TempWorkspace();

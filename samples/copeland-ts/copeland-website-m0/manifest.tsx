@@ -20,18 +20,18 @@ export default define(
       <RunTargets
         rows={[
           {
-            name: "generate-machina",
-            runtime: "system",
-            cwd: "workspace",
-            command: ["dotnet", "run", "--project", "machina/Copeland.Website.MachinaProjection.csproj", "--configuration", "Debug"],
-          },
-          {
             name: "site",
             runtime: "system",
             cwd: "workspace",
             command: ["node", "server.mjs"],
             url: "http://127.0.0.1:4173",
             ready: { kind: "http", path: "/" },
+          },
+          {
+            name: "browser-proof",
+            runtime: "system",
+            cwd: "workspace",
+            command: ["node", "browser-proof.mjs"],
           }
         ]}
       />
