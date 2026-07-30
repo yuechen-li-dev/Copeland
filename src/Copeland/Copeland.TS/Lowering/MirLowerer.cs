@@ -289,7 +289,11 @@ public static class MirLowerer
             binding.CreateElementBinding,
             new MirLiteralExpression("div", new MirType("string")),
             IsIntrinsic: true,
-            [new MirReactProperty("className", new MirLiteralExpression(hostClassName, new MirType("string")))],
+            [
+                new MirReactProperty("className", new MirLiteralExpression(hostClassName, new MirType("string"))),
+                new MirReactProperty("data-machina-layout", new MirLiteralExpression(binding.Layout.Name, new MirType("string"))),
+                new MirReactProperty("data-machina-box", new MirLiteralExpression(node.Name, new MirType("string"))),
+            ],
             children,
             ToMirType(ReactNodeTypeSymbol.Instance));
     }

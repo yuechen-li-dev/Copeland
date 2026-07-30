@@ -17,6 +17,7 @@ artifacts/m12a/
 artifacts/copeland-msbuild-package/
 artifacts/cts-jit-m0/
 artifacts/cts-jit-m0-smoke/
+artifacts/cts-layout-z-m0/
 artifacts/cts-js-perf-m1/
 artifacts/cts-js-perf-m1-production-smoke/
 artifacts/cts-distribution-m0/

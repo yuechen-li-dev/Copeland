@@ -102,15 +102,17 @@ internal sealed class CopelandWorkspace
         SyntaxToken? token = TokenAt(compilation.SyntaxTree, ToOffset(document.Text, position));
         if (token is null) return null;
         LayoutSlotSymbol? bindingSlot = FindBindingSlot(compilation, token);
+        string? tableContents = DescribeTableCellAt(compilation.SyntaxTree, token.Position);
+        string? paintContents = DescribePaintAt(compilation, token.Position);
         Symbol? symbol = FindSymbol(compilation, token.Text);
         DeclarationInfo? declaration = FindDeclaration(compilation.SyntaxTree, token.Text);
-        string contents = bindingSlot is not null
+        string contents = tableContents ?? paintContents ?? (bindingSlot is not null
             ? "slot " + bindingSlot.SemanticPath + "\ncardinality: exactly one renderable component/view\nhost: compiler-generated div layout region"
             : symbol is LayoutSymbol { BoundLayout: not null } layout
             ? DescribeLayout(layout)
             : symbol is LayoutTypeSymbol { BoundLayoutType: not null } layoutType
                 ? DescribeLayoutType(layoutType)
-            : symbol is not null ? Describe(symbol) : declaration?.Detail ?? (token.Kind == SyntaxKind.IdentifierToken ? token.Text : string.Empty);
+            : symbol is not null ? Describe(symbol) : declaration?.Detail ?? (token.Kind == SyntaxKind.IdentifierToken ? token.Text : string.Empty));
         if (symbol is null && declaration is null && token.Kind == SyntaxKind.IdentifierToken)
         {
             contents = DescribeClrType(token.Text) ?? contents;
@@ -139,9 +141,13 @@ internal sealed class CopelandWorkspace
                 insertTextFormat = 2,
             };
         }
-        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "stream", "satisfies", "bind", "row", "column", "grid", "anchor", "overlay", "slot", "width", "height", "gap", "padding", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
+        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "width", "height", "gap", "padding", "layer", "z", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
+        }
+        foreach (string column in new[] { "name", "content", "x", "y", "width", "height", "layer", "z" })
+        {
+            items[column] = CompletionItem(column, 10, "CSV overlay column: " + TableColumnExpectation(column));
         }
         BoundModuleScope? scope = compilation.BoundCompilation?.ModuleScope;
         if (scope is not null)
@@ -149,6 +155,13 @@ internal sealed class CopelandWorkspace
             foreach (Symbol symbol in scope.Declarations.Values.OrderBy(symbol => symbol.Name, StringComparer.Ordinal))
             {
                 items[symbol.Name] = CompletionItem(symbol.Name, CompletionKind(symbol), Describe(symbol));
+                if (symbol is LayerSetSymbol { BoundLayerSet: not null } layerSet)
+                {
+                    foreach (string layer in layerSet.BoundLayerSet.Layers)
+                    {
+                        items[layer] = CompletionItem(layer, 13, "semantic layer of " + layerSet.Name);
+                    }
+                }
             }
         }
         AddLayoutBindingSlotCompletions(items, compilation, ToOffset(document.Text, position));
@@ -507,6 +520,93 @@ internal sealed class CopelandWorkspace
             ?? program?.JavaScriptHostImports.Select(import => (Symbol)import.Function).FirstOrDefault(symbol => symbol.Name == name)
             ?? program?.NpmComponentImports.Select(import => (Symbol)import.Component).FirstOrDefault(symbol => symbol.Name == name);
     }
+
+    private static string? DescribePaintAt(CopelandCompilation compilation, int position)
+    {
+        foreach (BoundLayoutDeclaration layout in compilation.BoundCompilation?.Program.Layouts ?? [])
+        {
+            int order = 0;
+            string? description = Find(layout.Root);
+            if (description is not null) return description;
+
+            string? Find(BoundLayoutNode node)
+            {
+                int nodeOrder = order++;
+                if (position >= node.Source.Start && position <= node.Source.Start + node.Source.Length)
+                {
+                    BoundPaintProperties paint = node.ResolvedPaint;
+                    int rank = layout.ResolvedLayerSet.RankOf(paint.Layer);
+                    return "layer: " + paint.Layer
+                        + "\nlocal z: " + paint.LocalZ
+                        + "\nnode order: " + nodeOrder
+                        + "\nresolved paint rank: (" + rank + ", " + paint.LocalZ + ", " + nodeOrder + ")";
+                }
+                foreach (BoundLayoutNode child in node.Children)
+                {
+                    string? nested = Find(child);
+                    if (nested is not null) return nested;
+                }
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static string? DescribeTableCellAt(SyntaxTree? tree, int position)
+    {
+        if (tree is null) return null;
+        foreach (StreamDeclarationSyntax stream in tree.Root.Members.OfType<StreamDeclarationSyntax>())
+        {
+            foreach (StreamTableSyntax table in EnumerateTables(stream.Nodes, stream.Tables))
+            {
+                foreach (SyntaxToken header in table.Headers)
+                {
+                    if (header.Position == position)
+                    {
+                        return "CSV overlay column '" + header.Text + "'\nexpected: " + TableColumnExpectation(header.Text);
+                    }
+                }
+                for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
+                {
+                    StreamTableRowSyntax row = table.Rows[rowIndex];
+                    int nameIndex = TableColumnIndex(table, "name");
+                    string rowName = nameIndex >= 0 && nameIndex < row.Cells.Count && row.Cells[nameIndex] is NameExpressionSyntax name
+                        ? name.IdentifierToken.Text
+                        : "row " + (rowIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    for (int columnIndex = 0; columnIndex < row.Cells.Count && columnIndex < table.Headers.Count; columnIndex++)
+                    {
+                        if (FirstToken(row.Cells[columnIndex]).Position != position) continue;
+                        string column = table.Headers[columnIndex].Text;
+                        return "row: " + rowName
+                            + "\nparent: " + stream.Identifier.Text + "." + table.Identifier.Text
+                            + "\ncolumn: " + column
+                            + "\nexpected: " + TableColumnExpectation(column);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static IEnumerable<StreamTableSyntax> EnumerateTables(IEnumerable<StreamNodeSyntax> nodes, IEnumerable<StreamTableSyntax> tables)
+    {
+        foreach (StreamTableSyntax table in tables) yield return table;
+        foreach (StreamNodeSyntax node in nodes)
+        {
+            foreach (StreamTableSyntax table in EnumerateTables(node.Children, node.Tables)) yield return table;
+        }
+    }
+
+    private static string TableColumnExpectation(string column) => column switch
+    {
+        "name" => "semantic box identifier",
+        "content" => "renderable ReactNode expression",
+        "x" or "y" => "px or ui coordinate",
+        "width" or "height" => "length, fill, or fit",
+        "layer" => "symbol from the active layer set",
+        "z" => "integral value from -5 through 5",
+        _ => "supported CSV overlay column",
+    };
     private static DeclarationInfo? FindDeclaration(SyntaxTree? tree, string name) => Declarations(tree).FirstOrDefault(declaration => declaration.Name == name);
     private static IEnumerable<DeclarationInfo> Declarations(SyntaxTree? tree)
     {
@@ -536,6 +636,10 @@ internal sealed class CopelandWorkspace
                         foreach (DeclarationInfo slot in LayoutSlots(node, layout.Identifier.Text)) yield return slot;
                     }
                     break;
+                case LayerSetDeclarationSyntax layerSet:
+                    yield return new DeclarationInfo(layerSet.Identifier.Text, "layers " + layerSet.Identifier.Text, 13, layerSet.Identifier.Position);
+                    foreach (SyntaxToken layer in layerSet.Layers) yield return new DeclarationInfo(layer.Text, "semantic layer of " + layerSet.Identifier.Text, 13, layer.Position);
+                    break;
                 case LayoutTypeDeclarationSyntax layoutType:
                     yield return new DeclarationInfo(layoutType.Identifier.Text, "layout type " + layoutType.Identifier.Text, 13, layoutType.Identifier.Position);
                     foreach (LayoutNodeSyntax node in layoutType.Nodes)
@@ -548,6 +652,10 @@ internal sealed class CopelandWorkspace
                     foreach (StreamNodeSyntax node in stream.Nodes)
                     {
                         foreach (DeclarationInfo region in StreamRegions(node, stream.Identifier.Text)) yield return region;
+                    }
+                    foreach (StreamTableSyntax table in stream.Tables)
+                    {
+                        foreach (DeclarationInfo region in StreamRegions(table, stream.Identifier.Text)) yield return region;
                     }
                     break;
                 case EnumDeclarationSyntax @enum:
@@ -576,15 +684,31 @@ internal sealed class CopelandWorkspace
         {
             foreach (DeclarationInfo region in StreamRegions(child, streamName)) yield return region;
         }
+        foreach (StreamTableSyntax table in node.Tables)
+        {
+            foreach (DeclarationInfo region in StreamRegions(table, streamName)) yield return region;
+        }
+    }
+    private static IEnumerable<DeclarationInfo> StreamRegions(StreamTableSyntax table, string streamName)
+    {
+        yield return new DeclarationInfo(table.Identifier.Text, "CSV overlay of stream " + streamName, 7, table.Identifier.Position);
+        int nameIndex = TableColumnIndex(table, "name");
+        if (nameIndex < 0) yield break;
+        foreach (StreamTableRowSyntax row in table.Rows)
+        {
+            if (row.Cells.Count != table.Headers.Count || row.Cells[nameIndex] is not NameExpressionSyntax name) continue;
+            yield return new DeclarationInfo(name.IdentifierToken.Text, "CSV layout box of stream " + streamName, 7, name.IdentifierToken.Position);
+        }
     }
     private static int DeclarationPosition(SyntaxTree? tree, string name) => tree?.Tokens.FirstOrDefault(token => token.Kind == SyntaxKind.IdentifierToken && token.Text == name)?.Position ?? 0;
     private static SyntaxToken? TokenAt(SyntaxTree? tree, int offset) => tree?.Tokens.FirstOrDefault(token => offset >= token.Position && offset <= token.Position + token.Text.Length);
-    private static int CompletionKind(Symbol symbol) => symbol switch { FunctionSymbol => 3, VariableSymbol => 6, ParameterSymbol => 6, _ => 13 };
+    private static int CompletionKind(Symbol symbol) => symbol switch { FunctionSymbol => 3, VariableSymbol => 6, ParameterSymbol => 6, LayerSetSymbol => 13, _ => 13 };
     private static object CompletionItem(string label, int kind, string detail) => new { label, kind, detail };
     private static string Describe(Symbol symbol) => symbol switch
     {
         LayoutSymbol layout => "layout " + (layout.Profile is null ? string.Empty : layout.Profile + " ") + layout.Name,
         LayoutTypeSymbol layoutType => "layout type " + layoutType.Name,
+        LayerSetSymbol layerSet => "layers " + layerSet.Name + " (declaration-ordered semantic paint layers)",
         FunctionSymbol function => (function.IsRemote ? "remote " : string.Empty) + "function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.InvocationReturnType.Name,
         NpmFunctionSymbol function => "npm function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.InvocationReturnType.Name,
         CopelandPackageFunctionSymbol function => "package function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.ReturnType.Name,
@@ -623,6 +747,11 @@ internal sealed class CopelandWorkspace
                 if (nodeKind >= 0) return nodeKind;
             }
         }
+        foreach (LayerSetDeclarationSyntax layerSet in tree.Root.Members.OfType<LayerSetDeclarationSyntax>())
+        {
+            if (SameToken(layerSet.LayersKeyword, token)) return 0;
+            if (SameToken(layerSet.Identifier, token) || layerSet.Layers.Any(layer => SameToken(layer, token))) return 13;
+        }
         foreach (LayoutTypeDeclarationSyntax layoutType in tree.Root.Members.OfType<LayoutTypeDeclarationSyntax>())
         {
             if (SameToken(layoutType.LayoutKeyword, token) || SameToken(layoutType.Identifier, token)) return 10;
@@ -649,6 +778,11 @@ internal sealed class CopelandWorkspace
             {
                 int nodeKind = StreamNodeTokenKind(node, token);
                 if (nodeKind >= 0) return nodeKind;
+            }
+            foreach (StreamTableSyntax table in stream.Tables)
+            {
+                int tableKind = StreamTableTokenKind(table, token);
+                if (tableKind >= 0) return tableKind;
             }
         }
         return -1;
@@ -691,6 +825,7 @@ internal sealed class CopelandWorkspace
         if (SameToken(node.Identifier, token)) return 13;
         foreach (LayoutPropertySyntax property in node.Properties)
         {
+            if (SameToken(property.Identifier, token)) return property.Identifier.Text is "layer" or "z" ? 10 : -1;
             if (property.Value is NameExpressionSyntax name
                 && name.IdentifierToken.Text is "fill" or "fit"
                 && SameToken(name.IdentifierToken, token)) return 14;
@@ -716,8 +851,49 @@ internal sealed class CopelandWorkspace
             int childKind = StreamNodeTokenKind(child, token);
             if (childKind >= 0) return childKind;
         }
+        foreach (StreamTableSyntax table in node.Tables)
+        {
+            int tableKind = StreamTableTokenKind(table, token);
+            if (tableKind >= 0) return tableKind;
+        }
         return -1;
     }
+
+    private static int StreamTableTokenKind(StreamTableSyntax table, SyntaxToken token)
+    {
+        if (SameToken(table.CsvKeyword, token)) return 0;
+        if (SameToken(table.ContainerKindToken, token)) return 12;
+        if (SameToken(table.Identifier, token)) return 13;
+        if (table.Headers.Any(header => SameToken(header, token))) return 10;
+
+        int nameIndex = TableColumnIndex(table, "name");
+        int layerIndex = TableColumnIndex(table, "layer");
+        int zIndex = TableColumnIndex(table, "z");
+        foreach (StreamTableRowSyntax row in table.Rows)
+        {
+            for (int index = 0; index < row.Cells.Count; index++)
+            {
+                SyntaxToken cellToken = FirstToken(row.Cells[index]);
+                if (!SameToken(cellToken, token)) continue;
+                if (index == nameIndex || index == layerIndex) return 13;
+                if (index == zIndex || token.Kind == SyntaxKind.NumberToken) return 15;
+                return -1;
+            }
+        }
+        return -1;
+    }
+
+    private static int TableColumnIndex(StreamTableSyntax table, string name)
+    {
+        for (int index = 0; index < table.Headers.Count; index++)
+        {
+            if (string.Equals(table.Headers[index].Text, name, StringComparison.Ordinal)) return index;
+        }
+        return -1;
+    }
+
+    private static SyntaxToken FirstToken(SyntaxNode node)
+        => node.GetChildren().OfType<SyntaxToken>().FirstOrDefault() ?? new SyntaxToken(SyntaxKind.BadToken, 0, string.Empty, null);
 
     private static bool SameToken(SyntaxToken left, SyntaxToken right)
         => left.Position == right.Position && left.Text.Length == right.Text.Length;

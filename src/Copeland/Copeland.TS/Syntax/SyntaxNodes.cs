@@ -676,6 +676,31 @@ public sealed record LayoutTypeDeclarationSyntax(
 }
 
 /// <summary>
+/// A finite, declaration-ordered semantic paint-layer space. Layer names are
+/// compiler symbols, not CSS strings or numeric z-index aliases.
+/// </summary>
+public sealed record LayerSetDeclarationSyntax(
+    SyntaxToken LayersKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<SyntaxToken> Layers,
+    IReadOnlyList<SyntaxToken> SemicolonTokens,
+    SyntaxToken CloseBraceToken) : MemberSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.LayerSetDeclaration;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return LayersKeyword;
+        yield return Identifier;
+        yield return OpenBraceToken;
+        foreach (SyntaxToken layer in Layers) yield return layer;
+        foreach (SyntaxToken semicolon in SemicolonTokens) yield return semicolon;
+        yield return CloseBraceToken;
+    }
+}
+
+/// <summary>
 /// Associates renderable component expressions with the authored slot names of
 /// one concrete layout. Binding has no geometry syntax: the layout remains the
 /// sole owner of spatial constraints.
@@ -729,6 +754,7 @@ public sealed record StreamDeclarationSyntax(
     SyntaxToken OpenBraceToken,
     IReadOnlyList<LayoutPropertySyntax> Properties,
     IReadOnlyList<StreamNodeSyntax> Nodes,
+    IReadOnlyList<StreamTableSyntax> Tables,
     SyntaxToken CloseBraceToken) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.StreamDeclaration;
@@ -743,6 +769,7 @@ public sealed record StreamDeclarationSyntax(
         yield return OpenBraceToken;
         foreach (LayoutPropertySyntax property in Properties) yield return property;
         foreach (StreamNodeSyntax node in Nodes) yield return node;
+        foreach (StreamTableSyntax table in Tables) yield return table;
         yield return CloseBraceToken;
     }
 }
@@ -759,6 +786,7 @@ public sealed record StreamNodeSyntax(
     SyntaxToken? OpenBraceToken,
     IReadOnlyList<LayoutPropertySyntax> Properties,
     IReadOnlyList<StreamNodeSyntax> Children,
+    IReadOnlyList<StreamTableSyntax> Tables,
     SyntaxToken? CloseBraceToken) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.StreamNode;
@@ -772,7 +800,55 @@ public sealed record StreamNodeSyntax(
         if (OpenBraceToken is not null) yield return OpenBraceToken;
         foreach (LayoutPropertySyntax property in Properties) yield return property;
         foreach (StreamNodeSyntax child in Children) yield return child;
+        foreach (StreamTableSyntax table in Tables) yield return table;
         if (CloseBraceToken is not null) yield return CloseBraceToken;
+    }
+}
+
+/// <summary>
+/// A CSV-shaped, semicolon-row-terminated projection of sibling stream boxes.
+/// Cells are ordinary expressions; the header gives each cell its typed layout
+/// meaning. It is deliberately syntax, not an embedded CSV string.
+/// </summary>
+public sealed record StreamTableSyntax(
+    SyntaxToken CsvKeyword,
+    SyntaxToken ContainerKindToken,
+    SyntaxToken Identifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<SyntaxToken> Headers,
+    IReadOnlyList<SyntaxToken> HeaderCommas,
+    SyntaxToken HeaderSemicolonToken,
+    IReadOnlyList<StreamTableRowSyntax> Rows,
+    SyntaxToken CloseBraceToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.StreamTable;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return CsvKeyword;
+        yield return ContainerKindToken;
+        yield return Identifier;
+        yield return OpenBraceToken;
+        foreach (SyntaxToken header in Headers) yield return header;
+        foreach (SyntaxToken comma in HeaderCommas) yield return comma;
+        yield return HeaderSemicolonToken;
+        foreach (StreamTableRowSyntax row in Rows) yield return row;
+        yield return CloseBraceToken;
+    }
+}
+
+public sealed record StreamTableRowSyntax(
+    IReadOnlyList<ExpressionSyntax> Cells,
+    IReadOnlyList<SyntaxToken> Commas,
+    SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.StreamTableRow;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        foreach (ExpressionSyntax cell in Cells) yield return cell;
+        foreach (SyntaxToken comma in Commas) yield return comma;
+        yield return SemicolonToken;
     }
 }
 

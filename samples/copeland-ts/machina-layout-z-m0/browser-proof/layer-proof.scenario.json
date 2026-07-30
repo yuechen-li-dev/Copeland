@@ -1,0 +1,19 @@
+{
+  "artifactDirectory": "../../../../artifacts/cts-layout-z-m0",
+  "scenarios": [
+    {
+      "name": "layer-proof",
+      "viewport": { "width": 700, "height": 700 },
+      "assertions": [
+        { "kind": "topmost-at-point", "x": 100, "y": 100, "expected": "[data-machina-box='contentBox']" },
+        { "kind": "topmost-at-point", "x": 200, "y": 180, "expected": "[data-machina-box='highOverlay']" },
+        { "kind": "topmost-at-point", "x": 200, "y": 340, "expected": "[data-machina-box='lateOverlay']" },
+        { "kind": "topmost-at-point", "x": 300, "y": 250, "expected": "[data-machina-box='modalBox']" },
+        { "kind": "topmost-at-point", "x": 40, "y": 540, "expected": "[data-machina-box='defaultLate']" },
+        { "kind": "count", "selector": "[data-machina-layout='LayerProof']", "value": 8 },
+        { "kind": "count", "selector": "[data-machina-box]", "value": 11 }
+      ],
+      "screenshot": "layer-proof.png"
+    }
+  ]
+}

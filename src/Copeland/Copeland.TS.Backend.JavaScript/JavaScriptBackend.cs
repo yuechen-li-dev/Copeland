@@ -3350,7 +3350,10 @@ public static class JavaScriptBackend
             string emittedValue = property.Value.Type is MirCallableType callable
                 ? EmitReactCallbackAdapter(value.Value, callable)
                 : value.Value;
-            properties.Add(JavaScriptIdentifierEncoder.Encode(property.Name) + ": " + emittedValue);
+            string propertyName = JavaScriptIdentifierEncoder.IsValidGeneratedIdentifier(property.Name)
+                ? property.Name
+                : JavaScriptLiteralWriter.WriteString(property.Name);
+            properties.Add(propertyName + ": " + emittedValue);
         }
 
         var children = new List<string>();

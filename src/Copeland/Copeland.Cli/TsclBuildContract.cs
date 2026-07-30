@@ -242,8 +242,23 @@ internal static class TsclBuildContract
     private static string CreateBrowserEntryLauncher(string entryModuleOutput, string entryExport, bool hasLayouts)
     {
         string specifier = "./" + entryModuleOutput.Replace('\\', '/');
-        string cssImport = hasLayouts ? "import \"./generated/layouts.css\";\n" : string.Empty;
-        return cssImport + $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
+        string cssLoader = hasLayouts
+            ? """
+                const __cope_layout_stylesheet = new URL("./generated/layouts.css", import.meta.url).href;
+                if (document.querySelector("link[data-copeland-layout-stylesheet]") === null) {
+                    const __cope_layout_link = document.createElement("link");
+                    __cope_layout_link.rel = "stylesheet";
+                    __cope_layout_link.href = __cope_layout_stylesheet;
+                    __cope_layout_link.setAttribute("data-copeland-layout-stylesheet", "true");
+                    await new Promise((resolve, reject) => {
+                        __cope_layout_link.addEventListener("load", resolve, { once: true });
+                        __cope_layout_link.addEventListener("error", reject, { once: true });
+                        document.head.append(__cope_layout_link);
+                    });
+                }
+                """
+            : string.Empty;
+        return cssLoader + $"import {{ {entryExport} }} from {JsonSerializer.Serialize(specifier)};\n" +
             $"await {entryExport}();\n";
     }
 

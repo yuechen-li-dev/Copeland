@@ -1,0 +1,12 @@
+{
+  "artifactDirectory": "../../../../artifacts/cts-layout-table-surface-m0",
+  "scenarios": [{
+    "name": "csv-overlay-proof",
+    "viewport": { "width": 500, "height": 300 },
+    "assertions": [
+      { "kind": "count", "selector": "[data-machina-layout='DialogScene']", "value": 4 },
+      { "kind": "topmost-at-point", "x": 90, "y": 80, "expected": "[data-machina-box='tooltip']" }
+    ],
+    "screenshot": "csv-overlay-proof.png"
+  }]
+}

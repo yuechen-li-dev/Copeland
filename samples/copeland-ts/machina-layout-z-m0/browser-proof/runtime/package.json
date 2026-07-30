@@ -1,0 +1,5 @@
+{
+  "name": "@copeland/browser-v1",
+  "version": "1.0.0",
+  "module": "browser-v1.js"
+}

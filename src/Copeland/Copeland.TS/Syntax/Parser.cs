@@ -161,6 +161,10 @@ public sealed class Parser
             }
             return ParseLayoutDeclaration();
         }
+        if (IsWord(Current, "layers"))
+        {
+            return ParseLayerSetDeclaration();
+        }
         if (IsWord(Current, "bind"))
         {
             return ParseLayoutBindingDeclaration();
@@ -207,6 +211,7 @@ public sealed class Parser
     {
         SyntaxToken next = Peek(1);
         return next.Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword or SyntaxKind.LayoutKeyword or SyntaxKind.TemplateKeyword
+            || IsWord(next, "layers")
             || IsWord(next, "type")
             || IsWord(next, "interface")
             || IsWord(next, "flow")
@@ -824,6 +829,28 @@ public sealed class Parser
         return new LayoutTypeDeclarationSyntax(layoutKeyword, typeKeyword, identifier, openBrace, nodes, Match(SyntaxKind.CloseBraceToken));
     }
 
+    private LayerSetDeclarationSyntax ParseLayerSetDeclaration()
+    {
+        SyntaxToken layersKeyword = NextToken();
+        SyntaxToken identifier = MatchLayoutName();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var layers = new List<SyntaxToken>();
+        var semicolons = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            if (!IsLayoutNameToken(Current))
+            {
+                _diagnostics.Report("COPE-LAYOUT-LAYER-0002", "A semantic layer set contains only named layers.", Current.Position, Math.Max(1, Current.Text.Length));
+                NextToken();
+                continue;
+            }
+
+            layers.Add(NextToken());
+            semicolons.Add(Match(SyntaxKind.SemicolonToken));
+        }
+        return new LayerSetDeclarationSyntax(layersKeyword, identifier, openBrace, layers, semicolons, Match(SyntaxKind.CloseBraceToken));
+    }
+
     private LayoutBindingDeclarationSyntax ParseLayoutBindingDeclaration()
     {
         SyntaxToken bindKeyword = NextToken();
@@ -867,10 +894,15 @@ public sealed class Parser
         SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
         var properties = new List<LayoutPropertySyntax>();
         var nodes = new List<StreamNodeSyntax>();
+        var tables = new List<StreamTableSyntax>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             SyntaxToken start = Current;
-            if (IsStreamStructuralKind(Current) || IsLayoutNameToken(Current) && Peek(1).Kind == SyntaxKind.ColonToken && !IsLayoutPropertyName(Current))
+            if (IsWord(Current, "csv"))
+            {
+                tables.Add(ParseStreamTable());
+            }
+            else if (IsStreamStructuralKind(Current) || IsLayoutNameToken(Current) && Peek(1).Kind == SyntaxKind.ColonToken && !IsLayoutPropertyName(Current))
             {
                 nodes.Add(ParseStreamNode());
             }
@@ -886,7 +918,7 @@ public sealed class Parser
             if (Current == start) NextToken();
         }
 
-        return new StreamDeclarationSyntax(streamKeyword, identifier, origin, satisfiesKeyword, contractIdentifier, openBrace, properties, nodes, Match(SyntaxKind.CloseBraceToken));
+        return new StreamDeclarationSyntax(streamKeyword, identifier, origin, satisfiesKeyword, contractIdentifier, openBrace, properties, nodes, tables, Match(SyntaxKind.CloseBraceToken));
     }
 
     private LayoutOriginSyntax? ParseStreamOrigin(SyntaxToken identifier)
@@ -923,16 +955,21 @@ public sealed class Parser
             {
                 _diagnostics.Report("COPE-STREAM-0002", $"Structural stream node '{identifier.Text}' requires a body.", identifier.Position, Math.Max(1, identifier.Text.Length));
             }
-            return new StreamNodeSyntax(kind, identifier, colon, content, null, [], [], null);
+            return new StreamNodeSyntax(kind, identifier, colon, content, null, [], [], [], null);
         }
 
         SyntaxToken openBrace = NextToken();
         var properties = new List<LayoutPropertySyntax>();
         var children = new List<StreamNodeSyntax>();
+        var tables = new List<StreamTableSyntax>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             SyntaxToken start = Current;
-            if (IsStreamStructuralKind(Current) || IsLayoutNameToken(Current) && Peek(1).Kind == SyntaxKind.ColonToken && !IsLayoutPropertyName(Current))
+            if (IsWord(Current, "csv"))
+            {
+                tables.Add(ParseStreamTable());
+            }
+            else if (IsStreamStructuralKind(Current) || IsLayoutNameToken(Current) && Peek(1).Kind == SyntaxKind.ColonToken && !IsLayoutPropertyName(Current))
             {
                 children.Add(ParseStreamNode());
             }
@@ -948,7 +985,70 @@ public sealed class Parser
             if (Current == start) NextToken();
         }
 
-        return new StreamNodeSyntax(kind, identifier, colon, content, openBrace, properties, children, Match(SyntaxKind.CloseBraceToken));
+        return new StreamNodeSyntax(kind, identifier, colon, content, openBrace, properties, children, tables, Match(SyntaxKind.CloseBraceToken));
+    }
+
+    private StreamTableSyntax ParseStreamTable()
+    {
+        SyntaxToken csvKeyword = NextToken();
+        SyntaxToken containerKind = NextToken();
+        SyntaxToken identifier = MatchLayoutName();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        var headers = new List<SyntaxToken>();
+        var headerCommas = new List<SyntaxToken>();
+
+        while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            if (!IsLayoutNameToken(Current))
+            {
+                _diagnostics.Report("COPE-LAYOUT-TABLE-0001", "A table header contains named columns separated by commas and terminated by ';'.", Current.Position, Math.Max(1, Current.Text.Length));
+                NextToken();
+                continue;
+            }
+            headers.Add(NextToken());
+            if (Current.Kind == SyntaxKind.CommaToken)
+            {
+                headerCommas.Add(NextToken());
+                continue;
+            }
+            break;
+        }
+        if (Current.Kind != SyntaxKind.SemicolonToken)
+        {
+            _diagnostics.Report("COPE-LAYOUT-TABLE-0015", "A CSV layout table header must end with ';'.", Current.Position, Math.Max(1, Current.Text.Length));
+        }
+        SyntaxToken headerSemicolon = Match(SyntaxKind.SemicolonToken);
+        var rows = new List<StreamTableRowSyntax>();
+        while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken start = Current;
+            var cells = new List<ExpressionSyntax>();
+            var commas = new List<SyntaxToken>();
+            while (Current.Kind is not SyntaxKind.SemicolonToken and not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+            {
+                if (Current.Kind == SyntaxKind.CommaToken)
+                {
+                    cells.Add(new MissingExpressionSyntax(MissingToken(SyntaxKind.IdentifierToken, Current.Position)));
+                    commas.Add(NextToken());
+                    continue;
+                }
+                cells.Add(ParseExpression());
+                if (Current.Kind == SyntaxKind.CommaToken)
+                {
+                    commas.Add(NextToken());
+                    continue;
+                }
+                break;
+            }
+            if (Current.Kind != SyntaxKind.SemicolonToken)
+            {
+                _diagnostics.Report("COPE-LAYOUT-TABLE-0015", "A CSV layout table row must end with ';'.", Current.Position, Math.Max(1, Current.Text.Length));
+            }
+            SyntaxToken semicolon = Match(SyntaxKind.SemicolonToken);
+            rows.Add(new StreamTableRowSyntax(cells, commas, semicolon));
+            if (Current == start) NextToken();
+        }
+        return new StreamTableSyntax(csvKeyword, containerKind, identifier, openBrace, headers, headerCommas, headerSemicolon, rows, Match(SyntaxKind.CloseBraceToken));
     }
 
     private LayoutOriginSyntax? ParseLayoutOrigin(SyntaxToken identifier)
@@ -1060,7 +1160,8 @@ public sealed class Parser
 
     private static bool IsLayoutPropertyName(SyntaxToken token)
         => token.Text is "width" or "height" or "frame" or "gap" or "padding" or "style"
-            or "columns" or "x" or "y" or "position" or "left" or "right" or "top" or "bottom";
+            or "columns" or "x" or "y" or "position" or "left" or "right" or "top" or "bottom"
+            or "layers" or "layer" or "z";
 
     private static bool IsLayoutNameToken(SyntaxToken token)
         => token.Kind is SyntaxKind.IdentifierToken or SyntaxKind.TableKeyword or SyntaxKind.ColumnKeyword;

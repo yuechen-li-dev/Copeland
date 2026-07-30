@@ -128,6 +128,7 @@ public static class Binder
         private readonly List<BoundLayoutBinding> _layoutBindings = [];
         private readonly Dictionary<string, LayoutSymbol> _layoutSymbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, LayoutTypeSymbol> _layoutTypeSymbols = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, LayerSetSymbol> _layerSetSymbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, LayoutTypeSymbol> _inferredStreamTypeSymbols = new(StringComparer.Ordinal);
         private readonly List<BoundStatement> _globals = [];
         private readonly List<BoundNpmImport> _npmImports = [];
@@ -194,6 +195,7 @@ public static class Binder
             PredeclareTables(_tree.Root);
             PredeclareEnums(_tree.Root);
             PredeclareNominalUnions(_tree.Root);
+            PredeclareLayerSets(_tree.Root);
             PredeclareLayoutTypes(_tree.Root);
             PredeclareLayouts(_tree.Root);
             ResolveAliases();
@@ -1718,6 +1720,21 @@ public static class Binder
             }
         }
 
+        private void PredeclareLayerSets(CompilationUnitSyntax root)
+        {
+            foreach (LayerSetDeclarationSyntax declaration in root.Members.OfType<LayerSetDeclarationSyntax>())
+            {
+                string identity = (_moduleIdentity ?? _sourcePath ?? "<standalone>") + "::layers::" + declaration.Identifier.Text;
+                var symbol = new LayerSetSymbol(declaration.Identifier.Text, identity, declaration);
+                if (!_global.TryDeclare(symbol))
+                {
+                    Report("COPE-LAYOUT-LAYER-0003", $"Duplicate declaration '{symbol.Name}'.", declaration.Identifier);
+                    continue;
+                }
+                _layerSetSymbols.Add(symbol.Name, symbol);
+            }
+        }
+
         private void PredeclareLayoutTypes(CompilationUnitSyntax root)
         {
             foreach (LayoutTypeDeclarationSyntax declaration in root.Members.OfType<LayoutTypeDeclarationSyntax>())
@@ -1735,9 +1752,10 @@ public static class Binder
 
         private void BindLayouts()
         {
-            if (_layoutSymbols.Count == 0 && _layoutTypeSymbols.Count == 0) return;
+            if (_layoutSymbols.Count == 0 && _layoutTypeSymbols.Count == 0 && _layerSetSymbols.Count == 0) return;
             var imported = new Dictionary<string, BoundLayoutDeclaration>(StringComparer.Ordinal);
             var importedTypes = new Dictionary<string, BoundLayoutTypeDeclaration>(StringComparer.Ordinal);
+            var importedLayerSets = new Dictionary<string, BoundLayerSet>(StringComparer.Ordinal);
             if (_imports is not null)
             {
                 foreach ((string localName, Symbol symbol) in _imports.Declarations)
@@ -1750,10 +1768,14 @@ public static class Binder
                     {
                         importedTypes.Add(localName, layoutType.BoundLayoutType);
                     }
+                    if (symbol is LayerSetSymbol { BoundLayerSet: not null } layerSet)
+                    {
+                        importedLayerSets.Add(localName, layerSet.BoundLayerSet);
+                    }
                 }
             }
 
-            LayoutDataCompilation compilation = LayoutDataCompiler.Bind(_tree, _sourcePath ?? "<memory>", imported, importedTypes);
+            LayoutDataCompilation compilation = LayoutDataCompiler.Bind(_tree, _sourcePath ?? "<memory>", imported, importedTypes, importedLayerSets);
             foreach (Diagnostic diagnostic in compilation.Diagnostics.Where(diagnostic => diagnostic.Id.StartsWith("COPE-LAYOUT-", StringComparison.Ordinal) || diagnostic.Id.StartsWith("COPE-STREAM-", StringComparison.Ordinal)))
             {
                 if (diagnostic.Id == "COPE-LAYOUT-TYPE-0009"
@@ -1763,9 +1785,21 @@ public static class Binder
                 }
                 _diagnostics.Report(diagnostic.Id, diagnostic.Message, diagnostic.Position, diagnostic.Length);
             }
+            foreach ((string name, LayerSetSymbol symbol) in _layerSetSymbols)
+            {
+                if (compilation.LayerSets.TryGetValue(name, out BoundLayerSet? bound))
+                {
+                    symbol.BoundLayerSet = bound with { StableIdentity = symbol.StableIdentity };
+                }
+            }
             foreach ((string name, LayoutSymbol symbol) in _layoutSymbols)
             {
                 if (!compilation.Layouts.TryGetValue(name, out BoundLayoutDeclaration? bound)) continue;
+                if (_layerSetSymbols.TryGetValue(bound.ResolvedLayerSet.Name, out LayerSetSymbol? layerSet)
+                    && layerSet.BoundLayerSet is not null)
+                {
+                    bound = bound with { LayerSet = layerSet.BoundLayerSet };
+                }
                 symbol.BoundLayout = bound;
                 symbol.Slots = bound.Slots
                     .OrderBy(pair => pair.Key, StringComparer.Ordinal)
@@ -1800,7 +1834,7 @@ public static class Binder
             foreach (StreamDeclarationSyntax syntax in root.Members.OfType<StreamDeclarationSyntax>())
             {
                 if (!_layoutSymbols.TryGetValue(syntax.Identifier.Text, out LayoutSymbol? layout) || layout.BoundLayout is null) continue;
-                StreamNodeSyntax[] contentNodes = EnumerateStreamContent(syntax.Nodes).ToArray();
+                StreamContentNode[] contentNodes = EnumerateStreamContent(syntax.Nodes, syntax.Tables).ToArray();
                 if (contentNodes.GroupBy(node => node.Identifier.Text, StringComparer.Ordinal).Any(group => group.Count() > 1)
                     || EnumerateStreamNodes(syntax.Nodes).Any(node => node.KindToken is not null && node.Content is not null && node.Content is not ArrayLiteralExpressionSyntax))
                 {
@@ -1853,13 +1887,17 @@ public static class Binder
 
                 var entries = new List<BoundLayoutBindingEntry>();
                 var collections = new List<BoundStreamCollection>();
-                foreach (StreamNodeSyntax node in contentNodes)
+                foreach (StreamContentNode node in contentNodes)
                 {
-                    if (!layout.Slots.TryGetValue(node.Identifier.Text, out LayoutSlotSymbol? slot) || node.Content is null) continue;
+                    if (!layout.Slots.TryGetValue(node.Identifier.Text, out LayoutSlotSymbol? slot)) continue;
                     BoundExpression content = BindExpression(node.Content, ReactNodeTypeSymbol.Instance);
                     if (content.Type != ReactNodeTypeSymbol.Instance)
                     {
-                        Report("COPE-STREAM-0012", $"Content for stream region '{slot.SemanticPath}' must be a renderable ReactNode expression; got '{content.Type.Name}'.", node.Identifier);
+                        string diagnosticId = node.Table is null ? "COPE-STREAM-0012" : "COPE-LAYOUT-TABLE-0014";
+                        string location = node.Table is null
+                            ? $"stream region '{slot.SemanticPath}'"
+                            : $"row '{node.Identifier.Text}', column 'content' in CSV layout table '{node.Table.Identifier.Text}'";
+                        Report(diagnosticId, $"Content for {location} must be a renderable ReactNode expression; got '{content.Type.Name}'.", node.Identifier);
                         continue;
                     }
                     var entrySyntax = new LayoutBindingEntrySyntax(node.Identifier, node.ColonToken ?? node.Identifier, node.Content, null);
@@ -1897,14 +1935,49 @@ public static class Binder
             }
         }
 
-        private static IEnumerable<StreamNodeSyntax> EnumerateStreamContent(IEnumerable<StreamNodeSyntax> nodes)
+        private static IEnumerable<StreamContentNode> EnumerateStreamContent(
+            IEnumerable<StreamNodeSyntax> nodes,
+            IEnumerable<StreamTableSyntax> tables)
         {
             foreach (StreamNodeSyntax node in nodes)
             {
-                if (node.KindToken is null) yield return node;
-                foreach (StreamNodeSyntax child in EnumerateStreamContent(node.Children)) yield return child;
+                if (node.KindToken is null && node.Content is not null)
+                {
+                    yield return new StreamContentNode(node.Identifier, node.ColonToken, node.Content, null);
+                }
+                foreach (StreamContentNode child in EnumerateStreamContent(node.Children, node.Tables)) yield return child;
+            }
+            foreach (StreamTableSyntax table in tables)
+            {
+                int nameIndex = IndexOfTableColumn(table, "name");
+                int contentIndex = IndexOfTableColumn(table, "content");
+                if (nameIndex < 0 || contentIndex < 0) continue;
+                foreach (StreamTableRowSyntax row in table.Rows)
+                {
+                    if (row.Cells.Count != table.Headers.Count
+                        || row.Cells[nameIndex] is not NameExpressionSyntax name)
+                    {
+                        continue;
+                    }
+                    yield return new StreamContentNode(name.IdentifierToken, null, row.Cells[contentIndex], table);
+                }
             }
         }
+
+        private static int IndexOfTableColumn(StreamTableSyntax table, string name)
+        {
+            for (int index = 0; index < table.Headers.Count; index++)
+            {
+                if (string.Equals(table.Headers[index].Text, name, StringComparison.Ordinal)) return index;
+            }
+            return -1;
+        }
+
+        private sealed record StreamContentNode(
+            SyntaxToken Identifier,
+            SyntaxToken? ColonToken,
+            ExpressionSyntax Content,
+            StreamTableSyntax? Table);
 
         private static IEnumerable<StreamNodeSyntax> EnumerateStreamNodes(IEnumerable<StreamNodeSyntax> nodes)
         {

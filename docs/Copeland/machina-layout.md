@@ -162,6 +162,144 @@ diagnostics. The layout type itself has no runtime value. A satisfying layout's
 existing generated React accessor surface is semantic-name based and therefore
 contains every contract node; no positional accessor is canonical.
 
+## Deterministic paint order (CTS-LAYOUT-Z-M0)
+
+> Every layout box has an explicit, total, deterministic paint order.
+
+> Semantic layers describe application-scale intent. Bounded z values describe small local adjustments. Authored node order resolves final ties.
+
+> Copeland does not use arbitrary `z-index` numbers as application architecture.
+
+Every concrete layout or stream owns one layer space. Without a declaration it
+uses the implicit `DefaultLayers` set, which contains one `default` layer. Every
+box therefore has `layer: default` and `z: 0` unless another value is bound.
+
+```ts
+layers AppLayers {
+    background;
+    content;
+    overlay;
+    modal;
+}
+
+stream DialogScene<0px, 0px> {
+    layers: AppLayers;
+    width: 1200px;
+    height: 800px;
+    overlay root {
+        page: Page() { layer: content; }
+        backdrop: Backdrop() { layer: overlay; z: -1; }
+        dialog: Dialog() { layer: modal; }
+        tooltip: Tooltip() { layer: modal; z: 1; }
+    }
+}
+```
+
+Layer declaration order assigns a stable rank. A layer set is a normal module
+symbol (`LayerSetSymbol`) and supports named exports, imports, aliases, source
+locations, definition lookup, and duplicate/empty-set diagnostics. A root
+selects its set with `layers: Name;`; `layer:` names a member of that selected
+set. There is no exposed authored integer rank.
+
+`z` is a static integral literal from `-5` through `5` inclusive. Unary minus
+is accepted, but fractions, names, expressions, and values outside that range
+are rejected. `COPE-LAYOUT-Z-0001` reports the received out-of-range value and
+directs authors toward a semantic layer; values are never clamped.
+
+The backend-neutral normalized box record carries layer-set identity, layer
+identity, layer rank, local z, `AuthoredNodeOrder`, and a
+`NormalizedPaintOrder(layerRank, localZ, authoredNodeOrder)`. Its ordering key
+is lexicographic:
+
+```text
+(semantic layer rank, local z, authored node order)
+```
+
+Later source-declared siblings paint later and therefore appear above earlier
+siblings when layer and z tie. The ordinal is a source preorder assigned during
+normalization, never dictionary iteration. Fixed collection hosts inherit their
+collection region's layer and z; their item order remains source array order,
+and M0 provides no item-specific z syntax.
+
+Structural descendants inherit their containing node's semantic layer when
+they omit `layer:`. This is also the nesting rule: descendants remain inside
+their containing root's layer space and cannot escape a containing semantic
+layer. Whole-layout composition preserves the composed layout's existing layer
+set; replacing it is diagnosed. Portals and cross-root layer escape are not an
+M0 feature.
+
+The React lowering emits one isolated root stacking context and a deterministic
+compiler-generated CSS z value for each declared `(layer rank, bounded z)`
+pair. React host children retain normalized source order, which resolves equal
+z ties in the same direction as the language law. Generated hosts, rather than
+bound components, own these properties. This contains ordinary browser
+stacking-context effects beneath the layout root; future native, PDF, canvas,
+and image backends must consume the same normalized paint key.
+
+## CSV-shaped overlay authoring (CTS-LAYOUT-TABLE-SURFACE-M0)
+
+> The nested tree is a convenient authoring projection for containment. The normalized semantic model is a relation of named boxes and constraints.
+
+`csv overlay` is an optional, typed, row-oriented surface for sibling boxes in
+a stream. It is parsed Copeland syntax, not a string literal, RFC CSV import,
+runtime table value, or another layout engine. Its M0 grammar uses a
+semicolon-terminated header and semicolon-terminated rows:
+
+```ts
+stream DialogScene<0px, 0px> {
+    layers: AppLayers;
+    width: 320px;
+    height: 180px;
+
+    csv overlay root {
+        name, content, x, y, width, height, layer, z;
+        page, Page(), 0px, 0px, 320px, 180px, content, 5;
+        dialog, Dialog(), 20px, 20px, 260px, 120px, modal, -1;
+    }
+}
+```
+
+The M0 `overlay` schema requires `name`, `content`, `x`, `y`, `width`, and
+`height`, exactly once. `layer` defaults to the containing layer (normally
+`default`) and `z` defaults to `0`. Columns may be reordered: header names,
+not their positions, assign cell meaning. Unknown and duplicate columns, row
+arity, duplicate names, unsupported container kinds, and invalid typed cells
+are diagnostics at their authored cell.
+
+`name` is a semantic identifier; `content` is an ordinary ReactNode expression;
+`x` and `y` are px/ui coordinates; `width` and `height` use the normal layout
+dimension grammar; `layer` is a member of the active layer set; and `z` is the
+ordinary static `-5..5` integer. Calls such as `Card(title, description)` are
+one `content` cell because the normal expression parser owns expression
+boundaries. There are no CSV quotes or comma-splitting rules.
+
+The table block creates one `overlay` container and one slot per row. It may be
+nested inside an ordinary stream row or column, but it has exactly one parent.
+Rows become authored sibling order, so the accepted paint law remains
+`(layer rank, local z, authored node order)` and a later equal-layer/equal-z
+row paints above an earlier row.
+
+Nested and tabular forms lower identically:
+
+```text
+nested stream nodes / csv overlay rows
+  -> BoundLayoutNode and ordinary stream bindings
+  -> inferred exact layout topology and normalized box graph
+  -> React hosts, CSS, and browser paint order
+```
+
+Thus layout types constrain table-derived topology normally; a row named
+`dialog` is the same semantic slot identity as nested `dialog: Dialog() { ... }`.
+The CSV-shaped surface exposes that relation directly while preserving ordinary
+Copeland typing, navigation, diagnostics, and backend semantics.
+
+M0 deliberately does not support flow/grid schemas, dynamic rows, formulas,
+computed columns, runtime-editable tables, CSV files, a spreadsheet UI, or a
+canvas editor. A future source/grid/canvas/normalized-inspector quartet may
+remain four projections of the same authoritative typed source.
+
+Your CSS framework was an Excel spreadsheet with a fan club.
+
 ## Projection and tooling
 
 Normalization emits a typed `NormalizedLayoutGraph` with stable identities such

@@ -176,6 +176,8 @@ public sealed class LayoutBindingM0Tests
         Assert.Contains("Content()", source, StringComparison.Ordinal);
         Assert.Contains("Footer()", source, StringComparison.Ordinal);
         Assert.DoesNotContain("className: undefined", source, StringComparison.Ordinal);
+        Assert.Contains("\"data-machina-layout\": \"Page\"", source, StringComparison.Ordinal);
+        Assert.Contains("\"data-machina-box\": \"header\"", source, StringComparison.Ordinal);
         Assert.True(output.Files.ContainsKey("generated/layouts.css"));
         Assert.Contains("Page", output.Files["generated/layouts.css"], StringComparison.Ordinal);
     }

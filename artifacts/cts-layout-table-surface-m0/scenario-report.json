@@ -1,0 +1,38 @@
+{
+  "command": "scenario",
+  "baseUrl": "http://127.0.0.1:4175",
+  "scenarios": [
+    {
+      "name": "csv-overlay-proof",
+      "viewport": {
+        "width": 500,
+        "height": 300
+      },
+      "screenshot": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\cts-layout-table-surface-m0\\csv-overlay-proof.png",
+      "assertions": [
+        {
+          "kind": "topmost-at-point",
+          "x": 90,
+          "y": 80,
+          "expected": "[data-machina-box='tooltip']",
+          "actual": {
+            "tagName": "div",
+            "className": "box tip",
+            "layout": "DialogScene",
+            "box": "tooltip"
+          }
+        }
+      ],
+      "diagnostics": {
+        "console": [],
+        "page": [],
+        "request": []
+      }
+    }
+  ],
+  "diagnostics": {
+    "console": [],
+    "page": [],
+    "request": []
+  }
+}

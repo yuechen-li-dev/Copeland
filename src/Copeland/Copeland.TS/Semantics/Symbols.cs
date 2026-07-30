@@ -114,6 +114,17 @@ public sealed class LayoutTypeSymbol(
     public BoundLayoutTypeDeclaration? BoundLayoutType { get; internal set; }
 }
 
+/// <summary>A normal module symbol for one finite ordered semantic layer set.</summary>
+public sealed class LayerSetSymbol(
+    string name,
+    string stableIdentity,
+    LayerSetDeclarationSyntax? declaration) : Symbol(name)
+{
+    public string StableIdentity { get; } = stableIdentity;
+    public LayerSetDeclarationSyntax? Declaration { get; } = declaration;
+    public BoundLayerSet? BoundLayerSet { get; internal set; }
+}
+
 /// <summary>Stable authored slot identity within one resolved layout symbol.</summary>
 public sealed class LayoutSlotSymbol(
     string name,
