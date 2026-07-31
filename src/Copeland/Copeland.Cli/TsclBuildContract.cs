@@ -39,6 +39,10 @@ internal static class TsclBuildContract
         {
             result = TsclBuildResult.Failure(exception.Code, exception.Message);
         }
+        catch (ComponentFrameArtifactException exception)
+        {
+            result = TsclBuildResult.Failure(exception.Code, exception.Message);
+        }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
             result = TsclBuildResult.Failure("COPE-TSCL-0002", exception.Message);
@@ -179,6 +183,13 @@ internal static class TsclBuildContract
                 stagingDirectory,
                 AttachmentPlanArtifactEmitter.ArtifactFileName,
                 AttachmentPlanArtifactEmitter.Emit(compilation, projectRoot));
+            if (request.JavaScriptRuntime == "browser")
+            {
+                WriteStagedFile(
+                    stagingDirectory,
+                    ComponentFrameArtifactEmitter.ArtifactFileName,
+                    ComponentFrameArtifactEmitter.Emit(compilation));
+            }
 
             string entryOutput = string.IsNullOrWhiteSpace(request.EntryOutputPath) ? "entry.js" : request.EntryOutputPath;
             string entryModuleOutput = JavaScriptProjectEmitter.GetOutputPath(new Copeland.TS.Mir.MirModuleId(request.Entry!.Module));

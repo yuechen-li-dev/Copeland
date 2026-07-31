@@ -1051,6 +1051,11 @@ public static class MirLowerer
         {
             BoundBlockStatement b => LowerStatements(b.Statements, locals),
             BoundVariableDeclaration v => [LowerVariable(v, locals)],
+            // Component state is lowered as an immutable lexical value for
+            // ordinary function emission. Its transition metadata remains in
+            // the component capsule and is realized by ComponentStateFrame.
+            BoundComponentStateDeclaration state => [LowerComponentState(state, locals)],
+            BoundComponentEventHandler => [],
             BoundResourceUsingDeclaration u => [LowerResourceUsing(u, locals)],
             BoundCSharpBlockStatement c => [new MirCSharpBlockStatement(
                 c.BodyText,
@@ -1075,6 +1080,13 @@ public static class MirLowerer
         var local = new MirLocal(v.Variable.Name, ToMirType(v.Variable.Type), v.Variable.IsReadOnly);
         locals.TryAdd(local.Name, local);
         return new MirVariableDeclarationStatement(local, LowerExpression(v.Initializer));
+    }
+
+    private static MirStatement LowerComponentState(BoundComponentStateDeclaration declaration, Dictionary<string, MirLocal> locals)
+    {
+        var local = new MirLocal(declaration.State.Name, ToMirType(declaration.State.Type), true);
+        locals.TryAdd(local.Name, local);
+        return new MirVariableDeclarationStatement(local, LowerExpression(declaration.Initializer));
     }
 
     private static MirStatement LowerResourceUsing(BoundResourceUsingDeclaration declaration, Dictionary<string, MirLocal> locals)

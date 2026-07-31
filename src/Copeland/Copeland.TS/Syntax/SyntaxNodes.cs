@@ -1074,6 +1074,100 @@ public sealed record VariableDeclarationStatementSyntax(
     }
 }
 
+/// <summary>
+/// Immutable state owned by one Copeland component instance.  This is kept as
+/// a statement (rather than a function modifier) so the ordinary lexical
+/// scope continues to own the state name used by presentation expressions.
+/// </summary>
+public sealed record ComponentStateDeclarationStatementSyntax(
+    SyntaxToken StateKeyword,
+    SyntaxToken Identifier,
+    SyntaxToken? TypeColonToken,
+    TypeSyntax? Type,
+    SyntaxToken EqualsToken,
+    ExpressionSyntax Initializer,
+    SyntaxToken SemicolonToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ComponentStateDeclarationStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return StateKeyword;
+        yield return Identifier;
+        if (TypeColonToken is not null) yield return TypeColonToken;
+        if (Type is not null) yield return Type;
+        yield return EqualsToken;
+        yield return Initializer;
+        yield return SemicolonToken;
+    }
+}
+
+/// <summary>
+/// A typed component-local event transition.  The fat-arrow body evaluates to
+/// the next immutable state; it is not a renderer callback body.
+/// </summary>
+public sealed record ComponentEventHandlerStatementSyntax(
+    SyntaxToken OnKeyword,
+    SyntaxToken EventIdentifier,
+    SyntaxToken OpenParenToken,
+    IReadOnlyList<ParameterSyntax> Parameters,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken CloseParenToken,
+    SyntaxToken ArrowToken,
+    ExpressionSyntax NextState,
+    IReadOnlyList<ComponentEffectSyntax> Effects,
+    SyntaxToken SemicolonToken) : StatementSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ComponentEventHandlerStatement;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return OnKeyword;
+        yield return EventIdentifier;
+        yield return OpenParenToken;
+        foreach (ParameterSyntax parameter in Parameters) yield return parameter;
+        foreach (SyntaxToken comma in CommaTokens) yield return comma;
+        yield return CloseParenToken;
+        yield return ArrowToken;
+        yield return NextState;
+        foreach (ComponentEffectSyntax effect in Effects) yield return effect;
+        yield return SemicolonToken;
+    }
+}
+
+/// <summary>
+/// A transition consequence. The grammar deliberately keeps effects adjacent
+/// to the transition that requested them; they are not component hooks.
+/// </summary>
+public sealed record ComponentEffectSyntax(
+    SyntaxToken? AfterKeyword,
+    SyntaxToken? PhaseIdentifier,
+    SyntaxToken EffectKeyword,
+    ExpressionSyntax Invocation,
+    SyntaxToken? CompletionArrowToken,
+    SyntaxToken? CompletionEventIdentifier,
+    SyntaxToken? CompletionOpenParenToken,
+    IReadOnlyList<ExpressionSyntax> CompletionArguments,
+    IReadOnlyList<SyntaxToken> CompletionCommaTokens,
+    SyntaxToken? CompletionCloseParenToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.ComponentEffect;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        if (AfterKeyword is not null) yield return AfterKeyword;
+        if (PhaseIdentifier is not null) yield return PhaseIdentifier;
+        yield return EffectKeyword;
+        yield return Invocation;
+        if (CompletionArrowToken is not null) yield return CompletionArrowToken;
+        if (CompletionEventIdentifier is not null) yield return CompletionEventIdentifier;
+        if (CompletionOpenParenToken is not null) yield return CompletionOpenParenToken;
+        foreach (ExpressionSyntax argument in CompletionArguments) yield return argument;
+        foreach (SyntaxToken comma in CompletionCommaTokens) yield return comma;
+        if (CompletionCloseParenToken is not null) yield return CompletionCloseParenToken;
+    }
+}
+
 public sealed record ResourceUsingDeclarationStatementSyntax(
     SyntaxToken? AwaitKeyword,
     SyntaxToken UsingKeyword,

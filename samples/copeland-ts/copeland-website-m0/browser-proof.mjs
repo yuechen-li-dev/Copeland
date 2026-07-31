@@ -50,6 +50,69 @@ try {
     await page.screenshot({ path: `${artifactDirectory}/${profile.name}-initial.png` });
     const plan = attachmentArtifact.plans.find(candidate => candidate.adapterId === "CustomElement" && candidate.hostSelector.includes(`data-machina-layout='${profile.layout}'`));
     if (!plan) throw new Error(`${profile.name} emitted plan artifact has no Custom Element plan.`);
+    const statefulBadge = await page.evaluate(async plan => {
+      const host = await import("@copeland/browser-v1");
+      const before = host.inspectComponentFrame(plan.componentInstanceId);
+      const badge = document.querySelector(`[data-copeland-attachment='${plan.attachmentId}']`);
+      if (!(badge instanceof HTMLElement)) throw new Error("Missing stateful Custom Element badge.");
+      badge.click();
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        if (badge.shadowRoot?.querySelector("span")?.textContent === "Custom Elements still work") break;
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      const after = host.inspectComponentFrame(plan.componentInstanceId);
+      return {
+        before,
+        after,
+        text: badge.shadowRoot?.querySelector("span")?.textContent ?? null,
+        lifecycle: host.inspectAttachmentRuntime(plan.attachmentId),
+        trace: host.inspectComponentFrameTrace()
+      };
+    }, plan);
+    if (statefulBadge.before?.stateIdentity !== `${plan.componentInstanceId}::state` || statefulBadge.after?.componentInstanceId !== plan.componentInstanceId || statefulBadge.text !== "Custom Elements still work" || statefulBadge.lifecycle.mounts !== 1 || statefulBadge.lifecycle.updates !== 1 || statefulBadge.lifecycle.unmounts !== 0 || !statefulBadge.trace.some(entry => entry.kind === "EventDispatched" && entry.componentInstanceId === plan.componentInstanceId)) {
+      throw new Error(`${profile.name} stateful Custom Element badge proof failed: ${JSON.stringify(statefulBadge)}`);
+    }
+    const dialogPlan = attachmentArtifact.plans.find(candidate => candidate.componentDefinitionId.includes("#DialogHost") && candidate.hostBoxId.startsWith(`${profile.layout}.`));
+    if (!dialogPlan) throw new Error(`${profile.name} emitted dialog fixture has no host attachment.`);
+    const dialogLifecycle = await page.evaluate(async plan => {
+      const host = await import("@copeland/browser-v1");
+      const parent = document.querySelector(`[data-copeland-attachment='${plan.attachmentId}']`);
+      if (!(parent instanceof HTMLElement)) throw new Error(`Missing DialogHost Custom Element attachment; host=${document.querySelector(plan.hostSelector)?.outerHTML ?? "none"}`);
+      const prefix = `${plan.componentInstanceId}::branch-child::`;
+      const initialChildren = host.inspectComponentFrameTrace().filter(entry => entry.kind === "ChildFrameCreated" && entry.componentInstanceId.startsWith(prefix));
+      parent.click();
+      let childId = null;
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        childId = host.inspectComponentFrameTrace().find(entry => entry.kind === "ChildFrameCreated" && entry.componentInstanceId.startsWith(prefix))?.componentInstanceId ?? null;
+        if (childId !== null) break;
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      if (childId === null) throw new Error("DialogHost did not create its Open-branch child frame.");
+      const childBeforeClose = host.inspectComponentFrame(childId);
+      parent.click();
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        if (host.inspectComponentFrame(childId) === null) break;
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      let destroyedEvent = null;
+      try { host.dispatchComponentEvent(childId, "Confirm"); }
+      catch (error) { destroyedEvent = error instanceof Error ? error.message : String(error); }
+      return {
+        initialChildren: initialChildren.length,
+        parentAfter: host.inspectComponentFrame(plan.componentInstanceId),
+        childBeforeClose,
+        childAfterClose: host.inspectComponentFrame(childId),
+        destroyedEvent,
+        trace: host.inspectComponentFrameTrace()
+      };
+    }, dialogPlan);
+    if (dialogLifecycle.initialChildren !== 0
+      || dialogLifecycle.parentAfter?.componentInstanceId !== dialogPlan.componentInstanceId
+      || dialogLifecycle.childBeforeClose === null
+      || dialogLifecycle.childAfterClose !== null
+      || !dialogLifecycle.destroyedEvent?.includes("COPE-COMPONENT-STATE-0103")) {
+      throw new Error(`${profile.name} source DialogHost branch lifecycle failed: ${JSON.stringify(dialogLifecycle)}`);
+    }
     const lifecycle = await page.evaluate(async plan => {
       const host = await import("@copeland/browser-v1");
       host.detachRenderer(plan.attachmentId, plan.componentInstanceId);
@@ -114,6 +177,7 @@ try {
   }
 
   await runReactHostReplacementProof();
+  await runStateSelectedChildFrameProof();
 
   if (diagnostics.console.length || diagnostics.page.length || diagnostics.request.length) throw new Error(`Browser diagnostics: ${JSON.stringify(diagnostics)}`);
   await writeFile(`${artifactDirectory}/report.json`, `${JSON.stringify({ success: true, tolerance, diagnostics, evidence }, null, 2)}\n`);
@@ -151,6 +215,18 @@ async function runReactHostReplacementProof() {
       lifecycle: { mount: true, update: true, unmount: true },
       source: { path: "browser-proof", line: 1, column: 1, provenance: "runtime" }
     };
+    hostRuntime.registerComponentFrames([{
+      componentInstanceId,
+      componentDefinitionId: "browser-proof::definition",
+      parentComponentInstanceId: null,
+      stateIdentity: `${componentInstanceId}::state`,
+      initialState: "Recovery initial",
+      attachmentIds: [attachmentId],
+      eventContracts: {
+        Confirm: { payload: "void", transition: () => "Recovery after state" }
+      },
+      project: (state, plans) => plans.map(candidate => ({ ...candidate, payload: { ...candidate.payload, label: state } }))
+    }]);
     const shell = document.createElement("section");
     document.body.appendChild(shell);
     const root = createRoot(shell);
@@ -175,13 +251,14 @@ async function runReactHostReplacementProof() {
     });
     const recovered = document.querySelector(`[data-copeland-attachment='${attachmentId}']`);
     const recoveredText = recovered?.shadowRoot?.querySelector("span")?.textContent ?? null;
-    const updatedPlan = { ...plan, payload: { ...plan.payload, label: "Recovery updated" } };
-    hostRuntime.registerAttachmentPlans({ schemaVersion: 1, projectId: "browser-proof", plans: [updatedPlan] });
-    await waitFor(() => recovered?.shadowRoot?.querySelector("span")?.textContent === "Recovery updated");
+    hostRuntime.dispatchComponentEvent(componentInstanceId, "Confirm");
+    await waitFor(() => recovered?.shadowRoot?.querySelector("span")?.textContent === "Recovery after state");
     const countsAfterUpdate = hostRuntime.inspectAttachmentRuntime(attachmentId);
     hostRuntime.registerAttachmentPlans({ schemaVersion: 1, projectId: "browser-proof", plans: [] });
     await waitFor(() => document.querySelector(`[data-copeland-attachment='${attachmentId}']`) === null);
     const finalCounts = hostRuntime.inspectAttachmentRuntime(attachmentId);
+    hostRuntime.destroyComponentFrame(componentInstanceId);
+    const frameAfterDestroy = hostRuntime.inspectComponentFrame(componentInstanceId);
     root.unmount();
     shell.remove();
     return {
@@ -190,11 +267,134 @@ async function runReactHostReplacementProof() {
       recoveredText,
       liveCount: document.querySelectorAll(`[data-copeland-attachment='${attachmentId}']`).length,
       countsAfterUpdate,
-      finalCounts
+      finalCounts,
+      frameAfterDestroy
     };
   });
-  if (result.oldHostConnected || result.oldElementConnected || result.recoveredText !== "Recovery initial" || result.liveCount !== 0 || result.countsAfterUpdate.mounts !== 2 || result.countsAfterUpdate.updates !== 1 || result.countsAfterUpdate.unmounts !== 1 || result.finalCounts.unmounts !== 2 || result.finalCounts.mounted || result.finalCounts.pending) {
+  if (result.oldHostConnected || result.oldElementConnected || result.recoveredText !== "Recovery initial" || result.liveCount !== 0 || result.countsAfterUpdate.mounts !== 2 || result.countsAfterUpdate.updates !== 1 || result.countsAfterUpdate.unmounts !== 1 || result.finalCounts.unmounts !== 2 || result.finalCounts.mounted || result.finalCounts.pending || result.frameAfterDestroy !== null) {
     throw new Error(`React semantic host replacement proof failed: ${JSON.stringify(result)}`);
+  }
+  await page.close();
+}
+
+async function runStateSelectedChildFrameProof() {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  page.on("console", message => { if (message.type() === "error") diagnostics.console.push(message.text()); });
+  page.on("pageerror", error => diagnostics.page.push(error.message));
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  const result = await page.evaluate(async () => {
+    const hostRuntime = await import("@copeland/browser-v1");
+    const parentId = "browser-proof::dialog-host";
+    const childId = `${parentId}::branch-child::DialogHost::presentation-branch::Open::0::call::0`;
+    const parentAttachmentId = `${parentId}::attachment`;
+    const childAttachmentId = `${childId}::attachment`;
+    const shell = document.createElement("section");
+    shell.setAttribute("data-copeland-dialog-host", "stable");
+    document.body.appendChild(shell);
+    const hostSelector = "[data-copeland-dialog-host='stable']";
+    const parentPlan = {
+      attachmentId: parentAttachmentId,
+      componentDefinitionId: "browser-proof::DialogHost",
+      componentInstanceId: parentId,
+      parentComponentInstanceId: null,
+      hostBoxId: "BrowserProof.dialogHost",
+      hostSelector,
+      adapterId: "CustomElement",
+      requiredHostCapabilities: ["RendererAttachment", "StableMountPoint"],
+      requiredContentCapabilities: ["CustomElement"],
+      payloadContract: "custom-element-bridge",
+      payload: { tagName: "copeland-renderer-badge", label: "Open dialog" },
+      lifecycle: { mount: true, update: true, unmount: true },
+      source: { path: "browser-proof", line: 1, column: 1, provenance: "runtime" }
+    };
+    const childFrame = state => ({
+      componentInstanceId: childId,
+      componentDefinitionId: "browser-proof::ConfirmDialog",
+      parentComponentInstanceId: parentId,
+      stateIdentity: `${childId}::state`,
+      initialState: "Ready",
+      attachmentIds: [childAttachmentId],
+      eventContracts: { Confirm: { payload: "void", transition: () => "Confirmed" } },
+      rendererEventName: "Confirm",
+      project: (next, plans) => plans.map(plan => ({ ...plan, payload: { ...plan.payload, label: next } })),
+      plans: [{
+        ...parentPlan,
+        attachmentId: childAttachmentId,
+        componentDefinitionId: "browser-proof::ConfirmDialog",
+        componentInstanceId: childId,
+        parentComponentInstanceId: parentId,
+        payload: { tagName: "copeland-renderer-badge", label: state === "OpenUpdated" ? "Confirm updated" : "Confirm dialog" }
+      }]
+    });
+    const waitFor = async predicate => {
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        if (predicate()) return;
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      throw new Error("Timed out waiting for state-selected child frame lifecycle.");
+    };
+
+    hostRuntime.registerComponentFrames([{
+      componentInstanceId: parentId,
+      componentDefinitionId: "browser-proof::DialogHost",
+      parentComponentInstanceId: null,
+      stateIdentity: `${parentId}::state`,
+      initialState: "Closed",
+      attachmentIds: [parentAttachmentId],
+      eventContracts: {
+        Open: { payload: "void", transition: () => "Open" },
+        Refresh: { payload: "void", transition: () => "OpenUpdated" },
+        Close: { payload: "void", transition: () => "Closed" }
+      },
+      rendererEventName: "Open",
+      project: (state, plans) => ({
+        plans: plans.map(plan => ({ ...plan, payload: { ...plan.payload, label: state === "Closed" ? "Open dialog" : "Close dialog" } })),
+        frames: state === "Closed" ? [] : [childFrame(state)]
+      })
+    }]);
+    hostRuntime.registerAttachmentPlans({ schemaVersion: 1, projectId: "browser-proof", plans: [parentPlan] });
+    await waitFor(() => document.querySelector(`[data-copeland-attachment='${parentAttachmentId}']`) !== null);
+    const parentBefore = hostRuntime.inspectComponentFrame(parentId);
+    const closedChild = hostRuntime.inspectComponentFrame(childId);
+    document.querySelector(`[data-copeland-attachment='${parentAttachmentId}']`)?.click();
+    await waitFor(() => document.querySelector(`[data-copeland-attachment='${childAttachmentId}']`) !== null);
+    const parentAfterOpen = hostRuntime.inspectComponentFrame(parentId);
+    const childAfterOpen = hostRuntime.inspectComponentFrame(childId);
+    hostRuntime.dispatchComponentEvent(parentId, "Refresh");
+    await waitFor(() => document.querySelector(`[data-copeland-attachment='${childAttachmentId}']`)?.shadowRoot?.querySelector("span")?.textContent === "Confirm updated");
+    const childAfterRefresh = hostRuntime.inspectComponentFrame(childId);
+    const refreshedCounts = hostRuntime.inspectAttachmentRuntime(childAttachmentId);
+    hostRuntime.dispatchComponentEvent(parentId, "Close");
+    await waitFor(() => document.querySelector(`[data-copeland-attachment='${childAttachmentId}']`) === null);
+    let destroyedEvent = null;
+    try { hostRuntime.dispatchComponentEvent(childId, "Confirm"); }
+    catch (error) { destroyedEvent = error instanceof Error ? error.message : String(error); }
+    const childAfterClose = hostRuntime.inspectComponentFrame(childId);
+    const closedCounts = hostRuntime.inspectAttachmentRuntime(childAttachmentId);
+    hostRuntime.dispatchComponentEvent(parentId, "Open");
+    await waitFor(() => document.querySelector(`[data-copeland-attachment='${childAttachmentId}']`) !== null);
+    const childAfterReopen = hostRuntime.inspectComponentFrame(childId);
+    const reopenedCounts = hostRuntime.inspectAttachmentRuntime(childAttachmentId);
+    const trace = hostRuntime.inspectComponentFrameTrace();
+    hostRuntime.destroyComponentFrame(parentId);
+    shell.remove();
+    return {
+      parentBefore, closedChild, parentAfterOpen, childAfterOpen, childAfterRefresh,
+      refreshedCounts, childAfterClose, closedCounts, destroyedEvent,
+      childAfterReopen, reopenedCounts, trace
+    };
+  });
+  if (result.closedChild !== null
+    || result.parentBefore?.componentInstanceId !== result.parentAfterOpen?.componentInstanceId
+    || result.childAfterOpen?.componentInstanceId !== result.childAfterRefresh?.componentInstanceId
+    || result.refreshedCounts.mounts !== 1 || result.refreshedCounts.updates !== 1
+    || result.childAfterClose !== null || result.closedCounts.unmounts !== 1
+    || !result.destroyedEvent?.includes("COPE-COMPONENT-STATE-0103")
+    || result.childAfterReopen?.componentInstanceId !== result.childAfterOpen?.componentInstanceId
+    || result.reopenedCounts.mounts !== 2
+    || !result.trace.some(entry => entry.kind === "ChildFrameCreated")
+    || !result.trace.some(entry => entry.kind === "ChildFrameDestroyed")) {
+    throw new Error(`State-selected child frame proof failed: ${JSON.stringify(result)}`);
   }
   await page.close();
 }

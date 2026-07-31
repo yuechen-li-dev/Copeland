@@ -130,10 +130,11 @@ internal sealed class CopelandWorkspace
         string? paintContents = DescribePaintAt(compilation, token.Position);
         string? relativeContents = DescribeRelativeDerivationAt(compilation.SyntaxTree, token);
         string? adapterContents = DescribeRendererAdapter(token.Text);
+        string? branchContents = DescribePresentationBranch(compilation, token.Text);
         Symbol? symbol = FindSymbol(compilation, token.Text);
         string? componentContents = DescribeComponent(compilation, symbol);
         DeclarationInfo? declaration = FindDeclaration(compilation.SyntaxTree, token.Text);
-        string contents = adapterContents ?? relativeContents ?? contentPolicyContents ?? tableContents ?? paintContents ?? (bindingSlot is not null
+        string contents = adapterContents ?? branchContents ?? relativeContents ?? contentPolicyContents ?? tableContents ?? paintContents ?? (bindingSlot is not null
             ? "slot " + bindingSlot.SemanticPath + "\ncardinality: exactly one renderable component/view\nhost: compiler-generated div layout region"
             : symbol is LayoutSymbol { BoundLayout: not null } layout
             ? DescribeLayout(layout)
@@ -192,7 +193,7 @@ internal sealed class CopelandWorkspace
                 insertTextFormat = 2,
             };
         }
-        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "overflow", "visible", "clip", "auto", "scroll", "scrollX", "scrollY", "fontSize", "minFontSize", "lines", "wrap", "textFit", "scaleDown", "textFallback", "ellipsis", "fill", "fit", "enum", "match", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf", "Text", "Document", "Heading", "Paragraph", "List", "Item", "CodeBlock", "Quote", "Callout", "Break", "HeroHeading", "SectionHeading", "CardHeading", "Body", "Eyebrow", "Caption" })
+        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "state", "on", "effect", "after", "StateCommitted", "PresentationCommitted", "AttachmentsSettled", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "overflow", "visible", "clip", "auto", "scroll", "scrollX", "scrollY", "fontSize", "minFontSize", "lines", "wrap", "textFit", "scaleDown", "textFallback", "ellipsis", "fill", "fit", "enum", "match", "switch", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf", "Text", "Document", "Heading", "Paragraph", "List", "Item", "CodeBlock", "Quote", "Callout", "Break", "HeroHeading", "SectionHeading", "CardHeading", "Body", "Eyebrow", "Caption" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
         }
@@ -219,6 +220,13 @@ internal sealed class CopelandWorkspace
         AddRelativeLayoutCompletions(items, compilation.SyntaxTree);
         if (compilation.BoundCompilation is not null)
         {
+            foreach (BoundComponentDefinition definition in compilation.BoundCompilation.Program.ComponentDefinitions)
+            {
+                foreach (BoundComponentEventTransition transition in definition.State?.Transitions ?? [])
+                {
+                    items[transition.Name] = CompletionItem(transition.Name, 12, "component event for " + definition.Function.Name + ": " + string.Join(", ", transition.Parameters.Select(parameter => parameter.Type.Name)));
+                }
+            }
             foreach (BoundNpmImport import in compilation.BoundCompilation.Program.NpmImports)
             {
                 items[import.Function.Name] = CompletionItem(import.Function.Name, 3, Describe(import.Function));
@@ -696,6 +704,15 @@ internal sealed class CopelandWorkspace
             + "\ncontent capabilities: " + definition.RequiredContentCapabilities
             + "\nrequired host capabilities: " + definition.RequiredHostCapabilities
             + "\npayload contract: " + definition.Presentation.PayloadContract
+            + (definition.State is null
+                ? string.Empty
+                : "\nstate: " + definition.State.State.Name + ": " + definition.State.State.Type.Name
+                    + "\nevents: " + string.Join(", ", definition.State.Transitions.Select(transition => transition.Name))
+                    + "\npresentation branches: " + definition.State.PresentationBranches.Count
+                    + "\nbrowser frame: " + (definition.RendererAdapter == RendererAdapterIdentity.CustomElement
+                        && definition.State.Transitions.All(transition => transition.Parameters.Count == 0 && IsBrowserStateKey(transition.NextState))
+                            ? "emittable M0"
+                            : "requires a broader browser frame projection"))
             + "\ninstances: " + instances.Length
             + "\nattachments: " + attachments.Length
             + (attachments.Length == 0
@@ -703,6 +720,26 @@ internal sealed class CopelandWorkspace
                 : "\nattachment: " + attachments[0].AttachmentId
                     + "\nhost: " + attachments[0].HostBoxId
                     + "\nadapter registry entry: " + attachments[0].AdapterId);
+    }
+
+    private static bool IsBrowserStateKey(BoundExpression expression)
+        => expression is BoundLiteralExpression { Value: string }
+            || expression is BoundEnumValueExpression { IsConstructor: false };
+
+    private static string? DescribePresentationBranch(CopelandCompilation compilation, string token)
+    {
+        BoundPresentationBranch[] matches = compilation.BoundCompilation?.Program.ComponentDefinitions
+            .SelectMany(definition => definition.State?.PresentationBranches ?? [])
+            .Where(branch => string.Equals(branch.StatePattern, token, StringComparison.Ordinal))
+            .ToArray()
+            ?? [];
+        if (matches.Length == 0) return null;
+
+        BoundPresentationBranch branch = matches[0];
+        return "state-selected presentation branch " + branch.StatePattern
+            + "\nbranch identity: " + branch.StableIdentity
+            + "\nchild calls: " + branch.ChildCalls.Count
+            + "\nchild identity law: branch-qualified authored call identity";
     }
 
     private static string? DescribeRendererAdapter(string token)
@@ -1002,6 +1039,9 @@ internal sealed class CopelandWorkspace
         {
             case VariableDeclarationStatementSyntax variable:
                 yield return new DeclarationInfo(variable.Identifier.Text, "local value of " + functionName, 6, variable.Identifier.Position);
+                yield break;
+            case ComponentStateDeclarationStatementSyntax state:
+                yield return new DeclarationInfo(state.Identifier.Text, "immutable component state of " + functionName, 6, state.Identifier.Position);
                 yield break;
             case LocalPresentationDeclarationStatementSyntax { Stream: not null } localStream:
                 yield return new DeclarationInfo(localStream.Stream.Identifier.Text, "private stream of component " + functionName, 12, localStream.Stream.Identifier.Position);

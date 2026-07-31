@@ -88,7 +88,8 @@ public sealed class BoundComponentDefinition(
     ComponentImplementationKind implementationKind,
     BoundLayoutBinding? localStream = null,
     BoundComponentPresentation? presentation = null,
-    AttachmentPlanPayload? attachmentPayload = null)
+    AttachmentPlanPayload? attachmentPayload = null,
+    BoundComponentStateModel? state = null)
     : BoundNode
 {
     public FunctionSymbol Function { get; } = function;
@@ -109,6 +110,97 @@ public sealed class BoundComponentDefinition(
     public RendererAdapterIdentity RendererAdapter => Presentation.RendererAdapter;
     /// <summary>Adapter-constrained, browser-safe payload facts when static source permits transport.</summary>
     public AttachmentPlanPayload? AttachmentPayload { get; } = attachmentPayload;
+    /// <summary>Optional immutable state and typed event transitions owned by every instance.</summary>
+    public BoundComponentStateModel? State { get; } = state;
+}
+
+public sealed class BoundComponentStateModel(
+    VariableSymbol state,
+    BoundExpression initializer,
+    IReadOnlyList<BoundComponentEventTransition> transitions,
+    IReadOnlyList<BoundPresentationBranch>? presentationBranches = null)
+    : BoundNode
+{
+    public VariableSymbol State { get; } = state;
+    public BoundExpression Initializer { get; } = initializer;
+    public IReadOnlyList<BoundComponentEventTransition> Transitions { get; } = transitions;
+    /// <summary>
+    /// Compiler-bound alternatives for a state-selected local presentation.
+    /// Branches describe source structure only; no live runtime state is kept
+    /// in compiler tables.
+    /// </summary>
+    public IReadOnlyList<BoundPresentationBranch> PresentationBranches { get; internal set; } = presentationBranches ?? [];
+    public string StableIdentity => State.Name + "::state";
+}
+
+/// <summary>
+/// One match/switch arm which can project a component-local subtree. Child
+/// identities are deliberately branch-qualified: an authored call in two
+/// arms is two distinct lifetimes, even if it names the same component.
+/// </summary>
+public sealed class BoundPresentationBranch(
+    string stableIdentity,
+    string statePattern,
+    BoundExpression localPresentation,
+    IReadOnlyList<BoundPresentationChildCall> childCalls)
+    : BoundNode
+{
+    public string StableIdentity { get; } = stableIdentity;
+    public string StatePattern { get; } = statePattern;
+    public BoundExpression LocalPresentation { get; } = localPresentation;
+    public IReadOnlyList<BoundPresentationChildCall> ChildCalls { get; } = childCalls;
+}
+
+public sealed class BoundPresentationChildCall(
+    string authoredIdentity,
+    BoundComponentDefinition definition,
+    BoundCallExpression call)
+    : BoundNode
+{
+    public string AuthoredIdentity { get; } = authoredIdentity;
+    public BoundComponentDefinition Definition { get; } = definition;
+    public BoundCallExpression Call { get; } = call;
+}
+
+public sealed class BoundComponentEventTransition(
+    string name,
+    string stableIdentity,
+    IReadOnlyList<ParameterSymbol> parameters,
+    BoundExpression nextState,
+    IReadOnlyList<BoundComponentEffect>? effects = null)
+    : BoundNode
+{
+    public string Name { get; } = name;
+    public string StableIdentity { get; } = stableIdentity;
+    public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
+    public BoundExpression NextState { get; } = nextState;
+    public IReadOnlyList<BoundComponentEffect> Effects { get; } = effects ?? [];
+}
+
+public sealed class BoundComponentEffect(
+    string stableIdentity,
+    ComponentCompletionPhase phase,
+    BoundCallExpression invocation,
+    BoundComponentEffectCompletion? completion,
+    SyntaxToken anchor)
+    : BoundNode
+{
+    public string StableIdentity { get; } = stableIdentity;
+    public ComponentCompletionPhase Phase { get; } = phase;
+    public BoundCallExpression Invocation { get; } = invocation;
+    public BoundComponentEffectCompletion? Completion { get; } = completion;
+    public SyntaxToken Anchor { get; } = anchor;
+}
+
+public sealed class BoundComponentEffectCompletion(
+    string eventName,
+    IReadOnlyList<BoundExpression> arguments,
+    SyntaxToken anchor)
+    : BoundNode
+{
+    public string EventName { get; } = eventName;
+    public IReadOnlyList<BoundExpression> Arguments { get; } = arguments;
+    public SyntaxToken Anchor { get; } = anchor;
 }
 
 /// <summary>
@@ -239,6 +331,8 @@ public sealed class BoundComponentInstance(
     /// <summary>Null only for a call attached directly to a page/layout host.</summary>
     public BoundComponentInstance? ParentComponentInstance { get; } = parentComponentInstance;
     public ComponentHostCapabilities HostCapabilities { get; } = hostCapabilities;
+    /// <summary>State identity is semantic-instance-derived and never renderer-root-derived.</summary>
+    public string StateIdentity => StableIdentity + "::state";
 }
 
 /// <summary>
@@ -1117,6 +1211,22 @@ public sealed class BoundTableColumnDefinition(TableColumnSymbol column, IReadOn
 { public TableColumnSymbol Column { get; } = column; public IReadOnlyList<BoundTableConstant> Cells { get; } = cells; }
 public sealed class BoundBlockStatement : BoundStatement { public BoundBlockStatement(IReadOnlyList<BoundStatement> statements) => Statements = statements; public IReadOnlyList<BoundStatement> Statements { get; } }
 public sealed class BoundVariableDeclaration : BoundStatement { public BoundVariableDeclaration(VariableSymbol variable, BoundExpression initializer) { Variable = variable; Initializer = initializer; } public VariableSymbol Variable { get; } public BoundExpression Initializer { get; } }
+public sealed class BoundComponentStateDeclaration(VariableSymbol state, BoundExpression initializer) : BoundStatement
+{
+    public VariableSymbol State { get; } = state;
+    public BoundExpression Initializer { get; } = initializer;
+}
+public sealed class BoundComponentEventHandler(
+    string name,
+    IReadOnlyList<ParameterSymbol> parameters,
+    BoundExpression nextState,
+    IReadOnlyList<BoundComponentEffect> effects) : BoundStatement
+{
+    public string Name { get; } = name;
+    public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
+    public BoundExpression NextState { get; } = nextState;
+    public IReadOnlyList<BoundComponentEffect> Effects { get; } = effects;
+}
 public sealed class BoundLocalPresentationDeclaration(BoundLayoutBinding binding) : BoundStatement
 {
     public BoundLayoutBinding Binding { get; } = binding;

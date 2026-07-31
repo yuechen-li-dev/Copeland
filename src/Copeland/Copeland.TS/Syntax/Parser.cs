@@ -1336,6 +1336,8 @@ public sealed class Parser
             SyntaxKind.OpenBraceToken => ParseBlockStatement(),
             SyntaxKind.LayoutKeyword => new LocalPresentationDeclarationStatementSyntax(ParseLayoutDeclaration(), null),
             SyntaxKind.IdentifierToken when IsWord(Current, "stream") => new LocalPresentationDeclarationStatementSyntax(null, ParseStreamDeclaration()),
+            SyntaxKind.IdentifierToken when IsComponentStateDeclarationStart() => ParseComponentStateDeclaration(),
+            SyntaxKind.IdentifierToken when IsComponentEventHandlerStart() => ParseComponentEventHandler(),
             SyntaxKind.ConstKeyword or SyntaxKind.LetKeyword or SyntaxKind.VarKeyword => ParseVariableDeclarationStatement(requireSemicolon: true),
             SyntaxKind.IfKeyword => ParseIfStatement(),
             SyntaxKind.WhileKeyword => ParseWhileStatement(),
@@ -1352,6 +1354,120 @@ public sealed class Parser
             SyntaxKind.AwaitKeyword when IsWord(Peek(1), "using") => ParseResourceUsingDeclaration(NextToken()),
             _ => ParseExpressionStatementOrRecovery(),
         };
+
+    private bool IsComponentStateDeclarationStart()
+        => IsWord(Current, "state")
+            && Peek(1).Kind == SyntaxKind.IdentifierToken
+            && Peek(2).Kind is SyntaxKind.ColonToken or SyntaxKind.EqualsToken;
+
+    private bool IsComponentEventHandlerStart()
+        => IsWord(Current, "on")
+            && Peek(1).Kind == SyntaxKind.IdentifierToken
+            && Peek(2).Kind == SyntaxKind.OpenParenToken;
+
+    private ComponentStateDeclarationStatementSyntax ParseComponentStateDeclaration()
+    {
+        SyntaxToken stateKeyword = NextToken();
+        SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken? colon = Current.Kind == SyntaxKind.ColonToken ? NextToken() : null;
+        TypeSyntax? type = colon is null ? null : ParseTypeSyntax();
+        SyntaxToken equals = Match(SyntaxKind.EqualsToken);
+        ExpressionSyntax initializer = ParseExpression();
+        return new ComponentStateDeclarationStatementSyntax(
+            stateKeyword,
+            identifier,
+            colon,
+            type,
+            equals,
+            initializer,
+            Match(SyntaxKind.SemicolonToken));
+    }
+
+    private ComponentEventHandlerStatementSyntax ParseComponentEventHandler()
+    {
+        SyntaxToken onKeyword = NextToken();
+        SyntaxToken eventIdentifier = Match(SyntaxKind.IdentifierToken);
+        SyntaxToken openParen = Match(SyntaxKind.OpenParenToken);
+        var parameters = new List<ParameterSyntax>();
+        var commas = new List<SyntaxToken>();
+        while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+        {
+            SyntaxToken identifier = Match(SyntaxKind.IdentifierToken);
+            SyntaxToken? colon = Current.Kind == SyntaxKind.ColonToken ? NextToken() : null;
+            TypeSyntax? type = colon is null ? null : ParseTypeSyntax();
+            parameters.Add(new ParameterSyntax(identifier, colon, type));
+            if (Current.Kind != SyntaxKind.CommaToken) break;
+            commas.Add(NextToken());
+        }
+
+        SyntaxToken closeParen = Match(SyntaxKind.CloseParenToken);
+        SyntaxToken arrow = Match(SyntaxKind.ArrowToken);
+        ExpressionSyntax nextState = ParseExpression();
+        var effects = new List<ComponentEffectSyntax>();
+        while (IsWord(Current, "effect") || IsWord(Current, "after"))
+        {
+            SyntaxToken? after = null;
+            SyntaxToken? phase = null;
+            if (IsWord(Current, "after"))
+            {
+                after = NextToken();
+                phase = Match(SyntaxKind.IdentifierToken);
+            }
+
+            SyntaxToken effect = IsWord(Current, "effect")
+                ? NextToken()
+                : Match(SyntaxKind.IdentifierToken);
+            ExpressionSyntax invocation = ParseExpression();
+            SyntaxToken? completionArrow = null;
+            SyntaxToken? completionEvent = null;
+            SyntaxToken? completionOpenParen = null;
+            SyntaxToken? completionCloseParen = null;
+            var completionArguments = new List<ExpressionSyntax>();
+            var completionCommas = new List<SyntaxToken>();
+            if (Current.Kind == SyntaxKind.ArrowToken)
+            {
+                completionArrow = NextToken();
+                completionEvent = Match(SyntaxKind.IdentifierToken);
+                completionOpenParen = Match(SyntaxKind.OpenParenToken);
+                while (Current.Kind is not SyntaxKind.CloseParenToken and not SyntaxKind.EndOfFileToken)
+                {
+                    completionArguments.Add(ParseExpression());
+                    if (Current.Kind != SyntaxKind.CommaToken)
+                    {
+                        break;
+                    }
+
+                    completionCommas.Add(NextToken());
+                }
+
+                completionCloseParen = Match(SyntaxKind.CloseParenToken);
+            }
+
+            effects.Add(new ComponentEffectSyntax(
+                after,
+                phase,
+                effect,
+                invocation,
+                completionArrow,
+                completionEvent,
+                completionOpenParen,
+                completionArguments,
+                completionCommas,
+                completionCloseParen));
+        }
+
+        return new ComponentEventHandlerStatementSyntax(
+            onKeyword,
+            eventIdentifier,
+            openParen,
+            parameters,
+            commas,
+            closeParen,
+            arrow,
+            nextState,
+            effects,
+            Match(SyntaxKind.SemicolonToken));
+    }
 
     private StatementSyntax ParseStaticStatement()
     {

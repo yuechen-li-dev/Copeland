@@ -62,14 +62,19 @@ internal static class AttachmentPlanArtifactEmitter
 
     private static string HostSelector(string hostBoxId, string? suffix)
     {
-        int separator = hostBoxId.LastIndexOf('.');
-        if (separator <= 0 || separator == hostBoxId.Length - 1)
+        int layoutSeparator = hostBoxId.IndexOf('.');
+        int boxSeparator = hostBoxId.LastIndexOf('.');
+        if (layoutSeparator <= 0 || boxSeparator == hostBoxId.Length - 1)
         {
             throw new InvalidOperationException($"Attachment host identity '{hostBoxId}' cannot be projected to a semantic browser host.");
         }
 
-        string layout = hostBoxId[..separator];
-        string box = hostBoxId[(separator + 1)..];
+        // A private component presentation retains its full semantic path for
+        // diagnostics, but browser hosts are stamped by the public root
+        // layout and final box name. Intermediate component paths are not DOM
+        // layout identities and must not leak into the selector.
+        string layout = hostBoxId[..layoutSeparator];
+        string box = hostBoxId[(boxSeparator + 1)..];
         return $"[data-machina-layout='{layout}'][data-machina-box='{box}']" + (suffix ?? string.Empty);
     }
 

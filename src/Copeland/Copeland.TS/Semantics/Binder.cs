@@ -185,6 +185,8 @@ public static class Binder
         private int _nextLiftedCallableId;
         private int _callableExpressionDepth;
         private int _arrowBodyDepth;
+        private VariableSymbol? _activeComponentState;
+        private HashSet<string>? _activeComponentEventNames;
 
         private sealed class PropagationTargetContext(BoundHandlerId handlerId)
         {
@@ -320,15 +322,35 @@ public static class Binder
                         ? BoundComponentPresentation.CustomElementBridge()
                         : BoundComponentPresentation.ReactBridge(localStream is not null));
                 AttachmentPlanPayload? payload = TryGetAttachmentPayload(function.Body, presentation);
+                BoundComponentStateModel? state = FindComponentState(function);
                 var definition = new BoundComponentDefinition(
                     function.Symbol,
                     implementation,
                     localStream,
                     presentation,
-                    payload);
+                    payload,
+                    state);
                 _componentDefinitions.Add(definition);
                 definitionByFunction.Add(function.Symbol, definition);
                 functionBySymbol.Add(function.Symbol, function);
+            }
+
+            // A state branch is bound once, while both the function body and
+            // the complete component-definition map are available. The
+            // browser backend receives this compiler-owned projection and
+            // never reinterprets match/switch source at runtime.
+            foreach (BoundComponentDefinition definition in _componentDefinitions)
+            {
+                if (definition.State is null
+                    || !functionBySymbol.TryGetValue(definition.Function, out BoundFunctionDeclaration? function))
+                {
+                    continue;
+                }
+
+                definition.State.PresentationBranches = BindPresentationBranches(
+                    definition,
+                    function,
+                    definitionByFunction);
             }
 
             foreach (BoundLayoutBinding pageBinding in _layoutBindings
@@ -490,6 +512,132 @@ public static class Binder
             }
         }
 
+        private BoundComponentStateModel? FindComponentState(BoundFunctionDeclaration function)
+        {
+            BoundComponentStateDeclaration[] declarations = function.Body.Statements
+                .OfType<BoundComponentStateDeclaration>()
+                .ToArray();
+            if (declarations.Length != 1)
+            {
+                return null;
+            }
+
+            BoundComponentStateDeclaration declaration = declarations[0];
+            BoundComponentEventTransition[] transitions = function.Body.Statements
+                .OfType<BoundComponentEventHandler>()
+                .Select(handler => new BoundComponentEventTransition(
+                    handler.Name,
+                    function.Symbol.StableIdentity + "::event::" + handler.Name,
+                    handler.Parameters,
+                    handler.NextState,
+                    handler.Effects))
+                .ToArray();
+            ValidateComponentEffectCompletions(transitions);
+            return new BoundComponentStateModel(declaration.State, declaration.Initializer, transitions);
+        }
+
+        private void ValidateComponentEffectCompletions(IReadOnlyList<BoundComponentEventTransition> transitions)
+        {
+            var events = transitions.ToDictionary(transition => transition.Name, StringComparer.Ordinal);
+            foreach (BoundComponentEventTransition transition in transitions)
+            {
+                foreach (BoundComponentEffect effect in transition.Effects)
+                {
+                    BoundComponentEffectCompletion? completion = effect.Completion;
+                    if (completion is null)
+                    {
+                        continue;
+                    }
+
+                    if (!events.TryGetValue(completion.EventName, out BoundComponentEventTransition? target))
+                    {
+                        Report("COPE-COMPONENT-EFFECT-0103", "Effect completion event '" + completion.EventName + "' is not declared by this component.", completion.Anchor);
+                        continue;
+                    }
+
+                    if (completion.Arguments.Count != target.Parameters.Count)
+                    {
+                        Report("COPE-COMPONENT-EFFECT-0104", "Effect completion event '" + completion.EventName + "' expects " + target.Parameters.Count + " argument(s), got " + completion.Arguments.Count + ".", completion.Anchor);
+                        continue;
+                    }
+
+                    for (int index = 0; index < completion.Arguments.Count; index += 1)
+                    {
+                        if (!IsAssignable(target.Parameters[index].Type, completion.Arguments[index].Type))
+                        {
+                            Report("COPE-COMPONENT-EFFECT-0105", "Effect completion argument " + (index + 1) + " for event '" + completion.EventName + "' must have type '" + target.Parameters[index].Type.Name + "', got '" + completion.Arguments[index].Type.Name + "'.", completion.Anchor);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static IReadOnlyList<BoundPresentationBranch> BindPresentationBranches(
+            BoundComponentDefinition owner,
+            BoundFunctionDeclaration function,
+            IReadOnlyDictionary<FunctionSymbol, BoundComponentDefinition> definitions)
+        {
+            if (owner.State is null || FindReturnedExpression(function.Body) is not BoundMatchExpression match
+                || match.Scrutinee is not BoundVariableExpression { Variable: var state }
+                || !ReferenceEquals(state, owner.State.State))
+            {
+                return [];
+            }
+
+            var branches = new List<BoundPresentationBranch>();
+            for (int armIndex = 0; armIndex < match.Arms.Count; armIndex += 1)
+            {
+                BoundMatchArm arm = match.Arms[armIndex];
+                string branchIdentity = owner.StableIdentity
+                    + "::presentation-branch::"
+                    + arm.Case.Name
+                    + "::"
+                    + armIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var calls = new List<BoundPresentationChildCall>();
+                int callOrdinal = 0;
+                CollectChildCalls(arm.Expression, calls, branchIdentity, ref callOrdinal, definitions);
+                branches.Add(new BoundPresentationBranch(branchIdentity, arm.Case.Name, arm.Expression, calls));
+            }
+
+            return branches;
+        }
+
+        private static void CollectChildCalls(
+            BoundExpression expression,
+            List<BoundPresentationChildCall> calls,
+            string branchIdentity,
+            ref int callOrdinal,
+            IReadOnlyDictionary<FunctionSymbol, BoundComponentDefinition> definitions)
+        {
+            if (expression is BoundCallExpression call
+                && definitions.TryGetValue(call.Function, out BoundComponentDefinition? definition))
+            {
+                string identity = branchIdentity
+                    + "::call::"
+                    + callOrdinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                callOrdinal += 1;
+                calls.Add(new BoundPresentationChildCall(identity, definition, call));
+                return;
+            }
+
+            switch (expression)
+            {
+                case BoundReactElementExpression element:
+                    foreach (BoundReactProperty property in element.Properties)
+                    {
+                        CollectChildCalls(property.Value, calls, branchIdentity, ref callOrdinal, definitions);
+                    }
+                    foreach (BoundExpression child in element.Children)
+                    {
+                        CollectChildCalls(child, calls, branchIdentity, ref callOrdinal, definitions);
+                    }
+                    break;
+                case BoundForeignComponentExpression foreign:
+                    CollectChildCalls(foreign.Payload, calls, branchIdentity, ref callOrdinal, definitions);
+                    break;
+            }
+        }
+
         private static ComponentHostCapabilities GetHostCapabilities(BoundLayoutNode host)
         {
             ComponentHostCapabilities capabilities =
@@ -565,12 +713,20 @@ public static class Binder
                 BoundBlockStatement block => block.Statements.Any(ReturnsCustomElement),
                 BoundIfStatement conditional => ReturnsCustomElement(conditional.ThenStatement)
                     || conditional.ElseStatement is not null && ReturnsCustomElement(conditional.ElseStatement),
-                BoundReturnStatement { Expression: BoundReactElementExpression { ElementType: BoundLiteralExpression { Value: string name } } element }
-                    => name.Contains('-', StringComparison.Ordinal)
-                        || element.Properties.Any(property => property.Name == "data-copeland-renderer-tag"),
+                BoundReturnStatement { Expression: not null } @return => IsCustomElementPresentation(@return.Expression),
                 _ => false,
             };
         }
+
+        private static bool IsCustomElementPresentation(BoundExpression expression)
+            => expression switch
+            {
+                BoundReactElementExpression { ElementType: BoundLiteralExpression { Value: string name } } element
+                    => name.Contains('-', StringComparison.Ordinal)
+                        || element.Properties.Any(property => property.Name == "data-copeland-renderer-tag"),
+                BoundMatchExpression match => match.Arms.Any(arm => IsCustomElementPresentation(arm.Expression)),
+                _ => false,
+            };
 
         private static AttachmentPlanPayload? TryGetAttachmentPayload(
             BoundStatement statement,
@@ -581,12 +737,11 @@ public static class Binder
                 return null;
             }
 
-            BoundExpression? expression = statement switch
+            BoundExpression? expression = FindReturnedExpression(statement);
+            if (expression is BoundMatchExpression match)
             {
-                BoundReturnStatement { Expression: not null } @return => @return.Expression,
-                BoundBlockStatement { Statements.Count: 1 } block => TryGetAttachmentPayloadExpression(block.Statements[0]),
-                _ => null,
-            };
+                expression = match.Arms.FirstOrDefault()?.Expression;
+            }
             if (expression is BoundForeignComponentExpression foreign)
             {
                 expression = foreign.Payload;
@@ -616,8 +771,15 @@ public static class Binder
             return new AttachmentPlanPayload(tagName, labelValue);
         }
 
-        private static BoundExpression? TryGetAttachmentPayloadExpression(BoundStatement statement)
-            => statement is BoundReturnStatement { Expression: not null } @return ? @return.Expression : null;
+        private static BoundExpression? FindReturnedExpression(BoundStatement statement)
+            => statement switch
+            {
+                BoundReturnStatement { Expression: not null } @return => @return.Expression,
+                BoundBlockStatement block => block.Statements.Select(FindReturnedExpression).FirstOrDefault(expression => expression is not null),
+                BoundIfStatement conditional => FindReturnedExpression(conditional.ThenStatement)
+                    ?? (conditional.ElseStatement is null ? null : FindReturnedExpression(conditional.ElseStatement)),
+                _ => null,
+            };
 
         private static BoundComponentPresentation? TryGetExplicitForeignPresentation(BoundStatement statement)
         {
@@ -3268,6 +3430,10 @@ public static class Binder
             _global.TryLookup(s.Identifier.Text, out var sym);
             var fn = sym as FunctionSymbol ?? new FunctionSymbol(s.Identifier.Text, [], PrimitiveTypeSymbol.Error, stableIdentity: CreateFunctionStableIdentity(s.Identifier.Text));
             var prevFn = _currentFunction; _currentFunction = fn;
+            VariableSymbol? previousComponentState = _activeComponentState;
+            HashSet<string>? previousComponentEventNames = _activeComponentEventNames;
+            _activeComponentState = null;
+            _activeComponentEventNames = new HashSet<string>(StringComparer.Ordinal);
             var previousTypeParameters = _activeTypeParameters;
             _activeTypeParameters = CreateTypeParameterScope(fn.TypeParameters);
             var prev = _scope; _scope = new Scope(_global);
@@ -3276,7 +3442,7 @@ public static class Binder
                 if (!_scope.TryDeclare(p)) Report("COPE-BIND-0005", $"Duplicate parameter '{p.Name}'.", s.Identifier);
             }
             var body = (BoundBlockStatement)BindStatement(s.Body);
-            _scope = prev; _currentFunction = prevFn; _activeTypeParameters = previousTypeParameters;
+            _scope = prev; _currentFunction = prevFn; _activeTypeParameters = previousTypeParameters; _activeComponentState = previousComponentState; _activeComponentEventNames = previousComponentEventNames;
             return new BoundFunctionDeclaration(fn, body);
         }
 
@@ -3609,6 +3775,8 @@ public static class Binder
             BlockStatementSyntax b => BindBlock(b),
             LocalPresentationDeclarationStatementSyntax presentation => BindLocalPresentation(presentation),
             VariableDeclarationStatementSyntax v => BindVariable(v),
+            ComponentStateDeclarationStatementSyntax state => BindComponentState(state),
+            ComponentEventHandlerStatementSyntax handler => BindComponentEventHandler(handler),
             ResourceUsingDeclarationStatementSyntax u => BindResourceUsing(u),
             CSharpBlockStatementSyntax c => BindCSharpBlock(c),
             ExpressionStatementSyntax e => BindExpressionStatement(e),
@@ -3624,6 +3792,158 @@ public static class Binder
             NestedTableDeclarationStatementSyntax nested => BindNestedTable(nested),
             _ => new BoundExpressionStatement(new BoundErrorExpression())
         };
+
+        private BoundStatement BindComponentState(ComponentStateDeclarationStatementSyntax declaration)
+        {
+            if (_currentFunction?.ReturnType != ReactNodeTypeSymbol.Instance)
+            {
+                Report("COPE-COMPONENT-STATE-0001", "Component state is allowed only inside a ReactNode component function.", declaration.StateKeyword);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            if (_activeComponentState is not null)
+            {
+                Report("COPE-COMPONENT-STATE-0002", "A component may declare exactly one local state value in M0.", declaration.Identifier);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            TypeSymbol? explicitType = declaration.Type is null
+                ? null
+                : BindType(declaration.Type, declaration.Identifier, "COPE-COMPONENT-STATE-0003", "component state");
+            BoundExpression initializer = BindExpression(declaration.Initializer, explicitType);
+            TypeSymbol stateType = explicitType ?? initializer.Type;
+            if (explicitType is not null
+                && initializer.Type != PrimitiveTypeSymbol.Error
+                && !IsAssignable(explicitType, initializer.Type))
+            {
+                Report("COPE-COMPONENT-STATE-0003", $"State initializer for '{declaration.Identifier.Text}' must have type '{explicitType.Name}', got '{initializer.Type.Name}'.", declaration.Identifier);
+            }
+
+            var state = new VariableSymbol(declaration.Identifier.Text, stateType, true);
+            if (!_scope.TryDeclare(state))
+            {
+                Report("COPE-COMPONENT-STATE-0004", $"Component state '{state.Name}' conflicts with an existing component-local name.", declaration.Identifier);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            _activeComponentState = state;
+            return new BoundComponentStateDeclaration(state, initializer);
+        }
+
+        private BoundStatement BindComponentEventHandler(ComponentEventHandlerStatementSyntax handler)
+        {
+            if (_currentFunction?.ReturnType != ReactNodeTypeSymbol.Instance)
+            {
+                Report("COPE-COMPONENT-STATE-0005", "Component event handlers are allowed only inside a ReactNode component function.", handler.OnKeyword);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            if (_activeComponentState is null)
+            {
+                Report("COPE-COMPONENT-STATE-0006", "Declare immutable component state before declaring an event handler.", handler.OnKeyword);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            if (_activeComponentEventNames is not null && !_activeComponentEventNames.Add(handler.EventIdentifier.Text))
+            {
+                Report("COPE-COMPONENT-STATE-0011", $"Component state has duplicate handler for event '{handler.EventIdentifier.Text}'.", handler.EventIdentifier);
+                return new BoundExpressionStatement(new BoundErrorExpression());
+            }
+
+            Scope previousScope = _scope;
+            _scope = new Scope(previousScope);
+            try
+            {
+                var parameters = new List<ParameterSymbol>();
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                foreach (ParameterSyntax parameterSyntax in handler.Parameters)
+                {
+                    if (parameterSyntax.Type is null)
+                    {
+                        Report("COPE-COMPONENT-STATE-0008", $"Event parameter '{parameterSyntax.Identifier.Text}' requires an explicit type.", parameterSyntax.Identifier);
+                        continue;
+                    }
+
+                    if (!names.Add(parameterSyntax.Identifier.Text))
+                    {
+                        Report("COPE-COMPONENT-STATE-0009", $"Event '{handler.EventIdentifier.Text}' has duplicate parameter '{parameterSyntax.Identifier.Text}'.", parameterSyntax.Identifier);
+                        continue;
+                    }
+
+                    var parameter = new ParameterSymbol(
+                        parameterSyntax.Identifier.Text,
+                        BindType(parameterSyntax.Type, parameterSyntax.Identifier, "COPE-COMPONENT-STATE-0008", "event parameter"));
+                    parameters.Add(parameter);
+                    _scope.TryDeclare(parameter);
+                }
+
+                BoundExpression nextState = BindExpression(handler.NextState, _activeComponentState.Type);
+                if (nextState.Type != PrimitiveTypeSymbol.Error && !IsAssignable(_activeComponentState.Type, nextState.Type))
+                {
+                    Report("COPE-COMPONENT-STATE-0010", $"Event '{handler.EventIdentifier.Text}' must return next state '{_activeComponentState.Type.Name}', got '{nextState.Type.Name}'.", handler.EventIdentifier);
+                }
+
+                var effects = new List<BoundComponentEffect>();
+                for (int effectIndex = 0; effectIndex < handler.Effects.Count; effectIndex += 1)
+                {
+                    ComponentEffectSyntax effectSyntax = handler.Effects[effectIndex];
+                    ComponentCompletionPhase phase = BindComponentEffectPhase(effectSyntax);
+                    BoundExpression invocation = BindExpression(effectSyntax.Invocation);
+                    if (invocation is not BoundCallExpression call)
+                    {
+                        Report("COPE-COMPONENT-EFFECT-0101", "Component effects must invoke a named typed effect function.", effectSyntax.EffectKeyword);
+                        continue;
+                    }
+
+                    if (call.Type != PrimitiveTypeSymbol.Void)
+                    {
+                        Report("COPE-COMPONENT-EFFECT-0102", "Effect '" + call.Function.Name + "' must return void; completion events are declared separately.", effectSyntax.EffectKeyword);
+                    }
+
+                    BoundComponentEffectCompletion? completion = null;
+                    if (effectSyntax.CompletionEventIdentifier is not null)
+                    {
+                        completion = new BoundComponentEffectCompletion(
+                            effectSyntax.CompletionEventIdentifier.Text,
+                            effectSyntax.CompletionArguments.Select(argument => BindExpression(argument)).ToArray(),
+                            effectSyntax.CompletionEventIdentifier);
+                    }
+
+                    effects.Add(new BoundComponentEffect(
+                        _currentFunction.StableIdentity
+                            + "::event::"
+                            + handler.EventIdentifier.Text
+                            + "::effect::"
+                            + effectIndex.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        phase,
+                        call,
+                        completion,
+                        effectSyntax.EffectKeyword));
+                }
+
+                return new BoundComponentEventHandler(handler.EventIdentifier.Text, parameters, nextState, effects);
+            }
+            finally
+            {
+                _scope = previousScope;
+            }
+        }
+
+        private ComponentCompletionPhase BindComponentEffectPhase(ComponentEffectSyntax effect)
+        {
+            if (effect.PhaseIdentifier is null)
+            {
+                return ComponentCompletionPhase.PresentationCommitted;
+            }
+
+            if (Enum.TryParse(effect.PhaseIdentifier.Text, ignoreCase: false, out ComponentCompletionPhase phase))
+            {
+                return phase;
+            }
+
+            Report("COPE-COMPONENT-EFFECT-0106", "Unknown component effect completion phase '" + effect.PhaseIdentifier.Text + "'.", effect.PhaseIdentifier);
+            return ComponentCompletionPhase.PresentationCommitted;
+        }
 
         private BoundStatement BindLocalPresentation(LocalPresentationDeclarationStatementSyntax presentation)
         {

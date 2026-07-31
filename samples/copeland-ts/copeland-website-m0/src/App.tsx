@@ -39,7 +39,31 @@ function Text(value: string): ReactNode {
 // React remains an opaque child renderer. FeatureCard owns the compiler-visible
 // private stream that contains this child and its typed props capture.
 function RendererBoundaryBadge(): ReactNode {
+    state label: string = "Custom Elements work";
+    on ConfirmStillWorks() => "Custom Elements still work";
+
     return <span className="renderer-badge-host" data-copeland-renderer-host="CustomElement" data-copeland-renderer-tag="copeland-renderer-badge" data-copeland-renderer-label="Custom Elements work"></span>;
+}
+
+// This compact fixture keeps state selection in ordinary component source.
+// The Open arm is a compiler-bound child call, not a renderer-side branch.
+enum DialogState { Closed, Open }
+
+function ConfirmDialog(): ReactNode {
+    return <span className="renderer-badge-host" data-copeland-renderer-host="CustomElement" data-copeland-renderer-tag="copeland-renderer-badge" data-copeland-renderer-label="Confirm dialog"></span>;
+}
+
+function DialogHost(): ReactNode {
+    state current: DialogState = DialogState.Closed;
+    on ToggleDialog() => match current {
+        Closed => DialogState.Open,
+        Open => DialogState.Closed
+    };
+
+    return match current {
+        Closed => <span className="renderer-badge-host" data-copeland-renderer-host="CustomElement" data-copeland-renderer-tag="copeland-renderer-badge" data-copeland-renderer-label="Open dialog"></span>,
+        Open => ConfirmDialog()
+    };
 }
 
 function FeatureCardContent(props: FeatureCardProps): ReactNode {
@@ -125,7 +149,7 @@ stream CopelandDesktop<0px, 0px> {
         overlay page { width: fill; height: fill; overflow: scrollY;
           column content { x: 0px; y: 0px; width: 1200px; height: 1012px;
             hero: Hero(3) { height: 362px; }
-            languageExample: LanguageExample() { height: 56px; }
+            languageExample: DialogHost() { height: 56px; }
             grid featureGrid: [
                 FeatureCard({ icon: "⌇⌁⌇", title: "Typed browser ↔ CLR", body: "End-to-end types across browser and .NET without a JSON tax." }),
                 FeatureCard({ icon: "◉ ◈", title: "React without lock-in", body: "Use ordinary third-party React components beneath neutral hosts." }),
@@ -148,7 +172,7 @@ stream CopelandTablet<0px, 0px> {
         overlay page { height: fill; overflow: scrollY;
           column content { x: 0px; y: 0px; width: 768px; height: 1042px;
             hero: Hero(2) { height: 340px; }
-            languageExample: LanguageExample() { height: 58px; }
+            languageExample: DialogHost() { height: 58px; }
             grid featureGrid: [
                 FeatureCard({ icon: "⌇⌁⌇", title: "Typed browser ↔ CLR", body: "End-to-end types across browser and .NET without a JSON tax." }),
                 FeatureCard({ icon: "◉ ◈", title: "React without lock-in", body: "Use ordinary third-party React components beneath neutral hosts." }),
@@ -171,7 +195,7 @@ stream CopelandMobile<0px, 0px> {
         overlay page { height: fill; overflow: scrollY;
           column content { x: 0px; y: 0px; width: 390px; height: 1544px;
             hero: Hero(1) { height: 390px; }
-            languageExample: LanguageExample() { height: 62px; }
+            languageExample: DialogHost() { height: 62px; }
             grid featureGrid: [
                 FeatureCard({ icon: "⌇⌁⌇", title: "Typed browser ↔ CLR", body: "End-to-end types across browser and .NET without a JSON tax." }),
                 FeatureCard({ icon: "◉ ◈", title: "React without lock-in", body: "Use ordinary third-party React components beneath neutral hosts." }),

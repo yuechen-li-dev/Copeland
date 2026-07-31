@@ -26,6 +26,12 @@ internal static class LayoutProjectedTableProvider
     public const string ComponentBindings = "component::Bindings";
     public const string ComponentCaptures = "component::Captures";
     public const string ComponentLocalPresentations = "component::LocalPresentations";
+    public const string ComponentStates = "component::States";
+    public const string ComponentTransitions = "component::Transitions";
+    public const string ComponentEvents = "component::Events";
+    public const string ComponentFrames = "component::Frames";
+    public const string ComponentEffects = "component::Effects";
+    public const string ComponentPresentationBranches = "component::PresentationBranches";
     public const string RendererAdapters = "renderer::Adapters";
     public const string RendererAttachments = "renderer::Attachments";
     public const string Sources = "layout::Sources";
@@ -61,6 +67,12 @@ internal static class LayoutProjectedTableProvider
         var componentBindingRows = new List<IReadOnlyDictionary<string, object?>>();
         var componentCaptureRows = new List<IReadOnlyDictionary<string, object?>>();
         var componentLocalPresentationRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentStateRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentTransitionRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentEventRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentFrameRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentEffectRows = new List<IReadOnlyDictionary<string, object?>>();
+        var componentPresentationBranchRows = new List<IReadOnlyDictionary<string, object?>>();
         var rendererAdapterRows = new List<IReadOnlyDictionary<string, object?>>();
         var rendererAttachmentRows = new List<IReadOnlyDictionary<string, object?>>();
         foreach (LayoutInspectionDocument document in documents)
@@ -134,7 +146,55 @@ internal static class LayoutProjectedTableProvider
                 ("rendererAdapter", definition.RendererAdapter.ToString()),
                 ("requiredContentCapabilities", definition.RequiredContentCapabilities.ToString()),
                 ("requiredHostCapabilities", definition.RequiredHostCapabilities.ToString()),
-                ("payloadContract", definition.Presentation.PayloadContract)));
+                ("payloadContract", definition.Presentation.PayloadContract),
+                ("stateType", definition.State?.State.Type.Name)));
+
+            if (definition.State is BoundComponentStateModel state)
+            {
+                string stateId = definition.StableIdentity + "::state::" + state.State.Name;
+                componentStateRows.Add(Row(
+                    ("stateId", stateId),
+                    ("definitionId", definition.StableIdentity),
+                    ("name", state.State.Name),
+                    ("type", state.State.Type.Name),
+                    ("initializerKind", state.Initializer.GetType().Name)));
+                foreach (BoundComponentEventTransition transition in state.Transitions)
+                {
+                    componentEventRows.Add(Row(
+                        ("eventId", transition.StableIdentity),
+                        ("definitionId", definition.StableIdentity),
+                        ("name", transition.Name),
+                        ("parameters", transition.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name).ToArray())));
+                    componentTransitionRows.Add(Row(
+                        ("transitionId", transition.StableIdentity + "::transition"),
+                        ("stateId", stateId),
+                        ("eventId", transition.StableIdentity),
+                        ("nextStateType", transition.NextState.Type.Name),
+                        ("nextStateKind", transition.NextState.GetType().Name)));
+                    for (int effectIndex = 0; effectIndex < transition.Effects.Count; effectIndex += 1)
+                    {
+                        BoundComponentEffect effect = transition.Effects[effectIndex];
+                        componentEffectRows.Add(Row(
+                            ("effectId", effect.StableIdentity),
+                            ("transitionId", transition.StableIdentity + "::transition"),
+                            ("effectFunction", effect.Invocation.Function.StableIdentity),
+                            ("phase", effect.Phase.ToString()),
+                            ("authoredOrder", effectIndex),
+                            ("completionEvent", effect.Completion?.EventName),
+                            ("sourcePosition", effect.Anchor.Position)));
+                    }
+                }
+                foreach (BoundPresentationBranch branch in state.PresentationBranches)
+                {
+                    componentPresentationBranchRows.Add(Row(
+                        ("branchId", branch.StableIdentity),
+                        ("definitionId", definition.StableIdentity),
+                        ("statePattern", branch.StatePattern),
+                        ("childCallIdentities", branch.ChildCalls.Select(call => call.AuthoredIdentity).ToArray()),
+                        ("childDefinitionIds", branch.ChildCalls.Select(call => call.Definition.StableIdentity).ToArray()),
+                        ("presentationKind", branch.LocalPresentation.GetType().Name)));
+                }
+            }
 
             if (definition.LocalStream is { IsPrivate: true } localPresentation)
             {
@@ -174,6 +234,16 @@ internal static class LayoutProjectedTableProvider
                 ("localRoot", instance.Definition.LocalStream is null ? null : instance.Definition.LocalStream.Layout.Name + "." + instance.Definition.LocalStream.Realization.Root.Name),
                 ("rendererAdapter", instance.Definition.RendererAdapter.ToString()),
                 ("ordinal", instance.Ordinal)));
+
+            if (instance.Definition.State is not null)
+            {
+                componentFrameRows.Add(Row(
+                    ("frameId", instance.StableIdentity + "::frame"),
+                    ("instanceId", instance.StableIdentity),
+                    ("stateIdentity", instance.StateIdentity),
+                    ("parentFrameId", instance.ParentComponentInstance is null ? null : instance.ParentComponentInstance.StableIdentity + "::frame"),
+                    ("lifetime", "semantic-component-instance")));
+            }
 
             for (int index = 0; index < instance.Props.Count; index += 1)
             {
@@ -261,6 +331,13 @@ internal static class LayoutProjectedTableProvider
                 new ProjectedTable(ComponentBindings, ComponentBindingSchema, componentBindingRows.OrderBy(row => (string)row["bindingId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(ComponentCaptures, ComponentCaptureSchema, componentCaptureRows.OrderBy(row => (string)row["captureId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(ComponentLocalPresentations, ComponentLocalPresentationSchema, componentLocalPresentationRows.OrderBy(row => (string)row["localPresentationId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentStates, ComponentStateSchema, componentStateRows.OrderBy(row => (string)row["stateId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentEvents, ComponentEventSchema, componentEventRows.OrderBy(row => (string)row["eventId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentTransitions, ComponentTransitionSchema, componentTransitionRows.OrderBy(row => (string)row["transitionId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentFrames, ComponentFrameSchema, componentFrameRows.OrderBy(row => (string)row["frameId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentPresentationBranches, ComponentPresentationBranchSchema, componentPresentationBranchRows.OrderBy(row => (string)row["branchId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentEffects, ComponentEffectSchema, componentEffectRows.OrderBy(row => (string)row["effectId"]!, StringComparer.Ordinal).ToArray()),
+                new ProjectedTable(ComponentPresentationBranches, ComponentPresentationBranchSchema, componentPresentationBranchRows.OrderBy(row => (string)row["branchId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(RendererAdapters, RendererAdapterSchema, rendererAdapterRows.OrderBy(row => (string)row["adapterId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(RendererAttachments, RendererAttachmentSchema, rendererAttachmentRows.OrderBy(row => (string)row["attachmentId"]!, StringComparer.Ordinal).ToArray()),
                 new ProjectedTable(Sources, SourceSchema, sources.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => (IReadOnlyDictionary<string, object?>)pair.Value).ToArray()),
@@ -472,7 +549,7 @@ internal static class LayoutProjectedTableProvider
     private static readonly IReadOnlyList<ProjectedColumn> TextBindingSchema =
     [ new("bindingId", "identity"), new("documentId", "foreignKey<Documents>"), new("owningBoxId", "foreignKey<Boxes>"), new("semanticHostId", "identity"), new("themeId", "identity"), new("fitMode", "textFitMode"), new("preferredFontSize", "px?"), new("minimumFontSize", "px?"), new("lineLimit", "int?"), new("wrapMode", "textWrapMode?"), new("overflowPolicy", "overflowPolicy"), new("documentClassName", "presentationClass?"), new("sourceId", "foreignKey<Sources>") ];
     private static readonly IReadOnlyList<ProjectedColumn> ComponentDefinitionSchema =
-    [ new("definitionId", "identity"), new("name", "string"), new("props", "componentProps"), new("implementationKind", "componentImplementationKind"), new("presentationKind", "componentPresentationKind"), new("localLayoutId", "identity?"), new("rendererAdapter", "rendererAdapter"), new("requiredContentCapabilities", "contentCapabilitySet"), new("requiredHostCapabilities", "hostCapabilitySet"), new("payloadContract", "rendererPayloadContract") ];
+    [ new("definitionId", "identity"), new("name", "string"), new("props", "componentProps"), new("implementationKind", "componentImplementationKind"), new("presentationKind", "componentPresentationKind"), new("localLayoutId", "identity?"), new("rendererAdapter", "rendererAdapter"), new("requiredContentCapabilities", "contentCapabilitySet"), new("requiredHostCapabilities", "hostCapabilitySet"), new("payloadContract", "rendererPayloadContract"), new("stateType", "type?") ];
     private static readonly IReadOnlyList<ProjectedColumn> ComponentInstanceSchema =
     [ new("instanceId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("parentComponentInstanceId", "foreignKey<Instances>?"), new("parentHostBoxId", "identity"), new("authoredCallIdentity", "identity"), new("mountIdentity", "identity"), new("suppliedHostCapabilities", "hostCapabilitySet"), new("localRoot", "identity?"), new("rendererAdapter", "rendererAdapter"), new("ordinal", "int") ];
     private static readonly IReadOnlyList<ProjectedColumn> ComponentBindingSchema =
@@ -481,6 +558,18 @@ internal static class LayoutProjectedTableProvider
     [ new("captureId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("name", "string"), new("kind", "componentCaptureKind"), new("type", "type"), new("sourceSymbol", "identity") ];
     private static readonly IReadOnlyList<ProjectedColumn> ComponentLocalPresentationSchema =
     [ new("localPresentationId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("name", "string"), new("rootBox", "identity"), new("accessibility", "accessibility"), new("implementationKind", "componentImplementationKind") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentStateSchema =
+    [ new("stateId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("name", "string"), new("type", "type"), new("initializerKind", "expressionKind") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentEventSchema =
+    [ new("eventId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("name", "string"), new("parameters", "componentProps") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentTransitionSchema =
+    [ new("transitionId", "identity"), new("stateId", "foreignKey<States>"), new("eventId", "foreignKey<Events>"), new("nextStateType", "type"), new("nextStateKind", "expressionKind") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentFrameSchema =
+    [ new("frameId", "identity"), new("instanceId", "foreignKey<Instances>"), new("stateIdentity", "identity"), new("parentFrameId", "foreignKey<Frames>?"), new("lifetime", "componentFrameLifetime") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentPresentationBranchSchema =
+    [ new("branchId", "identity"), new("definitionId", "foreignKey<Definitions>"), new("statePattern", "enumCase"), new("childCallIdentities", "identitySet"), new("childDefinitionIds", "foreignKeySet<Definitions>"), new("presentationKind", "expressionKind") ];
+    private static readonly IReadOnlyList<ProjectedColumn> ComponentEffectSchema =
+    [ new("effectId", "identity"), new("transitionId", "foreignKey<Transitions>"), new("effectFunction", "identity"), new("phase", "componentCompletionPhase"), new("authoredOrder", "int"), new("completionEvent", "foreignKey<Events>?"), new("sourcePosition", "sourcePosition") ];
     private static readonly IReadOnlyList<ProjectedColumn> RendererAdapterSchema =
     [ new("adapterId", "identity"), new("supportedContentCapabilities", "contentCapabilitySet"), new("requiredHostCapabilities", "hostCapabilitySet"), new("browserAdapter", "bool"), new("payloadContracts", "rendererPayloadContractSet") ];
     private static readonly IReadOnlyList<ProjectedColumn> RendererAttachmentSchema =
