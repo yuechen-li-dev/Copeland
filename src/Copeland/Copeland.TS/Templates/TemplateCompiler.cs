@@ -35,6 +35,10 @@ public static class TemplateCompiler
     /// in separate modules cannot collide.
     /// </summary>
     public static TemplateEvaluationResult Evaluate(IReadOnlyList<BoundCompilation> boundCompilations, string? entryName = null)
+        => Evaluate(boundCompilations, entryName, []);
+
+    /// <summary>Invokes the selected template through the same bound plan used by nested template calls.</summary>
+    public static TemplateEvaluationResult Evaluate(IReadOnlyList<BoundCompilation> boundCompilations, string? entryName, IReadOnlyList<object?> entryArguments)
     {
         var diagnostics = boundCompilations.SelectMany(compilation => compilation.Diagnostics).ToList();
         IReadOnlyList<BoundTemplateDeclaration> templates = boundCompilations
@@ -58,7 +62,7 @@ public static class TemplateCompiler
 
         diagnostics.AddRange(TemplatePlanValidator.Validate(templates));
         var evaluator = new BoundPlanEvaluator(templates, diagnostics);
-        ProjectTree? project = evaluator.EvaluateTemplate(entry, []);
+        ProjectTree? project = evaluator.EvaluateTemplate(entry, entryArguments);
         return new TemplateEvaluationResult(entry.Symbol.Name, project, diagnostics, evaluator.InstantiationChain);
     }
 
@@ -533,6 +537,16 @@ public static class TemplateCompiler
                 return null;
             }
 
+            for (int index = 0; index < arguments.Count; index++)
+            {
+                TypeSymbol expected = declaration.Symbol.Parameters[index].Type;
+                if (!MatchesPrimitiveStaticArgument(expected, arguments[index]))
+                {
+                    Report("COPE-STATIC-0007", $"Static argument '{declaration.Symbol.Parameters[index].Name}' must have type '{expected.Name}'.", declaration.Symbol.Name, 0, 1);
+                    return null;
+                }
+            }
+
             _active.Push(declaration.Symbol);
             _instantiationChain.Add(string.Join(" -> ", _active.Reverse().Select(Describe)));
             try
@@ -724,6 +738,16 @@ public static class TemplateCompiler
 
         private static string Describe(TemplateSymbol symbol)
             => symbol.StableIdentity + " (" + symbol.Name + ")";
+
+        private static bool MatchesPrimitiveStaticArgument(TypeSymbol expected, object? value)
+            => expected switch
+            {
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.String => value is string,
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Boolean => value is bool,
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Int => value is int,
+                PrimitiveTypeSymbol primitive when primitive == PrimitiveTypeSymbol.Float || primitive == PrimitiveTypeSymbol.Number => value is double or float or int,
+                _ => true,
+            };
 
         private void Report(string id, string message, SyntaxToken token)
             => _diagnostics.Add(new Diagnostic(id, message, token.Position, Math.Max(1, token.Text.Length)));

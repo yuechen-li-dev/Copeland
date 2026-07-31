@@ -1,5 +1,33 @@
 # Copeland templates
 
+## Create a Copeland project with BootstrapTemplate
+
+`samples/copeland-ts/templates/BootstrapTemplate.tsx` is the maintained
+bootstrap template for the Preview workflow. Copeland templates are normal
+typed Copeland programs: **TypeScript computes project values. TS-XML describes
+structured files.**
+
+```console
+tscl template materialize BootstrapTemplate.tsx --entry BootstrapTemplate --name HelloCopeland --output ./HelloCopeland
+cd HelloCopeland/HelloCopeland
+npm install
+dotnet build
+dotnet test
+dotnet run
+```
+
+The command creates a new output root only; it never merges or overwrites an
+existing directory. `tsconfig.tsx` is the typed ownership map: it assigns the
+Copeland project and its `TextDocuments` type set. npm supplies `lodash-es`;
+.NET builds the SDK-style project; the `.slnx` points at that project. XML
+document-valued template artifacts are not materializable yet, so the current
+bootstrap uses deterministic text artifacts for its `.csproj` and `.slnx`.
+
+Common errors: a missing template source is `COPE-TEMPLATE-CLI-0004`, an
+invalid `--name` is `COPE-TEMPLATE-CLI-0010`, and an existing output directory
+is `COPE-TEMPLATE-CLI-0009`. The candidate package feed used by repository
+validation is intentionally not emitted into generated projects.
+
 ## CTS-TYPE-TEMPLATE-M1: static structural inputs
 
 `type` is Copeland's compile-time structural vocabulary. It has no constructor

@@ -451,7 +451,7 @@ internal static class Program
         Console.Error.WriteLine("  tscl table list (--project <manifest.tsx> | --source <entry.ts>)  (compiler-projected layout tables)");
         Console.Error.WriteLine("  tscl layout inspect <layout|module::layout> (--project <manifest.tsx> | --source <entry.ts>) [--json]");
         Console.Error.WriteLine("  tscl template preview <source> [--entry <template>] [--format tree|json]");
-        Console.Error.WriteLine("  tscl template materialize <source> --output <path> [--entry <template>] [--tspack <path>]");
+        Console.Error.WriteLine("  tscl template materialize <source> --output <path> [--entry <template>] [--name <project-name>]");
         Console.Error.WriteLine("  tscl language-server [--version]");
         Console.Error.WriteLine("  tscl doctor [--format text|json]");
         Console.Error.WriteLine("  tscl install-info [--format text|json]");

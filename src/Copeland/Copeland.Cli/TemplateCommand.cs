@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Copeland.TS.Compiler;
 using Copeland.TS.Templates;
 
@@ -20,7 +19,7 @@ internal static class TemplateCommand
         string sourcePath = args[2];
         string? entry = null;
         string? output = null;
-        string? tspackPath = null;
+        string? name = null;
         string format = "tree";
         for (int index = 3; index < args.Length; index++)
         {
@@ -34,7 +33,7 @@ internal static class TemplateCommand
             {
                 case "--entry": entry = value; break;
                 case "--output": output = value; break;
-                case "--tspack": tspackPath = value; break;
+                case "--name": name = value; break;
                 case "--format": format = value; break;
                 default: return Usage("COPE-TEMPLATE-CLI-0003", $"Unknown template option '{option}'.");
             }
@@ -47,7 +46,13 @@ internal static class TemplateCommand
         }
 
         string fullSourcePath = Path.GetFullPath(sourcePath);
-        TemplateEvaluationResult evaluation = EvaluateProjectTemplate(fullSourcePath, entry);
+        if (!string.IsNullOrWhiteSpace(name) && !IsValidProjectName(name!))
+        {
+            Console.Error.WriteLine($"COPE-TEMPLATE-CLI-0010 error: Project name '{name}' must be a non-empty C# identifier and must not contain path separators.");
+            return 2;
+        }
+
+        TemplateEvaluationResult evaluation = EvaluateProjectTemplate(fullSourcePath, entry, name);
         if (!evaluation.Success)
         {
             foreach (var diagnostic in evaluation.Diagnostics)
@@ -77,13 +82,27 @@ internal static class TemplateCommand
         {
             return Usage("COPE-TEMPLATE-CLI-0006", "Materialize requires '--output <path>'.");
         }
-        return MaterializeWithTspack(evaluation, output!, tspackPath);
+        ProjectTreeMaterializationResult result = ProjectTreeMaterializer.Materialize(evaluation.Project!, output!);
+        if (!result.Succeeded)
+        {
+            Console.Error.WriteLine($"{result.DiagnosticId} error: {result.Message}");
+            return 1;
+        }
+        foreach (string path in result.Files) Console.Out.WriteLine($"Created {path}");
+        Console.Out.WriteLine("Next steps:");
+        Console.Out.WriteLine($"  cd {output}");
+        Console.Out.WriteLine("  npm install");
+        Console.Out.WriteLine("  dotnet build");
+        Console.Out.WriteLine("  dotnet test");
+        Console.Out.WriteLine("  dotnet run");
+        return 0;
     }
 
-    private static TemplateEvaluationResult EvaluateProjectTemplate(string sourcePath, string? entry)
+    private static TemplateEvaluationResult EvaluateProjectTemplate(string sourcePath, string? entry, string? name)
     {
         string root = Path.GetDirectoryName(sourcePath)!;
         CopelandProjectSource[] sources = Directory.EnumerateFiles(root, "*.ts", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(root, "*.tsx", SearchOption.AllDirectories))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .Select(path => new CopelandProjectSource(
                 Path.GetRelativePath(root, path).Replace('\\', '/'),
@@ -93,6 +112,7 @@ internal static class TemplateCommand
         return CopelandProjectCompiler.CompileTemplates(
             sources,
             entry,
+            name is null ? [] : [name],
             new CopelandCompilationOptions
             {
                 SourcePath = sourcePath,
@@ -100,74 +120,10 @@ internal static class TemplateCommand
             });
     }
 
-    private static int MaterializeWithTspack(TemplateEvaluationResult evaluation, string output, string? configuredTspackPath)
-    {
-        string manifestPath = Path.Combine(Path.GetTempPath(), $"copeland-template-{Guid.NewGuid():N}.json");
-        string executable = configuredTspackPath ?? Environment.GetEnvironmentVariable("COPELAND_TSPACK_PATH") ?? "tspack";
-        try
-        {
-            if (!VerifyTspackMaterializationCapability(executable))
-            {
-                Console.Error.WriteLine("COPE-TEMPLATE-CLI-0008 error: The configured TSPack executable does not support the required 'materialize-tree' capability. Build or select a compatible TSPack artifact.");
-                return 1;
-            }
-            File.WriteAllText(manifestPath, evaluation.Project!.ToPreviewJson(evaluation.TemplateName, includeContents: true));
-            var start = new ProcessStartInfo(executable)
-            {
-                UseShellExecute = false,
-            };
-            start.ArgumentList.Add("materialize-tree");
-            start.ArgumentList.Add("--manifest");
-            start.ArgumentList.Add(manifestPath);
-            start.ArgumentList.Add("--output");
-            start.ArgumentList.Add(Path.GetFullPath(output));
-            using Process? process = Process.Start(start);
-            if (process is null)
-            {
-                Console.Error.WriteLine("COPE-TEMPLATE-CLI-0007 error: Could not start TSPack materialization.");
-                return 1;
-            }
-            process.WaitForExit();
-            return process.ExitCode;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
-        {
-            Console.Error.WriteLine($"COPE-TEMPLATE-CLI-0007 error: TSPack materialization failed: {exception.Message}");
-            return 1;
-        }
-        finally
-        {
-            if (File.Exists(manifestPath)) File.Delete(manifestPath);
-        }
-    }
-
-    private static bool VerifyTspackMaterializationCapability(string executable)
-    {
-        try
-        {
-            var probe = new ProcessStartInfo(executable)
-            {
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-            };
-            probe.ArgumentList.Add("materialize-tree");
-            using Process? process = Process.Start(probe);
-            if (process is null)
-            {
-                return false;
-            }
-            string standardOutput = process.StandardOutput.ReadToEnd();
-            string standardError = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-            string output = standardOutput + standardError;
-            return output.Contains("TSPACK_TEMPLATE_ARGUMENTS_REQUIRED", StringComparison.Ordinal);
-        }
-        catch (System.ComponentModel.Win32Exception)
-        {
-            return false;
-        }
-    }
+    private static bool IsValidProjectName(string name)
+        => name.Length > 0
+            && (char.IsLetter(name[0]) || name[0] == '_')
+            && name.All(character => char.IsLetterOrDigit(character) || character == '_');
 
     private static int Usage(string code, string message)
     {

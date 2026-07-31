@@ -2560,7 +2560,13 @@ public sealed class Parser
         {
             if (text[index] == '\\' && index + 1 < text.Length)
             {
-                textBuilder.Append(text[index + 1]);
+                textBuilder.Append(text[index + 1] switch
+                {
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    _ => text[index + 1],
+                });
                 index++;
                 continue;
             }

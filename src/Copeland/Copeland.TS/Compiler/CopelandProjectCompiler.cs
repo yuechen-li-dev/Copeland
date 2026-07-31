@@ -32,6 +32,13 @@ public static class CopelandProjectCompiler
         CopelandCompilationOptions? options = null)
         => CreateSnapshot(sources, options).CompileTemplates(entryName);
 
+    public static TemplateEvaluationResult CompileTemplates(
+        IReadOnlyList<CopelandProjectSource> sources,
+        string? entryName,
+        IReadOnlyList<object?> entryArguments,
+        CopelandCompilationOptions? options = null)
+        => CreateSnapshot(sources, options).CompileTemplates(entryName, entryArguments);
+
     /// <summary>
     /// Creates the one reusable source-of-truth model for a Copeland project.
     /// Hosts can layer unsaved buffers without recreating module resolution or binding.
@@ -816,6 +823,9 @@ public sealed class CopelandProjectSnapshot
     public CopelandProjectCompilation CompileToMir() => CopelandProjectCompiler.CompileSnapshot(this);
 
     public TemplateEvaluationResult CompileTemplates(string? entryName = null)
+        => CompileTemplates(entryName, []);
+
+    public TemplateEvaluationResult CompileTemplates(string? entryName, IReadOnlyList<object?> entryArguments)
     {
         CopelandProjectCompilation compilation = CompileToMir();
         if (compilation.Diagnostics.Count > 0)
@@ -826,7 +836,7 @@ public sealed class CopelandProjectSnapshot
             .Select(module => module.BoundCompilation)
             .OfType<BoundCompilation>()
             .ToArray();
-        return TemplateCompiler.Evaluate(modules, entryName);
+        return TemplateCompiler.Evaluate(modules, entryName, entryArguments);
     }
 }
 
