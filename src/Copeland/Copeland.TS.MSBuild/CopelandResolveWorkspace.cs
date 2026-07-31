@@ -19,6 +19,9 @@ public sealed class CopelandResolveWorkspace : Microsoft.Build.Utilities.Task
     [Output]
     public ITaskItem[] Sources { get; private set; } = [];
 
+    [Output]
+    public string ProjectTypes { get; private set; } = string.Empty;
+
     public override bool Execute()
     {
         CopelandWorkspaceOwnershipResult result = CopelandWorkspaceOwnership.Resolve(WorkspacePath);
@@ -57,6 +60,7 @@ public sealed class CopelandResolveWorkspace : Microsoft.Build.Utilities.Task
                 return (ITaskItem)item;
             })
             .ToArray();
+        ProjectTypes = string.Join(",", result.ProjectTypes ?? []);
         return true;
     }
 }

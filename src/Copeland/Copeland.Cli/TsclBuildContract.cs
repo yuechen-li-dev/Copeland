@@ -19,7 +19,12 @@ internal static class TsclBuildContract
     private const int UsageErrorExitCode = 2;
     private const int FileIoErrorExitCode = 3;
 
-    public static string Version => Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
+    public static string Version => Assembly.GetExecutingAssembly()
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+        .InformationalVersion
+        .Split('+')[0]
+        ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)
+        ?? "0.0.0";
 
     public static int Run(string[] args)
     {

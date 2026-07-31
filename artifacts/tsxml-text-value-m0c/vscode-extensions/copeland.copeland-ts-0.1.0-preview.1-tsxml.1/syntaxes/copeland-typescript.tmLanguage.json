@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Copeland TypeScript",
+  "scopeName": "source.copeland-typescript",
+  "patterns": [
+    { "match": "\\b(record|table|enum|match|using|remote|capture|static|template|except|fallible|ok|err)\\b", "name": "keyword.control.copeland" },
+    { "include": "source.ts" }
+  ]
+}

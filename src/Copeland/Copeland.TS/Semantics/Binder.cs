@@ -16,19 +16,19 @@ public static class Binder
 {
     public static BoundCompilation Bind(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), new CopelandPackageContractMap([]), CopelandPackageBackend.Clr, CopelandTsXmlProfile.None, null, null, null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), new CopelandPackageContractMap([]), CopelandPackageBackend.Clr, CopelandProjectTypeSet.None, null, null, null);
         return impl.Bind();
     }
 
-    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandTsXmlProfile tsXmlProfile = CopelandTsXmlProfile.None, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null)
+    internal static BoundCompilation Bind(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandProjectTypeSet projectTypes = CopelandProjectTypeSet.None, string? sourcePath = null, string? moduleIdentity = null, BoundModuleImports? imports = null)
     {
-        var impl = new BinderImpl(tree, assetResolver, npmResolver, hostResolver, clrResolver, packageContracts, packageBackend, tsXmlProfile, sourcePath, moduleIdentity, imports);
+        var impl = new BinderImpl(tree, assetResolver, npmResolver, hostResolver, clrResolver, packageContracts, packageBackend, projectTypes, sourcePath, moduleIdentity, imports);
         return impl.Bind();
     }
 
     internal static IReadOnlyDictionary<FunctionSymbol, BoundFunctionDeclaration> BindOpenGenericBodiesForTesting(SyntaxTree tree)
     {
-        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), new CopelandPackageContractMap([]), CopelandPackageBackend.Clr, CopelandTsXmlProfile.None, null, null, null);
+        var impl = new BinderImpl(tree, null, new CopelandNpmContractResolver(new CopelandNpmDependencyGraph([])), new CopelandJavaScriptHostContractResolver([]), new CopelandClrMetadataResolver([]), new CopelandPackageContractMap([]), CopelandPackageBackend.Clr, CopelandProjectTypeSet.None, null, null, null);
         _ = impl.Bind();
         return impl.GetOpenGenericBodiesForTesting();
     }
@@ -72,7 +72,7 @@ public static class Binder
         }
     }
 
-    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandTsXmlProfile tsXmlProfile, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
+    private sealed class BinderImpl(SyntaxTree tree, CopelandAssetResolver? assetResolver, CopelandNpmContractResolver npmResolver, CopelandJavaScriptHostContractResolver hostResolver, CopelandClrMetadataResolver clrResolver, CopelandPackageContractMap packageContracts, CopelandPackageBackend packageBackend, CopelandProjectTypeSet projectTypes, string? sourcePath, string? moduleIdentity, BoundModuleImports? imports)
     {
         private sealed class BatchBindingContext
         {
@@ -118,7 +118,7 @@ public static class Binder
         private readonly CopelandClrMetadataResolver _clrResolver = clrResolver;
         private readonly CopelandPackageContractMap _packageContracts = packageContracts;
         private readonly CopelandPackageBackend _packageBackend = packageBackend;
-        private readonly CopelandTsXmlProfile _tsXmlProfile = tsXmlProfile;
+        private readonly CopelandProjectTypeSet _projectTypes = projectTypes;
         private readonly string? _sourcePath = sourcePath;
         private readonly string? _moduleIdentity = moduleIdentity;
         private readonly BoundModuleImports? _imports = imports;
@@ -4690,7 +4690,7 @@ public static class Binder
         private BoundExpression BindTsXml(TsXmlExpressionSyntax expression)
         {
             if (expression is TsXmlElementExpressionSyntax { NameToken.Text: "Document" } documentRoot
-                && _tsXmlProfile.HasFlag(CopelandTsXmlProfile.TextDocumentsM0))
+                && _projectTypes.HasFlag(CopelandProjectTypeSet.TextDocuments))
             {
                 if (!_textDocumentsByRootStart.TryGetValue(documentRoot.LessToken.Position, out BoundTextDocument? document))
                 {
@@ -4700,7 +4700,7 @@ public static class Binder
                 return BindTextDocument(document, documentRoot);
             }
 
-            if (_tsXmlProfile.HasFlag(CopelandTsXmlProfile.ReactM0))
+            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents))
             {
                 return expression switch
                 {
@@ -4718,7 +4718,7 @@ public static class Binder
             };
             Report(
                 "COPE-TSXML-0101",
-                "TS-XML syntax requires an enabled concept; select ReactM0 or TextDocuments in the project configuration.",
+                "TS-XML syntax requires an enabled project type; select ReactComponents or TextDocuments in tsconfig.tsx.",
                 token);
             return new BoundErrorExpression();
         }
@@ -5992,7 +5992,7 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
-            if (_tsXmlProfile == CopelandTsXmlProfile.ReactM0
+            if (_projectTypes == CopelandProjectTypeSet.ReactComponents
                 && c.Target is NameExpressionSyntax { IdentifierToken.Text: "Text" } textTarget
                 && _textDocumentsByRootStart.TryGetValue(textTarget.IdentifierToken.Position, out BoundTextDocument? document)
                 && document.Document.Metadata.Provenance.SourceKind == DocumentSourceKind.TextPlain)
@@ -6016,7 +6016,7 @@ public static class Binder
                 return BindClrMethodCall(c, staticType!, receiver: null, staticMember.NameToken);
             }
 
-            if (_tsXmlProfile == CopelandTsXmlProfile.ReactM0
+            if (_projectTypes == CopelandProjectTypeSet.ReactComponents
                 && c.Target is MemberAccessExpressionSyntax reactMember)
             {
                 BoundExpression receiver = BindExpression(reactMember.Target);
@@ -7398,7 +7398,7 @@ public static class Binder
                 CopelandJavaScriptHostType.Primitive { Name: "int" } => PrimitiveTypeSymbol.Int,
                 CopelandJavaScriptHostType.Primitive { Name: "string" } => PrimitiveTypeSymbol.String,
                 CopelandJavaScriptHostType.Primitive { Name: "void" } => PrimitiveTypeSymbol.Void,
-                CopelandJavaScriptHostType.Named { Name: "ReactMountElement" } when _tsXmlProfile == CopelandTsXmlProfile.ReactM0 => ReactMountElementTypeSymbol.Instance,
+                CopelandJavaScriptHostType.Named { Name: "ReactMountElement" } when _projectTypes == CopelandProjectTypeSet.ReactComponents => ReactMountElementTypeSymbol.Instance,
                 CopelandJavaScriptHostType.Callable callable => new CallableTypeSymbol(
                     callable.Parameters.Select((parameter, index) => new CallableParameterTypeSymbol("arg" + index, ResolveJavaScriptHostType(parameter, anchor, typeParameters))).ToArray(),
                     ResolveJavaScriptHostType(callable.ReturnType, anchor, typeParameters)),
@@ -7435,7 +7435,7 @@ public static class Binder
 
         private TypeSymbol ResolveNpmType(string name, SyntaxToken anchor)
         {
-            if (_tsXmlProfile.HasFlag(CopelandTsXmlProfile.ReactM0))
+            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents))
             {
                 if (name == "ReactNode") return ReactNodeTypeSymbol.Instance;
                 if (name == "ReactRoot") return ReactRootTypeSymbol.Instance;
@@ -10317,8 +10317,8 @@ public static class Binder
             if (i.Identifier.Text == ArtifactTypeSymbol.DirectoryArtifact.Name) return ArtifactTypeSymbol.DirectoryArtifact;
             if (i.Identifier.Text == ArtifactTypeSymbol.TextFileArtifact.Name) return ArtifactTypeSymbol.TextFileArtifact;
             if (i.Identifier.Text == ArtifactTypeSymbol.SourceFileArtifact.Name) return ArtifactTypeSymbol.SourceFileArtifact;
-            if (_tsXmlProfile.HasFlag(CopelandTsXmlProfile.TextDocumentsM0) && i.Identifier.Text == "Document") return DocumentTypeSymbol.Instance;
-            if (_tsXmlProfile.HasFlag(CopelandTsXmlProfile.ReactM0))
+            if (_projectTypes.HasFlag(CopelandProjectTypeSet.TextDocuments) && i.Identifier.Text == "Document") return DocumentTypeSymbol.Instance;
+            if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents))
             {
                 if (i.Identifier.Text == "ReactNode") return ReactNodeTypeSymbol.Instance;
                 if (i.Identifier.Text == "ReactRoot") return ReactRootTypeSymbol.Instance;

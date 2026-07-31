@@ -42,8 +42,8 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
     [Required]
     public string ProjectDirectory { get; set; } = string.Empty;
 
-    /// <summary>The evaluated TS-XML semantic profile selected by the project.</summary>
-    public string TsXmlProfile { get; set; } = string.Empty;
+    /// <summary>Comma-separated canonical project type names resolved from tsconfig.tsx.</summary>
+    public string ProjectTypes { get; set; } = string.Empty;
 
     public string RootNamespace { get; set; } = "Copeland";
 
@@ -107,7 +107,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             return false;
         }
 
-        if (!TryParseTsXmlProfile(out CopelandTsXmlProfile tsXmlProfile))
+        if (!TryParseProjectTypes(out CopelandProjectTypeSet projectTypes))
         {
             return false;
         }
@@ -169,7 +169,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 effectiveReferences,
                 packageContracts,
                 npmContracts,
-                tsXmlProfile,
+                projectTypes,
                 RootNamespace,
                 generatedDirectory,
                 authoredCSharpSources);
@@ -185,10 +185,10 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             activePaths.Add(mirPath);
             activePaths.Add(stampPath);
 
-            string fingerprint = CreateFingerprint(sourcePath, effectiveReferences, packageContracts, npmContracts, authoredCSharpSources, RootNamespace, moduleName);
+            string fingerprint = CreateFingerprint(sourcePath, effectiveReferences, packageContracts, npmContracts, authoredCSharpSources, RootNamespace, moduleName, projectTypes);
             if (!IsCurrent(stampPath, outputPath, mirPath, fingerprint))
             {
-                if (!Compile(sourcePath, projectDirectory, effectiveReferences, packageContracts, npmContracts, tsXmlProfile, RootNamespace, moduleName, outputPath, mirPath))
+                if (!Compile(sourcePath, projectDirectory, effectiveReferences, packageContracts, npmContracts, projectTypes, RootNamespace, moduleName, outputPath, mirPath))
                 {
                     continue;
                 }
@@ -210,7 +210,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         IReadOnlyList<CopelandClrReference> references,
         IReadOnlyList<CopelandPackageContract> packageContracts,
         IReadOnlyList<CopelandNpmPackageContract> npmContracts,
-        CopelandTsXmlProfile tsXmlProfile,
+        CopelandProjectTypeSet projectTypes,
         string rootNamespace,
         string generatedDirectory,
         IReadOnlyList<string> authoredCSharpSources)
@@ -219,7 +219,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         string outputPath = Path.Combine(generatedDirectory, graphArtifactName + ".g.cs");
         string mirPath = Path.Combine(generatedDirectory, graphArtifactName + ".cope");
         string stampPath = Path.Combine(generatedDirectory, graphArtifactName + ".stamp");
-        string fingerprint = CreateProjectFingerprint(sources, references, packageContracts, npmContracts, authoredCSharpSources, rootNamespace, graphArtifactName);
+        string fingerprint = CreateProjectFingerprint(sources, references, packageContracts, npmContracts, authoredCSharpSources, rootNamespace, graphArtifactName, projectTypes);
 
         if (!IsCurrent(stampPath, outputPath, mirPath, fingerprint))
         {
@@ -233,7 +233,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                     ClrReferences = references,
                     PackageContracts = packageContracts,
                     NpmDependencies = new CopelandNpmDependencyGraph(npmContracts),
-                    TsXmlProfile = tsXmlProfile,
+                    ProjectTypes = projectTypes,
                 }).CompileToMir();
             if (!project.Success)
             {
@@ -287,7 +287,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         IReadOnlyList<CopelandClrReference> references,
         IReadOnlyList<CopelandPackageContract> packageContracts,
         IReadOnlyList<CopelandNpmPackageContract> npmContracts,
-        CopelandTsXmlProfile tsXmlProfile,
+        CopelandProjectTypeSet projectTypes,
         string rootNamespace,
         string moduleName,
         string outputPath,
@@ -314,7 +314,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
                 ClrReferences = references,
                 PackageContracts = packageContracts,
                 NpmDependencies = new CopelandNpmDependencyGraph(npmContracts),
-                TsXmlProfile = tsXmlProfile,
+                ProjectTypes = projectTypes,
             });
 
         if (!compilation.Success)
@@ -350,35 +350,19 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         return true;
     }
 
-    private bool TryParseTsXmlProfile(out CopelandTsXmlProfile profile)
+    private bool TryParseProjectTypes(out CopelandProjectTypeSet projectTypes)
     {
-        if (string.IsNullOrWhiteSpace(TsXmlProfile))
+        if (string.IsNullOrWhiteSpace(ProjectTypes))
         {
-            profile = CopelandTsXmlProfile.None;
+            projectTypes = CopelandProjectTypeSet.None;
             return true;
         }
 
-        if (string.Equals(TsXmlProfile, "react-m0", StringComparison.OrdinalIgnoreCase))
-        {
-            profile = CopelandTsXmlProfile.ReactM0;
-            return true;
-        }
-
-        if (string.Equals(TsXmlProfile, "text-m0", StringComparison.OrdinalIgnoreCase))
-        {
-            profile = CopelandTsXmlProfile.TextDocumentsM0;
-            return true;
-        }
-
-        if (string.Equals(TsXmlProfile, "react-m0+text-m0", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(TsXmlProfile, "text-m0+react-m0", StringComparison.OrdinalIgnoreCase))
-        {
-            profile = CopelandTsXmlProfile.ReactM0 | CopelandTsXmlProfile.TextDocumentsM0;
-            return true;
-        }
-
-        profile = CopelandTsXmlProfile.None;
-        Log.LogError("COPE-MSBUILD-0008", "", "", ProjectDirectory, 0, 0, 0, 0, "CopelandTsXmlProfile must be empty, 'react-m0', 'text-m0', or their '+' composition.");
+        projectTypes = CopelandProjectTypes.FromNames(
+            ProjectTypes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            out string? unknownType);
+        if (unknownType is null) return true;
+        Log.LogError("COPE-MSBUILD-0008", "", "", ProjectDirectory, 0, 0, 0, 0, $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments and ReactComponents.");
         return false;
     }
 
@@ -527,12 +511,14 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         IReadOnlyList<CopelandNpmPackageContract> npmContracts,
         IReadOnlyList<string> authoredCSharpSources,
         string rootNamespace,
-        string moduleName)
+        string moduleName,
+        CopelandProjectTypeSet projectTypes)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         Append(hash, File.ReadAllText(sourcePath));
         Append(hash, rootNamespace);
         Append(hash, moduleName);
+        Append(hash, CopelandProjectTypes.ToTransport(projectTypes));
         AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompile).Assembly);
         AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompiler).Assembly);
         AppendCompilerPayloadFingerprint(hash, typeof(CSharpBackend).Assembly);
@@ -566,7 +552,8 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         IReadOnlyList<CopelandNpmPackageContract> npmContracts,
         IReadOnlyList<string> authoredCSharpSources,
         string rootNamespace,
-        string moduleName)
+        string moduleName,
+        CopelandProjectTypeSet projectTypes)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         foreach (CopelandProjectSource source in sources.OrderBy(source => source.LogicalPath, StringComparer.OrdinalIgnoreCase))
@@ -576,6 +563,7 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
         }
         Append(hash, rootNamespace);
         Append(hash, moduleName);
+        Append(hash, CopelandProjectTypes.ToTransport(projectTypes));
         AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompile).Assembly);
         AppendCompilerPayloadFingerprint(hash, typeof(CopelandCompiler).Assembly);
         AppendCompilerPayloadFingerprint(hash, typeof(CSharpBackend).Assembly);

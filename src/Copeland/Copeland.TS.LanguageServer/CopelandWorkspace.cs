@@ -23,7 +23,7 @@ internal sealed class CopelandWorkspace
     private string? _rootPath;
     private string? _ownershipPath;
     private string? _loadError;
-    private CopelandTsXmlProfile _profile;
+    private CopelandProjectTypeSet _projectTypes;
     private CopelandProjectSnapshot? _snapshot;
     private DateTime _ownershipLastWriteUtc;
     private string? _projectPath;
@@ -48,10 +48,10 @@ internal sealed class CopelandWorkspace
             ?? Path.Combine(_rootPath, "obj", "copeland", "workspace", "editor-ownership.generated.json");
         _projectPath = ReadOptionalString(options, "project");
         if (!string.IsNullOrWhiteSpace(_projectPath)) _projectPath = Path.GetFullPath(_projectPath, _rootPath);
-        string? requestedProfile = ReadOptionalString(options, "tsXmlProfile");
-        _profile = string.Equals(requestedProfile, "react-m0", StringComparison.OrdinalIgnoreCase)
-            ? CopelandTsXmlProfile.ReactM0
-            : CopelandTsXmlProfile.None;
+        string? requestedTypes = ReadOptionalString(options, "projectTypes");
+        _projectTypes = string.IsNullOrWhiteSpace(requestedTypes)
+            ? CopelandProjectTypeSet.None
+            : CopelandProjectTypes.FromNames(requestedTypes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), out _);
         if (!TryLoadManifestProjectContext())
         {
             LoadOwnership();
@@ -501,7 +501,7 @@ internal sealed class CopelandWorkspace
             _evaluatedProject = CopelandProjectModelLoader.Load(projectPath);
             _projectPath = projectPath;
             _projectLastWriteUtc = File.GetLastWriteTimeUtc(projectPath);
-            _profile = _evaluatedProject.Options.TsXmlProfile;
+            _projectTypes = _evaluatedProject.Options.ProjectTypes;
         }
         catch (Exception exception)
         {
@@ -535,7 +535,7 @@ internal sealed class CopelandWorkspace
             _manifestProjectContext = context;
             _manifestLastWriteUtc = File.GetLastWriteTimeUtc(_manifestPath);
             _manifestContextLastWriteUtc = File.GetLastWriteTimeUtc(context.DescriptorPath);
-            _profile = context.Options.TsXmlProfile;
+            _projectTypes = context.Options.ProjectTypes;
             foreach (CopelandProjectSource source in context.Sources)
             {
                 _owners[Path.GetFullPath(source.SourcePath)] = "tscl";
@@ -588,7 +588,7 @@ internal sealed class CopelandWorkspace
         {
             TargetStage = CopelandCompilationStage.Bound,
             ProjectRoot = _rootPath,
-            TsXmlProfile = _evaluatedProject?.Options.TsXmlProfile ?? _profile,
+            ProjectTypes = _evaluatedProject?.Options.ProjectTypes ?? _projectTypes,
             ClrReferences = _evaluatedProject?.Options.ClrReferences ?? [],
             PackageContracts = _evaluatedProject?.Options.PackageContracts ?? [],
             NpmDependencies = _evaluatedProject?.Options.NpmDependencies,

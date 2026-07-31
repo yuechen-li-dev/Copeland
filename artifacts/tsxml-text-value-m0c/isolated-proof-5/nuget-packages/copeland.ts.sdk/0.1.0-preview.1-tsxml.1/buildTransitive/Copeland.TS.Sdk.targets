@@ -1,0 +1,153 @@
+<Project>
+  <UsingTask TaskName="Copeland.TS.MSBuild.CopelandCompile" AssemblyFile="$(CopelandTaskAssembly)" />
+  <UsingTask TaskName="Copeland.TS.MSBuild.CopelandTestCompile" AssemblyFile="$(CopelandTaskAssembly)" />
+  <UsingTask TaskName="Copeland.TS.MSBuild.CopelandResolveWorkspace" AssemblyFile="$(CopelandTaskAssembly)" />
+
+  <Target Name="CopelandValidateToolchainVersion" BeforeTargets="PrepareForBuild">
+    <Error Condition="!$([System.String]::Copy('$(CopelandRequiredVersion)').StartsWith('$(CopelandSdkVersion)'))"
+           Code="COPE-DIST-0001"
+           Text="Project requires Copeland TS $(CopelandRequiredVersion). Installed Copeland SDK is $(CopelandSdkVersion). Update the Copeland toolchain." />
+  </Target>
+
+  <PropertyGroup>
+    <CopelandTestGeneratedDirectory Condition="'$(CopelandTestGeneratedDirectory)' == ''">$(BaseIntermediateOutputPath)CopelandTests\</CopelandTestGeneratedDirectory>
+  </PropertyGroup>
+
+  <Target Name="CopelandResolveWorkspaceOwnership"
+          Condition="Exists('$(MSBuildProjectDirectory)\tsconfig.tsx')">
+    <Copeland.TS.MSBuild.CopelandResolveWorkspace
+        WorkspacePath="$(MSBuildProjectDirectory)\tsconfig.tsx"
+        ProjectPath="$(MSBuildProjectFullPath)">
+      <Output TaskParameter="Sources" ItemName="CopelandResolvedWorkspaceSource" />
+      <Output TaskParameter="ProjectTypes" PropertyName="CopelandResolvedProjectTypes" />
+    </Copeland.TS.MSBuild.CopelandResolveWorkspace>
+
+    <ItemGroup>
+      <CopelandCompile Remove="@(CopelandCompile)" />
+      <CopelandCompile Include="@(CopelandResolvedWorkspaceSource)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopelandCompile"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveReferences;CopelandResolveWorkspaceOwnership"
+          Condition="'@(CopelandCompile)' != '' or Exists('$(MSBuildProjectDirectory)\tsconfig.tsx')">
+    <Copeland.TS.MSBuild.CopelandCompile
+        Sources="@(CopelandCompile)"
+        CSharpSources="@(Compile)"
+        ClrReferencePaths="@(ReferencePath);@(ReferencePathWithRefAssemblies)"
+        CopelandPackageContracts="@(CopelandPackageContract)"
+        CopelandNpmContracts="@(CopelandNpmContract)"
+        IntermediateOutputPath="$(IntermediateOutputPath)"
+        ProjectDirectory="$(MSBuildProjectDirectory)"
+        ProjectTypes="$(CopelandResolvedProjectTypes)"
+        AssemblyName="$(AssemblyName)"
+        LangVersion="$(LangVersion)"
+        DefineConstants="$(DefineConstants)"
+        Nullable="$(Nullable)"
+        RootNamespace="$(RootNamespace)">
+      <Output TaskParameter="GeneratedSources" ItemName="CopelandGeneratedCompile" />
+    </Copeland.TS.MSBuild.CopelandCompile>
+
+    <ItemGroup>
+      <Compile Include="@(CopelandGeneratedCompile)" />
+      <FileWrites Include="@(CopelandGeneratedCompile)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Public, non-mutating evaluation surface shared with editor hosts. -->
+  <Target Name="CopelandCollectLanguageServiceModel"
+          DependsOnTargets="ResolveReferences;CopelandResolveWorkspaceOwnership"
+          Returns="@(CopelandLanguageServiceInput)">
+    <ItemGroup>
+      <CopelandLanguageServiceInput Include="@(CopelandCompile)">
+        <CopelandModelKind>Source</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+      <CopelandLanguageServiceInput Include="@(ReferencePath);@(ReferencePathWithRefAssemblies)">
+        <CopelandModelKind>ClrReference</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+      <CopelandLanguageServiceInput Include="@(CopelandPackageContract)">
+        <CopelandModelKind>PackageContract</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+      <CopelandLanguageServiceInput Include="@(CopelandNpmContract)">
+        <CopelandModelKind>NpmContract</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+      <CopelandLanguageServiceInput Include="@(Compile)">
+        <CopelandModelKind>CSharpSource</CopelandModelKind>
+      </CopelandLanguageServiceInput>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopelandWriteLanguageServiceModel"
+          DependsOnTargets="CopelandCollectLanguageServiceModel"
+          Condition="'$(CopelandLanguageServiceModelFile)' != ''">
+    <ItemGroup>
+      <CopelandLanguageServiceLine Include="property|projectDirectory|$(MSBuildProjectDirectory)" />
+      <CopelandLanguageServiceLine Include="property|projectTypes|$(CopelandResolvedProjectTypes)" />
+      <CopelandLanguageServiceLine Include="property|tsXmlProfile|$(CopelandTsXmlProfile)" />
+      <CopelandLanguageServiceLine Include="property|assemblyName|$(AssemblyName)" />
+      <CopelandLanguageServiceLine Include="property|rootNamespace|$(RootNamespace)" />
+      <CopelandLanguageServiceLine Include="property|langVersion|$(LangVersion)" />
+      <CopelandLanguageServiceLine Include="property|defineConstants|$(DefineConstants)" />
+      <CopelandLanguageServiceLine Include="property|nullable|$(Nullable)" />
+      <CopelandLanguageServiceLine Include="@(CopelandLanguageServiceInput->'%(CopelandModelKind)|%(FullPath)')" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(CopelandLanguageServiceModelFile)"
+                      Lines="@(CopelandLanguageServiceLine)"
+                      Overwrite="true" />
+  </Target>
+
+  <Target Name="CopelandCompileTests"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveReferences;CopelandResolveWorkspaceOwnership"
+          Condition="'@(CopelandTest)' != '' and '$(CopelandCompileTestsInProject)' == 'true'">
+    <Copeland.TS.MSBuild.CopelandTestCompile
+        Sources="@(CopelandTest)"
+        ClrReferencePaths="@(ReferencePath);@(ReferencePathWithRefAssemblies)"
+        IntermediateOutputPath="$(IntermediateOutputPath)"
+        ProjectDirectory="$(MSBuildProjectDirectory)"
+        RootNamespace="$(RootNamespace)"
+        ProjectTypes="$(CopelandResolvedProjectTypes)">
+      <Output TaskParameter="GeneratedSources" ItemName="CopelandGeneratedTestCompile" />
+    </Copeland.TS.MSBuild.CopelandTestCompile>
+
+    <ItemGroup>
+      <Compile Include="@(CopelandGeneratedTestCompile)" />
+      <FileWrites Include="@(CopelandGeneratedTestCompile)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopelandExcludeGeneratedTests"
+          BeforeTargets="CoreCompile"
+          Condition="'$(CopelandSameProjectTestHost)' == 'true'">
+    <ItemGroup>
+      <Compile Remove="$(CopelandTestGeneratedDirectory)**\*.cs" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopelandCreateSameProjectTestProject"
+          AfterTargets="Build"
+          DependsOnTargets="CopelandResolveWorkspaceOwnership"
+          Condition="'@(CopelandTest)' != '' and '$(CopelandSameProjectTestHost)' == 'true' and '$(CopelandAuxiliaryTestBuild)' != 'true'">
+    <PropertyGroup>
+      <CopelandSameProjectTestProject>$(CopelandTestGeneratedDirectory)$(AssemblyName).CopelandTests.csproj</CopelandSameProjectTestProject>
+      <CopelandXunitVersion Condition="'$(CopelandXunitVersion)' == ''">2.9.3</CopelandXunitVersion>
+      <CopelandTestSdkVersion Condition="'$(CopelandTestSdkVersion)' == ''">17.14.1</CopelandTestSdkVersion>
+      <CopelandXunitRunnerVersion Condition="'$(CopelandXunitRunnerVersion)' == ''">3.1.5</CopelandXunitRunnerVersion>
+    </PropertyGroup>
+    <MakeDir Directories="$(CopelandTestGeneratedDirectory)" />
+    <WriteLinesToFile File="$(CopelandSameProjectTestProject)"
+                      Overwrite="true"
+                      Lines="&lt;Project Sdk=&quot;Microsoft.NET.Sdk&quot;&gt;&#x0A;  &lt;PropertyGroup&gt;&#x0A;    &lt;TargetFramework&gt;$(TargetFramework)&lt;/TargetFramework&gt;&#x0A;    &lt;ManagePackageVersionsCentrally&gt;false&lt;/ManagePackageVersionsCentrally&gt;&#x0A;    &lt;IsTestProject&gt;true&lt;/IsTestProject&gt;&#x0A;    &lt;CopelandCompileTestsInProject&gt;true&lt;/CopelandCompileTestsInProject&gt;&#x0A;    &lt;CopelandResolvedProjectTypes&gt;$(CopelandResolvedProjectTypes)&lt;/CopelandResolvedProjectTypes&gt;&#x0A;    &lt;GenerateRuntimeConfigurationFiles&gt;true&lt;/GenerateRuntimeConfigurationFiles&gt;&#x0A;    &lt;AssemblyName&gt;$(AssemblyName).CopelandTests&lt;/AssemblyName&gt;&#x0A;    &lt;RootNamespace&gt;$(RootNamespace)&lt;/RootNamespace&gt;&#x0A;    &lt;CopelandTaskAssembly&gt;$(CopelandTaskAssembly)&lt;/CopelandTaskAssembly&gt;&#x0A;    &lt;CopyLocalLockFileAssemblies&gt;true&lt;/CopyLocalLockFileAssemblies&gt;&#x0A;  &lt;/PropertyGroup&gt;&#x0A;  &lt;ItemGroup&gt;&#x0A;    &lt;PackageReference Include=&quot;Microsoft.NET.Test.Sdk&quot; Version=&quot;$(CopelandTestSdkVersion)&quot; /&gt;&#x0A;    &lt;PackageReference Include=&quot;xunit&quot; Version=&quot;$(CopelandXunitVersion)&quot; /&gt;&#x0A;    &lt;PackageReference Include=&quot;xunit.runner.visualstudio&quot; Version=&quot;$(CopelandXunitRunnerVersion)&quot; PrivateAssets=&quot;all&quot; /&gt;&#x0A;    &lt;Reference Include=&quot;$(AssemblyName)&quot;&gt;&lt;HintPath&gt;$(TargetPath)&lt;/HintPath&gt;&lt;/Reference&gt;&#x0A;    &lt;CopelandTest Include=&quot;$(MSBuildProjectDirectory)\**\*.tsxtest&quot; /&gt;&#x0A;    &lt;None Include=&quot;$(NuGetPackageRoot)xunit.runner.visualstudio\$(CopelandXunitRunnerVersion)\build\net8.0\xunit.abstractions.dll&quot; Link=&quot;xunit.abstractions.dll&quot; CopyToOutputDirectory=&quot;PreserveNewest&quot; /&gt;&#x0A;    &lt;None Include=&quot;$(NuGetPackageRoot)xunit.runner.visualstudio\$(CopelandXunitRunnerVersion)\build\net8.0\xunit.runner.visualstudio.testadapter.dll&quot; Link=&quot;xunit.runner.visualstudio.testadapter.dll&quot; CopyToOutputDirectory=&quot;PreserveNewest&quot; /&gt;&#x0A;  &lt;/ItemGroup&gt;&#x0A;  &lt;Import Project=&quot;$(MSBuildThisFileFullPath)&quot; /&gt;&#x0A;&lt;/Project&gt;" />
+  </Target>
+
+  <Target Name="CopelandRunSameProjectTests"
+          BeforeTargets="VSTest"
+          DependsOnTargets="CopelandCreateSameProjectTestProject"
+          Condition="'@(CopelandTest)' != '' and '$(CopelandSameProjectTestHost)' == 'true' and '$(CopelandAuxiliaryTestBuild)' != 'true'">
+    <MSBuild Projects="$(CopelandSameProjectTestProject)"
+             Targets="Restore;Build"
+             Properties="Configuration=$(Configuration);CopelandAuxiliaryTestBuild=true" />
+    <Exec Command="dotnet test &quot;$(CopelandSameProjectTestProject)&quot; --no-restore --no-build" />
+  </Target>
+</Project>

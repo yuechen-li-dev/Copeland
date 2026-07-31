@@ -76,7 +76,7 @@ public static class CopelandProjectCompiler
                 continue;
             }
 
-            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options.PackageBackend, options.TsXmlProfile, module.Source.SourcePath, module.LogicalPath, imports);
+            BoundCompilation bound = Binder.Bind(tree, null, npmResolver, hostResolver, clrResolver, packageContracts, options.PackageBackend, options.ProjectTypes, module.Source.SourcePath, module.LogicalPath, imports);
             module.Bound = bound;
             diagnostics.AddRange(bound.Diagnostics.Select(diagnostic => diagnostic with { SourcePath = module.Source.SourcePath }));
         }

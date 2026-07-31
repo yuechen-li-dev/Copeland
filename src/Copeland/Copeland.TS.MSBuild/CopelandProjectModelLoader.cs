@@ -70,7 +70,8 @@ public static class CopelandProjectModelLoader
     private static CopelandEvaluatedProject ReadModel(string projectPath, IEnumerable<string> lines)
     {
         string projectDirectory = Path.GetDirectoryName(projectPath)!;
-        CopelandTsXmlProfile profile = CopelandTsXmlProfile.None;
+        CopelandProjectTypeSet projectTypes = CopelandProjectTypeSet.None;
+        string? legacyProfile = null;
         string assemblyName = Path.GetFileNameWithoutExtension(projectPath);
         string rootNamespace = assemblyName;
         string langVersion = string.Empty;
@@ -89,9 +90,14 @@ public static class CopelandProjectModelLoader
                 projectDirectory = parts[2];
                 continue;
             }
+            if (parts.Length == 3 && parts[0] == "property" && parts[1] == "projectTypes")
+            {
+                projectTypes = ParseProjectTypes(parts[2]);
+                continue;
+            }
             if (parts.Length == 3 && parts[0] == "property" && parts[1] == "tsXmlProfile")
             {
-                profile = ParseTsXmlProfile(parts[2]);
+                legacyProfile = parts[2];
                 continue;
             }
             if (parts.Length == 3 && parts[0] == "property")
@@ -148,6 +154,17 @@ public static class CopelandProjectModelLoader
             }
         }
 
+        if (projectTypes == CopelandProjectTypeSet.None && !string.IsNullOrWhiteSpace(legacyProfile))
+        {
+            projectTypes = legacyProfile.ToLowerInvariant() switch
+            {
+                "react-m0" => CopelandProjectTypeSet.ReactComponents,
+                "text-m0" => CopelandProjectTypeSet.TextDocuments,
+                "react-m0+text-m0" or "text-m0+react-m0" => CopelandProjectTypeSet.ReactComponents | CopelandProjectTypeSet.TextDocuments,
+                _ => CopelandProjectTypeSet.None,
+            };
+        }
+
         CopelandClrReference[] distinctReferences = references
             .DistinctBy(reference => reference.AssemblyPath, StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -175,7 +192,7 @@ public static class CopelandProjectModelLoader
         {
             TargetStage = CopelandCompilationStage.Bound,
             ProjectRoot = projectDirectory,
-            TsXmlProfile = profile,
+            ProjectTypes = projectTypes,
             ClrReferences = effectiveReferences,
             PackageContracts = contracts.DistinctBy(contract => contract.SourcePath, StringComparer.OrdinalIgnoreCase).ToArray(),
             NpmDependencies = CreateNpmDependencyGraph(npmContracts),
@@ -186,14 +203,13 @@ public static class CopelandProjectModelLoader
     private static string NormalizeNamespace(string value)
         => string.IsNullOrWhiteSpace(value) ? "Copeland.Generated" : value.Trim();
 
-    private static CopelandTsXmlProfile ParseTsXmlProfile(string value)
+    private static CopelandProjectTypeSet ParseProjectTypes(string value)
     {
-        if (string.IsNullOrWhiteSpace(value)) return CopelandTsXmlProfile.None;
-        if (value.Equals("react-m0", StringComparison.OrdinalIgnoreCase)) return CopelandTsXmlProfile.ReactM0;
-        if (value.Equals("text-m0", StringComparison.OrdinalIgnoreCase)) return CopelandTsXmlProfile.TextDocumentsM0;
-        if (value.Equals("react-m0+text-m0", StringComparison.OrdinalIgnoreCase)
-            || value.Equals("text-m0+react-m0", StringComparison.OrdinalIgnoreCase)) return CopelandTsXmlProfile.ReactM0 | CopelandTsXmlProfile.TextDocumentsM0;
-        throw new InvalidOperationException("CopelandTsXmlProfile must be empty, 'react-m0', 'text-m0', or their '+' composition.");
+        CopelandProjectTypeSet result = CopelandProjectTypes.FromNames(
+            value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            out string? unknownType);
+        if (unknownType is null) return result;
+        throw new InvalidOperationException($"Unknown Copeland project type '{unknownType}'.");
     }
 
     private static CopelandNpmDependencyGraph CreateNpmDependencyGraph(IReadOnlyList<CopelandNpmPackageContract> contracts)

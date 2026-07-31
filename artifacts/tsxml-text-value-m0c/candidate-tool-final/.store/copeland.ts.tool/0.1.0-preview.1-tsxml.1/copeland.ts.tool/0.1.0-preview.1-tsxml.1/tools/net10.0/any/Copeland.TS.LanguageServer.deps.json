@@ -1,0 +1,443 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Copeland.TS.LanguageServer/0.1.0-preview.1-tsxml.1": {
+        "dependencies": {
+          "Copeland.Markdown": "0.1.0-preview.1-tsxml.1",
+          "Copeland.TS": "0.1.0-preview.1-tsxml.1",
+          "Copeland.TS.Sdk": "0.1.0-preview.1-tsxml.1",
+          "Copeland.TS.MSBuild": "0.1.0.0"
+        },
+        "runtime": {
+          "Copeland.TS.LanguageServer.dll": {}
+        }
+      },
+      "Microsoft.CodeAnalysis.Common/4.14.0": {
+        "runtime": {
+          "lib/net9.0/Microsoft.CodeAnalysis.dll": {
+            "assemblyVersion": "4.14.0.0",
+            "fileVersion": "4.1400.25.26210"
+          }
+        },
+        "resources": {
+          "lib/net9.0/cs/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "cs"
+          },
+          "lib/net9.0/de/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "de"
+          },
+          "lib/net9.0/es/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "es"
+          },
+          "lib/net9.0/fr/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "fr"
+          },
+          "lib/net9.0/it/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "it"
+          },
+          "lib/net9.0/ja/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "ja"
+          },
+          "lib/net9.0/ko/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "ko"
+          },
+          "lib/net9.0/pl/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "pl"
+          },
+          "lib/net9.0/pt-BR/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "pt-BR"
+          },
+          "lib/net9.0/ru/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "ru"
+          },
+          "lib/net9.0/tr/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "tr"
+          },
+          "lib/net9.0/zh-Hans/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "zh-Hans"
+          },
+          "lib/net9.0/zh-Hant/Microsoft.CodeAnalysis.resources.dll": {
+            "locale": "zh-Hant"
+          }
+        }
+      },
+      "Microsoft.CodeAnalysis.CSharp/4.14.0": {
+        "dependencies": {
+          "Microsoft.CodeAnalysis.Common": "4.14.0"
+        },
+        "runtime": {
+          "lib/net9.0/Microsoft.CodeAnalysis.CSharp.dll": {
+            "assemblyVersion": "4.14.0.0",
+            "fileVersion": "4.1400.25.26210"
+          }
+        },
+        "resources": {
+          "lib/net9.0/cs/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "cs"
+          },
+          "lib/net9.0/de/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "de"
+          },
+          "lib/net9.0/es/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "es"
+          },
+          "lib/net9.0/fr/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "fr"
+          },
+          "lib/net9.0/it/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "it"
+          },
+          "lib/net9.0/ja/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "ja"
+          },
+          "lib/net9.0/ko/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "ko"
+          },
+          "lib/net9.0/pl/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "pl"
+          },
+          "lib/net9.0/pt-BR/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "pt-BR"
+          },
+          "lib/net9.0/ru/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "ru"
+          },
+          "lib/net9.0/tr/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "tr"
+          },
+          "lib/net9.0/zh-Hans/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "zh-Hans"
+          },
+          "lib/net9.0/zh-Hant/Microsoft.CodeAnalysis.CSharp.resources.dll": {
+            "locale": "zh-Hant"
+          }
+        }
+      },
+      "Copeland.Markdown/0.1.0-preview.1-tsxml.1": {
+        "runtime": {
+          "Copeland.Markdown.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Copeland.TS/0.1.0-preview.1-tsxml.1": {
+        "dependencies": {
+          "Copeland.Markdown": "0.1.0-preview.1-tsxml.1",
+          "Copeland.TS.Mir": "0.1.0-preview.1-tsxml.1"
+        },
+        "runtime": {
+          "Copeland.TS.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Copeland.TS.Mir/0.1.0-preview.1-tsxml.1": {
+        "runtime": {
+          "Copeland.TS.Mir.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Copeland.TS.Sdk/0.1.0-preview.1-tsxml.1": {
+        "dependencies": {
+          "Microsoft.CodeAnalysis.CSharp": "4.14.0"
+        },
+        "runtime": {
+          "Copeland.TS.MSBuild.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        },
+        "resources": {
+          "cs/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "cs"
+          },
+          "de/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "de"
+          },
+          "es/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "es"
+          },
+          "fr/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "fr"
+          },
+          "it/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "it"
+          },
+          "ja/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "ja"
+          },
+          "ko/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "ko"
+          },
+          "pl/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "pl"
+          },
+          "pt-BR/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "pt-BR"
+          },
+          "ru/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "ru"
+          },
+          "tr/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "tr"
+          },
+          "zh-Hans/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "zh-Hans"
+          },
+          "zh-Hant/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "zh-Hant"
+          },
+          "cs/Microsoft.Build.Framework.resources.dll": {
+            "locale": "cs"
+          },
+          "de/Microsoft.Build.Framework.resources.dll": {
+            "locale": "de"
+          },
+          "es/Microsoft.Build.Framework.resources.dll": {
+            "locale": "es"
+          },
+          "fr/Microsoft.Build.Framework.resources.dll": {
+            "locale": "fr"
+          },
+          "it/Microsoft.Build.Framework.resources.dll": {
+            "locale": "it"
+          },
+          "ja/Microsoft.Build.Framework.resources.dll": {
+            "locale": "ja"
+          },
+          "ko/Microsoft.Build.Framework.resources.dll": {
+            "locale": "ko"
+          },
+          "pl/Microsoft.Build.Framework.resources.dll": {
+            "locale": "pl"
+          },
+          "pt-BR/Microsoft.Build.Framework.resources.dll": {
+            "locale": "pt-BR"
+          },
+          "ru/Microsoft.Build.Framework.resources.dll": {
+            "locale": "ru"
+          },
+          "tr/Microsoft.Build.Framework.resources.dll": {
+            "locale": "tr"
+          },
+          "zh-Hans/Microsoft.Build.Framework.resources.dll": {
+            "locale": "zh-Hans"
+          },
+          "zh-Hant/Microsoft.Build.Framework.resources.dll": {
+            "locale": "zh-Hant"
+          }
+        }
+      },
+      "Copeland.TS.MSBuild/0.1.0.0": {
+        "runtime": {
+          "Copeland.TS.MSBuild.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Microsoft.Build.Utilities.Core/15.1.0.0": {
+        "runtime": {
+          "Microsoft.Build.Utilities.Core.dll": {
+            "assemblyVersion": "15.1.0.0",
+            "fileVersion": "18.6.11.33009"
+          }
+        },
+        "resources": {
+          "cs/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "cs"
+          },
+          "de/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "de"
+          },
+          "es/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "es"
+          },
+          "fr/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "fr"
+          },
+          "it/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "it"
+          },
+          "ja/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "ja"
+          },
+          "ko/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "ko"
+          },
+          "pl/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "pl"
+          },
+          "pt-BR/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "pt-BR"
+          },
+          "ru/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "ru"
+          },
+          "tr/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "tr"
+          },
+          "zh-Hans/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "zh-Hans"
+          },
+          "zh-Hant/Microsoft.Build.Utilities.Core.resources.dll": {
+            "locale": "zh-Hant"
+          }
+        }
+      },
+      "Microsoft.Build.Framework/15.1.0.0": {
+        "runtime": {
+          "Microsoft.Build.Framework.dll": {
+            "assemblyVersion": "15.1.0.0",
+            "fileVersion": "18.6.11.33009"
+          }
+        },
+        "resources": {
+          "cs/Microsoft.Build.Framework.resources.dll": {
+            "locale": "cs"
+          },
+          "de/Microsoft.Build.Framework.resources.dll": {
+            "locale": "de"
+          },
+          "es/Microsoft.Build.Framework.resources.dll": {
+            "locale": "es"
+          },
+          "fr/Microsoft.Build.Framework.resources.dll": {
+            "locale": "fr"
+          },
+          "it/Microsoft.Build.Framework.resources.dll": {
+            "locale": "it"
+          },
+          "ja/Microsoft.Build.Framework.resources.dll": {
+            "locale": "ja"
+          },
+          "ko/Microsoft.Build.Framework.resources.dll": {
+            "locale": "ko"
+          },
+          "pl/Microsoft.Build.Framework.resources.dll": {
+            "locale": "pl"
+          },
+          "pt-BR/Microsoft.Build.Framework.resources.dll": {
+            "locale": "pt-BR"
+          },
+          "ru/Microsoft.Build.Framework.resources.dll": {
+            "locale": "ru"
+          },
+          "tr/Microsoft.Build.Framework.resources.dll": {
+            "locale": "tr"
+          },
+          "zh-Hans/Microsoft.Build.Framework.resources.dll": {
+            "locale": "zh-Hans"
+          },
+          "zh-Hant/Microsoft.Build.Framework.resources.dll": {
+            "locale": "zh-Hant"
+          }
+        }
+      },
+      "Copeland.TS.Backend.CSharp/0.1.0.0": {
+        "runtime": {
+          "Copeland.TS.Backend.CSharp.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Copeland.TS.Workspace/0.1.0.0": {
+        "runtime": {
+          "Copeland.TS.Workspace.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Microsoft.NET.StringTools/1.0.0.0": {
+        "runtime": {
+          "Microsoft.NET.StringTools.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "18.6.11.33009"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Copeland.TS.LanguageServer/0.1.0-preview.1-tsxml.1": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.CodeAnalysis.Common/4.14.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-PC3tuwZYnC+idaPuoC/AZpEdwrtX7qFpmnrfQkgobGIWiYmGi5MCRtl5mx6QrfMGQpK78X2lfIEoZDLg/qnuHg==",
+      "path": "microsoft.codeanalysis.common/4.14.0",
+      "hashPath": "microsoft.codeanalysis.common.4.14.0.nupkg.sha512"
+    },
+    "Microsoft.CodeAnalysis.CSharp/4.14.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-568a6wcTivauIhbeWcCwfWwIn7UV7MeHEBvFB2uzGIpM2OhJ4eM/FZ8KS0yhPoNxnSpjGzz7x7CIjTxhslojQA==",
+      "path": "microsoft.codeanalysis.csharp/4.14.0",
+      "hashPath": "microsoft.codeanalysis.csharp.4.14.0.nupkg.sha512"
+    },
+    "Copeland.Markdown/0.1.0-preview.1-tsxml.1": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Copeland.TS/0.1.0-preview.1-tsxml.1": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Copeland.TS.Mir/0.1.0-preview.1-tsxml.1": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Copeland.TS.Sdk/0.1.0-preview.1-tsxml.1": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Copeland.TS.MSBuild/0.1.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Build.Utilities.Core/15.1.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Build.Framework/15.1.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Copeland.TS.Backend.CSharp/0.1.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Copeland.TS.Workspace/0.1.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.NET.StringTools/1.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

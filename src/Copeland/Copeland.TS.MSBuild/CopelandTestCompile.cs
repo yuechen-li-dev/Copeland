@@ -40,6 +40,8 @@ public sealed class CopelandTestCompile : Microsoft.Build.Utilities.Task
 
     public string RootNamespace { get; set; } = "Copeland";
 
+    public string ProjectTypes { get; set; } = string.Empty;
+
     [Output]
     public ITaskItem[] GeneratedSources { get; private set; } = [];
 
@@ -130,13 +132,17 @@ public sealed class CopelandTestCompile : Microsoft.Build.Utilities.Task
             : string.Empty;
         string generatedNamespace = NormalizeNamespaceForCode(RootNamespace) + ".CopelandTests.Generated";
         string moduleName = "TestModule_" + outputName;
+        string compilerSourcePath = ProjectTypes.Contains("TextDocuments", StringComparison.OrdinalIgnoreCase)
+            ? Path.ChangeExtension(sourcePath, ".tsx")
+            : sourcePath;
         CopelandCompilation compilation = CopelandCompiler.CompileToMir(
             productionUsing + loweredSource,
             new CopelandCompilationOptions
             {
-                SourcePath = sourcePath,
+                SourcePath = compilerSourcePath,
                 ProjectRoot = Path.GetDirectoryName(sourcePath),
                 ClrReferences = references,
+                ProjectTypes = CopelandProjectTypes.FromNames(ProjectTypes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), out _),
             });
         if (!compilation.Success)
         {

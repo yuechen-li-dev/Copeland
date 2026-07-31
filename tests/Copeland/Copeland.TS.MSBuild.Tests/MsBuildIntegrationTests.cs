@@ -198,9 +198,10 @@ public sealed class MsBuildIntegrationTests
             }
             """);
 
-        fixture.Run("Demo", "restore");
-        fixture.Run("Demo", "build", "--no-restore");
-        ProcessResult result = fixture.Run("Demo", "test", "--no-restore");
+        string cleanPackageCache = Path.Combine(fixture.Root, "nuget-packages");
+        fixture.RunWithNugetPackages("Demo", cleanPackageCache, "restore");
+        fixture.RunWithNugetPackages("Demo", cleanPackageCache, "build", "--no-restore");
+        ProcessResult result = fixture.RunWithNugetPackages("Demo", cleanPackageCache, "test", "--no-restore");
 
         string productionOutput = Path.Combine(fixture.Root, "Demo", "bin", "Debug", "net10.0", "Demo.dll");
         string[] testOutputs = Directory.GetFiles(
@@ -575,6 +576,13 @@ public sealed class MsBuildIntegrationTests
             return result;
         }
 
+        public ProcessResult RunWithNugetPackages(string workingDirectory, string packageCache, params string[] arguments)
+        {
+            ProcessResult result = RunCore(workingDirectory, arguments, packageCache);
+            Assert.True(result.ExitCode == 0, result.Output);
+            return result;
+        }
+
         public ProcessResult RunExpectingFailure(string workingDirectory, params string[] arguments)
         {
             ProcessResult result = RunCore(workingDirectory, arguments);
@@ -590,7 +598,7 @@ public sealed class MsBuildIntegrationTests
             }
         }
 
-        private ProcessResult RunCore(string workingDirectory, IReadOnlyList<string> arguments)
+        private ProcessResult RunCore(string workingDirectory, IReadOnlyList<string> arguments, string? packageCache = null)
         {
             var startInfo = new ProcessStartInfo("dotnet")
             {
@@ -602,6 +610,11 @@ public sealed class MsBuildIntegrationTests
             foreach (string argument in arguments)
             {
                 startInfo.ArgumentList.Add(argument);
+            }
+
+            if (packageCache is not null)
+            {
+                startInfo.Environment["NUGET_PACKAGES"] = packageCache;
             }
 
             using Process process = Process.Start(startInfo)!;

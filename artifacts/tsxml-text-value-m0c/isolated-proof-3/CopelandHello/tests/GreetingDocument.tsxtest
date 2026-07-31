@@ -1,0 +1,33 @@
+using Xunit;
+using CopelandHello;
+
+enum TestGreetingStyle {
+    Friendly,
+    Formal,
+}
+
+record TestGreeting {
+    message: string;
+    recipient: string;
+}
+
+function createGreetingDocument(): Document {
+    const style: TestGreetingStyle = TestGreetingStyle.Friendly;
+    const message: string = match style {
+        Friendly => "Hello",
+        Formal => "Greetings",
+    };
+    const initial: TestGreeting = { message, recipient: "Ada" };
+    const updated: TestGreeting = initial with { recipient: "Copeland" };
+
+    return <Document>
+        <Heading level="1">{updated.message}, {updated.recipient}</Heading>
+        <Paragraph>TypeScript computes. TS-XML describes.</Paragraph>
+    </Document>;
+}
+
+[Fact]
+export function greeting_document_is_a_structured_immutable_text_value(): void {
+    const document: Document = createGreetingDocument();
+    Assert.True(TextDocumentAssertions.HasExpectedGreetingStructure(document));
+}

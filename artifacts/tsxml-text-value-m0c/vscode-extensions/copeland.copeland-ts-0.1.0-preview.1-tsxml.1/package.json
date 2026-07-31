@@ -1,0 +1,160 @@
+{
+	"name": "copeland-ts",
+	"displayName": "Copeland TS",
+	"description": "Project-aware Copeland TS language support for mixed tsc and tscl workspaces.",
+	"version": "0.1.0-preview.1-tsxml.1",
+	"publisher": "copeland",
+	"license": "GPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/yuechen-li-dev/Copeland"
+	},
+	"engines": {
+		"vscode": "^1.99.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"activationEvents": [
+		"workspaceContains:tsconfig.tsx",
+		"workspaceContains:**/tsconfig.tsx",
+		"onCommand:copeland.workspaceSync",
+		"onCommand:copeland.workspaceValidate",
+		"onCommand:copeland.showFileOwner",
+		"onCommand:copeland.buildProject",
+		"onCommand:copeland.runProject",
+		"onCommand:copeland.restartLanguageServer",
+		"onCommand:copeland.showProjectInfo",
+		"onCommand:copeland.showLanguageServerOutput",
+		"onCommand:copeland.openWorkspaceManifest",
+		"onCommand:copeland.reloadWorkspaceOwnership"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "copeland-typescript",
+				"aliases": [
+					"Copeland TypeScript"
+				],
+				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "copeland-typescriptreact",
+				"aliases": [
+					"Copeland TypeScript React"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "copeland-typescript",
+				"scopeName": "source.copeland-typescript",
+				"path": "./syntaxes/copeland-typescript.tmLanguage.json"
+			},
+			{
+				"language": "copeland-typescriptreact",
+				"scopeName": "source.copeland-typescriptreact",
+				"path": "./syntaxes/copeland-typescriptreact.tmLanguage.json"
+			}
+		],
+		"commands": [
+			{
+				"command": "copeland.workspaceSync",
+				"title": "Copeland: Workspace Sync"
+			},
+			{
+				"command": "copeland.workspaceValidate",
+				"title": "Copeland: Workspace Validate"
+			},
+			{
+				"command": "copeland.showFileOwner",
+				"title": "Copeland: Show File Owner"
+			},
+			{
+				"command": "copeland.buildProject",
+				"title": "Copeland: Build Project"
+			},
+			{
+				"command": "copeland.runProject",
+				"title": "Copeland: Run Project"
+			},
+			{
+				"command": "copeland.restartLanguageServer",
+				"title": "Copeland: Restart Language Server"
+			},
+			{
+				"command": "copeland.showProjectInfo",
+				"title": "Copeland: Show Project Information"
+			},
+			{
+				"command": "copeland.showLanguageServerOutput",
+				"title": "Copeland: Show Language Server Output"
+			},
+			{
+				"command": "copeland.openWorkspaceManifest",
+				"title": "Copeland: Open tsconfig.tsx"
+			},
+			{
+				"command": "copeland.reloadWorkspaceOwnership",
+				"title": "Copeland: Reload Workspace Ownership"
+			}
+		],
+		"configuration": {
+			"title": "Copeland TS",
+			"properties": {
+				"copeland.tsclPath": {
+					"type": "string",
+					"default": "",
+					"description": "Optional explicit path to tscl. Otherwise Copeland uses a workspace .NET tool manifest, then global PATH."
+				},
+				"copeland.languageServer.trace": {
+					"type": "string",
+					"default": "off",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"description": "Controls Copeland language-server protocol tracing."
+				},
+				"copeland.workspace.autoSync": {
+					"type": "boolean",
+					"default": true,
+					"description": "Refreshes canonical ownership when tsconfig.tsx changes."
+				},
+				"copeland.projectPath": {
+					"type": "string",
+					"default": "",
+					"description": "Optional explicit Copeland project path when generated ownership is ambiguous."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"compile": "tsc -p .",
+		"test": "npm run compile && mocha --ui tdd --timeout 10000 out/**/*.test.js",
+		"test:integration": "npm run compile && node ./out/runIntegration.js",
+		"test:installed-integration": "npm run compile && node ./out/runInstalledIntegration.js",
+		"prepackage": "node -e \"require('fs').mkdirSync('dist', { recursive: true })\"",
+		"package": "npm run compile && vsce package --out dist/copeland-ts-0.1.0-preview.1-tsxml.1.vsix --allow-missing-repository"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^9.0.1"
+	},
+	"devDependencies": {
+		"@types/mocha": "^10.0.10",
+		"@types/node": "^22.15.3",
+		"@types/vscode": "^1.99.0",
+		"@vscode/test-electron": "^2.5.2",
+		"@vscode/vsce": "^3.6.0",
+		"mocha": "^11.1.0",
+		"typescript": "^5.8.3"
+	},
+	"__metadata": {
+		"installedTimestamp": 1785529727313,
+		"targetPlatform": "undefined",
+		"size": 1844891
+	}
+}

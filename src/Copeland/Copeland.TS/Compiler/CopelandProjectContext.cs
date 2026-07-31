@@ -77,12 +77,12 @@ public sealed class CopelandProjectContext
             ProjectRoot = projectRoot,
             NpmDependencies = npmDependencies,
             JavaScriptHostModules = browser ? [CopelandProjectHostContracts.Browser()] : [],
-            TsXmlProfile = descriptor.TsXmlProfile?.ToLowerInvariant() switch
+            ProjectTypes = descriptor.TsXmlProfile?.ToLowerInvariant() switch
             {
-                "react-m0" => CopelandTsXmlProfile.ReactM0,
-                "text-m0" => CopelandTsXmlProfile.TextDocumentsM0,
-                "react-m0+text-m0" or "text-m0+react-m0" => CopelandTsXmlProfile.ReactM0 | CopelandTsXmlProfile.TextDocumentsM0,
-                _ => CopelandTsXmlProfile.None,
+                "react-m0" => CopelandProjectTypeSet.ReactComponents,
+                "text-m0" => CopelandProjectTypeSet.TextDocuments,
+                "react-m0+text-m0" or "text-m0+react-m0" => CopelandProjectTypeSet.ReactComponents | CopelandProjectTypeSet.TextDocuments,
+                _ => CopelandProjectTypeSet.None,
             },
         };
         return new CopelandProjectContext(
@@ -174,7 +174,7 @@ public sealed class CopelandProjectContext
     {
         var builder = new StringBuilder();
         builder.Append("runtime=").Append(descriptor.JavaScriptRuntime).Append('\n');
-        builder.Append("tsx=").Append(options.TsXmlProfile).Append('\n');
+        builder.Append("tsx=").Append(CopelandProjectTypes.ToTransport(options.ProjectTypes)).Append('\n');
         foreach (CopelandProjectSource source in sources.OrderBy(source => source.LogicalPath, StringComparer.Ordinal))
         {
             builder.Append(source.LogicalPath)

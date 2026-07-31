@@ -1,0 +1,27 @@
+using Xunit;
+enum TestGreetingStyle {
+    Friendly,
+    Formal,
+}
+
+record TestGreeting {
+    message: string;
+    recipient: string;
+}
+
+function createGreetingLabel(): string {
+    const style: TestGreetingStyle = TestGreetingStyle.Friendly;
+    const message: string = match style {
+        Friendly => "Hello",
+        Formal => "Greetings",
+    };
+    const initial: TestGreeting = { message, recipient: "Ada" };
+    const updated: TestGreeting = initial with { recipient: "Copeland" };
+
+    return `${updated.message} ${updated.recipient}`;
+}
+
+[Fact]
+export function enum_match_and_with_produce_the_greeting_label(): void {
+    Assert.True(createGreetingLabel() == "Hello Copeland");
+}

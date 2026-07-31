@@ -289,7 +289,7 @@ internal sealed record WorkspaceManifest(
     WorkspaceCompiler? Tscl,
     IReadOnlyList<WorkspaceRule> Rules);
 
-internal sealed record WorkspaceCompiler(string Owner, string? Project, IReadOnlyList<string> Include, IReadOnlyList<string> Exclude, JsonElement? CompilerOptions);
+internal sealed record WorkspaceCompiler(string Owner, string? Project, IReadOnlyList<string> Include, IReadOnlyList<string> Exclude, IReadOnlyList<string> ProjectTypes, JsonElement? CompilerOptions);
 internal sealed record WorkspaceRule(string Owner, string Include, IReadOnlyList<string> Exclude, string Project);
 internal sealed record WorkspaceOwnedFile(string Path, string Owner, string Project, WorkspaceRule Rule);
 internal sealed record WorkspaceOwnership(IReadOnlyList<WorkspaceOwnedFile> Files, int UnownedCount, int OverlappingCount);
@@ -373,7 +373,7 @@ public static class CopelandWorkspaceOwnership
                     file.Rule.Include))
                 .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            return new CopelandWorkspaceOwnershipResult(true, sources, []);
+            return new CopelandWorkspaceOwnershipResult(true, sources, [], workspace.Tscl?.ProjectTypes ?? []);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -394,7 +394,8 @@ public static class CopelandWorkspaceOwnership
 public sealed record CopelandWorkspaceOwnershipResult(
     bool Success,
     IReadOnlyList<CopelandWorkspaceOwnedSource> Sources,
-    IReadOnlyList<CopelandWorkspaceOwnershipDiagnostic> Diagnostics);
+    IReadOnlyList<CopelandWorkspaceOwnershipDiagnostic> Diagnostics,
+    IReadOnlyList<string>? ProjectTypes = null);
 
 public sealed record CopelandWorkspaceOwnedSource(
     string Path,
@@ -499,7 +500,7 @@ internal sealed class WorkspaceParser
 
         HashSet<string> allowed = owner == "tsc"
             ? ["include", "exclude", "compilerOptions"]
-            : ["project", "include", "exclude"];
+            : ["project", "include", "exclude", "types"];
         foreach (string key in config.Properties.Keys)
         {
             if (!allowed.Contains(key))
@@ -523,6 +524,7 @@ internal sealed class WorkspaceParser
         }
 
         string? project = null;
+        IReadOnlyList<string> projectTypes = [];
         if (requiresProject)
         {
             if (!config.Properties.TryGetValue("project", out WorkspaceValue? projectValue) || projectValue is not WorkspaceString projectString)
@@ -533,6 +535,19 @@ internal sealed class WorkspaceParser
                      || !project.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
             {
                 _values.Report("COPE-WORKSPACE-0011", "tscl.project must be a safe relative .csproj path.", projectValue.Offset);
+            }
+        }
+
+        if (owner == "tscl")
+        {
+            TryStringArray(config, "types", required: false, out projectTypes);
+            string? unknownType = projectTypes.FirstOrDefault(type =>
+                !type.Equals("TextDocuments", StringComparison.OrdinalIgnoreCase)
+                && !type.Equals("ReactComponents", StringComparison.OrdinalIgnoreCase));
+            if (unknownType is not null)
+            {
+                int offset = config.Properties.TryGetValue("types", out WorkspaceValue? typesValue) ? typesValue.Offset : config.Offset;
+                _values.Report("COPE-WORKSPACE-0014", $"Unknown Copeland project type '{unknownType}'. Supported types are TextDocuments and ReactComponents.", offset);
             }
         }
 
@@ -549,7 +564,7 @@ internal sealed class WorkspaceParser
             }
         }
 
-        return new WorkspaceCompiler(owner, project, include, exclude, compilerOptions);
+        return new WorkspaceCompiler(owner, project, include, exclude, projectTypes, compilerOptions);
     }
 
     private JsonElement? BindCompilerOptions(WorkspaceObject options)

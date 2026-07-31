@@ -3,10 +3,10 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-    <CopelandRequiredVersion>0.1.0-preview.1</CopelandRequiredVersion>
+    <CopelandRequiredVersion>0.1.0-preview.1-tsxml.1</CopelandRequiredVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Copeland.TS.Sdk" Version="0.1.0-preview.1" PrivateAssets="all" />
+    <PackageReference Include="Copeland.TS.Sdk" Version="0.1.0-preview.1-tsxml.1" PrivateAssets="all" />
   </ItemGroup>
   <Import Project="obj\copeland\workspace\tscl-files.generated.props" Condition="Exists('obj\copeland\workspace\tscl-files.generated.props')" />
 </Project>
