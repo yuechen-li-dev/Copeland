@@ -215,18 +215,20 @@ async function runReactHostReplacementProof() {
       lifecycle: { mount: true, update: true, unmount: true },
       source: { path: "browser-proof", line: 1, column: 1, provenance: "runtime" }
     };
-    hostRuntime.registerComponentFrames([{
-      componentInstanceId,
-      componentDefinitionId: "browser-proof::definition",
-      parentComponentInstanceId: null,
-      stateIdentity: `${componentInstanceId}::state`,
-      initialState: "Recovery initial",
-      attachmentIds: [attachmentId],
-      eventContracts: {
-        Confirm: { payload: "void", transition: () => "Recovery after state" }
-      },
-      project: (state, plans) => plans.map(candidate => ({ ...candidate, payload: { ...candidate.payload, label: state } }))
-    }]);
+    hostRuntime.registerComponentFrameEnvelope({
+      schemaVersion: 1,
+      projectId: "browser-proof",
+      frameDefinitions: [{
+        frameDefinitionId: "browser-proof::semantic-recovery::definition",
+        componentDefinitionId: "browser-proof::definition",
+        stateIdentity: `${componentInstanceId}::state`,
+        attachmentIds: [attachmentId],
+        events: [{ eventId: "browser-proof::semantic-recovery::confirm", name: "Confirm", payloadContract: "void", transition: { kind: "constant", nextState: "Recovery after state" } }],
+        presentationBranches: [],
+        source: { path: "browser-proof.mjs", line: 1, column: 1 }
+      }],
+      frameInstances: [{ componentInstanceId, frameDefinitionId: "browser-proof::semantic-recovery::definition", parentComponentInstanceId: null, initialState: "Recovery initial", source: { path: "browser-proof.mjs", line: 1, column: 1 } }]
+    });
     const shell = document.createElement("section");
     document.body.appendChild(shell);
     const root = createRoot(shell);
@@ -307,24 +309,21 @@ async function runStateSelectedChildFrameProof() {
       lifecycle: { mount: true, update: true, unmount: true },
       source: { path: "browser-proof", line: 1, column: 1, provenance: "runtime" }
     };
-    const childFrame = state => ({
+    const childFrame = label => ({
       componentInstanceId: childId,
       componentDefinitionId: "browser-proof::ConfirmDialog",
       parentComponentInstanceId: parentId,
       stateIdentity: `${childId}::state`,
       initialState: "Ready",
       attachmentIds: [childAttachmentId],
-      eventContracts: { Confirm: { payload: "void", transition: () => "Confirmed" } },
+      events: [{ eventId: `${childId}::confirm`, name: "Confirm", payloadContract: "void", transition: { kind: "constant", nextState: "Confirmed" } }],
       rendererEventName: "Confirm",
-      project: (next, plans) => plans.map(plan => ({ ...plan, payload: { ...plan.payload, label: next } })),
-      plans: [{
-        ...parentPlan,
+      attachment: {
         attachmentId: childAttachmentId,
         componentDefinitionId: "browser-proof::ConfirmDialog",
-        componentInstanceId: childId,
-        parentComponentInstanceId: parentId,
-        payload: { tagName: "copeland-renderer-badge", label: state === "OpenUpdated" ? "Confirm updated" : "Confirm dialog" }
-      }]
+        payload: { tagName: "copeland-renderer-badge", label }
+      },
+      source: { path: "browser-proof.mjs", line: 1, column: 1 }
     });
     const waitFor = async predicate => {
       for (let attempt = 0; attempt < 100; attempt += 1) {
@@ -334,24 +333,29 @@ async function runStateSelectedChildFrameProof() {
       throw new Error("Timed out waiting for state-selected child frame lifecycle.");
     };
 
-    hostRuntime.registerComponentFrames([{
-      componentInstanceId: parentId,
-      componentDefinitionId: "browser-proof::DialogHost",
-      parentComponentInstanceId: null,
-      stateIdentity: `${parentId}::state`,
-      initialState: "Closed",
-      attachmentIds: [parentAttachmentId],
-      eventContracts: {
-        Open: { payload: "void", transition: () => "Open" },
-        Refresh: { payload: "void", transition: () => "OpenUpdated" },
-        Close: { payload: "void", transition: () => "Closed" }
-      },
-      rendererEventName: "Open",
-      project: (state, plans) => ({
-        plans: plans.map(plan => ({ ...plan, payload: { ...plan.payload, label: state === "Closed" ? "Open dialog" : "Close dialog" } })),
-        frames: state === "Closed" ? [] : [childFrame(state)]
-      })
-    }]);
+    hostRuntime.registerComponentFrameEnvelope({
+      schemaVersion: 1,
+      projectId: "browser-proof",
+      frameDefinitions: [{
+        frameDefinitionId: "browser-proof::dialog-host::definition",
+        componentDefinitionId: "browser-proof::DialogHost",
+        stateIdentity: `${parentId}::state`,
+        attachmentIds: [parentAttachmentId],
+        events: [
+          { eventId: "browser-proof::dialog-host::open", name: "Open", payloadContract: "void", transition: { kind: "constant", nextState: "Open" } },
+          { eventId: "browser-proof::dialog-host::refresh", name: "Refresh", payloadContract: "void", transition: { kind: "constant", nextState: "OpenUpdated" } },
+          { eventId: "browser-proof::dialog-host::close", name: "Close", payloadContract: "void", transition: { kind: "constant", nextState: "Closed" } }
+        ],
+        rendererEventName: "Open",
+        presentationBranches: [
+          { branchId: "browser-proof::dialog-host::closed", statePattern: "Closed", childFrames: [] },
+          { branchId: "browser-proof::dialog-host::open", statePattern: "Open", childFrames: [childFrame("Confirm dialog")] },
+          { branchId: "browser-proof::dialog-host::updated", statePattern: "OpenUpdated", childFrames: [childFrame("Confirm updated")] }
+        ],
+        source: { path: "browser-proof.mjs", line: 1, column: 1 }
+      }],
+      frameInstances: [{ componentInstanceId: parentId, frameDefinitionId: "browser-proof::dialog-host::definition", parentComponentInstanceId: null, initialState: "Closed", source: { path: "browser-proof.mjs", line: 1, column: 1 } }]
+    });
     hostRuntime.registerAttachmentPlans({ schemaVersion: 1, projectId: "browser-proof", plans: [parentPlan] });
     await waitFor(() => document.querySelector(`[data-copeland-attachment='${parentAttachmentId}']`) !== null);
     const parentBefore = hostRuntime.inspectComponentFrame(parentId);

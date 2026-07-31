@@ -7,9 +7,8 @@ using Copeland.TS.Semantics.Bound;
 namespace Copeland.Cli;
 
 /// <summary>
-/// Emits the executable, compiler-owned browser frame registration module.
-/// This is intentionally separate from attachments.json: plans remain data
-/// transport while transitions remain ordinary generated JavaScript.
+/// Emits the versioned, inert browser frame envelope. The browser runtime owns
+/// event scheduling, transition execution, and attachment reconciliation.
 /// </summary>
 internal static class ComponentFrameArtifactEmitter
 {
@@ -67,37 +66,35 @@ internal static class ComponentFrameArtifactEmitter
                     initialState,
                     attachments.Select(attachment => attachment.AttachmentId).ToArray(),
                     events,
-                    state.PresentationBranches));
+                    state.PresentationBranches,
+                    module.LogicalPath));
             }
         }
 
         var writer = new StringBuilder();
-        writer.AppendLine("import { registerComponentFrames } from \"@copeland/browser-v1\";");
-        writer.AppendLine();
-        writer.AppendLine("registerComponentFrames([");
+        writer.AppendLine("// Copeland component-frame envelope v1. This module contains data only.");
+        writer.AppendLine("export default {");
+        writer.AppendLine("  schemaVersion: 1,");
+        writer.AppendLine("  projectId: \"copeland\",");
+        writer.AppendLine("  frameDefinitions: [");
         foreach (BrowserFrame frame in frames)
         {
-            writer.AppendLine("  {");
-            WriteProperty(writer, "componentInstanceId", frame.ComponentInstanceId, trailingComma: true);
-            WriteProperty(writer, "componentDefinitionId", frame.ComponentDefinitionId, trailingComma: true);
-            WriteNullableProperty(writer, "parentComponentInstanceId", frame.ParentComponentInstanceId, trailingComma: true);
-            WriteProperty(writer, "stateIdentity", frame.StateIdentity, trailingComma: true);
-            WriteProperty(writer, "initialState", frame.InitialState, trailingComma: true);
-            writer.AppendLine("    attachmentIds: [" + string.Join(", ", frame.AttachmentIds.Select(attachmentId => JsonSerializer.Serialize(attachmentId))) + "],");
-            writer.AppendLine("    eventContracts: {");
-            foreach (BrowserEvent @event in frame.Events)
-            {
-                WriteEventContract(writer, @event, "      ");
-            }
-            writer.AppendLine("    },");
-            if (frame.Events.Count == 1)
-            {
-                WriteProperty(writer, "rendererEventName", frame.Events[0].Name, trailingComma: true);
-            }
-            WriteProjection(writer, frame);
-            writer.AppendLine("  },");
+            WriteFrameDefinition(writer, frame);
         }
-        writer.AppendLine("]); ");
+        writer.AppendLine("  ],");
+        writer.AppendLine("  frameInstances: [");
+        foreach (BrowserFrame frame in frames)
+        {
+            writer.AppendLine("    {");
+            WriteProperty(writer, "componentInstanceId", frame.ComponentInstanceId, trailingComma: true, indent: "      ");
+            WriteProperty(writer, "frameDefinitionId", FrameDefinitionId(frame), trailingComma: true, indent: "      ");
+            WriteNullableProperty(writer, "parentComponentInstanceId", frame.ParentComponentInstanceId, trailingComma: true, indent: "      ");
+            WriteProperty(writer, "initialState", frame.InitialState, trailingComma: true, indent: "      ");
+            WriteSource(writer, frame.SourcePath, "      ");
+            writer.AppendLine("    },");
+        }
+        writer.AppendLine("  ],");
+        writer.AppendLine("};");
         return writer.ToString();
     }
 
@@ -146,57 +143,72 @@ internal static class ComponentFrameArtifactEmitter
         return false;
     }
 
-    private static void WriteEventContract(StringBuilder writer, BrowserEvent @event, string indent)
+    private static void WriteFrameDefinition(StringBuilder writer, BrowserFrame frame)
     {
-        writer.Append(indent).Append(JsonSerializer.Serialize(@event.Name)).Append(": { payload: \"void\", transition: ");
+        writer.AppendLine("    {");
+        WriteProperty(writer, "frameDefinitionId", FrameDefinitionId(frame), trailingComma: true, indent: "      ");
+        WriteProperty(writer, "componentDefinitionId", frame.ComponentDefinitionId, trailingComma: true, indent: "      ");
+        WriteProperty(writer, "stateIdentity", frame.StateIdentity, trailingComma: true, indent: "      ");
+        writer.AppendLine("      attachmentIds: [" + string.Join(", ", frame.AttachmentIds.Select(attachmentId => JsonSerializer.Serialize(attachmentId))) + "],");
+        writer.AppendLine("      events: [");
+        foreach (BrowserEvent @event in frame.Events)
+        {
+            WriteEvent(writer, frame, @event);
+        }
+        writer.AppendLine("      ],");
+        if (frame.Events.Count == 1)
+        {
+            WriteProperty(writer, "rendererEventName", frame.Events[0].Name, trailingComma: true, indent: "      ");
+        }
+        WritePresentationBranches(writer, frame);
+        WriteSource(writer, frame.SourcePath, "      ");
+        writer.AppendLine("    },");
+    }
+
+    private static string FrameDefinitionId(BrowserFrame frame)
+        => frame.ComponentInstanceId + "::frame-definition";
+
+    private static void WriteEvent(StringBuilder writer, BrowserFrame frame, BrowserEvent @event)
+    {
+        writer.AppendLine("        {");
+        WriteProperty(writer, "eventId", frame.StateIdentity + "::event::" + @event.Name, trailingComma: true, indent: "          ");
+        WriteProperty(writer, "name", @event.Name, trailingComma: true, indent: "          ");
+        writer.AppendLine("          payloadContract: \"void\",");
+        writer.Append("          transition: ");
         if (@event.NextState is not null)
         {
-            writer.Append("() => ").Append(JsonSerializer.Serialize(@event.NextState));
+            writer.Append("{ kind: \"constant\", nextState: ").Append(JsonSerializer.Serialize(@event.NextState)).AppendLine(" },");
         }
         else
         {
-            writer.Append("(_payload, currentState) => {").AppendLine();
-            writer.Append(indent).AppendLine("  switch (currentState) {");
+            writer.AppendLine("{ kind: \"match\", arms: [");
             foreach (BrowserTransitionArm arm in @event.Arms)
             {
-                writer.Append(indent).Append("    case ").Append(JsonSerializer.Serialize(arm.CurrentState)).Append(": return ")
-                    .Append(JsonSerializer.Serialize(arm.NextState)).AppendLine(";");
+                writer.Append("            { statePattern: ").Append(JsonSerializer.Serialize(arm.CurrentState))
+                    .Append(", nextState: ").Append(JsonSerializer.Serialize(arm.NextState)).AppendLine(" },");
             }
-            writer.Append(indent).AppendLine("    default: throw new Error(\"state transition has no selected arm\");");
-            writer.Append(indent).AppendLine("  }");
-            writer.Append(indent).Append("}");
+            writer.AppendLine("          ] },");
         }
-        writer.AppendLine(" },");
+        writer.AppendLine("        },");
     }
 
-    private static void WriteProjection(StringBuilder writer, BrowserFrame frame)
+    private static void WritePresentationBranches(StringBuilder writer, BrowserFrame frame)
     {
-        if (frame.Branches.Count == 0)
-        {
-            writer.AppendLine("    project: (state, plans) => plans.map(plan => ({ ...plan, payload: { ...plan.payload, label: state } })),");
-            return;
-        }
-
-        writer.AppendLine("    project: (state, plans) => {");
-        writer.AppendLine("      const retainedPlans = plans.map(plan => ({ ...plan, payload: { ...plan.payload, label: state } }));");
-        writer.AppendLine("      switch (state) {");
+        writer.AppendLine("      presentationBranches: [");
         foreach (BoundPresentationBranch branch in frame.Branches)
         {
-            writer.Append("        case ").Append(JsonSerializer.Serialize(branch.StatePattern)).AppendLine(":");
-            writer.AppendLine("          return {");
-            writer.AppendLine("            plans: retainedPlans,");
-            writer.AppendLine("            frames: [");
+            writer.AppendLine("        {");
+            WriteProperty(writer, "branchId", frame.StateIdentity + "::branch::" + branch.StatePattern, trailingComma: true, indent: "          ");
+            WriteProperty(writer, "statePattern", branch.StatePattern, trailingComma: true, indent: "          ");
+            writer.AppendLine("          childFrames: [");
             foreach (BoundPresentationChildCall child in branch.ChildCalls)
             {
                 WriteChildFrame(writer, frame, child);
             }
-            writer.AppendLine("            ],");
-            writer.AppendLine("          };");
+            writer.AppendLine("          ],");
+            writer.AppendLine("        },");
         }
-        writer.AppendLine("        default:");
-        writer.AppendLine("          return { plans: retainedPlans, frames: [] };");
-        writer.AppendLine("      }");
-        writer.AppendLine("    },");
+        writer.AppendLine("      ],");
     }
 
     private static void WriteChildFrame(StringBuilder writer, BrowserFrame parent, BoundPresentationChildCall child)
@@ -232,40 +244,40 @@ internal static class ComponentFrameArtifactEmitter
                 .ToArray();
         }
 
-        writer.AppendLine("              {");
-        WriteProperty(writer, "componentInstanceId", childInstanceId, trailingComma: true, indent: "                ");
-        WriteProperty(writer, "componentDefinitionId", child.Definition.StableIdentity, trailingComma: true, indent: "                ");
-        WriteProperty(writer, "parentComponentInstanceId", parent.ComponentInstanceId, trailingComma: true, indent: "                ");
-        WriteProperty(writer, "stateIdentity", childInstanceId + "::state", trailingComma: true, indent: "                ");
-        WriteProperty(writer, "initialState", childState, trailingComma: true, indent: "                ");
-        writer.Append("                attachmentIds: [").Append(JsonSerializer.Serialize(childAttachmentId)).AppendLine("],");
-        writer.AppendLine("                eventContracts: {");
+        writer.AppendLine("            {");
+        WriteProperty(writer, "componentInstanceId", childInstanceId, trailingComma: true, indent: "              ");
+        WriteProperty(writer, "componentDefinitionId", child.Definition.StableIdentity, trailingComma: true, indent: "              ");
+        WriteProperty(writer, "parentComponentInstanceId", parent.ComponentInstanceId, trailingComma: true, indent: "              ");
+        WriteProperty(writer, "stateIdentity", childInstanceId + "::state", trailingComma: true, indent: "              ");
+        WriteProperty(writer, "initialState", childState, trailingComma: true, indent: "              ");
+        writer.Append("              attachmentIds: [").Append(JsonSerializer.Serialize(childAttachmentId)).AppendLine("],");
+        writer.AppendLine("              events: [");
         foreach (BrowserEvent @event in events)
         {
-            WriteEventContract(writer, @event, "                  ");
+            WriteEvent(writer, new BrowserFrame(childInstanceId, child.Definition.StableIdentity, parent.ComponentInstanceId, childInstanceId + "::state", childState, [childAttachmentId], events, [], parent.SourcePath), @event);
         }
-        writer.AppendLine("                },");
+        writer.AppendLine("              ],");
         if (events.Count == 1)
         {
-            WriteProperty(writer, "rendererEventName", events[0].Name, trailingComma: true, indent: "                ");
+            WriteProperty(writer, "rendererEventName", events[0].Name, trailingComma: true, indent: "              ");
         }
-        writer.AppendLine("                project: (state, plans) => plans.map(plan => ({ ...plan, payload: { ...plan.payload, label: state } })),");
-        writer.AppendLine("                plans: retainedPlans.slice(0, 1).map(plan => ({");
-        writer.AppendLine("                  ...plan,");
-        WriteProperty(writer, "attachmentId", childAttachmentId, trailingComma: true, indent: "                  ");
-        WriteProperty(writer, "componentDefinitionId", child.Definition.StableIdentity, trailingComma: true, indent: "                  ");
-        WriteProperty(writer, "componentInstanceId", childInstanceId, trailingComma: true, indent: "                  ");
-        WriteProperty(writer, "parentComponentInstanceId", parent.ComponentInstanceId, trailingComma: true, indent: "                  ");
-        writer.Append("                  payload: { tagName: ").Append(JsonSerializer.Serialize(payload.TagName)).Append(", label: ").Append(JsonSerializer.Serialize(payload.Label ?? childState)).AppendLine(" },");
-        writer.AppendLine("                })),");
+        writer.AppendLine("              attachment: {");
+        WriteProperty(writer, "attachmentId", childAttachmentId, trailingComma: true, indent: "                ");
+        WriteProperty(writer, "componentDefinitionId", child.Definition.StableIdentity, trailingComma: true, indent: "                ");
+        writer.Append("                payload: { tagName: ").Append(JsonSerializer.Serialize(payload.TagName)).Append(", label: ").Append(JsonSerializer.Serialize(payload.Label ?? childState)).AppendLine(" },");
         writer.AppendLine("              },");
+        WriteSource(writer, parent.SourcePath, "              ");
+        writer.AppendLine("            },");
     }
 
     private static void WriteProperty(StringBuilder writer, string name, string value, bool trailingComma, string indent = "    ")
         => writer.Append(indent).Append(name).Append(": ").Append(JsonSerializer.Serialize(value)).AppendLine(trailingComma ? "," : string.Empty);
 
-    private static void WriteNullableProperty(StringBuilder writer, string name, string? value, bool trailingComma)
-        => writer.Append("    ").Append(name).Append(": ").Append(value is null ? "null" : JsonSerializer.Serialize(value)).AppendLine(trailingComma ? "," : string.Empty);
+    private static void WriteNullableProperty(StringBuilder writer, string name, string? value, bool trailingComma, string indent = "    ")
+        => writer.Append(indent).Append(name).Append(": ").Append(value is null ? "null" : JsonSerializer.Serialize(value)).AppendLine(trailingComma ? "," : string.Empty);
+
+    private static void WriteSource(StringBuilder writer, string path, string indent)
+        => writer.Append(indent).Append("source: { path: ").Append(JsonSerializer.Serialize(path)).AppendLine(", line: 0, column: 0 },");
 
     private sealed record BrowserFrame(
         string ComponentInstanceId,
@@ -275,7 +287,8 @@ internal static class ComponentFrameArtifactEmitter
         string InitialState,
         IReadOnlyList<string> AttachmentIds,
         IReadOnlyList<BrowserEvent> Events,
-        IReadOnlyList<BoundPresentationBranch> Branches);
+        IReadOnlyList<BoundPresentationBranch> Branches,
+        string SourcePath);
 
     private sealed record BrowserEvent(string Name, string? NextState, IReadOnlyList<BrowserTransitionArm> Arms);
     private sealed record BrowserTransitionArm(string CurrentState, string NextState);
