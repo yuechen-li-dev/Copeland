@@ -44,9 +44,47 @@ public sealed class CSharpSidecarHost : IAsyncDisposable
         return host;
     }
 
+    /// <summary>
+    /// Attaches the bounded Preview 1 Node sidecar used by a normal SDK-style
+    /// project. npm still owns installation; Copeland only launches the
+    /// project-authored protocol adapter without requiring a TSPack manifest.
+    /// </summary>
+    public static CSharpSidecarHost AttachNode(
+        Assembly generatedAssembly,
+        string projectRoot,
+        string scriptPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(scriptPath);
+        var runTarget = new Manifest.ManifestRunTarget(
+            "copeland-preview",
+            "npm",
+            "node",
+            [scriptPath],
+            null,
+            new Manifest.ManifestValue.Object(
+                new Dictionary<string, Manifest.ManifestValue>()));
+        var contract = new CSharpSidecarContract(
+            string.Empty,
+            CSharpSidecarContracts.ProtocolVersion,
+            string.Empty,
+            runTarget,
+            Path.GetFullPath(projectRoot));
+        return Attach(generatedAssembly, contract);
+    }
+
     private void AttachCore(Assembly generatedAssembly)
     {
-        Type transport = generatedAssembly.GetType("Copeland.Generated.CopeTsonTransport", throwOnError: true)!;
+        Type[] transports = generatedAssembly.GetTypes()
+            .Where(type => string.Equals(type.Name, "CopeTsonTransport", StringComparison.Ordinal))
+            .ToArray();
+        if (transports.Length != 1)
+        {
+            throw new InvalidOperationException(
+                $"Generated assembly must contain exactly one Copeland transport; found {transports.Length}.");
+        }
+
+        Type transport = transports[0];
         const BindingFlags flags = BindingFlags.Static | BindingFlags.NonPublic;
         VerifyMetadata(transport, flags);
 

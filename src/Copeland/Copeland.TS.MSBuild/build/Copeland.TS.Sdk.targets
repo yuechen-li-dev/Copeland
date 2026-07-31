@@ -1,6 +1,7 @@
 <Project>
   <UsingTask TaskName="Copeland.TS.MSBuild.CopelandCompile" AssemblyFile="$(CopelandTaskAssembly)" />
   <UsingTask TaskName="Copeland.TS.MSBuild.CopelandTestCompile" AssemblyFile="$(CopelandTaskAssembly)" />
+  <UsingTask TaskName="Copeland.TS.MSBuild.CopelandResolveWorkspace" AssemblyFile="$(CopelandTaskAssembly)" />
 
   <Target Name="CopelandValidateToolchainVersion" BeforeTargets="PrepareForBuild">
     <Error Condition="!$([System.String]::Copy('$(CopelandRequiredVersion)').StartsWith('$(CopelandSdkVersion)'))"
@@ -12,10 +13,24 @@
     <CopelandTestGeneratedDirectory Condition="'$(CopelandTestGeneratedDirectory)' == ''">$(BaseIntermediateOutputPath)CopelandTests\</CopelandTestGeneratedDirectory>
   </PropertyGroup>
 
+  <Target Name="CopelandResolveWorkspaceOwnership"
+          Condition="Exists('$(MSBuildProjectDirectory)\tsconfig.tsx')">
+    <Copeland.TS.MSBuild.CopelandResolveWorkspace
+        WorkspacePath="$(MSBuildProjectDirectory)\tsconfig.tsx"
+        ProjectPath="$(MSBuildProjectFullPath)">
+      <Output TaskParameter="Sources" ItemName="CopelandResolvedWorkspaceSource" />
+    </Copeland.TS.MSBuild.CopelandResolveWorkspace>
+
+    <ItemGroup>
+      <CopelandCompile Remove="@(CopelandCompile)" />
+      <CopelandCompile Include="@(CopelandResolvedWorkspaceSource)" />
+    </ItemGroup>
+  </Target>
+
   <Target Name="CopelandCompile"
           BeforeTargets="CoreCompile"
-          DependsOnTargets="ResolveReferences"
-          Condition="'@(CopelandCompile)' != ''">
+          DependsOnTargets="ResolveReferences;CopelandResolveWorkspaceOwnership"
+          Condition="'@(CopelandCompile)' != '' or Exists('$(MSBuildProjectDirectory)\tsconfig.tsx')">
     <Copeland.TS.MSBuild.CopelandCompile
         Sources="@(CopelandCompile)"
         CSharpSources="@(Compile)"
@@ -41,7 +56,7 @@
 
   <!-- Public, non-mutating evaluation surface shared with editor hosts. -->
   <Target Name="CopelandCollectLanguageServiceModel"
-          DependsOnTargets="ResolveReferences"
+          DependsOnTargets="ResolveReferences;CopelandResolveWorkspaceOwnership"
           Returns="@(CopelandLanguageServiceInput)">
     <ItemGroup>
       <CopelandLanguageServiceInput Include="@(CopelandCompile)">
@@ -56,6 +71,9 @@
       <CopelandLanguageServiceInput Include="@(CopelandNpmContract)">
         <CopelandModelKind>NpmContract</CopelandModelKind>
       </CopelandLanguageServiceInput>
+      <CopelandLanguageServiceInput Include="@(Compile)">
+        <CopelandModelKind>CSharpSource</CopelandModelKind>
+      </CopelandLanguageServiceInput>
     </ItemGroup>
   </Target>
 
@@ -65,6 +83,11 @@
     <ItemGroup>
       <CopelandLanguageServiceLine Include="property|projectDirectory|$(MSBuildProjectDirectory)" />
       <CopelandLanguageServiceLine Include="property|tsXmlProfile|$(CopelandTsXmlProfile)" />
+      <CopelandLanguageServiceLine Include="property|assemblyName|$(AssemblyName)" />
+      <CopelandLanguageServiceLine Include="property|rootNamespace|$(RootNamespace)" />
+      <CopelandLanguageServiceLine Include="property|langVersion|$(LangVersion)" />
+      <CopelandLanguageServiceLine Include="property|defineConstants|$(DefineConstants)" />
+      <CopelandLanguageServiceLine Include="property|nullable|$(Nullable)" />
       <CopelandLanguageServiceLine Include="@(CopelandLanguageServiceInput->'%(CopelandModelKind)|%(FullPath)')" />
     </ItemGroup>
     <WriteLinesToFile File="$(CopelandLanguageServiceModelFile)"

@@ -29,5 +29,13 @@ real Desktop/Tablet/Mobile proof coverage; it is not a general browser
 framework, SSR/hydration implementation, or a promise of Vue/Svelte/Lit/Blazor
 support.
 
+For TSPack Vite development, Vite is downstream infrastructure: it serves the
+same materialized JavaScript, runtime, attachments, component-frame envelope,
+and assets that normal builds consume. Vite does not parse Copeland, resolve
+its package contracts, or provide semantic hot reload. TSPack recompiles and
+materializes first, then requests a full browser reload after success; failed
+compiles retain the prior browser artifact. Semantic component hot reload and
+state preservation remain separate future runtime work.
+
 For contracts and lifecycle details, see [generated artifacts](../reference/generated-artifacts.md)
 and [semantic ownership](../architecture/semantic-ownership.md).

@@ -21,6 +21,9 @@ artifacts/cts-layout-z-m0/
 artifacts/cts-js-perf-m1/
 artifacts/cts-js-perf-m1-production-smoke/
 artifacts/cts-distribution-m0/
+artifacts/human-workflow-m0/*
+!artifacts/human-workflow-m0/release-candidate/
+!artifacts/human-workflow-m0/release-candidate/*
 tests/fixtures/copeland-nuget-m1/LocalFeed/
 tests/fixtures/copeland-nuget-m1/.packages*/
 

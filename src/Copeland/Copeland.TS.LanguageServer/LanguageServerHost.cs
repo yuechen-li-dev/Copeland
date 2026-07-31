@@ -10,7 +10,7 @@ namespace Copeland.TS.LanguageServer;
 
 public sealed class LanguageServerHost
 {
-    public const string Version = "0.1.0";
+    public const string Version = "0.1.0-preview.1";
     private readonly Stream _input;
     private readonly Stream _output;
     private readonly TextWriter _log;

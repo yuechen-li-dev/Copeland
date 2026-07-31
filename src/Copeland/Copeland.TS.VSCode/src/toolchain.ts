@@ -13,19 +13,52 @@ export interface ToolchainVersion {
     project?: string;
 }
 
-export function tsclCommand(): string {
-    const configured = vscode.workspace.getConfiguration("copeland").get<string>("tsclPath", "").trim();
-    if (configured) {
-        return configured;
-    }
-
-    return process.env.COPLAND_VSCODE_TEST_TSCL_PATH?.trim() || "tscl";
+export interface ToolInvocation {
+    command: string;
+    arguments: string[];
+    source: string;
 }
 
-export async function runTool(command: string, args: string[], cwd: string, output: vscode.OutputChannel): Promise<CommandResult> {
-    output.appendLine(`> ${command} ${args.join(" ")}`);
+export async function resolveTscl(workspaceRoot: string): Promise<ToolInvocation> {
+    const configured = vscode.workspace.getConfiguration("copeland").get<string>("tsclPath", "").trim();
+    if (configured) {
+        return { command: configured, arguments: [], source: "copeland.tsclPath" };
+    }
+
+    const testCommand = process.env.COPLAND_VSCODE_TEST_TSCL_PATH?.trim();
+    if (testCommand) {
+        return { command: testCommand, arguments: [], source: "integration test" };
+    }
+
+    const manifests = [
+        path.join(workspaceRoot, "dotnet-tools.json"),
+        path.join(workspaceRoot, ".config", "dotnet-tools.json")
+    ];
+    for (const manifest of manifests) {
+        try {
+            const contents = await vscode.workspace.fs.readFile(vscode.Uri.file(manifest));
+            const parsed = JSON.parse(Buffer.from(contents).toString("utf8"));
+            if (parsed.tools?.["copeland.ts.tool"] || parsed.tools?.["Copeland.TS.Tool"]) {
+                return {
+                    command: "dotnet",
+                    arguments: ["tool", "run", "tscl", "--"],
+                    source: path.relative(workspaceRoot, manifest)
+                };
+            }
+        } catch {
+            // A missing or unrelated tool manifest is normal.
+        }
+    }
+
+    return { command: "tscl", arguments: [], source: "global PATH" };
+}
+
+export async function runTool(tool: ToolInvocation, args: string[], cwd: string, output: vscode.OutputChannel): Promise<CommandResult> {
+    const commandArgs = [...tool.arguments, ...args];
+    output.appendLine(`[tool] selected ${tool.command} from ${tool.source}`);
+    output.appendLine(`> ${tool.command} ${commandArgs.join(" ")}`);
     return new Promise<CommandResult>((resolve) => {
-        const child = spawn(command, args, { cwd, shell: false, windowsHide: true });
+        const child = spawn(tool.command, commandArgs, { cwd, shell: false, windowsHide: true });
         child.stdout.on("data", (data: Buffer) => output.append(data.toString()));
         child.stderr.on("data", (data: Buffer) => output.append(data.toString()));
         child.on("error", (error) => {
@@ -36,9 +69,9 @@ export async function runTool(command: string, args: string[], cwd: string, outp
     });
 }
 
-export async function queryServerVersion(command: string, cwd: string): Promise<string> {
+export async function queryServerVersion(tool: ToolInvocation, cwd: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-        execFile(command, ["language-server", "--version"], { cwd, windowsHide: true }, (error, stdout, stderr) => {
+        execFile(tool.command, [...tool.arguments, "language-server", "--version"], { cwd, windowsHide: true }, (error, stdout, stderr) => {
             if (error) {
                 reject(new Error(stderr.trim() || error.message));
                 return;
@@ -59,8 +92,8 @@ function sameMajorMinor(left: string, right: string): boolean {
     return leftParts.length >= 2 && rightParts.length >= 2 && leftParts[0] === rightParts[0] && leftParts[1] === rightParts[1];
 }
 
-export function spawnLanguageServer(command: string, cwd: string, output: vscode.OutputChannel): ChildProcess {
-    const child = spawn(command, ["language-server"], { cwd, shell: false, windowsHide: true });
+export function spawnLanguageServer(tool: ToolInvocation, cwd: string, output: vscode.OutputChannel): ChildProcess {
+    const child = spawn(tool.command, [...tool.arguments, "language-server"], { cwd, shell: false, windowsHide: true });
     child.stderr.on("data", (data: Buffer) => output.append(data.toString()));
     child.on("error", (error) => output.appendLine(`[launch] ${error.message}`));
     return child;
@@ -74,8 +107,8 @@ export async function readProjectVersion(projectPath: string | undefined): Promi
     try {
         const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(projectPath));
         const project = Buffer.from(bytes).toString("utf8");
-        const packageReference = /<PackageReference\s+[^>]*(?:Include|Update)="Copeland(?:\.TS)?"[^>]*Version="([^"]+)"/i.exec(project);
-        const property = /<Copeland(?:Ts)?Version>\s*([^<\s]+)\s*<\/Copeland(?:Ts)?Version>/i.exec(project);
+        const packageReference = /<PackageReference\s+[^>]*(?:Include|Update)="Copeland(?:\.TS)?(?:\.Sdk)?"[^>]*Version="([^"]+)"/i.exec(project);
+        const property = /<Copeland(?:Ts|Toolchain)?Version>\s*([^<\s]+)\s*<\/Copeland(?:Ts|Toolchain)?Version>/i.exec(project);
         return packageReference?.[1] ?? property?.[1];
     } catch {
         return undefined;

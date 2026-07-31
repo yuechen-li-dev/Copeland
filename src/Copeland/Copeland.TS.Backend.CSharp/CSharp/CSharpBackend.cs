@@ -479,7 +479,7 @@ public static class CSharpBackend
         writer.WriteLine("}");
         writer.WriteLine("private static readonly global::System.Collections.Generic.Dictionary<string, IPending> PendingByCorrelation = new(global::System.StringComparer.Ordinal);");
         writer.WriteLine("private static long nextCorrelation;");
-        writer.WriteLine("internal static global::System.Action<string>? Dispatch;");
+        writer.WriteLine("internal static global::System.Action<string>? Dispatch = null;");
         writer.WriteLine("internal static CopeAsync<T> Start<T>(string operation, string request, global::System.Func<string, string, T> decode)");
         writer.WriteLine("{");
         writer.Indent();

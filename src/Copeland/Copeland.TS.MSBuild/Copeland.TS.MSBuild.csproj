@@ -16,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Copeland.TS.Workspace/Copeland.TS.Workspace.csproj" PrivateAssets="all" />
     <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" PrivateAssets="all" />
     <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" PrivateAssets="all" />
     <ProjectReference Include="../Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" PrivateAssets="all" />

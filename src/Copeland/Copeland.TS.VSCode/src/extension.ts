@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as vscode from "vscode";
 import { WorkspaceController } from "./workspaceController";
-import { runTool, tsclCommand } from "./toolchain";
+import { resolveTscl, runTool } from "./toolchain";
 
 let controllers: WorkspaceController[] = [];
 let statusBar: vscode.StatusBarItem;
@@ -37,7 +37,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 return;
             }
 
-            const result = await runTool(tsclCommand(), ["workspace", "sync"], controller.rootPath, output);
+            const result = await runTool(await resolveTscl(controller.rootPath), ["workspace", "sync"], controller.rootPath, output);
             output.show(true);
             if (result.exitCode === 0) {
                 await controller.reloadOwnership();
@@ -52,7 +52,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 return;
             }
 
-            const result = await runTool(tsclCommand(), ["workspace", "validate"], controller.rootPath, output);
+            const result = await runTool(await resolveTscl(controller.rootPath), ["workspace", "validate"], controller.rootPath, output);
             output.show(true);
             if (result.exitCode === 0) {
                 vscode.window.showInformationMessage("Copeland workspace ownership is valid.");
@@ -93,6 +93,15 @@ function registerCommands(context: vscode.ExtensionContext): void {
             }
         }),
         vscode.commands.registerCommand("copeland.showLanguageServerOutput", () => output.show(true)),
+        vscode.commands.registerCommand("copeland.showProjectInfo", async () => {
+            const controller = controllerForActiveDocument() ?? controllers[0];
+            if (!controller) {
+                vscode.window.showInformationMessage("No Copeland project was found in this workspace.");
+                return;
+            }
+
+            await vscode.window.showInformationMessage(controller.describeProject(), { modal: true });
+        }),
         vscode.commands.registerCommand("copeland.openWorkspaceManifest", async () => {
             const controller = controllerForActiveDocument() ?? controllers[0];
             if (controller) {
@@ -126,7 +135,11 @@ async function runDotnetProject(operation: "build" | "run"): Promise<void> {
     }
 
     const absoluteProject = path.resolve(controller.rootPath, project);
-    const result = await runTool("dotnet", [operation, absoluteProject], controller.rootPath, output);
+    const result = await runTool(
+        { command: "dotnet", arguments: [], source: ".NET SDK" },
+        [operation, absoluteProject],
+        controller.rootPath,
+        output);
     output.show(true);
     if (result.exitCode !== 0) {
         vscode.window.showErrorMessage(`Copeland project ${operation} failed. See Copeland TS Language Server output.`);
@@ -156,7 +169,7 @@ function updateStatus(): void {
     }
 
     statusBar.text = text;
-    statusBar.tooltip = "Click to show Copeland TypeScript ownership.";
+    statusBar.tooltip = controller?.describeProject() ?? "Click to show Copeland TypeScript ownership.";
     statusBar.show();
 }
 

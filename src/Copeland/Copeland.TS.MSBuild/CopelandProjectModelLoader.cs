@@ -67,7 +67,13 @@ public static class CopelandProjectModelLoader
     {
         string projectDirectory = Path.GetDirectoryName(projectPath)!;
         CopelandTsXmlProfile profile = CopelandTsXmlProfile.None;
+        string assemblyName = Path.GetFileNameWithoutExtension(projectPath);
+        string rootNamespace = assemblyName;
+        string langVersion = string.Empty;
+        string defineConstants = string.Empty;
+        string nullable = string.Empty;
         var sources = new List<CopelandProjectSource>();
+        var csharpSources = new List<string>();
         var references = new List<CopelandClrReference>();
         var contracts = new List<CopelandPackageContract>();
         var npmContracts = new List<CopelandNpmPackageContract>();
@@ -84,6 +90,29 @@ public static class CopelandProjectModelLoader
                 profile = ParseTsXmlProfile(parts[2]);
                 continue;
             }
+            if (parts.Length == 3 && parts[0] == "property")
+            {
+                switch (parts[1])
+                {
+                    case "assemblyName":
+                        assemblyName = parts[2];
+                        break;
+                    case "rootNamespace":
+                        rootNamespace = parts[2];
+                        break;
+                    case "langVersion":
+                        langVersion = parts[2];
+                        break;
+                    case "defineConstants":
+                        defineConstants = parts[2];
+                        break;
+                    case "nullable":
+                        nullable = parts[2];
+                        break;
+                }
+
+                continue;
+            }
 
             if (parts.Length != 2) continue;
             string path = Path.GetFullPath(parts[1], projectDirectory);
@@ -91,6 +120,9 @@ public static class CopelandProjectModelLoader
             {
                 case "Source" when File.Exists(path):
                     sources.Add(new CopelandProjectSource(Path.GetRelativePath(projectDirectory, path).Replace('\\', '/'), path, File.ReadAllText(path)));
+                    break;
+                case "CSharpSource" when File.Exists(path):
+                    csharpSources.Add(path);
                     break;
                 case "ClrReference" when File.Exists(path):
                     references.Add(new CopelandClrReference(path));
@@ -112,17 +144,43 @@ public static class CopelandProjectModelLoader
             }
         }
 
+        CopelandClrReference[] distinctReferences = references
+            .DistinctBy(reference => reference.AssemblyPath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (!RoslynDeclarationProjection.TryCreate(
+                csharpSources.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+                distinctReferences,
+                assemblyName,
+                NormalizeNamespace(rootNamespace) + ".Copeland",
+                langVersion,
+                defineConstants,
+                nullable,
+                out CopelandClrReference? projectDeclarations,
+                out IReadOnlyList<RoslynDeclarationProjectionDiagnostic> projectionDiagnostics))
+        {
+            string details = string.Join(
+                Environment.NewLine,
+                projectionDiagnostics.Select(diagnostic => $"{diagnostic.FilePath}({diagnostic.Line},{diagnostic.Column}): {diagnostic.Id}: {diagnostic.Message}"));
+            throw new InvalidOperationException("Could not project authored C# declarations:" + Environment.NewLine + details);
+        }
+
+        CopelandClrReference[] effectiveReferences = projectDeclarations is null
+            ? distinctReferences
+            : distinctReferences.Append(projectDeclarations).ToArray();
         CopelandCompilationOptions options = new()
         {
             TargetStage = CopelandCompilationStage.Bound,
             ProjectRoot = projectDirectory,
             TsXmlProfile = profile,
-            ClrReferences = references.DistinctBy(reference => reference.AssemblyPath, StringComparer.OrdinalIgnoreCase).ToArray(),
+            ClrReferences = effectiveReferences,
             PackageContracts = contracts.DistinctBy(contract => contract.SourcePath, StringComparer.OrdinalIgnoreCase).ToArray(),
             NpmDependencies = CreateNpmDependencyGraph(npmContracts),
         };
         return new CopelandEvaluatedProject(projectPath, projectDirectory, sources.OrderBy(source => source.LogicalPath, StringComparer.OrdinalIgnoreCase).ToArray(), options);
     }
+
+    private static string NormalizeNamespace(string value)
+        => string.IsNullOrWhiteSpace(value) ? "Copeland.Generated" : value.Trim();
 
     private static CopelandTsXmlProfile ParseTsXmlProfile(string value)
     {

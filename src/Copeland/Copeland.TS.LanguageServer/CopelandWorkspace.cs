@@ -122,8 +122,25 @@ internal sealed class CopelandWorkspace
                 range = Range(document.Text, documentFact.Source.Start, Math.Max(1, documentFact.Source.Length)),
             };
         }
-        SyntaxToken? token = TokenAt(compilation.SyntaxTree, offset);
-        if (token is null) return null;
+        SyntaxToken? token = TokenAt(compilation.SyntaxTree, document.Text, offset);
+        if (token is null)
+        {
+            IdentifierSpan? identifier = IdentifierAt(document.Text, offset);
+            if (identifier is null)
+            {
+                return null;
+            }
+
+            DeclarationInfo? fallbackDeclaration = FindDeclaration(compilation.SyntaxTree, identifier.Text);
+            string fallbackContents = fallbackDeclaration?.Detail
+                ?? DescribeClrType(identifier.Text)
+                ?? identifier.Text;
+            return new
+            {
+                contents = new { kind = "markdown", value = "```copeland\n" + fallbackContents + "\n```" },
+                range = Range(document.Text, identifier.Start, identifier.Length),
+            };
+        }
         LayoutSlotSymbol? bindingSlot = FindBindingSlot(compilation, token);
         string? contentPolicyContents = DescribeContentPolicyAt(compilation, token.Position);
         string? tableContents = DescribeTableCellAt(compilation, token.Position);
@@ -287,7 +304,7 @@ internal sealed class CopelandWorkspace
             // document node therefore has no fabricated definition target.
             return null;
         }
-        SyntaxToken? token = TokenAt(compilation.SyntaxTree, ToOffset(current.Text, position));
+        SyntaxToken? token = TokenAt(compilation.SyntaxTree, current.Text, ToOffset(current.Text, position));
         if (token is null || token.Kind != SyntaxKind.IdentifierToken) return null;
         LayoutSlotSymbol? bindingSlot = FindBindingSlot(compilation, token);
         if (bindingSlot is not null)
@@ -1141,7 +1158,60 @@ internal sealed class CopelandWorkspace
         }
     }
     private static int DeclarationPosition(SyntaxTree? tree, string name) => tree?.Tokens.FirstOrDefault(token => token.Kind == SyntaxKind.IdentifierToken && token.Text == name)?.Position ?? 0;
-    private static SyntaxToken? TokenAt(SyntaxTree? tree, int offset) => tree?.Tokens.FirstOrDefault(token => offset >= token.Position && offset <= token.Position + token.Text.Length);
+    private static SyntaxToken? TokenAt(SyntaxTree? tree, string text, int offset)
+    {
+        SyntaxToken? exact = tree?.Tokens.FirstOrDefault(
+            token => offset >= token.Position && offset <= token.Position + token.Text.Length);
+        if (exact is not null)
+        {
+            return exact;
+        }
+
+        IdentifierSpan? identifier = IdentifierAt(text, offset);
+        if (identifier is null || tree is null)
+        {
+            return null;
+        }
+
+        return tree.Tokens
+            .Where(token => token.Text == identifier.Text)
+            .MinBy(token => Math.Abs(token.Position - identifier.Start));
+    }
+    private static IdentifierSpan? IdentifierAt(string text, int offset)
+    {
+        if (text.Length == 0)
+        {
+            return null;
+        }
+
+        int position = Math.Clamp(offset, 0, text.Length - 1);
+        if (!IsIdentifierCharacter(text[position]) && position > 0 && IsIdentifierCharacter(text[position - 1]))
+        {
+            position -= 1;
+        }
+
+        if (!IsIdentifierCharacter(text[position]))
+        {
+            return null;
+        }
+
+        int start = position;
+        while (start > 0 && IsIdentifierCharacter(text[start - 1]))
+        {
+            start -= 1;
+        }
+
+        int end = position + 1;
+        while (end < text.Length && IsIdentifierCharacter(text[end]))
+        {
+            end += 1;
+        }
+
+        return new IdentifierSpan(text[start..end], start, end - start);
+    }
+
+    private static bool IsIdentifierCharacter(char value)
+        => char.IsLetterOrDigit(value) || value is '_' or '$';
     private static int CompletionKind(Symbol symbol) => symbol switch { FunctionSymbol => 3, VariableSymbol => 6, ParameterSymbol => 6, LayerSetSymbol => 13, _ => 13 };
     private static object CompletionItem(string label, int kind, string detail) => new { label, kind, detail };
     private static TextDocumentSemanticFact? FindTextDocumentFact(BoundCompilation? compilation, int offset)
@@ -1696,4 +1766,5 @@ internal sealed class CopelandWorkspace
 
     private sealed record DocumentSnapshot(string Path, int Version, string Text);
     private sealed record DeclarationInfo(string Name, string Detail, int Kind, int Position);
+    private sealed record IdentifierSpan(string Text, int Start, int Length);
 }

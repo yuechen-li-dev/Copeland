@@ -2,7 +2,7 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo, Trace } from "vscode-languageclient/node";
 import { CopelandOwner, OwnershipFileEntry, OwnershipMap } from "./ownershipMap";
-import { isCompatibleVersion, projectPath, queryServerVersion, readProjectVersion, spawnLanguageServer, tsclCommand } from "./toolchain";
+import { isCompatibleVersion, projectPath, queryServerVersion, readProjectVersion, resolveTscl, runTool, spawnLanguageServer } from "./toolchain";
 
 const ownershipRelativePath = "obj/copeland/workspace/editor-ownership.generated.json";
 const manifestFileName = "tsconfig.tsx";
@@ -10,6 +10,7 @@ const manifestFileName = "tsconfig.tsx";
 export type WorkspaceState = "ready" | "missing-metadata" | "language-server-unavailable" | "version-mismatch";
 
 export class WorkspaceController implements vscode.Disposable {
+    private projectRootPath: string;
     private ownership: OwnershipMap | undefined;
     private ownershipContents: string | undefined;
     private client: LanguageClient | undefined;
@@ -21,42 +22,73 @@ export class WorkspaceController implements vscode.Disposable {
     private versionIssueShown = false;
     private reloadTimer: NodeJS.Timeout | undefined;
     private ownershipReload: Promise<void> = Promise.resolve();
+    private serverVersion: string | undefined;
+    private toolDescription: string | undefined;
 
     public constructor(
         public readonly folder: vscode.WorkspaceFolder,
         private readonly output: vscode.OutputChannel,
         private readonly onDidChange: () => void,
         private readonly extensionVersion: string) {
+        this.projectRootPath = folder.uri.fsPath;
     }
 
     public get rootPath(): string {
-        return this.folder.uri.fsPath;
+        return this.projectRootPath;
     }
 
     public get manifestUri(): vscode.Uri {
-        return vscode.Uri.joinPath(this.folder.uri, manifestFileName);
+        return vscode.Uri.file(path.join(this.rootPath, manifestFileName));
     }
 
     public get ownershipUri(): vscode.Uri {
-        return vscode.Uri.joinPath(this.folder.uri, ...ownershipRelativePath.split("/"));
+        return vscode.Uri.file(path.join(this.rootPath, ...ownershipRelativePath.split("/")));
     }
 
     public get currentState(): WorkspaceState {
         return this.state;
     }
 
+    public describeProject(): string {
+        const tsclFiles = this.ownership?.entriesFor("tscl").length ?? 0;
+        const tscFiles = this.ownership?.entriesFor("tsc").length ?? 0;
+        const version = this.serverVersion ?? "not running";
+        const tool = this.toolDescription ?? "not resolved";
+        return [
+            `Project: ${this.rootPath}`,
+            `Manifest: ${this.manifestUri.fsPath}`,
+            `Ownership: ${tsclFiles} tscl file(s), ${tscFiles} tsc file(s)`,
+            `Language server: ${version}`,
+            `Tool: ${tool}`,
+            `State: ${this.state}`
+        ].join("\n");
+    }
+
     public async initialize(): Promise<void> {
-        this.disposables.push(vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(this.folder, manifestFileName)));
+        const manifests = await vscode.workspace.findFiles(
+            new vscode.RelativePattern(this.folder, `**/${manifestFileName}`),
+            "**/{node_modules,bin,obj}/**",
+            2);
+        if (manifests.length === 1) {
+            this.projectRootPath = path.dirname(manifests[0].fsPath);
+            this.output.appendLine(`[project] ${this.rootPath}`);
+        } else if (manifests.length > 1) {
+            this.output.appendLine("[project] multiple tsconfig.tsx files found; open the intended project folder.");
+        }
+
+        const manifestPattern = new vscode.RelativePattern(this.rootPath, manifestFileName);
+        this.disposables.push(vscode.workspace.createFileSystemWatcher(manifestPattern));
         const manifestWatcher = this.disposables[this.disposables.length - 1] as vscode.FileSystemWatcher;
         manifestWatcher.onDidChange(() => void this.handleManifestChange());
 
-        const ownershipWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(this.folder, ownershipRelativePath));
+        const ownershipWatcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(this.rootPath, ownershipRelativePath));
         ownershipWatcher.onDidChange(() => this.scheduleReload());
         ownershipWatcher.onDidCreate(() => this.scheduleReload());
         ownershipWatcher.onDidDelete(() => this.scheduleReload());
         this.disposables.push(ownershipWatcher);
 
         this.disposables.push(vscode.workspace.onDidOpenTextDocument((document) => void this.routeDocument(document)));
+        await this.ensureOwnership();
         await this.reloadOwnership();
     }
 
@@ -186,11 +218,13 @@ export class WorkspaceController implements vscode.Disposable {
             return;
         }
 
-        const command = tsclCommand();
+        const tool = await resolveTscl(this.rootPath);
+        this.toolDescription = `${tool.command} (${tool.source})`;
         try {
-            this.output.appendLine(`[language server] checking ${command}`);
-            const serverVersion = await queryServerVersion(command, this.rootPath);
-            this.output.appendLine(`[language server] found ${serverVersion}`);
+            this.output.appendLine(`[language server] checking ${tool.command} (${tool.source})`);
+            const serverVersion = await queryServerVersion(tool, this.rootPath);
+            this.serverVersion = serverVersion;
+            this.output.appendLine(`[language server] selected ${tool.command} from ${tool.source}; version ${serverVersion}`);
             const sampleProject = ownership.entriesFor("tscl")[0]?.project;
             const requiredProjectVersion = await readProjectVersion(projectPath(this.rootPath, sampleProject));
             this.output.appendLine("[language server] project compatibility checked");
@@ -201,7 +235,7 @@ export class WorkspaceController implements vscode.Disposable {
             }
 
             const serverOptions: ServerOptions = async (): Promise<StreamInfo> => {
-                const process = spawnLanguageServer(command, this.rootPath, this.output);
+                const process = spawnLanguageServer(tool, this.rootPath, this.output);
                 if (!process.stdout || !process.stdin) {
                     throw new Error("Copeland language server did not provide stdio streams.");
                 }
@@ -222,6 +256,14 @@ export class WorkspaceController implements vscode.Disposable {
                     expectedServerVersion: this.extensionVersion,
                     loggingLevel: vscode.workspace.getConfiguration("copeland.languageServer").get<string>("trace", "off")
                 },
+                middleware: {
+                    provideHover: async (document, position, token, next) => {
+                        const hover = await next(document, position, token);
+                        this.output.appendLine(
+                            `[hover] ${path.relative(this.rootPath, document.uri.fsPath)}:${position.line + 1}:${position.character + 1} ${hover ? "resolved" : "no result"}`);
+                        return hover;
+                    }
+                },
                 outputChannel: this.output,
                 traceOutputChannel: this.output
             };
@@ -232,9 +274,11 @@ export class WorkspaceController implements vscode.Disposable {
             this.state = "ready";
             this.output.appendLine(`[language server] ready (${serverVersion})`);
         } catch (error) {
+            this.serverVersion = undefined;
             this.state = "language-server-unavailable";
             this.output.appendLine(`[language server] ${error instanceof Error ? error.message : String(error)}`);
-            vscode.window.showWarningMessage("Copeland language server is unavailable. Install a matching tscl toolchain or set copeland.tsclPath.");
+            vscode.window.showWarningMessage(
+                `Copeland language server is unavailable. Run "dotnet tool install --global Copeland.TS.Tool --version ${this.extensionVersion}" or set copeland.tsclPath.`);
         }
     }
 
@@ -260,8 +304,19 @@ export class WorkspaceController implements vscode.Disposable {
     }
 
     private async handleManifestChange(): Promise<void> {
-        if (vscode.workspace.getConfiguration("copeland.workspace", this.folder.uri).get<boolean>("autoSync", false)) {
+        if (vscode.workspace.getConfiguration("copeland.workspace", this.folder.uri).get<boolean>("autoSync", true)) {
             await vscode.commands.executeCommand("copeland.workspaceSync", this.folder.uri);
+        }
+    }
+
+    private async ensureOwnership(): Promise<void> {
+        try {
+            await vscode.workspace.fs.stat(this.ownershipUri);
+            return;
+        } catch {
+            const tool = await resolveTscl(this.rootPath);
+            this.output.appendLine("[ownership] generating canonical ownership from tsconfig.tsx");
+            await runTool(tool, ["workspace", "sync"], this.rootPath, this.output);
         }
     }
 
@@ -276,7 +331,7 @@ export class WorkspaceController implements vscode.Disposable {
         }
 
         this.missingMetadataShown = true;
-        void vscode.window.showWarningMessage("Copeland workspace metadata is missing. Run: tscl workspace sync", "Workspace Sync").then((action) => {
+        void vscode.window.showWarningMessage("Copeland could not resolve tsconfig.tsx ownership. See the Copeland TS output.", "Workspace Sync").then((action) => {
             if (action) {
                 void vscode.commands.executeCommand("copeland.workspaceSync", this.folder.uri);
             }

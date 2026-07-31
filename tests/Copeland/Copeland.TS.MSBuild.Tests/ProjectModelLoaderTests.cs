@@ -12,6 +12,7 @@ public sealed class ProjectModelLoaderTests
     {
         using var workspace = new TemporaryProject();
         string source = workspace.Write("App.tsx", "function App(): number { return 1; }");
+        workspace.Write("Helper.cs", "namespace Fixture; public sealed class Helper { public static string Name => \"fixture\"; }");
         string npmContract = workspace.Write("contracts/dialog.json", """
             {
               "schemaVersion": 1,
@@ -29,6 +30,7 @@ public sealed class ProjectModelLoaderTests
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
                 <TargetFramework>net10.0</TargetFramework>
+                <RootNamespace>Fixture</RootNamespace>
                 <CopelandTsXmlProfile>react-m0</CopelandTsXmlProfile>
                 <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
               </PropertyGroup>
@@ -48,6 +50,10 @@ public sealed class ProjectModelLoaderTests
         var loadedSource = Assert.Single(evaluated.Sources);
         Assert.Equal(Path.GetFullPath(source), Path.GetFullPath(loadedSource.SourcePath));
         Assert.NotEmpty(evaluated.Options.ClrReferences);
+        Type helper = Assert.Single(
+            new CopelandClrMetadataResolver(evaluated.Options.ClrReferences)
+                .FindTypesBySimpleName("Helper"));
+        Assert.Equal("Fixture.Helper", helper.FullName);
         CopelandNpmPackageContract npm = Assert.Single(evaluated.Options.NpmDependencies!.Packages);
         Assert.Equal("@fixture/dialog", npm.PackageName);
         Assert.Equal(Path.GetFullPath(npmContract), npm.SourcePath);

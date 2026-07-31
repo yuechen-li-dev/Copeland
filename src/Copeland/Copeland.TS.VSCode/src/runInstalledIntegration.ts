@@ -9,16 +9,16 @@ async function main(): Promise<void> {
     const extensionsDirectory = requiredPath("COPELAND_VSCODE_TEST_EXTENSIONS");
     const extensionTestsPath = path.resolve(__dirname, "integrationSuite.js");
     process.env.COPLAND_VSCODE_TEST_TSCL_PATH = toolchain;
-    process.env.COPLAND_VSCODE_TEST_TSCL_FILE = path.join(workspace, "src", "copeland", "Greeter.ts");
-    process.env.COPLAND_VSCODE_TEST_TSC_FILE = path.join(workspace, "src", "legacy", "Legacy.ts");
+    process.env.COPLAND_VSCODE_TEST_TSCL_FILE = path.join(workspace, "src", "copeland", "Program.ts");
+    process.env.COPLAND_VSCODE_TEST_TSC_FILE = path.join(workspace, "src", "traditional", "Traditional.ts");
 
     await runTests({
         extensionDevelopmentPath,
         extensionTestsPath,
         extensionTestsEnv: {
             COPELAND_VSCODE_TEST_TSCL_PATH: toolchain,
-            COPELAND_VSCODE_TEST_TSCL_FILE: path.join(workspace, "src", "copeland", "Greeter.ts"),
-            COPELAND_VSCODE_TEST_TSC_FILE: path.join(workspace, "src", "legacy", "Legacy.ts")
+            COPELAND_VSCODE_TEST_TSCL_FILE: path.join(workspace, "src", "copeland", "Program.ts"),
+            COPELAND_VSCODE_TEST_TSC_FILE: path.join(workspace, "src", "traditional", "Traditional.ts")
         },
         launchArgs: [
             workspace,

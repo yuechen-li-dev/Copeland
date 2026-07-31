@@ -2,19 +2,22 @@
   "name": "copeland-ts",
   "displayName": "Copeland TS",
   "description": "Project-aware Copeland TS language support for mixed tsc and tscl workspaces.",
-  "version": "0.1.0",
+  "version": "0.1.0-preview.1",
   "publisher": "copeland",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-or-later",
+  "repository": { "type": "git", "url": "https://github.com/yuechen-li-dev/Copeland" },
   "engines": { "vscode": "^1.99.0" },
   "categories": ["Programming Languages"],
   "activationEvents": [
     "workspaceContains:tsconfig.tsx",
+    "workspaceContains:**/tsconfig.tsx",
     "onCommand:copeland.workspaceSync",
     "onCommand:copeland.workspaceValidate",
     "onCommand:copeland.showFileOwner",
     "onCommand:copeland.buildProject",
     "onCommand:copeland.runProject",
     "onCommand:copeland.restartLanguageServer",
+    "onCommand:copeland.showProjectInfo",
     "onCommand:copeland.showLanguageServerOutput",
     "onCommand:copeland.openWorkspaceManifest",
     "onCommand:copeland.reloadWorkspaceOwnership"
@@ -36,6 +39,7 @@
       { "command": "copeland.buildProject", "title": "Copeland: Build Project" },
       { "command": "copeland.runProject", "title": "Copeland: Run Project" },
       { "command": "copeland.restartLanguageServer", "title": "Copeland: Restart Language Server" },
+      { "command": "copeland.showProjectInfo", "title": "Copeland: Show Project Information" },
       { "command": "copeland.showLanguageServerOutput", "title": "Copeland: Show Language Server Output" },
       { "command": "copeland.openWorkspaceManifest", "title": "Copeland: Open tsconfig.tsx" },
       { "command": "copeland.reloadWorkspaceOwnership", "title": "Copeland: Reload Workspace Ownership" }
@@ -43,9 +47,9 @@
     "configuration": {
       "title": "Copeland TS",
       "properties": {
-        "copeland.tsclPath": { "type": "string", "default": "tscl", "description": "Path to the installed tscl command. The default resolves tscl from PATH." },
+        "copeland.tsclPath": { "type": "string", "default": "", "description": "Optional explicit path to tscl. Otherwise Copeland uses a workspace .NET tool manifest, then global PATH." },
         "copeland.languageServer.trace": { "type": "string", "default": "off", "enum": ["off", "messages", "verbose"], "description": "Controls Copeland language-server protocol tracing." },
-        "copeland.workspace.autoSync": { "type": "boolean", "default": false, "description": "Runs tscl workspace sync when tsconfig.tsx changes." },
+        "copeland.workspace.autoSync": { "type": "boolean", "default": true, "description": "Refreshes canonical ownership when tsconfig.tsx changes." },
         "copeland.projectPath": { "type": "string", "default": "", "description": "Optional explicit Copeland project path when generated ownership is ambiguous." }
       }
     }
@@ -56,7 +60,7 @@
     "test:integration": "npm run compile && node ./out/runIntegration.js",
     "test:installed-integration": "npm run compile && node ./out/runInstalledIntegration.js",
     "prepackage": "node -e \"require('fs').mkdirSync('dist', { recursive: true })\"",
-    "package": "npm run compile && vsce package --out dist/copeland-ts-0.1.0.vsix --allow-missing-repository"
+    "package": "npm run compile && vsce package --out dist/copeland-ts-0.1.0-preview.1.vsix --allow-missing-repository"
   },
   "dependencies": { "vscode-languageclient": "^9.0.1" },
   "devDependencies": {

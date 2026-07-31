@@ -317,6 +317,95 @@ internal sealed record WorkspaceResult(
         => new(false, command, diagnostics, workspace, ownership);
 }
 
+/// <summary>
+/// Public, side-effect-free projection of the canonical tsconfig.tsx ownership
+/// resolver. The CLI, MSBuild SDK, language server, and editor metadata
+/// generation all consume the parser and glob law in this source file.
+/// </summary>
+public static class CopelandWorkspaceOwnership
+{
+    public static CopelandWorkspaceOwnershipResult Resolve(string workspacePath)
+    {
+        string fullPath = Path.GetFullPath(workspacePath);
+        if (!File.Exists(fullPath))
+        {
+            return new CopelandWorkspaceOwnershipResult(
+                false,
+                [],
+                [new CopelandWorkspaceOwnershipDiagnostic(
+                    "COPE-WORKSPACE-0002",
+                    "Workspace manifest 'tsconfig.tsx' does not exist.",
+                    fullPath)]);
+        }
+
+        try
+        {
+            string source = File.ReadAllText(fullPath);
+            var parser = new WorkspaceParser(fullPath, source);
+            WorkspaceManifest? workspace = parser.Parse();
+            if (workspace is null)
+            {
+                return new CopelandWorkspaceOwnershipResult(
+                    false,
+                    [],
+                    parser.Diagnostics
+                        .Select(ToPublicDiagnostic)
+                        .ToArray());
+            }
+
+            var resolver = new WorkspaceResolver(workspace);
+            WorkspaceOwnership ownership = resolver.Resolve();
+            if (resolver.Diagnostics.Count > 0)
+            {
+                return new CopelandWorkspaceOwnershipResult(
+                    false,
+                    [],
+                    resolver.Diagnostics
+                        .Select(ToPublicDiagnostic)
+                        .ToArray());
+            }
+
+            CopelandWorkspaceOwnedSource[] sources = ownership.Files
+                .Where(file => file.Owner == "tscl")
+                .Select(file => new CopelandWorkspaceOwnedSource(
+                    Path.GetFullPath(file.Path, workspace.RootDirectory),
+                    file.Project,
+                    file.Rule.Include))
+                .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            return new CopelandWorkspaceOwnershipResult(true, sources, []);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return new CopelandWorkspaceOwnershipResult(
+                false,
+                [],
+                [new CopelandWorkspaceOwnershipDiagnostic(
+                    "COPE-WORKSPACE-0003",
+                    exception.Message,
+                    fullPath)]);
+        }
+    }
+
+    private static CopelandWorkspaceOwnershipDiagnostic ToPublicDiagnostic(WorkspaceDiagnostic diagnostic)
+        => new(diagnostic.Code, diagnostic.Message, diagnostic.File);
+}
+
+public sealed record CopelandWorkspaceOwnershipResult(
+    bool Success,
+    IReadOnlyList<CopelandWorkspaceOwnedSource> Sources,
+    IReadOnlyList<CopelandWorkspaceOwnershipDiagnostic> Diagnostics);
+
+public sealed record CopelandWorkspaceOwnedSource(
+    string Path,
+    string Project,
+    string MatchedRule);
+
+public sealed record CopelandWorkspaceOwnershipDiagnostic(
+    string Code,
+    string Message,
+    string File);
+
 internal sealed class WorkspaceParser
 {
     private readonly string _path;

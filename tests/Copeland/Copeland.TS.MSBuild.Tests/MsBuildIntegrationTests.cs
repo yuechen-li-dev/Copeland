@@ -6,6 +6,51 @@ namespace Copeland.TS.MSBuild.Tests;
 public sealed class MsBuildIntegrationTests
 {
     [Fact]
+    public void Tsconfig_owned_sources_compile_without_explicit_msbuild_items()
+    {
+        using var fixture = new TemporaryProject();
+        string taskAssembly = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.MSBuild.dll"));
+        string props = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.props"));
+        string targets = EscapeXml(Path.Combine(AppContext.BaseDirectory, "Copeland.TS.Sdk.targets"));
+        fixture.Write("Demo/Demo.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <Import Project="{{props}}" />
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0</TargetFramework>
+                <RootNamespace>Demo</RootNamespace>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+              </PropertyGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """);
+        fixture.Write("Demo/tsconfig.tsx", """
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+
+            export default defineTypeScriptWorkspace({
+                ownership: "strict",
+                tscl: {
+                    project: "./Demo.csproj",
+                    include: ["src/copeland/**"]
+                }
+            });
+            """);
+        fixture.Write("Demo/src/copeland/Greeting.ts", """
+            export function Message(): string {
+                return "owned by tsconfig.tsx";
+            }
+            """);
+        fixture.Write("Demo/Program.cs", """
+            using Demo.Copeland;
+            System.Console.WriteLine(Greeting.Message());
+            """);
+
+        fixture.Run("Demo", "restore");
+        fixture.Run("Demo", "build", "--no-restore");
+        fixture.Run("Demo", "run", "--no-build").AssertOutput("owned by tsconfig.tsx");
+    }
+
+    [Fact]
     public void Normal_Project_Builds_Runs_Publishes_And_Cleans_Copeland_Intermediate_Source()
     {
         using var fixture = new TemporaryProject();
