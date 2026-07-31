@@ -1,0 +1,24 @@
+{
+  "version": "0.1.0-preview.1",
+  "validatedAtUtc": "2026-07-31T22:28:03.0212186Z",
+  "nugetToolVersion": "0.1.0-preview.1",
+  "compilerVersion": "0.1.0-preview.1",
+  "languageServerVersion": "0.1.0-preview.1",
+  "localManifestToolVersion": "0.1.0-preview.1",
+  "npmToolVersion": "0.1.0-preview.1",
+  "generatedProject": {
+    "path": "isolated/HelloCopeland",
+    "npmInstall": "passed",
+    "restore": "passed",
+    "build": "passed",
+    "test": "passed",
+    "run": "passed",
+    "output": "C# says hello to Copeland through System.String\r\nlodash-es says: helloFromNpm"
+  },
+  "vscode": {
+    "installedExtension": "copeland.copeland-ts@0.1.0-preview.1",
+    "isolatedProfileInstall": "passed",
+    "installedArtifactActivation": "passed",
+    "tsxOwnership": "passed"
+  }
+}

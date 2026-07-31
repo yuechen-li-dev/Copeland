@@ -2,7 +2,7 @@
   "name": "copeland-ts",
   "displayName": "Copeland TS",
   "description": "Project-aware Copeland TS language support for mixed tsc and tscl workspaces.",
-  "version": "0.1.0-preview.1-tsxml.1",
+  "version": "0.1.0-preview.1",
   "publisher": "copeland",
   "license": "GPL-3.0-or-later",
   "repository": { "type": "git", "url": "https://github.com/yuechen-li-dev/Copeland" },
@@ -60,7 +60,7 @@
     "test:integration": "npm run compile && node ./out/runIntegration.js",
     "test:installed-integration": "npm run compile && node ./out/runInstalledIntegration.js",
     "prepackage": "node -e \"require('fs').mkdirSync('dist', { recursive: true })\"",
-    "package": "npm run compile && vsce package --out dist/copeland-ts-0.1.0-preview.1-tsxml.1.vsix --allow-missing-repository"
+    "package": "npm run compile && vsce package --out dist/copeland-ts-0.1.0-preview.1.vsix --allow-missing-repository"
   },
   "dependencies": { "vscode-languageclient": "^9.0.1" },
   "devDependencies": {

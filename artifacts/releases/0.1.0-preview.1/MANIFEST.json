@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "product": "Copeland TS",
+  "version": "0.1.0-preview.1",
+  "status": "ready to publish",
+  "published": false,
+  "publiclyVerified": false,
+  "artifacts": [
+    {
+      "name": "Copeland.TS.Tool.0.1.0-preview.1.nupkg",
+      "version": "0.1.0-preview.1",
+      "sha256": "23c57fac38f02c808525ef216c5f42540d6eab7c2a4dd68e48b0d5cc7b82cab8",
+      "size": 8271360,
+      "packageId": "Copeland.TS.Tool",
+      "publicationTarget": "NuGet.org",
+      "requiredRuntimePlatform": ".NET 10; any tool-supported OS",
+      "validationStatus": "package-only smoke passed"
+    },
+    {
+      "name": "Copeland.TS.Sdk.0.1.0-preview.1.nupkg",
+      "version": "0.1.0-preview.1",
+      "sha256": "cc8d7fc1b085aaeb24a89b3e3f75fe9f7b9f74dd3924a7c6e85996eaee8c5352",
+      "size": 5231623,
+      "packageId": "Copeland.TS.Sdk",
+      "publicationTarget": "NuGet.org",
+      "requiredRuntimePlatform": ".NET 10 MSBuild",
+      "validationStatus": "package-only smoke passed"
+    },
+    {
+      "name": "copeland-tscl-0.1.0-preview.1.tgz",
+      "version": "0.1.0-preview.1",
+      "sha256": "618d37b0788f70ada28c5f24d92d1012de565b930f786014e39c2496c316dd17",
+      "size": 7685804,
+      "packageId": "@copeland/tscl",
+      "publicationTarget": "npm (preview tag)",
+      "requiredRuntimePlatform": "Windows x64; Node.js 20+; .NET 10",
+      "validationStatus": "package-only smoke passed"
+    },
+    {
+      "name": "copeland-ts-0.1.0-preview.1.vsix",
+      "version": "0.1.0-preview.1",
+      "sha256": "ea22dcef2b8df1a74bdfcdd354c30ab5ef3047267480be9bd20b31fa3c87456c",
+      "size": 483427,
+      "packageId": "copeland.copeland-ts",
+      "publicationTarget": "GitHub Release",
+      "requiredRuntimePlatform": "VS Code 1.99+; Copeland tool 0.1.0-preview.1",
+      "validationStatus": "package-only smoke passed"
+    },
+    {
+      "name": "BootstrapTemplate.tsx",
+      "version": "0.1.0-preview.1",
+      "sha256": "6ac2366687d42092dc38f1aa2cee8ced4d5a8c2eb00d309d174bc5ecd0e6a84a",
+      "size": 4772,
+      "packageId": "BootstrapTemplate",
+      "publicationTarget": "GitHub Release",
+      "requiredRuntimePlatform": "Copeland TS 0.1.0-preview.1",
+      "validationStatus": "package-only smoke passed"
+    }
+  ]
+}

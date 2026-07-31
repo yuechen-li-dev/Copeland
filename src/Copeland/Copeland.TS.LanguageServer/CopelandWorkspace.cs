@@ -210,7 +210,7 @@ internal sealed class CopelandWorkspace
                 insertTextFormat = 2,
             };
         }
-        foreach (string keyword in new[] { "function", "template", "static", "type", "record", "layout", "layers", "stream", "state", "on", "effect", "after", "StateCommitted", "PresentationCommitted", "AttachmentsSettled", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "overflow", "visible", "clip", "auto", "scroll", "scrollX", "scrollY", "fontSize", "minFontSize", "lines", "wrap", "textFit", "scaleDown", "textFallback", "ellipsis", "fill", "fit", "enum", "match", "switch", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf", "Text", "Document", "Heading", "Paragraph", "List", "Item", "CodeBlock", "Quote", "Callout", "Break", "HeroHeading", "SectionHeading", "CardHeading", "Body", "Eyebrow", "Caption" })
+        foreach (string keyword in new[] { "function", "template", "instantiate", "static", "type", "record", "layout", "layers", "stream", "state", "on", "effect", "after", "StateCommitted", "PresentationCommitted", "AttachmentsSettled", "satisfies", "bind", "csv", "row", "column", "grid", "anchor", "overlay", "slot", "with", "width", "height", "gap", "padding", "layer", "z", "overflow", "visible", "clip", "auto", "scroll", "scrollX", "scrollY", "fontSize", "minFontSize", "lines", "wrap", "textFit", "scaleDown", "textFallback", "ellipsis", "fill", "fit", "enum", "match", "switch", "return", "const", "let", "using", "import", "export", "async", "remote", "fieldsOf", "nameOf", "DotNetSolution", "DotNetProject", "TypeScriptWorkspace", "NpmPackageManifest", "NpmDependency", "CopelandSourceSet", "CopelandProjectTypeSet", "ProjectFile", "Text", "Document", "Heading", "Paragraph", "List", "Item", "CodeBlock", "Quote", "Callout", "Break", "HeroHeading", "SectionHeading", "CardHeading", "Body", "Eyebrow", "Caption" })
         {
             items[keyword] = CompletionItem(keyword, 14, "keyword");
         }
@@ -230,6 +230,20 @@ internal sealed class CopelandWorkspace
                     {
                         items[layer] = CompletionItem(layer, 13, "semantic layer of " + layerSet.Name);
                     }
+                }
+            }
+        }
+        string prefix = document.Text[..Math.Min(completionOffset, document.Text.Length)];
+        int instantiateStart = prefix.LastIndexOf("instantiate ", StringComparison.Ordinal);
+        if (instantiateStart >= 0 && prefix.LastIndexOf('>') < instantiateStart)
+        {
+            string tail = prefix[(instantiateStart + "instantiate ".Length)..];
+            string templateName = new(tail.TakeWhile(character => char.IsLetterOrDigit(character) || character == '_').ToArray());
+            if (scope?.Declarations.GetValueOrDefault(templateName) is TemplateSymbol template)
+            {
+                foreach (ParameterSymbol parameter in template.Parameters)
+                {
+                    items[parameter.Name] = CompletionItem(parameter.Name, 5, "static template argument: " + parameter.Type.Name);
                 }
             }
         }
@@ -960,8 +974,18 @@ internal sealed class CopelandWorkspace
                     yield return new DeclarationInfo(function.Identifier.Text, "function " + function.Identifier.Text, 12, function.Identifier.Position);
                     break;
                 case TemplateDeclarationSyntax template:
-                    string parameters = string.Join(", ", template.Parameters.Select(parameter => (parameter.StaticKeyword is null ? string.Empty : "static ") + parameter.Identifier.Text + ": " + (parameter.Type?.ToString() ?? "<missing>")));
-                    yield return new DeclarationInfo(template.Identifier.Text, "template " + template.Identifier.Text + "(" + parameters + "): ProjectTree", 12, template.Identifier.Position);
+                    string typeParameters = string.Join(", ", template.TypeParameters.Select(parameter => "type " + parameter.Identifier.Text + (parameter.RequirementNames.Count == 0 ? string.Empty : " extends " + string.Join(" & ", parameter.RequirementNames.Select(requirement => requirement.Text)))));
+                    string staticParameters = string.Join(", ", template.Parameters.Select(parameter => "static " + parameter.Identifier.Text + ": " + FormatType(parameter.Type)));
+                    string parameters = string.Join(", ", new[] { typeParameters, staticParameters }.Where(part => part.Length > 0));
+                    yield return new DeclarationInfo(template.Identifier.Text, "template<" + parameters + "> " + template.Identifier.Text + ": " + FormatType(template.ReturnType), 12, template.Identifier.Position);
+                    foreach (TypeParameterSyntax parameter in template.TypeParameters)
+                    {
+                        yield return new DeclarationInfo(parameter.Identifier.Text, "template type parameter " + parameter.Identifier.Text + (parameter.RequirementNames.Count == 0 ? string.Empty : " extends " + string.Join(" & ", parameter.RequirementNames.Select(requirement => requirement.Text))), 26, parameter.Identifier.Position);
+                    }
+                    foreach (TemplateParameterSyntax parameter in template.Parameters)
+                    {
+                        yield return new DeclarationInfo(parameter.Identifier.Text, "static template parameter " + parameter.Identifier.Text + ": " + FormatType(parameter.Type), 6, parameter.Identifier.Position);
+                    }
                     break;
                 case TypeAliasDeclarationSyntax alias:
                     yield return new DeclarationInfo(alias.Identifier.Text, "type " + alias.Identifier.Text + " = " + alias.TargetType, 13, alias.Identifier.Position);
@@ -1338,6 +1362,7 @@ internal sealed class CopelandWorkspace
         LayoutTypeSymbol layoutType => "layout type " + layoutType.Name,
         LayerSetSymbol layerSet => "layers " + layerSet.Name + " (declaration-ordered semantic paint layers)",
         FunctionSymbol function => (function.IsRemote ? "remote " : string.Empty) + "function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.InvocationReturnType.Name,
+        TemplateSymbol template => "template<" + string.Join(", ", template.TypeParameters.Select(parameter => "type " + parameter.Name).Concat(template.Parameters.Select(parameter => "static " + parameter.Name + ": " + parameter.Type.Name))) + "> " + template.Name + ": " + template.ResultTypeDisplayName,
         NpmFunctionSymbol function => "npm function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.InvocationReturnType.Name,
         CopelandPackageFunctionSymbol function => "package function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.ReturnType.Name,
         JavaScriptHostFunctionSymbol function => "host function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.ReturnType.Name,
@@ -1345,6 +1370,15 @@ internal sealed class CopelandWorkspace
         VariableSymbol variable => variable.Name + ": " + variable.Type.Name,
         ParameterSymbol parameter => parameter.Name + ": " + parameter.Type.Name,
         _ => symbol.Name,
+    };
+
+    private static string FormatType(TypeSyntax syntax) => syntax switch
+    {
+        IdentifierTypeSyntax identifier => identifier.Identifier.Text,
+        PredefinedTypeSyntax predefined => predefined.Keyword.Text,
+        ArrayTypeSyntax array => FormatType(array.ElementType) + "[]",
+        GenericTypeSyntax generic => generic.Identifier.Text + "<" + string.Join(", ", generic.TypeArguments.Select(FormatType)) + ">",
+        _ => syntax.Kind.ToString(),
     };
 
     private static int TokenKind(SyntaxToken token, CopelandCompilation compilation)

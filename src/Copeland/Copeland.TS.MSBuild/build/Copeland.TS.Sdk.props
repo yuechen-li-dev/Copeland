@@ -3,7 +3,7 @@
     <CopelandGeneratedDirectory Condition="'$(CopelandGeneratedDirectory)' == ''">$(IntermediateOutputPath)Copeland\</CopelandGeneratedDirectory>
     <CopelandTestGeneratedDirectory Condition="'$(CopelandTestGeneratedDirectory)' == ''">$(BaseIntermediateOutputPath)CopelandTests\</CopelandTestGeneratedDirectory>
     <CopelandTaskAssembly Condition="'$(CopelandTaskAssembly)' == ''">$(MSBuildThisFileDirectory)..\tools\net10.0\Copeland.TS.MSBuild.dll</CopelandTaskAssembly>
-    <CopelandSdkVersion Condition="'$(CopelandSdkVersion)' == ''">0.1.0-preview.1-tsxml.1</CopelandSdkVersion>
+    <CopelandSdkVersion Condition="'$(CopelandSdkVersion)' == ''">0.1.0-preview.1</CopelandSdkVersion>
     <CopelandRequiredVersion Condition="'$(CopelandRequiredVersion)' == ''">$(CopelandSdkVersion)</CopelandRequiredVersion>
     <CopelandXunitVersion Condition="'$(CopelandXunitVersion)' == ''">2.9.3</CopelandXunitVersion>
     <CopelandTestSdkVersion Condition="'$(CopelandTestSdkVersion)' == ''">17.14.1</CopelandTestSdkVersion>

@@ -8,7 +8,14 @@
     <ToolCommandName>tscl</ToolCommandName>
     <PackageId>Copeland.TS.Tool</PackageId>
     <PackageVersion>$(CopelandToolchainVersion)</PackageVersion>
-    <Description>Copeland compiler, workspace tooling, and language-server launcher.</Description>
+    <Authors>Yuechen Li and Copeland contributors</Authors>
+    <Description>Compile Copeland TypeScript and C# together in normal .NET 10 projects. Installs the tscl command, compiler, template tooling, and language server.</Description>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/yuechen-li-dev/Copeland</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/yuechen-li-dev/Copeland</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>copeland;typescript;tsx;compiler;dotnet-tool;language-server</PackageTags>
+    <PackageReleaseNotes>First public preview of Copeland TS for mixed TypeScript, TSX, and C# projects on .NET 10.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>false</IncludeSymbols>
   </PropertyGroup>
@@ -25,5 +32,7 @@
 
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="" />
+    <None Include="../../../LICENSE" Pack="true" PackagePath="" />
+    <None Include="../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>

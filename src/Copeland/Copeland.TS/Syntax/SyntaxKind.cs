@@ -167,6 +167,8 @@ public enum SyntaxKind
     AsyncType,
     IterableType,
     GenericCallExpression,
+    TemplateInstantiationExpression,
+    TemplateInstantiationArgument,
     GenericFunctionReferenceExpression,
     BlockStatement,
     VariableDeclarationStatement,

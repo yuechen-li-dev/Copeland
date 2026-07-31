@@ -667,7 +667,7 @@ public static class CopelandProjectCompiler
                 _ when tokens[index + 1].Kind == SyntaxKind.FunctionKeyword && tokens[index + 2].Kind == SyntaxKind.StarToken => index + 3,
                 _ when tokens[index + 1].Kind == SyntaxKind.FunctionKeyword => index + 2,
                 "type" or "interface" or "flow" or "class" => index + 2,
-                _ when tokens[index + 1].Kind == SyntaxKind.TemplateKeyword => index + 2,
+                _ when tokens[index + 1].Kind == SyntaxKind.TemplateKeyword => TemplateNameIndex(tokens, index + 2),
                 _ when tokens[index + 1].Kind == SyntaxKind.LayoutKeyword => LayoutNameIndex(tokens, index + 2),
                 "layers" when index + 2 < tokens.Length => index + 2,
                 _ when tokens[index + 1].Kind is SyntaxKind.EnumKeyword or SyntaxKind.RecordKeyword => index + 2,
@@ -704,6 +704,8 @@ public static class CopelandProjectCompiler
             };
             int nameIndex = kind == "layout"
                 ? LayoutNameIndex(tokens, index + 1)
+                : kind == "template"
+                ? TemplateNameIndex(tokens, index + 1)
                 : kind == "function" && tokens[index + 1].Kind == SyntaxKind.StarToken
                 ? index + 2
                 : index + 1;
@@ -715,6 +717,28 @@ public static class CopelandProjectCompiler
             declarations.Add(new ProjectDeclaration(tokens[nameIndex].Text, kind));
         }
         return declarations;
+    }
+
+    private static int TemplateNameIndex(IReadOnlyList<SyntaxToken> tokens, int start)
+    {
+        if (start >= tokens.Count || tokens[start].Kind != SyntaxKind.LessToken)
+        {
+            return start;
+        }
+
+        int depth = 0;
+        for (int index = start; index < tokens.Count; index++)
+        {
+            if (tokens[index].Kind == SyntaxKind.LessToken)
+            {
+                depth++;
+            }
+            else if (tokens[index].Kind == SyntaxKind.GreaterToken && --depth == 0)
+            {
+                return index + 1;
+            }
+        }
+        return -1;
     }
 
     private static int LayoutNameIndex(IReadOnlyList<SyntaxToken> tokens, int candidate)

@@ -42,8 +42,6 @@ public static class CopelandCompiler
                 diagnostics.AddRange(boundCompilation.Diagnostics);
                 if (boundCompilation.Program.Templates.Count > 0)
                 {
-                    TemplateEvaluationResult templateEvaluation = TemplateCompiler.Evaluate(boundCompilation);
-                    diagnostics.AddRange(templateEvaluation.Diagnostics.Skip(boundCompilation.Diagnostics.Count));
                     if (effectiveOptions.TargetStage >= CopelandCompilationStage.Mir)
                     {
                         diagnostics.Add(new Diagnostic(
@@ -53,7 +51,7 @@ public static class CopelandCompiler
                             0,
                             effectiveOptions.SourcePath));
                     }
-                    return new CopelandCompilation(effectiveOptions.TargetStage, diagnostics, syntaxTree, boundCompilation, null, null, assetResolver?.Dependencies, templateEvaluation);
+                    return new CopelandCompilation(effectiveOptions.TargetStage, diagnostics, syntaxTree, boundCompilation, null, null, assetResolver?.Dependencies);
                 }
             }
         }

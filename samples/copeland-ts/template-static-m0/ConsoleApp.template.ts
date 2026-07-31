@@ -7,17 +7,17 @@ type ConsoleConfig = {
 
 import { BaseProject } from "./BaseProject.template.ts";
 
-template ProgramSource(static config: ConsoleConfig): ProjectTree {
+template<static config: ConsoleConfig> ProgramSource: ProjectTree {
     static if (true) {
         emit(sourceFile("Program.cs", `Console.WriteLine("Hello from ${config.name}");
 `));
     }
 }
 
-template ConsoleApp(static config: ConsoleConfig): ProjectTree {
-    emit(BaseProject());
+template<static config: ConsoleConfig> ConsoleApp: ProjectTree {
+    emit(instantiate BaseProject<>);
     static for (const source of ["Program"]) {
-        emit(ProgramSource(config));
+        emit(instantiate ProgramSource<config: config>);
     }
     static if (config.includeTests) {
         emit(sourceFile("ConsoleApp.Tests.cs", `// Tests for ${config.name}
@@ -30,6 +30,6 @@ template ConsoleApp(static config: ConsoleConfig): ProjectTree {
 
 // Entry point retained for CLI preview/materialization dogfood. The generated
 // application itself is produced by the typed static-value ConsoleApp call.
-template ConsoleDogfood(): ProjectTree {
-    emit(ConsoleApp({ name: "Copeland template", includeTests: true }));
+template<> ConsoleDogfood: ProjectTree {
+    emit(instantiate ConsoleApp<config: { name: "Copeland template", includeTests: true }>);
 }

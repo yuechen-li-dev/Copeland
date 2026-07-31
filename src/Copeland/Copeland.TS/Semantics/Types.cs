@@ -86,6 +86,16 @@ public sealed class ArtifactTypeSymbol : TypeSymbol
     public static readonly ArtifactTypeSymbol DirectoryArtifact = new("DirectoryArtifact");
     public static readonly ArtifactTypeSymbol TextFileArtifact = new("TextFileArtifact");
     public static readonly ArtifactTypeSymbol SourceFileArtifact = new("SourceFileArtifact");
+    public static readonly ArtifactTypeSymbol ProjectFile = new("ProjectFile");
+    public static readonly ArtifactTypeSymbol TestFile = new("TestFile");
+    public static readonly ArtifactTypeSymbol DotNetSolution = new("DotNetSolution");
+    public static readonly ArtifactTypeSymbol DotNetProject = new("DotNetProject");
+    public static readonly ArtifactTypeSymbol TypeScriptWorkspace = new("TypeScriptWorkspace");
+    public static readonly ArtifactTypeSymbol NpmPackageManifest = new("NpmPackageManifest");
+    public static readonly ArtifactTypeSymbol NpmDependency = new("NpmDependency");
+    public static readonly ArtifactTypeSymbol CopelandSourceSet = new("CopelandSourceSet");
+    public static readonly ArtifactTypeSymbol CopelandProjectTypeSet = new("CopelandProjectTypeSet");
+    public static readonly ArtifactTypeSymbol XmlElement = new("XmlElement");
     public override string Name { get; }
 }
 

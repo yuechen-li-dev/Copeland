@@ -8,8 +8,8 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-    <!-- TSXML-TEXT-VALUE-M0C local release-candidate train. All coordinated artifacts use this authority. -->
-    <CopelandToolchainVersion>0.1.0-preview.1-tsxml.1</CopelandToolchainVersion>
+    <!-- Public Copeland TS release authority. Packaging validation enforces all copies. -->
+    <CopelandToolchainVersion>0.1.0-preview.1</CopelandToolchainVersion>
     <Version Condition="'$(Version)' == ''">$(CopelandToolchainVersion)</Version>
     <PackageVersion Condition="'$(PackageVersion)' == ''">$(CopelandToolchainVersion)</PackageVersion>
   </PropertyGroup>

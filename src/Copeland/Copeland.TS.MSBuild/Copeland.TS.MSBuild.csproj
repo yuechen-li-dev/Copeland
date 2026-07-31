@@ -6,7 +6,14 @@
     <PackageId>Copeland.TS.Sdk</PackageId>
     <PackageVersion>$(CopelandToolchainVersion)</PackageVersion>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <Description>MSBuild integration for Copeland TypeScript source files.</Description>
+    <Authors>Yuechen Li and Copeland contributors</Authors>
+    <Description>MSBuild SDK integration for compiling Copeland TypeScript, TSX, and C# together in .NET 10 projects.</Description>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/yuechen-li-dev/Copeland</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/yuechen-li-dev/Copeland</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>copeland;typescript;tsx;msbuild;sdk;dotnet</PackageTags>
+    <PackageReleaseNotes>First public preview of Copeland TS MSBuild integration for .NET 10 projects.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackCopelandTaskPayload</TargetsForTfmSpecificContentInPackage>
@@ -41,6 +48,8 @@
     <None Include="build\Copeland.TS.Sdk.props" Pack="true" PackagePath="build;buildTransitive" />
     <None Include="build\Copeland.TS.Sdk.targets" Pack="true" PackagePath="build;buildTransitive" />
     <None Include="README.md" Pack="true" PackagePath="" />
+    <None Include="../../../LICENSE" Pack="true" PackagePath="" />
+    <None Include="../THIRD_PARTY_NOTICES.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <Target Name="PackCopelandTaskPayload">

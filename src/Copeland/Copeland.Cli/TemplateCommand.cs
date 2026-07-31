@@ -20,6 +20,7 @@ internal static class TemplateCommand
         string? entry = null;
         string? output = null;
         string? name = null;
+        string? target = null;
         string format = "tree";
         for (int index = 3; index < args.Length; index++)
         {
@@ -34,6 +35,7 @@ internal static class TemplateCommand
                 case "--entry": entry = value; break;
                 case "--output": output = value; break;
                 case "--name": name = value; break;
+                case "--target": target = value; break;
                 case "--format": format = value; break;
                 default: return Usage("COPE-TEMPLATE-CLI-0003", $"Unknown template option '{option}'.");
             }
@@ -52,7 +54,7 @@ internal static class TemplateCommand
             return 2;
         }
 
-        TemplateEvaluationResult evaluation = EvaluateProjectTemplate(fullSourcePath, entry, name);
+        TemplateEvaluationResult evaluation = EvaluateProjectTemplate(fullSourcePath, entry, name, target);
         if (!evaluation.Success)
         {
             foreach (var diagnostic in evaluation.Diagnostics)
@@ -98,7 +100,7 @@ internal static class TemplateCommand
         return 0;
     }
 
-    private static TemplateEvaluationResult EvaluateProjectTemplate(string sourcePath, string? entry, string? name)
+    private static TemplateEvaluationResult EvaluateProjectTemplate(string sourcePath, string? entry, string? name, string? target)
     {
         string root = Path.GetDirectoryName(sourcePath)!;
         CopelandProjectSource[] sources = Directory.EnumerateFiles(root, "*.ts", SearchOption.AllDirectories)
@@ -112,7 +114,7 @@ internal static class TemplateCommand
         return CopelandProjectCompiler.CompileTemplates(
             sources,
             entry,
-            name is null ? [] : [name],
+            name is null ? [] : target is null ? [name] : [name, target],
             new CopelandCompilationOptions
             {
                 SourcePath = sourcePath,

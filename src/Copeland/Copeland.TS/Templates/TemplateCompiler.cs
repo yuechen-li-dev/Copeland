@@ -3,6 +3,7 @@ using Copeland.TS.Compiler;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
+using System.Text.Json;
 
 namespace Copeland.TS.Templates;
 
@@ -59,11 +60,45 @@ public static class TemplateCompiler
             diagnostics.Add(new Diagnostic("COPE-TEMPLATE-0001", $"Template '{entryName}' was not found.", 0, 0));
             return new TemplateEvaluationResult(entryName!, null, diagnostics, []);
         }
+        TypeParameterSymbol? missingCliType = entry.Symbol.TypeParameters
+            .Where((_, index) => entry.Symbol.TypeParameterDefaults.ElementAtOrDefault(index) is null)
+            .FirstOrDefault();
+        if (missingCliType is not null)
+        {
+            diagnostics.Add(new Diagnostic(
+                "COPE-TEMPLATE-0010",
+                $"CLI-facing template '{entry.Symbol.Name}' requires a default for type parameter '{missingCliType.Name}'. Source instantiations may bind it explicitly with 'instantiate'.",
+                entry.Syntax.Identifier.Position,
+                entry.Syntax.Identifier.Text.Length));
+            return new TemplateEvaluationResult(entry.Symbol.Name, null, diagnostics, []);
+        }
 
         diagnostics.AddRange(TemplatePlanValidator.Validate(templates));
         var evaluator = new BoundPlanEvaluator(templates, diagnostics);
-        ProjectTree? project = evaluator.EvaluateTemplate(entry, entryArguments);
+        object? result = evaluator.EvaluateTemplate(entry, entryArguments);
+        ProjectTree? project = result switch
+        {
+            ProjectTree tree => tree,
+            DotNetSolutionValue solution when solution.TryLower(out ProjectTree? tree, out IReadOnlyList<Diagnostic> loweringDiagnostics)
+                => tree,
+            DotNetSolutionValue solution => ReportLoweringFailure(solution),
+            null => null,
+            _ => ReportUnsupportedMaterializer(entry.Symbol.ReturnType),
+        };
         return new TemplateEvaluationResult(entry.Symbol.Name, project, diagnostics, evaluator.InstantiationChain);
+
+        ProjectTree? ReportLoweringFailure(DotNetSolutionValue solution)
+        {
+            _ = solution.TryLower(out _, out IReadOnlyList<Diagnostic> loweringDiagnostics);
+            diagnostics.AddRange(loweringDiagnostics);
+            return null;
+        }
+
+        ProjectTree? ReportUnsupportedMaterializer(TypeSymbol resultType)
+        {
+            diagnostics.Add(new Diagnostic("COPE-TEMPLATE-0009", $"No filesystem materializer supports template result type '{resultType.Name}'.", 0, 1));
+            return null;
+        }
     }
 
     public static TemplateEvaluationResult Evaluate(string sourceText, string? entryName = null)
@@ -518,7 +553,10 @@ public static class TemplateCompiler
 
         public IReadOnlyList<string> InstantiationChain => _instantiationChain;
 
-        public ProjectTree? EvaluateTemplate(BoundTemplateDeclaration declaration, IReadOnlyList<object?> arguments)
+        public object? EvaluateTemplate(
+            BoundTemplateDeclaration declaration,
+            IReadOnlyList<object?> arguments,
+            IReadOnlyList<TypeSymbol>? suppliedTypeArguments = null)
         {
             if (_active.Contains(declaration.Symbol))
             {
@@ -531,9 +569,14 @@ public static class TemplateCompiler
                 Report("COPE-TEMPLATE-0003", $"Template '{declaration.Symbol.Name}' has no bound static plan.", declaration.Symbol.Name, 0, 1);
                 return null;
             }
-            if (arguments.Count != declaration.Symbol.Parameters.Count)
+            TypeSymbol[] typeArguments = declaration.Symbol.TypeParameters
+                .Select((_, index) => suppliedTypeArguments?.ElementAtOrDefault(index)
+                    ?? declaration.Symbol.TypeParameterDefaults.ElementAtOrDefault(index)
+                    ?? PrimitiveTypeSymbol.Error)
+                .ToArray();
+            if (arguments.Count > declaration.Symbol.Parameters.Count)
             {
-                Report("COPE-TEMPLATE-0002", $"Template '{declaration.Symbol.Name}' expects {declaration.Symbol.Parameters.Count} static argument(s), but received {arguments.Count}.", declaration.Symbol.Name, 0, 1);
+                Report("COPE-TEMPLATE-0002", $"Template '{declaration.Symbol.Name}' expects at most {declaration.Symbol.Parameters.Count} static argument(s), but received {arguments.Count}.", declaration.Symbol.Name, 0, 1);
                 return null;
             }
 
@@ -551,22 +594,34 @@ public static class TemplateCompiler
             _instantiationChain.Add(string.Join(" -> ", _active.Reverse().Select(Describe)));
             try
             {
-                var context = new BoundEvaluationContext();
-                for (int index = 0; index < arguments.Count; index++)
+                var context = new BoundEvaluationContext(typeArguments);
+                for (int index = 0; index < declaration.Symbol.Parameters.Count; index++)
                 {
                     // Parameter symbols are not re-created by the plan; template
                     // declarations with value parameters bind local references by name.
                     VariableSymbol parameter = declaration.Parameters[index];
-                    context.Values[parameter] = arguments[index];
+                    if (index < arguments.Count)
+                    {
+                        context.Values[parameter] = arguments[index];
+                        continue;
+                    }
+
+                    BoundTemplateValue? defaultValue = declaration.ParameterDefaults.ElementAtOrDefault(index);
+                    if (defaultValue is null)
+                    {
+                        Report("COPE-TEMPLATE-0002", $"Missing required static parameter '{parameter.Name}' for template '{declaration.Symbol.Name}'.", declaration.Symbol.Name, 0, 1);
+                        return null;
+                    }
+                    context.Values[parameter] = EvaluateValue(defaultValue, context);
                 }
                 Execute(declaration.Plan, context);
-                if (context.ReturnValue is ProjectTree returned)
-                {
-                    return returned;
-                }
                 if (context.DidReturn)
                 {
-                    Report("COPE-TEMPLATE-0005", $"Template '{declaration.Symbol.Name}' returned a non-ProjectTree artifact value.", declaration.Symbol.Name, 0, 1);
+                    return context.ReturnValue;
+                }
+                if (declaration.Symbol.ReturnType != ArtifactTypeSymbol.ProjectTree)
+                {
+                    Report("COPE-TEMPLATE-0005", $"Template '{declaration.Symbol.Name}' must explicitly return its declared '{declaration.Symbol.ReturnType.Name}' result.", declaration.Symbol.Name, 0, 1);
                     return null;
                 }
                 return ProjectTree.TryCreate(context.Emitted, out ProjectTree? project, out IReadOnlyList<Diagnostic> artifactDiagnostics)
@@ -651,6 +706,8 @@ public static class TemplateCompiler
                     return literal.Value;
                 case BoundTemplateLocalReference local:
                     return context.Values.GetValueOrDefault(local.Local);
+                case BoundTemplateTypeName typeName:
+                    return context.TypeArguments.ElementAtOrDefault(typeName.ParameterIndex)?.Name ?? "<missing-type>";
                 case BoundTemplateArray array:
                     return array.Elements.Select(element => EvaluateValue(element, context)).ToArray();
                 case BoundTemplateStructuralObject structural:
@@ -676,6 +733,8 @@ public static class TemplateCompiler
                     return EvaluateArtifactConstructor(artifact, context);
                 case BoundTemplateInvocation invocation:
                     return EvaluateInvocation(invocation, context);
+                case BoundTemplateXmlElement xml:
+                    return EvaluateXmlElement(xml, context);
                 default:
                     Report("COPE-TEMPLATE-0003", "Template plan contains an unresolved static value.", value.Anchor);
                     return null;
@@ -690,7 +749,7 @@ public static class TemplateCompiler
                 return null;
             }
             object?[] values = invocation.Arguments.Select(argument => EvaluateValue(argument, context)).ToArray();
-            return EvaluateTemplate(target, values);
+            return EvaluateTemplate(target, values, invocation.TypeArguments);
         }
 
         private object? EvaluateArtifactConstructor(BoundArtifactConstructor constructor, BoundEvaluationContext context)
@@ -705,10 +764,34 @@ public static class TemplateCompiler
                         => new TextFileArtifact(path, ProjectTree.EncodeText(content), provenance),
                     BoundArtifactIntrinsic.SourceFile when arguments is [string path, string content]
                         => new SourceFileArtifact(path, ProjectTree.EncodeText(content), provenance),
+                    BoundArtifactIntrinsic.TestFile when arguments is [string path, string content]
+                        => new TestFileArtifact(path, ProjectTree.EncodeText(content), provenance),
                     BoundArtifactIntrinsic.Directory when arguments is [string path, object?[] children]
                         => new DirectoryArtifact(path, children.OfType<ArtifactNode>().ToArray(), provenance),
                     BoundArtifactIntrinsic.Project when arguments is [object?[] children]
                         => CreateProject(children.OfType<ArtifactNode>(), constructor.Anchor),
+                    BoundArtifactIntrinsic.CsProjectFile when arguments is [string path, TemplateXmlElementValue xml]
+                        => new ProjectFileArtifact(path, ProjectTree.EncodeText(SerializeXml(xml)), provenance),
+                    BoundArtifactIntrinsic.SlnxFile when arguments is [string path, string projectPath]
+                        => new ProjectFileArtifact(path, ProjectTree.EncodeText($"<Solution>\n  <Project Path=\"{EscapeXml(projectPath)}\" />\n</Solution>\n"), provenance),
+                    BoundArtifactIntrinsic.NpmDependency when arguments is [string name, string version]
+                        => new NpmDependencyValue(name, version, provenance),
+                    BoundArtifactIntrinsic.NpmPackageManifest when arguments is [string name, string version, object?[] dependencies]
+                        => new NpmPackageManifestValue(name, version, dependencies.OfType<NpmDependencyValue>().ToArray(), provenance),
+                    BoundArtifactIntrinsic.JsonFile when arguments is [string path, NpmPackageManifestValue manifest]
+                        => new ProjectFileArtifact(path, ProjectTree.EncodeText(SerializePackageManifest(manifest)), provenance),
+                    BoundArtifactIntrinsic.CopelandSourceSet when arguments is [object?[] includes]
+                        => new CopelandSourceSetValue(includes.OfType<string>().ToArray(), provenance),
+                    BoundArtifactIntrinsic.CopelandProjectTypeSet when arguments is [object?[] projectTypes]
+                        => new CopelandProjectTypeSetValue(projectTypes.OfType<string>().ToArray(), provenance),
+                    BoundArtifactIntrinsic.TypeScriptWorkspace when arguments is [string projectPath, CopelandSourceSetValue includes, CopelandProjectTypeSetValue projectTypes]
+                        => new TypeScriptWorkspaceValue(projectPath, includes.Includes, projectTypes.Types, provenance),
+                    BoundArtifactIntrinsic.WorkspaceFile when arguments is [string path, TypeScriptWorkspaceValue workspace]
+                        => new ProjectFileArtifact(path, ProjectTree.EncodeText(SerializeWorkspace(workspace)), provenance),
+                    BoundArtifactIntrinsic.DotNetProject when arguments is [string name, object?[] files]
+                        => new DotNetProjectValue(name, files.OfType<ArtifactNode>().ToArray(), provenance),
+                    BoundArtifactIntrinsic.DotNetSolution when arguments is [string name, DotNetProjectValue project, object?[] files]
+                        => new DotNetSolutionValue(name, project, files.OfType<ArtifactNode>().ToArray(), provenance),
                     _ => ReportInvalidIntrinsic(constructor),
                 };
             }
@@ -717,6 +800,81 @@ public static class TemplateCompiler
                 Report("COPE-ARTIFACT-0001", exception.Message, constructor.Anchor);
                 return null;
             }
+        }
+
+        private TemplateXmlElementValue EvaluateXmlElement(BoundTemplateXmlElement element, BoundEvaluationContext context)
+        {
+            KeyValuePair<string, string>[] attributes = element.Attributes
+                .Select(attribute => new KeyValuePair<string, string>(
+                    attribute.Name,
+                    EvaluateValue(attribute.Value, context)?.ToString() ?? string.Empty))
+                .ToArray();
+            object[] children = element.Children.Select(child => child switch
+            {
+                BoundTemplateXmlText text => (object)text.Text,
+                BoundTemplateXmlValue value => EvaluateValue(value.Value, context)?.ToString() ?? string.Empty,
+                BoundTemplateXmlNested nested => EvaluateXmlElement(nested.Element, context),
+                _ => string.Empty,
+            }).ToArray();
+            return new TemplateXmlElementValue(element.Name, attributes, children);
+        }
+
+        private static string SerializeXml(TemplateXmlElementValue root)
+        {
+            var builder = new System.Text.StringBuilder();
+            WriteElement(root, builder, 0);
+            return builder.ToString();
+
+            static void WriteElement(TemplateXmlElementValue element, System.Text.StringBuilder builder, int depth)
+            {
+                string indent = new(' ', depth * 2);
+                builder.Append(indent).Append('<').Append(element.Name);
+                foreach (KeyValuePair<string, string> attribute in element.Attributes)
+                {
+                    builder.Append(' ').Append(attribute.Key).Append("=\"").Append(EscapeXml(attribute.Value)).Append('"');
+                }
+                if (element.Children.Count == 0)
+                {
+                    builder.Append(" />\n");
+                    return;
+                }
+                bool textOnly = element.Children.All(child => child is string);
+                if (textOnly)
+                {
+                    builder.Append('>').Append(string.Concat(element.Children.Cast<string>().Select(EscapeXml)))
+                        .Append("</").Append(element.Name).Append(">\n");
+                    return;
+                }
+                builder.Append(">\n");
+                foreach (object child in element.Children)
+                {
+                    if (child is TemplateXmlElementValue nested) WriteElement(nested, builder, depth + 1);
+                    else if (child is string text && text.Length > 0) builder.Append(new string(' ', (depth + 1) * 2)).Append(EscapeXml(text)).Append('\n');
+                }
+                builder.Append(indent).Append("</").Append(element.Name).Append(">\n");
+            }
+        }
+
+        private static string EscapeXml(string value)
+            => System.Security.SecurityElement.Escape(value) ?? string.Empty;
+
+        private static string SerializePackageManifest(NpmPackageManifestValue manifest)
+            => JsonSerializer.Serialize(
+                new
+                {
+                    name = manifest.Name.ToLowerInvariant(),
+                    version = manifest.Version,
+                    @private = true,
+                    type = "module",
+                    dependencies = manifest.Dependencies.ToDictionary(dependency => dependency.Name, dependency => dependency.Version, StringComparer.Ordinal),
+                },
+                new JsonSerializerOptions { WriteIndented = true }) + "\n";
+
+        private static string SerializeWorkspace(TypeScriptWorkspaceValue workspace)
+        {
+            string includes = string.Join(", ", workspace.Includes.Select(value => $"\"{value}\""));
+            string types = string.Join(", ", workspace.ProjectTypes.Select(value => $"\"{value}\""));
+            return $"import {{ defineTypeScriptWorkspace }} from \"copeland/workspace\";\n\nexport default defineTypeScriptWorkspace({{\n    ownership: \"strict\",\n    tscl: {{\n        project: \"{workspace.ProjectPath}\",\n        include: [{includes}],\n        types: [{types}]\n    }}\n}});\n";
         }
 
         private ProjectTree? CreateProject(IEnumerable<ArtifactNode> nodes, SyntaxToken anchor)
@@ -755,8 +913,9 @@ public static class TemplateCompiler
         private void Report(string id, string message, string _, int position, int length)
             => _diagnostics.Add(new Diagnostic(id, message, position, length));
 
-        private sealed class BoundEvaluationContext
+        private sealed class BoundEvaluationContext(IReadOnlyList<TypeSymbol> typeArguments)
         {
+            public IReadOnlyList<TypeSymbol> TypeArguments { get; } = typeArguments;
             public Dictionary<VariableSymbol, object?> Values { get; } = [];
             public List<ArtifactNode> Emitted { get; } = [];
             public object? ReturnValue { get; set; }

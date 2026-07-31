@@ -882,6 +882,7 @@ public sealed class BoundTemplateDeclaration(TemplateSymbol symbol, TemplateDecl
     public TemplateDeclarationSyntax Syntax { get; } = syntax;
     public BoundTemplateBlock? Plan { get; internal set; }
     public IReadOnlyList<VariableSymbol> Parameters { get; internal set; } = [];
+    public IReadOnlyList<BoundTemplateValue?> ParameterDefaults { get; internal set; } = [];
 }
 
 public abstract class BoundTemplateNode(SyntaxToken anchor) : BoundNode
@@ -943,13 +944,53 @@ public sealed class BoundTemplateLocalReference(SyntaxToken anchor, VariableSymb
     public VariableSymbol Local { get; } = local;
 }
 
-public enum BoundArtifactIntrinsic { Project, Directory, TextFile, SourceFile }
+public sealed class BoundTemplateTypeName(SyntaxToken anchor, int parameterIndex) : BoundTemplateValue(anchor, PrimitiveTypeSymbol.String)
+{
+    public int ParameterIndex { get; } = parameterIndex;
+}
+
+public enum BoundArtifactIntrinsic
+{
+    Project,
+    Directory,
+    TextFile,
+    SourceFile,
+    TestFile,
+    CsProjectFile,
+    SlnxFile,
+    NpmPackageManifest,
+    NpmDependency,
+    JsonFile,
+    TypeScriptWorkspace,
+    CopelandSourceSet,
+    CopelandProjectTypeSet,
+    WorkspaceFile,
+    DotNetProject,
+    DotNetSolution,
+}
 
 public sealed class BoundArtifactConstructor(SyntaxToken anchor, BoundArtifactIntrinsic intrinsic, IReadOnlyList<BoundTemplateValue> arguments, TypeSymbol resultType) : BoundTemplateValue(anchor, resultType)
 {
     public BoundArtifactIntrinsic Intrinsic { get; } = intrinsic;
     public IReadOnlyList<BoundTemplateValue> Arguments { get; } = arguments;
 }
+
+public sealed class BoundTemplateXmlElement(
+    SyntaxToken anchor,
+    string name,
+    IReadOnlyList<BoundTemplateXmlAttribute> attributes,
+    IReadOnlyList<BoundTemplateXmlChild> children) : BoundTemplateValue(anchor, ArtifactTypeSymbol.XmlElement)
+{
+    public string Name { get; } = name;
+    public IReadOnlyList<BoundTemplateXmlAttribute> Attributes { get; } = attributes;
+    public IReadOnlyList<BoundTemplateXmlChild> Children { get; } = children;
+}
+
+public sealed record BoundTemplateXmlAttribute(string Name, BoundTemplateValue Value);
+public abstract record BoundTemplateXmlChild;
+public sealed record BoundTemplateXmlText(string Text) : BoundTemplateXmlChild;
+public sealed record BoundTemplateXmlValue(BoundTemplateValue Value) : BoundTemplateXmlChild;
+public sealed record BoundTemplateXmlNested(BoundTemplateXmlElement Element) : BoundTemplateXmlChild;
 
 public sealed class BoundTemplateInvocation(
     SyntaxToken anchor,

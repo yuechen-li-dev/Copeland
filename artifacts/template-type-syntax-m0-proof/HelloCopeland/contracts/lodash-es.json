@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "package": "lodash-es",
+  "version": "4.18.1",
+  "materialized": true,
+  "exports": []
+}

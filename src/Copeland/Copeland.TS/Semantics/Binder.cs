@@ -166,6 +166,7 @@ public static class Binder
         private readonly Dictionary<FunctionSymbol, int> _closedInstantiationCounts = [];
         private readonly Dictionary<string, string> _closedInstantiationNames = new(StringComparer.Ordinal);
         private Dictionary<string, TypeParameterSymbol>? _activeTypeParameters;
+        private TypeSymbol? _activeTemplateResultType;
         private int _nextInterfaceId = 1;
         private int _totalInterfaceFieldCount;
         private readonly Dictionary<TypeAliasSymbol, TypeAliasDeclarationSyntax> _aliasDeclarations = [];
@@ -2866,32 +2867,48 @@ public static class Binder
                 }
 
                 _activeTypeParameters = CreateTypeParameterScope(typeParameters);
+                var typeParameterDefaults = new List<TypeSymbol?>();
+                for (int index = 0; index < syntax.TypeParameters.Count; index++)
+                {
+                    TypeParameterSyntax parameterSyntax = syntax.TypeParameters[index];
+                    TypeSymbol? defaultType = parameterSyntax.DefaultType is null
+                        ? null
+                        : BindType(parameterSyntax.DefaultType, parameterSyntax.Identifier, "COPE-TEMPLATE-0008", "template type parameter default");
+                    if (defaultType is not null
+                        && defaultType != PrimitiveTypeSymbol.Error
+                        && !Satisfies(typeParameters[index].Requirements, defaultType, parameterSyntax.Identifier))
+                    {
+                        Report("COPE-TEMPLATE-0008", $"Default type '{defaultType.Name}' does not satisfy constraints for template type parameter '{parameterSyntax.Identifier.Text}'.", parameterSyntax.Identifier);
+                    }
+                    typeParameterDefaults.Add(defaultType);
+                }
                 var parameters = new List<ParameterSymbol>();
+                var parameterNames = new HashSet<string>(names, StringComparer.Ordinal);
                 foreach (TemplateParameterSyntax parameter in syntax.Parameters)
                 {
-                    if (parameter.StaticKeyword is null)
+                    if (!parameterNames.Add(parameter.Identifier.Text))
                     {
-                        Report("COPE-TEMPLATE-0002", "Templates accept only 'static' value parameters; runtime template parameters are not supported.", parameter.Identifier);
+                        Report("COPE-TEMPLATE-0002", $"Duplicate template parameter '{parameter.Identifier.Text}'.", parameter.Identifier);
                     }
                     TypeSymbol type = BindType(parameter.Type, parameter.Identifier, "COPE-TEMPLATE-0002", "template parameter");
                     parameters.Add(new ParameterSymbol(parameter.Identifier.Text, type, GetAuthoredAliasName(parameter.Type), isStatic: true));
                 }
                 TypeSymbol returnType = BindType(syntax.ReturnType, syntax.Identifier, "COPE-TEMPLATE-0005", "template result");
                 _activeTypeParameters = null;
-                if (returnType != ArtifactTypeSymbol.ProjectTree
-                    && returnType is not StructuralObjectTypeSymbol
-                    && returnType is not IntersectionTypeSymbol)
+                if (returnType == PrimitiveTypeSymbol.Error || returnType == PrimitiveTypeSymbol.Void)
                 {
-                    Report("COPE-TEMPLATE-0005", $"Template '{syntax.Identifier.Text}' must return an artifact contract or ProjectTree, not '{returnType.Name}'.", syntax.Identifier);
+                    Report("COPE-TEMPLATE-0005", $"Template '{syntax.Identifier.Text}' must declare a constructible typed result, not '{returnType.Name}'.", syntax.Identifier);
                 }
 
                 var symbol = new TemplateSymbol(
                     syntax.Identifier.Text,
                     parameters,
                     returnType,
-                    CreateDeclarationStableIdentity(syntax.Identifier.Text) ?? "template:" + syntax.Identifier.Text)
+                    CreateDeclarationStableIdentity(syntax.Identifier.Text) ?? "template:" + syntax.Identifier.Text,
+                    GetAuthoredAliasName(syntax.ReturnType))
                 {
                     TypeParameters = typeParameters,
+                    TypeParameterDefaults = typeParameterDefaults,
                 };
                 if (!_global.TryDeclare(symbol))
                 {
@@ -2910,6 +2927,9 @@ public static class Binder
         /// </summary>
         private void BindTemplatePlans()
         {
+            // Defaults are bound for every declaration before any body. This
+            // makes a forward template instantiation observe the same defaults
+            // as a backward reference.
             foreach (BoundTemplateDeclaration declaration in _templates)
             {
                 Scope previousScope = _scope;
@@ -2924,8 +2944,43 @@ public static class Binder
                     parameters.Add(boundParameter);
                 }
 
-                declaration.Plan = BindTemplateBlock(declaration.Syntax.Body);
+                var defaults = new List<BoundTemplateValue?>();
+                for (int index = 0; index < declaration.Syntax.Parameters.Count; index++)
+                {
+                    TemplateParameterSyntax syntaxParameter = declaration.Syntax.Parameters[index];
+                    BoundTemplateValue? defaultValue = syntaxParameter.DefaultValue is null
+                        ? null
+                        : BindTemplateValue(syntaxParameter.DefaultValue);
+                    if (defaultValue is not null && !IsAssignable(declaration.Symbol.Parameters[index].Type, defaultValue.Type))
+                    {
+                        Report(
+                            "COPE-TEMPLATE-0008",
+                            $"Default for static parameter '{syntaxParameter.Identifier.Text}' must have type '{declaration.Symbol.Parameters[index].Type.Name}', got '{defaultValue.Type.Name}'.",
+                            syntaxParameter.Identifier);
+                    }
+                    defaults.Add(defaultValue);
+                }
+
                 declaration.Parameters = parameters;
+                declaration.ParameterDefaults = defaults;
+                _activeTypeParameters = previousParameters;
+                _scope = previousScope;
+            }
+
+            foreach (BoundTemplateDeclaration declaration in _templates)
+            {
+                Scope previousScope = _scope;
+                Dictionary<string, TypeParameterSymbol>? previousParameters = _activeTypeParameters;
+                TypeSymbol? previousTemplateResultType = _activeTemplateResultType;
+                _scope = new Scope(_global);
+                _activeTypeParameters = CreateTypeParameterScope(declaration.Symbol.TypeParameters);
+                _activeTemplateResultType = declaration.Symbol.ReturnType;
+                foreach (VariableSymbol parameter in declaration.Parameters)
+                {
+                    _scope.TryDeclare(parameter);
+                }
+                declaration.Plan = BindTemplateBlock(declaration.Syntax.Body);
+                _activeTemplateResultType = previousTemplateResultType;
                 _activeTypeParameters = previousParameters;
                 _scope = previousScope;
             }
@@ -2970,7 +3025,16 @@ public static class Binder
                     Report("COPE-STATIC-0003", "Only emit(artifact) is allowed as a template expression statement.", FirstToken(expression.Expression));
                     return new BoundTemplateBlock(FirstToken(expression.Expression), []);
                 case ReturnStatementSyntax returned:
-                    return new BoundTemplateReturn(returned.ReturnKeyword, returned.Expression is null ? null : BindTemplateValue(returned.Expression));
+                    BoundTemplateValue? returnedValue = returned.Expression is null ? null : BindTemplateValue(returned.Expression);
+                    if (_activeTemplateResultType is not null
+                        && (returnedValue is null || !IsAssignable(_activeTemplateResultType, returnedValue.Type)))
+                    {
+                        Report(
+                            "COPE-TEMPLATE-0005",
+                            $"Template result must satisfy declared type '{_activeTemplateResultType.Name}', got '{returnedValue?.Type.Name ?? "void"}'.",
+                            returned.ReturnKeyword);
+                    }
+                    return new BoundTemplateReturn(returned.ReturnKeyword, returnedValue);
                 case StaticIfStatementSyntax staticIf:
                     BoundTemplateValue condition = BindTemplateValue(staticIf.Condition);
                     if (condition.Type != PrimitiveTypeSymbol.Boolean)
@@ -3085,6 +3149,10 @@ public static class Binder
                     return BindTemplateCall(call, []);
                 case GenericCallExpressionSyntax generic:
                     return BindTemplateCall(generic, generic.TypeArguments);
+                case TemplateInstantiationExpressionSyntax instantiation:
+                    return BindTemplateInstantiation(instantiation);
+                case TsXmlElementExpressionSyntax element:
+                    return BindTemplateXmlElement(element);
                 default:
                     Report("COPE-STATIC-0003", "Unsupported static expression. Use literals, immutable records, finite arrays, locals, template invocations, or artifact constructors.", FirstToken(syntax));
                     return new BoundTemplateLiteral(FirstToken(syntax), null, PrimitiveTypeSymbol.Error);
@@ -3166,6 +3234,7 @@ public static class Binder
                 Report("COPE-STATIC-0005", $"Forbidden static side effect or runtime call '{name.IdentifierToken.Text}'. Templates may call only artifact constructors and other templates.", name.IdentifierToken);
                 return new BoundTemplateLiteral(anchor, null, PrimitiveTypeSymbol.Error);
             }
+            Report("COPE-TEMPLATE-0015", $"Template '{template.Name}' must be specialized with 'instantiate {template.Name}<...>', not called as a runtime function.", name.IdentifierToken);
             var typeArguments = typeArgumentSyntax.Select(type => BindType(type, anchor, "COPE-TEMPLATE-0002", "template type argument")).ToArray();
             if (typeArguments.Length != template.TypeParameters.Count)
             {
@@ -3183,6 +3252,74 @@ public static class Binder
                 }
             }
             return new BoundTemplateInvocation(anchor, template, typeArguments, values);
+        }
+
+        private BoundTemplateValue BindTemplateInstantiation(TemplateInstantiationExpressionSyntax syntax)
+        {
+            if (!_scope.TryLookup(syntax.TemplateIdentifier.Text, out Symbol? resolved) || resolved is not TemplateSymbol template)
+            {
+                Report("COPE-TEMPLATE-0001", $"Unknown template '{syntax.TemplateIdentifier.Text}'.", syntax.TemplateIdentifier);
+                return new BoundTemplateLiteral(syntax.InstantiateKeyword, null, PrimitiveTypeSymbol.Error);
+            }
+
+            TypeSymbol[] explicitTypes = syntax.TypeArguments
+                .Select(type => BindType(type, syntax.LessToken, "COPE-TEMPLATE-0002", "template type argument"))
+                .ToArray();
+            if (explicitTypes.Length > template.TypeParameters.Count)
+            {
+                Report("COPE-TEMPLATE-0002", $"Template '{template.Name}' expects at most {template.TypeParameters.Count} type argument(s), but received {explicitTypes.Length}.", syntax.LessToken);
+            }
+            var typeArguments = new List<TypeSymbol>();
+            for (int index = 0; index < template.TypeParameters.Count; index++)
+            {
+                TypeSymbol? argument = index < explicitTypes.Length
+                    ? explicitTypes[index]
+                    : template.TypeParameterDefaults.ElementAtOrDefault(index);
+                if (argument is null)
+                {
+                    Report("COPE-TEMPLATE-0002", $"Missing required template type parameter '{template.TypeParameters[index].Name}' for '{template.Name}'.", syntax.LessToken);
+                    argument = PrimitiveTypeSymbol.Error;
+                }
+                else if (argument != PrimitiveTypeSymbol.Error)
+                {
+                    _ = Satisfies(template.TypeParameters[index].Requirements, argument, syntax.LessToken);
+                }
+                typeArguments.Add(argument);
+            }
+
+            var supplied = new Dictionary<string, BoundTemplateValue>(StringComparer.Ordinal);
+            foreach (TemplateInstantiationArgumentSyntax argument in syntax.StaticArguments)
+            {
+                if (!supplied.TryAdd(argument.Identifier.Text, BindTemplateValue(argument.Value)))
+                {
+                    Report("COPE-TEMPLATE-0002", $"Duplicate static argument '{argument.Identifier.Text}'.", argument.Identifier);
+                }
+            }
+            foreach (string unknown in supplied.Keys.Except(template.Parameters.Select(parameter => parameter.Name), StringComparer.Ordinal))
+            {
+                TemplateInstantiationArgumentSyntax argument = syntax.StaticArguments.First(item => item.Identifier.Text == unknown);
+                Report("COPE-TEMPLATE-0002", $"Template '{template.Name}' has no static parameter named '{unknown}'.", argument.Identifier);
+            }
+
+            BoundTemplateDeclaration? declaration = _templates.FirstOrDefault(candidate => ReferenceEquals(candidate.Symbol, template));
+            var values = new List<BoundTemplateValue>();
+            for (int index = 0; index < template.Parameters.Count; index++)
+            {
+                ParameterSymbol parameter = template.Parameters[index];
+                BoundTemplateValue? value = supplied.GetValueOrDefault(parameter.Name)
+                    ?? declaration?.ParameterDefaults.ElementAtOrDefault(index);
+                if (value is null)
+                {
+                    Report("COPE-TEMPLATE-0002", $"Missing required static parameter '{parameter.Name}' for template '{template.Name}'.", syntax.LessToken);
+                    value = new BoundTemplateLiteral(syntax.LessToken, null, PrimitiveTypeSymbol.Error);
+                }
+                else if (!IsAssignable(parameter.Type, value.Type))
+                {
+                    ReportStaticArgumentMismatch(parameter, value, syntax.LessToken);
+                }
+                values.Add(value);
+            }
+            return new BoundTemplateInvocation(syntax.InstantiateKeyword, template, typeArguments, values);
         }
 
         private BoundTemplateValue BindFieldsOf(
@@ -3215,6 +3352,10 @@ public static class Binder
                 return new BoundTemplateLiteral(anchor, null, PrimitiveTypeSymbol.Error);
             }
             TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-STATIC-0010", "metadata target");
+            if (target is TypeParameterTypeSymbol parameter)
+            {
+                return new BoundTemplateTypeName(anchor, parameter.Ordinal);
+            }
             return new BoundTemplateLiteral(anchor, target.Name, PrimitiveTypeSymbol.String);
         }
 
@@ -3259,6 +3400,18 @@ public static class Binder
                 "directory" => BoundArtifactIntrinsic.Directory,
                 "textFile" => BoundArtifactIntrinsic.TextFile,
                 "sourceFile" => BoundArtifactIntrinsic.SourceFile,
+                "testFile" => BoundArtifactIntrinsic.TestFile,
+                "csProjectFile" => BoundArtifactIntrinsic.CsProjectFile,
+                "slnxFile" => BoundArtifactIntrinsic.SlnxFile,
+                "npmPackageManifest" => BoundArtifactIntrinsic.NpmPackageManifest,
+                "npmDependency" => BoundArtifactIntrinsic.NpmDependency,
+                "jsonFile" => BoundArtifactIntrinsic.JsonFile,
+                "typeScriptWorkspace" => BoundArtifactIntrinsic.TypeScriptWorkspace,
+                "sourceSet" => BoundArtifactIntrinsic.CopelandSourceSet,
+                "projectTypeSet" => BoundArtifactIntrinsic.CopelandProjectTypeSet,
+                "workspaceFile" => BoundArtifactIntrinsic.WorkspaceFile,
+                "dotNetProject" => BoundArtifactIntrinsic.DotNetProject,
+                "dotNetSolution" => BoundArtifactIntrinsic.DotNetSolution,
                 _ => null,
             };
             if (intrinsic is null)
@@ -3272,13 +3425,33 @@ public static class Binder
                 BoundArtifactIntrinsic.Directory => ArtifactTypeSymbol.DirectoryArtifact,
                 BoundArtifactIntrinsic.TextFile => ArtifactTypeSymbol.TextFileArtifact,
                 BoundArtifactIntrinsic.SourceFile => ArtifactTypeSymbol.SourceFileArtifact,
+                BoundArtifactIntrinsic.TestFile => ArtifactTypeSymbol.TestFile,
+                BoundArtifactIntrinsic.CsProjectFile or BoundArtifactIntrinsic.SlnxFile or BoundArtifactIntrinsic.JsonFile or BoundArtifactIntrinsic.WorkspaceFile => ArtifactTypeSymbol.ProjectFile,
+                BoundArtifactIntrinsic.NpmPackageManifest => ArtifactTypeSymbol.NpmPackageManifest,
+                BoundArtifactIntrinsic.NpmDependency => ArtifactTypeSymbol.NpmDependency,
+                BoundArtifactIntrinsic.TypeScriptWorkspace => ArtifactTypeSymbol.TypeScriptWorkspace,
+                BoundArtifactIntrinsic.CopelandSourceSet => ArtifactTypeSymbol.CopelandSourceSet,
+                BoundArtifactIntrinsic.CopelandProjectTypeSet => ArtifactTypeSymbol.CopelandProjectTypeSet,
+                BoundArtifactIntrinsic.DotNetProject => ArtifactTypeSymbol.DotNetProject,
+                BoundArtifactIntrinsic.DotNetSolution => ArtifactTypeSymbol.DotNetSolution,
                 _ => PrimitiveTypeSymbol.Error,
             };
             bool valid = intrinsic.Value switch
             {
                 BoundArtifactIntrinsic.Project => arguments.Count == 1 && arguments[0].Type is ArrayTypeSymbol,
                 BoundArtifactIntrinsic.Directory => arguments.Count == 2 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1] is BoundTemplateArray,
-                _ => arguments.Count == 2 && arguments.All(argument => argument.Type == PrimitiveTypeSymbol.String),
+                BoundArtifactIntrinsic.TextFile or BoundArtifactIntrinsic.SourceFile or BoundArtifactIntrinsic.TestFile => arguments.Count == 2 && arguments.All(argument => argument.Type == PrimitiveTypeSymbol.String),
+                BoundArtifactIntrinsic.CsProjectFile => arguments.Count == 2 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type == ArtifactTypeSymbol.XmlElement,
+                BoundArtifactIntrinsic.SlnxFile => arguments.Count == 2 && arguments.All(argument => argument.Type == PrimitiveTypeSymbol.String),
+                BoundArtifactIntrinsic.NpmDependency => arguments.Count == 2 && arguments.All(argument => argument.Type == PrimitiveTypeSymbol.String),
+                BoundArtifactIntrinsic.NpmPackageManifest => arguments.Count == 3 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type == PrimitiveTypeSymbol.String && arguments[2] is BoundTemplateArray,
+                BoundArtifactIntrinsic.JsonFile => arguments.Count == 2 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type == ArtifactTypeSymbol.NpmPackageManifest,
+                BoundArtifactIntrinsic.CopelandSourceSet or BoundArtifactIntrinsic.CopelandProjectTypeSet => arguments.Count == 1 && arguments[0] is BoundTemplateArray,
+                BoundArtifactIntrinsic.TypeScriptWorkspace => arguments.Count == 3 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type == ArtifactTypeSymbol.CopelandSourceSet && arguments[2].Type == ArtifactTypeSymbol.CopelandProjectTypeSet,
+                BoundArtifactIntrinsic.WorkspaceFile => arguments.Count == 2 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type == ArtifactTypeSymbol.TypeScriptWorkspace,
+                BoundArtifactIntrinsic.DotNetProject => arguments.Count == 2 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1] is BoundTemplateArray,
+                BoundArtifactIntrinsic.DotNetSolution => arguments.Count == 3 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type == ArtifactTypeSymbol.DotNetProject && arguments[2] is BoundTemplateArray,
+                _ => false,
             };
             if (!valid)
             {
@@ -3286,6 +3459,105 @@ public static class Binder
             }
             result = new BoundArtifactConstructor(name, intrinsic.Value, arguments, type);
             return true;
+        }
+
+        private BoundTemplateXmlElement BindTemplateXmlElement(TsXmlElementExpressionSyntax syntax)
+        {
+            var attributes = new List<BoundTemplateXmlAttribute>();
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (TsXmlAttributeSyntax attribute in syntax.Attributes)
+            {
+                if (!names.Add(attribute.NameToken.Text))
+                {
+                    Report("COPE-PROJECT-XML-0002", $"XML attribute '{attribute.NameToken.Text}' is specified more than once on '<{syntax.NameToken.Text}>'.", attribute.NameToken);
+                    continue;
+                }
+                BoundTemplateValue value = attribute.ExpressionValue is not null
+                    ? BindTemplateValue(attribute.ExpressionValue)
+                    : new BoundTemplateLiteral(attribute.StringValueToken ?? attribute.NameToken, attribute.StringValueToken?.Value ?? string.Empty, PrimitiveTypeSymbol.String);
+                if (value.Type != PrimitiveTypeSymbol.String)
+                {
+                    Report("COPE-PROJECT-XML-0003", $"Project XML attribute '{attribute.NameToken.Text}' requires a string value.", attribute.NameToken);
+                }
+                attributes.Add(new BoundTemplateXmlAttribute(attribute.NameToken.Text, value));
+            }
+
+            var children = new List<BoundTemplateXmlChild>();
+            foreach (TsXmlChildSyntax child in syntax.Children)
+            {
+                switch (child)
+                {
+                    case TsXmlTextSyntax text when !string.IsNullOrWhiteSpace(text.TextToken.Text):
+                        children.Add(new BoundTemplateXmlText(text.TextToken.Text.Trim()));
+                        break;
+                    case TsXmlExpressionChildSyntax expression:
+                        BoundTemplateValue value = BindTemplateValue(expression.Expression);
+                        if (value.Type != PrimitiveTypeSymbol.String)
+                        {
+                            Report("COPE-PROJECT-XML-0003", "Project XML children require string static values or nested typed elements.", expression.OpenBraceToken);
+                        }
+                        children.Add(new BoundTemplateXmlValue(value));
+                        break;
+                    case TsXmlElementChildSyntax { Element: TsXmlElementExpressionSyntax nested }:
+                        children.Add(new BoundTemplateXmlNested(BindTemplateXmlElement(nested)));
+                        break;
+                    case TsXmlElementChildSyntax:
+                        Report("COPE-PROJECT-XML-0001", "Project XML fragments are not supported.", syntax.NameToken);
+                        break;
+                }
+            }
+
+            ValidateProjectXmlShape(syntax, attributes, children);
+            return new BoundTemplateXmlElement(syntax.LessToken, syntax.NameToken.Text, attributes, children);
+        }
+
+        private void ValidateProjectXmlShape(
+            TsXmlElementExpressionSyntax syntax,
+            IReadOnlyList<BoundTemplateXmlAttribute> attributes,
+            IReadOnlyList<BoundTemplateXmlChild> children)
+        {
+            string name = syntax.NameToken.Text;
+            string[] allowedAttributes = name switch
+            {
+                "Project" => ["Sdk"],
+                "PackageReference" => ["Include", "Version", "PrivateAssets"],
+                "CopelandNpmContract" => ["Include"],
+                _ => [],
+            };
+            string[] allowedChildren = name switch
+            {
+                "Project" => ["PropertyGroup", "ItemGroup"],
+                "PropertyGroup" => ["OutputType", "TargetFramework", "RootNamespace", "ImplicitUsings", "Nullable", "ManagePackageVersionsCentrally", "CopelandRequiredVersion"],
+                "ItemGroup" => ["PackageReference", "CopelandNpmContract"],
+                _ => [],
+            };
+            string[] leafElements = ["OutputType", "TargetFramework", "RootNamespace", "ImplicitUsings", "Nullable", "ManagePackageVersionsCentrally", "CopelandRequiredVersion", "PackageReference", "CopelandNpmContract"];
+            if (name is not ("Project" or "PropertyGroup" or "ItemGroup" or "OutputType" or "TargetFramework" or "RootNamespace" or "ImplicitUsings" or "Nullable" or "ManagePackageVersionsCentrally" or "CopelandRequiredVersion" or "PackageReference" or "CopelandNpmContract"))
+            {
+                Report("COPE-PROJECT-XML-0001", $"Element '<{name}>' is not valid in the bounded .csproj model.", syntax.NameToken);
+            }
+            foreach (BoundTemplateXmlAttribute attribute in attributes.Where(attribute => !allowedAttributes.Contains(attribute.Name, StringComparer.Ordinal)))
+            {
+                Report("COPE-PROJECT-XML-0002", $"Attribute '{attribute.Name}' is not valid on '<{name}>'.", syntax.NameToken);
+            }
+            foreach (BoundTemplateXmlNested nested in children.OfType<BoundTemplateXmlNested>().Where(child => !allowedChildren.Contains(child.Element.Name, StringComparer.Ordinal)))
+            {
+                Report("COPE-PROJECT-XML-0001", $"Element '<{nested.Element.Name}>' is not valid inside '<{name}>'.", syntax.NameToken);
+            }
+            if (leafElements.Contains(name, StringComparer.Ordinal) && children.OfType<BoundTemplateXmlNested>().Any())
+            {
+                Report("COPE-PROJECT-XML-0001", $"Element '<{name}>' cannot contain nested elements.", syntax.NameToken);
+            }
+            if (name == "Project" && attributes.All(attribute => attribute.Name != "Sdk"))
+            {
+                Report("COPE-PROJECT-XML-0002", "'<Project>' requires the typed 'Sdk' attribute.", syntax.NameToken);
+            }
+            if (name == "PackageReference"
+                && (attributes.All(attribute => attribute.Name != "Include")
+                    || attributes.All(attribute => attribute.Name != "Version")))
+            {
+                Report("COPE-PROJECT-XML-0002", "'<PackageReference>' requires 'Include' and 'Version'.", syntax.NameToken);
+            }
         }
 
         private static SyntaxToken FirstToken(SyntaxNode node)
@@ -4470,6 +4742,20 @@ public static class Binder
                         continue;
                     }
                     foreach (RecordFieldSymbol field in record.Fields)
+                    {
+                        fields.Add(new RequirementFieldSymbol(field.Name, field.Type, fields.Count));
+                    }
+                    continue;
+                }
+                if (_aliases.TryGetValue(operand.Text, out TypeAliasSymbol? alias)
+                    && alias.CanonicalType is StructuralObjectTypeSymbol structural)
+                {
+                    if (!names.Add(alias.Name))
+                    {
+                        Report("COPE-REQUIREMENT-0002", $"Requirement '{alias.Name}' is repeated.", operand);
+                        continue;
+                    }
+                    foreach (StructuralFieldSymbol field in structural.Fields)
                     {
                         fields.Add(new RequirementFieldSymbol(field.Name, field.Type, fields.Count));
                     }
@@ -8172,6 +8458,7 @@ public static class Binder
                 ClassTypeSymbol @class => @class.Fields.Where(field => field.IsPublic).Select(field => (field.Name, field.Type)).ToArray(),
                 RecordTypeSymbol record => record.Fields.Select(field => (field.Name, field.Type)).ToArray(),
                 TableRowTypeSymbol row => row.Fields.Select(field => (field.Name, field.Type)).ToArray(),
+                StructuralObjectTypeSymbol structural => structural.Fields.Select(field => (field.Name, field.Type)).ToArray(),
                 _ => []
             };
             if (fields.Count == 0)
@@ -10317,6 +10604,15 @@ public static class Binder
             if (i.Identifier.Text == ArtifactTypeSymbol.DirectoryArtifact.Name) return ArtifactTypeSymbol.DirectoryArtifact;
             if (i.Identifier.Text == ArtifactTypeSymbol.TextFileArtifact.Name) return ArtifactTypeSymbol.TextFileArtifact;
             if (i.Identifier.Text == ArtifactTypeSymbol.SourceFileArtifact.Name) return ArtifactTypeSymbol.SourceFileArtifact;
+            if (i.Identifier.Text == ArtifactTypeSymbol.ProjectFile.Name) return ArtifactTypeSymbol.ProjectFile;
+            if (i.Identifier.Text == ArtifactTypeSymbol.TestFile.Name) return ArtifactTypeSymbol.TestFile;
+            if (i.Identifier.Text == ArtifactTypeSymbol.DotNetSolution.Name) return ArtifactTypeSymbol.DotNetSolution;
+            if (i.Identifier.Text == ArtifactTypeSymbol.DotNetProject.Name) return ArtifactTypeSymbol.DotNetProject;
+            if (i.Identifier.Text == ArtifactTypeSymbol.TypeScriptWorkspace.Name) return ArtifactTypeSymbol.TypeScriptWorkspace;
+            if (i.Identifier.Text == ArtifactTypeSymbol.NpmPackageManifest.Name) return ArtifactTypeSymbol.NpmPackageManifest;
+            if (i.Identifier.Text == ArtifactTypeSymbol.NpmDependency.Name) return ArtifactTypeSymbol.NpmDependency;
+            if (i.Identifier.Text == ArtifactTypeSymbol.CopelandSourceSet.Name) return ArtifactTypeSymbol.CopelandSourceSet;
+            if (i.Identifier.Text == ArtifactTypeSymbol.CopelandProjectTypeSet.Name) return ArtifactTypeSymbol.CopelandProjectTypeSet;
             if (_projectTypes.HasFlag(CopelandProjectTypeSet.TextDocuments) && i.Identifier.Text == "Document") return DocumentTypeSymbol.Instance;
             if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents))
             {

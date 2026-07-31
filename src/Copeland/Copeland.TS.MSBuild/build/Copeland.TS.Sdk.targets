@@ -148,6 +148,6 @@
     <MSBuild Projects="$(CopelandSameProjectTestProject)"
              Targets="Restore;Build"
              Properties="Configuration=$(Configuration);CopelandAuxiliaryTestBuild=true" />
-    <Exec Command="dotnet test &quot;$(CopelandSameProjectTestProject)&quot; --no-restore --no-build" />
+    <Exec Command="dotnet test &quot;$(CopelandSameProjectTestProject)&quot; --configuration &quot;$(Configuration)&quot; --no-restore --no-build" />
   </Target>
 </Project>

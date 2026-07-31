@@ -63,12 +63,15 @@ public sealed class TemplateSymbol(
     string name,
     IReadOnlyList<ParameterSymbol> parameters,
     TypeSymbol returnType,
-    string stableIdentity) : Symbol(name)
+    string stableIdentity,
+    string? authoredResultTypeName = null) : Symbol(name)
 {
     public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
     public TypeSymbol ReturnType { get; } = returnType;
     public string StableIdentity { get; } = stableIdentity;
+    public string ResultTypeDisplayName { get; } = authoredResultTypeName ?? returnType.Name;
     public IReadOnlyList<TypeParameterSymbol> TypeParameters { get; internal set; } = [];
+    public IReadOnlyList<TypeSymbol?> TypeParameterDefaults { get; internal set; } = [];
 }
 
 /// <summary>

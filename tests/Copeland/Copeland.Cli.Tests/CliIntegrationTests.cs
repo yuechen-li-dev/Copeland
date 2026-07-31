@@ -10,6 +10,33 @@ namespace Copeland.Cli.Tests;
 public sealed class CliIntegrationTests
 {
     [Fact]
+    public async Task Template_cli_binds_defaulted_type_and_named_static_parameters_through_shared_evaluator()
+    {
+        using var temp = new TempDir();
+        string source = temp.WriteFile(
+            "Template.ts",
+            "interface Named { name: string; } record Standard { name: string; } template<type T extends Named = Standard, static name: string, static target: string = \"net10.0\"> App: ProjectTree { emit(textFile(`${name}-${nameOf<T>()}.txt`, target)); }");
+        string output = Path.Combine(temp.Path, "generated");
+
+        CliResult result = await RunCliAsync(
+            temp.Path,
+            "template",
+            "materialize",
+            source,
+            "--entry",
+            "App",
+            "--name",
+            "Hello",
+            "--target",
+            "net10.0",
+            "--output",
+            output);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("net10.0", await File.ReadAllTextAsync(Path.Combine(output, "Hello-Standard.txt")));
+    }
+
+    [Fact]
     public async Task Tscl_build_emits_a_multi_module_production_node_project_and_machine_readable_manifest()
     {
         using var temp = new TempDir();

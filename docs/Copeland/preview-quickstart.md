@@ -1,63 +1,83 @@
-# Copeland TS Preview quickstart
+# Copeland TS Preview 1 quickstart
 
-This walkthrough uses the packaged artifacts only. The sample is
-`samples/copeland-ts/CopelandHello`.
+Copeland TS `0.1.0-preview.1` lets one normal .NET 10 project compile Copeland
+`.ts`, language-native `.tsx`, `.tsxtest`, and authored C# together.
 
-## Install
+## Available after publication
 
-Install .NET 10, Node.js/npm, VS Code 1.99 or newer, and a normal C# extension
-if you want C# editor features.
-
-Install the matching Copeland tool and VSIX:
+Install the .NET 10 SDK, Node.js/npm, VS Code 1.99 or newer, and then run:
 
 ```powershell
-dotnet tool install --global Copeland.TS.Tool --version 0.1.0-preview.1
-code --install-extension copeland-ts-0.1.0-preview.1.vsix
-```
+dotnet tool install --global Copeland.TS.Tool `
+    --version 0.1.0-preview.1
 
-For a local release-candidate feed, add `--add-source <package-directory>` to
-the `dotnet tool install` command.
+Invoke-WebRequest `
+    https://github.com/yuechen-li-dev/Copeland/releases/download/v0.1.0-preview.1/BootstrapTemplate.tsx `
+    -OutFile BootstrapTemplate.tsx
 
-## Open, build, and run
+tscl template materialize BootstrapTemplate.tsx `
+    --entry BootstrapTemplate `
+    --name HelloCopeland `
+    --output ./HelloCopeland
 
-```powershell
-cd samples/copeland-ts/CopelandHello/CopelandHello
+cd HelloCopeland
 npm install
-dotnet restore
 dotnet build
+dotnet test
 dotnet run
+code .
 ```
 
-Open `samples/copeland-ts/CopelandHello` or its `CopelandHello.slnx` in VS
-Code. Open `CopelandHello/src/copeland/Program.ts`.
+Install the matching editor package before opening the project:
 
-The status bar says **Copeland TS: tscl** for Copeland-owned source and
-**TypeScript: tsc** for `src/traditional/Traditional.ts`. The separate
-`copeland-typescript` language identity prevents built-in TypeScript from
-validating tscl-owned source. It does not disable TypeScript globally.
+```powershell
+Invoke-WebRequest `
+    https://github.com/yuechen-li-dev/Copeland/releases/download/v0.1.0-preview.1/copeland-ts-0.1.0-preview.1.vsix `
+    -OutFile copeland-ts-0.1.0-preview.1.vsix
+code --install-extension ./copeland-ts-0.1.0-preview.1.vsix --force
+```
 
-`tsconfig.tsx` is the only ownership authority. Its `tscl.include` selects
-Copeland files, its `tsc.include` selects traditional TypeScript files, and
-strict ownership makes overlap an error. The compiler, SDK-generated ownership
-metadata, language server, and extension all use this resolution.
+Open a `.ts`, `.tsx`, or `.tsxtest` file. The Copeland status item and
+**Copeland TS** output channel show `tscl` ownership, the selected tool, and the
+language-server version. Use **Copeland: Show File Owner** when ownership is not
+obvious.
+
+For project-local CLI use, install the npm launcher instead of relying on a
+global command:
+
+```powershell
+npm install --save-dev @copeland/tscl@0.1.0-preview.1
+npx tscl --version
+```
+
+Preview 1's npm package is validated on Windows x64 and requires .NET 10.
+
+## Local release-candidate testing before publication
+
+The prepared artifact directory contains every input needed for an isolated
+dry run. From the repository root:
+
+```powershell
+./tools/Test-CopelandPreviewPackages.ps1 `
+    -ReleaseRoot ./artifacts/releases/0.1.0-preview.1
+```
+
+This command installs only from the packed NuGet and npm artifacts, generates
+from the release copy of `BootstrapTemplate.tsx`, builds/tests/runs the result,
+and installs the VSIX into an isolated profile. It does not publish anything.
+
+Do not use candidate-feed flags in the public workflow. Before publication,
+the public-registry commands are expected to fail because the version does not
+yet exist on NuGet.org or npm.
 
 ## Troubleshooting
 
-- Run **Copeland: Show File Owner** to explain the current file.
-- Run **Copeland: Restart Language Server** after changing tools.
-- Open **Copeland: Show Language Server Output** to see the selected executable,
-  discovery source, version, project path, and errors.
-- Missing tool: run
-  `dotnet tool install --global Copeland.TS.Tool --version 0.1.0-preview.1`.
-- Version mismatch: update the VSIX, tool, and `Copeland.TS.Sdk` package to the
-  same `0.1` preview train.
-- A workspace `dotnet-tools.json` (or legacy `.config/dotnet-tools.json`)
-  containing `Copeland.TS.Tool` is used before global PATH.
-  `copeland.tsclPath` is an explicit override.
-- npm support in this preview is contract-based. The sample's
-  `contracts/lodash-es.json` is intentional; arbitrary npm packages are not
-  implied.
-
-There is no `tsconfig.json`, repository checkout, extension-development host,
-manual language-server command, TSPack step, or generated props import in this
-workflow.
+- `tscl --version`, `npx tscl --version`, the SDK, and the VSIX must all report
+  `0.1.0-preview.1`.
+- The npm launcher explains how to install .NET 10 when the runtime is absent.
+- A workspace `.config/dotnet-tools.json` containing `Copeland.TS.Tool` takes
+  precedence over global `tscl`; `copeland.tsclPath` is an explicit override.
+- `tsconfig.tsx` is the typed workspace and ownership authority. Copeland does
+  not use `tsconfig.json` for the generated project.
+- The lodash package contract in the bootstrap is intentional and does not
+  imply arbitrary Node package compatibility.

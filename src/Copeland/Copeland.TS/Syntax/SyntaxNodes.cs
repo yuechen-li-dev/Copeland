@@ -385,14 +385,18 @@ public sealed record InterfaceDeclarationSyntax(
 }
 
 public sealed record TypeParameterSyntax(
+    SyntaxToken? TypeKeyword,
     SyntaxToken Identifier,
     SyntaxToken? ExtendsKeyword,
     IReadOnlyList<SyntaxToken> RequirementNames,
-    IReadOnlyList<SyntaxToken> AmpersandTokens) : SyntaxNode
+    IReadOnlyList<SyntaxToken> AmpersandTokens,
+    SyntaxToken? EqualsToken = null,
+    TypeSyntax? DefaultType = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.TypeParameter;
     public override IEnumerable<object> GetChildren()
     {
+        if (TypeKeyword is not null) yield return TypeKeyword;
         yield return Identifier;
         if (ExtendsKeyword is not null) yield return ExtendsKeyword;
         for (var i = 0; i < RequirementNames.Count; i++)
@@ -400,6 +404,8 @@ public sealed record TypeParameterSyntax(
             if (i > 0) yield return AmpersandTokens[i - 1];
             yield return RequirementNames[i];
         }
+        if (EqualsToken is not null) yield return EqualsToken;
+        if (DefaultType is not null) yield return DefaultType;
     }
 }
 
@@ -554,17 +560,14 @@ public sealed record FunctionDeclarationSyntax(
 /// <summary>A bounded structural artifact constructor, never a runtime function.</summary>
 public sealed record TemplateDeclarationSyntax(
     SyntaxToken TemplateKeyword,
-    SyntaxToken Identifier,
-    SyntaxToken? LessToken,
+    SyntaxToken LessToken,
     IReadOnlyList<TypeParameterSyntax> TypeParameters,
-    IReadOnlyList<SyntaxToken> TypeParameterCommas,
-    SyntaxToken? GreaterToken,
-    SyntaxToken OpenParenToken,
     IReadOnlyList<TemplateParameterSyntax> Parameters,
     IReadOnlyList<SyntaxToken> CommaTokens,
-    SyntaxToken CloseParenToken,
-    SyntaxToken? ReturnTypeColonToken,
-    TypeSyntax? ReturnType,
+    SyntaxToken GreaterToken,
+    SyntaxToken Identifier,
+    SyntaxToken ReturnTypeColonToken,
+    TypeSyntax ReturnType,
     BlockStatementSyntax Body) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.TemplateDeclaration;
@@ -572,40 +575,84 @@ public sealed record TemplateDeclarationSyntax(
     public override IEnumerable<object> GetChildren()
     {
         yield return TemplateKeyword;
-        yield return Identifier;
-        if (LessToken is not null) yield return LessToken;
+        yield return LessToken;
+        int commaIndex = 0;
         for (int index = 0; index < TypeParameters.Count; index++)
         {
-            if (index > 0) yield return TypeParameterCommas[index - 1];
+            if (index > 0) yield return CommaTokens[commaIndex++];
             yield return TypeParameters[index];
         }
-        if (GreaterToken is not null) yield return GreaterToken;
-        yield return OpenParenToken;
         for (int index = 0; index < Parameters.Count; index++)
         {
-            if (index > 0) yield return CommaTokens[index - 1];
+            if (TypeParameters.Count > 0 || index > 0) yield return CommaTokens[commaIndex++];
             yield return Parameters[index];
         }
-        yield return CloseParenToken;
-        if (ReturnTypeColonToken is not null) yield return ReturnTypeColonToken;
-        if (ReturnType is not null) yield return ReturnType;
+        yield return GreaterToken;
+        yield return Identifier;
+        yield return ReturnTypeColonToken;
+        yield return ReturnType;
         yield return Body;
     }
 }
 
 public sealed record TemplateParameterSyntax(
-    SyntaxToken? StaticKeyword,
+    SyntaxToken StaticKeyword,
     SyntaxToken Identifier,
-    SyntaxToken? ColonToken,
-    TypeSyntax? Type) : SyntaxNode
+    SyntaxToken ColonToken,
+    TypeSyntax Type,
+    SyntaxToken? EqualsToken = null,
+    ExpressionSyntax? DefaultValue = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.Parameter;
     public override IEnumerable<object> GetChildren()
     {
-        if (StaticKeyword is not null) yield return StaticKeyword;
+        yield return StaticKeyword;
         yield return Identifier;
-        if (ColonToken is not null) yield return ColonToken;
-        if (Type is not null) yield return Type;
+        yield return ColonToken;
+        yield return Type;
+        if (EqualsToken is not null) yield return EqualsToken;
+        if (DefaultValue is not null) yield return DefaultValue;
+    }
+}
+
+public sealed record TemplateInstantiationArgumentSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken ColonToken,
+    ExpressionSyntax Value) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TemplateInstantiationArgument;
+    public override IEnumerable<object> GetChildren() => [Identifier, ColonToken, Value];
+}
+
+/// <summary>Explicit static-phase specialization. This is not a runtime call.</summary>
+public sealed record TemplateInstantiationExpressionSyntax(
+    SyntaxToken InstantiateKeyword,
+    SyntaxToken TemplateIdentifier,
+    SyntaxToken LessToken,
+    IReadOnlyList<TypeSyntax> TypeArguments,
+    IReadOnlyList<TemplateInstantiationArgumentSyntax> StaticArguments,
+    IReadOnlyList<SyntaxToken> CommaTokens,
+    SyntaxToken GreaterToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.TemplateInstantiationExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return InstantiateKeyword;
+        yield return TemplateIdentifier;
+        yield return LessToken;
+        int commaIndex = 0;
+        for (int index = 0; index < TypeArguments.Count; index++)
+        {
+            if (index > 0) yield return CommaTokens[commaIndex++];
+            yield return TypeArguments[index];
+        }
+        for (int index = 0; index < StaticArguments.Count; index++)
+        {
+            if (TypeArguments.Count > 0 || index > 0) yield return CommaTokens[commaIndex++];
+            yield return StaticArguments[index];
+        }
+        yield return GreaterToken;
     }
 }
 

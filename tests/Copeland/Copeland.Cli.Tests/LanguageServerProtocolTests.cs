@@ -9,6 +9,52 @@ namespace Copeland.Cli.Tests;
 public sealed class LanguageServerProtocolTests
 {
     [Fact]
+    public void Language_server_supports_canonical_typed_templates()
+    {
+        using var workspace = new TempWorkspace();
+        const string text = "interface Named { name: string; } record Standard { name: string; } template<type T extends Named = Standard, static name: string = \"Demo\"> Build: ProjectTree { emit(textFile(name, name)); } template<> Entry: ProjectTree { return instantiate Build<Standard, name: \"Hello\">; }";
+        string source = workspace.Write("src/copeland/Template.ts", text);
+        string targets = Path.Combine(FindRepositoryRoot(), "src", "Copeland", "Copeland.TS.MSBuild", "build", "Copeland.TS.Sdk.targets");
+        string taskAssembly = typeof(Copeland.TS.MSBuild.CopelandCompile).Assembly.Location;
+        string project = workspace.Write("Template.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+              </PropertyGroup>
+              <ItemGroup><CopelandCompile Include="src/copeland/Template.ts" /></ItemGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """);
+        Restore(project);
+        workspace.Write("obj/copeland/workspace/editor-ownership.generated.json", """
+            { "schemaVersion": 1, "workspaceRoot": ".", "files": [
+              { "path": "src/copeland/Template.ts", "owner": "tscl", "project": "Template.csproj", "matchedRule": "src/copeland/**" }
+            ] }
+            """);
+        using var client = new LspClient();
+        string uri = VsCodeFileUri(source);
+        client.Request(1, "initialize", new { initializationOptions = new { workspaceRoot = workspace.Path } });
+        client.Notify("textDocument/didOpen", new { textDocument = new { uri, version = 1, text } });
+
+        Assert.Empty(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+
+        JsonElement templateHover = client.Request(2, "textDocument/hover", new { textDocument = new { uri }, position = new { line = 0, character = text.LastIndexOf("Build<", StringComparison.Ordinal) + 1 } });
+        Assert.Contains("template<type T", templateHover.GetProperty("contents").GetProperty("value").GetString());
+
+        JsonElement parameterHover = client.Request(3, "textDocument/hover", new { textDocument = new { uri }, position = new { line = 0, character = text.IndexOf("T extends", StringComparison.Ordinal) } });
+        Assert.Contains("template type parameter T extends Named", parameterHover.GetProperty("contents").GetProperty("value").GetString());
+
+        JsonElement definition = client.Request(4, "textDocument/definition", new { textDocument = new { uri }, position = new { line = 0, character = text.IndexOf("Named =", StringComparison.Ordinal) + 1 } });
+        Assert.Equal(text.IndexOf("Named {", StringComparison.Ordinal), PositionOffset(text, definition.GetProperty("range").GetProperty("start")));
+
+        int staticArgumentPosition = text.IndexOf("name: \"Hello\"", StringComparison.Ordinal);
+        JsonElement completion = client.Request(5, "textDocument/completion", new { textDocument = new { uri }, position = new { line = 0, character = staticArgumentPosition } });
+        Assert.Contains(completion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "name");
+        Assert.Contains(completion.GetProperty("items").EnumerateArray(), item => item.GetProperty("label").GetString() == "Standard");
+    }
+
+    [Fact]
     public void Language_server_keeps_component_presentations_lexical_and_reports_private_references()
     {
         using var workspace = new TempWorkspace();

@@ -1,5 +1,5 @@
 // Imported structural fragment used by the console dogfood proof.
-export template BaseProject(): ProjectTree {
+export template<> BaseProject: ProjectTree {
     emit(textFile("Copeland.Template.Console.csproj", `<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>

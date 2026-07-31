@@ -18,8 +18,55 @@ public sealed record TextFileArtifact(string Path, byte[] Bytes, string Provenan
 public sealed record SourceFileArtifact(string Path, byte[] Bytes, string Provenance)
     : FileArtifact(Path, "source", Bytes, Provenance);
 
+public sealed record ProjectFileArtifact(string Path, byte[] Bytes, string Provenance)
+    : FileArtifact(Path, "project", Bytes, Provenance);
+
+public sealed record TestFileArtifact(string Path, byte[] Bytes, string Provenance)
+    : FileArtifact(Path, "test", Bytes, Provenance);
+
 public sealed record DirectoryArtifact(string Path, IReadOnlyList<ArtifactNode> Children, string Provenance)
     : ArtifactNode(Provenance);
+
+public sealed record NpmDependencyValue(string Name, string Version, string Provenance);
+
+public sealed record NpmPackageManifestValue(
+    string Name,
+    string Version,
+    IReadOnlyList<NpmDependencyValue> Dependencies,
+    string Provenance);
+
+public sealed record CopelandSourceSetValue(IReadOnlyList<string> Includes, string Provenance);
+
+public sealed record CopelandProjectTypeSetValue(IReadOnlyList<string> Types, string Provenance);
+
+public sealed record TypeScriptWorkspaceValue(
+    string ProjectPath,
+    IReadOnlyList<string> Includes,
+    IReadOnlyList<string> ProjectTypes,
+    string Provenance);
+
+public sealed record DotNetProjectValue(string Name, IReadOnlyList<ArtifactNode> Files, string Provenance);
+
+public sealed record DotNetSolutionValue(
+    string Name,
+    DotNetProjectValue Project,
+    IReadOnlyList<ArtifactNode> RootFiles,
+    string Provenance)
+{
+    public bool TryLower(out ProjectTree? tree, out IReadOnlyList<Diagnostic> diagnostics)
+    {
+        var nodes = new List<ArtifactNode>(RootFiles)
+        {
+            new DirectoryArtifact(Project.Name, Project.Files, Project.Provenance),
+        };
+        return ProjectTree.TryCreate(nodes, out tree, out diagnostics);
+    }
+}
+
+public sealed record TemplateXmlElementValue(
+    string Name,
+    IReadOnlyList<KeyValuePair<string, string>> Attributes,
+    IReadOnlyList<object> Children);
 
 /// <summary>
 /// Immutable, normalized structural result of a template evaluation. The model is

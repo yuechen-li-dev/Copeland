@@ -2,6 +2,7 @@
 .github/**
 src/**
 test/**
+test-harness/**
 out/**/*.test.js
 out/**/*.test.js.map
 out/integrationSuite.js
@@ -10,7 +11,13 @@ out/runIntegration.js
 out/runIntegration.js.map
 out/runInstalledIntegration.js
 out/runInstalledIntegration.js.map
+out/packageSmokeSuite.js
+out/packageSmokeSuite.js.map
+out/runPackageSmoke.js
+out/runPackageSmoke.js.map
 *.ts
 *.map
+**/*.map
+tsconfig.json
 *.vsix
 dist/**

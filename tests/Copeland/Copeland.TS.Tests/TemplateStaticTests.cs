@@ -9,10 +9,153 @@ namespace Copeland.TS.Tests;
 public sealed class TemplateStaticTests
 {
     [Fact]
+    public void Parses_Canonical_Typed_Template_Declaration_And_Instantiation()
+    {
+        const string source = """
+type ProjectShape = { name: string; };
+record StandardProject { name: string; }
+template<type TProject extends ProjectShape = StandardProject, static name: string = "Demo"> ProjectTemplate: ProjectTree {
+    emit(textFile(`${name}-${nameOf<TProject>()}.txt`, "ok"));
+}
+template<> Entry: ProjectTree {
+    return instantiate ProjectTemplate<StandardProject, name: "Hello">;
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Entry");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(["Hello-StandardProject.txt"], result.Project!.Files.Select(file => file.Path));
+    }
+
+    [Fact]
+    public void Applies_Type_And_Static_Defaults_For_Cli_Facing_Template()
+    {
+        const string source = """
+interface Named { name: string; }
+record Standard { name: string; }
+template<type T extends Named = Standard, static name: string = "Default"> App: ProjectTree {
+    emit(textFile(`${name}-${nameOf<T>()}.txt`, "ok"));
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "App");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(["Default-Standard.txt"], result.Project!.Files.Select(file => file.Path));
+    }
+
+    [Fact]
+    public void Applies_Static_Defaults_Through_Forward_Instantiation()
+    {
+        const string source = """
+template<> Entry: ProjectTree { return instantiate Later<>; }
+template<static name: string = "Forward"> Later: ProjectTree { emit(textFile(name, name)); }
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Entry");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(["Forward"], result.Project!.Files.Select(file => file.Path));
+    }
+
+    [Fact]
+    public void Diagnoses_Unsatisfied_Template_Type_Constraint_Directly()
+    {
+        const string source = """
+interface Named { name: string; }
+record MissingName { value: string; }
+template<type T extends Named> Inner: ProjectTree { emit(textFile("x", "x")); }
+template<> Entry: ProjectTree { return instantiate Inner<MissingName>; }
+""";
+
+        CopelandCompilation compilation = CopelandCompiler.CompileTemplates(source);
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-REQUIREMENT-0006");
+    }
+
+    [Fact]
+    public void Requires_Defaults_For_Cli_Facing_Type_Parameters()
+    {
+        const string source = """
+interface Named { name: string; }
+record Standard { name: string; }
+template<type T extends Named> App: ProjectTree { emit(textFile("x", "x")); }
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "App");
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-TEMPLATE-0010");
+    }
+
+    [Fact]
+    public void One_Template_Abstraction_Classifies_Program_Presentation_And_Project_Results()
+    {
+        const string source = """
+type ProgramEntity = { name: string; };
+type Presentation = { title: string; };
+template<static name: string = "Program"> ProgramTemplate: ProgramEntity { return { name }; }
+template<static title: string = "Component"> ComponentTemplate: Presentation { return { title }; }
+template<> ProjectTemplate: DotNetSolution {
+    const project: DotNetProject = dotNetProject("Demo", [textFile("a.txt", "a")]);
+    return dotNetSolution("Demo", project, [slnxFile("Demo.slnx", "Demo/Demo.csproj")]);
+}
+""";
+
+        CopelandCompilation compilation = CopelandCompiler.CompileTemplates(source);
+
+        Assert.Empty(compilation.Diagnostics);
+        Assert.Equal(3, compilation.BoundCompilation!.Program.Templates.Count);
+        Assert.Equal(
+            ["ProgramEntity", "Presentation", "DotNetSolution"],
+            compilation.BoundCompilation.Program.Templates.Select(template => template.Symbol.ResultTypeDisplayName));
+    }
+
+    [Fact]
+    public void Binds_And_Materializes_Schema_Checked_CsProject_TsXml()
+    {
+        const string source = """
+template<> App: DotNetSolution {
+    const definition: ProjectFile = csProjectFile("Demo.csproj", <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>);
+    const project: DotNetProject = dotNetProject("Demo", [definition]);
+    return dotNetSolution("Demo", project, [slnxFile("Demo.slnx", "Demo/Demo.csproj")]);
+}
+""";
+
+        CopelandCompilation compilation = CopelandCompiler.CompileTemplates(
+            source,
+            new CopelandCompilationOptions { SourcePath = "App.tsx" });
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(compilation.BoundCompilation!, "App");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        FileArtifact project = result.Project!.Files.Single(file => file.Path.EndsWith(".csproj", StringComparison.Ordinal));
+        string text = System.Text.Encoding.UTF8.GetString(project.Bytes);
+        Assert.Contains("<TargetFramework>net10.0</TargetFramework>", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Rejects_Invalid_CsProject_TsXml_Before_Materialization()
+    {
+        const string source = """
+template<> App: DotNetSolution {
+    const definition: ProjectFile = csProjectFile("Demo.csproj", <Project Sdk="Microsoft.NET.Sdk"><Script /></Project>);
+    const project: DotNetProject = dotNetProject("Demo", [definition]);
+    return dotNetSolution("Demo", project, []);
+}
+""";
+
+        CopelandCompilation compilation = CopelandCompiler.CompileTemplates(
+            source,
+            new CopelandCompilationOptions { SourcePath = "App.tsx" });
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-PROJECT-XML-0001");
+    }
+
+    [Fact]
     public void Parses_Template_And_Explicit_Static_Statements()
     {
         const string source = """
-template Demo(): ProjectTree {
+template<> Demo: ProjectTree {
     static if (true) { emit(textFile("a.txt", "a")); }
     static for (const item of ["b"]) { emit(textFile(item + ".txt", item)); }
     static match "Console" { Console => { } }
@@ -29,10 +172,19 @@ template Demo(): ProjectTree {
     }
 
     [Fact]
+    public void Function_Shaped_Prototype_Syntax_Has_A_Focused_Migration_Diagnostic()
+    {
+        SyntaxTree tree = SyntaxTree.Parse("template Old(static name: string): ProjectTree { emit(textFile(name, name)); }");
+
+        Assert.Contains(tree.Diagnostics, diagnostic => diagnostic.Id == "COPE-TEMPLATE-0011");
+        Assert.Single(tree.Root.Members.OfType<TemplateDeclarationSyntax>());
+    }
+
+    [Fact]
     public void Evaluates_Static_Selection_And_Traversal_Deterministically()
     {
         const string source = """
-template Demo(): ProjectTree {
+template<> Demo: ProjectTree {
     static if (false) { emit(textFile("inactive.txt", "no")); }
     static for (const item of ["a", "b"]) { emit(textFile(item + ".txt", item)); }
 }
@@ -49,13 +201,13 @@ template Demo(): ProjectTree {
     public void Rejects_Recursive_Template_Expansion_And_Invalid_Artifact_Paths()
     {
         const string recursive = """
-template Loop(): ProjectTree { emit(Loop()); }
+template<> Loop: ProjectTree { emit(instantiate Loop<>); }
 """;
         TemplateEvaluationResult recursiveResult = TemplateCompiler.Evaluate(recursive, "Loop");
         Assert.Contains(recursiveResult.Diagnostics, diagnostic => diagnostic.Id == "COPE-TEMPLATE-0004");
 
         const string invalidPath = """
-template Invalid(): ProjectTree { emit(textFile("../outside.txt", "no")); }
+template<> Invalid: ProjectTree { emit(textFile("../outside.txt", "no")); }
 """;
         TemplateEvaluationResult invalidPathResult = TemplateCompiler.Evaluate(invalidPath, "Invalid");
         Assert.Contains(invalidPathResult.Diagnostics, diagnostic => diagnostic.Id == "COPE-ARTIFACT-0001");
@@ -65,7 +217,7 @@ template Invalid(): ProjectTree { emit(textFile("../outside.txt", "no")); }
     public void Selects_An_Exhaustive_Static_Boolean_Match()
     {
         const string source = """
-template Demo(): ProjectTree {
+template<> Demo: ProjectTree {
     static match true {
         true => { emit(textFile("selected.txt", "yes")); }
         false => { emit(textFile("not-selected.txt", "no")); }
@@ -82,7 +234,7 @@ template Demo(): ProjectTree {
     public void Rejects_Runtime_Calls_In_Template_Evaluation()
     {
         const string source = """
-template Invalid(): ProjectTree { emit(readEnvironment("PATH")); }
+template<> Invalid: ProjectTree { emit(readEnvironment("PATH")); }
 """;
         TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Invalid");
 
@@ -92,7 +244,7 @@ template Invalid(): ProjectTree { emit(readEnvironment("PATH")); }
     [Fact]
     public void Does_Not_Silently_Lower_Template_Source_As_Runtime_Code()
     {
-        CopelandCompilation compilation = CopelandCompiler.CompileToMir("template Demo(): ProjectTree { emit(textFile(\"a.txt\", \"a\")); }");
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("template<> Demo: ProjectTree { emit(textFile(\"a.txt\", \"a\")); }");
 
         Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-TEMPLATE-0006");
     }
@@ -102,7 +254,7 @@ template Invalid(): ProjectTree { emit(readEnvironment("PATH")); }
     {
         const string source = """
 record ConsoleConfig { name: string; includeTests: boolean; }
-template ConsoleApp<TConfig extends ConsoleConfig>(): ProjectTree { emit(textFile("a.txt", "a")); }
+template<type TConfig extends ConsoleConfig = ConsoleConfig> ConsoleApp: ProjectTree { emit(textFile("a.txt", "a")); }
 """;
         CopelandCompilation compilation = CopelandCompiler.CompileTemplates(source);
 
@@ -117,7 +269,7 @@ template ConsoleApp<TConfig extends ConsoleConfig>(): ProjectTree { emit(textFil
     public void Compiler_Binds_A_Syntax_Free_Template_Plan()
     {
         const string source = """
-template Demo(): ProjectTree {
+template<> Demo: ProjectTree {
     const files = [textFile("a.txt", "a")];
     static if (true) { emit(project(files)); }
 }
@@ -147,7 +299,7 @@ template Demo(): ProjectTree {
                 "templates/base.ts",
                 "templates/base.ts",
                 """
-export template BaseProject(): ProjectTree {
+export template<> BaseProject: ProjectTree {
     emit(textFile("base.txt", "base"));
 }
 """),
@@ -156,8 +308,8 @@ export template BaseProject(): ProjectTree {
                 "templates/app.ts",
                 """
 import { BaseProject as Base } from "./base";
-export template App(): ProjectTree {
-    emit(Base());
+export template<> App: ProjectTree {
+    emit(instantiate Base<>);
     emit(sourceFile("Program.cs", "Console.WriteLine(\"Hello from Copeland template\");\n"));
 }
 """),
@@ -179,15 +331,15 @@ type ConsoleConfig = {
     includeTests: boolean;
 };
 
-template ConsoleApp(static config: ConsoleConfig): ProjectTree {
+template<static config: ConsoleConfig> ConsoleApp: ProjectTree {
     static if (config.includeTests) {
         emit(textFile("Tests.txt", `Tests for ${config.name}`));
     }
     emit(sourceFile("Program.ts", `console.log("Hello from ${config.name}");`));
 }
 
-template Entry(): ProjectTree {
-    emit(ConsoleApp({ name: "HelloCopeland", includeTests: true }));
+template<> Entry: ProjectTree {
+    emit(instantiate ConsoleApp<config: { name: "HelloCopeland", includeTests: true }>);
 }
 """;
 
@@ -202,8 +354,8 @@ template Entry(): ProjectTree {
     {
         const string source = """
 type Config = { port: number; };
-template Server(static config: Config): ProjectTree { emit(textFile("a.txt", "a")); }
-template Entry(): ProjectTree { emit(Server({ port: "wrong", extra: true })); }
+template<static config: Config> Server: ProjectTree { emit(textFile("a.txt", "a")); }
+template<> Entry: ProjectTree { emit(instantiate Server<config: { port: "wrong", extra: true }>); }
 """;
 
         TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Entry");
@@ -220,7 +372,7 @@ type AppSettings = {
     port: number;
     development?: boolean;
 };
-template SettingsDocument(): ProjectTree {
+template<> SettingsDocument: ProjectTree {
     static for (const field of fieldsOf<AppSettings>()) {
         emit(textFile(`${field.name}.txt`, `${field.typeName}:${field.optional}`));
     }
@@ -241,7 +393,7 @@ type Config = { name: string; internal: boolean; port?: number; };
 type PublicConfig = Pick<Config, "name">;
 type InternalConfig = Omit<Config, "name">;
 type CompleteConfig = Readonly<Required<Partial<Config>>>;
-template Document(): ProjectTree {
+template<> Document: ProjectTree {
     static for (const field of fieldsOf<InternalConfig>()) {
         emit(textFile(`${field.name}.txt`, `${field.optional}:${field.readonly}`));
     }

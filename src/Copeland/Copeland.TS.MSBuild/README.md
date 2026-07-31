@@ -1,5 +1,13 @@
 # Copeland TS SDK
 
+Version `0.1.0-preview.1` targets .NET 10 and is normally added to a project as:
+
+```xml
+<PackageReference Include="Copeland.TS.Sdk"
+                  Version="0.1.0-preview.1"
+                  PrivateAssets="all" />
+```
+
 `Copeland.TS.Sdk` makes explicit `.ts` and `.tsx` `CopelandCompile` items part
 of a normal SDK-style .NET project. See the repository MSBuild integration
 decision record for the supported source surface and integration model.

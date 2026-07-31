@@ -1,0 +1,13 @@
+using Xunit;
+
+enum TestStyle { Friendly, Formal }
+record TestGreeting { message: string; recipient: string; }
+
+[Fact]
+export function enum_match_and_with_work(): void {
+    const style: TestStyle = TestStyle.Friendly;
+    const message: string = match style { Friendly => "Hello", Formal => "Greetings" };
+    const initial: TestGreeting = { message, recipient: "Ada" };
+    const updated: TestGreeting = initial with { recipient: "Copeland" };
+    Assert.True(updated.message == "Hello");
+}

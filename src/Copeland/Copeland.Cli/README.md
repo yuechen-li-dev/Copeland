@@ -5,8 +5,9 @@ workspace tools, and the language server; the VS Code extension discovers this
 single command and launches `tscl language-server`. No repository path or
 separate language-server DLL is required by a user project.
 
-Install from the configured Copeland NuGet feed:
+After publication, install from NuGet.org:
 
 ```console
-dotnet tool install --global Copeland.TS.Tool --version 0.1.0 --add-source <feed>
+dotnet tool install --global Copeland.TS.Tool --version 0.1.0-preview.1
+tscl --version
 ```

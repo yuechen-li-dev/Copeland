@@ -6,12 +6,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-    <CopelandRequiredVersion>0.1.0-preview.1-tsxml.1</CopelandRequiredVersion>
+    <CopelandRequiredVersion>0.1.0-preview.1</CopelandRequiredVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Copeland.TS.Sdk"
-                      Version="0.1.0-preview.1-tsxml.1"
+                      Version="0.1.0-preview.1"
                       PrivateAssets="all" />
     <CopelandNpmContract Include="contracts/lodash-es.json" />
     <None Include="scripts/npm-sidecar.mjs"

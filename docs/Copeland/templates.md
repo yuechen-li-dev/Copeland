@@ -1,179 +1,99 @@
 # Copeland templates
 
-## Create a Copeland project with BootstrapTemplate
+A C++ template, a webpage template, and a project starter template are the
+same Copeland abstraction: a typed parameterized construction with a consumer
+appropriate to its result.
 
-`samples/copeland-ts/templates/BootstrapTemplate.tsx` is the maintained
-bootstrap template for the Preview workflow. Copeland templates are normal
-typed Copeland programs: **TypeScript computes project values. TS-XML describes
-structured files.**
+```text
+template parameters -> typed construction -> typed result -> materializer
+```
+
+- A program/type template is consumed by a compiler.
+- A presentation/component template is consumed by a renderer.
+- A project template is consumed by the filesystem materializer.
+
+`type` is Copeland's only classification vocabulary. Copeland does not add a
+separate C++-style `concept` keyword or constraint ontology.
+
+## Declaration and instantiation
+
+The canonical declaration places type and static value parameters in one
+angle-bracket list. Type parameters precede static parameters.
+
+```ts
+interface NamedProject { name: string; }
+record StandardProject { name: string; }
+
+template<
+    type TProject extends NamedProject = StandardProject,
+    static name: string,
+    static target: string = "net10.0"
+> Build: DotNetSolution {
+    // typed construction
+}
+```
+
+Type parameters use `type`, may use existing interface/record field constraints,
+and may have a default. Static parameters use ordinary Copeland types and
+static values. Each template declares its result type, and its `return` value
+must satisfy that type.
+
+Source specialization is explicit and is not a runtime function call:
+
+```ts
+const solution: DotNetSolution = instantiate Build<
+    StandardProject,
+    name: "HelloCopeland"
+>;
+```
+
+Static arguments are named; omitted parameters use declared defaults. Missing,
+duplicate, unknown, incorrectly typed, or constraint-violating arguments are
+normal diagnostics. M0 deliberately has no partial specialization, SFINAE,
+template-template parameters, higher-kinded types, or compile-time reflection.
+
+## Project templates
+
+The maintained bootstrap is
+`samples/copeland-ts/templates/BootstrapTemplate.tsx`. Its semantic lowering is:
+
+```text
+BootstrapTemplate
+-> DotNetSolution
+-> DotNetProject
+-> TypeScriptWorkspace / NpmPackageManifest / ProjectFile / source and test files
+-> ProjectTree
+-> ProjectTreeMaterializer
+```
+
+`ProjectTree` is the safe backend boundary, not the main bootstrap authoring
+model. `.csproj` is authored as bounded TS-XML. Element names, attributes, and
+nesting are checked against the small SDK-project model before evaluation. TS
+computes attribute/child values; TS-XML has no loops, conditionals, or directives.
+`package.json` and `tsconfig.tsx` are emitted from typed
+`NpmPackageManifest` and `TypeScriptWorkspace` values. Program, document, C#,
+test, contract, and README content remains deterministic text by design.
 
 ```console
-tscl template materialize BootstrapTemplate.tsx --entry BootstrapTemplate --name HelloCopeland --output ./HelloCopeland
-cd HelloCopeland/HelloCopeland
-npm install
-dotnet build
-dotnet test
-dotnet run
+tscl template materialize BootstrapTemplate.tsx --entry BootstrapTemplate --name HelloCopeland --target net10.0 --output ./HelloCopeland
 ```
 
-The command creates a new output root only; it never merges or overwrites an
-existing directory. `tsconfig.tsx` is the typed ownership map: it assigns the
-Copeland project and its `TextDocuments` type set. npm supplies `lodash-es`;
-.NET builds the SDK-style project; the `.slnx` points at that project. XML
-document-valued template artifacts are not materializable yet, so the current
-bootstrap uses deterministic text artifacts for its `.csproj` and `.slnx`.
+CLI-facing type parameters must have defaults. `--name` and optional `--target`
+bind the same ordered static parameter plan used by source instantiation. The
+CLI does not accept an angle-bracket expression as shell text.
 
-Common errors: a missing template source is `COPE-TEMPLATE-CLI-0004`, an
-invalid `--name` is `COPE-TEMPLATE-CLI-0010`, and an existing output directory
-is `COPE-TEMPLATE-CLI-0009`. The candidate package feed used by repository
-validation is intentionally not emitted into generated projects.
+The filesystem actuator still creates only a new output root, normalizes
+relative paths, rejects traversal and duplicate paths, emits deterministic
+ordering and LF UTF-8 text, and never merges or overwrites.
 
-## CTS-TYPE-TEMPLATE-M1: static structural inputs
+## Static language boundary
 
-`type` is Copeland's compile-time structural vocabulary. It has no constructor
-and creates no runtime CLR or JavaScript type. In contrast, `record` declares
-concrete nominal runtime data and `interface` remains the preferred behavioral
-implementation contract.
+Template bodies are compiler-bound static plans, not runtime functions. They
+support immutable locals, typed values, `return`, `emit`, finite `static for`,
+`static if`, `static match`, template instantiation, and compiler-owned
+constructors. Runtime calls, environment/process/network access, clocks,
+randomness, recursion, `while`, and unbounded loops are rejected.
 
-| Declaration | Role |
-| --- | --- |
-| `record` | concrete nominal runtime data |
-| `interface` | runtime behavior/implementation contract |
-| `type` | finite compile-time structure |
-
-Templates can accept typed static values. Type arguments and static value
-arguments are separate:
-
-```ts
-type ConsoleConfig = {
-    name: string;
-    includeTests: boolean;
-};
-
-template ConsoleApp<TModel>(static config: ConsoleConfig): ProjectTree {
-    static if (config.includeTests) {
-        emit(textFile("tests.txt", `tests for ${config.name}`));
-    }
-}
-
-template Entry(): ProjectTree {
-    emit(ConsoleApp<User>({ name: "HelloCopeland", includeTests: true }));
-}
-```
-
-The static argument is bound and checked before evaluation. It may contain
-literals, finite arrays, nested object literals, and projections of other
-static values. Runtime calls and ordinary template runtime parameters are not
-allowed. Fresh static object literals use an excess-field check: unknown fields,
-missing required fields, and nested type mismatches are diagnostics. A record
-can satisfy a compatible `type` structurally without losing its nominal runtime
-identity.
-
-`fieldsOf<T>()` and `nameOf<T>()` are static/template-only metadata intrinsics.
-`fieldsOf` returns immutable, finite field metadata in declaration order:
-`name`, `typeName`, `optional`, and `readonly`. It accepts a structural type or
-record and never loads arbitrary assemblies or executes user code.
-
-```ts
-template SettingsDocument(): ProjectTree {
-    static for (const field of fieldsOf<AppSettings>()) {
-        emit(textFile(`${field.name}.txt`, `${field.typeName}`));
-    }
-}
-```
-
-The compiler binds this as structural metadata values and a `BoundStaticFor`;
-the evaluator consumes those bound values only. It does not parse syntax,
-resolve types, or infer values at evaluation time.
-
-The bounded structural projections are compiler operations over finite field
-sets: `Pick<T, "field">`, `Omit<T, "field">`, `Partial<T>`,
-`Required<T>`, and `Readonly<T>`. They preserve declaration order and nested
-field types; keys must be literal field names.
-
-Copeland types describe finite structure. They are not a hidden general-purpose
-type-level programming language. Conditional types, `infer`, recursive mapped
-types, arbitrary type functions, and type-level recursion are intentionally
-outside this language surface.
-
-### Type compatibility tiers
-
-Supported syntax has defined, tested Copeland semantics. Generic structural
-aliases and tuple type syntax are recognized but unimplemented and report
-focused diagnostics (`COPE-ALIAS-0002` and `COPE-PROFILE-0015`). Conditional
-types report `COPE-TYPE-UNIMPLEMENTED`. Malformed declarations and invalid
-supported structural shapes remain ordinary errors. Copeland intentionally does
-not aim for full `tsc` type-system compatibility.
-
-## Language-native structural templates
-
-CTS-TEMPLATE-STATIC-M0 adds the first language-level template surface alongside
-the existing `dotnet new` catalog. **Copeland templates are bounded structural
-artifact constructors, not a general compile-time programming language.**
-
-```ts
-record ConsoleAppConfig { name: string; includeTests: boolean; }
-
-template ConsoleApp<TConfig extends ConsoleAppConfig>(): ProjectTree {
-    emit(textFile("Program.cs", `Console.WriteLine("Hello from Copeland template");\n`));
-    static if (true) { emit(sourceFile("Copeland/Main.ts", "export const value = 1;\n")); }
-}
-```
-
-`template` is distinct from `function`: functions are parameterized runtime
-code, while templates construct immutable `ProjectTree` values. Template type
-parameters use the ordinary declared Copeland record/interface type names; no
-second constraint language exists.
-
-M0 static statements are explicit: `static if`, `static match`, and `static
-for (const item of finiteArray)`. Static values are literals, immutable records,
-template parameters, and arrays whose complete contents are known before the
-loop begins. Runtime calls, arbitrary iterators, `while`, recursion,
-filesystem/network/process/environment access, clocks, and randomness are
-rejected. The compiler never tries to infer whether arbitrary code terminates.
-
-Artifacts are immutable `ProjectTree`, `DirectoryArtifact`, `FileArtifact`,
-`TextFileArtifact`, and `SourceFileArtifact` values. Paths are relative,
-normalized with `/`, and cannot contain `.` or `..`; duplicate paths are an
-error. Text output is UTF-8 without a BOM and LF-normalized. Preview output is
-stable JSON with `schemaVersion`, `template`, and ordered `files` entries
-(`path`, `kind`, `sha256`, `encoding`, `newlines`).
-
-```console
-tscl template preview ConsoleApp.template.ts --entry ConsoleDogfood --format json
-tscl template materialize ConsoleApp.template.ts --entry ConsoleDogfood --output ./Hello
-```
-
-The first command is read-only. The second passes the canonical manifest and
-file hashes to TSPack's `materialize-tree` command; TSPack validates, stages,
-and commits a new output directory. Copeland does not materialize files or own
-package/browser lifecycle behavior.
-
-Before materialization, Copeland probes the selected TSPack executable for the
-`materialize-tree` capability. A stale binary reports `COPE-TEMPLATE-CLI-0008`;
-preview remains usable without TSPack.
-
-Template bodies are first bound into a compiler-owned static plan. Artifact
-constructor calls have intrinsic identities, and nested template calls carry
-resolved template-symbol identities. The evaluator consumes that plan only; it
-does not reparse expressions, resolve imports, or make runtime calls. When the
-source imports another template, the CLI loads the source directory as the
-ordinary Copeland project snapshot, so exports, visibility, aliases, and editor
-overlays follow normal module rules.
-
-The local-feed template package supplies a deliberately small catalog:
-
-| Template | Command | Dependency law |
-| --- | --- | --- |
-| Console | `dotnet new copeland-console -n Example` | CLR only; no TSPack. |
-| Library | `dotnet new copeland-library -n Example` | CLR only; no TSPack. |
-| React web app | `dotnet new copeland-react -n Example` | TSPack-supervised ASP.NET Core/browser lifecycle; no npm materialization in M0. |
-| Mixed workspace | `dotnet new copeland-workspace -n Example` | Run `tscl workspace sync`; conventional TypeScript remains tsc-owned. |
-
-`copeland-react` intentionally uses the smallest browser experience: an
-ASP.NET Core host, a React reducer, and a Copeland-compiled API. Its
-`tsconfig.tsx` is the Copeland ownership map and its `manifest.tsx` declares the
-TSPack `web` RunTarget. TSPack owns host supervision, readiness, browser
-inspection, and cleanup. It does not claim to package npm dependencies; TSPack
-stays separate from Copeland and will materialize npm only when the template
-declares those dependencies.
+The old `template Name(static value: Type): Result` prototype is parser-recovered
+only to issue `COPE-TEMPLATE-0011`; it does not compile. Maintained samples and
+tests use the canonical syntax.

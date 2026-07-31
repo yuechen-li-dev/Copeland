@@ -1,0 +1,169 @@
+name: Copeland Preview Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Coordinated release version
+        required: true
+        default: 0.1.0-preview.1
+        type: string
+      publish_nuget:
+        description: Publish the validated NuGet packages
+        required: true
+        default: false
+        type: boolean
+      publish_npm:
+        description: Publish @copeland/tscl with the preview tag
+        required: true
+        default: false
+        type: boolean
+      create_github_release:
+        description: Create or update a draft GitHub prerelease
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: copeland-preview-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/Copeland/Copeland.TS.VSCode/package-lock.json
+
+      - name: Validate coordinated version
+        shell: pwsh
+        run: ./tools/Validate-CopelandPreviewVersion.ps1 -ExpectedVersion '${{ inputs.version }}'
+
+      - name: Build, test, pack, inspect, and smoke test
+        shell: pwsh
+        run: ./tools/Build-CopelandPreviewRelease.ps1 -Version '${{ inputs.version }}'
+
+      - name: Upload validated release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: copeland-ts-${{ inputs.version }}
+          path: artifacts/releases/${{ inputs.version }}/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-nuget:
+    if: ${{ inputs.publish_nuget }}
+    needs: build-and-verify
+    runs-on: windows-latest
+    environment: copeland-publication
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: copeland-ts-${{ inputs.version }}
+          path: release
+
+      - name: Publish NuGet packages
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
+              throw 'NUGET_API_KEY is required by the copeland-publication environment.'
+          }
+          Get-ChildItem -LiteralPath release/nuget -Filter *.nupkg | ForEach-Object {
+              dotnet nuget push $_.FullName `
+                  --source https://api.nuget.org/v3/index.json `
+                  --api-key $env:NUGET_API_KEY `
+                  --skip-duplicate
+              if ($LASTEXITCODE -ne 0) {
+                  throw "NuGet publication failed for $($_.Name)."
+              }
+          }
+
+  publish-npm:
+    if: ${{ inputs.publish_npm }}
+    needs: build-and-verify
+    runs-on: windows-latest
+    environment: copeland-publication
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: copeland-ts-${{ inputs.version }}
+          path: release
+
+      - name: Publish npm preview package
+        shell: pwsh
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NODE_AUTH_TOKEN)) {
+              throw 'NPM_TOKEN is required by the copeland-publication environment.'
+          }
+          npm view "@copeland/tscl@${{ inputs.version }}" version 2>$null
+          if ($LASTEXITCODE -eq 0) {
+              Write-Output '@copeland/tscl@${{ inputs.version }} already exists; nothing to publish.'
+              exit 0
+          }
+          npm publish "release/npm/copeland-tscl-${{ inputs.version }}.tgz" `
+              --access public `
+              --tag preview
+          if ($LASTEXITCODE -ne 0) {
+              throw 'npm publication failed.'
+          }
+
+  create-release:
+    if: ${{ inputs.create_github_release }}
+    needs: build-and-verify
+    runs-on: windows-latest
+    environment: copeland-publication
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: copeland-ts-${{ inputs.version }}
+          path: release
+
+      - name: Create or update draft prerelease
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'v${{ inputs.version }}'
+          $assets = @(
+              'release/nuget/Copeland.TS.Tool.${{ inputs.version }}.nupkg',
+              'release/nuget/Copeland.TS.Sdk.${{ inputs.version }}.nupkg',
+              'release/npm/copeland-tscl-${{ inputs.version }}.tgz',
+              'release/vscode/copeland-ts-${{ inputs.version }}.vsix',
+              'release/templates/BootstrapTemplate.tsx',
+              'release/checksums.txt',
+              'release/MANIFEST.json'
+          )
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) {
+              gh release upload $tag @assets --clobber
+          }
+          else {
+              gh release create $tag @assets `
+                  --title 'Copeland TS ${{ inputs.version }}' `
+                  --notes-file release/RELEASE_NOTES.md `
+                  --prerelease `
+                  --draft
+          }
