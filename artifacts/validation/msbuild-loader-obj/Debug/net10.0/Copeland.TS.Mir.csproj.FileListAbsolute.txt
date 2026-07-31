@@ -1,5 +1,0 @@
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Mir.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Mir.AssemblyInfoInputs.cache
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Mir.AssemblyInfo.cs
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Mir.csproj.CoreCompileInputs.cache
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Mir.sourcelink.json

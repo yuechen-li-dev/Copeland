@@ -82,13 +82,13 @@ hashes matched in the final run; the exact values are written to
 | --- | --- |
 | Canonical source fixtures | Source under `samples/copeland-ts`, including workspace and React fixtures. |
 | Required checked-in golden | Existing browser-WASM publish payload, where tests/reviews treat it as a fixture. |
-| Reproducible output / tracked cleanup debt | `publish-modules-m1/`, `samples/copeland-ts/authoring-food/publish*`, and `artifacts/authoring-food-r1-closure` executable/DLL/PDB payloads. |
-| Accidental binary | `samples/copeland-ts/react-components-m1/tspack.exe`; distribution no longer relies on it. |
+| Reproducible output / tracked cleanup debt | Removed: `publish-modules-m1/`, `samples/copeland-ts/authoring-food/publish*`, and `artifacts/authoring-food-r1-closure` executable/DLL/PDB payloads. |
+| Accidental binary | Removed: `samples/copeland-ts/react-components-m1/tspack.exe`; distribution no longer relies on it. |
 | Package artifacts | M0 packages under ignored `artifacts/cts-distribution-m0/`. |
 
-No tracked binary was removed. A later reviewed removal commit must handle the
-classified reproducible/accidental payloads. The generic `*.dll` ignore was
-replaced with precise publish-output rules, so binary drift remains visible.
+The classified reproducible and accidental payloads were removed. Precise
+publish-output rules prevent their return without hiding binary fixtures that
+are still intentionally reviewed.
 
 ## Validation
 

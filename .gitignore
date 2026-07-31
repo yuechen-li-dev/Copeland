@@ -37,8 +37,16 @@ dist/
 # Generated publish payloads are fixture-local. Do not use a repository-wide
 # DLL ignore: checked-in binary fixtures must remain visible for review.
 publish-modules-m1/
+artifacts/authoring-food-r1-closure/
+artifacts/tspack-m1/tspack.exe
+artifacts/validation/
+artifacts/tsxml-text-value-m0c/candidate-tool*/
+artifacts/tsxml-text-value-m0c/isolated-proof-*/
+artifacts/tsxml-text-value-m0c/vscode-extensions/
+artifacts/tsxml-text-value-m0c/vscode-profile/
 samples/copeland-ts/authoring-food/publish*/
 samples/copeland-ts/copeland-website-m0/artifacts/
+samples/copeland-ts/react-components-m1/tspack.exe
 
 # Standalone-web stages the current tscl payload here for TSPack. It is rebuilt
 # from the project reference on every declared generation path.

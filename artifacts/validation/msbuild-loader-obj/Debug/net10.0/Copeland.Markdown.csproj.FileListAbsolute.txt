@@ -1,5 +1,0 @@
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.Markdown.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.Markdown.AssemblyInfoInputs.cache
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.Markdown.AssemblyInfo.cs
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.Markdown.csproj.CoreCompileInputs.cache
-C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.Markdown.sourcelink.json
