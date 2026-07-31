@@ -659,6 +659,9 @@ public static class JavaScriptBackend
             case MirLiteralExpression literal:
                 ValidateLiteral(literal, context, diagnostics);
                 break;
+            case MirTextDocumentExpression:
+                AddUnsupported(diagnostics, $"Text document values in {context}; the JavaScript backend has no Text materializer in M0.");
+                break;
             case MirVariableExpression variable:
                 ValidateValueType(variable.Type, $"variable '{variable.Name}' in {context}", catalog, diagnostics, allowVoid: false);
                 break;

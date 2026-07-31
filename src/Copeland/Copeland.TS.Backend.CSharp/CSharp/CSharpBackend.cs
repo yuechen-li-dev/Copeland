@@ -141,6 +141,7 @@ public static class CSharpBackend
             writer.WriteLine();
         }
         writer.WriteLine("namespace Copeland.Generated;"); writer.WriteLine();
+        EmitTextDocumentRuntime(writer);
         if (needsUnit) EmitUnit(writer);
         if (usesArrayElementAccess) EmitArraySupport(writer);
         if (usesResult) EmitResult(writer);
@@ -1323,6 +1324,7 @@ public static class CSharpBackend
         return expression switch
         {
             MirLiteralExpression literal => CSharpLiteralWriter.Write(literal.Value),
+            MirTextDocumentExpression document => "throw new global::System.InvalidOperationException(\"Text values are not supported in async functions in M0.\")",
             MirUnitExpression => "CopeUnit.Value",
             MirVariableExpression variable => "frame." + CSharpNameMangler.Mangle(variable.Name),
             MirAsyncFrameSlotExpression slot => "frame.__" + slot.SlotId.Value,
@@ -1638,6 +1640,7 @@ public static class CSharpBackend
         => expression switch
         {
             MirLiteralExpression literal => CSharpLiteralWriter.Write(literal.Value),
+            MirTextDocumentExpression document => EmitTextDocument(writer, document, function, enumNames, ref tempIndex, diagnostics),
             MirUnitExpression => "CopeUnit.Value",
             MirVariableExpression variable => CSharpNameMangler.Mangle(variable.Name),
             MirAssignmentExpression assignment => $"{CSharpNameMangler.Mangle(assignment.Name)} = {EmitExpression(writer, assignment.Expression, function, enumNames, ref tempIndex, diagnostics)}",
@@ -3156,7 +3159,56 @@ public static class CSharpBackend
 
         return arrays;
     }
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirType { Identifier: "Document" } => "TextDocument", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+
+    private static string EmitTextDocument(
+        CSharpTextWriter writer,
+        MirTextDocumentExpression document,
+        MirFunction function,
+        IReadOnlySet<string> enumNames,
+        ref int tempIndex,
+        List<CSharpDiagnostic> diagnostics)
+    {
+        var slots = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (MirTextValueSlot slot in document.Slots)
+        {
+            string value = EmitExpression(writer, slot.Expression, function, enumNames, ref tempIndex, diagnostics);
+            slots.Add(slot.SlotId, value);
+        }
+        return "new TextDocument(" + EmitTextNode(document.Root, slots) + ")";
+    }
+
+    private static string EmitTextNode(MirTextNode node, IReadOnlyDictionary<string, string> slots)
+    {
+        string attributes = string.Join(", ", node.Attributes.Select(attribute =>
+            "[" + CSharpLiteralWriter.Write(attribute.Name) + "] = " + CSharpLiteralWriter.Write(attribute.Value)));
+        string children = string.Join(", ", node.Children.Select(child => EmitTextContent(child, slots)));
+        return $"new TextNode({CSharpLiteralWriter.Write(node.Kind)}, new global::System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new global::System.Collections.Generic.Dictionary<string, string> {{ {attributes} }}), global::System.Array.AsReadOnly(new TextContent[] {{ {children} }}))";
+    }
+
+    private static string EmitTextContent(MirTextContent content, IReadOnlyDictionary<string, string> slots) => content switch
+    {
+        MirTextRun text => $"new TextRun({CSharpLiteralWriter.Write(text.Value)})",
+        MirTextSlot slot => $"new EmbeddedTextValue({CSharpLiteralWriter.Write(slot.SlotId)}, {slots[slot.SlotId]})",
+        MirTextChild child => $"new TextChild({EmitTextNode(child.Node, slots)})",
+        _ => throw new InvalidOperationException($"Unsupported text content '{content.GetType().Name}'."),
+    };
+
+    private static void EmitTextDocumentRuntime(CSharpTextWriter writer)
+    {
+        writer.WriteLine("public sealed record TextDocument(TextNode Root)");
+        writer.WriteLine("{");
+        writer.Indent();
+        writer.WriteLine("public string Kind => Root.Kind;");
+        writer.Unindent();
+        writer.WriteLine("}");
+        writer.WriteLine("public sealed record TextNode(string Kind, global::System.Collections.Generic.IReadOnlyDictionary<string, string> Attributes, global::System.Collections.Generic.IReadOnlyList<TextContent> Children);");
+        writer.WriteLine("public abstract record TextContent;");
+        writer.WriteLine("public sealed record TextRun(string Value) : TextContent;");
+        writer.WriteLine("public sealed record EmbeddedTextValue(string SlotId, string Value) : TextContent;");
+        writer.WriteLine("public sealed record TextChild(TextNode Node) : TextContent;");
+        writer.WriteLine();
+    }
     private static string MapValueStorageType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
     private static string MapResultComponentType(MirType type) => type is MirNamedType { Identifier: "void" } ? "CopeUnit" : MapType(type);
 

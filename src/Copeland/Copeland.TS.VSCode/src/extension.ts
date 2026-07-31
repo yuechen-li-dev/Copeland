@@ -137,7 +137,7 @@ async function runDotnetProject(operation: "build" | "run"): Promise<void> {
     const absoluteProject = path.resolve(controller.rootPath, project);
     const result = await runTool(
         { command: "dotnet", arguments: [], source: ".NET SDK" },
-        [operation, absoluteProject],
+        [operation, absoluteProject, "--disable-build-servers"],
         controller.rootPath,
         output);
     output.show(true);

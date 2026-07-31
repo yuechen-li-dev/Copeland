@@ -110,6 +110,13 @@ public abstract record DocumentInlineMir(SourceSpan Span)
 
 public sealed record TextMir(string Text, SourceSpan Span) : DocumentInlineMir(Span);
 
+/// <summary>
+/// A typed expression slot authored in Text TS-XML. The canonical document
+/// model owns its place and provenance; ordinary semantic binding owns the
+/// expression selected by <see cref="SlotId"/>.
+/// </summary>
+public sealed record EmbeddedValueMir(string SlotId, SourceSpan Span) : DocumentInlineMir(Span);
+
 public sealed record CodeSpanMir(string Text, SourceSpan Span) : DocumentInlineMir(Span);
 
 public sealed record EmphasisMir(

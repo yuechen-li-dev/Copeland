@@ -226,6 +226,7 @@ public static class MirTextWriter
         MirCallExpression c => $"call {c.FunctionName}({string.Join(", ", c.Arguments.Select(FormatExpression))})",
         MirNpmComponentExpression component => $"npm-component {component.PackageName}@{component.PackageVersion}:{component.ExportName}{(component.MemberName is null ? string.Empty : "." + component.MemberName)}",
         MirReactElementExpression element => $"react-element {FormatExpression(element.ElementType)}({string.Join(", ", element.Properties.Select(property => property.Name))})",
+        MirTextDocumentExpression document => $"text-document {FormatTextNode(document.Root)} slots({string.Join(", ", document.Slots.Select(slot => slot.SlotId + "=" + FormatExpression(slot.Expression)) )})",
         MirClrInvocationExpression invocation => $"clr-call [{invocation.Member.AssemblyIdentity}] {invocation.Member.DeclaringType}.{invocation.Member.MemberName}{FormatClrGenericArguments(invocation.Member.GenericArguments)}({string.Join(", ", invocation.Arguments.Select(FormatExpression))})",
         MirClrPropertyAccessExpression property => $"clr-property [{property.Property.AssemblyIdentity}] {property.Property.DeclaringType}.{property.Property.MemberName}",
         MirFunctionReferenceExpression reference => $"function-ref {reference.FunctionName} : {reference.CallableType.Name}",
@@ -258,6 +259,21 @@ public static class MirTextWriter
 
     private static string FormatClrGenericArguments(IReadOnlyList<MirType> genericArguments)
         => genericArguments.Count == 0 ? string.Empty : "<" + string.Join(", ", genericArguments.Select(argument => argument.Name)) + ">";
+
+    private static string FormatTextNode(MirTextNode node)
+    {
+        string attributes = node.Attributes.Count == 0
+            ? string.Empty
+            : "[" + string.Join(", ", node.Attributes.Select(attribute => attribute.Name + "=" + attribute.Value)) + "]";
+        string children = string.Join(", ", node.Children.Select(content => content switch
+        {
+            MirTextRun text => "text(" + text.Value + ")",
+            MirTextSlot slot => "slot(" + slot.SlotId + ")",
+            MirTextChild child => FormatTextNode(child.Node),
+            _ => content.GetType().Name,
+        }));
+        return node.Kind + attributes + "(" + children + ")";
+    }
 
     private static string FormatTsonValuePlan(MirTsonValuePlan plan)
         => plan switch

@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Backend.JavaScript;
+using Copeland.TS.Compiler;
 using Copeland.TS.Lowering;
 using Copeland.TS.Mir;
 using Copeland.TS.Syntax;
@@ -12,6 +13,34 @@ namespace Copeland.TS.Backend.CSharp.Tests;
 
 public sealed class CSharpBackendTests
 {
+    [Fact]
+    public void Text_document_slots_materialize_as_ordered_immutable_nodes()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            function greetingDocument(name: string): Document {
+                return <Document><Heading level="1">Hello, {name}</Heading></Document>;
+            }
+            """, new CopelandCompilationOptions { TsXmlProfile = CopelandTsXmlProfile.TextDocumentsM0, SourcePath = "Greeting.tsx" });
+
+        Assert.Empty(compilation.Diagnostics);
+        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.Empty(emitted.Diagnostics);
+        var generated = RoslynCompileHelper.CompileGeneratedSource(emitted.SourceText);
+        Assert.True(generated.Success, string.Join(Environment.NewLine, generated.Diagnostics));
+        object? value = GeneratedModuleInvoker.Invoke(generated.Assembly!, "greetingDocument", "Ada");
+        Assert.NotNull(value);
+        object root = value!.GetType().GetProperty("Root")!.GetValue(value)!;
+        Assert.Equal("Document", root.GetType().GetProperty("Kind")!.GetValue(root));
+        var children = (System.Collections.IEnumerable)root.GetType().GetProperty("Children")!.GetValue(root)!;
+        object child = children.Cast<object>().Single();
+        object heading = child.GetType().GetProperty("Node")!.GetValue(child)!;
+        Assert.Equal("Heading", heading.GetType().GetProperty("Kind")!.GetValue(heading));
+        var headingChildren = ((System.Collections.IEnumerable)heading.GetType().GetProperty("Children")!.GetValue(heading)!).Cast<object>().ToArray();
+        Assert.Equal("TextRun", headingChildren[0].GetType().Name);
+        Assert.Equal("EmbeddedTextValue", headingChildren[1].GetType().Name);
+        Assert.Equal("Ada", headingChildren[1].GetType().GetProperty("Value")!.GetValue(headingChildren[1]));
+    }
+
     [Fact]
     public void Int_literals_compile_as_ints_in_generated_csharp()
     {

@@ -36,6 +36,10 @@ public static class CopelandProjectModelLoader
             startInfo.ArgumentList.Add("/nologo");
             startInfo.ArgumentList.Add("/verbosity:quiet");
             startInfo.ArgumentList.Add("/nodeReuse:false");
+            // The language server evaluates projects frequently. Keep both the
+            // command-line and environment forms so no reusable MSBuild node
+            // survives an evaluation and holds Copeland task assemblies open.
+            startInfo.Environment["MSBUILDDISABLENODEREUSE"] = "1";
             if (globalProperties is not null)
             {
                 foreach ((string key, string value) in globalProperties.OrderBy(pair => pair.Key, StringComparer.Ordinal))
@@ -186,7 +190,10 @@ public static class CopelandProjectModelLoader
     {
         if (string.IsNullOrWhiteSpace(value)) return CopelandTsXmlProfile.None;
         if (value.Equals("react-m0", StringComparison.OrdinalIgnoreCase)) return CopelandTsXmlProfile.ReactM0;
-        throw new InvalidOperationException("CopelandTsXmlProfile must be empty or 'react-m0'.");
+        if (value.Equals("text-m0", StringComparison.OrdinalIgnoreCase)) return CopelandTsXmlProfile.TextDocumentsM0;
+        if (value.Equals("react-m0+text-m0", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("text-m0+react-m0", StringComparison.OrdinalIgnoreCase)) return CopelandTsXmlProfile.ReactM0 | CopelandTsXmlProfile.TextDocumentsM0;
+        throw new InvalidOperationException("CopelandTsXmlProfile must be empty, 'react-m0', 'text-m0', or their '+' composition.");
     }
 
     private static CopelandNpmDependencyGraph CreateNpmDependencyGraph(IReadOnlyList<CopelandNpmPackageContract> contracts)

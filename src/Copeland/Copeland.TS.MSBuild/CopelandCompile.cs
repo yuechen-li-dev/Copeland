@@ -364,8 +364,21 @@ public sealed class CopelandCompile : Microsoft.Build.Utilities.Task
             return true;
         }
 
+        if (string.Equals(TsXmlProfile, "text-m0", StringComparison.OrdinalIgnoreCase))
+        {
+            profile = CopelandTsXmlProfile.TextDocumentsM0;
+            return true;
+        }
+
+        if (string.Equals(TsXmlProfile, "react-m0+text-m0", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(TsXmlProfile, "text-m0+react-m0", StringComparison.OrdinalIgnoreCase))
+        {
+            profile = CopelandTsXmlProfile.ReactM0 | CopelandTsXmlProfile.TextDocumentsM0;
+            return true;
+        }
+
         profile = CopelandTsXmlProfile.None;
-        Log.LogError("COPE-MSBUILD-0008", "", "", ProjectDirectory, 0, 0, 0, 0, "CopelandTsXmlProfile must be empty or 'react-m0'.");
+        Log.LogError("COPE-MSBUILD-0008", "", "", ProjectDirectory, 0, 0, 0, 0, "CopelandTsXmlProfile must be empty, 'react-m0', 'text-m0', or their '+' composition.");
         return false;
     }
 

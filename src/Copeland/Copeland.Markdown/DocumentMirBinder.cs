@@ -103,6 +103,7 @@ public static class DocumentMirBinder
             return inline switch
             {
                 TextMir text => text with { Metadata = metadata },
+                EmbeddedValueMir value => value with { Metadata = metadata },
                 CodeSpanMir code => code with { Metadata = metadata },
                 EmphasisMir emphasis => emphasis with
                 {
@@ -153,6 +154,9 @@ public static class DocumentMirBinder
                 {
                     case TextMir text:
                         yield return text.Text;
+                        break;
+                    case EmbeddedValueMir:
+                        yield return string.Empty;
                         break;
                     case CodeSpanMir code:
                         yield return code.Text;

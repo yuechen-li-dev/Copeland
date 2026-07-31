@@ -92,7 +92,7 @@ public sealed class ProjectModelLoaderTests
 
     private static void RunDotnetRestore(string projectPath)
     {
-        using Process process = Process.Start(new ProcessStartInfo("dotnet", "restore \"" + projectPath + "\"")
+        using Process process = Process.Start(new ProcessStartInfo("dotnet", "restore \"" + projectPath + "\" --disable-build-servers")
         {
             UseShellExecute = false,
         })!;

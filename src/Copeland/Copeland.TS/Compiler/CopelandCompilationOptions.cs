@@ -43,8 +43,10 @@ public sealed class CopelandCompilationOptions
     public IReadOnlyList<CopelandClrReference> ClrReferences { get; init; } = [];
 }
 
+[Flags]
 public enum CopelandTsXmlProfile
 {
     None,
     ReactM0,
+    TextDocumentsM0,
 }

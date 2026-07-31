@@ -1261,6 +1261,7 @@ public static class MirValidator
             MirReactElementExpression element => new[] { element.ElementType }
                 .Concat(element.Properties.Select(property => property.Value))
                 .Concat(element.Children),
+            MirTextDocumentExpression document => document.Slots.Select(slot => slot.Expression),
             MirAssignmentExpression assignment => [assignment.Expression],
             MirUnaryExpression unary => [unary.Operand],
             MirBinaryExpression binary => [binary.Left, binary.Right],

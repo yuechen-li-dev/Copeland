@@ -1,5 +1,9 @@
 using Copeland.Markdown;
 using Copeland.TS.MachinaSource;
+using Copeland.TS.Compiler;
+using Copeland.TS.Lowering;
+using Copeland.TS.Mir;
+using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Syntax;
 using Xunit;
 
@@ -7,6 +11,51 @@ namespace Copeland.TS.Tests;
 
 public sealed class TextDocumentM0Tests
 {
+    [Fact]
+    public void Text_document_is_a_first_class_non_react_value_through_mir_and_csharp_materialization()
+    {
+        const string source = """
+            function greetingDocument(name: string): Document {
+                return <Document><Heading level="1">Hello, {name}</Heading><Paragraph>Copeland TS-XML is not React.</Paragraph></Document>;
+            }
+            function passThrough(value: Document): Document { return value; }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source, new CopelandCompilationOptions
+        {
+            TsXmlProfile = CopelandTsXmlProfile.TextDocumentsM0,
+            SourcePath = "Greeting.tsx",
+        });
+
+        Assert.Empty(compilation.Diagnostics);
+        MirProgram program = Assert.IsType<MirProgram>(compilation.MirCompilation!.Program);
+        Assert.Contains("text-document", MirTextWriter.Write(program), StringComparison.Ordinal);
+        CSharpCompilation emitted = CSharpBackend.Emit(program);
+        Assert.Empty(emitted.Diagnostics);
+        Assert.Contains("record TextDocument", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("Hello", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("TextNode", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("EmbeddedTextValue", emitted.SourceText, StringComparison.Ordinal);
+        Assert.Contains("text-slot-", emitted.SourceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("createElement", emitted.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Text_value_slots_reject_implicit_non_string_conversion()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            function invalid(value: int): Document {
+                return <Document><Paragraph>{value}</Paragraph></Document>;
+            }
+            """, new CopelandCompilationOptions
+        {
+            TsXmlProfile = CopelandTsXmlProfile.TextDocumentsM0,
+            SourcePath = "InvalidText.tsx",
+        });
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == "COPE-TEXT-0013");
+    }
+
     [Fact]
     public void Structured_document_lowers_into_the_canonical_document_mir()
     {

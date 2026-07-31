@@ -77,9 +77,13 @@ public sealed class CopelandProjectContext
             ProjectRoot = projectRoot,
             NpmDependencies = npmDependencies,
             JavaScriptHostModules = browser ? [CopelandProjectHostContracts.Browser()] : [],
-            TsXmlProfile = string.Equals(descriptor.TsXmlProfile, "react-m0", StringComparison.OrdinalIgnoreCase)
-                ? CopelandTsXmlProfile.ReactM0
-                : CopelandTsXmlProfile.None,
+            TsXmlProfile = descriptor.TsXmlProfile?.ToLowerInvariant() switch
+            {
+                "react-m0" => CopelandTsXmlProfile.ReactM0,
+                "text-m0" => CopelandTsXmlProfile.TextDocumentsM0,
+                "react-m0+text-m0" or "text-m0+react-m0" => CopelandTsXmlProfile.ReactM0 | CopelandTsXmlProfile.TextDocumentsM0,
+                _ => CopelandTsXmlProfile.None,
+            },
         };
         return new CopelandProjectContext(
             Path.GetFullPath(descriptorPath),

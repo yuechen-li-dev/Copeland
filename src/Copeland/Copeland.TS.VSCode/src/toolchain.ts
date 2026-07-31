@@ -99,6 +99,52 @@ export function spawnLanguageServer(tool: ToolInvocation, cwd: string, output: v
     return child;
 }
 
+/**
+ * Reaps the process launched by this extension, including the `dotnet tool`
+ * wrapper's language-server child. This is intentionally never used for a
+ * process discovered by name or PID outside this launch path.
+ */
+export async function terminateOwnedProcessTree(child: ChildProcess, output: vscode.OutputChannel): Promise<void> {
+    if (!child.pid || child.exitCode !== null || child.killed) {
+        return;
+    }
+
+    output.appendLine(`[language server] terminating owned process tree ${child.pid}`);
+    if (process.platform === "win32") {
+        await new Promise<void>((resolve) => {
+            const killer = spawn("taskkill.exe", ["/pid", String(child.pid), "/T", "/F"], {
+                shell: false,
+                windowsHide: true
+            });
+            killer.once("error", () => resolve());
+            killer.once("close", () => resolve());
+        });
+        await waitForProcessExit(child, 5000);
+        return;
+    }
+
+    child.kill("SIGTERM");
+    await waitForProcessExit(child, 5000);
+}
+
+function waitForProcessExit(child: ChildProcess, timeoutMs: number): Promise<void> {
+    if (child.exitCode !== null) {
+        return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+        const timer = setTimeout(() => {
+            child.removeListener("close", onClose);
+            resolve();
+        }, timeoutMs);
+        const onClose = () => {
+            clearTimeout(timer);
+            resolve();
+        };
+        child.once("close", onClose);
+    });
+}
+
 export async function readProjectVersion(projectPath: string | undefined): Promise<string | undefined> {
     if (!projectPath) {
         return undefined;

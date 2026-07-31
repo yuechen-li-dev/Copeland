@@ -1,0 +1,12 @@
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader\Copeland.TS.Workspace.deps.json
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader\Copeland.TS.Workspace.dll
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader\Copeland.TS.Workspace.pdb
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Workspace.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Workspace.AssemblyInfoInputs.cache
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Workspace.AssemblyInfo.cs
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Workspace.csproj.CoreCompileInputs.cache
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Workspace.sourcelink.json
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Workspace.dll
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\refint\Copeland.TS.Workspace.dll
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\Copeland.TS.Workspace.pdb
+C:\Users\yuech\source\repos\Copeland\artifacts\validation\msbuild-loader-obj\Debug\net10.0\ref\Copeland.TS.Workspace.dll

@@ -1325,6 +1325,18 @@ public sealed class BoundReactElementExpression(
     public override TypeSymbol Type => ReactNodeTypeSymbol.Instance;
 }
 
+/// <summary>Canonical Text document value retained independently of any renderer.</summary>
+public sealed class BoundTextDocumentExpression(
+    MachinaSource.BoundTextDocument document,
+    IReadOnlyList<BoundTextValueSlot> slots) : BoundExpression
+{
+    public MachinaSource.BoundTextDocument Document { get; } = document;
+    public IReadOnlyList<BoundTextValueSlot> Slots { get; } = slots;
+    public override TypeSymbol Type => DocumentTypeSymbol.Instance;
+}
+
+public sealed record BoundTextValueSlot(string SlotId, BoundExpression Expression);
+
 /// <summary>
 /// Explicit selection for generic foreign render payload. This is a compiler
 /// fact, not a renderer call: lowering passes only the opaque payload onward.

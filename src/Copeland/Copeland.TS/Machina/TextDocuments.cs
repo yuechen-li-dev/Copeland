@@ -237,20 +237,37 @@ public static class TextDocumentCompiler
 
         IReadOnlyList<DocumentInlineMir> ParseElementInlines(TsXmlElementExpressionSyntax element)
         {
-            TsXmlTextSyntax[] texts = element.Children.OfType<TsXmlTextSyntax>().ToArray();
-            if (texts.Length != 1)
+            var inlines = new List<DocumentInlineMir>();
+            foreach (TsXmlChildSyntax child in element.Children)
             {
-                if (element.Children.OfType<TsXmlExpressionChildSyntax>().Any())
+                switch (child)
                 {
-                    diagnostics.Add(Diagnostic("COPE-TEXT-0011", "Typed text interpolation is deferred until document expression binding is shared with the ordinary binder.", element));
+                    case TsXmlTextSyntax text when !string.IsNullOrWhiteSpace(text.TextToken.Text):
+                    {
+                        string raw = text.TextToken.Text;
+                        int leading = raw.Length - raw.TrimStart().Length;
+                        string content = raw.Trim();
+                        if (content.Length > 0)
+                        {
+                            inlines.AddRange(ParseInline(content, text.TextToken.Position + leading, text));
+                        }
+                        break;
+                    }
+                    case TsXmlExpressionChildSyntax expression:
+                        inlines.Add(new EmbeddedValueMir(
+                            TextSlotId(expression),
+                            MarkdownSpan(expression.OpenBraceToken.Position, expression.CloseBraceToken.Position - expression.OpenBraceToken.Position + expression.CloseBraceToken.Text.Length)));
+                        break;
+                    case TsXmlElementChildSyntax nested:
+                        diagnostics.Add(Diagnostic("COPE-TEXT-0002", "Inline Text content accepts static text and typed value slots only.", nested));
+                        break;
                 }
-                return [];
             }
-            string raw = texts[0].TextToken.Text;
-            int leading = raw.Length - raw.TrimStart().Length;
-            string text = raw.Trim();
-            return ParseInline(text, texts[0].TextToken.Position + leading, texts[0]);
+            return inlines;
         }
+
+        static string TextSlotId(TsXmlExpressionChildSyntax expression)
+            => "text-slot-" + expression.OpenBraceToken.Position.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         IReadOnlyList<DocumentInlineMir> ParseInline(string text, int start, SyntaxNode source)
         {

@@ -4689,7 +4689,18 @@ public static class Binder
 
         private BoundExpression BindTsXml(TsXmlExpressionSyntax expression)
         {
-            if (_tsXmlProfile == CopelandTsXmlProfile.ReactM0)
+            if (expression is TsXmlElementExpressionSyntax { NameToken.Text: "Document" } documentRoot
+                && _tsXmlProfile.HasFlag(CopelandTsXmlProfile.TextDocumentsM0))
+            {
+                if (!_textDocumentsByRootStart.TryGetValue(documentRoot.LessToken.Position, out BoundTextDocument? document))
+                {
+                    Report("COPE-DOC-RENDER-0001", "Canonical document binding is missing for this Document root.", documentRoot.NameToken);
+                    return new BoundErrorExpression();
+                }
+                return BindTextDocument(document, documentRoot);
+            }
+
+            if (_tsXmlProfile.HasFlag(CopelandTsXmlProfile.ReactM0))
             {
                 return expression switch
                 {
@@ -4707,9 +4718,79 @@ public static class Binder
             };
             Report(
                 "COPE-TSXML-0101",
-                "TS-XML syntax requires a semantic profile; no manifest, test, component, or compatibility profile is selected by this compilation.",
+                "TS-XML syntax requires an enabled concept; select ReactM0 or TextDocuments in the project configuration.",
                 token);
             return new BoundErrorExpression();
+        }
+
+        private BoundExpression BindTextDocument(BoundTextDocument document, TsXmlElementExpressionSyntax root)
+        {
+            var slots = new List<BoundTextValueSlot>();
+            var expectedSlotIds = new HashSet<string>(EnumerateTextSlots(document.Document), StringComparer.Ordinal);
+            foreach (TsXmlExpressionChildSyntax expression in EnumerateExpressionChildren(root))
+            {
+                string slotId = "text-slot-" + expression.OpenBraceToken.Position.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (!expectedSlotIds.Contains(slotId))
+                {
+                    continue;
+                }
+
+                BoundExpression value = BindExpression(expression.Expression, PrimitiveTypeSymbol.String);
+                if (value.Type != PrimitiveTypeSymbol.String)
+                {
+                    Report("COPE-TEXT-0013", "Text value slots accept string values only. Compute an explicit string in ordinary Copeland TS before inserting it into TS-XML.", expression.OpenBraceToken);
+                    continue;
+                }
+                slots.Add(new BoundTextValueSlot(slotId, value));
+            }
+            return new BoundTextDocumentExpression(document, slots);
+        }
+
+        private static IEnumerable<TsXmlExpressionChildSyntax> EnumerateExpressionChildren(TsXmlElementExpressionSyntax element)
+        {
+            foreach (TsXmlChildSyntax child in element.Children)
+            {
+                if (child is TsXmlExpressionChildSyntax expression)
+                {
+                    yield return expression;
+                }
+                else if (child is TsXmlElementChildSyntax { Element: TsXmlElementExpressionSyntax nested })
+                {
+                    foreach (TsXmlExpressionChildSyntax nestedExpression in EnumerateExpressionChildren(nested))
+                    {
+                        yield return nestedExpression;
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateTextSlots(DocumentMir document)
+        {
+            foreach (DocumentBlockMir block in document.Blocks)
+            {
+                foreach (DocumentInlineMir inline in BlockInlines(block))
+                {
+                    foreach (string slot in InlineSlots(inline)) yield return slot;
+                }
+            }
+
+            static IEnumerable<DocumentInlineMir> BlockInlines(DocumentBlockMir block) => block switch
+            {
+                HeadingMir heading => heading.Inlines,
+                ParagraphMir paragraph => paragraph.Inlines,
+                QuoteMir quote => quote.Inlines,
+                CalloutMir callout => callout.Inlines,
+                ListMir list => list.Items.SelectMany(item => item.Inlines.Concat(item.ChildBlocks.SelectMany(BlockInlines))),
+                _ => [],
+            };
+            static IEnumerable<string> InlineSlots(DocumentInlineMir inline) => inline switch
+            {
+                EmbeddedValueMir value => [value.SlotId],
+                EmphasisMir emphasis => emphasis.Children.SelectMany(InlineSlots),
+                StrongMir strong => strong.Children.SelectMany(InlineSlots),
+                LinkMir link => link.Label.SelectMany(InlineSlots),
+                _ => [],
+            };
         }
 
         private BoundExpression BindReactTsXmlElement(TsXmlElementExpressionSyntax element)
@@ -7354,7 +7435,7 @@ public static class Binder
 
         private TypeSymbol ResolveNpmType(string name, SyntaxToken anchor)
         {
-            if (_tsXmlProfile == CopelandTsXmlProfile.ReactM0)
+            if (_tsXmlProfile.HasFlag(CopelandTsXmlProfile.ReactM0))
             {
                 if (name == "ReactNode") return ReactNodeTypeSymbol.Instance;
                 if (name == "ReactRoot") return ReactRootTypeSymbol.Instance;
@@ -10236,7 +10317,8 @@ public static class Binder
             if (i.Identifier.Text == ArtifactTypeSymbol.DirectoryArtifact.Name) return ArtifactTypeSymbol.DirectoryArtifact;
             if (i.Identifier.Text == ArtifactTypeSymbol.TextFileArtifact.Name) return ArtifactTypeSymbol.TextFileArtifact;
             if (i.Identifier.Text == ArtifactTypeSymbol.SourceFileArtifact.Name) return ArtifactTypeSymbol.SourceFileArtifact;
-            if (_tsXmlProfile == CopelandTsXmlProfile.ReactM0)
+            if (_tsXmlProfile.HasFlag(CopelandTsXmlProfile.TextDocumentsM0) && i.Identifier.Text == "Document") return DocumentTypeSymbol.Instance;
+            if (_tsXmlProfile.HasFlag(CopelandTsXmlProfile.ReactM0))
             {
                 if (i.Identifier.Text == "ReactNode") return ReactNodeTypeSymbol.Instance;
                 if (i.Identifier.Text == "ReactRoot") return ReactRootTypeSymbol.Instance;

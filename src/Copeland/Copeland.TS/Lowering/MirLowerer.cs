@@ -2,6 +2,7 @@ using Copeland.TS.Mir;
 using Copeland.TS.MachinaSource;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
+using Copeland.Markdown;
 using Copeland.TS.Syntax;
 
 namespace Copeland.TS.Lowering;
@@ -1181,6 +1182,10 @@ public static class MirLowerer
                 element.Properties.Select(property => new MirReactProperty(property.Name, LowerExpression(property.Value))).ToArray(),
                 element.Children.Select(LowerExpression).ToArray(),
                 ToMirType(element.Type)),
+            BoundTextDocumentExpression document => new MirTextDocumentExpression(
+                LowerTextDocument(document.Document.Document),
+                document.Slots.Select(slot => new MirTextValueSlot(slot.SlotId, LowerExpression(slot.Expression))).ToArray(),
+                ToMirType(document.Type)),
             BoundForeignComponentExpression foreign => LowerExpression(foreign.Payload),
             BoundReactRootRenderExpression render => new MirReactRootRenderExpression(
                 LowerExpression(render.Root),
@@ -1289,6 +1294,49 @@ public static class MirLowerer
             BoundPropagationTarget.LexicalExcept lexical => new MirPropagationTarget.LexicalExcept(new MirHandlerId(lexical.HandlerId.Value)),
             _ => throw new InvalidOperationException($"Unsupported propagation target {target.GetType().Name}.")
         };
+
+    private static MirTextNode LowerTextDocument(DocumentMir document)
+        => new("Document", [], document.Blocks.Select(block => new MirTextChild(LowerTextBlock(block))).ToArray());
+
+    private static MirTextNode LowerTextBlock(DocumentBlockMir block)
+    {
+        var attributes = new List<MirTextAttribute>();
+        if (!string.IsNullOrWhiteSpace(block.Metadata.Role)) attributes.Add(new MirTextAttribute("role", block.Metadata.Role!));
+        return block switch
+        {
+            HeadingMir heading => new MirTextNode("Heading", [new MirTextAttribute("level", heading.Level.ToString(System.Globalization.CultureInfo.InvariantCulture)), .. attributes], LowerTextInlines(heading.Inlines)),
+            ParagraphMir paragraph => new MirTextNode("Paragraph", attributes, LowerTextInlines(paragraph.Inlines)),
+            QuoteMir quote => new MirTextNode("Quote", attributes, LowerTextInlines(quote.Inlines)),
+            CalloutMir callout => new MirTextNode("Callout", attributes, LowerTextInlines(callout.Inlines)),
+            CodeBlockMir code => new MirTextNode("CodeBlock", code.Language is null ? attributes : [new MirTextAttribute("language", code.Language), .. attributes], [new MirTextRun(code.Text)]),
+            BreakMir => new MirTextNode("Break", attributes, []),
+            ThematicBreakMir => new MirTextNode("ThematicBreak", attributes, []),
+            ListMir list => new MirTextNode("List", [new MirTextAttribute("kind", list.Kind.ToString()), .. attributes], list.Items.Select(item => new MirTextChild(LowerTextItem(item))).ToArray()),
+            _ => throw new InvalidOperationException($"Unsupported canonical text block '{block.GetType().Name}'."),
+        };
+    }
+
+    private static MirTextNode LowerTextItem(ListItemMir item)
+    {
+        var children = new List<MirTextContent>();
+        children.AddRange(LowerTextInlines(item.Inlines));
+        children.AddRange(item.ChildBlocks.Select(block => new MirTextChild(LowerTextBlock(block))));
+        return new MirTextNode("Item", [], children);
+    }
+
+    private static IReadOnlyList<MirTextContent> LowerTextInlines(IReadOnlyList<DocumentInlineMir> inlines)
+        => inlines.Select(LowerTextInline).ToArray();
+
+    private static MirTextContent LowerTextInline(DocumentInlineMir inline) => inline switch
+    {
+        TextMir text => new MirTextRun(text.Text),
+        EmbeddedValueMir value => new MirTextSlot(value.SlotId),
+        CodeSpanMir code => new MirTextChild(new MirTextNode("InlineCode", [], [new MirTextRun(code.Text)])),
+        StrongMir strong => new MirTextChild(new MirTextNode("Strong", [], LowerTextInlines(strong.Children))),
+        EmphasisMir emphasis => new MirTextChild(new MirTextNode("Emphasis", [], LowerTextInlines(emphasis.Children))),
+        LinkMir link => new MirTextChild(new MirTextNode("Link", [new MirTextAttribute("target", link.Target)], LowerTextInlines(link.Label))),
+        _ => throw new InvalidOperationException($"Unsupported canonical text inline '{inline.GetType().Name}'."),
+    };
 
     private static MirType ToMirType(TypeSymbol type) => type switch
     {

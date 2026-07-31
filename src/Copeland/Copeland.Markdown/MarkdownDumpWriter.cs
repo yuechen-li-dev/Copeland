@@ -315,6 +315,12 @@ public static class MarkdownDumpWriter
                 span = ToSpanJson(text.Span),
                 text = text.Text,
             },
+            EmbeddedValueMir value => new
+            {
+                kind = "EmbeddedValue",
+                span = ToSpanJson(value.Span),
+                slot = value.SlotId,
+            },
             CodeSpanMir code => new
             {
                 kind = "Code",
@@ -547,6 +553,11 @@ public static class MarkdownDumpWriter
                     builder.Append(indent);
                     builder.Append("Text ");
                     builder.AppendLine(EscapeText(text.Text));
+                    break;
+                case EmbeddedValueMir value:
+                    builder.Append(indent);
+                    builder.Append("EmbeddedValue ");
+                    builder.AppendLine(value.SlotId);
                     break;
                 case CodeSpanMir code:
                     builder.Append(indent);

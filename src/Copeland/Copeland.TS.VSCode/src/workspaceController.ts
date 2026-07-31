@@ -1,8 +1,9 @@
 import * as path from "path";
+import { ChildProcess } from "child_process";
 import * as vscode from "vscode";
 import { LanguageClient, LanguageClientOptions, ServerOptions, StreamInfo, Trace } from "vscode-languageclient/node";
 import { CopelandOwner, OwnershipFileEntry, OwnershipMap } from "./ownershipMap";
-import { isCompatibleVersion, projectPath, queryServerVersion, readProjectVersion, resolveTscl, runTool, spawnLanguageServer } from "./toolchain";
+import { isCompatibleVersion, projectPath, queryServerVersion, readProjectVersion, resolveTscl, runTool, spawnLanguageServer, terminateOwnedProcessTree } from "./toolchain";
 
 const ownershipRelativePath = "obj/copeland/workspace/editor-ownership.generated.json";
 const manifestFileName = "tsconfig.tsx";
@@ -14,6 +15,7 @@ export class WorkspaceController implements vscode.Disposable {
     private ownership: OwnershipMap | undefined;
     private ownershipContents: string | undefined;
     private client: LanguageClient | undefined;
+    private languageServerProcess: ChildProcess | undefined;
     private startingLanguageServer: Promise<void> | undefined;
     private state: WorkspaceState = "missing-metadata";
     private readonly disposables: vscode.Disposable[] = [];
@@ -235,7 +237,9 @@ export class WorkspaceController implements vscode.Disposable {
             }
 
             const serverOptions: ServerOptions = async (): Promise<StreamInfo> => {
+                await this.stopOwnedLanguageServerProcess();
                 const process = spawnLanguageServer(tool, this.rootPath, this.output);
+                this.languageServerProcess = process;
                 if (!process.stdout || !process.stdin) {
                     throw new Error("Copeland language server did not provide stdio streams.");
                 }
@@ -274,6 +278,7 @@ export class WorkspaceController implements vscode.Disposable {
             this.state = "ready";
             this.output.appendLine(`[language server] ready (${serverVersion})`);
         } catch (error) {
+            await this.stopOwnedLanguageServerProcess();
             this.serverVersion = undefined;
             this.state = "language-server-unavailable";
             this.output.appendLine(`[language server] ${error instanceof Error ? error.message : String(error)}`);
@@ -292,6 +297,15 @@ export class WorkspaceController implements vscode.Disposable {
         if (client) {
             this.output.appendLine(`[language server] stopping: ${reason}`);
             await client.stop();
+        }
+        await this.stopOwnedLanguageServerProcess();
+    }
+
+    private async stopOwnedLanguageServerProcess(): Promise<void> {
+        const process = this.languageServerProcess;
+        this.languageServerProcess = undefined;
+        if (process) {
+            await terminateOwnedProcessTree(process, this.output);
         }
     }
 

@@ -614,6 +614,24 @@ public sealed record MirReactElementExpression(
     IReadOnlyList<MirReactProperty> Properties,
     IReadOnlyList<MirExpression> Children,
     MirType Type) : MirExpression(Type);
+/// <summary>
+/// Backend-neutral serialized canonical DocumentMir. Serialization is the
+/// lowering boundary; backends materialize their own immutable runtime value.
+/// </summary>
+public sealed record MirTextDocumentExpression(
+    MirTextNode Root,
+    IReadOnlyList<MirTextValueSlot> Slots,
+    MirType Type) : MirExpression(Type);
+public sealed record MirTextValueSlot(string SlotId, MirExpression Expression);
+public sealed record MirTextNode(
+    string Kind,
+    IReadOnlyList<MirTextAttribute> Attributes,
+    IReadOnlyList<MirTextContent> Children);
+public sealed record MirTextAttribute(string Name, string Value);
+public abstract record MirTextContent;
+public sealed record MirTextRun(string Value) : MirTextContent;
+public sealed record MirTextSlot(string SlotId) : MirTextContent;
+public sealed record MirTextChild(MirTextNode Node) : MirTextContent;
 public sealed record MirReactProperty(string Name, MirExpression Value);
 public sealed record MirReactRootRenderExpression(MirExpression Root, MirExpression Node) : MirExpression(new MirNamedType("void"));
 public sealed record MirReactRootUnmountExpression(MirExpression Root) : MirExpression(new MirNamedType("void"));

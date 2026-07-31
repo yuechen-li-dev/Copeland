@@ -163,6 +163,17 @@ public sealed class ReactNodeTypeSymbol : TypeSymbol
     public override string Name => "ReactNode";
 }
 
+/// <summary>
+/// Immutable compiler-owned document data. Unlike ReactNode this is a normal
+/// language value and has no renderer or package dependency.
+/// </summary>
+public sealed class DocumentTypeSymbol : TypeSymbol
+{
+    public static DocumentTypeSymbol Instance { get; } = new();
+    private DocumentTypeSymbol() { }
+    public override string Name => "Document";
+}
+
 public sealed class ReactRootTypeSymbol : TypeSymbol
 {
     public static ReactRootTypeSymbol Instance { get; } = new();
