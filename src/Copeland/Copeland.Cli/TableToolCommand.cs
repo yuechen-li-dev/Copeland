@@ -563,7 +563,7 @@ internal static class TableToolCommand
             args,
             2,
             positionalCount: 2,
-            allowed: ["--where", "--select", "--order-by", "--skip", "--take", "--query-json", "--explain", "--dry-run", "--format"]);
+            allowed: ["--where", "--select", "--group-by", "--aggregate", "--order-by", "--skip", "--take", "--query-json", "--explain", "--dry-run", "--format"]);
         bool json = parsed.Format == "json";
         bool explain = parsed.Has("--explain") || parsed.Has("--dry-run");
         if (explain && parsed.Format == "csv")
@@ -591,7 +591,7 @@ internal static class TableToolCommand
     {
         if (parsed.Value("--query-json") is string queryJsonPath)
         {
-            if (parsed.Has("--where") || parsed.Has("--select") || parsed.Has("--order-by") || parsed.Has("--skip") || parsed.Has("--take"))
+            if (parsed.Has("--where") || parsed.Has("--select") || parsed.Has("--group-by") || parsed.Has("--aggregate") || parsed.Has("--order-by") || parsed.Has("--skip") || parsed.Has("--take"))
             {
                 throw Error("COPE-TABLE-QUERY-0001", "'--query-json' cannot be combined with textual query options.", json);
             }
@@ -609,6 +609,8 @@ internal static class TableToolCommand
         return new TableQueryRequest(
             parsed.Value("--where"),
             ParseSelectItems(parsed.Value("--select"), json),
+            ParseGroupByItems(parsed.Value("--group-by"), json),
+            ParseAggregateItems(parsed.Value("--aggregate"), json),
             ParseOrderTerms(parsed.Value("--order-by"), json),
             ParseNonNegative(parsed.Value("--skip") ?? "0", "--skip", json),
             ParseNonNegative(parsed.Value("--take") ?? table.Bound.RowCount.ToString(CultureInfo.InvariantCulture), "--take", json));
@@ -629,6 +631,12 @@ internal static class TableToolCommand
         IReadOnlyList<QuerySelectRequest> select = root.TryGetProperty("select", out JsonElement selectElement)
             ? ParseQueryJsonSelect(selectElement, json)
             : [];
+        IReadOnlyList<string> groupBy = root.TryGetProperty("groupBy", out JsonElement groupByElement)
+            ? ParseQueryJsonGroupBy(groupByElement, json)
+            : [];
+        IReadOnlyList<QueryAggregateRequest> aggregates = root.TryGetProperty("aggregates", out JsonElement aggregateElement)
+            ? ParseQueryJsonAggregates(aggregateElement, table, json)
+            : [];
         IReadOnlyList<QueryOrderRequest> orderBy = root.TryGetProperty("orderBy", out JsonElement orderElement)
             ? ParseQueryJsonOrder(orderElement, json)
             : [];
@@ -638,7 +646,7 @@ internal static class TableToolCommand
         int take = root.TryGetProperty("take", out JsonElement takeElement)
             ? QueryJsonNonNegative(takeElement, "take", json)
             : table.Bound.RowCount;
-        return new TableQueryRequest(where, select, orderBy, skip, take);
+        return new TableQueryRequest(where, select, groupBy, aggregates, orderBy, skip, take);
     }
 
     private static string QueryJsonExpression(JsonElement element, TableModel table, bool json)
@@ -671,6 +679,11 @@ internal static class TableToolCommand
         if (element.TryGetProperty("boolean", out JsonElement boolean) && boolean.ValueKind is JsonValueKind.True or JsonValueKind.False)
         {
             return boolean.GetBoolean() ? "true" : "false";
+        }
+
+        if (element.TryGetProperty("enum", out JsonElement @enum) && @enum.ValueKind == JsonValueKind.String)
+        {
+            return @enum.GetString()!;
         }
 
         if (!element.TryGetProperty("operator", out JsonElement operatorElement)
@@ -749,6 +762,65 @@ internal static class TableToolCommand
         return order;
     }
 
+    private static IReadOnlyList<string> ParseQueryJsonGroupBy(JsonElement element, bool json)
+    {
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw Error("COPE-TABLE-QUERY-0012", "Query JSON 'groupBy' must be an array.", json);
+        }
+
+        var groupBy = new List<string>();
+        foreach (JsonElement item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("column", out JsonElement column) || column.ValueKind != JsonValueKind.String)
+            {
+                throw Error("COPE-TABLE-QUERY-0012", "Each query JSON group key requires a string 'column'.", json);
+            }
+
+            groupBy.Add(column.GetString()!);
+        }
+
+        return groupBy;
+    }
+
+    private static IReadOnlyList<QueryAggregateRequest> ParseQueryJsonAggregates(JsonElement element, TableModel table, bool json)
+    {
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw Error("COPE-TABLE-QUERY-0012", "Query JSON 'aggregates' must be an array.", json);
+        }
+
+        var aggregates = new List<QueryAggregateRequest>();
+        foreach (JsonElement item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object
+                || !item.TryGetProperty("function", out JsonElement function)
+                || function.ValueKind != JsonValueKind.String
+                || !item.TryGetProperty("as", out JsonElement alias)
+                || alias.ValueKind != JsonValueKind.String)
+            {
+                throw Error("COPE-TABLE-QUERY-0012", "Each query JSON aggregate requires string 'function' and 'as' properties.", json);
+            }
+
+            string? input = null;
+            if (item.TryGetProperty("input", out JsonElement inputElement))
+            {
+                if (inputElement.ValueKind != JsonValueKind.Object
+                    || !inputElement.TryGetProperty("column", out JsonElement column)
+                    || column.ValueKind != JsonValueKind.String)
+                {
+                    throw Error("COPE-TABLE-QUERY-0012", "Query JSON aggregate 'input' must be a column object.", json);
+                }
+
+                input = column.GetString();
+            }
+
+            aggregates.Add(new QueryAggregateRequest(function.GetString()!, input, alias.GetString()!));
+        }
+
+        return aggregates;
+    }
+
     private static int QueryJsonNonNegative(JsonElement element, string name, bool json)
     {
         if (element.ValueKind != JsonValueKind.Number || !element.TryGetInt32(out int value) || value < 0)
@@ -777,6 +849,51 @@ internal static class TableToolCommand
         return result;
     }
 
+    private static IReadOnlyList<string> ParseGroupByItems(string? text, bool json)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return [];
+        string[] columns = text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (columns.Length == 0)
+        {
+            throw Error("COPE-TABLE-QUERY-0017", "'--group-by' requires one or more direct column names.", json);
+        }
+
+        return columns;
+    }
+
+    private static IReadOnlyList<QueryAggregateRequest> ParseAggregateItems(string? text, bool json)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return [];
+        var aggregates = new List<QueryAggregateRequest>();
+        foreach (string item in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            int aliasIndex = item.LastIndexOf(" as ", StringComparison.OrdinalIgnoreCase);
+            if (aliasIndex <= 0 || aliasIndex + 4 >= item.Length)
+            {
+                throw Error("COPE-TABLE-QUERY-0018", $"Invalid '--aggregate' item '{item}'. Use 'function(column) as name' or 'count() as name'.", json);
+            }
+
+            string call = item[..aliasIndex].Trim();
+            string alias = item[(aliasIndex + 4)..].Trim();
+            int open = call.IndexOf('(');
+            if (open <= 0 || !call.EndsWith(')') || call.IndexOf('(', open + 1) >= 0)
+            {
+                throw Error("COPE-TABLE-QUERY-0018", $"Invalid aggregate call '{call}'.", json);
+            }
+
+            string function = call[..open].Trim();
+            string input = call[(open + 1)..^1].Trim();
+            if (string.IsNullOrWhiteSpace(alias) || !IsIdentifierStart(alias[0]) || alias.Any(character => !IsIdentifierPart(character)))
+            {
+                throw Error("COPE-TABLE-QUERY-0018", $"Aggregate alias '{alias}' must be an identifier.", json);
+            }
+
+            aggregates.Add(new QueryAggregateRequest(function, string.IsNullOrWhiteSpace(input) ? null : input, alias));
+        }
+
+        return aggregates;
+    }
+
     private static IReadOnlyList<QueryOrderRequest> ParseOrderTerms(string? text, bool json)
     {
         if (string.IsNullOrWhiteSpace(text)) return [];
@@ -799,6 +916,16 @@ internal static class TableToolCommand
     {
         IReadOnlyList<TableColumnSymbol> sourceColumns = QueryColumns(table.Bound);
         var columnsByName = sourceColumns.ToDictionary(column => column.Name, StringComparer.Ordinal);
+        string? predicate = request.Where is null ? null : NormalizeQueryExpression(request.Where, sourceColumns);
+        if (request.GroupBy.Count > 0 && request.Aggregates.Count == 0)
+        {
+            throw Error("COPE-TABLE-QUERY-0019", "'--group-by' requires at least one '--aggregate' declaration.", json);
+        }
+        if (request.Aggregates.Count > 0 && request.Select.Count > 0)
+        {
+            throw Error("COPE-TABLE-QUERY-0020", "'--select' cannot be combined with '--aggregate'; aggregates define the result schema.", json);
+        }
+
         var selected = new List<QueryProjection>();
         IEnumerable<QuerySelectRequest> requestedSelect = request.Select.Count == 0
             ? sourceColumns.Select(column => new QuerySelectRequest(column.Name, null))
@@ -819,12 +946,100 @@ internal static class TableToolCommand
             selected.Add(new QueryProjection(outputName, column, Array.IndexOf(sourceColumns.ToArray(), column), QueryProvenance(table.Bound, column)));
         }
 
+        var groupKeys = new List<QueryGroupKey>();
+        foreach (string groupColumn in request.GroupBy)
+        {
+            if (!columnsByName.TryGetValue(groupColumn, out TableColumnSymbol? column))
+            {
+                throw Error("COPE-TABLE-QUERY-0005", UnknownColumnMessage(groupColumn, sourceColumns, table.Name), json);
+            }
+            if (!IsGroupable(column.Type))
+            {
+                throw Error("COPE-TABLE-QUERY-0021", $"Column '{column.Name}' of type '{column.Type.Name}' cannot be used as a group key.", json);
+            }
+            if (groupKeys.Any(key => key.Column == column))
+            {
+                throw Error("COPE-TABLE-QUERY-0022", $"Query grouping contains duplicate column '{column.Name}'.", json);
+            }
+
+            groupKeys.Add(new QueryGroupKey(column, Array.IndexOf(sourceColumns.ToArray(), column), QueryProvenance(table.Bound, column)));
+        }
+
+        var aggregates = new List<QueryAggregate>();
+        foreach (QueryAggregateRequest aggregate in request.Aggregates)
+        {
+            QueryAggregateKind kind = aggregate.Function.ToLowerInvariant() switch
+            {
+                "count" => QueryAggregateKind.Count,
+                "sum" => QueryAggregateKind.Sum,
+                "average" => QueryAggregateKind.Average,
+                "min" => QueryAggregateKind.Min,
+                "max" => QueryAggregateKind.Max,
+                _ => throw Error("COPE-TABLE-QUERY-0023", $"Aggregate '{aggregate.Function}' is not supported. Use count, sum, average, min, or max.", json),
+            };
+            TableColumnSymbol? input = null;
+            int inputIndex = -1;
+            if (aggregate.Input is not null)
+            {
+                if (!columnsByName.TryGetValue(aggregate.Input, out input))
+                {
+                    throw Error("COPE-TABLE-QUERY-0005", UnknownColumnMessage(aggregate.Input, sourceColumns, table.Name), json);
+                }
+                inputIndex = Array.IndexOf(sourceColumns.ToArray(), input);
+            }
+            if (kind == QueryAggregateKind.Count)
+            {
+                // count() and count(column) are both meaningful for the non-nullable table columns in M2B.
+            }
+            else if (input is null)
+            {
+                throw Error("COPE-TABLE-QUERY-0024", $"Aggregate '{aggregate.Function}' requires a direct column input.", json);
+            }
+            else if ((kind is QueryAggregateKind.Sum or QueryAggregateKind.Average) && !TypeFacts.IsNumeric(input.Type))
+            {
+                throw Error("COPE-TABLE-QUERY-0025", $"Aggregate '{aggregate.Function}' requires a numeric column, got '{input.Type.Name}'.", json);
+            }
+            else if (kind == QueryAggregateKind.Average && input.Type == PrimitiveTypeSymbol.Int)
+            {
+                throw Error("COPE-TABLE-QUERY-0025", "Aggregate 'average' is supported only for number columns; convert int values before aggregation.", json);
+            }
+            else if ((kind is QueryAggregateKind.Min or QueryAggregateKind.Max) && !IsOrderable(input.Type))
+            {
+                throw Error("COPE-TABLE-QUERY-0025", $"Aggregate '{aggregate.Function}' requires an orderable column, got '{input.Type.Name}'.", json);
+            }
+            if (aggregates.Any(item => item.Name == aggregate.Alias) || groupKeys.Any(key => key.Column.Name == aggregate.Alias))
+            {
+                throw Error("COPE-TABLE-QUERY-0026", $"Aggregate result name '{aggregate.Alias}' is duplicated.", json);
+            }
+
+            TypeSymbol resultType = kind == QueryAggregateKind.Count ? PrimitiveTypeSymbol.Int : input!.Type;
+            QueryColumnProvenance provenance = kind == QueryAggregateKind.Count
+                ? new QueryColumnProvenance("aggregate", table.Name, [], [], aggregate.Function, predicate)
+                : new QueryColumnProvenance("aggregate", table.Name, [input!.Name], QueryProvenance(table.Bound, input).Relationships, aggregate.Function, predicate);
+            aggregates.Add(new QueryAggregate(aggregate.Alias, kind, input, inputIndex, resultType, provenance));
+        }
+
+        IReadOnlyList<QueryResultColumn> resultColumns = aggregates.Count == 0
+            ? selected.Select(projection => new QueryResultColumn(projection.Name, projection.Column.Type, projection.SourceIndex, projection.Provenance)).ToArray()
+            : groupKeys.Select((key, index) => new QueryResultColumn(key.Column.Name, key.Column.Type, index, key.Provenance))
+                .Concat(aggregates.Select((aggregate, index) => new QueryResultColumn(aggregate.Name, aggregate.Type, groupKeys.Count + index, aggregate.Provenance)))
+                .ToArray();
+
         var order = new List<QueryOrderTerm>();
         foreach (QueryOrderRequest requestTerm in request.OrderBy)
         {
-            if (!columnsByName.TryGetValue(requestTerm.Column, out TableColumnSymbol? column))
+            QueryResultColumn? resultColumn = aggregates.Count == 0
+                ? columnsByName.TryGetValue(requestTerm.Column, out TableColumnSymbol? sourceColumn)
+                    ? new QueryResultColumn(sourceColumn.Name, sourceColumn.Type, Array.IndexOf(sourceColumns.ToArray(), sourceColumn), QueryProvenance(table.Bound, sourceColumn))
+                    : null
+                : resultColumns.SingleOrDefault(column => column.Name == requestTerm.Column);
+            if (resultColumn is null)
             {
-                throw Error("COPE-TABLE-QUERY-0005", UnknownColumnMessage(requestTerm.Column, sourceColumns, table.Name), json);
+                IReadOnlyList<string> names = resultColumns.Select(column => column.Name).ToArray();
+                string message = aggregates.Count > 0
+                    ? $"Column '{requestTerm.Column}' is not present in the aggregate result."
+                    : UnknownColumnMessage(requestTerm.Column, sourceColumns, table.Name);
+                throw Error("COPE-TABLE-QUERY-0005", message, json);
             }
 
             bool descending = requestTerm.Direction switch
@@ -833,16 +1048,15 @@ internal static class TableToolCommand
                 "desc" or "descending" => true,
                 _ => throw Error("COPE-TABLE-QUERY-0009", $"Order direction '{requestTerm.Direction}' must be 'asc' or 'desc'.", json),
             };
-            if (!IsOrderable(column.Type))
+            if (!IsOrderable(resultColumn.Type))
             {
-                throw Error("COPE-TABLE-QUERY-0010", $"Column '{column.Name}' of type '{column.Type.Name}' is not orderable.", json);
+                throw Error("COPE-TABLE-QUERY-0010", $"Column '{resultColumn.Name}' of type '{resultColumn.Type.Name}' is not orderable.", json);
             }
 
-            order.Add(new QueryOrderTerm(column, Array.IndexOf(sourceColumns.ToArray(), column), descending));
+            order.Add(new QueryOrderTerm(resultColumn.Name, resultColumn.Type, resultColumn.ValueIndex, descending));
         }
 
-        string? predicate = request.Where is null ? null : NormalizeQueryExpression(request.Where, sourceColumns);
-        return new TableQueryPlan(table, sourceColumns, predicate, selected, order, request.Skip, request.Take);
+        return new TableQueryPlan(table, sourceColumns, predicate, selected, groupKeys, aggregates, resultColumns, order, request.Skip, request.Take);
     }
 
     private static IReadOnlyList<TableColumnSymbol> QueryColumns(BoundTableDefinition table)
@@ -884,6 +1098,9 @@ internal static class TableToolCommand
             || type == PrimitiveTypeSymbol.Float
             || type == PrimitiveTypeSymbol.Number
             || type == PrimitiveTypeSymbol.String;
+
+    private static bool IsGroupable(TypeSymbol type)
+        => IsOrderable(type) || type is EnumTypeSymbol || type == PrimitiveTypeSymbol.Boolean;
 
     private static QueryColumnProvenance QueryProvenance(BoundTableDefinition table, TableColumnSymbol column)
     {
@@ -1009,10 +1226,61 @@ internal static class TableToolCommand
             materialized.Add(new QueryMaterializedRow(index, values));
         }
 
-        IEnumerable<QueryMaterializedRow> ordered = plan.OrderBy.Count == 0
+        IReadOnlyList<QueryMaterializedRow> resultRows = plan.Aggregates.Count == 0
             ? materialized
-            : materialized.OrderBy(row => row, new QueryRowComparer(plan.OrderBy));
+            : ExecuteAggregates(plan, materialized, json);
+        IEnumerable<QueryMaterializedRow> ordered = plan.OrderBy.Count == 0
+            ? resultRows
+            : resultRows.OrderBy(row => row, new QueryRowComparer(plan.OrderBy));
         return ordered.Skip(plan.Skip).Take(plan.Take).ToArray();
+    }
+
+    private static IReadOnlyList<QueryMaterializedRow> ExecuteAggregates(TableQueryPlan plan, IReadOnlyList<QueryMaterializedRow> sourceRows, bool json)
+    {
+        var groups = new List<QueryAggregateGroup>();
+        if (plan.GroupKeys.Count == 0)
+        {
+            groups.Add(new QueryAggregateGroup(0, []));
+        }
+
+        foreach (QueryMaterializedRow sourceRow in sourceRows)
+        {
+            object?[] keyValues = plan.GroupKeys.Select(key => sourceRow.Values[key.SourceIndex]).ToArray();
+            QueryAggregateGroup? group = groups.FirstOrDefault(candidate => GroupKeysEqual(candidate.KeyValues, keyValues, plan.GroupKeys));
+            if (group is null)
+            {
+                group = new QueryAggregateGroup(sourceRow.SourceIndex, keyValues);
+                groups.Add(group);
+            }
+
+            group.Add(sourceRow, plan.Aggregates);
+        }
+
+        var result = new List<QueryMaterializedRow>(groups.Count);
+        foreach (QueryAggregateGroup group in groups)
+        {
+            var values = new List<object?>(plan.ResultColumns.Count);
+            values.AddRange(group.KeyValues);
+            foreach (QueryAggregate aggregate in plan.Aggregates)
+            {
+                values.Add(group.Finalize(aggregate, json));
+            }
+
+            result.Add(new QueryMaterializedRow(group.FirstSourceIndex, values));
+        }
+
+        return result;
+    }
+
+    private static bool GroupKeysEqual(IReadOnlyList<object?> left, IReadOnlyList<object?> right, IReadOnlyList<QueryGroupKey> keys)
+    {
+        if (left.Count != right.Count) return false;
+        for (int index = 0; index < left.Count; index += 1)
+        {
+            if (CompareQueryValues(left[index], right[index], keys[index].Column.Type) != 0) return false;
+        }
+
+        return true;
     }
 
     private static string QueryFunctionName(TableDocument document)
@@ -1089,7 +1357,7 @@ internal static class TableToolCommand
             table = plan.Table.Name,
             executor = "csharp-relation-plan",
             query = QuerySummary(plan),
-            schema = new { columns = plan.Projection.Select(QuerySchema).ToArray() },
+            schema = new { columns = plan.ResultColumns.Select(QuerySchema).ToArray() },
             diagnostics = Array.Empty<object>(),
         };
         if (format == "json")
@@ -1101,9 +1369,12 @@ internal static class TableToolCommand
         Console.Out.WriteLine($"table: {plan.Table.Name}");
         Console.Out.WriteLine("executor: csharp-relation-plan");
         Console.Out.WriteLine("where: " + (plan.Predicate ?? "<none>"));
-        Console.Out.WriteLine("order-by: " + (plan.OrderBy.Count == 0 ? "source order" : string.Join(", ", plan.OrderBy.Select(term => term.Column.Name + (term.Descending ? " desc" : " asc")))));
+        Console.Out.WriteLine("group-by: " + (plan.GroupKeys.Count == 0 ? "<none>" : string.Join(", ", plan.GroupKeys.Select(key => key.Column.Name))));
+        Console.Out.WriteLine("aggregates: " + (plan.Aggregates.Count == 0 ? "<none>" : string.Join(", ", plan.Aggregates.Select(aggregate => aggregate.Kind.ToString().ToLowerInvariant() + "(" + (aggregate.Input?.Name ?? string.Empty) + ") as " + aggregate.Name))));
+        Console.Out.WriteLine("empty-input: " + (plan.Aggregates.Count == 0 ? "not applicable" : "count=0; sum=typed zero; average/min/max=diagnostic"));
+        Console.Out.WriteLine("order-by: " + (plan.OrderBy.Count == 0 ? "first occurrence/source order" : string.Join(", ", plan.OrderBy.Select(term => term.Name + (term.Descending ? " desc" : " asc")))));
         Console.Out.WriteLine($"skip: {plan.Skip}; take: {plan.Take}");
-        Console.Out.WriteLine("columns: " + string.Join(", ", plan.Projection.Select(column => column.Name + ": " + column.Column.Type.Name)));
+        Console.Out.WriteLine("columns: " + string.Join(", ", plan.ResultColumns.Select(column => column.Name + ": " + column.Type.Name)));
     }
 
     private static void WriteQueryResult(TableDocument document, TableQueryPlan plan, IReadOnlyList<QueryMaterializedRow> rows, string format)
@@ -1111,8 +1382,8 @@ internal static class TableToolCommand
         if (format == "csv")
         {
             Console.Out.Write(Csv.Write(
-                plan.Projection.Select(column => column.Name).ToArray(),
-                rows.Select(row => plan.Projection.Select(column => QueryDisplayValue(row.Values[column.SourceIndex])).ToArray()).ToArray()));
+                plan.ResultColumns.Select(column => column.Name).ToArray(),
+                rows.Select(row => plan.ResultColumns.Select(column => QueryDisplayValue(row.Values[column.ValueIndex])).ToArray()).ToArray()));
             return;
         }
 
@@ -1126,17 +1397,17 @@ internal static class TableToolCommand
                 source = document.SourcePath,
                 table = plan.Table.Name,
                 executor = "csharp-relation-plan",
-                schema = new { columns = plan.Projection.Select(QuerySchema).ToArray() },
+                schema = new { columns = plan.ResultColumns.Select(QuerySchema).ToArray() },
                 query = QuerySummary(plan),
-                rows = rows.Select(row => plan.Projection.ToDictionary(column => column.Name, column => row.Values[column.SourceIndex], StringComparer.Ordinal)),
+                rows = rows.Select(row => plan.ResultColumns.ToDictionary(column => column.Name, column => row.Values[column.ValueIndex], StringComparer.Ordinal)),
                 rowCount = rows.Count,
                 diagnostics = Array.Empty<object>(),
             });
             return;
         }
 
-        string[] headers = plan.Projection.Select(column => column.Name).ToArray();
-        string[][] values = rows.Select(row => plan.Projection.Select(column => QueryDisplayValue(row.Values[column.SourceIndex])).ToArray()).ToArray();
+        string[] headers = plan.ResultColumns.Select(column => column.Name).ToArray();
+        string[][] values = rows.Select(row => plan.ResultColumns.Select(column => QueryDisplayValue(row.Values[column.ValueIndex])).ToArray()).ToArray();
         int[] widths = headers.Select((header, index) => Math.Min(48, Math.Max(header.Length, values.Length == 0 ? 0 : values.Max(row => Math.Min(48, row[index].Length))))).ToArray();
         Console.Out.WriteLine(string.Join("  ", headers.Select((header, index) => header.Length <= widths[index] ? header.PadRight(widths[index]) : header[..Math.Max(1, widths[index] - 1)] + "…")));
         foreach (string[] row in values)
@@ -1145,15 +1416,17 @@ internal static class TableToolCommand
         }
     }
 
-    private static object QuerySchema(QueryProjection projection)
-        => new { name = projection.Name, type = projection.Column.Type.Name, provenance = projection.Provenance };
+    private static object QuerySchema(QueryResultColumn column)
+        => new { name = column.Name, type = column.Type.Name, provenance = column.Provenance };
 
     private static object QuerySummary(TableQueryPlan plan)
         => new
         {
             where = plan.Predicate,
-            select = plan.Projection.Select(column => column.Name).ToArray(),
-            orderBy = plan.OrderBy.Select(term => new { column = term.Column.Name, direction = term.Descending ? "descending" : "ascending" }).ToArray(),
+            select = plan.Aggregates.Count == 0 ? plan.ResultColumns.Select(column => column.Name).ToArray() : Array.Empty<string>(),
+            groupBy = plan.GroupKeys.Select(key => key.Column.Name).ToArray(),
+            aggregates = plan.Aggregates.Select(aggregate => new { function = aggregate.Kind.ToString().ToLowerInvariant(), input = aggregate.Input?.Name, @as = aggregate.Name }).ToArray(),
+            orderBy = plan.OrderBy.Select(term => new { column = term.Name, direction = term.Descending ? "descending" : "ascending" }).ToArray(),
             skip = plan.Skip,
             take = plan.Take,
         };
@@ -1887,7 +2160,7 @@ internal static class TableToolCommand
     {
         Console.Error.WriteLine("Usage: tscl table list <source> [--format text|json]");
         Console.Error.WriteLine("       tscl table schema|rows <source> <table> [options]");
-        Console.Error.WriteLine("       tscl table query <source> <table> [--where <expression>] [--select <columns>] [--order-by <terms>] [--skip n] [--take n] [--format text|json|csv]");
+        Console.Error.WriteLine("       tscl table query <source> <table> [--where <expression>] [--select <columns>] [--group-by <columns>] [--aggregate <calls>] [--order-by <terms>] [--skip n] [--take n] [--format text|json|csv]");
         Console.Error.WriteLine("       tscl table set|add-row|delete-row <source> <table> [options]");
         Console.Error.WriteLine("       tscl table validate <source> [--format text|json]");
         Console.Error.WriteLine("       tscl table export|import <source> <table> --format csv [options]");
@@ -1919,23 +2192,122 @@ internal static class TableToolCommand
     private sealed record TableQueryRequest(
         string? Where,
         IReadOnlyList<QuerySelectRequest> Select,
+        IReadOnlyList<string> GroupBy,
+        IReadOnlyList<QueryAggregateRequest> Aggregates,
         IReadOnlyList<QueryOrderRequest> OrderBy,
         int Skip,
         int Take);
     private sealed record QuerySelectRequest(string Column, string? Alias);
+    private sealed record QueryAggregateRequest(string Function, string? Input, string Alias);
     private sealed record QueryOrderRequest(string Column, string Direction);
     private sealed record TableQueryPlan(
         TableModel Table,
         IReadOnlyList<TableColumnSymbol> SourceColumns,
         string? Predicate,
         IReadOnlyList<QueryProjection> Projection,
+        IReadOnlyList<QueryGroupKey> GroupKeys,
+        IReadOnlyList<QueryAggregate> Aggregates,
+        IReadOnlyList<QueryResultColumn> ResultColumns,
         IReadOnlyList<QueryOrderTerm> OrderBy,
         int Skip,
         int Take);
     private sealed record QueryProjection(string Name, TableColumnSymbol Column, int SourceIndex, QueryColumnProvenance Provenance);
-    private sealed record QueryOrderTerm(TableColumnSymbol Column, int SourceIndex, bool Descending);
-    private sealed record QueryColumnProvenance(string Kind, string SourceTable, IReadOnlyList<string> Inputs, IReadOnlyList<string> Relationships);
+    private sealed record QueryGroupKey(TableColumnSymbol Column, int SourceIndex, QueryColumnProvenance Provenance);
+    private sealed record QueryAggregate(string Name, QueryAggregateKind Kind, TableColumnSymbol? Input, int InputIndex, TypeSymbol Type, QueryColumnProvenance Provenance);
+    private sealed record QueryResultColumn(string Name, TypeSymbol Type, int ValueIndex, QueryColumnProvenance Provenance);
+    private sealed record QueryOrderTerm(string Name, TypeSymbol Type, int ValueIndex, bool Descending);
+    private sealed record QueryColumnProvenance(string Kind, string SourceTable, IReadOnlyList<string> Inputs, IReadOnlyList<string> Relationships, string? Aggregate = null, string? Filter = null);
     private sealed record QueryMaterializedRow(int SourceIndex, IReadOnlyList<object?> Values);
+
+    private enum QueryAggregateKind { Count, Sum, Average, Min, Max }
+
+    private sealed class QueryAggregateGroup(int firstSourceIndex, IReadOnlyList<object?> keyValues)
+    {
+        private readonly Dictionary<QueryAggregate, QueryAggregateAccumulator> _accumulators = [];
+
+        public int FirstSourceIndex { get; } = firstSourceIndex;
+        public IReadOnlyList<object?> KeyValues { get; } = keyValues;
+
+        public void Add(QueryMaterializedRow row, IReadOnlyList<QueryAggregate> aggregates)
+        {
+            foreach (QueryAggregate aggregate in aggregates)
+            {
+                if (!_accumulators.TryGetValue(aggregate, out QueryAggregateAccumulator? accumulator))
+                {
+                    accumulator = new QueryAggregateAccumulator(aggregate);
+                    _accumulators.Add(aggregate, accumulator);
+                }
+
+                accumulator.Add(aggregate.InputIndex < 0 ? null : row.Values[aggregate.InputIndex]);
+            }
+        }
+
+        public object? Finalize(QueryAggregate aggregate, bool json)
+        {
+            if (!_accumulators.TryGetValue(aggregate, out QueryAggregateAccumulator? accumulator))
+            {
+                accumulator = new QueryAggregateAccumulator(aggregate);
+            }
+
+            return accumulator.Finalize(json);
+        }
+    }
+
+    private sealed class QueryAggregateAccumulator(QueryAggregate aggregate)
+    {
+        private int _count;
+        private int _intSum;
+        private double _numberSum;
+        private object? _minimum;
+        private object? _maximum;
+
+        public void Add(object? value)
+        {
+            _count += 1;
+            switch (aggregate.Kind)
+            {
+                case QueryAggregateKind.Count:
+                    return;
+                case QueryAggregateKind.Sum:
+                case QueryAggregateKind.Average:
+                    if (aggregate.Type == PrimitiveTypeSymbol.Int)
+                    {
+                        _intSum = checked(_intSum + (int)value!);
+                    }
+                    else
+                    {
+                        _numberSum += (double)value!;
+                    }
+                    return;
+                case QueryAggregateKind.Min:
+                    if (_minimum is null || CompareQueryValues(value, _minimum, aggregate.Type) < 0)
+                    {
+                        _minimum = value;
+                    }
+                    return;
+                case QueryAggregateKind.Max:
+                    if (_maximum is null || CompareQueryValues(value, _maximum, aggregate.Type) > 0)
+                    {
+                        _maximum = value;
+                    }
+                    return;
+            }
+        }
+
+        public object? Finalize(bool json)
+        {
+            return aggregate.Kind switch
+            {
+                QueryAggregateKind.Count => _count,
+                QueryAggregateKind.Sum when aggregate.Type == PrimitiveTypeSymbol.Int => _intSum,
+                QueryAggregateKind.Sum => _numberSum,
+                QueryAggregateKind.Average when _count > 0 => _numberSum / _count,
+                QueryAggregateKind.Min when _count > 0 => _minimum,
+                QueryAggregateKind.Max when _count > 0 => _maximum,
+                _ => throw Error("COPE-TABLE-QUERY-0027", $"Aggregate '{aggregate.Kind.ToString().ToLowerInvariant()}' is not defined for empty input. Use count() or sum(), or filter only when a value exists.", json),
+            };
+        }
+    }
 
     private sealed class QueryRowComparer(IReadOnlyList<QueryOrderTerm> terms) : IComparer<QueryMaterializedRow>
     {
@@ -1944,32 +2316,35 @@ internal static class TableToolCommand
             if (left is null || right is null) return ReferenceEquals(left, right) ? 0 : left is null ? -1 : 1;
             foreach (QueryOrderTerm term in terms)
             {
-                int comparison = CompareValue(left.Values[term.SourceIndex], right.Values[term.SourceIndex], term.Column.Type);
+                int comparison = CompareQueryValues(left.Values[term.ValueIndex], right.Values[term.ValueIndex], term.Type);
                 if (comparison != 0) return term.Descending ? -comparison : comparison;
             }
 
             return left.SourceIndex.CompareTo(right.SourceIndex);
         }
 
-        private static int CompareValue(object? left, object? right, TypeSymbol type)
+    }
+
+    private static int CompareQueryValues(object? left, object? right, TypeSymbol type)
+    {
+        if (type == PrimitiveTypeSymbol.String || type is EnumTypeSymbol)
         {
-            if (type == PrimitiveTypeSymbol.String)
-            {
-                return StringComparer.Ordinal.Compare((string?)left, (string?)right);
-            }
-
-            if (type == PrimitiveTypeSymbol.Int)
-            {
-                return ((int)left!).CompareTo((int)right!);
-            }
-
-            if (type == PrimitiveTypeSymbol.Float || type == PrimitiveTypeSymbol.Number)
-            {
-                return ((double)left!).CompareTo((double)right!);
-            }
-
-            throw new InvalidOperationException($"Unexpected query ordering type '{type.Name}'.");
+            return StringComparer.Ordinal.Compare((string?)left, (string?)right);
         }
+        if (type == PrimitiveTypeSymbol.Boolean)
+        {
+            return ((bool)left!).CompareTo((bool)right!);
+        }
+        if (type == PrimitiveTypeSymbol.Int)
+        {
+            return ((int)left!).CompareTo((int)right!);
+        }
+        if (type == PrimitiveTypeSymbol.Float || type == PrimitiveTypeSymbol.Number)
+        {
+            return ((double)left!).CompareTo((double)right!);
+        }
+
+        throw new InvalidOperationException($"Unexpected query comparison type '{type.Name}'.");
     }
     private sealed record TextSpan(int Start, int Length) { public int End => Start + Length; }
     private sealed record TextEdit(TextSpan Span, string Replacement);

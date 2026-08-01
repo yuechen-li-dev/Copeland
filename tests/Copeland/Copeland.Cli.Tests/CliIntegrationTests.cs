@@ -1774,6 +1774,57 @@ function value(flag: boolean): number {
         Assert.Equal(before, await File.ReadAllBytesAsync(sourcePath));
     }
 
+    [Fact]
+    public async Task Table_query_aggregates_and_groups_typed_derived_relations_without_post_processing_rows()
+    {
+        using var temp = new TempDir();
+        string sourcePath = temp.WriteFile("Workbook.ts", """
+            export record table Categories { key id: int = [10, 20]; name: string = ["Coffee", "Equipment"]; }
+            export record table Products { key id: int = [1, 2, 3]; reference categoryId: int -> Categories.id = [10, 20, 10]; name: string = ["Beans", "Kettle", "Filter"]; }
+            export record table Prices { key reference productId: int -> Products.id = [1, 2, 3]; retail: number = [18.5, 42.0, 16.25]; }
+            export record table ProductCatalog = derive Products as product
+                join Categories as category through product.categoryId
+                join Prices as price through price.productId {
+                productName: string = product.name;
+                categoryName: string = category.name;
+                retail: number = price.retail;
+            }
+            """);
+        string queryPath = temp.WriteFile("aggregate.json", """
+            {"groupBy":[{"column":"categoryName"}],"aggregates":[{"function":"sum","input":{"column":"retail"},"as":"totalRetail"},{"function":"count","as":"productCount"}],"orderBy":[{"column":"totalRetail","direction":"descending"}]}
+            """);
+        byte[] before = await File.ReadAllBytesAsync(sourcePath);
+
+        CliResult overall = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--aggregate", "count() as productCount, count(retail) as pricedProductCount, sum(retail) as totalRetail, average(retail) as averageRetail, min(retail) as minimumRetail, max(retail) as maximumRetail", "--format", "json");
+        CliResult defaultGroups = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--group-by", "categoryName", "--aggregate", "sum(retail) as totalRetail", "--format", "csv");
+        CliResult grouped = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--group-by", "categoryName", "--aggregate", "sum(retail) as totalRetail, count() as productCount", "--order-by", "totalRetail desc", "--take", "1", "--format", "csv");
+        CliResult structured = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--query-json", queryPath, "--format", "json");
+        CliResult empty = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--where", "retail > 100.0", "--aggregate", "count() as productCount, sum(retail) as totalRetail", "--format", "json");
+        CliResult invalidEmpty = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--where", "retail > 100.0", "--aggregate", "average(retail) as averageRetail", "--format", "json");
+        CliResult explain = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--group-by", "categoryName", "--aggregate", "sum(retail) as totalRetail", "--explain", "--format", "json");
+
+        Assert.Equal(0, overall.ExitCode);
+        Assert.Contains("\"totalRetail\": 76.75", overall.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"pricedProductCount\": 3", overall.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"minimumRetail\": 16.25", overall.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"kind\": \"aggregate\"", overall.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, grouped.ExitCode);
+        Assert.Equal("categoryName,totalRetail,productCount\nEquipment,42,1\n", grouped.StdOut);
+        Assert.Equal(0, defaultGroups.ExitCode);
+        Assert.Equal("categoryName,totalRetail\nCoffee,34.75\nEquipment,42\n", defaultGroups.StdOut);
+        Assert.Equal(0, structured.ExitCode);
+        Assert.Contains("\"categoryName\": \"Equipment\"", structured.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"sourceTable\": \"Products\"", structured.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, empty.ExitCode);
+        Assert.Contains("\"productCount\": 0", empty.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"totalRetail\": 0", empty.StdOut, StringComparison.Ordinal);
+        Assert.Equal(1, invalidEmpty.ExitCode);
+        Assert.Contains("COPE-TABLE-QUERY-0027", invalidEmpty.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, explain.ExitCode);
+        Assert.Contains("\"groupBy\": [", explain.StdOut, StringComparison.Ordinal);
+        Assert.Equal(before, await File.ReadAllBytesAsync(sourcePath));
+    }
+
     private static async Task<CliResult> RunCliAsync(string workingDirectory, params string[] args)
     {
         var startInfo = new ProcessStartInfo

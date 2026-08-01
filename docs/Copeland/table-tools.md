@@ -53,6 +53,8 @@ tscl table query Workbook.ts ProductCatalog --select 'productName, retail'
 tscl table query Workbook.ts ProductCatalog --order-by 'retail desc'
 tscl table query Workbook.ts ProductCatalog --take 3 --format json
 tscl table query Workbook.ts ProductCatalog --format csv
+tscl table query Workbook.ts ProductCatalog --aggregate 'sum(retail) as totalRetail, count() as productCount'
+tscl table query Workbook.ts ProductCatalog --group-by categoryName --aggregate 'sum(retail) as totalRetail, count() as productCount' --order-by 'totalRetail desc'
 tscl table query Workbook.ts ProductCatalog --query-json query.json
 tscl table query Workbook.ts ProductCatalog --where 'retail > 15.0' --explain --format json
 ```
@@ -67,9 +69,69 @@ arithmetic, and literals remain authoritative.
 `--select` accepts direct columns and the simple `column as outputName` rename.
 Without it, the semantic table schema order is used. `--order-by` accepts one or
 more `column asc|desc` terms for `int`, `number`/`float`, and `string` columns.
-The operator law is source → where → stable order → select → skip → take. Source
-row order breaks exact sort ties, and strings use ordinal rather than locale
-ordering. `skip` and `take` are non-negative integers.
+Without aggregation, the operator law remains source → where → stable order →
+select → skip → take. Source row order breaks exact sort ties, and strings use
+ordinal rather than locale ordering. `skip` and `take` are non-negative integers.
+
+## Typed aggregates and groups (M2B)
+
+`--aggregate` makes aggregation a typed relation operation, before output is
+rendered. Each declaration uses one canonical form and requires an output alias:
+
+```console
+tscl table query Workbook.ts ProductCatalog \
+  --aggregate 'sum(retail) as totalRetail, count() as productCount'
+```
+
+Supported calls are `count()`, `count(column)`, `sum(column)`,
+`average(column)`, `min(column)`, and `max(column)`. `count` returns `int`;
+`sum` preserves the existing numeric column result type; `average` accepts a
+`number` column; and `min`/`max` accept existing orderable scalar columns.
+Aggregates are deliberately not a free-form expression language: their input is
+one direct relation column, so the compiler-known result schema and provenance
+remain exact.
+
+An aggregate with no `--group-by` produces one row, after `where`. On an empty
+input, `count` is `0` and `sum` is a typed zero. `average`, `min`, and `max`
+produce a direct query diagnostic instead of inventing `null` or `undefined`.
+
+`--group-by` takes one or more direct group columns. The group columns are first
+in the result schema in declared order, followed by aggregate aliases:
+
+```console
+tscl table query Workbook.ts ProductCatalog \
+  --group-by categoryName \
+  --aggregate 'sum(retail) as totalRetail, count() as productCount' \
+  --order-by 'totalRetail desc'
+```
+
+The aggregate operator law is source → where → group-by → aggregate → order-by
+→ skip → take → materialize. Groups default to first occurrence in the filtered
+source relation; explicit `order-by` operates only on group keys or aggregate
+result columns and keeps first occurrence as the exact-sort tie breaker.
+`--select` is rejected with `--aggregate`, because the aggregate declarations
+already define the exact output relation.
+
+The same bounded request is available through `--query-json`:
+
+```json
+{
+  "groupBy": [{ "column": "categoryName" }],
+  "aggregates": [
+    { "function": "sum", "input": { "column": "retail" }, "as": "totalRetail" },
+    { "function": "count", "as": "productCount" }
+  ],
+  "orderBy": [{ "column": "totalRetail", "direction": "descending" }]
+}
+```
+
+JSON, text, CSV, and explain all use the same result schema. Aggregate output
+provenance identifies the aggregate function, direct input column (where
+applicable), source/join provenance, and the query filter. Group-key provenance
+is copied from its source relation column. Pivot is intentionally deferred: it
+is a presentation/materialization of this grouped aggregate relation, not a
+relation operator in M2B. Watch/live querying is M2C; no SQL or database engine
+is introduced.
 
 `--format json` returns a stable `command: "table.query"` envelope with typed
 schema, provenance, resolved request metadata, rows, diagnostics, and the
@@ -78,15 +140,15 @@ and rows to stdout with invariant scalar formatting and CSV escaping. `--explain
 and `--dry-run` bind and describe the plan without materializing rows.
 
 For tools, `--query-json` reads a bounded JSON request with `where`, `select`,
-`orderBy`, `skip`, and `take`. `where` is a tree of `{ column }`, `{ number }`,
-`{ string }`, `{ boolean }`, or binary `{ operator, left, right }` nodes. Supported
+`groupBy`, `aggregates`, `orderBy`, `skip`, and `take`. `where` is a tree of
+`{ column }`, `{ number }`, `{ string }`, `{ boolean }`, `{ enum }`, or binary
+`{ operator, left, right }` nodes. Supported
 operators are `equal`, `notEqual`, ordered comparisons, `and`, `or`, and basic
 arithmetic. It lowers to the same plan as textual options; it is not a generic
 TableScript AST or raw-code channel.
 
-M2A deliberately defers grouping/aggregate operators (M2B), watch/live
-exploration (M2C), dynamic joins, computed query projections, SQL, and database
-execution.
+M2B deliberately defers pivot presentation, watch/live exploration (M2C),
+dynamic joins, computed query projections, SQL, and database execution.
 
 CSV commands use `--format csv` for their interchange payload and
 `--result-format text|json` for their command result. JSON export requires an
