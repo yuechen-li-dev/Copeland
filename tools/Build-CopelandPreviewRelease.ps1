@@ -82,6 +82,7 @@ function Assert-NoForbiddenArchiveNames {
 }
 
 & (Join-Path $PSScriptRoot "Validate-CopelandPreviewVersion.ps1") -ExpectedVersion $Version
+& (Join-Path $PSScriptRoot "Test-CopelandReleaseClosure.ps1") -RepositoryRoot $repositoryRoot
 
 New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null
 foreach ($directory in @($nugetRoot, $npmRoot, $vsCodeRoot, $templateRoot, $stagingRoot)) {
@@ -92,23 +93,29 @@ $dotnet = (Get-Command dotnet -ErrorAction Stop).Source
 $npm = (Get-Command npm -ErrorAction Stop).Source
 $git = (Get-Command git -ErrorAction Stop).Source
 $pwsh = (Get-Command pwsh -ErrorAction Stop).Source
-$solution = Join-Path $repositoryRoot "Copeland.slnx"
+$solution = Join-Path $repositoryRoot "Copeland.Release.slnx"
 if (-not $SkipBuildAndTests) {
+    Write-Output "Restoring release product closure: $solution"
     Invoke-Checked $dotnet restore $solution
+    Write-Output "Building release product closure: $solution"
     Invoke-Checked $dotnet build $solution --configuration $Configuration --no-restore
     # Several CLI integration tests intentionally launch nested builds with a
     # tight timeout. Serialize test projects so CI load cannot starve them.
+    Write-Output "Testing release-authoritative projects: $solution"
     Invoke-Checked $dotnet test $solution --configuration $Configuration --no-build --maxcpucount:1
 }
 
 $toolProject = Join-Path $repositoryRoot "src\Copeland\Copeland.Cli\Copeland.Cli.csproj"
 $sdkProject = Join-Path $repositoryRoot "src\Copeland\Copeland.TS.MSBuild\Copeland.TS.MSBuild.csproj"
+$templatesProject = Join-Path $repositoryRoot "src\Copeland\Copeland.TS.Templates\Copeland.TS.Templates.csproj"
 Invoke-Checked $dotnet pack $toolProject --configuration $Configuration --output $nugetRoot
 Invoke-Checked $dotnet pack $sdkProject --configuration $Configuration --output $nugetRoot
+Invoke-Checked $dotnet pack $templatesProject --configuration $Configuration --output $nugetRoot
 
 $toolPackage = Join-Path $nugetRoot "Copeland.TS.Tool.$Version.nupkg"
 $sdkPackage = Join-Path $nugetRoot "Copeland.TS.Sdk.$Version.nupkg"
-foreach ($package in @($toolPackage, $sdkPackage)) {
+$templatesPackage = Join-Path $nugetRoot "Copeland.TS.Templates.$Version.nupkg"
+foreach ($package in @($toolPackage, $sdkPackage, $templatesPackage)) {
     if (-not (Test-Path -LiteralPath $package -PathType Leaf)) {
         throw "Expected NuGet package was not produced: $package"
     }
@@ -127,6 +134,18 @@ foreach ($requiredEntry in @(
 )) {
     if ($sdkEntries -notcontains $requiredEntry) {
         throw "Copeland.TS.Sdk is missing required package entry '$requiredEntry'."
+    }
+}
+
+$templateEntries = Get-ZipEntries $templatesPackage
+foreach ($requiredEntry in @(
+    "content/copeland-console/.template.config/template.json",
+    "content/copeland-library/.template.config/template.json",
+    "content/copeland-react/.template.config/template.json",
+    "content/copeland-workspace/.template.config/template.json"
+)) {
+    if ($templateEntries -notcontains $requiredEntry) {
+        throw "Copeland.TS.Templates is missing required package entry '$requiredEntry'."
     }
 }
 
@@ -201,6 +220,7 @@ if (-not $SkipPackageSmoke) {
 $artifactDefinitions = @(
     @{ Path = $toolPackage; PackageId = "Copeland.TS.Tool"; Target = "NuGet.org"; Runtime = ".NET 10; any tool-supported OS" },
     @{ Path = $sdkPackage; PackageId = "Copeland.TS.Sdk"; Target = "NuGet.org"; Runtime = ".NET 10 MSBuild" },
+    @{ Path = $templatesPackage; PackageId = "Copeland.TS.Templates"; Target = "NuGet.org"; Runtime = ".NET 10 SDK template engine" },
     @{ Path = $npmPackage; PackageId = "@copeland/tscl"; Target = "npm (preview tag)"; Runtime = "Windows x64; Node.js 20+; .NET 10" },
     @{ Path = $vsixPackage; PackageId = "copeland.copeland-ts"; Target = "GitHub Release"; Runtime = "VS Code 1.99+; Copeland tool $Version" },
     @{ Path = $templateArtifact; PackageId = "BootstrapTemplate"; Target = "GitHub Release"; Runtime = "Copeland TS $Version" }
@@ -224,6 +244,12 @@ $manifest = [ordered]@{
     schemaVersion = 1
     product = "Copeland TS"
     version = $Version
+    validatedScope = "Preview release product closure validated"
+    releaseSolution = "Copeland.Release.slnx"
+    excludedPrerequisiteBoundSamples = @(
+        "tsxml-react-m0 browser host",
+        "standalone-web-m0 TSPack host"
+    )
     status = if ($SkipPackageSmoke) { "packed" } else { "ready to publish" }
     published = $false
     publiclyVerified = $false

@@ -21,10 +21,11 @@ $vsCodeRoot = Join-Path $releaseRoot "vscode"
 $templatePath = Join-Path $releaseRoot "templates\BootstrapTemplate.tsx"
 $toolPackage = Join-Path $nugetRoot "Copeland.TS.Tool.$Version.nupkg"
 $sdkPackage = Join-Path $nugetRoot "Copeland.TS.Sdk.$Version.nupkg"
+$templatesPackage = Join-Path $nugetRoot "Copeland.TS.Templates.$Version.nupkg"
 $npmPackage = Join-Path $npmRoot "copeland-tscl-$Version.tgz"
 $vsixPath = Join-Path $vsCodeRoot "copeland-ts-$Version.vsix"
 
-foreach ($required in @($toolPackage, $sdkPackage, $npmPackage, $vsixPath, $templatePath)) {
+foreach ($required in @($toolPackage, $sdkPackage, $templatesPackage, $npmPackage, $vsixPath, $templatePath)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
         throw "Required release artifact is missing: $required"
     }
@@ -109,6 +110,11 @@ finally {
     Pop-Location
 }
 
+$templateEngineHome = Join-Path $validationRoot "template-engine-home"
+$env:DOTNET_NEW_HOME = $templateEngineHome
+Invoke-Checked $dotnetCommand new install $templatesPackage
+Invoke-Checked $dotnetCommand new uninstall Copeland.TS.Templates
+
 $npmConsumer = Join-Path $validationRoot "npm-consumer"
 New-Item -ItemType Directory -Force -Path $npmConsumer | Out-Null
 Push-Location $npmConsumer
@@ -178,6 +184,7 @@ $evidence = [ordered]@{
     compilerVersion = $installInfo.compilerVersion
     languageServerVersion = $installInfo.languageServerVersion
     localManifestToolVersion = $manifestVersion
+    templatePackage = "installed and uninstalled successfully"
     npmToolVersion = $npmVersion
     generatedProject = [ordered]@{
         path = "isolated/HelloCopeland"

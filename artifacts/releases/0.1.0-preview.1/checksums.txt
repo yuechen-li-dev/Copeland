@@ -1,5 +1,6 @@
-23c57fac38f02c808525ef216c5f42540d6eab7c2a4dd68e48b0d5cc7b82cab8  Copeland.TS.Tool.0.1.0-preview.1.nupkg
-cc8d7fc1b085aaeb24a89b3e3f75fe9f7b9f74dd3924a7c6e85996eaee8c5352  Copeland.TS.Sdk.0.1.0-preview.1.nupkg
-618d37b0788f70ada28c5f24d92d1012de565b930f786014e39c2496c316dd17  copeland-tscl-0.1.0-preview.1.tgz
-ea22dcef2b8df1a74bdfcdd354c30ab5ef3047267480be9bd20b31fa3c87456c  copeland-ts-0.1.0-preview.1.vsix
-6ac2366687d42092dc38f1aa2cee8ced4d5a8c2eb00d309d174bc5ecd0e6a84a  BootstrapTemplate.tsx
+4168ffa36ba9944df018e7886304603667b81f4e6073799df511355c462c0d6e  Copeland.TS.Tool.0.1.0-preview.1.nupkg
+31c751f94cf882865d475a08135d9b126de297015d1c305bbc9314f3497bf9ec  Copeland.TS.Sdk.0.1.0-preview.1.nupkg
+f8ac4e12eda04cd1bb6081ca96d743b5757302fc6269ecb5bf49b6aa7e92df08  Copeland.TS.Templates.0.1.0-preview.1.nupkg
+3570392a8a6b7386a5e9873a851eb6eec3b498dba0e118c6b1e6427fafbe1ac7  copeland-tscl-0.1.0-preview.1.tgz
+590d2b447b25cdf1a5bb469ad35ae64a3f86a3117486197a86e1aa2cfe442567  copeland-ts-0.1.0-preview.1.vsix
+4034e6dfdf63301e2b08aa1e66afd34d18ada0d82975de71dc400dbe13718c23  BootstrapTemplate.tsx

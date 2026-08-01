@@ -1,10 +1,11 @@
 {
   "version": "0.1.0-preview.1",
-  "validatedAtUtc": "2026-07-31T22:28:03.0212186Z",
+  "validatedAtUtc": "2026-08-01T01:18:43.9979557Z",
   "nugetToolVersion": "0.1.0-preview.1",
   "compilerVersion": "0.1.0-preview.1",
   "languageServerVersion": "0.1.0-preview.1",
   "localManifestToolVersion": "0.1.0-preview.1",
+  "templatePackage": "installed and uninstalled successfully",
   "npmToolVersion": "0.1.0-preview.1",
   "generatedProject": {
     "path": "isolated/HelloCopeland",

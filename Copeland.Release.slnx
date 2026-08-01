@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/product/">
+    <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
+    <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
+    <Project Path="src/Copeland/Copeland.TS/Copeland.TS.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.LanguageServer/Copeland.TS.LanguageServer.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Database/Copeland.TS.Database.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.CSharp/Copeland.TS.Backend.CSharp.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.JavaScript/Copeland.TS.Backend.JavaScript.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Backend.AspNetCore/Copeland.TS.Backend.AspNetCore.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.MSBuild/Copeland.TS.MSBuild.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Workspace/Copeland.TS.Workspace.csproj" />
+    <Project Path="src/Copeland/Copeland.TS.Templates/Copeland.TS.Templates.csproj" />
+    <Project Path="tools/CtsJitM0/CtsJitM0.csproj" />
+  </Folder>
+  <Folder Name="/release-tests/">
+    <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.Database.Tests/Copeland.TS.Database.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.Backend.CSharp.Tests/Copeland.TS.Backend.CSharp.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.Backend.JavaScript.Tests/Copeland.TS.Backend.JavaScript.Tests.csproj" />
+    <Project Path="tests/Copeland/Copeland.TS.MSBuild.Tests/Copeland.TS.MSBuild.Tests.csproj" />
+  </Folder>
+</Solution>

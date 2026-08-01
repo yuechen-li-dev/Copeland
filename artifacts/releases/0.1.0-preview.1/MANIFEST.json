@@ -2,6 +2,12 @@
   "schemaVersion": 1,
   "product": "Copeland TS",
   "version": "0.1.0-preview.1",
+  "validatedScope": "Preview release product closure validated",
+  "releaseSolution": "Copeland.Release.slnx",
+  "excludedPrerequisiteBoundSamples": [
+    "tsxml-react-m0 browser host",
+    "standalone-web-m0 TSPack host"
+  ],
   "status": "ready to publish",
   "published": false,
   "publiclyVerified": false,
@@ -9,8 +15,8 @@
     {
       "name": "Copeland.TS.Tool.0.1.0-preview.1.nupkg",
       "version": "0.1.0-preview.1",
-      "sha256": "23c57fac38f02c808525ef216c5f42540d6eab7c2a4dd68e48b0d5cc7b82cab8",
-      "size": 8271360,
+      "sha256": "4168ffa36ba9944df018e7886304603667b81f4e6073799df511355c462c0d6e",
+      "size": 8278319,
       "packageId": "Copeland.TS.Tool",
       "publicationTarget": "NuGet.org",
       "requiredRuntimePlatform": ".NET 10; any tool-supported OS",
@@ -19,18 +25,28 @@
     {
       "name": "Copeland.TS.Sdk.0.1.0-preview.1.nupkg",
       "version": "0.1.0-preview.1",
-      "sha256": "cc8d7fc1b085aaeb24a89b3e3f75fe9f7b9f74dd3924a7c6e85996eaee8c5352",
-      "size": 5231623,
+      "sha256": "31c751f94cf882865d475a08135d9b126de297015d1c305bbc9314f3497bf9ec",
+      "size": 5236870,
       "packageId": "Copeland.TS.Sdk",
       "publicationTarget": "NuGet.org",
       "requiredRuntimePlatform": ".NET 10 MSBuild",
       "validationStatus": "package-only smoke passed"
     },
     {
+      "name": "Copeland.TS.Templates.0.1.0-preview.1.nupkg",
+      "version": "0.1.0-preview.1",
+      "sha256": "f8ac4e12eda04cd1bb6081ca96d743b5757302fc6269ecb5bf49b6aa7e92df08",
+      "size": 9730,
+      "packageId": "Copeland.TS.Templates",
+      "publicationTarget": "NuGet.org",
+      "requiredRuntimePlatform": ".NET 10 SDK template engine",
+      "validationStatus": "package-only smoke passed"
+    },
+    {
       "name": "copeland-tscl-0.1.0-preview.1.tgz",
       "version": "0.1.0-preview.1",
-      "sha256": "618d37b0788f70ada28c5f24d92d1012de565b930f786014e39c2496c316dd17",
-      "size": 7685804,
+      "sha256": "3570392a8a6b7386a5e9873a851eb6eec3b498dba0e118c6b1e6427fafbe1ac7",
+      "size": 7685226,
       "packageId": "@copeland/tscl",
       "publicationTarget": "npm (preview tag)",
       "requiredRuntimePlatform": "Windows x64; Node.js 20+; .NET 10",
@@ -39,7 +55,7 @@
     {
       "name": "copeland-ts-0.1.0-preview.1.vsix",
       "version": "0.1.0-preview.1",
-      "sha256": "ea22dcef2b8df1a74bdfcdd354c30ab5ef3047267480be9bd20b31fa3c87456c",
+      "sha256": "590d2b447b25cdf1a5bb469ad35ae64a3f86a3117486197a86e1aa2cfe442567",
       "size": 483427,
       "packageId": "copeland.copeland-ts",
       "publicationTarget": "GitHub Release",
@@ -49,8 +65,8 @@
     {
       "name": "BootstrapTemplate.tsx",
       "version": "0.1.0-preview.1",
-      "sha256": "6ac2366687d42092dc38f1aa2cee8ced4d5a8c2eb00d309d174bc5ecd0e6a84a",
-      "size": 4772,
+      "sha256": "4034e6dfdf63301e2b08aa1e66afd34d18ada0d82975de71dc400dbe13718c23",
+      "size": 5561,
       "packageId": "BootstrapTemplate",
       "publicationTarget": "GitHub Release",
       "requiredRuntimePlatform": "Copeland TS 0.1.0-preview.1",

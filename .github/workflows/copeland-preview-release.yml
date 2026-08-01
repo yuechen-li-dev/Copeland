@@ -51,7 +51,7 @@ jobs:
         shell: pwsh
         run: ./tools/Validate-CopelandPreviewVersion.ps1 -ExpectedVersion '${{ inputs.version }}'
 
-      - name: Build, test, pack, inspect, and smoke test
+      - name: Validate release product closure, build, test, pack, inspect, and smoke test
         shell: pwsh
         run: ./tools/Build-CopelandPreviewRelease.ps1 -Version '${{ inputs.version }}'
 
@@ -150,6 +150,7 @@ jobs:
           $assets = @(
               'release/nuget/Copeland.TS.Tool.${{ inputs.version }}.nupkg',
               'release/nuget/Copeland.TS.Sdk.${{ inputs.version }}.nupkg',
+              'release/nuget/Copeland.TS.Templates.${{ inputs.version }}.nupkg',
               'release/npm/copeland-tscl-${{ inputs.version }}.tgz',
               'release/vscode/copeland-ts-${{ inputs.version }}.vsix',
               'release/templates/BootstrapTemplate.tsx',

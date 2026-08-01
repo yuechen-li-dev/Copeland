@@ -63,9 +63,10 @@ export template<
         projectDefinition,
         jsonFile("package.json", packageManifest),
         workspaceFile("tsconfig.tsx", workspace),
-        sourceFile("Program.cs", `Console.WriteLine(${name}.Copeland.CopelandProject.greeting("Copeland"));
-Console.WriteLine("lodash-es says: helloFromNpm");
-`),
+        sourceFile<CSharp>("Program.cs", { ProjectNamespace: name }, code {
+            Console.WriteLine(ProjectNamespace.Copeland.CopelandProject.greeting("Copeland"));
+            Console.WriteLine("lodash-es says: helloFromNpm");
+        }),
         textFile(".copeland/project-type.txt", `${projectType}\n`),
         textFile("contracts/lodash-es.json", `{
   "schemaVersion": 1,
@@ -75,54 +76,62 @@ Console.WriteLine("lodash-es says: helloFromNpm");
   "exports": []
 }
 `),
-        sourceFile("src/Program.ts", `using System;
-using ${name};
+        sourceFile<CopelandTS>("src/Program.ts", { ProjectNamespace: name }, code {
+            using System;
+            using ProjectNamespace;
 
-export enum GreetingStyle { Friendly, Formal }
+            export enum GreetingStyle { Friendly, Formal }
 
-export record Greeting { recipient: string; message: string; }
+            export record Greeting { recipient: string; message: string; }
 
-export function greeting(name: string): string {
-    return String.Concat(Helper.Decorate(name), " through System.String");
-}
-`),
-        sourceFile("src/GreetingDocument.tsx", `import { Greeting, GreetingStyle } from "./Program";
+            export function greeting(name: string): string {
+                return String.Concat(Helper.Decorate(name), " through System.String");
+            }
+        }),
+        sourceFile<CopelandTS>("src/GreetingDocument.tsx", code {
+            import { Greeting, GreetingStyle } from "./Program";
 
-export function greetingDocument(name: string): Document {
-    const style: GreetingStyle = GreetingStyle.Friendly;
-    const message: string = match style {
-        Friendly => "Hello",
-        Formal => "Greetings",
-    };
-    const initial: Greeting = { recipient: name, message };
-    const updated: Greeting = initial with { recipient: "Copeland" };
-    return <Document><Paragraph>{updated.message}, {updated.recipient}</Paragraph></Document>;
-}
-`),
-        sourceFile("src/Helper.cs", `namespace ${name};
+            export function greetingDocument(name: string): Document {
+                const style: GreetingStyle = GreetingStyle.Friendly;
+                const message: string = match style {
+                    Friendly => "Hello",
+                    Formal => "Greetings",
+                };
+                const initial: Greeting = { recipient: name, message };
+                const updated: Greeting = initial with { recipient: "Copeland" };
+                return (
+                    <Document>
+                        <Paragraph>{updated.message}, {updated.recipient}</Paragraph>
+                    </Document>
+                );
+            }
+        }),
+        sourceFile<CSharp>("src/Helper.cs", { ProjectNamespace: name }, code {
+            namespace ProjectNamespace;
 
-public static class Helper
-{
-    public static string Decorate(string value)
-    {
-        return $"C# says hello to {value}";
-    }
-}
-`),
-        testFile("tests/GreetingDocument.tsxtest", `using Xunit;
+            public static class Helper
+            {
+                public static string Decorate(string value)
+                {
+                    return $"C# says hello to {value}";
+                }
+            }
+        }),
+        testFile<CopelandTest>("tests/GreetingDocument.tsxtest", code {
+            using Xunit;
 
-enum TestStyle { Friendly, Formal }
-record TestGreeting { message: string; recipient: string; }
+            enum TestStyle { Friendly, Formal }
+            record TestGreeting { message: string; recipient: string; }
 
-[Fact]
-export function enum_match_and_with_work(): void {
-    const style: TestStyle = TestStyle.Friendly;
-    const message: string = match style { Friendly => "Hello", Formal => "Greetings" };
-    const initial: TestGreeting = { message, recipient: "Ada" };
-    const updated: TestGreeting = initial with { recipient: "Copeland" };
-    Assert.True(updated.message == "Hello");
-}
-`)
+            [Fact]
+            export function enum_match_and_with_work(): void {
+                const style: TestStyle = TestStyle.Friendly;
+                const message: string = match style { Friendly => "Hello", Formal => "Greetings" };
+                const initial: TestGreeting = { message, recipient: "Ada" };
+                const updated: TestGreeting = initial with { recipient: "Copeland" };
+                Assert.True(updated.message == "Hello");
+            }
+        })
     ]);
 
     return dotNetSolution(name, project, [
