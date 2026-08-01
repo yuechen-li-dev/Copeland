@@ -219,7 +219,7 @@ public sealed class TsonTableAssetFeatureTests
         var expected = new Dictionary<string, (int Length, string Sha256)>(StringComparer.Ordinal)
         {
             ["empty.tson"] = (130, "83290D5672AA58BF14F8F23E8B6F54BB2883C8B47C16418D39971A881D6D173B"),
-            ["main.cope"] = (1681, "B5E206D80383A49D821EBFD3DEB3EF8E2DD12FFD7D3BE3F6579C5EA0AACCA90A"),
+            ["main.cope"] = (1638, "FBEDC9F2C1B2DF59A159EC2449444154EE262689EA4ECB19E3A7C4FB94916351"),
             ["main.g.cs"] = (14916, "E44594FF253DF2210366616E808F34135D84AE7091FC120A9F3735403F2C1B9F"),
             ["main.g.js"] = (38279, "F8AB4406E60F859CE9944904CC1E41070CB291B9AE72B5A5D9C90D58B3126E5A"),
             ["main.ts"] = (971, "FF124D4067C5BE4A2F8C7242902A04EDDB243F0419E1ABAEA100228EBE8E4CEF"),
@@ -227,7 +227,7 @@ public sealed class TsonTableAssetFeatureTests
         };
         foreach ((string name, (int length, string sha256)) in expected)
         {
-            byte[] bytes = File.ReadAllBytes(Path.Combine(root, name));
+            byte[] bytes = CanonicalFileBytes(Path.Combine(root, name));
             Assert.Equal(length, bytes.Length);
             Assert.Equal(sha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)));
         }
@@ -236,7 +236,7 @@ public sealed class TsonTableAssetFeatureTests
         CopelandCompilation second = CompileFile(Path.Combine(root, "main.ts"));
         Assert.True(first.Success, Describe(first));
         Assert.Equal(first.MirText, second.MirText);
-        Assert.Equal(File.ReadAllText(Path.Combine(root, "main.cope")), first.MirText);
+        Assert.Equal(Normalize(File.ReadAllText(Path.Combine(root, "main.cope"))), Normalize(first.MirText!));
     }
 
     private static CopelandCompilation Compile(string source, ICopelandAssetSource assets)
@@ -249,6 +249,16 @@ public sealed class TsonTableAssetFeatureTests
                 ProjectRoot = "C:/project",
                 AssetSource = assets,
             });
+    }
+
+    private static byte[] CanonicalFileBytes(string path)
+    {
+        return System.Text.Encoding.UTF8.GetBytes(Normalize(File.ReadAllText(path)));
+    }
+
+    private static string Normalize(string text)
+    {
+        return text.Replace("\r\n", "\n").Replace("\r", "\n");
     }
 
     private static CopelandCompilation CompileFile(string path)

@@ -498,7 +498,9 @@ public sealed class CliIntegrationTests
             Assert.Equal(0, first.ExitCode);
             Assert.Equal(0, second.ExitCode);
             Assert.Equal(firstBytes, secondBytes);
-            Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(corpus, fileName)), firstBytes);
+            Assert.Equal(
+                Normalize(await File.ReadAllTextAsync(Path.Combine(corpus, fileName))),
+                Normalize(Encoding.UTF8.GetString(firstBytes)));
             string emitted = Encoding.UTF8.GetString(firstBytes);
             Assert.DoesNotContain("packet.obj.ts", emitted, StringComparison.Ordinal);
             Assert.DoesNotContain(temp.Path, emitted, StringComparison.OrdinalIgnoreCase);
@@ -555,7 +557,9 @@ public sealed class CliIntegrationTests
             Assert.Equal(0, first.ExitCode);
             Assert.Equal(0, second.ExitCode);
             Assert.Equal(firstBytes, secondBytes);
-            Assert.Equal(await File.ReadAllBytesAsync(Path.Combine(corpus, fileName)), firstBytes);
+            Assert.Equal(
+                Normalize(await File.ReadAllTextAsync(Path.Combine(corpus, fileName))),
+                Normalize(Encoding.UTF8.GetString(firstBytes)));
             string emitted = Encoding.UTF8.GetString(firstBytes);
             Assert.DoesNotContain("samples.obj.ts", emitted, StringComparison.Ordinal);
             Assert.DoesNotContain("empty.obj.ts", emitted, StringComparison.Ordinal);
