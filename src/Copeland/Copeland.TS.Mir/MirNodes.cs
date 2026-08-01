@@ -22,7 +22,7 @@ public sealed class MirProgram
     {
     }
 
-    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions, IReadOnlyList<string>? csharpUsings = null, string? csharpSourcePath = null, IReadOnlyList<MirFlowDefinition>? flows = null, IReadOnlyList<MirJavaScriptHostImport>? javaScriptHostImports = null, IReadOnlyList<MirPackageImport>? packageImports = null)
+    public MirProgram(IReadOnlyList<MirEnum> enums, IReadOnlyList<MirRecordDefinition> records, IReadOnlyList<MirTableDefinition> tables, IReadOnlyList<MirTsonEncodingPlan> tsonEncodingPlans, IReadOnlyList<MirNpmImport> npmImports, IReadOnlyList<MirFunction> functions, IReadOnlyList<string>? csharpUsings = null, string? csharpSourcePath = null, IReadOnlyList<MirFlowDefinition>? flows = null, IReadOnlyList<MirJavaScriptHostImport>? javaScriptHostImports = null, IReadOnlyList<MirPackageImport>? packageImports = null, IReadOnlyList<MirExecutableArtifact>? executableArtifacts = null)
     {
         Enums = enums;
         Records = records;
@@ -35,6 +35,7 @@ public sealed class MirProgram
         CSharpUsings = csharpUsings ?? [];
         CSharpSourcePath = csharpSourcePath;
         Flows = flows ?? [];
+        ExecutableArtifacts = executableArtifacts ?? [];
     }
 
     public IReadOnlyList<MirEnum> Enums { get; }
@@ -48,7 +49,59 @@ public sealed class MirProgram
     public IReadOnlyList<string> CSharpUsings { get; }
     public string? CSharpSourcePath { get; }
     public IReadOnlyList<MirFlowDefinition> Flows { get; }
+    /// <summary>Compiler-owned executable artifacts materialized by bounded backend hosts.</summary>
+    public IReadOnlyList<MirExecutableArtifact> ExecutableArtifacts { get; }
+
+    public MirProgram WithExecutableArtifact(MirExecutableArtifact artifact)
+        => new(Enums, Records, Tables, TsonEncodingPlans, NpmImports, Functions, CSharpUsings, CSharpSourcePath, Flows, JavaScriptHostImports, PackageImports, ExecutableArtifacts.Append(artifact).ToArray());
 }
+
+public abstract class MirExecutableArtifact(string stableId)
+{
+    public string StableId { get; } = stableId;
+}
+
+/// <summary>
+/// Fully bound table-query facts. The artifact contains no CLI syntax and no
+/// unresolved TableScript expressions; C# is a materialization target only.
+/// </summary>
+public sealed class MirTableQueryArtifact(
+    string stableId,
+    MirTableId sourceRelationId,
+    string sourceRelationName,
+    string? predicateCSharp,
+    IReadOnlyList<MirTableQueryColumn> sourceColumns,
+    IReadOnlyList<MirTableQueryProjection> projection,
+    IReadOnlyList<MirTableQueryGroupKey> groupKeys,
+    IReadOnlyList<MirTableQueryAggregate> aggregates,
+    IReadOnlyList<MirTableQueryResultColumn> resultColumns,
+    IReadOnlyList<MirTableQueryOrderTerm> ordering,
+    int skip,
+    int take,
+    string provenanceSummary)
+    : MirExecutableArtifact(stableId)
+{
+    public MirTableId SourceRelationId { get; } = sourceRelationId;
+    public string SourceRelationName { get; } = sourceRelationName;
+    public string? PredicateCSharp { get; } = predicateCSharp;
+    public IReadOnlyList<MirTableQueryColumn> SourceColumns { get; } = sourceColumns;
+    public IReadOnlyList<MirTableQueryProjection> Projection { get; } = projection;
+    public IReadOnlyList<MirTableQueryGroupKey> GroupKeys { get; } = groupKeys;
+    public IReadOnlyList<MirTableQueryAggregate> Aggregates { get; } = aggregates;
+    public IReadOnlyList<MirTableQueryResultColumn> ResultColumns { get; } = resultColumns;
+    public IReadOnlyList<MirTableQueryOrderTerm> Ordering { get; } = ordering;
+    public int Skip { get; } = skip;
+    public int Take { get; } = take;
+    public string ProvenanceSummary { get; } = provenanceSummary;
+}
+
+public sealed record MirTableQueryColumn(string Name, MirTableColumnId Id, MirType Type, int SourceIndex);
+public sealed record MirTableQueryProjection(string Name, int SourceIndex);
+public sealed record MirTableQueryGroupKey(string Name, int SourceIndex);
+public enum MirTableQueryAggregateKind { Count, Sum, Average, Min, Max }
+public sealed record MirTableQueryAggregate(string Name, MirTableQueryAggregateKind Kind, int InputIndex, MirType Type);
+public sealed record MirTableQueryResultColumn(string Name, MirType Type, int ValueIndex, string Provenance);
+public sealed record MirTableQueryOrderTerm(int ValueIndex, MirType Type, bool Descending, int? SourceIndex = null);
 
 /// <summary>
 /// Backend-neutral, normalized event automaton. This remains distinct from the

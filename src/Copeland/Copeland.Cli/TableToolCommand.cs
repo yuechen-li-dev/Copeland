@@ -5,15 +5,11 @@ using System.Text.Json;
 using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Compiler;
 using Copeland.TS.Diagnostics;
+using Copeland.TS.Mir;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
-using RoslynCSharpCompilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation;
-using RoslynCSharpCompilationOptions = Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions;
-using RoslynCSharpSyntaxTree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree;
-using RoslynDiagnosticSeverity = Microsoft.CodeAnalysis.DiagnosticSeverity;
-using RoslynMetadataReference = Microsoft.CodeAnalysis.MetadataReference;
-using RoslynOutputKind = Microsoft.CodeAnalysis.OutputKind;
+using System.Reflection;
 
 namespace Copeland.Cli;
 
@@ -563,8 +559,13 @@ internal static class TableToolCommand
             args,
             2,
             positionalCount: 2,
-            allowed: ["--where", "--select", "--group-by", "--aggregate", "--order-by", "--skip", "--take", "--query-json", "--explain", "--dry-run", "--format"]);
+            allowed: ["--where", "--select", "--group-by", "--aggregate", "--order-by", "--skip", "--take", "--query-json", "--explain", "--dry-run", "--format", "--executor"]);
         bool json = parsed.Format == "json";
+        string executor = parsed.Value("--executor") ?? "sourcegen";
+        if (executor is not "sourcegen" and not "legacy" and not "compare")
+        {
+            throw Error("COPE-TABLE-QUERY-0028", "'--executor' must be 'sourcegen', 'legacy', or 'compare'.", json);
+        }
         bool explain = parsed.Has("--explain") || parsed.Has("--dry-run");
         if (explain && parsed.Format == "csv")
         {
@@ -574,17 +575,134 @@ internal static class TableToolCommand
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], json);
         TableQueryRequest request = ParseQueryRequest(parsed, table, json);
-        TableQueryPlan plan = BindQueryPlan(table, request, json);
+        CopelandCompilation compilerCompilation = Compile(document.SourcePath, document.SourceText);
+        BoundTableQueryPlan compilerPlan;
+        MirTableQueryArtifact queryArtifact;
+        try
+        {
+            compilerPlan = TableQueryBinder.Bind(
+                compilerCompilation.BoundCompilation!,
+                compilerCompilation.MirCompilation!.Program!,
+                new Copeland.TS.Compiler.TableQueryRequest(
+                    table.Name,
+                    request.Where,
+                    request.Select.Select(item => new TableQueryProjectionRequest(item.Column, item.Alias)).ToArray(),
+                    request.GroupBy,
+                    request.Aggregates.Select(item => new TableQueryAggregateRequest(item.Function, item.Input, item.Alias)).ToArray(),
+                    request.OrderBy.Select(item => new TableQueryOrderingRequest(item.Column, item.Direction)).ToArray(),
+                    request.Skip,
+                    request.Take,
+                    document.SourcePath + "#table-query"));
+            queryArtifact = TableQueryBinder.Lower(compilerPlan);
+        }
+        catch (TableQueryBindingException exception)
+        {
+            throw Error(exception.Code, exception.Message, json, document.SourcePath, document.SourceText, exception.Position);
+        }
+
+        TableQueryPlan plan = CreateRenderingPlan(table, compilerPlan);
 
         if (explain)
         {
-            WriteQueryExplain(document, plan, parsed.Format);
+            WriteQueryExplain(document, plan, parsed.Format, queryArtifact);
             return SuccessExitCode;
         }
 
-        IReadOnlyList<QueryMaterializedRow> rows = ExecuteQuery(document, plan, json);
-        WriteQueryResult(document, plan, rows, parsed.Format);
+        IReadOnlyList<QueryMaterializedRow> sourceGeneratedRows = ExecuteSourceGeneratedQuery(compilerCompilation.MirCompilation!.Program!, queryArtifact, plan, json);
+        IReadOnlyList<QueryMaterializedRow> rows = sourceGeneratedRows;
+        if (executor is "legacy" or "compare")
+        {
+            TableQueryPlan legacyPlan = BindQueryPlan(table, request, json);
+            IReadOnlyList<QueryMaterializedRow> legacyRows = ExecuteQuery(document, legacyPlan, json);
+            if (executor == "compare")
+            {
+                AssertQueryParity(plan, sourceGeneratedRows, legacyPlan, legacyRows, json);
+            }
+            else
+            {
+                rows = legacyRows;
+            }
+        }
+        WriteQueryResult(document, plan, rows, parsed.Format, queryArtifact);
         return SuccessExitCode;
+    }
+
+    private static void AssertQueryParity(
+        TableQueryPlan sourceGeneratedPlan,
+        IReadOnlyList<QueryMaterializedRow> sourceGeneratedRows,
+        TableQueryPlan legacyPlan,
+        IReadOnlyList<QueryMaterializedRow> legacyRows,
+        bool json)
+    {
+        bool sameSchema = sourceGeneratedPlan.ResultColumns.Select(column => (column.Name, column.Type.Name))
+            .SequenceEqual(legacyPlan.ResultColumns.Select(column => (column.Name, column.Type.Name)));
+        bool sameRows = sourceGeneratedRows.Count == legacyRows.Count
+            && sourceGeneratedRows.Zip(legacyRows).All(pair => sourceGeneratedPlan.ResultColumns.All(column =>
+            {
+                QueryResultColumn legacyColumn = legacyPlan.ResultColumns.Single(candidate => candidate.Name == column.Name);
+                return QueryValuesEquivalent(pair.First.Values[column.ValueIndex], pair.Second.Values[legacyColumn.ValueIndex]);
+            }));
+        if (!sameSchema || !sameRows)
+        {
+            throw Error("COPE-TABLE-QUERY-0029", "Legacy and source-generated query execution produced different results.", json);
+        }
+    }
+
+    private static bool QueryValuesEquivalent(object? left, object? right)
+    {
+        if (Equals(left, right)) return true;
+        if (left is IConvertible leftNumber && right is IConvertible rightNumber
+            && left is not string && right is not string && left is not bool && right is not bool)
+        {
+            return leftNumber.ToDouble(CultureInfo.InvariantCulture) == rightNumber.ToDouble(CultureInfo.InvariantCulture);
+        }
+        return false;
+    }
+
+    private static TableQueryPlan CreateRenderingPlan(TableModel table, BoundTableQueryPlan compilerPlan)
+    {
+        IReadOnlyList<TableColumnSymbol> columns = compilerPlan.SourceColumns.Select(column => column.Symbol).ToArray();
+        QueryColumnProvenance Convert(TableQueryColumnProvenance provenance)
+            => new(provenance.Kind, provenance.SourceTable, provenance.Inputs, provenance.Relationships, provenance.Aggregate, provenance.Filter);
+        return new TableQueryPlan(
+            table,
+            columns,
+            compilerPlan.PredicateCSharp,
+            compilerPlan.Projection.Select(item => new QueryProjection(item.Name, columns[item.SourceIndex], item.SourceIndex, Convert(item.Provenance))).ToArray(),
+            compilerPlan.GroupKeys.Select(item => new QueryGroupKey(columns[item.SourceIndex], item.SourceIndex, Convert(item.Provenance))).ToArray(),
+            compilerPlan.Aggregates.Select(item => new QueryAggregate(item.Name, (QueryAggregateKind)item.Kind, item.InputIndex < 0 ? null : columns[item.InputIndex], item.InputIndex, item.Type, Convert(item.Provenance))).ToArray(),
+            compilerPlan.ResultColumns.Select(item => new QueryResultColumn(item.Name, item.Type, item.ValueIndex, Convert(item.Provenance))).ToArray(),
+            compilerPlan.Ordering.Select(item => new QueryOrderTerm(item.Name, item.Type, item.ValueIndex, item.Descending)).ToArray(),
+            compilerPlan.Skip,
+            compilerPlan.Take);
+    }
+
+    private static IReadOnlyList<QueryMaterializedRow> ExecuteSourceGeneratedQuery(MirProgram program, MirTableQueryArtifact artifact, TableQueryPlan plan, bool json)
+    {
+        try
+        {
+            Copeland.TS.Backend.CSharp.ITypedQueryResult result = CSharpTableQueryMaterializer.Execute(program.WithExecutableArtifact(artifact), artifact);
+            var rows = new List<QueryMaterializedRow>(result.RowCount);
+            for (int rowIndex = 0; rowIndex < result.RowCount; rowIndex += 1)
+            {
+                object?[] values = Enumerable.Range(0, plan.ResultColumns.Count)
+                    .Select(columnIndex => NormalizeRuntimeValue(result.GetValue(rowIndex, columnIndex)))
+                    .ToArray();
+                rows.Add(new QueryMaterializedRow(rowIndex, values));
+            }
+            return rows;
+        }
+        catch (CSharpQueryMaterializationException exception)
+        {
+            string code = exception.Message.Contains("__q", StringComparison.Ordinal)
+                ? "COPE-TABLE-QUERY-0003"
+                : "COPE-TABLE-QUERY-0016";
+            throw Error(code, code == "COPE-TABLE-QUERY-0003" ? "Invalid '--where' expression: " + exception.Message : "The C# source generator query executor failed: " + exception.Message, json);
+        }
+        catch (TargetInvocationException exception) when (exception.InnerException is InvalidOperationException inner)
+        {
+            throw Error("COPE-TABLE-QUERY-0027", inner.Message, json);
+        }
     }
 
     private static TableQueryRequest ParseQueryRequest(ParsedArguments parsed, TableModel table, bool json)
@@ -1310,34 +1428,11 @@ internal static class TableToolCommand
 
     private static Array InvokeQueryAssembly(string source, string functionName, bool json)
     {
-        IEnumerable<RoslynMetadataReference> references = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(path => RoslynMetadataReference.CreateFromFile(path));
-        var syntaxTree = RoslynCSharpSyntaxTree.ParseText(source);
-        RoslynCSharpCompilation compilation = RoslynCSharpCompilation.Create(
-            "CopelandTableQuery_" + Guid.NewGuid().ToString("N"),
-            [syntaxTree],
-            references,
-            new RoslynCSharpCompilationOptions(RoslynOutputKind.DynamicallyLinkedLibrary));
-        using var assemblyBytes = new MemoryStream();
-        Microsoft.CodeAnalysis.Emit.EmitResult emission = compilation.Emit(assemblyBytes);
-        if (!emission.Success)
-        {
-            string message = emission.Diagnostics.First(diagnostic => diagnostic.Severity == RoslynDiagnosticSeverity.Error).GetMessage(CultureInfo.InvariantCulture);
-            throw Error("COPE-TABLE-QUERY-0016", "The C# query executor could not compile the typed relation plan: " + message, json);
-        }
-
         try
         {
-            System.Reflection.Assembly assembly = System.Reflection.Assembly.Load(assemblyBytes.ToArray());
-            Type module = assembly.GetType("Copeland.Generated.CopelandModule")
-                ?? throw new InvalidOperationException("Generated Copeland module was not found.");
-            System.Reflection.MethodInfo method = module.GetMethod(functionName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
-                ?? throw new InvalidOperationException("Generated query method was not found.");
-            return method.Invoke(null, null) as Array
-                ?? throw new InvalidOperationException("Generated query did not return a row array.");
+            return CSharpLegacyQueryExecutor.ExecuteArray(source, functionName);
         }
-        catch (Exception exception) when (exception is InvalidOperationException or System.Reflection.TargetInvocationException)
+        catch (Exception exception) when (exception is CSharpQueryMaterializationException or System.Reflection.TargetInvocationException)
         {
             throw Error("COPE-TABLE-QUERY-0016", "The C# query executor failed: " + (exception.InnerException?.Message ?? exception.Message), json);
         }
@@ -1346,7 +1441,7 @@ internal static class TableToolCommand
     private static object? NormalizeRuntimeValue(object? value)
         => value is Enum @enum ? @enum.ToString() : value;
 
-    private static void WriteQueryExplain(TableDocument document, TableQueryPlan plan, string format)
+    private static void WriteQueryExplain(TableDocument document, TableQueryPlan plan, string format, MirTableQueryArtifact? artifact = null)
     {
         object result = new
         {
@@ -1356,6 +1451,8 @@ internal static class TableToolCommand
             source = document.SourcePath,
             table = plan.Table.Name,
             executor = "csharp-relation-plan",
+            backend = artifact is null ? "legacy" : "roslyn-incremental-generator",
+            queryArtifactId = artifact?.StableId,
             query = QuerySummary(plan),
             schema = new { columns = plan.ResultColumns.Select(QuerySchema).ToArray() },
             diagnostics = Array.Empty<object>(),
@@ -1368,6 +1465,8 @@ internal static class TableToolCommand
 
         Console.Out.WriteLine($"table: {plan.Table.Name}");
         Console.Out.WriteLine("executor: csharp-relation-plan");
+        Console.Out.WriteLine("backend: " + (artifact is null ? "legacy" : "roslyn-incremental-generator"));
+        if (artifact is not null) Console.Out.WriteLine("query-artifact: " + artifact.StableId);
         Console.Out.WriteLine("where: " + (plan.Predicate ?? "<none>"));
         Console.Out.WriteLine("group-by: " + (plan.GroupKeys.Count == 0 ? "<none>" : string.Join(", ", plan.GroupKeys.Select(key => key.Column.Name))));
         Console.Out.WriteLine("aggregates: " + (plan.Aggregates.Count == 0 ? "<none>" : string.Join(", ", plan.Aggregates.Select(aggregate => aggregate.Kind.ToString().ToLowerInvariant() + "(" + (aggregate.Input?.Name ?? string.Empty) + ") as " + aggregate.Name))));
@@ -1377,7 +1476,7 @@ internal static class TableToolCommand
         Console.Out.WriteLine("columns: " + string.Join(", ", plan.ResultColumns.Select(column => column.Name + ": " + column.Type.Name)));
     }
 
-    private static void WriteQueryResult(TableDocument document, TableQueryPlan plan, IReadOnlyList<QueryMaterializedRow> rows, string format)
+    private static void WriteQueryResult(TableDocument document, TableQueryPlan plan, IReadOnlyList<QueryMaterializedRow> rows, string format, MirTableQueryArtifact? artifact = null)
     {
         if (format == "csv")
         {
@@ -1397,6 +1496,8 @@ internal static class TableToolCommand
                 source = document.SourcePath,
                 table = plan.Table.Name,
                 executor = "csharp-relation-plan",
+                backend = artifact is null ? "legacy" : "roslyn-incremental-generator",
+                queryArtifactId = artifact?.StableId,
                 schema = new { columns = plan.ResultColumns.Select(QuerySchema).ToArray() },
                 query = QuerySummary(plan),
                 rows = rows.Select(row => plan.ResultColumns.ToDictionary(column => column.Name, column => row.Values[column.ValueIndex], StringComparer.Ordinal)),

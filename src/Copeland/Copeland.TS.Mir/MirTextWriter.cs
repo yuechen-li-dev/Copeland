@@ -106,6 +106,22 @@ public static class MirTextWriter
             }
         }
 
+        foreach (MirExecutableArtifact artifact in program.ExecutableArtifacts)
+        {
+            sb.AppendLine();
+            switch (artifact)
+            {
+                case MirTableQueryArtifact query:
+                    sb.Append("query-artifact ").Append(query.StableId)
+                        .Append(" source ").Append(query.SourceRelationName)
+                        .Append(" [").Append(query.SourceRelationId).AppendLine("]");
+                    sb.Append("  schema ").AppendLine(string.Join(", ", query.ResultColumns.Select(column => column.Name + ": " + column.Type.Name)));
+                    break;
+                default:
+                    throw new InvalidOperationException($"Unknown executable MIR artifact '{artifact.GetType().Name}'.");
+            }
+        }
+
         foreach (var plan in program.TsonEncodingPlans)
         {
             sb.AppendLine();

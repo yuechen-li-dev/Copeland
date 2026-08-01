@@ -75,6 +75,22 @@ public sealed class Parser
             .Concat(_diagnostics.Diagnostics)
             .ToArray();
 
+    /// <summary>Parses exactly one ordinary Copeland expression from this parser's input.</summary>
+    public ExpressionSyntax ParseStandaloneExpression()
+    {
+        ExpressionSyntax expression = ParseExpression();
+        if (Current.Kind != SyntaxKind.EndOfFileToken)
+        {
+            _diagnostics.Report(
+                "COPE-PARSE-0001",
+                $"Unexpected token '{Current.Text}' after expression.",
+                Current.Position,
+                Math.Max(1, Current.Text.Length));
+        }
+
+        return expression;
+    }
+
     private bool IsCSharpBlockDiagnostic(Diagnostic diagnostic)
         => _csharpBlockRanges.Any(range => diagnostic.Position > range.Start && diagnostic.Position < range.End);
 

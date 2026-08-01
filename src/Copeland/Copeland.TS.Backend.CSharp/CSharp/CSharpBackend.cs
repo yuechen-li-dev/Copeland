@@ -178,6 +178,10 @@ public static class CSharpBackend
                 ? $"{TableTypeName(table.Id)}.Create()"
                 : $"{TableTypeName(table.Id)}.Create({string.Join(", ", new[] { TableSingletonName(table.DerivedPlan.SourceTableId) }.Concat(table.DerivedPlan.Joins.Select(join => TableSingletonName(join.JoinedTableId))))})";
             writer.WriteLine($"private static readonly {TableTypeName(table.Id)} {TableSingletonName(table.Id)} = {createExpression};");
+            if (program.ExecutableArtifacts.OfType<MirTableQueryArtifact>().Any(query => query.SourceRelationId == table.Id))
+            {
+                writer.WriteLine($"internal static {TableTypeName(table.Id)} __CopelandQueryTable_{EncodeStableIdentity(table.Id.Value)} => {TableSingletonName(table.Id)};");
+            }
             if (table.IsExported)
             {
                 writer.WriteLine($"public static {TableTypeName(table.Id)} {CSharpNameMangler.Mangle(table.Name)} => {TableSingletonName(table.Id)};");

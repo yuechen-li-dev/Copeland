@@ -21,6 +21,7 @@ public static class MirValidator
         ValidateRecordModel(program, diagnostics);
         ValidateEnumModel(program, diagnostics);
         ValidateTableModel(program, diagnostics);
+        ValidateExecutableArtifacts(program, diagnostics);
         ValidateNpmModel(program, diagnostics);
         ValidateClrModel(program, diagnostics);
         ValidateCSharpBlockModel(program, diagnostics);
@@ -36,6 +37,38 @@ public static class MirValidator
         MirSuspensionAutomatonValidator.Validate(program, diagnostics);
 
         return diagnostics;
+    }
+
+    private static void ValidateExecutableArtifacts(MirProgram program, List<MirValidationDiagnostic> diagnostics)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var tables = program.Tables.ToDictionary(table => table.Id);
+        foreach (MirExecutableArtifact artifact in program.ExecutableArtifacts)
+        {
+            if (!ids.Add(artifact.StableId))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"executable artifact '{artifact.StableId}' is duplicated."));
+            }
+
+            if (artifact is not MirTableQueryArtifact query)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"unknown executable artifact '{artifact.GetType().Name}'."));
+                continue;
+            }
+
+            if (!tables.ContainsKey(query.SourceRelationId))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"query artifact '{query.StableId}' references unknown source relation '{query.SourceRelationId}'."));
+            }
+            if (query.Skip < 0 || query.Take < 0)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"query artifact '{query.StableId}' has negative pagination."));
+            }
+            if (query.ResultColumns.Select(column => column.Name).Distinct(StringComparer.Ordinal).Count() != query.ResultColumns.Count)
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"query artifact '{query.StableId}' has duplicate result columns."));
+            }
+        }
     }
 
     private static void ValidateGeneratorModel(MirProgram program, List<MirValidationDiagnostic> diagnostics)

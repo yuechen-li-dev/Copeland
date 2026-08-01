@@ -59,12 +59,21 @@ tscl table query Workbook.ts ProductCatalog --query-json query.json
 tscl table query Workbook.ts ProductCatalog --where 'retail > 15.0' --explain --format json
 ```
 
-Textual predicates are desugared only enough to place selected-table column
-names in a typed row scope, then are compiled through the normal Copeland
-`rows().where(...).select(...)` binding and C# relation executor. There is no
-JavaScript-like evaluator or dictionary predicate engine. The predicate must
-bind to exactly `boolean`; existing Copeland scalar typing, comparisons,
-arithmetic, and literals remain authoritative.
+Ad-hoc queries are compiler-owned typed artifacts. The CLI adapts text or JSON
+into one `TableQueryRequest`; the compiler resolves the relation, schema,
+provenance, predicate scope, grouping, accumulators, ordering, and pagination
+before lowering a query MIR artifact. Roslyn source generation is the C#
+materialization and compilation host. It receives bounded generated C# source,
+not unresolved CLI expressions, and it does not define TableScript semantics or
+inspect arbitrary table fields to infer behavior.
+
+The generated entrypoint returns an exact internal result relation with typed
+column arrays. The CLI only renders that result to text, JSON, or CSV. The sole
+remaining reflection boundary loads the emitted assembly and invokes the known
+`Execute` entrypoint for the stable query artifact ID; it never discovers table
+fields, schemas, or performs aggregate execution. The former CLI-private
+executor remains internal legacy/reference code while source generation is the
+default path.
 
 `--select` accepts direct columns and the simple `column as outputName` rename.
 Without it, the semantic table schema order is used. `--order-by` accepts one or
@@ -135,7 +144,8 @@ is introduced.
 
 `--format json` returns a stable `command: "table.query"` envelope with typed
 schema, provenance, resolved request metadata, rows, diagnostics, and the
-`csharp-relation-plan` executor identity. `--format csv` writes selected headers
+`csharp-relation-plan` compatibility executor identity (with a Roslyn source
+generator materializer). `--format csv` writes selected headers
 and rows to stdout with invariant scalar formatting and CSV escaping. `--explain`
 and `--dry-run` bind and describe the plan without materializing rows.
 
