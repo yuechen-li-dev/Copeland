@@ -3216,6 +3216,11 @@ public static class Binder
                 Report("COPE-STATIC-0003", "Static calls require a resolved template or artifact intrinsic name.", anchor);
                 return new BoundTemplateLiteral(anchor, null, PrimitiveTypeSymbol.Error);
             }
+            if (name.IdentifierToken.Text is "sourceFile" or "testFile"
+                && typeArgumentSyntax.Count == 1)
+            {
+                return BindTypedSourceArtifact(name.IdentifierToken, name.IdentifierToken.Text, typeArgumentSyntax[0], arguments);
+            }
             var values = arguments.Select(BindTemplateValue).ToArray();
             if (name.IdentifierToken.Text == "fieldsOf")
             {
@@ -3252,6 +3257,67 @@ public static class Binder
                 }
             }
             return new BoundTemplateInvocation(anchor, template, typeArguments, values);
+        }
+
+        private BoundTemplateValue BindTypedSourceArtifact(
+            SyntaxToken anchor,
+            string artifactKind,
+            TypeSyntax languageSyntax,
+            IReadOnlyList<ExpressionSyntax> argumentSyntax)
+        {
+            string languageName = languageSyntax is IdentifierTypeSyntax identifier
+                ? identifier.Identifier.Text
+                : string.Empty;
+            bool knownLanguage = languageName is "CopelandTS" or "CopelandTest" or "CSharp";
+            if (!knownLanguage)
+            {
+                Report("COPE-ARTIFACT-0003", $"Unknown artifact language type '{languageName}'. Supported language types are CopelandTS, CopelandTest, and CSharp.", anchor);
+            }
+
+            bool testArtifact = artifactKind == "testFile";
+            if ((testArtifact && languageName != "CopelandTest") || (!testArtifact && languageName == "CopelandTest"))
+            {
+                Report("COPE-ARTIFACT-0004", $"Artifact kind '{artifactKind}' is incompatible with language type '{languageName}'.", anchor);
+            }
+
+            if (argumentSyntax.Count is < 2 or > 3)
+            {
+                Report("COPE-TEMPLATE-0005", $"Typed '{artifactKind}<Language>' requires path, optional parameters object, and a code body.", anchor);
+                return new BoundTemplateLiteral(anchor, null, PrimitiveTypeSymbol.Error);
+            }
+
+            int bodyIndex = argumentSyntax.Count - 1;
+            if (argumentSyntax[bodyIndex] is not SourceCodeBlockExpressionSyntax body)
+            {
+                Report("COPE-ARTIFACT-0005", "Typed source artifacts require a 'code { ... }' body.", anchor);
+                return new BoundTemplateLiteral(anchor, null, PrimitiveTypeSymbol.Error);
+            }
+
+            BoundTemplateValue path = BindTemplateValue(argumentSyntax[0]);
+            if (path.Type != PrimitiveTypeSymbol.String)
+            {
+                Report("COPE-TEMPLATE-0005", "Typed source artifact paths must be static strings.", anchor);
+            }
+            BoundTemplateValue? suppliedParameters = argumentSyntax.Count == 3
+                ? BindTemplateValue(argumentSyntax[1])
+                : null;
+            BoundTemplateStructuralObject parameters = suppliedParameters is BoundTemplateStructuralObject supplied
+                ? supplied
+                : new BoundTemplateStructuralObject(anchor, new StructuralObjectTypeSymbol([]), []);
+            if (argumentSyntax.Count == 3 && suppliedParameters is not BoundTemplateStructuralObject)
+            {
+                Report("COPE-ARTIFACT-0007", "Typed source parameters must be an explicit object literal.", anchor);
+            }
+            foreach (BoundTemplateStructuralField parameter in parameters.Fields)
+            {
+                if (parameter.Value.Type != PrimitiveTypeSymbol.String)
+                {
+                    Report("COPE-ARTIFACT-0008", $"Imported source parameter '{parameter.Name}' must have exact string-compatible type in M0.", anchor);
+                }
+            }
+
+            TypeSymbol result = testArtifact ? ArtifactTypeSymbol.TestFile : ArtifactTypeSymbol.SourceFileArtifact;
+            return new BoundTypedSourceArtifact(anchor, artifactKind, languageName, path, parameters, body, result);
         }
 
         private BoundTemplateValue BindTemplateInstantiation(TemplateInstantiationExpressionSyntax syntax)

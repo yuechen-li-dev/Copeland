@@ -75,13 +75,30 @@ Assert-LastExitCode "VSIX installation"
 Assert-LastExitCode "VS Code extension listing"
 
 if ($OpenCode) {
-    & $code `
-        --user-data-dir $userDataRoot `
-        --extensions-dir $extensionsRoot `
-        --disable-workspace-trust `
-        --new-window `
-        $projectRoot `
-        (Join-Path $projectRoot "src/copeland/Program.ts")
+    # This proof owns the VS Code instance it starts. Keep MSBuild nodes scoped
+    # to that instance and wait for the window to close so the proof cannot
+    # leave language-server or MSBuild children behind.
+    $previousNodeReuse = $env:MSBUILDDISABLENODEREUSE
+    $env:MSBUILDDISABLENODEREUSE = "1"
+    try {
+        & $code `
+            --wait `
+            --user-data-dir $userDataRoot `
+            --extensions-dir $extensionsRoot `
+            --disable-workspace-trust `
+            --new-window `
+            $projectRoot `
+            (Join-Path $projectRoot "src/copeland/Program.ts")
+        Assert-LastExitCode "VS Code human-workflow proof"
+    }
+    finally {
+        if ($null -eq $previousNodeReuse) {
+            Remove-Item Env:MSBUILDDISABLENODEREUSE -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:MSBUILDDISABLENODEREUSE = $previousNodeReuse
+        }
+    }
 }
 
 Write-Host "Package-only proof directory: $proofRoot"

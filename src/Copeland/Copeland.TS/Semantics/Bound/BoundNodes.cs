@@ -992,6 +992,23 @@ public sealed record BoundTemplateXmlText(string Text) : BoundTemplateXmlChild;
 public sealed record BoundTemplateXmlValue(BoundTemplateValue Value) : BoundTemplateXmlChild;
 public sealed record BoundTemplateXmlNested(BoundTemplateXmlElement Element) : BoundTemplateXmlChild;
 
+/// <summary>Parsed source body plus explicit static imports, retained in the template plan.</summary>
+public sealed class BoundTypedSourceArtifact(
+    SyntaxToken anchor,
+    string artifactKind,
+    string languageName,
+    BoundTemplateValue path,
+    BoundTemplateStructuralObject parameters,
+    SourceCodeBlockExpressionSyntax body,
+    TypeSymbol resultType) : BoundTemplateValue(anchor, resultType)
+{
+    public string ArtifactKind { get; } = artifactKind;
+    public string LanguageName { get; } = languageName;
+    public BoundTemplateValue Path { get; } = path;
+    public BoundTemplateStructuralObject Parameters { get; } = parameters;
+    public SourceCodeBlockExpressionSyntax Body { get; } = body;
+}
+
 public sealed class BoundTemplateInvocation(
     SyntaxToken anchor,
     TemplateSymbol template,

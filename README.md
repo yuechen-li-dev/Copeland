@@ -112,6 +112,44 @@ for the exact M1 boundary.
 
 ## Repository lanes
 
+## Typed template artifacts (M0)
+
+A Copeland template binds typed parameters and produces a typed entity. Angle
+brackets express construction either compactly (`instantiate Bootstrap<...>`) or
+hierarchically where TS-XML makes a tree clearer. `tscl template materialize`
+evaluates that typed result and dispatches to a supported artifact materializer;
+it is not a project-only command.
+
+Generated code uses a declared language rather than an opaque string:
+
+```tsx
+sourceFile<CSharp>("src/Helper.cs", { ProjectNamespace: name }, code {
+    namespace ProjectNamespace;
+    public static class Helper { }
+})
+
+sourceFile<CopelandTS>("src/View.tsx", code {
+    export function view(): Document {
+        return <Document><Paragraph>Hello</Paragraph></Document>;
+    }
+})
+```
+
+M0 recognizes `CopelandTS`, `CopelandTest`, and `CSharp`. Source parameters are
+explicit imports: no enclosing template local is ambiently visible. Imported
+M0 values are identifier-role strings, validated before identifier replacement,
+so they cannot inject declarations or arbitrary tokens. C# bodies
+are syntax-validated by Roslyn; Copeland bodies are parsed as modules (including
+nested TS-XML). Raw `sourceFile(path, text)` and `testFile(path, text)` remain
+available as explicit low-level escape hatches.
+
+Documents and components remain ordinary typed template results. A future
+component consumer is explicit in the type family (`Component<React>`); `.tsx`
+alone does not select React. Unsupported result types report that no filesystem
+artifact materializer is available. M0 intentionally does not provide arbitrary
+language embedding, XML control flow, token pasting, or arbitrary renderer
+materialization.
+
 This monorepo also contains Machina.UI and Aurelian. Copeland implementation
 and tests live under `src/Copeland` and `tests/Copeland`; the focused Copeland
 documentation landing page is [docs/Copeland](docs/Copeland/README.md).

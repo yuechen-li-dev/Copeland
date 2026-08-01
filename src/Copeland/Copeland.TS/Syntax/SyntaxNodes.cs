@@ -2485,6 +2485,26 @@ public sealed record CaptureExpressionSyntax(
 /// </summary>
 public abstract record TsXmlExpressionSyntax : ExpressionSyntax;
 
+/// <summary>
+/// A language-owned source body in a static template.  The parser deliberately
+/// keeps the body intact; the selected artifact language parses it later.
+/// </summary>
+public sealed record SourceCodeBlockExpressionSyntax(
+    SyntaxToken CodeKeyword,
+    SyntaxToken OpenBraceToken,
+    string BodyText,
+    int BodyPosition,
+    SyntaxToken CloseBraceToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.SourceCodeBlockExpression;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return CodeKeyword;
+        yield return OpenBraceToken;
+        yield return CloseBraceToken;
+    }
+}
+
 public sealed record TsXmlElementExpressionSyntax(
     SyntaxToken LessToken,
     SyntaxToken NameToken,

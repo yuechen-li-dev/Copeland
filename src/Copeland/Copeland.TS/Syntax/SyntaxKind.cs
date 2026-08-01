@@ -218,6 +218,7 @@ public enum SyntaxKind
     BatchExpression,
     ArrowExpression,
     CaptureExpression,
+    SourceCodeBlockExpression,
     ArrowParameter,
     TsXmlElementExpression,
     TsXmlFragmentExpression,

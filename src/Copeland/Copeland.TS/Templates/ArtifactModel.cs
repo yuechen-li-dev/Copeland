@@ -5,6 +5,20 @@ using Copeland.TS.Diagnostics;
 
 namespace Copeland.TS.Templates;
 
+/// <summary>Closed M0 language classifications for typed source artifacts.</summary>
+public enum ArtifactLanguage
+{
+    CopelandTS,
+    CopelandTest,
+    CSharp,
+}
+
+public sealed record TypedSourceBody(
+    ArtifactLanguage Language,
+    string Text,
+    IReadOnlyList<string> ImportedParameters,
+    string Provenance);
+
 public abstract record ArtifactNode(string Provenance);
 
 public record FileArtifact(string Path, string Kind, byte[] Bytes, string Provenance) : ArtifactNode(Provenance)

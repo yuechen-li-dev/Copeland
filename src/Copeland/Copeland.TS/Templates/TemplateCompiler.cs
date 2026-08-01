@@ -4,6 +4,10 @@ using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using RoslynCSharpSyntaxTree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree;
+using RoslynDiagnostic = Microsoft.CodeAnalysis.Diagnostic;
+using RoslynDiagnosticSeverity = Microsoft.CodeAnalysis.DiagnosticSeverity;
 
 namespace Copeland.TS.Templates;
 
@@ -82,6 +86,7 @@ public static class TemplateCompiler
             DotNetSolutionValue solution when solution.TryLower(out ProjectTree? tree, out IReadOnlyList<Diagnostic> loweringDiagnostics)
                 => tree,
             DotNetSolutionValue solution => ReportLoweringFailure(solution),
+            ArtifactNode artifact => LowerArtifact(artifact),
             null => null,
             _ => ReportUnsupportedMaterializer(entry.Symbol.ReturnType),
         };
@@ -96,7 +101,18 @@ public static class TemplateCompiler
 
         ProjectTree? ReportUnsupportedMaterializer(TypeSymbol resultType)
         {
-            diagnostics.Add(new Diagnostic("COPE-TEMPLATE-0009", $"No filesystem materializer supports template result type '{resultType.Name}'.", 0, 1));
+            diagnostics.Add(new Diagnostic("COPE-TEMPLATE-0009", $"Template result type '{resultType.Name}' has no artifact materializer for this command.", 0, 1));
+            return null;
+        }
+
+        ProjectTree? LowerArtifact(ArtifactNode artifact)
+        {
+            if (ProjectTree.TryCreate([artifact], out ProjectTree? tree, out IReadOnlyList<Diagnostic> artifactDiagnostics))
+            {
+                return tree;
+            }
+
+            diagnostics.AddRange(artifactDiagnostics);
             return null;
         }
     }
@@ -735,6 +751,8 @@ public static class TemplateCompiler
                     return EvaluateInvocation(invocation, context);
                 case BoundTemplateXmlElement xml:
                     return EvaluateXmlElement(xml, context);
+                case BoundTypedSourceArtifact source:
+                    return EvaluateTypedSourceArtifact(source, context);
                 default:
                     Report("COPE-TEMPLATE-0003", "Template plan contains an unresolved static value.", value.Anchor);
                     return null;
@@ -801,6 +819,109 @@ public static class TemplateCompiler
                 return null;
             }
         }
+
+        private object? EvaluateTypedSourceArtifact(BoundTypedSourceArtifact source, BoundEvaluationContext context)
+        {
+            string? path = EvaluateValue(source.Path, context) as string;
+            if (path is null) return null;
+            var imports = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (BoundTemplateStructuralField field in source.Parameters.Fields)
+            {
+                if (imports.ContainsKey(field.Name))
+                {
+                    Report("COPE-ARTIFACT-0009", $"Duplicate imported parameter '{field.Name}'.", source.Anchor);
+                    return null;
+                }
+                if (EvaluateValue(field.Value, context) is not string value)
+                {
+                    Report("COPE-ARTIFACT-0008", $"Imported source parameter '{field.Name}' did not evaluate to a string.", source.Anchor);
+                    return null;
+                }
+                imports[field.Name] = value;
+            }
+
+            if (!TryGetLanguage(source.LanguageName, out ArtifactLanguage language)) return null;
+            if (!ValidateExtension(path, language, source.Anchor)) return null;
+            string text = source.Body.BodyText;
+            foreach ((string name, string value) in imports)
+            {
+                if (!IsIdentifier(value))
+                {
+                    Report("COPE-ARTIFACT-0010", $"Imported parameter '{name}' has value '{value}', which is not valid in the M0 identifier insertion role.", source.Anchor);
+                    return null;
+                }
+                text = Regex.Replace(text, $@"(?<![A-Za-z0-9_$]){Regex.Escape(name)}(?![A-Za-z0-9_$])", value);
+            }
+
+            if (!ValidateEmbeddedSource(text, language, source.Anchor, path)) return null;
+            string provenance = string.Join(" -> ", _active.Reverse().Select(Describe));
+            return source.ArtifactKind == "testFile"
+                ? new TestFileArtifact(path, ProjectTree.EncodeText(text), provenance)
+                : new SourceFileArtifact(path, ProjectTree.EncodeText(text), provenance);
+        }
+
+        private bool TryGetLanguage(string name, out ArtifactLanguage language)
+        {
+            language = name switch
+            {
+                "CopelandTS" => ArtifactLanguage.CopelandTS,
+                "CopelandTest" => ArtifactLanguage.CopelandTest,
+                "CSharp" => ArtifactLanguage.CSharp,
+                _ => default,
+            };
+            if (name is "CopelandTS" or "CopelandTest" or "CSharp") return true;
+            Report("COPE-ARTIFACT-0003", $"Unknown artifact language type '{name}'.", new SyntaxToken(SyntaxKind.IdentifierToken, 0, name, name));
+            return false;
+        }
+
+        private bool ValidateExtension(string path, ArtifactLanguage language, SyntaxToken anchor)
+        {
+            bool valid = language switch
+            {
+                ArtifactLanguage.CSharp => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase),
+                ArtifactLanguage.CopelandTest => path.EndsWith(".tsxtest", StringComparison.OrdinalIgnoreCase),
+                ArtifactLanguage.CopelandTS => path.EndsWith(".ts", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".tsx", StringComparison.OrdinalIgnoreCase),
+                _ => false,
+            };
+            if (!valid) Report("COPE-ARTIFACT-0011", $"Artifact path '{path}' does not match selected language '{language}'.", anchor);
+            return valid;
+        }
+
+        private bool ValidateEmbeddedSource(string text, ArtifactLanguage language, SyntaxToken anchor, string path)
+        {
+            if (language == ArtifactLanguage.CSharp)
+            {
+                Microsoft.CodeAnalysis.SyntaxTree csharpTree = RoslynCSharpSyntaxTree.ParseText(text, path: path);
+                RoslynDiagnostic? error = csharpTree.GetDiagnostics().FirstOrDefault(diagnostic => diagnostic.Severity == RoslynDiagnosticSeverity.Error);
+                if (error is not null)
+                {
+                    Report("COPE-ARTIFACT-0012", $"Malformed C# source for generated artifact '{path}': {error.GetMessage()}", anchor);
+                    return false;
+                }
+                return true;
+            }
+
+            // Copeland test modules add the bounded Xunit [Fact] declaration
+            // marker; it is retained in output but is not an ordinary CTS
+            // expression, so exclude only that marker for CTS syntax parsing.
+            string validationText = language == ArtifactLanguage.CopelandTest
+                ? Regex.Replace(text, @"\[Fact\]\s*", string.Empty)
+                : text;
+            SourceFileKind kind = path.EndsWith(".tsx", StringComparison.OrdinalIgnoreCase)
+                ? SourceFileKind.TypeScriptXml
+                : SourceFileKind.TypeScriptModule;
+            Copeland.TS.Syntax.SyntaxTree tree = Copeland.TS.Syntax.SyntaxTree.Parse(validationText, kind);
+            Copeland.TS.Diagnostics.Diagnostic? diagnostic = tree.Diagnostics.FirstOrDefault();
+            if (diagnostic is not null)
+            {
+                Report("COPE-ARTIFACT-0013", $"Malformed Copeland source for generated artifact '{path}': {diagnostic.Message}", anchor);
+                return false;
+            }
+            return true;
+        }
+
+        private static bool IsIdentifier(string value)
+            => Regex.IsMatch(value, "^[A-Za-z_][A-Za-z0-9_]*$");
 
         private TemplateXmlElementValue EvaluateXmlElement(BoundTemplateXmlElement element, BoundEvaluationContext context)
         {

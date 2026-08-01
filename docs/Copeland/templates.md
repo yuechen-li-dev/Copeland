@@ -71,8 +71,54 @@ model. `.csproj` is authored as bounded TS-XML. Element names, attributes, and
 nesting are checked against the small SDK-project model before evaluation. TS
 computes attribute/child values; TS-XML has no loops, conditionals, or directives.
 `package.json` and `tsconfig.tsx` are emitted from typed
-`NpmPackageManifest` and `TypeScriptWorkspace` values. Program, document, C#,
-test, contract, and README content remains deterministic text by design.
+`NpmPackageManifest` and `TypeScriptWorkspace` values.
+
+### Typed source artifacts (Preview M0)
+
+Generated Copeland, Copeland-test, and C# source is authored as a typed,
+validated artifact body rather than a multiline source string:
+
+```ts
+sourceFile<CopelandTS>("src/Program.ts", { ProjectNamespace: name }, code {
+    using ProjectNamespace;
+    export function greeting(value: string): string { return Helper.Decorate(value); }
+})
+
+sourceFile<CSharp>("src/Helper.cs", { ProjectNamespace: name }, code {
+    namespace ProjectNamespace;
+    public static class Helper { }
+})
+
+testFile<CopelandTest>("tests/Greeting.tsxtest", {}, code {
+    using Xunit;
+    [Fact] export function works(): void { Assert.True(true); }
+})
+```
+
+The closed language-type set is `CopelandTS`, `CopelandTest`, and `CSharp`.
+It selects parser, validation, destination extension, and materialization
+behavior. Copeland bodies use the normal module parser (including nested
+TS-XML); C# bodies receive Roslyn syntax validation before materialization.
+
+The imports object is the only visibility boundary between the outer template
+and a source body. M0 accepts explicit string-valued imports only in validated
+identifier roles. Values are checked as identifiers before replacement and the
+result is parsed again, so imports cannot inject arbitrary tokens. There is no
+ambient capture, expression/statement injection, token-pasting, or macro
+expansion. Raw `sourceFile(path, text)` and `testFile(path, text)` remain
+low-level untyped escape hatches.
+
+The filesystem materializer is selected from the typed template result. A
+`DotNetSolution` lowers through its artifact graph; an individual source/test
+artifact also materializes directly. Unsupported results report that no
+artifact materializer is available for the command.
+
+Hierarchical `<SourceFile<Language>>` TS-XML is intentionally deferred: the
+function-shaped generic form is clearer for this non-tree artifact. Rich
+embedded-language LSP, virtual generated files, generalized AST substitution,
+additional embedded languages, formatter support, and full Document/React
+surface convergence are also deferred. Documents and components share the same
+typed-construction → result → consumer model, but are not migrated by this M0.
 
 ```console
 tscl template materialize BootstrapTemplate.tsx --entry BootstrapTemplate --name HelloCopeland --target net10.0 --output ./HelloCopeland

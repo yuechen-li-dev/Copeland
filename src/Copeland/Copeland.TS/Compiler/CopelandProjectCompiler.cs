@@ -302,7 +302,7 @@ public static class CopelandProjectCompiler
                 .Where(import => import.Target is not null)
                 .SelectMany(import => import.Bindings.Select(binding => binding.LocalName))
                 .ToHashSet(StringComparer.Ordinal);
-            SyntaxToken[] tokens = SyntaxTree.ParseTokens(module.Source.SourceText).Tokens.ToArray();
+            SyntaxToken[] tokens = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText)).Tokens.ToArray();
             foreach (var pair in functions)
             {
                 ProjectModule[] foreignOwners = pair.Value
@@ -399,7 +399,7 @@ public static class CopelandProjectCompiler
 
     private static string RewriteModule(ProjectModule module)
     {
-        SyntaxTree tokenTree = SyntaxTree.ParseTokens(module.Source.SourceText);
+        SyntaxTree tokenTree = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(module.Source.SourceText));
         var replacements = new List<TextReplacement>();
         foreach (ProjectImport import in module.Imports)
         {
@@ -621,7 +621,7 @@ public static class CopelandProjectCompiler
 
     private static IReadOnlyList<ProjectImport> ReadImports(CopelandProjectSource source)
     {
-        SyntaxTree tree = SyntaxTree.Parse(source.SourceText, source.LogicalPath);
+        SyntaxTree tree = SyntaxTree.Parse(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText), source.LogicalPath);
         return tree.Root.Members.OfType<ImportDeclarationSyntax>().Select(import =>
         {
             SyntaxToken[] tokens = import.Tokens.ToArray();
@@ -653,7 +653,7 @@ public static class CopelandProjectCompiler
 
     private static IReadOnlySet<string> ReadExports(CopelandProjectSource source)
     {
-        SyntaxTree tree = SyntaxTree.ParseTokens(source.SourceText);
+        SyntaxTree tree = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText));
         var exports = new HashSet<string>(StringComparer.Ordinal);
         SyntaxToken[] tokens = tree.Tokens.ToArray();
         for (int index = 0; index + 1 < tokens.Length; index++)
@@ -684,7 +684,7 @@ public static class CopelandProjectCompiler
 
     private static IReadOnlyList<ProjectDeclaration> ReadDeclarations(CopelandProjectSource source)
     {
-        SyntaxToken[] tokens = SyntaxTree.ParseTokens(source.SourceText).Tokens.ToArray();
+        SyntaxToken[] tokens = SyntaxTree.ParseTokens(EmbeddedSourceBlockScanner.MaskBodies(source.SourceText)).Tokens.ToArray();
         var declarations = new List<ProjectDeclaration>();
         for (int index = 0; index + 1 < tokens.Length; index++)
         {

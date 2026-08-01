@@ -2,12 +2,89 @@ using Copeland.TS.Syntax;
 using Copeland.TS.Templates;
 using Copeland.TS.Compiler;
 using Copeland.TS.Semantics.Bound;
+using System.Text;
 using Xunit;
 
 namespace Copeland.TS.Tests;
 
 public sealed class TemplateStaticTests
 {
+    [Theory]
+    [InlineData("CSharp", "src/App.ts", "COPE-ARTIFACT-0011")]
+    [InlineData("UnknownLanguage", "src/App.ts", "COPE-ARTIFACT-0003")]
+    public void Diagnoses_Invalid_Typed_Source_Language_Or_Extension(string language, string path, string diagnosticId)
+    {
+        string source = $$"""
+template<> App: ProjectTree {
+    emit(sourceFile<{{language}}>("{{path}}", code { export function app(): void { } }));
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "App");
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == diagnosticId);
+    }
+
+    [Fact]
+    public void Rejects_Imported_Identifier_Injection()
+    {
+        const string source = """
+template<static projectName: string = "Safe; public class Injected { }"> App: ProjectTree {
+    emit(sourceFile<CSharp>("Program.cs", { ProjectNamespace: projectName }, code {
+        namespace ProjectNamespace;
+    }));
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "App");
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-ARTIFACT-0010");
+    }
+
+    [Fact]
+    public void Rejects_Malformed_CSharp_Typed_Source_Before_Materialization()
+    {
+        const string source = """
+template<> App: ProjectTree {
+    emit(sourceFile<CSharp>("Program.cs", code {
+        public class InvalidSyntax { public void M() => ; }
+    }));
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "App");
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "COPE-ARTIFACT-0012");
+    }
+
+    [Fact]
+    public void Materializes_Typed_Source_Bodies_With_Hygienic_Identifier_Imports()
+    {
+        const string source = """
+template<static projectName: string = "HelloCopeland"> App: ProjectTree {
+    emit(sourceFile<CSharp>("Program.cs", { ProjectNamespace: projectName }, code {
+        namespace ProjectNamespace;
+        public static class Program { }
+    }));
+    emit(sourceFile<CopelandTS>("src/App.tsx", code {
+        export function App(): Document {
+            return <Document><Paragraph>Hello</Paragraph></Document>;
+        }
+    }));
+    emit(testFile<CopelandTest>("tests/App.tsxtest", code {
+        using Xunit;
+        [Fact] export function works(): void { Assert.True(true); }
+    }));
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "App");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Contains("namespace HelloCopeland;", Encoding.UTF8.GetString(result.Project!.Files.Single(file => file.Path == "Program.cs").Bytes));
+        Assert.Contains("export function App", Encoding.UTF8.GetString(result.Project.Files.Single(file => file.Path == "src/App.tsx").Bytes));
+    }
+
     [Fact]
     public void Parses_Canonical_Typed_Template_Declaration_And_Instantiation()
     {

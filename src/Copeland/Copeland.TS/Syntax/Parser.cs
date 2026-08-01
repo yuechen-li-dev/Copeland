@@ -10,6 +10,7 @@ public sealed class Parser
     private readonly DiagnosticBag _diagnostics = new();
     private readonly List<(int Start, int End)> _tsXmlTextRanges = [];
     private readonly List<(int Start, int End)> _csharpBlockRanges = [];
+    private readonly List<(int Start, int End)> _sourceCodeBlockRanges = [];
     private readonly bool _allowsTsXml;
     private readonly bool _allowsImports;
     private int _position;
@@ -51,17 +52,34 @@ public sealed class Parser
             }
         }
 
+        for (var index = 0; index + 1 < _tokens.Length; index++)
+        {
+            if (!IsWord(_tokens[index], "code") || _tokens[index + 1].Kind != SyntaxKind.OpenBraceToken)
+            {
+                continue;
+            }
+
+            if (EmbeddedSourceBlockScanner.TryFindClosingBrace(text, _tokens[index + 1].Position, out int closePosition))
+            {
+                _sourceCodeBlockRanges.Add((_tokens[index + 1].Position, closePosition));
+            }
+        }
+
         _lexerDiagnostics = lexer.Diagnostics.ToArray();
     }
 
     public IReadOnlyList<Diagnostic> Diagnostics
         => _lexerDiagnostics
             .Where(diagnostic => !IsTsXmlTextDiagnostic(diagnostic) && !IsCSharpBlockDiagnostic(diagnostic))
+            .Where(diagnostic => !IsSourceCodeBlockDiagnostic(diagnostic))
             .Concat(_diagnostics.Diagnostics)
             .ToArray();
 
     private bool IsCSharpBlockDiagnostic(Diagnostic diagnostic)
         => _csharpBlockRanges.Any(range => diagnostic.Position > range.Start && diagnostic.Position < range.End);
+
+    private bool IsSourceCodeBlockDiagnostic(Diagnostic diagnostic)
+        => _sourceCodeBlockRanges.Any(range => diagnostic.Position > range.Start && diagnostic.Position < range.End);
 
     public CompilationUnitSyntax ParseCompilationUnit()
     {
@@ -2576,6 +2594,10 @@ public sealed class Parser
         {
             return ParseTemplateInstantiationExpression();
         }
+        if (Current.Kind == SyntaxKind.IdentifierToken && Current.Text == "code" && Peek(1).Kind == SyntaxKind.OpenBraceToken)
+        {
+            return ParseSourceCodeBlockExpression();
+        }
 
         return Current.Kind switch
         {
@@ -2595,6 +2617,22 @@ public sealed class Parser
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+    }
+
+    private SourceCodeBlockExpressionSyntax ParseSourceCodeBlockExpression()
+    {
+        SyntaxToken codeKeyword = NextToken();
+        SyntaxToken openBrace = Match(SyntaxKind.OpenBraceToken);
+        if (!EmbeddedSourceBlockScanner.TryFindClosingBrace(_text, openBrace.Position, out int closePosition))
+        {
+            _diagnostics.Report("COPE-ARTIFACT-0006", "Unterminated typed source body.", openBrace.Position, 1);
+            return new SourceCodeBlockExpressionSyntax(codeKeyword, openBrace, _text[(openBrace.Position + 1)..], openBrace.Position + 1, MissingToken(SyntaxKind.CloseBraceToken, _text.Length));
+        }
+
+        string body = _text.Substring(openBrace.Position + 1, closePosition - openBrace.Position - 1);
+        while (Current.Kind != SyntaxKind.EndOfFileToken && Current.Position < closePosition) NextToken();
+        SyntaxToken closeBrace = Match(SyntaxKind.CloseBraceToken);
+        return new SourceCodeBlockExpressionSyntax(codeKeyword, openBrace, body, openBrace.Position + 1, closeBrace);
     }
 
     private TemplateInstantiationExpressionSyntax ParseTemplateInstantiationExpression()

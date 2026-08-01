@@ -18,6 +18,7 @@ canonical bound/MIR fact; it does not imply every runtime ecosystem is present.
 | `Result`, `?`, `!`, `try` / `except` | Bounded | Yes | Yes | Yes | diagnostics/compile |
 | Arrays, TSON values/assets, record tables | Bounded | Yes | Yes | Yes | TSON/table tools |
 | Templates and static evaluation | Bounded | Yes | C# generation | generated artifacts | template tooling |
+| Typed source artifacts | Preview M0 supported | `CopelandTS`, `CopelandTest`, `CSharp`; explicit identifier imports | Roslyn syntax validation | Copeland module/test parsing; nested TS-XML | outer-template diagnostics; rich embedded LSP deferred |
 | TSX / XML-shaped frontend | Bounded | React M0 profile | projection | projection | syntax/LSP |
 | Components, captures, private streams/layouts | Bounded | Yes | semantic runtime tests | React/Custom Element proof | tables/hover |
 | Component state, events, presentation branches | Bounded | Yes | in-process semantic runtime | browser frame proof | inspection |
@@ -45,6 +46,10 @@ canonical bound/MIR fact; it does not imply every runtime ecosystem is present.
 - Browser effect execution and broader flow push/pop/goto semantics.
 - General table mutation/query/iteration, JSON as a language model, database
   or dataframe semantics, and renderer-owned component subtrees.
+- Hierarchical typed-artifact TS-XML, generalized AST substitution, token
+  pasting/macros, arbitrary embedded languages, source transforms, and rich
+  embedded C# or Copeland editor projections. Full Document/React syntactic
+  convergence remains architectural direction rather than Preview 1 support.
 
 The [feature inventory](../copeland-feature-inventory.md) gives the precise
 subset and evidence for each status.
