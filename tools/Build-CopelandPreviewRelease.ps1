@@ -150,13 +150,16 @@ foreach ($requiredEntry in @(
 }
 
 $npmSource = Join-Path $repositoryRoot "src\Copeland\Copeland.TS.Npm"
+$npmLauncher = Join-Path $npmSource "launcher\tscl.js"
 $npmStage = Join-Path $stagingRoot "npm-package"
 Reset-GeneratedDirectory $npmStage
 Copy-Item -LiteralPath (Join-Path $npmSource "package.json") -Destination $npmStage
 Copy-Item -LiteralPath (Join-Path $npmSource "README.md") -Destination $npmStage
 Copy-Item -LiteralPath (Join-Path $npmSource "THIRD_PARTY_NOTICES.md") -Destination $npmStage
 Copy-Item -LiteralPath (Join-Path $repositoryRoot "LICENSE") -Destination (Join-Path $npmStage "LICENSE")
-Copy-Item -LiteralPath (Join-Path $npmSource "bin") -Destination $npmStage -Recurse
+$npmBin = Join-Path $npmStage "bin"
+New-Item -ItemType Directory -Path $npmBin -Force | Out-Null
+Copy-Item -LiteralPath $npmLauncher -Destination (Join-Path $npmBin "tscl.js")
 $npmPayload = Join-Path $npmStage "payload"
 Invoke-Checked $dotnet publish $toolProject --configuration $Configuration --no-restore --self-contained false /p:UseAppHost=false --output $npmPayload
 Get-ChildItem -LiteralPath $npmPayload -File |

@@ -95,6 +95,9 @@ foreach ($excludedProject in $excludedPrerequisiteProjects) {
     Require-Condition (-not $solutionProjectSet.Contains($excludedProject)) "Prerequisite-bound browser/TSPack project is in the release closure: $excludedProject"
 }
 
+$npmLauncher = Join-Path $repositoryRoot "src\Copeland\Copeland.TS.Npm\launcher\tscl.js"
+Require-Condition (Test-Path -LiteralPath $npmLauncher -PathType Leaf) "npm launcher source is missing from the release closure: $npmLauncher"
+
 Write-Output "Copeland Preview release product closure validation passed."
 Write-Output "Release solution: Copeland.Release.slnx"
 $packageRootNames = ($packageRoots | ForEach-Object { Split-Path $_ -Leaf }) -join ', '
