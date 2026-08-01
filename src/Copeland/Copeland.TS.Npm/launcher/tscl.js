@@ -29,32 +29,16 @@ if (!fs.existsSync(toolAssembly)) {
     fail("the packaged Copeland tool payload is missing; reinstall @copeland/tscl.");
 }
 
-const runtimeProbe = spawnSync("dotnet", ["--list-runtimes"], {
-    encoding: "utf8",
-    windowsHide: true
-});
-if (runtimeProbe.error || runtimeProbe.status !== 0) {
-    fail(
-        ".NET 10 was not found. Install the .NET 10 runtime or SDK from " +
-        "https://dotnet.microsoft.com/download/dotnet/10.0 and reopen the terminal."
-    );
-}
-
-const runtimes = runtimeProbe.stdout || "";
-if (!/^Microsoft\\.NETCore\\.App 10\\./m.test(runtimes)) {
-    fail(
-        ".NET 10 is required, but Microsoft.NETCore.App 10.x is not installed. " +
-        "Install .NET 10 and reopen the terminal."
-    );
-}
-
 const versionProbe = spawnSync("dotnet", [toolAssembly, "--version"], {
     encoding: "utf8",
     windowsHide: true
 });
 if (versionProbe.error || versionProbe.status !== 0) {
     const detail = (versionProbe.stderr || versionProbe.error?.message || "unknown error").trim();
-    fail(`the packaged Copeland tool could not start: ${detail}`);
+    fail(
+        `the packaged Copeland tool could not start: ${detail} ` +
+        "Install the .NET 10 runtime or SDK and reopen the terminal."
+    );
 }
 
 const actualVersion = versionProbe.stdout.trim();
