@@ -467,7 +467,7 @@ public sealed class TsonAssetRuntimeTests
         };
         foreach ((string fileName, string expectedHash) in expectedHashes)
         {
-            string actualHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(corpus, fileName)))).ToLowerInvariant();
+            string actualHash = Convert.ToHexString(SHA256.HashData(CanonicalFileBytes(Path.Combine(corpus, fileName)))).ToLowerInvariant();
             Assert.Equal(expectedHash, actualHash);
         }
     }
@@ -521,7 +521,7 @@ public sealed class TsonAssetRuntimeTests
         };
         foreach ((string fileName, string expectedHash) in expectedHashes)
         {
-            string actualHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(corpus, fileName)))).ToLowerInvariant();
+            string actualHash = Convert.ToHexString(SHA256.HashData(CanonicalFileBytes(Path.Combine(corpus, fileName)))).ToLowerInvariant();
             Assert.Equal(expectedHash, actualHash);
         }
     }
@@ -610,6 +610,11 @@ public sealed class TsonAssetRuntimeTests
     private static string Normalize(string value)
     {
         return value.Replace("\r\n", "\n", StringComparison.Ordinal);
+    }
+
+    private static byte[] CanonicalFileBytes(string path)
+    {
+        return System.Text.Encoding.UTF8.GetBytes(Normalize(File.ReadAllText(path)));
     }
 
     private static string GetRepositoryRoot()

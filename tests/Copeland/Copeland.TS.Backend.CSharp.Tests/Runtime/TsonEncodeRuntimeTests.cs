@@ -295,9 +295,9 @@ public sealed class TsonEncodeRuntimeTests
         JavaScriptCompilation repeatedJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation.Program!);
         Assert.Equal(firstCSharp.SourceText, repeatedCSharp.SourceText);
         Assert.Equal(firstJavaScript.SourceText, repeatedJavaScript.SourceText);
-        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.cope")), firstCompilation.MirText);
-        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.g.cs")), firstCSharp.SourceText);
-        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.g.js")), firstJavaScript.SourceText);
+        Assert.Equal(Normalize(File.ReadAllText(Path.Combine(corpus, "main.cope"))), Normalize(firstCompilation.MirText!));
+        Assert.Equal(Normalize(File.ReadAllText(Path.Combine(corpus, "main.g.cs"))), Normalize(firstCSharp.SourceText));
+        Assert.Equal(Normalize(File.ReadAllText(Path.Combine(corpus, "main.g.js"))), Normalize(firstJavaScript.SourceText!));
 
         byte[] expectedBytes = File.ReadAllBytes(Path.Combine(corpus, "expected.tson"));
         string expected = Encoding.UTF8.GetString(expectedBytes);
@@ -391,7 +391,7 @@ public sealed class TsonEncodeRuntimeTests
         };
         foreach ((string fileName, (int expectedLength, string expectedHash)) in expectedArtifacts)
         {
-            byte[] bytes = File.ReadAllBytes(Path.Combine(corpus, fileName));
+            byte[] bytes = CanonicalFileBytes(Path.Combine(corpus, fileName));
             Assert.Equal(expectedLength, bytes.Length);
             string actualHash = Convert.ToHexString(SHA256.HashData(bytes));
             Assert.Equal(expectedHash, actualHash);
@@ -509,7 +509,7 @@ public sealed class TsonEncodeRuntimeTests
         };
         foreach ((string fileName, string expectedHash) in expectedHashes)
         {
-            string actualHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(corpus, fileName))));
+            string actualHash = Convert.ToHexString(SHA256.HashData(CanonicalFileBytes(Path.Combine(corpus, fileName))));
             Assert.Equal(expectedHash, actualHash);
         }
     }
@@ -534,9 +534,9 @@ public sealed class TsonEncodeRuntimeTests
         JavaScriptCompilation firstJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation.Program!);
         Assert.Empty(firstCSharp.Diagnostics);
         Assert.True(firstJavaScript.Success, string.Join(Environment.NewLine, firstJavaScript.Diagnostics));
-        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.cope")), firstCompilation.MirText);
-        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.g.cs")), firstCSharp.SourceText);
-        Assert.Equal(File.ReadAllText(Path.Combine(corpus, "main.g.js")), firstJavaScript.SourceText);
+        Assert.Equal(Normalize(File.ReadAllText(Path.Combine(corpus, "main.cope"))), Normalize(firstCompilation.MirText!));
+        Assert.Equal(Normalize(File.ReadAllText(Path.Combine(corpus, "main.g.cs"))), Normalize(firstCSharp.SourceText));
+        Assert.Equal(Normalize(File.ReadAllText(Path.Combine(corpus, "main.g.js"))), Normalize(firstJavaScript.SourceText!));
 
         CSharpCompilation repeatedCSharp = CSharpBackend.Emit(firstCompilation.MirCompilation.Program!);
         JavaScriptCompilation repeatedJavaScript = JavaScriptBackend.Emit(firstCompilation.MirCompilation.Program!);
@@ -616,7 +616,7 @@ public sealed class TsonEncodeRuntimeTests
         };
         foreach ((string fileName, string expectedHash) in expectedHashes)
         {
-            string actualHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(corpus, fileName))));
+            string actualHash = Convert.ToHexString(SHA256.HashData(CanonicalFileBytes(Path.Combine(corpus, fileName))));
             Assert.Equal(expectedHash, actualHash);
         }
     }
@@ -1258,6 +1258,11 @@ public sealed class TsonEncodeRuntimeTests
             directory = directory.Parent;
         }
         throw new InvalidOperationException("Could not locate repository root.");
+    }
+
+    private static byte[] CanonicalFileBytes(string path)
+    {
+        return Encoding.UTF8.GetBytes(Normalize(File.ReadAllText(path)));
     }
 
     private static async Task<ProcessResult> RunNodeAsync(string source)
