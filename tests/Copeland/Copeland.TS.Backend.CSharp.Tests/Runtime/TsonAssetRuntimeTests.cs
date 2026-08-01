@@ -514,7 +514,7 @@ public sealed class TsonAssetRuntimeTests
         var expectedHashes = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["batch.obj.ts"] = "32c551b037fa503a646b4fcc30c983aea8b94f3235bde0b67bae64f963871ede",
-            ["main.cope"] = "840a285a4238f341f34aa89348d00e5cdf5677422009192e0150d2c1c7a4b12e",
+            ["main.cope"] = "9163875f927d9e7ce95c4d59143724cbbc0eef8b9480b08d86b62341e973f07c",
             ["main.g.cs"] = "a3b97b999c7bc529fd40ac7b38bc860a89a664d6cf5639952f8123f562777015",
             ["main.g.js"] = "de884da8fdaacd96ba8ac92e75076df0df268298f29da65df0c74b7af56f5873",
             ["main.ts"] = "d95366df1041d079075628c8132c44b1325835b4bfbd9ada8a71a0dc033f5e03",
