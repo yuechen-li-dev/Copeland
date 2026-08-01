@@ -2129,15 +2129,67 @@ public sealed record TableColumnSyntax(
     SyntaxToken? EqualsToken,
     ArrayLiteralExpressionSyntax Cells,
     SyntaxToken SemicolonToken,
-    bool HasInlineData = true) : SyntaxNode
+    bool HasInlineData = true,
+    SyntaxToken? KeyKeyword = null,
+    SyntaxToken? ReferenceKeyword = null,
+    SyntaxToken? ReferenceArrowToken = null,
+    SyntaxToken? ReferencedTableIdentifier = null,
+    SyntaxToken? ReferencedColumnIdentifier = null) : SyntaxNode
 {
     public override SyntaxKind Kind => SyntaxKind.TableColumn;
     public override IEnumerable<object> GetChildren()
     {
+        if (KeyKeyword is not null) yield return KeyKeyword;
+        if (ReferenceKeyword is not null) yield return ReferenceKeyword;
         yield return Identifier; yield return ColonToken;
         if (ExplicitType is not null) yield return ExplicitType;
+        if (ReferenceArrowToken is not null) yield return ReferenceArrowToken;
+        if (ReferencedTableIdentifier is not null) yield return ReferencedTableIdentifier;
+        if (ReferencedColumnIdentifier is not null) yield return ReferencedColumnIdentifier;
         if (EqualsToken is not null) yield return EqualsToken;
         yield return Cells; yield return SemicolonToken;
+    }
+}
+
+/// <summary>A single named scalar projection in a derived record table.</summary>
+public sealed record DerivedTableColumnSyntax(
+    SyntaxToken Identifier,
+    SyntaxToken ColonToken,
+    TypeSyntax? ExplicitType,
+    SyntaxToken? EqualsToken,
+    ExpressionSyntax Expression,
+    SyntaxToken SemicolonToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TableColumn;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Identifier;
+        yield return ColonToken;
+        if (ExplicitType is not null) yield return ExplicitType;
+        if (EqualsToken is not null) yield return EqualsToken;
+        yield return Expression;
+        yield return SemicolonToken;
+    }
+}
+
+/// <summary>Single-source projection syntax.  Joins deliberately have no syntax here.</summary>
+public sealed record DerivedTableClauseSyntax(
+    SyntaxToken EqualsToken,
+    SyntaxToken DeriveKeyword,
+    SyntaxToken SourceIdentifier,
+    SyntaxToken AsKeyword,
+    SyntaxToken AliasIdentifier,
+    SyntaxToken OpenBraceToken,
+    IReadOnlyList<DerivedTableColumnSyntax> Columns,
+    SyntaxToken CloseBraceToken) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TableDeclaration;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return EqualsToken; yield return DeriveKeyword; yield return SourceIdentifier;
+        yield return AsKeyword; yield return AliasIdentifier; yield return OpenBraceToken;
+        foreach (var column in Columns) yield return column;
+        yield return CloseBraceToken;
     }
 }
 
@@ -2149,7 +2201,8 @@ public sealed record TableDeclarationSyntax(
     SyntaxToken OpenBraceToken,
     IReadOnlyList<TableColumnSyntax> Columns,
     SyntaxToken CloseBraceToken,
-    bool IsExported) : MemberSyntax
+    bool IsExported,
+    DerivedTableClauseSyntax? DerivedClause = null) : MemberSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.TableDeclaration;
     public override IEnumerable<object> GetChildren()
@@ -2161,9 +2214,8 @@ public sealed record TableDeclarationSyntax(
         {
             yield return AssetClause;
         }
-        yield return OpenBraceToken;
-        foreach (var column in Columns) yield return column;
-        yield return CloseBraceToken;
+        if (DerivedClause is not null) yield return DerivedClause;
+        else { yield return OpenBraceToken; foreach (var column in Columns) yield return column; yield return CloseBraceToken; }
     }
 }
 

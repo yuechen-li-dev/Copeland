@@ -1146,7 +1146,9 @@ public sealed class BoundModuleImports(
 public sealed class BoundFunctionDeclaration : BoundNode { public BoundFunctionDeclaration(FunctionSymbol symbol, BoundBlockStatement body) { Symbol = symbol; Body = body; } public FunctionSymbol Symbol { get; } public BoundBlockStatement Body { get; } }
 public sealed class BoundEnumDeclaration : BoundNode { public BoundEnumDeclaration(EnumTypeSymbol enumType) => EnumType = enumType; public EnumTypeSymbol EnumType { get; } }
 public sealed class BoundRecordDeclaration : BoundNode { public BoundRecordDeclaration(RecordTypeSymbol recordType) => RecordType = recordType; public RecordTypeSymbol RecordType { get; } }
-public sealed class BoundTableDefinition(
+public enum BoundTableDefinitionKind { Authored, Derived }
+
+public class BoundTableDefinition(
     TableTypeSymbol tableType,
     IReadOnlyList<BoundTableColumnDefinition> columns,
     int rowCount,
@@ -1156,6 +1158,30 @@ public sealed class BoundTableDefinition(
     public IReadOnlyList<BoundTableColumnDefinition> Columns { get; } = columns;
     public int RowCount { get; } = rowCount;
     public bool IsExported { get; } = isExported;
+    public virtual BoundTableDefinitionKind Kind => BoundTableDefinitionKind.Authored;
+}
+
+public sealed class BoundDerivedTableDefinition(
+    TableTypeSymbol tableType,
+    TableTypeSymbol sourceTable,
+    string sourceAlias,
+    IReadOnlyList<BoundDerivedTableColumnDefinition> projections,
+    int rowCount,
+    bool isExported = false) : BoundTableDefinition(tableType, [], rowCount, isExported)
+{
+    public TableTypeSymbol SourceTable { get; } = sourceTable;
+    public string SourceAlias { get; } = sourceAlias;
+    public IReadOnlyList<BoundDerivedTableColumnDefinition> Projections { get; } = projections;
+    public override BoundTableDefinitionKind Kind => BoundTableDefinitionKind.Derived;
+}
+
+public sealed class BoundDerivedTableColumnDefinition(TableColumnSymbol column, BoundExpression expression, string? copiedSourceColumn, IReadOnlyList<string> sourceColumns, int expressionPosition) : BoundNode
+{
+    public TableColumnSymbol Column { get; } = column;
+    public BoundExpression Expression { get; } = expression;
+    public string? CopiedSourceColumn { get; } = copiedSourceColumn;
+    public IReadOnlyList<string> SourceColumns { get; } = sourceColumns;
+    public int ExpressionPosition { get; } = expressionPosition;
 }
 
 public sealed class BoundFlowDefinition(

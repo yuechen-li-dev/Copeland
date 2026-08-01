@@ -265,7 +265,9 @@ public sealed class MirTableDefinition(
     string rowTypeId,
     IReadOnlyList<MirTableColumnDefinition> columns,
     int rowCount,
-    bool isExported = false)
+    bool isExported = false,
+    MirTableColumnId? keyColumnId = null,
+    MirDerivedTablePlan? derivedPlan = null)
 {
     public MirTableId Id { get; } = id;
     public string Name { get; } = name;
@@ -273,6 +275,35 @@ public sealed class MirTableDefinition(
     public IReadOnlyList<MirTableColumnDefinition> Columns { get; } = columns;
     public int RowCount { get; } = rowCount;
     public bool IsExported { get; } = isExported;
+    public MirTableColumnId? KeyColumnId { get; } = keyColumnId;
+    /// <summary>Null means source-owned authored constants; otherwise this is a read-only relation plan.</summary>
+    public MirDerivedTablePlan? DerivedPlan { get; } = derivedPlan;
+}
+
+public sealed class MirDerivedTablePlan(
+    MirTableId sourceTableId,
+    string sourceAlias,
+    string planIdentity,
+    IReadOnlyList<MirDerivedTableColumnPlan> columns)
+{
+    public MirTableId SourceTableId { get; } = sourceTableId;
+    public string SourceAlias { get; } = sourceAlias;
+    public string PlanIdentity { get; } = planIdentity;
+    public IReadOnlyList<MirDerivedTableColumnPlan> Columns { get; } = columns;
+}
+
+public sealed class MirDerivedTableColumnPlan(
+    MirTableColumnId columnId,
+    MirExpression expression,
+    string? copiedSourceColumn,
+    IReadOnlyList<string> sourceColumns,
+    int authoredPosition)
+{
+    public MirTableColumnId ColumnId { get; } = columnId;
+    public MirExpression Expression { get; } = expression;
+    public string? CopiedSourceColumn { get; } = copiedSourceColumn;
+    public IReadOnlyList<string> SourceColumns { get; } = sourceColumns;
+    public int AuthoredPosition { get; } = authoredPosition;
 }
 public abstract record MirTableConstant(MirType Type);
 public sealed record MirTableLiteralConstant(object Value, MirType Type) : MirTableConstant(Type);
@@ -307,8 +338,25 @@ public sealed record MirTableResultConstant : MirTableConstant
     public MirTableConstant Payload { get; }
     public new MirResultType Type => (MirResultType)base.Type;
 }
-public sealed class MirTableColumnDefinition(MirTableColumnId id, string name, MirType elementType, IReadOnlyList<MirTableConstant> constants)
-{ public MirTableColumnId Id { get; } = id; public string Name { get; } = name; public MirType ElementType { get; } = elementType; public IReadOnlyList<MirTableConstant> Constants { get; } = constants; }
+public sealed class MirTableReferenceDefinition(MirTableId targetTableId, MirTableColumnId targetKeyColumnId)
+{
+    public MirTableId TargetTableId { get; } = targetTableId;
+    public MirTableColumnId TargetKeyColumnId { get; } = targetKeyColumnId;
+}
+
+public sealed class MirTableColumnDefinition(
+    MirTableColumnId id,
+    string name,
+    MirType elementType,
+    IReadOnlyList<MirTableConstant> constants,
+    MirTableReferenceDefinition? reference = null)
+{
+    public MirTableColumnId Id { get; } = id;
+    public string Name { get; } = name;
+    public MirType ElementType { get; } = elementType;
+    public IReadOnlyList<MirTableConstant> Constants { get; } = constants;
+    public MirTableReferenceDefinition? Reference { get; } = reference;
+}
 
 public readonly record struct MirRecordTypeId(string Value)
 {

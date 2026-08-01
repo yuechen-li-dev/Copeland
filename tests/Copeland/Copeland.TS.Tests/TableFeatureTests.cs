@@ -1,4 +1,5 @@
 using Copeland.TS.Compiler;
+using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Mir;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
@@ -115,6 +116,108 @@ public sealed class TableFeatureTests
         Assert.All(table.Columns.SelectMany(column => column.Constants), constant => Assert.IsAssignableFrom<MirTableConstant>(constant));
         Assert.All(table.Columns.SelectMany(column => column.Constants), constant => Assert.IsNotAssignableFrom<MirExpression>(constant));
         Assert.IsType<MirTableLiteralConstant>(table.Columns[0].Constants[0]);
+    }
+
+    [Fact]
+    public void Derived_tables_bind_exact_projection_schema_and_relation_plan()
+    {
+        const string source = """
+            record table Prices {
+                id: int = [1, 2];
+                retail: number = [10, 20];
+                cost: number = [4, 7];
+            }
+            record table Margins = derive Prices as price {
+                productId: int = price.id;
+                margin: number = price.retail - price.cost;
+            }
+            function total(): number { return Margins.margin.sum(); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        BoundDerivedTableDefinition derived = Assert.IsType<BoundDerivedTableDefinition>(compilation.BoundCompilation!.Program.Tables[1]);
+        Assert.Equal("Prices", derived.SourceTable.Name);
+        Assert.Equal(["productId", "margin"], derived.Projections.Select(projection => projection.Column.Name));
+        Assert.Equal(["cost", "retail"], derived.Projections[1].SourceColumns);
+        MirTableDefinition mir = compilation.MirCompilation!.Program!.Tables[1];
+        Assert.NotNull(mir.DerivedPlan);
+        Assert.Equal("t1", mir.DerivedPlan!.SourceTableId.Value);
+        Assert.All(mir.Columns, column => Assert.Empty(column.Constants));
+        Assert.Contains("derived source [t1] alias price", compilation.MirText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("record table T = derive Missing as row { x: int = row.x; }", "COPE-DERIVE-0001")]
+    [InlineData("record table A = derive B as row { x: int = row.x; } record table B = derive A as row { x: int = row.x; }", "COPE-DERIVE-0008")]
+    [InlineData("record table T { x: int = [1]; } record table U = derive T as row { x: int = row.x; x: int = row.x; }", "COPE-DERIVE-0003")]
+    [InlineData("record table T { x: int = [1]; } record table U = derive T as row { x: int = row.x; } function revise(): U { return U with { x: [2] }; }", "COPE-DERIVE-0009")]
+    public void Derived_tables_report_source_cycle_and_schema_diagnostics(string source, string diagnosticId)
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == diagnosticId);
+    }
+
+    [Fact]
+    public void JavaScript_reports_the_explicit_derived_table_materializer_boundary()
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir("""
+            record table Source { value: int = [1]; }
+            record table Projection = derive Source as row { value: int = row.value; }
+            """);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        JavaScriptCompilation javascript = JavaScriptBackend.Emit(compilation.MirCompilation!.Program!);
+        Assert.Contains(javascript.Diagnostics, diagnostic => diagnostic.Id == "COPE-JS-DERIVE-0001");
+    }
+
+    [Fact]
+    public void Tables_bind_single_column_keys_and_typed_references()
+    {
+        const string source = """
+            record table Categories {
+                key id: int = [10, 20];
+                name: string = ["Coffee", "Tea"];
+            }
+
+            record table Products {
+                key id: int = [100, 101];
+                reference categoryId: int -> Categories.id = [10, 20];
+            }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        BoundTableDefinition categories = compilation.BoundCompilation!.Program.Tables[0];
+        BoundTableDefinition products = compilation.BoundCompilation.Program.Tables[1];
+        Assert.Equal("id", categories.TableType.KeyColumn!.Name);
+        TableReferenceSymbol reference = Assert.IsType<TableReferenceSymbol>(products.Columns[1].Column.Reference);
+        Assert.Equal("Categories", reference.TargetTable.Name);
+        Assert.Equal("id", reference.TargetKey.Name);
+
+        MirTableDefinition productsMir = compilation.MirCompilation!.Program!.Tables[1];
+        Assert.Equal("t2.c0", productsMir.KeyColumnId!.Value.Value);
+        Assert.Equal("t1", productsMir.Columns[1].Reference!.TargetTableId.Value);
+        Assert.Equal("t1.c0", productsMir.Columns[1].Reference!.TargetKeyColumnId.Value);
+    }
+
+    [Theory]
+    [InlineData("record table T { key id: int = [1, 1]; }", "COPE-TABLE-0037")]
+    [InlineData("record table T { key id: int = [1, 2]; } function revised(): T { return T with { id: [1, 1] }; }", "COPE-TABLE-0037")]
+    [InlineData("record table T { key id: number = [1]; }", "COPE-TABLE-0031")]
+    [InlineData("record table T { reference id: int -> Missing.id = [1]; }", "COPE-TABLE-0033")]
+    [InlineData("record table T { key id: int = [1]; } record table U { reference id: int -> T.missing = [1]; }", "COPE-TABLE-0034")]
+    [InlineData("record table T { id: int = [1]; } record table U { reference id: int -> T.id = [1]; }", "COPE-TABLE-0035")]
+    [InlineData("record table T { key id: string = [\"a\"]; } record table U { reference id: int -> T.id = [1]; }", "COPE-TABLE-0036")]
+    [InlineData("record table T { key id: int = [1]; } record table U { reference id: int -> T.id = [2]; }", "COPE-TABLE-0038")]
+    public void Tables_report_key_and_reference_constraint_diagnostics(string source, string diagnosticId)
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == diagnosticId);
     }
 
     [Fact]

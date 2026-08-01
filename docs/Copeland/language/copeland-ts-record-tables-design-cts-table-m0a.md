@@ -253,7 +253,7 @@ Iteration and metadata access are deferred. In particular, M0b does not reserve 
 
 The table definition, column sequence, row count, cell values, row values, and column views are immutable. Assigning to a table, a column member, a column element, or a row field is rejected with table-specific diagnostics. A `let` binding may be rebound to a different row or column value of the same type; rebinding does not mutate either value.
 
-Row position is an access coordinate, not an entity identity. Duplicate rows are legal. An `id` column is ordinary data. No primary key, uniqueness, foreign key, join, or hidden row ID exists. Sorting, if later designed, creates a distinct value/view rather than mutating authored order.
+Row position is an access coordinate, not an entity identity. Duplicate rows remain legal unless a column is explicitly marked with `key`; unmarked `id` columns are ordinary data. See [table identities M0](copeland-ts-table-identities-m0.md) for the implemented single-column key and typed-reference surface. There is no hidden row ID. Sorting, if later designed, creates a distinct value/view rather than mutating authored order.
 
 Table, row, and column `==`/`!=` are unsupported. No structural equality, reference identity, hashing, ordering, or deduplication leaks from either backend. A future equality design must explicitly address table and row nominal identity, row/column order, binary64 NaN and signed zero, nested records, enums, Results, future absence values, and dataset size.
 

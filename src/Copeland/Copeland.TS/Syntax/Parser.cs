@@ -2046,6 +2046,33 @@ public sealed class Parser
         var recordKeyword = Match(SyntaxKind.RecordKeyword);
         var tableKeyword = Match(SyntaxKind.TableKeyword);
         var identifier = Match(SyntaxKind.IdentifierToken);
+        if (Current.Kind == SyntaxKind.EqualsToken && IsWord(Peek(1), "derive"))
+        {
+            var equals = NextToken();
+            var derive = NextToken();
+            var source = Match(SyntaxKind.IdentifierToken);
+            var asKeyword = MatchClassWord("as");
+            var alias = Match(SyntaxKind.IdentifierToken);
+            var derivedOpenBrace = Match(SyntaxKind.OpenBraceToken);
+            var derivedColumns = new List<DerivedTableColumnSyntax>();
+            while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
+            {
+                var name = Match(SyntaxKind.IdentifierToken);
+                var colon = Match(SyntaxKind.ColonToken);
+                TypeSyntax? type = null;
+                if (Current.Kind != SyntaxKind.EqualsToken)
+                {
+                    type = ParseTypeSyntax();
+                }
+                SyntaxToken? columnEquals = Current.Kind == SyntaxKind.EqualsToken ? NextToken() : null;
+                var expression = ParseExpression();
+                derivedColumns.Add(new DerivedTableColumnSyntax(name, colon, type, columnEquals, expression, Match(SyntaxKind.SemicolonToken)));
+            }
+            var derivedCloseBrace = Match(SyntaxKind.CloseBraceToken);
+            return new TableDeclarationSyntax(recordKeyword, tableKeyword, identifier, null,
+                derivedOpenBrace, [], derivedCloseBrace, isExported,
+                new DerivedTableClauseSyntax(equals, derive, source, asKeyword, alias, derivedOpenBrace, derivedColumns, derivedCloseBrace));
+        }
         TableAssetClauseSyntax? assetClause = null;
         if (Current.Kind == SyntaxKind.IdentifierToken
             && string.Equals(Current.Text, "from", StringComparison.Ordinal))
@@ -2058,10 +2085,15 @@ public sealed class Parser
         var columns = new List<TableColumnSyntax>();
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
+            SyntaxToken? keyKeyword = IsWord(Current, "key") ? NextToken() : null;
+            SyntaxToken? referenceKeyword = IsWord(Current, "reference") ? NextToken() : null;
             var name = Match(SyntaxKind.IdentifierToken);
             var colon = Match(SyntaxKind.ColonToken);
             TypeSyntax? explicitType = null;
             SyntaxToken? equals = null;
+            SyntaxToken? referenceArrow = null;
+            SyntaxToken? referencedTable = null;
+            SyntaxToken? referencedColumn = null;
             ArrayLiteralExpressionSyntax cells;
             bool hasInlineData;
             if (assetClause is not null)
@@ -2071,6 +2103,13 @@ public sealed class Parser
                     and not SyntaxKind.OpenBracketToken)
                 {
                     explicitType = ParseTypeSyntax();
+                    if (referenceKeyword is not null)
+                    {
+                        referenceArrow = Match(SyntaxKind.ArrowToken);
+                        referencedTable = Match(SyntaxKind.IdentifierToken);
+                        Match(SyntaxKind.DotToken);
+                        referencedColumn = Match(SyntaxKind.IdentifierToken);
+                    }
                 }
 
                 if (Current.Kind == SyntaxKind.EqualsToken)
@@ -2092,6 +2131,13 @@ public sealed class Parser
                 if (Current.Kind != SyntaxKind.OpenBracketToken)
                 {
                     explicitType = ParseTypeSyntax();
+                    if (referenceKeyword is not null)
+                    {
+                        referenceArrow = Match(SyntaxKind.ArrowToken);
+                        referencedTable = Match(SyntaxKind.IdentifierToken);
+                        Match(SyntaxKind.DotToken);
+                        referencedColumn = Match(SyntaxKind.IdentifierToken);
+                    }
                     equals = Match(SyntaxKind.EqualsToken);
                 }
                 cells = Current.Kind == SyntaxKind.OpenBracketToken
@@ -2110,7 +2156,12 @@ public sealed class Parser
                 equals,
                 cells,
                 Match(SyntaxKind.SemicolonToken),
-                hasInlineData));
+                hasInlineData,
+                keyKeyword,
+                referenceKeyword,
+                referenceArrow,
+                referencedTable,
+                referencedColumn));
         }
         return new TableDeclarationSyntax(
             recordKeyword,

@@ -6,6 +6,7 @@ using Copeland.TS.Compiler;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
 using Copeland.TS.Tson;
+using System.Globalization;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -1280,6 +1281,10 @@ public static class Binder
             foreach (var declaration in root.Members.OfType<TableDeclarationSyntax>())
             {
                 if (!_tableTypes.TryGetValue(declaration.Identifier.Text, out var table)) continue;
+                if (declaration.DerivedClause is not null)
+                {
+                    continue;
+                }
                 if (declaration.Columns.Count == 0) Report("COPE-TABLE-0003", "A table requires at least one column.", declaration.Identifier);
                 if (declaration.AssetClause is not null)
                 {
@@ -1323,12 +1328,359 @@ public static class Binder
                     else if (rowCount != boundCells.Length) Report("COPE-TABLE-0008", "Table columns must have equal lengths.", columnSyntax.Identifier);
                     var column = new TableColumnSymbol(columnSyntax.Identifier.Text, new TableColumnId(table.Id, table.Columns.Count), elementType);
                     table.AddColumn(column);
+                    DeclareTableColumnIdentity(table, column, columnSyntax);
                     columns.Add(new BoundTableColumnDefinition(column, cells));
                 }
                 table.RowCount = rowCount ?? 0;
                 _tables.Add(new BoundTableDefinition(table, columns, table.RowCount, declaration.IsExported));
             }
+
+            var pendingDerived = root.Members
+                .OfType<TableDeclarationSyntax>()
+                .Where(declaration => declaration.DerivedClause is not null)
+                .ToList();
+            bool madeProgress;
+            do
+            {
+                madeProgress = false;
+                foreach (TableDeclarationSyntax declaration in pendingDerived.ToArray())
+                {
+                    DerivedTableClauseSyntax clause = declaration.DerivedClause!;
+                    if (!_tableTypes.TryGetValue(clause.SourceIdentifier.Text, out TableTypeSymbol? source))
+                    {
+                        Report("COPE-DERIVE-0001", $"Derived table source '{clause.SourceIdentifier.Text}' is not a table relation.", clause.SourceIdentifier);
+                        pendingDerived.Remove(declaration);
+                        continue;
+                    }
+                    if (source.Columns.Count == 0)
+                    {
+                        continue;
+                    }
+                    if (_tableTypes.TryGetValue(declaration.Identifier.Text, out var table))
+                    {
+                        BindDerivedTableBody(declaration, table);
+                    }
+                    pendingDerived.Remove(declaration);
+                    madeProgress = true;
+                }
+            }
+            while (madeProgress && pendingDerived.Count > 0);
+
+            foreach (TableDeclarationSyntax declaration in pendingDerived)
+            {
+                Report("COPE-DERIVE-0008", $"Derived table '{declaration.Identifier.Text}' participates in a recursive derivation cycle.", declaration.DerivedClause!.SourceIdentifier);
+            }
+
+            ValidateTableRelationships(root);
         }
+
+        private void BindDerivedTableBody(TableDeclarationSyntax declaration, TableTypeSymbol table)
+        {
+            DerivedTableClauseSyntax clause = declaration.DerivedClause!;
+            if (!_tableTypes.TryGetValue(clause.SourceIdentifier.Text, out TableTypeSymbol? source)
+                || source.Columns.Count == 0)
+            {
+                Report("COPE-DERIVE-0001", $"Derived table source '{clause.SourceIdentifier.Text}' is not an available table relation.", clause.SourceIdentifier);
+                return;
+            }
+
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            var projections = new List<BoundDerivedTableColumnDefinition>();
+            Scope previousScope = _scope;
+            _scope = new Scope(_global);
+            try
+            {
+                _scope.TryDeclare(new VariableSymbol(clause.AliasIdentifier.Text, source.RowType, true));
+                foreach (DerivedTableColumnSyntax projection in clause.Columns)
+                {
+                    if (!names.Add(projection.Identifier.Text))
+                    {
+                        Report("COPE-DERIVE-0003", $"Duplicate derived output column '{projection.Identifier.Text}'.", projection.Identifier);
+                        continue;
+                    }
+
+                    TypeSymbol? explicitType = projection.ExplicitType is null
+                        ? null
+                        : BindType(projection.ExplicitType, projection.Identifier, "COPE-DERIVE-0005", "derived table column");
+                    BoundExpression expression = BindExpression(projection.Expression, explicitType);
+                    TypeSymbol resultType = explicitType ?? expression.Type;
+                    if (!TypeFacts.AreEquivalent(resultType, expression.Type))
+                    {
+                        Report("COPE-DERIVE-0005", $"Derived column '{projection.Identifier.Text}' does not match its declared type.", projection.Identifier);
+                    }
+                    if (!IsEligibleTableCellType(resultType, [], out _))
+                    {
+                        Report("COPE-DERIVE-0006", $"Derived column '{projection.Identifier.Text}' has unsupported table element type '{resultType.Name}'.", projection.Identifier);
+                    }
+                    if (!IsDerivedExpressionPure(expression))
+                    {
+                        Report("COPE-DERIVE-0007", "Derived table expressions must be pure scalar expressions.", projection.Identifier);
+                    }
+
+                    var column = new TableColumnSymbol(projection.Identifier.Text, new TableColumnId(table.Id, table.Columns.Count), resultType);
+                    table.AddColumn(column);
+                    string? copiedSourceColumn = expression is BoundTableRowFieldAccessExpression access
+                        && access.Receiver is BoundVariableExpression variable
+                        && variable.Variable.Name == clause.AliasIdentifier.Text
+                        ? access.Field.Name
+                        : null;
+                    projections.Add(new BoundDerivedTableColumnDefinition(
+                        column,
+                        expression,
+                        copiedSourceColumn,
+                        CollectDerivedSourceColumns(expression, clause.AliasIdentifier.Text),
+                        projection.Identifier.Position));
+                }
+            }
+            finally
+            {
+                _scope = previousScope;
+            }
+
+            if (projections.Count == 0)
+            {
+                Report("COPE-DERIVE-0002", "A derived table requires at least one output column.", declaration.Identifier);
+            }
+            table.RowCount = source.RowCount;
+            _tables.Add(new BoundDerivedTableDefinition(table, source, clause.AliasIdentifier.Text, projections, table.RowCount, declaration.IsExported));
+        }
+
+        private static bool IsDerivedExpressionPure(BoundExpression expression)
+            => expression switch
+            {
+                BoundAssignmentExpression or BoundAwaitExpression or BoundCallExpression or BoundInvokeExpression or BoundClrInvocationExpression or BoundClrPropertyAccessExpression
+                    or BoundNpmCallExpression or BoundNpmDirectCallExpression or BoundJavaScriptHostCallExpression => false,
+                _ => true,
+            };
+
+        private static IReadOnlyList<string> CollectDerivedSourceColumns(BoundExpression expression, string alias)
+        {
+            var columns = new HashSet<string>(StringComparer.Ordinal);
+            Visit(expression);
+            return columns.OrderBy(name => name, StringComparer.Ordinal).ToArray();
+
+            void Visit(BoundExpression candidate)
+            {
+                switch (candidate)
+                {
+                    case BoundTableRowFieldAccessExpression access when access.Receiver is BoundVariableExpression variable && variable.Variable.Name == alias:
+                        columns.Add(access.Field.Name);
+                        break;
+                    case BoundBinaryExpression binary:
+                        Visit(binary.Left);
+                        Visit(binary.Right);
+                        break;
+                    case BoundUnaryExpression unary:
+                        Visit(unary.Operand);
+                        break;
+                    case BoundNumericConversionExpression conversion:
+                        Visit(conversion.Operand);
+                        break;
+                    case BoundIfExpression conditional:
+                        Visit(conditional.Condition);
+                        Visit(conditional.ThenExpression);
+                        Visit(conditional.ElseExpression);
+                        break;
+                    case BoundTableRowFieldAccessExpression access:
+                        Visit(access.Receiver);
+                        break;
+                    case BoundRecordFieldAccessExpression access:
+                        Visit(access.Receiver);
+                        break;
+                }
+            }
+        }
+
+        private void DeclareTableColumnIdentity(
+            TableTypeSymbol table,
+            TableColumnSymbol column,
+            TableColumnSyntax syntax)
+        {
+            if (syntax.KeyKeyword is null)
+            {
+                return;
+            }
+
+            if (!IsSupportedTableIdentityScalar(column.Type))
+            {
+                Report(
+                    "COPE-TABLE-0031",
+                    $"Table key '{table.Name}.{column.Name}' must use an exact supported scalar type (int, string, or boolean).",
+                    syntax.Identifier);
+            }
+
+            if (!table.TryDeclareKey(column))
+            {
+                Report(
+                    "COPE-TABLE-0032",
+                    $"Table '{table.Name}' already declares key '{table.KeyColumn!.Name}'; M0 supports one key column per table.",
+                    syntax.KeyKeyword);
+            }
+        }
+
+        private void ValidateTableRelationships(CompilationUnitSyntax root)
+        {
+            var declarations = new Dictionary<string, TableDeclarationSyntax>(StringComparer.Ordinal);
+            foreach (TableDeclarationSyntax declaration in root.Members.OfType<TableDeclarationSyntax>())
+            {
+                declarations.TryAdd(declaration.Identifier.Text, declaration);
+            }
+            BoundTableDefinition[] tableDefinitions = _tables
+                .DistinctBy(definition => definition.TableType.Id)
+                .ToArray();
+            var definitions = tableDefinitions.ToDictionary(definition => definition.TableType.Id);
+
+            foreach (BoundTableDefinition definition in tableDefinitions)
+            {
+                TableTypeSymbol table = definition.TableType;
+                if (!declarations.TryGetValue(table.Name, out TableDeclarationSyntax? declaration))
+                {
+                    continue;
+                }
+
+                if (table.KeyColumn is not null
+                    && TryGetBoundColumn(definition, table.KeyColumn, out BoundTableColumnDefinition? keyColumn))
+                {
+                    TableColumnSyntax? keySyntax = declaration.Columns.SingleOrDefault(column => column.Identifier.Text == keyColumn!.Column.Name);
+                    if (keySyntax is not null)
+                    {
+                        ValidateUniqueKeyValues(table, keyColumn!.Cells, keySyntax.Identifier);
+                    }
+                }
+
+                foreach (TableColumnSyntax columnSyntax in declaration.Columns)
+                {
+                    if (columnSyntax.ReferenceKeyword is null
+                        || !TryGetTableColumn(table, columnSyntax.Identifier.Text, out TableColumnSymbol? sourceColumn))
+                    {
+                        continue;
+                    }
+
+                    BindTableReference(
+                        definition,
+                        sourceColumn!,
+                        columnSyntax,
+                        definitions);
+                }
+            }
+        }
+
+        private void BindTableReference(
+            BoundTableDefinition sourceDefinition,
+            TableColumnSymbol sourceColumn,
+            TableColumnSyntax syntax,
+            IReadOnlyDictionary<TableTypeId, BoundTableDefinition> definitions)
+        {
+            string targetTableName = syntax.ReferencedTableIdentifier?.Text ?? string.Empty;
+            string targetColumnName = syntax.ReferencedColumnIdentifier?.Text ?? string.Empty;
+            if (!_tableTypes.TryGetValue(targetTableName, out TableTypeSymbol? targetTable))
+            {
+                Report("COPE-TABLE-0033", $"Referenced table '{targetTableName}' does not exist.", syntax.ReferencedTableIdentifier ?? syntax.Identifier);
+                return;
+            }
+
+            TableColumnSymbol? targetColumn = targetTable.Columns.SingleOrDefault(column => column.Name == targetColumnName);
+            if (targetColumn is null)
+            {
+                Report("COPE-TABLE-0034", $"Referenced column '{targetTable.Name}.{targetColumnName}' does not exist.", syntax.ReferencedColumnIdentifier ?? syntax.Identifier);
+                return;
+            }
+
+            if (targetTable.KeyColumn?.Id != targetColumn.Id)
+            {
+                Report("COPE-TABLE-0035", $"Reference target '{targetTable.Name}.{targetColumn.Name}' must be the declared table key.", syntax.ReferencedColumnIdentifier ?? syntax.Identifier);
+                return;
+            }
+
+            if (!TypeFacts.AreEquivalent(sourceColumn.Type, targetColumn.Type))
+            {
+                Report("COPE-TABLE-0036", $"Reference '{sourceDefinition.TableType.Name}.{sourceColumn.Name}' has type '{sourceColumn.Type.Name}', which is incompatible with key '{targetTable.Name}.{targetColumn.Name}' of type '{targetColumn.Type.Name}'.", syntax.Identifier);
+                return;
+            }
+
+            var reference = new TableReferenceSymbol(sourceDefinition.TableType, sourceColumn, targetTable, targetColumn);
+            sourceColumn.Reference = reference;
+            if (TryGetBoundColumn(sourceDefinition, sourceColumn, out BoundTableColumnDefinition? sourceValues)
+                && definitions.TryGetValue(targetTable.Id, out BoundTableDefinition? targetDefinition)
+                && TryGetBoundColumn(targetDefinition, targetColumn, out BoundTableColumnDefinition? targetValues))
+            {
+                ValidateReferenceValues(reference, sourceValues!.Cells, targetValues!.Cells, syntax.Identifier);
+            }
+        }
+
+        private void ValidateUniqueKeyValues(
+            TableTypeSymbol table,
+            IReadOnlyList<BoundTableConstant> values,
+            SyntaxToken anchor)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (BoundTableConstant value in values)
+            {
+                if (!TryGetTableIdentityValue(value, out string? identity))
+                {
+                    continue;
+                }
+
+                if (!seen.Add(identity!))
+                {
+                    Report("COPE-TABLE-0037", $"Table key '{table.Name}.{table.KeyColumn!.Name}' contains duplicate authored value {FormatTableIdentityValue(identity!)}.", anchor);
+                }
+            }
+        }
+
+        private void ValidateReferenceValues(
+            TableReferenceSymbol reference,
+            IReadOnlyList<BoundTableConstant> sourceValues,
+            IReadOnlyList<BoundTableConstant> targetValues,
+            SyntaxToken anchor)
+        {
+            var targetIdentities = targetValues
+                .Select(value => TryGetTableIdentityValue(value, out string? identity) ? identity : null)
+                .Where(identity => identity is not null)
+                .Cast<string>()
+                .ToHashSet(StringComparer.Ordinal);
+            foreach (BoundTableConstant value in sourceValues)
+            {
+                if (TryGetTableIdentityValue(value, out string? identity) && !targetIdentities.Contains(identity!))
+                {
+                    Report("COPE-TABLE-0038", $"Reference '{reference.SourceTable.Name}.{reference.SourceColumn.Name}' contains unresolved authored value {FormatTableIdentityValue(identity!)}; no '{reference.TargetTable.Name}.{reference.TargetKey.Name}' key matches it.", anchor);
+                }
+            }
+        }
+
+        private static bool TryGetBoundColumn(BoundTableDefinition definition, TableColumnSymbol column, out BoundTableColumnDefinition? boundColumn)
+        {
+            boundColumn = definition.Columns.SingleOrDefault(candidate => candidate.Column.Id == column.Id);
+            return boundColumn is not null;
+        }
+
+        private static bool TryGetTableColumn(TableTypeSymbol table, string name, out TableColumnSymbol? column)
+        {
+            column = table.Columns.SingleOrDefault(candidate => candidate.Name == name);
+            return column is not null;
+        }
+
+        private static bool IsSupportedTableIdentityScalar(TypeSymbol type)
+            => TypeFacts.AreEquivalent(type, PrimitiveTypeSymbol.Int)
+                || TypeFacts.AreEquivalent(type, PrimitiveTypeSymbol.String)
+                || TypeFacts.AreEquivalent(type, PrimitiveTypeSymbol.Boolean);
+
+        private static bool TryGetTableIdentityValue(BoundTableConstant constant, out string? value)
+        {
+            value = constant is BoundTableLiteralConstant literal
+                ? literal.Value switch
+                {
+                    int number => "int:" + number.ToString(CultureInfo.InvariantCulture),
+                    string text => "string:" + text,
+                    bool boolean => "boolean:" + (boolean ? "true" : "false"),
+                    _ => null,
+                }
+                : null;
+            return value is not null;
+        }
+
+        private static string FormatTableIdentityValue(string value)
+            => value[(value.IndexOf(':') + 1)..];
 
         private void BindAssetTableBody(
             TableDeclarationSyntax declaration,
@@ -1383,6 +1735,7 @@ public static class Binder
                     new TableColumnId(table.Id, table.Columns.Count),
                     elementType);
                 table.AddColumn(column);
+                DeclareTableColumnIdentity(table, column, columnSyntax);
                 sourceColumns.Add((columnSyntax, column));
             }
 
@@ -10328,6 +10681,15 @@ public static class Binder
             }
 
             BoundTableDefinition? definition = _tables.SingleOrDefault(candidate => candidate.TableType.Id == tableType.Id);
+            if (definition is BoundDerivedTableDefinition)
+            {
+                Report("COPE-DERIVE-0009", $"Derived table '{tableType.Name}' is read-only and cannot be updated with 'with'.", withExpression.WithKeyword);
+                foreach (ObjectPropertySyntax property in withExpression.Replacements.Properties)
+                {
+                    BindExpression(property.ValueExpression);
+                }
+                return new BoundErrorExpression();
+            }
             var replacements = new List<BoundTableColumnReplacement>();
             var seen = new HashSet<TableColumnId>();
             foreach (ObjectPropertySyntax property in withExpression.Replacements.Properties)
@@ -10375,6 +10737,36 @@ public static class Binder
                     }
                 }
                 replacements.Add(new BoundTableColumnReplacement(column, array));
+            }
+
+            foreach (BoundTableColumnReplacement replacement in replacements)
+            {
+                BoundTableConstant?[] values = replacement.Value.Elements
+                    .Select(BindTableConstant)
+                    .ToArray();
+                if (values.Any(value => value is null))
+                {
+                    continue;
+                }
+
+                BoundTableConstant[] constants = values.Cast<BoundTableConstant>().ToArray();
+                if (tableType.KeyColumn?.Id == replacement.Column.Id)
+                {
+                    ValidateUniqueKeyValues(tableType, constants, withExpression.WithKeyword);
+                }
+
+                TableReferenceSymbol? reference = replacement.Column.Reference;
+                if (reference is not null)
+                {
+                    BoundTableDefinition? targetDefinition = _tables.SingleOrDefault(
+                        candidate => candidate.TableType.Id == reference.TargetTable.Id);
+                    BoundTableColumnDefinition? targetKey = targetDefinition?.Columns.SingleOrDefault(
+                        candidate => candidate.Column.Id == reference.TargetKey.Id);
+                    if (targetKey is not null)
+                    {
+                        ValidateReferenceValues(reference, constants, targetKey.Cells, withExpression.WithKeyword);
+                    }
+                }
             }
             return new BoundTableWithExpression(source, tableType, replacements);
         }

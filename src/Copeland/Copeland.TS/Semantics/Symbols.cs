@@ -330,6 +330,19 @@ public sealed class TableColumnSymbol(string name, TableColumnId id, TypeSymbol 
 {
     public TableColumnId Id { get; } = id;
     public TypeSymbol Type { get; } = type;
+    public TableReferenceSymbol? Reference { get; set; }
+}
+
+/// <summary>
+/// A bound immutable foreign-key relationship. Values remain scalar table data;
+/// this is compiler metadata, never an object reference or identity map.
+/// </summary>
+public sealed class TableReferenceSymbol(TableTypeSymbol sourceTable, TableColumnSymbol sourceColumn, TableTypeSymbol targetTable, TableColumnSymbol targetKey)
+{
+    public TableTypeSymbol SourceTable { get; } = sourceTable;
+    public TableColumnSymbol SourceColumn { get; } = sourceColumn;
+    public TableTypeSymbol TargetTable { get; } = targetTable;
+    public TableColumnSymbol TargetKey { get; } = targetKey;
 }
 
 public sealed class TableRowFieldSymbol(string name, TableRowFieldId id, TypeSymbol type) : Symbol(name)

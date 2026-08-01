@@ -2,13 +2,15 @@ using WorkbookData = Copeland.TableDogfoodM0.Copeland.Workbook;
 
 var products = WorkbookData.workbookProducts();
 var prices = WorkbookData.workbookPrices();
+var margins = WorkbookData.workbookMargins();
 var revisedPrices = WorkbookData.revisedPrices();
 var activeProducts = WorkbookData.activeProducts(products);
 
-Console.WriteLine($"sheets=Categories,Products,Prices,Inventory");
+Console.WriteLine($"sheets=Categories,Products,Prices,PriceMargins,Inventory");
 Console.WriteLine($"product-rows={products.RowCount}");
 Console.WriteLine($"active-products={activeProducts.Length}");
 Console.WriteLine($"retail=sum:{WorkbookData.retailSum():F2},count:{WorkbookData.retailCount()},average:{WorkbookData.retailAverage():F2},min:{WorkbookData.retailMinimum():F2},max:{WorkbookData.retailMaximum():F2}");
+Console.WriteLine($"margin=sum:{WorkbookData.marginSum():F2},first:{margins.productId.At(0).Value}:{margins.margin.At(0).Value:F2}");
 Console.WriteLine($"lookup={WorkbookData.categoryNameFor(101)}");
 Console.WriteLine($"inventory-value={WorkbookData.inventoryValue():F2}");
 Console.WriteLine($"state={WorkbookData.stateLabel(101)}");

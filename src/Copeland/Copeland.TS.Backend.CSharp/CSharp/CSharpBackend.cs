@@ -167,13 +167,16 @@ public static class CSharpBackend
             EmitColumnSupport(writer);
             foreach (var table in program.Tables)
             {
-                EmitTable(writer, table, recordsById, tsonTableIds.Contains(table.Id), usesTableWith);
+                EmitTable(writer, table, recordsById, tsonTableIds.Contains(table.Id), usesTableWith, enumNames);
             }
         }
         writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
         foreach (var table in program.Tables)
         {
-            writer.WriteLine($"private static readonly {TableTypeName(table.Id)} {TableSingletonName(table.Id)} = {TableTypeName(table.Id)}.Create();");
+            string createExpression = table.DerivedPlan is null
+                ? $"{TableTypeName(table.Id)}.Create()"
+                : $"{TableTypeName(table.Id)}.Create({TableSingletonName(table.DerivedPlan.SourceTableId)})";
+            writer.WriteLine($"private static readonly {TableTypeName(table.Id)} {TableSingletonName(table.Id)} = {createExpression};");
             if (table.IsExported)
             {
                 writer.WriteLine($"public static {TableTypeName(table.Id)} {CSharpNameMangler.Mangle(table.Name)} => {TableSingletonName(table.Id)};");
@@ -786,7 +789,8 @@ public static class CSharpBackend
         MirTableDefinition table,
         IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
         bool emitsTsonAccessors,
-        bool supportsTableWith)
+        bool supportsTableWith,
+        IReadOnlySet<string> enumNames)
     {
         string tableType = TableTypeName(table.Id);
         string rowType = TableRowTypeName(table.RowTypeId);
@@ -869,23 +873,53 @@ public static class CSharpBackend
         writer.Unindent();
         writer.WriteLine("}");
         writer.WriteLine();
-        writer.WriteLine($"internal static {tableType} Create()");
+        string createParameters = table.DerivedPlan is null
+            ? string.Empty
+            : TableTypeName(table.DerivedPlan.SourceTableId) + " source";
+        writer.WriteLine($"internal static {tableType} Create({createParameters})");
         writer.WriteLine("{");
         writer.Indent();
-        writer.WriteLine($"return new {tableType}(");
-        writer.Indent();
-        for (int index = 0; index < table.Columns.Count; index++)
+        if (table.DerivedPlan is null)
         {
-            MirTableColumnDefinition column = table.Columns[index];
-            string values = string.Join(", ", column.Constants.Select(constant => EmitTableConstant(constant, records)));
-            string comma = index == table.Columns.Count - 1 ? string.Empty : ",";
-            writer.WriteLine($"new {MapType(column.ElementType)}[] {{ {values} }}{comma}");
+            writer.WriteLine($"return new {tableType}(");
+            writer.Indent();
+            for (int index = 0; index < table.Columns.Count; index++)
+            {
+                MirTableColumnDefinition column = table.Columns[index];
+                string values = string.Join(", ", column.Constants.Select(constant => EmitTableConstant(constant, records)));
+                string comma = index == table.Columns.Count - 1 ? string.Empty : ",";
+                writer.WriteLine($"new {MapType(column.ElementType)}[] {{ {values} }}{comma}");
+            }
+            writer.Unindent();
+            writer.WriteLine(");");
+        }
+        else
+        {
+            MirDerivedTablePlan plan = table.DerivedPlan;
+            for (int index = 0; index < table.Columns.Count; index++)
+            {
+                MirTableColumnDefinition column = table.Columns[index];
+                writer.WriteLine($"var values{index} = new {MapType(column.ElementType)}[source.Count];");
+            }
+            writer.WriteLine("for (int index = 0; index < source.Count; index++)");
+            writer.WriteLine("{");
+            writer.Indent();
+            writer.WriteLine($"var {CSharpNameMangler.Mangle(plan.SourceAlias)} = source.GetRow(index).Value;");
+            var executionContext = new MirFunction("__derived_table", [], new MirNamedType("void"), [], []);
+            int temporaryIndex = 0;
+            foreach (MirDerivedTableColumnPlan projection in plan.Columns)
+            {
+                int outputIndex = table.Columns.ToList().FindIndex(column => column.Id == projection.ColumnId);
+                string expression = EmitExpression(writer, projection.Expression, executionContext, enumNames, ref temporaryIndex, diagnostics: []);
+                writer.WriteLine($"values{outputIndex}[index] = {expression};");
+            }
+            writer.Unindent();
+            writer.WriteLine("}");
+            writer.WriteLine($"return new {tableType}({string.Join(", ", table.Columns.Select((_, index) => "values" + index))});");
         }
         writer.Unindent();
-        writer.WriteLine(");");
-        writer.Unindent();
         writer.WriteLine("}");
-        if (supportsTableWith)
+        if (supportsTableWith && table.DerivedPlan is null)
         {
             writer.WriteLine();
             foreach (MirTableColumnDefinition replacementColumn in table.Columns)

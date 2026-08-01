@@ -182,13 +182,33 @@ public static class MirLowerer
             new MirTableId(definition.TableType.Id.ToString()),
             definition.TableType.Name,
             definition.TableType.RowType.TableId + ".row",
-            definition.Columns.Select(column => new MirTableColumnDefinition(
-                new MirTableColumnId(column.Column.Id.ToString()),
-                column.Column.Name,
-                ToMirType(column.Column.Type),
-                column.Cells.Select(LowerTableConstant).ToArray())).ToArray(),
+            (definition is BoundDerivedTableDefinition derived ? derived.Projections.Select(projection => projection.Column) : definition.Columns.Select(column => column.Column)).Select(column => new MirTableColumnDefinition(
+                new MirTableColumnId(column.Id.ToString()),
+                column.Name,
+                ToMirType(column.Type),
+                definition is BoundDerivedTableDefinition ? [] : definition.Columns.Single(candidate => candidate.Column == column).Cells.Select(LowerTableConstant).ToArray(),
+                column.Reference is null
+                    ? null
+                    : new MirTableReferenceDefinition(
+                        new MirTableId(column.Reference.TargetTable.Id.ToString()),
+                        new MirTableColumnId(column.Reference.TargetKey.Id.ToString())))).ToArray(),
             definition.RowCount,
-            definition.IsExported);
+            definition.IsExported,
+            definition.TableType.KeyColumn is null
+                ? null
+                : new MirTableColumnId(definition.TableType.KeyColumn.Id.ToString()),
+            definition is BoundDerivedTableDefinition derivedDefinition
+                ? new MirDerivedTablePlan(
+                    new MirTableId(derivedDefinition.SourceTable.Id.ToString()),
+                    derivedDefinition.SourceAlias,
+                    derivedDefinition.TableType.StableIdentity + "<-" + derivedDefinition.SourceTable.StableIdentity,
+                    derivedDefinition.Projections.Select(projection => new MirDerivedTableColumnPlan(
+                        new MirTableColumnId(projection.Column.Id.ToString()),
+                        LowerExpression(projection.Expression),
+                        projection.CopiedSourceColumn,
+                        projection.SourceColumns,
+                        projection.ExpressionPosition)).ToArray())
+                : null);
 
     private static MirTableConstant LowerTableConstant(BoundTableConstant constant)
         => constant switch

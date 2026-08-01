@@ -83,6 +83,17 @@ public static class MirTextWriter
             sb.Append("table ").Append(table.Name).Append(" [").Append(table.Id).Append("] row [").Append(table.RowTypeId).Append("] count ").AppendLine(table.RowCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
             foreach (var column in table.Columns)
                 sb.Append("  column ").Append(column.Name).Append(" [").Append(column.Id).Append("]: ").Append(column.ElementType.Name).Append(" = [").Append(string.Join(", ", column.Constants.Select(FormatTableConstant))).AppendLine("]");
+            if (table.DerivedPlan is MirDerivedTablePlan derived)
+            {
+                sb.Append("  derived source [").Append(derived.SourceTableId).Append("] alias ").Append(derived.SourceAlias).Append(" plan ").AppendLine(derived.PlanIdentity);
+                foreach (MirDerivedTableColumnPlan projection in derived.Columns)
+                {
+                    sb.Append("    project [").Append(projection.ColumnId).Append("] ").Append(FormatExpression(projection.Expression));
+                    if (projection.CopiedSourceColumn is not null) sb.Append(" copied-from ").Append(projection.CopiedSourceColumn);
+                    if (projection.SourceColumns.Count > 0) sb.Append(" inputs ").Append(string.Join(",", projection.SourceColumns));
+                    sb.Append(" at ").Append(projection.AuthoredPosition.ToString(System.Globalization.CultureInfo.InvariantCulture)).AppendLine();
+                }
+            }
         }
 
         foreach (var plan in program.TsonEncodingPlans)

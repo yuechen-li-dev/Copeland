@@ -1318,7 +1318,7 @@ public static class MirValidator
                     diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' has an invalid element type."));
                 if (ContainsClassTableType(column.ElementType, program, []))
                     diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' contains a class value, which is not a table cell type."));
-                if (column.Constants.Count != table.RowCount)
+                if (table.DerivedPlan is null && column.Constants.Count != table.RowCount)
                     diagnostics.Add(new MirValidationDiagnostic($"Table column '{table.Name}.{column.Name}' has {column.Constants.Count} constants but row count is {table.RowCount}."));
                 foreach (var constant in column.Constants)
                 {
@@ -1331,6 +1331,78 @@ public static class MirValidator
                         diagnostics,
                         $"{table.Name}.{column.Name}",
                         constantValidationState);
+                }
+            }
+        }
+
+        foreach (MirTableDefinition table in program.Tables)
+        {
+            if (table.DerivedPlan is MirDerivedTablePlan derived)
+            {
+                if (!tables.TryGetValue(derived.SourceTableId, out MirTableDefinition? source))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' names unknown source '{derived.SourceTableId}'."));
+                }
+                else if (source.Id == table.Id || source.DerivedPlan?.SourceTableId == table.Id)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' participates in a recursive derivation cycle."));
+                }
+                if (string.IsNullOrWhiteSpace(derived.SourceAlias) || string.IsNullOrWhiteSpace(derived.PlanIdentity))
+                    diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' has incomplete relation provenance."));
+                if (derived.Columns.Count != table.Columns.Count)
+                    diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' projection schema does not match its output columns."));
+                foreach (MirDerivedTableColumnPlan projection in derived.Columns)
+                {
+                    MirTableColumnDefinition? output = table.Columns.SingleOrDefault(column => column.Id == projection.ColumnId);
+                    if (output is null)
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' has a projection for unknown column '{projection.ColumnId}'."));
+                        continue;
+                    }
+                    if (!MirTypeFacts.AreEquivalent(output.ElementType, projection.Expression.Type))
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived projection '{table.Name}.{output.Name}' does not match its output type."));
+                    if (source is not null)
+                    {
+                        foreach (string input in projection.SourceColumns)
+                        {
+                            if (!source.Columns.Any(column => column.Name == input))
+                                diagnostics.Add(new MirValidationDiagnostic($"Derived projection '{table.Name}.{output.Name}' has inconsistent provenance input '{input}'."));
+                        }
+                        if (projection.CopiedSourceColumn is not null && !projection.SourceColumns.Contains(projection.CopiedSourceColumn, StringComparer.Ordinal))
+                            diagnostics.Add(new MirValidationDiagnostic($"Derived projection '{table.Name}.{output.Name}' has inconsistent copied-column provenance."));
+                    }
+                    ValidateTableExpression(projection.Expression, tables, rowTypeIds, columns, diagnostics);
+                }
+            }
+            if (table.KeyColumnId is MirTableColumnId keyColumnId
+                && !table.Columns.Any(column => column.Id == keyColumnId))
+            {
+                diagnostics.Add(new MirValidationDiagnostic($"Table '{table.Name}' names unknown key column '{keyColumnId}'."));
+            }
+
+            foreach (MirTableColumnDefinition column in table.Columns)
+            {
+                if (column.Reference is null)
+                {
+                    continue;
+                }
+
+                if (!tables.TryGetValue(column.Reference.TargetTableId, out MirTableDefinition? targetTable))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table reference '{table.Name}.{column.Name}' names unknown target table '{column.Reference.TargetTableId}'."));
+                    continue;
+                }
+
+                MirTableColumnDefinition? targetKey = targetTable.Columns.SingleOrDefault(candidate => candidate.Id == column.Reference.TargetKeyColumnId);
+                if (targetKey is null || targetTable.KeyColumnId != column.Reference.TargetKeyColumnId)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table reference '{table.Name}.{column.Name}' names target '{targetTable.Name}.{column.Reference.TargetKeyColumnId}', which is not that table's key."));
+                    continue;
+                }
+
+                if (!MirTypeFacts.AreEquivalent(column.ElementType, targetKey.ElementType))
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Table reference '{table.Name}.{column.Name}' has an element type incompatible with target key '{targetTable.Name}.{targetKey.Name}'."));
                 }
             }
         }

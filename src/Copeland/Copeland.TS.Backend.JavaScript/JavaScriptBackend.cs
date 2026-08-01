@@ -124,6 +124,11 @@ public static class JavaScriptBackend
             diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-CSHARP-0001", "Inline C# is available only on the CLR backend."));
             return new JavaScriptCompilation(null, diagnostics);
         }
+        if (program.Tables.Any(table => table.DerivedPlan is not null))
+        {
+            diagnostics.Add(new JavaScriptDiagnostic("COPE-JS-DERIVE-0001", "Derived record tables are currently materialized only by the C# backend."));
+            return new JavaScriptCompilation(null, diagnostics);
+        }
         foreach (MirNpmImport import in program.NpmImports.Where(import => !import.IsAvailableToJavaScript))
         {
             diagnostics.Add(new JavaScriptDiagnostic(UnsupportedDiagnosticId, $"npm import '{import.LocalBinding}' is unavailable for the JavaScript backend."));

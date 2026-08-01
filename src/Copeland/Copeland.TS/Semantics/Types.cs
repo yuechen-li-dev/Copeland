@@ -259,7 +259,14 @@ public sealed class TableTypeSymbol(string name, TableTypeId id, string? stableI
     public int RowCount { get; set; } = -1;
     public TableRowTypeSymbol RowType { get; } = new(name + ".Row", id, (stableIdentity ?? name) + ".Row");
     public IReadOnlyList<TableColumnSymbol> Columns => _columns;
+    public TableColumnSymbol? KeyColumn { get; private set; }
     public void AddColumn(TableColumnSymbol column) { _columns.Add(column); RowType.AddField(new TableRowFieldSymbol(column.Name, new TableRowFieldId(column.Id), column.Type)); }
+    public bool TryDeclareKey(TableColumnSymbol column)
+    {
+        if (KeyColumn is not null) return false;
+        KeyColumn = column;
+        return true;
+    }
 }
 
 public sealed class TableRowTypeSymbol(string name, TableTypeId tableId, string? stableIdentity = null) : TypeSymbol

@@ -256,6 +256,8 @@ internal static class TableToolCommand
                     name = table.Name,
                     exported = table.Bound.IsExported,
                     rowCount = table.Bound.RowCount,
+                    kind = table.Bound.Kind == BoundTableDefinitionKind.Derived ? "derived" : "authored",
+                    key = table.Bound.TableType.KeyColumn?.Name,
                     source = Location(document.SourcePath, document.SourceText, table.Syntax.Identifier.Position),
                 }),
             });
@@ -264,7 +266,9 @@ internal static class TableToolCommand
 
         foreach (TableModel table in document.Tables)
         {
-            Console.Out.WriteLine($"{table.Name}\t{table.Bound.RowCount} rows");
+            string key = table.Bound.TableType.KeyColumn is null ? string.Empty : $"\tkey {table.Bound.TableType.KeyColumn.Name}";
+            string kind = table.Bound.Kind == BoundTableDefinitionKind.Derived ? "derived" : "authored";
+            Console.Out.WriteLine($"{table.Name}\t{table.Bound.RowCount} rows\t{kind}{key}");
         }
 
         return SuccessExitCode;
@@ -275,6 +279,11 @@ internal static class TableToolCommand
         ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--format"]);
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], parsed.Format == "json");
+        if (table.Bound is BoundDerivedTableDefinition derived)
+        {
+            WriteDerivedSchema(document, table, derived, parsed.Format == "json");
+            return SuccessExitCode;
+        }
         if (parsed.Format == "json")
         {
             WriteJson(new
@@ -286,10 +295,18 @@ internal static class TableToolCommand
                 nominalIdentity = table.Bound.TableType.StableIdentity,
                 exported = table.Bound.IsExported,
                 rowCount = table.Bound.RowCount,
+                key = table.Bound.TableType.KeyColumn?.Name,
                 columns = table.Columns.Select(column => new
                 {
                     name = column.Name,
                     type = column.Bound.Column.Type.Name,
+                    reference = column.Bound.Column.Reference is null
+                        ? null
+                        : new
+                        {
+                            table = column.Bound.Column.Reference.TargetTable.Name,
+                            key = column.Bound.Column.Reference.TargetKey.Name,
+                        },
                     enumCases = EnumCases(column.Bound.Column.Type),
                     source = Location(document.SourcePath, document.SourceText, column.Syntax.Identifier.Position),
                 }),
@@ -298,9 +315,16 @@ internal static class TableToolCommand
         }
 
         Console.Out.WriteLine($"{table.Name} ({table.Bound.RowCount} rows){(table.Bound.IsExported ? " exported" : string.Empty)}");
+        if (table.Bound.TableType.KeyColumn is not null)
+        {
+            Console.Out.WriteLine($"key: {table.Bound.TableType.KeyColumn.Name}");
+        }
         foreach (TableColumnModel column in table.Columns)
         {
-            Console.Out.WriteLine($"{column.Name}: {column.Bound.Column.Type.Name}");
+            string reference = column.Bound.Column.Reference is null
+                ? string.Empty
+                : $" -> {column.Bound.Column.Reference.TargetTable.Name}.{column.Bound.Column.Reference.TargetKey.Name}";
+            Console.Out.WriteLine($"{column.Name}: {column.Bound.Column.Type.Name}{reference}");
         }
 
         return SuccessExitCode;
@@ -311,6 +335,7 @@ internal static class TableToolCommand
         ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--format", "--offset", "--limit", "--columns"]);
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], parsed.Format == "json");
+        EnsureAuthored(table, "table.rows", parsed.Format == "json");
         int offset = ParseNonNegative(parsed.Value("--offset") ?? "0", "--offset", parsed.Format == "json");
         int limit = ParseNonNegative(parsed.Value("--limit") ?? table.Bound.RowCount.ToString(CultureInfo.InvariantCulture), "--limit", parsed.Format == "json");
         IReadOnlyList<TableColumnModel> columns = SelectColumns(table, parsed.Value("--columns"), parsed.Format == "json");
@@ -339,6 +364,7 @@ internal static class TableToolCommand
         ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--row", "--column", "--value", "--dry-run", "--format"]);
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], parsed.Format == "json");
+        EnsureAuthored(table, "table.set", parsed.Format == "json");
         int row = ParseRequiredNonNegative(parsed, "--row");
         string columnName = parsed.Required("--column");
         TableColumnModel column = table.RequireColumn(columnName, parsed.Format == "json");
@@ -367,6 +393,7 @@ internal static class TableToolCommand
         ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--json", "--dry-run", "--format"]);
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], parsed.Format == "json");
+        EnsureAuthored(table, "table.add-row", parsed.Format == "json");
         Dictionary<string, string> values = ParseRowJson(parsed.Required("--json"), table, parsed.Format == "json");
         var edits = new List<TextEdit>();
         foreach (TableColumnModel column in table.Columns)
@@ -404,6 +431,7 @@ internal static class TableToolCommand
         ParsedArguments parsed = ParseOptions(args, 2, positionalCount: 2, allowed: ["--row", "--dry-run", "--format"]);
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], parsed.Format == "json");
+        EnsureAuthored(table, "table.delete-row", parsed.Format == "json");
         int row = ParseRequiredNonNegative(parsed, "--row");
         EnsureRow(table, row, parsed.Format == "json");
         Dictionary<string, object?> deleted = table.Columns.ToDictionary(column => column.Name, column => SerializeConstant(column.Bound.Cells[row]), StringComparer.Ordinal);
@@ -459,6 +487,7 @@ internal static class TableToolCommand
         bool resultJson = ResultIsJson(parsed);
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], resultJson);
+        EnsureAuthored(table, "table.export", resultJson);
         string csv = Csv.Write(table.Columns.Select(column => column.Name).ToArray(), ProjectRows(table, table.Columns, 0, table.Bound.RowCount)
             .Select(row => table.Columns.Select(column => CsvValue(column.Bound.Cells[row.Index])).ToArray()).ToArray());
         string? outputPath = parsed.Value("--output");
@@ -500,6 +529,7 @@ internal static class TableToolCommand
 
         TableDocument document = LoadDocument(parsed.Positionals[0]);
         TableModel table = document.RequireTable(parsed.Positionals[1], resultJson);
+        EnsureAuthored(table, "table.import", resultJson);
         CsvDocument csv = Csv.Read(File.ReadAllText(Path.GetFullPath(parsed.Required("--input"))));
         ValidateHeaders(csv.Headers, table, resultJson);
         var cells = table.Columns.ToDictionary(column => column.Name, _ => new List<string>(), StringComparer.Ordinal);
@@ -555,6 +585,40 @@ internal static class TableToolCommand
         }
 
         return new TableDocument(sourcePath, sourceText, tables);
+    }
+
+    private static void EnsureAuthored(TableModel table, string command, bool json)
+    {
+        if (table.Bound.Kind == BoundTableDefinitionKind.Derived)
+        {
+            throw Error("COPE-TABLE-TOOL-0020", $"{command} is unavailable for derived table '{table.Name}'; derived tables are read-only.", json);
+        }
+    }
+
+    private static void WriteDerivedSchema(TableDocument document, TableModel table, BoundDerivedTableDefinition derived, bool json)
+    {
+        var columns = derived.Projections.Select(projection => new
+        {
+            name = projection.Column.Name,
+            type = projection.Column.Type.Name,
+            provenance = projection.CopiedSourceColumn is null
+                ? new { kind = "computed", sourceTable = derived.SourceTable.Name, inputs = projection.SourceColumns, authoredPosition = projection.ExpressionPosition }
+                : new { kind = "copied", sourceTable = derived.SourceTable.Name, inputs = new[] { projection.CopiedSourceColumn }, authoredPosition = projection.ExpressionPosition },
+        }).ToArray();
+        if (json)
+        {
+            WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.schema", table = table.Name, kind = "derived", readOnly = true, source = derived.SourceTable.Name, rowCount = derived.RowCount, columns });
+            return;
+        }
+        Console.Out.WriteLine($"{table.Name} ({derived.RowCount} rows) derived read-only");
+        Console.Out.WriteLine($"source: {derived.SourceTable.Name}");
+        foreach (BoundDerivedTableColumnDefinition projection in derived.Projections)
+        {
+            string provenance = projection.CopiedSourceColumn is null
+                ? $"computed from {derived.SourceTable.Name}"
+                : $"from {derived.SourceTable.Name}.{projection.CopiedSourceColumn}";
+            Console.Out.WriteLine($"{projection.Column.Name}: {projection.Column.Type.Name} {provenance}");
+        }
     }
 
     private static CopelandCompilation Compile(string sourcePath, string sourceText)
