@@ -2053,6 +2053,19 @@ public sealed class Parser
             var source = Match(SyntaxKind.IdentifierToken);
             var asKeyword = MatchClassWord("as");
             var alias = Match(SyntaxKind.IdentifierToken);
+            var joins = new List<DerivedTableJoinSyntax>();
+            while (IsWord(Current, "join"))
+            {
+                var join = NextToken();
+                var relation = Match(SyntaxKind.IdentifierToken);
+                var joinAs = MatchClassWord("as");
+                var joinAlias = Match(SyntaxKind.IdentifierToken);
+                var through = MatchClassWord("through");
+                var referenceAlias = Match(SyntaxKind.IdentifierToken);
+                var dot = Match(SyntaxKind.DotToken);
+                var referenceColumn = Match(SyntaxKind.IdentifierToken);
+                joins.Add(new DerivedTableJoinSyntax(join, relation, joinAs, joinAlias, through, referenceAlias, dot, referenceColumn));
+            }
             var derivedOpenBrace = Match(SyntaxKind.OpenBraceToken);
             var derivedColumns = new List<DerivedTableColumnSyntax>();
             while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
@@ -2071,7 +2084,7 @@ public sealed class Parser
             var derivedCloseBrace = Match(SyntaxKind.CloseBraceToken);
             return new TableDeclarationSyntax(recordKeyword, tableKeyword, identifier, null,
                 derivedOpenBrace, [], derivedCloseBrace, isExported,
-                new DerivedTableClauseSyntax(equals, derive, source, asKeyword, alias, derivedOpenBrace, derivedColumns, derivedCloseBrace));
+                new DerivedTableClauseSyntax(equals, derive, source, asKeyword, alias, joins, derivedOpenBrace, derivedColumns, derivedCloseBrace));
         }
         TableAssetClauseSyntax? assetClause = null;
         if (Current.Kind == SyntaxKind.IdentifierToken

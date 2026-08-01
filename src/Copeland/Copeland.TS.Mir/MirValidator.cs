@@ -1347,10 +1347,42 @@ public static class MirValidator
                 {
                     diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' participates in a recursive derivation cycle."));
                 }
+                else if (table.RowCount != source.RowCount)
+                {
+                    diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' row count must equal source relation '{source.Name}' row count."));
+                }
                 if (string.IsNullOrWhiteSpace(derived.SourceAlias) || string.IsNullOrWhiteSpace(derived.PlanIdentity))
                     diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' has incomplete relation provenance."));
                 if (derived.Columns.Count != table.Columns.Count)
                     diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' projection schema does not match its output columns."));
+                var availableAliases = new Dictionary<string, MirTableDefinition>(StringComparer.Ordinal)
+                {
+                    [derived.SourceAlias] = source!,
+                };
+                foreach (MirRelationJoin join in derived.Joins)
+                {
+                    if (!tables.TryGetValue(join.JoinedTableId, out MirTableDefinition? joined))
+                    {
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' joins unknown relation '{join.JoinedTableId}'."));
+                        continue;
+                    }
+                    if (!availableAliases.TryGetValue(join.LookupAlias, out MirTableDefinition? lookupOwner))
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' join '{join.Alias}' depends on unavailable alias '{join.LookupAlias}'."));
+                    else if (!lookupOwner.Columns.Any(column => column.Id == join.LookupColumnId))
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' join '{join.Alias}' uses an unknown lookup column."));
+                    MirTableDefinition? relationshipSource = tables.GetValueOrDefault(join.RelationshipSourceTableId);
+                    MirTableDefinition? relationshipTarget = tables.GetValueOrDefault(join.TargetTableId);
+                    bool relationshipIsValid = relationshipSource?.Columns.SingleOrDefault(column => column.Id == join.ReferenceColumnId)?.Reference is MirTableReferenceDefinition reference
+                        && reference.TargetTableId == join.TargetTableId
+                        && reference.TargetKeyColumnId == join.TargetKeyColumnId;
+                    if (!relationshipIsValid)
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' join '{join.Alias}' does not retain a declared reference relationship."));
+                    if (relationshipTarget?.KeyColumnId != join.TargetKeyColumnId
+                        || !joined.Columns.Any(column => column.Id == join.JoinedLookupColumnId))
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' join '{join.Alias}' has invalid key lookup metadata."));
+                    if (!availableAliases.TryAdd(join.Alias, joined))
+                        diagnostics.Add(new MirValidationDiagnostic($"Derived table '{table.Name}' repeats relation alias '{join.Alias}'."));
+                }
                 foreach (MirDerivedTableColumnPlan projection in derived.Columns)
                 {
                     MirTableColumnDefinition? output = table.Columns.SingleOrDefault(column => column.Id == projection.ColumnId);
@@ -1365,7 +1397,12 @@ public static class MirValidator
                     {
                         foreach (string input in projection.SourceColumns)
                         {
-                            if (!source.Columns.Any(column => column.Name == input))
+                            string[] inputParts = input.Split('.', 2);
+                            MirTableDefinition? inputTable = inputParts.Length == 2
+                                ? availableAliases.GetValueOrDefault(inputParts[0])
+                                : source;
+                            string inputColumn = inputParts.Length == 2 ? inputParts[1] : input;
+                            if (inputTable is null || !inputTable.Columns.Any(column => column.Name == inputColumn))
                                 diagnostics.Add(new MirValidationDiagnostic($"Derived projection '{table.Name}.{output.Name}' has inconsistent provenance input '{input}'."));
                         }
                         if (projection.CopiedSourceColumn is not null && !projection.SourceColumns.Contains(projection.CopiedSourceColumn, StringComparer.Ordinal))

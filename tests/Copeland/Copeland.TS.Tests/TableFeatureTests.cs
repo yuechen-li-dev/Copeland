@@ -1,4 +1,5 @@
 using Copeland.TS.Compiler;
+using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Mir;
 using Copeland.TS.Semantics;
@@ -146,6 +147,137 @@ public sealed class TableFeatureTests
         Assert.Equal("t1", mir.DerivedPlan!.SourceTableId.Value);
         Assert.All(mir.Columns, column => Assert.Empty(column.Constants));
         Assert.Contains("derived source [t1] alias price", compilation.MirText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Derived_tables_join_declared_references_in_source_order_with_multi_source_scope()
+    {
+        const string source = """
+            record table Categories { key id: int = [20, 10]; name: string = ["Tea", "Coffee"]; }
+            record table Products { key id: int = [100, 101, 102]; reference categoryId: int -> Categories.id = [10, 10, 20]; name: string = ["Espresso Beans", "Filter Beans", "Earl Grey"]; }
+            record table Prices { key reference productId: int -> Products.id = [102, 100, 101]; retail: number = [8.75, 18.50, 16.25]; cost: number = [3.10, 9.25, 7.50]; }
+            record table Inventory { key reference productId: int -> Products.id = [101, 102, 100]; onHand: int = [4, 19, 24]; }
+            export record table Catalog = derive Products as product
+                join Categories as category through product.categoryId
+                join Prices as price through price.productId {
+                productId: int = product.id;
+                productName: string = product.name;
+                categoryName: string = category.name;
+                retail: number = price.retail;
+                margin: number = price.retail - price.cost;
+            }
+            export record table InventoryCatalog = derive Inventory as inventory
+                join Products as product through inventory.productId
+                join Prices as price through price.productId {
+                productId: int = product.id;
+                onHand: int = inventory.onHand;
+                retail: number = price.retail;
+                inventoryValue: number = Float.From(inventory.onHand) * price.retail;
+            }
+            function catalogRow(index: number): Catalog.Row ! TableBoundsError { return Catalog[index]; }
+            function inventoryRow(index: number): InventoryCatalog.Row ! TableBoundsError { return InventoryCatalog[index]; }
+            function total(): number { return Catalog.margin.sum(); }
+            """;
+
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        BoundDerivedTableDefinition catalog = Assert.IsType<BoundDerivedTableDefinition>(compilation.BoundCompilation!.Program.Tables[4]);
+        Assert.Equal(["category", "price"], catalog.Joins.Select(join => join.Alias));
+        Assert.False(catalog.Joins[0].IsOneToOne);
+        Assert.True(catalog.Joins[1].IsOneToOne);
+        Assert.Equal(["category.name"], catalog.Projections[2].SourceColumns);
+        Assert.Single(catalog.Projections[2].Relationships);
+        Assert.Equal(["price.retail"], catalog.Projections[3].SourceColumns);
+        Assert.Single(catalog.Projections[3].Relationships);
+        MirDerivedTablePlan plan = compilation.MirCompilation!.Program!.Tables[4].DerivedPlan!;
+        Assert.Equal(2, plan.Joins.Count);
+        Assert.Contains("join [t1] alias category", compilation.MirText, StringComparison.Ordinal);
+        Assert.Contains("join [t3] alias price", compilation.MirText, StringComparison.Ordinal);
+
+        var csharp = CSharpBackend.Emit(compilation.MirCompilation.Program!);
+        Assert.Empty(csharp.Diagnostics);
+        Assert.Contains("Dictionary<int, int>", csharp.SourceText, StringComparison.Ordinal);
+        Assert.Contains("could not resolve its declared reference", csharp.SourceText, StringComparison.Ordinal);
+        Assert.Contains("produced misaligned column lengths", csharp.SourceText, StringComparison.Ordinal);
+        string trustedAssemblies = (string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!;
+        IEnumerable<Microsoft.CodeAnalysis.MetadataReference> references = trustedAssemblies
+            .Split(Path.PathSeparator)
+            .Select(path => Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(path));
+        using var assembly = new MemoryStream();
+        Microsoft.CodeAnalysis.Emit.EmitResult emitted = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create(
+            "DeclaredReferenceJoinProof",
+            [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(csharp.SourceText)],
+            references,
+            new Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions(Microsoft.CodeAnalysis.OutputKind.DynamicallyLinkedLibrary)).Emit(assembly);
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        var generatedAssembly = System.Reflection.Assembly.Load(assembly.ToArray());
+        Type module = generatedAssembly.GetType("Copeland.Generated.CopelandModule")!;
+        Assert.Equal(23.65d, (double)module.GetMethod("total")!.Invoke(null, null)!);
+
+        AssertDerivedRow(module, "catalogRow", 0, 100, "Espresso Beans", "Coffee", 18.50d);
+        AssertDerivedRow(module, "catalogRow", 1, 101, "Filter Beans", "Coffee", 16.25d);
+        AssertDerivedRow(module, "catalogRow", 2, 102, "Earl Grey", "Tea", 8.75d);
+        AssertInventoryRow(module, 101, 4, 16.25d, 65d);
+    }
+
+    [Theory]
+    [InlineData("record table T { key id: int = [1]; } record table U = derive T as t join Missing as u through t.id { id: int = t.id; }", "COPE-JOIN-0001")]
+    [InlineData("record table T { key id: int = [1]; } record table U = derive T as t join T as u through t.id { id: int = t.id; }", "COPE-JOIN-0003")]
+    [InlineData("record table T { key id: int = [1]; } record table U = derive T as t join T as t through t.id { id: int = t.id; }", "COPE-JOIN-0002")]
+    public void Derived_table_joins_report_direct_relationship_diagnostics(string source, string diagnosticId)
+    {
+        CopelandCompilation compilation = CopelandCompiler.CompileToMir(source);
+
+        Assert.Contains(compilation.Diagnostics, diagnostic => diagnostic.Id == diagnosticId);
+    }
+
+    private static void AssertDerivedRow(
+        Type module,
+        string methodName,
+        int index,
+        int productId,
+        string productName,
+        string categoryName,
+        double retail)
+    {
+        object row = GetSuccessfulRow(module, methodName, index);
+
+        Assert.Equal(productId, (int)ReadRowProperty(row, "productId")!);
+        Assert.Equal(productName, (string)ReadRowProperty(row, "productName")!);
+        Assert.Equal(categoryName, (string)ReadRowProperty(row, "categoryName")!);
+        Assert.Equal(retail, (double)ReadRowProperty(row, "retail")!);
+    }
+
+    private static void AssertInventoryRow(Type module, int productId, int onHand, double retail, double inventoryValue)
+    {
+        object row = GetSuccessfulRow(module, "inventoryRow", 0);
+
+        Assert.Equal(productId, (int)ReadRowProperty(row, "productId")!);
+        Assert.Equal(onHand, (int)ReadRowProperty(row, "onHand")!);
+        Assert.Equal(retail, (double)ReadRowProperty(row, "retail")!);
+        Assert.Equal(inventoryValue, (double)ReadRowProperty(row, "inventoryValue")!);
+    }
+
+    private static object GetSuccessfulRow(Type module, string methodName, int index)
+    {
+        object value = module.GetMethod(methodName)!.Invoke(null, [index])!;
+        while (value.GetType().Name.StartsWith("CopeResult", StringComparison.Ordinal))
+        {
+            bool isOk = (bool)value.GetType().GetProperty("IsOk")!.GetValue(value)!;
+            Assert.True(isOk);
+            value = value.GetType().GetProperty("Value")!.GetValue(value)!;
+        }
+        return value;
+    }
+
+    private static object? ReadRowProperty(object row, string propertyName)
+    {
+        System.Reflection.PropertyInfo? property = row.GetType().GetProperty(
+            propertyName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+        Assert.True(property is not null, $"Expected row property '{propertyName}' on '{row.GetType().FullName}'.");
+        return property.GetValue(row);
     }
 
     [Theory]

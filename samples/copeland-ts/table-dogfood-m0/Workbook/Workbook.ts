@@ -28,8 +28,6 @@ export record table Prices {
     cost: number = [9.25, 7.50, 3.10, 21.00, 15.25];
 }
 
-// M1A: source-ordered, read-only columnar projection. Cross-table lookup
-// remains explicit below; joins are intentionally outside this milestone.
 export record table PriceMargins = derive Prices as price {
     productId: int = price.productId;
     retail: number = price.retail;
@@ -40,6 +38,29 @@ export record table Inventory {
     key reference productId: int -> Products.id = [100, 101, 102, 103, 104];
     onHand: int = [24, 4, 19, 7, 0];
     reorderPoint: int = [8, 8, 6, 3, 2];
+}
+
+// M1B: joins consume declared references and preserve Products row order.
+export record table ProductCatalog = derive Products as product
+    join Categories as category through product.categoryId
+    join Prices as price through price.productId {
+    productId: int = product.id;
+    productName: string = product.name;
+    categoryName: string = category.name;
+    state: StockState = product.state;
+    retail: number = price.retail;
+    cost: number = price.cost;
+    margin: number = price.retail - price.cost;
+}
+
+export record table InventoryCatalog = derive Inventory as inventory
+    join Products as product through inventory.productId
+    join Prices as price through price.productId {
+    productId: int = product.id;
+    productName: string = product.name;
+    onHand: int = inventory.onHand;
+    retail: number = price.retail;
+    inventoryValue: number = Float.From(inventory.onHand) * price.retail;
 }
 
 record ProductView {
@@ -57,6 +78,14 @@ function workbookPrices(): Prices {
 
 function workbookMargins(): PriceMargins {
     return PriceMargins;
+}
+
+function workbookCatalog(): ProductCatalog {
+    return ProductCatalog;
+}
+
+function workbookInventoryCatalog(): InventoryCatalog {
+    return InventoryCatalog;
 }
 
 function revisedPrices(): Prices {
@@ -110,45 +139,14 @@ function retailMaximum(): number {
     return Prices.retail.max();
 }
 
-function categoryNameFor(productId: int): string {
-    for (const product of Products.rows()) {
-        if (product.id == productId) {
-            for (const category of Categories.rows()) {
-                if (category.id == product.categoryId) {
-                    return category.name;
-                }
-            }
-        }
-    }
-    return "Unknown";
-}
-
-function retailFor(productId: int): number {
-    for (const price of Prices.rows()) {
-        if (price.productId == productId) {
-            return price.retail;
-        }
-    }
-    return 0.0;
-}
-
 function inventoryValue(): number {
-    let total: number = 0.0;
-    for (const item of Inventory.rows()) {
-        total = total + Float.From(item.onHand) * retailFor(item.productId);
-    }
-    return total;
+    return InventoryCatalog.inventoryValue.sum();
 }
 
-function stateLabel(productId: int): string {
-    for (const product of Products.rows()) {
-        if (product.id == productId) {
-            return match product.state {
-                Active => "active",
-                LowStock => "low-stock",
-                Discontinued => "discontinued",
-            };
-        }
-    }
-    return "unknown";
+function stateLabel(state: StockState): string {
+    return match state {
+        Active => "active",
+        LowStock => "low-stock",
+        Discontinued => "discontinued",
+    };
 }

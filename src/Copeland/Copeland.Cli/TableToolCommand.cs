@@ -602,24 +602,39 @@ internal static class TableToolCommand
             name = projection.Column.Name,
             type = projection.Column.Type.Name,
             provenance = projection.CopiedSourceColumn is null
-                ? new { kind = "computed", sourceTable = derived.SourceTable.Name, inputs = projection.SourceColumns, authoredPosition = projection.ExpressionPosition }
-                : new { kind = "copied", sourceTable = derived.SourceTable.Name, inputs = new[] { projection.CopiedSourceColumn }, authoredPosition = projection.ExpressionPosition },
+                ? new { kind = "computed", sourceTable = derived.SourceTable.Name, inputs = projection.SourceColumns.ToArray(), relationships = projection.Relationships.Select(join => RelationshipText(join.Relationship)).ToArray(), authoredPosition = projection.ExpressionPosition }
+                : new { kind = "copied", sourceTable = derived.SourceTable.Name, inputs = new[] { projection.CopiedSourceColumn }, relationships = projection.Relationships.Select(join => RelationshipText(join.Relationship)).ToArray(), authoredPosition = projection.ExpressionPosition },
         }).ToArray();
         if (json)
         {
-            WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.schema", table = table.Name, kind = "derived", readOnly = true, source = derived.SourceTable.Name, rowCount = derived.RowCount, columns });
+            WriteJson(new { schemaVersion = SchemaVersion, success = true, command = "table.schema", table = table.Name, kind = "derived", readOnly = true, source = derived.SourceTable.Name, joins = derived.Joins.Select(join => new { relation = join.JoinedTable.Name, alias = join.Alias, through = RelationshipText(join.Relationship), cardinality = join.IsOneToOne ? "one-to-one" : "many-to-one" }), rowCount = derived.RowCount, columns });
             return;
         }
         Console.Out.WriteLine($"{table.Name} ({derived.RowCount} rows) derived read-only");
         Console.Out.WriteLine($"source: {derived.SourceTable.Name}");
+        if (derived.Joins.Count > 0)
+        {
+            Console.Out.WriteLine("joins:");
+            foreach (BoundDerivedTableJoin join in derived.Joins)
+            {
+                Console.Out.WriteLine($"  {join.JoinedTable.Name} as {join.Alias} through {RelationshipText(join.Relationship)} ({(join.IsOneToOne ? "one-to-one" : "many-to-one")})");
+            }
+        }
         foreach (BoundDerivedTableColumnDefinition projection in derived.Projections)
         {
             string provenance = projection.CopiedSourceColumn is null
-                ? $"computed from {derived.SourceTable.Name}"
-                : $"from {derived.SourceTable.Name}.{projection.CopiedSourceColumn}";
+                ? $"computed from {string.Join(", ", projection.SourceColumns)}"
+                : $"from {projection.CopiedSourceColumn}";
+            if (projection.Relationships.Count > 0)
+            {
+                provenance += $" through {string.Join(" and ", projection.Relationships.Select(join => RelationshipText(join.Relationship)))}";
+            }
             Console.Out.WriteLine($"{projection.Column.Name}: {projection.Column.Type.Name} {provenance}");
         }
     }
+
+    private static string RelationshipText(TableReferenceSymbol relationship)
+        => $"{relationship.SourceTable.Name}.{relationship.SourceColumn.Name} -> {relationship.TargetTable.Name}.{relationship.TargetKey.Name}";
 
     private static CopelandCompilation Compile(string sourcePath, string sourceText)
         => CopelandCompiler.CompileToMir(sourceText, new CopelandCompilationOptions

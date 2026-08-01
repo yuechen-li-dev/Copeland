@@ -1165,22 +1165,45 @@ public sealed class BoundDerivedTableDefinition(
     TableTypeSymbol tableType,
     TableTypeSymbol sourceTable,
     string sourceAlias,
+    IReadOnlyList<BoundDerivedTableJoin> joins,
     IReadOnlyList<BoundDerivedTableColumnDefinition> projections,
     int rowCount,
     bool isExported = false) : BoundTableDefinition(tableType, [], rowCount, isExported)
 {
     public TableTypeSymbol SourceTable { get; } = sourceTable;
     public string SourceAlias { get; } = sourceAlias;
+    public IReadOnlyList<BoundDerivedTableJoin> Joins { get; } = joins;
     public IReadOnlyList<BoundDerivedTableColumnDefinition> Projections { get; } = projections;
     public override BoundTableDefinitionKind Kind => BoundTableDefinitionKind.Derived;
 }
 
-public sealed class BoundDerivedTableColumnDefinition(TableColumnSymbol column, BoundExpression expression, string? copiedSourceColumn, IReadOnlyList<string> sourceColumns, int expressionPosition) : BoundNode
+public sealed class BoundDerivedTableJoin(
+    TableTypeSymbol joinedTable,
+    string alias,
+    TableReferenceSymbol relationship,
+    string lookupAlias,
+    TableColumnSymbol lookupColumn,
+    TableColumnSymbol joinedLookupColumn,
+    bool isOneToOne,
+    int authoredPosition) : BoundNode
+{
+    public TableTypeSymbol JoinedTable { get; } = joinedTable;
+    public string Alias { get; } = alias;
+    public TableReferenceSymbol Relationship { get; } = relationship;
+    public string LookupAlias { get; } = lookupAlias;
+    public TableColumnSymbol LookupColumn { get; } = lookupColumn;
+    public TableColumnSymbol JoinedLookupColumn { get; } = joinedLookupColumn;
+    public bool IsOneToOne { get; } = isOneToOne;
+    public int AuthoredPosition { get; } = authoredPosition;
+}
+
+public sealed class BoundDerivedTableColumnDefinition(TableColumnSymbol column, BoundExpression expression, string? copiedSourceColumn, IReadOnlyList<string> sourceColumns, IReadOnlyList<BoundDerivedTableJoin> relationships, int expressionPosition) : BoundNode
 {
     public TableColumnSymbol Column { get; } = column;
     public BoundExpression Expression { get; } = expression;
     public string? CopiedSourceColumn { get; } = copiedSourceColumn;
     public IReadOnlyList<string> SourceColumns { get; } = sourceColumns;
+    public IReadOnlyList<BoundDerivedTableJoin> Relationships { get; } = relationships;
     public int ExpressionPosition { get; } = expressionPosition;
 }
 

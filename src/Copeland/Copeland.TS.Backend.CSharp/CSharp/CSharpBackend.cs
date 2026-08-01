@@ -115,6 +115,7 @@ public static class CSharpBackend
         CurrentSourcePath.Value = program.CSharpSourcePath;
         var enumNames = program.Enums.Select(@enum => @enum.Name).ToHashSet(StringComparer.Ordinal);
         var recordsById = program.Records.ToDictionary(record => record.Id);
+        var tablesById = program.Tables.ToDictionary(table => table.Id);
         var tsonTableIds = program.TsonEncodingPlans
             .Where(plan => plan.TablePlan is not null)
             .Select(plan => plan.TablePlan!.TableId)
@@ -167,7 +168,7 @@ public static class CSharpBackend
             EmitColumnSupport(writer);
             foreach (var table in program.Tables)
             {
-                EmitTable(writer, table, recordsById, tsonTableIds.Contains(table.Id), usesTableWith, enumNames);
+                EmitTable(writer, table, recordsById, tablesById, tsonTableIds.Contains(table.Id), usesTableWith, enumNames);
             }
         }
         writer.WriteLine("public static class CopelandModule"); writer.WriteLine("{"); writer.Indent();
@@ -175,7 +176,7 @@ public static class CSharpBackend
         {
             string createExpression = table.DerivedPlan is null
                 ? $"{TableTypeName(table.Id)}.Create()"
-                : $"{TableTypeName(table.Id)}.Create({TableSingletonName(table.DerivedPlan.SourceTableId)})";
+                : $"{TableTypeName(table.Id)}.Create({string.Join(", ", new[] { TableSingletonName(table.DerivedPlan.SourceTableId) }.Concat(table.DerivedPlan.Joins.Select(join => TableSingletonName(join.JoinedTableId))))})";
             writer.WriteLine($"private static readonly {TableTypeName(table.Id)} {TableSingletonName(table.Id)} = {createExpression};");
             if (table.IsExported)
             {
@@ -788,6 +789,7 @@ public static class CSharpBackend
         CSharpTextWriter writer,
         MirTableDefinition table,
         IReadOnlyDictionary<MirRecordTypeId, MirRecordDefinition> records,
+        IReadOnlyDictionary<MirTableId, MirTableDefinition> tables,
         bool emitsTsonAccessors,
         bool supportsTableWith,
         IReadOnlySet<string> enumNames)
@@ -875,7 +877,8 @@ public static class CSharpBackend
         writer.WriteLine();
         string createParameters = table.DerivedPlan is null
             ? string.Empty
-            : TableTypeName(table.DerivedPlan.SourceTableId) + " source";
+            : string.Join(", ", new[] { TableTypeName(table.DerivedPlan.SourceTableId) + " source" }
+                .Concat(table.DerivedPlan.Joins.Select(join => TableTypeName(join.JoinedTableId) + " " + DerivedJoinParameterName(join))));
         writer.WriteLine($"internal static {tableType} Create({createParameters})");
         writer.WriteLine("{");
         writer.Indent();
@@ -901,10 +904,36 @@ public static class CSharpBackend
                 MirTableColumnDefinition column = table.Columns[index];
                 writer.WriteLine($"var values{index} = new {MapType(column.ElementType)}[source.Count];");
             }
+            foreach (MirRelationJoin join in plan.Joins)
+            {
+                MirTableDefinition joinedTable = tables[join.JoinedTableId];
+                MirTableColumnDefinition joinedLookup = joinedTable.Columns.Single(column => column.Id == join.JoinedLookupColumnId);
+                string parameter = DerivedJoinParameterName(join);
+                string indexName = CSharpNameMangler.Mangle(join.Alias) + "Index";
+                string rowIndexName = CSharpNameMangler.Mangle(join.Alias) + "IndexRow";
+                writer.WriteLine($"var {indexName} = new global::System.Collections.Generic.Dictionary<{MapType(joinedLookup.ElementType)}, int>();");
+                writer.WriteLine($"for (int {rowIndexName} = 0; {rowIndexName} < {parameter}.Count; {rowIndexName}++)");
+                writer.WriteLine("{");
+                writer.Indent();
+                writer.WriteLine($"if (!{indexName}.TryAdd({parameter}.{TableReadMethodName(join.JoinedLookupColumnId)}({rowIndexName}), {rowIndexName}))");
+                writer.WriteLine($"throw new global::System.InvalidOperationException(\"Derived join '{join.Alias}' requires unique lookup values.\");");
+                writer.Unindent();
+                writer.WriteLine("}");
+            }
             writer.WriteLine("for (int index = 0; index < source.Count; index++)");
             writer.WriteLine("{");
             writer.Indent();
             writer.WriteLine($"var {CSharpNameMangler.Mangle(plan.SourceAlias)} = source.GetRow(index).Value;");
+            foreach (MirRelationJoin join in plan.Joins)
+            {
+                string parameter = DerivedJoinParameterName(join);
+                string indexName = CSharpNameMangler.Mangle(join.Alias) + "Index";
+                string joinedRowIndex = CSharpNameMangler.Mangle(join.Alias) + "RowIndex";
+                string lookupAlias = CSharpNameMangler.Mangle(join.LookupAlias);
+                writer.WriteLine($"if (!{indexName}.TryGetValue({lookupAlias}.{TableRowFieldName(join.LookupColumnId)}, out int {joinedRowIndex}))");
+                writer.WriteLine($"throw new global::System.InvalidOperationException(\"Derived join '{join.Alias}' could not resolve its declared reference.\");");
+                writer.WriteLine($"var {CSharpNameMangler.Mangle(join.Alias)} = {parameter}.GetRow({joinedRowIndex}).Value;");
+            }
             var executionContext = new MirFunction("__derived_table", [], new MirNamedType("void"), [], []);
             int temporaryIndex = 0;
             foreach (MirDerivedTableColumnPlan projection in plan.Columns)
@@ -915,6 +944,9 @@ public static class CSharpBackend
             }
             writer.Unindent();
             writer.WriteLine("}");
+            string lengthCheck = string.Join(" || ", table.Columns.Select((_, index) => $"values{index}.Length != source.Count"));
+            writer.WriteLine($"if ({lengthCheck})");
+            writer.WriteLine($"throw new global::System.InvalidOperationException(\"Derived table '{table.Name}' produced misaligned column lengths.\");");
             writer.WriteLine($"return new {tableType}({string.Join(", ", table.Columns.Select((_, index) => "values" + index))});");
         }
         writer.Unindent();
@@ -3709,6 +3741,9 @@ public static class CSharpBackend
 
     private static string TableReadMethodName(MirTableColumnId id)
         => "__read_" + EncodeStableIdentity(id.Value);
+
+    private static string DerivedJoinParameterName(MirRelationJoin join)
+        => CSharpNameMangler.Mangle(join.Alias) + "Relation";
 
     private static string TableTsonStorageAccessName(MirTableColumnId id)
         => "__tson_values_" + EncodeStableIdentity(id.Value);

@@ -1335,6 +1335,10 @@ public static class Binder
                 _tables.Add(new BoundTableDefinition(table, columns, table.RowCount, declaration.IsExported));
             }
 
+            // Relationship declarations on authored relations are bound before
+            // derived plans so joins consume compiler-known facts, never syntax.
+            ValidateTableRelationships(root);
+
             var pendingDerived = root.Members
                 .OfType<TableDeclarationSyntax>()
                 .Where(declaration => declaration.DerivedClause is not null)
@@ -1352,7 +1356,15 @@ public static class Binder
                         pendingDerived.Remove(declaration);
                         continue;
                     }
-                    if (source.Columns.Count == 0)
+                    DerivedTableJoinSyntax? missingJoin = clause.Joins.FirstOrDefault(join => !_tableTypes.ContainsKey(join.RelationIdentifier.Text));
+                    if (missingJoin is not null)
+                    {
+                        Report("COPE-JOIN-0001", $"Joined relation '{missingJoin.RelationIdentifier.Text}' does not exist.", missingJoin.RelationIdentifier);
+                        pendingDerived.Remove(declaration);
+                        continue;
+                    }
+                    if (source.Columns.Count == 0
+                        || clause.Joins.Any(join => !_tableTypes.TryGetValue(join.RelationIdentifier.Text, out TableTypeSymbol? relation) || relation.Columns.Count == 0))
                     {
                         continue;
                     }
@@ -1371,7 +1383,6 @@ public static class Binder
                 Report("COPE-DERIVE-0008", $"Derived table '{declaration.Identifier.Text}' participates in a recursive derivation cycle.", declaration.DerivedClause!.SourceIdentifier);
             }
 
-            ValidateTableRelationships(root);
         }
 
         private void BindDerivedTableBody(TableDeclarationSyntax declaration, TableTypeSymbol table)
@@ -1386,11 +1397,18 @@ public static class Binder
 
             var names = new HashSet<string>(StringComparer.Ordinal);
             var projections = new List<BoundDerivedTableColumnDefinition>();
+            var joins = BindDerivedTableJoins(clause, source);
+            var relationAliases = joins.ToDictionary(join => join.Alias, join => join.JoinedTable, StringComparer.Ordinal);
+            relationAliases.Add(clause.AliasIdentifier.Text, source);
             Scope previousScope = _scope;
             _scope = new Scope(_global);
             try
             {
                 _scope.TryDeclare(new VariableSymbol(clause.AliasIdentifier.Text, source.RowType, true));
+                foreach (BoundDerivedTableJoin join in joins)
+                {
+                    _scope.TryDeclare(new VariableSymbol(join.Alias, join.JoinedTable.RowType, true));
+                }
                 foreach (DerivedTableColumnSyntax projection in clause.Columns)
                 {
                     if (!names.Add(projection.Identifier.Text))
@@ -1419,16 +1437,24 @@ public static class Binder
 
                     var column = new TableColumnSymbol(projection.Identifier.Text, new TableColumnId(table.Id, table.Columns.Count), resultType);
                     table.AddColumn(column);
-                    string? copiedSourceColumn = expression is BoundTableRowFieldAccessExpression access
-                        && access.Receiver is BoundVariableExpression variable
-                        && variable.Variable.Name == clause.AliasIdentifier.Text
-                        ? access.Field.Name
-                        : null;
+                    (string? copiedSourceColumn, TableColumnSymbol? copiedColumn, string? copiedAlias) = GetCopiedDerivedColumn(expression, relationAliases, clause.AliasIdentifier.Text);
+                    if (copiedColumn is not null)
+                    {
+                        if (copiedAlias == clause.AliasIdentifier.Text && copiedColumn == source.KeyColumn)
+                        {
+                            table.TryDeclareKey(column);
+                        }
+                        if (copiedColumn.Reference is TableReferenceSymbol copiedReference)
+                        {
+                            column.Reference = new TableReferenceSymbol(table, column, copiedReference.TargetTable, copiedReference.TargetKey);
+                        }
+                    }
                     projections.Add(new BoundDerivedTableColumnDefinition(
                         column,
                         expression,
                         copiedSourceColumn,
-                        CollectDerivedSourceColumns(expression, clause.AliasIdentifier.Text),
+                        CollectDerivedSourceColumns(expression, clause.AliasIdentifier.Text, joins),
+                        CollectDerivedRelationships(expression, joins),
                         projection.Identifier.Position));
                 }
             }
@@ -1442,7 +1468,78 @@ public static class Binder
                 Report("COPE-DERIVE-0002", "A derived table requires at least one output column.", declaration.Identifier);
             }
             table.RowCount = source.RowCount;
-            _tables.Add(new BoundDerivedTableDefinition(table, source, clause.AliasIdentifier.Text, projections, table.RowCount, declaration.IsExported));
+            _tables.Add(new BoundDerivedTableDefinition(table, source, clause.AliasIdentifier.Text, joins, projections, table.RowCount, declaration.IsExported));
+        }
+
+        private IReadOnlyList<BoundDerivedTableJoin> BindDerivedTableJoins(DerivedTableClauseSyntax clause, TableTypeSymbol source)
+        {
+            var available = new Dictionary<string, TableTypeSymbol>(StringComparer.Ordinal)
+            {
+                [clause.AliasIdentifier.Text] = source,
+            };
+            var joins = new List<BoundDerivedTableJoin>();
+            foreach (DerivedTableJoinSyntax syntax in clause.Joins)
+            {
+                if (!available.TryAdd(syntax.AliasIdentifier.Text, null!))
+                {
+                    Report("COPE-JOIN-0002", $"Derived join alias '{syntax.AliasIdentifier.Text}' duplicates an existing relation alias.", syntax.AliasIdentifier);
+                    continue;
+                }
+                if (!_tableTypes.TryGetValue(syntax.RelationIdentifier.Text, out TableTypeSymbol? joined))
+                {
+                    Report("COPE-JOIN-0001", $"Joined relation '{syntax.RelationIdentifier.Text}' does not exist.", syntax.RelationIdentifier);
+                    continue;
+                }
+                if (!available.TryGetValue(syntax.ReferenceAliasIdentifier.Text, out TableTypeSymbol? referenceOwner)
+                    && !string.Equals(syntax.ReferenceAliasIdentifier.Text, syntax.AliasIdentifier.Text, StringComparison.Ordinal))
+                {
+                    Report("COPE-JOIN-0006", $"Join reference alias '{syntax.ReferenceAliasIdentifier.Text}' is not available before this join.", syntax.ReferenceAliasIdentifier);
+                    continue;
+                }
+
+                TableTypeSymbol fieldOwner = string.Equals(syntax.ReferenceAliasIdentifier.Text, syntax.AliasIdentifier.Text, StringComparison.Ordinal)
+                    ? joined
+                    : referenceOwner!;
+                TableColumnSymbol? referenceColumn = fieldOwner.Columns.SingleOrDefault(column => column.Name == syntax.ReferenceColumnIdentifier.Text);
+                if (referenceColumn?.Reference is not TableReferenceSymbol relationship)
+                {
+                    Report("COPE-JOIN-0003", $"'{fieldOwner.Name}.{syntax.ReferenceColumnIdentifier.Text}' is not a declared table reference.", syntax.ReferenceColumnIdentifier);
+                    continue;
+                }
+
+                bool sourceReferencesJoined = !string.Equals(syntax.ReferenceAliasIdentifier.Text, syntax.AliasIdentifier.Text, StringComparison.Ordinal)
+                    && relationship.SourceTable == fieldOwner
+                    && relationship.TargetTable == joined;
+                KeyValuePair<string, TableTypeSymbol>[] targetAliases = string.Equals(syntax.ReferenceAliasIdentifier.Text, syntax.AliasIdentifier.Text, StringComparison.Ordinal)
+                    ? available.Where(pair => pair.Value == relationship.TargetTable).ToArray()
+                    : [];
+                bool joinedReferencesSource = relationship.SourceTable == joined && targetAliases.Length == 1;
+                if (relationship.SourceTable == joined && targetAliases.Length > 1)
+                {
+                    Report("COPE-JOIN-0005", $"Declared reference '{relationship.SourceTable.Name}.{relationship.SourceColumn.Name}' has multiple available target aliases; select the existing alias explicitly.", syntax.ReferenceAliasIdentifier);
+                    continue;
+                }
+                if (!sourceReferencesJoined && !joinedReferencesSource)
+                {
+                    Report("COPE-JOIN-0004", $"Declared reference '{relationship.SourceTable.Name}.{relationship.SourceColumn.Name}' does not connect alias '{syntax.ReferenceAliasIdentifier.Text}' and joined relation '{joined.Name}'.", syntax.ReferenceColumnIdentifier);
+                    continue;
+                }
+
+                TableColumnSymbol lookupColumn = sourceReferencesJoined ? relationship.SourceColumn : relationship.TargetKey;
+                TableColumnSymbol joinedLookupColumn = sourceReferencesJoined ? relationship.TargetKey : relationship.SourceColumn;
+                bool isOneToOne = relationship.SourceTable.KeyColumn?.Id == relationship.SourceColumn.Id;
+                joins.Add(new BoundDerivedTableJoin(
+                    joined,
+                    syntax.AliasIdentifier.Text,
+                    relationship,
+                    sourceReferencesJoined ? syntax.ReferenceAliasIdentifier.Text : targetAliases[0].Key,
+                    lookupColumn,
+                    joinedLookupColumn,
+                    isOneToOne,
+                    syntax.JoinKeyword.Position));
+                available[syntax.AliasIdentifier.Text] = joined;
+            }
+            return joins;
         }
 
         private static bool IsDerivedExpressionPure(BoundExpression expression)
@@ -1453,7 +1550,21 @@ public static class Binder
                 _ => true,
             };
 
-        private static IReadOnlyList<string> CollectDerivedSourceColumns(BoundExpression expression, string alias)
+        private static (string? Name, TableColumnSymbol? Column, string? Alias) GetCopiedDerivedColumn(BoundExpression expression, IReadOnlyDictionary<string, TableTypeSymbol> aliases, string sourceAlias)
+        {
+            if (expression is BoundTableRowFieldAccessExpression access
+                && access.Receiver is BoundVariableExpression variable)
+            {
+                if (aliases.TryGetValue(variable.Variable.Name, out TableTypeSymbol? table))
+                {
+                    TableColumnSymbol? column = table.Columns.SingleOrDefault(candidate => candidate.Id == access.Field.Id.ColumnId);
+                    return (variable.Variable.Name == sourceAlias ? access.Field.Name : variable.Variable.Name + "." + access.Field.Name, column, variable.Variable.Name);
+                }
+            }
+            return (null, null, null);
+        }
+
+        private static IReadOnlyList<string> CollectDerivedSourceColumns(BoundExpression expression, string sourceAlias, IReadOnlyList<BoundDerivedTableJoin> joins)
         {
             var columns = new HashSet<string>(StringComparer.Ordinal);
             Visit(expression);
@@ -1463,8 +1574,8 @@ public static class Binder
             {
                 switch (candidate)
                 {
-                    case BoundTableRowFieldAccessExpression access when access.Receiver is BoundVariableExpression variable && variable.Variable.Name == alias:
-                        columns.Add(access.Field.Name);
+                    case BoundTableRowFieldAccessExpression access when access.Receiver is BoundVariableExpression variable:
+                        columns.Add(variable.Variable.Name == sourceAlias ? access.Field.Name : variable.Variable.Name + "." + access.Field.Name);
                         break;
                     case BoundBinaryExpression binary:
                         Visit(binary.Left);
@@ -1488,6 +1599,35 @@ public static class Binder
                         Visit(access.Receiver);
                         break;
                 }
+            }
+        }
+
+        private static IReadOnlyList<BoundDerivedTableJoin> CollectDerivedRelationships(BoundExpression expression, IReadOnlyList<BoundDerivedTableJoin> joins)
+        {
+            var aliases = new HashSet<string>(StringComparer.Ordinal);
+            CollectAliases(expression, aliases);
+            return joins.Where(join => aliases.Contains(join.Alias)).ToArray();
+        }
+
+        private static void CollectAliases(BoundExpression expression, ISet<string> aliases)
+        {
+            switch (expression)
+            {
+                case BoundTableRowFieldAccessExpression access when access.Receiver is BoundVariableExpression variable:
+                    aliases.Add(variable.Variable.Name);
+                    break;
+                case BoundBinaryExpression binary:
+                    CollectAliases(binary.Left, aliases); CollectAliases(binary.Right, aliases); break;
+                case BoundUnaryExpression unary:
+                    CollectAliases(unary.Operand, aliases); break;
+                case BoundNumericConversionExpression conversion:
+                    CollectAliases(conversion.Operand, aliases); break;
+                case BoundIfExpression conditional:
+                    CollectAliases(conditional.Condition, aliases); CollectAliases(conditional.ThenExpression, aliases); CollectAliases(conditional.ElseExpression, aliases); break;
+                case BoundTableRowFieldAccessExpression access:
+                    CollectAliases(access.Receiver, aliases); break;
+                case BoundRecordFieldAccessExpression access:
+                    CollectAliases(access.Receiver, aliases); break;
             }
         }
 

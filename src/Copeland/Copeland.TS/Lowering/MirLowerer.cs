@@ -201,12 +201,25 @@ public static class MirLowerer
                 ? new MirDerivedTablePlan(
                     new MirTableId(derivedDefinition.SourceTable.Id.ToString()),
                     derivedDefinition.SourceAlias,
-                    derivedDefinition.TableType.StableIdentity + "<-" + derivedDefinition.SourceTable.StableIdentity,
+                    derivedDefinition.TableType.StableIdentity + "<-" + derivedDefinition.SourceTable.StableIdentity + string.Concat(derivedDefinition.Joins.Select(join => "|" + join.JoinedTable.StableIdentity + ":" + join.Relationship.SourceColumn.Name)),
+                    derivedDefinition.Joins.Select(join => new MirRelationJoin(
+                        new MirTableId(join.JoinedTable.Id.ToString()),
+                        join.Alias,
+                        join.LookupAlias,
+                        new MirTableColumnId(join.LookupColumn.Id.ToString()),
+                        new MirTableId(join.Relationship.SourceTable.Id.ToString()),
+                        new MirTableColumnId(join.Relationship.SourceColumn.Id.ToString()),
+                        new MirTableId(join.Relationship.TargetTable.Id.ToString()),
+                        new MirTableColumnId(join.Relationship.TargetKey.Id.ToString()),
+                        new MirTableColumnId(join.JoinedLookupColumn.Id.ToString()),
+                        join.IsOneToOne,
+                        join.AuthoredPosition)).ToArray(),
                     derivedDefinition.Projections.Select(projection => new MirDerivedTableColumnPlan(
                         new MirTableColumnId(projection.Column.Id.ToString()),
                         LowerExpression(projection.Expression),
                         projection.CopiedSourceColumn,
                         projection.SourceColumns,
+                        projection.Relationships.Select(join => join.Relationship.SourceTable.StableIdentity + "." + join.Relationship.SourceColumn.Name + "->" + join.Relationship.TargetTable.StableIdentity + "." + join.Relationship.TargetKey.Name).ToArray(),
                         projection.ExpressionPosition)).ToArray())
                 : null);
 

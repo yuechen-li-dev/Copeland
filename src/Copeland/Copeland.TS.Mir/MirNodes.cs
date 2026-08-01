@@ -284,12 +284,41 @@ public sealed class MirDerivedTablePlan(
     MirTableId sourceTableId,
     string sourceAlias,
     string planIdentity,
+    IReadOnlyList<MirRelationJoin> joins,
     IReadOnlyList<MirDerivedTableColumnPlan> columns)
 {
     public MirTableId SourceTableId { get; } = sourceTableId;
     public string SourceAlias { get; } = sourceAlias;
     public string PlanIdentity { get; } = planIdentity;
+    public IReadOnlyList<MirRelationJoin> Joins { get; } = joins;
     public IReadOnlyList<MirDerivedTableColumnPlan> Columns { get; } = columns;
+}
+
+/// <summary>Resolved relationship lookup. The backend receives facts, not a predicate.</summary>
+public sealed class MirRelationJoin(
+    MirTableId joinedTableId,
+    string alias,
+    string lookupAlias,
+    MirTableColumnId lookupColumnId,
+    MirTableId relationshipSourceTableId,
+    MirTableColumnId referenceColumnId,
+    MirTableId targetTableId,
+    MirTableColumnId targetKeyColumnId,
+    MirTableColumnId joinedLookupColumnId,
+    bool isOneToOne,
+    int authoredPosition)
+{
+    public MirTableId JoinedTableId { get; } = joinedTableId;
+    public string Alias { get; } = alias;
+    public string LookupAlias { get; } = lookupAlias;
+    public MirTableColumnId LookupColumnId { get; } = lookupColumnId;
+    public MirTableId RelationshipSourceTableId { get; } = relationshipSourceTableId;
+    public MirTableColumnId ReferenceColumnId { get; } = referenceColumnId;
+    public MirTableId TargetTableId { get; } = targetTableId;
+    public MirTableColumnId TargetKeyColumnId { get; } = targetKeyColumnId;
+    public MirTableColumnId JoinedLookupColumnId { get; } = joinedLookupColumnId;
+    public bool IsOneToOne { get; } = isOneToOne;
+    public int AuthoredPosition { get; } = authoredPosition;
 }
 
 public sealed class MirDerivedTableColumnPlan(
@@ -297,12 +326,14 @@ public sealed class MirDerivedTableColumnPlan(
     MirExpression expression,
     string? copiedSourceColumn,
     IReadOnlyList<string> sourceColumns,
+    IReadOnlyList<string> relationshipIdentities,
     int authoredPosition)
 {
     public MirTableColumnId ColumnId { get; } = columnId;
     public MirExpression Expression { get; } = expression;
     public string? CopiedSourceColumn { get; } = copiedSourceColumn;
     public IReadOnlyList<string> SourceColumns { get; } = sourceColumns;
+    public IReadOnlyList<string> RelationshipIdentities { get; } = relationshipIdentities;
     public int AuthoredPosition { get; } = authoredPosition;
 }
 public abstract record MirTableConstant(MirType Type);

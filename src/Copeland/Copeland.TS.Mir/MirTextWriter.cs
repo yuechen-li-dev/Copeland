@@ -86,11 +86,21 @@ public static class MirTextWriter
             if (table.DerivedPlan is MirDerivedTablePlan derived)
             {
                 sb.Append("  derived source [").Append(derived.SourceTableId).Append("] alias ").Append(derived.SourceAlias).Append(" plan ").AppendLine(derived.PlanIdentity);
+                foreach (MirRelationJoin join in derived.Joins)
+                {
+                    sb.Append("    join [").Append(join.JoinedTableId).Append("] alias ").Append(join.Alias)
+                        .Append(" through [").Append(join.RelationshipSourceTableId).Append("].").Append(join.ReferenceColumnId)
+                        .Append(" -> [").Append(join.TargetTableId).Append("].").Append(join.TargetKeyColumnId)
+                        .Append(join.IsOneToOne ? " one-to-one" : " many-to-one")
+                        .Append(" lookup ").Append(join.LookupAlias).Append('.').Append(join.LookupColumnId)
+                        .AppendLine();
+                }
                 foreach (MirDerivedTableColumnPlan projection in derived.Columns)
                 {
                     sb.Append("    project [").Append(projection.ColumnId).Append("] ").Append(FormatExpression(projection.Expression));
                     if (projection.CopiedSourceColumn is not null) sb.Append(" copied-from ").Append(projection.CopiedSourceColumn);
                     if (projection.SourceColumns.Count > 0) sb.Append(" inputs ").Append(string.Join(",", projection.SourceColumns));
+                    if (projection.RelationshipIdentities.Count > 0) sb.Append(" relationships ").Append(string.Join(",", projection.RelationshipIdentities));
                     sb.Append(" at ").Append(projection.AuthoredPosition.ToString(System.Globalization.CultureInfo.InvariantCulture)).AppendLine();
                 }
             }

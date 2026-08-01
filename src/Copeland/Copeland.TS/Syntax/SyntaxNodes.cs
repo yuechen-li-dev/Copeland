@@ -2172,13 +2172,35 @@ public sealed record DerivedTableColumnSyntax(
     }
 }
 
-/// <summary>Single-source projection syntax.  Joins deliberately have no syntax here.</summary>
+/// <summary>A relationship join in a derived record table.  The selected member
+/// is a declared table reference; it is never an arbitrary predicate.</summary>
+public sealed record DerivedTableJoinSyntax(
+    SyntaxToken JoinKeyword,
+    SyntaxToken RelationIdentifier,
+    SyntaxToken AsKeyword,
+    SyntaxToken AliasIdentifier,
+    SyntaxToken ThroughKeyword,
+    SyntaxToken ReferenceAliasIdentifier,
+    SyntaxToken DotToken,
+    SyntaxToken ReferenceColumnIdentifier) : SyntaxNode
+{
+    public override SyntaxKind Kind => SyntaxKind.TableDeclaration;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return JoinKeyword; yield return RelationIdentifier; yield return AsKeyword;
+        yield return AliasIdentifier; yield return ThroughKeyword; yield return ReferenceAliasIdentifier;
+        yield return DotToken; yield return ReferenceColumnIdentifier;
+    }
+}
+
+/// <summary>Source plus ordered declared-reference joins and scalar projection syntax.</summary>
 public sealed record DerivedTableClauseSyntax(
     SyntaxToken EqualsToken,
     SyntaxToken DeriveKeyword,
     SyntaxToken SourceIdentifier,
     SyntaxToken AsKeyword,
     SyntaxToken AliasIdentifier,
+    IReadOnlyList<DerivedTableJoinSyntax> Joins,
     SyntaxToken OpenBraceToken,
     IReadOnlyList<DerivedTableColumnSyntax> Columns,
     SyntaxToken CloseBraceToken) : SyntaxNode
@@ -2187,7 +2209,9 @@ public sealed record DerivedTableClauseSyntax(
     public override IEnumerable<object> GetChildren()
     {
         yield return EqualsToken; yield return DeriveKeyword; yield return SourceIdentifier;
-        yield return AsKeyword; yield return AliasIdentifier; yield return OpenBraceToken;
+        yield return AsKeyword; yield return AliasIdentifier;
+        foreach (var join in Joins) yield return join;
+        yield return OpenBraceToken;
         foreach (var column in Columns) yield return column;
         yield return CloseBraceToken;
     }
