@@ -1,5 +1,12 @@
 # Golden compiler artifacts and raw C# string literals are byte-sensitive.
-# Force one checkout representation on Windows, Linux, and macOS so release
-# tests never depend on the runner's core.autocrlf setting.
-* text=auto eol=lf
+# Keep source and JavaScript artifacts LF, while preserving the intentionally
+# CRLF C# compiler artifacts that are byte-pinned by the C# backend tests.
+* text=auto
+*.cs text eol=lf
+*.csproj text eol=lf
+*.ts text eol=lf
+*.tsxtest text eol=lf
+*.js text eol=lf
 *.tson text eol=lf
+*.g.cs text eol=crlf
+*.cope text eol=crlf
