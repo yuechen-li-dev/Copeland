@@ -1,12 +1,11 @@
 # Golden compiler artifacts and raw C# string literals are byte-sensitive.
-# Keep source and JavaScript artifacts LF, while preserving the intentionally
-# CRLF C# compiler artifacts that are byte-pinned by the C# backend tests.
-* text=auto
+# Canonical repository representation for all compiler corpus text.
+# Tests normalize emitted text before semantic comparison; byte pins below are
+# computed against this LF representation rather than a checkout-local form.
+* text=auto eol=lf
 *.cs text eol=lf
 *.csproj text eol=lf
 *.ts text eol=lf
 *.tsxtest text eol=lf
 *.js text eol=lf
 *.tson text eol=lf
-*.g.cs text eol=crlf
-*.cope text eol=crlf

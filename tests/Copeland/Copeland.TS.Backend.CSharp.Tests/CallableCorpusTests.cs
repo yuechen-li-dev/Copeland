@@ -24,7 +24,7 @@ public sealed class CallableCorpusTests
         Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.g.js"))), NormalizeNewlines(JavaScriptBackend.Emit(mir.Program).SourceText!));
         Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.sym.js"))), NormalizeNewlines(JavaScriptBackend.Emit(mir.Program, new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic }).SourceText!));
 
-        AssertArtifact(directory, "main.cope", 2120, "832B6A103421844A98F654EA1407A27D79445E653772B507D698D2A94ED1EC67");
+        AssertArtifact(directory, "main.cope", 2056, "1598D5EC6CF78C9743A72EBAC1D0EA85F5676487251C6FE57230CABE78343F4B");
         AssertArtifact(directory, "main.g.cs", 5062, "0C1FB55CFCC47E9E05BE677C53E38D9FA3C61AF3A32C3411E5C44E4C7326BA2A");
         AssertArtifact(directory, "main.g.js", 9996, "C8E51A4ACBD05F13466B5AD53BFF4F521007B51677BBED1D450EEDEDE4F29F96");
         AssertArtifact(directory, "main.sym.js", 8491, "DD3B74099671F583A268D3EE8E0293813551FD8877AC8A869EE3164B1FB7C7AE");
@@ -44,7 +44,7 @@ public sealed class CallableCorpusTests
         Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.g.js"))), NormalizeNewlines(JavaScriptBackend.Emit(mir.Program).SourceText!));
         Assert.Equal(NormalizeNewlines(File.ReadAllText(Path.Combine(directory, "main.sym.js"))), NormalizeNewlines(JavaScriptBackend.Emit(mir.Program, new JavaScriptEmissionOptions { Profile = JavaScriptEmissionProfile.Symbolic }).SourceText!));
 
-        AssertArtifact(directory, "main.cope", 865, "677CDF3157BAB9B1FD310D33727BBC5094901BF99505A69C35C25BF42E8F0C93");
+        AssertArtifact(directory, "main.cope", 837, "1D3BCC53723644A6823A5D8D883670B92A30803154040E5E9C008D59A327A922");
         AssertArtifact(directory, "main.g.cs", 1480, "8DD27E8377923BC74A81EB2662D98D98169DE13041F35A8D63BCE5103404A945");
         AssertArtifact(directory, "main.g.js", 2513, "4DC871B3851E4C04BACE3AE492EE7DFC8D0678727B0E111C59BF8B916FCFCFDD");
         AssertArtifact(directory, "main.sym.js", 2439, "777A9E3F68D2F1EBDB53753B3C903251D7DCC656858409916D55B4BB47E56A4A");
