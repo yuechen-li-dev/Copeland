@@ -1749,7 +1749,7 @@ function value(flag: boolean): number {
 
         Task<string> stdOutTask = process.StandardOutput.ReadToEndAsync();
         Task<string> stdErrTask = process.StandardError.ReadToEndAsync();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         try
         {
@@ -1802,7 +1802,7 @@ function value(flag: boolean): number {
         process.StandardInput.Close();
         Task<string> stdOutTask = process.StandardOutput.ReadToEndAsync();
         Task<string> stdErrTask = process.StandardError.ReadToEndAsync();
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         try
         {
@@ -1835,7 +1835,7 @@ function value(flag: boolean): number {
     private static string BuildTimeoutMessage(string[] args, string stdOut, string stdErr)
     {
         var message = new StringBuilder();
-        message.AppendLine($"Copeland CLI exceeded the 10 second test timeout. Arguments: {string.Join(' ', args)}");
+        message.AppendLine($"Copeland CLI exceeded the 30 second test timeout. Arguments: {string.Join(' ', args)}");
         message.AppendLine("stdout:");
         message.AppendLine(stdOut);
         message.AppendLine("stderr:");

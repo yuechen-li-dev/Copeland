@@ -1,1 +1,5 @@
+# Golden compiler artifacts and raw C# string literals are byte-sensitive.
+# Force one checkout representation on Windows, Linux, and macOS so release
+# tests never depend on the runner's core.autocrlf setting.
+* text=auto eol=lf
 *.tson text eol=lf
