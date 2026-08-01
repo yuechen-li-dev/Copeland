@@ -21,6 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <ProjectReference Include="../Copeland.Markdown/Copeland.Markdown.csproj" />
     <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../Copeland.TS.Database/Copeland.TS.Database.csproj" />

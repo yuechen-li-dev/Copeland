@@ -2,11 +2,18 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Copeland.TS.Backend.CSharp;
 using Copeland.TS.Compiler;
 using Copeland.TS.Diagnostics;
 using Copeland.TS.Semantics;
 using Copeland.TS.Semantics.Bound;
 using Copeland.TS.Syntax;
+using RoslynCSharpCompilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation;
+using RoslynCSharpCompilationOptions = Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions;
+using RoslynCSharpSyntaxTree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree;
+using RoslynDiagnosticSeverity = Microsoft.CodeAnalysis.DiagnosticSeverity;
+using RoslynMetadataReference = Microsoft.CodeAnalysis.MetadataReference;
+using RoslynOutputKind = Microsoft.CodeAnalysis.OutputKind;
 
 namespace Copeland.Cli;
 
@@ -41,6 +48,7 @@ internal static class TableToolCommand
                 "list" => RunList(args),
                 "schema" => RunSchema(args),
                 "rows" => RunRows(args),
+                "query" => RunQuery(args),
                 "set" => RunSet(args),
                 "add-row" => RunAddRow(args),
                 "delete-row" => RunDeleteRow(args),
@@ -548,6 +556,620 @@ internal static class TableToolCommand
         PublishMutation(document, candidate, parsed with { Format = resultJson ? "json" : "text" }, "Imported:\n" + table.Name + "\n" + csv.Rows.Count + " rows replaced", result);
         return SuccessExitCode;
     }
+
+    private static int RunQuery(string[] args)
+    {
+        ParsedArguments parsed = ParseOptions(
+            args,
+            2,
+            positionalCount: 2,
+            allowed: ["--where", "--select", "--order-by", "--skip", "--take", "--query-json", "--explain", "--dry-run", "--format"]);
+        bool json = parsed.Format == "json";
+        bool explain = parsed.Has("--explain") || parsed.Has("--dry-run");
+        if (explain && parsed.Format == "csv")
+        {
+            throw Error("COPE-TABLE-QUERY-0015", "'--explain' supports text or JSON output, not CSV.", json);
+        }
+
+        TableDocument document = LoadDocument(parsed.Positionals[0]);
+        TableModel table = document.RequireTable(parsed.Positionals[1], json);
+        TableQueryRequest request = ParseQueryRequest(parsed, table, json);
+        TableQueryPlan plan = BindQueryPlan(table, request, json);
+
+        if (explain)
+        {
+            WriteQueryExplain(document, plan, parsed.Format);
+            return SuccessExitCode;
+        }
+
+        IReadOnlyList<QueryMaterializedRow> rows = ExecuteQuery(document, plan, json);
+        WriteQueryResult(document, plan, rows, parsed.Format);
+        return SuccessExitCode;
+    }
+
+    private static TableQueryRequest ParseQueryRequest(ParsedArguments parsed, TableModel table, bool json)
+    {
+        if (parsed.Value("--query-json") is string queryJsonPath)
+        {
+            if (parsed.Has("--where") || parsed.Has("--select") || parsed.Has("--order-by") || parsed.Has("--skip") || parsed.Has("--take"))
+            {
+                throw Error("COPE-TABLE-QUERY-0001", "'--query-json' cannot be combined with textual query options.", json);
+            }
+
+            try
+            {
+                return ParseQueryJson(File.ReadAllText(Path.GetFullPath(queryJsonPath)), table, json);
+            }
+            catch (JsonException exception)
+            {
+                throw Error("COPE-TABLE-QUERY-0011", "Malformed query JSON: " + exception.Message, json);
+            }
+        }
+
+        return new TableQueryRequest(
+            parsed.Value("--where"),
+            ParseSelectItems(parsed.Value("--select"), json),
+            ParseOrderTerms(parsed.Value("--order-by"), json),
+            ParseNonNegative(parsed.Value("--skip") ?? "0", "--skip", json),
+            ParseNonNegative(parsed.Value("--take") ?? table.Bound.RowCount.ToString(CultureInfo.InvariantCulture), "--take", json));
+    }
+
+    private static TableQueryRequest ParseQueryJson(string text, TableModel table, bool json)
+    {
+        using JsonDocument document = JsonDocument.Parse(text);
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw Error("COPE-TABLE-QUERY-0011", "Query JSON must contain one object.", json);
+        }
+
+        JsonElement root = document.RootElement;
+        string? where = root.TryGetProperty("where", out JsonElement whereElement)
+            ? QueryJsonExpression(whereElement, table, json)
+            : null;
+        IReadOnlyList<QuerySelectRequest> select = root.TryGetProperty("select", out JsonElement selectElement)
+            ? ParseQueryJsonSelect(selectElement, json)
+            : [];
+        IReadOnlyList<QueryOrderRequest> orderBy = root.TryGetProperty("orderBy", out JsonElement orderElement)
+            ? ParseQueryJsonOrder(orderElement, json)
+            : [];
+        int skip = root.TryGetProperty("skip", out JsonElement skipElement)
+            ? QueryJsonNonNegative(skipElement, "skip", json)
+            : 0;
+        int take = root.TryGetProperty("take", out JsonElement takeElement)
+            ? QueryJsonNonNegative(takeElement, "take", json)
+            : table.Bound.RowCount;
+        return new TableQueryRequest(where, select, orderBy, skip, take);
+    }
+
+    private static string QueryJsonExpression(JsonElement element, TableModel table, bool json)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw Error("COPE-TABLE-QUERY-0012", "Query JSON expression nodes must be objects.", json);
+        }
+
+        if (element.TryGetProperty("column", out JsonElement column))
+        {
+            if (column.ValueKind != JsonValueKind.String)
+            {
+                throw Error("COPE-TABLE-QUERY-0012", "Query JSON 'column' must be a string.", json);
+            }
+
+            return column.GetString()!;
+        }
+
+        if (element.TryGetProperty("number", out JsonElement number) && number.ValueKind == JsonValueKind.Number)
+        {
+            return number.GetRawText();
+        }
+
+        if (element.TryGetProperty("string", out JsonElement text) && text.ValueKind == JsonValueKind.String)
+        {
+            return JsonSerializer.Serialize(text.GetString());
+        }
+
+        if (element.TryGetProperty("boolean", out JsonElement boolean) && boolean.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            return boolean.GetBoolean() ? "true" : "false";
+        }
+
+        if (!element.TryGetProperty("operator", out JsonElement operatorElement)
+            || operatorElement.ValueKind != JsonValueKind.String
+            || !element.TryGetProperty("left", out JsonElement left)
+            || !element.TryGetProperty("right", out JsonElement right))
+        {
+            throw Error("COPE-TABLE-QUERY-0012", "Query JSON expression must be a column, literal, or binary operator node.", json);
+        }
+
+        string operation = operatorElement.GetString()!;
+        string token = operation switch
+        {
+            "equal" => "==",
+            "notEqual" => "!=",
+            "greaterThan" => ">",
+            "greaterThanOrEqual" => ">=",
+            "lessThan" => "<",
+            "lessThanOrEqual" => "<=",
+            "and" => "&&",
+            "or" => "||",
+            "add" => "+",
+            "subtract" => "-",
+            "multiply" => "*",
+            "divide" => "/",
+            _ => throw Error("COPE-TABLE-QUERY-0013", $"Query JSON operator '{operation}' is not supported by M2A.", json),
+        };
+        return "(" + QueryJsonExpression(left, table, json) + " " + token + " " + QueryJsonExpression(right, table, json) + ")";
+    }
+
+    private static IReadOnlyList<QuerySelectRequest> ParseQueryJsonSelect(JsonElement element, bool json)
+    {
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw Error("COPE-TABLE-QUERY-0012", "Query JSON 'select' must be an array.", json);
+        }
+
+        var select = new List<QuerySelectRequest>();
+        foreach (JsonElement item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("column", out JsonElement column) || column.ValueKind != JsonValueKind.String)
+            {
+                throw Error("COPE-TABLE-QUERY-0012", "Each query JSON select item requires a string 'column'.", json);
+            }
+
+            string? alias = item.TryGetProperty("as", out JsonElement aliasElement) && aliasElement.ValueKind == JsonValueKind.String
+                ? aliasElement.GetString()
+                : null;
+            select.Add(new QuerySelectRequest(column.GetString()!, alias));
+        }
+
+        return select;
+    }
+
+    private static IReadOnlyList<QueryOrderRequest> ParseQueryJsonOrder(JsonElement element, bool json)
+    {
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw Error("COPE-TABLE-QUERY-0012", "Query JSON 'orderBy' must be an array.", json);
+        }
+
+        var order = new List<QueryOrderRequest>();
+        foreach (JsonElement item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object || !item.TryGetProperty("column", out JsonElement column) || column.ValueKind != JsonValueKind.String)
+            {
+                throw Error("COPE-TABLE-QUERY-0012", "Each query JSON ordering item requires a string 'column'.", json);
+            }
+
+            string direction = item.TryGetProperty("direction", out JsonElement directionElement) && directionElement.ValueKind == JsonValueKind.String
+                ? directionElement.GetString()!
+                : "ascending";
+            order.Add(new QueryOrderRequest(column.GetString()!, direction));
+        }
+
+        return order;
+    }
+
+    private static int QueryJsonNonNegative(JsonElement element, string name, bool json)
+    {
+        if (element.ValueKind != JsonValueKind.Number || !element.TryGetInt32(out int value) || value < 0)
+        {
+            throw Error("COPE-TABLE-QUERY-0014", $"Query JSON '{name}' must be a non-negative integer.", json);
+        }
+
+        return value;
+    }
+
+    private static IReadOnlyList<QuerySelectRequest> ParseSelectItems(string? text, bool json)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return [];
+        var result = new List<QuerySelectRequest>();
+        foreach (string item in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] parts = item.Split(" as ", StringSplitOptions.TrimEntries);
+            if (parts.Length is < 1 or > 2 || string.IsNullOrWhiteSpace(parts[0]))
+            {
+                throw Error("COPE-TABLE-QUERY-0006", $"Invalid '--select' item '{item}'. Use 'column' or 'column as name'.", json);
+            }
+
+            result.Add(new QuerySelectRequest(parts[0], parts.Length == 2 ? parts[1] : null));
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<QueryOrderRequest> ParseOrderTerms(string? text, bool json)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return [];
+        var result = new List<QueryOrderRequest>();
+        foreach (string item in text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            string[] parts = item.Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length is < 1 or > 2)
+            {
+                throw Error("COPE-TABLE-QUERY-0008", $"Invalid '--order-by' term '{item}'.", json);
+            }
+
+            result.Add(new QueryOrderRequest(parts[0], parts.Length == 2 ? parts[1] : "asc"));
+        }
+
+        return result;
+    }
+
+    private static TableQueryPlan BindQueryPlan(TableModel table, TableQueryRequest request, bool json)
+    {
+        IReadOnlyList<TableColumnSymbol> sourceColumns = QueryColumns(table.Bound);
+        var columnsByName = sourceColumns.ToDictionary(column => column.Name, StringComparer.Ordinal);
+        var selected = new List<QueryProjection>();
+        IEnumerable<QuerySelectRequest> requestedSelect = request.Select.Count == 0
+            ? sourceColumns.Select(column => new QuerySelectRequest(column.Name, null))
+            : request.Select;
+        foreach (QuerySelectRequest selection in requestedSelect)
+        {
+            if (!columnsByName.TryGetValue(selection.Column, out TableColumnSymbol? column))
+            {
+                throw Error("COPE-TABLE-QUERY-0005", UnknownColumnMessage(selection.Column, sourceColumns, table.Name), json);
+            }
+
+            string outputName = selection.Alias ?? column.Name;
+            if (selected.Any(projection => projection.Name == outputName))
+            {
+                throw Error("COPE-TABLE-QUERY-0007", $"Query selection produces duplicate column '{outputName}'.", json);
+            }
+
+            selected.Add(new QueryProjection(outputName, column, Array.IndexOf(sourceColumns.ToArray(), column), QueryProvenance(table.Bound, column)));
+        }
+
+        var order = new List<QueryOrderTerm>();
+        foreach (QueryOrderRequest requestTerm in request.OrderBy)
+        {
+            if (!columnsByName.TryGetValue(requestTerm.Column, out TableColumnSymbol? column))
+            {
+                throw Error("COPE-TABLE-QUERY-0005", UnknownColumnMessage(requestTerm.Column, sourceColumns, table.Name), json);
+            }
+
+            bool descending = requestTerm.Direction switch
+            {
+                "asc" or "ascending" => false,
+                "desc" or "descending" => true,
+                _ => throw Error("COPE-TABLE-QUERY-0009", $"Order direction '{requestTerm.Direction}' must be 'asc' or 'desc'.", json),
+            };
+            if (!IsOrderable(column.Type))
+            {
+                throw Error("COPE-TABLE-QUERY-0010", $"Column '{column.Name}' of type '{column.Type.Name}' is not orderable.", json);
+            }
+
+            order.Add(new QueryOrderTerm(column, Array.IndexOf(sourceColumns.ToArray(), column), descending));
+        }
+
+        string? predicate = request.Where is null ? null : NormalizeQueryExpression(request.Where, sourceColumns);
+        return new TableQueryPlan(table, sourceColumns, predicate, selected, order, request.Skip, request.Take);
+    }
+
+    private static IReadOnlyList<TableColumnSymbol> QueryColumns(BoundTableDefinition table)
+        => table is BoundDerivedTableDefinition derived
+            ? derived.Projections.Select(projection => projection.Column).ToArray()
+            : table.Columns.Select(column => column.Column).ToArray();
+
+    private static string UnknownColumnMessage(string name, IReadOnlyList<TableColumnSymbol> columns, string table)
+    {
+        string? suggestion = columns
+            .OrderBy(column => LevenshteinDistance(name, column.Name))
+            .FirstOrDefault(column => LevenshteinDistance(name, column.Name) <= 3)
+            ?.Name;
+        return suggestion is null
+            ? $"Column '{name}' was not found in table '{table}'."
+            : $"Column '{name}' was not found in table '{table}'. Did you mean '{suggestion}'?";
+    }
+
+    private static int LevenshteinDistance(string left, string right)
+    {
+        int[] previous = Enumerable.Range(0, right.Length + 1).ToArray();
+        for (int leftIndex = 1; leftIndex <= left.Length; leftIndex += 1)
+        {
+            int[] current = new int[right.Length + 1];
+            current[0] = leftIndex;
+            for (int rightIndex = 1; rightIndex <= right.Length; rightIndex += 1)
+            {
+                current[rightIndex] = Math.Min(Math.Min(current[rightIndex - 1] + 1, previous[rightIndex] + 1), previous[rightIndex - 1] + (left[leftIndex - 1] == right[rightIndex - 1] ? 0 : 1));
+            }
+
+            previous = current;
+        }
+
+        return previous[right.Length];
+    }
+
+    private static bool IsOrderable(TypeSymbol type)
+        => type == PrimitiveTypeSymbol.Int
+            || type == PrimitiveTypeSymbol.Float
+            || type == PrimitiveTypeSymbol.Number
+            || type == PrimitiveTypeSymbol.String;
+
+    private static QueryColumnProvenance QueryProvenance(BoundTableDefinition table, TableColumnSymbol column)
+    {
+        if (table is not BoundDerivedTableDefinition derived)
+        {
+            return new QueryColumnProvenance("authored", table.TableType.Name, [column.Name], []);
+        }
+
+        BoundDerivedTableColumnDefinition projection = derived.Projections.Single(item => item.Column == column);
+        return new QueryColumnProvenance(
+            projection.CopiedSourceColumn is null ? "computed" : "copied",
+            derived.SourceTable.Name,
+            projection.SourceColumns,
+            projection.Relationships.Select(join => RelationshipText(join.Relationship)).ToArray());
+    }
+
+    private static string NormalizeQueryExpression(string expression, IReadOnlyList<TableColumnSymbol> columns)
+    {
+        var output = new StringBuilder(expression.Length + 16);
+        var columnNames = columns.Select(column => column.Name).ToHashSet(StringComparer.Ordinal);
+        var enumCases = columns
+            .Where(column => column.Type is EnumTypeSymbol)
+            .SelectMany(column => ((EnumTypeSymbol)column.Type).Cases
+                .Where(@case => !@case.HasPayload)
+                .Select(@case => new { @case.Name, EnumName = @case.EnumType.Name }))
+            .GroupBy(item => item.Name, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Select(item => item.EnumName).Distinct(StringComparer.Ordinal).ToArray(), StringComparer.Ordinal);
+        bool inString = false;
+        bool escaped = false;
+        for (int index = 0; index < expression.Length;)
+        {
+            char current = expression[index];
+            if (inString)
+            {
+                output.Append(current);
+                if (escaped) escaped = false;
+                else if (current == '\\') escaped = true;
+                else if (current == '"') inString = false;
+                index += 1;
+                continue;
+            }
+
+            if (current == '"')
+            {
+                inString = true;
+                output.Append(current);
+                index += 1;
+                continue;
+            }
+
+            if (!IsIdentifierStart(current))
+            {
+                output.Append(current);
+                index += 1;
+                continue;
+            }
+
+            int start = index;
+            index += 1;
+            while (index < expression.Length && IsIdentifierPart(expression[index])) index += 1;
+            string identifier = expression[start..index];
+            bool memberName = PreviousNonWhitespace(expression, start - 1) == '.';
+            if (!memberName && columnNames.Contains(identifier))
+            {
+                output.Append("row.").Append(identifier);
+            }
+            else if (!memberName && enumCases.TryGetValue(identifier, out string[]? enumNames) && enumNames.Length == 1)
+            {
+                output.Append(enumNames[0]).Append('.').Append(identifier);
+            }
+            else
+            {
+                output.Append(identifier);
+            }
+        }
+
+        return output.ToString();
+    }
+
+    private static bool IsIdentifierStart(char value) => char.IsAsciiLetter(value) || value == '_';
+    private static bool IsIdentifierPart(char value) => char.IsAsciiLetterOrDigit(value) || value == '_';
+
+    private static char PreviousNonWhitespace(string text, int index)
+    {
+        while (index >= 0 && char.IsWhiteSpace(text[index])) index -= 1;
+        return index < 0 ? '\0' : text[index];
+    }
+
+    private static IReadOnlyList<QueryMaterializedRow> ExecuteQuery(TableDocument document, TableQueryPlan plan, bool json)
+    {
+        string functionName = QueryFunctionName(document);
+        string querySource = BuildQuerySource(document.SourceText, plan.Table.Name, plan.Predicate, functionName);
+        CopelandCompilation compilation = Compile(document.SourcePath, querySource);
+        if (!compilation.Success)
+        {
+            Diagnostic diagnostic = compilation.Diagnostics.First();
+            throw Error("COPE-TABLE-QUERY-0003", "Invalid '--where' expression: " + diagnostic.Message, json, document.SourcePath, querySource, diagnostic.Position);
+        }
+
+        CSharpCompilation emitted = CSharpBackend.Emit(compilation.MirCompilation!.Program!);
+        if (emitted.Diagnostics.Count > 0)
+        {
+            throw Error("COPE-TABLE-QUERY-0016", "The C# query executor is unavailable: " + emitted.Diagnostics[0].Message, json);
+        }
+
+        Array rows = InvokeQueryAssembly(emitted.SourceText, functionName, json);
+        var materialized = new List<QueryMaterializedRow>(rows.Length);
+        for (int index = 0; index < rows.Length; index += 1)
+        {
+            object row = rows.GetValue(index)!;
+            var values = new List<object?>(plan.SourceColumns.Count);
+            foreach (TableColumnSymbol column in plan.SourceColumns)
+            {
+                System.Reflection.PropertyInfo? property = row.GetType().GetProperty(column.Name);
+                if (property is null)
+                {
+                    throw Error("COPE-TABLE-QUERY-0016", $"The C# query executor did not expose column '{column.Name}'.", json);
+                }
+
+                values.Add(NormalizeRuntimeValue(property.GetValue(row)));
+            }
+
+            materialized.Add(new QueryMaterializedRow(index, values));
+        }
+
+        IEnumerable<QueryMaterializedRow> ordered = plan.OrderBy.Count == 0
+            ? materialized
+            : materialized.OrderBy(row => row, new QueryRowComparer(plan.OrderBy));
+        return ordered.Skip(plan.Skip).Take(plan.Take).ToArray();
+    }
+
+    private static string QueryFunctionName(TableDocument document)
+    {
+        var names = document.Tables.Select(table => table.Name).ToHashSet(StringComparer.Ordinal);
+        string candidate = "__tscl_table_query";
+        while (names.Contains(candidate)
+            || document.SourceText.Contains("function " + candidate, StringComparison.Ordinal))
+        {
+            candidate += "_";
+        }
+
+        return candidate;
+    }
+
+    private static string BuildQuerySource(string source, string table, string? predicate, string functionName)
+    {
+        string predicateName = functionName + "_predicate";
+        string predicateFunction = predicate is null
+            ? string.Empty
+            : "function " + predicateName + "(row: " + table + ".Row): boolean { return " + predicate + "; }" + Environment.NewLine;
+        string rows = predicate is null
+            ? table + ".rows().select(row => row)"
+            : table + ".rows().where(" + predicateName + ").select(row => row)";
+        return source + Environment.NewLine + predicateFunction + "function " + functionName + "(): " + table + ".Row[] { return " + rows + "; }" + Environment.NewLine;
+    }
+
+    private static Array InvokeQueryAssembly(string source, string functionName, bool json)
+    {
+        IEnumerable<RoslynMetadataReference> references = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(path => RoslynMetadataReference.CreateFromFile(path));
+        var syntaxTree = RoslynCSharpSyntaxTree.ParseText(source);
+        RoslynCSharpCompilation compilation = RoslynCSharpCompilation.Create(
+            "CopelandTableQuery_" + Guid.NewGuid().ToString("N"),
+            [syntaxTree],
+            references,
+            new RoslynCSharpCompilationOptions(RoslynOutputKind.DynamicallyLinkedLibrary));
+        using var assemblyBytes = new MemoryStream();
+        Microsoft.CodeAnalysis.Emit.EmitResult emission = compilation.Emit(assemblyBytes);
+        if (!emission.Success)
+        {
+            string message = emission.Diagnostics.First(diagnostic => diagnostic.Severity == RoslynDiagnosticSeverity.Error).GetMessage(CultureInfo.InvariantCulture);
+            throw Error("COPE-TABLE-QUERY-0016", "The C# query executor could not compile the typed relation plan: " + message, json);
+        }
+
+        try
+        {
+            System.Reflection.Assembly assembly = System.Reflection.Assembly.Load(assemblyBytes.ToArray());
+            Type module = assembly.GetType("Copeland.Generated.CopelandModule")
+                ?? throw new InvalidOperationException("Generated Copeland module was not found.");
+            System.Reflection.MethodInfo method = module.GetMethod(functionName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+                ?? throw new InvalidOperationException("Generated query method was not found.");
+            return method.Invoke(null, null) as Array
+                ?? throw new InvalidOperationException("Generated query did not return a row array.");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or System.Reflection.TargetInvocationException)
+        {
+            throw Error("COPE-TABLE-QUERY-0016", "The C# query executor failed: " + (exception.InnerException?.Message ?? exception.Message), json);
+        }
+    }
+
+    private static object? NormalizeRuntimeValue(object? value)
+        => value is Enum @enum ? @enum.ToString() : value;
+
+    private static void WriteQueryExplain(TableDocument document, TableQueryPlan plan, string format)
+    {
+        object result = new
+        {
+            schemaVersion = SchemaVersion,
+            success = true,
+            command = "table.query",
+            source = document.SourcePath,
+            table = plan.Table.Name,
+            executor = "csharp-relation-plan",
+            query = QuerySummary(plan),
+            schema = new { columns = plan.Projection.Select(QuerySchema).ToArray() },
+            diagnostics = Array.Empty<object>(),
+        };
+        if (format == "json")
+        {
+            WriteJson(result);
+            return;
+        }
+
+        Console.Out.WriteLine($"table: {plan.Table.Name}");
+        Console.Out.WriteLine("executor: csharp-relation-plan");
+        Console.Out.WriteLine("where: " + (plan.Predicate ?? "<none>"));
+        Console.Out.WriteLine("order-by: " + (plan.OrderBy.Count == 0 ? "source order" : string.Join(", ", plan.OrderBy.Select(term => term.Column.Name + (term.Descending ? " desc" : " asc")))));
+        Console.Out.WriteLine($"skip: {plan.Skip}; take: {plan.Take}");
+        Console.Out.WriteLine("columns: " + string.Join(", ", plan.Projection.Select(column => column.Name + ": " + column.Column.Type.Name)));
+    }
+
+    private static void WriteQueryResult(TableDocument document, TableQueryPlan plan, IReadOnlyList<QueryMaterializedRow> rows, string format)
+    {
+        if (format == "csv")
+        {
+            Console.Out.Write(Csv.Write(
+                plan.Projection.Select(column => column.Name).ToArray(),
+                rows.Select(row => plan.Projection.Select(column => QueryDisplayValue(row.Values[column.SourceIndex])).ToArray()).ToArray()));
+            return;
+        }
+
+        if (format == "json")
+        {
+            WriteJson(new
+            {
+                schemaVersion = SchemaVersion,
+                success = true,
+                command = "table.query",
+                source = document.SourcePath,
+                table = plan.Table.Name,
+                executor = "csharp-relation-plan",
+                schema = new { columns = plan.Projection.Select(QuerySchema).ToArray() },
+                query = QuerySummary(plan),
+                rows = rows.Select(row => plan.Projection.ToDictionary(column => column.Name, column => row.Values[column.SourceIndex], StringComparer.Ordinal)),
+                rowCount = rows.Count,
+                diagnostics = Array.Empty<object>(),
+            });
+            return;
+        }
+
+        string[] headers = plan.Projection.Select(column => column.Name).ToArray();
+        string[][] values = rows.Select(row => plan.Projection.Select(column => QueryDisplayValue(row.Values[column.SourceIndex])).ToArray()).ToArray();
+        int[] widths = headers.Select((header, index) => Math.Min(48, Math.Max(header.Length, values.Length == 0 ? 0 : values.Max(row => Math.Min(48, row[index].Length))))).ToArray();
+        Console.Out.WriteLine(string.Join("  ", headers.Select((header, index) => header.Length <= widths[index] ? header.PadRight(widths[index]) : header[..Math.Max(1, widths[index] - 1)] + "…")));
+        foreach (string[] row in values)
+        {
+            Console.Out.WriteLine(string.Join("  ", row.Select((value, index) => Truncate(value, widths[index]).PadRight(widths[index]))));
+        }
+    }
+
+    private static object QuerySchema(QueryProjection projection)
+        => new { name = projection.Name, type = projection.Column.Type.Name, provenance = projection.Provenance };
+
+    private static object QuerySummary(TableQueryPlan plan)
+        => new
+        {
+            where = plan.Predicate,
+            select = plan.Projection.Select(column => column.Name).ToArray(),
+            orderBy = plan.OrderBy.Select(term => new { column = term.Column.Name, direction = term.Descending ? "descending" : "ascending" }).ToArray(),
+            skip = plan.Skip,
+            take = plan.Take,
+        };
+
+    private static string QueryDisplayValue(object? value)
+        => value switch
+        {
+            null => string.Empty,
+            double number => number.ToString("R", CultureInfo.InvariantCulture),
+            float number => number.ToString("R", CultureInfo.InvariantCulture),
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty,
+            _ => value.ToString() ?? string.Empty,
+        };
+
+    private static string Truncate(string value, int width)
+        => value.Length <= width ? value : value[..Math.Max(1, width - 1)] + "…";
 
     private static TableDocument LoadDocument(string sourcePath)
     {
@@ -1116,7 +1738,7 @@ internal static class TableToolCommand
                 throw Error("COPE-TABLE-TOOL-0002", $"Unknown option '{argument}'.", HasJsonFormat(args));
             }
 
-            bool flag = argument is "--dry-run" or "--replace";
+            bool flag = argument is "--dry-run" or "--replace" or "--explain";
             if (options.ContainsKey(argument))
             {
                 throw Error("COPE-TABLE-TOOL-0003", $"Option '{argument}' was supplied more than once.", HasJsonFormat(args));
@@ -1265,6 +1887,7 @@ internal static class TableToolCommand
     {
         Console.Error.WriteLine("Usage: tscl table list <source> [--format text|json]");
         Console.Error.WriteLine("       tscl table schema|rows <source> <table> [options]");
+        Console.Error.WriteLine("       tscl table query <source> <table> [--where <expression>] [--select <columns>] [--order-by <terms>] [--skip n] [--take n] [--format text|json|csv]");
         Console.Error.WriteLine("       tscl table set|add-row|delete-row <source> <table> [options]");
         Console.Error.WriteLine("       tscl table validate <source> [--format text|json]");
         Console.Error.WriteLine("       tscl table export|import <source> <table> --format csv [options]");
@@ -1293,6 +1916,61 @@ internal static class TableToolCommand
     }
 
     private sealed record RowValue(int Index, IReadOnlyDictionary<string, object?> Values);
+    private sealed record TableQueryRequest(
+        string? Where,
+        IReadOnlyList<QuerySelectRequest> Select,
+        IReadOnlyList<QueryOrderRequest> OrderBy,
+        int Skip,
+        int Take);
+    private sealed record QuerySelectRequest(string Column, string? Alias);
+    private sealed record QueryOrderRequest(string Column, string Direction);
+    private sealed record TableQueryPlan(
+        TableModel Table,
+        IReadOnlyList<TableColumnSymbol> SourceColumns,
+        string? Predicate,
+        IReadOnlyList<QueryProjection> Projection,
+        IReadOnlyList<QueryOrderTerm> OrderBy,
+        int Skip,
+        int Take);
+    private sealed record QueryProjection(string Name, TableColumnSymbol Column, int SourceIndex, QueryColumnProvenance Provenance);
+    private sealed record QueryOrderTerm(TableColumnSymbol Column, int SourceIndex, bool Descending);
+    private sealed record QueryColumnProvenance(string Kind, string SourceTable, IReadOnlyList<string> Inputs, IReadOnlyList<string> Relationships);
+    private sealed record QueryMaterializedRow(int SourceIndex, IReadOnlyList<object?> Values);
+
+    private sealed class QueryRowComparer(IReadOnlyList<QueryOrderTerm> terms) : IComparer<QueryMaterializedRow>
+    {
+        public int Compare(QueryMaterializedRow? left, QueryMaterializedRow? right)
+        {
+            if (left is null || right is null) return ReferenceEquals(left, right) ? 0 : left is null ? -1 : 1;
+            foreach (QueryOrderTerm term in terms)
+            {
+                int comparison = CompareValue(left.Values[term.SourceIndex], right.Values[term.SourceIndex], term.Column.Type);
+                if (comparison != 0) return term.Descending ? -comparison : comparison;
+            }
+
+            return left.SourceIndex.CompareTo(right.SourceIndex);
+        }
+
+        private static int CompareValue(object? left, object? right, TypeSymbol type)
+        {
+            if (type == PrimitiveTypeSymbol.String)
+            {
+                return StringComparer.Ordinal.Compare((string?)left, (string?)right);
+            }
+
+            if (type == PrimitiveTypeSymbol.Int)
+            {
+                return ((int)left!).CompareTo((int)right!);
+            }
+
+            if (type == PrimitiveTypeSymbol.Float || type == PrimitiveTypeSymbol.Number)
+            {
+                return ((double)left!).CompareTo((double)right!);
+            }
+
+            throw new InvalidOperationException($"Unexpected query ordering type '{type.Name}'.");
+        }
+    }
     private sealed record TextSpan(int Start, int Length) { public int End => Start + Length; }
     private sealed record TextEdit(TextSpan Span, string Replacement);
     private sealed record ToolDiagnostic(string Code, string Message, string? File, int? Line, int? Column);

@@ -1729,6 +1729,51 @@ function value(flag: boolean): number {
         Assert.Contains("Site.hero", inspection.StdOut, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Table_query_executes_typed_derived_relations_without_writing_source()
+    {
+        using var temp = new TempDir();
+        string sourcePath = temp.WriteFile("Workbook.ts", """
+            export record table Categories { key id: int = [10, 20]; name: string = ["Coffee", "Equipment"]; }
+            export record table Products { key id: int = [1, 2, 3]; reference categoryId: int -> Categories.id = [10, 20, 10]; name: string = ["Beans", "Kettle", "Filter"]; }
+            export record table Prices { key reference productId: int -> Products.id = [1, 2, 3]; retail: number = [18.5, 42.0, 16.25]; cost: number = [9.25, 21.0, 7.5]; }
+            export record table ProductCatalog = derive Products as product
+                join Categories as category through product.categoryId
+                join Prices as price through price.productId {
+                productName: string = product.name;
+                categoryName: string = category.name;
+                retail: number = price.retail;
+                margin: number = price.retail - price.cost;
+            }
+            """);
+        string queryPath = temp.WriteFile("query.json", """
+            {"where":{"operator":"greaterThan","left":{"column":"retail"},"right":{"number":15.0}},"select":[{"column":"productName"},{"column":"retail","as":"price"}],"orderBy":[{"column":"retail","direction":"descending"}],"skip":1,"take":1}
+            """);
+        byte[] before = await File.ReadAllBytesAsync(sourcePath);
+
+        CliResult text = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--where", "retail > 15.0", "--select", "productName, categoryName, retail", "--order-by", "retail desc", "--take", "2");
+        CliResult authored = await RunCliAsync(temp.Path, "table", "query", sourcePath, "Products", "--select", "name", "--order-by", "name asc", "--take", "1", "--format", "json");
+        CliResult structured = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--query-json", queryPath, "--format", "json");
+        CliResult csv = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--select", "productName, retail", "--order-by", "retail desc", "--take", "1", "--format", "csv");
+        CliResult explain = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--where", "retail > 15.0", "--explain", "--format", "json");
+        CliResult invalid = await RunCliAsync(temp.Path, "table", "query", sourcePath, "ProductCatalog", "--where", "missing > 0", "--format", "json");
+
+        Assert.Equal(0, text.ExitCode);
+        Assert.Contains("Kettle", text.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, authored.ExitCode);
+        Assert.Contains("\"name\": \"Beans\"", authored.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, structured.ExitCode);
+        Assert.Contains("\"command\": \"table.query\"", structured.StdOut, StringComparison.Ordinal);
+        Assert.Contains("\"productName\": \"Beans\"", structured.StdOut, StringComparison.Ordinal);
+        Assert.Equal(0, csv.ExitCode);
+        Assert.Equal("productName,retail\nKettle,42\n", csv.StdOut);
+        Assert.Equal(0, explain.ExitCode);
+        Assert.Contains("csharp-relation-plan", explain.StdOut, StringComparison.Ordinal);
+        Assert.Equal(1, invalid.ExitCode);
+        Assert.Contains("COPE-TABLE-QUERY-0003", invalid.StdOut, StringComparison.Ordinal);
+        Assert.Equal(before, await File.ReadAllBytesAsync(sourcePath));
+    }
+
     private static async Task<CliResult> RunCliAsync(string workingDirectory, params string[] args)
     {
         var startInfo = new ProcessStartInfo
