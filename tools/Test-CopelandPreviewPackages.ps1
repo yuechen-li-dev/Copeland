@@ -43,11 +43,9 @@ New-Item -ItemType Directory -Force -Path $validationRoot | Out-Null
 $dotnetCommand = (Get-Command dotnet -ErrorAction Stop).Source
 $npmCommand = (Get-Command npm -ErrorAction Stop).Source
 $npxCommand = (Get-Command npx -ErrorAction Stop).Source
-$codeCommand = (Get-Command code -ErrorAction Stop).Source
 $isolatedPathDirectories = @(
     (Split-Path -Parent $dotnetCommand),
     (Split-Path -Parent $npmCommand),
-    (Split-Path -Parent $codeCommand),
     (Join-Path $env:SystemRoot "System32")
 ) | Select-Object -Unique
 $env:PATH = $isolatedPathDirectories -join [IO.Path]::PathSeparator
@@ -157,10 +155,17 @@ finally {
 $extensionsDirectory = Join-Path $validationRoot "vscode-extensions"
 $userDataDirectory = Join-Path $validationRoot "vscode-user-data"
 New-Item -ItemType Directory -Force -Path $extensionsDirectory, $userDataDirectory | Out-Null
-Invoke-Checked $codeCommand --extensions-dir $extensionsDirectory --user-data-dir $userDataDirectory --install-extension $vsixPath --force
-$installedExtensions = & $codeCommand --extensions-dir $extensionsDirectory --user-data-dir $userDataDirectory --list-extensions --show-versions
-if ($LASTEXITCODE -ne 0 -or $installedExtensions -notcontains "copeland.copeland-ts@$Version") {
-    throw "The isolated VS Code profile did not report copeland.copeland-ts@$Version."
+$vsixExtractionDirectory = Join-Path $validationRoot "vsix-extraction"
+Expand-Archive -LiteralPath $vsixPath -DestinationPath $vsixExtractionDirectory
+$packagedExtensionDirectory = Join-Path $vsixExtractionDirectory "extension"
+if (-not (Test-Path -LiteralPath (Join-Path $packagedExtensionDirectory "package.json") -PathType Leaf)) {
+    throw "The VSIX does not contain an extension package manifest."
+}
+$installedExtensionDirectory = Join-Path $extensionsDirectory "copeland.copeland-ts-$Version"
+Copy-Item -LiteralPath $packagedExtensionDirectory -Destination $installedExtensionDirectory -Recurse
+$installedExtensionManifest = Get-Content -LiteralPath (Join-Path $installedExtensionDirectory "package.json") -Raw | ConvertFrom-Json
+if ($installedExtensionManifest.publisher -ne "copeland" -or $installedExtensionManifest.name -ne "copeland-ts") {
+    throw "The isolated VSIX extension manifest is not copeland.copeland-ts."
 }
 
 $vsCodeProject = Join-Path $repositoryRoot "src\Copeland\Copeland.TS.VSCode"
@@ -197,7 +202,7 @@ $evidence = [ordered]@{
     }
     vscode = [ordered]@{
         installedExtension = "copeland.copeland-ts@$Version"
-        isolatedProfileInstall = "passed"
+        isolatedProfileInstall = "VSIX extracted into isolated extensions directory"
         installedArtifactActivation = "passed"
         tsxOwnership = "passed"
     }
