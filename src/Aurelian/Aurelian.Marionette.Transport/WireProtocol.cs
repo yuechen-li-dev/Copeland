@@ -264,7 +264,6 @@ public sealed class MarionetteTransportClient
         while (!state.WorldReady && DateTimeOffset.UtcNow < deadline)
         {
             await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
-            after = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
             string stateId = Guid.NewGuid().ToString("N");
             await MarionetteWireProtocol.WriteAsync(pipe, new SessionLoadStateRequest(MarionetteWireProtocol.Version, "query_session_load_state", stateId, 3), cancellationToken).ConfigureAwait(false);
             state = await MarionetteWireProtocol.ReadAsync<SessionLoadResult>(pipe, cancellationToken).ConfigureAwait(false);
@@ -273,6 +272,17 @@ public sealed class MarionetteTransportClient
             {
                 throw new InvalidDataException($"session_load_failed:{state.FailureReason ?? state.Status}");
             }
+
+            SkyrimStateResult? observed = await TryQueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+            if (observed is not null)
+            {
+                after = observed;
+            }
+        }
+
+        if (state.WorldReady)
+        {
+            after = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
         }
 
         if (!state.WorldReady || !state.PlayerAvailable || state.PlayerFormId != 0x14 || after.Status != "completed" || after.PlayerFormId != 0x14)
@@ -291,6 +301,18 @@ public sealed class MarionetteTransportClient
         SkyrimStateResult result = await MarionetteWireProtocol.ReadAsync<SkyrimStateResult>(pipe, cancellationToken).ConfigureAwait(false);
         if (result.Status != "completed" || result.RequestId != id) throw new InvalidDataException("skyrim_state_query_failed");
         return result;
+    }
+
+    private async ValueTask<SkyrimStateResult?> TryQueryStateAsync(Stream pipe, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidDataException)
+        {
+            return null;
+        }
     }
 
     private static async ValueTask<HostMutationResult> SendMutationAsync<T>(Stream pipe, T request, CancellationToken cancellationToken)
