@@ -75,4 +75,23 @@ public sealed class WireProtocolTests
         Assert.Equal("failed", result.Status);
         Assert.Equal("dispatch_timeout", result.Diagnostic);
     }
+
+    [Fact]
+    public async Task KnownActuatorMessages_RoundTripWithBoundedShape()
+    {
+        var request = new MoveHostKnownSpikeRequest(MarionetteWireProtocol.Version, "move_host_known_spike", "move-1", 7, 64, "positive_y", 250);
+        using var stream = new MemoryStream(MarionetteWireProtocol.Encode(request));
+        MoveHostKnownSpikeRequest result = await MarionetteWireProtocol.ReadAsync<MoveHostKnownSpikeRequest>(stream, CancellationToken.None);
+        Assert.Equal(request, result);
+    }
+
+    [Fact]
+    public async Task HostMutationResult_PreservesRestorationEvidence()
+    {
+        var response = new HostMutationResult(1, "restore_host_session_result", "restore-1", 8, "completed", null, false, 3, 7, 20, 0x14, 0x14, true, true, true, true, true, [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]);
+        using var stream = new MemoryStream(MarionetteWireProtocol.Encode(response));
+        HostMutationResult result = await MarionetteWireProtocol.ReadAsync<HostMutationResult>(stream, CancellationToken.None);
+        Assert.True(result.SessionCleared);
+        Assert.Equal((uint)0x14, result.CameraTargetFormId);
+    }
 }
