@@ -5,5 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Aurelian.Actuation/Aurelian.Actuation.csproj" />
+    <PackageReference Include="Dominatus.Core" />
+    <PackageReference Include="Dominatus.OptFlow" />
   </ItemGroup>
 </Project>

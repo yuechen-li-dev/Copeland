@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using Aurelian.Actuation.Host;
 using Xunit;
 
 namespace Aurelian.Marionette.Transport.Tests;
@@ -111,6 +112,35 @@ public sealed class WireProtocolTests
         using var stream = new MemoryStream(MarionetteWireProtocol.Encode(request));
         MoveHostKnownSpikeRequest result = await MarionetteWireProtocol.ReadAsync<MoveHostKnownSpikeRequest>(stream, CancellationToken.None);
         Assert.Equal(request, result);
+    }
+
+    [Fact]
+    public async Task MoveTowardMessage_RoundTripsAsSemanticValues()
+    {
+        var request = new MoveTowardRequest(1, "move_toward", "move-2", 7, 0x1234, 11, 10, 20, 30, 16, 64, "walk", 2000);
+        using var stream = new MemoryStream(MarionetteWireProtocol.Encode(request));
+        MoveTowardRequest result = await MarionetteWireProtocol.ReadAsync<MoveTowardRequest>(stream, CancellationToken.None);
+        Assert.Equal(request, result);
+        Assert.DoesNotContain("pointer", System.Text.Encoding.UTF8.GetString(MarionetteWireProtocol.Encode(request)), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ActorSnapshot_MapsUnsupportedFieldsHonestlyAndGatesExperimentalMove()
+    {
+        var state = new SkyrimStateResult(
+            1, "skyrim_state_result", "state-2", 12, "completed", null, true, 11,
+            true, 0x14, null, false, null, null, true, 7, 0x1234, 0x1234,
+            true, 7, 0x1234, true, false, false, 10, 20, 30, 1.5f, 0x18,
+            null, null, null, "supported", "unsupported", "experimental", "supported",
+            "unsupported", "unsupported", "unsupported", "unsupported");
+
+        HostActorObservation actor = MarionetteTransportClient.ToActorObservation(state);
+
+        Assert.Equal(new HostActorId(0x1234, 7), actor.ActorId);
+        Assert.Null(actor.Velocity);
+        Assert.True(actor.Capabilities.CanMoveToward);
+        Assert.Equal(HostCapabilitySupport.Unsupported, actor.Capabilities.AnimatedLocomotion);
+        Assert.Equal((ulong)11, actor.Sequence);
     }
 
     [Fact]

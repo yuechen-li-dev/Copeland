@@ -6,9 +6,9 @@ internal static class Program
 {
     private static async Task<int> Main(string[] args)
     {
-        if (args.Length != 3 || (args[0] != "loopback" && args[0] != "scenario" && args[0] != "session-bootstrap" && args[0] != "eligible-host-fixtures" && args[0] != "disconnect-restoration") || args[1] != "--config")
+        if (args.Length != 3 || (args[0] != "loopback" && args[0] != "scenario" && args[0] != "session-bootstrap" && args[0] != "eligible-host-fixtures" && args[0] != "disconnect-restoration" && args[0] != "dominatus-skyrim") || args[1] != "--config")
         {
-            Console.Error.WriteLine("Usage: Aurelian.Marionette.Transport <loopback|scenario|session-bootstrap|eligible-host-fixtures|disconnect-restoration> --config <ignored-local-config.json>");
+            Console.Error.WriteLine("Usage: Aurelian.Marionette.Transport <loopback|scenario|session-bootstrap|eligible-host-fixtures|disconnect-restoration|dominatus-skyrim> --config <ignored-local-config.json>");
             return 2;
         }
 
@@ -28,6 +28,9 @@ internal static class Program
             } else if (args[0] == "disconnect-restoration") {
                 DisconnectRestorationReport report = await client.RunDisconnectRestorationScenarioAsync(CancellationToken.None).ConfigureAwait(false);
                 Console.WriteLine(JsonSerializer.Serialize(report, MarionetteWireJsonContext.Default.DisconnectRestorationReport));
+            } else if (args[0] == "dominatus-skyrim") {
+                DominatusSkyrimReport report = await client.RunDominatusSkyrimScenarioAsync(CancellationToken.None).ConfigureAwait(false);
+                Console.WriteLine(JsonSerializer.Serialize(report, MarionetteWireJsonContext.Default.DominatusSkyrimReport));
             } else {
                 LoopbackReport report = await client.RunLoopbackAsync(CancellationToken.None).ConfigureAwait(false);
                 Console.WriteLine(JsonSerializer.Serialize(report, MarionetteWireJsonContext.Default.LoopbackReport));

@@ -15,6 +15,7 @@ public enum HostCommandKind
     ActivateTarget,
     BasicAttack,
     EmergencyRestore,
+    MoveToward,
 }
 
 public enum HostActionState
@@ -26,6 +27,12 @@ public enum HostActionState
     Rejected,
     Failed,
     TimedOut,
+    Blocked,
+    Interrupted,
+    TargetInvalid,
+    ActorUnloaded,
+    Unsupported,
+    EngineRefused,
 }
 
 public enum HostCameraMode
@@ -48,6 +55,75 @@ public sealed record LookIntentArguments(float YawDeltaDegrees, float PitchDelta
 
 public sealed record ActivateTargetArguments(uint TargetFormId) : HostCommandArguments;
 
+public readonly record struct HostActorId(uint FormId, ulong Generation)
+{
+    public bool IsValid => FormId != 0 && Generation != 0;
+}
+
+public readonly record struct HostPosition3(float X, float Y, float Z)
+{
+    public bool IsFinite => float.IsFinite(X) && float.IsFinite(Y) && float.IsFinite(Z);
+
+    public float DistanceTo(HostPosition3 other)
+    {
+        float x = other.X - X;
+        float y = other.Y - Y;
+        float z = other.Z - Z;
+        return MathF.Sqrt((x * x) + (y * y) + (z * z));
+    }
+}
+
+public readonly record struct HostVelocity3(float X, float Y, float Z);
+
+public enum HostActorLifeState
+{
+    Unknown,
+    Alive,
+    Dead,
+}
+
+public enum HostActorMovementState
+{
+    Unknown,
+    Idle,
+    Moving,
+}
+
+public enum HostCapabilitySupport
+{
+    Unsupported,
+    Experimental,
+    Supported,
+}
+
+public enum HostMovementSpeedPolicy
+{
+    Walk,
+    Run,
+}
+
+public sealed record HostCapabilitySnapshot(
+    HostCapabilitySupport BoundedDirectDisplacement,
+    HostCapabilitySupport AnimatedLocomotion,
+    HostCapabilitySupport GoalDirectedMovement,
+    HostCapabilitySupport CameraFollowing,
+    HostCapabilitySupport ActorActivation,
+    HostCapabilitySupport Attack,
+    HostCapabilitySupport Jump,
+    HostCapabilitySupport Sneak)
+{
+    public bool CanMoveToward => GoalDirectedMovement is
+        HostCapabilitySupport.Experimental or HostCapabilitySupport.Supported;
+}
+
+public sealed record MoveTowardArguments(
+    HostActorId ActorId,
+    HostPosition3 TargetPosition,
+    float StoppingDistance,
+    float MaximumDistance,
+    HostMovementSpeedPolicy SpeedPolicy,
+    ulong ExpectedObservationSequence) : HostCommandArguments;
+
 /// <summary>
 /// One correlation-safe, host-generation-checked command. The caller owns the
 /// request ID and chooses a short bounded lifetime.
@@ -61,6 +137,8 @@ public sealed record HostCommandRequest(
 {
     public const float MaximumMoveIntent = 1.0f;
     public const float MaximumLookDeltaDegrees = 180.0f;
+    public const float MaximumMoveTowardDistance = 64.0f;
+    public const float MaximumStoppingDistance = 256.0f;
     public static readonly TimeSpan MaximumTimeout = TimeSpan.FromSeconds(10);
 
     public HostCommandValidationResult Validate()
@@ -95,7 +173,9 @@ public sealed record HostCommandRequest(
                 => activation.TargetFormId == 0
                     ? HostCommandValidationResult.Invalid("target_form_id_missing")
                     : HostCommandValidationResult.Valid,
-            HostCommandKind.SetMoveIntent or HostCommandKind.SetLookIntent or HostCommandKind.ActivateTarget
+            HostCommandKind.MoveToward when Arguments is MoveTowardArguments moveToward
+                => ValidateMoveToward(moveToward),
+            HostCommandKind.SetMoveIntent or HostCommandKind.SetLookIntent or HostCommandKind.ActivateTarget or HostCommandKind.MoveToward
                 => HostCommandValidationResult.Invalid("arguments_do_not_match_command"),
             _ when Arguments is EmptyHostCommandArguments => HostCommandValidationResult.Valid,
             _ => HostCommandValidationResult.Invalid("arguments_not_allowed_for_command"),
@@ -121,6 +201,40 @@ public sealed record HostCommandRequest(
             || MathF.Abs(arguments.PitchDeltaDegrees) > MaximumLookDeltaDegrees)
         {
             return HostCommandValidationResult.Invalid("look_intent_out_of_range");
+        }
+
+        return HostCommandValidationResult.Valid;
+    }
+
+    private HostCommandValidationResult ValidateMoveToward(MoveTowardArguments arguments)
+    {
+        if (!arguments.ActorId.IsValid || arguments.ActorId.Generation != ExpectedHostGeneration)
+        {
+            return HostCommandValidationResult.Invalid("actor_generation_mismatch");
+        }
+
+        if (!arguments.TargetPosition.IsFinite)
+        {
+            return HostCommandValidationResult.Invalid("target_position_invalid");
+        }
+
+        if (!float.IsFinite(arguments.StoppingDistance)
+            || arguments.StoppingDistance < 0.0f
+            || arguments.StoppingDistance > MaximumStoppingDistance)
+        {
+            return HostCommandValidationResult.Invalid("stopping_distance_out_of_range");
+        }
+
+        if (!float.IsFinite(arguments.MaximumDistance)
+            || arguments.MaximumDistance <= 0.0f
+            || arguments.MaximumDistance > MaximumMoveTowardDistance)
+        {
+            return HostCommandValidationResult.Invalid("move_toward_distance_out_of_range");
+        }
+
+        if (arguments.ExpectedObservationSequence == 0)
+        {
+            return HostCommandValidationResult.Invalid("observation_sequence_missing");
         }
 
         return HostCommandValidationResult.Valid;
@@ -154,6 +268,26 @@ public sealed record ActiveHostObservation(
     float VelocityZ,
     string? AnimationState);
 
+/// <summary>
+/// Small value-only actor snapshot suitable for deterministic decision, fake,
+/// and replay use. Nullable fields mean the backend could not safely observe
+/// the value; they are not invitations to dump host state.
+/// </summary>
+public sealed record HostActorObservation(
+    HostActorId ActorId,
+    HostPosition3 Position,
+    float? HeadingRadians,
+    HostVelocity3? Velocity,
+    HostActorLifeState LifeState,
+    HostActorMovementState MovementState,
+    bool Loaded,
+    uint? CurrentCellFormId,
+    HostActorId? CurrentTarget,
+    float? DistanceToGoal,
+    HostActionState ActionState,
+    HostCapabilitySnapshot Capabilities,
+    ulong Sequence);
+
 public sealed record PlayerAnchorObservation(uint PlayerFormId, float PositionX, float PositionY, float PositionZ);
 
 public sealed record CameraObservation(uint TargetFormId, HostCameraMode Mode);
@@ -162,7 +296,23 @@ public sealed record CrosshairObservation(uint TargetFormId);
 
 public sealed record MovementObservation(bool ControllerObserved, bool Moving);
 
-public sealed record HostActionResult(Guid RequestId, HostActionState State, string? FailureReason);
+public sealed record HostActionResult(
+    Guid RequestId,
+    HostActionState State,
+    string? FailureReason,
+    HostActorObservation? Observation = null)
+{
+    public bool IsTerminal => State is HostActionState.Completed
+        or HostActionState.Rejected
+        or HostActionState.Failed
+        or HostActionState.TimedOut
+        or HostActionState.Blocked
+        or HostActionState.Interrupted
+        or HostActionState.TargetInvalid
+        or HostActionState.ActorUnloaded
+        or HostActionState.Unsupported
+        or HostActionState.EngineRefused;
+}
 
 /// <summary>
 /// Ordered host observation envelope. Sequence numbers are assigned by the
@@ -175,7 +325,8 @@ public sealed record HostRuntimeObservation(
     CameraObservation Camera,
     CrosshairObservation Crosshair,
     MovementObservation Movement,
-    HostActionResult? Action);
+    HostActionResult? Action,
+    HostActorObservation? Actor = null);
 
 public interface IHostPresenterBackend
 {
