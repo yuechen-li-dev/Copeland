@@ -110,4 +110,20 @@ public sealed class WireProtocolTests
         Assert.True(decodedResponse.Eligible);
         Assert.Equal((uint)4, decodedResponse.PendingRequestGeneration);
     }
+
+    [Fact]
+    public async Task SessionBootstrapMessages_RoundTripWithoutSaveFilename()
+    {
+        var request = new LoadDevelopmentSessionRequest(MarionetteWireProtocol.Version, "load_development_session", "load-1", "ed-m2b2d", 5000);
+        using var requestStream = new MemoryStream(MarionetteWireProtocol.Encode(request));
+        LoadDevelopmentSessionRequest roundTrippedRequest = await MarionetteWireProtocol.ReadAsync<LoadDevelopmentSessionRequest>(requestStream, CancellationToken.None);
+        Assert.Equal("ed-m2b2d", roundTrippedRequest.SaveId);
+
+        var response = new SessionLoadResult(1, "session_load_state_result", "state-1", 9, "completed", "ed-m2b2d", 2, "ready", true, 0x14, true, 7, null);
+        using var responseStream = new MemoryStream(MarionetteWireProtocol.Encode(response));
+        SessionLoadResult roundTrippedResponse = await MarionetteWireProtocol.ReadAsync<SessionLoadResult>(responseStream, CancellationToken.None);
+        Assert.Equal((uint)0x14, roundTrippedResponse.PlayerFormId);
+        Assert.True(roundTrippedResponse.WorldReady);
+        Assert.DoesNotContain(".ess", System.Text.Encoding.UTF8.GetString(MarionetteWireProtocol.Encode(response)));
+    }
 }

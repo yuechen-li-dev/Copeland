@@ -108,10 +108,14 @@ public sealed record MoveHostKnownSpikeRequest(int ProtocolVersion, string Messa
 public sealed record RestoreHostSessionRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedHostGeneration, int TimeoutMilliseconds);
 public sealed record EmergencyRestoreRequest(int ProtocolVersion, string MessageKind, string RequestId, int TimeoutMilliseconds);
 public sealed record EvaluateHostRequestRequest(int ProtocolVersion, string MessageKind, string RequestId, uint TargetFormId, int TimeoutMilliseconds);
+public sealed record LoadDevelopmentSessionRequest(int ProtocolVersion, string MessageKind, string RequestId, string SaveId, int TimeoutMilliseconds);
+public sealed record SessionLoadStateRequest(int ProtocolVersion, string MessageKind, string RequestId, long ClientSequence);
+public sealed record SessionLoadResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string SaveId, ulong LoadGeneration, string SessionPhase, bool PlayerAvailable, uint? PlayerFormId, bool WorldReady, ulong RuntimeSequence, string? FailureReason);
 public sealed record EvaluateHostRequestResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, uint TargetFormId, bool Eligible, string EligibilityReason, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, string RequestTransition, ulong RuntimeSequence, string? FailureReason);
 public sealed record HostMutationResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? FailureReason, bool OutcomeUncertain, ulong RuntimeSequence, uint HostGeneration, uint HostFormId, uint PlayerFormId, uint CameraTargetFormId, bool PlayerControlRestored, bool TargetPositionRestored, bool TargetAiRestored, bool TargetDeadRestored, bool SessionCleared, float[] HostPositionBefore, float[] HostPositionAfter, float[] PlayerPositionBefore, float[] PlayerPositionAfter);
 public sealed record LoopbackReport(int ProtocolVersion, string Profile, bool Authenticated, string SessionId, bool PipeConnected, string PingRequestId, bool PingCompleted, string TransportStateRequestId, bool TransportStateCompleted, string SkyrimStateRequestId, bool SkyrimStateCompleted, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId, bool PresenterTransportEnabled, bool SemanticActuationEnabled, ulong ServerSequenceStart, ulong ServerSequenceEnd, bool GracefulDisconnect);
 public sealed record KnownActuatorReport(int ProtocolVersion, string SessionId, bool Authenticated, uint TargetFormId, bool EvaluateAccepted, string EligibilityReason, bool InvalidTargetTested, string InvalidTargetReason, bool PendingCorrelationVerified, uint PendingRequestGeneration, uint PendingTargetFormId, bool SkyrimForegroundAtEvaluate, bool SkyrimForegroundAtBegin, bool SkyrimForegroundAtMove, bool SkyrimForegroundAtRestore, bool BeginAccepted, uint HostGeneration, bool MoveCompleted, float ObservedHostDistance, float ObservedPlayerDistance, bool RestoreCompleted, bool SessionCleared, ulong ServerSequenceStart, ulong ServerSequenceEnd);
+public sealed record SessionBootstrapReport(int ProtocolVersion, string SessionId, bool Authenticated, string SaveId, string LoadRequestId, ulong LoadGeneration, bool LoadAccepted, bool PostLoadGameObserved, bool PlayerAvailable, uint? PlayerFormId, bool WorldReady, bool SkyrimForegroundAtRequest, bool SkyrimForegroundAtReady, bool QueryAfterLoadCompleted, ulong ServerSequenceStart, ulong ServerSequenceEnd, ulong RuntimeSequenceStart, ulong RuntimeSequenceEnd);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(LocalTransportConfig))]
@@ -127,10 +131,14 @@ public sealed record KnownActuatorReport(int ProtocolVersion, string SessionId, 
 [JsonSerializable(typeof(RestoreHostSessionRequest))]
 [JsonSerializable(typeof(EmergencyRestoreRequest))]
 [JsonSerializable(typeof(EvaluateHostRequestRequest))]
+[JsonSerializable(typeof(LoadDevelopmentSessionRequest))]
+[JsonSerializable(typeof(SessionLoadStateRequest))]
+[JsonSerializable(typeof(SessionLoadResult))]
 [JsonSerializable(typeof(EvaluateHostRequestResult))]
 [JsonSerializable(typeof(HostMutationResult))]
 [JsonSerializable(typeof(LoopbackReport))]
 [JsonSerializable(typeof(KnownActuatorReport))]
+[JsonSerializable(typeof(SessionBootstrapReport))]
 internal sealed partial class MarionetteWireJsonContext : JsonSerializerContext;
 
 public sealed class MarionetteTransportClient
@@ -223,6 +231,59 @@ public sealed class MarionetteTransportClient
         return new KnownActuatorReport(MarionetteWireProtocol.Version, hello.SessionId, true, targetFormId, true, evaluate.EligibilityReason, true, invalid.EligibilityReason, true, pending.PendingRequestGeneration.Value, pending.PendingTargetFormId.Value, foregroundAtEvaluate, foregroundAtBegin, foregroundAtMove, foregroundAtRestore, true, begin.HostGeneration, true, hostDistance, playerDistance, true, true, evaluate.ServerSequence, restore.ServerSequence);
     }
 
+    public async ValueTask<SessionBootstrapReport> RunSessionBootstrapAsync(CancellationToken cancellationToken)
+    {
+        using var pipe = new System.IO.Pipes.NamedPipeClientStream(".", _config.PipeName, System.IO.Pipes.PipeDirection.InOut, System.IO.Pipes.PipeOptions.Asynchronous);
+        await pipe.ConnectAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+        await MarionetteWireProtocol.WriteAsync(pipe, new ClientHello(MarionetteWireProtocol.Version, "client_hello", _config.Profile, Guid.NewGuid().ToString("N"), _config.Token, _config.ClientName), cancellationToken).ConfigureAwait(false);
+        ServerHello hello = await MarionetteWireProtocol.ReadAsync<ServerHello>(pipe, cancellationToken).ConfigureAwait(false);
+        if (!hello.Accepted || string.IsNullOrWhiteSpace(hello.SessionId))
+        {
+            throw new InvalidDataException("handshake_rejected");
+        }
+
+        string pingId = Guid.NewGuid().ToString("N");
+        await MarionetteWireProtocol.WriteAsync(pipe, new TransportRequest(MarionetteWireProtocol.Version, "ping", pingId, 1), cancellationToken).ConfigureAwait(false);
+        TransportResult ping = await MarionetteWireProtocol.ReadAsync<TransportResult>(pipe, cancellationToken).ConfigureAwait(false);
+        ValidateResult(ping, "ping_result", pingId);
+
+        SkyrimStateResult before = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+        bool foregroundAtRequest = IsSkyrimForeground();
+        string loadId = Guid.NewGuid().ToString("N");
+        await MarionetteWireProtocol.WriteAsync(pipe, new LoadDevelopmentSessionRequest(MarionetteWireProtocol.Version, "load_development_session", loadId, "ed-m2b2d", 5000), cancellationToken).ConfigureAwait(false);
+        SessionLoadResult load = await MarionetteWireProtocol.ReadAsync<SessionLoadResult>(pipe, cancellationToken).ConfigureAwait(false);
+        ValidateSessionLoadResult(load, "load_development_session_result", loadId);
+        if (load.Status != "loading" || load.SaveId != "ed-m2b2d" || load.LoadGeneration == 0)
+        {
+            throw new InvalidDataException($"session_load_rejected:{load.FailureReason ?? load.Status}");
+        }
+
+        SessionLoadResult state = load;
+        SkyrimStateResult after = before;
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(45);
+        while (!state.WorldReady && DateTimeOffset.UtcNow < deadline)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+            after = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+            string stateId = Guid.NewGuid().ToString("N");
+            await MarionetteWireProtocol.WriteAsync(pipe, new SessionLoadStateRequest(MarionetteWireProtocol.Version, "query_session_load_state", stateId, 3), cancellationToken).ConfigureAwait(false);
+            state = await MarionetteWireProtocol.ReadAsync<SessionLoadResult>(pipe, cancellationToken).ConfigureAwait(false);
+            ValidateSessionLoadResult(state, "session_load_state_result", stateId);
+            if (state.Status is "failed" or "timed_out")
+            {
+                throw new InvalidDataException($"session_load_failed:{state.FailureReason ?? state.Status}");
+            }
+        }
+
+        if (!state.WorldReady || !state.PlayerAvailable || state.PlayerFormId != 0x14 || after.Status != "completed" || after.PlayerFormId != 0x14)
+        {
+            throw new TimeoutException("world_ready_not_observed");
+        }
+
+        bool foregroundAtReady = IsSkyrimForeground();
+        return new SessionBootstrapReport(MarionetteWireProtocol.Version, hello.SessionId, true, state.SaveId, loadId, state.LoadGeneration, true, state.SessionPhase is "player_pending" or "world_pending" or "ready", state.PlayerAvailable, state.PlayerFormId, state.WorldReady, foregroundAtRequest, foregroundAtReady, after.Status == "completed", ping.ServerSequence, state.ServerSequence, before.RuntimeSequence, after.RuntimeSequence);
+    }
+
     private async ValueTask<SkyrimStateResult> QueryStateAsync(Stream pipe, CancellationToken cancellationToken)
     {
         string id = Guid.NewGuid().ToString("N");
@@ -248,6 +309,16 @@ public sealed class MarionetteTransportClient
         }
 
         return result;
+    }
+
+    private void ValidateSessionLoadResult(SessionLoadResult result, string messageKind, string requestId)
+    {
+        if (result.MessageKind != messageKind || result.RequestId != requestId || result.ServerSequence <= _lastServerSequence)
+        {
+            throw new InvalidDataException("session_load_correlation_or_sequence_invalid");
+        }
+
+        _lastServerSequence = result.ServerSequence;
     }
 
     private static float Distance(float[] before, float[] after)
