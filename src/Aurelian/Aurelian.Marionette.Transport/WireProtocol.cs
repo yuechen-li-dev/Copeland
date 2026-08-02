@@ -120,6 +120,7 @@ public sealed record LoopbackReport(int ProtocolVersion, string Profile, bool Au
 public sealed record KnownActuatorReport(int ProtocolVersion, string SessionId, bool Authenticated, uint TargetFormId, bool EvaluateAccepted, string EligibilityReason, bool InvalidTargetTested, string InvalidTargetReason, bool PendingCorrelationVerified, uint PendingRequestGeneration, uint PendingTargetFormId, bool SkyrimForegroundAtEvaluate, bool SkyrimForegroundAtBegin, bool SkyrimForegroundAtMove, bool SkyrimForegroundAtRestore, bool BeginAccepted, uint HostGeneration, bool MoveCompleted, float ObservedHostDistance, float ObservedPlayerDistance, bool RestoreCompleted, bool SessionCleared, ulong ServerSequenceStart, ulong ServerSequenceEnd);
 public sealed record DeterministicHostFixtureReport(int ProtocolVersion, string SessionId, bool Authenticated, string FixtureSaveId, string HostQueryRequestId, uint HostQueryRadius, uint HostQueryMaxResults, uint InspectedActorCount, uint EligibleCandidateCount, uint SelectedHostFormId, float SelectedHostDistance, bool DeterministicSelectionVerified, bool SkyrimForegroundAtHostQuery, ulong ServerSequenceStart, ulong ServerSequenceEnd, ulong RuntimeSequenceStart, ulong RuntimeSequenceEnd);
 public sealed record SessionBootstrapReport(int ProtocolVersion, string SessionId, bool Authenticated, string SaveId, string LoadRequestId, ulong LoadGeneration, bool LoadAccepted, bool PostLoadGameObserved, bool PlayerAvailable, uint? PlayerFormId, bool WorldReady, bool SkyrimForegroundAtRequest, bool SkyrimForegroundAtReady, bool QueryAfterLoadCompleted, ulong ServerSequenceStart, ulong ServerSequenceEnd, ulong RuntimeSequenceStart, ulong RuntimeSequenceEnd);
+public sealed record DisconnectRestorationReport(int ProtocolVersion, string SessionId, bool Authenticated, uint TargetFormId, uint HostGeneration, bool SkyrimForegroundAtBegin, bool ActiveBeforeDisconnect, bool Reconnected, bool SessionCleared, uint? PlayerFormId, uint? CameraTargetFormId, ulong ServerSequenceStart, ulong ServerSequenceEnd);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(LocalTransportConfig))]
@@ -147,6 +148,7 @@ public sealed record SessionBootstrapReport(int ProtocolVersion, string SessionI
 [JsonSerializable(typeof(KnownActuatorReport))]
 [JsonSerializable(typeof(DeterministicHostFixtureReport))]
 [JsonSerializable(typeof(SessionBootstrapReport))]
+[JsonSerializable(typeof(DisconnectRestorationReport))]
 internal sealed partial class MarionetteWireJsonContext : JsonSerializerContext;
 
 public sealed class MarionetteTransportClient
@@ -311,6 +313,87 @@ public sealed class MarionetteTransportClient
         ServerHello hello = await MarionetteWireProtocol.ReadAsync<ServerHello>(pipe, cancellationToken).ConfigureAwait(false);
         if (!hello.Accepted || string.IsNullOrWhiteSpace(hello.SessionId)) throw new InvalidDataException("handshake_rejected");
         return await QueryDeterministicHostFixtureAsync(pipe, hello.SessionId, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<DisconnectRestorationReport> RunDisconnectRestorationScenarioAsync(CancellationToken cancellationToken)
+    {
+        uint targetFormId;
+        uint hostGeneration;
+        string sessionId;
+        ulong serverSequenceStart;
+        bool foregroundAtBegin;
+
+        using (var pipe = new System.IO.Pipes.NamedPipeClientStream(".", _config.PipeName, System.IO.Pipes.PipeDirection.InOut, System.IO.Pipes.PipeOptions.Asynchronous))
+        {
+            await pipe.ConnectAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+            ServerHello hello = await AuthenticateAsync(pipe, cancellationToken).ConfigureAwait(false);
+            sessionId = hello.SessionId!;
+
+            SkyrimStateResult initial = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+            if (initial.ActiveHostSession)
+            {
+                throw new InvalidDataException("host_session_already_active");
+            }
+
+            DeterministicHostFixtureReport fixture = await QueryDeterministicHostFixtureAsync(pipe, sessionId, cancellationToken).ConfigureAwait(false);
+            targetFormId = fixture.SelectedHostFormId;
+            EvaluateHostRequestResult evaluate = await SendEvaluateAsync(pipe, new EvaluateHostRequestRequest(MarionetteWireProtocol.Version, "evaluate_host_request", Guid.NewGuid().ToString("N"), targetFormId, 2000), cancellationToken).ConfigureAwait(false);
+            if (evaluate.Status != "completed" || !evaluate.Eligible || !evaluate.PendingRequestGeneration.HasValue || evaluate.PendingTargetFormId != targetFormId)
+            {
+                throw new InvalidDataException("disconnect_host_request_failed");
+            }
+
+            SkyrimStateResult pending = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+            if (!pending.PendingRequestPresent || pending.PendingRequestGeneration != evaluate.PendingRequestGeneration || pending.PendingTargetFormId != targetFormId)
+            {
+                throw new InvalidDataException("disconnect_pending_request_correlation_failed");
+            }
+
+            foregroundAtBegin = IsSkyrimForeground();
+            HostMutationResult begin = await SendMutationAsync(pipe, new BeginHostSessionRequest(MarionetteWireProtocol.Version, "begin_host_session", Guid.NewGuid().ToString("N"), pending.PendingRequestGeneration.Value, pending.PendingTargetFormId.Value, 2000), cancellationToken).ConfigureAwait(false);
+            if (begin.Status != "completed" || begin.HostFormId != targetFormId || begin.PlayerFormId != 0x14 || begin.CameraTargetFormId != targetFormId)
+            {
+                throw new InvalidDataException($"disconnect_begin_host_session_failed:{begin.FailureReason ?? begin.Status}");
+            }
+
+            SkyrimStateResult active = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+            if (!active.ActiveHostSession || active.ActiveHostGeneration != begin.HostGeneration || active.ActiveHostFormId != targetFormId)
+            {
+                throw new InvalidDataException("disconnect_active_host_state_mismatch");
+            }
+
+            hostGeneration = begin.HostGeneration;
+            serverSequenceStart = evaluate.ServerSequence;
+        }
+
+        DateTimeOffset deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+        using var reconnect = new System.IO.Pipes.NamedPipeClientStream(".", _config.PipeName, System.IO.Pipes.PipeDirection.InOut, System.IO.Pipes.PipeOptions.Asynchronous);
+        await reconnect.ConnectAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+        await AuthenticateAsync(reconnect, cancellationToken).ConfigureAwait(false);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            SkyrimStateResult restored = await QueryStateAsync(reconnect, cancellationToken).ConfigureAwait(false);
+            if (!restored.ActiveHostSession && restored.PlayerFormId == 0x14 && restored.CameraTargetFormId == 0x14)
+            {
+                return new DisconnectRestorationReport(MarionetteWireProtocol.Version, sessionId, true, targetFormId, hostGeneration, foregroundAtBegin, true, true, true, restored.PlayerFormId, restored.CameraTargetFormId, serverSequenceStart, restored.ServerSequence);
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+        }
+
+        throw new TimeoutException("disconnect_restoration_not_observed");
+    }
+
+    private async ValueTask<ServerHello> AuthenticateAsync(Stream pipe, CancellationToken cancellationToken)
+    {
+        await MarionetteWireProtocol.WriteAsync(pipe, new ClientHello(MarionetteWireProtocol.Version, "client_hello", _config.Profile, Guid.NewGuid().ToString("N"), _config.Token, _config.ClientName), cancellationToken).ConfigureAwait(false);
+        ServerHello hello = await MarionetteWireProtocol.ReadAsync<ServerHello>(pipe, cancellationToken).ConfigureAwait(false);
+        if (!hello.Accepted || string.IsNullOrWhiteSpace(hello.SessionId))
+        {
+            throw new InvalidDataException("handshake_rejected");
+        }
+
+        return hello;
     }
 
     private async ValueTask<SkyrimStateResult> QueryStateAsync(Stream pipe, CancellationToken cancellationToken)
