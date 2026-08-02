@@ -102,6 +102,9 @@ public sealed record TransportRequest(int ProtocolVersion, string MessageKind, s
 public sealed record TransportResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status);
 public sealed record TransportStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, bool BridgeReady, bool PresenterTransportEnabled, bool SemanticActuationEnabled, bool HostRequestEvaluationEnabled, bool ControllerConnected, string Profile, string SessionId, int MaxMessageBytes, string[] SupportedMessageKinds);
 public sealed record SkyrimStateRequest(int ProtocolVersion, string MessageKind, string RequestId, int TimeoutMilliseconds);
+public sealed record EligibleHostFixturesRequest(int ProtocolVersion, string MessageKind, string RequestId, uint Radius, uint MaxResults, int TimeoutMilliseconds);
+public sealed record EligibleHostFixtureCandidate(uint FormId, uint? BaseFormId, float Distance, bool Dead, bool Humanoid, bool Essential, bool Protected, bool Intact, string EligibilityReason, bool Loaded, string StableSortKey);
+public sealed record EligibleHostFixturesResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, ulong RuntimeSequence, uint OriginPlayerFormId, uint InspectedActorCount, uint CandidateCount, EligibleHostFixtureCandidate[] Candidates, string? FailureReason);
 public sealed record SkyrimStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? Diagnostic, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, uint? CrosshairTargetFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId);
 public sealed record BeginHostSessionRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedPendingRequestGeneration, uint ExpectedTargetFormId, int TimeoutMilliseconds);
 public sealed record MoveHostKnownSpikeRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedHostGeneration, uint Distance, string Direction, int TimeoutMilliseconds);
@@ -115,6 +118,7 @@ public sealed record EvaluateHostRequestResult(int ProtocolVersion, string Messa
 public sealed record HostMutationResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? FailureReason, bool OutcomeUncertain, ulong RuntimeSequence, uint HostGeneration, uint HostFormId, uint PlayerFormId, uint CameraTargetFormId, bool PlayerControlRestored, bool TargetPositionRestored, bool TargetAiRestored, bool TargetDeadRestored, bool SessionCleared, float[] HostPositionBefore, float[] HostPositionAfter, float[] PlayerPositionBefore, float[] PlayerPositionAfter);
 public sealed record LoopbackReport(int ProtocolVersion, string Profile, bool Authenticated, string SessionId, bool PipeConnected, string PingRequestId, bool PingCompleted, string TransportStateRequestId, bool TransportStateCompleted, string SkyrimStateRequestId, bool SkyrimStateCompleted, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId, bool PresenterTransportEnabled, bool SemanticActuationEnabled, ulong ServerSequenceStart, ulong ServerSequenceEnd, bool GracefulDisconnect);
 public sealed record KnownActuatorReport(int ProtocolVersion, string SessionId, bool Authenticated, uint TargetFormId, bool EvaluateAccepted, string EligibilityReason, bool InvalidTargetTested, string InvalidTargetReason, bool PendingCorrelationVerified, uint PendingRequestGeneration, uint PendingTargetFormId, bool SkyrimForegroundAtEvaluate, bool SkyrimForegroundAtBegin, bool SkyrimForegroundAtMove, bool SkyrimForegroundAtRestore, bool BeginAccepted, uint HostGeneration, bool MoveCompleted, float ObservedHostDistance, float ObservedPlayerDistance, bool RestoreCompleted, bool SessionCleared, ulong ServerSequenceStart, ulong ServerSequenceEnd);
+public sealed record DeterministicHostFixtureReport(int ProtocolVersion, string SessionId, bool Authenticated, string FixtureSaveId, string HostQueryRequestId, uint HostQueryRadius, uint HostQueryMaxResults, uint InspectedActorCount, uint EligibleCandidateCount, uint SelectedHostFormId, float SelectedHostDistance, bool DeterministicSelectionVerified, bool SkyrimForegroundAtHostQuery, ulong ServerSequenceStart, ulong ServerSequenceEnd, ulong RuntimeSequenceStart, ulong RuntimeSequenceEnd);
 public sealed record SessionBootstrapReport(int ProtocolVersion, string SessionId, bool Authenticated, string SaveId, string LoadRequestId, ulong LoadGeneration, bool LoadAccepted, bool PostLoadGameObserved, bool PlayerAvailable, uint? PlayerFormId, bool WorldReady, bool SkyrimForegroundAtRequest, bool SkyrimForegroundAtReady, bool QueryAfterLoadCompleted, ulong ServerSequenceStart, ulong ServerSequenceEnd, ulong RuntimeSequenceStart, ulong RuntimeSequenceEnd);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
@@ -125,6 +129,9 @@ public sealed record SessionBootstrapReport(int ProtocolVersion, string SessionI
 [JsonSerializable(typeof(TransportResult))]
 [JsonSerializable(typeof(TransportStateResult))]
 [JsonSerializable(typeof(SkyrimStateRequest))]
+[JsonSerializable(typeof(EligibleHostFixturesRequest))]
+[JsonSerializable(typeof(EligibleHostFixtureCandidate))]
+[JsonSerializable(typeof(EligibleHostFixturesResult))]
 [JsonSerializable(typeof(SkyrimStateResult))]
 [JsonSerializable(typeof(BeginHostSessionRequest))]
 [JsonSerializable(typeof(MoveHostKnownSpikeRequest))]
@@ -138,6 +145,7 @@ public sealed record SessionBootstrapReport(int ProtocolVersion, string SessionI
 [JsonSerializable(typeof(HostMutationResult))]
 [JsonSerializable(typeof(LoopbackReport))]
 [JsonSerializable(typeof(KnownActuatorReport))]
+[JsonSerializable(typeof(DeterministicHostFixtureReport))]
 [JsonSerializable(typeof(SessionBootstrapReport))]
 internal sealed partial class MarionetteWireJsonContext : JsonSerializerContext;
 
@@ -207,7 +215,8 @@ public sealed class MarionetteTransportClient
         if (!transport.HostRequestEvaluationEnabled || !transport.SupportedMessageKinds.Contains("evaluate_host_request", StringComparer.Ordinal)) throw new InvalidDataException("host_request_evaluation_not_enabled_or_supported");
         SkyrimStateResult initial = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
         if (initial.PendingRequestPresent) throw new InvalidDataException("pending_request_already_present");
-        uint targetFormId = _config.FixtureTargetFormId ?? initial.CrosshairTargetFormId ?? throw new InvalidDataException("fixture_target_form_id_missing");
+        DeterministicHostFixtureReport fixture = await QueryDeterministicHostFixtureAsync(pipe, hello.SessionId, cancellationToken).ConfigureAwait(false);
+        uint targetFormId = fixture.SelectedHostFormId;
         bool foregroundAtEvaluate = IsSkyrimForeground();
         EvaluateHostRequestResult evaluate = await SendEvaluateAsync(pipe, new EvaluateHostRequestRequest(MarionetteWireProtocol.Version, "evaluate_host_request", Guid.NewGuid().ToString("N"), targetFormId, 2000), cancellationToken).ConfigureAwait(false);
         if (evaluate.Status != "completed" || !evaluate.Eligible || !evaluate.PendingRequestPresent || !evaluate.PendingRequestGeneration.HasValue || evaluate.PendingRequestGeneration.Value == 0 || evaluate.PendingTargetFormId != targetFormId || evaluate.RequestTransition != "created") throw new InvalidDataException($"evaluate_host_request_failed:{evaluate.FailureReason ?? evaluate.EligibilityReason}");
@@ -294,12 +303,49 @@ public sealed class MarionetteTransportClient
         return new SessionBootstrapReport(MarionetteWireProtocol.Version, hello.SessionId, true, state.SaveId, loadId, state.LoadGeneration, true, state.SessionPhase is "player_pending" or "world_pending" or "ready", state.PlayerAvailable, state.PlayerFormId, state.WorldReady, foregroundAtRequest, foregroundAtReady, after.Status == "completed", ping.ServerSequence, state.ServerSequence, before.RuntimeSequence, after.RuntimeSequence);
     }
 
+    public async ValueTask<DeterministicHostFixtureReport> RunDeterministicHostFixtureScenarioAsync(CancellationToken cancellationToken)
+    {
+        using var pipe = new System.IO.Pipes.NamedPipeClientStream(".", _config.PipeName, System.IO.Pipes.PipeDirection.InOut, System.IO.Pipes.PipeOptions.Asynchronous);
+        await pipe.ConnectAsync(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+        await MarionetteWireProtocol.WriteAsync(pipe, new ClientHello(MarionetteWireProtocol.Version, "client_hello", _config.Profile, Guid.NewGuid().ToString("N"), _config.Token, _config.ClientName), cancellationToken).ConfigureAwait(false);
+        ServerHello hello = await MarionetteWireProtocol.ReadAsync<ServerHello>(pipe, cancellationToken).ConfigureAwait(false);
+        if (!hello.Accepted || string.IsNullOrWhiteSpace(hello.SessionId)) throw new InvalidDataException("handshake_rejected");
+        return await QueryDeterministicHostFixtureAsync(pipe, hello.SessionId, cancellationToken).ConfigureAwait(false);
+    }
+
     private async ValueTask<SkyrimStateResult> QueryStateAsync(Stream pipe, CancellationToken cancellationToken)
     {
         string id = Guid.NewGuid().ToString("N");
         await MarionetteWireProtocol.WriteAsync(pipe, new SkyrimStateRequest(MarionetteWireProtocol.Version, "query_skyrim_state", id, 2000), cancellationToken).ConfigureAwait(false);
         SkyrimStateResult result = await MarionetteWireProtocol.ReadAsync<SkyrimStateResult>(pipe, cancellationToken).ConfigureAwait(false);
         if (result.Status != "completed" || result.RequestId != id) throw new InvalidDataException("skyrim_state_query_failed");
+        return result;
+    }
+
+    private async ValueTask<DeterministicHostFixtureReport> QueryDeterministicHostFixtureAsync(Stream pipe, string sessionId, CancellationToken cancellationToken)
+    {
+        const uint radius = 1024;
+        const uint maxResults = 8;
+        bool foreground = IsSkyrimForeground();
+        string firstRequestId = Guid.NewGuid().ToString("N");
+        EligibleHostFixturesResult first = await SendHostFixtureQueryAsync(pipe, new EligibleHostFixturesRequest(MarionetteWireProtocol.Version, "query_eligible_host_fixtures", firstRequestId, radius, maxResults, 2000), cancellationToken).ConfigureAwait(false);
+        string secondRequestId = Guid.NewGuid().ToString("N");
+        EligibleHostFixturesResult second = await SendHostFixtureQueryAsync(pipe, new EligibleHostFixturesRequest(MarionetteWireProtocol.Version, "query_eligible_host_fixtures", secondRequestId, radius, maxResults, 2000), cancellationToken).ConfigureAwait(false);
+        if (first.Status != "completed" || second.Status != "completed" || first.CandidateCount == 0 || first.Candidates.Length == 0 || first.Candidates.Length != first.CandidateCount || first.Candidates.Length > maxResults || first.Candidates[0].FormId == 0 || first.Candidates[0].EligibilityReason != "eligible" || !IsDeterministicOrder(first.Candidates) || !IsDeterministicOrder(second.Candidates) || second.CandidateCount == 0 || second.Candidates[0].FormId != first.Candidates[0].FormId || MathF.Abs(second.Candidates[0].Distance - first.Candidates[0].Distance) > 0.01F)
+        {
+            throw new InvalidDataException("eligible_host_fixture_selection_invalid");
+        }
+        return new DeterministicHostFixtureReport(MarionetteWireProtocol.Version, sessionId, true, "ed-m2b2d", firstRequestId, radius, maxResults, first.InspectedActorCount, first.CandidateCount, first.Candidates[0].FormId, first.Candidates[0].Distance, true, foreground, first.ServerSequence, second.ServerSequence, first.RuntimeSequence, second.RuntimeSequence);
+    }
+
+    private static async ValueTask<EligibleHostFixturesResult> SendHostFixtureQueryAsync(Stream pipe, EligibleHostFixturesRequest request, CancellationToken cancellationToken)
+    {
+        await MarionetteWireProtocol.WriteAsync(pipe, request, cancellationToken).ConfigureAwait(false);
+        EligibleHostFixturesResult result = await MarionetteWireProtocol.ReadAsync<EligibleHostFixturesResult>(pipe, cancellationToken).ConfigureAwait(false);
+        if (result.MessageKind != "eligible_host_fixtures_result" || result.RequestId != request.RequestId)
+        {
+            throw new InvalidDataException("eligible_host_fixture_query_correlation_invalid");
+        }
         return result;
     }
 
@@ -348,6 +394,23 @@ public sealed class MarionetteTransportClient
         if (before.Length != 3 || after.Length != 3) throw new InvalidDataException("position_shape_invalid");
         float x = after[0] - before[0]; float y = after[1] - before[1]; float z = after[2] - before[2];
         return MathF.Sqrt(x * x + y * y + z * z);
+    }
+
+    public static bool IsDeterministicOrder(IReadOnlyList<EligibleHostFixtureCandidate> candidates)
+    {
+        for (int index = 0; index < candidates.Count; index++)
+        {
+            EligibleHostFixtureCandidate current = candidates[index];
+            if (current.FormId == 0 || current.EligibilityReason != "eligible" || !current.Dead || !current.Humanoid || current.Essential || current.Protected || !current.Intact || !current.Loaded)
+            {
+                return false;
+            }
+            if (index > 0 && (candidates[index - 1].Distance > current.Distance || (candidates[index - 1].Distance == current.Distance && candidates[index - 1].FormId >= current.FormId)))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static bool IsSkyrimForeground()

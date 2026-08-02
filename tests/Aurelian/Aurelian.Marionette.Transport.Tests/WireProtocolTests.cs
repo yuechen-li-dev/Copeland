@@ -55,6 +55,33 @@ public sealed class WireProtocolTests
     }
 
     [Fact]
+    public async Task EligibleHostFixtureMessages_RoundTripWithValueOnlyCandidate()
+    {
+        var request = new EligibleHostFixturesRequest(MarionetteWireProtocol.Version, "query_eligible_host_fixtures", "hosts-1", 1024, 8, 250);
+        using var requestStream = new MemoryStream(MarionetteWireProtocol.Encode(request));
+        EligibleHostFixturesRequest decodedRequest = await MarionetteWireProtocol.ReadAsync<EligibleHostFixturesRequest>(requestStream, CancellationToken.None);
+        Assert.Equal(request, decodedRequest);
+
+        var candidate = new EligibleHostFixtureCandidate(0x1234, 0x5678, 42.0F, true, true, false, false, true, "eligible", true, "4660");
+        var response = new EligibleHostFixturesResult(1, "eligible_host_fixtures_result", "hosts-1", 4, "completed", 12, 0x14, 3, 1, [candidate], null);
+        using var responseStream = new MemoryStream(MarionetteWireProtocol.Encode(response));
+        EligibleHostFixturesResult decodedResponse = await MarionetteWireProtocol.ReadAsync<EligibleHostFixturesResult>(responseStream, CancellationToken.None);
+        Assert.Equal((uint)0x1234, decodedResponse.Candidates[0].FormId);
+        Assert.DoesNotContain("name", System.Text.Encoding.UTF8.GetString(MarionetteWireProtocol.Encode(response)), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void EligibleHostCandidates_RequireDistanceThenFormIdOrdering()
+    {
+        var ordered = new[] {
+            new EligibleHostFixtureCandidate(10, null, 10, true, true, false, false, true, "eligible", true, "10"),
+            new EligibleHostFixtureCandidate(20, null, 10, true, true, false, false, true, "eligible", true, "20")
+        };
+        Assert.True(MarionetteTransportClient.IsDeterministicOrder(ordered));
+        Assert.False(MarionetteTransportClient.IsDeterministicOrder(ordered.Reverse().ToArray()));
+    }
+
+    [Fact]
     public async Task SkyrimStateResult_PreservesPartialSnapshot()
     {
         var response = new SkyrimStateResult(1, "skyrim_state_result", "state-1", 3, "completed", null, true, 7, true, 0x14, 0x1234, false, null, null, false, null, null, null);
