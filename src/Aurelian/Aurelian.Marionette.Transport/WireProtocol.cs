@@ -101,7 +101,9 @@ public sealed record ServerHello(int ProtocolVersion, string MessageKind, bool A
 public sealed record TransportRequest(int ProtocolVersion, string MessageKind, string RequestId, long ClientSequence);
 public sealed record TransportResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status);
 public sealed record TransportStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, bool BridgeReady, bool PresenterTransportEnabled, bool SemanticActuationEnabled, bool ControllerConnected, string Profile, string SessionId, int MaxMessageBytes, string[] SupportedMessageKinds);
-public sealed record LoopbackReport(int ProtocolVersion, string Profile, bool Authenticated, string SessionId, bool PipeConnected, string PingRequestId, bool PingCompleted, string TransportStateRequestId, bool TransportStateCompleted, bool BridgeReady, bool PresenterTransportEnabled, bool SemanticActuationEnabled, ulong ServerSequenceStart, ulong ServerSequenceEnd, bool GracefulDisconnect);
+public sealed record SkyrimStateRequest(int ProtocolVersion, string MessageKind, string RequestId, int TimeoutMilliseconds);
+public sealed record SkyrimStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? Diagnostic, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId);
+public sealed record LoopbackReport(int ProtocolVersion, string Profile, bool Authenticated, string SessionId, bool PipeConnected, string PingRequestId, bool PingCompleted, string TransportStateRequestId, bool TransportStateCompleted, string SkyrimStateRequestId, bool SkyrimStateCompleted, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId, bool PresenterTransportEnabled, bool SemanticActuationEnabled, ulong ServerSequenceStart, ulong ServerSequenceEnd, bool GracefulDisconnect);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(LocalTransportConfig))]
@@ -110,6 +112,8 @@ public sealed record LoopbackReport(int ProtocolVersion, string Profile, bool Au
 [JsonSerializable(typeof(TransportRequest))]
 [JsonSerializable(typeof(TransportResult))]
 [JsonSerializable(typeof(TransportStateResult))]
+[JsonSerializable(typeof(SkyrimStateRequest))]
+[JsonSerializable(typeof(SkyrimStateResult))]
 [JsonSerializable(typeof(LoopbackReport))]
 internal sealed partial class MarionetteWireJsonContext : JsonSerializerContext;
 
@@ -145,12 +149,21 @@ public sealed class MarionetteTransportClient
         }
         _lastServerSequence = state.ServerSequence;
 
+        string skyrimStateId = Guid.NewGuid().ToString("N");
+        await MarionetteWireProtocol.WriteAsync(pipe, new SkyrimStateRequest(MarionetteWireProtocol.Version, "query_skyrim_state", skyrimStateId, 1000), cancellationToken).ConfigureAwait(false);
+        SkyrimStateResult skyrimState = await MarionetteWireProtocol.ReadAsync<SkyrimStateResult>(pipe, cancellationToken).ConfigureAwait(false);
+        if (skyrimState.MessageKind != "skyrim_state_result" || skyrimState.RequestId != skyrimStateId || skyrimState.Status != "completed" || skyrimState.ServerSequence <= _lastServerSequence || skyrimState.RuntimeSequence == 0)
+        {
+            throw new InvalidDataException($"skyrim_state_query_failed:{skyrimState.Diagnostic ?? "correlation_or_sequence_invalid"}");
+        }
+        _lastServerSequence = skyrimState.ServerSequence;
+
         string disconnectId = Guid.NewGuid().ToString("N");
-        await MarionetteWireProtocol.WriteAsync(pipe, new TransportRequest(MarionetteWireProtocol.Version, "disconnect", disconnectId, 3), cancellationToken).ConfigureAwait(false);
+        await MarionetteWireProtocol.WriteAsync(pipe, new TransportRequest(MarionetteWireProtocol.Version, "disconnect", disconnectId, 4), cancellationToken).ConfigureAwait(false);
         TransportResult disconnect = await MarionetteWireProtocol.ReadAsync<TransportResult>(pipe, cancellationToken).ConfigureAwait(false);
         ValidateResult(disconnect, "disconnect_result", disconnectId);
 
-        return new LoopbackReport(MarionetteWireProtocol.Version, _config.Profile, true, hello.SessionId, true, pingId, true, stateId, true, state.BridgeReady, state.PresenterTransportEnabled, state.SemanticActuationEnabled, ping.ServerSequence, disconnect.ServerSequence, true);
+        return new LoopbackReport(MarionetteWireProtocol.Version, _config.Profile, true, hello.SessionId, true, pingId, true, stateId, true, skyrimStateId, true, skyrimState.BridgeReady, skyrimState.RuntimeSequence, skyrimState.PlayerAvailable, skyrimState.PlayerFormId, skyrimState.PendingRequestPresent, skyrimState.PendingRequestGeneration, skyrimState.PendingTargetFormId, skyrimState.ActiveHostSession, skyrimState.ActiveHostGeneration, skyrimState.ActiveHostFormId, skyrimState.CameraTargetFormId, state.PresenterTransportEnabled, state.SemanticActuationEnabled, ping.ServerSequence, disconnect.ServerSequence, true);
     }
 
     private void ValidateResult(TransportResult result, string messageKind, string requestId)

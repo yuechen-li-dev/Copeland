@@ -17,7 +17,7 @@ internal static class Program
             LocalTransportConfig config = LocalTransportConfig.Load(args[2]);
             LoopbackReport report = await new MarionetteTransportClient(config).RunLoopbackAsync(CancellationToken.None).ConfigureAwait(false);
             Console.WriteLine(JsonSerializer.Serialize(report, MarionetteWireJsonContext.Default.LoopbackReport));
-            Console.WriteLine($"ED-M2b.2b loopback succeeded: session={report.SessionId}, ping={report.PingRequestId}, state={report.TransportStateRequestId}.");
+            Console.WriteLine($"ED-M2b.2c query succeeded: player={(report.PlayerFormId.HasValue ? $"0x{report.PlayerFormId:X8}" : "unavailable")}, pending={report.PendingRequestPresent}, host={report.ActiveHostSession}.");
             return 0;
         }
         catch (Exception exception) when (exception is IOException or InvalidDataException or TimeoutException or OperationCanceledException)
