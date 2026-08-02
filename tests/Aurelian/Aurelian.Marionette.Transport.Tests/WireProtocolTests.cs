@@ -57,11 +57,12 @@ public sealed class WireProtocolTests
     [Fact]
     public async Task SkyrimStateResult_PreservesPartialSnapshot()
     {
-        var response = new SkyrimStateResult(1, "skyrim_state_result", "state-1", 3, "completed", null, true, 7, true, 0x14, false, null, null, false, null, null, null);
+        var response = new SkyrimStateResult(1, "skyrim_state_result", "state-1", 3, "completed", null, true, 7, true, 0x14, 0x1234, false, null, null, false, null, null, null);
         using var stream = new MemoryStream(MarionetteWireProtocol.Encode(response));
         SkyrimStateResult result = await MarionetteWireProtocol.ReadAsync<SkyrimStateResult>(stream, CancellationToken.None);
         Assert.Equal((uint)0x14, result.PlayerFormId);
         Assert.Equal((ulong)7, result.RuntimeSequence);
+        Assert.Equal((uint)0x1234, result.CrosshairTargetFormId);
         Assert.Null(result.PendingRequestGeneration);
         Assert.Null(result.CameraTargetFormId);
     }
@@ -69,7 +70,7 @@ public sealed class WireProtocolTests
     [Fact]
     public async Task SkyrimStateResult_PreservesFailureDiagnostic()
     {
-        var response = new SkyrimStateResult(1, "skyrim_state_result", "state-1", 3, "failed", "dispatch_timeout", false, 0, false, null, false, null, null, false, null, null, null);
+        var response = new SkyrimStateResult(1, "skyrim_state_result", "state-1", 3, "failed", "dispatch_timeout", false, 0, false, null, null, false, null, null, false, null, null, null);
         using var stream = new MemoryStream(MarionetteWireProtocol.Encode(response));
         SkyrimStateResult result = await MarionetteWireProtocol.ReadAsync<SkyrimStateResult>(stream, CancellationToken.None);
         Assert.Equal("failed", result.Status);
@@ -93,5 +94,20 @@ public sealed class WireProtocolTests
         HostMutationResult result = await MarionetteWireProtocol.ReadAsync<HostMutationResult>(stream, CancellationToken.None);
         Assert.True(result.SessionCleared);
         Assert.Equal((uint)0x14, result.CameraTargetFormId);
+    }
+
+    [Fact]
+    public async Task EvaluateHostRequestMessages_RoundTripWithEligibilityEvidence()
+    {
+        var request = new EvaluateHostRequestRequest(MarionetteWireProtocol.Version, "evaluate_host_request", "evaluate-1", 0x1234, 250);
+        using var requestStream = new MemoryStream(MarionetteWireProtocol.Encode(request));
+        EvaluateHostRequestRequest decodedRequest = await MarionetteWireProtocol.ReadAsync<EvaluateHostRequestRequest>(requestStream, CancellationToken.None);
+        Assert.Equal(request, decodedRequest);
+
+        var response = new EvaluateHostRequestResult(1, "evaluate_host_request_result", "evaluate-1", 9, "completed", 0x1234, true, "eligible", true, 4, 0x1234, "created", 8, null);
+        using var responseStream = new MemoryStream(MarionetteWireProtocol.Encode(response));
+        EvaluateHostRequestResult decodedResponse = await MarionetteWireProtocol.ReadAsync<EvaluateHostRequestResult>(responseStream, CancellationToken.None);
+        Assert.True(decodedResponse.Eligible);
+        Assert.Equal((uint)4, decodedResponse.PendingRequestGeneration);
     }
 }

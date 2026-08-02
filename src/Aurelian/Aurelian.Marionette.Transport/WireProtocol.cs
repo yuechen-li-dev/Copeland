@@ -69,7 +69,7 @@ public static class MarionetteWireProtocol
     }
 }
 
-public sealed record LocalTransportConfig(string Profile, string Token, string ClientName)
+public sealed record LocalTransportConfig(string Profile, string Token, string ClientName, uint? FixtureTargetFormId = null)
 {
     public string PipeName => $"MarionetteSSE.{Profile}.{GetCurrentUserSid()}.ed-m2b2";
 
@@ -100,16 +100,18 @@ public sealed record ClientHello(int ProtocolVersion, string MessageKind, string
 public sealed record ServerHello(int ProtocolVersion, string MessageKind, bool Accepted, string? SessionId, string ServerName, string[] Capabilities, string? RejectionReason);
 public sealed record TransportRequest(int ProtocolVersion, string MessageKind, string RequestId, long ClientSequence);
 public sealed record TransportResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status);
-public sealed record TransportStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, bool BridgeReady, bool PresenterTransportEnabled, bool SemanticActuationEnabled, bool ControllerConnected, string Profile, string SessionId, int MaxMessageBytes, string[] SupportedMessageKinds);
+public sealed record TransportStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, bool BridgeReady, bool PresenterTransportEnabled, bool SemanticActuationEnabled, bool HostRequestEvaluationEnabled, bool ControllerConnected, string Profile, string SessionId, int MaxMessageBytes, string[] SupportedMessageKinds);
 public sealed record SkyrimStateRequest(int ProtocolVersion, string MessageKind, string RequestId, int TimeoutMilliseconds);
-public sealed record SkyrimStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? Diagnostic, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId);
+public sealed record SkyrimStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? Diagnostic, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, uint? CrosshairTargetFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId);
 public sealed record BeginHostSessionRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedPendingRequestGeneration, uint ExpectedTargetFormId, int TimeoutMilliseconds);
 public sealed record MoveHostKnownSpikeRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedHostGeneration, uint Distance, string Direction, int TimeoutMilliseconds);
 public sealed record RestoreHostSessionRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedHostGeneration, int TimeoutMilliseconds);
 public sealed record EmergencyRestoreRequest(int ProtocolVersion, string MessageKind, string RequestId, int TimeoutMilliseconds);
+public sealed record EvaluateHostRequestRequest(int ProtocolVersion, string MessageKind, string RequestId, uint TargetFormId, int TimeoutMilliseconds);
+public sealed record EvaluateHostRequestResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, uint TargetFormId, bool Eligible, string EligibilityReason, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, string RequestTransition, ulong RuntimeSequence, string? FailureReason);
 public sealed record HostMutationResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? FailureReason, bool OutcomeUncertain, ulong RuntimeSequence, uint HostGeneration, uint HostFormId, uint PlayerFormId, uint CameraTargetFormId, bool PlayerControlRestored, bool TargetPositionRestored, bool TargetAiRestored, bool TargetDeadRestored, bool SessionCleared, float[] HostPositionBefore, float[] HostPositionAfter, float[] PlayerPositionBefore, float[] PlayerPositionAfter);
 public sealed record LoopbackReport(int ProtocolVersion, string Profile, bool Authenticated, string SessionId, bool PipeConnected, string PingRequestId, bool PingCompleted, string TransportStateRequestId, bool TransportStateCompleted, string SkyrimStateRequestId, bool SkyrimStateCompleted, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId, bool PresenterTransportEnabled, bool SemanticActuationEnabled, ulong ServerSequenceStart, ulong ServerSequenceEnd, bool GracefulDisconnect);
-public sealed record KnownActuatorReport(int ProtocolVersion, string SessionId, bool Authenticated, bool PendingCorrelationVerified, uint PendingRequestGeneration, uint PendingTargetFormId, bool SkyrimForegroundAtBegin, bool SkyrimForegroundAtMove, bool SkyrimForegroundAtRestore, bool BeginAccepted, uint HostGeneration, bool MoveCompleted, float ObservedHostDistance, float ObservedPlayerDistance, bool RestoreCompleted, bool SessionCleared, ulong ServerSequenceStart, ulong ServerSequenceEnd);
+public sealed record KnownActuatorReport(int ProtocolVersion, string SessionId, bool Authenticated, uint TargetFormId, bool EvaluateAccepted, string EligibilityReason, bool InvalidTargetTested, string InvalidTargetReason, bool PendingCorrelationVerified, uint PendingRequestGeneration, uint PendingTargetFormId, bool SkyrimForegroundAtEvaluate, bool SkyrimForegroundAtBegin, bool SkyrimForegroundAtMove, bool SkyrimForegroundAtRestore, bool BeginAccepted, uint HostGeneration, bool MoveCompleted, float ObservedHostDistance, float ObservedPlayerDistance, bool RestoreCompleted, bool SessionCleared, ulong ServerSequenceStart, ulong ServerSequenceEnd);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(LocalTransportConfig))]
@@ -124,6 +126,8 @@ public sealed record KnownActuatorReport(int ProtocolVersion, string SessionId, 
 [JsonSerializable(typeof(MoveHostKnownSpikeRequest))]
 [JsonSerializable(typeof(RestoreHostSessionRequest))]
 [JsonSerializable(typeof(EmergencyRestoreRequest))]
+[JsonSerializable(typeof(EvaluateHostRequestRequest))]
+[JsonSerializable(typeof(EvaluateHostRequestResult))]
 [JsonSerializable(typeof(HostMutationResult))]
 [JsonSerializable(typeof(LoopbackReport))]
 [JsonSerializable(typeof(KnownActuatorReport))]
@@ -192,8 +196,17 @@ public sealed class MarionetteTransportClient
         await MarionetteWireProtocol.WriteAsync(pipe, new TransportRequest(MarionetteWireProtocol.Version, "query_transport_state", transportId, 2), cancellationToken).ConfigureAwait(false);
         TransportStateResult transport = await MarionetteWireProtocol.ReadAsync<TransportStateResult>(pipe, cancellationToken).ConfigureAwait(false);
         if (transport.MessageKind != "transport_state_result" || transport.RequestId != transportId || !transport.SemanticActuationEnabled) throw new InvalidDataException("semantic_actuation_not_enabled");
+        if (!transport.HostRequestEvaluationEnabled || !transport.SupportedMessageKinds.Contains("evaluate_host_request", StringComparer.Ordinal)) throw new InvalidDataException("host_request_evaluation_not_enabled_or_supported");
+        SkyrimStateResult initial = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+        if (initial.PendingRequestPresent) throw new InvalidDataException("pending_request_already_present");
+        uint targetFormId = _config.FixtureTargetFormId ?? initial.CrosshairTargetFormId ?? throw new InvalidDataException("fixture_target_form_id_missing");
+        bool foregroundAtEvaluate = IsSkyrimForeground();
+        EvaluateHostRequestResult evaluate = await SendEvaluateAsync(pipe, new EvaluateHostRequestRequest(MarionetteWireProtocol.Version, "evaluate_host_request", Guid.NewGuid().ToString("N"), targetFormId, 2000), cancellationToken).ConfigureAwait(false);
+        if (evaluate.Status != "completed" || !evaluate.Eligible || !evaluate.PendingRequestPresent || !evaluate.PendingRequestGeneration.HasValue || evaluate.PendingRequestGeneration.Value == 0 || evaluate.PendingTargetFormId != targetFormId || evaluate.RequestTransition != "created") throw new InvalidDataException($"evaluate_host_request_failed:{evaluate.FailureReason ?? evaluate.EligibilityReason}");
+        EvaluateHostRequestResult invalid = await SendEvaluateAsync(pipe, new EvaluateHostRequestRequest(MarionetteWireProtocol.Version, "evaluate_host_request", Guid.NewGuid().ToString("N"), 0x14, 2000), cancellationToken).ConfigureAwait(false);
+        if (invalid.Status != "completed" || invalid.Eligible || invalid.EligibilityReason != "target_alive" || !invalid.PendingRequestPresent || invalid.PendingRequestGeneration != evaluate.PendingRequestGeneration || invalid.PendingTargetFormId != targetFormId || invalid.RequestTransition != "rejected") throw new InvalidDataException($"invalid_target_rejection_failed:{invalid.FailureReason ?? invalid.EligibilityReason}");
         SkyrimStateResult pending = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
-        if (!pending.PendingRequestPresent || !pending.PendingRequestGeneration.HasValue || !pending.PendingTargetFormId.HasValue) throw new InvalidDataException("pending_request_missing");
+        if (!pending.PendingRequestPresent || pending.PendingRequestGeneration != evaluate.PendingRequestGeneration || pending.PendingTargetFormId != targetFormId) throw new InvalidDataException("pending_request_correlation_failed");
         bool foregroundAtBegin = IsSkyrimForeground();
         HostMutationResult begin = await SendMutationAsync(pipe, new BeginHostSessionRequest(MarionetteWireProtocol.Version, "begin_host_session", Guid.NewGuid().ToString("N"), pending.PendingRequestGeneration.Value, pending.PendingTargetFormId.Value, 2000), cancellationToken).ConfigureAwait(false);
         if (begin.Status != "completed" || begin.PlayerFormId != 0x14 || begin.HostFormId != pending.PendingTargetFormId.Value || begin.CameraTargetFormId != begin.HostFormId) throw new InvalidDataException($"begin_host_session_failed:{begin.FailureReason}");
@@ -207,7 +220,7 @@ public sealed class MarionetteTransportClient
         bool foregroundAtRestore = IsSkyrimForeground();
         HostMutationResult restore = await SendMutationAsync(pipe, new RestoreHostSessionRequest(MarionetteWireProtocol.Version, "restore_host_session", Guid.NewGuid().ToString("N"), begin.HostGeneration, 2000), cancellationToken).ConfigureAwait(false);
         if (restore.Status != "completed" || !restore.SessionCleared || restore.PlayerFormId != 0x14 || restore.CameraTargetFormId != 0x14) throw new InvalidDataException($"restore_failed:{restore.FailureReason}");
-        return new KnownActuatorReport(MarionetteWireProtocol.Version, hello.SessionId, true, true, pending.PendingRequestGeneration.Value, pending.PendingTargetFormId.Value, foregroundAtBegin, foregroundAtMove, foregroundAtRestore, true, begin.HostGeneration, true, hostDistance, playerDistance, true, true, begin.ServerSequence, restore.ServerSequence);
+        return new KnownActuatorReport(MarionetteWireProtocol.Version, hello.SessionId, true, targetFormId, true, evaluate.EligibilityReason, true, invalid.EligibilityReason, true, pending.PendingRequestGeneration.Value, pending.PendingTargetFormId.Value, foregroundAtEvaluate, foregroundAtBegin, foregroundAtMove, foregroundAtRestore, true, begin.HostGeneration, true, hostDistance, playerDistance, true, true, evaluate.ServerSequence, restore.ServerSequence);
     }
 
     private async ValueTask<SkyrimStateResult> QueryStateAsync(Stream pipe, CancellationToken cancellationToken)
@@ -223,6 +236,18 @@ public sealed class MarionetteTransportClient
     {
         await MarionetteWireProtocol.WriteAsync(pipe, request, cancellationToken).ConfigureAwait(false);
         return await MarionetteWireProtocol.ReadAsync<HostMutationResult>(pipe, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<EvaluateHostRequestResult> SendEvaluateAsync(Stream pipe, EvaluateHostRequestRequest request, CancellationToken cancellationToken)
+    {
+        await MarionetteWireProtocol.WriteAsync(pipe, request, cancellationToken).ConfigureAwait(false);
+        EvaluateHostRequestResult result = await MarionetteWireProtocol.ReadAsync<EvaluateHostRequestResult>(pipe, cancellationToken).ConfigureAwait(false);
+        if (result.MessageKind != "evaluate_host_request_result" || result.RequestId != request.RequestId || result.TargetFormId != request.TargetFormId)
+        {
+            throw new InvalidDataException("evaluate_host_request_correlation_invalid");
+        }
+
+        return result;
     }
 
     private static float Distance(float[] before, float[] after)
