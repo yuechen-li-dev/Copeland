@@ -35,11 +35,10 @@ public sealed partial class MarionetteTransportClient
             throw new InvalidDataException("lifecycle_observation_capability_missing");
         }
 
-        SkyrimStateResult initial = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
-        if (!initial.GameTimeDays.HasValue)
-        {
-            throw new InvalidDataException("skyrim_game_timestamp_unavailable");
-        }
+        GameplayReadyState ready = await WaitForGameplayReadyAsync(
+            pipe,
+            cancellationToken).ConfigureAwait(false);
+        SkyrimStateResult initial = ready.State;
         SkyrimSessionId session = CreateSessionId(hello.SessionId!);
         var world = new SkyrimWorldOwnerRuntime(hello.SessionId!);
         world.Post(new SkyrimWorldFact(SkyrimWorldFactKind.BackendConnected, 1));
@@ -49,10 +48,10 @@ public sealed partial class MarionetteTransportClient
             2,
             new SkyrimTimelineStamp(
                 session,
-                new SkyrimGameTimestamp(initial.GameTimeDays.Value),
+                new SkyrimGameTimestamp(ready.GameTimeDays),
                 checked((long)initial.RuntimeSequence))));
         TickWorldOwner(world);
-        await RediscoverBodiesAsync(pipe, world, hello.SessionId!, cancellationToken).ConfigureAwait(false);
+        RediscoverBodies(world, hello.SessionId!, ready.Candidates);
 
         var store = new SkyrimCheckpointStore(_config.CheckpointDirectory);
         var coordinator = new SkyrimLiveLifecycleCoordinator(
@@ -161,6 +160,14 @@ public sealed partial class MarionetteTransportClient
         StableHostCandidateQuery query = await QueryStableHostCandidatesAsync(
             pipe,
             cancellationToken).ConfigureAwait(false);
+        RediscoverBodies(world, sessionScope, query);
+    }
+
+    private static void RediscoverBodies(
+        SkyrimWorldOwnerRuntime world,
+        string sessionScope,
+        StableHostCandidateQuery query)
+    {
         SkyrimCandidateSet candidates = SkyrimCandidateLowerer.Lower(
             sessionScope,
             query.First,
@@ -178,4 +185,39 @@ public sealed partial class MarionetteTransportClient
             TickWorldOwner(world);
         }
     }
+
+    private async ValueTask<GameplayReadyState> WaitForGameplayReadyAsync(
+        Stream pipe,
+        CancellationToken cancellationToken)
+    {
+        Console.Error.WriteLine("M4A_MANAGED waiting_for_gameplay");
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            SkyrimStateResult state = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+            if (state.PlayerAvailable && state.GameTimeDays.HasValue)
+            {
+                try
+                {
+                    StableHostCandidateQuery candidates = await QueryStableHostCandidatesAsync(
+                        pipe,
+                        cancellationToken).ConfigureAwait(false);
+                    return new GameplayReadyState(state, candidates, state.GameTimeDays.Value);
+                }
+                catch (InvalidDataException exception) when (
+                    exception.Message == "eligible_host_fixture_selection_invalid")
+                {
+                    // The main menu exposes a bridge but no loaded host fixture yet.
+                }
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+        }
+
+        throw new OperationCanceledException(cancellationToken);
+    }
+
+    private sealed record GameplayReadyState(
+        SkyrimStateResult State,
+        StableHostCandidateQuery Candidates,
+        double GameTimeDays);
 }
