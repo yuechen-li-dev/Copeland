@@ -4,7 +4,10 @@ Aurelian owns the engine lifecycle, world and game-object models, actuation, fra
 
 - [Current architecture](architecture/)
 - [Agent/body binding architecture](../architecture/AURELIAN_AGENT_BODY_BINDING.md)
+- [Legacy Skyrim agent import](../architecture/AURELIAN_LEGACY_AGENT_IMPORT.md)
+- [Dominatus candidate selection](../architecture/AURELIAN_AGENT_CANDIDATE_SELECTION.md)
 - [Marionette/Aurelian M1 milestone](../milestones/MARIONETTE_AURELIAN_M1.md)
+- [Marionette/Aurelian M2 milestone](../milestones/MARIONETTE_AURELIAN_M2.md)
 - [Dominatus 1.0 provenance](../audits/MARIONETTE_AURELIAN_M1_PROVENANCE.md)
 - [Historical migration and audit records](history/)
 - [Aurelian solution](../../Aurelian.slnx)

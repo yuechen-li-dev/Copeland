@@ -172,3 +172,17 @@ events, save/load coordination, backend health, and global restoration.
 | movement mutation | executes | lowers | commands | awaits |
 | restoration | executes | lowers | owns lifecycle result | branches |
 | camera semantics | executes | session-local | observes | — |
+
+## M2 selected-agent composition
+
+M2 composes this lifecycle after portable candidate import and Dominatus
+selection. `ImportedAgentRegistry` preserves semantic identity across newer
+body generations, while `SkyrimCandidateLowerer` contains raw backend
+identity. The selection coordinator sends a typed `AcquireBodyIntent` to the
+chosen imported agent but never receives binding or movement authority.
+
+The chosen agent's `AgentId` enters `BindBodyArguments`; the existing
+`BodyBindingRegistry` therefore rejects every non-selected candidate before a
+`MoveBodyToward` command can cross the Marionette lowering boundary. See
+[legacy-agent import](AURELIAN_LEGACY_AGENT_IMPORT.md) and
+[candidate selection](AURELIAN_AGENT_CANDIDATE_SELECTION.md).

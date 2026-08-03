@@ -2,10 +2,12 @@
 
 ## Outcome
 
-The automated M1 path is complete. One deterministic Aurelian agent can bind a
+The M1 path is complete. One deterministic Aurelian agent can bind a
 portable body candidate, choose `MoveBodyToward` through Dominatus 1.0, observe
 completion, and release the body through the existing reversible Marionette
-host session. Manual in-game execution is intentionally not claimed here.
+host session. The M2 scoped run on 2026-08-03 live-proved the same lifecycle
+with a dynamically selected imported agent; see
+[`MARIONETTE_AURELIAN_M2.md`](MARIONETTE_AURELIAN_M2.md).
 
 The motivating path changed from an already-active host plus raw
 `MoveToward` to:
@@ -52,9 +54,15 @@ Validation recorded for M1:
 | Marionette managed Release build/tests | passed, 10 tests |
 | Marionette native Release build | `MarionetteSSE` and `MarionetteTests` passed |
 | Marionette native tests | 68 passed, 1 intentional skip |
-| Manual scoped Skyrim run | not executed; use the checklist below |
+| Manual scoped Skyrim run | passed through the M2 selected-agent path on 2026-08-03 |
 
 ## Manual scoped-fixture operator checklist
+
+> 2026-08-03 correction: tspack commit `77de99c` stages and launches the
+> scoped runtime but does not itself start the managed
+> `Aurelian.Marionette.Transport dominatus-skyrim` process. Until that launch
+> seam is added, execute the managed command in step 7 explicitly after the
+> pipe-ready marker. A runtime-ready marker alone is not M1 live proof.
 
 Do not use the live Steam installation directly. Use only the repository's
 disposable TSPack Skyrim fixture lifecycle.
@@ -70,8 +78,10 @@ disposable TSPack Skyrim fixture lifecycle.
 6. Run `tspack run skyrim --dominatus-skyrim --json --root C:\SkyrimDev\Plugins\MarionetteSSE`.
    This is the only approved launch/deployment command; do not copy files into
    the live game root.
-7. The run-scoped controller authenticates and executes the managed Dominatus
-   Skyrim scenario.
+7. After `ED_M2B2_PIPE_LISTENING`, run `dotnet run --project
+   C:\Users\yuech\source\repos\Copeland\src\Aurelian\Aurelian.Marionette.Transport\Aurelian.Marionette.Transport.csproj
+   -- dominatus-skyrim --config
+   C:\SkyrimDev\Plugins\MarionetteSSE\build\msse-presenter-m1\aurelian-transport.json`.
 8. Confirm the report contains deterministic agent ID
    `a0e11a00-0000-4000-8000-000000000001`, body ID
    `skyrim-fixture-body-1`, and final binding state `Released`.
