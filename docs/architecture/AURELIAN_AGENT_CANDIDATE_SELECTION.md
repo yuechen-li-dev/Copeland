@@ -84,3 +84,11 @@ rejects movement by every non-selected agent before native lowering.
 
 This is not possession. The player reference, input authority, inventory,
 quests, factions, dialogue identity, and first-person camera are unchanged.
+
+## M3 world-owner input
+
+The native candidate observation now carries placed/dynamic classification and
+plugin/local provenance. `SkyrimWorldOwnerRuntime` routes each materialization
+through the shared registry and publishes body facts before
+`CandidateSetUpdated`. The owner does not rank candidates or acquire control;
+the M2 Dominatus decision and selected-agent mailbox intent remain authoritative.

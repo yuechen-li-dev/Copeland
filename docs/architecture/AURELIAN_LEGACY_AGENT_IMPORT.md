@@ -53,3 +53,12 @@ legacy Skyrim actor
 
 M2 does not implement durable actor remapping, load-order migration, TOML
 composition, or world-scale NPC import.
+
+## M3 stable-origin migration
+
+Placed references now resolve from normalized plugin filename plus local FormID,
+independently of runtime FormID and session. Body loss detaches the current
+materialization; rediscovery attaches a new BodyId/generation to the same
+semantic agent. The former body-only API remains as an explicit dynamic/session
+migration adapter. Dynamic references are not durable. See
+[stable provenance](AURELIAN_SKYRIM_STABLE_PROVENANCE.md).

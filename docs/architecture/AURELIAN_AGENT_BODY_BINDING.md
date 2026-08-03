@@ -186,3 +186,12 @@ The chosen agent's `AgentId` enters `BindBodyArguments`; the existing
 `MoveBodyToward` command can cross the Marionette lowering boundary. See
 [legacy-agent import](AURELIAN_LEGACY_AGENT_IMPORT.md) and
 [candidate selection](AURELIAN_AGENT_CANDIDATE_SELECTION.md).
+
+## M3 save boundary
+
+Supported placed agents now survive runtime FormID and BodyId replacement via
+stable provenance. Active bindings still do not survive a checkpoint: capture
+requires the binding registry to have no active exclusive reservation. Fresh
+restore discards runtime mappings and begins unbound. Restoration uncertainty
+blocks capture and is preserved by the world owner rather than treated as
+success. See [timeline persistence](AURELIAN_SKYRIM_TIMELINE_PERSISTENCE.md).
