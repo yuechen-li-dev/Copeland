@@ -30,3 +30,9 @@ exclusive control or replaces M2's Dominatus ranking policy.
 | body binding | materializes | lowers | owns contract | executes policy |
 | scoped launch | executable | plugin transport | managed host | behavior runtime |
 | fixture orchestration | — | — | — | tspack-owned outside runtime layers |
+# M4a live lifecycle extension
+
+Live `LoadOperationStarted` facts enter `SaveLoading`, gate body commands, and
+publish a release request. Successful correlated completion restores a fresh
+owner; failure returns the existing safe owner to `WorldReady`. See
+[live save correlation](AURELIAN_SKYRIM_LIVE_SAVE_CORRELATION.md).

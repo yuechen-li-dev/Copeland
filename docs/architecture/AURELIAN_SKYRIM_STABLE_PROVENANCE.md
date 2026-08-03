@@ -21,3 +21,9 @@ generation to the same agent. Body loss preserves semantic identity.
 Dynamic references use `DynamicSessionReference`; their derivation includes the
 authenticated session and they are not restored. M2's body-only overload is the
 migration adapter for that explicit policy. Display names never form identity.
+# M4a restore boundary
+
+Placed plugin/local provenance persists inside the canonical Dominatus
+checkpoint. Runtime FormIDs, BodyIds, bindings, and dynamic-session actors do
+not. After restore, a fresh Skyrim observation rematerializes the placed origin
+onto the restored semantic AgentId in the unbound state.

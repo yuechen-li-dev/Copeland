@@ -29,3 +29,9 @@ the owner and placed agents before Dominatus restores primitive blackboards and
 stable state paths. Runtime BodyIds/FormIDs and bindings are discarded, so
 agents start unbound. Dynamic agents and pending Skyrim mutations are not
 restored. Missing, corrupt, and version-mismatched artifacts are explicit.
+# M4a correlation
+
+Exact symbolic name plus loaded game time (or a supplied stable fingerprint)
+beats timeline fallback. Name alone never selects an overwritten revision.
+Provisional artifacts become indexed only after SKSE serialization evidence;
+rollback marks only the selected checkpoint and its ancestors active.
