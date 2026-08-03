@@ -16,6 +16,10 @@ public enum HostCommandKind
     BasicAttack,
     EmergencyRestore,
     MoveToward,
+    BindBody,
+    ReleaseBody,
+    QueryBodyBinding,
+    MoveBodyToward,
 }
 
 public enum HostActionState
@@ -175,7 +179,17 @@ public sealed record HostCommandRequest(
                     : HostCommandValidationResult.Valid,
             HostCommandKind.MoveToward when Arguments is MoveTowardArguments moveToward
                 => ValidateMoveToward(moveToward),
-            HostCommandKind.SetMoveIntent or HostCommandKind.SetLookIntent or HostCommandKind.ActivateTarget or HostCommandKind.MoveToward
+            HostCommandKind.BindBody when Arguments is BindBodyArguments bindBody
+                => ValidateBindBody(bindBody),
+            HostCommandKind.ReleaseBody when Arguments is ReleaseBodyArguments releaseBody
+                => ValidateReleaseBody(releaseBody),
+            HostCommandKind.QueryBodyBinding when Arguments is QueryBodyBindingArguments
+                => HostCommandValidationResult.Valid,
+            HostCommandKind.MoveBodyToward when Arguments is MoveBodyTowardArguments moveBody
+                => ValidateMoveBodyToward(moveBody),
+            HostCommandKind.SetMoveIntent or HostCommandKind.SetLookIntent or HostCommandKind.ActivateTarget
+                or HostCommandKind.MoveToward or HostCommandKind.BindBody or HostCommandKind.ReleaseBody
+                or HostCommandKind.QueryBodyBinding or HostCommandKind.MoveBodyToward
                 => HostCommandValidationResult.Invalid("arguments_do_not_match_command"),
             _ when Arguments is EmptyHostCommandArguments => HostCommandValidationResult.Valid,
             _ => HostCommandValidationResult.Invalid("arguments_not_allowed_for_command"),
@@ -239,6 +253,44 @@ public sealed record HostCommandRequest(
 
         return HostCommandValidationResult.Valid;
     }
+
+    private HostCommandValidationResult ValidateBindBody(BindBodyArguments arguments)
+    {
+        if (arguments.ExpectedBodyGeneration == 0
+            || arguments.ExpectedBodyGeneration != ExpectedHostGeneration)
+        {
+            return HostCommandValidationResult.Invalid("body_generation_mismatch");
+        }
+
+        return arguments.Kind == BodyBindingKind.ExclusiveControl
+            ? HostCommandValidationResult.Valid
+            : HostCommandValidationResult.Invalid("binding_kind_unsupported");
+    }
+
+    private HostCommandValidationResult ValidateReleaseBody(ReleaseBodyArguments arguments)
+    {
+        return arguments.ExpectedBodyGeneration != 0
+            && arguments.ExpectedBodyGeneration == ExpectedHostGeneration
+            ? HostCommandValidationResult.Valid
+            : HostCommandValidationResult.Invalid("body_generation_mismatch");
+    }
+
+    private HostCommandValidationResult ValidateMoveBodyToward(MoveBodyTowardArguments arguments)
+    {
+        if (arguments.ExpectedBodyGeneration == 0
+            || arguments.ExpectedBodyGeneration != ExpectedHostGeneration)
+        {
+            return HostCommandValidationResult.Invalid("body_generation_mismatch");
+        }
+
+        return ValidateMoveToward(new MoveTowardArguments(
+            new HostActorId(1, arguments.ExpectedBodyGeneration),
+            arguments.TargetPosition,
+            arguments.StoppingDistance,
+            arguments.MaximumDistance,
+            arguments.SpeedPolicy,
+            arguments.ExpectedObservationSequence));
+    }
 }
 
 public sealed record HostCommandValidationResult(bool IsValid, string? FailureReason)
@@ -300,7 +352,8 @@ public sealed record HostActionResult(
     Guid RequestId,
     HostActionState State,
     string? FailureReason,
-    HostActorObservation? Observation = null)
+    HostActorObservation? Observation = null,
+    BodyCommandResult? BodyResult = null)
 {
     public bool IsTerminal => State is HostActionState.Completed
         or HostActionState.Rejected
@@ -326,7 +379,9 @@ public sealed record HostRuntimeObservation(
     CrosshairObservation Crosshair,
     MovementObservation Movement,
     HostActionResult? Action,
-    HostActorObservation? Actor = null);
+    HostActorObservation? Actor = null,
+    BodyBindingObservation? BodyBinding = null,
+    BodyObservation? Body = null);
 
 public interface IHostPresenterBackend
 {
