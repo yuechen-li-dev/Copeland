@@ -101,6 +101,73 @@ public sealed class LegacyAgentImportTests
         Assert.Contains("essential_actor_excluded", eligibility.Reasons);
     }
 
+    [Fact]
+    public void PlacedOrigin_NormalizesPluginAndSerializesDeterministically()
+    {
+        var origin = new SkyrimPlacedActorOrigin("SomeMod.ESP", 0x12345);
+
+        Assert.Equal("somemod.esp", origin.PluginName);
+        Assert.Equal("somemod.esp|012345", origin.StableKey);
+        Assert.Equal(origin, new SkyrimPlacedActorOrigin("somemod.esp", 0x12345));
+    }
+
+    [Fact]
+    public void PlacedOrigin_RejectsMalformedIdentity()
+    {
+        Assert.Throws<ArgumentException>(() => new SkyrimPlacedActorOrigin(" ", 1));
+        Assert.Throws<ArgumentException>(() => new SkyrimPlacedActorOrigin("mod.txt", 1));
+        Assert.Throws<ArgumentException>(() => new SkyrimPlacedActorOrigin("folder/mod.esp", 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SkyrimPlacedActorOrigin("mod.esp", 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SkyrimPlacedActorOrigin("mod.esp", 0x0100_0000));
+    }
+
+    [Fact]
+    public void PlacedOrigin_SurvivesRuntimeBodyAndLoadOrderChanges()
+    {
+        var registry = new ImportedAgentRegistry("first-session");
+        var origin = SkyrimActorOrigin.ForPlaced(
+            new SkyrimPlacedActorOrigin("Example.esm", 0x1234));
+        ImportedAgentResolution first = registry.ResolveOrCreate(Body("runtime-01", 1), Data(), origin);
+
+        Assert.True(registry.MarkBodyLost(Body("runtime-01", 1).Id));
+        ImportedAgentResolution rematerialized = registry.ResolveOrCreate(
+            Body("runtime-09", 2),
+            Data(),
+            origin);
+
+        Assert.Equal(first.Agent!.Id, rematerialized.Agent!.Id);
+        Assert.False(rematerialized.Created);
+        Assert.Equal(Body("runtime-09", 2).Id, registry.CurrentBody(origin.Placed!.Value));
+    }
+
+    [Fact]
+    public void PluginNamespaceSeparatesEqualLocalIdsAndLightIdsAreSupported()
+    {
+        var registry = new ImportedAgentRegistry("session");
+        AgentId full = registry.ResolveOrCreate(
+            Body("full", 1),
+            Data(),
+            SkyrimActorOrigin.ForPlaced(new SkyrimPlacedActorOrigin("full.esp", 0xabc))).Agent!.Id;
+        AgentId light = registry.ResolveOrCreate(
+            Body("light", 1),
+            Data(),
+            SkyrimActorOrigin.ForPlaced(new SkyrimPlacedActorOrigin("light.esl", 0xabc))).Agent!.Id;
+
+        Assert.NotEqual(full, light);
+    }
+
+    [Fact]
+    public void DynamicOrigin_RemainsSessionScoped()
+    {
+        SkyrimActorOrigin origin = SkyrimActorOrigin.ForDynamic("runtime-ff001234");
+
+        AgentId first = ImportedAgentRegistry.CreateDeterministicAgentId("session-a", origin);
+        AgentId second = ImportedAgentRegistry.CreateDeterministicAgentId("session-b", origin);
+
+        Assert.NotEqual(first, second);
+        Assert.Equal(SkyrimActorOriginKind.DynamicSessionReference, origin.Kind);
+    }
+
     private static ImportedNpcData Data() => new(
         new IdentityProfile("Fixture NPC", "humanoid-corpse"),
         new BodyProfile(Humanoid: true, Essential: false, Protected: false),

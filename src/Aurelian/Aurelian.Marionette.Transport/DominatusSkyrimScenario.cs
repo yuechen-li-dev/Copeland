@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text;
 using Aurelian.Actuation.Host;
 
 namespace Aurelian.Marionette.Transport;
@@ -64,11 +66,33 @@ public sealed partial class MarionetteTransportClient
         {
             throw new InvalidDataException("fixture_not_ready_or_host_session_active");
         }
+        if (!initial.GameTimeDays.HasValue)
+        {
+            throw new InvalidDataException("skyrim_game_timestamp_unavailable");
+        }
+
+        var importedAgents = new ImportedAgentRegistry(hello.SessionId!);
+        var worldOwner = new SkyrimWorldOwnerRuntime(hello.SessionId!, importedAgents);
+        SkyrimSessionId semanticSession = CreateSessionId(hello.SessionId!);
+        var initialTimeline = new SkyrimTimelineStamp(
+            semanticSession,
+            new SkyrimGameTimestamp(initial.GameTimeDays.Value),
+            checked((long)initial.RuntimeSequence));
+        worldOwner.Post(new SkyrimWorldFact(SkyrimWorldFactKind.BackendConnected, 1));
+        TickWorldOwner(worldOwner);
+        worldOwner.Post(new SkyrimWorldFact(
+            SkyrimWorldFactKind.WorldReady,
+            2,
+            Timeline: initialTimeline));
+        TickWorldOwner(worldOwner);
+        if (!worldOwner.CanIssueBodyCommands)
+        {
+            throw new InvalidDataException("skyrim_world_owner_not_ready");
+        }
 
         StableHostCandidateQuery query = await QueryStableHostCandidatesAsync(
             pipe,
             cancellationToken).ConfigureAwait(false);
-        var importedAgents = new ImportedAgentRegistry(hello.SessionId!);
         SkyrimCandidateSet candidateSet = SkyrimCandidateLowerer.Lower(
             hello.SessionId!,
             query.First,
@@ -76,6 +100,18 @@ public sealed partial class MarionetteTransportClient
         if (candidateSet.Candidates.Count < 2)
         {
             throw new InvalidDataException("multiple_candidate_bodies_required");
+        }
+        long bodyFactSequence = 3;
+        foreach (AgentBodyCandidate candidate in candidateSet.Candidates)
+        {
+            SkyrimBodyCandidateMapping mapping = candidateSet.BackendMappings[candidate.Body.Id];
+            worldOwner.Post(new SkyrimWorldFact(
+                SkyrimWorldFactKind.BodyLoaded,
+                bodyFactSequence++,
+                Body: candidate.Body,
+                Origin: mapping.Origin,
+                ImportedData: candidate.Agent.Data));
+            TickWorldOwner(worldOwner);
         }
 
         var selection = new SkyrimCandidateSelectionRuntime();
@@ -212,6 +248,20 @@ public sealed partial class MarionetteTransportClient
                 throw new InvalidDataException($"restore_failed:{restore?.FailureReason}");
             }
 
+            if (!string.IsNullOrWhiteSpace(_config.CheckpointDirectory))
+            {
+                var checkpointStore = new SkyrimCheckpointStore(_config.CheckpointDirectory);
+                SkyrimCheckpointResult checkpoint = checkpointStore.Capture(
+                    worldOwner,
+                    new SkyrimSaveIdentity("ed-m2b2d", initialTimeline),
+                    new BodyBindingRegistry());
+                if (!checkpoint.Completed)
+                {
+                    throw new InvalidDataException(
+                        $"dominatus_checkpoint_failed:{checkpoint.FailureReason}");
+                }
+            }
+
             string[] scores = selection.Decision?.Scores
                 .Select(item => $"{item.Id}={item.Score:R}")
                 .ToArray() ?? [];
@@ -322,6 +372,24 @@ public sealed partial class MarionetteTransportClient
         "experimental" => HostCapabilitySupport.Experimental,
         _ => HostCapabilitySupport.Unsupported,
     };
+
+    private static SkyrimSessionId CreateSessionId(string transportSessionId)
+    {
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(
+            $"aurelian-skyrim-session\n{transportSessionId}"));
+        byte[] guidBytes = hash[..16];
+        guidBytes[7] = (byte)((guidBytes[7] & 0x0f) | 0x50);
+        guidBytes[8] = (byte)((guidBytes[8] & 0x3f) | 0x80);
+        return new SkyrimSessionId(new Guid(guidBytes));
+    }
+
+    private static void TickWorldOwner(SkyrimWorldOwnerRuntime owner)
+    {
+        for (int index = 0; index < 6; index++)
+        {
+            owner.Tick();
+        }
+    }
 }
 
 internal sealed class ConnectedMarionetteHostBackend : IHostPresenterBackend

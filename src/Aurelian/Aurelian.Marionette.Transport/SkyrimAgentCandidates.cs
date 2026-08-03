@@ -14,7 +14,8 @@ namespace Aurelian.Marionette.Transport;
 public sealed record SkyrimBodyCandidateMapping(
     BodyId Body,
     uint ActorFormId,
-    ulong ObservationGeneration);
+    ulong ObservationGeneration,
+    SkyrimActorOrigin Origin);
 
 public sealed record SkyrimCandidateSet(
     IReadOnlyList<AgentBodyCandidate> Candidates,
@@ -76,7 +77,8 @@ public static class SkyrimCandidateLowerer
                 new IdentityProfile($"Imported Skyrim NPC {index + 1}", archetype),
                 new BodyProfile(source.Humanoid, source.Essential, source.Protected),
                 SelectionProfile.ImportedDefault);
-            ImportedAgentResolution resolution = registry.ResolveOrCreate(body, data);
+            SkyrimActorOrigin origin = CreateOrigin(sessionId, source);
+            ImportedAgentResolution resolution = registry.ResolveOrCreate(body, data, origin);
             if (!resolution.Accepted)
             {
                 throw new InvalidDataException(resolution.FailureReason);
@@ -95,7 +97,11 @@ public static class SkyrimCandidateLowerer
             candidates.Add(new AgentBodyCandidate(resolution.Agent!, body, traits, eligibility));
             mappings.Add(
                 bodyId,
-                new SkyrimBodyCandidateMapping(bodyId, source.FormId, InitialImportGeneration));
+                new SkyrimBodyCandidateMapping(
+                    bodyId,
+                    source.FormId,
+                    InitialImportGeneration,
+                    origin));
         }
 
         return new SkyrimCandidateSet(candidates, mappings, result.RuntimeSequence);
@@ -115,15 +121,42 @@ public static class SkyrimCandidateLowerer
         {
             Generation = materializationGeneration,
         };
+        SkyrimActorOrigin origin = selected.Agent.Provenance.SkyrimOrigin
+            ?? throw new InvalidDataException("selected_agent_origin_missing");
         ImportedAgentResolution resolution = registry.ResolveOrCreate(
             refreshedBody,
-            selected.Agent.Data);
+            selected.Agent.Data,
+            origin);
         if (!resolution.Accepted || resolution.Agent!.Id != selected.Agent.Id)
         {
             throw new InvalidDataException(resolution.FailureReason ?? "selected_agent_identity_changed");
         }
 
         return selected with { Agent = resolution.Agent, Body = refreshedBody };
+    }
+
+    private static SkyrimActorOrigin CreateOrigin(
+        string sessionId,
+        EligibleHostFixtureCandidate source)
+    {
+        if (string.Equals(source.OriginKind, "placed", StringComparison.Ordinal))
+        {
+            if (source.PluginName is null || !source.LocalFormId.HasValue)
+            {
+                throw new InvalidDataException("placed_actor_origin_incomplete");
+            }
+
+            return SkyrimActorOrigin.ForPlaced(
+                new SkyrimPlacedActorOrigin(source.PluginName, source.LocalFormId.Value));
+        }
+
+        if (!string.Equals(source.OriginKind, "dynamic", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("actor_origin_kind_unknown");
+        }
+
+        return SkyrimActorOrigin.ForDynamic(
+            $"{sessionId}:{source.FormId:X8}:{source.StableSortKey}");
     }
 
     private static BodyId CreateBodyId(string sessionId, string stableSortKey)

@@ -144,6 +144,8 @@ public sealed class BodyBindingRegistry
     private readonly Dictionary<BodyId, BodyBinding> activeByBody = new();
     private readonly Dictionary<AgentId, BodyBinding> lastByAgent = new();
 
+    public bool HasActiveExclusiveBinding => activeByAgent.Count > 0;
+
     public BodyBindingRegistryResult BeginBinding(
         AgentId agent,
         BodyId body,

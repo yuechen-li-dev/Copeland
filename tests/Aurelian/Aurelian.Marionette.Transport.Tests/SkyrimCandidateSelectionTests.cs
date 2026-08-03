@@ -44,6 +44,36 @@ public sealed class SkyrimCandidateSelectionTests
     }
 
     [Fact]
+    public void PlacedCandidateAgentIdIgnoresRuntimeLoadOrderFormId()
+    {
+        EligibleHostFixtureCandidate firstRuntime = Candidate(
+            0x01123456,
+            20,
+            "runtime-01") with
+        {
+            OriginKind = "placed",
+            PluginName = "Example.ESP",
+            LocalFormId = 0x123456,
+        };
+        EligibleHostFixtureCandidate changedLoadOrder = firstRuntime with
+        {
+            FormId = 0x09123456,
+            StableSortKey = "runtime-09",
+        };
+
+        AgentId first = SkyrimCandidateLowerer.Lower(
+            "session-one",
+            Result(firstRuntime),
+            new ImportedAgentRegistry("session-one")).Candidates.Single().Agent.Id;
+        AgentId second = SkyrimCandidateLowerer.Lower(
+            "session-two",
+            Result(changedLoadOrder),
+            new ImportedAgentRegistry("session-two")).Candidates.Single().Agent.Id;
+
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
     public void Selection_UsesDominatusDecisionAndNearestValidCandidateWins()
     {
         AgentBodyCandidate far = PortableCandidate("far", 300);

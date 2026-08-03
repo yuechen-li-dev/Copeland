@@ -63,12 +63,32 @@ public sealed class WireProtocolTests
         EligibleHostFixturesRequest decodedRequest = await MarionetteWireProtocol.ReadAsync<EligibleHostFixturesRequest>(requestStream, CancellationToken.None);
         Assert.Equal(request, decodedRequest);
 
-        var candidate = new EligibleHostFixtureCandidate(0x1234, 0x5678, 42.0F, true, true, false, false, true, "eligible", true, "4660", 1, 2, 3);
+        var candidate = new EligibleHostFixtureCandidate(
+            0x1234,
+            0x5678,
+            42.0F,
+            true,
+            true,
+            false,
+            false,
+            true,
+            "eligible",
+            true,
+            "4660",
+            1,
+            2,
+            3,
+            "placed",
+            "Example.esp",
+            0x234,
+            LightPlugin: true);
         var response = new EligibleHostFixturesResult(1, "eligible_host_fixtures_result", "hosts-1", 4, "completed", 12, 0x14, 3, 1, [candidate], null);
         using var responseStream = new MemoryStream(MarionetteWireProtocol.Encode(response));
         EligibleHostFixturesResult decodedResponse = await MarionetteWireProtocol.ReadAsync<EligibleHostFixturesResult>(responseStream, CancellationToken.None);
         Assert.Equal((uint)0x1234, decodedResponse.Candidates[0].FormId);
-        Assert.DoesNotContain("name", System.Text.Encoding.UTF8.GetString(MarionetteWireProtocol.Encode(response)), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Example.esp", decodedResponse.Candidates[0].PluginName);
+        Assert.Equal((uint)0x234, decodedResponse.Candidates[0].LocalFormId);
+        Assert.DoesNotContain("displayName", System.Text.Encoding.UTF8.GetString(MarionetteWireProtocol.Encode(response)), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
