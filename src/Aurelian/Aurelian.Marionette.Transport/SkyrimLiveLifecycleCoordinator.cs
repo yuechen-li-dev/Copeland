@@ -176,6 +176,13 @@ public sealed class SkyrimLiveLifecycleCoordinator
             SourceCallback: observation.SourceCallback));
         Tick(CurrentWorld);
         SkyrimCheckpointResult restored = checkpoints.Restore(loaded, restoreSessionScope);
+        if (restored.Status == SkyrimCheckpointStatus.CheckpointUnavailable)
+        {
+            // The controller may attach after Skyrim has already loaded a world. That
+            // baseline load has no managed history to restore and remains command-ready.
+            CurrentWorld.CompleteUntrackedLoad();
+            return new SkyrimLifecycleProcessingResult(true, "load_completed_without_checkpoint", restored);
+        }
         if (!restored.Completed || restored.RestoredWorld is null || restored.Entry is null)
         {
             CurrentWorld.RequireRestoration(restored.FailureReason ?? restored.Status.ToString());

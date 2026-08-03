@@ -109,6 +109,39 @@ public sealed class SkyrimLiveLifecycleTests
     }
 
     [Fact]
+    public void BaselineLoadWithoutCheckpointRemainsWorldReady()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"aurelian-m4a-{Guid.NewGuid():N}");
+        try
+        {
+            SkyrimWorldOwnerRuntime owner = ReadyOwner();
+            var coordinator = new SkyrimLiveLifecycleCoordinator(
+                Session,
+                owner,
+                new SkyrimCheckpointStore(directory),
+                new BodyBindingRegistry(),
+                "restore");
+
+            Assert.True(coordinator.Process(Observation("load_started", 1, 8, "Fixture", 10)).Accepted);
+            SkyrimLifecycleProcessingResult completed = coordinator.Process(
+                Observation("load_completed", 2, 8, "Fixture", 10));
+
+            Assert.True(completed.Accepted);
+            Assert.Equal("load_completed_without_checkpoint", completed.Outcome);
+            Assert.Equal(SkyrimCheckpointStatus.CheckpointUnavailable, completed.Checkpoint!.Status);
+            Assert.Same(owner, coordinator.CurrentWorld);
+            Assert.Equal(SkyrimWorldOwnerState.WorldReady, owner.State);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void ActiveBindingMakesLoadRestorationRequired()
     {
         string directory = Path.Combine(Path.GetTempPath(), $"aurelian-m4a-{Guid.NewGuid():N}");

@@ -293,6 +293,12 @@ public sealed class SkyrimWorldOwnerRuntime
         }
     }
 
+    internal void CompleteUntrackedLoad()
+    {
+        state = SkyrimWorldOwnerState.WorldReady;
+        routedState = SkyrimWorldOwnerState.WorldReady;
+    }
+
     internal void RequireRestoration(string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
