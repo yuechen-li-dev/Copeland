@@ -157,7 +157,7 @@ public sealed partial class MarionetteTransportClient
         string sessionScope,
         CancellationToken cancellationToken)
     {
-        StableHostCandidateQuery query = await QueryStableHostCandidatesAsync(
+        StableHostCandidateQuery query = await WaitForStableHostCandidatesAsync(
             pipe,
             cancellationToken).ConfigureAwait(false);
         RediscoverBodies(world, sessionScope, query);
@@ -193,21 +193,37 @@ public sealed partial class MarionetteTransportClient
         Console.Error.WriteLine("M4A_MANAGED waiting_for_gameplay");
         while (!cancellationToken.IsCancellationRequested)
         {
-            SkyrimStateResult state = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
-            if (state.PlayerAvailable && state.GameTimeDays.HasValue)
+            SkyrimStateResult? state = await TryQueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
+            if (state is { PlayerAvailable: true, GameTimeDays: not null })
             {
-                try
-                {
-                    StableHostCandidateQuery candidates = await QueryStableHostCandidatesAsync(
-                        pipe,
-                        cancellationToken).ConfigureAwait(false);
-                    return new GameplayReadyState(state, candidates, state.GameTimeDays.Value);
-                }
-                catch (InvalidDataException exception) when (
-                    exception.Message == "eligible_host_fixture_selection_invalid")
-                {
-                    // The main menu exposes a bridge but no loaded host fixture yet.
-                }
+                StableHostCandidateQuery candidates = await WaitForStableHostCandidatesAsync(
+                    pipe,
+                    cancellationToken).ConfigureAwait(false);
+                return new GameplayReadyState(state, candidates, state.GameTimeDays.Value);
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
+        }
+
+        throw new OperationCanceledException(cancellationToken);
+    }
+
+    private async ValueTask<StableHostCandidateQuery> WaitForStableHostCandidatesAsync(
+        Stream pipe,
+        CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                return await QueryStableHostCandidatesAsync(
+                    pipe,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (InvalidDataException exception) when (
+                exception.Message == "eligible_host_fixture_selection_invalid")
+            {
+                // A load can expose the bridge before its deterministic host fixture is ready.
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
