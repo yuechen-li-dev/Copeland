@@ -63,7 +63,7 @@ public sealed class WireProtocolTests
         EligibleHostFixturesRequest decodedRequest = await MarionetteWireProtocol.ReadAsync<EligibleHostFixturesRequest>(requestStream, CancellationToken.None);
         Assert.Equal(request, decodedRequest);
 
-        var candidate = new EligibleHostFixtureCandidate(0x1234, 0x5678, 42.0F, true, true, false, false, true, "eligible", true, "4660");
+        var candidate = new EligibleHostFixtureCandidate(0x1234, 0x5678, 42.0F, true, true, false, false, true, "eligible", true, "4660", 1, 2, 3);
         var response = new EligibleHostFixturesResult(1, "eligible_host_fixtures_result", "hosts-1", 4, "completed", 12, 0x14, 3, 1, [candidate], null);
         using var responseStream = new MemoryStream(MarionetteWireProtocol.Encode(response));
         EligibleHostFixturesResult decodedResponse = await MarionetteWireProtocol.ReadAsync<EligibleHostFixturesResult>(responseStream, CancellationToken.None);
@@ -75,8 +75,8 @@ public sealed class WireProtocolTests
     public void EligibleHostCandidates_RequireDistanceThenFormIdOrdering()
     {
         var ordered = new[] {
-            new EligibleHostFixtureCandidate(10, null, 10, true, true, false, false, true, "eligible", true, "10"),
-            new EligibleHostFixtureCandidate(20, null, 10, true, true, false, false, true, "eligible", true, "20")
+            new EligibleHostFixtureCandidate(10, null, 10, true, true, false, false, true, "eligible", true, "10", 1, 2, 3),
+            new EligibleHostFixtureCandidate(20, null, 10, true, true, false, false, true, "eligible", true, "20", 4, 5, 6)
         };
         Assert.True(MarionetteTransportClient.IsDeterministicOrder(ordered));
         Assert.False(MarionetteTransportClient.IsDeterministicOrder(ordered.Reverse().ToArray()));

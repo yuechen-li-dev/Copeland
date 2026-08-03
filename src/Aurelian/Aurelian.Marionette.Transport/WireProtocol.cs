@@ -103,7 +103,21 @@ public sealed record TransportResult(int ProtocolVersion, string MessageKind, st
 public sealed record TransportStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, bool BridgeReady, bool PresenterTransportEnabled, bool SemanticActuationEnabled, bool HostRequestEvaluationEnabled, bool ControllerConnected, string Profile, string SessionId, int MaxMessageBytes, string[] SupportedMessageKinds);
 public sealed record SkyrimStateRequest(int ProtocolVersion, string MessageKind, string RequestId, int TimeoutMilliseconds);
 public sealed record EligibleHostFixturesRequest(int ProtocolVersion, string MessageKind, string RequestId, uint Radius, uint MaxResults, int TimeoutMilliseconds);
-public sealed record EligibleHostFixtureCandidate(uint FormId, uint? BaseFormId, float Distance, bool Dead, bool Humanoid, bool Essential, bool Protected, bool Intact, string EligibilityReason, bool Loaded, string StableSortKey);
+public sealed record EligibleHostFixtureCandidate(
+    uint FormId,
+    uint? BaseFormId,
+    float Distance,
+    bool Dead,
+    bool Humanoid,
+    bool Essential,
+    bool Protected,
+    bool Intact,
+    string EligibilityReason,
+    bool Loaded,
+    string StableSortKey,
+    float PositionX,
+    float PositionY,
+    float PositionZ);
 public sealed record EligibleHostFixturesResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, ulong RuntimeSequence, uint OriginPlayerFormId, uint InspectedActorCount, uint CandidateCount, EligibleHostFixtureCandidate[] Candidates, string? FailureReason);
 public sealed record SkyrimStateResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? Diagnostic, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, uint? CrosshairTargetFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId, bool ActorObservationAvailable = false, uint? ActorGeneration = null, uint? ActorFormId = null, bool ActorLoaded = false, bool ActorDead = false, bool ActorMoving = false, float ActorPositionX = 0, float ActorPositionY = 0, float ActorPositionZ = 0, float ActorHeadingRadians = 0, uint? ActorCellFormId = null, float? ActorVelocityX = null, float? ActorVelocityY = null, float? ActorVelocityZ = null, string BoundedDirectDisplacementCapability = "unsupported", string AnimatedLocomotionCapability = "unsupported", string GoalDirectedMovementCapability = "unsupported", string CameraFollowingCapability = "unsupported", string ActorActivationCapability = "unsupported", string AttackCapability = "unsupported", string JumpCapability = "unsupported", string SneakCapability = "unsupported");
 public sealed record BeginHostSessionRequest(int ProtocolVersion, string MessageKind, string RequestId, uint ExpectedPendingRequestGeneration, uint ExpectedTargetFormId, int TimeoutMilliseconds);
@@ -410,19 +424,114 @@ public sealed partial class MarionetteTransportClient
 
     private async ValueTask<DeterministicHostFixtureReport> QueryDeterministicHostFixtureAsync(Stream pipe, string sessionId, CancellationToken cancellationToken)
     {
+        StableHostCandidateQuery query = await QueryStableHostCandidatesAsync(
+            pipe,
+            cancellationToken).ConfigureAwait(false);
+        return new DeterministicHostFixtureReport(
+            MarionetteWireProtocol.Version,
+            sessionId,
+            true,
+            "ed-m2b2d",
+            query.FirstRequestId,
+            query.Radius,
+            query.MaxResults,
+            query.First.InspectedActorCount,
+            query.First.CandidateCount,
+            query.First.Candidates[0].FormId,
+            query.First.Candidates[0].Distance,
+            true,
+            query.Foreground,
+            query.First.ServerSequence,
+            query.Second.ServerSequence,
+            query.First.RuntimeSequence,
+            query.Second.RuntimeSequence);
+    }
+
+    private async ValueTask<StableHostCandidateQuery> QueryStableHostCandidatesAsync(
+        Stream pipe,
+        CancellationToken cancellationToken)
+    {
         const uint radius = 1024;
         const uint maxResults = 8;
         bool foreground = IsSkyrimForeground();
         string firstRequestId = Guid.NewGuid().ToString("N");
-        EligibleHostFixturesResult first = await SendHostFixtureQueryAsync(pipe, new EligibleHostFixturesRequest(MarionetteWireProtocol.Version, "query_eligible_host_fixtures", firstRequestId, radius, maxResults, 2000), cancellationToken).ConfigureAwait(false);
+        EligibleHostFixturesResult first = await SendHostFixtureQueryAsync(
+            pipe,
+            new EligibleHostFixturesRequest(
+                MarionetteWireProtocol.Version,
+                "query_eligible_host_fixtures",
+                firstRequestId,
+                radius,
+                maxResults,
+                2000),
+            cancellationToken).ConfigureAwait(false);
         string secondRequestId = Guid.NewGuid().ToString("N");
-        EligibleHostFixturesResult second = await SendHostFixtureQueryAsync(pipe, new EligibleHostFixturesRequest(MarionetteWireProtocol.Version, "query_eligible_host_fixtures", secondRequestId, radius, maxResults, 2000), cancellationToken).ConfigureAwait(false);
-        if (first.Status != "completed" || second.Status != "completed" || first.CandidateCount == 0 || first.Candidates.Length == 0 || first.Candidates.Length != first.CandidateCount || first.Candidates.Length > maxResults || first.Candidates[0].FormId == 0 || first.Candidates[0].EligibilityReason != "eligible" || !IsDeterministicOrder(first.Candidates) || !IsDeterministicOrder(second.Candidates) || second.CandidateCount == 0 || second.Candidates[0].FormId != first.Candidates[0].FormId || MathF.Abs(second.Candidates[0].Distance - first.Candidates[0].Distance) > 0.01F)
+        EligibleHostFixturesResult second = await SendHostFixtureQueryAsync(
+            pipe,
+            new EligibleHostFixturesRequest(
+                MarionetteWireProtocol.Version,
+                "query_eligible_host_fixtures",
+                secondRequestId,
+                radius,
+                maxResults,
+                2000),
+            cancellationToken).ConfigureAwait(false);
+        if (first.Status != "completed"
+            || second.Status != "completed"
+            || first.CandidateCount == 0
+            || first.Candidates.Length == 0
+            || first.Candidates.Length != first.CandidateCount
+            || first.Candidates.Length > maxResults
+            || !IsDeterministicOrder(first.Candidates)
+            || !IsDeterministicOrder(second.Candidates)
+            || !CandidateSetsMatch(first.Candidates, second.Candidates))
         {
             throw new InvalidDataException("eligible_host_fixture_selection_invalid");
         }
-        return new DeterministicHostFixtureReport(MarionetteWireProtocol.Version, sessionId, true, "ed-m2b2d", firstRequestId, radius, maxResults, first.InspectedActorCount, first.CandidateCount, first.Candidates[0].FormId, first.Candidates[0].Distance, true, foreground, first.ServerSequence, second.ServerSequence, first.RuntimeSequence, second.RuntimeSequence);
+
+        return new StableHostCandidateQuery(
+            first,
+            second,
+            firstRequestId,
+            radius,
+            maxResults,
+            foreground);
     }
+
+    private static bool CandidateSetsMatch(
+        IReadOnlyList<EligibleHostFixtureCandidate> first,
+        IReadOnlyList<EligibleHostFixtureCandidate> second)
+    {
+        if (first.Count != second.Count)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < first.Count; index++)
+        {
+            EligibleHostFixtureCandidate left = first[index];
+            EligibleHostFixtureCandidate right = second[index];
+            if (left.FormId != right.FormId
+                || !string.Equals(left.StableSortKey, right.StableSortKey, StringComparison.Ordinal)
+                || MathF.Abs(left.Distance - right.Distance) > 0.01f
+                || MathF.Abs(left.PositionX - right.PositionX) > 0.01f
+                || MathF.Abs(left.PositionY - right.PositionY) > 0.01f
+                || MathF.Abs(left.PositionZ - right.PositionZ) > 0.01f)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private sealed record StableHostCandidateQuery(
+        EligibleHostFixturesResult First,
+        EligibleHostFixturesResult Second,
+        string FirstRequestId,
+        uint Radius,
+        uint MaxResults,
+        bool Foreground);
 
     private static async ValueTask<EligibleHostFixturesResult> SendHostFixtureQueryAsync(Stream pipe, EligibleHostFixturesRequest request, CancellationToken cancellationToken)
     {

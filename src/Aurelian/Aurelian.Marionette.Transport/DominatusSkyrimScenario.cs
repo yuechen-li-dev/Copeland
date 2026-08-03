@@ -9,6 +9,8 @@ public sealed record DominatusSkyrimReport(
     string SessionId,
     string AgentId,
     string BodyId,
+    string[] CandidateAgentIds,
+    string[] CandidateBodyIds,
     string BindingState,
     uint ActorFormId,
     ulong ActorGeneration,
@@ -19,6 +21,9 @@ public sealed record DominatusSkyrimReport(
     float DistanceAfter,
     string SelectedUtilityOption,
     string[] UtilityScores,
+    string[] SelectedUtilityFactors,
+    string MovementUtilityOption,
+    bool WrongAgentMovementRejected,
     string SemanticCommand,
     Guid CommandRequestId,
     string[] ActionLifecycle,
@@ -60,17 +65,35 @@ public sealed partial class MarionetteTransportClient
             throw new InvalidDataException("fixture_not_ready_or_host_session_active");
         }
 
-        DeterministicHostFixtureReport fixture = await QueryDeterministicHostFixtureAsync(
+        StableHostCandidateQuery query = await QueryStableHostCandidatesAsync(
             pipe,
-            hello.SessionId!,
             cancellationToken).ConfigureAwait(false);
+        var importedAgents = new ImportedAgentRegistry(hello.SessionId!);
+        SkyrimCandidateSet candidateSet = SkyrimCandidateLowerer.Lower(
+            hello.SessionId!,
+            query.First,
+            importedAgents);
+        if (candidateSet.Candidates.Count < 2)
+        {
+            throw new InvalidDataException("multiple_candidate_bodies_required");
+        }
+
+        var selection = new SkyrimCandidateSelectionRuntime();
+        if (!selection.PublishCandidates(candidateSet.Candidates)
+            || selection.RunUntilTerminal() != SkyrimCandidateSelectionState.Completed
+            || selection.SelectedCandidate is null)
+        {
+            throw new InvalidDataException("candidate_agent_selection_failed");
+        }
+        AgentBodyCandidate selected = selection.SelectedCandidate;
+        SkyrimBodyCandidateMapping selectedMapping = candidateSet.BackendMappings[selected.Body.Id];
         EvaluateHostRequestResult evaluate = await SendEvaluateAsync(
             pipe,
             new EvaluateHostRequestRequest(
                 MarionetteWireProtocol.Version,
                 "evaluate_host_request",
                 Guid.NewGuid().ToString("N"),
-                fixture.SelectedHostFormId,
+                selectedMapping.ActorFormId,
                 2000),
             cancellationToken).ConfigureAwait(false);
         if (evaluate.Status != "completed" || !evaluate.Eligible
@@ -84,13 +107,21 @@ public sealed partial class MarionetteTransportClient
         {
             throw new InvalidDataException("pending_body_materialization_missing");
         }
+        if (pending.PendingTargetFormId.Value != selectedMapping.ActorFormId)
+        {
+            throw new InvalidDataException("selected_body_materialization_mismatch");
+        }
+
+        selected = SkyrimCandidateLowerer.RefreshSelectedGeneration(
+            selected,
+            pending.PendingRequestGeneration.Value,
+            importedAgents);
 
         HostMutationResult? restore = null;
         try
         {
-            var agentId = new Aurelian.Actuation.Host.AgentId(
-                Guid.Parse("a0e11a00-0000-4000-8000-000000000001"));
-            var bodyId = new BodyId("skyrim-fixture-body-1");
+            AgentId agentId = selected.Agent.Id;
+            BodyId bodyId = selected.Body.Id;
             var connected = new ConnectedMarionetteHostBackend(
                 pipe,
                 new HostActorId(
@@ -117,6 +148,42 @@ public sealed partial class MarionetteTransportClient
 
             bool foregroundAtDecision = IsSkyrimForeground();
             var stopwatch = Stopwatch.StartNew();
+            for (int index = 0; index < 32 && runtime.State != SkyrimBodyAgentState.BoundIdle; index++)
+            {
+                runtime.Tick();
+            }
+            if (runtime.State != SkyrimBodyAgentState.BoundIdle
+                || runtime.Body is null
+                || runtime.Binding is null)
+            {
+                throw new InvalidDataException("selected_agent_binding_not_observed");
+            }
+
+            AgentBodyCandidate nonSelected = candidateSet.Candidates.First(
+                candidate => candidate.Agent.Id != selected.Agent.Id);
+            HostActionResult wrongOwner = await HostActionRunner.ExecuteAsync(
+                backend,
+                new HostCommandRequest(
+                    Guid.NewGuid(),
+                    runtime.Binding.Generation,
+                    HostCommandKind.MoveBodyToward,
+                    TimeSpan.FromSeconds(2),
+                    new MoveBodyTowardArguments(
+                        nonSelected.Agent.Id,
+                        bodyId,
+                        runtime.Body.Position,
+                        0.0f,
+                        1.0f,
+                        HostMovementSpeedPolicy.Walk,
+                        runtime.Binding.Generation,
+                        runtime.Body.Sequence)),
+                cancellationToken).ConfigureAwait(false);
+            bool wrongAgentRejected = wrongOwner.State == HostActionState.Rejected;
+            if (!wrongAgentRejected)
+            {
+                throw new InvalidDataException("non_selected_agent_command_not_rejected");
+            }
+
             SkyrimBodyAgentState transition = runtime.RunUntilTerminal();
             stopwatch.Stop();
             bool foregroundAtActuation = IsSkyrimForeground();
@@ -145,14 +212,18 @@ public sealed partial class MarionetteTransportClient
                 throw new InvalidDataException($"restore_failed:{restore?.FailureReason}");
             }
 
-            string[] scores = runtime.Decision?.Scores
+            string[] scores = selection.Decision?.Scores
                 .Select(item => $"{item.Id}={item.Score:R}")
                 .ToArray() ?? [];
+            CandidateUtilityReport selectedUtility = selection.UtilityReports.Single(
+                report => report.Agent == selected.Agent.Id);
             return new DominatusSkyrimReport(
                 MarionetteWireProtocol.Version,
                 hello.SessionId!,
                 agentId.ToString(),
                 bodyId.Value,
+                candidateSet.Candidates.Select(candidate => candidate.Agent.Id.ToString()).ToArray(),
+                candidateSet.Candidates.Select(candidate => candidate.Body.Id.Value).ToArray(),
                 runtime.Binding.State.ToString(),
                 observation.ActorId.FormId,
                 observation.ActorId.Generation,
@@ -161,8 +232,13 @@ public sealed partial class MarionetteTransportClient
                 final.Position,
                 observation.Position.DistanceTo(target),
                 final.Position.DistanceTo(target),
-                runtime.SelectedOption ?? "unavailable",
+                selection.Decision?.BestId ?? "unavailable",
                 scores,
+                selectedUtility.Factors
+                    .Select(factor => $"{factor.Name}={factor.Value:R}*{factor.Weight:R}:{factor.Contribution:R}")
+                    .ToArray(),
+                runtime.SelectedOption ?? "unavailable",
+                wrongAgentRejected,
                 "MoveBodyToward",
                 runtime.MovementResult!.RequestId,
                 movement.ActionLifecycle ?? [],
