@@ -1,154 +1,110 @@
+using System.Runtime.CompilerServices;
 using Aurelian.Actuation.Host;
 using Xunit;
+using AurelianAgentId = Aurelian.Actuation.Host.AgentId;
 
 namespace Aurelian.Marionette.Transport.Tests;
 
 public sealed class SkyrimApproachAgentTests
 {
     [Fact]
-    public void SameObservation_SelectsSameUtilityOptionAndCommand()
+    public void UnboundAgent_RequestsBindingThenCompletesOwnedLifecycle()
     {
-        HostActorObservation observation = CreateObservation();
-        SkyrimApproachAgentDefinition definition = CreateDefinition(observation);
-        Guid requestId = Guid.Parse("61ca6a06-f728-454d-8e5d-889838ce8d70");
-        SkyrimApproachAgentRuntime first = definition.CreateRuntime(
-            new DeterministicHostPresenterBackend(observation),
-            observation,
-            requestId);
-        SkyrimApproachAgentRuntime second = definition.CreateRuntime(
-            new DeterministicHostPresenterBackend(observation),
-            observation,
-            requestId);
+        (SkyrimBodyAgentRuntime runtime, LifecycleBackend backend) = CreateRuntime();
 
-        SkyrimApproachTransition firstTransition = first.RunUntilTerminal();
-        SkyrimApproachTransition secondTransition = second.RunUntilTerminal();
+        Assert.Equal(SkyrimBodyAgentState.Unbound, runtime.State);
+        runtime.Tick();
+        runtime.Tick();
+        Assert.Equal(SkyrimBodyAgentState.RequestBinding, runtime.State);
 
-        Assert.Equal("MoveToward", first.SelectedOption);
-        Assert.Equal(first.SelectedOption, second.SelectedOption);
-        Assert.Equal(first.CreateCommand(), second.CreateCommand());
-        Assert.Equal(SkyrimApproachTransition.Completed, firstTransition);
-        Assert.Equal(firstTransition, secondTransition);
+        SkyrimBodyAgentState terminal = runtime.RunUntilTerminal();
+
+        Assert.Equal(SkyrimBodyAgentState.Completed, terminal);
+        Assert.Equal(BodyBindingState.Released, runtime.Binding!.State);
+        Assert.Equal("MoveToward", runtime.SelectedOption);
+        Assert.Equal(
+            [HostCommandKind.BeginHostSession, HostCommandKind.MoveToward, HostCommandKind.EndHostSession],
+            backend.Commands);
     }
 
     [Fact]
-    public void CompletionResult_DrivesCompletedTransition()
+    public void FailedBinding_ReturnsAuthoredFailureWithoutMovement()
     {
-        HostActorObservation observation = CreateObservation();
-        SkyrimApproachAgentRuntime runtime = CreateDefinition(observation).CreateRuntime(
-            new DeterministicHostPresenterBackend(observation),
-            observation,
-            Guid.NewGuid());
+        (SkyrimBodyAgentRuntime runtime, LifecycleBackend backend) = CreateRuntime();
+        backend.BindingState = HostActionState.Failed;
 
-        SkyrimApproachTransition transition = runtime.RunUntilTerminal();
+        SkyrimBodyAgentState terminal = runtime.RunUntilTerminal();
 
-        Assert.Equal(SkyrimApproachTransition.Completed, transition);
-        Assert.Equal(HostActionState.Completed, runtime.LastResult!.State);
-        Assert.Equal("MoveToward", runtime.Decision!.BestId);
+        Assert.Equal(SkyrimBodyAgentState.Failed, terminal);
+        Assert.Equal(HostActionState.Failed, runtime.BindingResult!.State);
+        Assert.DoesNotContain(HostCommandKind.MoveToward, backend.Commands);
     }
 
     [Fact]
-    public void BlockedResult_RetriesOnceThenTransitionsBlocked()
+    public void MovementFailure_TriggersReleaseThenAuthoredFailure()
     {
-        HostActorObservation observation = CreateObservation();
-        var backend = new DeterministicHostPresenterBackend(observation)
-        {
-            InjectedTerminalState = HostActionState.Blocked,
-        };
-        SkyrimApproachAgentRuntime runtime = CreateDefinition(observation).CreateRuntime(
-            backend,
-            observation,
-            Guid.NewGuid());
+        (SkyrimBodyAgentRuntime runtime, LifecycleBackend backend) = CreateRuntime();
+        backend.MovementState = HostActionState.Blocked;
 
-        SkyrimApproachTransition transition = runtime.RunUntilTerminal();
+        SkyrimBodyAgentState terminal = runtime.RunUntilTerminal();
 
-        Assert.Equal(SkyrimApproachTransition.Blocked, transition);
-        Assert.Equal(1, runtime.RetryCount);
-        Assert.Equal(2, backend.SubmittedCommandCount);
+        Assert.Equal(SkyrimBodyAgentState.Failed, terminal);
+        Assert.Equal(HostActionState.Blocked, runtime.MovementResult!.State);
+        Assert.Equal(HostActionState.Completed, runtime.ReleaseResult!.State);
+        Assert.Contains(HostCommandKind.EndHostSession, backend.Commands);
     }
 
     [Fact]
-    public void UnsupportedCapability_PreventsCommandSelection()
+    public void ReleaseFailure_ReportsRestoreRequired()
     {
-        HostActorObservation observation = CreateObservation() with
-        {
-            Capabilities = CreateCapabilities() with
-            {
-                GoalDirectedMovement = HostCapabilitySupport.Unsupported,
-            },
-        };
-        var backend = new DeterministicHostPresenterBackend(observation);
-        SkyrimApproachAgentRuntime runtime = CreateDefinition(observation).CreateRuntime(
-            backend,
-            observation,
-            Guid.NewGuid());
+        (SkyrimBodyAgentRuntime runtime, LifecycleBackend backend) = CreateRuntime();
+        backend.ReleaseState = HostActionState.EngineRefused;
 
-        SkyrimApproachTransition transition = runtime.RunUntilTerminal();
+        SkyrimBodyAgentState terminal = runtime.RunUntilTerminal();
 
-        Assert.Equal(SkyrimApproachTransition.Unsupported, transition);
-        Assert.Equal("Unsupported", runtime.SelectedOption);
-        Assert.Equal(0, backend.SubmittedCommandCount);
+        Assert.Equal(SkyrimBodyAgentState.RestoreRequired, terminal);
+        Assert.Equal(BodyBindingState.RestoreRequired, runtime.Binding!.State);
     }
 
     [Fact]
-    public void TargetAlreadyReached_RemainsIdleWithoutCommand()
+    public void GeneratedFlow_HasStableAuthoredIdsAndNoHiddenStates()
     {
-        HostActorObservation observation = CreateObservation() with
-        {
-            Position = new HostPosition3(120.0f, 0.0f, 0.0f),
-        };
-        var backend = new DeterministicHostPresenterBackend(observation);
-        SkyrimApproachAgentRuntime runtime = CreateDefinition(observation).CreateRuntime(
-            backend,
-            observation,
-            Guid.NewGuid());
+        (SkyrimBodyAgentRuntime runtime, _) = CreateRuntime();
 
-        SkyrimApproachTransition transition = runtime.RunUntilTerminal();
+        var inspection = runtime.FlowInspection;
+        string[] ids = inspection.States.Select(state => state.Id.Value).ToArray();
 
-        Assert.Equal(SkyrimApproachTransition.AlreadyReached, transition);
-        Assert.Equal("AlreadyReached", runtime.SelectedOption);
-        Assert.Equal(0, backend.SubmittedCommandCount);
+        Assert.Equal(10, ids.Length);
+        Assert.Equal(10, ids.Distinct(StringComparer.Ordinal).Count());
+        Assert.All(ids, id => Assert.StartsWith("aurelian.skyrim.body-agent.", id));
+        Assert.Empty(inspection.GeneratedArtifacts);
     }
 
-    [Theory]
-    [InlineData(false, HostActorLifeState.Alive)]
-    [InlineData(true, HostActorLifeState.Dead)]
-    public void UnavailableActor_TransitionsFailed(bool loaded, HostActorLifeState lifeState)
+    [Fact]
+    public void OperationSites_AreExplicitAndPatchStable()
     {
-        HostActorObservation observation = CreateObservation() with
-        {
-            Loaded = loaded,
-            LifeState = lifeState,
-        };
-        var backend = new DeterministicHostPresenterBackend(observation);
-        SkyrimApproachAgentRuntime runtime = CreateDefinition(observation).CreateRuntime(
-            backend,
-            observation,
-            Guid.NewGuid());
-
-        SkyrimApproachTransition transition = runtime.RunUntilTerminal();
-
-        Assert.Equal(SkyrimApproachTransition.Failed, transition);
-        Assert.Equal("TargetInvalid", runtime.SelectedOption);
-        Assert.Equal(0, backend.SubmittedCommandCount);
+        Assert.Equal(3, SkyrimBodyAgentRuntime.OperationSites.Count);
+        Assert.All(SkyrimBodyAgentRuntime.OperationSites, site => Assert.True(site.IsPatchStable));
+        Assert.All(SkyrimBodyAgentRuntime.OperationSites, site => Assert.Equal(0, site.GeneratedStateCount));
     }
 
-    private static SkyrimApproachAgentDefinition CreateDefinition(HostActorObservation observation)
+    private static (SkyrimBodyAgentRuntime Runtime, LifecycleBackend Backend) CreateRuntime()
     {
-        return SkyrimAgent.Define(
-            id: "skyrim-approach-spike",
-            binding: new SkyrimActorBinding(
-                observation.ActorId.FormId,
-                observation.ActorId.Generation),
-            goal: new ReachTargetGoal(
-                new HostPosition3(128.0f, 0.0f, 0.0f),
-                StoppingDistance: 16.0f),
-            option: new ApproachTargetOption(
-                MaximumDistance: 64.0f,
-                HostMovementSpeedPolicy.Walk,
-                MaximumRetries: 1));
+        HostActorObservation actor = CreateActor();
+        var lowLevel = new LifecycleBackend(actor);
+        var backend = new BodyBindingHostBackend(lowLevel);
+        var bodyId = new BodyId("fixture-body");
+        backend.RegisterCandidate(bodyId, actor.ActorId);
+        SkyrimBodyAgentDefinition definition = SkyrimAgent.Define(
+            new AurelianAgentId(Guid.Parse("1076e9bb-ab10-4562-a357-0a51d9984631")),
+            bodyId,
+            actor.ActorId.Generation,
+            new ReachTargetGoal(new HostPosition3(128.0f, 0.0f, 0.0f), 16.0f),
+            new ApproachTargetOption(64.0f, HostMovementSpeedPolicy.Walk));
+        return (definition.CreateRuntime(backend), lowLevel);
     }
 
-    private static HostActorObservation CreateObservation() => new(
+    private static HostActorObservation CreateActor() => new(
         new HostActorId(0xE5F74, 7),
         new HostPosition3(0.0f, 0.0f, 0.0f),
         HeadingRadians: 0.0f,
@@ -160,16 +116,91 @@ public sealed class SkyrimApproachAgentTests
         CurrentTarget: null,
         DistanceToGoal: 128.0f,
         HostActionState.None,
-        CreateCapabilities(),
+        new HostCapabilitySnapshot(
+            HostCapabilitySupport.Supported,
+            HostCapabilitySupport.Unsupported,
+            HostCapabilitySupport.Experimental,
+            HostCapabilitySupport.Supported,
+            HostCapabilitySupport.Unsupported,
+            HostCapabilitySupport.Unsupported,
+            HostCapabilitySupport.Unsupported,
+            HostCapabilitySupport.Unsupported),
         Sequence: 11);
 
-    private static HostCapabilitySnapshot CreateCapabilities() => new(
-        HostCapabilitySupport.Supported,
-        HostCapabilitySupport.Unsupported,
-        HostCapabilitySupport.Experimental,
-        HostCapabilitySupport.Supported,
-        HostCapabilitySupport.Unsupported,
-        HostCapabilitySupport.Unsupported,
-        HostCapabilitySupport.Unsupported,
-        HostCapabilitySupport.Unsupported);
+    private sealed class LifecycleBackend : IHostPresenterBackend
+    {
+        private readonly Queue<HostRuntimeObservation> observations = new();
+        private HostActorObservation actor;
+        private ulong sequence;
+
+        public LifecycleBackend(HostActorObservation actor)
+        {
+            this.actor = actor;
+            sequence = actor.Sequence;
+        }
+
+        public HostActionState BindingState { get; set; } = HostActionState.Completed;
+
+        public HostActionState MovementState { get; set; } = HostActionState.Completed;
+
+        public HostActionState ReleaseState { get; set; } = HostActionState.Completed;
+
+        public List<HostCommandKind> Commands { get; } = [];
+
+        public ValueTask<HostCommandReceipt> SubmitAsync(
+            HostCommandRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Commands.Add(request.Kind);
+            HostActionState state = request.Kind switch
+            {
+                HostCommandKind.BeginHostSession => BindingState,
+                HostCommandKind.MoveToward => MovementState,
+                HostCommandKind.EndHostSession => ReleaseState,
+                _ => HostActionState.Unsupported,
+            };
+            if (request.Kind == HostCommandKind.MoveToward
+                && state == HostActionState.Completed
+                && request.Arguments is MoveTowardArguments move)
+            {
+                actor = actor with
+                {
+                    Position = new HostPosition3(
+                        move.TargetPosition.X - move.StoppingDistance,
+                        move.TargetPosition.Y,
+                        move.TargetPosition.Z),
+                    Sequence = ++sequence,
+                };
+            }
+
+            string? reason = state == HostActionState.Completed ? null : "injected_failure";
+            var action = new HostActionResult(request.RequestId, state, reason, actor);
+            observations.Enqueue(new HostRuntimeObservation(
+                ++sequence,
+                ActiveHost: null,
+                new PlayerAnchorObservation(0x14, 0, 0, 0),
+                new CameraObservation(actor.ActorId.FormId, HostCameraMode.ThirdPerson),
+                new CrosshairObservation(0),
+                new MovementObservation(false, false),
+                action,
+                actor));
+            return ValueTask.FromResult(new HostCommandReceipt(
+                request.RequestId,
+                Accepted: true,
+                sequence,
+                FailureReason: null));
+        }
+
+        public async IAsyncEnumerable<HostRuntimeObservation> ObserveAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            while (observations.TryDequeue(out HostRuntimeObservation? observation))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return observation;
+                await Task.Yield();
+            }
+        }
+    }
 }

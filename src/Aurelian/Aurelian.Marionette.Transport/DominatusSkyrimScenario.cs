@@ -7,6 +7,9 @@ namespace Aurelian.Marionette.Transport;
 public sealed record DominatusSkyrimReport(
     int ProtocolVersion,
     string SessionId,
+    string AgentId,
+    string BodyId,
+    string BindingState,
     uint ActorFormId,
     ulong ActorGeneration,
     HostPosition3 Target,
@@ -77,72 +80,69 @@ public sealed partial class MarionetteTransportClient
         }
 
         SkyrimStateResult pending = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
-        HostMutationResult begin = await SendMutationAsync(
-            pipe,
-            new BeginHostSessionRequest(
-                MarionetteWireProtocol.Version,
-                "begin_host_session",
-                Guid.NewGuid().ToString("N"),
-                pending.PendingRequestGeneration ?? 0,
-                pending.PendingTargetFormId ?? 0,
-                2000),
-            cancellationToken).ConfigureAwait(false);
-        if (begin.Status != "completed" || begin.HostFormId != fixture.SelectedHostFormId
-            || begin.PlayerFormId != 0x14 || begin.CameraTargetFormId != begin.HostFormId)
+        if (!pending.PendingRequestGeneration.HasValue || !pending.PendingTargetFormId.HasValue)
         {
-            throw new InvalidDataException($"begin_host_session_failed:{begin.FailureReason}");
+            throw new InvalidDataException("pending_body_materialization_missing");
         }
 
         HostMutationResult? restore = null;
         try
         {
-            SkyrimStateResult active = await QueryStateAsync(pipe, cancellationToken).ConfigureAwait(false);
-            HostActorObservation observation = ToActorObservation(active);
-            HostPosition3 target = observation.Position with { Y = observation.Position.Y + 64.0f };
+            var agentId = new Aurelian.Actuation.Host.AgentId(
+                Guid.Parse("a0e11a00-0000-4000-8000-000000000001"));
+            var bodyId = new BodyId("skyrim-fixture-body-1");
+            var connected = new ConnectedMarionetteHostBackend(
+                pipe,
+                new HostActorId(
+                    pending.PendingTargetFormId.Value,
+                    pending.PendingRequestGeneration.Value));
+            var backend = new BodyBindingHostBackend(connected);
+            backend.RegisterCandidate(
+                bodyId,
+                new HostActorId(
+                    pending.PendingTargetFormId.Value,
+                    pending.PendingRequestGeneration.Value));
             var definition = SkyrimAgent.Define(
-                "skyrim-approach-spike",
-                new SkyrimActorBinding(observation.ActorId.FormId, observation.ActorId.Generation),
-                new ReachTargetGoal(target, StoppingDistance: 16.0f),
+                agentId,
+                bodyId,
+                pending.PendingRequestGeneration.Value,
+                new ReachTargetGoal(
+                    new HostPosition3(0.0f, 64.0f, 0.0f),
+                    StoppingDistance: 16.0f,
+                    RelativeToBoundPosition: true),
                 new ApproachTargetOption(
                     MaximumDistance: 64.0f,
-                    HostMovementSpeedPolicy.Walk,
-                    MaximumRetries: 1));
-            Guid commandRequestId = Guid.NewGuid();
-            var backend = new ConnectedMarionetteHostBackend(pipe, observation);
-            SkyrimApproachAgentRuntime runtime = definition.CreateRuntime(
-                backend,
-                observation,
-                commandRequestId);
+                    HostMovementSpeedPolicy.Walk));
+            SkyrimBodyAgentRuntime runtime = definition.CreateRuntime(backend);
 
             bool foregroundAtDecision = IsSkyrimForeground();
             var stopwatch = Stopwatch.StartNew();
-            SkyrimApproachTransition transition = runtime.RunUntilTerminal();
+            SkyrimBodyAgentState transition = runtime.RunUntilTerminal();
             stopwatch.Stop();
             bool foregroundAtActuation = IsSkyrimForeground();
-            HostActorObservation final = backend.CurrentActor;
-            HostMutationResult movement = backend.MovementResult
+            HostActorObservation observation = connected.InitialActor
+                ?? throw new InvalidDataException("bound_body_observation_missing");
+            HostActorObservation final = connected.CurrentActor
+                ?? throw new InvalidDataException("final_body_observation_missing");
+            HostPosition3 target = runtime.ResolvedTarget
+                ?? throw new InvalidDataException("movement_target_missing");
+            HostMutationResult begin = connected.BeginResult
+                ?? throw new InvalidDataException("binding_result_missing");
+            HostMutationResult movement = connected.MovementResult
                 ?? throw new InvalidDataException("movement_result_missing");
-            if (transition != SkyrimApproachTransition.Completed
+            restore = connected.RestoreResult;
+            if (transition != SkyrimBodyAgentState.Completed
                 || movement.ActionState != "completed"
+                || runtime.Binding?.State != BodyBindingState.Released
                 || final.Position.DistanceTo(target) > 16.5f)
             {
                 throw new InvalidDataException(
                     $"dominatus_transition_failed:{transition}:{movement.ActionState}");
             }
-
-            restore = await SendMutationAsync(
-                pipe,
-                new RestoreHostSessionRequest(
-                    MarionetteWireProtocol.Version,
-                    "restore_host_session",
-                    Guid.NewGuid().ToString("N"),
-                    begin.HostGeneration,
-                    2000),
-                cancellationToken).ConfigureAwait(false);
-            if (restore.Status != "completed" || !restore.SessionCleared
+            if (restore is null || restore.Status != "completed" || !restore.SessionCleared
                 || restore.PlayerFormId != 0x14 || restore.CameraTargetFormId != 0x14)
             {
-                throw new InvalidDataException($"restore_failed:{restore.FailureReason}");
+                throw new InvalidDataException($"restore_failed:{restore?.FailureReason}");
             }
 
             string[] scores = runtime.Decision?.Scores
@@ -151,6 +151,9 @@ public sealed partial class MarionetteTransportClient
             return new DominatusSkyrimReport(
                 MarionetteWireProtocol.Version,
                 hello.SessionId!,
+                agentId.ToString(),
+                bodyId.Value,
+                runtime.Binding.State.ToString(),
                 observation.ActorId.FormId,
                 observation.ActorId.Generation,
                 target,
@@ -160,8 +163,8 @@ public sealed partial class MarionetteTransportClient
                 final.Position.DistanceTo(target),
                 runtime.SelectedOption ?? "unavailable",
                 scores,
-                "MoveToward",
-                commandRequestId,
+                "MoveBodyToward",
+                runtime.MovementResult!.RequestId,
                 movement.ActionLifecycle ?? [],
                 observation.Sequence,
                 final.Sequence,
@@ -180,7 +183,7 @@ public sealed partial class MarionetteTransportClient
         }
         finally
         {
-            if (restore is null)
+            if (restore is null || restore.Status != "completed" || !restore.SessionCleared)
             {
                 HostMutationResult emergency = await SendMutationAsync(
                     pipe,
@@ -248,32 +251,115 @@ public sealed partial class MarionetteTransportClient
 internal sealed class ConnectedMarionetteHostBackend : IHostPresenterBackend
 {
     private readonly Stream pipe;
+    private readonly HostActorId candidateIdentity;
     private readonly Queue<HostRuntimeObservation> observations = new();
     private ulong nextEnvelopeSequence;
 
-    public ConnectedMarionetteHostBackend(Stream pipe, HostActorObservation initialActor)
+    public ConnectedMarionetteHostBackend(Stream pipe, HostActorId candidateIdentity)
     {
         this.pipe = pipe ?? throw new ArgumentNullException(nameof(pipe));
-        CurrentActor = initialActor ?? throw new ArgumentNullException(nameof(initialActor));
-        nextEnvelopeSequence = initialActor.Sequence;
+        if (!candidateIdentity.IsValid)
+        {
+            throw new ArgumentException("Candidate identity must be valid.", nameof(candidateIdentity));
+        }
+
+        this.candidateIdentity = candidateIdentity;
     }
 
-    public HostActorObservation CurrentActor { get; private set; }
+    public HostActorObservation? InitialActor { get; private set; }
+
+    public HostActorObservation? CurrentActor { get; private set; }
+
+    public HostMutationResult? BeginResult { get; private set; }
 
     public HostMutationResult? MovementResult { get; private set; }
+
+    public HostMutationResult? RestoreResult { get; private set; }
 
     public async ValueTask<HostCommandReceipt> SubmitAsync(
         HostCommandRequest request,
         CancellationToken cancellationToken)
     {
         HostCommandValidationResult validation = request.Validate();
-        if (!validation.IsValid || request.Arguments is not MoveTowardArguments move)
+        if (!validation.IsValid)
         {
             return new HostCommandReceipt(
                 request.RequestId,
                 Accepted: false,
-                CurrentActor.Sequence,
-                validation.FailureReason ?? "unsupported_command");
+                nextEnvelopeSequence,
+                validation.FailureReason);
+        }
+
+        return request.Kind switch
+        {
+            HostCommandKind.BeginHostSession => await BeginAsync(request, cancellationToken).ConfigureAwait(false),
+            HostCommandKind.MoveToward => await MoveAsync(
+                request,
+                (MoveTowardArguments)request.Arguments,
+                cancellationToken).ConfigureAwait(false),
+            HostCommandKind.EndHostSession => await RestoreAsync(request, cancellationToken).ConfigureAwait(false),
+            _ => new HostCommandReceipt(
+                request.RequestId,
+                Accepted: false,
+                nextEnvelopeSequence,
+                "unsupported_command"),
+        };
+    }
+
+    public async IAsyncEnumerable<HostRuntimeObservation> ObserveAsync(
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        while (observations.TryDequeue(out HostRuntimeObservation? observation))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return observation;
+            await Task.Yield();
+        }
+    }
+
+    private async ValueTask<HostCommandReceipt> BeginAsync(
+        HostCommandRequest request,
+        CancellationToken cancellationToken)
+    {
+        var wireRequest = new BeginHostSessionRequest(
+            MarionetteWireProtocol.Version,
+            "begin_host_session",
+            request.RequestId.ToString("N"),
+            checked((uint)candidateIdentity.Generation),
+            candidateIdentity.FormId,
+            checked((int)request.Timeout.TotalMilliseconds));
+        await MarionetteWireProtocol.WriteAsync(pipe, wireRequest, cancellationToken).ConfigureAwait(false);
+        BeginResult = await MarionetteWireProtocol.ReadAsync<HostMutationResult>(
+            pipe,
+            cancellationToken).ConfigureAwait(false);
+        ValidateCorrelation(BeginResult, "begin_host_session_result", wireRequest.RequestId);
+
+        HostActionState state = MapState(BeginResult.ActionState ?? BeginResult.Status);
+        HostActorObservation? actor = null;
+        if (state == HostActionState.Completed)
+        {
+            SkyrimStateResult active = await QueryStateAsync(cancellationToken).ConfigureAwait(false);
+            actor = MarionetteTransportClient.ToActorObservation(active);
+            InitialActor = actor;
+            CurrentActor = actor;
+        }
+
+        Enqueue(request.RequestId, state, actor, BeginResult.FailureReason);
+        return new HostCommandReceipt(request.RequestId, true, BeginResult.RuntimeSequence, null);
+    }
+
+    private async ValueTask<HostCommandReceipt> MoveAsync(
+        HostCommandRequest request,
+        MoveTowardArguments move,
+        CancellationToken cancellationToken)
+    {
+        if (CurrentActor is null)
+        {
+            return new HostCommandReceipt(
+                request.RequestId,
+                Accepted: false,
+                nextEnvelopeSequence,
+                "host_session_not_active");
         }
 
         var wireRequest = new MoveTowardRequest(
@@ -304,7 +390,7 @@ internal sealed class ConnectedMarionetteHostBackend : IHostPresenterBackend
         SkyrimStateResult finalState = await QueryStateAsync(cancellationToken).ConfigureAwait(false);
         HostActorObservation final = finalState.ActorObservationAvailable
             ? MarionetteTransportClient.ToActorObservation(finalState)
-            : CurrentActor with
+            : initial with
             {
                 Loaded = false,
                 MovementState = HostActorMovementState.Unknown,
@@ -329,15 +415,24 @@ internal sealed class ConnectedMarionetteHostBackend : IHostPresenterBackend
             accepted ? null : MovementResult.FailureReason);
     }
 
-    public async IAsyncEnumerable<HostRuntimeObservation> ObserveAsync(
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    private async ValueTask<HostCommandReceipt> RestoreAsync(
+        HostCommandRequest request,
+        CancellationToken cancellationToken)
     {
-        while (observations.TryDequeue(out HostRuntimeObservation? observation))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            yield return observation;
-            await Task.Yield();
-        }
+        var wireRequest = new RestoreHostSessionRequest(
+            MarionetteWireProtocol.Version,
+            "restore_host_session",
+            request.RequestId.ToString("N"),
+            checked((uint)request.ExpectedHostGeneration),
+            checked((int)request.Timeout.TotalMilliseconds));
+        await MarionetteWireProtocol.WriteAsync(pipe, wireRequest, cancellationToken).ConfigureAwait(false);
+        RestoreResult = await MarionetteWireProtocol.ReadAsync<HostMutationResult>(
+            pipe,
+            cancellationToken).ConfigureAwait(false);
+        ValidateCorrelation(RestoreResult, "restore_host_session_result", wireRequest.RequestId);
+        HostActionState state = MapState(RestoreResult.ActionState ?? RestoreResult.Status);
+        Enqueue(request.RequestId, state, CurrentActor, RestoreResult.FailureReason);
+        return new HostCommandReceipt(request.RequestId, true, RestoreResult.RuntimeSequence, null);
     }
 
     private async ValueTask<SkyrimStateResult> QueryStateAsync(CancellationToken cancellationToken)
@@ -364,10 +459,10 @@ internal sealed class ConnectedMarionetteHostBackend : IHostPresenterBackend
     private void Enqueue(
         Guid requestId,
         HostActionState state,
-        HostActorObservation final,
+        HostActorObservation? final,
         string? failureReason)
     {
-        HostActorObservation actor = final with
+        HostActorObservation? actor = final is null ? null : final with
         {
             MovementState = state == HostActionState.Running
                 ? HostActorMovementState.Moving
@@ -381,11 +476,22 @@ internal sealed class ConnectedMarionetteHostBackend : IHostPresenterBackend
             ++nextEnvelopeSequence,
             ActiveHost: null,
             new PlayerAnchorObservation(0x14, 0, 0, 0),
-            new CameraObservation(actor.ActorId.FormId, HostCameraMode.ThirdPerson),
+            new CameraObservation(actor?.ActorId.FormId ?? 0, HostCameraMode.ThirdPerson),
             new CrosshairObservation(0),
             new MovementObservation(false, state == HostActionState.Running),
             action,
             actor));
+    }
+
+    private static void ValidateCorrelation(
+        HostMutationResult result,
+        string messageKind,
+        string requestId)
+    {
+        if (result.MessageKind != messageKind || result.RequestId != requestId)
+        {
+            throw new InvalidDataException($"{messageKind}_correlation_invalid");
+        }
     }
 
     private static HostActionState MapState(string state) => state switch

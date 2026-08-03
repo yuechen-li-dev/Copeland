@@ -2,324 +2,383 @@ using Aurelian.Actuation.Host;
 using Dominatus.Core;
 using Dominatus.Core.Blackboard;
 using Dominatus.Core.Decision;
-using Dominatus.Core.Hfsm;
 using Dominatus.Core.Nodes;
-using Dominatus.Core.Nodes.Steps;
 using Dominatus.Core.Runtime;
 using Dominatus.Core.Trace;
 using Dominatus.OptFlow;
+using AurelianAgentId = Aurelian.Actuation.Host.AgentId;
 
 namespace Aurelian.Marionette.Transport;
 
-public sealed record SkyrimActorBinding(uint FormId, ulong RuntimeGeneration)
-{
-    public HostActorId ActorId => new(FormId, RuntimeGeneration);
-}
-
-public sealed record ReachTargetGoal(HostPosition3 TargetPosition, float StoppingDistance);
+public sealed record ReachTargetGoal(
+    HostPosition3 TargetPosition,
+    float StoppingDistance,
+    bool RelativeToBoundPosition = false);
 
 public sealed record ApproachTargetOption(
     float MaximumDistance,
-    HostMovementSpeedPolicy SpeedPolicy,
-    int MaximumRetries);
+    HostMovementSpeedPolicy SpeedPolicy);
 
-public sealed record SkyrimApproachAgentDefinition(
-    string Id,
-    SkyrimActorBinding Binding,
+public sealed record SkyrimBodyAgentDefinition(
+    AurelianAgentId Id,
+    BodyId Body,
+    ulong CandidateGeneration,
     ReachTargetGoal Goal,
     ApproachTargetOption Option)
 {
-    public SkyrimApproachAgentRuntime CreateRuntime(
-        IHostPresenterBackend backend,
-        HostActorObservation observation,
-        Guid requestId)
+    public SkyrimBodyAgentRuntime CreateRuntime(IHostPresenterBackend backend)
     {
-        return new SkyrimApproachAgentRuntime(this, backend, observation, requestId);
+        return new SkyrimBodyAgentRuntime(this, backend);
     }
 }
 
-/// <summary>
-/// Deliberately small ordinary-C# authoring surface for the experiment. It
-/// builds the repository's existing Dominatus HFSM/utility/actuation types.
-/// </summary>
 public static class SkyrimAgent
 {
-    public static SkyrimApproachAgentDefinition Define(
-        string id,
-        SkyrimActorBinding binding,
+    public static SkyrimBodyAgentDefinition Define(
+        AurelianAgentId id,
+        BodyId body,
+        ulong candidateGeneration,
         ReachTargetGoal goal,
         ApproachTargetOption option)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        ArgumentNullException.ThrowIfNull(binding);
+        if (candidateGeneration == 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(candidateGeneration),
+                "Candidate generation must be nonzero.");
+        }
+
         ArgumentNullException.ThrowIfNull(goal);
         ArgumentNullException.ThrowIfNull(option);
-        return new SkyrimApproachAgentDefinition(id, binding, goal, option);
+        return new SkyrimBodyAgentDefinition(id, body, candidateGeneration, goal, option);
     }
 }
 
-public enum SkyrimApproachTransition
+public enum SkyrimBodyAgentState
 {
-    Deciding,
-    AlreadyReached,
-    Moving,
+    Unbound,
+    RequestBinding,
+    BoundIdle,
+    ApproachTarget,
+    ReleaseBinding,
     Completed,
-    Blocked,
     Failed,
-    Unsupported,
+    RestoreRequired,
 }
 
-public sealed record MoveTowardActuationCommand(HostCommandRequest Request) : IActuationCommand;
+public sealed record BindBodyActuationCommand(HostCommandRequest Request) : IActuationCommand;
 
-public sealed class SkyrimApproachAgentRuntime
+public sealed record MoveBodyTowardActuationCommand(HostCommandRequest Request) : IActuationCommand;
+
+public sealed record ReleaseBodyActuationCommand(HostCommandRequest Request) : IActuationCommand;
+
+public sealed class SkyrimBodyAgentRuntime
 {
-    private static readonly StateId RootState = StateId.Of("Root");
-    private static readonly StateId AlreadyReachedState = StateId.Of("AlreadyReached");
-    private static readonly StateId MoveTowardState = StateId.Of("MoveToward");
-    private static readonly StateId UnsupportedState = StateId.Of("Unsupported");
-    private static readonly StateId FailedState = StateId.Of("Failed");
-    private static readonly StateId CompletedState = StateId.Of("Completed");
-    private static readonly StateId BlockedState = StateId.Of("Blocked");
-    private static readonly BbKey<ActuationId> ActionIdKey = new("SkyrimApproach.ActionId");
-    private static readonly BbKey<HostActionResult> ActionResultKey = new("SkyrimApproach.ActionResult");
-    private static readonly BbKey<int> RetryCountKey = new("SkyrimApproach.RetryCount");
-    private static readonly BbKey<SkyrimApproachTransition> TransitionKey = new("SkyrimApproach.Transition");
+    internal static readonly BbKey<BodyCommandResult> BindingResultKey = new(
+        "Aurelian.SkyrimBodyAgent.BindingResult");
+    internal static readonly BbKey<BodyCommandResult> MovementResultKey = new(
+        "Aurelian.SkyrimBodyAgent.MovementResult");
+    internal static readonly BbKey<BodyCommandResult> ReleaseResultKey = new(
+        "Aurelian.SkyrimBodyAgent.ReleaseResult");
 
-    private readonly SkyrimApproachAgentDefinition definition;
-    private HostActorObservation observation;
-    private readonly Guid requestId;
+    private static readonly BbKey<SkyrimBodyAgentState> StateKey = new(
+        "Aurelian.SkyrimBodyAgent.State");
+    private static readonly OperationSite<BodyCommandResult> BindBodySite = Operation.Site<BodyCommandResult>(
+        "aurelian.skyrim.body.bind.v1");
+    private static readonly OperationSite<BodyCommandResult> MoveBodySite = Operation.Site<BodyCommandResult>(
+        "aurelian.skyrim.body.move-toward.v1");
+    private static readonly OperationSite<BodyCommandResult> ReleaseBodySite = Operation.Site<BodyCommandResult>(
+        "aurelian.skyrim.body.release.v1");
+
+    private readonly SkyrimBodyAgentDefinition definition;
     private readonly AiWorld world;
     private readonly AiAgent agent;
+    private readonly Dominatus.Core.Hfsm.HfsmInstance brain;
     private readonly DecisionTrace trace = new();
+    private BodyBinding? binding;
+    private BodyObservation? body;
+    private HostPosition3? resolvedTarget;
+    private bool releaseAfterFailure;
 
-    internal SkyrimApproachAgentRuntime(
-        SkyrimApproachAgentDefinition definition,
-        IHostPresenterBackend backend,
-        HostActorObservation observation,
-        Guid requestId)
+    internal SkyrimBodyAgentRuntime(
+        SkyrimBodyAgentDefinition definition,
+        IHostPresenterBackend backend)
     {
         this.definition = definition;
-        this.observation = observation;
-        this.requestId = requestId;
+        ArgumentNullException.ThrowIfNull(backend);
 
         var host = new ActuatorHost();
-        host.Register(new MoveTowardHandler(backend));
+        host.Register(new BindHandler(backend));
+        host.Register(new MoveHandler(backend));
+        host.Register(new ReleaseHandler(backend));
         world = new AiWorld(host);
 
-        var graph = new HfsmGraph { Root = RootState };
-        graph.Add(new HfsmStateDef { Id = RootState, Node = Decide });
-        graph.Add(new HfsmStateDef { Id = AlreadyReachedState, Node = AlreadyReached });
-        graph.Add(new HfsmStateDef { Id = MoveTowardState, Node = MoveToward });
-        graph.Add(new HfsmStateDef { Id = UnsupportedState, Node = Unsupported });
-        graph.Add(new HfsmStateDef { Id = FailedState, Node = Failed });
-        graph.Add(new HfsmStateDef { Id = CompletedState, Node = Completed });
-        graph.Add(new HfsmStateDef { Id = BlockedState, Node = Blocked });
-
-        var brain = new HfsmInstance(graph, new HfsmOptions { KeepRootFrame = true })
-        {
-            Trace = trace,
-        };
+        FlowDefinition generatedFlow = SkyrimBodyAgentFlow.Define(this);
+        brain = generatedFlow.CreateBrain();
+        brain.Trace = trace;
         agent = new AiAgent(brain);
-        agent.Bb.Set(RetryCountKey, 0);
-        agent.Bb.Set(TransitionKey, SkyrimApproachTransition.Deciding);
+        agent.Bb.Set(StateKey, SkyrimBodyAgentState.Unbound);
         world.Add(agent);
     }
 
-    public string? SelectedOption => trace.FirstDecision?.BestId;
+    public SkyrimBodyAgentState State => agent.Bb.GetOrDefault(
+        StateKey,
+        SkyrimBodyAgentState.Unbound);
 
-    public DecisionReport? Decision => trace.FirstDecision;
+    public string? SelectedOption => trace.LastDecision?.BestId;
 
-    public SkyrimApproachTransition Transition => agent.Bb.GetOrDefault(
-        TransitionKey,
-        SkyrimApproachTransition.Deciding);
+    public DecisionReport? Decision => trace.LastDecision;
 
-    public HostActionResult? LastResult => agent.Bb.TryGet(ActionResultKey, out HostActionResult? result)
-        ? result
-        : null;
+    public BodyBinding? Binding => binding;
 
-    public int RetryCount => agent.Bb.GetOrDefault(RetryCountKey, 0);
+    public BodyObservation? Body => body;
 
-    public HostCommandRequest CreateCommand() => new(
-        requestId,
-        definition.Binding.RuntimeGeneration,
-        HostCommandKind.MoveToward,
-        TimeSpan.FromSeconds(2),
-        new MoveTowardArguments(
-            definition.Binding.ActorId,
-            definition.Goal.TargetPosition,
-            definition.Goal.StoppingDistance,
-            definition.Option.MaximumDistance,
-            definition.Option.SpeedPolicy,
-            observation.Sequence));
+    public HostPosition3? ResolvedTarget => resolvedTarget;
 
-    public SkyrimApproachTransition RunUntilTerminal(int maximumTicks = 64)
+    public BodyCommandResult? BindingResult => GetResult(BindingResultKey);
+
+    public BodyCommandResult? MovementResult => GetResult(MovementResultKey);
+
+    public BodyCommandResult? ReleaseResult => GetResult(ReleaseResultKey);
+
+    public FlowInspection FlowInspection => SkyrimBodyAgentFlow.Define(this).Inspect();
+
+    public static IReadOnlyList<OperationSiteInspection> OperationSites { get; } =
+    [
+        BindBodySite.Inspect(typeof(BindBodyActuationCommand)),
+        MoveBodySite.Inspect(typeof(MoveBodyTowardActuationCommand)),
+        ReleaseBodySite.Inspect(typeof(ReleaseBodyActuationCommand)),
+    ];
+
+    public SkyrimBodyAgentState RunUntilTerminal(int maximumTicks = 96)
     {
         for (int index = 0; index < maximumTicks; index++)
         {
-            world.Tick(0.01f);
-            if (Transition is SkyrimApproachTransition.AlreadyReached
-                or SkyrimApproachTransition.Completed
-                or SkyrimApproachTransition.Blocked
-                or SkyrimApproachTransition.Failed
-                or SkyrimApproachTransition.Unsupported)
+            try
             {
-                return Transition;
+                world.Tick(0.01f);
+            }
+            catch (InvalidOperationException exception)
+            {
+                string path = string.Join(" > ", brain.GetActivePath().Select(id => id.Value));
+                throw new InvalidOperationException(
+                    $"Skyrim body-agent flow failed at '{path}' (pendingReturn={brain.HasPendingChildReturn}).",
+                    exception);
+            }
+            if (State is SkyrimBodyAgentState.Completed
+                or SkyrimBodyAgentState.Failed
+                or SkyrimBodyAgentState.RestoreRequired)
+            {
+                return State;
             }
         }
 
-        throw new TimeoutException("Dominatus approach transition did not reach a terminal state.");
+        throw new TimeoutException("The Skyrim body agent did not reach a terminal state.");
     }
 
-    private IEnumerator<AiStep> Decide(AiCtx context)
+    public void Tick()
     {
-        while (true)
+        world.Tick(0.01f);
+    }
+
+    internal HostCommandRequest CreateBindCommand()
+    {
+        return new HostCommandRequest(
+            RequestId(1),
+            definition.CandidateGeneration,
+            HostCommandKind.BindBody,
+            TimeSpan.FromSeconds(2),
+            new BindBodyArguments(
+                definition.Id,
+                definition.Body,
+                BodyBindingKind.ExclusiveControl,
+                definition.CandidateGeneration));
+    }
+
+    internal HostCommandRequest CreateMoveCommand()
+    {
+        BodyObservation current = body
+            ?? throw new InvalidOperationException("A body observation is required before movement.");
+        BodyBinding currentBinding = binding
+            ?? throw new InvalidOperationException("A binding is required before movement.");
+        return new HostCommandRequest(
+            RequestId(2),
+            currentBinding.Generation,
+            HostCommandKind.MoveBodyToward,
+            TimeSpan.FromSeconds(2),
+            new MoveBodyTowardArguments(
+                definition.Id,
+                definition.Body,
+                resolvedTarget ?? definition.Goal.TargetPosition,
+                definition.Goal.StoppingDistance,
+                definition.Option.MaximumDistance,
+                definition.Option.SpeedPolicy,
+                currentBinding.Generation,
+                current.Sequence));
+    }
+
+    internal HostCommandRequest CreateReleaseCommand()
+    {
+        BodyBinding currentBinding = binding
+            ?? throw new InvalidOperationException("A binding is required before release.");
+        return new HostCommandRequest(
+            RequestId(3),
+            currentBinding.Generation,
+            HostCommandKind.ReleaseBody,
+            TimeSpan.FromSeconds(2),
+            new ReleaseBodyArguments(
+                definition.Id,
+                definition.Body,
+                currentBinding.Generation));
+    }
+
+    internal void SetState(AiCtx context, SkyrimBodyAgentState state)
+    {
+        context.Bb.Set(StateKey, state);
+    }
+
+    internal void Accept(BodyCommandResult result)
+    {
+        binding = result.Binding?.Binding ?? binding;
+        body = result.Body ?? body;
+        if (resolvedTarget is null && body is not null)
         {
-            yield return Ai.Decide(
-            [
-                Ai.Option("TargetInvalid", Consideration.FromBool((_, _) => !TargetIsValid()), FailedState),
-                Ai.Option("AlreadyReached", Consideration.FromBool((_, _) => IsAlreadyReached()), AlreadyReachedState),
-                Ai.Option("MoveToward", Consideration.FromBool((_, _) => CanMove()), MoveTowardState),
-                Ai.Option("Unsupported", Consideration.Constant(0.25f), UnsupportedState),
-            ],
-            hysteresis: 0.0f,
-            minCommitSeconds: 0.0f);
+            resolvedTarget = definition.Goal.RelativeToBoundPosition
+                ? new HostPosition3(
+                    body.Position.X + definition.Goal.TargetPosition.X,
+                    body.Position.Y + definition.Goal.TargetPosition.Y,
+                    body.Position.Z + definition.Goal.TargetPosition.Z)
+                : definition.Goal.TargetPosition;
         }
     }
 
-    private IEnumerator<AiStep> AlreadyReached(AiCtx context)
+    internal bool BodyLost()
     {
-        context.Bb.Set(TransitionKey, SkyrimApproachTransition.AlreadyReached);
-        while (true)
-        {
-            yield return Ai.Steady("target already within stopping distance");
-        }
+        return body is null
+            || !body.IsLoaded
+            || binding?.State is BodyBindingState.Lost or BodyBindingState.RestoreRequired;
     }
 
-    private IEnumerator<AiStep> MoveToward(AiCtx context)
+    internal bool GoalReached()
     {
-        context.Bb.Set(TransitionKey, SkyrimApproachTransition.Moving);
-        yield return Ai.Act(new MoveTowardActuationCommand(CreateCommand()), ActionIdKey);
-        yield return Ai.Await(ActionIdKey, ActionResultKey);
-
-        HostActionResult result = context.Bb.GetOrDefault(
-            ActionResultKey,
-            new HostActionResult(requestId, HostActionState.Failed, "result_missing"));
-        if (result.Observation is not null)
-        {
-            observation = result.Observation;
-        }
-        if (result.State == HostActionState.Completed)
-        {
-            context.Bb.Set(TransitionKey, SkyrimApproachTransition.Completed);
-            yield return Ai.Goto(CompletedState, "movement completed");
-            yield break;
-        }
-
-        if (result.State is HostActionState.Blocked or HostActionState.TimedOut)
-        {
-            int retryCount = context.Bb.GetOrDefault(RetryCountKey, 0);
-            if (retryCount < definition.Option.MaximumRetries)
-            {
-                context.Bb.Set(RetryCountKey, retryCount + 1);
-                yield return Ai.Goto(MoveTowardState, "bounded retry");
-                yield break;
-            }
-
-            yield return Ai.Goto(BlockedState, "retry exhausted");
-            yield break;
-        }
-
-        yield return Ai.Goto(FailedState, result.FailureReason ?? result.State.ToString());
-    }
-
-    private IEnumerator<AiStep> Completed(AiCtx context)
-    {
-        context.Bb.Set(TransitionKey, SkyrimApproachTransition.Completed);
-        while (true)
-        {
-            yield return Ai.Steady("completion observed");
-        }
-    }
-
-    private IEnumerator<AiStep> Blocked(AiCtx context)
-    {
-        context.Bb.Set(TransitionKey, SkyrimApproachTransition.Blocked);
-        while (true)
-        {
-            yield return Ai.Steady("movement blocked");
-        }
-    }
-
-    private IEnumerator<AiStep> Unsupported(AiCtx context)
-    {
-        context.Bb.Set(TransitionKey, SkyrimApproachTransition.Unsupported);
-        while (true)
-        {
-            yield return Ai.Steady("movement unsupported");
-        }
-    }
-
-    private IEnumerator<AiStep> Failed(AiCtx context)
-    {
-        context.Bb.Set(TransitionKey, SkyrimApproachTransition.Failed);
-        while (true)
-        {
-            yield return Ai.Steady("target or action failed");
-        }
-    }
-
-    private bool TargetIsValid()
-    {
-        return definition.Binding.ActorId == observation.ActorId
-            && definition.Goal.TargetPosition.IsFinite
-            && observation.Loaded
-            && observation.LifeState == HostActorLifeState.Alive;
-    }
-
-    private bool IsAlreadyReached()
-    {
-        return TargetIsValid()
-            && observation.Position.DistanceTo(definition.Goal.TargetPosition)
+        return body is not null
+            && resolvedTarget.HasValue
+            && body.Position.DistanceTo(resolvedTarget.Value)
                 <= definition.Goal.StoppingDistance;
     }
 
-    private bool CanMove()
+    internal bool CanMove()
     {
-        return TargetIsValid()
-            && !IsAlreadyReached()
-            && observation.Capabilities.CanMoveToward;
+        return body is not null
+            && binding?.State == BodyBindingState.Bound
+            && body.IsLoaded
+            && body.IsAlive
+            && body.Capabilities.CanMove
+            && !GoalReached();
     }
 
-    private sealed class MoveTowardHandler : IActuationHandler<MoveTowardActuationCommand>
+    internal void MarkReleaseAfterFailure()
+    {
+        releaseAfterFailure = true;
+    }
+
+    internal bool ReleaseAfterFailure => releaseAfterFailure;
+
+    internal static OperationSite<BodyCommandResult> BindSite => BindBodySite;
+
+    internal static OperationSite<BodyCommandResult> MoveSite => MoveBodySite;
+
+    internal static OperationSite<BodyCommandResult> ReleaseSite => ReleaseBodySite;
+
+    private BodyCommandResult? GetResult(BbKey<BodyCommandResult> key)
+    {
+        return agent.Bb.TryGet(key, out BodyCommandResult? result) ? result : null;
+    }
+
+    private Guid RequestId(byte operation)
+    {
+        byte[] bytes = definition.Id.Value.ToByteArray();
+        bytes[^1] ^= operation;
+        return new Guid(bytes);
+    }
+
+    private static ActuatorHost.HandlerResult Execute(
+        IHostPresenterBackend backend,
+        HostCommandRequest request)
+    {
+        HostActionResult action = HostActionRunner.ExecuteAsync(
+            backend,
+            request,
+            CancellationToken.None).AsTask().GetAwaiter().GetResult();
+        BodyCommandResult result = action.BodyResult ?? new BodyCommandResult(
+            request.RequestId,
+            action.State,
+            action.FailureReason);
+
+        // Command-level failure is authored data. The operation itself completed
+        // and the flow chooses Succeed/Fail explicitly from the typed payload.
+        return ActuatorHost.HandlerResult.CompletedWithPayload(result, ok: true);
+    }
+
+    private sealed class BindHandler : IActuationHandler<BindBodyActuationCommand>
     {
         private readonly IHostPresenterBackend backend;
 
-        public MoveTowardHandler(IHostPresenterBackend backend)
+        public BindHandler(IHostPresenterBackend backend)
         {
-            this.backend = backend ?? throw new ArgumentNullException(nameof(backend));
+            this.backend = backend;
         }
 
         public ActuatorHost.HandlerResult Handle(
             ActuatorHost host,
             AiCtx context,
             ActuationId id,
-            MoveTowardActuationCommand command)
+            BindBodyActuationCommand command)
         {
-            HostActionResult result = HostActionRunner.ExecuteAsync(
-                backend,
-                command.Request,
-                CancellationToken.None).AsTask().GetAwaiter().GetResult();
-            return ActuatorHost.HandlerResult.CompletedWithPayload(
-                result,
-                ok: result.State == HostActionState.Completed,
-                error: result.FailureReason);
+            return Execute(backend, command.Request);
+        }
+    }
+
+    private sealed class MoveHandler : IActuationHandler<MoveBodyTowardActuationCommand>
+    {
+        private readonly IHostPresenterBackend backend;
+
+        public MoveHandler(IHostPresenterBackend backend)
+        {
+            this.backend = backend;
+        }
+
+        public ActuatorHost.HandlerResult Handle(
+            ActuatorHost host,
+            AiCtx context,
+            ActuationId id,
+            MoveBodyTowardActuationCommand command)
+        {
+            return Execute(backend, command.Request);
+        }
+    }
+
+    private sealed class ReleaseHandler : IActuationHandler<ReleaseBodyActuationCommand>
+    {
+        private readonly IHostPresenterBackend backend;
+
+        public ReleaseHandler(IHostPresenterBackend backend)
+        {
+            this.backend = backend;
+        }
+
+        public ActuatorHost.HandlerResult Handle(
+            ActuatorHost host,
+            AiCtx context,
+            ActuationId id,
+            ReleaseBodyActuationCommand command)
+        {
+            return Execute(backend, command.Request);
         }
     }
 
     private sealed class DecisionTrace : IAiTraceSink
     {
-        public DecisionReport? FirstDecision { get; private set; }
-
         public DecisionReport? LastDecision { get; private set; }
 
         public void OnEnter(StateId state, float time, string reason) { }
@@ -332,9 +391,173 @@ public sealed class SkyrimApproachAgentRuntime
         {
             if (yielded is DecisionReport report)
             {
-                FirstDecision ??= report;
                 LastDecision = report;
             }
         }
     }
+}
+
+public static partial class SkyrimBodyAgentFlow
+{
+    [DominatusFlow("aurelian.skyrim.body-agent.m1")]
+    public static partial FlowDefinition Define(SkyrimBodyAgentRuntime runtime);
+
+    [DominatusState("aurelian.skyrim.body-agent.root", Root = true)]
+    private static IEnumerator<AiStep> Root(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.SetState(context, SkyrimBodyAgentState.Unbound);
+        yield return Ai.Push(States.RequestBinding, "acquire materialized body");
+        yield return Ai.MatchReturn(
+            Ai.OnSuccess(States.BoundIdle),
+            Ai.OnFailure(States.Failed),
+            Ai.OnReturn(States.Failed));
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.request-binding")]
+    private static IEnumerator<AiStep> RequestBinding(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.SetState(context, SkyrimBodyAgentState.RequestBinding);
+        yield return Ai.Perform(
+            SkyrimBodyAgentRuntime.BindSite,
+            new BindBodyActuationCommand(runtime.CreateBindCommand()),
+            SkyrimBodyAgentRuntime.BindingResultKey);
+        BodyCommandResult result = context.Bb.GetOrDefault(
+            SkyrimBodyAgentRuntime.BindingResultKey,
+            new BodyCommandResult(Guid.Empty, HostActionState.Failed, "binding_result_missing"));
+        runtime.Accept(result);
+        if (result.Completed && result.Binding?.Binding.State == BodyBindingState.Bound)
+        {
+            yield return Ai.Succeed("body binding observed");
+        }
+        else
+        {
+            yield return Ai.Fail(result.FailureReason ?? "body binding failed");
+        }
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.bound-idle")]
+    private static IEnumerator<AiStep> BoundIdle(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.SetState(context, SkyrimBodyAgentState.BoundIdle);
+        yield return Ai.Decide(
+        [
+            Ai.Option(
+                "BodyLost",
+                Consideration.FromBool((_, _) => runtime.BodyLost()),
+                States.ReleaseAfterFailure),
+            Ai.Option(
+                "GoalReached",
+                Consideration.FromBool((_, _) => runtime.GoalReached()),
+                States.ReleaseSuccess),
+            Ai.Option(
+                "MoveToward",
+                Consideration.FromBool((_, _) => runtime.CanMove()),
+                States.ApproachParent),
+            Ai.Option(
+                "CannotAct",
+                Consideration.Constant(0.1f),
+                States.ReleaseAfterFailure),
+        ],
+        hysteresis: 0.0f,
+        minCommitSeconds: 0.0f);
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.approach-parent")]
+    private static IEnumerator<AiStep> ApproachParent(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        yield return Ai.Push(States.ApproachTarget, "perform owned movement");
+        yield return Ai.MatchReturn(
+            Ai.OnSuccess(States.ReleaseSuccess),
+            Ai.OnFailure(States.ReleaseAfterFailure),
+            Ai.OnReturn(States.ReleaseAfterFailure));
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.approach-target")]
+    private static IEnumerator<AiStep> ApproachTarget(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.SetState(context, SkyrimBodyAgentState.ApproachTarget);
+        yield return Ai.Perform(
+            SkyrimBodyAgentRuntime.MoveSite,
+            new MoveBodyTowardActuationCommand(runtime.CreateMoveCommand()),
+            SkyrimBodyAgentRuntime.MovementResultKey);
+        BodyCommandResult result = context.Bb.GetOrDefault(
+            SkyrimBodyAgentRuntime.MovementResultKey,
+            new BodyCommandResult(Guid.Empty, HostActionState.Failed, "movement_result_missing"));
+        runtime.Accept(result);
+        if (result.Completed)
+        {
+            yield return Ai.Succeed("movement completion observed");
+        }
+        else
+        {
+            runtime.MarkReleaseAfterFailure();
+            yield return Ai.Fail(result.FailureReason ?? "movement failed");
+        }
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.release-success")]
+    private static IEnumerator<AiStep> ReleaseSuccess(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.SetState(context, SkyrimBodyAgentState.ReleaseBinding);
+        yield return Ai.Perform(
+            SkyrimBodyAgentRuntime.ReleaseSite,
+            new ReleaseBodyActuationCommand(runtime.CreateReleaseCommand()),
+            SkyrimBodyAgentRuntime.ReleaseResultKey);
+        BodyCommandResult result = context.Bb.GetOrDefault(
+            SkyrimBodyAgentRuntime.ReleaseResultKey,
+            new BodyCommandResult(Guid.Empty, HostActionState.Failed, "release_result_missing"));
+        runtime.Accept(result);
+        yield return result.Completed
+            ? Ai.Goto(States.Completed, "body released")
+            : Ai.Goto(States.RestoreRequired, "release failed");
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.release-after-failure")]
+    private static IEnumerator<AiStep> ReleaseAfterFailure(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.MarkReleaseAfterFailure();
+        runtime.SetState(context, SkyrimBodyAgentState.ReleaseBinding);
+        yield return Ai.Perform(
+            SkyrimBodyAgentRuntime.ReleaseSite,
+            new ReleaseBodyActuationCommand(runtime.CreateReleaseCommand()),
+            SkyrimBodyAgentRuntime.ReleaseResultKey);
+        BodyCommandResult result = context.Bb.GetOrDefault(
+            SkyrimBodyAgentRuntime.ReleaseResultKey,
+            new BodyCommandResult(Guid.Empty, HostActionState.Failed, "release_result_missing"));
+        runtime.Accept(result);
+        yield return result.Completed
+            ? Ai.Goto(States.Failed, "body released after authored failure")
+            : Ai.Goto(States.RestoreRequired, "release failed");
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.completed")]
+    private static IEnumerator<AiStep> Completed(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.SetState(context, SkyrimBodyAgentState.Completed);
+        while (true)
+        {
+            yield return Ai.Steady("agent goal complete and body released");
+        }
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.failed")]
+    private static IEnumerator<AiStep> Failed(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.SetState(context, SkyrimBodyAgentState.Failed);
+        while (true)
+        {
+            yield return Ai.Steady("authored body-agent failure");
+        }
+    }
+
+    [DominatusState("aurelian.skyrim.body-agent.restore-required")]
+    private static IEnumerator<AiStep> RestoreRequired(AiCtx context, SkyrimBodyAgentRuntime runtime)
+    {
+        runtime.SetState(context, SkyrimBodyAgentState.RestoreRequired);
+        while (true)
+        {
+            yield return Ai.Steady("backend restoration outcome is uncertain");
+        }
+    }
+
 }
