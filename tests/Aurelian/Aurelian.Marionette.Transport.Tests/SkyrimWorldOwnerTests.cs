@@ -239,6 +239,44 @@ public sealed class SkyrimWorldOwnerTests
         }
     }
 
+    [Fact]
+    public void OverwrittenSaveNameRequiresMatchingTimelineRevision()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"aurelian-skyrim-{Guid.NewGuid():N}");
+        try
+        {
+            var owner = ReadyOwner();
+            var store = new SkyrimCheckpointStore(directory);
+            var bindings = new BodyBindingRegistry();
+            SkyrimCheckpointResult first = store.Capture(owner, Save("SaveSlot", 10, 1), bindings);
+
+            var laterOrigin = new SkyrimPlacedActorOrigin("Later.esp", 0x321);
+            owner.Post(BodyFact(3, Body("later-body", 1), SkyrimActorOrigin.ForPlaced(laterOrigin)));
+            Tick(owner);
+            owner.Post(new SkyrimWorldFact(
+                SkyrimWorldFactKind.WorldReady,
+                4,
+                Timeline(20, 2)));
+            Tick(owner);
+            SkyrimCheckpointResult overwritten = store.Capture(owner, Save("SaveSlot", 20, 2), bindings);
+
+            SkyrimCheckpointResult restored = store.Restore(Save("SaveSlot", 10, 1), "restore");
+
+            Assert.Equal(first.Entry!.CheckpointArtifactId, restored.Entry!.CheckpointArtifactId);
+            Assert.NotEqual(first.Entry.CheckpointArtifactId, overwritten.Entry!.CheckpointArtifactId);
+            Assert.Null(restored.RestoredWorld!.Registry.Find(laterOrigin));
+            Assert.False(store.ReadEntries().Single(
+                entry => entry.CheckpointArtifactId == overwritten.Entry.CheckpointArtifactId).ActiveLineage);
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
     private static SkyrimWorldOwnerRuntime ReadyOwner(double gameDays = 10)
     {
         var owner = new SkyrimWorldOwnerRuntime("session");

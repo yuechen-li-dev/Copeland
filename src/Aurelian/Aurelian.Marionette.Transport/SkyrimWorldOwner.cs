@@ -35,6 +35,7 @@ public sealed class SkyrimWorldOwnerRuntime
     private long lastFactSequence;
     private SkyrimWorldOwnerState state = SkyrimWorldOwnerState.Disconnected;
     private SkyrimWorldOwnerState routedState = SkyrimWorldOwnerState.Disconnected;
+    private long activeLoadOperationId;
 
     public SkyrimWorldOwnerRuntime(string sessionScope, ImportedAgentRegistry? registry = null)
     {
@@ -61,6 +62,8 @@ public sealed class SkyrimWorldOwnerRuntime
     internal AiWorld DominatusWorld => world;
 
     internal AiAgent DominatusOwner => owner;
+
+    internal long LastFactSequence => lastFactSequence;
 
     public bool Post(SkyrimWorldFact fact)
     {
@@ -128,6 +131,13 @@ public sealed class SkyrimWorldOwnerRuntime
             SkyrimWorldFactKind.WorldPaused => Pause(fact),
             SkyrimWorldFactKind.SaveLoading => BeginSaveLoad(fact),
             SkyrimWorldFactKind.SaveLoaded => FinishSaveLoad(fact),
+            SkyrimWorldFactKind.SaveOperationStarted => StartSave(fact),
+            SkyrimWorldFactKind.SaveOperationCompleted => CompleteSave(fact),
+            SkyrimWorldFactKind.LoadOperationStarted => BeginLoad(fact),
+            SkyrimWorldFactKind.LoadOperationCompleted => CompleteLoad(fact),
+            SkyrimWorldFactKind.LoadOperationFailed => FailLoad(fact),
+            SkyrimWorldFactKind.NewGameStarted => BeginNewGame(fact),
+            SkyrimWorldFactKind.RevertOccurred => ObserveRevert(fact),
             SkyrimWorldFactKind.BodyLoaded => LoadBody(fact),
             SkyrimWorldFactKind.BodyLost => LoseBody(fact),
             SkyrimWorldFactKind.RestorationRequired => RequireRestoration(fact),
@@ -176,6 +186,119 @@ public sealed class SkyrimWorldOwnerRuntime
             ?? throw new InvalidDataException("save_loading_identity_missing");
         owner.Events.Publish(new SkyrimSaveLoading(save));
         return SkyrimWorldOwnerState.SaveLoading;
+    }
+
+    private SkyrimWorldOwnerState StartSave(SkyrimWorldFact fact)
+    {
+        SkyrimSaveIdentity save = fact.Save?.Validate()
+            ?? throw new InvalidDataException("save_started_identity_missing");
+        owner.Events.Publish(new SkyrimSaveOperationStarted(
+            fact.OperationId,
+            save,
+            fact.SourceCallback ?? "unknown"));
+        return state;
+    }
+
+    private SkyrimWorldOwnerState CompleteSave(SkyrimWorldFact fact)
+    {
+        SkyrimSaveIdentity save = fact.Save?.Validate()
+            ?? throw new InvalidDataException("save_completed_identity_missing");
+        owner.Events.Publish(new SkyrimSaveOperationCompleted(
+            fact.OperationId,
+            save,
+            fact.SourceCallback ?? "unknown"));
+        CurrentSave = save;
+        Timeline = save.Timeline;
+        WriteTimeline(save.Timeline);
+        return state;
+    }
+
+    private SkyrimWorldOwnerState BeginLoad(SkyrimWorldFact fact)
+    {
+        SkyrimSaveIdentity save = fact.Save?.Validate()
+            ?? throw new InvalidDataException("load_started_identity_missing");
+        if (fact.OperationId <= 0)
+        {
+            throw new InvalidDataException("load_operation_id_invalid");
+        }
+        activeLoadOperationId = fact.OperationId;
+        owner.Events.Publish(new SkyrimLoadOperationStarted(
+            fact.OperationId,
+            save,
+            fact.SourceCallback ?? "unknown"));
+        owner.Events.Publish(new ReleaseAllBindings("skyrim_load_started"));
+        return SkyrimWorldOwnerState.SaveLoading;
+    }
+
+    private SkyrimWorldOwnerState CompleteLoad(SkyrimWorldFact fact)
+    {
+        if (fact.OperationId != activeLoadOperationId)
+        {
+            return state;
+        }
+        SkyrimSaveIdentity save = fact.Save?.Validate()
+            ?? throw new InvalidDataException("load_completed_identity_missing");
+        owner.Events.Publish(new SkyrimLoadOperationCompleted(
+            fact.OperationId,
+            save,
+            fact.SourceCallback ?? "unknown"));
+        activeLoadOperationId = 0;
+        return FinishSaveLoad(fact);
+    }
+
+    private SkyrimWorldOwnerState FailLoad(SkyrimWorldFact fact)
+    {
+        if (fact.OperationId != activeLoadOperationId)
+        {
+            return state;
+        }
+        SkyrimSaveIdentity save = fact.Save?.Validate()
+            ?? throw new InvalidDataException("load_failed_identity_missing");
+        owner.Events.Publish(new SkyrimLoadOperationFailed(
+            fact.OperationId,
+            save,
+            fact.SourceCallback ?? "unknown"));
+        activeLoadOperationId = 0;
+        return SkyrimWorldOwnerState.WorldReady;
+    }
+
+    private SkyrimWorldOwnerState BeginNewGame(SkyrimWorldFact fact)
+    {
+        CurrentSave = null;
+        Timeline = fact.Timeline;
+        activeLoadOperationId = 0;
+        owner.Events.Publish(new SkyrimNewGameStarted(fact.OperationId, fact.Timeline));
+        return SkyrimWorldOwnerState.AwaitingWorld;
+    }
+
+    private SkyrimWorldOwnerState ObserveRevert(SkyrimWorldFact fact)
+    {
+        owner.Events.Publish(new SkyrimRevertOccurred(fact.OperationId, fact.Timeline));
+        return state;
+    }
+
+    internal void CompleteCheckpointRestore(
+        SkyrimSaveIdentity save,
+        string checkpointArtifactId,
+        bool rollback)
+    {
+        Timeline = save.Timeline;
+        CurrentSave = save;
+        state = SkyrimWorldOwnerState.WorldReady;
+        routedState = SkyrimWorldOwnerState.WorldReady;
+        owner.Events.Publish(new SkyrimWorldRestored(save, checkpointArtifactId));
+        if (rollback)
+        {
+            owner.Events.Publish(new SkyrimTimelineRebased(save.Timeline, checkpointArtifactId));
+        }
+    }
+
+    internal void RequireRestoration(string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        state = SkyrimWorldOwnerState.RestorationRequired;
+        routedState = SkyrimWorldOwnerState.RestorationRequired;
+        owner.Events.Publish(new SkyrimRestorationRequired(reason));
     }
 
     private SkyrimWorldOwnerState FinishSaveLoad(SkyrimWorldFact fact)

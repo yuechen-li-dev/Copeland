@@ -138,6 +138,9 @@ public sealed record EvaluateHostRequestRequest(int ProtocolVersion, string Mess
 public sealed record LoadDevelopmentSessionRequest(int ProtocolVersion, string MessageKind, string RequestId, string SaveId, int TimeoutMilliseconds);
 public sealed record SessionLoadStateRequest(int ProtocolVersion, string MessageKind, string RequestId, long ClientSequence);
 public sealed record SessionLoadResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string SaveId, ulong LoadGeneration, string SessionPhase, bool PlayerAvailable, uint? PlayerFormId, bool WorldReady, ulong RuntimeSequence, string? FailureReason);
+public sealed record LifecycleObservationsRequest(int ProtocolVersion, string MessageKind, string RequestId, ulong AfterSequence);
+public sealed record LifecycleObservation(string Kind, ulong Sequence, ulong OperationId, string? SaveName, double? GameTimeDays, string SourceCallback);
+public sealed record LifecycleObservationsResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, LifecycleObservation[] Observations);
 public sealed record EvaluateHostRequestResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, uint TargetFormId, bool Eligible, string EligibilityReason, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, string RequestTransition, ulong RuntimeSequence, string? FailureReason);
 public sealed record HostMutationResult(int ProtocolVersion, string MessageKind, string RequestId, ulong ServerSequence, string Status, string? FailureReason, bool OutcomeUncertain, ulong RuntimeSequence, uint HostGeneration, uint HostFormId, uint PlayerFormId, uint CameraTargetFormId, bool PlayerControlRestored, bool TargetPositionRestored, bool TargetAiRestored, bool TargetDeadRestored, bool SessionCleared, float[] HostPositionBefore, float[] HostPositionAfter, float[] PlayerPositionBefore, float[] PlayerPositionAfter, string? ActionState = null, string[]? ActionLifecycle = null, float? DistanceBefore = null, float? DistanceAfter = null);
 public sealed record LoopbackReport(int ProtocolVersion, string Profile, bool Authenticated, string SessionId, bool PipeConnected, string PingRequestId, bool PingCompleted, string TransportStateRequestId, bool TransportStateCompleted, string SkyrimStateRequestId, bool SkyrimStateCompleted, bool BridgeReady, ulong RuntimeSequence, bool PlayerAvailable, uint? PlayerFormId, bool PendingRequestPresent, uint? PendingRequestGeneration, uint? PendingTargetFormId, bool ActiveHostSession, uint? ActiveHostGeneration, uint? ActiveHostFormId, uint? CameraTargetFormId, bool PresenterTransportEnabled, bool SemanticActuationEnabled, ulong ServerSequenceStart, ulong ServerSequenceEnd, bool GracefulDisconnect);
@@ -167,6 +170,9 @@ public sealed record DisconnectRestorationReport(int ProtocolVersion, string Ses
 [JsonSerializable(typeof(LoadDevelopmentSessionRequest))]
 [JsonSerializable(typeof(SessionLoadStateRequest))]
 [JsonSerializable(typeof(SessionLoadResult))]
+[JsonSerializable(typeof(LifecycleObservationsRequest))]
+[JsonSerializable(typeof(LifecycleObservation))]
+[JsonSerializable(typeof(LifecycleObservationsResult))]
 [JsonSerializable(typeof(EvaluateHostRequestResult))]
 [JsonSerializable(typeof(HostMutationResult))]
 [JsonSerializable(typeof(LoopbackReport))]
@@ -175,6 +181,7 @@ public sealed record DisconnectRestorationReport(int ProtocolVersion, string Ses
 [JsonSerializable(typeof(SessionBootstrapReport))]
 [JsonSerializable(typeof(DisconnectRestorationReport))]
 [JsonSerializable(typeof(DominatusSkyrimReport))]
+[JsonSerializable(typeof(LiveSaveCorrelationReport))]
 internal sealed partial class MarionetteWireJsonContext : JsonSerializerContext;
 
 public sealed partial class MarionetteTransportClient

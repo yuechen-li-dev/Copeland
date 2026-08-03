@@ -42,14 +42,25 @@ public sealed record SkyrimTimelineStamp(
 
 public sealed record SkyrimSaveIdentity(
     string SaveName,
-    SkyrimTimelineStamp Timeline)
+    SkyrimTimelineStamp Timeline,
+    long Revision = 0,
+    string? StableFingerprint = null)
 {
     public SkyrimSaveIdentity Validate()
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(SaveName);
+        if (SaveName.Length > 240 || SaveName.Contains('/') || SaveName.Contains('\\')
+            || SaveName.Contains("..", StringComparison.Ordinal) || SaveName.Contains(':'))
+        {
+            throw new ArgumentException("Skyrim save identity must be a bounded symbolic name.", nameof(SaveName));
+        }
         if (Timeline.Sequence < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(Timeline));
+        }
+        if (Revision < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(Revision));
         }
 
         return this;
@@ -64,6 +75,13 @@ public enum SkyrimWorldFactKind
     WorldPaused,
     SaveLoading,
     SaveLoaded,
+    SaveOperationStarted,
+    SaveOperationCompleted,
+    LoadOperationStarted,
+    LoadOperationCompleted,
+    LoadOperationFailed,
+    NewGameStarted,
+    RevertOccurred,
     BodyLoaded,
     BodyLost,
     RestorationRequired,
@@ -78,7 +96,9 @@ public sealed record SkyrimWorldFact(
     BodyObservation? Body = null,
     SkyrimActorOrigin? Origin = null,
     ImportedNpcData? ImportedData = null,
-    string? Reason = null);
+    string? Reason = null,
+    long OperationId = 0,
+    string? SourceCallback = null);
 
 public sealed record SkyrimBackendConnected(long Sequence);
 public sealed record SkyrimBackendDisconnected(long Sequence, string? Reason);
@@ -86,6 +106,13 @@ public sealed record SkyrimWorldReady(SkyrimTimelineStamp Timeline);
 public sealed record SkyrimWorldPaused(SkyrimTimelineStamp Timeline);
 public sealed record SkyrimSaveLoading(SkyrimSaveIdentity Save);
 public sealed record SkyrimSaveLoaded(SkyrimSaveIdentity Save);
+public sealed record SkyrimSaveOperationStarted(long OperationId, SkyrimSaveIdentity Save, string SourceCallback);
+public sealed record SkyrimSaveOperationCompleted(long OperationId, SkyrimSaveIdentity Save, string SourceCallback);
+public sealed record SkyrimLoadOperationStarted(long OperationId, SkyrimSaveIdentity Save, string SourceCallback);
+public sealed record SkyrimLoadOperationCompleted(long OperationId, SkyrimSaveIdentity Save, string SourceCallback);
+public sealed record SkyrimLoadOperationFailed(long OperationId, SkyrimSaveIdentity Save, string SourceCallback);
+public sealed record SkyrimNewGameStarted(long OperationId, SkyrimTimelineStamp? Timeline);
+public sealed record SkyrimRevertOccurred(long OperationId, SkyrimTimelineStamp? Timeline);
 public sealed record SkyrimTimelineChanged(SkyrimTimelineStamp Previous, SkyrimTimelineStamp Current);
 public sealed record SkyrimRollbackDetected(SkyrimTimelineStamp Previous, SkyrimTimelineStamp Loaded);
 public sealed record SkyrimBodyLoaded(AgentId Agent, BodyObservation Body, SkyrimActorOrigin Origin, bool Rematerialized);

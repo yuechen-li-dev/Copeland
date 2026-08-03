@@ -12,7 +12,9 @@ public sealed record SkyrimCheckpointIndexEntry(
     string ArtifactFileName,
     DateTimeOffset CreatedUtc,
     string? ParentArtifactId,
-    bool ActiveLineage);
+    bool ActiveLineage,
+    long SaveOperationId = 0,
+    string? ArtifactSha256 = null);
 
 public enum SkyrimCheckpointStatus
 {
@@ -24,6 +26,8 @@ public enum SkyrimCheckpointStatus
     CheckpointCorrupt,
     VersionMismatch,
     TimelineMismatch,
+    Staged,
+    SaveOperationUnavailable,
 }
 
 public sealed record SkyrimCheckpointResult(
@@ -42,9 +46,10 @@ public sealed record SkyrimCheckpointResult(
 /// </summary>
 public sealed class SkyrimCheckpointStore
 {
-    private const int IndexFormatVersion = 1;
+    private const int IndexFormatVersion = 2;
     private const string IndexFileName = "skyrim-checkpoints.index.json";
     private readonly string directory;
+    private readonly Dictionary<long, SkyrimCheckpointIndexEntry> staged = new();
 
     public SkyrimCheckpointStore(string directory)
     {
@@ -57,10 +62,31 @@ public sealed class SkyrimCheckpointStore
         SkyrimSaveIdentity save,
         BodyBindingRegistry bindings)
     {
+        long operationId = DateTimeOffset.UtcNow.Ticks;
+        SkyrimCheckpointResult provisional = CaptureProvisional(runtime, save, bindings, operationId);
+        return provisional.Status == SkyrimCheckpointStatus.Staged
+            ? Commit(operationId)
+            : provisional;
+    }
+
+    public SkyrimCheckpointResult CaptureProvisional(
+        SkyrimWorldOwnerRuntime runtime,
+        SkyrimSaveIdentity save,
+        BodyBindingRegistry bindings,
+        long operationId)
+    {
         ArgumentNullException.ThrowIfNull(runtime);
         ArgumentNullException.ThrowIfNull(save);
         ArgumentNullException.ThrowIfNull(bindings);
         save.Validate();
+        if (operationId <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(operationId));
+        }
+        if (staged.TryGetValue(operationId, out SkyrimCheckpointIndexEntry? existing))
+        {
+            return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Staged, existing);
+        }
         if (runtime.RestorationIsRequired)
         {
             return new SkyrimCheckpointResult(
@@ -96,25 +122,67 @@ public sealed class SkyrimCheckpointStore
         IReadOnlyList<SaveChunk> chunks = DominatusSave.CreateCheckpointChunks(checkpoint);
         string temporaryPath = Path.Combine(directory, $"checkpoint-{Guid.NewGuid():N}.tmp");
         SaveFile.Write(temporaryPath, chunks);
-        string artifactId = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(temporaryPath)))
+        string artifactHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(temporaryPath)))
             .ToLowerInvariant();
-        string artifactFileName = $"{artifactId}.dom";
+        string artifactFileName = $"{artifactHash}.dom";
         string artifactPath = Path.Combine(directory, artifactFileName);
         File.Move(temporaryPath, artifactPath, overwrite: true);
 
-        List<SkyrimCheckpointIndexEntry> entries = ReadIndex();
-        string? parent = entries.LastOrDefault(entry => entry.ActiveLineage)?.CheckpointArtifactId;
         var created = new SkyrimCheckpointIndexEntry(
             IndexFormatVersion,
             save,
-            artifactId,
+            $"{save.Timeline.Session.Value:N}-{operationId}",
             artifactFileName,
             DateTimeOffset.UtcNow,
-            parent,
-            ActiveLineage: true);
-        entries.Add(created);
+            ParentArtifactId: null,
+            ActiveLineage: false,
+            SaveOperationId: operationId,
+            ArtifactSha256: artifactHash);
+        staged.Add(operationId, created);
+        return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Staged, created);
+    }
+
+    public SkyrimCheckpointResult Commit(long operationId)
+    {
+        List<SkyrimCheckpointIndexEntry> entries = ReadIndex();
+        SkyrimCheckpointIndexEntry? committed = entries.SingleOrDefault(
+            entry => entry.SaveOperationId == operationId);
+        if (committed is not null)
+        {
+            return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Completed, committed);
+        }
+        if (!staged.Remove(operationId, out SkyrimCheckpointIndexEntry? provisional))
+        {
+            return new SkyrimCheckpointResult(
+                SkyrimCheckpointStatus.SaveOperationUnavailable,
+                FailureReason: "provisional_save_operation_unavailable");
+        }
+
+        string? parent = entries.LastOrDefault(entry => entry.ActiveLineage)?.CheckpointArtifactId;
+        committed = provisional with
+        {
+            ParentArtifactId = parent,
+            ActiveLineage = true,
+        };
+        entries.Add(committed);
         WriteIndex(entries);
-        return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Completed, created);
+        return new SkyrimCheckpointResult(SkyrimCheckpointStatus.Completed, committed);
+    }
+
+    public bool Abort(long operationId)
+    {
+        if (!staged.Remove(operationId, out SkyrimCheckpointIndexEntry? provisional))
+        {
+            return false;
+        }
+        string artifactPath = Path.Combine(directory, provisional.ArtifactFileName);
+        bool committedArtifact = ReadIndex().Any(
+            entry => string.Equals(entry.ArtifactFileName, provisional.ArtifactFileName, StringComparison.Ordinal));
+        if (!committedArtifact && File.Exists(artifactPath))
+        {
+            File.Delete(artifactPath);
+        }
+        return true;
     }
 
     public SkyrimCheckpointResult Restore(
@@ -125,10 +193,7 @@ public sealed class SkyrimCheckpointStore
         loadedSave.Validate();
         List<SkyrimCheckpointIndexEntry> entries = ReadIndex();
         SkyrimCheckpointIndexEntry? selected = entries
-            .Where(entry => string.Equals(
-                entry.Save.SaveName,
-                loadedSave.SaveName,
-                StringComparison.OrdinalIgnoreCase))
+            .Where(entry => ExactIdentityMatches(entry.Save, loadedSave))
             .OrderByDescending(entry => entry.CreatedUtc)
             .FirstOrDefault();
         selected ??= entries
@@ -150,6 +215,17 @@ public sealed class SkyrimCheckpointStore
         {
             IReadOnlyList<SaveChunk> chunks = SaveFile.Read(artifactPath);
             (checkpoint, _) = DominatusSave.ReadCheckpointChunks(chunks);
+            string actualHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(artifactPath)))
+                .ToLowerInvariant();
+            string expectedHash = selected.ArtifactSha256
+                ?? Path.GetFileNameWithoutExtension(selected.ArtifactFileName);
+            if (!string.Equals(actualHash, expectedHash, StringComparison.Ordinal))
+            {
+                return new SkyrimCheckpointResult(
+                    SkyrimCheckpointStatus.CheckpointCorrupt,
+                    selected,
+                    FailureReason: "checkpoint_artifact_hash_mismatch");
+            }
         }
         catch (InvalidOperationException exception)
             when (exception.Message.Contains("version", StringComparison.OrdinalIgnoreCase))
@@ -193,10 +269,10 @@ public sealed class SkyrimCheckpointStore
                 FailureReason: exception.Message);
         }
 
+        HashSet<string> activeArtifacts = BuildActiveLineage(entries, selected);
         entries = entries.Select(entry => entry with
         {
-            ActiveLineage = entry.Save.Timeline.GameTime.GameDays
-                <= loadedSave.Timeline.GameTime.GameDays,
+            ActiveLineage = activeArtifacts.Contains(entry.CheckpointArtifactId),
         }).ToList();
         WriteIndex(entries);
 
@@ -207,6 +283,41 @@ public sealed class SkyrimCheckpointStore
     }
 
     public IReadOnlyList<SkyrimCheckpointIndexEntry> ReadEntries() => ReadIndex();
+
+    private static bool ExactIdentityMatches(SkyrimSaveIdentity indexed, SkyrimSaveIdentity loaded)
+    {
+        if (!string.Equals(indexed.SaveName, loaded.SaveName, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+        if (loaded.StableFingerprint is not null)
+        {
+            return string.Equals(
+                indexed.StableFingerprint,
+                loaded.StableFingerprint,
+                StringComparison.Ordinal);
+        }
+        return Math.Abs(indexed.Timeline.GameTime.GameDays - loaded.Timeline.GameTime.GameDays) < 0.000001;
+    }
+
+    private static HashSet<string> BuildActiveLineage(
+        IReadOnlyList<SkyrimCheckpointIndexEntry> entries,
+        SkyrimCheckpointIndexEntry selected)
+    {
+        Dictionary<string, SkyrimCheckpointIndexEntry> byId = entries.ToDictionary(
+            entry => entry.CheckpointArtifactId,
+            StringComparer.Ordinal);
+        var active = new HashSet<string>(StringComparer.Ordinal);
+        SkyrimCheckpointIndexEntry? current = selected;
+        while (current is not null && active.Add(current.CheckpointArtifactId))
+        {
+            current = current.ParentArtifactId is not null
+                && byId.TryGetValue(current.ParentArtifactId, out SkyrimCheckpointIndexEntry? parent)
+                ? parent
+                : null;
+        }
+        return active;
+    }
 
     private static ImportedNpcAgent ReadImportedAgent(IReadOnlyDictionary<string, object> values)
     {
