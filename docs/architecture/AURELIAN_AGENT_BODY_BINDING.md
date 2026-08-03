@@ -97,7 +97,9 @@ ReleaseBody
 Movement is rejected before lowering when the caller is not the exclusive
 owner, the binding is absent or released, the generation is stale, or the body
 is unloaded. Native `actor_unloaded` and `target_invalid` results transition the
-binding to `Lost`. A timeout or failed release is not treated as proof that no
+binding to `Lost`. A lost binding rejects body commands but retains its
+exclusive reservation until release can restore the host session. A timeout or
+failed release is not treated as proof that no
 mutation occurred; it produces `RestoreRequired`, and the scenario retains its
 emergency-restore fallback.
 

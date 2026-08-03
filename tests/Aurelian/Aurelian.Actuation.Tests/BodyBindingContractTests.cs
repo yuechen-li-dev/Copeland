@@ -112,6 +112,8 @@ public sealed class BodyBindingContractTests
         Assert.True(result.Accepted);
         Assert.Equal(BodyBindingState.Lost, registry.Query(FirstAgent)!.State);
         Assert.Equal(FirstAgent, registry.Query(FirstAgent)!.Agent);
+        Assert.True(registry.BeginRelease(FirstAgent, FirstBody, 7).Accepted);
+        Assert.Equal(BodyBindingState.Releasing, registry.Query(FirstAgent)!.State);
     }
 
     [Fact]

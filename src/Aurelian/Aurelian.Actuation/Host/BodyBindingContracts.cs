@@ -266,7 +266,7 @@ public sealed class BodyBindingRegistry
             return match;
         }
 
-        if (binding.State != BodyBindingState.Bound)
+        if (binding.State is not BodyBindingState.Bound and not BodyBindingState.Lost)
         {
             return BodyBindingRegistryResult.Reject("body_not_bound");
         }
@@ -305,9 +305,7 @@ public sealed class BodyBindingRegistry
         }
 
         BodyBinding lost = match.Binding! with { State = BodyBindingState.Lost };
-        RemoveActive(lost);
-        lastByAgent[agent] = lost;
-        return BodyBindingRegistryResult.Accept(lost);
+        return Replace(lost);
     }
 
     public BodyBinding? Query(AgentId agent)

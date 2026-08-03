@@ -55,6 +55,19 @@ public sealed class SkyrimApproachAgentTests
     }
 
     [Fact]
+    public void LostBody_StillRestoresSessionBeforeFailure()
+    {
+        (SkyrimBodyAgentRuntime runtime, LifecycleBackend backend) = CreateRuntime();
+        backend.MovementState = HostActionState.ActorUnloaded;
+
+        SkyrimBodyAgentState terminal = runtime.RunUntilTerminal();
+
+        Assert.Equal(SkyrimBodyAgentState.Failed, terminal);
+        Assert.Equal(BodyBindingState.Released, runtime.Binding!.State);
+        Assert.Equal(HostCommandKind.EndHostSession, backend.Commands[^1]);
+    }
+
+    [Fact]
     public void ReleaseFailure_ReportsRestoreRequired()
     {
         (SkyrimBodyAgentRuntime runtime, LifecycleBackend backend) = CreateRuntime();

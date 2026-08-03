@@ -47,7 +47,7 @@ Validation recorded for M1:
 | Lane | Result |
 | --- | --- |
 | Copeland `dotnet build Aurelian.slnx -c Release` | passed, 0 warnings, 0 errors |
-| Copeland `dotnet test Aurelian.slnx -c Release --no-build` | passed, 630 tests |
+| Copeland `dotnet test Aurelian.slnx -c Release --no-build` | passed, 631 tests |
 | Dominatus `Dominatus.Release.slnx`, net8.0 and net10.0 | 1,379 passed, 8 credentialed live tests skipped; 40 pre-existing xUnit analyzer warnings |
 | Marionette managed Release build/tests | passed, 10 tests |
 | Marionette native Release build | `MarionetteSSE` and `MarionetteTests` passed |
