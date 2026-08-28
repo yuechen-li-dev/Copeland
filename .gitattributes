@@ -9,3 +9,4 @@
 *.tsxtest text eol=lf
 *.js text eol=lf
 *.tson text eol=lf
+*.cope text eol=lf

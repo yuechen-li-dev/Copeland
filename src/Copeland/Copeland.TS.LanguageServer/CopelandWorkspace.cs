@@ -312,7 +312,7 @@ internal sealed class CopelandWorkspace
             if (host is not null)
             {
                 string hostText = PathsEqual(host.Source.SourcePath, current.Path) ? current.Text : File.ReadAllText(host.Source.SourcePath);
-                return new { uri = new Uri(host.Source.SourcePath).AbsoluteUri, range = Range(hostText, host.Source.Start, Math.Max(1, host.Source.Length) ) };
+                return new { uri = new Uri(host.Source.SourcePath).AbsoluteUri, range = Range(hostText, host.Source.Start, Math.Max(1, host.Source.Length)) };
             }
             // Bounded roles are semantic identities, not declarations. A
             // document node therefore has no fabricated definition target.
@@ -545,10 +545,14 @@ internal sealed class CopelandWorkspace
             _manifestContextDirectoryLastWriteUtc = Directory.Exists(_manifestContextDirectory)
                 ? Directory.GetLastWriteTimeUtc(_manifestContextDirectory)
                 : DateTime.MinValue;
-            CopelandProjectContext context = CopelandProjectContextResolver.Load(_manifestPath);
+            CopelandProjectContext context = Directory.Exists(_manifestContextDirectory)
+                ? CopelandProjectContextResolver.Load(_manifestPath)
+                : CopelandProjectContext.LoadStandalone(Path.GetDirectoryName(_manifestPath)!);
             _manifestProjectContext = context;
             _manifestLastWriteUtc = File.GetLastWriteTimeUtc(_manifestPath);
-            _manifestContextLastWriteUtc = File.GetLastWriteTimeUtc(context.DescriptorPath);
+            _manifestContextLastWriteUtc = File.Exists(context.DescriptorPath)
+                ? File.GetLastWriteTimeUtc(context.DescriptorPath)
+                : File.GetLastWriteTimeUtc(Path.Combine(Path.GetDirectoryName(_manifestPath)!, "tsconfig.tsx"));
             _projectTypes = context.Options.ProjectTypes;
             foreach (CopelandProjectSource source in context.Sources)
             {

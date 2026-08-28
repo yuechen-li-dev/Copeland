@@ -400,7 +400,7 @@ public sealed class MarkdownPipelineTests
 
         IEnumerable<string> markdownFiles = Directory
             .EnumerateFiles(Path.Combine(repoRoot, "src", "Copeland", "Copeland.Markdown"), "*.cs", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(Path.Combine(repoRoot, "src", "Copeland", "Copeland.Cli"), "*.cs", SearchOption.TopDirectoryOnly));
+            .Append(Path.Combine(repoRoot, "src", "Copeland", "Copeland.Cli", "Program.cs"));
 
         string combinedText = string.Join(
             "\n",

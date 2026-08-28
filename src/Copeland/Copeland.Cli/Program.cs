@@ -445,7 +445,7 @@ internal static class Program
     {
         Console.Error.WriteLine("Usage:");
         Console.Error.WriteLine("  copeland compile <source-file> --emit mir|csharp|javascript [--javascript-profile diagnostic|symbolic|production] [--out <path>]");
-        Console.Error.WriteLine("  tscl build --project <project.json> --result <result.json>");
+        Console.Error.WriteLine("  tscl build (--project <descriptor.json> | --standalone <project-root>) --result <result.json>");
         Console.Error.WriteLine("  tscl workspace sync|validate|status|owner ...");
         Console.Error.WriteLine("  tscl table list|schema|rows|query|set|add-row|delete-row|validate|export|import ...");
         Console.Error.WriteLine("  tscl table list (--project <manifest.tsx> | --source <entry.ts>)  (compiler-projected layout tables)");

@@ -76,6 +76,48 @@ public sealed class CliIntegrationTests
     }
 
     [Fact]
+    public async Task Tscl_standalone_build_uses_manifest_config_and_local_environment_without_TSPack()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        temp.WriteFile("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        temp.WriteFile("src/Greeting.ts", "export function Greeting(name: string): string { return `Hello, ${name}`; }");
+        temp.WriteFile("src/Main.ts", "import { Greeting } from \"./Greeting\"; export function Main(): string { return Greeting(\"standalone\"); }");
+        temp.WriteFile("tsconfig.tsx", """
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+            export default defineTypeScriptWorkspace({
+                ownership: "partial",
+                tscl: { project: "./App.csproj", include: ["src/**"] }
+            });
+            """);
+        temp.WriteFile("manifest.tsx", """
+            import { Package, Targets, Workspace, define } from "tspack/manifest";
+            export default define(
+              <Workspace name="standalone" runtime="nodejs">
+                <Package name="standalone" version="1.0.0" kind="app" dependencies={{ values: [] }}>
+                  <Targets rows={[{ name: "app", entry: "src/Main.ts", runtime: "dist/main.js", deps: [], peers: [] }]} />
+                </Package>
+              </Workspace>,
+            );
+            """);
+        string resultPath = Path.Combine(temp.Path, "result.json");
+
+        CliResult build = await RunCliAsync(
+            temp.Path,
+            "build",
+            "--standalone",
+            temp.Path,
+            "--result",
+            resultPath);
+
+        Assert.Equal(0, build.ExitCode);
+        Assert.False(Directory.Exists(Path.Combine(temp.Path, ".tspack")));
+        CliResult execution = await RunExecutableAsync("node", temp.Path, Path.Combine(temp.Path, "dist", "main.js"));
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("Hello, standalone\n", execution.StdOut);
+    }
+
+    [Fact]
     public async Task Tscl_build_emits_a_multi_module_production_browser_project_without_node_launcher_artifacts()
     {
         using var temp = new TempDir();

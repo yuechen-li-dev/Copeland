@@ -5,6 +5,7 @@ using System.Text.Json;
 using Copeland.TS.Backend.JavaScript;
 using Copeland.TS.Compiler;
 using Copeland.TS.Diagnostics;
+using Copeland.TS.Manifest;
 
 namespace Copeland.Cli;
 
@@ -28,19 +29,25 @@ internal static class TsclBuildContract
 
     public static int Run(string[] args)
     {
-        if (!TryParseArguments(args, out string? projectPath, out string? resultPath))
+        if (!TryParseArguments(args, out string? projectPath, out string? standaloneRoot, out string? resultPath))
         {
-            Console.Error.WriteLine("COPE-TSCL-0001 error: Usage: tscl build --project <project.json> --result <result.json>.");
+            Console.Error.WriteLine("COPE-TSCL-0001 error: Usage: tscl build (--project <descriptor.json> | --standalone <project-root>) --result <result.json>.");
             return UsageErrorExitCode;
         }
 
         TsclBuildResult result;
         try
         {
-            TsclBuildRequest request = ReadRequest(projectPath!);
+            TsclBuildRequest request = standaloneRoot is null
+                ? ReadRequest(projectPath!)
+                : ReadStandaloneRequest(standaloneRoot);
             result = Build(request);
         }
         catch (TsclContractException exception)
+        {
+            result = TsclBuildResult.Failure(exception.Code, exception.Message);
+        }
+        catch (CopelandProjectContextException exception)
         {
             result = TsclBuildResult.Failure(exception.Code, exception.Message);
         }
@@ -66,9 +73,14 @@ internal static class TsclBuildContract
         return result.Success ? 0 : CompileFailureExitCode;
     }
 
-    private static bool TryParseArguments(string[] args, out string? projectPath, out string? resultPath)
+    private static bool TryParseArguments(
+        string[] args,
+        out string? projectPath,
+        out string? standaloneRoot,
+        out string? resultPath)
     {
         projectPath = null;
+        standaloneRoot = null;
         resultPath = null;
         if (args.Length < 5 || !string.Equals(args[0], "build", StringComparison.Ordinal))
         {
@@ -82,6 +94,11 @@ internal static class TsclBuildContract
                 projectPath = args[++index];
                 continue;
             }
+            if (args[index] == "--standalone" && index + 1 < args.Length)
+            {
+                standaloneRoot = args[++index];
+                continue;
+            }
 
             if (args[index] == "--result" && index + 1 < args.Length)
             {
@@ -92,13 +109,71 @@ internal static class TsclBuildContract
             return false;
         }
 
-        return !string.IsNullOrWhiteSpace(projectPath) && !string.IsNullOrWhiteSpace(resultPath);
+        bool hasOneProjectMode = string.IsNullOrWhiteSpace(projectPath) != string.IsNullOrWhiteSpace(standaloneRoot);
+        return hasOneProjectMode && !string.IsNullOrWhiteSpace(resultPath);
+    }
+
+    private static TsclBuildRequest ReadStandaloneRequest(string projectRoot)
+    {
+        string fullProjectRoot = Path.GetFullPath(projectRoot);
+        CopelandProjectContext context = CopelandProjectContext.LoadStandalone(fullProjectRoot);
+        ManifestProjectLoadResult manifestResult = CopelandProject.LoadRootManifest(fullProjectRoot);
+        ManifestTarget[] targets = manifestResult.Manifest!.Packages.SelectMany(package => package.Targets).ToArray();
+        if (targets.Length != 1 || targets[0].Row is not ManifestValue.Object row)
+        {
+            throw new TsclContractException(
+                "COPE-TSCL-0011",
+                "Standalone build requires exactly one compiler-relevant manifest target.");
+        }
+        string entry = RequiredManifestString(row, "entry");
+        string runtime = RequiredManifestString(row, "runtime");
+        return new TsclBuildRequest
+        {
+            Context = context,
+            ProjectRoot = fullProjectRoot,
+            Sources = context.Sources.Select(source => new TsclSource
+            {
+                LogicalPath = source.LogicalPath,
+                Path = source.SourcePath,
+            }).ToList(),
+            Entry = new TsclEntry { Module = entry, Export = "Main" },
+            JavaScriptRuntime = "node",
+            JavaScriptProfile = "production",
+            OutputDirectory = Path.Combine(fullProjectRoot, Path.GetDirectoryName(runtime) ?? string.Empty),
+            EntryOutputPath = Path.GetFileName(runtime),
+            BuildFingerprint = context.Fingerprint,
+        };
+    }
+
+    private static string RequiredManifestString(ManifestValue.Object row, string name)
+    {
+        if (row.Properties.TryGetValue(name, out ManifestValue? value)
+            && value is ManifestValue.String text
+            && !string.IsNullOrWhiteSpace(text.Text))
+        {
+            return text.Text;
+        }
+        throw new TsclContractException("COPE-TSCL-0012", $"Standalone target requires string field '{name}'.");
     }
 
     private static TsclBuildRequest ReadRequest(string projectPath)
     {
-        using FileStream stream = File.OpenRead(projectPath);
-        TsclBuildRequest? request = JsonSerializer.Deserialize<TsclBuildRequest>(stream, JsonOptions);
+        string fullProjectPath = Path.GetFullPath(projectPath);
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(fullProjectPath));
+        TsclBuildRequest? request;
+        if (document.RootElement.TryGetProperty("schemaVersion", out _))
+        {
+            CompilerTargetDescriptor descriptor = CompilerTargetDescriptorProtocol.Load(fullProjectPath);
+            request = descriptor.CompilerPayload!.Data.Deserialize<TsclBuildRequest>(JsonOptions);
+            if (request is not null)
+            {
+                request.DescriptorPath = fullProjectPath;
+            }
+        }
+        else
+        {
+            request = document.RootElement.Deserialize<TsclBuildRequest>(JsonOptions);
+        }
         if (request is null)
         {
             throw new TsclContractException("COPE-TSCL-0004", "Project contract is empty.");
@@ -133,16 +208,18 @@ internal static class TsclBuildContract
     {
         string projectRoot = Path.GetFullPath(request.ProjectRoot);
         string outputDirectory = Path.GetFullPath(request.OutputDirectory);
-        CopelandProjectContext context = CopelandProjectContext.Create(
-            "<tscl-build-request>",
-            new CopelandProjectContextDescriptor
-            {
-                ProjectRoot = request.ProjectRoot,
-                JavaScriptRuntime = request.JavaScriptRuntime,
-                TsXmlProfile = request.TsXmlProfile,
-                Sources = request.Sources.Select(source => new CopelandProjectContextSource { LogicalPath = source.LogicalPath, Path = source.Path }).ToList(),
-                NpmContracts = request.NpmContracts.Select(ToContextContract).ToList(),
-            });
+        CopelandProjectContext context = request.Context ?? (string.IsNullOrWhiteSpace(request.DescriptorPath)
+            ? CopelandProjectContext.Create(
+                "<legacy-tscl-build-request>",
+                new CopelandProjectContextDescriptor
+                {
+                    ProjectRoot = request.ProjectRoot,
+                    JavaScriptRuntime = request.JavaScriptRuntime,
+                    TsXmlProfile = request.TsXmlProfile,
+                    Sources = request.Sources.Select(source => new CopelandProjectContextSource { LogicalPath = source.LogicalPath, Path = source.Path }).ToList(),
+                    NpmContracts = request.NpmContracts.Select(ToContextContract).ToList(),
+                })
+            : CopelandProjectContext.LoadResolvedContext(request.DescriptorPath));
         CopelandProjectSource[] sources = context.Sources.ToArray();
         if (!sources.Any(source => string.Equals(source.LogicalPath, request.Entry!.Module, StringComparison.OrdinalIgnoreCase)))
         {
@@ -336,6 +413,8 @@ internal static class TsclBuildContract
 
     private sealed class TsclBuildRequest
     {
+        public CopelandProjectContext? Context { get; set; }
+        public string DescriptorPath { get; set; } = string.Empty;
         public string ProjectRoot { get; init; } = string.Empty;
         public List<TsclSource> Sources { get; init; } = [];
         public TsclEntry? Entry { get; init; }

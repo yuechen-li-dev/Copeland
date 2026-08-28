@@ -9,6 +9,40 @@ namespace Copeland.Cli.Tests;
 public sealed class LanguageServerProtocolTests
 {
     [Fact]
+    public void Language_server_uses_standalone_context_when_TSPack_is_absent()
+    {
+        using var workspace = new TempWorkspace();
+        const string text = "export function Main(): string { return \"ok\"; }";
+        string source = workspace.Write("src/copeland/Main.ts", text);
+        workspace.Write("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        workspace.Write("tsconfig.tsx", """
+			import { defineTypeScriptWorkspace } from "copeland/workspace";
+			export default defineTypeScriptWorkspace({
+				ownership: "partial",
+				tscl: { project: "./App.csproj", include: ["src/copeland/**"] }
+			});
+			""");
+        workspace.Write("manifest.tsx", """
+			import { Package, Targets, Workspace, define } from "tspack/manifest";
+			export default define(
+			  <Workspace name="standalone" runtime="nodejs">
+				<Package name="standalone" version="1.0.0" kind="app" dependencies={{ values: [] }}>
+				  <Targets rows={[{ name: "app", entry: "src/copeland/Main.ts", runtime: "dist/main.js", deps: [], peers: [] }]} />
+				</Package>
+			  </Workspace>,
+			);
+			""");
+
+        using var client = new LspClient();
+        string uri = VsCodeFileUri(source);
+        client.Request(1, "initialize", new { initializationOptions = new { workspaceRoot = workspace.Path } });
+        client.Notify("textDocument/didOpen", new { textDocument = new { uri, version = 1, text } });
+
+        Assert.Empty(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+        Assert.False(Directory.Exists(Path.Combine(workspace.Path, ".tspack")));
+    }
+
+    [Fact]
     public void Language_server_supports_canonical_typed_templates()
     {
         using var workspace = new TempWorkspace();

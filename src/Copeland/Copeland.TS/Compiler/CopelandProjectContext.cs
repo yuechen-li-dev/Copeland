@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Copeland.Cli;
+using Copeland.TS.Manifest;
 
 namespace Copeland.TS.Compiler;
 
@@ -45,6 +47,334 @@ public sealed class CopelandProjectContext
         }
 
         return Create(fullDescriptorPath, descriptor);
+    }
+
+    /// <summary>
+    /// Loads TSPack-managed resolved truth. No manifest, registry, lockfile, or
+    /// ambient node_modules discovery is performed on this path.
+    /// </summary>
+    public static CopelandProjectContext LoadResolvedContext(string descriptorPath)
+    {
+        string fullDescriptorPath = Path.GetFullPath(descriptorPath);
+        using (JsonDocument document = JsonDocument.Parse(File.ReadAllText(fullDescriptorPath)))
+        {
+            if (!document.RootElement.TryGetProperty("schemaVersion", out _))
+            {
+                // Compatibility for descriptors materialized before M71. New TSPack
+                // writes only the versioned compiler-target protocol.
+                return Load(fullDescriptorPath);
+            }
+        }
+        CompilerTargetDescriptor target = CompilerTargetDescriptorProtocol.Load(fullDescriptorPath);
+        CopelandResolvedPayload? payload = target.CompilerPayload!.Data.Deserialize<CopelandResolvedPayload>(
+            CompilerTargetDescriptorProtocol.JsonOptions);
+        if (payload is null)
+        {
+            throw new CopelandProjectContextException(
+                "COPE-PROJECT-0010",
+                "Copeland compiler payload is empty.");
+        }
+
+        ValidatePayloadMirrorsGenericTarget(target, payload);
+
+        IReadOnlyDictionary<string, CompilerPackageBinding> packageBindings = PackageBindingIndex(target.Packages ?? []);
+        IReadOnlyList<CopelandProjectContextNpmContract> payloadContracts = payload.NpmContracts ?? [];
+        foreach (CopelandProjectContextNpmContract contract in payloadContracts)
+        {
+            string packageName = NpmPackageRoot(contract.PackageName);
+            if (!packageBindings.TryGetValue(packageName, out CompilerPackageBinding? binding))
+            {
+                throw new CopelandProjectContextException(
+                    "COPE-PROJECT-0011",
+                    $"Copeland payload package '{contract.PackageName}' has no resolved generic package binding.");
+            }
+            contract.Version = binding.Version;
+            contract.MaterializationPath = binding.MaterializationPath;
+            contract.Materialized = Directory.Exists(binding.MaterializationPath);
+        }
+
+        IReadOnlyList<CompilerTargetSource> selectedSources = SelectCompilerOwnedSources(target, fullDescriptorPath);
+        return Create(
+            fullDescriptorPath,
+            new CopelandProjectContextDescriptor
+            {
+                ProjectRoot = target.ProjectRoot,
+                JavaScriptRuntime = target.Runtime.Name,
+                TsXmlProfile = payload.TsXmlProfile,
+                Sources = selectedSources.Select(source => new CopelandProjectContextSource
+                {
+                    LogicalPath = source.LogicalPath,
+                    Path = source.Path,
+                }).ToList(),
+                NpmContracts = payloadContracts.ToList(),
+            });
+    }
+
+    private static void ValidatePayloadMirrorsGenericTarget(
+        CompilerTargetDescriptor target,
+        CopelandResolvedPayload payload)
+    {
+        if (!string.Equals(
+                Path.GetFullPath(target.ProjectRoot),
+                Path.GetFullPath(payload.ProjectRoot),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new CopelandProjectContextException(
+                "COPE-PROJECT-0016",
+                "Copeland payload projectRoot conflicts with the generic compiler-target projectRoot.");
+        }
+
+        if (!string.Equals(target.Runtime.Name, payload.JavaScriptRuntime, StringComparison.Ordinal))
+        {
+            throw new CopelandProjectContextException(
+                "COPE-PROJECT-0017",
+                "Copeland payload JavaScript runtime conflicts with the generic compiler-target runtime.");
+        }
+    }
+
+    private static IReadOnlyDictionary<string, CompilerPackageBinding> PackageBindingIndex(
+        IReadOnlyList<CompilerPackageBinding> bindings)
+    {
+        var index = new Dictionary<string, CompilerPackageBinding>(StringComparer.Ordinal);
+        foreach (CompilerPackageBinding binding in bindings)
+        {
+            AddPackageBindingKey(index, binding.LocalName, binding);
+            AddPackageBindingKey(index, binding.MaterializationName, binding);
+
+            int separator = binding.SemanticIdentity.IndexOf(':');
+            if (separator >= 0 && separator + 1 < binding.SemanticIdentity.Length)
+            {
+                AddPackageBindingKey(index, binding.SemanticIdentity[(separator + 1)..], binding);
+            }
+        }
+
+        return index;
+    }
+
+    private static void AddPackageBindingKey(
+        Dictionary<string, CompilerPackageBinding> index,
+        string key,
+        CompilerPackageBinding binding)
+    {
+        if (!string.IsNullOrWhiteSpace(key))
+        {
+            index.TryAdd(key, binding);
+        }
+    }
+
+    private static string NpmPackageRoot(string packageName)
+    {
+        if (!packageName.StartsWith('@'))
+        {
+            int slash = packageName.IndexOf('/');
+            return slash < 0 ? packageName : packageName[..slash];
+        }
+
+        int scopedSlash = packageName.IndexOf('/');
+        if (scopedSlash < 0)
+        {
+            return packageName;
+        }
+
+        int subpathSlash = packageName.IndexOf('/', scopedSlash + 1);
+        return subpathSlash < 0 ? packageName : packageName[..subpathSlash];
+    }
+
+    /// <summary>
+    /// Builds compiler context from compiler-owned config and already-present
+    /// local packages. This path never contacts a registry, selects a version,
+    /// writes a lockfile, or materializes a dependency.
+    /// </summary>
+    public static CopelandProjectContext LoadStandalone(string projectRoot)
+    {
+        string fullProjectRoot = Path.GetFullPath(projectRoot);
+        ManifestProjectLoadResult manifestResult = CopelandProject.LoadRootManifest(fullProjectRoot);
+        if (!manifestResult.Success)
+        {
+            var diagnostic = manifestResult.Diagnostics[0];
+            throw new CopelandProjectContextException(diagnostic.Id, diagnostic.Message);
+        }
+
+        string configPath = Path.Combine(fullProjectRoot, "tsconfig.tsx");
+        CopelandWorkspaceOwnershipResult ownership = CopelandWorkspaceOwnership.Resolve(configPath);
+        if (!ownership.Success)
+        {
+            CopelandWorkspaceOwnershipDiagnostic diagnostic = ownership.Diagnostics[0];
+            throw new CopelandProjectContextException(diagnostic.Code, diagnostic.Message);
+        }
+
+        var contracts = new List<CopelandProjectContextNpmContract>();
+        foreach ((string source, string packageName) in StandalonePackageRequirements(manifestResult.Manifest!))
+        {
+            string materializationName = source == "jsr"
+                ? JsrMaterializationName(packageName)
+                : packageName;
+            string materializationPath = Path.Combine(
+                fullProjectRoot,
+                "node_modules",
+                materializationName.Replace('/', Path.DirectorySeparatorChar));
+            if (!Directory.Exists(materializationPath))
+            {
+                throw new CopelandProjectContextException(
+                    "COPE-PROJECT-0015",
+                    $"Required package {source}:{packageName} is not available in the local project environment. " +
+                    "Install it using your package manager, or use TSPack to resolve/materialize the project.");
+            }
+            contracts.Add(new CopelandProjectContextNpmContract
+            {
+                PackageName = packageName,
+                Version = ReadLocalPackageVersion(materializationPath),
+                MaterializationPath = materializationPath,
+                Materialized = true,
+            });
+        }
+
+        return Create(
+            "<standalone-copeland-project>",
+            new CopelandProjectContextDescriptor
+            {
+                ProjectRoot = fullProjectRoot,
+                JavaScriptRuntime = "node",
+                TsXmlProfile = ProjectTypesProfile(ownership.ProjectTypes),
+                Sources = ownership.Sources.Select(source => new CopelandProjectContextSource
+                {
+                    LogicalPath = Path.GetRelativePath(fullProjectRoot, source.Path).Replace('\\', '/'),
+                    Path = source.Path,
+                }).ToList(),
+                NpmContracts = contracts,
+            });
+    }
+
+    private static IReadOnlyList<(string Source, string Package)> StandalonePackageRequirements(
+        CopelandManifest manifest)
+    {
+        var requirements = new HashSet<(string Source, string Package)>();
+        foreach (ManifestPackage package in manifest.Packages)
+        {
+            VisitManifestValue(package.Dependencies, requirements);
+        }
+        return requirements.OrderBy(requirement => requirement.Source, StringComparer.Ordinal)
+            .ThenBy(requirement => requirement.Package, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static void VisitManifestValue(
+        ManifestValue? value,
+        ISet<(string Source, string Package)> requirements)
+    {
+        switch (value)
+        {
+            case ManifestValue.Array array:
+                foreach (ManifestValue item in array.Values)
+                {
+                    VisitManifestValue(item, requirements);
+                }
+                break;
+            case ManifestValue.Object item:
+                if (item.Properties.TryGetValue("kind", out ManifestValue? dependencyKindValue)
+                    && dependencyKindValue is ManifestValue.String dependencyKind
+                    && dependencyKind.Text == "tool")
+                {
+                    return;
+                }
+                if (item.Properties.TryGetValue("kind", out ManifestValue? kindValue)
+                    && kindValue is ManifestValue.String kind
+                    && item.Properties.TryGetValue("package", out ManifestValue? packageValue)
+                    && packageValue is ManifestValue.String package
+                    && kind.Text is "npm" or "jsr")
+                {
+                    requirements.Add((kind.Text, package.Text));
+                }
+                foreach (ManifestValue child in item.Properties.Values)
+                {
+                    VisitManifestValue(child, requirements);
+                }
+                break;
+        }
+    }
+
+    private static string JsrMaterializationName(string packageName)
+    {
+        string withoutScopeMarker = packageName.TrimStart('@');
+        string[] parts = withoutScopeMarker.Split('/', 2);
+        return parts.Length == 2
+            ? $"@jsr/{parts[0]}__{parts[1]}"
+            : $"@jsr/{withoutScopeMarker}";
+    }
+
+    private static string ReadLocalPackageVersion(string packageRoot)
+    {
+        string packageJsonPath = Path.Combine(packageRoot, "package.json");
+        if (!File.Exists(packageJsonPath))
+        {
+            return "local";
+        }
+        using JsonDocument packageJson = JsonDocument.Parse(File.ReadAllText(packageJsonPath));
+        return packageJson.RootElement.TryGetProperty("version", out JsonElement version)
+            ? version.GetString() ?? "local"
+            : "local";
+    }
+
+    private static string? ProjectTypesProfile(IReadOnlyList<string>? projectTypes)
+    {
+        bool react = projectTypes?.Contains("ReactComponents", StringComparer.Ordinal) == true;
+        bool text = projectTypes?.Contains("TextDocuments", StringComparer.Ordinal) == true;
+        return (react, text) switch
+        {
+            (true, true) => "react-m0+text-m0",
+            (true, false) => "react-m0",
+            (false, true) => "text-m0",
+            _ => null,
+        };
+    }
+
+    private static IReadOnlyList<CompilerTargetSource> SelectCompilerOwnedSources(
+        CompilerTargetDescriptor target,
+        string descriptorPath)
+    {
+        if (string.IsNullOrWhiteSpace(target.CompilerConfig.Path))
+        {
+            return target.Sources;
+        }
+
+        string projectRoot = target.ProjectRoot;
+        string configPath = Path.GetFullPath(target.CompilerConfig.Path, projectRoot);
+        if (!File.Exists(configPath))
+        {
+            throw new CopelandProjectContextException(
+                "COPE-PROJECT-0012",
+                $"Copeland compiler config '{configPath}' does not exist.");
+        }
+
+        CopelandWorkspaceOwnershipResult ownership = CopelandWorkspaceOwnership.Resolve(configPath);
+        if (!ownership.Success)
+        {
+            CopelandWorkspaceOwnershipDiagnostic diagnostic = ownership.Diagnostics[0];
+            throw new CopelandProjectContextException(diagnostic.Code, diagnostic.Message);
+        }
+
+        var declaredSources = target.Sources.ToDictionary(
+            source => Path.GetFullPath(source.Path),
+            StringComparer.OrdinalIgnoreCase);
+        var selected = new List<CompilerTargetSource>();
+        foreach (CopelandWorkspaceOwnedSource source in ownership.Sources)
+        {
+            string fullSourcePath = Path.GetFullPath(source.Path);
+            if (!declaredSources.TryGetValue(fullSourcePath, out CompilerTargetSource? declared))
+            {
+                throw new CopelandProjectContextException(
+                    "COPE-PROJECT-0013",
+                    $"tsconfig.tsx assigns '{fullSourcePath}' to tscl, but the TSPack descriptor did not provide it as a project input.");
+            }
+            selected.Add(declared);
+        }
+        if (selected.Count == 0)
+        {
+            throw new CopelandProjectContextException(
+                "COPE-PROJECT-0014",
+                "tsconfig.tsx assigns no descriptor source to tscl.");
+        }
+        return selected;
     }
 
     public static CopelandProjectContext Create(string descriptorPath, CopelandProjectContextDescriptor descriptor)
@@ -222,11 +552,19 @@ public sealed record CopelandProjectContextSource
 public sealed record CopelandProjectContextNpmContract
 {
     public string PackageName { get; init; } = string.Empty;
-    public string Version { get; init; } = string.Empty;
-    public string? MaterializationPath { get; init; }
-    public bool Materialized { get; init; }
+    public string Version { get; set; } = string.Empty;
+    public string? MaterializationPath { get; set; }
+    public bool Materialized { get; set; }
     public List<CopelandProjectContextNpmExport> Exports { get; init; } = [];
     public List<CopelandProjectContextNpmComponent> Components { get; init; } = [];
+}
+
+internal sealed record CopelandResolvedPayload
+{
+    public string ProjectRoot { get; init; } = string.Empty;
+    public string JavaScriptRuntime { get; init; } = string.Empty;
+    public string? TsXmlProfile { get; init; }
+    public List<CopelandProjectContextNpmContract> NpmContracts { get; init; } = [];
 }
 
 public sealed record CopelandProjectContextNpmExport
@@ -291,7 +629,7 @@ public static class CopelandProjectContextResolver
         string fullProjectPath = Path.GetFullPath(projectPath);
         if (fullProjectPath.EndsWith(".request.json", StringComparison.OrdinalIgnoreCase))
         {
-            CopelandProjectContext context = CopelandProjectContext.Load(fullProjectPath);
+            CopelandProjectContext context = CopelandProjectContext.LoadResolvedContext(fullProjectPath);
             EnsureIncludesSource(context, sourcePath, fullProjectPath);
             return context;
         }
@@ -335,7 +673,7 @@ public static class CopelandProjectContextResolver
         }
 
         CopelandProjectContext[] candidates = descriptorPaths
-            .Select(CopelandProjectContext.Load)
+            .Select(CopelandProjectContext.LoadResolvedContext)
             .Where(context => IncludesSource(context, sourcePath))
             .ToArray();
         if (candidates.Length == 0)
