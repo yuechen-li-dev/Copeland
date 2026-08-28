@@ -289,7 +289,14 @@ internal sealed record WorkspaceManifest(
     WorkspaceCompiler? Tscl,
     IReadOnlyList<WorkspaceRule> Rules);
 
-internal sealed record WorkspaceCompiler(string Owner, string? Project, IReadOnlyList<string> Include, IReadOnlyList<string> Exclude, IReadOnlyList<string> ProjectTypes, JsonElement? CompilerOptions);
+internal sealed record WorkspaceCompiler(
+    string Owner,
+    string? Project,
+    IReadOnlyList<string> Include,
+    IReadOnlyList<string> Exclude,
+    IReadOnlyList<string> ProjectTypes,
+    JsonElement? CompilerOptions,
+    IReadOnlyDictionary<string, CopelandWorkspaceTarget> Targets);
 internal sealed record WorkspaceRule(string Owner, string Include, IReadOnlyList<string> Exclude, string Project);
 internal sealed record WorkspaceOwnedFile(string Path, string Owner, string Project, WorkspaceRule Rule);
 internal sealed record WorkspaceOwnership(IReadOnlyList<WorkspaceOwnedFile> Files, int UnownedCount, int OverlappingCount);
@@ -373,7 +380,12 @@ public static class CopelandWorkspaceOwnership
                     file.Rule.Include))
                 .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            return new CopelandWorkspaceOwnershipResult(true, sources, [], workspace.Tscl?.ProjectTypes ?? []);
+            return new CopelandWorkspaceOwnershipResult(
+                true,
+                sources,
+                [],
+                workspace.Tscl?.ProjectTypes ?? [],
+                workspace.Tscl?.Targets ?? new Dictionary<string, CopelandWorkspaceTarget>());
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
@@ -395,7 +407,14 @@ public sealed record CopelandWorkspaceOwnershipResult(
     bool Success,
     IReadOnlyList<CopelandWorkspaceOwnedSource> Sources,
     IReadOnlyList<CopelandWorkspaceOwnershipDiagnostic> Diagnostics,
-    IReadOnlyList<string>? ProjectTypes = null);
+    IReadOnlyList<string>? ProjectTypes = null,
+    IReadOnlyDictionary<string, CopelandWorkspaceTarget>? Targets = null);
+
+public sealed record CopelandWorkspaceTarget(
+    string Backend,
+    string Runtime,
+    string TargetFramework,
+    string? RuntimeIdentifier);
 
 public sealed record CopelandWorkspaceOwnedSource(
     string Path,
@@ -500,7 +519,7 @@ internal sealed class WorkspaceParser
 
         HashSet<string> allowed = owner == "tsc"
             ? ["include", "exclude", "compilerOptions"]
-            : ["project", "include", "exclude", "types"];
+            : ["project", "include", "exclude", "types", "targets"];
         foreach (string key in config.Properties.Keys)
         {
             if (!allowed.Contains(key))
@@ -564,7 +583,115 @@ internal sealed class WorkspaceParser
             }
         }
 
-        return new WorkspaceCompiler(owner, project, include, exclude, projectTypes, compilerOptions);
+        IReadOnlyDictionary<string, CopelandWorkspaceTarget> targets = owner == "tscl"
+            ? BindCopelandTargets(config)
+            : new Dictionary<string, CopelandWorkspaceTarget>();
+        return new WorkspaceCompiler(owner, project, include, exclude, projectTypes, compilerOptions, targets);
+    }
+
+    private IReadOnlyDictionary<string, CopelandWorkspaceTarget> BindCopelandTargets(WorkspaceObject config)
+    {
+        var targets = new Dictionary<string, CopelandWorkspaceTarget>(StringComparer.Ordinal);
+        if (!config.Properties.TryGetValue("targets", out WorkspaceValue? value))
+        {
+            return targets;
+        }
+        if (value is not WorkspaceObject targetObject)
+        {
+            _values.Report("COPE-WORKSPACE-0015", "tscl.targets must be an object whose keys are target names.", value.Offset);
+            return targets;
+        }
+        foreach ((string name, WorkspaceValue targetValue) in targetObject.Properties)
+        {
+            if (targetValue is not WorkspaceObject fields)
+            {
+                _values.Report("COPE-WORKSPACE-0015", $"tscl.targets.{name} must be an object literal.", targetValue.Offset);
+                continue;
+            }
+            HashSet<string> allowed = ["backend", "runtime", "targetFramework", "runtimeIdentifier"];
+            foreach (string key in fields.Properties.Keys.Where(key => !allowed.Contains(key)))
+            {
+                _values.Report("COPE-WORKSPACE-0005", $"Unknown tscl.targets.{name} property '{key}'.", fields.PropertyOffsets[key]);
+            }
+            string? backend = RequiredTargetString(name, fields, "backend");
+            string? runtime = RequiredTargetString(name, fields, "runtime");
+            string targetFramework = OptionalTargetString(name, fields, "targetFramework") ?? "net10.0";
+            string? runtimeIdentifier = OptionalTargetString(name, fields, "runtimeIdentifier");
+            if (backend is null || runtime is null)
+            {
+                continue;
+            }
+            if (!TryNormalizeTarget(backend, runtime, targetFramework, runtimeIdentifier, out CopelandWorkspaceTarget? parsed, out string? error))
+            {
+                _values.Report("COPE-TARGET-0001", $"tscl.targets.{name}: {error}", fields.Offset);
+                continue;
+            }
+            targets.Add(name, parsed!);
+        }
+        return targets;
+    }
+
+    private static bool TryNormalizeTarget(
+        string backend,
+        string runtime,
+        string targetFramework,
+        string? runtimeIdentifier,
+        out CopelandWorkspaceTarget? target,
+        out string? error)
+    {
+        string normalizedBackend = backend.ToLowerInvariant();
+        string normalizedRuntime = runtime.ToLowerInvariant() switch
+        {
+            "v8" => "node",
+            "clr" or "dotnet" => "ryujit",
+            "dotnetwasm" => "wasm",
+            string value => value,
+        };
+        bool valid = normalizedBackend switch
+        {
+            "javascript" => normalizedRuntime is "node" or "browser",
+            "csharp" => normalizedRuntime is "ryujit" or "nativeaot" or "wasm",
+            _ => false,
+        };
+        if (!valid)
+        {
+            target = null;
+            error = $"backend={backend} cannot use runtime={runtime}; javascript supports node/browser and csharp supports ryujit/nativeaot/wasm.";
+            return false;
+        }
+        if (normalizedRuntime == "nativeaot" && string.IsNullOrWhiteSpace(runtimeIdentifier))
+        {
+            target = null;
+            error = "NativeAOT requires runtimeIdentifier.";
+            return false;
+        }
+        target = new CopelandWorkspaceTarget(normalizedBackend, normalizedRuntime, targetFramework, runtimeIdentifier);
+        error = null;
+        return true;
+    }
+
+    private string? RequiredTargetString(string targetName, WorkspaceObject fields, string name)
+    {
+        string? value = OptionalTargetString(targetName, fields, name);
+        if (value is null)
+        {
+            _values.Report("COPE-WORKSPACE-0015", $"tscl.targets.{targetName}.{name} must be a non-empty string.", fields.Offset);
+        }
+        return value;
+    }
+
+    private string? OptionalTargetString(string targetName, WorkspaceObject fields, string name)
+    {
+        if (!fields.Properties.TryGetValue(name, out WorkspaceValue? value))
+        {
+            return null;
+        }
+        if (value is not WorkspaceString text || string.IsNullOrWhiteSpace(text.Value))
+        {
+            _values.Report("COPE-WORKSPACE-0015", $"tscl.targets.{targetName}.{name} must be a non-empty string.", value.Offset);
+            return null;
+        }
+        return text.Value;
     }
 
     private JsonElement? BindCompilerOptions(WorkspaceObject options)

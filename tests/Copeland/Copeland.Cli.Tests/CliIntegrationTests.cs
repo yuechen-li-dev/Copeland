@@ -76,6 +76,104 @@ public sealed class CliIntegrationTests
     }
 
     [Fact]
+    public async Task Tscl_build_emits_and_runs_a_managed_RyuJit_executable()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        string mainPath = temp.WriteFile("src/Main.ts", "export function Main(): string { return \"Hello from RyuJIT\"; }");
+        string outputDirectory = Path.Combine(temp.Path, "dist", "clr");
+        string projectPath = temp.WriteFile("clr.json", JsonSerializer.Serialize(new
+        {
+            projectRoot = temp.Path,
+            sources = new[] { new { logicalPath = "src/Main.ts", path = mainPath } },
+            entry = new { module = "src/Main.ts", @export = "Main" },
+            backend = "csharp",
+            executionRuntime = "ryujit",
+            targetFramework = "net10.0",
+            outputDirectory,
+            entryOutputPath = "app.dll",
+            buildFingerprint = "clr-test",
+        }));
+        string resultPath = Path.Combine(temp.Path, "clr-result.json");
+
+        CliResult build = await RunCliAsync(temp.Path, "build", "--project", projectPath, "--result", resultPath);
+
+        Assert.Equal(0, build.ExitCode);
+        using JsonDocument result = JsonDocument.Parse(await File.ReadAllTextAsync(resultPath));
+        Assert.Equal("csharp", result.RootElement.GetProperty("backend").GetString());
+        Assert.Equal("ryujit", result.RootElement.GetProperty("runtime").GetString());
+        Assert.Equal("managedExecutable", result.RootElement.GetProperty("artifactKind").GetString());
+        Assert.True(File.Exists(Path.Combine(outputDirectory, "app.runtimeconfig.json")));
+        Assert.True(File.Exists(Path.Combine(outputDirectory, "app.deps.json")));
+
+        CliResult execution = await RunExecutableAsync("dotnet", temp.Path, Path.Combine(outputDirectory, "app.dll"));
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("Hello from RyuJIT\n", execution.StdOut);
+    }
+
+    [Fact]
+    public async Task Tscl_build_emits_and_runs_a_NativeAot_executable_for_explicit_RID()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        string mainPath = temp.WriteFile("src/Main.ts", "export function Main(): string { return \"Hello from NativeAOT\"; }");
+        string outputDirectory = Path.Combine(temp.Path, "dist", "native");
+        string executableName = OperatingSystem.IsWindows() ? "app.exe" : "app";
+        string runtimeIdentifier = OperatingSystem.IsWindows() ? "win-x64" : OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";
+        string projectPath = temp.WriteFile("native.json", JsonSerializer.Serialize(new
+        {
+            projectRoot = temp.Path,
+            sources = new[] { new { logicalPath = "src/Main.ts", path = mainPath } },
+            entry = new { module = "src/Main.ts", @export = "Main" },
+            backend = "csharp",
+            executionRuntime = "nativeaot",
+            targetFramework = "net10.0",
+            runtimeIdentifier,
+            outputDirectory,
+            entryOutputPath = executableName,
+            buildFingerprint = "native-test",
+        }));
+        string resultPath = Path.Combine(temp.Path, "native-result.json");
+
+        CliResult build = await RunCliAsync(temp.Path, "build", "--project", projectPath, "--result", resultPath);
+
+        Assert.Equal(0, build.ExitCode);
+        using JsonDocument result = JsonDocument.Parse(await File.ReadAllTextAsync(resultPath));
+        Assert.Equal("nativeaot", result.RootElement.GetProperty("runtime").GetString());
+        Assert.Equal(runtimeIdentifier, result.RootElement.GetProperty("runtimeIdentifier").GetString());
+        CliResult execution = await RunExecutableAsync(Path.Combine(outputDirectory, executableName), temp.Path);
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("Hello from NativeAOT\n", execution.StdOut);
+    }
+
+    [Theory]
+    [InlineData("javascript", "nativeaot")]
+    [InlineData("csharp", "node")]
+    public async Task Tscl_build_rejects_invalid_backend_runtime_pairs(string backend, string runtime)
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        string mainPath = temp.WriteFile("src/Main.ts", "export function Main(): string { return \"never\"; }");
+        string projectPath = temp.WriteFile("invalid.json", JsonSerializer.Serialize(new
+        {
+            projectRoot = temp.Path,
+            sources = new[] { new { logicalPath = "src/Main.ts", path = mainPath } },
+            entry = new { module = "src/Main.ts", @export = "Main" },
+            backend,
+            executionRuntime = runtime,
+            runtimeIdentifier = "win-x64",
+            outputDirectory = Path.Combine(temp.Path, "dist"),
+            entryOutputPath = "app",
+        }));
+        string resultPath = Path.Combine(temp.Path, "result.json");
+
+        CliResult build = await RunCliAsync(temp.Path, "build", "--project", projectPath, "--result", resultPath);
+
+        Assert.Equal(1, build.ExitCode);
+        Assert.Contains("COPE-TARGET-0001", await File.ReadAllTextAsync(resultPath), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Tscl_standalone_build_uses_manifest_config_and_local_environment_without_TSPack()
     {
         using var temp = new TempDir();
@@ -115,6 +213,90 @@ public sealed class CliIntegrationTests
         CliResult execution = await RunExecutableAsync("node", temp.Path, Path.Combine(temp.Path, "dist", "main.js"));
         Assert.Equal(0, execution.ExitCode);
         Assert.Equal("Hello, standalone\n", execution.StdOut);
+    }
+
+    [Fact]
+    public async Task Workspace_config_accepts_explicit_backend_targets_and_rejects_invalid_pairings()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        temp.WriteFile("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        temp.WriteFile("src/Main.ts", "export function Main(): string { return \"ok\"; }");
+        string workspace = temp.WriteFile("tsconfig.tsx", """
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+            export default defineTypeScriptWorkspace({
+                ownership: "partial",
+                tscl: {
+                    project: "./App.csproj",
+                    include: ["src/**"],
+                    targets: {
+                        app: { backend: "csharp", runtime: "ryujit", targetFramework: "net10.0" },
+                        native: { backend: "csharp", runtime: "nativeaot", runtimeIdentifier: "win-x64" }
+                    }
+                }
+            });
+            """);
+
+        CliResult valid = await RunCliAsync(temp.Path, "workspace", "validate", "--workspace", workspace);
+
+        Assert.Equal(0, valid.ExitCode);
+        string invalidWorkspace = await File.ReadAllTextAsync(workspace);
+        await File.WriteAllTextAsync(workspace, invalidWorkspace.Replace("runtime: \"ryujit\"", "runtime: \"node\"", StringComparison.Ordinal));
+        CliResult invalid = await RunCliAsync(temp.Path, "workspace", "validate", "--workspace", workspace);
+        Assert.Equal(1, invalid.ExitCode);
+        Assert.Contains("COPE-TARGET-0001", invalid.StdOut + invalid.StdErr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Tscl_standalone_target_selects_compiler_owned_CLR_backend()
+    {
+        using var temp = new TempDir();
+        Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
+        temp.WriteFile("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        temp.WriteFile("src/Main.ts", "export function Main(): string { return \"Standalone CLR\"; }");
+        temp.WriteFile("tsconfig.tsx", """
+            import { defineTypeScriptWorkspace } from "copeland/workspace";
+            export default defineTypeScriptWorkspace({
+                ownership: "partial",
+                tscl: {
+                    project: "./App.csproj",
+                    include: ["src/**"],
+                    targets: {
+                        "app-js": { backend: "javascript", runtime: "node" },
+                        "app-clr": { backend: "csharp", runtime: "ryujit", targetFramework: "net10.0" }
+                    }
+                }
+            });
+            """);
+        temp.WriteFile("manifest.tsx", """
+            import { Package, Targets, Workspace, define } from "tspack/manifest";
+            export default define(
+              <Workspace name="standalone" runtime="nodejs">
+                <Package name="standalone" version="1.0.0" kind="app" dependencies={{ values: [] }}>
+                  <Targets rows={[
+                    { name: "app-js", entry: "src/Main.ts", runtime: "dist/js/app.js", deps: [], peers: [] },
+                    { name: "app-clr", entry: "src/Main.ts", runtime: "dist/clr/app.dll", deps: [], peers: [] }
+                  ]} />
+                </Package>
+              </Workspace>,
+            );
+            """);
+        string resultPath = Path.Combine(temp.Path, "result.json");
+
+        CliResult build = await RunCliAsync(
+            temp.Path,
+            "build",
+            "--standalone",
+            temp.Path,
+            "--target",
+            "app-clr",
+            "--result",
+            resultPath);
+
+        Assert.Equal(0, build.ExitCode);
+        CliResult execution = await RunExecutableAsync("dotnet", temp.Path, Path.Combine(temp.Path, "dist", "clr", "app.dll"));
+        Assert.Equal(0, execution.ExitCode);
+        Assert.Equal("Standalone CLR\n", execution.StdOut);
     }
 
     [Fact]

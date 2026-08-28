@@ -98,6 +98,15 @@ authority for package graphs, materialization, runtime selection, and executing
 the declared compiler target. M0 intentionally does not merge their manifests
 or add a cross-compiler cycle planner.
 
+## Backend targets
+
+The optional `tscl.targets` map makes output and execution semantics explicit
+without changing source ownership. Each target requires `backend` and
+`runtime`; `targetFramework` defaults to `net10.0`, and NativeAOT also requires
+an explicit `runtimeIdentifier`. See
+[Copeland backend targets](architecture/cts-backend-targets-m71c.md) for the
+pairing rules, artifact contracts, and multi-backend example.
+
 The mixed proof lives in `samples/copeland-ts/workspace-m0`: `src/legacy` is
 compiled by `tsc`; `src/copeland` is compiled through the existing MSBuild
 seam. The next natural milestone is an editor consumer for the generated

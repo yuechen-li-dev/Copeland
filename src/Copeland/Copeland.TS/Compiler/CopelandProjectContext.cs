@@ -124,11 +124,14 @@ public sealed class CopelandProjectContext
                 "Copeland payload projectRoot conflicts with the generic compiler-target projectRoot.");
         }
 
-        if (!string.Equals(target.Runtime.Name, payload.JavaScriptRuntime, StringComparison.Ordinal))
+        string payloadRuntime = string.IsNullOrWhiteSpace(payload.ExecutionRuntime)
+            ? payload.JavaScriptRuntime
+            : payload.ExecutionRuntime;
+        if (!string.Equals(target.Runtime.Name, payloadRuntime, StringComparison.Ordinal))
         {
             throw new CopelandProjectContextException(
                 "COPE-PROJECT-0017",
-                "Copeland payload JavaScript runtime conflicts with the generic compiler-target runtime.");
+                "Copeland payload execution runtime conflicts with the generic compiler-target runtime.");
         }
     }
 
@@ -563,6 +566,8 @@ internal sealed record CopelandResolvedPayload
 {
     public string ProjectRoot { get; init; } = string.Empty;
     public string JavaScriptRuntime { get; init; } = string.Empty;
+    public string Backend { get; init; } = string.Empty;
+    public string ExecutionRuntime { get; init; } = string.Empty;
     public string? TsXmlProfile { get; init; }
     public List<CopelandProjectContextNpmContract> NpmContracts { get; init; } = [];
 }
