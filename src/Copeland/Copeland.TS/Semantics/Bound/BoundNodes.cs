@@ -32,6 +32,7 @@ public sealed class BoundProgram
         IReadOnlyList<HostAttachmentMir>? hostAttachments = null)
     {
         Functions = functions;
+        FunctionEffects = FunctionEffectClassifier.Classify(functions);
         Enums = enums;
         Records = records;
         GlobalStatements = globalStatements;
@@ -52,6 +53,7 @@ public sealed class BoundProgram
         HostAttachments = hostAttachments ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
+    public IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> FunctionEffects { get; internal set; }
     public IReadOnlyList<BoundEnumDeclaration> Enums { get; }
     public IReadOnlyList<BoundRecordDeclaration> Records { get; }
     public IReadOnlyList<BoundStatement> GlobalStatements { get; }

@@ -153,6 +153,7 @@ public static class Binder
         private readonly HashSet<string> _clrNamespaces = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Type>> _clrImportedTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, EnumTypeSymbol> _enumTypes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, OptionTypeSymbol> _optionTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, RecordTypeSymbol> _recordTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<string, ClassTypeSymbol> _classTypes = new(StringComparer.Ordinal);
         private readonly Dictionary<FunctionSymbol, ClassAssociatedFunctionDeclarationSyntax> _classFunctionDeclarations = [];
@@ -187,6 +188,7 @@ public static class Binder
         private int _nextLiftedCallableId;
         private int _callableExpressionDepth;
         private int _arrowBodyDepth;
+        private int _nextOptionBindingId;
         private VariableSymbol? _activeComponentState;
         private HashSet<string>? _activeComponentEventNames;
 
@@ -275,6 +277,10 @@ public static class Binder
                 _enums.Insert(0, new BoundEnumDeclaration(_tsonEncodeErrorType));
             }
             BindComponentCapsules();
+            foreach (OptionTypeSymbol optionType in _optionTypes.Values.OrderBy(type => type.EmissionName, StringComparer.Ordinal))
+            {
+                _enums.Insert(0, new BoundEnumDeclaration(optionType));
+            }
             return new BoundCompilation(
                 _tree,
                 new BoundProgram(
@@ -2642,9 +2648,17 @@ public static class Binder
                     var fieldType = !fieldSyntax.HasExplicitType
                         ? PrimitiveTypeSymbol.Error
                         : BindType(fieldSyntax.Type, fieldSyntax.Identifier, "COPE-REC-0001", "record field");
+                    if (fieldSyntax.QuestionToken is not null && fieldType != PrimitiveTypeSymbol.Error)
+                    {
+                        fieldType = GetOrCreateOptionType(fieldType);
+                    }
                     ValidateRuntimeValueType(fieldType, fieldSyntax.Identifier, "record field");
                     var fieldId = new RecordFieldId(recordType.Id, recordType.Fields.Count);
-                    recordType.AddField(new RecordFieldSymbol(fieldSyntax.Identifier.Text, fieldId, fieldType));
+                    recordType.AddField(new RecordFieldSymbol(
+                        fieldSyntax.Identifier.Text,
+                        fieldId,
+                        fieldType,
+                        isOptional: fieldSyntax.QuestionToken is not null));
                 }
             }
         }
@@ -5458,8 +5472,18 @@ public static class Binder
 
         private BoundExpression BindExpression(ExpressionSyntax s, TypeSymbol? contextualType = null)
         {
+            if (contextualType is OptionTypeSymbol optionContext
+                && s is not NameExpressionSyntax { IdentifierToken.Text: "None" }
+                && s is not CallExpressionSyntax { Target: NameExpressionSyntax { IdentifierToken.Text: "Some" } })
+            {
+                BoundExpression inner = BindExpression(s, optionContext.ValueType);
+                return InjectOptionLift(inner, optionContext);
+            }
+
             var expression = s switch
             {
+                NameExpressionSyntax { IdentifierToken.Text: "None" } n when contextualType is OptionTypeSymbol option =>
+                    new BoundEnumValueExpression(option.NoneCase, []),
                 LiteralExpressionSyntax l => BindLiteral(l),
                 TemplateExpressionSyntax template => BindTemplate(template),
                 NameExpressionSyntax n => BindName(n),
@@ -5481,6 +5505,8 @@ public static class Binder
                 ArrayLiteralExpressionSyntax a => BindArray(a, contextualType),
                 ObjectLiteralExpressionSyntax o => BindObject(o, contextualType),
                 MemberAccessExpressionSyntax m => BindMember(m),
+                OptionalMemberAccessExpressionSyntax m => BindOptionalMember(m),
+                CoalesceExpressionSyntax c => BindCoalesce(c, contextualType),
                 IndexExpressionSyntax i => BindIndex(i),
                 WithExpressionSyntax w => BindWith(w),
                 IfExpressionSyntax i => BindIfExpression(i, contextualType),
@@ -5492,7 +5518,20 @@ public static class Binder
             };
 
             expression = AdaptExactIntegerLiteral(expression, contextualType);
-            return InjectDirectNominalUnionCase(expression, contextualType);
+            expression = InjectDirectNominalUnionCase(expression, contextualType);
+            return InjectOptionLift(expression, contextualType);
+        }
+
+        private static BoundExpression InjectOptionLift(BoundExpression expression, TypeSymbol? contextualType)
+        {
+            if (contextualType is not OptionTypeSymbol option
+                || expression.Type is OptionTypeSymbol
+                || !IsAssignable(option.ValueType, expression.Type))
+            {
+                return expression;
+            }
+
+            return new BoundEnumValueExpression(option.SomeCase, [expression]);
         }
 
         private static BoundExpression AdaptExactIntegerLiteral(BoundExpression expression, TypeSymbol? contextualType)
@@ -6849,6 +6888,31 @@ public static class Binder
 
         private BoundExpression BindCall(CallExpressionSyntax c, TypeSymbol? contextualType)
         {
+            if (c.Target is NameExpressionSyntax { IdentifierToken.Text: "Some" } someName)
+            {
+                if (contextualType is not OptionTypeSymbol option)
+                {
+                    Report("COPE-OPTION-0002", "Some(value) requires an expected Option<T> type.", someName.IdentifierToken);
+                    return new BoundErrorExpression();
+                }
+                if (c.Arguments.Count != 1)
+                {
+                    Report("COPE-OPTION-0003", $"Some(value) expects one argument, got {c.Arguments.Count}.", c.OpenParenToken);
+                    return new BoundErrorExpression();
+                }
+                BoundExpression payload = BindExpression(c.Arguments[0], option.ValueType);
+                if (!IsAssignable(option.ValueType, payload.Type))
+                {
+                    Report("COPE-OPTION-0004", $"Some payload expected '{option.ValueType.Name}', got '{payload.Type.Name}'.", c.OpenParenToken);
+                }
+                return new BoundEnumValueExpression(option.SomeCase, [payload]);
+            }
+
+            if (c.Target is OptionalMemberAccessExpressionSyntax optionalMember)
+            {
+                return BindOptionalCall(c, optionalMember);
+            }
+
             if (c.Target is NameExpressionSyntax { IdentifierToken.Text: "ForeignComponent" } foreignTarget)
             {
                 return BindForeignComponent(c, foreignTarget.IdentifierToken);
@@ -10411,6 +10475,15 @@ public static class Binder
                 initializers.Add(new BoundRecordFieldInitializer(field, value));
             }
 
+            foreach (RecordFieldSymbol optionalField in recordType.Fields.Where(field => field.IsOptional && !seen.Contains(field.Id)))
+            {
+                var option = (OptionTypeSymbol)optionalField.Type;
+                initializers.Add(new BoundRecordFieldInitializer(
+                    optionalField,
+                    new BoundEnumValueExpression(option.NoneCase, [])));
+                seen.Add(optionalField.Id);
+            }
+
             var missing = recordType.Fields.Where(field => !seen.Contains(field.Id)).Select(field => field.Name).ToArray();
             if (missing.Length > 0)
             {
@@ -10645,6 +10718,16 @@ public static class Binder
             {
                 return new BoundErrorExpression();
             }
+            if (receiver.Type == PrimitiveTypeSymbol.String)
+            {
+                if (m.NameToken.Text == "length")
+                {
+                    return new BoundArrayLengthExpression(receiver);
+                }
+
+                Report("COPE-STRING-0001", $"String values support only the 'length' property; '{m.NameToken.Text}' is not available.", m.NameToken);
+                return new BoundErrorExpression();
+            }
             if (receiver.Type is ArrayTypeSymbol)
             {
                 if (m.NameToken.Text == "length")
@@ -10710,6 +10793,120 @@ public static class Binder
             }
             Report("COPE-REC-0010", $"Field access requires a record receiver, got '{receiver.Type.Name}'.", m.DotToken);
             return new BoundErrorExpression();
+        }
+
+        private BoundExpression BindOptionalMember(OptionalMemberAccessExpressionSyntax syntax)
+        {
+            BoundExpression receiver = BindExpression(syntax.Target);
+            if (receiver.Type is ResultTypeSymbol)
+            {
+                var propagatedTarget = new PropagateExpressionSyntax(syntax.Target, syntax.QuestionToken);
+                return BindMember(new MemberAccessExpressionSyntax(propagatedTarget, syntax.DotToken, syntax.NameToken));
+            }
+
+            return BindOptionalProjection(
+                receiver,
+                syntax.QuestionToken,
+                payloadTarget => BindMember(new MemberAccessExpressionSyntax(payloadTarget, syntax.DotToken, syntax.NameToken)));
+        }
+
+        private BoundExpression BindOptionalCall(CallExpressionSyntax call, OptionalMemberAccessExpressionSyntax syntax)
+        {
+            BoundExpression receiver = BindExpression(syntax.Target);
+            if (receiver.Type is ResultTypeSymbol)
+            {
+                var propagatedTarget = new PropagateExpressionSyntax(syntax.Target, syntax.QuestionToken);
+                var member = new MemberAccessExpressionSyntax(propagatedTarget, syntax.DotToken, syntax.NameToken);
+                var propagatedCall = new CallExpressionSyntax(member, call.OpenParenToken, call.Arguments, call.CommaTokens, call.CloseParenToken);
+                return BindCall(propagatedCall, contextualType: null);
+            }
+
+            return BindOptionalProjection(
+                receiver,
+                syntax.QuestionToken,
+                payloadTarget =>
+                {
+                    var member = new MemberAccessExpressionSyntax(payloadTarget, syntax.DotToken, syntax.NameToken);
+                    var projectedCall = new CallExpressionSyntax(member, call.OpenParenToken, call.Arguments, call.CommaTokens, call.CloseParenToken);
+                    return BindCall(projectedCall, contextualType: null);
+                });
+        }
+
+        private BoundExpression BindOptionalProjection(
+            BoundExpression receiver,
+            SyntaxToken anchor,
+            Func<ExpressionSyntax, BoundExpression> bindProjection)
+        {
+            if (receiver.Type is not OptionTypeSymbol sourceOption)
+            {
+                Report("COPE-OPTION-0005", $"Optional chaining requires Option<T>, got '{receiver.Type.Name}'.", anchor);
+                return new BoundErrorExpression();
+            }
+
+            string bindingName = "$option" + _nextOptionBindingId++;
+            var bindingToken = new SyntaxToken(SyntaxKind.IdentifierToken, anchor.Position, bindingName, null);
+            var binding = new VariableSymbol(bindingName, sourceOption.ValueType, true);
+            Scope previousScope = _scope;
+            _scope = new Scope(previousScope);
+            _scope.TryDeclare(binding);
+            BoundExpression projection = bindProjection(new NameExpressionSyntax(bindingToken));
+            _scope = previousScope;
+
+            if (projection.Type == PrimitiveTypeSymbol.Error)
+            {
+                return projection;
+            }
+
+            OptionTypeSymbol resultOption;
+            BoundExpression someExpression;
+            if (projection.Type is OptionTypeSymbol projectedOption)
+            {
+                resultOption = projectedOption;
+                someExpression = projection;
+            }
+            else
+            {
+                resultOption = GetOrCreateOptionType(projection.Type);
+                someExpression = new BoundEnumValueExpression(resultOption.SomeCase, [projection]);
+            }
+
+            BoundExpression noneExpression = new BoundEnumValueExpression(resultOption.NoneCase, []);
+            return new BoundMatchExpression(
+                receiver,
+                sourceOption,
+                [
+                    new BoundMatchArm(sourceOption.SomeCase, [binding], someExpression),
+                    new BoundMatchArm(sourceOption.NoneCase, [], noneExpression),
+                ],
+                resultOption);
+        }
+
+        private BoundExpression BindCoalesce(CoalesceExpressionSyntax syntax, TypeSymbol? contextualType)
+        {
+            BoundExpression left = BindExpression(syntax.Left);
+            if (left.Type is not OptionTypeSymbol option)
+            {
+                Report("COPE-OPTION-0006", $"The left operand of '??' must be Option<T>, got '{left.Type.Name}'.", syntax.FirstQuestionToken);
+                BindExpression(syntax.Right, contextualType);
+                return new BoundErrorExpression();
+            }
+
+            BoundExpression fallback = BindExpression(syntax.Right, option.ValueType);
+            if (!IsAssignable(option.ValueType, fallback.Type))
+            {
+                Report("COPE-OPTION-0007", $"The fallback for '{option.Name}' expected '{option.ValueType.Name}', got '{fallback.Type.Name}'.", syntax.SecondQuestionToken);
+            }
+
+            string bindingName = "$coalesce" + _nextOptionBindingId++;
+            var binding = new VariableSymbol(bindingName, option.ValueType, true);
+            return new BoundMatchExpression(
+                left,
+                option,
+                [
+                    new BoundMatchArm(option.SomeCase, [binding], new BoundVariableExpression(binding)),
+                    new BoundMatchArm(option.NoneCase, [], fallback),
+                ],
+                option.ValueType);
         }
 
         private bool TryFindPrivatePresentation(string componentName, string presentationName, out string? owner)
@@ -11018,7 +11215,9 @@ public static class Binder
                 IntersectionTypeSyntax i => new IntersectionTypeSymbol([BindType(i.Left, anchor, missingId, missingPrefix), BindType(i.Right, anchor, missingId, missingPrefix)]),
                 GenericTypeSyntax generic => generic.Identifier.Text == "MutableArray"
                     ? BindMutableArrayType(generic, anchor, missingId, missingPrefix)
-                    : BindStructuralProjection(generic, anchor, missingId, missingPrefix),
+                    : generic.Identifier.Text == "Option"
+                        ? BindOptionType(generic, anchor, missingId, missingPrefix)
+                        : BindStructuralProjection(generic, anchor, missingId, missingPrefix),
                 LiteralTypeSyntax literal => ReportInvalidLiteralType(literal.LiteralToken),
                 AsyncTypeSyntax a => new AsyncTypeSymbol(BindType(a.EventualType, anchor, missingId, missingPrefix)),
                 IterableTypeSyntax i => new IterableTypeSymbol(BindType(i.ElementType, anchor, missingId, missingPrefix)),
@@ -11040,6 +11239,36 @@ public static class Binder
                 return PrimitiveTypeSymbol.Error;
             }
             return new MutableArrayTypeSymbol(BindType(syntax.TypeArguments[0], anchor, missingId, missingPrefix));
+        }
+
+        private TypeSymbol BindOptionType(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
+        {
+            if (syntax.TypeArguments.Count != 1)
+            {
+                Report("COPE-OPTION-0001", "Option expects exactly one value type.", syntax.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
+
+            TypeSymbol valueType = BindType(syntax.TypeArguments[0], anchor, missingId, missingPrefix);
+            ValidateRuntimeValueType(valueType, syntax.Identifier, "Option value");
+            return valueType == PrimitiveTypeSymbol.Error
+                ? PrimitiveTypeSymbol.Error
+                : GetOrCreateOptionType(valueType);
+        }
+
+        private OptionTypeSymbol GetOrCreateOptionType(TypeSymbol valueType)
+        {
+            string key = valueType.Name;
+            if (_optionTypes.TryGetValue(key, out OptionTypeSymbol? existing))
+            {
+                return existing;
+            }
+
+            byte[] digest = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(key));
+            string suffix = Convert.ToHexString(digest.AsSpan(0, 8));
+            var created = new OptionTypeSymbol(valueType, "__CopeOption_" + suffix);
+            _optionTypes.Add(key, created);
+            return created;
         }
 
         private TypeSymbol BindStructuralProjection(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
@@ -11411,6 +11640,10 @@ public static class Binder
                     }
                 }
                 return true;
+            }
+            if (target is OptionTypeSymbol option)
+            {
+                return IsAssignable(option.ValueType, actual);
             }
             return false;
         }

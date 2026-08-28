@@ -19,7 +19,8 @@ Copeland diagnostics are deterministic and ID-based. Common families:
 - `COPE-PROFILE-0003` — `eval` is not supported.
 - `COPE-PROFILE-0005` — `null` is not supported.
 - `COPE-PROFILE-0007` — ternary `?:` is not supported; use `if` expressions.
-- `COPE-PROFILE-0008` — optional chaining `?.` is not supported.
+- `COPE-OPTION-0005` — optional chaining `?.` requires an `Option<T>` receiver.
+- `COPE-OPTION-0006` — nullish-coalescing sugar `??` requires an `Option<T>` left operand.
 - `COPE-TYPE-0012` — fallible call must be handled (for example with `?`).
 - `COPE-TYPE-0017` — `if` condition must be `boolean`.
 - `COPE-TYPE-0018` — `if` branch types must agree.

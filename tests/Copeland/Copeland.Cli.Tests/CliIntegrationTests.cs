@@ -116,7 +116,9 @@ public sealed class CliIntegrationTests
     {
         using var temp = new TempDir();
         Directory.CreateDirectory(Path.Combine(temp.Path, "src"));
-        string mainPath = temp.WriteFile("src/Main.ts", "export function Main(): string { return \"Hello from NativeAOT\"; }");
+        string mainPath = temp.WriteFile(
+            "src/Main.ts",
+            "export function Main(): string { const value: Option<string> = Some(\"Hello from NativeAOT\"); return value ?? \"never\"; }");
         string outputDirectory = Path.Combine(temp.Path, "dist", "native");
         string executableName = OperatingSystem.IsWindows() ? "app.exe" : "app";
         string runtimeIdentifier = OperatingSystem.IsWindows() ? "win-x64" : OperatingSystem.IsMacOS() ? "osx-x64" : "linux-x64";

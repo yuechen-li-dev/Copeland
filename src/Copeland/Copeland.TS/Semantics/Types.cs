@@ -163,7 +163,7 @@ public sealed class ErrorNominalTypeSymbol(string name) : TypeSymbol
 
 public sealed record NominalUnionProvenance(string SourceName, IReadOnlyList<string> Alternatives);
 
-public sealed class EnumTypeSymbol(string name, string? stableIdentity = null) : TypeSymbol
+public class EnumTypeSymbol(string name, string? stableIdentity = null) : TypeSymbol
 {
     private readonly List<EnumCaseSymbol> _cases = [];
     public override string Name { get; } = name;
@@ -174,6 +174,29 @@ public sealed class EnumTypeSymbol(string name, string? stableIdentity = null) :
     public NominalUnionProvenance? UnionProvenance { get; internal set; }
 
     public void AddCase(EnumCaseSymbol @case) => _cases.Add(@case);
+}
+
+/// <summary>
+/// One closed instantiation of the compiler-owned Option enum family. The cases
+/// are ordinary enum cases so matching, MIR, and backend realization stay on
+/// the nominal enum path.
+/// </summary>
+public sealed class OptionTypeSymbol : EnumTypeSymbol
+{
+    public OptionTypeSymbol(TypeSymbol valueType, string emissionName)
+        : base($"Option<{valueType.Name}>", $"copeland:Option<{valueType.Name}>")
+    {
+        ValueType = valueType;
+        EmissionName = emissionName;
+        NoneCase = new EnumCaseSymbol("None", this, []);
+        SomeCase = new EnumCaseSymbol("Some", this, [new EnumPayloadFieldSymbol("value", valueType)]);
+        AddCase(NoneCase);
+        AddCase(SomeCase);
+    }
+
+    public TypeSymbol ValueType { get; }
+    public EnumCaseSymbol NoneCase { get; }
+    public EnumCaseSymbol SomeCase { get; }
 }
 
 /// <summary>Opaque React values owned by the bounded React M0 profile.</summary>
@@ -350,6 +373,8 @@ public static class TypeFacts
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
                 AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)
                 && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
+            (OptionTypeSymbol leftOption, OptionTypeSymbol rightOption) =>
+                AreEquivalent(leftOption.ValueType, rightOption.ValueType),
             (AsyncTypeSymbol leftAsync, AsyncTypeSymbol rightAsync) =>
                 AreEquivalent(leftAsync.EventualType, rightAsync.EventualType),
             (IterableTypeSymbol leftIterable, IterableTypeSymbol rightIterable) =>

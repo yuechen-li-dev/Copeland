@@ -43,6 +43,43 @@ public sealed class LanguageServerProtocolTests
     }
 
     [Fact]
+    public void Language_server_hover_displays_closed_Option_types()
+    {
+        using var workspace = new TempWorkspace();
+        const string text = "record User { nickname?: string; } function read(user: User): string { return user.nickname ?? \"fallback\"; }";
+        string source = workspace.Write("src/copeland/Option.ts", text);
+        string targets = Path.Combine(FindRepositoryRoot(), "src", "Copeland", "Copeland.TS.MSBuild", "build", "Copeland.TS.Sdk.targets");
+        string taskAssembly = typeof(Copeland.TS.MSBuild.CopelandCompile).Assembly.Location;
+        string project = workspace.Write("App.csproj", $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <CopelandTaskAssembly>{{taskAssembly}}</CopelandTaskAssembly>
+              </PropertyGroup>
+              <ItemGroup><CopelandCompile Include="src/copeland/Option.ts" /></ItemGroup>
+              <Import Project="{{targets}}" />
+            </Project>
+            """);
+        Restore(project);
+        workspace.Write("obj/copeland/workspace/editor-ownership.generated.json", """
+            { "schemaVersion": 1, "workspaceRoot": ".", "files": [
+              { "path": "src/copeland/Option.ts", "owner": "tscl", "project": "App.csproj", "matchedRule": "src/copeland/**" }
+            ] }
+            """);
+
+        using var client = new LspClient();
+        string uri = VsCodeFileUri(source);
+        client.Request(1, "initialize", new { initializationOptions = new { workspaceRoot = workspace.Path } });
+        client.Notify("textDocument/didOpen", new { textDocument = new { uri, version = 1, text } });
+
+        Assert.Empty(client.ReadNotification("textDocument/publishDiagnostics").GetProperty("params").GetProperty("diagnostics").EnumerateArray());
+        int fieldPosition = text.IndexOf("nickname ??", StringComparison.Ordinal) + 1;
+        JsonElement hover = client.Request(2, "textDocument/hover", new { textDocument = new { uri }, position = new { line = 0, character = fieldPosition } });
+
+        Assert.Contains("nickname: Option<string>", hover.GetProperty("contents").GetProperty("value").GetString());
+    }
+
+    [Fact]
     public void Language_server_supports_canonical_typed_templates()
     {
         using var workspace = new TempWorkspace();

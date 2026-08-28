@@ -710,7 +710,13 @@ internal sealed class CopelandWorkspace
     {
         if (compilation.BoundCompilation?.ModuleScope?.Declarations.TryGetValue(name, out Symbol? symbol) == true) return symbol;
         BoundProgram? program = compilation.BoundCompilation?.Program;
-        return program?.NpmImports.Select(import => (Symbol)import.Function).FirstOrDefault(symbol => symbol.Name == name)
+        return program?.Functions
+                .SelectMany(function => function.Symbol.Parameters.Select(parameter => (Symbol)parameter))
+                .FirstOrDefault(parameter => parameter.Name == name)
+            ?? program?.Records
+                .SelectMany(record => record.RecordType.Fields.Select(field => (Symbol)field))
+                .FirstOrDefault(field => field.Name == name)
+            ?? program?.NpmImports.Select(import => (Symbol)import.Function).FirstOrDefault(symbol => symbol.Name == name)
             ?? program?.PackageImports.Select(import => (Symbol)import.Function).FirstOrDefault(symbol => symbol.Name == name)
             ?? program?.JavaScriptHostImports.Select(import => (Symbol)import.Function).FirstOrDefault(symbol => symbol.Name == name)
             ?? program?.NpmComponentImports.Select(import => (Symbol)import.Component).FirstOrDefault(symbol => symbol.Name == name);
@@ -1371,6 +1377,7 @@ internal sealed class CopelandWorkspace
         CopelandPackageFunctionSymbol function => "package function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.ReturnType.Name,
         JavaScriptHostFunctionSymbol function => "host function " + function.Name + "(" + string.Join(", ", function.Parameters.Select(parameter => parameter.Name + ": " + parameter.Type.Name)) + "): " + function.ReturnType.Name,
         NpmComponentSymbol component => "npm component " + component.Name + " from " + component.PackageName + "@" + component.PackageVersion,
+        RecordFieldSymbol field => field.Name + ": " + field.Type.Name,
         VariableSymbol variable => variable.Name + ": " + variable.Type.Name,
         ParameterSymbol parameter => parameter.Name + ": " + parameter.Type.Name,
         _ => symbol.Name,

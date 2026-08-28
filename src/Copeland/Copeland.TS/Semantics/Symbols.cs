@@ -319,11 +319,12 @@ public sealed class EnumPayloadFieldSymbol(string name, TypeSymbol type) : Symbo
     public TypeSymbol Type { get; } = type;
 }
 
-public sealed class RecordFieldSymbol(string name, RecordFieldId id, TypeSymbol type, bool isPublic = true) : Symbol(name)
+public sealed class RecordFieldSymbol(string name, RecordFieldId id, TypeSymbol type, bool isPublic = true, bool isOptional = false) : Symbol(name)
 {
     public RecordFieldId Id { get; } = id;
     public TypeSymbol Type { get; } = type;
     public bool IsPublic { get; } = isPublic;
+    public bool IsOptional { get; } = isOptional;
 }
 
 public sealed class TableColumnSymbol(string name, TableColumnId id, TypeSymbol type) : Symbol(name)

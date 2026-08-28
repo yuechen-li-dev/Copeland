@@ -90,6 +90,7 @@ public static class CopelandProjectCompiler
 
         if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
 
+        ClassifyProjectFunctionEffects(ordered);
         ConfigureDuplicateFunctionEmissionNames(ordered);
         ConfigureDuplicateRecordEmissionNames(ordered);
         ConfigureDuplicateEnumEmissionNames(ordered);
@@ -127,6 +128,20 @@ public static class CopelandProjectCompiler
                     binding.Position,
                     binding.Length))).ToArray()))
             .ToArray();
+
+    private static void ClassifyProjectFunctionEffects(IReadOnlyList<ProjectModule> modules)
+    {
+        BoundFunctionDeclaration[] functions = modules
+            .SelectMany(module => module.Bound!.Program.Functions)
+            .ToArray();
+        IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> summaries = FunctionEffectClassifier.Classify(functions);
+
+        foreach (ProjectModule module in modules)
+        {
+            module.Bound!.Program.FunctionEffects = module.Bound.Program.Functions
+                .ToDictionary(function => function.Symbol, function => summaries[function.Symbol]);
+        }
+    }
 
     public static bool ContainsRelativeImports(IReadOnlyList<CopelandProjectSource> sources)
         => sources.Any(source => ReadImports(source).Any(import => import.Specifier.StartsWith("./", StringComparison.Ordinal)
@@ -482,7 +497,7 @@ public static class CopelandProjectCompiler
 
     private static MirProgram CombinePrograms(IReadOnlyList<MirProgram> programs)
         => new(
-            programs.SelectMany(program => program.Enums).ToArray(),
+            CombineEnums(programs),
             programs.SelectMany(program => program.Records).ToArray(),
             programs.SelectMany(program => program.Tables).ToArray(),
             programs.SelectMany(program => program.TsonEncodingPlans).ToArray(),
@@ -496,6 +511,33 @@ public static class CopelandProjectCompiler
             programs.SelectMany(program => program.Flows).ToArray(),
             programs.SelectMany(program => program.JavaScriptHostImports).ToArray(),
             programs.SelectMany(program => program.PackageImports).ToArray());
+
+    private static IReadOnlyList<MirEnum> CombineEnums(IReadOnlyList<MirProgram> programs)
+    {
+        var result = new List<MirEnum>();
+        foreach (IGrouping<string, MirEnum> group in programs
+            .SelectMany(program => program.Enums)
+            .GroupBy(@enum => @enum.Name, StringComparer.Ordinal))
+        {
+            if (group.Key.StartsWith("__CopeOption_", StringComparison.Ordinal)
+                && group.Skip(1).All(candidate => OptionEnumShapeEquals(group.First(), candidate)))
+            {
+                result.Add(group.First());
+                continue;
+            }
+            result.AddRange(group);
+        }
+        return result;
+    }
+
+    private static bool OptionEnumShapeEquals(MirEnum left, MirEnum right)
+        => left.Cases.Count == right.Cases.Count
+            && left.Cases.Zip(right.Cases).All(pair =>
+                pair.First.Name == pair.Second.Name
+                && pair.First.PayloadFields.Count == pair.Second.PayloadFields.Count
+                && pair.First.PayloadFields.Zip(pair.Second.PayloadFields).All(fields =>
+                    fields.First.Name == fields.Second.Name
+                    && fields.First.Type == fields.Second.Type));
 
     private static void ConfigureDuplicateFunctionEmissionNames(IReadOnlyList<ProjectModule> modules)
     {

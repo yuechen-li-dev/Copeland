@@ -583,13 +583,13 @@ function value(shape: Shape): number {
     }
 
     [Fact]
-    public void Profile_Bans_For_Ternary_And_Optional_Chaining_Report()
+    public void Profile_Bans_Ternary_And_Option_Typing_Rejects_NonOption_Chaining()
     {
         var ternary = SemanticBinder.Bind(SyntaxTree.Parse("function value(flag: boolean): number { return flag ? 1 : 2; }"));
         Assert.Contains(ternary.Diagnostics, d => d.Id == "COPE-PROFILE-0007");
 
         var optional = SemanticBinder.Bind(SyntaxTree.Parse("function value(x: number): number { return x?.toString(); }"));
-        Assert.Contains(optional.Diagnostics, d => d.Id == "COPE-PROFILE-0008");
+        Assert.Contains(optional.Diagnostics, d => d.Id == "COPE-OPTION-0005");
     }
 
 }

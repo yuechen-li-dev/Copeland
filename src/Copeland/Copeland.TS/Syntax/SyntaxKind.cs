@@ -205,6 +205,8 @@ public enum SyntaxKind
     CallExpression,
     NewExpression,
     MemberAccessExpression,
+    OptionalMemberAccessExpression,
+    CoalesceExpression,
     IndexExpression,
     ArrayLiteralExpression,
     PropagateExpression,

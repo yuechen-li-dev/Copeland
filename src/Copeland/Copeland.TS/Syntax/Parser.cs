@@ -1304,12 +1304,14 @@ public sealed class Parser
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             var fieldIdentifier = Match(SyntaxKind.IdentifierToken);
-            if (Current.Kind == SyntaxKind.QuestionToken && Peek(1).Kind == SyntaxKind.ColonToken)
+            SyntaxToken? questionToken = Current.Kind == SyntaxKind.QuestionToken && Peek(1).Kind == SyntaxKind.ColonToken
+                ? NextToken()
+                : null;
+            if (questionToken is not null)
             {
-                SyntaxToken questionToken = NextToken();
                 _diagnostics.Report(
-                    "COPE-PROFILE-0012",
-                    "Optional record fields are not supported. Copeland record shapes are fixed; model presence/absence with a nominal payload enum.",
+                    "COPE-INTERFACE-0002",
+                    "Optional interface requirement fields are not supported; Option<T> is a value type, not a weakened structural requirement.",
                     questionToken.Position,
                     questionToken.Text.Length);
             }
@@ -1797,15 +1799,9 @@ public sealed class Parser
         while (Current.Kind is not SyntaxKind.CloseBraceToken and not SyntaxKind.EndOfFileToken)
         {
             var fieldIdentifier = Match(SyntaxKind.IdentifierToken);
-            if (Current.Kind == SyntaxKind.QuestionToken && Peek(1).Kind == SyntaxKind.ColonToken)
-            {
-                SyntaxToken questionToken = NextToken();
-                _diagnostics.Report(
-                    "COPE-PROFILE-0012",
-                    "Optional record fields are not supported. Copeland record shapes are fixed; model presence/absence with a nominal payload enum.",
-                    questionToken.Position,
-                    questionToken.Text.Length);
-            }
+            SyntaxToken? questionToken = Current.Kind == SyntaxKind.QuestionToken && Peek(1).Kind == SyntaxKind.ColonToken
+                ? NextToken()
+                : null;
             var hasColon = Current.Kind == SyntaxKind.ColonToken;
             var colonToken = hasColon
                 ? NextToken()
@@ -1830,7 +1826,7 @@ public sealed class Parser
             var semicolonToken = hasTerminator
                 ? NextToken()
                 : MissingToken(SyntaxKind.SemicolonToken, Current.Position);
-            fields.Add(new RecordFieldSyntax(fieldIdentifier, colonToken, type, unsupportedTokens, semicolonToken, hasExplicitType, hasTerminator));
+            fields.Add(new RecordFieldSyntax(fieldIdentifier, questionToken, colonToken, type, unsupportedTokens, semicolonToken, hasExplicitType, hasTerminator));
         }
 
         var closeBraceToken = Match(SyntaxKind.CloseBraceToken);
@@ -2488,7 +2484,7 @@ public sealed class Parser
 
     private ExpressionSyntax ParseAssignmentExpression()
     {
-        var left = ParseBinaryExpression();
+        var left = ParseCoalesceExpression();
 
         while (Current.Kind == SyntaxKind.PipeToken)
         {
@@ -2510,6 +2506,20 @@ public sealed class Parser
         }
 
         return left;
+    }
+
+    private ExpressionSyntax ParseCoalesceExpression()
+    {
+        ExpressionSyntax left = ParseBinaryExpression();
+        if (Current.Kind != SyntaxKind.QuestionToken || Peek(1).Kind != SyntaxKind.QuestionToken)
+        {
+            return left;
+        }
+
+        SyntaxToken firstQuestion = NextToken();
+        SyntaxToken secondQuestion = NextToken();
+        ExpressionSyntax right = ParseCoalesceExpression();
+        return new CoalesceExpressionSyntax(left, firstQuestion, secondQuestion, right);
     }
 
     private ExpressionSyntax ParseBinaryExpression(int parentPrecedence = 0)
@@ -2568,22 +2578,14 @@ public sealed class Parser
                 var questionToken = Match(SyntaxKind.QuestionToken);
                 if (Current.Kind == SyntaxKind.QuestionToken)
                 {
-                    SyntaxToken secondQuestionToken = Match(SyntaxKind.QuestionToken);
-                    _diagnostics.Report(
-                        "COPE-PROFILE-0013",
-                        "Nullish coalescing '??' is not supported. Copeland does not use JavaScript null/undefined semantics; use typed Result handling or a nominal payload enum.",
-                        questionToken.Position,
-                        secondQuestionToken.Position + secondQuestionToken.Text.Length - questionToken.Position);
-                    _ = ParseBinaryExpression();
-                    expression = new MissingExpressionSyntax(questionToken);
-                    continue;
+                    _position--;
+                    break;
                 }
                 if (Current.Kind == SyntaxKind.DotToken)
                 {
-                    _diagnostics.Report("COPE-PROFILE-0008", "Optional chaining is not supported. Use explicit fallible APIs or enum/option modeling.", questionToken.Position, 2);
                     var dot = Match(SyntaxKind.DotToken);
-                    var _ = Match(SyntaxKind.IdentifierToken);
-                    expression = new MissingExpressionSyntax(dot);
+                    var name = Match(SyntaxKind.IdentifierToken);
+                    expression = new OptionalMemberAccessExpressionSyntax(expression, questionToken, dot, name);
                     continue;
                 }
 

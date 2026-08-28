@@ -1787,6 +1787,40 @@ public sealed record PropagateExpressionSyntax(ExpressionSyntax Operand, SyntaxT
     }
 }
 
+public sealed record OptionalMemberAccessExpressionSyntax(
+    ExpressionSyntax Target,
+    SyntaxToken QuestionToken,
+    SyntaxToken DotToken,
+    SyntaxToken NameToken) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.OptionalMemberAccessExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Target;
+        yield return QuestionToken;
+        yield return DotToken;
+        yield return NameToken;
+    }
+}
+
+public sealed record CoalesceExpressionSyntax(
+    ExpressionSyntax Left,
+    SyntaxToken FirstQuestionToken,
+    SyntaxToken SecondQuestionToken,
+    ExpressionSyntax Right) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.CoalesceExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return Left;
+        yield return FirstQuestionToken;
+        yield return SecondQuestionToken;
+        yield return Right;
+    }
+}
+
 public sealed record BatchExpressionSyntax(
     SyntaxToken BatchKeyword,
     ExpressionSyntax Input,
@@ -1962,6 +1996,7 @@ public sealed record RecordDeclarationSyntax(
 
 public sealed record RecordFieldSyntax(
     SyntaxToken Identifier,
+    SyntaxToken? QuestionToken,
     SyntaxToken ColonToken,
     TypeSyntax Type,
     IReadOnlyList<SyntaxToken> UnsupportedTokens,
@@ -1974,6 +2009,10 @@ public sealed record RecordFieldSyntax(
     public override IEnumerable<object> GetChildren()
     {
         yield return Identifier;
+        if (QuestionToken is not null)
+        {
+            yield return QuestionToken;
+        }
         yield return ColonToken;
         yield return Type;
         foreach (var token in UnsupportedTokens)

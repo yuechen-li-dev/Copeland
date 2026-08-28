@@ -54,6 +54,9 @@ Copeland differs from ordinary TypeScript in intentionally visible ways:
   JavaScript coercion.
 - Records are nominal, immutable, and closed; interfaces are constraints, not
   storage types.
+- Copeland has no ambient `null` or `undefined`. `Option<T>` represents absence;
+  optional record fields, `?.`, and `??` are familiar syntax over `Some`/`None`
+  and exhaustive enum matching. See [optional values](docs/Copeland/language/copeland-ts-option.md).
 - `T[]` is immutable source data; `MutableArray<T>` is explicit fixed-length
   indexed storage and `freeze()` returns an immutable snapshot. See
   [runtime arrays](docs/Copeland/language/copeland-ts-runtime-arrays.md).

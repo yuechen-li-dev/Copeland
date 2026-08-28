@@ -1,2 +1,2 @@
-// expect: COPE-PROFILE-0012
-record Person { nickname?: string; }
+// expect: COPE-BIND-0004
+record Person { nickname?: MissingType; }

@@ -763,9 +763,10 @@ public static class JavaScriptBackend
                 break;
             case MirArrayLengthExpression length:
                 ValidateExpression(length.Receiver, functionReturnType, context, functions, catalog, diagnostics);
-                if (length.Receiver.Type is not MirArrayType)
+                if (length.Receiver.Type is not MirArrayType
+                    && length.Receiver.Type is not MirNamedType { Identifier: "string" })
                 {
-                    AddInvalid(diagnostics, $"array length receiver in {context} must be an array");
+                    AddInvalid(diagnostics, $"length receiver in {context} must be an array or string");
                 }
                 break;
             case MirArrayElementAccessExpression access:
@@ -2451,6 +2452,7 @@ public static class JavaScriptBackend
             MirTableRowType row when catalog.ContainsRow(row.RowTypeId) => $"({names.TableRowValidator(catalog.GetTableByRowType(row.RowTypeId))}({expression}), true)",
             MirColumnType => $"({names.ColumnValidator}({expression}), true)",
             MirArrayType => $"Array.isArray({expression})",
+            MirMutableArrayType => $"Array.isArray({expression})",
             MirType named when named is not MirArrayType and not MirResultType && catalog.TryGetEnum(named.Identifier, out EnumInfo enumInfo) => $"({names.Validator(enumInfo)}({expression}), true)",
             _ => "false",
         };

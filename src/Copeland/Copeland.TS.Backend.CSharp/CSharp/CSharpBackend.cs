@@ -2471,10 +2471,17 @@ public static class CSharpBackend
         }
         var scrutinee = EmitExpression(writer, match.Scrutinee, function, enumNames, ref tempIndex, diagnostics);
         var arms = new List<string>();
+        bool requiresTargetCast = match.Type is MirNamedType namedResultType
+            && enumNames.Contains(namedResultType.Identifier);
         foreach (var arm in match.Arms)
         {
             var pattern = arm.PayloadBindings.Count == 0 ? $"{CSharpNameMangler.Mangle(enumType.Identifier)}.{CSharpNameMangler.Mangle(arm.CaseName)} _" : $"{CSharpNameMangler.Mangle(enumType.Identifier)}.{CSharpNameMangler.Mangle(arm.CaseName)}({string.Join(", ", arm.PayloadBindings.Select(binding => $"var {CSharpNameMangler.Mangle(binding.Name)}"))})";
-            arms.Add($"{pattern} => {EmitExpression(writer, arm.Expression, function, enumNames, ref tempIndex, diagnostics)}");
+            string armExpression = EmitExpression(writer, arm.Expression, function, enumNames, ref tempIndex, diagnostics);
+            if (requiresTargetCast)
+            {
+                armExpression = $"({MapType(match.Type)})({armExpression})";
+            }
+            arms.Add($"{pattern} => {armExpression}");
         }
         arms.Add("_ => throw new global::System.InvalidOperationException(\"Non-exhaustive match.\")");
         return $"{scrutinee} switch {{ {string.Join(", ", arms)} }}";

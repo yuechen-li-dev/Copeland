@@ -10,6 +10,57 @@ namespace Copeland.TS.Backend.JavaScript.Tests;
 public sealed class JavaScriptRuntimeTests
 {
     [Fact]
+    public async Task Node_executes_Option_optional_fields_chaining_and_lazy_coalescing_without_truthiness()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            record Address { city?: string; }
+            record User { address?: Address; }
+
+            function presentFalse(): boolean { const value: Option<boolean> = Some(false); return value ?? true; }
+            function presentZero(): int { const value: Option<int> = 0; return value ?? 7; }
+            function missing(): string { const value: Option<string> = None; return value ?? "fallback"; }
+            function nested(): string {
+                const user: User = { address: { city: "Paris" } };
+                return user.address?.city ?? "Unknown";
+            }
+            function stringLength(): int {
+                const value: Option<string> = Some("");
+                return value?.length ?? 7;
+            }
+            function optionalCall(): int {
+                const value: Option<MutableArray<int>> = MutableArray<int>(2);
+                return value?.freeze()?.length ?? 0;
+            }
+            function fallback(buffer: MutableArray<int>): int {
+                buffer[0] = buffer[0] + 1;
+                return 9;
+            }
+            function lazyFallback(): int {
+                const buffer: MutableArray<int> = MutableArray<int>(1);
+                const value: Option<int> = Some(0);
+                const selected: int = value ?? fallback(buffer);
+                return selected + buffer[0];
+            }
+            function make(buffer: MutableArray<int>): Option<int> {
+                buffer[0] = buffer[0] + 1;
+                return 2;
+            }
+            function onceLeft(): int {
+                const buffer: MutableArray<int> = MutableArray<int>(1);
+                const selected: int = make(buffer) ?? 0;
+                return selected + buffer[0];
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(
+            emitted.SourceText + "console.log(presentFalse()); console.log(presentZero()); console.log(missing()); console.log(nested()); console.log(stringLength()); console.log(optionalCall()); console.log(lazyFallback()); console.log(onceLeft());\n");
+
+        Assert.Equal("false\n0\nfallback\nParis\n0\n2\n0\n3\n", result.StdOut);
+        Assert.DoesNotContain("undefined", emitted.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Node_executes_pipeline_as_ordinary_calls()
     {
         JavaScriptCompilation emitted = Emit("""
