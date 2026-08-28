@@ -285,7 +285,7 @@ public static class Program
 
     private const string CSharpHostSource = """
         using System.Diagnostics;
-        using System.Text.Json;
+        using System.Globalization;
         using Copeland.Generated;
 
         internal static class Program
@@ -297,7 +297,7 @@ public static class Program
                     HostOptions options = HostOptions.Parse(args);
                     if (options.ChecksumOnly)
                     {
-                        Console.WriteLine(JsonSerializer.Serialize(new { checksum = CopelandModule.Run(17) }));
+                        Console.WriteLine("{\"checksum\":" + CopelandModule.Run(17).ToString(CultureInfo.InvariantCulture) + "}");
                         return 0;
                     }
 
@@ -319,13 +319,15 @@ public static class Program
                     }
 
                     int[] gcAfter = [GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2)];
-                    Console.WriteLine(JsonSerializer.Serialize(new
-                    {
-                        checksum,
-                        milliseconds,
-                        allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore,
-                        gcCollections = new[] { gcAfter[0] - gcBefore[0], gcAfter[1] - gcBefore[1], gcAfter[2] - gcBefore[2] },
-                    }));
+                    string sampleText = string.Join(",", milliseconds.Select(value => value.ToString("R", CultureInfo.InvariantCulture)));
+                    long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+                    Console.WriteLine(
+                        "{\"checksum\":" + checksum.ToString(CultureInfo.InvariantCulture)
+                        + ",\"milliseconds\":[" + sampleText + "]"
+                        + ",\"allocatedBytes\":" + allocatedBytes.ToString(CultureInfo.InvariantCulture)
+                        + ",\"gcCollections\":[" + (gcAfter[0] - gcBefore[0]).ToString(CultureInfo.InvariantCulture)
+                        + "," + (gcAfter[1] - gcBefore[1]).ToString(CultureInfo.InvariantCulture)
+                        + "," + (gcAfter[2] - gcBefore[2]).ToString(CultureInfo.InvariantCulture) + "]}");
                     return 0;
                 }
                 catch (ArgumentException exception)
