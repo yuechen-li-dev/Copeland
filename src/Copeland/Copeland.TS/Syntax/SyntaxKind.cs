@@ -170,6 +170,7 @@ public enum SyntaxKind
     TemplateInstantiationExpression,
     TemplateInstantiationArgument,
     GenericFunctionReferenceExpression,
+    StaticExpression,
     BlockStatement,
     VariableDeclarationStatement,
     ComponentStateDeclarationStatement,

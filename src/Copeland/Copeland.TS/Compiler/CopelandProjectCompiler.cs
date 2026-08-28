@@ -91,6 +91,19 @@ public static class CopelandProjectCompiler
         if (diagnostics.Count > 0) return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
 
         ClassifyProjectFunctionEffects(ordered);
+        BoundCompilation[] boundCompilations = ordered
+            .Select(module => module.Bound!)
+            .ToArray();
+        var staticSourcePaths = ordered.ToDictionary(
+            module => module.Bound!,
+            module => (string?)module.Source.SourcePath);
+        diagnostics.AddRange(StaticEvaluationPass.Evaluate(
+            boundCompilations,
+            sourcePaths: staticSourcePaths));
+        if (diagnostics.Count > 0)
+        {
+            return new CopelandProjectCompilation(null, diagnostics, modules: CreateModuleCompilations(modules));
+        }
         ConfigureDuplicateFunctionEmissionNames(ordered);
         ConfigureDuplicateRecordEmissionNames(ordered);
         ConfigureDuplicateEnumEmissionNames(ordered);

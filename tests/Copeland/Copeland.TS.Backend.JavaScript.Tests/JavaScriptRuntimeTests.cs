@@ -127,6 +127,32 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_executes_an_embedded_static_table_without_runtime_reconstruction()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function makeSquares(size: int): int[] {
+                const values: MutableArray<int> = MutableArray<int>(size);
+                let index: int = 0;
+                while (index < values.length) {
+                    values[index] = index * index;
+                    index = index + 1;
+                }
+                return values.freeze();
+            }
+            function answer(): int {
+                const values: int[] = static makeSquares(5);
+                return values[4];
+            }
+            """);
+
+        string sourceText = Assert.IsType<string>(emitted.SourceText);
+        ProcessResult result = await RunNodeAsync(sourceText + "console.log(answer());\n");
+
+        Assert.Equal("16\n", result.StdOut);
+        Assert.Equal(1, sourceText.Split("makeSquares(", StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public async Task Node_runs_a_lazy_generator_with_aliases_and_delegation()
     {
         JavaScriptCompilation emitted = Emit("""

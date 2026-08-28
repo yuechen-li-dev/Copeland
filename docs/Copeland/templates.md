@@ -134,6 +134,19 @@ ordering and LF UTF-8 text, and never merges or overwrites.
 
 ## Static language boundary
 
+Ordinary source code has a separate expression-level form:
+
+```ts
+const table: int[] = static buildTable(256);
+```
+
+Here `static` means **evaluate this ordinary Copeland expression during
+compilation**. It is not a runtime static member, storage-duration annotation,
+optimization hint, C# `static`, or linker constant. A normal function remains
+dual-use: it can run at runtime and can also be called by `static` when its
+ordinary effect summary is `StaticSafe` and all arguments are compile-time
+values. The post-static pass embeds the resulting immutable value before MIR.
+
 Template bodies are compiler-bound static plans, not runtime functions. They
 support immutable locals, typed values, `return`, `emit`, finite `static for`,
 `static if`, `static match`, template instantiation, and compiler-owned
@@ -143,3 +156,11 @@ randomness, recursion, `while`, and unbounded loops are rejected.
 The old `template Name(static value: Type): Result` prototype is parser-recovered
 only to issue `COPE-TEMPLATE-0011`; it does not compile. Maintained samples and
 tests use the canonical syntax.
+
+Templates can inspect bounded semantic metadata without receiving AST nodes or
+source text. `nameOf<T>()`, `fieldsOf<T>()`, and `enumCasesOf<T>()` accept
+concrete types and template type parameters. Field metadata contains `name`,
+`typeName`, `optional`, and `readonly`; an authored optional record field reports
+its semantic `Option<T>` type. Enum metadata contains `name`, `payloadCount`, and
+declaration-ordered `payloadTypes`. The metadata is compile-time only and does
+not introduce runtime reflection.

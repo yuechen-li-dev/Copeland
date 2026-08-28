@@ -1410,7 +1410,7 @@ public sealed class Parser
     private StatementSyntax ParseStatement()
         => Current.Kind switch
         {
-            SyntaxKind.StaticKeyword => ParseStaticStatement(),
+            SyntaxKind.StaticKeyword when Peek(1).Kind is SyntaxKind.IfKeyword or SyntaxKind.ForKeyword or SyntaxKind.MatchKeyword or SyntaxKind.SwitchKeyword => ParseStaticStatement(),
             SyntaxKind.OpenBraceToken => ParseBlockStatement(),
             SyntaxKind.LayoutKeyword => new LocalPresentationDeclarationStatementSyntax(ParseLayoutDeclaration(), null),
             SyntaxKind.IdentifierToken when IsWord(Current, "stream") => new LocalPresentationDeclarationStatementSyntax(null, ParseStreamDeclaration()),
@@ -2683,6 +2683,7 @@ public sealed class Parser
 
         return Current.Kind switch
         {
+            SyntaxKind.StaticKeyword => ParseStaticExpression(),
             SyntaxKind.AwaitKeyword => new AwaitExpressionSyntax(NextToken(), ParseAwaitOperand()),
             SyntaxKind.OpenParenToken when IsArrowExpressionAhead() => ParseArrowExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
@@ -2699,6 +2700,13 @@ public sealed class Parser
             SyntaxKind.TryKeyword => ParseTryExceptExpression(),
             _ => ParseMissingExpression(),
         };
+    }
+
+    private StaticExpressionSyntax ParseStaticExpression()
+    {
+        SyntaxToken staticKeyword = Match(SyntaxKind.StaticKeyword);
+        ExpressionSyntax expression = ParsePostfixExpression();
+        return new StaticExpressionSyntax(staticKeyword, expression);
     }
 
     private SourceCodeBlockExpressionSyntax ParseSourceCodeBlockExpression()

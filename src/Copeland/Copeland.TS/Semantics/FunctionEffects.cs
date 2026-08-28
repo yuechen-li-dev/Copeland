@@ -303,6 +303,11 @@ public static class FunctionEffectClassifier
             {
                 case BoundLiteralExpression or BoundUnitExpression or BoundErrorExpression or BoundTableReferenceExpression:
                     return;
+                case BoundStaticExpression:
+                    // A valid static expression is gone before MIR and therefore
+                    // contributes no runtime effect to its containing function.
+                    // Its own eligibility is checked by the post-static pass.
+                    return;
                 case BoundNpmComponentValueExpression or BoundNpmComponentMemberExpression:
                     _info.SetRuntime(FunctionEffect.WritesRuntimeState, "renderer operation observes or changes runtime state");
                     return;

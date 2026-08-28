@@ -560,6 +560,14 @@ public static class TemplateCompiler
         private readonly List<Diagnostic> _diagnostics;
         private readonly Stack<TemplateSymbol> _active = new();
         private readonly List<string> _instantiationChain = [];
+        private readonly Dictionary<string, object?> _completedInvocations = new(StringComparer.Ordinal);
+        private int _instantiationCount;
+        private int _metadataIterations;
+
+        private const int MaximumInstantiationDepth = 64;
+        private const int MaximumInstantiations = 4_096;
+        private const int MaximumMetadataIterations = 100_000;
+        private const int MaximumGeneratedArtifacts = 100_000;
 
         public BoundPlanEvaluator(IReadOnlyList<BoundTemplateDeclaration> templates, List<Diagnostic> diagnostics)
         {
@@ -574,6 +582,17 @@ public static class TemplateCompiler
             IReadOnlyList<object?> arguments,
             IReadOnlyList<TypeSymbol>? suppliedTypeArguments = null)
         {
+            _instantiationCount++;
+            if (_instantiationCount > MaximumInstantiations)
+            {
+                Report("COPE-TEMPLATE-0016", $"Template instantiation count exceeded the M1 limit of {MaximumInstantiations}.", declaration.Symbol.Name, 0, 1);
+                return null;
+            }
+            if (_active.Count >= MaximumInstantiationDepth)
+            {
+                Report("COPE-TEMPLATE-0016", $"Template instantiation depth exceeded the M1 limit of {MaximumInstantiationDepth}.", declaration.Symbol.Name, 0, 1);
+                return null;
+            }
             if (_active.Contains(declaration.Symbol))
             {
                 string chain = string.Join(" -> ", _active.Reverse().Append(declaration.Symbol).Select(Describe));
@@ -672,6 +691,11 @@ public static class TemplateCompiler
                     if (emitted is ArtifactNode node) context.Emitted.Add(node);
                     else if (emitted is ProjectTree project) context.Emitted.AddRange(project.Files);
                     else Report("COPE-TEMPLATE-0005", "emit requires an artifact or ProjectTree value.", emit.Anchor);
+                    if (context.Emitted.Count > MaximumGeneratedArtifacts)
+                    {
+                        Report("COPE-TEMPLATE-0016", $"Generated artifact count exceeded the M1 limit of {MaximumGeneratedArtifacts}.", emit.Anchor);
+                        context.DidReturn = true;
+                    }
                     break;
                 case BoundTemplateReturn returned:
                     context.ReturnValue = returned.Value is null ? null : EvaluateValue(returned.Value, context);
@@ -688,9 +712,21 @@ public static class TemplateCompiler
                     }
                     break;
                 case BoundStaticFor loop:
-                    foreach (BoundTemplateValue value in loop.Values.Elements)
+                    if (EvaluateValue(loop.Values, context) is not object?[] values)
                     {
-                        context.Values[loop.Local] = EvaluateValue(value, context);
+                        Report("COPE-STATIC-0006", "Bound static-for iterable did not evaluate to a finite array.", loop.Anchor);
+                        break;
+                    }
+                    foreach (object? value in values)
+                    {
+                        _metadataIterations++;
+                        if (_metadataIterations > MaximumMetadataIterations)
+                        {
+                            Report("COPE-TEMPLATE-0016", $"Static metadata iteration exceeded the M1 limit of {MaximumMetadataIterations}.", loop.Anchor);
+                            context.DidReturn = true;
+                            break;
+                        }
+                        context.Values[loop.Local] = value;
                         Execute(loop.Body, context);
                         if (context.DidReturn) break;
                     }
@@ -724,6 +760,8 @@ public static class TemplateCompiler
                     return context.Values.GetValueOrDefault(local.Local);
                 case BoundTemplateTypeName typeName:
                     return context.TypeArguments.ElementAtOrDefault(typeName.ParameterIndex)?.Name ?? "<missing-type>";
+                case BoundTemplateTypeMetadataArray metadata:
+                    return EvaluateTypeMetadata(metadata, context);
                 case BoundTemplateArray array:
                     return array.Elements.Select(element => EvaluateValue(element, context)).ToArray();
                 case BoundTemplateStructuralObject structural:
@@ -767,7 +805,94 @@ public static class TemplateCompiler
                 return null;
             }
             object?[] values = invocation.Arguments.Select(argument => EvaluateValue(argument, context)).ToArray();
-            return EvaluateTemplate(target, values, invocation.TypeArguments);
+            string cacheIdentity = invocation.Template.StableIdentity
+                + "<" + string.Join(",", invocation.TypeArguments.Select(TypeIdentity)) + ">"
+                + "(" + string.Join(",", values.Select(ValueIdentity)) + ")";
+            if (_completedInvocations.TryGetValue(cacheIdentity, out object? completed))
+            {
+                return completed;
+            }
+            object? result = EvaluateTemplate(target, values, invocation.TypeArguments);
+            if (result is not null && !_diagnostics.Any(diagnostic => diagnostic.Id == "COPE-TEMPLATE-0016"))
+            {
+                _completedInvocations[cacheIdentity] = result;
+            }
+            return result;
+        }
+
+        private static string TypeIdentity(TypeSymbol type)
+            => type switch
+            {
+                RecordTypeSymbol record => record.StableIdentity ?? record.Name,
+                EnumTypeSymbol @enum => @enum.StableIdentity ?? @enum.Name,
+                ArrayTypeSymbol array => "array(" + TypeIdentity(array.ElementType) + ")",
+                ResultTypeSymbol result => "result(" + TypeIdentity(result.SuccessType) + "," + TypeIdentity(result.ErrorType) + ")",
+                _ => type.Name,
+            };
+
+        private static string ValueIdentity(object? value)
+            => value switch
+            {
+                null => "null",
+                bool boolean => boolean ? "true" : "false",
+                int integer => "int:" + integer.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                double number => "number:" + number.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+                string text => "string:" + text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + text,
+                object?[] values => "[" + string.Join(",", values.Select(ValueIdentity)) + "]",
+                IReadOnlyDictionary<string, object?> fields => "{" + string.Join(",", fields.OrderBy(field => field.Key, StringComparer.Ordinal).Select(field => field.Key + "=" + ValueIdentity(field.Value))) + "}",
+                _ => value.GetType().FullName + ":" + value,
+            };
+
+        private object?[] EvaluateTypeMetadata(
+            BoundTemplateTypeMetadataArray metadata,
+            BoundEvaluationContext context)
+        {
+            TypeSymbol target = context.TypeArguments.ElementAtOrDefault(metadata.ParameterIndex)
+                ?? PrimitiveTypeSymbol.Error;
+            if (metadata.MetadataKind == BoundTemplateTypeMetadataKind.Fields)
+            {
+                IEnumerable<StructuralFieldSymbol> fields = target switch
+                {
+                    StructuralObjectTypeSymbol structural => structural.Fields.OrderBy(field => field.Ordinal),
+                    RecordTypeSymbol record => record.Fields
+                        .OrderBy(field => field.Id.Ordinal)
+                        .Select(field => new StructuralFieldSymbol(
+                            field.Name,
+                            field.Type,
+                            field.Id.Ordinal,
+                            field.IsOptional,
+                            true)),
+                    _ => [],
+                };
+                object?[] values = fields
+                    .Select(field => (object?)new Dictionary<string, object?>(StringComparer.Ordinal)
+                    {
+                        ["name"] = field.Name,
+                        ["typeName"] = field.Type.Name,
+                        ["optional"] = field.IsOptional,
+                        ["readonly"] = field.IsReadOnly,
+                    })
+                    .ToArray();
+                if (values.Length == 0 && target is not StructuralObjectTypeSymbol and not RecordTypeSymbol)
+                {
+                    Report("COPE-STATIC-0011", $"fieldsOf<T>() requires a structural type or record, not '{target.Name}'.", metadata.Anchor);
+                }
+                return values;
+            }
+
+            if (target is not EnumTypeSymbol enumType)
+            {
+                Report("COPE-STATIC-0011", $"enumCasesOf<T>() requires a payload enum, not '{target.Name}'.", metadata.Anchor);
+                return [];
+            }
+            return enumType.Cases
+                .Select(@case => (object?)new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["name"] = @case.Name,
+                    ["payloadCount"] = @case.PayloadFields.Count,
+                    ["payloadTypes"] = @case.PayloadFields.Select(field => (object?)field.Type.Name).ToArray(),
+                })
+                .ToArray();
         }
 
         private object? EvaluateArtifactConstructor(BoundArtifactConstructor constructor, BoundEvaluationContext context)

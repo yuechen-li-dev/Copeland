@@ -14,6 +14,23 @@ public abstract record StatementSyntax : SyntaxNode;
 public abstract record ExpressionSyntax : SyntaxNode;
 public abstract record TypeSyntax : SyntaxNode;
 
+/// <summary>
+/// Evaluates an ordinary Copeland expression during the post-binding static
+/// phase. This is unrelated to runtime static members or storage duration.
+/// </summary>
+public sealed record StaticExpressionSyntax(
+    SyntaxToken StaticKeyword,
+    ExpressionSyntax Expression) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.StaticExpression;
+
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return StaticKeyword;
+        yield return Expression;
+    }
+}
+
 public sealed record TemplateExpressionSyntax(SyntaxToken TemplateToken, IReadOnlyList<TemplatePartSyntax> Parts) : ExpressionSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.TemplateExpression;

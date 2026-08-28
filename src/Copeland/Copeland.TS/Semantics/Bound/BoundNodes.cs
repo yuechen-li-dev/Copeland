@@ -902,7 +902,11 @@ public sealed class BoundTemplateLiteral(SyntaxToken anchor, object? value, Type
     public object? Value { get; } = value;
 }
 
-public sealed class BoundTemplateArray(SyntaxToken anchor, IReadOnlyList<BoundTemplateValue> elements) : BoundTemplateValue(anchor, new ArrayTypeSymbol(elements.FirstOrDefault()?.Type ?? PrimitiveTypeSymbol.Error))
+public sealed class BoundTemplateArray(
+    SyntaxToken anchor,
+    IReadOnlyList<BoundTemplateValue> elements,
+    TypeSymbol? emptyElementType = null)
+    : BoundTemplateValue(anchor, new ArrayTypeSymbol(elements.FirstOrDefault()?.Type ?? emptyElementType ?? PrimitiveTypeSymbol.Error))
 {
     public IReadOnlyList<BoundTemplateValue> Elements { get; } = elements;
 }
@@ -949,6 +953,27 @@ public sealed class BoundTemplateLocalReference(SyntaxToken anchor, VariableSymb
 public sealed class BoundTemplateTypeName(SyntaxToken anchor, int parameterIndex) : BoundTemplateValue(anchor, PrimitiveTypeSymbol.String)
 {
     public int ParameterIndex { get; } = parameterIndex;
+}
+
+public enum BoundTemplateTypeMetadataKind
+{
+    Fields,
+    EnumCases,
+}
+
+/// <summary>
+/// Deferred, typed structural metadata for a template type parameter. The
+/// evaluator resolves the actual semantic TypeSymbol supplied by instantiation;
+/// no syntax tree or compiler implementation object is exposed to user code.
+/// </summary>
+public sealed class BoundTemplateTypeMetadataArray(
+    SyntaxToken anchor,
+    int parameterIndex,
+    BoundTemplateTypeMetadataKind metadataKind,
+    ArrayTypeSymbol type) : BoundTemplateValue(anchor, type)
+{
+    public int ParameterIndex { get; } = parameterIndex;
+    public BoundTemplateTypeMetadataKind MetadataKind { get; } = metadataKind;
 }
 
 public enum BoundArtifactIntrinsic
@@ -1030,7 +1055,16 @@ public sealed class BoundTemplateBlock(SyntaxToken anchor, IReadOnlyList<BoundTe
 public sealed class BoundTemplateEmit(SyntaxToken anchor, BoundTemplateValue value) : BoundTemplateStatement(anchor) { public BoundTemplateValue Value { get; } = value; }
 public sealed class BoundTemplateLocal(SyntaxToken anchor, VariableSymbol local, BoundTemplateValue initializer) : BoundTemplateStatement(anchor) { public VariableSymbol Local { get; } = local; public BoundTemplateValue Initializer { get; } = initializer; }
 public sealed class BoundStaticIf(SyntaxToken anchor, BoundTemplateValue condition, BoundTemplateStatement thenStatement, BoundTemplateStatement? elseStatement) : BoundTemplateStatement(anchor) { public BoundTemplateValue Condition { get; } = condition; public BoundTemplateStatement ThenStatement { get; } = thenStatement; public BoundTemplateStatement? ElseStatement { get; } = elseStatement; }
-public sealed class BoundStaticFor(SyntaxToken anchor, VariableSymbol local, BoundTemplateArray values, BoundTemplateStatement body) : BoundTemplateStatement(anchor) { public VariableSymbol Local { get; } = local; public BoundTemplateArray Values { get; } = values; public BoundTemplateStatement Body { get; } = body; }
+public sealed class BoundStaticFor(
+    SyntaxToken anchor,
+    VariableSymbol local,
+    BoundTemplateValue values,
+    BoundTemplateStatement body) : BoundTemplateStatement(anchor)
+{
+    public VariableSymbol Local { get; } = local;
+    public BoundTemplateValue Values { get; } = values;
+    public BoundTemplateStatement Body { get; } = body;
+}
 public sealed class BoundStaticMatchArm(BoundTemplateLiteral pattern, BoundTemplateStatement statement)
 {
     public BoundTemplateLiteral Pattern { get; } = pattern;
@@ -1369,6 +1403,25 @@ public sealed class BoundBreakStatement : BoundStatement;
 public sealed class BoundContinueStatement : BoundStatement;
 
 public sealed class BoundLiteralExpression : BoundExpression { public BoundLiteralExpression(object? value, TypeSymbol type) { Value = value; TypeImpl = type; } public object? Value { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }
+/// <summary>
+/// A source-level static expression awaiting the target-independent post-static
+/// pass. The pass stores an ordinary immutable bound value here; MIR lowering
+/// never performs compile-time execution.
+/// </summary>
+public sealed class BoundStaticExpression(
+    SyntaxToken anchor,
+    BoundExpression expression) : BoundExpression
+{
+    public SyntaxToken Anchor { get; } = anchor;
+    public BoundExpression Expression { get; } = expression;
+    public BoundExpression? EvaluatedExpression { get; private set; }
+    public override TypeSymbol Type => Expression.Type;
+
+    public void Resolve(BoundExpression evaluatedExpression)
+    {
+        EvaluatedExpression = evaluatedExpression;
+    }
+}
 public sealed class BoundVariableExpression : BoundExpression { public BoundVariableExpression(VariableSymbol variable) => Variable = variable; public VariableSymbol Variable { get; } public override TypeSymbol Type => Variable.Type; }
 public sealed class BoundAssignmentExpression : BoundExpression { public BoundAssignmentExpression(VariableSymbol variable, BoundExpression expression) { Variable = variable; Expression = expression; } public VariableSymbol Variable { get; } public BoundExpression Expression { get; } public override TypeSymbol Type => Expression.Type; }
 public sealed class BoundUnaryExpression : BoundExpression { public BoundUnaryExpression(SyntaxKind op, BoundExpression operand, TypeSymbol type) { OperatorKind = op; Operand = operand; TypeImpl = type; } public SyntaxKind OperatorKind { get; } public BoundExpression Operand { get; } private TypeSymbol TypeImpl { get; } public override TypeSymbol Type => TypeImpl; }

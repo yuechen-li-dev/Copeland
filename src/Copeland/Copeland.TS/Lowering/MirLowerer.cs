@@ -20,6 +20,12 @@ public static class MirLowerer
         if (bound.Diagnostics.Any(d => d.Id.StartsWith("COPE-", StringComparison.Ordinal)))
             return new MirCompilation(null, bound.Diagnostics);
 
+        IReadOnlyList<Copeland.TS.Diagnostics.Diagnostic> staticDiagnostics = StaticEvaluationPass.Evaluate([bound]);
+        if (staticDiagnostics.Count > 0)
+        {
+            return new MirCompilation(null, bound.Diagnostics.Concat(staticDiagnostics).ToArray());
+        }
+
         return new MirCompilation(LowerProgram(bound.Program), bound.Diagnostics);
     }
 
@@ -1134,6 +1140,8 @@ public static class MirLowerer
         => expression switch
         {
             BoundLiteralExpression l => new MirLiteralExpression(l.Value, ToMirType(l.Type)),
+            BoundStaticExpression { EvaluatedExpression: not null } staticExpression => LowerExpression(staticExpression.EvaluatedExpression),
+            BoundStaticExpression => throw new InvalidOperationException("Static expression reached MIR before post-static evaluation."),
             BoundVariableExpression v => new MirVariableExpression(v.Variable.Name, ToMirType(v.Type)),
             BoundAssignmentExpression a => new MirAssignmentExpression(a.Variable.Name, LowerExpression(a.Expression), ToMirType(a.Type)),
             BoundUnaryExpression u => new MirUnaryExpression(OperatorName(u.OperatorKind), LowerExpression(u.Operand), ToMirType(u.Type)),

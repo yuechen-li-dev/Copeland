@@ -1,8 +1,8 @@
 using Copeland.TS.Syntax;
 using Copeland.TS.Templates;
 using Copeland.TS.Compiler;
-using Copeland.TS.Semantics.Bound;
 using System.Text;
+using Copeland.TS.Semantics.Bound;
 using Xunit;
 
 namespace Copeland.TS.Tests;
@@ -481,5 +481,93 @@ template<> Document: ProjectTree {
 
         Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Assert.Equal(["internal.txt", "port.txt"], result.Project!.Files.Select(file => file.Path));
+    }
+
+    [Fact]
+    public void Enum_metadata_preserves_declaration_order_and_payload_shape()
+    {
+        const string source = """
+enum Color { Red, Rgb(red: int, green: int, blue: int), Blue, }
+template<> EnumDocument: ProjectTree {
+    static for (const item of enumCasesOf<Color>()) {
+        emit(textFile(`${item.name}-${item.payloadCount}.txt`, item.name));
+    }
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "EnumDocument");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(["Blue-0.txt", "Red-0.txt", "Rgb-3.txt"], result.Project!.Files.Select(file => file.Path));
+
+        CopelandCompilation compilation = CopelandCompiler.CompileTemplates(source);
+        BoundTemplateDeclaration declaration = Assert.Single(compilation.BoundCompilation!.Program.Templates);
+        BoundStaticFor loop = Assert.IsType<BoundStaticFor>(Assert.Single(declaration.Plan!.Statements));
+        BoundTemplateArray metadata = Assert.IsType<BoundTemplateArray>(loop.Values);
+        Assert.Equal(
+            ["Red", "Rgb", "Blue"],
+            metadata.Elements
+                .Cast<BoundTemplateStructuralObject>()
+                .Select(item => Assert.IsType<BoundTemplateLiteral>(item.Fields.Single(field => field.Name == "name").Value).Value));
+    }
+
+    [Fact]
+    public void Record_metadata_exposes_optional_fields_as_Option_values()
+    {
+        const string source = """
+record User { id: int; name: string; nickname?: string; }
+template<> RecordDocument: ProjectTree {
+    static for (const field of fieldsOf<User>()) {
+        emit(textFile(`${field.name}.txt`, `${field.typeName}:${field.optional}`));
+    }
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "RecordDocument");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        TextFileArtifact nickname = Assert.IsType<TextFileArtifact>(result.Project!.Files.Single(file => file.Path == "nickname.txt"));
+        Assert.Equal("Option<string>:True", Encoding.UTF8.GetString(nickname.Bytes));
+    }
+
+    [Fact]
+    public void User_defined_template_type_parameters_drive_typed_metadata()
+    {
+        const string source = """
+record User { id: int; nickname?: string; }
+template<type T = User> Metadata: ProjectTree {
+    static for (const field of fieldsOf<T>()) {
+        emit(textFile(`${nameOf<T>()}-${field.name}.txt`, field.typeName));
+    }
+}
+""";
+
+        CopelandCompilation compilation = CopelandCompiler.CompileTemplates(source);
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        BoundTemplateDeclaration declaration = Assert.Single(compilation.BoundCompilation!.Program.Templates);
+        BoundStaticFor loop = Assert.IsType<BoundStaticFor>(Assert.Single(declaration.Plan!.Statements));
+        Assert.IsType<BoundTemplateTypeMetadataArray>(loop.Values);
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(compilation.BoundCompilation, "Metadata");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(["User-id.txt", "User-nickname.txt"], result.Project!.Files.Select(file => file.Path));
+    }
+
+    [Fact]
+    public void Repeated_identical_template_instantiations_are_memoized()
+    {
+        const string source = """
+template<static value: string> Label: string { return value; }
+template<> Entry: ProjectTree {
+    emit(textFile("a.txt", instantiate Label<value: "same">));
+    emit(textFile("b.txt", instantiate Label<value: "same">));
+}
+""";
+
+        TemplateEvaluationResult result = TemplateCompiler.Evaluate(source, "Entry");
+
+        Assert.True(result.Success, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(1, result.InstantiationChain.Count(chain => chain.Contains("Label", StringComparison.Ordinal)));
     }
 }

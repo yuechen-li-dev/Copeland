@@ -3551,18 +3551,19 @@ public static class Binder
                     return new BoundStaticIf(staticIf.StaticKeyword, condition, BindTemplateStatement(staticIf.ThenStatement), staticIf.ElseStatement is null ? null : BindTemplateStatement(staticIf.ElseStatement));
                 case StaticForStatementSyntax staticFor:
                     BoundTemplateValue iterable = BindTemplateValue(staticFor.Iterable);
-                    if (iterable is not BoundTemplateArray values)
+                    if (iterable.Type is not ArrayTypeSymbol arrayType)
                     {
                         Report("COPE-STATIC-0006", "Static for requires a tuple or array with statically known contents.", staticFor.StaticKeyword);
-                        values = new BoundTemplateArray(staticFor.OpenParenToken, []);
+                        iterable = new BoundTemplateArray(staticFor.OpenParenToken, []);
+                        arrayType = (ArrayTypeSymbol)iterable.Type;
                     }
-                    var item = new VariableSymbol(staticFor.Identifier.Text, values.Type is ArrayTypeSymbol array ? array.ElementType : PrimitiveTypeSymbol.Error, true);
+                    var item = new VariableSymbol(staticFor.Identifier.Text, arrayType.ElementType, true);
                     Scope loopPrevious = _scope;
                     _scope = new Scope(loopPrevious);
                     _scope.TryDeclare(item);
                     BoundTemplateStatement body = BindTemplateStatement(staticFor.Body);
                     _scope = loopPrevious;
-                    return new BoundStaticFor(staticFor.StaticKeyword, item, values, body);
+                    return new BoundStaticFor(staticFor.StaticKeyword, item, iterable, body);
                 case StaticMatchStatementSyntax match:
                     return BindStaticMatch(match);
                 case WhileStatementSyntax or ForStatementSyntax or ForOfStatementSyntax:
@@ -3737,6 +3738,10 @@ public static class Binder
             {
                 return BindNameOf(name.IdentifierToken, typeArgumentSyntax, values);
             }
+            if (name.IdentifierToken.Text == "enumCasesOf")
+            {
+                return BindEnumCasesOf(name.IdentifierToken, typeArgumentSyntax, values);
+            }
             if (TryBindArtifactIntrinsic(name.IdentifierToken, values, out BoundTemplateValue? artifact))
             {
                 return artifact!;
@@ -3906,6 +3911,14 @@ public static class Binder
                 return new BoundTemplateArray(anchor, []);
             }
             TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-STATIC-0010", "metadata target");
+            if (target is TypeParameterTypeSymbol parameter)
+            {
+                return new BoundTemplateTypeMetadataArray(
+                    anchor,
+                    parameter.Ordinal,
+                    BoundTemplateTypeMetadataKind.Fields,
+                    new ArrayTypeSymbol(CreateFieldMetadataType()));
+            }
             var fields = EnumerateStructuralFields(target).ToArray();
             if (fields.Length == 0 && target is not StructuralObjectTypeSymbol and not RecordTypeSymbol)
             {
@@ -3932,6 +3945,37 @@ public static class Binder
             return new BoundTemplateLiteral(anchor, target.Name, PrimitiveTypeSymbol.String);
         }
 
+        private BoundTemplateValue BindEnumCasesOf(
+            SyntaxToken anchor,
+            IReadOnlyList<TypeSyntax> typeArguments,
+            IReadOnlyList<BoundTemplateValue> values)
+        {
+            if (values.Count != 0 || typeArguments.Count != 1)
+            {
+                Report("COPE-STATIC-0010", "enumCasesOf<T>() requires exactly one type argument and no value arguments.", anchor);
+                return new BoundTemplateArray(anchor, []);
+            }
+
+            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-STATIC-0010", "enum metadata target");
+            if (target is TypeParameterTypeSymbol parameter)
+            {
+                return new BoundTemplateTypeMetadataArray(
+                    anchor,
+                    parameter.Ordinal,
+                    BoundTemplateTypeMetadataKind.EnumCases,
+                    new ArrayTypeSymbol(CreateEnumCaseMetadataType()));
+            }
+            if (target is not EnumTypeSymbol enumType)
+            {
+                Report("COPE-STATIC-0011", $"enumCasesOf<T>() requires a payload enum, not '{target.Name}'.", anchor);
+                return new BoundTemplateArray(anchor, []);
+            }
+
+            return new BoundTemplateArray(
+                anchor,
+                enumType.Cases.Select(@case => CreateEnumCaseMetadata(anchor, @case)).ToArray());
+        }
+
         private static IEnumerable<StructuralFieldSymbol> EnumerateStructuralFields(TypeSymbol type)
         {
             return type switch
@@ -3939,7 +3983,7 @@ public static class Binder
                 StructuralObjectTypeSymbol structural => structural.Fields.OrderBy(field => field.Ordinal),
                 RecordTypeSymbol record => record.Fields
                     .OrderBy(field => field.Id.Ordinal)
-                    .Select(field => new StructuralFieldSymbol(field.Name, field.Type, field.Id.Ordinal, false, false)),
+                    .Select(field => new StructuralFieldSymbol(field.Name, field.Type, field.Id.Ordinal, field.IsOptional, true)),
                 _ => [],
             };
         }
@@ -3955,15 +3999,46 @@ public static class Binder
             ];
             return new BoundTemplateStructuralObject(
                 anchor,
-                new StructuralObjectTypeSymbol(
-                [
-                    new StructuralFieldSymbol("name", PrimitiveTypeSymbol.String, 0, false, true),
-                    new StructuralFieldSymbol("typeName", PrimitiveTypeSymbol.String, 1, false, true),
-                    new StructuralFieldSymbol("optional", PrimitiveTypeSymbol.Boolean, 2, false, true),
-                    new StructuralFieldSymbol("readonly", PrimitiveTypeSymbol.Boolean, 3, false, true),
-                ]),
+                CreateFieldMetadataType(),
                 fields);
         }
+
+        private static StructuralObjectTypeSymbol CreateFieldMetadataType()
+            => new(
+            [
+                new StructuralFieldSymbol("name", PrimitiveTypeSymbol.String, 0, false, true),
+                new StructuralFieldSymbol("typeName", PrimitiveTypeSymbol.String, 1, false, true),
+                new StructuralFieldSymbol("optional", PrimitiveTypeSymbol.Boolean, 2, false, true),
+                new StructuralFieldSymbol("readonly", PrimitiveTypeSymbol.Boolean, 3, false, true),
+            ]);
+
+        private static BoundTemplateStructuralObject CreateEnumCaseMetadata(SyntaxToken anchor, EnumCaseSymbol @case)
+        {
+            var payloadTypes = new BoundTemplateArray(
+                anchor,
+                @case.PayloadFields
+                    .Select(field => (BoundTemplateValue)new BoundTemplateLiteral(anchor, field.Type.Name, PrimitiveTypeSymbol.String))
+                    .ToArray(),
+                PrimitiveTypeSymbol.String);
+            BoundTemplateStructuralField[] fields =
+            [
+                new("name", new BoundTemplateLiteral(anchor, @case.Name, PrimitiveTypeSymbol.String)),
+                new("payloadCount", new BoundTemplateLiteral(anchor, @case.PayloadFields.Count, PrimitiveTypeSymbol.Int)),
+                new("payloadTypes", payloadTypes),
+            ];
+            return new BoundTemplateStructuralObject(
+                anchor,
+                CreateEnumCaseMetadataType(),
+                fields);
+        }
+
+        private static StructuralObjectTypeSymbol CreateEnumCaseMetadataType()
+            => new(
+            [
+                new StructuralFieldSymbol("name", PrimitiveTypeSymbol.String, 0, false, true),
+                new StructuralFieldSymbol("payloadCount", PrimitiveTypeSymbol.Int, 1, false, true),
+                new StructuralFieldSymbol("payloadTypes", new ArrayTypeSymbol(PrimitiveTypeSymbol.String), 2, false, true),
+            ]);
 
         private bool TryBindArtifactIntrinsic(SyntaxToken name, IReadOnlyList<BoundTemplateValue> arguments, out BoundTemplateValue? result)
         {
@@ -5485,6 +5560,9 @@ public static class Binder
                 NameExpressionSyntax { IdentifierToken.Text: "None" } n when contextualType is OptionTypeSymbol option =>
                     new BoundEnumValueExpression(option.NoneCase, []),
                 LiteralExpressionSyntax l => BindLiteral(l),
+                StaticExpressionSyntax staticExpression => new BoundStaticExpression(
+                    staticExpression.StaticKeyword,
+                    BindExpression(staticExpression.Expression, contextualType)),
                 TemplateExpressionSyntax template => BindTemplate(template),
                 NameExpressionSyntax n => BindName(n),
                 ParenthesizedExpressionSyntax p => BindExpression(p.Expression, contextualType),
@@ -9489,6 +9567,9 @@ public static class Binder
             private BoundExpression RewriteExpression(BoundExpression expression) => expression switch
             {
                 BoundLiteralExpression literal => new BoundLiteralExpression(literal.Value, SubstituteType(literal.Type, substitutions)),
+                BoundStaticExpression staticExpression => new BoundStaticExpression(
+                    staticExpression.Anchor,
+                    RewriteExpression(staticExpression.Expression)),
                 BoundVariableExpression variable => new BoundVariableExpression(RewriteVariable(variable.Variable)),
                 BoundAssignmentExpression assignment => new BoundAssignmentExpression(RewriteVariable(assignment.Variable), RewriteExpression(assignment.Expression)),
                 BoundUnaryExpression unary => new BoundUnaryExpression(unary.OperatorKind, RewriteExpression(unary.Operand), SubstituteType(unary.Type, substitutions)),

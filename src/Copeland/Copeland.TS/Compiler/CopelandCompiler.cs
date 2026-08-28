@@ -40,6 +40,26 @@ public static class CopelandCompiler
                     effectiveOptions.ProjectTypes,
                     effectiveOptions.SourcePath);
                 diagnostics.AddRange(boundCompilation.Diagnostics);
+                if (boundCompilation.Diagnostics.Count == 0)
+                {
+                    var sourcePaths = new Dictionary<BoundCompilation, string?>
+                    {
+                        [boundCompilation] = effectiveOptions.SourcePath,
+                    };
+                    IReadOnlyList<Diagnostic> staticDiagnostics = StaticEvaluationPass.Evaluate(
+                        [boundCompilation],
+                        sourcePaths: sourcePaths);
+                    if (staticDiagnostics.Count > 0)
+                    {
+                        diagnostics.AddRange(staticDiagnostics);
+                        boundCompilation = new BoundCompilation(
+                            boundCompilation.SyntaxTree,
+                            boundCompilation.Program,
+                            boundCompilation.Diagnostics.Concat(staticDiagnostics).ToArray(),
+                            boundCompilation.ModuleScope,
+                            boundCompilation.TextDocuments);
+                    }
+                }
                 if (boundCompilation.Program.Templates.Count > 0)
                 {
                     if (effectiveOptions.TargetStage >= CopelandCompilationStage.Mir)

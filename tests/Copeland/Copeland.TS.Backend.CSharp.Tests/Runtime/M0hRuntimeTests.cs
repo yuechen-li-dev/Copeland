@@ -86,6 +86,28 @@ public sealed class M0hRuntimeTests
     }
 
     [Fact]
+    public void Executes_an_embedded_static_table_without_runtime_reconstruction()
+    {
+        Assembly assembly = CompileCopelandSource("""
+            function makeSquares(size: int): int[] {
+                const values: MutableArray<int> = MutableArray<int>(size);
+                let index: int = 0;
+                while (index < values.length) {
+                    values[index] = index * index;
+                    index = index + 1;
+                }
+                return values.freeze();
+            }
+            function answer(): int {
+                const values: int[] = static makeSquares(5);
+                return values[4];
+            }
+            """);
+
+        Assert.Equal(16, GeneratedModuleInvoker.Invoke(assembly, "answer"));
+    }
+
+    [Fact]
     public void Executes_explicit_async_state_machine_and_reuses_completed_result()
     {
         var assembly = CompileCopelandSource("""
