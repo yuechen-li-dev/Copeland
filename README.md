@@ -54,6 +54,9 @@ Copeland differs from ordinary TypeScript in intentionally visible ways:
   JavaScript coercion.
 - Records are nominal, immutable, and closed; interfaces are constraints, not
   storage types.
+- `T[]` is immutable source data; `MutableArray<T>` is explicit fixed-length
+  indexed storage and `freeze()` returns an immutable snapshot. See
+  [runtime arrays](docs/Copeland/language/copeland-ts-runtime-arrays.md).
 - npm is available through declared static contracts; CLR APIs use C#-shaped
   `using` directives and direct generated C#.
 

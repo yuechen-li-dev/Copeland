@@ -1255,6 +1255,12 @@ public static class MirLowerer
             BoundArrayLengthExpression length => new MirArrayLengthExpression(LowerExpression(length.Receiver)),
             BoundArrayElementAccessExpression access => new MirArrayElementAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), ToMirType(access.Type)),
             BoundArrayIterableExpression iterable => new MirArrayIterableExpression(LowerExpression(iterable.Receiver), (MirIterableType)ToMirType(iterable.Type)),
+            BoundMutableArrayConstructionExpression construction => new MirMutableArrayConstructionExpression(LowerExpression(construction.Length), (MirMutableArrayType)ToMirType(construction.Type)),
+            BoundMutableArrayLengthExpression length => new MirMutableArrayLengthExpression(LowerExpression(length.Receiver)),
+            BoundMutableArrayElementAccessExpression access => new MirMutableArrayElementAccessExpression(LowerExpression(access.Receiver), LowerExpression(access.Index), ToMirType(access.Type)),
+            BoundMutableArrayElementAssignmentExpression assignment => new MirMutableArrayElementAssignmentExpression(LowerExpression(assignment.Receiver), LowerExpression(assignment.Index), LowerExpression(assignment.Value), ToMirType(assignment.Type)),
+            BoundMutableArrayIterableExpression iterable => new MirMutableArrayIterableExpression(LowerExpression(iterable.Receiver), (MirIterableType)ToMirType(iterable.Type)),
+            BoundMutableArrayFreezeExpression freeze => new MirMutableArrayFreezeExpression(LowerExpression(freeze.Receiver), (MirArrayType)ToMirType(freeze.Type)),
             BoundBatchExpression batch => new MirBatchExpression(
                 LowerExpression(batch.Input),
                 new MirLocal(batch.Item.Name, ToMirType(batch.Item.Type), true),
@@ -1374,6 +1380,7 @@ public static class MirLowerer
     private static MirType ToMirType(TypeSymbol type) => type switch
     {
         ArrayTypeSymbol array => new MirArrayType(ToMirType(array.ElementType)),
+        MutableArrayTypeSymbol array => new MirMutableArrayType(ToMirType(array.ElementType)),
         AsyncTypeSymbol async => new MirAsyncType(ToMirType(async.EventualType)),
         IterableTypeSymbol iterable => new MirIterableType(ToMirType(iterable.ElementType)),
         TableRowsTypeSymbol rows => new MirIterableType(ToMirType(rows.TableType.RowType)),

@@ -662,10 +662,19 @@ public static class CSharpBackend
     private static void EmitArraySupport(CSharpTextWriter writer)
     {
         writer.WriteLine("internal static class CopeArray"); writer.WriteLine("{"); writer.Indent();
+        writer.WriteLine("public static T[] Create<T>(int length)"); writer.WriteLine("{"); writer.Indent();
+        writer.WriteLine("if (length < 0)"); writer.WriteLine("{"); writer.Indent();
+        writer.WriteLine("throw new global::System.ArgumentOutOfRangeException(nameof(length), \"Copeland mutable array length cannot be negative.\");"); writer.Unindent(); writer.WriteLine("}");
+        writer.WriteLine("return new T[length];"); writer.Unindent(); writer.WriteLine("}");
         writer.WriteLine("public static T Get<T>(T[] values, int index)"); writer.WriteLine("{"); writer.Indent();
         writer.WriteLine("if (index < 0 || index >= values.Length)"); writer.WriteLine("{"); writer.Indent();
         writer.WriteLine("throw new global::System.IndexOutOfRangeException(\"Copeland array index is out of bounds.\");"); writer.Unindent(); writer.WriteLine("}");
-        writer.WriteLine("return values[index];"); writer.Unindent(); writer.WriteLine("}"); writer.Unindent(); writer.WriteLine("}"); writer.WriteLine();
+        writer.WriteLine("return values[index];"); writer.Unindent(); writer.WriteLine("}");
+        writer.WriteLine("public static T Set<T>(T[] values, int index, T value)"); writer.WriteLine("{"); writer.Indent();
+        writer.WriteLine("if (index < 0 || index >= values.Length)"); writer.WriteLine("{"); writer.Indent();
+        writer.WriteLine("throw new global::System.IndexOutOfRangeException(\"Copeland array index is out of bounds.\");"); writer.Unindent(); writer.WriteLine("}");
+        writer.WriteLine("values[index] = value;");
+        writer.WriteLine("return value;"); writer.Unindent(); writer.WriteLine("}"); writer.Unindent(); writer.WriteLine("}"); writer.WriteLine();
     }
 
     private static void EmitCallableDelegates(CSharpTextWriter writer, MirProgram program)
@@ -1728,6 +1737,12 @@ public static class CSharpBackend
             MirArrayLengthExpression length => $"{ParenthesizeAssignmentOperand(length.Receiver, EmitExpression(writer, length.Receiver, function, enumNames, ref tempIndex, diagnostics))}.Length",
             MirArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, checked((int){EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)}))",
             MirArrayIterableExpression iterable => EmitExpression(writer, iterable.Receiver, function, enumNames, ref tempIndex, diagnostics),
+            MirMutableArrayConstructionExpression construction => $"CopeArray.Create<{MapType(construction.MutableArrayType.ElementType)}>(checked((int){EmitExpression(writer, construction.Length, function, enumNames, ref tempIndex, diagnostics)}))",
+            MirMutableArrayLengthExpression length => $"{ParenthesizeAssignmentOperand(length.Receiver, EmitExpression(writer, length.Receiver, function, enumNames, ref tempIndex, diagnostics))}.Length",
+            MirMutableArrayElementAccessExpression access => $"CopeArray.Get({EmitExpression(writer, access.Receiver, function, enumNames, ref tempIndex, diagnostics)}, checked((int){EmitExpression(writer, access.Index, function, enumNames, ref tempIndex, diagnostics)}))",
+            MirMutableArrayElementAssignmentExpression assignment => $"CopeArray.Set({EmitExpression(writer, assignment.Receiver, function, enumNames, ref tempIndex, diagnostics)}, checked((int){EmitExpression(writer, assignment.Index, function, enumNames, ref tempIndex, diagnostics)}), {EmitExpression(writer, assignment.Value, function, enumNames, ref tempIndex, diagnostics)})",
+            MirMutableArrayIterableExpression iterable => EmitExpression(writer, iterable.Receiver, function, enumNames, ref tempIndex, diagnostics),
+            MirMutableArrayFreezeExpression freeze => $"({MapType(freeze.ArrayType)}){EmitExpression(writer, freeze.Receiver, function, enumNames, ref tempIndex, diagnostics)}.Clone()",
             MirBatchExpression batch => EmitBatchExpression(writer, batch, function, enumNames, ref tempIndex, diagnostics),
             MirRecordConstructionExpression construction => EmitRecordConstruction(writer, construction, function, enumNames, ref tempIndex, diagnostics),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(writer, access, function, enumNames, ref tempIndex, diagnostics),
@@ -3230,7 +3245,7 @@ public static class CSharpBackend
 
         return arrays;
     }
-    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirType { Identifier: "Document" } => "TextDocument", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
+    private static string MapType(MirType type) => type switch { MirType { Identifier: "int" } => "int", MirType { Identifier: "float" or "number" } => "double", MirType { Identifier: "string" } => "string", MirType { Identifier: "boolean" } => "bool", MirType { Identifier: "void" } => "void", MirType { Identifier: "Document" } => "TextDocument", MirClrType clr => "global::" + clr.MetadataName, MirArrayType array => MapType(array.ElementType) + "[]", MirMutableArrayType array => MapType(array.ElementType) + "[]", MirResultType result => $"CopeResult<{MapResultComponentType(result.SuccessType)}, {MapType(result.ErrorType)}>", MirAsyncType async => $"CopeAsync<{MapValueStorageType(async.EventualType)}>", MirIterableType iterable => $"global::System.Collections.Generic.IEnumerable<{MapValueStorageType(iterable.ElementType)}>", MirCallableType callable => CallableDelegateName(callable), MirRecordType record => RecordTypeName(record.RecordTypeId), MirTableType table => TableTypeName(table.TableId), MirTableRowType row => TableRowTypeName(row.RowTypeId), MirColumnType column => $"CopeColumn<{MapType(column.ElementType)}>", MirType named => CSharpNameMangler.Mangle(named.Identifier), _ => throw new InvalidOperationException("Unknown structured MIR type.") };
 
     private static string EmitTextDocument(
         CSharpTextWriter writer,
@@ -3317,6 +3332,12 @@ public static class CSharpBackend
         => expression switch
         {
             MirArrayElementAccessExpression => true,
+            MirMutableArrayElementAccessExpression => true,
+            MirMutableArrayElementAssignmentExpression => true,
+            MirMutableArrayConstructionExpression => true,
+            MirMutableArrayLengthExpression length => ExpressionUsesArrayElementAccess(length.Receiver),
+            MirMutableArrayIterableExpression iterable => ExpressionUsesArrayElementAccess(iterable.Receiver),
+            MirMutableArrayFreezeExpression freeze => ExpressionUsesArrayElementAccess(freeze.Receiver),
             MirArrayLengthExpression length => ExpressionUsesArrayElementAccess(length.Receiver),
             MirArrayIterableExpression iterable => ExpressionUsesArrayElementAccess(iterable.Receiver),
             MirAssignmentExpression assignment => ExpressionUsesArrayElementAccess(assignment.Expression),

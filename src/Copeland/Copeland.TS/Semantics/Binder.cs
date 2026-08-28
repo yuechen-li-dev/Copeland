@@ -5179,6 +5179,11 @@ public static class Binder
                 elementType = array.ElementType;
                 iterable = new BoundArrayIterableExpression(iterable, new IterableTypeSymbol(array.ElementType));
             }
+            else if (iterable.Type is MutableArrayTypeSymbol mutableArray)
+            {
+                elementType = mutableArray.ElementType;
+                iterable = new BoundMutableArrayIterableExpression(iterable, new IterableTypeSymbol(mutableArray.ElementType));
+            }
             else if (iterable.Type is IterableTypeSymbol sequence)
             {
                 elementType = sequence.ElementType;
@@ -6750,9 +6755,31 @@ public static class Binder
             if (a.Left is IndexExpressionSyntax indexed)
             {
                 var receiver = BindExpression(indexed.Target);
-                _ = BindExpression(indexed.Index);
+                var boundIndex = BindExpression(indexed.Index);
+                if (receiver.Type is MutableArrayTypeSymbol mutableArray)
+                {
+                    if (boundIndex.Type != PrimitiveTypeSymbol.Int)
+                    {
+                        Report("COPE-ARRAY-0002", "Mutable array indexes must have type int.", indexed.OpenBracketToken);
+                        return new BoundErrorExpression();
+                    }
+                    BoundExpression value = BindExpression(a.Right, mutableArray.ElementType);
+                    if (!IsAssignable(mutableArray.ElementType, value.Type))
+                    {
+                        ReportTypeMismatch("COPE-TYPE-0001", mutableArray.ElementType, value.Type, a.EqualsToken);
+                        return new BoundErrorExpression();
+                    }
+                    return new BoundMutableArrayElementAssignmentExpression(receiver, boundIndex, value, mutableArray);
+                }
                 string diagnosticId = receiver.Type is ColumnTypeSymbol ? "COPE-TABLE-0015" : "COPE-TABLE-0016";
-                Report(diagnosticId, "Table columns and table rows are immutable.", a.EqualsToken);
+                string message = receiver.Type is ArrayTypeSymbol
+                    ? "Immutable arrays do not permit indexed assignment. Construct MutableArray<T> for computational storage."
+                    : "Table columns and table rows are immutable.";
+                if (receiver.Type is ArrayTypeSymbol)
+                {
+                    diagnosticId = "COPE-ARRAY-0004";
+                }
+                Report(diagnosticId, message, a.EqualsToken);
                 return new BoundErrorExpression();
             }
             if (a.Left is MemberAccessExpressionSyntax member)
@@ -6919,6 +6946,16 @@ public static class Binder
                         && !_enumTypes.ContainsKey(instanceTargetName.IdentifierToken.Text)))
                 {
                     BoundExpression receiver = BindExpression(instanceMember.Target);
+                    if (receiver.Type is MutableArrayTypeSymbol mutableArray
+                        && instanceMember.NameToken.Text == "freeze")
+                    {
+                        if (c.Arguments.Count != 0)
+                        {
+                            Report("COPE-ARRAY-0007", "MutableArray.freeze() does not accept arguments.", c.OpenParenToken);
+                            return new BoundErrorExpression();
+                        }
+                        return new BoundMutableArrayFreezeExpression(receiver, new ArrayTypeSymbol(mutableArray.ElementType));
+                    }
                     if (receiver.Type is ClrTypeSymbol clrReceiver)
                     {
                         return BindClrMethodCall(c, clrReceiver.RuntimeType, receiver, instanceMember.NameToken);
@@ -8724,6 +8761,33 @@ public static class Binder
 
         private BoundExpression BindGenericCall(GenericCallExpressionSyntax call, TypeSymbol? contextualType)
         {
+            if (call.Target is NameExpressionSyntax { IdentifierToken.Text: "MutableArray" } mutableArrayName)
+            {
+                if (call.TypeArguments.Count != 1 || call.Arguments.Count != 1)
+                {
+                    Report("COPE-ARRAY-0005", "MutableArray<T>(length) expects one element type and one int length.", mutableArrayName.IdentifierToken);
+                    return new BoundErrorExpression();
+                }
+                TypeSymbol elementType = BindType(call.TypeArguments[0], call.LessToken, "COPE-ARRAY-0005", "mutable array element");
+                if (!TypeFacts.IsNumeric(elementType) && elementType != PrimitiveTypeSymbol.Boolean)
+                {
+                    Report("COPE-ARRAY-0008", $"MutableArray<{elementType.Name}> has no null-less default value. M0 fixed-length storage supports int, float/number, and boolean elements.", call.LessToken);
+                    return new BoundErrorExpression();
+                }
+                BoundExpression length = BindExpression(call.Arguments[0], PrimitiveTypeSymbol.Int);
+                if (length.Type != PrimitiveTypeSymbol.Int)
+                {
+                    Report("COPE-ARRAY-0006", "MutableArray length must have type int.", call.OpenParenToken);
+                    return new BoundErrorExpression();
+                }
+                if (length is BoundUnaryExpression { OperatorKind: SyntaxKind.MinusToken }
+                    || length is BoundLiteralExpression { Value: int value } && value < 0)
+                {
+                    Report("COPE-ARRAY-0006", "MutableArray length cannot be negative.", call.OpenParenToken);
+                    return new BoundErrorExpression();
+                }
+                return new BoundMutableArrayConstructionExpression(length, new MutableArrayTypeSymbol(elementType));
+            }
             if (call.Target is NameExpressionSyntax transportName
                 && transportName.IdentifierToken.Text == "tsonCall")
             {
@@ -9072,6 +9136,7 @@ public static class Binder
             {
                 TypeParameterTypeSymbol => true,
                 ArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
+                MutableArrayTypeSymbol array => IsOpenOrIllegalTypeArgument(array.ElementType),
                 ResultTypeSymbol result => IsOpenOrIllegalTypeArgument(result.SuccessType) || IsOpenOrIllegalTypeArgument(result.ErrorType),
                 _ => false
             };
@@ -9169,6 +9234,7 @@ public static class Binder
                 TableRowTypeSymbol row => "row:" + row.StableIdentity,
                 ColumnTypeSymbol column => "column(" + ClosedTypeIdentity(column.ElementType, depthRemaining - 1) + ")",
                 ArrayTypeSymbol array => "array(" + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
+                MutableArrayTypeSymbol array => "mutable-array(" + ClosedTypeIdentity(array.ElementType, depthRemaining - 1) + ")",
                 ResultTypeSymbol result => "result(" + ClosedTypeIdentity(result.SuccessType, depthRemaining - 1) + "," + ClosedTypeIdentity(result.ErrorType, depthRemaining - 1) + ")",
                 CallableTypeSymbol callable => "callable(" + string.Join(",", callable.Parameters.Select(parameter => ClosedTypeIdentity(parameter.Type, depthRemaining - 1))) + ")->" + ClosedTypeIdentity(callable.ReturnType, depthRemaining - 1),
                 _ => "type:" + type.Name
@@ -9328,6 +9394,7 @@ public static class Binder
             return type switch
             {
                 ArrayTypeSymbol array => new ArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
+                MutableArrayTypeSymbol array => new MutableArrayTypeSymbol(SubstituteType(array.ElementType, substitutions)),
                 IterableTypeSymbol iterable => new IterableTypeSymbol(SubstituteType(iterable.ElementType, substitutions)),
                 ResultTypeSymbol result => new ResultTypeSymbol(SubstituteType(result.SuccessType, substitutions), SubstituteType(result.ErrorType, substitutions)),
                 ColumnTypeSymbol column => new ColumnTypeSymbol(SubstituteType(column.ElementType, substitutions)),
@@ -10588,6 +10655,15 @@ public static class Binder
                 Report("COPE-ARRAY-0001", $"Array values support only the 'length' property; '{m.NameToken.Text}' is not available.", m.NameToken);
                 return new BoundErrorExpression();
             }
+            if (receiver.Type is MutableArrayTypeSymbol mutableArray)
+            {
+                if (m.NameToken.Text == "length")
+                {
+                    return new BoundMutableArrayLengthExpression(receiver);
+                }
+                Report("COPE-ARRAY-0001", $"MutableArray values support 'length' and freeze(); '{m.NameToken.Text}' is not available as a property.", m.NameToken);
+                return new BoundErrorExpression();
+            }
             if (receiver.Type is TableTypeSymbol tableType)
             {
                 var column = tableType.Columns.FirstOrDefault(candidate => candidate.Name == m.NameToken.Text);
@@ -10726,6 +10802,15 @@ public static class Binder
                 }
 
                 return new BoundArrayElementAccessExpression(receiver, boundIndex, array);
+            }
+            if (receiver.Type is MutableArrayTypeSymbol mutableArray)
+            {
+                if (boundIndex.Type != PrimitiveTypeSymbol.Int)
+                {
+                    Report("COPE-ARRAY-0002", "Mutable array indexes must have type int.", index.OpenBracketToken);
+                    return new BoundErrorExpression();
+                }
+                return new BoundMutableArrayElementAccessExpression(receiver, boundIndex, mutableArray);
             }
             if (!TypeFacts.IsNumeric(boundIndex.Type))
             {
@@ -10931,7 +11016,9 @@ public static class Binder
                 StructuralObjectTypeSyntax o => BindStructuralObjectType(o, anchor, missingId, missingPrefix),
                 UnionTypeSyntax u => new UnionTypeSymbol([BindType(u.Left, anchor, missingId, missingPrefix), BindType(u.Right, anchor, missingId, missingPrefix)]),
                 IntersectionTypeSyntax i => new IntersectionTypeSymbol([BindType(i.Left, anchor, missingId, missingPrefix), BindType(i.Right, anchor, missingId, missingPrefix)]),
-                GenericTypeSyntax generic => BindStructuralProjection(generic, anchor, missingId, missingPrefix),
+                GenericTypeSyntax generic => generic.Identifier.Text == "MutableArray"
+                    ? BindMutableArrayType(generic, anchor, missingId, missingPrefix)
+                    : BindStructuralProjection(generic, anchor, missingId, missingPrefix),
                 LiteralTypeSyntax literal => ReportInvalidLiteralType(literal.LiteralToken),
                 AsyncTypeSyntax a => new AsyncTypeSymbol(BindType(a.EventualType, anchor, missingId, missingPrefix)),
                 IterableTypeSyntax i => new IterableTypeSymbol(BindType(i.ElementType, anchor, missingId, missingPrefix)),
@@ -10943,6 +11030,16 @@ public static class Binder
                 IdentifierTypeSyntax i => ResolveIdentifierType(i),
                 _ => PrimitiveTypeSymbol.Error
             };
+        }
+
+        private TypeSymbol BindMutableArrayType(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
+        {
+            if (syntax.TypeArguments.Count != 1)
+            {
+                Report("COPE-ARRAY-0005", "MutableArray expects exactly one element type.", syntax.Identifier);
+                return PrimitiveTypeSymbol.Error;
+            }
+            return new MutableArrayTypeSymbol(BindType(syntax.TypeArguments[0], anchor, missingId, missingPrefix));
         }
 
         private TypeSymbol BindStructuralProjection(GenericTypeSyntax syntax, SyntaxToken anchor, string missingId, string missingPrefix)
@@ -11446,6 +11543,7 @@ public static class Binder
         {
             CallableTypeSymbol => true,
             ArrayTypeSymbol array => ContainsCallable(array.ElementType),
+            MutableArrayTypeSymbol array => ContainsCallable(array.ElementType),
             ResultTypeSymbol result => ContainsCallable(result.SuccessType) || ContainsCallable(result.ErrorType),
             ColumnTypeSymbol column => ContainsCallable(column.ElementType),
             _ => false,

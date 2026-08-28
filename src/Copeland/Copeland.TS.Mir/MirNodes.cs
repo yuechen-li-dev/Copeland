@@ -553,6 +553,7 @@ public sealed record MirTableType(MirTableId TableId, string DisplayName) : MirT
 public sealed record MirTableRowType(string RowTypeId, string DisplayName) : MirType(RowTypeId) { public override string Name => DisplayName; }
 public sealed record MirColumnType(MirType ElementType) : MirType("column") { public override string Name => "column " + ElementType.Name; }
 public sealed record MirArrayType(MirType ElementType) : MirType("array") { public override string Name => MirTypeText.FormatArrayElement(ElementType) + "[]"; }
+public sealed record MirMutableArrayType(MirType ElementType) : MirType("mutable-array") { public override string Name => $"MutableArray<{ElementType.Name}>"; }
 public sealed record MirResultType(MirType SuccessType, MirType ErrorType) : MirType("result") { public override string Name => $"{MirTypeText.FormatResultComponent(SuccessType)} ! {ErrorType.Name}"; }
 /// <summary>
 /// A compiler-owned asynchronous computation. This is deliberately not a host
@@ -598,6 +599,7 @@ public static class MirTypeFacts
                 => leftNamed.Identifier == rightNamed.Identifier
                     || (leftNamed.Identifier is "float" or "number" && rightNamed.Identifier is "float" or "number"),
             (MirArrayType leftArray, MirArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
+            (MirMutableArrayType leftArray, MirMutableArrayType rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (MirResultType leftResult, MirResultType rightResult) => AreEquivalent(leftResult.SuccessType, rightResult.SuccessType) && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),
             (MirAsyncType leftAsync, MirAsyncType rightAsync) => AreEquivalent(leftAsync.EventualType, rightAsync.EventualType),
             _ => false
@@ -640,6 +642,12 @@ public sealed record MirArrayExpression(IReadOnlyList<MirExpression> Elements, M
 public sealed record MirArrayLengthExpression(MirExpression Receiver) : MirExpression(new MirNamedType("int"));
 public sealed record MirArrayElementAccessExpression(MirExpression Receiver, MirExpression Index, MirType Type) : MirExpression(Type);
 public sealed record MirArrayIterableExpression(MirExpression Receiver, MirIterableType IterableType) : MirExpression(IterableType);
+public sealed record MirMutableArrayConstructionExpression(MirExpression Length, MirMutableArrayType MutableArrayType) : MirExpression(MutableArrayType);
+public sealed record MirMutableArrayLengthExpression(MirExpression Receiver) : MirExpression(new MirNamedType("int"));
+public sealed record MirMutableArrayElementAccessExpression(MirExpression Receiver, MirExpression Index, MirType Type) : MirExpression(Type);
+public sealed record MirMutableArrayElementAssignmentExpression(MirExpression Receiver, MirExpression Index, MirExpression Value, MirType Type) : MirExpression(Type);
+public sealed record MirMutableArrayIterableExpression(MirExpression Receiver, MirIterableType IterableType) : MirExpression(IterableType);
+public sealed record MirMutableArrayFreezeExpression(MirExpression Receiver, MirArrayType ArrayType) : MirExpression(ArrayType);
 public sealed record MirBatchExpression(
     MirExpression Input,
     MirLocal Item,

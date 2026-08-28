@@ -1726,6 +1726,41 @@ public sealed class BoundArrayIterableExpression(BoundExpression receiver, Itera
     public BoundExpression Receiver { get; } = receiver;
     public override TypeSymbol Type { get; } = type;
 }
+public sealed class BoundMutableArrayConstructionExpression(BoundExpression length, MutableArrayTypeSymbol type) : BoundExpression
+{
+    public BoundExpression Length { get; } = length;
+    public override TypeSymbol Type { get; } = type;
+}
+public sealed class BoundMutableArrayLengthExpression(BoundExpression receiver) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public override TypeSymbol Type => PrimitiveTypeSymbol.Int;
+}
+public sealed class BoundMutableArrayElementAccessExpression(BoundExpression receiver, BoundExpression index, MutableArrayTypeSymbol arrayType) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public BoundExpression Index { get; } = index;
+    public MutableArrayTypeSymbol ArrayType { get; } = arrayType;
+    public override TypeSymbol Type => ArrayType.ElementType;
+}
+public sealed class BoundMutableArrayElementAssignmentExpression(BoundExpression receiver, BoundExpression index, BoundExpression value, MutableArrayTypeSymbol arrayType) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public BoundExpression Index { get; } = index;
+    public BoundExpression Value { get; } = value;
+    public MutableArrayTypeSymbol ArrayType { get; } = arrayType;
+    public override TypeSymbol Type => ArrayType.ElementType;
+}
+public sealed class BoundMutableArrayIterableExpression(BoundExpression receiver, IterableTypeSymbol type) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public override TypeSymbol Type { get; } = type;
+}
+public sealed class BoundMutableArrayFreezeExpression(BoundExpression receiver, ArrayTypeSymbol type) : BoundExpression
+{
+    public BoundExpression Receiver { get; } = receiver;
+    public override TypeSymbol Type { get; } = type;
+}
 public sealed class BoundRecordFieldInitializer(RecordFieldSymbol field, BoundExpression value)
 {
     public RecordFieldSymbol Field { get; } = field;

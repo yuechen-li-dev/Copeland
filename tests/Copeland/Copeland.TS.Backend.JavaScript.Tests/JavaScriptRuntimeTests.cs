@@ -52,6 +52,30 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_executes_mutable_numeric_storage_and_freezes_a_snapshot()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            function main(): int {
+                const values: MutableArray<int> = MutableArray<int>(5);
+                let index: int = 0;
+                while (index < values.length) {
+                    values[index] = index * index;
+                    index = index + 1;
+                }
+                const frozen: int[] = values.freeze();
+                values[2] = 99;
+                return frozen[2] + values[2];
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(emitted.SourceText + "console.log(main());\n");
+
+        Assert.Equal("103\n", result.StdOut);
+        Assert.Contains("Object.freeze", emitted.SourceText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Node_runs_a_lazy_generator_with_aliases_and_delegation()
     {
         JavaScriptCompilation emitted = Emit("""

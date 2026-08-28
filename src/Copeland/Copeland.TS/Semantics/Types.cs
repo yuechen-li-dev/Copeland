@@ -37,6 +37,17 @@ public sealed class ArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
 }
 
 /// <summary>
+/// Explicit mutable, fixed-length computational storage. Unlike <see cref="ArrayTypeSymbol"/>,
+/// this type permits indexed writes and is never produced by an array literal.
+/// </summary>
+public sealed class MutableArrayTypeSymbol(TypeSymbol elementType) : TypeSymbol
+{
+    public TypeSymbol ElementType { get; } = elementType;
+
+    public override string Name => $"MutableArray<{ElementType.Name}>";
+}
+
+/// <summary>
 /// A finite, non-nominal compiler type. It describes data shape only and never
 /// causes a CLR or JavaScript runtime carrier to be emitted.
 /// </summary>
@@ -335,6 +346,7 @@ public static class TypeFacts
             (TableRowsTypeSymbol leftRows, TableRowsTypeSymbol rightRows) => leftRows.TableType.Id == rightRows.TableType.Id,
             (ColumnTypeSymbol leftColumn, ColumnTypeSymbol rightColumn) => AreEquivalent(leftColumn.ElementType, rightColumn.ElementType),
             (ArrayTypeSymbol leftArray, ArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
+            (MutableArrayTypeSymbol leftArray, MutableArrayTypeSymbol rightArray) => AreEquivalent(leftArray.ElementType, rightArray.ElementType),
             (ResultTypeSymbol leftResult, ResultTypeSymbol rightResult) =>
                 AreEquivalent(leftResult.SuccessType, rightResult.SuccessType)
                 && AreEquivalent(leftResult.ErrorType, rightResult.ErrorType),

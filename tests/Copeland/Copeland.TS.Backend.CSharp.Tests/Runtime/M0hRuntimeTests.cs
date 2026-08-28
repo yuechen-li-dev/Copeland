@@ -13,6 +13,26 @@ namespace Copeland.TS.Backend.CSharp.Tests.Runtime;
 public sealed class M0hRuntimeTests
 {
     [Fact]
+    public void Executes_mutable_numeric_storage_and_freezes_a_snapshot()
+    {
+        Assembly assembly = CompileCopelandSource("""
+            function main(): int {
+                const values: MutableArray<int> = MutableArray<int>(5);
+                let index: int = 0;
+                while (index < values.length) {
+                    values[index] = index * index;
+                    index = index + 1;
+                }
+                const frozen: int[] = values.freeze();
+                values[2] = 99;
+                return frozen[2] + values[2];
+            }
+            """);
+
+        Assert.Equal(103, GeneratedModuleInvoker.Invoke(assembly, "main"));
+    }
+
+    [Fact]
     public void Executes_explicit_async_state_machine_and_reuses_completed_result()
     {
         var assembly = CompileCopelandSource("""

@@ -789,6 +789,45 @@ public static class JavaScriptBackend
                     AddInvalid(diagnostics, $"array iterable adaptation in {context} must preserve its array element type");
                 }
                 break;
+            case MirMutableArrayConstructionExpression construction:
+                ValidateExpression(construction.Length, functionReturnType, context, functions, catalog, diagnostics);
+                RequireType(construction.Length.Type, "int", $"mutable array length in {context}", diagnostics);
+                break;
+            case MirMutableArrayLengthExpression length:
+                ValidateExpression(length.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                if (length.Receiver.Type is not MirMutableArrayType) AddInvalid(diagnostics, $"mutable array length receiver in {context} must be a MutableArray");
+                break;
+            case MirMutableArrayElementAccessExpression access:
+                ValidateExpression(access.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(access.Index, functionReturnType, context, functions, catalog, diagnostics);
+                if (access.Receiver.Type is not MirMutableArrayType mutableAccessType) AddInvalid(diagnostics, $"mutable array access receiver in {context} must be a MutableArray");
+                else RequireMatchingType(access.Type, mutableAccessType.ElementType, $"mutable array element in {context}", diagnostics);
+                RequireType(access.Index.Type, "int", $"mutable array index in {context}", diagnostics);
+                break;
+            case MirMutableArrayElementAssignmentExpression assignment:
+                ValidateExpression(assignment.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(assignment.Index, functionReturnType, context, functions, catalog, diagnostics);
+                ValidateExpression(assignment.Value, functionReturnType, context, functions, catalog, diagnostics);
+                if (assignment.Receiver.Type is not MirMutableArrayType assignmentArrayType) AddInvalid(diagnostics, $"mutable array assignment receiver in {context} must be a MutableArray");
+                else RequireMatchingType(assignment.Value.Type, assignmentArrayType.ElementType, $"mutable array assignment value in {context}", diagnostics);
+                RequireType(assignment.Index.Type, "int", $"mutable array assignment index in {context}", diagnostics);
+                break;
+            case MirMutableArrayIterableExpression iterable:
+                ValidateExpression(iterable.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                if (iterable.Receiver.Type is not MirMutableArrayType mutableArrayType
+                    || !MirTypeFacts.AreEquivalent(mutableArrayType.ElementType, iterable.IterableType.ElementType))
+                {
+                    AddInvalid(diagnostics, $"mutable array iterable adaptation in {context} must preserve its element type");
+                }
+                break;
+            case MirMutableArrayFreezeExpression freeze:
+                ValidateExpression(freeze.Receiver, functionReturnType, context, functions, catalog, diagnostics);
+                if (freeze.Receiver.Type is not MirMutableArrayType frozenType
+                    || !MirTypeFacts.AreEquivalent(frozenType.ElementType, freeze.ArrayType.ElementType))
+                {
+                    AddInvalid(diagnostics, $"mutable array freeze in {context} must preserve its element type");
+                }
+                break;
             case MirBatchExpression batch:
                 if (batch.Input.Type is not MirArrayType inputType
                     || !MirTypeFacts.AreEquivalent(inputType.ElementType, batch.Item.Type)
@@ -1214,6 +1253,9 @@ public static class JavaScriptBackend
                 return;
             case MirArrayType array:
                 ValidateValueType(array.ElementType, $"array element type in {context}", catalog, diagnostics, allowVoid: false);
+                return;
+            case MirMutableArrayType array:
+                ValidateValueType(array.ElementType, $"mutable array element type in {context}", catalog, diagnostics, allowVoid: false);
                 return;
             case MirIterableType iterable:
                 ValidateValueType(iterable.ElementType, $"iterable element type in {context}", catalog, diagnostics, allowVoid: false);
@@ -3156,6 +3198,12 @@ public static class JavaScriptBackend
             MirArrayLengthExpression length => EmitArrayLength(length, function, catalog, results, names, flowEnabled),
             MirArrayElementAccessExpression access => EmitArrayElementAccess(access, function, catalog, results, names, flowEnabled),
             MirArrayIterableExpression iterable => EmitExpression(iterable.Receiver, function, catalog, results, names, flowEnabled),
+            MirMutableArrayConstructionExpression construction => EmitMutableArrayConstruction(construction, function, catalog, results, names, flowEnabled),
+            MirMutableArrayLengthExpression length => EmitMutableArrayLength(length, function, catalog, results, names, flowEnabled),
+            MirMutableArrayElementAccessExpression access => EmitMutableArrayElementAccess(access, function, catalog, results, names, flowEnabled),
+            MirMutableArrayElementAssignmentExpression assignment => EmitMutableArrayElementAssignment(assignment, function, catalog, results, names, flowEnabled),
+            MirMutableArrayIterableExpression iterable => EmitExpression(iterable.Receiver, function, catalog, results, names, flowEnabled),
+            MirMutableArrayFreezeExpression freeze => EmitMutableArrayFreeze(freeze, function, catalog, results, names, flowEnabled),
             MirBatchExpression batch => EmitBatchExpression(batch, function, catalog, results, names, flowEnabled),
             MirRecordConstructionExpression construction => EmitRecordConstruction(construction, function, catalog, results, names, flowEnabled),
             MirRecordFieldAccessExpression access => EmitRecordFieldAccess(access, function, catalog, results, names, flowEnabled),
@@ -4250,6 +4298,56 @@ public static class JavaScriptBackend
             names,
             values => "[" + string.Join(", ", values) + "]");
     }
+
+    private static EmittedExpression EmitMutableArrayConstruction(MirMutableArrayConstructionExpression construction, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        EmittedExpression length = EmitExpression(construction.Length, function, catalog, results, names, flowEnabled);
+        string lengthTemporary = names.NextTemporary("array_length");
+        string expression = $"(() => {{ const {lengthTemporary} = {length.Value}; if ({lengthTemporary} < 0) throw new RangeError(\"Copeland mutable array length cannot be negative.\"); return Array({lengthTemporary}).fill({DefaultJavaScriptValue(construction.MutableArrayType.ElementType)}); }})()";
+        return new EmittedExpression(length.Prelude, expression);
+    }
+
+    private static EmittedExpression EmitMutableArrayLength(MirMutableArrayLengthExpression length, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        EmittedExpression receiver = EmitExpression(length.Receiver, function, catalog, results, names, flowEnabled);
+        return new EmittedExpression(receiver.Prelude, $"{receiver.Value}.length");
+    }
+
+    private static EmittedExpression EmitMutableArrayElementAccess(MirMutableArrayElementAccessExpression access, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+        => EmitCheckedMutableArrayOperation(access.Receiver, access.Index, null, function, catalog, results, names, flowEnabled);
+
+    private static EmittedExpression EmitMutableArrayElementAssignment(MirMutableArrayElementAssignmentExpression assignment, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+        => EmitCheckedMutableArrayOperation(assignment.Receiver, assignment.Index, assignment.Value, function, catalog, results, names, flowEnabled);
+
+    private static EmittedExpression EmitCheckedMutableArrayOperation(MirExpression receiverExpression, MirExpression indexExpression, MirExpression? valueExpression, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        EmittedExpression receiver = EmitExpression(receiverExpression, function, catalog, results, names, flowEnabled);
+        EmittedExpression index = EmitExpression(indexExpression, function, catalog, results, names, flowEnabled);
+        EmittedExpression? value = valueExpression is null ? null : EmitExpression(valueExpression, function, catalog, results, names, flowEnabled);
+        var prelude = new List<EmittedLine>(receiver.Prelude);
+        prelude.AddRange(index.Prelude);
+        if (value is not null) prelude.AddRange(value.Prelude);
+        string arrayTemporary = names.NextTemporary("mutable_array");
+        string indexTemporary = names.NextTemporary("array_index");
+        string operation = value is null
+            ? $"return {arrayTemporary}[{indexTemporary}]"
+            : $"{arrayTemporary}[{indexTemporary}] = {value.Value}; return {value.Value}";
+        string expression = $"(() => {{ const {arrayTemporary} = {receiver.Value}; const {indexTemporary} = {index.Value}; if ({indexTemporary} < 0 || {indexTemporary} >= {arrayTemporary}.length) throw new RangeError(\"Copeland array index is out of bounds.\"); {operation}; }})()";
+        return new EmittedExpression(prelude, expression);
+    }
+
+    private static EmittedExpression EmitMutableArrayFreeze(MirMutableArrayFreezeExpression freeze, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
+    {
+        EmittedExpression receiver = EmitExpression(freeze.Receiver, function, catalog, results, names, flowEnabled);
+        return new EmittedExpression(receiver.Prelude, $"Object.freeze({receiver.Value}.slice())");
+    }
+
+    private static string DefaultJavaScriptValue(MirType type) => type.Identifier switch
+    {
+        "int" or "float" or "number" => "0",
+        "boolean" => "false",
+        _ => throw new InvalidOperationException($"MutableArray element type '{type.Name}' has no null-less default value."),
+    };
 
     private static EmittedExpression EmitBatchExpression(
         MirBatchExpression batch,
