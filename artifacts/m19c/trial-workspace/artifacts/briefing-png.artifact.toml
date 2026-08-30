@@ -1,0 +1,8 @@
+format = 1
+kind = "artifact"
+id = "briefing-png"
+label = "M19c human briefing"
+artifact_kind = "png"
+path = "artifacts/m19c-human-briefing.png"
+generated = true
+source_reference = "cards/artifact.card.toml"

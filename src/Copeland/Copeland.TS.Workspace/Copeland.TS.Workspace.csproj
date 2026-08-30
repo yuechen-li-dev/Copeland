@@ -2,10 +2,5 @@
   <PropertyGroup>
     <AssemblyName>Copeland.TS.Workspace</AssemblyName>
     <RootNamespace>Copeland.Cli</RootNamespace>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="../Copeland.Cli/WorkspaceCommand.cs" Link="WorkspaceCommand.cs" />
-  </ItemGroup>
 </Project>

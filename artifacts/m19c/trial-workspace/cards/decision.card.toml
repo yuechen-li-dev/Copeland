@@ -1,0 +1,18 @@
+format = 1
+kind = "card"
+id = "m19c-decision"
+card_kind = "note"
+status = "passing"
+title = "Decision"
+subtitle = "Hybrid: semantic stream plus optional local layout groups"
+tags = ["decision", "architecture", "outcome-a"]
+
+[body]
+format = "plain"
+text = """
+Default to a vertically ordered semantic content stream.
+Keep content identities independent from layout.
+Add local comparison, columns, focus, and grid groups only when the relationship is spatial.
+Materialize runtime Cards from semantic content; keep Page as a durable grouping and navigation concept.
+Do not expose layout rows, tracks, coordinates, or renderer slots in ordinary presentation source.
+"""

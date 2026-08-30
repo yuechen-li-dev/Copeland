@@ -1,0 +1,29 @@
+format = 1
+kind = "card"
+id = "m19c-artifact"
+card_kind = "artifact"
+status = "passing"
+title = "Human-facing proof artifact"
+subtitle = "The briefing PNG is generated through the real Presenter path"
+tags = ["artifact", "png", "provenance"]
+
+[body]
+format = "plain"
+text = """
+PNG has immediate inline presentation pressure because it is already a visual result.
+JSON and source remain inspectable or externally openable until a concrete comparison needs native presentation.
+Semantic-only placeholders should not pretend to have a payload.
+"""
+
+[[artifacts]]
+id = "briefing-png"
+label = "M19c human briefing"
+kind = "png"
+asset = "artifacts/briefing-png.artifact.toml"
+generated = true
+
+[[artifacts]]
+id = "trial-workspace"
+label = "Trial workspace manifest"
+kind = "json"
+asset = "artifacts/trial-workspace.artifact.toml"

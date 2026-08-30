@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "m19c-architecture"
+card_kind = "note"
+status = "passing"
+title = "Architecture and projection"
+subtitle = "Mermaid is durable diagram source in this trial"
+tags = ["diagram", "mermaid", "projection"]
+
+[body]
+format = "copeland-markdown"
+path = "body/architecture.md"

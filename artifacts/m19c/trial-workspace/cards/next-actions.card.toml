@@ -1,0 +1,18 @@
+format = 1
+kind = "card"
+id = "m19c-next-actions"
+card_kind = "status"
+status = "idle"
+title = "Exact next actions"
+subtitle = "A bounded M19d can test the contract without a framework rewrite"
+tags = ["next-actions", "m19d", "prototype"]
+
+[body]
+format = "plain"
+text = """
+1. Add a small semantic PresentationContent union and Presentation record in an Oblivion-facing assembly.
+2. Project content to existing Oblivion cards without changing durable persistence.
+3. Add optional Comparison and Columns layout groups that reference content IDs.
+4. Render Mermaid through an external adapter and retain source plus provenance.
+5. Add native read-only PNG presentation for existing resolved image artifacts.
+"""

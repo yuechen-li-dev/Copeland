@@ -23,6 +23,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <ProjectReference Include="../Copeland.Markdown/Copeland.Markdown.csproj" />
+    <ProjectReference Include="../Copeland.TS.Workspace/Copeland.TS.Workspace.csproj" />
     <ProjectReference Include="../Copeland.TS/Copeland.TS.csproj" />
     <ProjectReference Include="../Copeland.TS.Database/Copeland.TS.Database.csproj" />
     <ProjectReference Include="../Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
