@@ -9,16 +9,9 @@ public sealed record OblivionCardIdentity(
     string? WorkspaceId,
     string? SourcePath);
 
-public enum OblivionCardDiagnosticSeverity
-{
-    Info,
-    Warning,
-    Error,
-}
-
 public sealed record OblivionCardDiagnostic(
     string Code,
-    OblivionCardDiagnosticSeverity Severity,
+    OblivionDiagnosticSeverity Severity,
     string Message,
     string? SourcePath,
     int? Line = null,

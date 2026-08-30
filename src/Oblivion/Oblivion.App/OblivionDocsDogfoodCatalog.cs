@@ -303,7 +303,7 @@ public static class OblivionDocsDogfoodCatalog
         {
             diagnostics.Add(
                 new OblivionWorkspaceDiagnostic(
-                    OblivionWorkspaceDiagnosticSeverity.Warning,
+                    OblivionDiagnosticSeverity.Warning,
                     diagnostic.Id,
                     diagnostic.Message,
                     sourcePath,

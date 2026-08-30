@@ -177,7 +177,7 @@ public static class OblivionWorkbench
         string[] validationErrors = usingFallbackCatalog
             ? []
             : loadResult.Diagnostics
-                .Where(diagnostic => diagnostic.Severity == OblivionWorkspaceDiagnosticSeverity.Error)
+                .Where(diagnostic => diagnostic.Severity == OblivionDiagnosticSeverity.Error)
                 .Select(diagnostic => diagnostic.ToString())
                 .ToArray();
 

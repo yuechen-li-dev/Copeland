@@ -1,4 +1,5 @@
 using System.Text;
+using Oblivion.Model;
 using Tomlyn;
 using Tomlyn.Model;
 using static Oblivion.Persistence.OblivionCardTomlReaderInternal;
@@ -36,7 +37,7 @@ public static class OblivionPageTomlReader
             diagnostics.Add(OblivionWorkspaceValidator.Error("unknown-page-kind", $"Page kind '{kind}' is not supported. Expected '{OblivionWorkspaceValidator.PageKind}'.", sourcePath));
         }
 
-        OblivionPageAssetDocument? document = diagnostics.Any(diagnostic => diagnostic.Severity == OblivionWorkspaceDiagnosticSeverity.Error)
+        OblivionPageAssetDocument? document = diagnostics.Any(diagnostic => diagnostic.Severity == OblivionDiagnosticSeverity.Error)
             ? null
             : new OblivionPageAssetDocument(format, kind, id, title, description, tags);
 
@@ -161,7 +162,7 @@ public static class OblivionCardTomlReader
             }
         }
 
-        OblivionCardAssetDocument? document = diagnostics.Any(diagnostic => diagnostic.Severity == OblivionWorkspaceDiagnosticSeverity.Error)
+        OblivionCardAssetDocument? document = diagnostics.Any(diagnostic => diagnostic.Severity == OblivionDiagnosticSeverity.Error)
             ? null
             : new OblivionCardAssetDocument(
                 format,
@@ -288,7 +289,7 @@ public static class OblivionArtifactTomlReader
             diagnostics.Add(OblivionWorkspaceValidator.Error("unknown-artifact-kind", $"Artifact kind '{kind}' is not supported. Expected '{OblivionWorkspaceValidator.ArtifactKind}'.", sourcePath));
         }
 
-        OblivionArtifactAssetDocument? document = diagnostics.Any(diagnostic => diagnostic.Severity == OblivionWorkspaceDiagnosticSeverity.Error)
+        OblivionArtifactAssetDocument? document = diagnostics.Any(diagnostic => diagnostic.Severity == OblivionDiagnosticSeverity.Error)
             ? null
             : new OblivionArtifactAssetDocument(format, kind, id, label, artifactKind, path, generated);
 

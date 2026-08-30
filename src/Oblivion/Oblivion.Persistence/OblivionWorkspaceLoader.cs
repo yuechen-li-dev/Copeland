@@ -301,7 +301,7 @@ public static class OblivionWorkspaceLoader
             kind,
             path,
             artifactDocument.Generated,
-            SourceReference: artifactSourcePath);
+            sourceReference: artifactSourcePath);
     }
 
     private static string? ResolveAssetPath(

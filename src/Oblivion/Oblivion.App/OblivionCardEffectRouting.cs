@@ -75,7 +75,7 @@ public sealed class OblivionCardEffectRouter
         [
             new OblivionCardDiagnostic(
                 diagnosticCode,
-                OblivionCardDiagnosticSeverity.Info,
+                OblivionDiagnosticSeverity.Info,
                 message,
                 request.Context.SourcePath),
         ];
@@ -84,7 +84,7 @@ public sealed class OblivionCardEffectRouter
             diagnostics.Add(
                 new OblivionCardDiagnostic(
                     "OBLIVION-HOST-CAPABILITY-UNAVAILABLE",
-                    OblivionCardDiagnosticSeverity.Info,
+                    OblivionDiagnosticSeverity.Info,
                     $"Host capability for '{request.GetType().Name}' is unavailable.",
                     request.Context.SourcePath));
         }
@@ -121,7 +121,7 @@ public sealed class OblivionCardEffectRouter
             [
                 new OblivionCardDiagnostic(
                     diagnosticCode,
-                    OblivionCardDiagnosticSeverity.Warning,
+                    OblivionDiagnosticSeverity.Warning,
                     message,
                     request.Context.SourcePath),
             ],

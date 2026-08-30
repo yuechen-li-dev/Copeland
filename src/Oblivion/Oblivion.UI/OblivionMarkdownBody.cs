@@ -97,13 +97,13 @@ public static class OblivionMarkdownBody
             diagnostics);
     }
 
-    private static OblivionCardDiagnosticSeverity ParseSeverity(string severity)
+    private static OblivionDiagnosticSeverity ParseSeverity(string severity)
     {
         return severity.Equals("Error", StringComparison.OrdinalIgnoreCase)
-            ? OblivionCardDiagnosticSeverity.Error
+            ? OblivionDiagnosticSeverity.Error
             : severity.Equals("Warning", StringComparison.OrdinalIgnoreCase)
-                ? OblivionCardDiagnosticSeverity.Warning
-                : OblivionCardDiagnosticSeverity.Info;
+                ? OblivionDiagnosticSeverity.Warning
+                : OblivionDiagnosticSeverity.Info;
     }
 
     private static IReadOnlyList<string> SplitLines(string text)

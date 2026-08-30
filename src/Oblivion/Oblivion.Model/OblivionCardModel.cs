@@ -31,6 +31,19 @@ public sealed record OblivionPageId(string Value);
 public sealed record OblivionCardId(string Value);
 public sealed record OblivionArtifactId(string Value);
 
+public enum OblivionDiagnosticSeverity
+{
+    Info,
+    Warning,
+    Error,
+}
+
+public sealed record OblivionArtifactAddress(
+    OblivionWorkspaceId WorkspaceId,
+    OblivionPageId PageId,
+    OblivionCardId CardId,
+    OblivionArtifactId ArtifactId);
+
 public enum OblivionProvenanceSourceKind
 {
     Unknown,
@@ -81,12 +94,26 @@ public sealed record OblivionCardAction(
 }
 
 public sealed record OblivionCardArtifact(
-    string Id,
+    OblivionArtifactId ArtifactId,
     string Label,
     string Kind,
     string? Reference,
     bool Generated = false,
-    string? SourceReference = null);
+    string? SourceReference = null)
+{
+    public OblivionCardArtifact(
+        string id,
+        string label,
+        string kind,
+        string? reference,
+        bool generated = false,
+        string? sourceReference = null)
+        : this(new OblivionArtifactId(id), label, kind, reference, generated, sourceReference)
+    {
+    }
+
+    public string Id => ArtifactId.Value;
+}
 
 public abstract record OblivionCardContent;
 public sealed record OblivionPlainTextContent(string Text) : OblivionCardContent;

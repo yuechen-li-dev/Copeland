@@ -73,14 +73,8 @@ public sealed record OblivionWorkspaceLocation(
     string RootDirectory,
     string ManifestPath);
 
-public enum OblivionWorkspaceDiagnosticSeverity
-{
-    Error,
-    Warning,
-}
-
 public sealed record OblivionWorkspaceDiagnostic(
-    OblivionWorkspaceDiagnosticSeverity Severity,
+    OblivionDiagnosticSeverity Severity,
     string Code,
     string Message,
     string? SourcePath,
@@ -129,5 +123,5 @@ public sealed record OblivionWorkspaceLoadResult(
 {
     public bool Succeeded =>
         Workspace is not null &&
-        Diagnostics.All(diagnostic => diagnostic.Severity != OblivionWorkspaceDiagnosticSeverity.Error);
+        Diagnostics.All(diagnostic => diagnostic.Severity != OblivionDiagnosticSeverity.Error);
 }

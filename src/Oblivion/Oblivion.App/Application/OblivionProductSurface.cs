@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Oblivion.Model;
 using Oblivion.Persistence;
 using Oblivion.Product;
@@ -7,13 +8,14 @@ namespace Oblivion.App;
 
 public sealed record OblivionProductDiagnostic(
     string Code,
-    string Severity,
+    OblivionDiagnosticSeverity Severity,
     string Message,
     string? WorkspaceId = null,
     string? PageId = null,
     string? CardId = null,
     string? ActionId = null,
     string? EffectKind = null,
+    string? ArtifactId = null,
     string? SourceReference = null,
     int? Line = null,
     int? Column = null);
@@ -63,15 +65,32 @@ public sealed record OblivionProductProvenanceSnapshot(
     string? ParentArtifactId,
     string? ParentCardId);
 
+public sealed record OblivionProductArtifactAddressSnapshot(
+    string WorkspaceId,
+    string PageId,
+    string CardId,
+    string ArtifactId);
+
 public sealed record OblivionProductArtifactSnapshot(
+    OblivionProductArtifactAddressSnapshot Address,
     string Id,
     string CardId,
     string PageId,
+    string WorkspaceId,
     string Label,
     string Kind,
     string? Reference,
+    string? ResolvedPath,
+    bool Exists,
+    bool IsFile,
+    bool IsDirectory,
+    string? Extension,
+    long? ByteLength,
+    string? MediaType,
     bool Generated,
-    string? SourceReference);
+    string? SourceReference,
+    OblivionProductProvenanceSnapshot Provenance,
+    IReadOnlyList<OblivionProductDiagnostic> Diagnostics);
 
 public sealed record OblivionProductDeclaredActionSnapshot(
     string Id,
@@ -140,7 +159,7 @@ public sealed record OblivionProductSurfaceResult<T>(
 {
     public bool Succeeded =>
         Value is not null &&
-        Diagnostics.All(diagnostic => diagnostic.Severity != "error");
+        Diagnostics.All(diagnostic => diagnostic.Severity != OblivionDiagnosticSeverity.Error);
 }
 
 public sealed class OblivionProductSurface
@@ -148,10 +167,16 @@ public sealed class OblivionProductSurface
     public const string SchemaVersion = "oblivion.product.v1";
 
     private readonly OblivionCardHandlerRegistry _handlers;
+    private readonly OblivionArtifactResolver _artifacts;
+    private readonly OblivionLocalHostCapabilities _localHost;
 
-    public OblivionProductSurface(OblivionCardHandlerRegistry? handlers = null)
+    public OblivionProductSurface(
+        OblivionCardHandlerRegistry? handlers = null,
+        OblivionLocalHostCapabilities? localHost = null)
     {
         _handlers = handlers ?? OblivionCardHandlerRegistry.CreateDefault();
+        _artifacts = new OblivionArtifactResolver();
+        _localHost = localHost ?? OblivionLocalHostCapabilities.None;
     }
 
     public OblivionProductSurfaceResult<OblivionProductWorkspaceSnapshot> Inspect(string manifestPath)
@@ -233,7 +258,7 @@ public sealed class OblivionProductSurface
         string cardId)
     {
         OblivionWorkspaceLoadResult loadResult = Load(manifestPath);
-        if (loadResult.Workspace is null)
+        if (loadResult.Workspace is null || loadResult.Location is null)
         {
             return new(null, ConvertWorkspaceDiagnostics(loadResult.Diagnostics, null));
         }
@@ -249,6 +274,14 @@ public sealed class OblivionProductSurface
 
         OblivionWorkspacePage resolvedPage = page!;
         OblivionCard resolvedCard = card!;
+        OblivionResolvedArtifact[] resolvedArtifacts = resolvedCard.Artifacts
+            .Select(artifact => _artifacts.Resolve(
+                loadResult.Workspace,
+                loadResult.Location,
+                resolvedPage,
+                resolvedCard,
+                artifact).Artifact!)
+            .ToArray();
 
         OblivionBuiltCard builtCard = _handlers.BuildCard(
             resolvedCard,
@@ -266,6 +299,7 @@ public sealed class OblivionProductSurface
                 loadResult.Workspace.Id.Value,
                 resolvedPage.Id.Value,
                 resolvedCard.Id.Value)),
+            .. resolvedArtifacts.SelectMany(artifact => artifact.Diagnostics),
         ];
         OblivionProductCardSnapshot snapshot = new(
             resolvedCard.Id.Value,
@@ -292,10 +326,7 @@ public sealed class OblivionProductSurface
                 action.Label,
                 action.Enabled)).ToArray(),
             builtCard.RuntimeModel.Actions.Select(CreateActionSnapshot).ToArray(),
-            resolvedCard.Artifacts.Select(artifact => CreateArtifactSnapshot(
-                resolvedPage.Id.Value,
-                resolvedCard.Id.Value,
-                artifact)).ToArray(),
+            resolvedArtifacts.Select(CreateArtifactSnapshot).ToArray(),
             diagnostics);
         return new(snapshot, diagnostics);
     }
@@ -309,19 +340,67 @@ public sealed class OblivionProductSurface
     }
 
     public OblivionProductSurfaceResult<IReadOnlyList<OblivionProductArtifactSnapshot>> ListArtifacts(
-        string manifestPath)
+        string manifestPath,
+        string? cardId = null)
     {
         OblivionWorkspaceLoadResult loadResult = Load(manifestPath);
-        if (loadResult.Workspace is null)
+        if (loadResult.Workspace is null || loadResult.Location is null)
         {
             return new(null, ConvertWorkspaceDiagnostics(loadResult.Diagnostics, null));
         }
 
-        OblivionProductArtifactSnapshot[] artifacts = loadResult.Workspace.Pages
-            .SelectMany(page => page.Cards.SelectMany(card => card.Artifacts.Select(
-                artifact => CreateArtifactSnapshot(page.Id.Value, card.Id.Value, artifact))))
+        if (cardId is not null && !loadResult.Workspace.Pages
+            .SelectMany(page => page.Cards)
+            .Any(card => card.Id.Value == cardId))
+        {
+            return Failure<IReadOnlyList<OblivionProductArtifactSnapshot>>(
+                "OBLIVION-CARD-NOT-FOUND",
+                $"Card '{cardId}' was not found in workspace '{loadResult.Workspace.Id.Value}'.",
+                loadResult.Workspace.Id.Value,
+                cardId: cardId);
+        }
+
+        OblivionResolvedArtifact[] resolvedArtifacts = loadResult.Workspace.Pages
+            .SelectMany(page => page.Cards
+                .Where(card => cardId is null || card.Id.Value == cardId)
+                .SelectMany(card => card.Artifacts.Select(
+                artifact => _artifacts.Resolve(
+                    loadResult.Workspace,
+                    loadResult.Location,
+                    page,
+                    card,
+                    artifact).Artifact!)))
             .ToArray();
-        return new(artifacts, ConvertWorkspaceDiagnostics(loadResult.Diagnostics, loadResult.Workspace));
+        IReadOnlyList<OblivionProductDiagnostic> diagnostics =
+        [
+            .. ConvertWorkspaceDiagnostics(loadResult.Diagnostics, loadResult.Workspace),
+            .. resolvedArtifacts.SelectMany(artifact => artifact.Diagnostics),
+        ];
+        return new(resolvedArtifacts.Select(CreateArtifactSnapshot).ToArray(), diagnostics);
+    }
+
+    public OblivionProductSurfaceResult<OblivionProductArtifactSnapshot> ShowArtifact(
+        string manifestPath,
+        string cardId,
+        string artifactId)
+    {
+        OblivionWorkspaceLoadResult loadResult = Load(manifestPath);
+        if (loadResult.Workspace is null || loadResult.Location is null)
+        {
+            return new(null, ConvertWorkspaceDiagnostics(loadResult.Diagnostics, loadResult.Workspace));
+        }
+
+        OblivionArtifactResolutionResult resolution = _artifacts.Resolve(
+            loadResult.Workspace,
+            loadResult.Location,
+            cardId,
+            artifactId);
+        if (resolution.Artifact is null)
+        {
+            return new(null, resolution.Diagnostics);
+        }
+
+        return new(CreateArtifactSnapshot(resolution.Artifact), resolution.Diagnostics);
     }
 
     public OblivionProductSurfaceResult<OblivionProductValidationSnapshot> Validate(string manifestPath)
@@ -340,8 +419,8 @@ public sealed class OblivionProductSurface
             loadResult.Succeeded,
             loadResult.Workspace.Pages.Count,
             loadResult.Workspace.Pages.Sum(page => page.Cards.Count),
-            diagnostics.Count(diagnostic => diagnostic.Severity == "error"),
-            diagnostics.Count(diagnostic => diagnostic.Severity == "warning"),
+            diagnostics.Count(diagnostic => diagnostic.Severity == OblivionDiagnosticSeverity.Error),
+            diagnostics.Count(diagnostic => diagnostic.Severity == OblivionDiagnosticSeverity.Warning),
             diagnostics);
         return new(snapshot, diagnostics);
     }
@@ -349,10 +428,11 @@ public sealed class OblivionProductSurface
     public OblivionProductSurfaceResult<OblivionProductInvocationSnapshot> Invoke(
         string manifestPath,
         string cardId,
-        string actionId)
+        string actionId,
+        string? artifactId = null)
     {
         OblivionWorkspaceLoadResult loadResult = Load(manifestPath);
-        if (loadResult.Workspace is null)
+        if (loadResult.Workspace is null || loadResult.Location is null)
         {
             return new(null, ConvertWorkspaceDiagnostics(loadResult.Diagnostics, null));
         }
@@ -387,8 +467,13 @@ public sealed class OblivionProductSurface
                 actionId);
         }
 
-        OblivionHostCapabilities capabilities = new(
-            RefreshContent: request => ReloadWorkspace(manifestPath, request));
+        OblivionHostCapabilities capabilities = CreateEffectCapabilities(
+            manifestPath,
+            loadResult.Workspace,
+            loadResult.Location,
+            resolvedPage,
+            resolvedCard,
+            artifactId);
         OblivionApplication application = new(
             _handlers,
             new OblivionCardEffectRouter(capabilities));
@@ -416,19 +501,10 @@ public sealed class OblivionProductSurface
                 resolvedPage.Id.Value,
                 resolvedCard.Id.Value,
                 actionId,
-                EnumValue(outcome.Request.Kind)))
+                EnumValue(outcome.Request.Kind),
+                artifactId))
             .ToArray();
-        OblivionProductArtifactSnapshot[] artifacts = outcome.Result.Artifacts
-            .Select(artifact => new OblivionProductArtifactSnapshot(
-                artifact.Id,
-                resolvedCard.Id.Value,
-                resolvedPage.Id.Value,
-                artifact.Label,
-                artifact.Kind,
-                artifact.Path,
-                artifact.Generated,
-                null))
-            .ToArray();
+        OblivionProductArtifactSnapshot[] artifacts = [];
         OblivionProductInvocationSnapshot snapshot = new(
             SchemaVersion,
             loadResult.Workspace.Id.Value,
@@ -444,6 +520,254 @@ public sealed class OblivionProductSurface
         return new(snapshot, diagnostics);
     }
 
+    private OblivionHostCapabilities CreateEffectCapabilities(
+        string manifestPath,
+        OblivionWorkspace workspace,
+        OblivionWorkspaceLocation location,
+        OblivionWorkspacePage page,
+        OblivionCard card,
+        string? artifactId)
+    {
+        return new OblivionHostCapabilities(
+            RefreshContent: request => ReloadWorkspace(manifestPath, request),
+            OpenSource: _localHost.OpenPath is null
+                ? null
+                : request => OpenSource(workspace, location, page, card, request),
+            CopySourcePath: _localHost.CopyText is null
+                ? null
+                : request => CopySourcePath(workspace, location, page, card, request),
+            OpenArtifact: _localHost.OpenPath is null
+                ? null
+                : request => OpenArtifact(workspace, location, page, card, artifactId, request));
+    }
+
+    private OblivionEffectResult OpenSource(
+        OblivionWorkspace workspace,
+        OblivionWorkspaceLocation location,
+        OblivionWorkspacePage page,
+        OblivionCard card,
+        OpenSourceEffectRequest request)
+    {
+        string? reference = card.Body.SourceReference ?? card.Provenance.SourceReference;
+        if (!TryResolveExistingFile(
+            workspace,
+            location,
+            page,
+            card,
+            reference,
+            request,
+            out string? path,
+            out OblivionEffectResult? failure))
+        {
+            return failure!;
+        }
+
+        OblivionOpenPathCapabilityRequest hostRequest = new(
+            request.RequestId,
+            workspace.Id.Value,
+            page.Id.Value,
+            card.Id.Value,
+            request.Context.ActionId.Value,
+            request.Kind,
+            OblivionHostPathTargetKind.Source,
+            reference!,
+            path!);
+        return ToEffectResult(request, _localHost.OpenPath!(hostRequest), path!);
+    }
+
+    private OblivionEffectResult CopySourcePath(
+        OblivionWorkspace workspace,
+        OblivionWorkspaceLocation location,
+        OblivionWorkspacePage page,
+        OblivionCard card,
+        CopySourcePathEffectRequest request)
+    {
+        string? reference = card.Body.SourceReference ?? card.Provenance.SourceReference;
+        if (!TryResolveExistingFile(
+            workspace,
+            location,
+            page,
+            card,
+            reference,
+            request,
+            out string? path,
+            out OblivionEffectResult? failure))
+        {
+            return failure!;
+        }
+
+        OblivionCopyTextCapabilityRequest hostRequest = new(
+            request.RequestId,
+            workspace.Id.Value,
+            page.Id.Value,
+            card.Id.Value,
+            request.Context.ActionId.Value,
+            request.Kind,
+            path!,
+            "resolved-source-path");
+        return ToEffectResult(request, _localHost.CopyText!(hostRequest), path!);
+    }
+
+    private OblivionEffectResult OpenArtifact(
+        OblivionWorkspace workspace,
+        OblivionWorkspaceLocation location,
+        OblivionWorkspacePage page,
+        OblivionCard card,
+        string? artifactId,
+        OpenArtifactEffectRequest request)
+    {
+        if (artifactId is null && card.Artifacts.Count != 1)
+        {
+            return Rejected(
+                request,
+                "OBLIVION-ARTIFACT-ID-AMBIGUOUS",
+                $"Card '{card.Id.Value}' has {card.Artifacts.Count} artifacts. Supply an artifact id explicitly.",
+                card.Provenance.SourceReference);
+        }
+
+        string selectedArtifactId = artifactId ?? card.Artifacts[0].Id;
+        OblivionArtifactResolutionResult resolution = _artifacts.Resolve(
+            workspace,
+            location,
+            card.Id.Value,
+            selectedArtifactId);
+        if (!resolution.Succeeded || resolution.Artifact is null)
+        {
+            OblivionProductDiagnostic diagnostic = resolution.Diagnostics.First();
+            return Rejected(
+                request,
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.SourceReference);
+        }
+
+        OblivionResolvedArtifact artifact = resolution.Artifact;
+        if (!artifact.IsFile)
+        {
+            return Rejected(
+                request,
+                artifact.IsDirectory
+                    ? "OBLIVION-ARTIFACT-NOT-A-FILE"
+                    : "OBLIVION-ARTIFACT-NOT-FOUND",
+                artifact.IsDirectory
+                    ? $"Artifact '{selectedArtifactId}' resolves to a directory, not a file."
+                    : $"Artifact '{selectedArtifactId}' does not exist.",
+                artifact.ResolvedPath ?? artifact.DeclaredReference);
+        }
+
+        OblivionOpenPathCapabilityRequest hostRequest = new(
+            request.RequestId,
+            workspace.Id.Value,
+            page.Id.Value,
+            card.Id.Value,
+            request.Context.ActionId.Value,
+            request.Kind,
+            OblivionHostPathTargetKind.Artifact,
+            artifact.DeclaredReference!,
+            artifact.ResolvedPath!,
+            artifact.Address);
+        return ToEffectResult(request, _localHost.OpenPath!(hostRequest), artifact.ResolvedPath!);
+    }
+
+    private static bool TryResolveExistingFile(
+        OblivionWorkspace workspace,
+        OblivionWorkspaceLocation location,
+        OblivionWorkspacePage page,
+        OblivionCard card,
+        string? reference,
+        OblivionEffectRequest request,
+        out string? resolvedPath,
+        out OblivionEffectResult? failure)
+    {
+        resolvedPath = null;
+        failure = null;
+        if (string.IsNullOrWhiteSpace(reference))
+        {
+            failure = Rejected(
+                request,
+                "OBLIVION-SOURCE-NOT-FOUND",
+                $"Card '{card.Id.Value}' has no source reference.",
+                null);
+            return false;
+        }
+
+        if (Path.IsPathRooted(reference))
+        {
+            failure = Rejected(
+                request,
+                "OBLIVION-SOURCE-PATH-UNSAFE",
+                $"Source reference '{reference}' is absolute; source paths must be workspace-relative.",
+                reference);
+            return false;
+        }
+
+        string fullRoot = Path.GetFullPath(location.RootDirectory);
+        string candidate = Path.GetFullPath(Path.Combine(fullRoot, reference));
+        string relative = Path.GetRelativePath(fullRoot, candidate);
+        if (relative == ".." ||
+            relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+            Path.IsPathRooted(relative))
+        {
+            failure = Rejected(
+                request,
+                "OBLIVION-SOURCE-PATH-UNSAFE",
+                $"Source reference '{reference}' escapes workspace '{workspace.Id.Value}'.",
+                reference);
+            return false;
+        }
+
+        if (!File.Exists(candidate))
+        {
+            failure = Rejected(
+                request,
+                "OBLIVION-SOURCE-NOT-FOUND",
+                $"Source '{reference}' for card '{card.Id.Value}' was not found.",
+                candidate);
+            return false;
+        }
+
+        resolvedPath = candidate;
+        return true;
+    }
+
+    private static OblivionEffectResult ToEffectResult(
+        OblivionEffectRequest request,
+        OblivionHostCapabilityResult hostResult,
+        string sourcePath)
+    {
+        if (hostResult.Succeeded)
+        {
+            return new CompletedEffectResult(
+                request.RequestId,
+                request.CardId,
+                request.Kind,
+                hostResult.Message,
+                [],
+                []);
+        }
+
+        return Rejected(
+            request,
+            hostResult.DiagnosticCode ?? "OBLIVION-HOST-CAPABILITY-FAILED",
+            hostResult.Message,
+            sourcePath);
+    }
+
+    private static OblivionEffectResult Rejected(
+        OblivionEffectRequest request,
+        string code,
+        string message,
+        string? sourcePath)
+    {
+        return new RejectedEffectResult(
+            request.RequestId,
+            request.CardId,
+            request.Kind,
+            message,
+            [new OblivionCardDiagnostic(code, OblivionDiagnosticSeverity.Error, message, sourcePath)],
+            []);
+    }
+
     private static OblivionEffectResult ReloadWorkspace(
         string manifestPath,
         RefreshContentEffectRequest request)
@@ -452,9 +776,7 @@ public sealed class OblivionProductSurface
         OblivionCardDiagnostic[] diagnostics = reload.Diagnostics
             .Select(diagnostic => new OblivionCardDiagnostic(
                 diagnostic.Code,
-                diagnostic.Severity == OblivionWorkspaceDiagnosticSeverity.Error
-                    ? OblivionCardDiagnosticSeverity.Error
-                    : OblivionCardDiagnosticSeverity.Warning,
+                diagnostic.Severity,
                 diagnostic.Message,
                 diagnostic.SourcePath,
                 diagnostic.Line,
@@ -529,19 +851,37 @@ public sealed class OblivionProductSurface
     }
 
     private static OblivionProductArtifactSnapshot CreateArtifactSnapshot(
-        string pageId,
-        string cardId,
-        OblivionCardArtifact artifact)
+        OblivionResolvedArtifact artifact)
     {
         return new OblivionProductArtifactSnapshot(
-            artifact.Id,
-            cardId,
-            pageId,
+            new OblivionProductArtifactAddressSnapshot(
+                artifact.Address.WorkspaceId.Value,
+                artifact.Address.PageId.Value,
+                artifact.Address.CardId.Value,
+                artifact.Address.ArtifactId.Value),
+            artifact.Address.ArtifactId.Value,
+            artifact.Address.CardId.Value,
+            artifact.Address.PageId.Value,
+            artifact.Address.WorkspaceId.Value,
             artifact.Label,
             artifact.Kind,
-            artifact.Reference,
+            artifact.DeclaredReference,
+            artifact.ResolvedPath,
+            artifact.Exists,
+            artifact.IsFile,
+            artifact.IsDirectory,
+            artifact.Extension,
+            artifact.ByteLength,
+            artifact.MediaType,
             artifact.Generated,
-            artifact.SourceReference);
+            artifact.DeclarationSourceReference,
+            new OblivionProductProvenanceSnapshot(
+                EnumValue(artifact.Provenance.SourceKind),
+                artifact.Provenance.SourceReference,
+                artifact.Provenance.ProducerActionId,
+                artifact.Provenance.ParentArtifactId?.Value,
+                artifact.Provenance.ParentCardId?.Value),
+            artifact.Diagnostics);
     }
 
     private static bool TryFindCard(
@@ -581,7 +921,7 @@ public sealed class OblivionProductSurface
             (string? pageId, string? cardId) = FindDiagnosticOwner(workspace, diagnostic.SourcePath);
             return new OblivionProductDiagnostic(
                 diagnostic.Code,
-                diagnostic.Severity == OblivionWorkspaceDiagnosticSeverity.Error ? "error" : "warning",
+                diagnostic.Severity,
                 diagnostic.Message,
                 workspace?.Id.Value,
                 pageId,
@@ -630,20 +970,22 @@ public sealed class OblivionProductSurface
         string pageId,
         string cardId,
         string? actionId = null,
-        string? effectKind = null)
+        string? effectKind = null,
+        string? artifactId = null)
     {
         return new OblivionProductDiagnostic(
             diagnostic.Code,
-            EnumValue(diagnostic.Severity),
+            diagnostic.Severity,
             diagnostic.Message,
             workspaceId,
             pageId,
             cardId,
             actionId,
             effectKind,
-            diagnostic.SourcePath,
-            diagnostic.Line,
-            diagnostic.Column);
+            artifactId,
+            SourceReference: diagnostic.SourcePath,
+            Line: diagnostic.Line,
+            Column: diagnostic.Column);
     }
 
     private static OblivionProductSurfaceResult<T> Failure<T>(
@@ -659,7 +1001,7 @@ public sealed class OblivionProductSurface
             default,
             [new OblivionProductDiagnostic(
                 code,
-                "error",
+                OblivionDiagnosticSeverity.Error,
                 message,
                 workspaceId,
                 pageId,
@@ -700,6 +1042,7 @@ public static class OblivionProductJson
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     public static string Serialize<T>(T value)

@@ -192,6 +192,225 @@ public sealed class AppTests
         OblivionProductArtifactSnapshot artifact = Assert.Single(result.Value.Artifacts);
         Assert.Equal("trial-output", artifact.Id);
         Assert.Equal("artifacts/trial.txt", artifact.Reference);
+        Assert.Equal("trial-workspace", artifact.Address.WorkspaceId);
+        Assert.Equal("notes", artifact.Address.PageId);
+        Assert.True(artifact.Exists);
+        Assert.True(artifact.IsFile);
+        Assert.Equal(".txt", artifact.Extension);
+        Assert.Equal("text/plain", artifact.MediaType);
+        Assert.Equal(new FileInfo(Path.Combine(fixture.RootPath, "artifacts", "trial.txt")).Length, artifact.ByteLength);
+    }
+
+    [Fact]
+    public void Same_local_artifact_id_on_different_cards_has_distinct_resolved_addresses()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+
+        OblivionProductSurfaceResult<IReadOnlyList<OblivionProductArtifactSnapshot>> result =
+            new OblivionProductSurface().ListArtifacts(fixture.ManifestPath);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        OblivionProductArtifactSnapshot[] artifacts = result.Value!
+            .Where(artifact => artifact.Id == "trial-output")
+            .ToArray();
+        Assert.Equal(2, artifacts.Length);
+        Assert.Equal(2, artifacts.Select(artifact => artifact.Address).Distinct().Count());
+        Assert.Equal(["evidence-status", "trial-note"], artifacts.Select(artifact => artifact.CardId).Order().ToArray());
+    }
+
+    [Fact]
+    public void Artifact_show_rejects_unknown_owner_and_reports_missing_payload()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+        OblivionProductSurface surface = new();
+
+        OblivionProductSurfaceResult<OblivionProductArtifactSnapshot> missingOwner =
+            surface.ShowArtifact(fixture.ManifestPath, "missing-card", "trial-output");
+        File.Delete(Path.Combine(fixture.RootPath, "artifacts", "trial.txt"));
+        OblivionProductSurfaceResult<OblivionProductArtifactSnapshot> missingPayload =
+            surface.ShowArtifact(fixture.ManifestPath, "trial-note", "trial-output");
+
+        Assert.False(missingOwner.Succeeded);
+        Assert.Equal("OBLIVION-ARTIFACT-OWNER-NOT-FOUND", Assert.Single(missingOwner.Diagnostics).Code);
+        Assert.True(missingPayload.Succeeded);
+        Assert.False(missingPayload.Value!.Exists);
+        Assert.Contains(missingPayload.Diagnostics, diagnostic => diagnostic.Code == "OBLIVION-ARTIFACT-NOT-FOUND");
+    }
+
+    [Fact]
+    public void Resolver_rejects_traversal_and_absolute_artifact_references()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+        OblivionWorkspaceLoadResult load = OblivionWorkspaceApplication.Load(fixture.ManifestPath, useCache: false);
+        OblivionWorkspacePage page = load.Workspace!.Pages[0];
+        OblivionCard card = page.Cards[0];
+        OblivionArtifactResolver resolver = new();
+
+        OblivionArtifactResolutionResult traversal = resolver.Resolve(
+            load.Workspace,
+            load.Location!,
+            page,
+            card,
+            new OblivionCardArtifact("unsafe", "Unsafe", "text", "../outside.txt"));
+        OblivionArtifactResolutionResult absolute = resolver.Resolve(
+            load.Workspace,
+            load.Location!,
+            page,
+            card,
+            new OblivionCardArtifact("absolute", "Absolute", "text", Path.GetFullPath(fixture.BodyPath)));
+
+        Assert.False(traversal.Succeeded);
+        Assert.False(absolute.Succeeded);
+        Assert.All(
+            traversal.Diagnostics.Concat(absolute.Diagnostics),
+            diagnostic => Assert.Equal("OBLIVION-ARTIFACT-PATH-UNSAFE", diagnostic.Code));
+    }
+
+    [Fact]
+    public void Resolver_preserves_generated_card_provenance_and_identifies_directories()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+        OblivionWorkspaceLoadResult load = OblivionWorkspaceApplication.Load(fixture.ManifestPath, useCache: false);
+        OblivionWorkspacePage page = load.Workspace!.Pages[0];
+        OblivionCard sourceCard = page.Cards[0];
+        OblivionCard generatedCard = sourceCard with
+        {
+            Id = new OblivionCardId("generated-card"),
+            Provenance = new OblivionProvenance(
+                OblivionProvenanceSourceKind.Generated,
+                "generation/input.md",
+                "generate-report",
+                new OblivionArtifactId("parent"),
+                new OblivionCardId("parent-card")),
+        };
+
+        OblivionArtifactResolutionResult result = new OblivionArtifactResolver().Resolve(
+            load.Workspace,
+            load.Location!,
+            page,
+            generatedCard,
+            new OblivionCardArtifact("directory", "Artifact directory", "directory", "artifacts", true));
+
+        Assert.True(result.Succeeded);
+        Assert.True(result.Artifact!.Exists);
+        Assert.True(result.Artifact.IsDirectory);
+        Assert.False(result.Artifact.IsFile);
+        Assert.Null(result.Artifact.ByteLength);
+        Assert.Equal(OblivionProvenanceSourceKind.Generated, result.Artifact.Provenance.SourceKind);
+        Assert.Equal("generate-report", result.Artifact.Provenance.ProducerActionId);
+        Assert.Equal("parent", result.Artifact.Provenance.ParentArtifactId!.Value);
+        Assert.Equal("parent-card", result.Artifact.Provenance.ParentCardId!.Value);
+    }
+
+    [Fact]
+    public void Typed_local_host_capabilities_receive_resolved_source_and_artifact_requests()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+        List<OblivionOpenPathCapabilityRequest> opened = [];
+        List<OblivionCopyTextCapabilityRequest> copied = [];
+        OblivionLocalHostCapabilities host = new(
+            OpenPath: request =>
+            {
+                opened.Add(request);
+                return new OblivionHostCapabilityResult(true, "Opened by fake host.");
+            },
+            CopyText: request =>
+            {
+                copied.Add(request);
+                return new OblivionHostCapabilityResult(true, "Copied by fake host.");
+            });
+        OblivionProductSurface surface = new(localHost: host);
+
+        OblivionProductInvocationSnapshot openSource = surface
+            .Invoke(fixture.ManifestPath, "trial-note", "open-source").Value!;
+        OblivionProductInvocationSnapshot copySource = surface
+            .Invoke(fixture.ManifestPath, "trial-note", "copy-source-path").Value!;
+        OblivionProductInvocationSnapshot openArtifact = surface
+            .Invoke(fixture.ManifestPath, "evidence-status", "open-artifact", "trial-output").Value!;
+
+        Assert.Equal("completed", openSource.Status);
+        Assert.Equal("completed", copySource.Status);
+        Assert.Equal("completed", openArtifact.Status);
+        Assert.Equal(2, opened.Count);
+        Assert.Equal(OblivionHostPathTargetKind.Source, opened[0].TargetKind);
+        Assert.Equal(Path.GetFullPath(fixture.BodyPath), opened[0].ResolvedPath);
+        Assert.Equal(OblivionHostPathTargetKind.Artifact, opened[1].TargetKind);
+        Assert.Equal("trial-output", opened[1].ArtifactAddress!.ArtifactId.Value);
+        Assert.Equal(Path.GetFullPath(fixture.BodyPath), copied.Single().Text);
+        Assert.Equal("resolved-source-path", copied.Single().SemanticKind);
+    }
+
+    [Fact]
+    public void Headless_open_source_returns_correlated_capability_diagnostic()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+
+        OblivionProductSurfaceResult<OblivionProductInvocationSnapshot> result =
+            new OblivionProductSurface().Invoke(fixture.ManifestPath, "trial-note", "open-source");
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("deferred", result.Value!.Status);
+        OblivionProductDiagnostic diagnostic = Assert.Single(
+            result.Diagnostics,
+            candidate => candidate.Code == "OBLIVION-HOST-CAPABILITY-UNAVAILABLE");
+        Assert.Equal("trial-workspace", diagnostic.WorkspaceId);
+        Assert.Equal("notes", diagnostic.PageId);
+        Assert.Equal("trial-note", diagnostic.CardId);
+        Assert.Equal("open-source", diagnostic.ActionId);
+        Assert.Equal("openSource", diagnostic.EffectKind);
+    }
+
+    [Fact]
+    public void Open_artifact_rejects_ambiguous_or_missing_target_before_calling_host()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+        int openCount = 0;
+        OblivionLocalHostCapabilities host = new(
+            OpenPath: _ =>
+            {
+                openCount++;
+                return new OblivionHostCapabilityResult(true, "Opened.");
+            });
+        OblivionProductSurface surface = new(localHost: host);
+
+        OblivionProductSurfaceResult<OblivionProductInvocationSnapshot> ambiguous =
+            surface.Invoke(fixture.ManifestPath, "evidence-status", "open-artifact");
+        OblivionProductSurfaceResult<OblivionProductInvocationSnapshot> missing =
+            surface.Invoke(fixture.ManifestPath, "evidence-status", "open-artifact", "missing");
+
+        Assert.False(ambiguous.Succeeded);
+        Assert.Equal("rejected", ambiguous.Value!.Status);
+        Assert.Contains(ambiguous.Diagnostics, diagnostic => diagnostic.Code == "OBLIVION-ARTIFACT-ID-AMBIGUOUS");
+        Assert.False(missing.Succeeded);
+        Assert.Contains(missing.Diagnostics, diagnostic => diagnostic.Code == "OBLIVION-ARTIFACT-NOT-FOUND");
+        Assert.Equal(0, openCount);
+    }
+
+    [Fact]
+    public void Artifact_show_command_emits_stable_machine_readable_address_and_metadata()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+        StringWriter first = new();
+        StringWriter second = new();
+        string[] arguments =
+        [
+            "artifact",
+            "show",
+            "trial-note",
+            "trial-output",
+            "--workspace",
+            fixture.ManifestPath,
+            "--json",
+        ];
+
+        Assert.Equal(0, new OblivionCommandLine(first, TextWriter.Null).Run(arguments));
+        Assert.Equal(0, new OblivionCommandLine(second, TextWriter.Null).Run(arguments));
+        Assert.Equal(first.ToString(), second.ToString());
+        using JsonDocument json = JsonDocument.Parse(first.ToString());
+        Assert.Equal("trial-workspace", json.RootElement.GetProperty("address").GetProperty("workspaceId").GetString());
+        Assert.Equal("trial-output", json.RootElement.GetProperty("address").GetProperty("artifactId").GetString());
+        Assert.True(json.RootElement.GetProperty("exists").GetBoolean());
+        Assert.Equal("text/plain", json.RootElement.GetProperty("mediaType").GetString());
     }
 
     [Fact]
@@ -311,6 +530,7 @@ public sealed class AppTests
                 "oblivion-m19a-product-surface-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(Path.Combine(rootPath, "cards"));
             Directory.CreateDirectory(Path.Combine(rootPath, "body"));
+            Directory.CreateDirectory(Path.Combine(rootPath, "artifacts"));
 
             File.WriteAllText(
                 Path.Combine(rootPath, "workspace.oblivion.json"),
@@ -369,17 +589,34 @@ public sealed class AppTests
                 format = 1
                 kind = "card"
                 id = "evidence-status"
-                card_kind = "status"
+                card_kind = "artifact"
                 status = "passing"
                 title = "Evidence status"
 
                 [body]
                 format = "plain"
                 text = "Evidence collected."
+
+                [[artifacts]]
+                id = "trial-output"
+                label = "Evidence output"
+                kind = "text"
+                path = "artifacts/evidence.txt"
+                generated = true
+
+                [[artifacts]]
+                id = "second-output"
+                label = "Second output"
+                kind = "text"
+                path = "artifacts/second.txt"
+                generated = false
                 """);
             File.WriteAllText(
                 Path.Combine(rootPath, "body", "trial.md"),
                 "# Trial\n\nbefore edit\n");
+            File.WriteAllText(Path.Combine(rootPath, "artifacts", "trial.txt"), "trial artifact\n");
+            File.WriteAllText(Path.Combine(rootPath, "artifacts", "evidence.txt"), "generated evidence\n");
+            File.WriteAllText(Path.Combine(rootPath, "artifacts", "second.txt"), "second artifact\n");
             return new ProductWorkspaceFixture(rootPath);
         }
 

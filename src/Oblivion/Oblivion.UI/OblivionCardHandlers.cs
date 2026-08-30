@@ -58,7 +58,7 @@ public sealed class OblivionCardHandlerRegistry
         OblivionCardContext cardContext = new(
             pageId ?? card.PageId?.Value,
             workspaceId ?? card.WorkspaceId?.Value,
-            card.Provenance.SourceReference,
+            card.Body.SourceReference ?? card.Provenance.SourceReference,
             effectiveEffectState.GetLastRequest(card.Id),
             effectiveEffectState.GetLastResult(card.Id),
             localStateOverride);
@@ -87,11 +87,11 @@ public sealed class OblivionCardHandlerRegistry
             card.Id,
             actionId,
             pageId,
-            card.Provenance.SourceReference);
+            card.Body.SourceReference ?? card.Provenance.SourceReference);
         OblivionCardEffectContext context = new(
             pageId,
             workspaceId ?? card.WorkspaceId?.Value,
-            card.Provenance.SourceReference,
+            card.Body.SourceReference ?? card.Provenance.SourceReference,
             builtCard.RuntimeModel.LocalState);
         return handler.CreateEffectRequest(
             builtCard.RuntimeModel,
@@ -549,10 +549,10 @@ public sealed class OblivionNoteCardHandler : OblivionCardHandlerBase
             new(
                 "refresh-markdown",
                 "Refresh markdown",
-                Enabled: false,
+                Enabled: true,
                 Intent: "Note:refresh-markdown",
                 RequiresEffect: true,
-                Availability: OblivionCardActionAvailability.Deferred,
+                Availability: OblivionCardActionAvailability.Enabled,
                 EffectKind: OblivionCardEffectKind.RefreshMarkdown),
         ];
 
@@ -561,18 +561,18 @@ public sealed class OblivionNoteCardHandler : OblivionCardHandlerBase
             actions.Add(new OblivionCardActionDescriptor(
                 "open-source",
                 "Open source",
-                Enabled: false,
+                Enabled: true,
                 Intent: "Note:open-source",
                 RequiresEffect: true,
-                Availability: OblivionCardActionAvailability.Deferred,
+                Availability: OblivionCardActionAvailability.Enabled,
                 EffectKind: OblivionCardEffectKind.OpenSource));
             actions.Add(new OblivionCardActionDescriptor(
                 "copy-source-path",
                 "Copy source path",
-                Enabled: false,
+                Enabled: true,
                 Intent: "Note:copy-source-path",
                 RequiresEffect: true,
-                Availability: OblivionCardActionAvailability.Deferred,
+                Availability: OblivionCardActionAvailability.Enabled,
                 EffectKind: OblivionCardEffectKind.CopySourcePath));
         }
 
@@ -719,10 +719,10 @@ public sealed class OblivionArtifactCardHandler : OblivionCardHandlerBase
             new OblivionCardActionDescriptor(
                 "open-artifact",
                 "Open artifact",
-                Enabled: false,
+                Enabled: true,
                 Intent: "Artifact:open-artifact",
                 RequiresEffect: true,
-                Availability: OblivionCardActionAvailability.Deferred,
+                Availability: OblivionCardActionAvailability.Enabled,
                 EffectKind: OblivionCardEffectKind.OpenArtifact),
             new OblivionCardActionDescriptor(
                 "export",
@@ -888,7 +888,7 @@ public sealed class OblivionUnknownCardHandler : OblivionCardHandlerBase
         diagnostics.Add(
             new OblivionCardDiagnostic(
                 "M12E-UNKNOWN-KIND",
-                OblivionCardDiagnosticSeverity.Error,
+                OblivionDiagnosticSeverity.Error,
                 $"No handler was registered for card kind '{_requestedKind}'.",
                 card.Provenance.SourceReference));
         return diagnostics;

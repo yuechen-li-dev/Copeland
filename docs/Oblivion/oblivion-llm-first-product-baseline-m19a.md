@@ -4,7 +4,7 @@
 
 Oblivion is a persistent technical-work workspace in which pages partition context and cards bind technical content, actions, artifacts, diagnostics, and provenance. The same semantic model should support a human visual projection and an LLM/code projection. M19a tested this hypothesis against the repository-owned `machina-sample` workspace rather than assuming the M18 extraction made the product usable.
 
-The result is **Outcome B: useful foundation, materially limited external surface**. The card/page model helped once it was exposed semantically. Before M19a, an agent could only discover the full product by reading implementation source and correlating JSON, TOML, Markdown, and handler code. The small product facade and CLI remove that blocking gap. Artifact resolution and host-backed actions remain incomplete.
+The original result was **Outcome B: useful foundation, materially limited external surface**. M19b has now resolved the recorded artifact-identity, artifact-resolution, diagnostic-severity, and local open/copy capability limitations; the M19b artifact resolution and host capability documents define the current contract.
 
 ## Doctrine
 
@@ -30,8 +30,9 @@ pages
 cards [page-id]
 show <card-id>
 actions <card-id>
-artifacts
-invoke <card-id> <action-id>
+artifacts [card-id]
+artifact show <card-id> <artifact-id>
+invoke <card-id> <action-id> [artifact-id]
 validate
 ```
 
@@ -61,7 +62,7 @@ Normal inspection deliberately excludes renderer nodes, row geometry, hit target
 
 Card inspection returns identity, page/workspace ownership, kind, status, title, tags, body format, content kind, full source text, body source reference, card provenance, declared persistence actions, handler-derived available actions, artifacts, and scoped diagnostics.
 
-Available actions are obtained from `OblivionCardHandlerRegistry`. Invocation calls `OblivionApplication.Invoke`, which produces the existing typed `OblivionEffectRequest` and routes it through `OblivionCardEffectRouter`. There is no second action model. The CLI supplies one safe host capability: `refresh-markdown` reloads and validates the workspace without cache. Other existing effects remain discoverable and invokable, but return their typed deferred/capability diagnostic when the host cannot perform them.
+Available actions are obtained from `OblivionCardHandlerRegistry`. Invocation calls `OblivionApplication.Invoke`, which produces the existing typed `OblivionEffectRequest` and routes it through `OblivionCardEffectRouter`. There is no second action model. The CLI now supplies refresh plus the M19b local open/copy adapter. Open/copy targets are resolved and safety-checked in App before the platform host receives typed requests. Headless surfaces retain deterministic capability-unavailable diagnostics.
 
 An action record states:
 

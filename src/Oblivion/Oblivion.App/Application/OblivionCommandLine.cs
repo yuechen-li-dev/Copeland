@@ -1,4 +1,5 @@
 using Oblivion.Persistence;
+using Oblivion.Model;
 
 namespace Oblivion.App;
 
@@ -45,10 +46,23 @@ public sealed class OblivionCommandLine
                 WriteResult(_surface.ShowCard(manifestPath, values[0]), parsed.Json, WriteCardText)),
             "actions" => RequirePositionals(parsed, 1, values =>
                 WriteResult(_surface.ListActions(manifestPath, values[0]), parsed.Json, WriteActionsText)),
-            "artifacts" => WriteResult(_surface.ListArtifacts(manifestPath), parsed.Json, WriteArtifactsText),
+            "artifacts" => WriteResult(
+                _surface.ListArtifacts(manifestPath, parsed.Positionals.FirstOrDefault()),
+                parsed.Json,
+                WriteArtifactsText),
+            "artifact" => RequirePositionals(parsed, 3, values =>
+                values[0] == "show"
+                    ? WriteResult(
+                        _surface.ShowArtifact(manifestPath, values[1], values[2]),
+                        parsed.Json,
+                        WriteArtifactText)
+                    : WriteCommandError(
+                        "OBLIVION-CLI-INVALID-ARGUMENTS",
+                        "Command 'artifact' supports: artifact show <card-id> <artifact-id>.",
+                        parsed.Json)),
             "invoke" => RequirePositionals(parsed, 2, values =>
                 WriteResult(
-                    _surface.Invoke(manifestPath, values[0], values[1]),
+                    _surface.Invoke(manifestPath, values[0], values[1], values.Count > 2 ? values[2] : null),
                     parsed.Json,
                     WriteInvocationText)),
             "validate" => WriteResult(_surface.Validate(manifestPath), parsed.Json, WriteValidationText),
@@ -106,7 +120,7 @@ public sealed class OblivionCommandLine
 
     private int WriteCommandError(string code, string message, bool json)
     {
-        OblivionProductDiagnostic diagnostic = new(code, "error", message);
+        OblivionProductDiagnostic diagnostic = new(code, OblivionDiagnosticSeverity.Error, message);
         if (json)
         {
             _output.WriteLine(OblivionProductJson.Serialize(new
@@ -177,8 +191,38 @@ public sealed class OblivionCommandLine
         foreach (OblivionProductArtifactSnapshot artifact in artifacts)
         {
             _output.WriteLine(
-                $"{artifact.Id}\t{artifact.CardId}\t{artifact.Kind}\t{artifact.Reference ?? "<none>"}\t{artifact.SourceReference ?? "<inline>"}");
+                $"{artifact.WorkspaceId}/{artifact.PageId}/{artifact.CardId}/{artifact.Id}\t{artifact.Kind}\t{ArtifactState(artifact)}\t{artifact.MediaType ?? "unknown"}\t{artifact.Reference ?? "<none>"}");
         }
+    }
+
+    private void WriteArtifactText(OblivionProductArtifactSnapshot artifact)
+    {
+        _output.WriteLine($"address={artifact.WorkspaceId}/{artifact.PageId}/{artifact.CardId}/{artifact.Id}");
+        _output.WriteLine($"label={artifact.Label}");
+        _output.WriteLine($"kind={artifact.Kind}");
+        _output.WriteLine($"reference={artifact.Reference ?? "<none>"}");
+        _output.WriteLine($"resolvedPath={artifact.ResolvedPath ?? "<none>"}");
+        _output.WriteLine($"exists={artifact.Exists.ToString().ToLowerInvariant()}");
+        _output.WriteLine($"payload={artifact.MediaType ?? "unknown"}");
+        _output.WriteLine($"byteLength={artifact.ByteLength?.ToString() ?? "<none>"}");
+        _output.WriteLine($"generated={artifact.Generated.ToString().ToLowerInvariant()}");
+        _output.WriteLine($"source={artifact.Provenance.SourceReference ?? "<none>"}");
+        _output.WriteLine($"producer={artifact.Provenance.ProducerActionId ?? "<none>"}");
+    }
+
+    private static string ArtifactState(OblivionProductArtifactSnapshot artifact)
+    {
+        if (artifact.IsFile)
+        {
+            return "file";
+        }
+
+        if (artifact.IsDirectory)
+        {
+            return "directory";
+        }
+
+        return artifact.ResolvedPath is null ? "unresolved" : "missing";
     }
 
     private void WriteInvocationText(OblivionProductInvocationSnapshot invocation)
@@ -205,8 +249,13 @@ public sealed class OblivionCommandLine
         foreach (OblivionProductDiagnostic diagnostic in diagnostics)
         {
             _error.WriteLine(
-                $"{diagnostic.Severity}:{diagnostic.Code}:workspace={diagnostic.WorkspaceId ?? "<none>"}:page={diagnostic.PageId ?? "<none>"}:card={diagnostic.CardId ?? "<none>"}:source={diagnostic.SourceReference ?? "<none>"}:{diagnostic.Message}");
+                $"{SeverityValue(diagnostic.Severity)}:{diagnostic.Code}:workspace={diagnostic.WorkspaceId ?? "<none>"}:page={diagnostic.PageId ?? "<none>"}:card={diagnostic.CardId ?? "<none>"}:artifact={diagnostic.ArtifactId ?? "<none>"}:action={diagnostic.ActionId ?? "<none>"}:effect={diagnostic.EffectKind ?? "<none>"}:source={diagnostic.SourceReference ?? "<none>"}:{diagnostic.Message}");
         }
+    }
+
+    private static string SeverityValue(OblivionDiagnosticSeverity severity)
+    {
+        return severity.ToString().ToLowerInvariant();
     }
 
     private void WriteHelp()
@@ -219,8 +268,9 @@ public sealed class OblivionCommandLine
         _output.WriteLine("  cards [page-id]         list cards, optionally filtered by page");
         _output.WriteLine("  show <card-id>          show content, provenance, actions, and artifacts");
         _output.WriteLine("  actions <card-id>       list semantic product actions");
-        _output.WriteLine("  artifacts               list artifacts and owning cards");
-        _output.WriteLine("  invoke <card> <action>  invoke through the typed product action path");
+        _output.WriteLine("  artifacts [card-id]     list resolved artifacts, optionally for one card");
+        _output.WriteLine("  artifact show <card> <artifact>  inspect one resolved artifact");
+        _output.WriteLine("  invoke <card> <action> [artifact]  invoke through the typed product action path");
         _output.WriteLine("  validate                reload and validate durable workspace state");
     }
 

@@ -141,7 +141,7 @@ public static class OblivionWorkspaceValidator
     public static OblivionWorkspaceDiagnostic Error(string code, string message, string? sourcePath)
     {
         return new OblivionWorkspaceDiagnostic(
-            OblivionWorkspaceDiagnosticSeverity.Error,
+            OblivionDiagnosticSeverity.Error,
             code,
             message,
             sourcePath);

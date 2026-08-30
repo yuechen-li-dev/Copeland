@@ -1,4 +1,5 @@
 using Oblivion.Product;
+using Oblivion.Model;
 
 namespace Oblivion.App;
 
@@ -10,6 +11,46 @@ public enum OblivionHostCapability
     OpenArtifact,
     ExportCard,
     RenderPreview,
+}
+
+public enum OblivionHostPathTargetKind
+{
+    Source,
+    Artifact,
+}
+
+public sealed record OblivionOpenPathCapabilityRequest(
+    string RequestId,
+    string WorkspaceId,
+    string PageId,
+    string CardId,
+    string ActionId,
+    OblivionCardEffectKind EffectKind,
+    OblivionHostPathTargetKind TargetKind,
+    string DeclaredReference,
+    string ResolvedPath,
+    OblivionArtifactAddress? ArtifactAddress = null);
+
+public sealed record OblivionCopyTextCapabilityRequest(
+    string RequestId,
+    string WorkspaceId,
+    string PageId,
+    string CardId,
+    string ActionId,
+    OblivionCardEffectKind EffectKind,
+    string Text,
+    string SemanticKind);
+
+public sealed record OblivionHostCapabilityResult(
+    bool Succeeded,
+    string Message,
+    string? DiagnosticCode = null);
+
+public sealed record OblivionLocalHostCapabilities(
+    Func<OblivionOpenPathCapabilityRequest, OblivionHostCapabilityResult>? OpenPath = null,
+    Func<OblivionCopyTextCapabilityRequest, OblivionHostCapabilityResult>? CopyText = null)
+{
+    public static OblivionLocalHostCapabilities None { get; } = new();
 }
 
 public sealed record OblivionHostCapabilities(
