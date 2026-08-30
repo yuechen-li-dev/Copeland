@@ -9,6 +9,7 @@ namespace Oblivion.App;
 
 public static class OblivionDocsDogfoodCatalog
 {
+    public const string ProjectionActionId = "oblivion.docs-dogfood.project";
     public const string PageId = "oblivion.docs";
     public const string SectionId = "oblivion";
     public const string WorkspacePageId = "docs";
@@ -201,8 +202,9 @@ public static class OblivionDocsDogfoodCatalog
             Actions: [],
             Artifacts: [],
             Provenance: new OblivionProvenance(
-                OblivionProvenanceSourceKind.WorkspaceAsset,
-                normalizedPath));
+                OblivionProvenanceSourceKind.Generated,
+                normalizedPath,
+                ProducerActionId: ProjectionActionId));
 
         return new DocsDogfoodDocumentRecord(card, normalizedPath, firstHeading, diagnostics);
     }
@@ -228,8 +230,9 @@ public static class OblivionDocsDogfoodCatalog
             Actions: [],
             Artifacts: [],
             Provenance: new OblivionProvenance(
-                OblivionProvenanceSourceKind.WorkspaceAsset,
-                relativePath));
+                OblivionProvenanceSourceKind.Generated,
+                relativePath,
+                ProducerActionId: ProjectionActionId));
 
         return new DocsDogfoodDocumentRecord(card, relativePath, null, diagnostics);
     }
@@ -285,8 +288,9 @@ public static class OblivionDocsDogfoodCatalog
             [],
             [],
             new OblivionProvenance(
-                OblivionProvenanceSourceKind.WorkspaceAsset,
-                "docs/"));
+                OblivionProvenanceSourceKind.Generated,
+                "docs/",
+                ProducerActionId: ProjectionActionId));
     }
 
     private static List<OblivionWorkspaceDiagnostic> CreateMarkdownDiagnostics(

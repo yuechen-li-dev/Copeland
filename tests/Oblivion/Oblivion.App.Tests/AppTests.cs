@@ -1,6 +1,8 @@
 using Oblivion.App;
 using Oblivion.Model;
+using Oblivion.Persistence;
 using Oblivion.Product;
+using System.Text.Json;
 using Xunit;
 
 namespace Oblivion.App.Tests;
@@ -154,6 +156,126 @@ public sealed class AppTests
             result.State.Session.GetSelectedCardId(OblivionWorkbench.CardsPageId, cards));
     }
 
+    [Fact]
+    public void Product_surface_inspects_durable_state_in_declared_order()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+
+        OblivionProductSurfaceResult<OblivionProductWorkspaceSnapshot> result =
+            new OblivionProductSurface().Inspect(fixture.ManifestPath);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal("trial-workspace", result.Value!.Workspace.Id);
+        Assert.Equal(["notes", "evidence"], result.Value.Workspace.Pages.Select(page => page.Id));
+        Assert.Equal(["trial-note", "evidence-status"], result.Value.Cards.Select(card => card.Id));
+        Assert.Equal("notes", result.Value.Session.SelectedPageId);
+        Assert.Null(result.Value.Session.SelectedCardId);
+        Assert.Equal("initial-session-defaults", result.Value.Session.Kind);
+    }
+
+    [Fact]
+    public void Card_inspection_exposes_content_provenance_artifacts_and_runtime_actions()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+
+        OblivionProductSurfaceResult<OblivionProductCardSnapshot> result =
+            new OblivionProductSurface().ShowCard(fixture.ManifestPath, "trial-note");
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Equal("body/trial.md", result.Value!.Body.SourceReference);
+        Assert.Equal("cards/trial.card.toml", result.Value.Provenance.SourceReference);
+        Assert.Equal("markdown-reference", result.Value.Body.ContentKind);
+        Assert.Contains(result.Value.AvailableActions, action =>
+            action.Id == "refresh-markdown" &&
+            action.EffectKind == "refreshMarkdown" &&
+            action.SemanticallyInvokable);
+        OblivionProductArtifactSnapshot artifact = Assert.Single(result.Value.Artifacts);
+        Assert.Equal("trial-output", artifact.Id);
+        Assert.Equal("artifacts/trial.txt", artifact.Reference);
+    }
+
+    [Fact]
+    public void Semantic_refresh_reloads_a_code_first_source_edit()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+        OblivionProductSurface surface = new();
+        Assert.Contains("before edit", surface.ShowCard(fixture.ManifestPath, "trial-note").Value!.Body.Text);
+
+        File.WriteAllText(fixture.BodyPath, "# Trial\n\nafter edit\n");
+        OblivionProductSurfaceResult<OblivionProductInvocationSnapshot> invocation =
+            surface.Invoke(fixture.ManifestPath, "trial-note", "refresh-markdown");
+        OblivionProductSurfaceResult<OblivionProductCardSnapshot> after =
+            surface.ShowCard(fixture.ManifestPath, "trial-note");
+
+        Assert.True(invocation.Succeeded, string.Join(Environment.NewLine, invocation.Diagnostics));
+        Assert.Equal("completed", invocation.Value!.Status);
+        Assert.Equal("refreshMarkdown", invocation.Value.EffectKind);
+        Assert.Contains("after edit", after.Value!.Body.Text);
+    }
+
+    [Fact]
+    public void Invalid_semantic_action_returns_located_recovery_diagnostic()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+
+        OblivionProductSurfaceResult<OblivionProductInvocationSnapshot> result =
+            new OblivionProductSurface().Invoke(fixture.ManifestPath, "trial-note", "missing-action");
+
+        Assert.False(result.Succeeded);
+        OblivionProductDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal("OBLIVION-ACTION-NOT-FOUND", diagnostic.Code);
+        Assert.Equal("trial-workspace", diagnostic.WorkspaceId);
+        Assert.Equal("notes", diagnostic.PageId);
+        Assert.Equal("trial-note", diagnostic.CardId);
+        Assert.Equal("missing-action", diagnostic.ActionId);
+        Assert.Contains("Use 'actions trial-note'", diagnostic.Message);
+    }
+
+    [Fact]
+    public void Command_line_json_is_deterministic_and_machine_readable()
+    {
+        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
+        StringWriter firstOutput = new();
+        StringWriter firstError = new();
+        StringWriter secondOutput = new();
+        string[] arguments = ["inspect", "--workspace", fixture.ManifestPath, "--json"];
+
+        int firstExit = new OblivionCommandLine(firstOutput, firstError).Run(arguments);
+        int secondExit = new OblivionCommandLine(secondOutput, TextWriter.Null).Run(arguments);
+
+        Assert.Equal(0, firstExit);
+        Assert.Equal(0, secondExit);
+        Assert.Equal(firstOutput.ToString(), secondOutput.ToString());
+        Assert.Empty(firstError.ToString());
+        using JsonDocument json = JsonDocument.Parse(firstOutput.ToString());
+        Assert.Equal(
+            "oblivion.product.v1",
+            json.RootElement.GetProperty("schemaVersion").GetString());
+        Assert.Equal(
+            "trial-workspace",
+            json.RootElement.GetProperty("workspace").GetProperty("id").GetString());
+    }
+
+    [Fact]
+    public void Derived_docs_cards_report_projection_provenance()
+    {
+        string manifestPath = OblivionWorkspacePaths.ResolveWorkspaceManifestPath();
+
+        OblivionProductSurfaceResult<OblivionProductCardSnapshot> result =
+            new OblivionProductSurface().ShowCard(
+                manifestPath,
+                "doc-copeland-markdown-frontend-m12a");
+
+        Assert.NotNull(result.Value);
+        Assert.Equal("generated", result.Value.Provenance.SourceKind);
+        Assert.Equal(
+            OblivionDocsDogfoodCatalog.ProjectionActionId,
+            result.Value.Provenance.ProducerActionId);
+        Assert.Equal(
+            "docs/Copeland/history/copeland-markdown-frontend-m12a.md",
+            result.Value.Provenance.SourceReference);
+    }
+
     private static OblivionCard CreateMarkdownCard()
     {
         return new OblivionCard(
@@ -169,5 +291,104 @@ public sealed class AppTests
             new OblivionProvenance(
                 OblivionProvenanceSourceKind.WorkspaceAsset,
                 "note.card.toml"));
+    }
+
+    private sealed class ProductWorkspaceFixture : IDisposable
+    {
+        private ProductWorkspaceFixture(string rootPath)
+        {
+            RootPath = rootPath;
+        }
+
+        public string RootPath { get; }
+        public string ManifestPath => Path.Combine(RootPath, "workspace.oblivion.json");
+        public string BodyPath => Path.Combine(RootPath, "body", "trial.md");
+
+        public static ProductWorkspaceFixture Create()
+        {
+            string rootPath = Path.Combine(
+                Path.GetTempPath(),
+                "oblivion-m19a-product-surface-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(rootPath, "cards"));
+            Directory.CreateDirectory(Path.Combine(rootPath, "body"));
+
+            File.WriteAllText(
+                Path.Combine(rootPath, "workspace.oblivion.json"),
+                """
+                {
+                  "format": 1,
+                  "kind": "oblivion-workspace",
+                  "workspaceId": "trial-workspace",
+                  "title": "M19a Trial Workspace",
+                  "defaultPageId": "notes",
+                  "sections": [
+                    {
+                      "id": "trial",
+                      "title": "Trial",
+                      "pages": [
+                        {
+                          "id": "notes",
+                          "title": "Notes",
+                          "cards": ["cards/trial.card.toml"]
+                        },
+                        {
+                          "id": "evidence",
+                          "title": "Evidence",
+                          "cards": ["cards/evidence.card.toml"]
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """);
+            File.WriteAllText(
+                Path.Combine(rootPath, "cards", "trial.card.toml"),
+                """
+                format = 1
+                kind = "card"
+                id = "trial-note"
+                card_kind = "note"
+                status = "passing"
+                title = "Trial note"
+                tags = ["m19a", "code-first"]
+
+                [body]
+                format = "copeland-markdown"
+                path = "body/trial.md"
+
+                [[artifacts]]
+                id = "trial-output"
+                label = "Trial output"
+                kind = "text"
+                path = "artifacts/trial.txt"
+                generated = false
+                """);
+            File.WriteAllText(
+                Path.Combine(rootPath, "cards", "evidence.card.toml"),
+                """
+                format = 1
+                kind = "card"
+                id = "evidence-status"
+                card_kind = "status"
+                status = "passing"
+                title = "Evidence status"
+
+                [body]
+                format = "plain"
+                text = "Evidence collected."
+                """);
+            File.WriteAllText(
+                Path.Combine(rootPath, "body", "trial.md"),
+                "# Trial\n\nbefore edit\n");
+            return new ProductWorkspaceFixture(rootPath);
+        }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(RootPath))
+            {
+                Directory.Delete(RootPath, recursive: true);
+            }
+        }
     }
 }

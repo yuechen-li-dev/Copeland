@@ -200,7 +200,7 @@ finally
 
 if (-not [string]::IsNullOrWhiteSpace($PlaybackSuite))
 {
-    $suiteReportJson = Join-Path (Split-Path -Parent $resolvedOutputDirectory) "playback-suite-report.json"
+    $suiteReportJson = Join-Path $resolvedOutputDirectory "playback-suite-report.json"
     if (-not (Test-Path -LiteralPath $suiteReportJson))
     {
         throw "Expected presenter playback suite report was not created: $suiteReportJson"

@@ -17,4 +17,4 @@ Oblivion should make those docs readable enough to inspect without pretending th
 2. Paragraphs and lists should be readable with spacing.
 3. Links should show both label and target.
 
-Use the [frontend milestone doc](../../../../docs/Copeland/history/copeland-markdown-frontend-m12a.md) and the [phase closeout note](../../../../docs/Machina.UI/history/machina-oblivion-phase-closeout-m11g.md) as the source material.
+Use the [frontend milestone doc](/docs/Copeland/history/copeland-markdown-frontend-m12a.md) and the [phase closeout note](/docs/Machina.UI/history/machina-oblivion-phase-closeout-m11g.md) as the source material.
