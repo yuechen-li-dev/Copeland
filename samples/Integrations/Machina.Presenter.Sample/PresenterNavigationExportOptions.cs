@@ -10,7 +10,7 @@ public sealed record PresenterNavigationExportOptions(
     double? ExpandedCardBodyScroll = null,
     double? InspectorScroll = null,
     double? InspectorRawSourceScroll = null,
-    PresenterCompactPane? CompactPane = null,
+    OblivionCompactPane? CompactPane = null,
     PresenterShellMode? ShellMode = null,
     int Width = 1120,
     int Height = 760,

@@ -6,10 +6,14 @@ public enum PresenterShellMode
     Compact
 }
 
-public enum PresenterCompactPane
+public static class PresenterShellModeExtensions
 {
-    CardList,
-    Inspector
+    public static OblivionShellMode ToOblivionShellMode(this PresenterShellMode mode)
+    {
+        return mode == PresenterShellMode.Wide
+            ? OblivionShellMode.Wide
+            : OblivionShellMode.Compact;
+    }
 }
 
 public static class PresenterShellModeResolver

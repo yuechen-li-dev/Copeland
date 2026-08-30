@@ -5,20 +5,9 @@ namespace Machina.Presenter.Sample;
 
 public static class PresenterNavigationActions
 {
-    public const string SelectSectionPrefix = "presenter.navigation.select-section|";
-    public const string SelectTabPrefix = "presenter.navigation.select-tab|";
-    public const string SetScrollOffsetPrefix = "presenter.navigation.set-scroll-offset|";
-    public const string SelectOblivionCardPrefix = "presenter.navigation.select-oblivion-card|";
-    public const string ToggleOblivionCardExpansionPrefix = "presenter.navigation.toggle-oblivion-card-expansion|";
-    public const string CollapseOblivionCardPrefix = "presenter.navigation.collapse-oblivion-card|";
-    public const string SetOblivionMainCardStackScrollOffsetPrefix = "presenter.navigation.set-oblivion-main-card-stack-scroll|";
-    public const string SetOblivionCardBodyScrollOffsetPrefix = "presenter.navigation.set-oblivion-card-body-scroll|";
-    public const string SetOblivionInspectorScrollOffsetPrefix = "presenter.navigation.set-oblivion-inspector-scroll|";
-    public const string SetOblivionRawMarkdownSourceScrollOffsetPrefix = "presenter.navigation.set-oblivion-raw-markdown-source-scroll|";
-    public const string SelectCompactOblivionCardPrefix = "presenter.navigation.select-compact-oblivion-card|";
-    public const string ClearOblivionCardSelectionPrefix = "presenter.navigation.clear-oblivion-card-selection|";
-    public const string SetCompactPanePrefix = "presenter.navigation.set-compact-pane|";
-    public const string InvokeOblivionCardActionPrefix = "presenter.navigation.invoke-oblivion-card-action|";
+    private const string SelectSectionPrefix = "presenter.navigation.select-section|";
+    private const string SelectTabPrefix = "presenter.navigation.select-tab|";
+    private const string SetScrollOffsetPrefix = "presenter.navigation.set-scroll-offset|";
 
     public static UiActionId SelectSection(string sectionId)
     {
@@ -34,65 +23,6 @@ public static class PresenterNavigationActions
     {
         string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
         return new UiActionId($"{SetScrollOffsetPrefix}{pageId}|{offsetText}");
-    }
-
-    public static UiActionId SelectOblivionCard(string pageId, string cardId)
-    {
-        return new UiActionId($"{SelectOblivionCardPrefix}{pageId}|{cardId}");
-    }
-
-    public static UiActionId ToggleOblivionCardExpansion(string pageId, string cardId)
-    {
-        return new UiActionId($"{ToggleOblivionCardExpansionPrefix}{pageId}|{cardId}");
-    }
-
-    public static UiActionId CollapseOblivionCard(string pageId, string cardId)
-    {
-        return new UiActionId($"{CollapseOblivionCardPrefix}{pageId}|{cardId}");
-    }
-
-    public static UiActionId SetOblivionMainCardStackScrollOffset(string pageId, double scrollOffset)
-    {
-        string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
-        return new UiActionId($"{SetOblivionMainCardStackScrollOffsetPrefix}{pageId}|{offsetText}");
-    }
-
-    public static UiActionId SetOblivionCardBodyScrollOffset(string pageId, string cardId, double scrollOffset)
-    {
-        string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
-        return new UiActionId($"{SetOblivionCardBodyScrollOffsetPrefix}{pageId}|{cardId}|{offsetText}");
-    }
-
-    public static UiActionId SetOblivionInspectorScrollOffset(string pageId, double scrollOffset)
-    {
-        string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
-        return new UiActionId($"{SetOblivionInspectorScrollOffsetPrefix}{pageId}|{offsetText}");
-    }
-
-    public static UiActionId SetOblivionRawMarkdownSourceScrollOffset(string pageId, string cardId, double scrollOffset)
-    {
-        string offsetText = scrollOffset.ToString("0.###", CultureInfo.InvariantCulture);
-        return new UiActionId($"{SetOblivionRawMarkdownSourceScrollOffsetPrefix}{pageId}|{cardId}|{offsetText}");
-    }
-
-    public static UiActionId SelectCompactOblivionCard(string pageId, string cardId)
-    {
-        return new UiActionId($"{SelectCompactOblivionCardPrefix}{pageId}|{cardId}");
-    }
-
-    public static UiActionId ClearOblivionCardSelection(string pageId)
-    {
-        return new UiActionId($"{ClearOblivionCardSelectionPrefix}{pageId}");
-    }
-
-    public static UiActionId SetCompactPane(PresenterCompactPane compactPane)
-    {
-        return new UiActionId($"{SetCompactPanePrefix}{compactPane}");
-    }
-
-    public static UiActionId InvokeOblivionCardAction(string pageId, string cardId, string actionId)
-    {
-        return new UiActionId($"{InvokeOblivionCardActionPrefix}{pageId}|{cardId}|{actionId}");
     }
 
     public static bool TryParseSelectSection(UiActionId actionId, out string sectionId)
@@ -111,8 +41,7 @@ public static class PresenterNavigationActions
     {
         if (actionId.Value.StartsWith(SelectTabPrefix, StringComparison.Ordinal))
         {
-            string payload = actionId.Value[SelectTabPrefix.Length..];
-            string[] parts = payload.Split('|', StringSplitOptions.None);
+            string[] parts = actionId.Value[SelectTabPrefix.Length..].Split('|', StringSplitOptions.None);
             if (parts.Length == 2)
             {
                 sectionId = parts[0];
@@ -126,249 +55,29 @@ public static class PresenterNavigationActions
         return false;
     }
 
-    public static bool TryParseSetScrollOffset(UiActionId actionId, out string pageId, out double scrollOffset)
+    public static bool TryParseSetScrollOffset(
+        UiActionId actionId,
+        out string pageId,
+        out double scrollOffset)
     {
         if (actionId.Value.StartsWith(SetScrollOffsetPrefix, StringComparison.Ordinal))
         {
             string payload = actionId.Value[SetScrollOffsetPrefix.Length..];
             int separator = payload.LastIndexOf('|');
-            if (separator > 0)
+            if (separator > 0 &&
+                double.TryParse(
+                    payload[(separator + 1)..],
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
+                    out scrollOffset))
             {
                 pageId = payload[..separator];
-                string offsetText = payload[(separator + 1)..];
-                if (double.TryParse(offsetText, CultureInfo.InvariantCulture, out scrollOffset))
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
         pageId = string.Empty;
         scrollOffset = 0;
-        return false;
-    }
-
-    public static bool TryParseSelectOblivionCard(UiActionId actionId, out string pageId, out string cardId)
-    {
-        if (actionId.Value.StartsWith(SelectOblivionCardPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[SelectOblivionCardPrefix.Length..];
-            string[] parts = payload.Split('|', StringSplitOptions.None);
-            if (parts.Length == 2)
-            {
-                pageId = parts[0];
-                cardId = parts[1];
-                return true;
-            }
-        }
-
-        pageId = string.Empty;
-        cardId = string.Empty;
-        return false;
-    }
-
-    public static bool TryParseToggleOblivionCardExpansion(UiActionId actionId, out string pageId, out string cardId)
-    {
-        if (actionId.Value.StartsWith(ToggleOblivionCardExpansionPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[ToggleOblivionCardExpansionPrefix.Length..];
-            string[] parts = payload.Split('|', StringSplitOptions.None);
-            if (parts.Length == 2)
-            {
-                pageId = parts[0];
-                cardId = parts[1];
-                return true;
-            }
-        }
-
-        pageId = string.Empty;
-        cardId = string.Empty;
-        return false;
-    }
-
-    public static bool TryParseCollapseOblivionCard(UiActionId actionId, out string pageId, out string cardId)
-    {
-        if (actionId.Value.StartsWith(CollapseOblivionCardPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[CollapseOblivionCardPrefix.Length..];
-            string[] parts = payload.Split('|', StringSplitOptions.None);
-            if (parts.Length == 2)
-            {
-                pageId = parts[0];
-                cardId = parts[1];
-                return true;
-            }
-        }
-
-        pageId = string.Empty;
-        cardId = string.Empty;
-        return false;
-    }
-
-    public static bool TryParseSetOblivionCardBodyScrollOffset(
-        UiActionId actionId,
-        out string pageId,
-        out string cardId,
-        out double scrollOffset)
-    {
-        if (actionId.Value.StartsWith(SetOblivionCardBodyScrollOffsetPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[SetOblivionCardBodyScrollOffsetPrefix.Length..];
-            string[] parts = payload.Split('|', StringSplitOptions.None);
-            if (parts.Length == 3 &&
-                double.TryParse(parts[2], CultureInfo.InvariantCulture, out scrollOffset))
-            {
-                pageId = parts[0];
-                cardId = parts[1];
-                return true;
-            }
-        }
-
-        pageId = string.Empty;
-        cardId = string.Empty;
-        scrollOffset = 0;
-        return false;
-    }
-
-    public static bool TryParseSetOblivionMainCardStackScrollOffset(
-        UiActionId actionId,
-        out string pageId,
-        out double scrollOffset)
-    {
-        if (actionId.Value.StartsWith(SetOblivionMainCardStackScrollOffsetPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[SetOblivionMainCardStackScrollOffsetPrefix.Length..];
-            int separator = payload.LastIndexOf('|');
-            if (separator > 0)
-            {
-                pageId = payload[..separator];
-                string offsetText = payload[(separator + 1)..];
-                if (double.TryParse(offsetText, CultureInfo.InvariantCulture, out scrollOffset))
-                {
-                    return true;
-                }
-            }
-        }
-
-        pageId = string.Empty;
-        scrollOffset = 0;
-        return false;
-    }
-
-    public static bool TryParseSetOblivionInspectorScrollOffset(
-        UiActionId actionId,
-        out string pageId,
-        out double scrollOffset)
-    {
-        if (actionId.Value.StartsWith(SetOblivionInspectorScrollOffsetPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[SetOblivionInspectorScrollOffsetPrefix.Length..];
-            int separator = payload.LastIndexOf('|');
-            if (separator > 0)
-            {
-                pageId = payload[..separator];
-                string offsetText = payload[(separator + 1)..];
-                if (double.TryParse(offsetText, CultureInfo.InvariantCulture, out scrollOffset))
-                {
-                    return true;
-                }
-            }
-        }
-
-        pageId = string.Empty;
-        scrollOffset = 0;
-        return false;
-    }
-
-    public static bool TryParseSetOblivionRawMarkdownSourceScrollOffset(
-        UiActionId actionId,
-        out string pageId,
-        out string cardId,
-        out double scrollOffset)
-    {
-        if (actionId.Value.StartsWith(SetOblivionRawMarkdownSourceScrollOffsetPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[SetOblivionRawMarkdownSourceScrollOffsetPrefix.Length..];
-            string[] parts = payload.Split('|', StringSplitOptions.None);
-            if (parts.Length == 3 &&
-                double.TryParse(parts[2], CultureInfo.InvariantCulture, out scrollOffset))
-            {
-                pageId = parts[0];
-                cardId = parts[1];
-                return true;
-            }
-        }
-
-        pageId = string.Empty;
-        cardId = string.Empty;
-        scrollOffset = 0;
-        return false;
-    }
-
-    public static bool TryParseSelectCompactOblivionCard(UiActionId actionId, out string pageId, out string cardId)
-    {
-        if (actionId.Value.StartsWith(SelectCompactOblivionCardPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[SelectCompactOblivionCardPrefix.Length..];
-            string[] parts = payload.Split('|', StringSplitOptions.None);
-            if (parts.Length == 2)
-            {
-                pageId = parts[0];
-                cardId = parts[1];
-                return true;
-            }
-        }
-
-        pageId = string.Empty;
-        cardId = string.Empty;
-        return false;
-    }
-
-    public static bool TryParseClearOblivionCardSelection(UiActionId actionId, out string pageId)
-    {
-        if (actionId.Value.StartsWith(ClearOblivionCardSelectionPrefix, StringComparison.Ordinal))
-        {
-            pageId = actionId.Value[ClearOblivionCardSelectionPrefix.Length..];
-            return true;
-        }
-
-        pageId = string.Empty;
-        return false;
-    }
-
-    public static bool TryParseSetCompactPane(UiActionId actionId, out PresenterCompactPane compactPane)
-    {
-        if (actionId.Value.StartsWith(SetCompactPanePrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[SetCompactPanePrefix.Length..];
-            if (Enum.TryParse(payload, ignoreCase: false, out compactPane))
-            {
-                return true;
-            }
-        }
-
-        compactPane = PresenterCompactPane.CardList;
-        return false;
-    }
-
-    public static bool TryParseInvokeOblivionCardAction(UiActionId actionId, out string pageId, out string cardId, out string actionName)
-    {
-        if (actionId.Value.StartsWith(InvokeOblivionCardActionPrefix, StringComparison.Ordinal))
-        {
-            string payload = actionId.Value[InvokeOblivionCardActionPrefix.Length..];
-            string[] parts = payload.Split('|', StringSplitOptions.None);
-            if (parts.Length == 3)
-            {
-                pageId = parts[0];
-                cardId = parts[1];
-                actionName = parts[2];
-                return true;
-            }
-        }
-
-        pageId = string.Empty;
-        cardId = string.Empty;
-        actionName = string.Empty;
         return false;
     }
 }

@@ -151,8 +151,8 @@ public static class PresenterNavigationHitTesting
 public sealed record PresenterNavigationInputRoutingResult(
     PresenterNavigationHitTarget HitTarget,
     UiActionId? ActionId,
-    PresenterScrollbarInteractionState InteractionState,
-    PresenterPointerCaptureRequest PointerCaptureRequest,
+    ScrollbarInteractionState InteractionState,
+    PointerCaptureRequest PointerCaptureRequest,
     bool SuppressFurtherRouting,
     bool InputConsumed = false,
     OblivionInteractionHitResult? ContentHitResult = null);
@@ -165,17 +165,17 @@ public static class PresenterNavigationInputRouter
         PresenterNavigationShellRenderResult render,
         UiInputEvent inputEvent)
     {
-        return Route(render, inputEvent, PresenterScrollbarInteractionState.Default);
+        return Route(render, inputEvent, ScrollbarInteractionState.Default);
     }
 
     public static PresenterNavigationInputRoutingResult Route(
         PresenterNavigationShellRenderResult render,
         UiInputEvent inputEvent,
-        PresenterScrollbarInteractionState? interactionState)
+        ScrollbarInteractionState? interactionState)
     {
         ArgumentNullException.ThrowIfNull(render);
 
-        PresenterScrollbarInteractionState effectiveInteractionState = interactionState ?? PresenterScrollbarInteractionState.Default;
+        ScrollbarInteractionState effectiveInteractionState = interactionState ?? ScrollbarInteractionState.Default;
 
         if (inputEvent is UiKeyChanged or UiTextEntered)
         {
@@ -220,19 +220,17 @@ public static class PresenterNavigationInputRouter
             : default;
         PresenterNavigationHitTarget hitTarget = PresenterNavigationHitTesting.HitTest(render.ChromeGeometry, hitTestPosition);
         var context = new PresenterScrollbarInteractionContext(
-            new PresenterScrollbarTarget(
-                PresenterScrollbarTargetKind.Page,
-                render.SelectedTab.PageId),
+            new PresenterScrollbarTarget(render.SelectedTab.PageId),
             render.ScrollbarGeometry,
             render.Layout.ViewportHeight);
-        PresenterScrollbarHitPart scrollbarHitPart = hitTarget.Kind switch
+        ScrollbarHitPart scrollbarHitPart = hitTarget.Kind switch
         {
-            PresenterNavigationHitKind.ContentViewport => PresenterScrollbarHitPart.Viewport,
-            PresenterNavigationHitKind.ScrollbarTrack => PresenterScrollbarHitPart.Track,
-            PresenterNavigationHitKind.ScrollbarThumb => PresenterScrollbarHitPart.Thumb,
-            _ => PresenterScrollbarHitPart.None,
+            PresenterNavigationHitKind.ContentViewport => ScrollbarHitPart.Viewport,
+            PresenterNavigationHitKind.ScrollbarTrack => ScrollbarHitPart.Track,
+            PresenterNavigationHitKind.ScrollbarThumb => ScrollbarHitPart.Thumb,
+            _ => ScrollbarHitPart.None,
         };
-        PresenterScrollbarInteractionResult interaction = PresenterScrollbarInteractionStateMachine.Reduce(
+        PresenterScrollbarInteractionResult interaction = PresenterScrollbarInteraction.Reduce(
             effectiveInteractionState,
             context,
             scrollbarHitPart,

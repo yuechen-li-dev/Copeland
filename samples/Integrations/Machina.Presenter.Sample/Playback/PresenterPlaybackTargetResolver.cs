@@ -14,15 +14,15 @@ public static class PresenterPlaybackTargetResolver
 
         return target switch
         {
-            "main-stack" => ResolveScrollRegion(render, PresenterScrollbarTargetKind.OblivionMainCardStack, cardId, target),
+            "main-stack" => ResolveScrollRegion(render, OblivionScrollTargetKind.MainCardStack, cardId, target),
             "card-header" => ResolveCardHeader(render, cardId),
-            "expanded-body" => ResolveScrollRegion(render, PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody, cardId, target),
-            "inspector-pane" => ResolveScrollRegion(render, PresenterScrollbarTargetKind.OblivionInspectorPane, cardId, target),
-            "raw-source" => ResolveScrollRegion(render, PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource, cardId, target),
-            "main-stack-scrollbar-thumb" => ResolveScrollbarThumb(render, PresenterScrollbarTargetKind.OblivionMainCardStack, cardId, target),
-            "expanded-body-scrollbar-thumb" => ResolveScrollbarThumb(render, PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody, cardId, target),
-            "inspector-scrollbar-thumb" => ResolveScrollbarThumb(render, PresenterScrollbarTargetKind.OblivionInspectorPane, cardId, target),
-            "raw-source-scrollbar-thumb" => ResolveScrollbarThumb(render, PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource, cardId, target),
+            "expanded-body" => ResolveScrollRegion(render, OblivionScrollTargetKind.ExpandedMarkdownBody, cardId, target),
+            "inspector-pane" => ResolveScrollRegion(render, OblivionScrollTargetKind.InspectorPane, cardId, target),
+            "raw-source" => ResolveScrollRegion(render, OblivionScrollTargetKind.InspectorRawMarkdownSource, cardId, target),
+            "main-stack-scrollbar-thumb" => ResolveScrollbarThumb(render, OblivionScrollTargetKind.MainCardStack, cardId, target),
+            "expanded-body-scrollbar-thumb" => ResolveScrollbarThumb(render, OblivionScrollTargetKind.ExpandedMarkdownBody, cardId, target),
+            "inspector-scrollbar-thumb" => ResolveScrollbarThumb(render, OblivionScrollTargetKind.InspectorPane, cardId, target),
+            "raw-source-scrollbar-thumb" => ResolveScrollbarThumb(render, OblivionScrollTargetKind.InspectorRawMarkdownSource, cardId, target),
             _ => throw new InvalidOperationException($"Playback target '{target}' is not supported."),
         };
     }
@@ -50,7 +50,7 @@ public static class PresenterPlaybackTargetResolver
 
     private static PresenterPlaybackResolvedTarget ResolveScrollRegion(
         PresenterNavigationShellRenderResult render,
-        PresenterScrollbarTargetKind kind,
+        OblivionScrollTargetKind kind,
         string? cardId,
         string targetName)
     {
@@ -77,7 +77,7 @@ public static class PresenterPlaybackTargetResolver
 
     private static PresenterPlaybackResolvedTarget ResolveScrollbarThumb(
         PresenterNavigationShellRenderResult render,
-        PresenterScrollbarTargetKind kind,
+        OblivionScrollTargetKind kind,
         string? cardId,
         string targetName)
     {
@@ -101,11 +101,11 @@ public static class PresenterPlaybackTargetResolver
 
     private static OblivionScrollRegionTarget FindScrollRegion(
         PresenterNavigationShellRenderResult render,
-        PresenterScrollbarTargetKind kind,
+        OblivionScrollTargetKind kind,
         string? cardId,
         string targetName)
     {
-        string? resolvedCardId = kind is PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody or PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource
+        string? resolvedCardId = kind is OblivionScrollTargetKind.ExpandedMarkdownBody or OblivionScrollTargetKind.InspectorRawMarkdownSource
             ? ResolveRequiredCardId(render, cardId, targetName)
             : cardId;
 
@@ -132,7 +132,7 @@ public static class PresenterPlaybackTargetResolver
             throw new InvalidOperationException($"Playback target '{targetName}' requires an Oblivion page.");
         }
 
-        IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, render.ProofOptions);
+        IReadOnlyList<OblivionCard> cards = OblivionWorkbench.GetPageCardsForSelection(pageId, render.ProofOptions);
         return render.NavigationState.GetSelectedCardId(pageId, cards)
             ?? throw new InvalidOperationException($"Playback target '{targetName}' requires a selected card.");
     }
@@ -158,16 +158,16 @@ public static class PresenterPlaybackTargetResolver
 
     private static Rect TranslateScrollRegionToRoot(
         PresenterNavigationShellRenderResult render,
-        PresenterScrollbarTarget target,
+        OblivionScrollTarget target,
         Rect rect)
     {
         double translatedY = rect.Y;
-        if (target.Kind == PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody)
+        if (target.Kind == OblivionScrollTargetKind.ExpandedMarkdownBody)
         {
             translatedY -= render.NavigationState.GetScrollOffset(render.SelectedTab.PageId);
         }
 
-        if (target.Kind == PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource)
+        if (target.Kind == OblivionScrollTargetKind.InspectorRawMarkdownSource)
         {
             translatedY -= render.NavigationState.GetInspectorScrollOffset(render.SelectedTab.PageId);
         }
@@ -181,7 +181,7 @@ public static class PresenterPlaybackTargetResolver
 
     private static ScrollbarGeometry TranslateScrollbarGeometryToRoot(
         PresenterNavigationShellRenderResult render,
-        PresenterScrollbarTarget target,
+        OblivionScrollTarget target,
         ScrollbarGeometry geometry)
     {
         return new ScrollbarGeometry(
@@ -210,28 +210,26 @@ public static class PresenterPlaybackTargetResolver
         return new Rect(x, y, width, height);
     }
 
-    private static string BuildRegionKind(PresenterScrollbarTargetKind kind)
+    private static string BuildRegionKind(OblivionScrollTargetKind kind)
     {
         return kind switch
         {
-            PresenterScrollbarTargetKind.OblivionMainCardStack => "oblivion-main-card-stack",
-            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody => "oblivion-expanded-markdown-body",
-            PresenterScrollbarTargetKind.OblivionInspectorPane => "oblivion-inspector-pane",
-            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource => "oblivion-inspector-raw-markdown-source",
-            PresenterScrollbarTargetKind.Page => "page",
+            OblivionScrollTargetKind.MainCardStack => "oblivion-main-card-stack",
+            OblivionScrollTargetKind.ExpandedMarkdownBody => "oblivion-expanded-markdown-body",
+            OblivionScrollTargetKind.InspectorPane => "oblivion-inspector-pane",
+            OblivionScrollTargetKind.InspectorRawMarkdownSource => "oblivion-inspector-raw-markdown-source",
             _ => "unknown",
         };
     }
 
-    private static string BuildRegionId(PresenterScrollbarTarget target)
+    private static string BuildRegionId(OblivionScrollTarget target)
     {
         return target.Kind switch
         {
-            PresenterScrollbarTargetKind.OblivionMainCardStack => $"{target.PageId}.main-stack",
-            PresenterScrollbarTargetKind.OblivionExpandedMarkdownBody => $"{target.PageId}.{target.CardId}.expanded-body",
-            PresenterScrollbarTargetKind.OblivionInspectorPane => $"{target.PageId}.inspector-pane",
-            PresenterScrollbarTargetKind.OblivionInspectorRawMarkdownSource => $"{target.PageId}.{target.CardId}.raw-source",
-            PresenterScrollbarTargetKind.Page => $"{target.PageId}.page",
+            OblivionScrollTargetKind.MainCardStack => $"{target.PageId}.main-stack",
+            OblivionScrollTargetKind.ExpandedMarkdownBody => $"{target.PageId}.{target.CardId}.expanded-body",
+            OblivionScrollTargetKind.InspectorPane => $"{target.PageId}.inspector-pane",
+            OblivionScrollTargetKind.InspectorRawMarkdownSource => $"{target.PageId}.{target.CardId}.raw-source",
             _ => $"{target.PageId}.unknown",
         };
     }

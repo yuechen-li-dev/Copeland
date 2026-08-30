@@ -53,7 +53,7 @@ public static class OblivionCardRenderer
     private static readonly ColorToken PreviewFrameBackground = ColorToken.Hex(0x0B1220FF);
     private static readonly ColorToken PreviewFrameBorder = ColorToken.Hex(0x334155FF);
     private static readonly ColorToken PreviewBodyForeground = ColorToken.Hex(0xCBD5E1FF);
-    private static readonly PresenterCardTextLayout BodyTextLayout = new(
+    private static readonly CardTextLayout BodyTextLayout = new(
         LineHeight: 16,
         LineGap: 6);
     public static OblivionMarkdownReadingStyle MarkdownReadingStyle { get; } = OblivionMarkdownReadingStyle.Default;
@@ -70,7 +70,7 @@ public static class OblivionCardRenderer
 
         StandardCardStyle cardStyle = theme.Card.Default;
         OblivionCardCompositionModel composition = BuildCompositionModel(view, options);
-        PresenterCardLayout layout = ComputeLayout(view, options, cardStyle, composition.ComputeHeaderHeight(options));
+        CardLayout layout = ComputeLayout(view, options, cardStyle, composition.ComputeHeaderHeight(options));
         double contentWidth = layout.InnerWidth;
 
         UiNode cardLayout = UI.VStack(
@@ -111,9 +111,9 @@ public static class OblivionCardRenderer
                 ]));
     }
 
-    public static PresenterCardFrame DescribeFrame(ResolvedLayoutDocument resolved, string cardId)
+    public static CardFrame DescribeFrame(ResolvedLayoutDocument resolved, string cardId)
     {
-        return PresenterCard.DescribeFrame(resolved, cardId);
+        return StandardCard.DescribeFrame(resolved, cardId);
     }
 
     public static double ComputeBodyTop(OblivionCompactCardView view, OblivionCardRenderOptions options)
@@ -143,7 +143,7 @@ public static class OblivionCardRenderer
             ? Math.Max(120, bounds.Width - 8 - 8)
             : bounds.Width;
         double contentHeight = OblivionMarkdownRenderer.MeasureExpandedContentHeight(markdownBody.Body, contentWidth);
-        ScrollbarGeometry scrollbarGeometry = PresenterScrollRegion.ComputeScrollbarGeometry(
+        ScrollbarGeometry scrollbarGeometry = ScrollRegion.ComputeScrollbarGeometry(
             new Rect(contentWidth + 8, 0, 8, bounds.Height),
             contentHeight,
             bounds.Height,
@@ -152,7 +152,7 @@ public static class OblivionCardRenderer
         return new OblivionExpandedBodyViewport(bounds, contentHeight, scrollbarGeometry);
     }
 
-    public static PresenterCardLayout ComputeLayout(
+    public static CardLayout ComputeLayout(
         OblivionCompactCardView view,
         OblivionCardRenderOptions options,
         StandardCardStyle cardStyle,
@@ -164,7 +164,7 @@ public static class OblivionCardRenderer
 
         double footerHeight = BuildCompositionModel(view, options).Footer.ComputeRequiredHeight(options);
 
-        return PresenterCardLayoutHelper.ComputeLayout(
+        return CardLayoutHelper.ComputeLayout(
             options.Width,
             options.Height,
             cardStyle.ContentInset,
@@ -172,7 +172,7 @@ public static class OblivionCardRenderer
             footerHeight);
     }
 
-    public static PresenterCardLayout ComputeLayout(
+    public static CardLayout ComputeLayout(
         OblivionCard card,
         OblivionCardRenderOptions options,
         StandardCardStyle cardStyle,
@@ -182,7 +182,7 @@ public static class OblivionCardRenderer
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(cardStyle);
 
-        return PresenterCardLayoutHelper.ComputeLayout(
+        return CardLayoutHelper.ComputeLayout(
             options.Width,
             options.Height,
             cardStyle.ContentInset,
@@ -193,7 +193,7 @@ public static class OblivionCardRenderer
         OblivionCompactCardView view,
         StandardTheme theme,
         OblivionCardRenderOptions options,
-        PresenterCardLayout layout,
+        CardLayout layout,
         OblivionCardFooterModel footer)
     {
         if (view.IsExpanded && view.Body is OblivionCompactMarkdownBodyContent expandedMarkdownBody)
@@ -294,7 +294,7 @@ public static class OblivionCardRenderer
         OblivionCardBody body,
         StandardTheme theme,
         OblivionCardRenderOptions options,
-        PresenterCardLayout layout,
+        CardLayout layout,
         OblivionCardFooterModel footer)
     {
         string summary = !string.IsNullOrWhiteSpace(view.SummaryLine)
@@ -315,7 +315,7 @@ public static class OblivionCardRenderer
         OblivionCompactCardView view,
         StandardTheme theme,
         OblivionCardRenderOptions options,
-        PresenterCardLayout layout,
+        CardLayout layout,
         OblivionCardFooterModel footer)
     {
         IReadOnlyList<string> lines = view.Body is OblivionCompactPlainBodyContent plainBody
@@ -336,7 +336,7 @@ public static class OblivionCardRenderer
         IReadOnlyList<string> visibleLines,
         StandardTheme theme,
         OblivionCardRenderOptions options,
-        PresenterCardLayout layout,
+        CardLayout layout,
         OblivionCardFooterModel footer,
         bool highlightFirstLine)
     {
@@ -372,7 +372,7 @@ public static class OblivionCardRenderer
     private static UiNode BuildExpandedMarkdownBody(
         OblivionCompactCardView view,
         OblivionCardBody body,
-        PresenterCardLayout layout)
+        CardLayout layout)
     {
         double viewportHeight = Math.Max(120, layout.BodyHeight);
         OblivionMarkdownRenderer.OblivionExpandedMarkdownBodyRenderResult bodyRender = OblivionMarkdownRenderer.BuildExpandedBody(
@@ -443,7 +443,7 @@ public static class OblivionCardRenderer
             AlignX: TextAlignX.Left,
             AlignY: TextAlignY.Top);
 
-        return PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+        return CardLayoutHelper.WrapOrClipLinesToFit(
             lines,
             width,
             height,

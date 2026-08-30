@@ -31,7 +31,7 @@ public static class OblivionMarkdownRenderer
     private static readonly ColorToken PreviewFrameBorder = ColorToken.Hex(0x334155FF);
     private static readonly ColorToken PreviewForeground = ColorToken.Hex(0xE2E8F0FF);
     private static readonly ColorToken PreviewMutedForeground = ColorToken.Hex(0xCBD5E1FF);
-    private static readonly PresenterCardTextLayout PreviewTextLayout = new(
+    private static readonly CardTextLayout PreviewTextLayout = new(
         LineHeight: PreviewLineHeight,
         LineGap: PreviewGap);
     private static readonly ConcurrentDictionary<string, IReadOnlyList<string>> RawMarkdownSourceLinesCache = new(StringComparer.Ordinal);
@@ -68,7 +68,7 @@ public static class OblivionMarkdownRenderer
         List<UiNode> children = [];
         double currentTop = 0;
         int renderedLineCount = 0;
-        int maxLineCount = PresenterCardLayoutHelper.ComputeLineCapacity(height, PreviewTextLayout);
+        int maxLineCount = CardLayoutHelper.ComputeLineCapacity(height, PreviewTextLayout);
 
         foreach (MarkdownPreviewEntry entry in BuildPreviewEntries(projection.Document, projection.Diagnostics))
         {
@@ -138,7 +138,7 @@ public static class OblivionMarkdownRenderer
             ? Math.Max(120, width - ExpandedScrollbarWidth - ExpandedScrollbarGap)
             : width;
         double contentHeight = MeasureExpandedContentHeight(body, contentWidth);
-        ScrollbarGeometry scrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+        ScrollbarGeometry scrollbar = ScrollRegion.ComputeScrollbarGeometry(
             new Machina.Layout.Geometry.Rect(
                 contentWidth + ExpandedScrollbarGap,
                 0,
@@ -154,11 +154,11 @@ public static class OblivionMarkdownRenderer
         if (projection.Document is null)
         {
             double currentTop = -scrollOffset;
-            IReadOnlyList<string> wrappedLines = PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+            IReadOnlyList<string> wrappedLines = CardLayoutHelper.WrapOrClipLinesToFit(
                 projection.Preview.Count == 0 ? ["<empty markdown body>"] : projection.Preview,
                 contentWidth,
                 Math.Max(contentHeight, viewportHeight) + scrollOffset + 64,
-                new PresenterCardTextLayout(style.BodyLineHeight, style.BodyLineGap),
+                new CardTextLayout(style.BodyLineHeight, style.BodyLineGap),
                 new TextStyle(
                     Color: style.Foreground,
                     Size: TextSize.Sm,
@@ -260,7 +260,7 @@ public static class OblivionMarkdownRenderer
 
         IReadOnlyList<string> sourceLines = GetOrBuildRawMarkdownSourceLines(body);
         double contentHeight = MeasureSourceContentHeight(sourceLines, style);
-        ScrollbarGeometry scrollbar = PresenterScrollRegion.ComputeScrollbarGeometry(
+        ScrollbarGeometry scrollbar = ScrollRegion.ComputeScrollbarGeometry(
             new Machina.Layout.Geometry.Rect(
                 Math.Max(0, width - ExpandedScrollbarWidth),
                 0,
@@ -439,7 +439,7 @@ public static class OblivionMarkdownRenderer
     {
         List<UiNode> children = [];
         double currentTop = 0;
-        IReadOnlyList<string> visibleLines = PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+        IReadOnlyList<string> visibleLines = CardLayoutHelper.WrapOrClipLinesToFit(
             lines,
             width,
             height,
@@ -500,7 +500,7 @@ public static class OblivionMarkdownRenderer
         }
 
         double entryHeight = (entryLineLimit * PreviewLineHeight) + (Math.Max(0, entryLineLimit - 1) * PreviewGap);
-        return PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+        return CardLayoutHelper.WrapOrClipLinesToFit(
             [entry.Text],
             width,
             entryHeight,
@@ -839,11 +839,11 @@ public static class OblivionMarkdownRenderer
 
     private static double MeasureWrappedPlainTextHeight(IReadOnlyList<string> lines, double width)
     {
-        IReadOnlyList<string> wrappedLines = PresenterCardLayoutHelper.WrapOrClipLinesToFit(
+        IReadOnlyList<string> wrappedLines = CardLayoutHelper.WrapOrClipLinesToFit(
             lines,
             width,
             4096,
-            new PresenterCardTextLayout(ExpandedPlainLineHeight, ExpandedPlainLineGap),
+            new CardTextLayout(ExpandedPlainLineHeight, ExpandedPlainLineGap),
             new TextStyle(
                 Color: PreviewForeground,
                 Size: TextSize.Sm,
@@ -916,10 +916,10 @@ public static class OblivionMarkdownRenderer
                     Size: TextSize.Sm,
                     AlignX: TextAlignX.Left,
                     AlignY: TextAlignY.Top);
-                PresenterCardTextLayout sourceLayout = new(style.SourceLineHeight, style.SourceLineGap);
+                CardTextLayout sourceLayout = new(style.SourceLineHeight, style.SourceLineGap);
                 string[] clippedLines = sourceLines
                     .Select(sourceLine =>
-                        PresenterCardLayoutHelper.ClipLinesToFit(
+                        CardLayoutHelper.ClipLinesToFit(
                             [sourceLine],
                             contentWidth,
                             style.SourceLineHeight,

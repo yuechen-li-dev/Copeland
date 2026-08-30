@@ -16,7 +16,7 @@ workflow.
 
 ## Oblivion and Machina
 
-Oblivion is a first-class persistent technical-work product under `src/Oblivion`, with independent Model, Persistence, UI, and App projects plus focused tests in `tests/Oblivion`. `Machina.Presenter.Sample` is its development host and playback oracle; Oblivion does not depend on Presenter. See [the M18c extraction record](docs/Oblivion/oblivion-first-class-extraction-m18c.md) and [project boundaries](docs/Oblivion/oblivion-project-boundaries-m18c.md).
+Oblivion is a first-class persistent technical-work product under `src/Oblivion`, with independent Model, Persistence, UI, and App projects plus focused tests in `tests/Oblivion`. `Machina.Presenter.Sample` is its development host and playback oracle; it forwards generic host input and owns no Oblivion interaction or effect semantics. See [the M18c extraction record](docs/Oblivion/oblivion-first-class-extraction-m18c.md), [the M18d host-adapter closeout](docs/Oblivion/oblivion-host-adapter-elimination-m18d.md), and [typed action/effect boundary](docs/Oblivion/oblivion-action-effect-boundary-m18d.md).
 
 ## Install, create, open, run
 

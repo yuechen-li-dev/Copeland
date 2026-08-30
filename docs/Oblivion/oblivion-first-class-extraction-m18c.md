@@ -79,6 +79,9 @@ Format-1 property names and TOML spellings are unchanged. JSON and TOML writers 
 
 The canonical 14-scenario playback suite passes after extraction. The standalone app loads the same workspace and composes docs dogfood without Presenter.
 
-## Deferred work
+## M18d closure
 
-M18d should eliminate `PresenterOblivionHostAdapter`: move product page composition and interaction maps into Oblivion.UI/App, keep only surface-size/navigation translation in Presenter, and replace compatibility string/property-bag action requests with explicit typed variants. This is the sole known pre-M18d compatibility seam; it does not create Oblivion-to-Presenter dependency.
+M18d deleted the bounded Presenter host adapter and interaction companion. Page
+composition is now Oblivion.App-owned, interaction mapping is Oblivion.UI-owned,
+generic input/scroll mechanics are Machina-owned, and product actions/effects
+cross typed contracts. The M18 extraction arc is closed as Outcome A.

@@ -49,12 +49,12 @@ public sealed class OblivionCardHandlerRegistry
         OblivionCard card,
         string? pageId = null,
         string? workspaceId = null,
-        OblivionCardEffectState? effectState = null,
+        OblivionEffectState? effectState = null,
         OblivionCardLocalState? localStateOverride = null)
     {
         ArgumentNullException.ThrowIfNull(card);
 
-        OblivionCardEffectState effectiveEffectState = effectState ?? OblivionCardEffectState.Empty;
+        OblivionEffectState effectiveEffectState = effectState ?? OblivionEffectState.Empty;
         OblivionCardContext cardContext = new(
             pageId ?? card.PageId?.Value,
             workspaceId ?? card.WorkspaceId?.Value,
@@ -70,12 +70,12 @@ public sealed class OblivionCardHandlerRegistry
         return new OblivionBuiltCard(card, model, compactView, inspectorView);
     }
 
-    public OblivionCardEffectRequest? CreateEffectRequest(
+    public OblivionEffectRequest? CreateEffectRequest(
         OblivionCard card,
         string pageId,
         string actionId,
         string? workspaceId = null,
-        OblivionCardEffectState? effectState = null)
+        OblivionEffectState? effectState = null)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentException.ThrowIfNullOrWhiteSpace(pageId);
@@ -158,7 +158,7 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
             .ToArray();
     }
 
-    public virtual OblivionCardEffectRequest? CreateEffectRequest(
+    public virtual OblivionEffectRequest? CreateEffectRequest(
         OblivionCardRuntimeModel model,
         OblivionCardActionInvocation invocation,
         OblivionCardEffectContext context)
@@ -168,18 +168,31 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
         ArgumentNullException.ThrowIfNull(context);
 
         OblivionCardActionDescriptor? action = model.Actions.FirstOrDefault(candidate =>
-            string.Equals(candidate.Id, invocation.ActionId, StringComparison.Ordinal));
+            candidate.ActionId == invocation.ActionId);
         if (action is null || !action.RequiresEffect)
         {
             return null;
         }
 
-        return new OblivionCardEffectRequest(
-            BuildRequestId(invocation, action.EffectKind),
-            invocation.CardId,
-            action.EffectKind,
-            action.Intent,
-            BuildRequestProperties(model, invocation, action, context));
+        string requestId = BuildRequestId(invocation, action.EffectKind);
+        OblivionEffectContext effectContext = BuildEffectContext(
+            model,
+            invocation,
+            action,
+            context);
+        return action.EffectKind switch
+        {
+            OblivionCardEffectKind.RefreshMarkdown => new RefreshContentEffectRequest(requestId, invocation.CardId, effectContext),
+            OblivionCardEffectKind.OpenSource => new OpenSourceEffectRequest(requestId, invocation.CardId, effectContext),
+            OblivionCardEffectKind.CopySourcePath => new CopySourcePathEffectRequest(requestId, invocation.CardId, effectContext),
+            OblivionCardEffectKind.OpenArtifact => new OpenArtifactEffectRequest(requestId, invocation.CardId, effectContext),
+            OblivionCardEffectKind.RunCodeFact => new RunCodeFactEffectRequest(requestId, invocation.CardId, effectContext),
+            OblivionCardEffectKind.RunCodeTheory => new RunCodeTheoryEffectRequest(requestId, invocation.CardId, effectContext),
+            OblivionCardEffectKind.ExportCard => new ExportCardEffectRequest(requestId, invocation.CardId, effectContext),
+            OblivionCardEffectKind.RenderPreview => new RenderPreviewEffectRequest(requestId, invocation.CardId, effectContext),
+            OblivionCardEffectKind.None => new NoOpEffectRequest(requestId, invocation.CardId, effectContext),
+            _ => new CustomEffectRequest(requestId, invocation.CardId, effectContext),
+        };
     }
 
     public abstract OblivionCompactCardView BuildCompactView(
@@ -407,31 +420,19 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
         return $"{invocation.PageId}:{invocation.CardId.Value}:{invocation.ActionId}:{effectKind}";
     }
 
-    protected static IReadOnlyDictionary<string, string> BuildRequestProperties(
+    protected static OblivionEffectContext BuildEffectContext(
         OblivionCardRuntimeModel model,
         OblivionCardActionInvocation invocation,
         OblivionCardActionDescriptor action,
         OblivionCardEffectContext context)
     {
-        Dictionary<string, string> properties = new(StringComparer.Ordinal)
-        {
-            ["actionId"] = invocation.ActionId,
-            ["cardKind"] = model.Identity.Kind.ToString(),
-            ["pageId"] = context.PageId,
-            ["intent"] = action.Intent,
-        };
-
-        if (!string.IsNullOrWhiteSpace(context.SourcePath))
-        {
-            properties["sourcePath"] = context.SourcePath!;
-        }
-
-        if (!string.IsNullOrWhiteSpace(context.WorkspaceId))
-        {
-            properties["workspaceId"] = context.WorkspaceId!;
-        }
-
-        return properties;
+        return new OblivionEffectContext(
+            invocation.ActionId,
+            model.Identity.Kind,
+            context.PageId,
+            context.WorkspaceId,
+            context.SourcePath,
+            action.Intent);
     }
 
     private static string BuildInspectorSummaryLine(OblivionCard card)
@@ -864,9 +865,9 @@ public sealed class OblivionCodeTheoryCardHandler : OblivionCardHandlerBase
     }
 }
 
-public sealed record OblivionCardEffectOutcome(
-    OblivionCardEffectRequest Request,
-    OblivionCardEffectResult Result);
+public sealed record OblivionEffectOutcome(
+    OblivionEffectRequest Request,
+    OblivionEffectResult Result);
 
 public sealed class OblivionUnknownCardHandler : OblivionCardHandlerBase
 {

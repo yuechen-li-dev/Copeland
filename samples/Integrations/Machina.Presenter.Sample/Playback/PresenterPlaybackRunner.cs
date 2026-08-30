@@ -40,7 +40,7 @@ public sealed class PresenterPlaybackRunner
         PresenterNavigationLayout layout = CreateLayout(scenario.Viewport);
         PresenterNavigationState state = CreateInitialState(scenario, model, layout);
         PresenterNavigationRenderSession session = new();
-        PresenterScrollbarInteractionState interactionState = PresenterScrollbarInteractionState.Default;
+        ScrollbarInteractionState interactionState = ScrollbarInteractionState.Default;
         List<PresenterPlaybackTraceStep> traceSteps = [];
 
         PresenterNavigationShellRenderResult initialRender = Render(state, layout, session);
@@ -162,19 +162,27 @@ public sealed class PresenterPlaybackRunner
         string? selectedCardId = null;
         if (!string.IsNullOrWhiteSpace(scenario.SelectedCard))
         {
-            selectedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(pageId, scenario.SelectedCard, _proofOptions);
-            state = state.WithSelectedCard(pageId, selectedCardId);
+            selectedCardId = OblivionWorkbench.ResolveCardSelectionId(pageId, scenario.SelectedCard, _proofOptions);
+            state = state with
+            {
+                OblivionSession = state.OblivionSession.WithSelectedCard(pageId, selectedCardId),
+            };
         }
 
         if (scenario.MainStackScroll is not null)
         {
-            state = state.WithScrollOffset(pageId, scenario.MainStackScroll.Value);
+            state = state with
+            {
+                OblivionSession = state.OblivionSession.WithMainScrollOffset(
+                    pageId,
+                    scenario.MainStackScroll.Value),
+            };
         }
 
         if (!string.IsNullOrWhiteSpace(scenario.ExpandedCard))
         {
-            string expandedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(pageId, scenario.ExpandedCard, _proofOptions);
-            state = state
+            string expandedCardId = OblivionWorkbench.ResolveCardSelectionId(pageId, scenario.ExpandedCard, _proofOptions);
+            OblivionSessionState session = state.OblivionSession
                 .WithSelectedCard(pageId, expandedCardId)
                 .WithCardViewState(
                     pageId,
@@ -182,6 +190,7 @@ public sealed class PresenterPlaybackRunner
                     new OblivionCardViewState(
                         IsExpanded: true,
                         BodyScrollOffset: scenario.ExpandedCardBodyScroll ?? 0));
+            state = state with { OblivionSession = session };
             selectedCardId = expandedCardId;
         }
         else if (scenario.ExpandedCardBodyScroll is not null)
@@ -191,7 +200,12 @@ public sealed class PresenterPlaybackRunner
 
         if (scenario.InspectorScroll is not null)
         {
-            state = state.WithInspectorScrollOffset(pageId, scenario.InspectorScroll.Value);
+            state = state with
+            {
+                OblivionSession = state.OblivionSession.WithInspectorScrollOffset(
+                    pageId,
+                    scenario.InspectorScroll.Value),
+            };
         }
 
         if (scenario.InspectorRawSourceScroll is not null)
@@ -201,7 +215,12 @@ public sealed class PresenterPlaybackRunner
                 throw new InvalidOperationException("Scenario inspectorRawSourceScroll requires a selectedCard or expandedCard.");
             }
 
-            state = state.WithRawMarkdownSourceScrollOffset(selectedCardId, scenario.InspectorRawSourceScroll.Value);
+            state = state with
+            {
+                OblivionSession = state.OblivionSession.WithRawSourceScrollOffset(
+                    selectedCardId,
+                    scenario.InspectorRawSourceScroll.Value),
+            };
         }
 
         return state;
@@ -228,7 +247,7 @@ public sealed class PresenterPlaybackRunner
         PresenterNavigationState state,
         PresenterNavigationShellRenderResult render,
         PresenterPlaybackResolvedTarget? resolvedTarget,
-        PresenterScrollbarInteractionState interactionState)
+        ScrollbarInteractionState interactionState)
     {
         return step switch
         {
@@ -281,7 +300,7 @@ public sealed class PresenterPlaybackRunner
     private StepExecutionResult ExecuteDragStep(
         PresenterNavigationState state,
         PresenterNavigationShellRenderResult render,
-        PresenterScrollbarInteractionState interactionState,
+        ScrollbarInteractionState interactionState,
         PresenterPlaybackDragStep drag,
         PresenterPlaybackResolvedTarget? resolvedTarget)
     {
@@ -357,11 +376,11 @@ public sealed class PresenterPlaybackRunner
     private StepExecutionResult ExecuteInputSequence(
         PresenterNavigationState state,
         PresenterNavigationShellRenderResult initialRender,
-        PresenterScrollbarInteractionState initialInteractionState,
+        ScrollbarInteractionState initialInteractionState,
         IReadOnlyList<UiInputEvent> events)
     {
         PresenterNavigationState currentState = state;
-        PresenterScrollbarInteractionState currentInteractionState = initialInteractionState;
+        ScrollbarInteractionState currentInteractionState = initialInteractionState;
         PresenterNavigationShellRenderResult currentRender = initialRender;
         PresenterPlaybackEmittedInput? lastInput = null;
         PresenterPlaybackHitTestResult? lastHitTest = null;
@@ -774,44 +793,36 @@ public sealed class PresenterPlaybackRunner
             return "none";
         }
 
-        if (PresenterNavigationActions.TryParseSetOblivionMainCardStackScrollOffset(actionId.Value, out _, out _))
+        if (OblivionUiActions.TryDecode(actionId.Value, out OblivionInteraction? interaction))
         {
-            return "set-oblivion-main-card-stack-scroll-offset";
-        }
-
-        if (PresenterNavigationActions.TryParseSetOblivionRawMarkdownSourceScrollOffset(actionId.Value, out _, out _, out _))
-        {
-            return "set-oblivion-raw-markdown-source-scroll-offset";
-        }
-
-        if (PresenterNavigationActions.TryParseSetOblivionInspectorScrollOffset(actionId.Value, out _, out _))
-        {
-            return "set-oblivion-inspector-scroll-offset";
-        }
-
-        if (PresenterNavigationActions.TryParseSetOblivionCardBodyScrollOffset(actionId.Value, out _, out _, out _))
-        {
-            return "set-oblivion-card-body-scroll-offset";
+            return interaction switch
+            {
+                OblivionInteraction.SetScrollOffset
+                {
+                    Target.Kind: OblivionScrollTargetKind.MainCardStack,
+                } => "set-oblivion-main-card-stack-scroll-offset",
+                OblivionInteraction.SetScrollOffset
+                {
+                    Target.Kind: OblivionScrollTargetKind.InspectorRawMarkdownSource,
+                } => "set-oblivion-raw-markdown-source-scroll-offset",
+                OblivionInteraction.SetScrollOffset
+                {
+                    Target.Kind: OblivionScrollTargetKind.InspectorPane,
+                } => "set-oblivion-inspector-scroll-offset",
+                OblivionInteraction.SetScrollOffset
+                {
+                    Target.Kind: OblivionScrollTargetKind.ExpandedMarkdownBody,
+                } => "set-oblivion-card-body-scroll-offset",
+                OblivionInteraction.ToggleCardExpansion => "toggle-oblivion-card-expansion",
+                OblivionInteraction.SelectCard => "select-oblivion-card",
+                OblivionInteraction.CollapseCard => "collapse-oblivion-card",
+                _ => "other",
+            };
         }
 
         if (PresenterNavigationActions.TryParseSetScrollOffset(actionId.Value, out _, out _))
         {
             return "set-scroll-offset";
-        }
-
-        if (PresenterNavigationActions.TryParseToggleOblivionCardExpansion(actionId.Value, out _, out _))
-        {
-            return "toggle-oblivion-card-expansion";
-        }
-
-        if (PresenterNavigationActions.TryParseSelectOblivionCard(actionId.Value, out _, out _))
-        {
-            return "select-oblivion-card";
-        }
-
-        if (PresenterNavigationActions.TryParseCollapseOblivionCard(actionId.Value, out _, out _))
-        {
-            return "collapse-oblivion-card";
         }
 
         return "other";
@@ -869,7 +880,7 @@ public sealed class PresenterPlaybackRunner
             return cardId;
         }
 
-        IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(render.SelectedTab.PageId, render.ProofOptions);
+        IReadOnlyList<OblivionCard> cards = OblivionWorkbench.GetPageCardsForSelection(render.SelectedTab.PageId, render.ProofOptions);
         return render.NavigationState.GetSelectedCardId(render.SelectedTab.PageId, cards)
             ?? throw new InvalidOperationException($"Target '{target}' requires a selected card.");
     }
@@ -899,7 +910,7 @@ public sealed class PresenterPlaybackRunner
 
     private sealed record StepExecutionResult(
         PresenterNavigationState NextState,
-        PresenterScrollbarInteractionState NextInteractionState,
+        ScrollbarInteractionState NextInteractionState,
         PresenterPlaybackEmittedInput? EmittedInput,
         PresenterPlaybackHitTestResult? HitTestResult,
         PresenterPlaybackDispatchedAction? DispatchedAction,

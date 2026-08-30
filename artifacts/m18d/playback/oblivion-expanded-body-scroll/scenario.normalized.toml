@@ -1,0 +1,35 @@
+[scenario]
+id = "oblivion-expanded-body-scroll"
+name = "Expand a Markdown doc and scroll its expanded body"
+viewport = { width = 1280, height = 540 }
+section = "oblivion"
+tab = "execution-roadmap"
+selectedCard = "markdown-first-roadmap"
+
+[output]
+captureFinalPng = true
+captureTraceJson = true
+captureManifest = true
+
+[[steps]]
+type = "click"
+target = "card-header"
+card = "markdown-first-roadmap"
+
+[[steps]]
+type = "wheel"
+target = "expanded-body"
+card = "markdown-first-roadmap"
+deltaY = 360
+
+[[assertions]]
+type = "card-expanded"
+card = "markdown-first-roadmap"
+value = true
+reason = "Clicking a Markdown card header should expand the card so the stack becomes the primary reading surface."
+
+[[assertions]]
+type = "scroll-offset-changed"
+target = "expanded-body"
+card = "markdown-first-roadmap"
+reason = "Wheel input over an expanded Markdown body should move that body's local scroll offset."

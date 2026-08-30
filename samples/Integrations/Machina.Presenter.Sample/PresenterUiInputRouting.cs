@@ -14,7 +14,7 @@ public static class PresenterUiInputRouter
     public static PresenterUiInputRoutingResult Route(
         PresenterNavigationShellRenderResult render,
         UiInputBatch inputBatch,
-        PresenterScrollbarInteractionState? interactionState)
+        ScrollbarInteractionState? interactionState)
     {
         return Route(render, inputBatch, interactionState, recompose: null);
     }
@@ -27,15 +27,15 @@ public static class PresenterUiInputRouter
     public static PresenterUiInputRoutingResult Route(
         PresenterNavigationShellRenderResult render,
         UiInputBatch inputBatch,
-        PresenterScrollbarInteractionState? interactionState,
+        ScrollbarInteractionState? interactionState,
         Func<UiSurfaceSize, PresenterNavigationShellRenderResult>? recompose)
     {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(inputBatch);
 
         PresenterNavigationShellRenderResult currentRender = render;
-        PresenterScrollbarInteractionState currentState = interactionState
-            ?? PresenterScrollbarInteractionState.Default;
+        ScrollbarInteractionState currentState = interactionState
+            ?? ScrollbarInteractionState.Default;
         ImmutableArray<PresenterNavigationInputRoutingResult>.Builder routedEvents =
             ImmutableArray.CreateBuilder<PresenterNavigationInputRoutingResult>();
         MachinaFrontendInputRoutingResult frontendRouting = MachinaFrontendInputRouter.Route(inputBatch);
@@ -83,72 +83,8 @@ public static class PresenterUiInputRouter
 public sealed record PresenterUiInputRoutingResult(
     ulong BatchId,
     ImmutableArray<PresenterNavigationInputRoutingResult> RoutedEvents,
-    PresenterScrollbarInteractionState InteractionState,
+    ScrollbarInteractionState InteractionState,
     ImmutableArray<MachinaFrontendMessage> FrontendMessages,
     bool RequiresRecomposition,
     bool CloseRequested,
     int RecompositionCount);
-
-internal static class UiInputEventRoutingExtensions
-{
-    public static bool TryGetPointerPosition(this UiInputEvent inputEvent, out PointerPoint position)
-    {
-        switch (inputEvent)
-        {
-            case UiPointerMoved moved:
-                position = moved.Position;
-                return true;
-            case UiPointerButtonChanged button:
-                position = button.Position;
-                return true;
-            case UiPointerWheel wheel:
-                position = wheel.Position;
-                return true;
-            default:
-                position = default;
-                return false;
-        }
-    }
-
-    public static bool IsPrimaryPressed(this UiInputEvent inputEvent)
-    {
-        return inputEvent is UiPointerButtonChanged
-        {
-            Button: UiPointerButton.Primary,
-            IsPressed: true,
-        };
-    }
-
-    public static bool IsPointerReleased(this UiInputEvent inputEvent)
-    {
-        return inputEvent is UiPointerButtonChanged { IsPressed: false };
-    }
-
-    public static bool IsPointerMoved(this UiInputEvent inputEvent)
-    {
-        return inputEvent is UiPointerMoved;
-    }
-
-    public static bool IsWheel(this UiInputEvent inputEvent, out double deltaY)
-    {
-        if (inputEvent is UiPointerWheel wheel)
-        {
-            deltaY = wheel.DeltaY;
-            return true;
-        }
-
-        deltaY = 0;
-        return false;
-    }
-
-    public static UiInputEvent WithPointerPosition(this UiInputEvent inputEvent, PointerPoint position)
-    {
-        return inputEvent switch
-        {
-            UiPointerMoved moved => moved with { Position = position },
-            UiPointerButtonChanged button => button with { Position = position },
-            UiPointerWheel wheel => wheel with { Position = position },
-            _ => inputEvent,
-        };
-    }
-}

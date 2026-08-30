@@ -22,12 +22,12 @@
 - May depend on: Model, Copeland.Markdown, Machina.Core, Layout, Runtime, and Standard.
 - Must not depend on: Presenter, Avalonia controls, Aurelian rendering contracts.
 - Important contracts: `OblivionSessionState`, `OblivionMarkdownProjection`, `OblivionCardHandlerRegistry`, `OblivionCardRenderer`.
-- Deferred: move host interaction-map composition from the bounded M18c presenter adapter in M18d.
+- M18d: owns typed interactions, nested product scroll priority, and the isolated Machina-action compatibility codec.
 
 ## Oblivion.App
 
 - Owns: product composition, workspace loading coordination, typed invocation, effect validation/routing/results, runtime application state, standalone entry.
 - May depend on: Model, Persistence, UI.
 - Must not depend on: Presenter navigation or host window types.
-- Important contracts: `OblivionApplication`, `OblivionApplicationState`, `OblivionWorkspaceApplication`.
-- Deferred: typed effect variants and real host capabilities in dedicated milestones; no execution or networking is implied.
+- Important contracts: `OblivionApplication`, `OblivionInteractionDispatcher`, `OblivionWorkbench`, `OblivionHostCapabilities`, and typed effect request/result variants.
+- Deferred: concrete host capability implementations only when product behavior requires them; no execution or networking is implied.

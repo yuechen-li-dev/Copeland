@@ -18,6 +18,17 @@ public sealed record PresenterNavigationLayout(
     int ScrollbarWidth,
     int ScrollbarGap)
 {
+    public OblivionHostLayout OblivionHostLayout => new(
+        ShellMode == PresenterShellMode.Wide ? OblivionShellMode.Wide : OblivionShellMode.Compact,
+        ContentVisibleWidth,
+        ViewportHeight);
+
+    public static implicit operator OblivionHostLayout(PresenterNavigationLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        return layout.OblivionHostLayout;
+    }
+
     private const int ScrollbarTrackInset = 2;
 
     public static PresenterNavigationLayout Default { get; } = new(

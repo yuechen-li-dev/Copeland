@@ -57,7 +57,7 @@ public sealed class VisibleTriangleHostInputCollectorTests
         PresenterUiInputRoutingResult presenterRouting = PresenterUiInputRouter.Route(
             CreateRender(),
             batch,
-            PresenterScrollbarInteractionState.Default,
+            ScrollbarInteractionState.Default,
             size => CreateRender(size.Width, size.Height, PresenterShellMode.Compact));
         MachinaFrontendInputRoutingResult frontendRouting = MachinaFrontendInputRouter.Route(batch);
         AurelianHostInputTranslation translation = AurelianHostInputTranslator.Translate(frontendRouting.FrontendMessages);

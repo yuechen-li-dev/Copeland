@@ -1,0 +1,29 @@
+[scenario]
+id = "oblivion-main-stack-scroll"
+name = "Scroll the main Oblivion card stack without moving the inspector"
+viewport = { width = 1280, height = 720 }
+section = "oblivion"
+tab = "docs"
+selectedCard = "doc-aurelian-build-topology-m13b"
+
+[output]
+captureFinalPng = true
+captureTraceJson = true
+captureManifest = true
+
+[[steps]]
+type = "wheel"
+target = "main-stack"
+deltaY = 360
+
+[[assertions]]
+type = "scroll-offset-greater-than"
+target = "main-stack"
+value = 0
+reason = "Main stack wheel input must no longer be clamped back to zero by generic page-scroll behavior."
+
+[[assertions]]
+type = "scroll-offset-equals"
+target = "inspector-pane"
+value = 0
+reason = "Wheel input over the main stack must not bleed into the inspector scroll offset."

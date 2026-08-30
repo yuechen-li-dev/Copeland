@@ -154,7 +154,7 @@ internal sealed class Program
         private PresenterNavigationLayout _navigationLayout;
         private PresenterSurfaceSize _surfaceSize;
         private PresenterNavigationState? _navigationState;
-        private PresenterScrollbarInteractionState _scrollbarInteractionState;
+        private ScrollbarInteractionState _scrollbarInteractionState;
         private UiHitTestIndex _hitTestIndex;
         private MachinaComposedFrame _currentFrame;
         private PresenterNavigationShellRenderResult? _navigationShellRender;
@@ -199,7 +199,7 @@ internal sealed class Program
             _navigationState = navigationOptions.IncludeNavigationShell
                 ? PresenterExporterNavigationState()
                 : null;
-            _scrollbarInteractionState = PresenterScrollbarInteractionState.Default;
+            _scrollbarInteractionState = ScrollbarInteractionState.Default;
             _hitTestIndex = default!;
             _currentFrame = default!;
             _navigationShellRender = null;
@@ -366,12 +366,12 @@ internal sealed class Program
 
                         if (pointer is not null)
                         {
-                            if (routed.PointerCaptureRequest == PresenterPointerCaptureRequest.Capture)
+                            if (routed.PointerCaptureRequest == PointerCaptureRequest.Capture)
                             {
                                 pointer.Capture(_image);
                             }
 
-                            if (routed.PointerCaptureRequest == PresenterPointerCaptureRequest.Release)
+                            if (routed.PointerCaptureRequest == PointerCaptureRequest.Release)
                             {
                                 pointer.Capture(null);
                             }

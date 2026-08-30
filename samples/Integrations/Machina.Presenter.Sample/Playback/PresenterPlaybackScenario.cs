@@ -134,7 +134,7 @@ public sealed record PresenterPlaybackResolvedTarget(
     string? CardId,
     Rect Bounds,
     PresenterPlaybackPoint Point,
-    PresenterScrollbarTarget? ScrollbarTarget,
+    OblivionScrollTarget? ScrollbarTarget,
     ScrollbarGeometry? ScrollbarGeometry,
     string? ResolvedRegionKind = null,
     string? ResolvedRegionId = null);

@@ -56,26 +56,149 @@ public enum OblivionCardEffectKind
 }
 
 public sealed record OblivionCardActionDescriptor(
-    string Id,
+    OblivionProductActionId ActionId,
     string Label,
     bool Enabled,
     string Intent,
     bool RequiresEffect,
     OblivionCardActionAvailability Availability,
-    OblivionCardEffectKind EffectKind);
+    OblivionCardEffectKind EffectKind)
+{
+    public OblivionCardActionDescriptor(
+        string Id,
+        string Label,
+        bool Enabled,
+        string Intent,
+        bool RequiresEffect,
+        OblivionCardActionAvailability Availability,
+        OblivionCardEffectKind EffectKind)
+        : this(
+            new OblivionProductActionId(Id),
+            Label,
+            Enabled,
+            Intent,
+            RequiresEffect,
+            Availability,
+            EffectKind)
+    {
+    }
+
+    public string Id => ActionId.Value;
+}
 
 public sealed record OblivionCardActionInvocation(
     OblivionCardId CardId,
-    string ActionId,
+    OblivionProductActionId ActionId,
     string PageId,
-    string? SourcePath);
+    string? SourcePath)
+{
+    public OblivionCardActionInvocation(
+        OblivionCardId cardId,
+        string actionId,
+        string pageId,
+        string? sourcePath)
+        : this(cardId, new OblivionProductActionId(actionId), pageId, sourcePath)
+    {
+    }
+}
 
-public sealed record OblivionCardEffectRequest(
+public sealed record OblivionEffectContext(
+    OblivionProductActionId ActionId,
+    OblivionCardKind CardKind,
+    string PageId,
+    string? WorkspaceId,
+    string? SourcePath,
+    string Intent);
+
+public abstract record OblivionEffectRequest(
     string RequestId,
     OblivionCardId CardId,
-    OblivionCardEffectKind Kind,
-    string Intent,
-    IReadOnlyDictionary<string, string> Properties);
+    OblivionEffectContext Context)
+{
+    public abstract OblivionCardEffectKind Kind { get; }
+
+    public string Intent => Context.Intent;
+}
+
+public sealed record RefreshContentEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.RefreshMarkdown;
+}
+
+public sealed record OpenSourceEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.OpenSource;
+}
+
+public sealed record CopySourcePathEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.CopySourcePath;
+}
+
+public sealed record OpenArtifactEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.OpenArtifact;
+}
+
+public sealed record RunCodeFactEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.RunCodeFact;
+}
+
+public sealed record RunCodeTheoryEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.RunCodeTheory;
+}
+
+public sealed record ExportCardEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.ExportCard;
+}
+
+public sealed record RenderPreviewEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.RenderPreview;
+}
+
+public sealed record NoOpEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.None;
+}
+
+public sealed record CustomEffectRequest(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionEffectContext Context) : OblivionEffectRequest(RequestId, CardId, Context)
+{
+    public override OblivionCardEffectKind Kind => OblivionCardEffectKind.Custom;
+}
 
 public enum OblivionCardEffectStatus
 {
@@ -84,58 +207,104 @@ public enum OblivionCardEffectStatus
     Completed,
 }
 
-public sealed record OblivionCardEffectResult(
+public abstract record OblivionEffectResult(
     string RequestId,
     OblivionCardId CardId,
     OblivionCardEffectKind Kind,
-    OblivionCardEffectStatus Status,
     string Message,
     IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
-    IReadOnlyList<OblivionCardArtifactRef> Artifacts);
-
-public sealed record OblivionCardEffectState(
-    IReadOnlyDictionary<string, OblivionCardEffectRequest> LastRequestByCardId,
-    IReadOnlyDictionary<string, OblivionCardEffectResult> LastResultByCardId)
+    IReadOnlyList<OblivionCardArtifactRef> Artifacts)
 {
-    public static OblivionCardEffectState Empty { get; } = new(
-        new Dictionary<string, OblivionCardEffectRequest>(StringComparer.Ordinal),
-        new Dictionary<string, OblivionCardEffectResult>(StringComparer.Ordinal));
+    public abstract OblivionCardEffectStatus Status { get; }
+}
 
-    public OblivionCardEffectRequest? GetLastRequest(OblivionCardId cardId)
+public sealed record DeferredEffectResult(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionCardEffectKind Kind,
+    string Message,
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
+    IReadOnlyList<OblivionCardArtifactRef> Artifacts)
+    : OblivionEffectResult(RequestId, CardId, Kind, Message, Diagnostics, Artifacts)
+{
+    public override OblivionCardEffectStatus Status => OblivionCardEffectStatus.Deferred;
+}
+
+public sealed record RejectedEffectResult(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionCardEffectKind Kind,
+    string Message,
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
+    IReadOnlyList<OblivionCardArtifactRef> Artifacts)
+    : OblivionEffectResult(RequestId, CardId, Kind, Message, Diagnostics, Artifacts)
+{
+    public override OblivionCardEffectStatus Status => OblivionCardEffectStatus.Rejected;
+}
+
+public sealed record CompletedEffectResult(
+    string RequestId,
+    OblivionCardId CardId,
+    OblivionCardEffectKind Kind,
+    string Message,
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
+    IReadOnlyList<OblivionCardArtifactRef> Artifacts)
+    : OblivionEffectResult(RequestId, CardId, Kind, Message, Diagnostics, Artifacts)
+{
+    public override OblivionCardEffectStatus Status => OblivionCardEffectStatus.Completed;
+}
+
+public sealed record OblivionEffectState(
+    IReadOnlyDictionary<string, OblivionEffectRequest> LastRequestByCardId,
+    IReadOnlyDictionary<string, OblivionEffectResult> LastResultByCardId)
+{
+    public static OblivionEffectState Empty { get; } = new(
+        new Dictionary<string, OblivionEffectRequest>(StringComparer.Ordinal),
+        new Dictionary<string, OblivionEffectResult>(StringComparer.Ordinal));
+
+    public OblivionEffectRequest? GetLastRequest(OblivionCardId cardId)
     {
         ArgumentNullException.ThrowIfNull(cardId);
 
-        return LastRequestByCardId.TryGetValue(cardId.Value, out OblivionCardEffectRequest? request)
+        return LastRequestByCardId.TryGetValue(cardId.Value, out OblivionEffectRequest? request)
             ? request
             : null;
     }
 
-    public OblivionCardEffectResult? GetLastResult(OblivionCardId cardId)
+    public OblivionEffectResult? GetLastResult(OblivionCardId cardId)
     {
         ArgumentNullException.ThrowIfNull(cardId);
 
-        return LastResultByCardId.TryGetValue(cardId.Value, out OblivionCardEffectResult? result)
+        return LastResultByCardId.TryGetValue(cardId.Value, out OblivionEffectResult? result)
             ? result
             : null;
     }
 
-    public OblivionCardEffectState WithOutcome(
-        OblivionCardEffectRequest request,
-        OblivionCardEffectResult result)
+    public OblivionEffectState WithOutcome(
+        OblivionEffectRequest request,
+        OblivionEffectResult result)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(result);
 
-        Dictionary<string, OblivionCardEffectRequest> requests = new(LastRequestByCardId, StringComparer.Ordinal)
+        if (!string.Equals(request.RequestId, result.RequestId, StringComparison.Ordinal) ||
+            request.CardId != result.CardId ||
+            request.Kind != result.Kind)
+        {
+            throw new InvalidOperationException(
+                $"Effect result '{result.RequestId}' does not match request '{request.RequestId}'.");
+        }
+
+        Dictionary<string, OblivionEffectRequest> requests = new(LastRequestByCardId, StringComparer.Ordinal)
         {
             [request.CardId.Value] = request,
         };
-        Dictionary<string, OblivionCardEffectResult> results = new(LastResultByCardId, StringComparer.Ordinal)
+        Dictionary<string, OblivionEffectResult> results = new(LastResultByCardId, StringComparer.Ordinal)
         {
             [result.CardId.Value] = result,
         };
 
-        return new OblivionCardEffectState(requests, results);
+        return new OblivionEffectState(requests, results);
     }
 }
 
@@ -195,8 +364,8 @@ public sealed record OblivionCardContext(
     string? PageId,
     string? WorkspaceId,
     string? SourcePath,
-    OblivionCardEffectRequest? LastEffectRequest,
-    OblivionCardEffectResult? LastEffectResult,
+    OblivionEffectRequest? LastEffectRequest,
+    OblivionEffectResult? LastEffectResult,
     OblivionCardLocalState? LocalStateOverride = null);
 
 public sealed record OblivionCardViewContext(
@@ -221,8 +390,8 @@ public sealed record OblivionCardRuntimeModel(
     IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
     IReadOnlyList<OblivionCardArtifactRef> Artifacts,
     IReadOnlyList<OblivionCardActionDescriptor> Actions,
-    OblivionCardEffectRequest? LastEffectRequest,
-    OblivionCardEffectResult? LastEffectResult,
+    OblivionEffectRequest? LastEffectRequest,
+    OblivionEffectResult? LastEffectResult,
     OblivionCard SourceCard,
     object? KindModel);
 
@@ -326,7 +495,7 @@ public interface IOblivionCardHandler
         OblivionCardRuntimeModel model,
         OblivionCardActionContext context);
 
-    OblivionCardEffectRequest? CreateEffectRequest(
+    OblivionEffectRequest? CreateEffectRequest(
         OblivionCardRuntimeModel model,
         OblivionCardActionInvocation invocation,
         OblivionCardEffectContext context);

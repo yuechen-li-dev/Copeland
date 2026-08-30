@@ -5,13 +5,13 @@ using Oblivion.Product;
 namespace Oblivion.App;
 
 public sealed record OblivionApplicationState(
-    OblivionCardEffectState EffectState)
+    OblivionEffectState EffectState)
 {
-    public static OblivionApplicationState Empty { get; } = new(OblivionCardEffectState.Empty);
+    public static OblivionApplicationState Empty { get; } = new(OblivionEffectState.Empty);
 
     public OblivionApplicationState Apply(
-        OblivionCardEffectRequest request,
-        OblivionCardEffectResult result)
+        OblivionEffectRequest request,
+        OblivionEffectResult result)
     {
         return this with
         {
@@ -21,8 +21,8 @@ public sealed record OblivionApplicationState(
 }
 
 public sealed record OblivionActionOutcome(
-    OblivionCardEffectRequest Request,
-    OblivionCardEffectResult Result,
+    OblivionEffectRequest Request,
+    OblivionEffectResult Result,
     OblivionApplicationState State);
 
 public sealed class OblivionApplication
@@ -41,14 +41,14 @@ public sealed class OblivionApplication
     public OblivionActionOutcome? Invoke(
         OblivionCard card,
         string pageId,
-        string actionId,
+        OblivionProductActionId actionId,
         OblivionApplicationState? state = null)
     {
         OblivionApplicationState current = state ?? OblivionApplicationState.Empty;
-        OblivionCardEffectRequest? request = _handlers.CreateEffectRequest(
+        OblivionEffectRequest? request = _handlers.CreateEffectRequest(
             card,
             pageId,
-            actionId,
+            actionId.Value,
             card.WorkspaceId?.Value,
             current.EffectState);
         if (request is null)
@@ -56,8 +56,17 @@ public sealed class OblivionApplication
             return null;
         }
 
-        OblivionCardEffectResult result = _effects.Route(request);
+        OblivionEffectResult result = _effects.Route(request);
         return new OblivionActionOutcome(request, result, current.Apply(request, result));
+    }
+
+    public OblivionActionOutcome? Invoke(
+        OblivionCard card,
+        string pageId,
+        string actionId,
+        OblivionApplicationState? state = null)
+    {
+        return Invoke(card, pageId, new OblivionProductActionId(actionId), state);
     }
 }
 

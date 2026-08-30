@@ -68,7 +68,7 @@ public static class PresenterDirectOutlineRenderBridgeProofCard
                     height: AlignmentGridHeight),
             ]);
 
-        return PresenterCard.BuildHostedCard(
+        return StandardCard.BuildHostedCard(
             id: "direct-outline-proof-card",
             title: "DirectOutlineStatic Presenter Proof",
             badges:
@@ -79,7 +79,7 @@ public static class PresenterDirectOutlineRenderBridgeProofCard
             ],
             body: body,
             theme: theme,
-            options: new PresenterCardOptions(
+            options: new StandardCardOptions(
                 Width: effectiveWidth,
                 Height: Height));
     }

@@ -1,5 +1,11 @@
 namespace Oblivion.Product;
 
+public enum OblivionCompactPane
+{
+    CardList,
+    Inspector,
+}
+
 public sealed record OblivionSessionState(
     IReadOnlyDictionary<string, double> MainScrollOffsetByPageId,
     IReadOnlyDictionary<string, double> InspectorScrollOffsetByPageId,
@@ -65,6 +71,38 @@ public sealed record OblivionSessionState(
             [pageId] = null,
         };
         return this with { SelectedCardByPageId = selections };
+    }
+
+    public OblivionSessionState ReconcilePage(
+        string pageId,
+        IReadOnlyList<OblivionCard> cards)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pageId);
+        ArgumentNullException.ThrowIfNull(cards);
+
+        HashSet<string> cardIds = cards
+            .Select(card => card.Id.Value)
+            .ToHashSet(StringComparer.Ordinal);
+        string? selectedCardId = GetSelectedCardId(pageId, cards);
+
+        Dictionary<string, string?> selections = new(SelectedCardByPageId, StringComparer.Ordinal)
+        {
+            [pageId] = selectedCardId,
+        };
+        Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> pageStates =
+            new(CardViewStateByPageId, StringComparer.Ordinal);
+        if (pageStates.TryGetValue(pageId, out IReadOnlyDictionary<string, OblivionCardViewState>? existing))
+        {
+            pageStates[pageId] = existing
+                .Where(pair => cardIds.Contains(pair.Key))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        }
+
+        return this with
+        {
+            SelectedCardByPageId = selections,
+            CardViewStateByPageId = pageStates,
+        };
     }
 
     public OblivionCardViewState GetCardViewState(string pageId, string cardId)

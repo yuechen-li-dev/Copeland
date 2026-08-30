@@ -7,11 +7,19 @@ public sealed record PresenterNavigationState(
     OblivionSessionState OblivionSession,
     OblivionApplicationState OblivionApplication)
 {
-    public PresenterCompactPane CompactPane => OblivionSession.InspectorPaneSelected
-        ? PresenterCompactPane.Inspector
-        : PresenterCompactPane.CardList;
+    public OblivionHostState OblivionHostState => new(OblivionSession, OblivionApplication);
 
-    public OblivionCardEffectState EffectState => OblivionApplication.EffectState;
+    public static implicit operator OblivionHostState(PresenterNavigationState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        return state.OblivionHostState;
+    }
+
+    public OblivionCompactPane CompactPane => OblivionSession.InspectorPaneSelected
+        ? OblivionCompactPane.Inspector
+        : OblivionCompactPane.CardList;
+
+    public OblivionEffectState EffectState => OblivionApplication.EffectState;
 
     public static PresenterNavigationState CreateDefault(PresenterNavigationModel model)
     {
@@ -81,86 +89,18 @@ public sealed record PresenterNavigationState(
         return this with { PresenterScrollOffsetByPageId = offsets };
     }
 
-    public PresenterNavigationState WithCompactPane(PresenterCompactPane pane)
-    {
-        return this with
-        {
-            OblivionSession = OblivionSession with
-            {
-                InspectorPaneSelected = pane == PresenterCompactPane.Inspector,
-            },
-        };
-    }
-
     public double GetInspectorScrollOffset(string pageId) => OblivionSession.GetInspectorScrollOffset(pageId);
-
-    public PresenterNavigationState WithInspectorScrollOffset(string pageId, double offset)
-    {
-        return this with { OblivionSession = OblivionSession.WithInspectorScrollOffset(pageId, offset) };
-    }
 
     public string? GetSelectedCardId(string pageId, IReadOnlyList<OblivionCard> cards)
     {
         return OblivionSession.GetSelectedCardId(pageId, cards);
     }
 
-    public PresenterNavigationState WithSelectedCard(string pageId, string cardId)
-    {
-        return this with { OblivionSession = OblivionSession.WithSelectedCard(pageId, cardId) };
-    }
-
     public double GetRawMarkdownSourceScrollOffset(string cardId) => OblivionSession.GetRawSourceScrollOffset(cardId);
-
-    public PresenterNavigationState WithRawMarkdownSourceScrollOffset(string cardId, double offset)
-    {
-        return this with { OblivionSession = OblivionSession.WithRawSourceScrollOffset(cardId, offset) };
-    }
 
     public OblivionCardViewState GetCardViewState(string pageId, string cardId)
     {
         return OblivionSession.GetCardViewState(pageId, cardId);
     }
 
-    public PresenterNavigationState WithCardViewState(string pageId, string cardId, OblivionCardViewState state)
-    {
-        return this with { OblivionSession = OblivionSession.WithCardViewState(pageId, cardId, state) };
-    }
-
-    public PresenterNavigationState ToggleCardExpansion(string pageId, string cardId)
-    {
-        return this with { OblivionSession = OblivionSession.ToggleCardExpansion(pageId, cardId) };
-    }
-
-    public PresenterNavigationState ExpandCardExclusively(
-        string pageId,
-        string cardId,
-        IReadOnlyList<string> siblingCardIds)
-    {
-        return this with
-        {
-            OblivionSession = OblivionSession.ExpandCardExclusively(pageId, cardId, siblingCardIds),
-        };
-    }
-
-    public PresenterNavigationState CollapseCard(string pageId, string cardId)
-    {
-        return this with { OblivionSession = OblivionSession.CollapseCard(pageId, cardId) };
-    }
-
-    public PresenterNavigationState WithCardBodyScrollOffset(string pageId, string cardId, double offset)
-    {
-        return this with { OblivionSession = OblivionSession.WithCardBodyScrollOffset(pageId, cardId, offset) };
-    }
-
-    public PresenterNavigationState ClearSelectedCard(string pageId)
-    {
-        return this with { OblivionSession = OblivionSession.ClearSelectedCard(pageId) };
-    }
-
-    public PresenterNavigationState WithEffectOutcome(
-        OblivionCardEffectRequest request,
-        OblivionCardEffectResult result)
-    {
-        return this with { OblivionApplication = OblivionApplication.Apply(request, result) };
-    }
 }

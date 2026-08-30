@@ -1561,4 +1561,10 @@ Still deferred in M12g:
 - Visionary
 # M18c / M18d product hosting update
 
-M18c establishes Oblivion as a first-class Model/Persistence/UI/App stack and promotes only the evidenced reusable card-layout and scroll-geometry helpers into Machina.Standard. Avalonia remains a host fallback. M18d should remove the bounded presenter host-composition adapter and harden typed product effect contracts; it must not broaden into a widget-suite or layout-authoring redesign.
+M18c establishes Oblivion as a first-class Model/Persistence/UI/App stack.
+M18d closes the extraction arc: the Presenter product adapter is deleted,
+generic pointer/scroll mechanics live in Machina.Runtime, reusable card/scroll
+geometry uses neutral Machina.Standard names, and Oblivion owns typed
+interaction, invocation, effect, result, and host-capability contracts. Avalonia
+remains a host fallback. The next milestone returns to product development, not
+another extraction or widget/layout redesign.

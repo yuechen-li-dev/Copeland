@@ -25,7 +25,7 @@ public sealed record PresenterProgramOptions(
         double? expandedCardBodyScroll = null;
         double? inspectorScroll = null;
         double? inspectorRawSourceScroll = null;
-        PresenterCompactPane? compactPane = null;
+        OblivionCompactPane? compactPane = null;
         PresenterShellMode? shellMode = null;
         int width = 1120;
         int height = 760;
@@ -140,7 +140,7 @@ public sealed record PresenterProgramOptions(
             if (arg == "--compact-pane" && index + 1 < args.Count)
             {
                 includeNavigationShell = true;
-                compactPane = Enum.Parse<PresenterCompactPane>(args[++index], ignoreCase: true);
+                compactPane = Enum.Parse<OblivionCompactPane>(args[++index], ignoreCase: true);
                 continue;
             }
 

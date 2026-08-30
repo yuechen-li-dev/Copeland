@@ -67,10 +67,10 @@ public static class PresenterNavigationCatalog
                 "oblivion",
                 "Oblivion",
                 [
-                    new PresenterNavigationTab("cards", "Cards", OblivionWorkbenchCatalog.CardsPageId),
-                    new PresenterNavigationTab("docs", "Docs", OblivionWorkbenchCatalog.DocsPageId),
-                    new PresenterNavigationTab("execution-roadmap", "Execution Roadmap", OblivionWorkbenchCatalog.ExecutionRoadmapPageId),
-                    new PresenterNavigationTab("artifacts", "Artifacts", OblivionWorkbenchCatalog.ArtifactsPageId),
+                    new PresenterNavigationTab("cards", "Cards", OblivionWorkbench.CardsPageId),
+                    new PresenterNavigationTab("docs", "Docs", OblivionWorkbench.DocsPageId),
+                    new PresenterNavigationTab("execution-roadmap", "Execution Roadmap", OblivionWorkbench.ExecutionRoadmapPageId),
+                    new PresenterNavigationTab("artifacts", "Artifacts", OblivionWorkbench.ArtifactsPageId),
                 ]),
             new PresenterNavigationSection(
                 "legacy",
@@ -110,12 +110,15 @@ public static class PresenterNavigationCatalog
             if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedCardId) &&
                 IsOblivionPage(resolvedPageId))
             {
-                state = state.WithSelectedCard(
-                    resolvedPageId,
-                    OblivionWorkbenchCatalog.ResolveCardSelectionId(
+                state = state with
+                {
+                    OblivionSession = state.OblivionSession.WithSelectedCard(
                         resolvedPageId,
-                        navigationOptions.SelectedCardId,
-                        proofOptions));
+                        OblivionWorkbench.ResolveCardSelectionId(
+                            resolvedPageId,
+                            navigationOptions.SelectedCardId,
+                            proofOptions)),
+                };
             }
         }
         else
@@ -139,22 +142,25 @@ public static class PresenterNavigationCatalog
         if (!string.IsNullOrWhiteSpace(navigationOptions.SelectedCardId) &&
             IsOblivionPage(currentPageId))
         {
-            state = state.WithSelectedCard(
-                currentPageId,
-                OblivionWorkbenchCatalog.ResolveCardSelectionId(
+            state = state with
+            {
+                OblivionSession = state.OblivionSession.WithSelectedCard(
                     currentPageId,
-                    navigationOptions.SelectedCardId,
-                    proofOptions));
+                    OblivionWorkbench.ResolveCardSelectionId(
+                        currentPageId,
+                        navigationOptions.SelectedCardId,
+                        proofOptions)),
+            };
         }
 
         if (!string.IsNullOrWhiteSpace(navigationOptions.ExpandedCardId) &&
             IsOblivionPage(currentPageId))
         {
-            string expandedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(
+            string expandedCardId = OblivionWorkbench.ResolveCardSelectionId(
                 currentPageId,
                 navigationOptions.ExpandedCardId,
                 proofOptions);
-            state = state
+            OblivionSessionState session = state.OblivionSession
                 .WithSelectedCard(currentPageId, expandedCardId)
                 .WithCardViewState(
                     currentPageId,
@@ -162,24 +168,35 @@ public static class PresenterNavigationCatalog
                     new OblivionCardViewState(
                         IsExpanded: true,
                         BodyScrollOffset: navigationOptions.ExpandedCardBodyScroll ?? 0));
+            state = state with { OblivionSession = session };
         }
 
         if (navigationOptions.InspectorScroll is not null &&
             IsOblivionPage(currentPageId))
         {
-            state = state.WithInspectorScrollOffset(currentPageId, navigationOptions.InspectorScroll.Value);
+            state = state with
+            {
+                OblivionSession = state.OblivionSession.WithInspectorScrollOffset(
+                    currentPageId,
+                    navigationOptions.InspectorScroll.Value),
+            };
         }
 
         if (navigationOptions.InspectorRawSourceScroll is not null &&
             IsOblivionPage(currentPageId) &&
             !string.IsNullOrWhiteSpace(state.GetSelectedCardId(
                 currentPageId,
-                OblivionWorkbenchCatalog.GetPageCardsForSelection(currentPageId, proofOptions))))
+                OblivionWorkbench.GetPageCardsForSelection(currentPageId, proofOptions))))
         {
             string selectedCardId = state.GetSelectedCardId(
                 currentPageId,
-                OblivionWorkbenchCatalog.GetPageCardsForSelection(currentPageId, proofOptions))!;
-            state = state.WithRawMarkdownSourceScrollOffset(selectedCardId, navigationOptions.InspectorRawSourceScroll.Value);
+                OblivionWorkbench.GetPageCardsForSelection(currentPageId, proofOptions))!;
+            state = state with
+            {
+                OblivionSession = state.OblivionSession.WithRawSourceScrollOffset(
+                    selectedCardId,
+                    navigationOptions.InspectorRawSourceScroll.Value),
+            };
         }
 
         if (navigationOptions.ScrollOffsetByPageId is not null)
@@ -204,7 +221,13 @@ public static class PresenterNavigationCatalog
 
         if (navigationOptions.CompactPane is not null)
         {
-            state = state.WithCompactPane(navigationOptions.CompactPane.Value);
+            state = state with
+            {
+                OblivionSession = state.OblivionSession with
+                {
+                    InspectorPaneSelected = navigationOptions.CompactPane.Value == OblivionCompactPane.Inspector,
+                },
+            };
         }
 
         return state;
@@ -262,7 +285,7 @@ public static class PresenterNavigationCatalog
         if (layout.ShellMode == PresenterShellMode.Wide &&
             IsOblivionPage(pageId))
         {
-            return OblivionWorkbenchCatalog.ClampMainCardStackScrollOffset(
+            return OblivionWorkbench.ClampMainCardStackScrollOffset(
                 pageId,
                 requestedOffset,
                 proofOptions,
@@ -271,7 +294,7 @@ public static class PresenterNavigationCatalog
         }
 
         double contentHeight = GetPageContentHeight(pageId, proofOptions, navigationState, layout.ViewportHeight, layout.ShellMode);
-        return PresenterScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, requestedOffset);
+        return ScrollRegion.ClampScrollOffset(contentHeight, layout.ViewportHeight, requestedOffset);
     }
 
     public static string? ResolvePageId(string? pageId, PresenterNavigationModel model)
@@ -308,10 +331,10 @@ public static class PresenterNavigationCatalog
             "text.proofs" => "Proof organization",
             "diagnostics.layout" => "Layout diagnostics",
             "diagnostics.export" => "Export diagnostics",
-            OblivionWorkbenchCatalog.CardsPageId => "Oblivion cards",
-            OblivionWorkbenchCatalog.DocsPageId => "Oblivion docs",
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => "Oblivion execution roadmap",
-            OblivionWorkbenchCatalog.ArtifactsPageId => "Oblivion artifacts",
+            OblivionWorkbench.CardsPageId => "Oblivion cards",
+            OblivionWorkbench.DocsPageId => "Oblivion docs",
+            OblivionWorkbench.ExecutionRoadmapPageId => "Oblivion execution roadmap",
+            OblivionWorkbench.ArtifactsPageId => "Oblivion artifacts",
             "legacy.m1e-card" => "Legacy M1e Card",
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -332,10 +355,10 @@ public static class PresenterNavigationCatalog
             "text.proofs" => "Existing proof-only text notes stay organized here without reopening font work.",
             "diagnostics.layout" => "Layout and scroll structure notes for the presenter navigation shell.",
             "diagnostics.export" => "Export and artifact notes for the canonical M10c presenter shell.",
-            OblivionWorkbenchCatalog.CardsPageId => "Oblivion now closes out the static persisted-card substrate while keeping the existing presenter shell unchanged.",
-            OblivionWorkbenchCatalog.DocsPageId => "Curated existing repo docs now dogfood the Markdown body path as typed Oblivion cards while editing stays external.",
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => "Markdown cards come next, while Roslyn and xUnit execution remain explicitly deferred to M13+ or later.",
-            OblivionWorkbenchCatalog.ArtifactsPageId => "Artifact-facing placeholders stay visible as static cards before any capture/runtime work exists.",
+            OblivionWorkbench.CardsPageId => "Oblivion now closes out the static persisted-card substrate while keeping the existing presenter shell unchanged.",
+            OblivionWorkbench.DocsPageId => "Curated existing repo docs now dogfood the Markdown body path as typed Oblivion cards while editing stays external.",
+            OblivionWorkbench.ExecutionRoadmapPageId => "Markdown cards come next, while Roslyn and xUnit execution remain explicitly deferred to M13+ or later.",
+            OblivionWorkbench.ArtifactsPageId => "Artifact-facing placeholders stay visible as static cards before any capture/runtime work exists.",
             "legacy.m1e-card" => "Preserved sample content from the old single-card presenter root.",
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -359,10 +382,10 @@ public static class PresenterNavigationCatalog
             "text.proofs" => 376,
             "diagnostics.layout" => 360,
             "diagnostics.export" => 432,
-            OblivionWorkbenchCatalog.CardsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight, shellMode),
-            OblivionWorkbenchCatalog.DocsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight, shellMode),
-            OblivionWorkbenchCatalog.ExecutionRoadmapPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight, shellMode),
-            OblivionWorkbenchCatalog.ArtifactsPageId => OblivionWorkbenchCatalog.GetPageContentHeight(pageId, proofOptions, navigationState, viewportHeight, shellMode),
+            OblivionWorkbench.CardsPageId => OblivionWorkbench.GetPageContentHeight(pageId, proofOptions, navigationState?.OblivionHostState, viewportHeight, shellMode.ToOblivionShellMode()),
+            OblivionWorkbench.DocsPageId => OblivionWorkbench.GetPageContentHeight(pageId, proofOptions, navigationState?.OblivionHostState, viewportHeight, shellMode.ToOblivionShellMode()),
+            OblivionWorkbench.ExecutionRoadmapPageId => OblivionWorkbench.GetPageContentHeight(pageId, proofOptions, navigationState?.OblivionHostState, viewportHeight, shellMode.ToOblivionShellMode()),
+            OblivionWorkbench.ArtifactsPageId => OblivionWorkbench.GetPageContentHeight(pageId, proofOptions, navigationState?.OblivionHostState, viewportHeight, shellMode.ToOblivionShellMode()),
             "legacy.m1e-card" => proofOptions.IncludeDirectOutlineRenderBridgeProof ? 1152 : 420,
             _ => throw new InvalidOperationException($"Unknown presenter page id '{pageId}'."),
         };
@@ -396,7 +419,7 @@ public static class PresenterNavigationCatalog
         {
             result = result with
             {
-                OblivionInteraction = OblivionWorkbenchCatalog.BuildInteractionMap(pageId, proofOptions, frame.Resolved, navigationState, shellMode),
+                OblivionInteraction = OblivionWorkbench.BuildInteractionMap(pageId, proofOptions, frame.Resolved, navigationState?.OblivionHostState, shellMode.ToOblivionShellMode()),
             };
         }
 
@@ -710,11 +733,11 @@ public static class PresenterNavigationCatalog
                     208)));
                 break;
 
-            case OblivionWorkbenchCatalog.CardsPageId:
-            case OblivionWorkbenchCatalog.DocsPageId:
-            case OblivionWorkbenchCatalog.ExecutionRoadmapPageId:
-            case OblivionWorkbenchCatalog.ArtifactsPageId:
-                rows.AddRange(OblivionWorkbenchCatalog.BuildPageRows(pageId, theme, contentWidth, viewportHeight, proofOptions, navigationState, shellMode));
+            case OblivionWorkbench.CardsPageId:
+            case OblivionWorkbench.DocsPageId:
+            case OblivionWorkbench.ExecutionRoadmapPageId:
+            case OblivionWorkbench.ArtifactsPageId:
+                rows.AddRange(OblivionWorkbench.BuildPageRows(pageId, theme, contentWidth, viewportHeight, proofOptions, navigationState?.OblivionHostState, shellMode.ToOblivionShellMode()));
                 break;
 
             case "legacy.m1e-card":
@@ -751,7 +774,7 @@ public static class PresenterNavigationCatalog
 
     private static UiNode BuildStatusCard(DemoState state, StandardTheme theme, int width, double height)
     {
-        return PresenterCard.BuildTextCard(
+        return StandardCard.BuildTextCard(
             id: "overview-status-card-content",
             title: "Presenter status",
             badges:
@@ -767,7 +790,7 @@ public static class PresenterNavigationCatalog
                 "Per-page scroll offset remains separate from component-local state.",
             ],
             theme: theme,
-            options: new PresenterCardOptions(
+            options: new StandardCardOptions(
                 Width: width,
                 Height: height));
     }
@@ -781,20 +804,20 @@ public static class PresenterNavigationCatalog
         int width,
         double height)
     {
-        return PresenterCard.BuildTextCard(
+        return StandardCard.BuildTextCard(
             id: id,
             title: title,
             badges: badges,
             lines: lines,
             theme: theme,
-            options: new PresenterCardOptions(
+            options: new StandardCardOptions(
                 Width: width,
                 Height: height));
     }
 
     private static UiNode BuildLegacyCardWrapper(DemoState state, StandardTheme theme, int width)
     {
-        return PresenterCard.BuildHostedCard(
+        return StandardCard.BuildHostedCard(
             id: "legacy-settings-wrapper-card",
             title: "Legacy M1e Card",
             badges:
@@ -810,17 +833,17 @@ public static class PresenterNavigationCatalog
                 width: 500,
                 height: 292),
             theme: theme,
-            options: new PresenterCardOptions(
+            options: new StandardCardOptions(
                 Width: width,
                 Height: 352));
     }
 
     public static bool IsOblivionPage(string pageId)
     {
-        return string.Equals(pageId, OblivionWorkbenchCatalog.CardsPageId, StringComparison.Ordinal) ||
-               string.Equals(pageId, OblivionWorkbenchCatalog.DocsPageId, StringComparison.Ordinal) ||
-               string.Equals(pageId, OblivionWorkbenchCatalog.ExecutionRoadmapPageId, StringComparison.Ordinal) ||
-               string.Equals(pageId, OblivionWorkbenchCatalog.ArtifactsPageId, StringComparison.Ordinal);
+        return string.Equals(pageId, OblivionWorkbench.CardsPageId, StringComparison.Ordinal) ||
+               string.Equals(pageId, OblivionWorkbench.DocsPageId, StringComparison.Ordinal) ||
+               string.Equals(pageId, OblivionWorkbench.ExecutionRoadmapPageId, StringComparison.Ordinal) ||
+               string.Equals(pageId, OblivionWorkbench.ArtifactsPageId, StringComparison.Ordinal);
     }
 }
 

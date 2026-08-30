@@ -15,6 +15,19 @@ public static class PresenterNavigationDispatch
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(proofOptions);
         ArgumentNullException.ThrowIfNull(layout);
+        if (OblivionUiActions.TryDecode(actionId, out OblivionInteraction? interaction))
+        {
+            OblivionInteractionDispatchResult result = OblivionInteractionDispatcher.Dispatch(
+                state.OblivionHostState,
+                interaction!,
+                proofOptions.OblivionHostOptions,
+                layout.OblivionHostLayout);
+            return state with
+            {
+                OblivionSession = result.State.Session,
+                OblivionApplication = result.State.Application,
+            };
+        }
 
         if (PresenterNavigationActions.TryParseSelectSection(actionId, out string sectionId))
         {
@@ -32,8 +45,7 @@ public static class PresenterNavigationDispatch
 
             return state
                 .WithSelectedTab(sectionId, tabId)
-                .WithSelectedSection(sectionId)
-                .WithCompactPane(PresenterCompactPane.CardList);
+                .WithSelectedSection(sectionId);
         }
 
         if (PresenterNavigationActions.TryParseSelectTab(actionId, out string tabSectionId, out string tabIdToSelect))
@@ -44,9 +56,7 @@ public static class PresenterNavigationDispatch
                 return state;
             }
 
-            return state
-                .WithSelectedTab(tabSectionId, tabIdToSelect)
-                .WithCompactPane(PresenterCompactPane.CardList);
+            return state.WithSelectedTab(tabSectionId, tabIdToSelect);
         }
 
         if (PresenterNavigationActions.TryParseSetScrollOffset(actionId, out string pageId, out double requestedOffset))
@@ -63,219 +73,6 @@ public static class PresenterNavigationDispatch
                 state,
                 layout);
             return state.WithScrollOffset(pageId, clamped);
-        }
-
-        if (PresenterNavigationActions.TryParseSelectOblivionCard(actionId, out string oblivionPageId, out string cardId))
-        {
-            if (!model.ContainsPage(oblivionPageId))
-            {
-                return state;
-            }
-
-            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(oblivionPageId, proofOptions);
-            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(oblivionPageId, cardId, proofOptions);
-            if (cards.All(card => !string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal)))
-            {
-                return state;
-            }
-
-            return state.WithSelectedCard(oblivionPageId, resolvedCardId);
-        }
-
-        if (PresenterNavigationActions.TryParseToggleOblivionCardExpansion(actionId, out string expansionPageId, out string expansionCardId))
-        {
-            if (!model.ContainsPage(expansionPageId))
-            {
-                return state;
-            }
-
-            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(expansionPageId, proofOptions);
-            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(expansionPageId, expansionCardId, proofOptions);
-            if (cards.All(card => !string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal)))
-            {
-                return state;
-            }
-
-            OblivionCard? targetCard = cards.First(card => string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal));
-            bool isMarkdownCard = targetCard.Body.Format == OblivionCardBodyFormat.CopelandMarkdown;
-            bool isCurrentlyExpanded = state.GetCardViewState(expansionPageId, resolvedCardId).IsExpanded;
-            if (isMarkdownCard && !isCurrentlyExpanded)
-            {
-                string[] markdownCardIds = cards
-                    .Where(card => card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
-                    .Select(card => card.Id.Value)
-                    .OrderBy(value => value, StringComparer.Ordinal)
-                    .ToArray();
-
-                return state
-                    .WithSelectedCard(expansionPageId, resolvedCardId)
-                    .ExpandCardExclusively(expansionPageId, resolvedCardId, markdownCardIds);
-            }
-
-            return state
-                .WithSelectedCard(expansionPageId, resolvedCardId)
-                .ToggleCardExpansion(expansionPageId, resolvedCardId);
-        }
-
-        if (PresenterNavigationActions.TryParseCollapseOblivionCard(actionId, out string collapsePageId, out string collapseCardId))
-        {
-            if (!model.ContainsPage(collapsePageId))
-            {
-                return state;
-            }
-
-            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(collapsePageId, collapseCardId, proofOptions);
-            return state.CollapseCard(collapsePageId, resolvedCardId);
-        }
-
-        if (PresenterNavigationActions.TryParseSetOblivionCardBodyScrollOffset(
-            actionId,
-            out string bodyScrollPageId,
-            out string bodyScrollCardId,
-            out double requestedBodyScrollOffset))
-        {
-            if (!model.ContainsPage(bodyScrollPageId))
-            {
-                return state;
-            }
-
-            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(bodyScrollPageId, bodyScrollCardId, proofOptions);
-            double clamped = OblivionWorkbenchCatalog.ClampBodyScrollOffset(
-                bodyScrollPageId,
-                resolvedCardId,
-                requestedBodyScrollOffset,
-                proofOptions,
-                state,
-                layout);
-            return state
-                .WithSelectedCard(bodyScrollPageId, resolvedCardId)
-                .WithCardBodyScrollOffset(bodyScrollPageId, resolvedCardId, clamped);
-        }
-
-        if (PresenterNavigationActions.TryParseSetOblivionMainCardStackScrollOffset(
-            actionId,
-            out string mainStackScrollPageId,
-            out double requestedMainStackScrollOffset))
-        {
-            if (!model.ContainsPage(mainStackScrollPageId))
-            {
-                return state;
-            }
-
-            double clamped = OblivionWorkbenchCatalog.ClampMainCardStackScrollOffset(
-                mainStackScrollPageId,
-                requestedMainStackScrollOffset,
-                proofOptions,
-                state,
-                layout);
-            return state.WithScrollOffset(mainStackScrollPageId, clamped);
-        }
-
-        if (PresenterNavigationActions.TryParseSetOblivionInspectorScrollOffset(
-            actionId,
-            out string inspectorScrollPageId,
-            out double requestedInspectorScrollOffset))
-        {
-            if (!model.ContainsPage(inspectorScrollPageId))
-            {
-                return state;
-            }
-
-            double clamped = OblivionWorkbenchCatalog.ClampInspectorScrollOffset(
-                inspectorScrollPageId,
-                requestedInspectorScrollOffset,
-                proofOptions,
-                state,
-                layout);
-            return state.WithInspectorScrollOffset(inspectorScrollPageId, clamped);
-        }
-
-        if (PresenterNavigationActions.TryParseSetOblivionRawMarkdownSourceScrollOffset(
-            actionId,
-            out string rawSourcePageId,
-            out string rawSourceCardId,
-            out double requestedRawSourceScrollOffset))
-        {
-            if (!model.ContainsPage(rawSourcePageId))
-            {
-                return state;
-            }
-
-            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(rawSourcePageId, rawSourceCardId, proofOptions);
-            double clamped = OblivionWorkbenchCatalog.ClampRawMarkdownSourceScrollOffset(
-                rawSourcePageId,
-                resolvedCardId,
-                requestedRawSourceScrollOffset,
-                proofOptions,
-                state,
-                layout);
-            return state.WithRawMarkdownSourceScrollOffset(resolvedCardId, clamped);
-        }
-
-        if (PresenterNavigationActions.TryParseSelectCompactOblivionCard(actionId, out string compactPageId, out string compactCardId))
-        {
-            if (!model.ContainsPage(compactPageId))
-            {
-                return state;
-            }
-
-            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(compactPageId, proofOptions);
-            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(compactPageId, compactCardId, proofOptions);
-            if (cards.All(card => !string.Equals(card.Id.Value, resolvedCardId, StringComparison.Ordinal)))
-            {
-                return state;
-            }
-
-            return state
-                .WithSelectedCard(compactPageId, resolvedCardId)
-                .WithCompactPane(PresenterCompactPane.Inspector);
-        }
-
-        if (PresenterNavigationActions.TryParseClearOblivionCardSelection(actionId, out string clearPageId))
-        {
-            if (!model.ContainsPage(clearPageId))
-            {
-                return state;
-            }
-
-            return state.ClearSelectedCard(clearPageId);
-        }
-
-        if (PresenterNavigationActions.TryParseSetCompactPane(actionId, out PresenterCompactPane compactPane))
-        {
-            return state.WithCompactPane(compactPane);
-        }
-
-        if (PresenterNavigationActions.TryParseInvokeOblivionCardAction(actionId, out string actionPageId, out string actionCardId, out string cardActionId))
-        {
-            if (!model.ContainsPage(actionPageId))
-            {
-                return state;
-            }
-
-            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(actionPageId, proofOptions);
-            string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(actionPageId, actionCardId, proofOptions);
-            OblivionCard? card = cards.FirstOrDefault(candidate =>
-                string.Equals(candidate.Id.Value, resolvedCardId, StringComparison.Ordinal));
-            if (card is null)
-            {
-                return state;
-            }
-
-            OblivionCardEffectOutcome? outcome = OblivionWorkbenchCatalog.InvokeCardAction(
-                actionPageId,
-                resolvedCardId,
-                cardActionId,
-                proofOptions,
-                state.EffectState);
-            if (outcome is null)
-            {
-                return state;
-            }
-
-            return state
-                .WithSelectedCard(actionPageId, resolvedCardId)
-                .WithEffectOutcome(outcome.Request, outcome.Result);
         }
 
         return state;

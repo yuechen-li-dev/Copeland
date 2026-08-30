@@ -25,7 +25,7 @@ public sealed record PresenterPlaybackStateSnapshot(
 
         string pageId = render.SelectedTab.PageId;
         IReadOnlyList<OblivionCard> cards = PresenterNavigationCatalog.IsOblivionPage(pageId)
-            ? OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, render.ProofOptions)
+            ? OblivionWorkbench.GetPageCardsForSelection(pageId, render.ProofOptions)
             : [];
         string? selectedCard = PresenterNavigationCatalog.IsOblivionPage(pageId)
             ? render.NavigationState.GetSelectedCardId(pageId, cards)

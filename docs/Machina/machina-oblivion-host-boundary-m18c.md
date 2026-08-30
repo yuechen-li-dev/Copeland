@@ -11,7 +11,10 @@ Oblivion must never depend on Presenter.
 
 Presenter translates palette navigation, surface sizing, pointer capture, and development export concerns into product application/session calls. Oblivion returns semantic Machina UI and typed application outcomes. Layout and raster output stay below product semantics.
 
-The temporary `PresenterOblivionHostAdapter` owns the compatibility translation required by the established playback paths. It may reference Oblivion and Presenter types; no Oblivion project may reference it. M18d owns its elimination by moving product page composition and interaction maps inward while retaining a thin presenter translation.
+M18d deleted the temporary Presenter adapter. Machina.Runtime now owns generic
+pointer and scrollbar mechanics, Oblivion owns product interaction/action/effect
+meaning, and Presenter retains only generic host projection and platform work.
+See `docs/Machina/machina-product-host-contracts-m18d.md`.
 
 Avalonia classification:
 

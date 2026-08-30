@@ -92,13 +92,13 @@ public static class PresenterExporter
                     throw new InvalidOperationException("Action invocation requires a selected Oblivion card.");
                 }
 
-                string resolvedCardId = OblivionWorkbenchCatalog.ResolveCardSelectionId(
+                string resolvedCardId = OblivionWorkbench.ResolveCardSelectionId(
                     pageId,
                     navigationOptions.SelectedCardId,
                     proofOptions);
                 navigationState = PresenterNavigationDispatch.Dispatch(
                     navigationState,
-                    PresenterNavigationActions.InvokeOblivionCardAction(
+                    OblivionUiActions.InvokeProductAction(
                         pageId,
                         resolvedCardId,
                         navigationOptions.InvokeActionId),
@@ -129,43 +129,43 @@ public static class PresenterExporter
                 shellRender,
                 proofOptions,
                 navigationOptions.InteractionBackendName);
-            (oblivionManifestJsonPath, oblivionManifestTextPath) = OblivionWorkbenchCatalog.WriteManifest(outputDirectory, proofOptions);
-            (oblivionInspectorManifestJsonPath, oblivionInspectorManifestTextPath) = OblivionWorkbenchCatalog.WriteInspectorManifest(
+            (oblivionManifestJsonPath, oblivionManifestTextPath) = OblivionWorkbench.WriteManifest(outputDirectory, proofOptions);
+            (oblivionInspectorManifestJsonPath, oblivionInspectorManifestTextPath) = OblivionWorkbench.WriteInspectorManifest(
                 outputDirectory,
                 shellRender.NavigationState,
                 proofOptions);
             (oblivionExpandableMarkdownCardsManifestJsonPath, oblivionExpandableMarkdownCardsManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteExpandableMarkdownCardsManifest(
+                OblivionWorkbench.WriteExpandableMarkdownCardsManifest(
                     outputDirectory,
                     shellRender.NavigationState,
                     proofOptions);
             (oblivionExpandedMarkdownReadingSurfaceManifestJsonPath, oblivionExpandedMarkdownReadingSurfaceManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteExpandedMarkdownReadingSurfaceManifest(
+                OblivionWorkbench.WriteExpandedMarkdownReadingSurfaceManifest(
                     outputDirectory,
                     shellRender.NavigationState,
                     proofOptions);
             (oblivionIndependentScrollPanesManifestJsonPath, oblivionIndependentScrollPanesManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteIndependentScrollPanesManifest(
+                OblivionWorkbench.WriteIndependentScrollPanesManifest(
                     outputDirectory,
                     shellRender.NavigationState,
                     proofOptions);
             (oblivionScrollRegressionStabilizationManifestJsonPath, oblivionScrollRegressionStabilizationManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteScrollRegressionStabilizationManifest(
+                OblivionWorkbench.WriteScrollRegressionStabilizationManifest(
                     outputDirectory,
                     shellRender.NavigationState,
                     inspectorLagFixed: true,
                     inspectorLagRootCauseDocumented: true,
                     inspectorLagBlockerDocumented: false);
             (oblivionPhaseCloseoutManifestJsonPath, oblivionPhaseCloseoutManifestTextPath) =
-                OblivionWorkbenchCatalog.WritePhaseCloseoutManifest(outputDirectory);
+                OblivionWorkbench.WritePhaseCloseoutManifest(outputDirectory);
             (oblivionMarkdownRenderingManifestJsonPath, oblivionMarkdownRenderingManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteMarkdownRenderingManifest(outputDirectory, proofOptions);
+                OblivionWorkbench.WriteMarkdownRenderingManifest(outputDirectory, proofOptions);
             (oblivionDocsDogfoodManifestJsonPath, oblivionDocsDogfoodManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteDocsDogfoodManifest(outputDirectory, proofOptions);
+                OblivionWorkbench.WriteDocsDogfoodManifest(outputDirectory, proofOptions);
             (oblivionAgenticCardContractManifestJsonPath, oblivionAgenticCardContractManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteAgenticCardContractManifest(outputDirectory, proofOptions);
+                OblivionWorkbench.WriteAgenticCardContractManifest(outputDirectory, proofOptions);
             (oblivionEffectRoutingManifestJsonPath, oblivionEffectRoutingManifestTextPath) =
-                OblivionWorkbenchCatalog.WriteEffectRoutingManifest(
+                OblivionWorkbench.WriteEffectRoutingManifest(
                     outputDirectory,
                     shellRender.NavigationState,
                     proofOptions);

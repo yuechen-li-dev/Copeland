@@ -1,0 +1,17 @@
+scenarioId=oblivion-expand-collapse
+scenarioName=Expand a Markdown doc card, then collapse it with Escape
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\m18d\playback-final\oblivion-expand-collapse
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\m18d\playback-final\oblivion-expand-collapse\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\m18d\playback-final\oblivion-expand-collapse\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\m18d\playback-final\oblivion-expand-collapse\playback-trace.json
+passed=true
+assertionCount=1
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] card-expanded passed=true reason=Escape should collapse the selected expanded Markdown card so keyboard users can leave reading mode without using the mouse. expected=False actual=False

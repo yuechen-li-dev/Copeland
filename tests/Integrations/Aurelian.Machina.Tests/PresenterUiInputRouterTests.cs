@@ -40,7 +40,7 @@ public sealed class PresenterUiInputRouterTests
         PresenterUiInputRoutingResult result = PresenterUiInputRouter.Route(
             render,
             batch,
-            PresenterScrollbarInteractionState.Default);
+            ScrollbarInteractionState.Default);
 
         Assert.Equal((ulong)42, result.BatchId);
         Assert.Equal(3, result.RoutedEvents.Length);
@@ -73,7 +73,7 @@ public sealed class PresenterUiInputRouterTests
         PresenterUiInputRoutingResult result = PresenterUiInputRouter.Route(
             initialRender,
             batch,
-            PresenterScrollbarInteractionState.Default,
+            ScrollbarInteractionState.Default,
             size =>
             {
                 recompositionCount++;

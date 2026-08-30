@@ -11,7 +11,7 @@ public static class PresenterKeyboardRouter
     public static PresenterNavigationInputRoutingResult Route(
         PresenterNavigationShellRenderResult render,
         UiInputEvent inputEvent,
-        PresenterScrollbarInteractionState interactionState)
+        ScrollbarInteractionState interactionState)
     {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(inputEvent);
@@ -23,7 +23,7 @@ public static class PresenterKeyboardRouter
                 PresenterNavigationHitTarget.None,
                 null,
                 interactionState,
-                PresenterPointerCaptureRequest.None,
+                PointerCaptureRequest.None,
                 SuppressFurtherRouting: false);
         }
 
@@ -35,7 +35,7 @@ public static class PresenterKeyboardRouter
             PresenterNavigationHitTarget.None,
             actionId,
             interactionState,
-            PresenterPointerCaptureRequest.None,
+            PointerCaptureRequest.None,
             SuppressFurtherRouting: false);
     }
 
@@ -140,11 +140,11 @@ public static class PresenterKeyboardRouter
             return null;
         }
 
-        IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, render.ProofOptions);
+        IReadOnlyList<OblivionCard> cards = OblivionWorkbench.GetPageCardsForSelection(pageId, render.ProofOptions);
         string? selectedCardId = render.NavigationState.GetSelectedCardId(pageId, cards);
         return selectedCardId is null
             ? null
-            : PresenterNavigationActions.ToggleOblivionCardExpansion(pageId, selectedCardId);
+            : OblivionUiActions.ToggleCardExpansion(pageId, selectedCardId);
     }
 
     private static UiActionId? RouteEscape(PresenterNavigationShellRenderResult render)
@@ -152,12 +152,12 @@ public static class PresenterKeyboardRouter
         string pageId = render.SelectedTab.PageId;
         if (PresenterNavigationCatalog.IsOblivionPage(pageId))
         {
-            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, render.ProofOptions);
+            IReadOnlyList<OblivionCard> cards = OblivionWorkbench.GetPageCardsForSelection(pageId, render.ProofOptions);
             string? selectedCardId = render.NavigationState.GetSelectedCardId(pageId, cards);
             if (selectedCardId is not null &&
                 render.NavigationState.GetCardViewState(pageId, selectedCardId).IsExpanded)
             {
-                return PresenterNavigationActions.CollapseOblivionCard(pageId, selectedCardId);
+                return OblivionUiActions.CollapseCard(pageId, selectedCardId);
             }
         }
 
@@ -173,16 +173,16 @@ public static class PresenterKeyboardRouter
         }
 
         if (render.Layout.ShellMode == PresenterShellMode.Compact &&
-            render.NavigationState.CompactPane == PresenterCompactPane.Inspector)
+            render.NavigationState.CompactPane == OblivionCompactPane.Inspector)
         {
-            return PresenterNavigationActions.SetCompactPane(PresenterCompactPane.CardList);
+            return OblivionUiActions.SetCompactPane(OblivionCompactPane.CardList);
         }
 
-        IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, render.ProofOptions);
+        IReadOnlyList<OblivionCard> cards = OblivionWorkbench.GetPageCardsForSelection(pageId, render.ProofOptions);
         string? selectedCardId = render.NavigationState.GetSelectedCardId(pageId, cards);
         return selectedCardId is null
             ? null
-            : PresenterNavigationActions.ClearOblivionCardSelection(pageId);
+            : OblivionUiActions.ClearCardSelection(pageId);
     }
 
     private static UiActionId? InvokeSelectedCardAction(PresenterNavigationShellRenderResult render)
@@ -193,7 +193,7 @@ public static class PresenterKeyboardRouter
             return null;
         }
 
-        IReadOnlyList<OblivionBuiltCard> cards = OblivionWorkbenchCatalog.GetBuiltPageCardsForSelection(
+        IReadOnlyList<OblivionBuiltCard> cards = OblivionWorkbench.GetBuiltPageCardsForSelection(
             pageId,
             render.ProofOptions,
             render.NavigationState.EffectState);
@@ -212,7 +212,7 @@ public static class PresenterKeyboardRouter
 
         return action is null
             ? null
-            : PresenterNavigationActions.InvokeOblivionCardAction(pageId, selectedCardId, action.Id);
+            : OblivionUiActions.InvokeProductAction(pageId, selectedCardId, action.Id);
     }
 
     private static bool IsCtrlChord(UiKeyChanged keyboard, UiKey key)

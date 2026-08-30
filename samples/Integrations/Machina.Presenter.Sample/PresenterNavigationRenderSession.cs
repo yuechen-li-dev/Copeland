@@ -45,7 +45,7 @@ public sealed class PresenterNavigationRenderSession
             tab.PageId);
 
         double currentOffset = normalizedState.GetScrollOffset(tab.PageId);
-        ScrollbarGeometry scrollbarGeometry = PresenterScrollRegion.ComputeScrollbarGeometry(
+        ScrollbarGeometry scrollbarGeometry = ScrollRegion.ComputeScrollbarGeometry(
             effectiveLayout.ScrollbarTrackRect,
             pageRender.ContentHeight,
             effectiveLayout.ViewportHeight,
@@ -120,7 +120,7 @@ public sealed class PresenterNavigationRenderSession
         string? expansionSignature = null;
         if (PresenterNavigationCatalog.IsOblivionPage(pageId))
         {
-            IReadOnlyList<OblivionCard> cards = OblivionWorkbenchCatalog.GetPageCardsForSelection(pageId, proofOptions);
+            IReadOnlyList<OblivionCard> cards = OblivionWorkbench.GetPageCardsForSelection(pageId, proofOptions);
             selectedCardId = navigationState.GetSelectedCardId(pageId, cards);
             expansionSignature = string.Join(
                 "|",
@@ -220,7 +220,7 @@ internal sealed record PresenterCachedPageLayerKey(
     PresenterProofOptions ProofOptions,
     PresenterShellMode ShellMode,
     int ContentWidth,
-    PresenterCompactPane CompactPane,
+    OblivionCompactPane CompactPane,
     string? SelectedCardId,
     string? ExpansionSignature);
 

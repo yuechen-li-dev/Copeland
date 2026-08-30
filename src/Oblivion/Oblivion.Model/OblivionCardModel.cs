@@ -51,7 +51,34 @@ public sealed record OblivionProvenance(
         SourceReference: null);
 }
 
-public sealed record OblivionCardAction(string Id, string Label, bool Enabled);
+public readonly record struct OblivionProductActionId
+{
+    public OblivionProductActionId(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Value = value;
+    }
+
+    public string Value { get; }
+
+    public override string ToString()
+    {
+        return Value;
+    }
+}
+
+public sealed record OblivionCardAction(
+    OblivionProductActionId ActionId,
+    string Label,
+    bool Enabled)
+{
+    public OblivionCardAction(string id, string label, bool enabled)
+        : this(new OblivionProductActionId(id), label, enabled)
+    {
+    }
+
+    public string Id => ActionId.Value;
+}
 
 public sealed record OblivionCardArtifact(
     string Id,

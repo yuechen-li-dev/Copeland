@@ -5,9 +5,21 @@ namespace Oblivion.App;
 
 public sealed class OblivionCardEffectRouter
 {
-    public OblivionCardEffectResult Route(OblivionCardEffectRequest request)
+    private readonly OblivionHostCapabilities _capabilities;
+
+    public OblivionCardEffectRouter(OblivionHostCapabilities? capabilities = null)
+    {
+        _capabilities = capabilities ?? OblivionHostCapabilities.None;
+    }
+
+    public OblivionEffectResult Route(OblivionEffectRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        if (_capabilities.TryExecute(request, out OblivionEffectResult? result))
+        {
+            return result!;
+        }
 
         return request.Kind switch
         {
@@ -54,44 +66,64 @@ public sealed class OblivionCardEffectRouter
         };
     }
 
-    private static OblivionCardEffectResult CreateDeferredResult(
-        OblivionCardEffectRequest request,
+    private static OblivionEffectResult CreateDeferredResult(
+        OblivionEffectRequest request,
         string message,
         string diagnosticCode)
     {
-        return new OblivionCardEffectResult(
+        List<OblivionCardDiagnostic> diagnostics =
+        [
+            new OblivionCardDiagnostic(
+                diagnosticCode,
+                OblivionCardDiagnosticSeverity.Info,
+                message,
+                request.Context.SourcePath),
+        ];
+        if (IsHostCapabilityRequest(request))
+        {
+            diagnostics.Add(
+                new OblivionCardDiagnostic(
+                    "OBLIVION-HOST-CAPABILITY-UNAVAILABLE",
+                    OblivionCardDiagnosticSeverity.Info,
+                    $"Host capability for '{request.GetType().Name}' is unavailable.",
+                    request.Context.SourcePath));
+        }
+
+        return new DeferredEffectResult(
             request.RequestId,
             request.CardId,
             request.Kind,
-            OblivionCardEffectStatus.Deferred,
             message,
-            [
-                new OblivionCardDiagnostic(
-                    diagnosticCode,
-                    OblivionCardDiagnosticSeverity.Info,
-                    message,
-                    request.Properties.TryGetValue("sourcePath", out string? sourcePath) ? sourcePath : null),
-            ],
+            diagnostics,
             []);
     }
 
-    private static OblivionCardEffectResult CreateRejectedResult(
-        OblivionCardEffectRequest request,
+    private static bool IsHostCapabilityRequest(OblivionEffectRequest request)
+    {
+        return request is RefreshContentEffectRequest or
+            OpenSourceEffectRequest or
+            CopySourcePathEffectRequest or
+            OpenArtifactEffectRequest or
+            ExportCardEffectRequest or
+            RenderPreviewEffectRequest;
+    }
+
+    private static OblivionEffectResult CreateRejectedResult(
+        OblivionEffectRequest request,
         string message,
         string diagnosticCode)
     {
-        return new OblivionCardEffectResult(
+        return new RejectedEffectResult(
             request.RequestId,
             request.CardId,
             request.Kind,
-            OblivionCardEffectStatus.Rejected,
             message,
             [
                 new OblivionCardDiagnostic(
                     diagnosticCode,
                     OblivionCardDiagnosticSeverity.Warning,
                     message,
-                    request.Properties.TryGetValue("sourcePath", out string? sourcePath) ? sourcePath : null),
+                    request.Context.SourcePath),
             ],
             []);
     }
