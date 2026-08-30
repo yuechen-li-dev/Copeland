@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Oblivion.App</AssemblyName>
+    <RootNamespace>Oblivion.App</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Oblivion.Model/Oblivion.Model.csproj" />
+    <ProjectReference Include="../Oblivion.Persistence/Oblivion.Persistence.csproj" />
+    <ProjectReference Include="../Oblivion.UI/Oblivion.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="OblivionSampleWorkspace/**/*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

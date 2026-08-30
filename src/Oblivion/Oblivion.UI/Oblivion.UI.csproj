@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Oblivion.UI</AssemblyName>
+    <RootNamespace>Oblivion.UI</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Oblivion.Model/Oblivion.Model.csproj" />
+    <ProjectReference Include="../../Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Standard/Machina.Standard.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Runtime/Machina.Runtime.csproj" />
+  </ItemGroup>
+</Project>

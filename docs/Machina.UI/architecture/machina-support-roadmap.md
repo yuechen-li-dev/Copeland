@@ -1559,3 +1559,6 @@ Still deferred in M12g:
 - Roslyn execution
 - xUnit execution
 - Visionary
+# M18c / M18d product hosting update
+
+M18c establishes Oblivion as a first-class Model/Persistence/UI/App stack and promotes only the evidenced reusable card-layout and scroll-geometry helpers into Machina.Standard. Avalonia remains a host fallback. M18d should remove the bounded presenter host-composition adapter and harden typed product effect contracts; it must not broaden into a widget-suite or layout-authoring redesign.

@@ -3,253 +3,132 @@ namespace Machina.Presenter.Sample;
 public sealed record PresenterNavigationState(
     string SelectedSectionId,
     IReadOnlyDictionary<string, string> SelectedTabBySectionId,
-    IReadOnlyDictionary<string, double> ScrollOffsetByPageId,
-    IReadOnlyDictionary<string, double> InspectorScrollOffsetByPageId,
-    IReadOnlyDictionary<string, string?> SelectedCardByPageId,
-    IReadOnlyDictionary<string, double> RawMarkdownSourceScrollOffsetByCardId,
-    IReadOnlyDictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> CardViewStateByPageId,
-    PresenterCompactPane CompactPane,
-    OblivionCardEffectState EffectState)
+    IReadOnlyDictionary<string, double> PresenterScrollOffsetByPageId,
+    OblivionSessionState OblivionSession,
+    OblivionApplicationState OblivionApplication)
 {
+    public PresenterCompactPane CompactPane => OblivionSession.InspectorPaneSelected
+        ? PresenterCompactPane.Inspector
+        : PresenterCompactPane.CardList;
+
+    public OblivionCardEffectState EffectState => OblivionApplication.EffectState;
+
     public static PresenterNavigationState CreateDefault(PresenterNavigationModel model)
     {
-        ArgumentNullException.ThrowIfNull(model);
-
-        var selectedTabs = new Dictionary<string, string>(StringComparer.Ordinal);
+        Dictionary<string, string> selectedTabs = new(StringComparer.Ordinal);
         foreach (PresenterNavigationSection section in model.Sections)
         {
             selectedTabs[section.Id] = section.Tabs[0].Id;
         }
 
         return new PresenterNavigationState(
-            SelectedSectionId: model.Sections[0].Id,
-            SelectedTabBySectionId: selectedTabs,
-            ScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal),
-            InspectorScrollOffsetByPageId: new Dictionary<string, double>(StringComparer.Ordinal),
-            SelectedCardByPageId: new Dictionary<string, string?>(StringComparer.Ordinal),
-            RawMarkdownSourceScrollOffsetByCardId: new Dictionary<string, double>(StringComparer.Ordinal),
-            CardViewStateByPageId: new Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>>(StringComparer.Ordinal),
-            CompactPane: PresenterCompactPane.CardList,
-            EffectState: OblivionCardEffectState.Empty);
+            model.Sections[0].Id,
+            selectedTabs,
+            new Dictionary<string, double>(StringComparer.Ordinal),
+            OblivionSessionState.Empty,
+            OblivionApplicationState.Empty);
     }
 
     public string GetSelectedTabId(string sectionId, PresenterNavigationModel model)
     {
-        ArgumentNullException.ThrowIfNull(sectionId);
-        ArgumentNullException.ThrowIfNull(model);
-
         if (SelectedTabBySectionId.TryGetValue(sectionId, out string? tabId))
         {
             PresenterNavigationSection? section = model.FindSection(sectionId);
-            if (section is not null && section.Tabs.Any(tab => string.Equals(tab.Id, tabId, StringComparison.Ordinal)))
+            if (section is not null && section.Tabs.Any(tab => tab.Id == tabId))
             {
                 return tabId;
             }
         }
 
-        PresenterNavigationSection fallbackSection = model.FindSection(sectionId) ?? model.Sections[0];
-        return fallbackSection.Tabs[0].Id;
+        return (model.FindSection(sectionId) ?? model.Sections[0]).Tabs[0].Id;
     }
 
     public double GetScrollOffset(string pageId)
     {
-        ArgumentNullException.ThrowIfNull(pageId);
-
-        if (ScrollOffsetByPageId.TryGetValue(pageId, out double offset))
+        if (PresenterNavigationCatalog.IsOblivionPage(pageId))
         {
-            return offset;
+            return OblivionSession.GetMainScrollOffset(pageId);
         }
 
-        return 0;
+        return PresenterScrollOffsetByPageId.TryGetValue(pageId, out double offset) ? offset : 0;
     }
 
     public PresenterNavigationState WithSelectedSection(string sectionId)
     {
-        return this with
-        {
-            SelectedSectionId = sectionId,
-        };
+        return this with { SelectedSectionId = sectionId };
     }
 
     public PresenterNavigationState WithSelectedTab(string sectionId, string tabId)
     {
-        var tabs = new Dictionary<string, string>(SelectedTabBySectionId, StringComparer.Ordinal)
+        Dictionary<string, string> tabs = new(SelectedTabBySectionId, StringComparer.Ordinal)
         {
             [sectionId] = tabId,
         };
-
-        return this with
-        {
-            SelectedSectionId = sectionId,
-            SelectedTabBySectionId = tabs,
-        };
+        return this with { SelectedSectionId = sectionId, SelectedTabBySectionId = tabs };
     }
 
     public PresenterNavigationState WithScrollOffset(string pageId, double offset)
     {
-        var offsets = new Dictionary<string, double>(ScrollOffsetByPageId, StringComparer.Ordinal)
+        if (PresenterNavigationCatalog.IsOblivionPage(pageId))
+        {
+            return this with { OblivionSession = OblivionSession.WithMainScrollOffset(pageId, offset) };
+        }
+
+        Dictionary<string, double> offsets = new(PresenterScrollOffsetByPageId, StringComparer.Ordinal)
         {
             [pageId] = offset,
         };
-
-        return this with
-        {
-            ScrollOffsetByPageId = offsets,
-        };
+        return this with { PresenterScrollOffsetByPageId = offsets };
     }
 
-    public PresenterNavigationState WithCompactPane(PresenterCompactPane compactPane)
+    public PresenterNavigationState WithCompactPane(PresenterCompactPane pane)
     {
         return this with
         {
-            CompactPane = compactPane,
+            OblivionSession = OblivionSession with
+            {
+                InspectorPaneSelected = pane == PresenterCompactPane.Inspector,
+            },
         };
     }
 
-    public double GetInspectorScrollOffset(string pageId)
-    {
-        ArgumentNullException.ThrowIfNull(pageId);
-
-        if (InspectorScrollOffsetByPageId.TryGetValue(pageId, out double offset))
-        {
-            return offset;
-        }
-
-        return 0;
-    }
+    public double GetInspectorScrollOffset(string pageId) => OblivionSession.GetInspectorScrollOffset(pageId);
 
     public PresenterNavigationState WithInspectorScrollOffset(string pageId, double offset)
     {
-        ArgumentNullException.ThrowIfNull(pageId);
-
-        var offsets = new Dictionary<string, double>(InspectorScrollOffsetByPageId, StringComparer.Ordinal)
-        {
-            [pageId] = offset,
-        };
-
-        return this with
-        {
-            InspectorScrollOffsetByPageId = offsets,
-        };
+        return this with { OblivionSession = OblivionSession.WithInspectorScrollOffset(pageId, offset) };
     }
 
     public string? GetSelectedCardId(string pageId, IReadOnlyList<OblivionCard> cards)
     {
-        ArgumentNullException.ThrowIfNull(pageId);
-        ArgumentNullException.ThrowIfNull(cards);
-
-        if (SelectedCardByPageId.TryGetValue(pageId, out string? selectedCardId))
-        {
-            if (selectedCardId is null)
-            {
-                return null;
-            }
-
-            if (cards.Any(card => string.Equals(card.Id.Value, selectedCardId, StringComparison.Ordinal)))
-            {
-                return selectedCardId;
-            }
-        }
-
-        return cards.Count == 0
-            ? null
-            : cards[0].Id.Value;
+        return OblivionSession.GetSelectedCardId(pageId, cards);
     }
 
     public PresenterNavigationState WithSelectedCard(string pageId, string cardId)
     {
-        string? currentSelectedCardId = SelectedCardByPageId.TryGetValue(pageId, out string? selectedCardId)
-            ? selectedCardId
-            : null;
-        var selectedCards = new Dictionary<string, string?>(SelectedCardByPageId, StringComparer.Ordinal)
-        {
-            [pageId] = cardId,
-        };
-
-        PresenterNavigationState next = this with
-        {
-            SelectedCardByPageId = selectedCards,
-        };
-
-        if (!string.Equals(currentSelectedCardId, cardId, StringComparison.Ordinal))
-        {
-            next = next.WithInspectorScrollOffset(pageId, 0);
-        }
-
-        return next;
+        return this with { OblivionSession = OblivionSession.WithSelectedCard(pageId, cardId) };
     }
 
-    public double GetRawMarkdownSourceScrollOffset(string cardId)
-    {
-        ArgumentNullException.ThrowIfNull(cardId);
-
-        if (RawMarkdownSourceScrollOffsetByCardId.TryGetValue(cardId, out double offset))
-        {
-            return offset;
-        }
-
-        return 0;
-    }
+    public double GetRawMarkdownSourceScrollOffset(string cardId) => OblivionSession.GetRawSourceScrollOffset(cardId);
 
     public PresenterNavigationState WithRawMarkdownSourceScrollOffset(string cardId, double offset)
     {
-        ArgumentNullException.ThrowIfNull(cardId);
-
-        var offsets = new Dictionary<string, double>(RawMarkdownSourceScrollOffsetByCardId, StringComparer.Ordinal)
-        {
-            [cardId] = offset,
-        };
-
-        return this with
-        {
-            RawMarkdownSourceScrollOffsetByCardId = offsets,
-        };
+        return this with { OblivionSession = OblivionSession.WithRawSourceScrollOffset(cardId, offset) };
     }
 
     public OblivionCardViewState GetCardViewState(string pageId, string cardId)
     {
-        ArgumentNullException.ThrowIfNull(pageId);
-        ArgumentNullException.ThrowIfNull(cardId);
-
-        if (CardViewStateByPageId.TryGetValue(pageId, out IReadOnlyDictionary<string, OblivionCardViewState>? pageState) &&
-            pageState.TryGetValue(cardId, out OblivionCardViewState? viewState))
-        {
-            return viewState;
-        }
-
-        return OblivionCardViewState.Collapsed;
+        return OblivionSession.GetCardViewState(pageId, cardId);
     }
 
-    public PresenterNavigationState WithCardViewState(string pageId, string cardId, OblivionCardViewState viewState)
+    public PresenterNavigationState WithCardViewState(string pageId, string cardId, OblivionCardViewState state)
     {
-        ArgumentNullException.ThrowIfNull(pageId);
-        ArgumentNullException.ThrowIfNull(cardId);
-        ArgumentNullException.ThrowIfNull(viewState);
-
-        Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> nextPages = new(CardViewStateByPageId, StringComparer.Ordinal);
-        Dictionary<string, OblivionCardViewState> nextCardState = CardViewStateByPageId.TryGetValue(pageId, out IReadOnlyDictionary<string, OblivionCardViewState>? existing)
-            ? new Dictionary<string, OblivionCardViewState>(existing, StringComparer.Ordinal)
-            : new Dictionary<string, OblivionCardViewState>(StringComparer.Ordinal);
-
-        nextCardState[cardId] = viewState;
-        nextPages[pageId] = nextCardState;
-
-        return this with
-        {
-            CardViewStateByPageId = nextPages,
-        };
+        return this with { OblivionSession = OblivionSession.WithCardViewState(pageId, cardId, state) };
     }
 
     public PresenterNavigationState ToggleCardExpansion(string pageId, string cardId)
     {
-        OblivionCardViewState current = GetCardViewState(pageId, cardId);
-        return WithCardViewState(
-            pageId,
-            cardId,
-            current with
-            {
-                IsExpanded = !current.IsExpanded,
-            });
+        return this with { OblivionSession = OblivionSession.ToggleCardExpansion(pageId, cardId) };
     }
 
     public PresenterNavigationState ExpandCardExclusively(
@@ -257,82 +136,31 @@ public sealed record PresenterNavigationState(
         string cardId,
         IReadOnlyList<string> siblingCardIds)
     {
-        ArgumentNullException.ThrowIfNull(pageId);
-        ArgumentNullException.ThrowIfNull(cardId);
-        ArgumentNullException.ThrowIfNull(siblingCardIds);
-
-        PresenterNavigationState next = this;
-
-        foreach (string siblingCardId in siblingCardIds)
+        return this with
         {
-            OblivionCardViewState siblingState = next.GetCardViewState(pageId, siblingCardId);
-            bool shouldExpand = string.Equals(siblingCardId, cardId, StringComparison.Ordinal);
-            if (siblingState.IsExpanded == shouldExpand)
-            {
-                continue;
-            }
-
-            next = next.WithCardViewState(
-                pageId,
-                siblingCardId,
-                siblingState with
-                {
-                    IsExpanded = shouldExpand,
-                });
-        }
-
-        return next;
+            OblivionSession = OblivionSession.ExpandCardExclusively(pageId, cardId, siblingCardIds),
+        };
     }
 
     public PresenterNavigationState CollapseCard(string pageId, string cardId)
     {
-        OblivionCardViewState current = GetCardViewState(pageId, cardId);
-        if (!current.IsExpanded)
-        {
-            return this;
-        }
-
-        return WithCardViewState(
-            pageId,
-            cardId,
-            current with
-            {
-                IsExpanded = false,
-            });
+        return this with { OblivionSession = OblivionSession.CollapseCard(pageId, cardId) };
     }
 
-    public PresenterNavigationState WithCardBodyScrollOffset(string pageId, string cardId, double bodyScrollOffset)
+    public PresenterNavigationState WithCardBodyScrollOffset(string pageId, string cardId, double offset)
     {
-        OblivionCardViewState current = GetCardViewState(pageId, cardId);
-        return WithCardViewState(
-            pageId,
-            cardId,
-            current with
-            {
-                BodyScrollOffset = bodyScrollOffset,
-            });
+        return this with { OblivionSession = OblivionSession.WithCardBodyScrollOffset(pageId, cardId, offset) };
     }
 
     public PresenterNavigationState ClearSelectedCard(string pageId)
     {
-        var selectedCards = new Dictionary<string, string?>(SelectedCardByPageId, StringComparer.Ordinal)
-        {
-            [pageId] = null,
-        };
-
-        return this with
-        {
-            SelectedCardByPageId = selectedCards,
-        };
+        return this with { OblivionSession = OblivionSession.ClearSelectedCard(pageId) };
     }
 
     public PresenterNavigationState WithEffectOutcome(
         OblivionCardEffectRequest request,
         OblivionCardEffectResult result)
     {
-        return this with
-        {
-            EffectState = EffectState.WithOutcome(request, result),
-        };
+        return this with { OblivionApplication = OblivionApplication.Apply(request, result) };
     }
 }

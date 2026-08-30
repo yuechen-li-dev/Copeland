@@ -69,6 +69,7 @@ This directory holds deterministic render and visual-audit artifacts for Machina
 - `artifacts/m17e/` is the current Oblivion page-grid-refactor proof directory.
 - `artifacts/m17f/` is the current Machina layout-authoring parity closeout manifest directory.
 - `artifacts/m18a/` is the current Machina layout cleanup and test-helper consolidation manifest directory. M18a fixes inspector title clipping, consolidates duplicated test helpers, intentionally deletes no coverage, and adds no product feature or layout primitive.
+- `artifacts/m18c/` is the deterministic Oblivion first-class extraction manifest directory. Runtime playback output remains temporary; the checked-in manifest records topology, compatibility, coverage, and the bounded M18d host-adapter seam.
 - M11b adds no checked-in visual artifacts by default. Its output is test topology, solution membership, and validation command cleanup.
 - Current gallery artifacts are generated locally by script/command and are ignored by Git for now.
 - Current M8l proof artifacts are generated locally by script/command and are ignored by Git for now.

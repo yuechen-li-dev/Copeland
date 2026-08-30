@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+  </ItemGroup>
+  <ItemGroup><ProjectReference Include="../../../src/Oblivion/Oblivion.Persistence/Oblivion.Persistence.csproj" /></ItemGroup>
+  <ItemGroup>
+    <Content Include="../../../src/Oblivion/Oblivion.App/OblivionSampleWorkspace/**/*">
+      <Link>Fixtures/OblivionSampleWorkspace/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

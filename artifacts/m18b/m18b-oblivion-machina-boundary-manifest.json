@@ -1,0 +1,93 @@
+{
+  "milestone": "M18b",
+  "outcome": "A",
+  "outcomeLabel": "Boundary is clear",
+  "oblivionProductContractDefined": true,
+  "machinaUiResponsibilityAuditCompleted": true,
+  "presenterClassifiedAsDevTool": true,
+  "oblivionClassifiedAsFirstClassProduct": true,
+  "productModelRendererIndependentTargetDefined": true,
+  "productVsSessionStateClassified": true,
+  "machinaPresentationAudited": true,
+  "machinaPipelineAudited": true,
+  "targetDependencyGraphDefined": true,
+  "m18cExtractionPlanDefined": true,
+  "fullOblivionExtractionPerformed": false,
+  "copelandTsRedesigned": false,
+  "aurelianTouched": false,
+  "vdMirTouched": false,
+  "classifiedProjects": 13,
+  "classifiedTypeFamilies": 39,
+  "highRiskDependencyHazards": 3,
+  "mediumRiskDependencyHazards": 7,
+  "lowRiskDependencyHazards": 4,
+  "knownPreM18cViolations": 7,
+  "obviousRefactorsPerformed": 0,
+  "architectureGuardsAdded": 1,
+  "currentPlaybackXunitProjectPresent": false,
+  "canonicalPlaybackCliSuitePresent": true,
+  "m18bRelevantValidationPassed": true,
+  "fullRepositoryValidationPassed": false,
+  "fullRepositoryValidationBlocker": "Copeland.Cli duplicate workspace ownership types conflict with Copeland.TS.Workspace under CS0436 warnings-as-errors.",
+  "validation": {
+    "machinaUiTests": {
+      "status": "passed",
+      "passed": 672
+    },
+    "machinaUiSlowTests": {
+      "status": "passed",
+      "passed": 308
+    },
+    "machinaUiNoRestoreBuild": {
+      "status": "passed",
+      "warnings": 0,
+      "errors": 0
+    },
+    "m18bArchitectureTests": {
+      "status": "passed",
+      "passed": 2
+    },
+    "canonicalPlaybackSuite": {
+      "status": "passed",
+      "passed": 14,
+      "failed": 0
+    },
+    "aurelianNoBuildTests": {
+      "status": "passed",
+      "passed": 657
+    },
+    "jointTaskForceTests": {
+      "status": "blocked-by-pre-existing-copeland-cli-build-error",
+      "diagnostic": "CS0436"
+    },
+    "copelandTests": {
+      "status": "blocked-by-pre-existing-copeland-cli-build-error",
+      "diagnostic": "CS0436"
+    },
+    "copelandSlowSolution": {
+      "status": "absent"
+    },
+    "gitDiffCheck": {
+      "status": "passed"
+    }
+  },
+  "requiredDocuments": [
+    "docs/Oblivion/oblivion-product-contract-m18b.md",
+    "docs/Machina/machina-ui-responsibility-audit-m18b.md"
+  ],
+  "targetProjects": [
+    "Oblivion.Model",
+    "Oblivion.Persistence",
+    "Oblivion.UI",
+    "Oblivion.App"
+  ],
+  "knownPreM18cViolationCodes": [
+    "PRODUCT_IN_PRESENTER_SAMPLE_ASSEMBLY",
+    "PRESENTER_PAGE_ID_IN_PRODUCT_PAGE",
+    "PRODUCT_SESSION_STATE_IN_PRESENTER_STATE",
+    "PRODUCT_EFFECT_ROUTING_IN_PRESENTER_DISPATCH",
+    "DOCUMENT_MIR_IN_MIXED_CARD_BODY",
+    "PRODUCT_UI_DEPENDS_ON_PRESENTER_HELPERS",
+    "PLAYBACK_XUNIT_PROJECT_REMOVED"
+  ]
+}

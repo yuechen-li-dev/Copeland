@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Oblivion.Model</AssemblyName>
+    <RootNamespace>Oblivion.Model</RootNamespace>
+  </PropertyGroup>
+</Project>

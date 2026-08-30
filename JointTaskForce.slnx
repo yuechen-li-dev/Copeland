@@ -1,5 +1,9 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Oblivion/Oblivion.Model/Oblivion.Model.csproj" />
+    <Project Path="src/Oblivion/Oblivion.Persistence/Oblivion.Persistence.csproj" />
+    <Project Path="src/Oblivion/Oblivion.UI/Oblivion.UI.csproj" />
+    <Project Path="src/Oblivion/Oblivion.App/Oblivion.App.csproj" />
     <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
     <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
@@ -32,6 +36,10 @@
     <Project Path="samples/Integrations/Aurelian.VisibleTriangle/Aurelian.VisibleTriangle.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Oblivion/Oblivion.Model.Tests/Oblivion.Model.Tests.csproj" />
+    <Project Path="tests/Oblivion/Oblivion.Persistence.Tests/Oblivion.Persistence.Tests.csproj" />
+    <Project Path="tests/Oblivion/Oblivion.UI.Tests/Oblivion.UI.Tests.csproj" />
+    <Project Path="tests/Oblivion/Oblivion.App.Tests/Oblivion.App.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj" />
