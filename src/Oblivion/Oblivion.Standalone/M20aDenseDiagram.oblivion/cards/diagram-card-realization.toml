@@ -1,0 +1,23 @@
+format = 1
+kind = "card"
+id = "diagram-card-realization"
+card_kind = "diagram"
+status = "passing"
+title = "Diagram Card realization and recovery paths"
+subtitle = "Compiler-derived from the maintained realization lifecycle"
+tags = ["m20a", "diagram", "state", "realization"]
+
+[diagram]
+kind = "copeland-flow"
+reference = "source/DiagramCardRealizationFlow.ts"
+symbol = "DiagramCardRealizationFlow"
+projection = "state"
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "source/DiagramCardRealizationFlow.ts"
+producer_action = "copeland-flow-state-projection"
+
+[body]
+format = "plain"
+text = ""

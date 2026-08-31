@@ -16,5 +16,9 @@
       <Link>Fixtures/M19oDiagramCards.oblivion/%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="../../../src/Oblivion/Oblivion.Standalone/M20aDenseDiagram.oblivion/**/*">
+      <Link>Fixtures/M20aDenseDiagram.oblivion/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

@@ -1,3 +1,5 @@
+using Copeland.TS.Compiler;
+using Copeland.TS.Templates;
 using Oblivion.Model;
 using Oblivion.Persistence;
 using Oblivion.Product;
@@ -177,10 +179,67 @@ public sealed class DiagramCardTests
         Assert.Contains(result.Render.Diagnostics, diagnostic => diagnostic.Code == "TEST-RENDER-FAILURE");
     }
 
+    [Fact]
+    public void M20a_dense_realization_flow_is_deterministic_bounded_and_source_correlated()
+    {
+        OblivionWorkspaceLoadResult load = OblivionApplication.LoadVault(M20aFixtureRoot);
+        Assert.True(load.Succeeded, string.Join(Environment.NewLine, load.Diagnostics));
+        OblivionCard card = Assert.Single(load.Workspace!.Pages.Single().Cards);
+
+        OblivionDiagramCardRealizer realizer = new();
+        OblivionDiagramProjectionResult first = realizer.Project(card, M20aFixtureRoot);
+        OblivionDiagramProjectionResult second = realizer.Project(card, M20aFixtureRoot);
+
+        Assert.True(first.Succeeded, string.Join(Environment.NewLine, first.Diagnostics));
+        Assert.Equal(first.MermaidSource, second.MermaidSource);
+        Assert.Equal(first.SemanticFingerprint, second.SemanticFingerprint);
+
+        string sourcePath = Path.Combine(
+            M20aFixtureRoot,
+            "source",
+            "DiagramCardRealizationFlow.ts");
+        CopelandCompilation compilation = CopelandCompiler.CompileTemplates(
+            File.ReadAllText(sourcePath),
+            new CopelandCompilationOptions
+            {
+                SourcePath = sourcePath,
+                ProjectRoot = M20aFixtureRoot,
+            });
+
+        Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
+        Assert.True(StateMachineDiagramProjection.TryProject(
+            compilation.BoundCompilation!.Program,
+            "DiagramCardRealizationFlow",
+            out StateMachineSemanticView? semanticView,
+            out Diagram? diagram,
+            out var diagnostics),
+            string.Join(Environment.NewLine, diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.Equal(16, semanticView!.States.Count);
+        Assert.Equal(31, semanticView.Transitions.Count);
+        Assert.Equal(16, diagram!.Nodes.Count);
+        Assert.Equal(31, diagram.Edges.Count);
+        Assert.Equal(24, diagram.Edges.Count(edge => edge.Label!.Contains('[', StringComparison.Ordinal)));
+        Assert.All(semanticView.States, state =>
+        {
+            Assert.Equal(sourcePath, state.Source.Path);
+            Assert.True(state.Source.StartLine > 0);
+        });
+        Assert.All(semanticView.Transitions, transition =>
+        {
+            Assert.Equal(sourcePath, transition.Source.Path);
+            Assert.True(transition.Source.StartLine > 0);
+        });
+    }
+
     private static string FixtureRoot => Path.Combine(
         AppContext.BaseDirectory,
         "Fixtures",
         "M19oDiagramCards.oblivion");
+
+    private static string M20aFixtureRoot => Path.Combine(
+        AppContext.BaseDirectory,
+        "Fixtures",
+        "M20aDenseDiagram.oblivion");
 
     private static OblivionCard LoadDiagramCard()
     {

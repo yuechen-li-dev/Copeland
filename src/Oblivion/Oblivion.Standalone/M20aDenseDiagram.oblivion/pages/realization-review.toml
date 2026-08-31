@@ -1,0 +1,7 @@
+format = 1
+kind = "page"
+id = "realization-review"
+title = "Diagram Card realization pressure review"
+description = "Compiler-derived semantic and derived-artifact recovery paths."
+tags = ["oblivion", "m20a", "diagram", "dogfood"]
+cards = ["diagram-card-realization"]

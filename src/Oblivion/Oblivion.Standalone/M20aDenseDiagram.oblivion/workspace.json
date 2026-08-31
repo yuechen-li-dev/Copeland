@@ -1,0 +1,8 @@
+{
+  "format": 1,
+  "kind": "oblivion-workspace",
+  "workspaceId": "m20a-dense-diagram",
+  "title": "Dense compiler-derived diagram",
+  "defaultPageId": "realization-review",
+  "pages": ["realization-review"]
+}

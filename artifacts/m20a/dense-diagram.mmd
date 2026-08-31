@@ -1,0 +1,51 @@
+stateDiagram-v2
+    state "Accepted" as s0
+    state "ArtifactValidation" as s1
+    state "BackendSelection" as s2
+    state "Binding" as s3
+    state "CacheQualification" as s4
+    state "CardProjection" as s5
+    state "CardRealization" as s6
+    state "Diagnostics" as s7
+    state "Emitting" as s8
+    state "HumanReview" as s9
+    state "Lowering" as s10
+    state "Parsing" as s11
+    state "Rejected" as s12
+    state "RendererRecovery" as s13
+    state "SourceRepair" as s14
+    state "WorkspaceIntake" as s15
+    [*] --> s15
+    s15 --> s11: SourceReady [present == true]
+    s15 --> s7: SourceMissing [present == false]
+    s11 --> s3: Parsed [succeeded == true]
+    s11 --> s7: ParseFailed [succeeded == false]
+    s3 --> s10: Bound [succeeded == true]
+    s3 --> s7: BindFailed [succeeded == false]
+    s10 --> s2: Lowered [succeeded == true]
+    s10 --> s7: LowerFailed [succeeded == false]
+    s2 --> s8: RendererAvailable [available == true]
+    s2 --> s13: RendererUnavailable [available == false]
+    s8 --> s1: Emitted [succeeded == true]
+    s8 --> s13: EmitFailed [succeeded == false]
+    s1 --> s4: ArtifactValid [valid == true]
+    s1 --> s13: ArtifactCorrupt [valid == false]
+    s4 --> s5: CacheHit [valid == true]
+    s4 --> s8: CacheStale [valid == false]
+    s5 --> s6: Projected [valid == true]
+    s5 --> s7: ProjectionFailed [valid == false]
+    s6 --> s9: Mounted [valid == true]
+    s6 --> s7: HostFailed [valid == false]
+    s9 --> s0: Approved [approved == true]
+    s9 --> s14: RevisionRequested [approved == false]
+    s9 --> s13: Retry
+    s7 --> s14: Repair
+    s7 --> s5: Retry
+    s7 --> s12: Cancel
+    s14 --> s11: Retry
+    s14 --> s12: Cancel
+    s13 --> s8: RendererAvailable [available == true]
+    s13 --> s7: RendererUnavailable [available == false]
+    s13 --> s12: Cancel
+    s0 --> [*]
+    s12 --> [*]
