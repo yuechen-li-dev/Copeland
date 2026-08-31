@@ -60,6 +60,12 @@ public sealed record OblivionCardArtifactDocument(
     bool Generated,
     string? Asset);
 
+public sealed record OblivionDiagramSourceDocument(
+    string Kind,
+    string Reference,
+    string Symbol,
+    string Projection);
+
 public sealed record OblivionCardAssetDocument(
     int Format,
     string Kind,
@@ -72,7 +78,8 @@ public sealed record OblivionCardAssetDocument(
     OblivionCardBodyDocument Body,
     IReadOnlyList<OblivionCardActionDocument> Actions,
     IReadOnlyList<OblivionCardArtifactDocument> Artifacts,
-    OblivionCardProvenanceDocument? Provenance = null);
+    OblivionCardProvenanceDocument? Provenance = null,
+    OblivionDiagramSourceDocument? Diagram = null);
 
 public sealed record OblivionArtifactAssetDocument(
     int Format,

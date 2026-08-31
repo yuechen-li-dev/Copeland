@@ -54,6 +54,13 @@ public sealed record OblivionResolvedContentArtifact(
     bool Generated,
     string? SourceReference);
 
+public sealed record OblivionDiagramPresentationSource(
+    string MermaidSource,
+    string SourceReference,
+    string Projection,
+    OblivionResolvedContentArtifact? Artifact = null,
+    IReadOnlyList<OblivionCardDiagnostic>? Diagnostics = null);
+
 public sealed record OblivionContentPresentationItem(
     string ContentId,
     OblivionContentPresentationKind ContentKind,
@@ -115,7 +122,8 @@ public static class OblivionContentPresenterSelector
     public static OblivionContentPresentationPlan Select(
         OblivionCard card,
         OblivionCardViewState viewState,
-        IReadOnlyList<OblivionResolvedContentArtifact>? resolvedArtifacts = null)
+        IReadOnlyList<OblivionResolvedContentArtifact>? resolvedArtifacts = null,
+        OblivionDiagramPresentationSource? diagram = null)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(viewState);
@@ -128,7 +136,14 @@ public static class OblivionContentPresenterSelector
         List<OblivionContentPresentationItem> items = [];
 
         OblivionResolvedContentArtifact? png = artifacts.FirstOrDefault(IsPng);
-        if (card.Kind == OblivionCardKind.Artifact && png is not null)
+        if (card.Kind == OblivionCardKind.Diagram)
+        {
+            if (readingState == OblivionReadingState.Expanded)
+            {
+                AddDiagramItem(card, diagram, items, diagnostics);
+            }
+        }
+        else if (card.Kind == OblivionCardKind.Artifact && png is not null)
         {
             items.Add(CreatePngItem(card, png, diagnostics));
         }
@@ -149,7 +164,7 @@ public static class OblivionContentPresenterSelector
             items.Add(CreatePlainTextItem(card));
         }
 
-        if (items.Count == 0)
+        if (items.Count == 0 && card.Kind != OblivionCardKind.Diagram)
         {
             OblivionCardDiagnostic diagnostic = new(
                 "OBLIVION-CONTENT-PRESENTER-NOT-FOUND",
@@ -173,12 +188,75 @@ public static class OblivionContentPresenterSelector
         return new OblivionContentPresentationPlan(
             ContentIdentity: card.Id.Value,
             readingState,
-            ContentTypeLabel: BuildContentTypeLabel(items),
+            ContentTypeLabel: card.Kind == OblivionCardKind.Diagram
+                ? "Diagram"
+                : BuildContentTypeLabel(items),
             CollapsedSummary: BuildCollapsedSummary(card),
             Items: items,
             AllowsInternalScroll: readingState == OblivionReadingState.Expanded &&
                 items.Any(item => item.ScrollContract != OblivionContentScrollContract.None),
             Diagnostics: diagnostics);
+    }
+
+    private static void AddDiagramItem(
+        OblivionCard card,
+        OblivionDiagramPresentationSource? diagram,
+        List<OblivionContentPresentationItem> items,
+        List<OblivionCardDiagnostic> diagnostics)
+    {
+        if (diagram is null)
+        {
+            OblivionCardDiagnostic unavailable = new(
+                "OBLIVION-DIAGRAM-NOT-REALIZED",
+                OblivionDiagnosticSeverity.Warning,
+                $"Diagram card '{card.Id.Value}' has not been projected by the application.",
+                card.Diagram?.Reference);
+            diagnostics.Add(unavailable);
+            items.Add(new OblivionContentPresentationItem(
+                card.Id.Value + ".diagram-unavailable",
+                OblivionContentPresentationKind.DiagnosticFallback,
+                OblivionContentPresenterKind.DiagnosticFallback,
+                unavailable.Message,
+                null,
+                card.Diagram?.Reference,
+                null,
+                OblivionContentScrollContract.None,
+                OblivionContentFocusContract.HostRetainsFocus,
+                [unavailable]));
+            return;
+        }
+
+        if (diagram.Diagnostics is not null)
+        {
+            diagnostics.AddRange(diagram.Diagnostics);
+        }
+        if (diagram.Artifact is { Exists: true } artifact)
+        {
+            items.Add(new OblivionContentPresentationItem(
+                card.Id.Value + ".diagram-image",
+                OblivionContentPresentationKind.PngImage,
+                OblivionContentPresenterKind.AvaloniaImage,
+                artifact.ResolvedPath ?? string.Empty,
+                null,
+                diagram.SourceReference,
+                artifact,
+                OblivionContentScrollContract.HostVerticalWhenBounded,
+                OblivionContentFocusContract.HostRetainsFocus,
+                diagram.Diagnostics ?? []));
+            return;
+        }
+
+        items.Add(new OblivionContentPresentationItem(
+            card.Id.Value + ".diagram",
+            OblivionContentPresentationKind.MermaidDiagram,
+            OblivionContentPresenterKind.ExternalMermaidRenderer,
+            diagram.MermaidSource,
+            "mermaid",
+            diagram.SourceReference,
+            null,
+            OblivionContentScrollContract.HostVerticalWhenBounded,
+            OblivionContentFocusContract.HostRetainsFocus,
+            diagram.Diagnostics ?? []));
     }
 
     private static void AddMarkdownItems(
@@ -317,6 +395,10 @@ public static class OblivionContentPresenterSelector
 
     private static string BuildCollapsedSummary(OblivionCard card)
     {
+        if (card.Kind == OblivionCardKind.Diagram)
+        {
+            return card.Subtitle ?? card.Title;
+        }
         string[] paragraphs = card.Body.RawText
             .Replace("\r\n", "\n", StringComparison.Ordinal)
             .Replace('\r', '\n')

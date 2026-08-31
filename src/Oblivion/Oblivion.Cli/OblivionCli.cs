@@ -660,6 +660,15 @@ public sealed class OblivionCli
         _output.WriteLine($"Tags: {(card.Tags.Count == 0 ? "<none>" : string.Join(", ", card.Tags))}");
         _output.WriteLine($"Markdown: {card.MarkdownSource ?? "<inline>"}");
         _output.WriteLine($"Provenance: {card.ProvenanceKind} {card.ProvenanceSource ?? "<none>"}");
+        if (card.DiagramSourceKind is not null)
+        {
+            _output.WriteLine($"Diagram source: {card.DiagramSourceKind} {card.DiagramSourceReference}");
+            _output.WriteLine($"Diagram symbol: {card.DiagramSymbol}");
+            _output.WriteLine($"Diagram projection: {card.DiagramProjection}");
+            _output.WriteLine($"Diagram fingerprint: {card.DiagramSemanticFingerprint ?? "<unavailable>"}");
+            _output.WriteLine($"Diagram artifact: {card.DiagramDerivedArtifactStatus}");
+            _output.WriteLine($"Diagram renderer: {card.DiagramRenderer}");
+        }
         _output.WriteLine($"Actions: {(card.Actions.Count == 0 ? "<none>" : string.Join(", ", card.Actions))}");
         _output.WriteLine("Preview:");
         _output.WriteLine(card.ContentPreview);

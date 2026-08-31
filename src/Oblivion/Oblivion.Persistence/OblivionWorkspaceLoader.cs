@@ -185,7 +185,22 @@ public static partial class OblivionWorkspaceLoader
             artifacts,
             BuildProvenance(document, workspaceRoot, sourcePath),
             pageId,
-            workspaceId);
+            workspaceId,
+            BuildDiagram(document.Diagram));
+    }
+
+    private static OblivionDiagramSource? BuildDiagram(OblivionDiagramSourceDocument? document)
+    {
+        if (document is null)
+        {
+            return null;
+        }
+
+        return new OblivionDiagramSource(
+            OblivionDiagramSourceKind.CopelandFlow,
+            document.Reference,
+            document.Symbol,
+            OblivionDiagramProjectionKind.State);
     }
 
     private static OblivionProvenance BuildProvenance(

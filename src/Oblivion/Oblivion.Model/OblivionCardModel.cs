@@ -8,6 +8,7 @@ public enum OblivionCardKind
     Artifact,
     CodeFact,
     CodeTheory,
+    Diagram,
 }
 
 public enum OblivionCardStatus
@@ -30,6 +31,22 @@ public sealed record OblivionWorkspaceId(string Value);
 public sealed record OblivionPageId(string Value);
 public sealed record OblivionCardId(string Value);
 public sealed record OblivionArtifactId(string Value);
+
+public enum OblivionDiagramSourceKind
+{
+    CopelandFlow,
+}
+
+public enum OblivionDiagramProjectionKind
+{
+    State,
+}
+
+public sealed record OblivionDiagramSource(
+    OblivionDiagramSourceKind Kind,
+    string Reference,
+    string Symbol,
+    OblivionDiagramProjectionKind Projection);
 
 public enum OblivionDiagnosticSeverity
 {
@@ -153,7 +170,8 @@ public sealed record OblivionCard(
     IReadOnlyList<OblivionCardArtifact> Artifacts,
     OblivionProvenance Provenance,
     OblivionPageId? PageId = null,
-    OblivionWorkspaceId? WorkspaceId = null);
+    OblivionWorkspaceId? WorkspaceId = null,
+    OblivionDiagramSource? Diagram = null);
 
 public sealed record OblivionWorkspacePage(
     OblivionPageId Id,

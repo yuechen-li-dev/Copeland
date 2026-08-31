@@ -9,6 +9,7 @@
     <ProjectReference Include="../Oblivion.Presentation/Oblivion.Presentation.csproj" />
     <ProjectReference Include="../Oblivion.Persistence/Oblivion.Persistence.csproj" />
     <ProjectReference Include="../Oblivion.UI/Oblivion.UI.csproj" />
+    <ProjectReference Include="../../Copeland/Copeland.TS/Copeland.TS.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="OblivionSampleWorkspace/**/*">

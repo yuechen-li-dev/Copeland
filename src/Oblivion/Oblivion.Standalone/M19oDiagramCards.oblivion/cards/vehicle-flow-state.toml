@@ -1,0 +1,23 @@
+format = 1
+kind = "card"
+id = "vehicle-flow-state"
+card_kind = "diagram"
+status = "passing"
+title = "VehicleFlow state and guard relationships"
+subtitle = "Compiler-derived from VehicleFlow; no authored Mermaid"
+tags = ["m19o", "diagram", "state"]
+
+[diagram]
+kind = "copeland-flow"
+reference = "source/VehicleFlow.ts"
+symbol = "VehicleFlow"
+projection = "state"
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "source/VehicleFlow.ts"
+producer_action = "copeland-flow-state-projection"
+
+[body]
+format = "plain"
+text = ""

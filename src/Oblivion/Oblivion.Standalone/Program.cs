@@ -104,6 +104,7 @@ internal sealed class OblivionStandaloneWindow : Window
     private readonly Grid _host;
     private readonly ScrollViewer _pageScroll;
     private readonly Dictionary<string, ScrollViewer> _documentScrollers = new(StringComparer.Ordinal);
+    private readonly IOblivionDiagramRenderer _diagramRenderer;
     private OblivionStandaloneSurfaceSnapshot _snapshot;
     private int _surfaceWidth;
     private int _surfaceHeight;
@@ -117,6 +118,8 @@ internal sealed class OblivionStandaloneWindow : Window
         _surfaceWidth = style.DevelopmentWidth;
         _surfaceHeight = style.DevelopmentHeight;
         _surface = new OblivionStandaloneSurface(options.VaultRoot, style);
+        _diagramRenderer = new OblivionExternalMermaidRenderer(
+            OblivionMermaidRendererDiscovery.Discover());
         if (options.StartExpanded)
         {
             foreach (var card in _surface.Cards)
@@ -297,8 +300,8 @@ internal sealed class OblivionStandaloneWindow : Window
         Control document = AvaloniaOblivionContentHost.Build(
             cardSnapshot.Card,
             cardSnapshot.ContentPlan,
-            new UnavailableDiagramRenderer(),
-            Path.Combine(Path.GetTempPath(), "oblivion-m19h-diagrams"),
+            _diagramRenderer,
+            Path.GetFullPath(Path.Combine("artifacts", "derived", "mermaid")),
             workspaceId: _surface.Workspace.Id.Value,
             pageId: _surface.PageId,
             maximumReadableWidth: _style.MaximumReadableWidth,
@@ -416,20 +419,6 @@ internal sealed class OblivionStandaloneWindow : Window
         return bitmap;
     }
 
-    private sealed class UnavailableDiagramRenderer : IOblivionDiagramRenderer
-    {
-        public OblivionDiagramRenderResult Render(OblivionDiagramRenderRequest request)
-        {
-            return new OblivionDiagramRenderResult(
-                Succeeded: false,
-                Renderer: "not-required",
-                RendererVersion: "m19h",
-                SourceHash: string.Empty,
-                RenderedPath: null,
-                MediaType: null,
-                Diagnostics: []);
-        }
-    }
 }
 
 internal sealed record OblivionStandaloneOptions(

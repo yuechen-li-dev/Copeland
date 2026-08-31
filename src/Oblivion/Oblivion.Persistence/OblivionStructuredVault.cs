@@ -277,8 +277,10 @@ public static partial class OblivionWorkspaceLoader
             return;
         }
 
-        if (!string.Equals(cardDocument.Body.Format, "copeland-markdown", StringComparison.Ordinal) ||
-            string.IsNullOrWhiteSpace(cardDocument.Body.Path))
+        bool isDiagramCard = string.Equals(cardDocument.CardKind, "diagram", StringComparison.Ordinal);
+        if (!isDiagramCard &&
+            (!string.Equals(cardDocument.Body.Format, "copeland-markdown", StringComparison.Ordinal) ||
+             string.IsNullOrWhiteSpace(cardDocument.Body.Path)))
         {
             diagnostics.Add(OblivionWorkspaceValidator.Error(
                 "structured-card-markdown-reference-required",

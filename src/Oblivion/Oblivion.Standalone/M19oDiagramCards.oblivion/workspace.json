@@ -1,0 +1,8 @@
+{
+  "format": 1,
+  "kind": "oblivion-workspace",
+  "workspaceId": "m19o-diagram-cards",
+  "title": "Diagram Cards",
+  "defaultPageId": "flow-review",
+  "pages": ["flow-review"]
+}

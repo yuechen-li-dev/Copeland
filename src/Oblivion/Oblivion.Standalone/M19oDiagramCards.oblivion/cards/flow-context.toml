@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "flow-context"
+card_kind = "note"
+status = "passing"
+title = "Review the safety flow"
+subtitle = "Technical context"
+tags = ["m19o", "markdown"]
+
+[body]
+format = "copeland-markdown"
+path = "content/flow-context.md"

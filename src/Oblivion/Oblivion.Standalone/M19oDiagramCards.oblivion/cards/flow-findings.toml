@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "flow-findings"
+card_kind = "note"
+status = "passing"
+title = "What the visual exposes"
+subtitle = "Human review notes"
+tags = ["m19o", "markdown"]
+
+[body]
+format = "copeland-markdown"
+path = "content/flow-findings.md"

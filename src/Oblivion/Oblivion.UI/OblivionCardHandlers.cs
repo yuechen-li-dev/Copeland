@@ -32,6 +32,7 @@ public sealed class OblivionCardHandlerRegistry
             new OblivionArtifactCardHandler(),
             new OblivionCodeFactCardHandler(),
             new OblivionCodeTheoryCardHandler(),
+            new OblivionDiagramCardHandler(),
         ]);
     }
 
@@ -359,7 +360,7 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                     $"Tags: {FormatTags(card.Tags)}",
                     $"Local state expanded: {model.LocalState.IsExpanded.ToString().ToLowerInvariant()}",
                     $"Body scroll offset: {model.LocalState.BodyScrollOffset:0.###}",
-                    $"Content presenter: {OblivionContentPresenterSelector.Select(card, new OblivionCardViewState(model.LocalState.IsExpanded, model.LocalState.BodyScrollOffset)).Items[0].PresenterKind}",
+                    $"Content presenter: {DescribeContentPresenter(card, model.LocalState)}",
                     $"Rendered body surface: {(card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown ? "Expanded card body" : "Inspector body section")}",
                     $"Selected artifact: {model.LocalState.SelectedArtifactId ?? "<none>"}",
                 ]),
@@ -402,6 +403,16 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                 new OblivionInspectorTextBodyContent(BuildEffectLines(model)),
                 Height: 284),
         ];
+    }
+
+    private static string DescribeContentPresenter(
+        OblivionCard card,
+        OblivionCardLocalState state)
+    {
+        OblivionContentPresentationPlan presentation = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(state.IsExpanded, state.BodyScrollOffset));
+        return presentation.Items.FirstOrDefault()?.PresenterKind.ToString() ?? "None while collapsed";
     }
 
     protected static string FormatTags(IReadOnlyList<string> tags)
@@ -866,6 +877,46 @@ public sealed class OblivionCodeTheoryCardHandler : OblivionCardHandlerBase
 public sealed record OblivionEffectOutcome(
     OblivionEffectRequest Request,
     OblivionEffectResult Result);
+
+public sealed class OblivionDiagramCardHandler : OblivionCardHandlerBase
+{
+    public override OblivionCardKind Kind => OblivionCardKind.Diagram;
+
+    protected override IReadOnlyList<OblivionCardDiagnostic> BuildDiagnostics(
+        OblivionCard card,
+        OblivionCardContext context)
+    {
+        return card.Diagram is null
+            ? [new OblivionCardDiagnostic(
+                "OBLIVION-DIAGRAM-SOURCE-MISSING",
+                OblivionDiagnosticSeverity.Error,
+                "Diagram card has no semantic diagram source.",
+                card.Provenance.SourceReference)]
+            : [];
+    }
+
+    public override OblivionCompactCardView BuildCompactView(
+        OblivionCardRuntimeModel model,
+        OblivionCardViewContext context)
+    {
+        OblivionCard card = model.SourceCard;
+        return new OblivionCompactCardView(
+            card.Id.Value,
+            card.Title,
+            card.Subtitle,
+            card.Diagram?.Reference,
+            card.Subtitle,
+            ["Diagram", card.Diagram?.Projection.ToString() ?? "Unknown", OblivionCardLabels.StatusLabel(card.Status)],
+            card.Tags,
+            new OblivionCompactPlainBodyContent([]),
+            [],
+            [],
+            model.LocalState.IsExpanded,
+            model.LocalState.BodyScrollOffset,
+            176,
+            920);
+    }
+}
 
 public sealed class OblivionUnknownCardHandler : OblivionCardHandlerBase
 {

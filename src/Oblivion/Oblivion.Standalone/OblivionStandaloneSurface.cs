@@ -10,6 +10,8 @@ public sealed class OblivionStandaloneSurface
 {
     private readonly OblivionCardHandlerRegistry _cardHandlers;
     private readonly OblivionStandaloneStyle _style;
+    private readonly string _workspaceRoot;
+    private readonly OblivionDiagramCardRealizer _diagramRealizer = new();
 
     public OblivionStandaloneSurface(
         string? vaultRoot = null,
@@ -29,7 +31,8 @@ public sealed class OblivionStandaloneSurface
 
         Workspace = open.Session.Workspace;
         Page = open.Session.ActivePage;
-        Cards = ValidateMarkdownCards(Page);
+        Cards = ValidateCards(Page);
+        _workspaceRoot = open.Session.Location.RootDirectory;
         _cardHandlers = OblivionCardHandlerRegistry.CreateDefault();
         Session = open.Session.State;
     }
@@ -76,15 +79,16 @@ public sealed class OblivionStandaloneSurface
                 SourceLabel = null,
                 SummaryLine = null,
                 MetaBadges = state.IsExpanded
-                    ? ["Markdown", "Expanded"]
-                    : ["Markdown", "Collapsed"],
+                    ? [CardTypeLabel(card), "Expanded"]
+                    : [CardTypeLabel(card), "Collapsed"],
                 Tags = [],
                 ActionBadges = [],
                 ArtifactBadges = [],
             };
             OblivionContentPresentationPlan contentPlan = OblivionContentPresenterSelector.Select(
                 card,
-                state);
+                state,
+                diagram: CreateDiagramPresentationSource(card));
             bool isSelected = string.Equals(
                 SelectedCardId,
                 card.Id.Value,
@@ -145,11 +149,35 @@ public sealed class OblivionStandaloneSurface
             Cards.Any(card => string.Equals(card.Id.Value, cardId, StringComparison.Ordinal));
     }
 
-    private static IReadOnlyList<OblivionCard> ValidateMarkdownCards(OblivionWorkspacePage page)
+    private OblivionDiagramPresentationSource? CreateDiagramPresentationSource(OblivionCard card)
     {
-        if (page.Cards.Any(card => card.Body.Format != OblivionCardBodyFormat.CopelandMarkdown))
+        if (card.Kind != OblivionCardKind.Diagram)
         {
-            throw new InvalidOperationException("The standalone Page stack must contain only Markdown Cards.");
+            return null;
+        }
+
+        OblivionDiagramProjectionResult projection = _diagramRealizer.Project(card, _workspaceRoot);
+        return projection.MermaidSource is null
+            ? null
+            : new OblivionDiagramPresentationSource(
+                projection.MermaidSource,
+                projection.Source.Reference,
+                projection.Source.Projection.ToString(),
+                Diagnostics: projection.Diagnostics);
+    }
+
+    private static string CardTypeLabel(OblivionCard card)
+    {
+        return card.Kind == OblivionCardKind.Diagram ? "Diagram · State" : "Markdown";
+    }
+
+    private static IReadOnlyList<OblivionCard> ValidateCards(OblivionWorkspacePage page)
+    {
+        if (page.Cards.Any(card =>
+                card.Kind != OblivionCardKind.Diagram &&
+                card.Body.Format != OblivionCardBodyFormat.CopelandMarkdown))
+        {
+            throw new InvalidOperationException("The standalone Page stack must contain only Markdown or Diagram Cards.");
         }
 
         return page.Cards;

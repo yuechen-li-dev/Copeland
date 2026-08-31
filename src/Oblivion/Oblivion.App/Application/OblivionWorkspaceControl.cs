@@ -59,7 +59,14 @@ public sealed record OblivionCardDetail(
     string? ProvenanceSource,
     IReadOnlyList<string> Actions,
     string ContentPreview,
-    IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
+    IReadOnlyList<OblivionControlDiagnostic> Diagnostics,
+    string? DiagramSourceKind = null,
+    string? DiagramSourceReference = null,
+    string? DiagramSymbol = null,
+    string? DiagramProjection = null,
+    string? DiagramSemanticFingerprint = null,
+    string? DiagramDerivedArtifactStatus = null,
+    string? DiagramRenderer = null);
 
 public sealed record OblivionCardContentResult(
     string WorkspaceId,
@@ -249,9 +256,30 @@ public sealed class OblivionWorkspaceControl
             return new(null, [diagnostic]);
         }
 
-        IReadOnlyList<OblivionControlDiagnostic> diagnostics = ConvertDiagnostics(
+        List<OblivionControlDiagnostic> diagnostics = ConvertDiagnostics(
             open.Diagnostics,
-            workspace);
+            workspace).ToList();
+        OblivionDiagramProjectionResult? diagramProjection = null;
+        string? artifactStatus = null;
+        if (card.Kind == OblivionCardKind.Diagram)
+        {
+            diagramProjection = new OblivionDiagramCardRealizer().Project(
+                card,
+                open.Session.Location.RootDirectory);
+            diagnostics.AddRange(diagramProjection.Diagnostics.Select(diagnostic => new OblivionControlDiagnostic(
+                diagnostic.Code,
+                diagnostic.Severity.ToString().ToLowerInvariant(),
+                diagnostic.Message,
+                workspace.Id.Value,
+                page.Id.Value,
+                card.Id.Value,
+                diagnostic.SourcePath,
+                null,
+                null)));
+            artifactStatus = diagramProjection.MermaidSource is null
+                ? "projection-failed"
+                : ResolveDiagramArtifactStatus(diagramProjection.MermaidSource);
+        }
         OblivionCardDetail detail = new(
             card.Id.Value,
             page.Id.Value,
@@ -265,8 +293,32 @@ public sealed class OblivionWorkspaceControl
             card.Provenance.SourceReference,
             card.Actions.Where(action => action.Enabled).Select(action => action.Id).ToArray(),
             Preview(card.Body.RawText),
-            diagnostics);
+            diagnostics,
+            card.Diagram?.Kind.ToString(),
+            card.Diagram?.Reference,
+            card.Diagram?.Symbol,
+            card.Diagram?.Projection.ToString(),
+            diagramProjection?.SemanticFingerprint,
+            artifactStatus,
+            card.Kind == OblivionCardKind.Diagram
+                ? $"{OblivionMermaidRendererOptions.RendererId}@{OblivionMermaidRendererOptions.PinnedVersion}"
+                : null);
         return new(detail, diagnostics);
+    }
+
+    private static string ResolveDiagramArtifactStatus(string mermaidSource)
+    {
+        string hash = OblivionMermaidHashing.ComputeSourceHash(mermaidSource);
+        MermaidDerivedArtifactKey key = new(
+            hash,
+            OblivionMermaidRendererOptions.RendererId,
+            OblivionMermaidRendererOptions.PinnedVersion,
+            OblivionMermaidRendererOptions.OutputFormat,
+            OblivionMermaidRendererOptions.RenderingOptions);
+        string path = Path.GetFullPath(Path.Combine("artifacts", "derived", "mermaid", key.Value + ".png"));
+        return File.Exists(path) && File.Exists(Path.ChangeExtension(path, ".json"))
+            ? "cached-qualified-artifact"
+            : "not-realized";
     }
 
     public OblivionControlResult<OblivionCardContentResult> GetCardContent(

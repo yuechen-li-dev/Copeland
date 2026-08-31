@@ -1,0 +1,7 @@
+format = 1
+kind = "page"
+id = "flow-review"
+title = "Vehicle flow review"
+description = "A real Markdown, Diagram, Markdown Card stack."
+tags = ["oblivion", "m19o", "dogfood"]
+cards = ["flow-context", "vehicle-flow-state", "flow-findings"]

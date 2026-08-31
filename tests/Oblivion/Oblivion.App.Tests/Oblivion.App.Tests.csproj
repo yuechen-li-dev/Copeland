@@ -12,5 +12,9 @@
       <Link>Fixtures/M19iNotebook.oblivion/%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="../../../src/Oblivion/Oblivion.Standalone/M19oDiagramCards.oblivion/**/*">
+      <Link>Fixtures/M19oDiagramCards.oblivion/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>
