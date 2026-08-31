@@ -9,89 +9,223 @@ namespace Oblivion.Standalone.Tests;
 
 public sealed class StandaloneSurfaceTests
 {
+    private static readonly OblivionStandaloneStyle Style = OblivionStandaloneStyles.M19h;
+
     [Fact]
-    public void Standalone_page_materializes_one_card_in_the_normal_stream_stack()
+    public void Standalone_page_materializes_exactly_two_markdown_cards_in_stable_stream_order()
+    {
+        MaterializedPresentation presentation = M19hTwoCardStack.Materialize();
+
+        Assert.Equal(2, presentation.Page.Cards.Count);
+        Assert.Collection(
+            presentation.Page.Cards,
+            card => Assert.EndsWith(M19hTwoCardStack.FirstContentId, card.Id.Value),
+            card => Assert.EndsWith(M19hTwoCardStack.SecondContentId, card.Id.Value));
+        Assert.All(
+            presentation.Page.Cards,
+            card => Assert.Equal(OblivionCardBodyFormat.CopelandMarkdown, card.Body.Format));
+
+        Assert.Equal(2, presentation.Bands.Count);
+        Assert.All(
+            presentation.Bands,
+            band => Assert.Equal(PresentationMaterializedBandKind.Stream, band.Kind));
+        Assert.Equal(
+            presentation.Page.Cards.Select(card => card.Id.Value),
+            presentation.Bands.SelectMany(band => band.CardIds).Select(cardId => cardId.Value));
+    }
+
+    [Fact]
+    public void M19g_single_card_materialization_remains_available_as_a_regression_contract()
     {
         MaterializedPresentation presentation = M19gSingleCardReading.Materialize();
 
         Assert.Single(presentation.Page.Cards);
-        PresentationMaterializedBand band = Assert.Single(presentation.Bands);
-        Assert.Equal(PresentationMaterializedBandKind.Stream, band.Kind);
-        Assert.Single(band.CardIds);
     }
 
     [Fact]
-    public void Collapsed_state_does_not_mount_or_allocate_a_body_surface()
+    public void Fresh_launch_is_deterministically_collapsed_and_mounts_no_bodies()
     {
         OblivionStandaloneSurface surface = new();
 
         OblivionStandaloneSurfaceSnapshot snapshot = surface.CreateSnapshot(2560, 1440);
 
-        Assert.False(snapshot.CardView.IsExpanded);
-        Assert.Equal(OblivionReadingState.Collapsed, snapshot.ContentPlan.ReadingState);
-        Assert.False(snapshot.MatureContentMounted);
-        Assert.Null(snapshot.MatureContentBounds);
+        Assert.Equal(surface.Cards[0].Id.Value, surface.SelectedCardId);
+        Assert.All(snapshot.Cards, card =>
+        {
+            Assert.False(card.CardView.IsExpanded);
+            Assert.Equal(OblivionReadingState.Collapsed, card.ContentPlan.ReadingState);
+            Assert.False(card.MatureContentMounted);
+            Assert.Null(card.MatureContentBounds);
+        });
     }
 
     [Fact]
-    public void Expanded_state_selects_the_mature_Avalonia_document_presenter()
+    public void Multi_expand_keeps_each_card_state_independent_and_uses_the_mature_presenter()
     {
         OblivionStandaloneSurface surface = new();
-        surface.ToggleExpansion();
+        string firstId = surface.Cards[0].Id.Value;
+        string secondId = surface.Cards[1].Id.Value;
 
-        OblivionStandaloneSurfaceSnapshot snapshot = surface.CreateSnapshot(2560, 1440);
+        surface.ToggleExpansion(firstId);
+        Assert.True(surface.IsExpanded(surface.Cards[0]));
+        Assert.False(surface.IsExpanded(surface.Cards[1]));
 
-        Assert.True(snapshot.MatureContentMounted);
-        Assert.Equal(OblivionReadingState.Expanded, snapshot.ContentPlan.ReadingState);
-        OblivionContentPresentationItem item = Assert.Single(snapshot.ContentPlan.Items);
-        Assert.Equal(OblivionContentPresenterKind.AvaloniaReadOnlyDocument, item.PresenterKind);
-        Assert.Equal(OblivionContentFocusContract.PresenterOwnsSelectionAndCopy, item.FocusContract);
+        surface.ToggleExpansion(secondId);
+        OblivionStandaloneSurfaceSnapshot bothExpanded = surface.CreateSnapshot(2560, 1440);
+
+        Assert.All(bothExpanded.Cards, card =>
+        {
+            Assert.True(card.CardView.IsExpanded);
+            Assert.True(card.MatureContentMounted);
+            Assert.Equal(OblivionReadingState.Expanded, card.ContentPlan.ReadingState);
+            OblivionContentPresentationItem item = Assert.Single(card.ContentPlan.Items);
+            Assert.Equal(OblivionContentPresenterKind.AvaloniaReadOnlyDocument, item.PresenterKind);
+            Assert.Equal(
+                OblivionContentFocusContract.PresenterOwnsSelectionAndCopy,
+                item.FocusContract);
+        });
+
+        surface.Collapse(firstId);
+        Assert.False(surface.IsExpanded(surface.Cards[0]));
+        Assert.True(surface.IsExpanded(surface.Cards[1]));
     }
 
     [Fact]
-    public void Expand_action_changes_session_state_and_collapse_restores_it()
-    {
-        OblivionStandaloneSurface surface = new();
-
-        surface.ToggleExpansion();
-
-        Assert.True(surface.Session.GetCardViewState(surface.PageId, surface.Card.Id.Value).IsExpanded);
-
-        surface.Collapse();
-
-        Assert.False(surface.Session.GetCardViewState(surface.PageId, surface.Card.Id.Value).IsExpanded);
-    }
-
-    [Fact]
-    public void Square_affordance_keeps_its_location_across_reading_states()
+    public void Expanding_first_card_pushes_second_card_and_collapse_restores_its_position()
     {
         OblivionStandaloneSurface surface = new();
         OblivionStandaloneSurfaceSnapshot collapsed = surface.CreateSnapshot(2560, 1440);
-        surface.ToggleExpansion();
+
+        surface.ToggleExpansion(surface.Cards[0].Id.Value);
         OblivionStandaloneSurfaceSnapshot expanded = surface.CreateSnapshot(2560, 1440);
 
-        Assert.Equal(collapsed.ExpansionAffordanceBounds, expanded.ExpansionAffordanceBounds);
-        Assert.True(collapsed.ExpansionAffordanceBounds.Width >= 36);
-        Assert.True(collapsed.ExpansionAffordanceBounds.Height >= 36);
+        Assert.Equal(
+            Style.ExpandedCardHeight - Style.CollapsedCardHeight,
+            expanded.Cards[1].CardBounds.Y - collapsed.Cards[1].CardBounds.Y);
+        AssertStackGeometry(expanded);
+
+        surface.Collapse(surface.Cards[0].Id.Value);
+        OblivionStandaloneSurfaceSnapshot restored = surface.CreateSnapshot(2560, 1440);
+
+        Assert.Equal(collapsed.Cards[1].CardBounds.Y, restored.Cards[1].CardBounds.Y);
+        AssertStackGeometry(restored);
     }
 
     [Fact]
-    public void Full_viewport_card_uses_wide_outer_margins_without_narrowing_the_application()
+    public void Both_expanded_cards_create_page_overflow_without_overlapping_frames()
     {
         OblivionStandaloneSurface surface = new();
+        foreach (OblivionCard card in surface.Cards)
+        {
+            surface.ToggleExpansion(card.Id.Value);
+        }
 
         OblivionStandaloneSurfaceSnapshot snapshot = surface.CreateSnapshot(2560, 1440);
 
-        Assert.Equal(OblivionStandaloneRenderer.OuterHorizontalMargin, snapshot.CardBounds.X);
+        Assert.True(snapshot.PageContentHeight > snapshot.ViewportHeight);
+        AssertStackGeometry(snapshot);
         Assert.Equal(
-            2560 - (OblivionStandaloneRenderer.OuterHorizontalMargin * 2),
-            snapshot.CardBounds.Width);
-        Assert.True(snapshot.CardBounds.Width > 2200);
+            Style.OuterVerticalMargin,
+            snapshot.PageContentHeight -
+                (snapshot.Cards[1].CardBounds.Y + snapshot.Cards[1].CardBounds.Height));
+    }
+
+    [Fact]
+    public void Selection_and_independent_expansion_survive_resize_recomposition()
+    {
+        OblivionStandaloneSurface surface = new();
+        string secondId = surface.Cards[1].Id.Value;
+        surface.Select(secondId);
+        surface.ToggleExpansion(secondId);
 
         OblivionStandaloneSurfaceSnapshot resized = surface.CreateSnapshot(1920, 1080);
+
+        Assert.Equal(secondId, surface.SelectedCardId);
+        Assert.False(surface.IsExpanded(surface.Cards[0]));
+        Assert.True(surface.IsExpanded(surface.Cards[1]));
+        Assert.False(resized.Cards[0].IsSelected);
+        Assert.True(resized.Cards[1].IsSelected);
+        Assert.Equal(surface.Cards.Select(card => card.Id), resized.Cards.Select(card => card.Card.Id));
+        AssertStackGeometry(resized);
+    }
+
+    [Fact]
+    public void Responsive_width_applies_identically_to_both_cards()
+    {
+        OblivionStandaloneSurface surface = new();
+
+        OblivionStandaloneSurfaceSnapshot wide = surface.CreateSnapshot(2560, 1440);
+        OblivionStandaloneSurfaceSnapshot resized = surface.CreateSnapshot(1920, 1080);
+
+        Assert.All(wide.Cards, card =>
+        {
+            Assert.Equal(Style.OuterHorizontalMargin, card.CardBounds.X);
+            Assert.Equal(
+                2560 - (Style.OuterHorizontalMargin * 2),
+                card.CardBounds.Width);
+        });
+        Assert.All(resized.Cards, card => Assert.Equal(
+            1920 - (Style.OuterHorizontalMargin * 2),
+            card.CardBounds.Width));
+    }
+
+    [Fact]
+    public void Square_affordances_are_identical_and_keep_position_within_each_card()
+    {
+        OblivionStandaloneSurface surface = new();
+        OblivionStandaloneSurfaceSnapshot collapsed = surface.CreateSnapshot(2560, 1440);
+
+        surface.ToggleExpansion(surface.Cards[0].Id.Value);
+        OblivionStandaloneSurfaceSnapshot expanded = surface.CreateSnapshot(2560, 1440);
+
         Assert.Equal(
-            1920 - (OblivionStandaloneRenderer.OuterHorizontalMargin * 2),
-            resized.CardBounds.Width);
+            collapsed.Cards[0].ExpansionAffordanceBounds,
+            expanded.Cards[0].ExpansionAffordanceBounds);
+        Assert.Equal(
+            collapsed.Cards[0].ExpansionAffordanceBounds.Width,
+            collapsed.Cards[1].ExpansionAffordanceBounds.Width);
+        Assert.Equal(
+            collapsed.Cards[0].ExpansionAffordanceBounds.Height,
+            collapsed.Cards[1].ExpansionAffordanceBounds.Height);
+        Assert.True(collapsed.Cards[0].ExpansionAffordanceBounds.Width >= 36);
+        Assert.True(collapsed.Cards[0].ExpansionAffordanceBounds.Height >= 36);
+    }
+
+    [Fact]
+    public void Page_scroll_offset_is_session_state_and_does_not_change_card_state()
+    {
+        OblivionStandaloneSurface surface = new();
+        string secondId = surface.Cards[1].Id.Value;
+        surface.Select(secondId);
+        surface.ToggleExpansion(secondId);
+
+        surface.SetPageScrollOffset(120);
+
+        Assert.Equal(120, surface.Session.GetMainScrollOffset(surface.PageId));
+        Assert.Equal(secondId, surface.SelectedCardId);
+        Assert.True(surface.IsExpanded(surface.Cards[1]));
+    }
+
+    [Theory]
+    [InlineData(500, 500, 0, -1, OblivionStandaloneScrollOwner.Page)]
+    [InlineData(700, 500, 0, -1, OblivionStandaloneScrollOwner.Document)]
+    [InlineData(700, 500, 200, -1, OblivionStandaloneScrollOwner.Page)]
+    [InlineData(700, 500, 100, 1, OblivionStandaloneScrollOwner.Document)]
+    [InlineData(700, 500, 0, 1, OblivionStandaloneScrollOwner.Page)]
+    public void Wheel_routing_prefers_local_overflow_only_while_it_can_move(
+        double extent,
+        double viewport,
+        double offset,
+        double deltaY,
+        OblivionStandaloneScrollOwner expected)
+    {
+        Assert.Equal(
+            expected,
+            OblivionStandaloneScrollRouting.ResolveOwner(
+                extent,
+                viewport,
+                offset,
+                deltaY));
     }
 
     [Fact]
@@ -100,6 +234,18 @@ public sealed class StandaloneSurfaceTests
         AssertAvaloniaFree(typeof(OblivionCard).Assembly);
         AssertAvaloniaFree(typeof(OblivionWorkspaceLoader).Assembly);
         AssertAvaloniaFree(typeof(PresentationMaterializer).Assembly);
+    }
+
+    private static void AssertStackGeometry(OblivionStandaloneSurfaceSnapshot snapshot)
+    {
+        Assert.Equal(2, snapshot.Cards.Count);
+        Assert.Equal(
+            Style.StackGap,
+            snapshot.Cards[1].CardBounds.Y -
+                (snapshot.Cards[0].CardBounds.Y + snapshot.Cards[0].CardBounds.Height));
+        Assert.True(
+            snapshot.Cards[0].CardBounds.Y + snapshot.Cards[0].CardBounds.Height <
+            snapshot.Cards[1].CardBounds.Y);
     }
 
     private static void AssertAvaloniaFree(Assembly assembly)

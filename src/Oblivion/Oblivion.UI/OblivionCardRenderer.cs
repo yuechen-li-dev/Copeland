@@ -565,7 +565,7 @@ public static class OblivionCardRenderer
                 Default = theme.Card.Default with
                 {
                     BorderColor = ColorToken.Hex(0x2563EBFF),
-                    Background = ColorToken.Hex(0xF8FBFFFF),
+                    BorderThickness = Math.Max(2, theme.Card.Default.BorderThickness),
                 },
             },
         };
