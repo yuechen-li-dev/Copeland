@@ -2684,6 +2684,7 @@ public sealed class Parser
         return Current.Kind switch
         {
             SyntaxKind.StaticKeyword => ParseStaticExpression(),
+            SyntaxKind.ReflectKeyword => ParseReflectExpression(),
             SyntaxKind.AwaitKeyword => new AwaitExpressionSyntax(NextToken(), ParseAwaitOperand()),
             SyntaxKind.OpenParenToken when IsArrowExpressionAhead() => ParseArrowExpression(),
             SyntaxKind.OpenParenToken => ParseParenthesizedExpression(),
@@ -2707,6 +2708,13 @@ public sealed class Parser
         SyntaxToken staticKeyword = Match(SyntaxKind.StaticKeyword);
         ExpressionSyntax expression = ParsePostfixExpression();
         return new StaticExpressionSyntax(staticKeyword, expression);
+    }
+
+    private ReflectExpressionSyntax ParseReflectExpression()
+    {
+        SyntaxToken reflectKeyword = Match(SyntaxKind.ReflectKeyword);
+        ExpressionSyntax expression = ParsePostfixExpression();
+        return new ReflectExpressionSyntax(reflectKeyword, expression);
     }
 
     private SourceCodeBlockExpressionSyntax ParseSourceCodeBlockExpression()

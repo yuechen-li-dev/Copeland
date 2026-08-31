@@ -92,7 +92,7 @@ template<static projectName: string = "HelloCopeland"> App: ProjectTree {
 type ProjectShape = { name: string; };
 record StandardProject { name: string; }
 template<type TProject extends ProjectShape = StandardProject, static name: string = "Demo"> ProjectTemplate: ProjectTree {
-    emit(textFile(`${name}-${nameOf<TProject>()}.txt`, "ok"));
+    emit(textFile(`${name}-${reflect nameOf<TProject>()}.txt`, "ok"));
 }
 template<> Entry: ProjectTree {
     return instantiate ProjectTemplate<StandardProject, name: "Hello">;
@@ -112,7 +112,7 @@ template<> Entry: ProjectTree {
 interface Named { name: string; }
 record Standard { name: string; }
 template<type T extends Named = Standard, static name: string = "Default"> App: ProjectTree {
-    emit(textFile(`${name}-${nameOf<T>()}.txt`, "ok"));
+    emit(textFile(`${name}-${reflect nameOf<T>()}.txt`, "ok"));
 }
 """;
 
@@ -450,7 +450,7 @@ type AppSettings = {
     development?: boolean;
 };
 template<> SettingsDocument: ProjectTree {
-    static for (const field of fieldsOf<AppSettings>()) {
+    static for (const field of reflect fieldsOf<AppSettings>()) {
         emit(textFile(`${field.name}.txt`, `${field.typeName}:${field.optional}`));
     }
 }
@@ -471,7 +471,7 @@ type PublicConfig = Pick<Config, "name">;
 type InternalConfig = Omit<Config, "name">;
 type CompleteConfig = Readonly<Required<Partial<Config>>>;
 template<> Document: ProjectTree {
-    static for (const field of fieldsOf<InternalConfig>()) {
+    static for (const field of reflect fieldsOf<InternalConfig>()) {
         emit(textFile(`${field.name}.txt`, `${field.optional}:${field.readonly}`));
     }
 }
@@ -489,7 +489,7 @@ template<> Document: ProjectTree {
         const string source = """
 enum Color { Red, Rgb(red: int, green: int, blue: int), Blue, }
 template<> EnumDocument: ProjectTree {
-    static for (const item of enumCasesOf<Color>()) {
+    static for (const item of reflect enumCasesOf<Color>()) {
         emit(textFile(`${item.name}-${item.payloadCount}.txt`, item.name));
     }
 }
@@ -503,7 +503,9 @@ template<> EnumDocument: ProjectTree {
         CopelandCompilation compilation = CopelandCompiler.CompileTemplates(source);
         BoundTemplateDeclaration declaration = Assert.Single(compilation.BoundCompilation!.Program.Templates);
         BoundStaticFor loop = Assert.IsType<BoundStaticFor>(Assert.Single(declaration.Plan!.Statements));
-        BoundTemplateArray metadata = Assert.IsType<BoundTemplateArray>(loop.Values);
+        BoundTemplateReflection reflection = Assert.IsType<BoundTemplateReflection>(loop.Values);
+        Assert.Equal(BoundSemanticReflectionQuery.EnumCasesOf, reflection.Query);
+        BoundTemplateArray metadata = Assert.IsType<BoundTemplateArray>(reflection.Value);
         Assert.Equal(
             ["Red", "Rgb", "Blue"],
             metadata.Elements
@@ -517,7 +519,7 @@ template<> EnumDocument: ProjectTree {
         const string source = """
 record User { id: int; name: string; nickname?: string; }
 template<> RecordDocument: ProjectTree {
-    static for (const field of fieldsOf<User>()) {
+    static for (const field of reflect fieldsOf<User>()) {
         emit(textFile(`${field.name}.txt`, `${field.typeName}:${field.optional}`));
     }
 }
@@ -536,8 +538,8 @@ template<> RecordDocument: ProjectTree {
         const string source = """
 record User { id: int; nickname?: string; }
 template<type T = User> Metadata: ProjectTree {
-    static for (const field of fieldsOf<T>()) {
-        emit(textFile(`${nameOf<T>()}-${field.name}.txt`, field.typeName));
+    static for (const field of reflect fieldsOf<T>()) {
+        emit(textFile(`${reflect nameOf<T>()}-${field.name}.txt`, field.typeName));
     }
 }
 """;
@@ -546,7 +548,9 @@ template<type T = User> Metadata: ProjectTree {
         Assert.True(compilation.Success, string.Join(Environment.NewLine, compilation.Diagnostics));
         BoundTemplateDeclaration declaration = Assert.Single(compilation.BoundCompilation!.Program.Templates);
         BoundStaticFor loop = Assert.IsType<BoundStaticFor>(Assert.Single(declaration.Plan!.Statements));
-        Assert.IsType<BoundTemplateTypeMetadataArray>(loop.Values);
+        BoundTemplateReflection reflection = Assert.IsType<BoundTemplateReflection>(loop.Values);
+        Assert.Equal(BoundSemanticReflectionQuery.FieldsOf, reflection.Query);
+        Assert.IsType<BoundTemplateTypeMetadataArray>(reflection.Value);
 
         TemplateEvaluationResult result = TemplateCompiler.Evaluate(compilation.BoundCompilation, "Metadata");
 

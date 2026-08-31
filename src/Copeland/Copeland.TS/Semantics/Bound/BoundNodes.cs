@@ -955,6 +955,26 @@ public sealed class BoundTemplateTypeName(SyntaxToken anchor, int parameterIndex
     public int ParameterIndex { get; } = parameterIndex;
 }
 
+public enum BoundSemanticReflectionQuery
+{
+    NameOf,
+    FieldsOf,
+    EnumCasesOf,
+}
+
+/// <summary>
+/// Explicit compiler-semantic reflection. The reflected value is immutable
+/// semantic data; no syntax node or compiler object is exposed to evaluation.
+/// </summary>
+public sealed class BoundTemplateReflection(
+    SyntaxToken anchor,
+    BoundSemanticReflectionQuery query,
+    BoundTemplateValue value) : BoundTemplateValue(anchor, value.Type)
+{
+    public BoundSemanticReflectionQuery Query { get; } = query;
+    public BoundTemplateValue Value { get; } = value;
+}
+
 public enum BoundTemplateTypeMetadataKind
 {
     Fields,
@@ -994,6 +1014,11 @@ public enum BoundArtifactIntrinsic
     WorkspaceFile,
     DotNetProject,
     DotNetSolution,
+    Diagram,
+    DiagramNode,
+    DiagramEdge,
+    RecordDiagram,
+    EnumDiagram,
 }
 
 public sealed class BoundArtifactConstructor(SyntaxToken anchor, BoundArtifactIntrinsic intrinsic, IReadOnlyList<BoundTemplateValue> arguments, TypeSymbol resultType) : BoundTemplateValue(anchor, resultType)

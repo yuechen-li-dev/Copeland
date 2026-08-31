@@ -3639,6 +3639,8 @@ public static class Binder
                     return new BoundTemplateLiteral(name.IdentifierToken, null, PrimitiveTypeSymbol.Error);
                 case ParenthesizedExpressionSyntax parenthesized:
                     return BindTemplateValue(parenthesized.Expression);
+                case ReflectExpressionSyntax reflection:
+                    return BindReflectionQuery(reflection);
                 case ArrayLiteralExpressionSyntax array:
                     return new BoundTemplateArray(array.OpenBracketToken, array.Elements.Select(BindTemplateValue).ToArray());
                 case BinaryExpressionSyntax binary when binary.OperatorToken.Kind == SyntaxKind.PlusToken:
@@ -3665,6 +3667,46 @@ public static class Binder
                     Report("COPE-STATIC-0003", "Unsupported static expression. Use literals, immutable records, finite arrays, locals, template invocations, or artifact constructors.", FirstToken(syntax));
                     return new BoundTemplateLiteral(FirstToken(syntax), null, PrimitiveTypeSymbol.Error);
             }
+        }
+
+        private BoundTemplateValue BindReflectionQuery(ReflectExpressionSyntax reflection)
+        {
+            if (reflection.Expression is not GenericCallExpressionSyntax generic
+                || generic.Target is not NameExpressionSyntax name)
+            {
+                Report(
+                    "COPE-REFLECT-0002",
+                    "Unsupported semantic reflection query. VIZ-M0 supports reflect nameOf<T>(), reflect fieldsOf<T>(), and reflect enumCasesOf<T>().",
+                    reflection.ReflectKeyword);
+                return new BoundTemplateLiteral(reflection.ReflectKeyword, null, PrimitiveTypeSymbol.Error);
+            }
+
+            BoundTemplateValue value;
+            BoundSemanticReflectionQuery query;
+            BoundTemplateValue[] arguments = generic.Arguments.Select(BindTemplateValue).ToArray();
+            switch (name.IdentifierToken.Text)
+            {
+                case "nameOf":
+                    query = BoundSemanticReflectionQuery.NameOf;
+                    value = BindNameOf(name.IdentifierToken, generic.TypeArguments, arguments);
+                    break;
+                case "fieldsOf":
+                    query = BoundSemanticReflectionQuery.FieldsOf;
+                    value = BindFieldsOf(name.IdentifierToken, generic.TypeArguments, arguments);
+                    break;
+                case "enumCasesOf":
+                    query = BoundSemanticReflectionQuery.EnumCasesOf;
+                    value = BindEnumCasesOf(name.IdentifierToken, generic.TypeArguments, arguments);
+                    break;
+                default:
+                    Report(
+                        "COPE-REFLECT-0002",
+                        $"Unsupported semantic reflection query '{name.IdentifierToken.Text}'. VIZ-M0 supports nameOf, fieldsOf, and enumCasesOf.",
+                        name.IdentifierToken);
+                    return new BoundTemplateLiteral(reflection.ReflectKeyword, null, PrimitiveTypeSymbol.Error);
+            }
+
+            return new BoundTemplateReflection(reflection.ReflectKeyword, query, value);
         }
 
         private BoundTemplateValue BindTemplateRecord(ObjectLiteralExpressionSyntax syntax)
@@ -3732,14 +3774,17 @@ public static class Binder
             var values = arguments.Select(BindTemplateValue).ToArray();
             if (name.IdentifierToken.Text == "fieldsOf")
             {
+                ReportReflectionMigration(name.IdentifierToken);
                 return BindFieldsOf(name.IdentifierToken, typeArgumentSyntax, values);
             }
             if (name.IdentifierToken.Text == "nameOf")
             {
+                ReportReflectionMigration(name.IdentifierToken);
                 return BindNameOf(name.IdentifierToken, typeArgumentSyntax, values);
             }
             if (name.IdentifierToken.Text == "enumCasesOf")
             {
+                ReportReflectionMigration(name.IdentifierToken);
                 return BindEnumCasesOf(name.IdentifierToken, typeArgumentSyntax, values);
             }
             if (TryBindArtifactIntrinsic(name.IdentifierToken, values, out BoundTemplateValue? artifact))
@@ -3769,6 +3814,14 @@ public static class Binder
                 }
             }
             return new BoundTemplateInvocation(anchor, template, typeArguments, values);
+        }
+
+        private void ReportReflectionMigration(SyntaxToken intrinsic)
+        {
+            Report(
+                "COPE-REFLECT-0004",
+                $"Semantic reflection query '{intrinsic.Text}' requires the explicit 'reflect' marker. Write 'reflect {intrinsic.Text}<T>()'.",
+                intrinsic);
         }
 
         private BoundTemplateValue BindTypedSourceArtifact(
@@ -3907,10 +3960,10 @@ public static class Binder
         {
             if (values.Count != 0 || typeArguments.Count != 1)
             {
-                Report("COPE-STATIC-0010", "fieldsOf<T>() requires exactly one type argument and no value arguments.", anchor);
+                Report("COPE-REFLECT-0003", "reflect fieldsOf<T>() requires exactly one type argument and no value arguments.", anchor);
                 return new BoundTemplateArray(anchor, []);
             }
-            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-STATIC-0010", "metadata target");
+            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-REFLECT-0003", "metadata target");
             if (target is TypeParameterTypeSymbol parameter)
             {
                 return new BoundTemplateTypeMetadataArray(
@@ -3922,7 +3975,7 @@ public static class Binder
             var fields = EnumerateStructuralFields(target).ToArray();
             if (fields.Length == 0 && target is not StructuralObjectTypeSymbol and not RecordTypeSymbol)
             {
-                Report("COPE-STATIC-0011", $"fieldsOf<T>() requires a structural type or record, not '{target.Name}'.", anchor);
+                Report("COPE-REFLECT-0005", $"reflect fieldsOf<T>() requires a structural type or record, not '{target.Name}'.", anchor);
             }
             return new BoundTemplateArray(anchor, fields.Select(field => CreateFieldMetadata(anchor, field)).ToArray());
         }
@@ -3934,10 +3987,10 @@ public static class Binder
         {
             if (values.Count != 0 || typeArguments.Count != 1)
             {
-                Report("COPE-STATIC-0010", "nameOf<T>() requires exactly one type argument and no value arguments.", anchor);
+                Report("COPE-REFLECT-0003", "reflect nameOf<T>() requires exactly one type argument and no value arguments.", anchor);
                 return new BoundTemplateLiteral(anchor, null, PrimitiveTypeSymbol.Error);
             }
-            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-STATIC-0010", "metadata target");
+            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-REFLECT-0003", "metadata target");
             if (target is TypeParameterTypeSymbol parameter)
             {
                 return new BoundTemplateTypeName(anchor, parameter.Ordinal);
@@ -3952,11 +4005,11 @@ public static class Binder
         {
             if (values.Count != 0 || typeArguments.Count != 1)
             {
-                Report("COPE-STATIC-0010", "enumCasesOf<T>() requires exactly one type argument and no value arguments.", anchor);
+                Report("COPE-REFLECT-0003", "reflect enumCasesOf<T>() requires exactly one type argument and no value arguments.", anchor);
                 return new BoundTemplateArray(anchor, []);
             }
 
-            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-STATIC-0010", "enum metadata target");
+            TypeSymbol target = BindType(typeArguments[0], anchor, "COPE-REFLECT-0003", "enum metadata target");
             if (target is TypeParameterTypeSymbol parameter)
             {
                 return new BoundTemplateTypeMetadataArray(
@@ -3967,7 +4020,7 @@ public static class Binder
             }
             if (target is not EnumTypeSymbol enumType)
             {
-                Report("COPE-STATIC-0011", $"enumCasesOf<T>() requires a payload enum, not '{target.Name}'.", anchor);
+                Report("COPE-REFLECT-0006", $"reflect enumCasesOf<T>() requires a payload enum, not '{target.Name}'.", anchor);
                 return new BoundTemplateArray(anchor, []);
             }
 
@@ -4060,6 +4113,11 @@ public static class Binder
                 "workspaceFile" => BoundArtifactIntrinsic.WorkspaceFile,
                 "dotNetProject" => BoundArtifactIntrinsic.DotNetProject,
                 "dotNetSolution" => BoundArtifactIntrinsic.DotNetSolution,
+                "diagram" => BoundArtifactIntrinsic.Diagram,
+                "diagramNode" => BoundArtifactIntrinsic.DiagramNode,
+                "diagramEdge" => BoundArtifactIntrinsic.DiagramEdge,
+                "recordDiagram" => BoundArtifactIntrinsic.RecordDiagram,
+                "enumDiagram" => BoundArtifactIntrinsic.EnumDiagram,
                 _ => null,
             };
             if (intrinsic is null)
@@ -4082,6 +4140,9 @@ public static class Binder
                 BoundArtifactIntrinsic.CopelandProjectTypeSet => ArtifactTypeSymbol.CopelandProjectTypeSet,
                 BoundArtifactIntrinsic.DotNetProject => ArtifactTypeSymbol.DotNetProject,
                 BoundArtifactIntrinsic.DotNetSolution => ArtifactTypeSymbol.DotNetSolution,
+                BoundArtifactIntrinsic.Diagram or BoundArtifactIntrinsic.RecordDiagram or BoundArtifactIntrinsic.EnumDiagram => ArtifactTypeSymbol.Diagram,
+                BoundArtifactIntrinsic.DiagramNode => ArtifactTypeSymbol.DiagramNode,
+                BoundArtifactIntrinsic.DiagramEdge => ArtifactTypeSymbol.DiagramEdge,
                 _ => PrimitiveTypeSymbol.Error,
             };
             bool valid = intrinsic.Value switch
@@ -4099,6 +4160,11 @@ public static class Binder
                 BoundArtifactIntrinsic.WorkspaceFile => arguments.Count == 2 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type == ArtifactTypeSymbol.TypeScriptWorkspace,
                 BoundArtifactIntrinsic.DotNetProject => arguments.Count == 2 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1] is BoundTemplateArray,
                 BoundArtifactIntrinsic.DotNetSolution => arguments.Count == 3 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type == ArtifactTypeSymbol.DotNetProject && arguments[2] is BoundTemplateArray,
+                BoundArtifactIntrinsic.Diagram => arguments.Count == 3 && arguments[0].Type is ArrayTypeSymbol { ElementType: var nodeType } && nodeType == ArtifactTypeSymbol.DiagramNode && arguments[1].Type is ArrayTypeSymbol { ElementType: var edgeType } && edgeType == ArtifactTypeSymbol.DiagramEdge && arguments[2].Type == PrimitiveTypeSymbol.String,
+                BoundArtifactIntrinsic.DiagramNode => arguments.Count == 2 && arguments.All(argument => argument.Type == PrimitiveTypeSymbol.String),
+                BoundArtifactIntrinsic.DiagramEdge => arguments.Count == 3 && arguments.All(argument => argument.Type == PrimitiveTypeSymbol.String),
+                BoundArtifactIntrinsic.RecordDiagram => arguments.Count == 3 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type is ArrayTypeSymbol && arguments[2].Type == PrimitiveTypeSymbol.String,
+                BoundArtifactIntrinsic.EnumDiagram => arguments.Count == 3 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type is ArrayTypeSymbol && arguments[2].Type == PrimitiveTypeSymbol.String,
                 _ => false,
             };
             if (!valid)
@@ -5563,6 +5629,7 @@ public static class Binder
                 StaticExpressionSyntax staticExpression => new BoundStaticExpression(
                     staticExpression.StaticKeyword,
                     BindExpression(staticExpression.Expression, contextualType)),
+                ReflectExpressionSyntax reflection => BindRuntimeReflection(reflection),
                 TemplateExpressionSyntax template => BindTemplate(template),
                 NameExpressionSyntax n => BindName(n),
                 ParenthesizedExpressionSyntax p => BindExpression(p.Expression, contextualType),
@@ -5598,6 +5665,15 @@ public static class Binder
             expression = AdaptExactIntegerLiteral(expression, contextualType);
             expression = InjectDirectNominalUnionCase(expression, contextualType);
             return InjectOptionLift(expression, contextualType);
+        }
+
+        private BoundExpression BindRuntimeReflection(ReflectExpressionSyntax reflection)
+        {
+            Report(
+                "COPE-REFLECT-0001",
+                "Semantic reflection is available only during compile-time evaluation.",
+                reflection.ReflectKeyword);
+            return new BoundErrorExpression();
         }
 
         private static BoundExpression InjectOptionLift(BoundExpression expression, TypeSymbol? contextualType)
@@ -11618,6 +11694,9 @@ public static class Binder
             if (i.Identifier.Text == ArtifactTypeSymbol.NpmDependency.Name) return ArtifactTypeSymbol.NpmDependency;
             if (i.Identifier.Text == ArtifactTypeSymbol.CopelandSourceSet.Name) return ArtifactTypeSymbol.CopelandSourceSet;
             if (i.Identifier.Text == ArtifactTypeSymbol.CopelandProjectTypeSet.Name) return ArtifactTypeSymbol.CopelandProjectTypeSet;
+            if (i.Identifier.Text == ArtifactTypeSymbol.Diagram.Name) return ArtifactTypeSymbol.Diagram;
+            if (i.Identifier.Text == ArtifactTypeSymbol.DiagramNode.Name) return ArtifactTypeSymbol.DiagramNode;
+            if (i.Identifier.Text == ArtifactTypeSymbol.DiagramEdge.Name) return ArtifactTypeSymbol.DiagramEdge;
             if (_projectTypes.HasFlag(CopelandProjectTypeSet.TextDocuments) && i.Identifier.Text == "Document") return DocumentTypeSymbol.Instance;
             if (_projectTypes.HasFlag(CopelandProjectTypeSet.ReactComponents))
             {

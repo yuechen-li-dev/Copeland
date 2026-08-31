@@ -168,15 +168,15 @@ still owns project realization.
 The typed metadata surface is now:
 
 ```ts
-nameOf<T>()
-fieldsOf<T>()
-enumCasesOf<T>()
+reflect nameOf<T>()
+reflect fieldsOf<T>()
+reflect enumCasesOf<T>()
 ```
 
-`fieldsOf<T>()` returns typed structural entries with `name`, `typeName`,
+`reflect fieldsOf<T>()` returns typed structural entries with `name`, `typeName`,
 `optional`, and `readonly`. Optional record fields expose `Option<T>` as their
-semantic type. `enumCasesOf<T>()` returns declaration-ordered entries with
-`name`, `payloadCount`, and ordered `payloadTypes`. `nameOf<T>()` is the source
+semantic type. `reflect enumCasesOf<T>()` returns declaration-ordered entries with
+`name`, `payloadCount`, and ordered `payloadTypes`. `reflect nameOf<T>()` is the source
 display name; it is not promised as a stable semantic identity.
 
 All three operations accept template type parameters. The binder emits a typed

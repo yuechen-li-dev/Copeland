@@ -34,7 +34,7 @@ nodes, defaults, result syntax, and `TemplateInstantiationExpressionSyntax`.
 The binder declares a non-callable `TemplateSymbol`, normalizes constraints
 through `RequirementSet`, binds a syntax-free `BoundTemplateDeclaration` plan,
 and produces `BoundTemplateInvocation` only from `instantiate`. Type argument
-identity is retained through evaluation so `nameOf<T>()` observes the actual
+identity is retained through evaluation so `reflect nameOf<T>()` observes the actual
 specialization. Templates are no longer implicitly evaluated merely because a
 module reaches the bound compiler stage.
 

@@ -41,6 +41,7 @@ public static class SyntaxFacts
             ["await"] = SyntaxKind.AwaitKeyword,
             ["yield"] = SyntaxKind.YieldKeyword,
             ["static"] = SyntaxKind.StaticKeyword,
+            ["reflect"] = SyntaxKind.ReflectKeyword,
             ["template"] = SyntaxKind.TemplateKeyword,
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
@@ -147,6 +148,7 @@ public static class SyntaxFacts
             SyntaxKind.SuperKeyword => "super",
             SyntaxKind.ExtendsKeyword => "extends",
             SyntaxKind.StaticKeyword => "static",
+            SyntaxKind.ReflectKeyword => "reflect",
             SyntaxKind.TemplateKeyword => "template",
             SyntaxKind.ReadonlyKeyword => "readonly",
             SyntaxKind.GetKeyword => "get",

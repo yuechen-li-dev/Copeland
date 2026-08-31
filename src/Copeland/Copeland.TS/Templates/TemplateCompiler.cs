@@ -15,13 +15,15 @@ public sealed class TemplateEvaluationResult(
     string templateName,
     ProjectTree? project,
     IReadOnlyList<Diagnostic> diagnostics,
-    IReadOnlyList<string> instantiationChain)
+    IReadOnlyList<string> instantiationChain,
+    Diagram? diagram = null)
 {
     public string TemplateName { get; } = templateName;
     public ProjectTree? Project { get; } = project;
+    public Diagram? Diagram { get; } = diagram;
     public IReadOnlyList<Diagnostic> Diagnostics { get; } = diagnostics;
     public IReadOnlyList<string> InstantiationChain { get; } = instantiationChain;
-    public bool Success => Project is not null && Diagnostics.Count == 0;
+    public bool Success => (Project is not null || Diagram is not null) && Diagnostics.Count == 0;
 }
 
 /// <summary>
@@ -80,6 +82,7 @@ public static class TemplateCompiler
         diagnostics.AddRange(TemplatePlanValidator.Validate(templates));
         var evaluator = new BoundPlanEvaluator(templates, diagnostics);
         object? result = evaluator.EvaluateTemplate(entry, entryArguments);
+        Diagram? diagram = result as Diagram;
         ProjectTree? project = result switch
         {
             ProjectTree tree => tree,
@@ -88,9 +91,10 @@ public static class TemplateCompiler
             DotNetSolutionValue solution => ReportLoweringFailure(solution),
             ArtifactNode artifact => LowerArtifact(artifact),
             null => null,
+            Diagram => null,
             _ => ReportUnsupportedMaterializer(entry.Symbol.ReturnType),
         };
-        return new TemplateEvaluationResult(entry.Symbol.Name, project, diagnostics, evaluator.InstantiationChain);
+        return new TemplateEvaluationResult(entry.Symbol.Name, project, diagnostics, evaluator.InstantiationChain, diagram);
 
         ProjectTree? ReportLoweringFailure(DotNetSolutionValue solution)
         {
@@ -760,6 +764,8 @@ public static class TemplateCompiler
                     return context.Values.GetValueOrDefault(local.Local);
                 case BoundTemplateTypeName typeName:
                     return context.TypeArguments.ElementAtOrDefault(typeName.ParameterIndex)?.Name ?? "<missing-type>";
+                case BoundTemplateReflection reflection:
+                    return EvaluateValue(reflection.Value, context);
                 case BoundTemplateTypeMetadataArray metadata:
                     return EvaluateTypeMetadata(metadata, context);
                 case BoundTemplateArray array:
@@ -875,14 +881,14 @@ public static class TemplateCompiler
                     .ToArray();
                 if (values.Length == 0 && target is not StructuralObjectTypeSymbol and not RecordTypeSymbol)
                 {
-                    Report("COPE-STATIC-0011", $"fieldsOf<T>() requires a structural type or record, not '{target.Name}'.", metadata.Anchor);
+                    Report("COPE-REFLECT-0005", $"reflect fieldsOf<T>() requires a structural type or record, not '{target.Name}'.", metadata.Anchor);
                 }
                 return values;
             }
 
             if (target is not EnumTypeSymbol enumType)
             {
-                Report("COPE-STATIC-0011", $"enumCasesOf<T>() requires a payload enum, not '{target.Name}'.", metadata.Anchor);
+                Report("COPE-REFLECT-0006", $"reflect enumCasesOf<T>() requires a payload enum, not '{target.Name}'.", metadata.Anchor);
                 return [];
             }
             return enumType.Cases
@@ -935,6 +941,21 @@ public static class TemplateCompiler
                         => new DotNetProjectValue(name, files.OfType<ArtifactNode>().ToArray(), provenance),
                     BoundArtifactIntrinsic.DotNetSolution when arguments is [string name, DotNetProjectValue project, object?[] files]
                         => new DotNetSolutionValue(name, project, files.OfType<ArtifactNode>().ToArray(), provenance),
+                    BoundArtifactIntrinsic.DiagramNode when arguments is [string id, string label]
+                        => new DiagramNode(id, label),
+                    BoundArtifactIntrinsic.DiagramEdge when arguments is [string from, string to, string label]
+                        => new DiagramEdge(from, to, string.IsNullOrEmpty(label) ? null : label),
+                    BoundArtifactIntrinsic.Diagram when arguments is [object?[] nodes, object?[] edges, string direction]
+                        => CreateDiagram(
+                            nodes.OfType<DiagramNode>(),
+                            edges.OfType<DiagramEdge>(),
+                            direction,
+                            null,
+                            constructor.Anchor),
+                    BoundArtifactIntrinsic.RecordDiagram when arguments is [string typeName, object?[] fields, string direction]
+                        => CreateRecordDiagram(typeName, fields, direction, constructor.Anchor),
+                    BoundArtifactIntrinsic.EnumDiagram when arguments is [string typeName, object?[] cases, string direction]
+                        => CreateEnumDiagram(typeName, cases, direction, constructor.Anchor),
                     _ => ReportInvalidIntrinsic(constructor),
                 };
             }
@@ -1123,6 +1144,86 @@ public static class TemplateCompiler
             return $"import {{ defineTypeScriptWorkspace }} from \"copeland/workspace\";\n\nexport default defineTypeScriptWorkspace({{\n    ownership: \"strict\",\n    tscl: {{\n        project: \"{workspace.ProjectPath}\",\n        include: [{includes}],\n        types: [{types}]\n    }}\n}});\n";
         }
 
+        private Diagram? CreateRecordDiagram(
+            string typeName,
+            IReadOnlyList<object?> fields,
+            string direction,
+            SyntaxToken anchor)
+        {
+            string rootId = "type:" + typeName;
+            var nodes = new List<DiagramNode> { new(rootId, typeName) };
+            var edges = new List<DiagramEdge>();
+            foreach (IReadOnlyDictionary<string, object?> field in fields.OfType<IReadOnlyDictionary<string, object?>>())
+            {
+                string name = field.GetValueOrDefault("name") as string ?? "<unknown>";
+                string type = field.GetValueOrDefault("typeName") as string ?? "<unknown>";
+                bool optional = field.GetValueOrDefault("optional") is true;
+                string id = "field:" + name;
+                nodes.Add(new DiagramNode(id, name + (optional ? "?" : string.Empty) + " : " + type));
+                edges.Add(new DiagramEdge(rootId, id));
+            }
+            return CreateDiagram(nodes, edges, direction, typeName, anchor);
+        }
+
+        private Diagram? CreateEnumDiagram(
+            string typeName,
+            IReadOnlyList<object?> cases,
+            string direction,
+            SyntaxToken anchor)
+        {
+            string rootId = "type:" + typeName;
+            var nodes = new List<DiagramNode> { new(rootId, typeName) };
+            var edges = new List<DiagramEdge>();
+            foreach (IReadOnlyDictionary<string, object?> item in cases.OfType<IReadOnlyDictionary<string, object?>>())
+            {
+                string name = item.GetValueOrDefault("name") as string ?? "<unknown>";
+                string[] payloadTypes = item.GetValueOrDefault("payloadTypes") is object?[] payload
+                    ? payload.OfType<string>().ToArray()
+                    : [];
+                string label = payloadTypes.Length == 0
+                    ? name
+                    : name + "(" + string.Join(", ", payloadTypes) + ")";
+                string id = "case:" + name;
+                nodes.Add(new DiagramNode(id, label));
+                edges.Add(new DiagramEdge(rootId, id));
+            }
+            return CreateDiagram(nodes, edges, direction, typeName, anchor);
+        }
+
+        private Diagram? CreateDiagram(
+            IEnumerable<DiagramNode> nodes,
+            IEnumerable<DiagramEdge> edges,
+            string directionText,
+            string? reflectedType,
+            SyntaxToken anchor)
+        {
+            DiagramDirection? direction = directionText switch
+            {
+                "TopDown" => DiagramDirection.TopDown,
+                "LeftRight" => DiagramDirection.LeftRight,
+                _ => null,
+            };
+            if (direction is null)
+            {
+                Report("COPE-DIAGRAM-0003", $"Unknown Diagram direction '{directionText}'. Use 'TopDown' or 'LeftRight'.", anchor);
+                return null;
+            }
+
+            string template = _active.TryPeek(out TemplateSymbol? symbol) ? symbol.Name : "<unknown-template>";
+            if (Diagram.TryCreate(
+                nodes,
+                edges,
+                direction.Value,
+                new DiagramProvenance(template, reflectedType),
+                out Diagram? diagram,
+                out IReadOnlyList<Diagnostic> diagnostics))
+            {
+                return diagram;
+            }
+            _diagnostics.AddRange(diagnostics);
+            return null;
+        }
+
         private ProjectTree? CreateProject(IEnumerable<ArtifactNode> nodes, SyntaxToken anchor)
             => ProjectTree.TryCreate(nodes, out ProjectTree? project, out IReadOnlyList<Diagnostic> diagnostics)
                 ? project
@@ -1230,6 +1331,9 @@ public static class TemplateCompiler
             }
             switch (value)
             {
+                case BoundTemplateReflection reflection:
+                    VisitValue(reflection.Value, diagnostics);
+                    break;
                 case BoundTemplateArray array:
                     foreach (BoundTemplateValue element in array.Elements) VisitValue(element, diagnostics);
                     break;

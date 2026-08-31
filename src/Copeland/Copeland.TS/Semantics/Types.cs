@@ -107,6 +107,9 @@ public sealed class ArtifactTypeSymbol : TypeSymbol
     public static readonly ArtifactTypeSymbol CopelandSourceSet = new("CopelandSourceSet");
     public static readonly ArtifactTypeSymbol CopelandProjectTypeSet = new("CopelandProjectTypeSet");
     public static readonly ArtifactTypeSymbol XmlElement = new("XmlElement");
+    public static readonly ArtifactTypeSymbol Diagram = new("Diagram");
+    public static readonly ArtifactTypeSymbol DiagramNode = new("DiagramNode");
+    public static readonly ArtifactTypeSymbol DiagramEdge = new("DiagramEdge");
     public override string Name { get; }
 }
 

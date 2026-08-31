@@ -22,7 +22,7 @@ arguments: `ConsoleApp<User>({ name: "Hello", includeTests: true })`.
 Fresh object literals reject unknown fields; named structural values use ordinary
 assignability. Static values bind to typed bound values before the evaluator.
 
-`fieldsOf<T>()` and `nameOf<T>()` are finite static-only metadata operations.
+`reflect fieldsOf<T>()` and `reflect nameOf<T>()` are finite compile-time semantic operations.
 `fieldsOf` is declaration ordered and immutable, and dogfood coverage traverses
 it through `static for` to produce deterministic artifacts.
 

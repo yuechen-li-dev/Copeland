@@ -15,7 +15,7 @@ public sealed class CliIntegrationTests
         using var temp = new TempDir();
         string source = temp.WriteFile(
             "Template.ts",
-            "interface Named { name: string; } record Standard { name: string; } template<type T extends Named = Standard, static name: string, static target: string = \"net10.0\"> App: ProjectTree { emit(textFile(`${name}-${nameOf<T>()}.txt`, target)); }");
+            "interface Named { name: string; } record Standard { name: string; } template<type T extends Named = Standard, static name: string, static target: string = \"net10.0\"> App: ProjectTree { emit(textFile(`${name}-${reflect nameOf<T>()}.txt`, target)); }");
         string output = Path.Combine(temp.Path, "generated");
 
         CliResult result = await RunCliAsync(
@@ -34,6 +34,42 @@ public sealed class CliIntegrationTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.Equal("net10.0", await File.ReadAllTextAsync(Path.Combine(output, "Hello-Standard.txt")));
+    }
+
+    [Fact]
+    public async Task Template_cli_previews_and_materializes_diagram_results_as_mermaid()
+    {
+        using var temp = new TempDir();
+        string source = temp.WriteFile(
+            "Diagram.ts",
+            "record Workspace { root: string; strict: boolean; } template<type T = Workspace> Structure: Diagram { const name = reflect nameOf<T>(); const fields = reflect fieldsOf<T>(); return recordDiagram(name, fields, \"TopDown\"); }");
+        string output = Path.Combine(temp.Path, "generated");
+
+        CliResult preview = await RunCliAsync(
+            temp.Path,
+            "template",
+            "preview",
+            source,
+            "--entry",
+            "Structure",
+            "--format",
+            "mermaid");
+        Assert.Equal(0, preview.ExitCode);
+        Assert.StartsWith("flowchart TD\n", preview.StdOut, StringComparison.Ordinal);
+        Assert.Contains("Workspace", preview.StdOut, StringComparison.Ordinal);
+
+        CliResult materialize = await RunCliAsync(
+            temp.Path,
+            "template",
+            "materialize",
+            source,
+            "--entry",
+            "Structure",
+            "--output",
+            output);
+        Assert.Equal(0, materialize.ExitCode);
+        string mermaid = await File.ReadAllTextAsync(Path.Combine(output, "diagram.mmd"));
+        Assert.Equal(preview.StdOut, Normalize(mermaid));
     }
 
     [Fact]

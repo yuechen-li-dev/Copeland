@@ -20,7 +20,7 @@ export template<
     static target: TargetFramework = "net10.0"
 > BootstrapTemplate: DotNetSolution {
     const packageVersion = "0.1.0-preview.1";
-    const projectType = nameOf<TProject>();
+    const projectType = reflect nameOf<TProject>();
     const projectFile = `${name}.csproj`;
 
     const projectDefinition: ProjectFile = csProjectFile(

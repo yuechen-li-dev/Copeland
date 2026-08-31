@@ -31,6 +31,23 @@ public sealed record StaticExpressionSyntax(
     }
 }
 
+/// <summary>
+/// An explicit request for bounded compiler-owned semantic metadata. Unlike a
+/// static expression, the operand names a reflection query rather than normal
+/// Copeland computation.
+/// </summary>
+public sealed record ReflectExpressionSyntax(
+    SyntaxToken ReflectKeyword,
+    ExpressionSyntax Expression) : ExpressionSyntax
+{
+    public override SyntaxKind Kind => SyntaxKind.ReflectExpression;
+    public override IEnumerable<object> GetChildren()
+    {
+        yield return ReflectKeyword;
+        yield return Expression;
+    }
+}
+
 public sealed record TemplateExpressionSyntax(SyntaxToken TemplateToken, IReadOnlyList<TemplatePartSyntax> Parts) : ExpressionSyntax
 {
     public override SyntaxKind Kind => SyntaxKind.TemplateExpression;

@@ -66,6 +66,15 @@ internal static class TemplateCommand
 
         if (args[1] == "preview")
         {
+            if (evaluation.Diagram is not null)
+            {
+                if (format is not ("tree" or "mermaid"))
+                {
+                    return Usage("COPE-TEMPLATE-CLI-0005", "Diagram preview format must be 'mermaid', or omit --format.");
+                }
+                Console.Out.Write(MermaidEmitter.Emit(evaluation.Diagram));
+                return 0;
+            }
             if (format == "json")
             {
                 Console.Out.WriteLine(evaluation.Project!.ToPreviewJson(evaluation.TemplateName));
@@ -83,6 +92,15 @@ internal static class TemplateCommand
         if (string.IsNullOrWhiteSpace(output))
         {
             return Usage("COPE-TEMPLATE-CLI-0006", "Materialize requires '--output <path>'.");
+        }
+        if (evaluation.Diagram is not null)
+        {
+            string diagramOutput = string.Equals(Path.GetExtension(output), ".mmd", StringComparison.OrdinalIgnoreCase)
+                ? output!
+                : Path.Combine(output!, "diagram.mmd");
+            string created = DiagramMaterializer.MaterializeMermaid(evaluation.Diagram, diagramOutput);
+            Console.Out.WriteLine($"Created {created}");
+            return 0;
         }
         ProjectTreeMaterializationResult result = ProjectTreeMaterializer.Materialize(evaluation.Project!, output!);
         if (!result.Succeeded)

@@ -11,6 +11,7 @@ template parameters -> typed construction -> typed result -> materializer
 - A program/type template is consumed by a compiler.
 - A presentation/component template is consumed by a renderer.
 - A project template is consumed by the filesystem materializer.
+- A `Diagram` template is consumed by a backend such as the Mermaid emitter.
 
 `type` is Copeland's only classification vocabulary. Copeland does not add a
 separate C++-style `concept` keyword or constraint ontology.
@@ -158,9 +159,16 @@ only to issue `COPE-TEMPLATE-0011`; it does not compile. Maintained samples and
 tests use the canonical syntax.
 
 Templates can inspect bounded semantic metadata without receiving AST nodes or
-source text. `nameOf<T>()`, `fieldsOf<T>()`, and `enumCasesOf<T>()` accept
-concrete types and template type parameters. Field metadata contains `name`,
-`typeName`, `optional`, and `readonly`; an authored optional record field reports
-its semantic `Option<T>` type. Enum metadata contains `name`, `payloadCount`, and
-declaration-ordered `payloadTypes`. The metadata is compile-time only and does
-not introduce runtime reflection.
+source text. The explicit forms `reflect nameOf<T>()`, `reflect fieldsOf<T>()`,
+and `reflect enumCasesOf<T>()` accept concrete types and template type
+parameters. `reflect` asks the compiler for semantic facts; `static` evaluates
+ordinary static-safe Copeland code. Plain reflection calls are rejected with
+`COPE-REFLECT-0004` migration guidance rather than retained as a second syntax.
+
+Field metadata contains `name`, `typeName`, `optional`, and `readonly`; an
+authored optional record field reports its semantic `Option<T>` type. Enum
+metadata contains `name`, `payloadCount`, and declaration-ordered
+`payloadTypes`. Reflection is template/compile-time only, never reaches MIR, and
+introduces no runtime reflection or NativeAOT metadata requirement. See
+[semantic reflection](semantic-reflection-viz-m0.md), [Diagram IR](diagram-ir-viz-m0.md),
+and the [Mermaid backend](diagram-mermaid-backend-viz-m0.md).
