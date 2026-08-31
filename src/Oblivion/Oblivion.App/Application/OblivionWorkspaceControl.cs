@@ -83,7 +83,14 @@ public sealed record OblivionCardContentResult(
 public sealed record OblivionReloadSessionInfo(
     string ActivePageId,
     string? SelectedCardId,
-    IReadOnlyList<string> ExpandedCardIds);
+    IReadOnlyList<string> ExpandedCardIds,
+    string ViewportLayout,
+    string FocusedSlot,
+    IReadOnlyList<OblivionViewportSlotInfo> Slots);
+
+public sealed record OblivionViewportSlotInfo(
+    string SlotId,
+    string? CardId);
 
 public sealed record OblivionWorkspaceReload(
     bool Reloaded,
@@ -680,7 +687,22 @@ public sealed class OblivionWorkspaceControl
             .Where(card => session.State.GetCardViewState(pageId, card.Id.Value).IsExpanded)
             .Select(card => card.Id.Value)
             .ToArray();
-        return new OblivionReloadSessionInfo(pageId, selectedCardId, expandedCardIds);
+        OblivionViewportState viewport = session.State.GetViewportState(pageId);
+        OblivionViewportSlotInfo[] slots = OblivionViewportAssignments.Resolve(
+            viewport,
+            session.ActivePage.Cards,
+            selectedCardId)
+            .Select(assignment => new OblivionViewportSlotInfo(
+                assignment.SlotId.ToString(),
+                assignment.CardId))
+            .ToArray();
+        return new OblivionReloadSessionInfo(
+            pageId,
+            selectedCardId,
+            expandedCardIds,
+            viewport.LayoutMode.ToString(),
+            viewport.FocusedSlot.ToString(),
+            slots);
     }
 
     private static IReadOnlyList<OblivionControlDiagnostic> ConvertDiagnostics(
@@ -737,6 +759,7 @@ public sealed class OblivionWorkspaceControl
         {
             OblivionCommandScope.Workspace => "workspace",
             OblivionCommandScope.ActivePage => "active-page",
+            OblivionCommandScope.FocusedCard => "focused-card",
             _ => throw new ArgumentOutOfRangeException(nameof(scope)),
         };
     }

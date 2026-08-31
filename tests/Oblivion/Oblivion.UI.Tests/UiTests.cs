@@ -11,6 +11,87 @@ namespace Oblivion.UI.Tests;
 public sealed class UiTests
 {
     [Fact]
+    public void Viewport_defaults_to_single_and_assigns_selected_then_next_card_deterministically()
+    {
+        OblivionCard first = CreateCard("first");
+        OblivionCard second = CreateCard("second");
+        OblivionCard third = CreateCard("third");
+        OblivionSessionState state = OblivionSessionState.Empty.WithSelectedCard("page", "second");
+
+        Assert.Equal(OblivionViewportLayoutMode.Single, state.GetViewportState("page").LayoutMode);
+        IReadOnlyList<OblivionViewportAssignment> split = OblivionViewportAssignments.Resolve(
+            new OblivionViewportState(
+                OblivionViewportLayoutMode.VerticalSplit,
+                OblivionViewportSlotId.A),
+            [first, second, third],
+            "second");
+
+        Assert.Collection(
+            split,
+            assignment => Assert.Equal("second", assignment.CardId),
+            assignment => Assert.Equal("third", assignment.CardId));
+    }
+
+    [Theory]
+    [InlineData(OblivionViewportLayoutMode.Single, 1)]
+    [InlineData(OblivionViewportLayoutMode.VerticalSplit, 2)]
+    [InlineData(OblivionViewportLayoutMode.HorizontalSplit, 2)]
+    public void Viewport_geometry_uses_explicit_topology_only(
+        OblivionViewportLayoutMode mode,
+        int expectedSlots)
+    {
+        IReadOnlyList<OblivionViewportSlotGeometry> geometry = OblivionViewportGeometry.Resolve(
+            mode,
+            width: 1000,
+            height: 800,
+            horizontalMargin: 40,
+            verticalMargin: 30,
+            gap: 20);
+
+        Assert.Equal(expectedSlots, geometry.Count);
+        if (mode == OblivionViewportLayoutMode.VerticalSplit)
+        {
+            Assert.Equal(360, geometry[0].Bounds.Height);
+            Assert.Equal(410, geometry[1].Bounds.Y);
+        }
+        if (mode == OblivionViewportLayoutMode.HorizontalSplit)
+        {
+            Assert.Equal(450, geometry[0].Bounds.Width);
+            Assert.Equal(510, geometry[1].Bounds.X);
+        }
+    }
+
+    [Fact]
+    public void Diagram_camera_fit_zoom_pan_and_reset_are_bounded_and_non_semantic()
+    {
+        OblivionDiagramViewportState fit = OblivionDiagramViewportState.Fit;
+        OblivionDiagramCamera camera = OblivionDiagramCameraMath.Resolve(fit, 2000, 1000, 1000, 400);
+        OblivionDiagramViewportState manual = fit
+            .ZoomBy(100)
+            .PanBy(120, -40);
+        OblivionDiagramViewportState minimum = manual.ZoomBy(0.00001);
+
+        Assert.Equal(0.4, camera.Scale, precision: 6);
+        Assert.Equal(OblivionDiagramFitMode.Manual, manual.FitMode);
+        Assert.Equal(OblivionDiagramViewportState.MaximumZoom, manual.Zoom);
+        Assert.Equal(OblivionDiagramViewportState.MinimumZoom, minimum.Zoom);
+        Assert.Equal(OblivionDiagramViewportState.Fit, manual.Reset());
+    }
+
+    [Fact]
+    public void Diagram_camera_state_is_independent_per_card()
+    {
+        OblivionSessionState state = OblivionSessionState.Empty
+            .WithDiagramViewportState("diagram-a", OblivionDiagramViewportState.Fit.ZoomBy(2))
+            .WithDiagramViewportState("diagram-b", OblivionDiagramViewportState.Fit.PanBy(30, 40));
+
+        Assert.Equal(2, state.GetDiagramViewportState("diagram-a").Zoom);
+        Assert.Equal(0, state.GetDiagramViewportState("diagram-a").PanX);
+        Assert.Equal(30, state.GetDiagramViewportState("diagram-b").PanX);
+        Assert.Equal(1, state.GetDiagramViewportState("diagram-b").Zoom);
+    }
+
+    [Fact]
     public void Session_state_keeps_product_panes_independent()
     {
         OblivionSessionState state = OblivionSessionState.Empty

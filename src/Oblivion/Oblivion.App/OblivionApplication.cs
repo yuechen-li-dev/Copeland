@@ -333,6 +333,8 @@ public sealed class OblivionApplication
         Dictionary<string, double> sourceOffsets = new(StringComparer.Ordinal);
         Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> cardStates =
             new(StringComparer.Ordinal);
+        Dictionary<string, OblivionViewportState> viewportStates = new(StringComparer.Ordinal);
+        Dictionary<string, OblivionDiagramViewportState> diagramViewportStates = new(StringComparer.Ordinal);
 
         foreach (OblivionWorkspacePage page in workspace.Pages)
         {
@@ -359,6 +361,11 @@ public sealed class OblivionApplication
                     : page.Cards.FirstOrDefault()?.Id.Value;
             selections[pageId] = selectedCardId;
 
+            if (current.ViewportStateByPageId.TryGetValue(pageId, out OblivionViewportState? viewportState))
+            {
+                viewportStates[pageId] = viewportState;
+            }
+
             if (current.CardViewStateByPageId.TryGetValue(
                 pageId,
                 out IReadOnlyDictionary<string, OblivionCardViewState>? previousStates))
@@ -374,6 +381,13 @@ public sealed class OblivionApplication
                 {
                     sourceOffsets[cardId] = sourceOffset;
                 }
+
+                if (current.DiagramViewportStateByCardId.TryGetValue(
+                    cardId,
+                    out OblivionDiagramViewportState? diagramViewportState))
+                {
+                    diagramViewportStates[cardId] = diagramViewportState;
+                }
             }
         }
 
@@ -383,6 +397,8 @@ public sealed class OblivionApplication
             selections,
             sourceOffsets,
             cardStates,
+            viewportStates,
+            diagramViewportStates,
             current.InspectorPaneSelected);
     }
 }

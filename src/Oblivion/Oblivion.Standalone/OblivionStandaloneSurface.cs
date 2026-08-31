@@ -12,14 +12,17 @@ public sealed class OblivionStandaloneSurface
     private readonly OblivionStandaloneStyle _style;
     private readonly string _workspaceRoot;
     private readonly OblivionDiagramCardRealizer _diagramRealizer = new();
+    private readonly OblivionApplication _application;
+    private readonly OblivionCommandRegistry _commands = new();
+    private OblivionWorkspaceSession _workspaceSession;
 
     public OblivionStandaloneSurface(
         string? vaultRoot = null,
         OblivionStandaloneStyle? style = null)
     {
         _style = style ?? OblivionStandaloneStyles.Dark;
-        OblivionApplication application = new();
-        OblivionWorkspaceSessionOpenResult open = application.OpenWorkspace(
+        _application = new OblivionApplication();
+        OblivionWorkspaceSessionOpenResult open = _application.OpenWorkspace(
             vaultRoot ?? M19iStructuredVault.DefaultRoot);
         if (!open.Succeeded || open.Session is null)
         {
@@ -29,12 +32,12 @@ public sealed class OblivionStandaloneSurface
                 string.Join(Environment.NewLine, open.Diagnostics));
         }
 
-        Workspace = open.Session.Workspace;
-        Page = open.Session.ActivePage;
+        _workspaceSession = open.Session;
+        Workspace = _workspaceSession.Workspace;
+        Page = _workspaceSession.ActivePage;
         Cards = ValidateCards(Page);
         _workspaceRoot = open.Session.Location.RootDirectory;
         _cardHandlers = OblivionCardHandlerRegistry.CreateDefault();
-        Session = open.Session.State;
     }
 
     public OblivionWorkspace Workspace { get; }
@@ -45,7 +48,9 @@ public sealed class OblivionStandaloneSurface
 
     public string PageId => Page.Id.Value;
 
-    public OblivionSessionState Session { get; private set; }
+    public OblivionSessionState Session => _workspaceSession.State;
+
+    public OblivionViewportState Viewport => Session.GetViewportState(PageId);
 
     public string? SelectedCardId => Session.GetSelectedCardId(PageId, Cards);
 
@@ -59,9 +64,20 @@ public sealed class OblivionStandaloneSurface
 
     public OblivionStandaloneSurfaceSnapshot CreateSnapshot(int width, int height)
     {
+        IReadOnlyList<OblivionViewportAssignment> assignments = OblivionViewportAssignments.Resolve(
+            Viewport,
+            Cards,
+            SelectedCardId);
         List<OblivionStandaloneCardPresentation> cardPresentations = [];
-        foreach (OblivionCard card in Cards)
+        foreach (OblivionViewportAssignment assignment in assignments)
         {
+            OblivionCard? card = Cards.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id.Value, assignment.CardId, StringComparison.Ordinal));
+            if (card is null)
+            {
+                continue;
+            }
+
             OblivionCardViewState state = Session.GetCardViewState(PageId, card.Id.Value);
             OblivionCardLocalState localState = OblivionCardLocalState.CreateDefault(card.Id) with
             {
@@ -97,10 +113,18 @@ public sealed class OblivionStandaloneSurface
                 card,
                 cardView,
                 contentPlan,
-                isSelected));
+                isSelected,
+                assignment.SlotId,
+                Session.GetDiagramViewportState(card.Id.Value)));
         }
 
-        return OblivionStandaloneRenderer.Render(width, height, cardPresentations, _style);
+        return OblivionStandaloneRenderer.Render(
+            width,
+            height,
+            Viewport,
+            assignments,
+            cardPresentations,
+            _style);
     }
 
     public void ToggleExpansion(string cardId)
@@ -120,7 +144,75 @@ public sealed class OblivionStandaloneSurface
 
     public void SetPageScrollOffset(double offset)
     {
-        Session = Session.WithMainScrollOffset(PageId, Math.Max(0, offset));
+        SetSessionState(Session.WithMainScrollOffset(PageId, Math.Max(0, offset)));
+    }
+
+    public void SetLayout(OblivionViewportLayoutMode mode)
+    {
+        OblivionCommandId command = mode switch
+        {
+            OblivionViewportLayoutMode.Single => OblivionCommandId.LayoutSingle,
+            OblivionViewportLayoutMode.VerticalSplit => OblivionCommandId.LayoutVerticalSplit,
+            OblivionViewportLayoutMode.HorizontalSplit => OblivionCommandId.LayoutHorizontalSplit,
+            _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+        };
+        RunCommand(command);
+    }
+
+    public void FocusNextSlot()
+    {
+        RunCommand(OblivionCommandId.LayoutFocusNext);
+    }
+
+    public void FitDiagram()
+    {
+        RunCommand(OblivionCommandId.DiagramFit);
+    }
+
+    public void ZoomDiagram(double factor)
+    {
+        string? cardId = FocusedCardId();
+        if (cardId is null)
+        {
+            return;
+        }
+
+        OblivionDiagramViewportState state = Session.GetDiagramViewportState(cardId).ZoomBy(factor);
+        SetSessionState(Session.WithDiagramViewportState(cardId, state));
+    }
+
+    public void PanDiagram(double deltaX, double deltaY)
+    {
+        string? cardId = FocusedCardId();
+        if (cardId is null)
+        {
+            return;
+        }
+
+        OblivionDiagramViewportState state = Session.GetDiagramViewportState(cardId).PanBy(deltaX, deltaY);
+        SetSessionState(Session.WithDiagramViewportState(cardId, state));
+    }
+
+    public void FocusSlot(OblivionViewportSlotId slotId)
+    {
+        OblivionViewportState viewport = Viewport.LayoutMode == OblivionViewportLayoutMode.Single
+            ? Viewport with { FocusedSlot = OblivionViewportSlotId.A }
+            : Viewport with { FocusedSlot = slotId };
+        SetSessionState(Session.WithViewportState(PageId, viewport));
+    }
+
+    public void SetDiagramViewportState(
+        string cardId,
+        OblivionDiagramViewportState state)
+    {
+        if (!Cards.Any(card =>
+                card.Kind == OblivionCardKind.Diagram &&
+                string.Equals(card.Id.Value, cardId, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        SetSessionState(Session.WithDiagramViewportState(cardId, state));
     }
 
     public void Dispatch(UiActionId actionId)
@@ -130,7 +222,7 @@ public sealed class OblivionStandaloneSurface
             throw new InvalidOperationException($"Action '{actionId.Value}' is not an Oblivion interaction.");
         }
 
-        Session = interaction switch
+        OblivionSessionState state = interaction switch
         {
             OblivionInteraction.SelectCard select when IsThisCard(select.PageId, select.CardId) =>
                 Session.WithSelectedCard(select.PageId, select.CardId),
@@ -141,6 +233,41 @@ public sealed class OblivionStandaloneSurface
             _ => throw new InvalidOperationException(
                 $"Interaction '{interaction.GetType().Name}' is outside the standalone Page stack."),
         };
+        SetSessionState(state);
+    }
+
+    private void RunCommand(OblivionCommandId commandId)
+    {
+        OblivionCommandExecutionResult result = _commands.Run(
+            _application,
+            _workspaceSession,
+            commandId);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join(
+                Environment.NewLine,
+                result.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        }
+
+        _workspaceSession = result.Session;
+    }
+
+    private string? FocusedCardId()
+    {
+        string? cardId = OblivionViewportAssignments.ResolveFocusedCardId(
+            Viewport,
+            Cards,
+            SelectedCardId);
+        return Cards.Any(card =>
+            card.Kind == OblivionCardKind.Diagram &&
+            string.Equals(card.Id.Value, cardId, StringComparison.Ordinal))
+                ? cardId
+                : null;
+    }
+
+    private void SetSessionState(OblivionSessionState state)
+    {
+        _workspaceSession = _workspaceSession with { State = state };
     }
 
     private bool IsThisCard(string pageId, string cardId)
@@ -188,13 +315,18 @@ public sealed record OblivionStandaloneCardPresentation(
     OblivionCard Card,
     OblivionCompactCardView CardView,
     OblivionContentPresentationPlan ContentPlan,
-    bool IsSelected);
+    bool IsSelected,
+    OblivionViewportSlotId SlotId,
+    OblivionDiagramViewportState DiagramViewportState);
 
 public sealed record OblivionStandaloneCardSnapshot(
     OblivionCard Card,
     OblivionCompactCardView CardView,
     OblivionContentPresentationPlan ContentPlan,
     bool IsSelected,
+    OblivionViewportSlotId SlotId,
+    OblivionDiagramViewportState DiagramViewportState,
+    Rect SlotBounds,
     Rect CardBounds,
     Rect ExpansionAffordanceBounds,
     Rect? MatureContentBounds)
@@ -206,5 +338,13 @@ public sealed record OblivionStandaloneSurfaceSnapshot(
     int Width,
     int ViewportHeight,
     int PageContentHeight,
+    OblivionViewportState Viewport,
+    IReadOnlyList<OblivionStandaloneSlotSnapshot> Slots,
     Aurelian.Rendering.Raster.RasterFrame ShellFrame,
     IReadOnlyList<OblivionStandaloneCardSnapshot> Cards);
+
+public sealed record OblivionStandaloneSlotSnapshot(
+    OblivionViewportSlotId SlotId,
+    Rect Bounds,
+    string? CardId,
+    bool IsFocused);

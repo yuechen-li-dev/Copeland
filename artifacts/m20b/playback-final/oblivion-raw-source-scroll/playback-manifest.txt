@@ -1,0 +1,18 @@
+scenarioId=oblivion-raw-source-scroll
+scenarioName=Expand a Markdown doc and scroll the raw-source inspector region
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\m20b\playback-final\oblivion-raw-source-scroll
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20b\playback-final\oblivion-raw-source-scroll\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20b\playback-final\oblivion-raw-source-scroll\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20b\playback-final\oblivion-raw-source-scroll\playback-trace.json
+passed=true
+assertionCount=2
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] region-exists passed=true reason=The selected Markdown card should expose a raw-source inspector region after M15d. expected=exists actual=280x50
+  [1] scroll-offset-changed passed=true reason=Wheel input over the raw Markdown source region should move its local scroll offset without reopening editing. expected=!= 0 actual=48

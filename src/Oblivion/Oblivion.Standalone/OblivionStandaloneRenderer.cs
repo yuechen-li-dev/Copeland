@@ -3,6 +3,7 @@ using Aurelian.Rendering.Raster;
 using Machina.Core.Authoring;
 using Machina.Core.Nodes;
 using Machina.Core.Styling;
+using Machina.Layout.Geometry;
 using Machina.Pipeline;
 using Machina.Standard.Theme;
 using Oblivion.Product;
@@ -14,75 +15,98 @@ public static class OblivionStandaloneRenderer
     public static OblivionStandaloneSurfaceSnapshot Render(
         int width,
         int viewportHeight,
+        OblivionViewportState viewport,
+        IReadOnlyList<OblivionViewportAssignment> assignments,
         IReadOnlyList<OblivionStandaloneCardPresentation> cards,
         OblivionStandaloneStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(cards);
+        ArgumentNullException.ThrowIfNull(viewport);
+        ArgumentNullException.ThrowIfNull(assignments);
         OblivionStandaloneStyle effectiveStyle = style ?? OblivionStandaloneStyles.Dark;
         StandardTheme theme = CreateTheme(effectiveStyle);
-        double cardWidth = Math.Max(640, width - (effectiveStyle.OuterHorizontalMargin * 2));
-        double[] cardHeights = cards
-            .Select(card => card.CardView.IsExpanded
-                ? effectiveStyle.ExpandedCardHeight
-                : effectiveStyle.CollapsedCardHeight)
-            .ToArray();
-        int pageContentHeight = (int)Math.Ceiling(Math.Max(
+        IReadOnlyList<OblivionViewportSlotGeometry> slotGeometry = OblivionViewportGeometry.Resolve(
+            viewport.LayoutMode,
+            width,
             viewportHeight,
-            (effectiveStyle.OuterVerticalMargin * 2) + cardHeights.Sum() +
-                (effectiveStyle.StackGap * Math.Max(0, cards.Count - 1))));
-
-        List<UiStackItem> stackItems = [];
-        foreach ((OblivionStandaloneCardPresentation card, int index) in cards.Select((card, index) => (card, index)))
+            effectiveStyle.OuterHorizontalMargin,
+            effectiveStyle.OuterVerticalMargin,
+            effectiveStyle.StackGap);
+        List<UiNode> layers = [];
+        foreach (OblivionViewportSlotGeometry slot in slotGeometry)
         {
+            layers.Add(UI.Anchor(
+                UI.Rect(
+                    id: $"m20b.slot.{slot.SlotId.ToString().ToLowerInvariant()}.surface",
+                    width: slot.Bounds.Width,
+                    height: slot.Bounds.Height,
+                    style: new UiStyle(
+                        Background: effectiveStyle.PageBackground,
+                        BorderColor: slot.SlotId == viewport.FocusedSlot
+                            ? effectiveStyle.SelectedCardBorder
+                            : effectiveStyle.CardBorder,
+                        BorderThickness: slot.SlotId == viewport.FocusedSlot ? 2 : 1)),
+                id: $"m20b.slot.{slot.SlotId.ToString().ToLowerInvariant()}",
+                left: slot.Bounds.X,
+                top: slot.Bounds.Y,
+                width: slot.Bounds.Width,
+                height: slot.Bounds.Height));
+        }
+
+        foreach (OblivionStandaloneCardPresentation card in cards)
+        {
+            Rect slotBounds = slotGeometry.Single(slot => slot.SlotId == card.SlotId).Bounds;
+            double cardHeight = card.CardView.IsExpanded
+                ? slotBounds.Height
+                : Math.Min(effectiveStyle.CollapsedCardHeight, slotBounds.Height);
             OblivionCardRenderOptions cardOptions = CreateCardOptions(
                 effectiveStyle,
-                cardWidth,
-                cardHeights[index]);
-            StandardTheme cardTheme = card.IsSelected
+                slotBounds.Width,
+                cardHeight);
+            StandardTheme cardTheme = card.SlotId == viewport.FocusedSlot
                 ? CreateSelectedTheme(effectiveStyle, theme)
                 : theme;
             UiNode cardNode = OblivionCardRenderer.BuildCard(
                 card.CardView,
                 cardTheme,
                 cardOptions);
-            stackItems.Add(UI.StackItem.Fixed(cardHeights[index], cardNode));
+            layers.Add(UI.Anchor(
+                cardNode,
+                id: $"m20b.slot.{card.SlotId.ToString().ToLowerInvariant()}.card",
+                left: slotBounds.X,
+                top: slotBounds.Y,
+                width: slotBounds.Width,
+                height: cardHeight));
         }
 
-        double stackHeight = cardHeights.Sum() +
-            (effectiveStyle.StackGap * Math.Max(0, cards.Count - 1));
-        UiNode cardStack = UI.VStack(
-            id: "m19h.page.card-stack",
-            gap: effectiveStyle.StackGap,
-            children: stackItems.ToArray());
         UiNode document = UI.Rect(
-            id: "m19h.page",
+            id: "m20b.viewport",
             width: width,
-            height: pageContentHeight,
-            child: UI.Anchor(
-                cardStack,
-                id: "m19h.page.card-stack-anchor",
-                left: effectiveStyle.OuterHorizontalMargin,
-                width: cardWidth,
-                top: effectiveStyle.OuterVerticalMargin,
-                height: stackHeight),
+            height: viewportHeight,
+            child: UI.Layer(
+                id: "m20b.viewport.slots",
+                children: layers),
             style: new UiStyle(Background: effectiveStyle.PageBackground));
 
         MachinaPreparedPresentation prepared = new MachinaPresentationPipeline().Prepare(
             document,
             width,
-            pageContentHeight);
+            viewportHeight);
         RasterFrame shellFrame = new AurelianCpuRasterRenderer().Render(
             MachinaPresentationTranslator.Translate(prepared.PresentationFrame));
 
         List<OblivionStandaloneCardSnapshot> snapshots = [];
-        double cardY = effectiveStyle.OuterVerticalMargin;
-        foreach ((OblivionStandaloneCardPresentation card, int index) in cards.Select((card, index) => (card, index)))
+        foreach (OblivionStandaloneCardPresentation card in cards)
         {
+            Rect slotBounds = slotGeometry.Single(slot => slot.SlotId == card.SlotId).Bounds;
+            double cardHeight = card.CardView.IsExpanded
+                ? slotBounds.Height
+                : Math.Min(effectiveStyle.CollapsedCardHeight, slotBounds.Height);
             Machina.Layout.Geometry.Rect cardBounds = new(
-                effectiveStyle.OuterHorizontalMargin,
-                cardY,
-                cardWidth,
-                cardHeights[index]);
+                slotBounds.X,
+                slotBounds.Y,
+                slotBounds.Width,
+                cardHeight);
             Machina.Layout.Geometry.Rect affordanceBounds = OblivionCardRenderer.DescribeExpansionAffordanceRect(
                 prepared.Resolved,
                 card.Card.Id.Value);
@@ -100,16 +124,30 @@ public static class OblivionStandaloneRenderer
                 card.CardView,
                 card.ContentPlan,
                 card.IsSelected,
+                card.SlotId,
+                card.DiagramViewportState,
+                slotBounds,
                 cardBounds,
                 affordanceBounds,
                 matureContentBounds));
-            cardY += cardHeights[index] + effectiveStyle.StackGap;
         }
+
+        IReadOnlyList<OblivionStandaloneSlotSnapshot> slots = slotGeometry.Select(slot =>
+        {
+            string? cardId = assignments.FirstOrDefault(assignment => assignment.SlotId == slot.SlotId)?.CardId;
+            return new OblivionStandaloneSlotSnapshot(
+                slot.SlotId,
+                slot.Bounds,
+                cardId,
+                slot.SlotId == viewport.FocusedSlot);
+        }).ToArray();
 
         return new OblivionStandaloneSurfaceSnapshot(
             width,
             viewportHeight,
-            pageContentHeight,
+            viewportHeight,
+            viewport,
+            slots,
             shellFrame,
             snapshots);
     }

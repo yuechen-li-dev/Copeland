@@ -184,7 +184,7 @@ public sealed class AvaloniaOblivionContentHostTests
     }
 
     [Fact]
-    public void Realized_mermaid_png_is_presented_inline_with_uniform_fit_and_bounded_scroll()
+    public void Realized_mermaid_png_is_presented_inline_as_a_fit_canvas_with_bounded_scroll()
     {
         AppBuilder.Configure<Application>()
             .UsePlatformDetect()
@@ -221,10 +221,11 @@ public sealed class AvaloniaOblivionContentHostTests
                 Assert.Fail(diagnostic.Text);
             }
 
-            Image image = Assert.IsType<Image>(realizedDiagram);
+            AvaloniaOblivionDiagramCanvas canvas = Assert.IsType<AvaloniaOblivionDiagramCanvas>(realizedDiagram);
 
-            Assert.Equal(Stretch.Uniform, image.Stretch);
-            Assert.Equal(520, image.MaxHeight);
+            Assert.Equal(OblivionDiagramFitMode.Fit, canvas.ViewState.FitMode);
+            Assert.True(canvas.ClipToBounds);
+            Assert.Equal(240, canvas.MinHeight);
             Assert.Equal(ScrollBarVisibility.Auto, scroll.VerticalScrollBarVisibility);
         }
         finally

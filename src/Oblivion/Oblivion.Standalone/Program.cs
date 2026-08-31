@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -11,6 +12,7 @@ using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Oblivion.App;
 using Oblivion.Avalonia;
 using Oblivion.Product;
@@ -118,14 +120,23 @@ internal sealed class OblivionStandaloneWindow : Window
         _surfaceWidth = style.DevelopmentWidth;
         _surfaceHeight = style.DevelopmentHeight;
         _surface = new OblivionStandaloneSurface(options.VaultRoot, style);
-        _diagramRenderer = new OblivionExternalMermaidRenderer(
-            OblivionMermaidRendererDiscovery.Discover());
+        _diagramRenderer = CreateDiagramRenderer(options);
         if (options.StartExpanded)
         {
             foreach (var card in _surface.Cards)
             {
                 _surface.ToggleExpansion(card.Id.Value);
             }
+        }
+
+        _surface.SetLayout(options.LayoutMode);
+        if (Math.Abs(options.DiagramZoom - 1) > 0.0001)
+        {
+            _surface.ZoomDiagram(options.DiagramZoom);
+        }
+        if (Math.Abs(options.DiagramPanX) > 0.0001 || Math.Abs(options.DiagramPanY) > 0.0001)
+        {
+            _surface.PanDiagram(options.DiagramPanX, options.DiagramPanY);
         }
 
         _host = new Grid
@@ -166,6 +177,29 @@ internal sealed class OblivionStandaloneWindow : Window
         RefreshSurface();
     }
 
+    private IOblivionDiagramRenderer CreateDiagramRenderer(OblivionStandaloneOptions options)
+    {
+        if (!options.UseNativeDiagramExperiment)
+        {
+            return new OblivionExternalMermaidRenderer(
+                OblivionMermaidRendererDiscovery.Discover());
+        }
+
+        Oblivion.Model.OblivionCard card = _surface.Cards.Single(candidate =>
+            candidate.Kind == Oblivion.Model.OblivionCardKind.Diagram);
+        OblivionDiagramSemanticProjectionResult projection = new OblivionDiagramCardRealizer()
+            .ProjectSemanticDiagram(card, options.VaultRoot);
+        if (!projection.Succeeded || projection.Diagram is null)
+        {
+            throw new InvalidOperationException(
+                "The M20b native diagram experiment could not project the semantic Diagram IR:" +
+                Environment.NewLine +
+                string.Join(Environment.NewLine, projection.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        }
+
+        return new M20bNativeDiagramRenderer(projection.Diagram);
+    }
+
     private void HandleOpened(object? sender, EventArgs args)
     {
         Focus();
@@ -191,7 +225,7 @@ internal sealed class OblivionStandaloneWindow : Window
         }
         else
         {
-            _surface.Select(card.Card.Id.Value);
+            _surface.FocusSlot(card.SlotId);
         }
 
         RefreshSurface();
@@ -236,8 +270,43 @@ internal sealed class OblivionStandaloneWindow : Window
 
     private void HandleKeyDown(object? sender, KeyEventArgs args)
     {
-        if (args.KeyModifiers != KeyModifiers.None ||
-            args.Key is not (Key.Enter or Key.Space))
+        if (args.KeyModifiers == KeyModifiers.Control)
+        {
+            switch (args.Key)
+            {
+                case Key.D1:
+                    _surface.SetLayout(OblivionViewportLayoutMode.Single);
+                    break;
+                case Key.D2:
+                    _surface.SetLayout(OblivionViewportLayoutMode.VerticalSplit);
+                    break;
+                case Key.D3:
+                    _surface.SetLayout(OblivionViewportLayoutMode.HorizontalSplit);
+                    break;
+                case Key.D0:
+                    _surface.FitDiagram();
+                    break;
+                case Key.OemPlus:
+                case Key.Add:
+                    _surface.ZoomDiagram(OblivionDiagramViewportState.ZoomStep);
+                    break;
+                case Key.OemMinus:
+                case Key.Subtract:
+                    _surface.ZoomDiagram(1 / OblivionDiagramViewportState.ZoomStep);
+                    break;
+                case Key.Tab:
+                    _surface.FocusNextSlot();
+                    break;
+                default:
+                    return;
+            }
+
+            RefreshSurface();
+            args.Handled = true;
+            return;
+        }
+
+        if (args.KeyModifiers != KeyModifiers.None || args.Key is not (Key.Enter or Key.Space))
         {
             return;
         }
@@ -306,7 +375,11 @@ internal sealed class OblivionStandaloneWindow : Window
             pageId: _surface.PageId,
             maximumReadableWidth: _style.MaximumReadableWidth,
             style: ToContentStyle(_style),
-            resolvedAppearance: _style.Appearance);
+            resolvedAppearance: _style.Appearance,
+            diagramViewportState: cardSnapshot.DiagramViewportState,
+            diagramViewportStateChanged: state =>
+                _surface.SetDiagramViewportState(cardSnapshot.Card.Id.Value, state),
+            fillDiagramViewport: cardSnapshot.Card.Kind == Oblivion.Model.OblivionCardKind.Diagram);
         document.Width = bodyBounds.Width;
         document.Height = bodyBounds.Height;
         document.Margin = new Thickness(bodyBounds.X, bodyBounds.Y, 0, 0);
@@ -351,6 +424,8 @@ internal sealed class OblivionStandaloneWindow : Window
             bitmap.Save(stream);
         }
 
+        WriteViewportProof(capturePath);
+
         Console.WriteLine(
             $"Captured {(_surface.AreAllCardsExpanded ? "expanded" : "collapsed")} standalone Oblivion surface to {capturePath} ({_snapshot.Width}x{_snapshot.ViewportHeight}).");
         Console.WriteLine(
@@ -359,6 +434,59 @@ internal sealed class OblivionStandaloneWindow : Window
         {
             desktop.Shutdown();
         }
+    }
+
+    private void WriteViewportProof(string capturePath)
+    {
+        AvaloniaOblivionDiagramCanvas? canvas = _host
+            .GetVisualDescendants()
+            .OfType<AvaloniaOblivionDiagramCanvas>()
+            .FirstOrDefault();
+        object proof = new
+        {
+            window = new { width = _snapshot.Width, height = _snapshot.ViewportHeight },
+            usableViewport = new
+            {
+                x = _style.OuterHorizontalMargin,
+                y = _style.OuterVerticalMargin,
+                width = _snapshot.Width - (_style.OuterHorizontalMargin * 2),
+                height = _snapshot.ViewportHeight - (_style.OuterVerticalMargin * 2),
+            },
+            layoutMode = _snapshot.Viewport.LayoutMode.ToString(),
+            focusedSlot = _snapshot.Viewport.FocusedSlot.ToString(),
+            slots = _snapshot.Slots.Select(slot => new
+            {
+                slotId = slot.SlotId.ToString(),
+                cardId = slot.CardId,
+                focused = slot.IsFocused,
+                bounds = new
+                {
+                    x = slot.Bounds.X,
+                    y = slot.Bounds.Y,
+                    width = slot.Bounds.Width,
+                    height = slot.Bounds.Height,
+                },
+            }),
+            diagram = canvas is null ? null : new
+            {
+                fitMode = canvas.ViewState.FitMode.ToString(),
+                zoom = canvas.ViewState.Zoom,
+                panX = canvas.ViewState.PanX,
+                panY = canvas.ViewState.PanY,
+                fitScale = Math.Min(
+                    canvas.Camera.ViewportWidth / canvas.Camera.WorldWidth,
+                    canvas.Camera.ViewportHeight / canvas.Camera.WorldHeight),
+                scale = canvas.Camera.Scale,
+                worldWidth = canvas.Camera.WorldWidth,
+                worldHeight = canvas.Camera.WorldHeight,
+                viewportWidth = canvas.Camera.ViewportWidth,
+                viewportHeight = canvas.Camera.ViewportHeight,
+            },
+        };
+        string path = Path.ChangeExtension(capturePath, ".viewport.json");
+        File.WriteAllText(
+            path,
+            JsonSerializer.Serialize(proof, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static bool Contains(MachinaRect bounds, Point point)
@@ -426,7 +554,12 @@ internal sealed record OblivionStandaloneOptions(
     bool StartExpanded,
     string? CapturePath,
     double InitialPageScrollOffset,
-    string VaultRoot)
+    string VaultRoot,
+    OblivionViewportLayoutMode LayoutMode,
+    double DiagramZoom,
+    double DiagramPanX,
+    double DiagramPanY,
+    bool UseNativeDiagramExperiment)
 {
     public static OblivionStandaloneOptions Parse(IReadOnlyList<string> args)
     {
@@ -434,6 +567,11 @@ internal sealed record OblivionStandaloneOptions(
         string? capturePath = null;
         double initialPageScrollOffset = 0;
         string vaultRoot = M19iStructuredVault.DefaultRoot;
+        OblivionViewportLayoutMode layoutMode = OblivionViewportLayoutMode.Single;
+        double diagramZoom = 1;
+        double diagramPanX = 0;
+        double diagramPanY = 0;
+        bool useNativeDiagramExperiment = false;
         for (int index = 0; index < args.Count; index++)
         {
             string argument = args[index];
@@ -470,6 +608,58 @@ internal sealed record OblivionStandaloneOptions(
                 continue;
             }
 
+            if (string.Equals(argument, "--layout", StringComparison.Ordinal) && index + 1 < args.Count)
+            {
+                layoutMode = args[++index] switch
+                {
+                    "single" => OblivionViewportLayoutMode.Single,
+                    "vertical" => OblivionViewportLayoutMode.VerticalSplit,
+                    "horizontal" => OblivionViewportLayoutMode.HorizontalSplit,
+                    string value => throw new ArgumentException(
+                        $"Unknown layout '{value}'. Expected single, vertical, or horizontal."),
+                };
+                continue;
+            }
+
+            if (string.Equals(argument, "--diagram-zoom", StringComparison.Ordinal) && index + 1 < args.Count)
+            {
+                if (!double.TryParse(
+                    args[++index],
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out diagramZoom) ||
+                    diagramZoom <= 0)
+                {
+                    throw new ArgumentException("--diagram-zoom requires a positive number.");
+                }
+                continue;
+            }
+
+            if (string.Equals(argument, "--diagram-pan", StringComparison.Ordinal) && index + 1 < args.Count)
+            {
+                string[] parts = args[++index].Split(',', StringSplitOptions.TrimEntries);
+                if (parts.Length != 2 ||
+                    !double.TryParse(parts[0], System.Globalization.CultureInfo.InvariantCulture, out diagramPanX) ||
+                    !double.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, out diagramPanY))
+                {
+                    throw new ArgumentException("--diagram-pan requires x,y numbers.");
+                }
+                continue;
+            }
+
+            if (string.Equals(argument, "--diagram-backend", StringComparison.Ordinal) && index + 1 < args.Count)
+            {
+                string backend = args[++index];
+                useNativeDiagramExperiment = backend switch
+                {
+                    "mermaid" => false,
+                    "native-experiment" => true,
+                    _ => throw new ArgumentException(
+                        $"Unknown diagram backend '{backend}'. Expected mermaid or native-experiment."),
+                };
+                continue;
+            }
+
             if (!argument.StartsWith("--", StringComparison.Ordinal))
             {
                 continue;
@@ -478,6 +668,15 @@ internal sealed record OblivionStandaloneOptions(
             throw new ArgumentException($"Unknown standalone option '{argument}'.");
         }
 
-        return new OblivionStandaloneOptions(expanded, capturePath, initialPageScrollOffset, vaultRoot);
+        return new OblivionStandaloneOptions(
+            expanded,
+            capturePath,
+            initialPageScrollOffset,
+            vaultRoot,
+            layoutMode,
+            diagramZoom,
+            diagramPanX,
+            diagramPanY,
+            useNativeDiagramExperiment);
     }
 }

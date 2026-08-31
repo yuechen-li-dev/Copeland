@@ -31,6 +31,9 @@
     <Content Include="M20aDenseDiagram.oblivion/**/*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="M20bViewportDiagram.oblivion/**/*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

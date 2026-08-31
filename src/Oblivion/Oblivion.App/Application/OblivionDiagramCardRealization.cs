@@ -16,6 +16,13 @@ public sealed record OblivionDiagramCardRealizationResult(
     OblivionDiagramProjectionResult Projection,
     OblivionDiagramRenderResult? Render);
 
+public sealed record OblivionDiagramSemanticProjectionResult(
+    bool Succeeded,
+    OblivionDiagramSource Source,
+    Diagram? Diagram,
+    string? SemanticIdentity,
+    IReadOnlyList<OblivionCardDiagnostic> Diagnostics);
+
 public sealed class OblivionDiagramCardRealizer
 {
     public OblivionDiagramProjectionResult Project(
@@ -25,14 +32,39 @@ public sealed class OblivionDiagramCardRealizer
         ArgumentNullException.ThrowIfNull(card);
         ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
 
+        OblivionDiagramSemanticProjectionResult semantic = ProjectSemanticDiagram(card, workspaceRoot);
+        if (!semantic.Succeeded || semantic.Diagram is null || semantic.SemanticIdentity is null)
+        {
+            return new OblivionDiagramProjectionResult(
+                false,
+                semantic.Source,
+                null,
+                null,
+                semantic.Diagnostics);
+        }
+
+        string mermaid = MermaidEmitter.Emit(semantic.Diagram);
+        string fingerprint = OblivionMermaidHashing.ComputeSourceHash(
+            semantic.SemanticIdentity + "\n" + mermaid);
+        return new OblivionDiagramProjectionResult(true, semantic.Source, mermaid, fingerprint, []);
+    }
+
+    public OblivionDiagramSemanticProjectionResult ProjectSemanticDiagram(
+        OblivionCard card,
+        string workspaceRoot)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workspaceRoot);
+
         if (card.Kind != OblivionCardKind.Diagram || card.Diagram is null)
         {
-            return Failure(
-                card.Diagram ?? new OblivionDiagramSource(
-                    OblivionDiagramSourceKind.CopelandFlow,
-                    string.Empty,
-                    string.Empty,
-                    OblivionDiagramProjectionKind.State),
+            OblivionDiagramSource missingSource = card.Diagram ?? new OblivionDiagramSource(
+                OblivionDiagramSourceKind.CopelandFlow,
+                string.Empty,
+                string.Empty,
+                OblivionDiagramProjectionKind.State);
+            return SemanticFailure(
+                missingSource,
                 "OBLIVION-DIAGRAM-SOURCE-MISSING",
                 $"Card '{card.Id.Value}' has no semantic diagram source.",
                 card.Provenance.SourceReference);
@@ -42,7 +74,7 @@ public sealed class OblivionDiagramCardRealizer
         if (source.Kind != OblivionDiagramSourceKind.CopelandFlow ||
             source.Projection != OblivionDiagramProjectionKind.State)
         {
-            return Failure(
+            return SemanticFailure(
                 source,
                 "OBLIVION-DIAGRAM-PROJECTION-UNSUPPORTED",
                 $"Diagram source '{source.Kind}' with projection '{source.Projection}' is not supported.",
@@ -54,7 +86,7 @@ public sealed class OblivionDiagramCardRealizer
         if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
             !File.Exists(path))
         {
-            return Failure(
+            return SemanticFailure(
                 source,
                 "OBLIVION-DIAGRAM-SOURCE-NOT-FOUND",
                 $"Compiler diagram source '{source.Reference}' was not found inside the workspace.",
@@ -70,7 +102,7 @@ public sealed class OblivionDiagramCardRealizer
             });
         if (!compilation.Success || compilation.BoundCompilation is null)
         {
-            return new OblivionDiagramProjectionResult(
+            return new OblivionDiagramSemanticProjectionResult(
                 false,
                 source,
                 null,
@@ -89,7 +121,7 @@ public sealed class OblivionDiagramCardRealizer
                 out Diagram? diagram,
                 out var diagnostics))
         {
-            return new OblivionDiagramProjectionResult(
+            return new OblivionDiagramSemanticProjectionResult(
                 false,
                 source,
                 null,
@@ -101,10 +133,12 @@ public sealed class OblivionDiagramCardRealizer
                     diagnostic.SourcePath ?? source.Reference)).ToArray());
         }
 
-        string mermaid = MermaidEmitter.Emit(diagram!);
-        string fingerprint = OblivionMermaidHashing.ComputeSourceHash(
-            semanticView!.Identity + "\n" + mermaid);
-        return new OblivionDiagramProjectionResult(true, source, mermaid, fingerprint, []);
+        return new OblivionDiagramSemanticProjectionResult(
+            true,
+            source,
+            diagram,
+            semanticView!.Identity,
+            []);
     }
 
     public OblivionDiagramCardRealizationResult Realize(
@@ -139,6 +173,20 @@ public sealed class OblivionDiagramCardRealizer
         string? sourceReference)
     {
         return new OblivionDiagramProjectionResult(
+            false,
+            source,
+            null,
+            null,
+            [new OblivionCardDiagnostic(code, OblivionDiagnosticSeverity.Error, message, sourceReference)]);
+    }
+
+    private static OblivionDiagramSemanticProjectionResult SemanticFailure(
+        OblivionDiagramSource source,
+        string code,
+        string message,
+        string? sourceReference)
+    {
+        return new OblivionDiagramSemanticProjectionResult(
             false,
             source,
             null,

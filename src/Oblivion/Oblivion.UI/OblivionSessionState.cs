@@ -12,6 +12,8 @@ public sealed record OblivionSessionState(
     IReadOnlyDictionary<string, string?> SelectedCardByPageId,
     IReadOnlyDictionary<string, double> RawSourceScrollOffsetByCardId,
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> CardViewStateByPageId,
+    IReadOnlyDictionary<string, OblivionViewportState> ViewportStateByPageId,
+    IReadOnlyDictionary<string, OblivionDiagramViewportState> DiagramViewportStateByCardId,
     bool InspectorPaneSelected)
 {
     public static OblivionSessionState Empty { get; } = new(
@@ -20,6 +22,8 @@ public sealed record OblivionSessionState(
         new Dictionary<string, string?>(StringComparer.Ordinal),
         new Dictionary<string, double>(StringComparer.Ordinal),
         new Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>>(StringComparer.Ordinal),
+        new Dictionary<string, OblivionViewportState>(StringComparer.Ordinal),
+        new Dictionary<string, OblivionDiagramViewportState>(StringComparer.Ordinal),
         InspectorPaneSelected: false);
 
     public double GetMainScrollOffset(string pageId) => GetOffset(MainScrollOffsetByPageId, pageId);
@@ -158,6 +162,41 @@ public sealed record OblivionSessionState(
     {
         OblivionCardViewState current = GetCardViewState(pageId, cardId);
         return WithCardViewState(pageId, cardId, current with { BodyScrollOffset = offset });
+    }
+
+    public OblivionViewportState GetViewportState(string pageId)
+    {
+        return ViewportStateByPageId.TryGetValue(pageId, out OblivionViewportState? state)
+            ? state
+            : OblivionViewportState.Single;
+    }
+
+    public OblivionSessionState WithViewportState(string pageId, OblivionViewportState state)
+    {
+        Dictionary<string, OblivionViewportState> states = new(ViewportStateByPageId, StringComparer.Ordinal)
+        {
+            [pageId] = state,
+        };
+        return this with { ViewportStateByPageId = states };
+    }
+
+    public OblivionDiagramViewportState GetDiagramViewportState(string cardId)
+    {
+        return DiagramViewportStateByCardId.TryGetValue(cardId, out OblivionDiagramViewportState? state)
+            ? state
+            : OblivionDiagramViewportState.Fit;
+    }
+
+    public OblivionSessionState WithDiagramViewportState(
+        string cardId,
+        OblivionDiagramViewportState state)
+    {
+        Dictionary<string, OblivionDiagramViewportState> states =
+            new(DiagramViewportStateByCardId, StringComparer.Ordinal)
+            {
+                [cardId] = state,
+            };
+        return this with { DiagramViewportStateByCardId = states };
     }
 
     private static double GetOffset(IReadOnlyDictionary<string, double> offsets, string id)

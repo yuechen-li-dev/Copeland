@@ -1,0 +1,8 @@
+{
+  "format": 1,
+  "kind": "oblivion-workspace",
+  "workspaceId": "m20b-viewport-diagram",
+  "title": "Viewport and diagram canvas qualification",
+  "defaultPageId": "realization-review",
+  "pages": ["realization-review"]
+}

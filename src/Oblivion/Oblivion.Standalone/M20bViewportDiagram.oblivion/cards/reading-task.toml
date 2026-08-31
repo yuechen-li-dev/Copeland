@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "reading-task"
+card_kind = "note"
+status = "passing"
+title = "Constrained-slot reading task"
+subtitle = "Trace semantic and renderer recovery paths while the diagram remains visible."
+tags = ["m20b", "reading-task"]
+
+[body]
+format = "copeland-markdown"
+path = "content/reading-task.md"

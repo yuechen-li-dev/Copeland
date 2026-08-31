@@ -47,13 +47,43 @@ public static class AvaloniaOblivionContentHost
         string? workspaceId = null,
         string? pageId = null,
         double? maximumReadableWidth = null,
-        AvaloniaOblivionContentStyle? style = null)
+        AvaloniaOblivionContentStyle? style = null,
+        OblivionDiagramViewportState? diagramViewportState = null,
+        Action<OblivionDiagramViewportState>? diagramViewportStateChanged = null,
+        bool fillDiagramViewport = false)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagramRenderer);
 
         AvaloniaOblivionContentStyle effectiveStyle = style ?? AvaloniaOblivionContentStyle.Dark;
+        if (fillDiagramViewport &&
+            plan.Items.Count == 1 &&
+            plan.Items[0].PresenterKind == OblivionContentPresenterKind.ExternalMermaidRenderer)
+        {
+            Control diagram = BuildDiagram(
+                card,
+                plan.Items[0],
+                diagramRenderer,
+                diagramOutputDirectory,
+                resolvedAppearance,
+                workspaceId,
+                pageId,
+                effectiveStyle,
+                diagramViewportState ?? OblivionDiagramViewportState.Fit,
+                diagramViewportStateChanged);
+            return new Border
+            {
+                Background = ToBrush(effectiveStyle.Surface),
+                BorderBrush = ToBrush(effectiveStyle.Border),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                ClipToBounds = true,
+                Padding = new Thickness(8),
+                Child = diagram,
+            };
+        }
+
         StackPanel content = new()
         {
             Spacing = OblivionReadingTypographyBaseline.MatureReadOnly.ParagraphSpacing,
@@ -76,7 +106,9 @@ public static class AvaloniaOblivionContentHost
                     resolvedAppearance,
                     workspaceId,
                     pageId,
-                    effectiveStyle),
+                    effectiveStyle,
+                    diagramViewportState ?? OblivionDiagramViewportState.Fit,
+                    diagramViewportStateChanged),
                 _ => BuildText(item.Source, effectiveStyle),
             };
             content.Children.Add(realized);
@@ -353,7 +385,9 @@ public static class AvaloniaOblivionContentHost
         OblivionResolvedAppearance resolvedAppearance,
         string? workspaceId,
         string? pageId,
-        AvaloniaOblivionContentStyle style)
+        AvaloniaOblivionContentStyle style,
+        OblivionDiagramViewportState viewportState,
+        Action<OblivionDiagramViewportState>? viewportStateChanged)
     {
         OblivionDiagramRenderResult result = renderer.Render(new OblivionDiagramRenderRequest(
             item.ContentId,
@@ -375,11 +409,14 @@ public static class AvaloniaOblivionContentHost
 
         try
         {
-            return new Image
+            return new AvaloniaOblivionDiagramCanvas(
+                new Bitmap(result.RenderedPath),
+                viewportState,
+                viewportStateChanged)
             {
-                Source = new Bitmap(result.RenderedPath),
-                Stretch = Stretch.Uniform,
-                MaxHeight = 520,
+                MinHeight = 240,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
             };
         }
         catch (Exception exception)

@@ -9,12 +9,21 @@ public enum OblivionCommandId
     WorkspaceReload,
     CardsExpandAll,
     CardsCollapseAll,
+    LayoutSingle,
+    LayoutVerticalSplit,
+    LayoutHorizontalSplit,
+    LayoutFocusNext,
+    DiagramFit,
+    DiagramZoomIn,
+    DiagramZoomOut,
+    DiagramResetView,
 }
 
 public enum OblivionCommandScope
 {
     Workspace,
     ActivePage,
+    FocusedCard,
 }
 
 public sealed record OblivionCommandDescriptor(
@@ -62,6 +71,62 @@ public sealed class OblivionCommandRegistry
             "Collapse every Card on the active Page in process-local session state.",
             OblivionCommandScope.ActivePage,
             Available: true),
+        new(
+            OblivionCommandId.LayoutSingle,
+            "layout.single",
+            "Single viewport slot",
+            "Project the selected Card into one viewport slot.",
+            OblivionCommandScope.ActivePage,
+            Available: true),
+        new(
+            OblivionCommandId.LayoutVerticalSplit,
+            "layout.vertical-split",
+            "Vertical viewport split",
+            "Project the selected and next Cards into top and bottom viewport slots.",
+            OblivionCommandScope.ActivePage,
+            Available: true),
+        new(
+            OblivionCommandId.LayoutHorizontalSplit,
+            "layout.horizontal-split",
+            "Horizontal viewport split",
+            "Project the selected and next Cards into left and right viewport slots.",
+            OblivionCommandScope.ActivePage,
+            Available: true),
+        new(
+            OblivionCommandId.LayoutFocusNext,
+            "layout.focus-next",
+            "Focus next viewport slot",
+            "Move process-local focus between explicit viewport slots.",
+            OblivionCommandScope.ActivePage,
+            Available: true),
+        new(
+            OblivionCommandId.DiagramFit,
+            "diagram.fit",
+            "Fit diagram",
+            "Fit the Diagram Card in the focused viewport slot.",
+            OblivionCommandScope.FocusedCard,
+            Available: true),
+        new(
+            OblivionCommandId.DiagramZoomIn,
+            "diagram.zoom-in",
+            "Zoom diagram in",
+            "Increase the focused Diagram Card camera zoom within its bound.",
+            OblivionCommandScope.FocusedCard,
+            Available: true),
+        new(
+            OblivionCommandId.DiagramZoomOut,
+            "diagram.zoom-out",
+            "Zoom diagram out",
+            "Decrease the focused Diagram Card camera zoom within its bound.",
+            OblivionCommandScope.FocusedCard,
+            Available: true),
+        new(
+            OblivionCommandId.DiagramResetView,
+            "diagram.reset-view",
+            "Reset diagram view",
+            "Reset the focused Diagram Card camera to Fit.",
+            OblivionCommandScope.FocusedCard,
+            Available: true),
     ];
 
     public IReadOnlyList<OblivionCommandDescriptor> Descriptors => Registered;
@@ -89,6 +154,35 @@ public sealed class OblivionCommandRegistry
             OblivionCommandId.WorkspaceReload => Reload(application, session, descriptor),
             OblivionCommandId.CardsExpandAll => SetExpansion(session, descriptor, expanded: true),
             OblivionCommandId.CardsCollapseAll => SetExpansion(session, descriptor, expanded: false),
+            OblivionCommandId.LayoutSingle => SetLayout(
+                session,
+                descriptor,
+                OblivionViewportLayoutMode.Single),
+            OblivionCommandId.LayoutVerticalSplit => SetLayout(
+                session,
+                descriptor,
+                OblivionViewportLayoutMode.VerticalSplit),
+            OblivionCommandId.LayoutHorizontalSplit => SetLayout(
+                session,
+                descriptor,
+                OblivionViewportLayoutMode.HorizontalSplit),
+            OblivionCommandId.LayoutFocusNext => FocusNext(session, descriptor),
+            OblivionCommandId.DiagramFit => SetDiagramView(
+                session,
+                descriptor,
+                view => view.Reset()),
+            OblivionCommandId.DiagramZoomIn => SetDiagramView(
+                session,
+                descriptor,
+                view => view.ZoomBy(OblivionDiagramViewportState.ZoomStep)),
+            OblivionCommandId.DiagramZoomOut => SetDiagramView(
+                session,
+                descriptor,
+                view => view.ZoomBy(1 / OblivionDiagramViewportState.ZoomStep)),
+            OblivionCommandId.DiagramResetView => SetDiagramView(
+                session,
+                descriptor,
+                view => view.Reset()),
             _ => throw new ArgumentOutOfRangeException(nameof(commandId)),
         };
     }
@@ -130,6 +224,76 @@ public sealed class OblivionCommandRegistry
             session with { State = state },
             Executed: true,
             affected,
+            []);
+    }
+
+    private static OblivionCommandExecutionResult SetLayout(
+        OblivionWorkspaceSession session,
+        OblivionCommandDescriptor descriptor,
+        OblivionViewportLayoutMode mode)
+    {
+        string pageId = session.ActivePage.Id.Value;
+        OblivionViewportState viewport = session.State.GetViewportState(pageId).WithLayout(mode);
+        return Success(
+            descriptor,
+            session with { State = session.State.WithViewportState(pageId, viewport) });
+    }
+
+    private static OblivionCommandExecutionResult FocusNext(
+        OblivionWorkspaceSession session,
+        OblivionCommandDescriptor descriptor)
+    {
+        string pageId = session.ActivePage.Id.Value;
+        OblivionViewportState viewport = session.State.GetViewportState(pageId).FocusNext();
+        return Success(
+            descriptor,
+            session with { State = session.State.WithViewportState(pageId, viewport) });
+    }
+
+    private static OblivionCommandExecutionResult SetDiagramView(
+        OblivionWorkspaceSession session,
+        OblivionCommandDescriptor descriptor,
+        Func<OblivionDiagramViewportState, OblivionDiagramViewportState> update)
+    {
+        string pageId = session.ActivePage.Id.Value;
+        OblivionViewportState viewport = session.State.GetViewportState(pageId);
+        string? selectedCardId = session.State.GetSelectedCardId(pageId, session.ActivePage.Cards);
+        string? cardId = OblivionViewportAssignments.ResolveFocusedCardId(
+            viewport,
+            session.ActivePage.Cards,
+            selectedCardId);
+        OblivionCard? card = session.ActivePage.Cards.FirstOrDefault(
+            candidate => string.Equals(candidate.Id.Value, cardId, StringComparison.Ordinal));
+        if (card?.Kind != OblivionCardKind.Diagram)
+        {
+            return new OblivionCommandExecutionResult(
+                descriptor,
+                session,
+                Executed: false,
+                AffectedCards: 0,
+                [OblivionWorkspaceValidator.Error(
+                    "OBLIVION-DIAGRAM-FOCUSED-CARD-REQUIRED",
+                    "The focused viewport slot does not contain a Diagram Card.",
+                    session.Location.ManifestPath)]);
+        }
+
+        OblivionDiagramViewportState current = session.State.GetDiagramViewportState(card.Id.Value);
+        OblivionSessionState state = session.State.WithDiagramViewportState(
+            card.Id.Value,
+            update(current));
+        return Success(descriptor, session with { State = state }, affectedCards: 1);
+    }
+
+    private static OblivionCommandExecutionResult Success(
+        OblivionCommandDescriptor descriptor,
+        OblivionWorkspaceSession session,
+        int affectedCards = 0)
+    {
+        return new OblivionCommandExecutionResult(
+            descriptor,
+            session,
+            Executed: true,
+            affectedCards,
             []);
     }
 }

@@ -1,0 +1,50 @@
+{
+  "window": {
+    "width": 2560,
+    "height": 1440
+  },
+  "usableViewport": {
+    "x": 88,
+    "y": 72,
+    "width": 2384,
+    "height": 1296
+  },
+  "layoutMode": "VerticalSplit",
+  "focusedSlot": "A",
+  "slots": [
+    {
+      "slotId": "A",
+      "cardId": "diagram-card-realization",
+      "focused": true,
+      "bounds": {
+        "x": 88,
+        "y": 72,
+        "width": 2384,
+        "height": 636
+      }
+    },
+    {
+      "slotId": "B",
+      "cardId": "reading-task",
+      "focused": false,
+      "bounds": {
+        "x": 88,
+        "y": 732,
+        "width": 2384,
+        "height": 636
+      }
+    }
+  ],
+  "diagram": {
+    "fitMode": "Fit",
+    "zoom": 1,
+    "panX": 0,
+    "panY": 0,
+    "fitScale": 0.8299065420560747,
+    "scale": 0.8299065420560747,
+    "worldWidth": 784,
+    "worldHeight": 535,
+    "viewportWidth": 2318,
+    "viewportHeight": 444
+  }
+}

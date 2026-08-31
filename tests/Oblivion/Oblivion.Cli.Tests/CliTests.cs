@@ -261,10 +261,11 @@ public sealed class CliTests
         CliResult reload = await Run("command", "run", "workspace.reload", "-w", FixtureRoot, "--json");
         CliResult expand = await Run("command", "run", "cards.expand-all", "-w", FixtureRoot, "--json");
         CliResult collapse = await Run("command", "run", "cards.collapse-all", "-w", FixtureRoot);
+        CliResult vertical = await Run("command", "run", "layout.vertical-split", "-w", FixtureRoot, "--json");
         CliResult unknown = await Run("command", "run", "view.reset", "-w", FixtureRoot, "--json");
 
         using JsonDocument listJson = JsonDocument.Parse(list.Output);
-        Assert.Equal(3, listJson.RootElement.GetArrayLength());
+        Assert.Equal(11, listJson.RootElement.GetArrayLength());
         Assert.Equal("workspace.reload", listJson.RootElement[0].GetProperty("id").GetString());
         Assert.Equal("active-page", listJson.RootElement[1].GetProperty("scope").GetString());
         Assert.True(listJson.RootElement[2].GetProperty("available").GetBoolean());
@@ -274,6 +275,11 @@ public sealed class CliTests
         using JsonDocument expandJson = JsonDocument.Parse(expand.Output);
         Assert.Equal(2, expandJson.RootElement.GetProperty("affectedCards").GetInt32());
         Assert.Contains("Executed cards.collapse-all", collapse.Output, StringComparison.Ordinal);
+        using JsonDocument verticalJson = JsonDocument.Parse(vertical.Output);
+        JsonElement verticalSession = verticalJson.RootElement.GetProperty("session");
+        Assert.Equal("VerticalSplit", verticalSession.GetProperty("viewportLayout").GetString());
+        Assert.Equal("A", verticalSession.GetProperty("focusedSlot").GetString());
+        Assert.Equal(2, verticalSession.GetProperty("slots").GetArrayLength());
         Assert.Equal(OblivionCliExitCode.ProductFailure, unknown.ExitCode);
         Assert.Contains("OBLIVION-COMMAND-UNKNOWN", unknown.Output, StringComparison.Ordinal);
     }

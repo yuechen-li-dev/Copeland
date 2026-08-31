@@ -1,0 +1,7 @@
+format = 1
+kind = "page"
+id = "realization-review"
+title = "Diagram Card constrained-slot review"
+description = "The unchanged M20a graph beside its exact reading task."
+tags = ["oblivion", "m20b", "diagram", "viewport"]
+cards = ["diagram-card-realization", "reading-task"]
