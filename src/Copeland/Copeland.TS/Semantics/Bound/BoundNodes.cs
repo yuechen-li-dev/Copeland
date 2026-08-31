@@ -1334,7 +1334,8 @@ public sealed class BoundFlowDefinition(
     IReadOnlyList<BoundFlowState> states,
     string initialState,
     TypeSymbol resultType,
-    TypeSymbol? failureType)
+    TypeSymbol? failureType,
+    FlowSourceCorrelation source)
     : BoundNode
 {
     public string Name { get; } = name;
@@ -1346,6 +1347,7 @@ public sealed class BoundFlowDefinition(
     public string InitialState { get; } = initialState;
     public TypeSymbol ResultType { get; } = resultType;
     public TypeSymbol? FailureType { get; } = failureType;
+    public FlowSourceCorrelation Source { get; } = source;
 }
 
 public sealed class BoundFlowBoardField(RecordFieldSymbol field, BoundExpression initializer) : BoundNode
@@ -1361,23 +1363,54 @@ public sealed class BoundFlowEvent(string name, string stableIdentity, IReadOnly
     public IReadOnlyList<ParameterSymbol> Parameters { get; } = parameters;
 }
 
-public sealed class BoundFlowState(string name, string stableIdentity, bool isInitial, IReadOnlyList<BoundFlowTransition> transitions, BoundFlowTerminal? terminal) : BoundNode
+public sealed class BoundFlowState(
+    string name,
+    string stableIdentity,
+    bool isInitial,
+    IReadOnlyList<BoundFlowTransition> transitions,
+    BoundFlowTerminal? terminal,
+    FlowSourceCorrelation source) : BoundNode
 {
     public string Name { get; } = name;
     public string StableIdentity { get; } = stableIdentity;
     public bool IsInitial { get; } = isInitial;
     public IReadOnlyList<BoundFlowTransition> Transitions { get; } = transitions;
     public BoundFlowTerminal? Terminal { get; } = terminal;
+    public FlowSourceCorrelation Source { get; } = source;
 }
 
-public sealed class BoundFlowTransition(string eventName, string targetState, BoundExpression? guard, IReadOnlyList<ParameterSymbol> bindings, IReadOnlyList<BoundFlowBoardUpdate> updates) : BoundNode
+public sealed class BoundFlowTransition(
+    string stableIdentity,
+    int order,
+    string eventName,
+    string targetState,
+    BoundExpression? guard,
+    IReadOnlyList<ParameterSymbol> bindings,
+    IReadOnlyList<BoundFlowBoardUpdate> updates,
+    FlowSourceCorrelation source,
+    FlowSourceCorrelation? guardSource) : BoundNode
 {
+    public string StableIdentity { get; } = stableIdentity;
+    public int Order { get; } = order;
     public string EventName { get; } = eventName;
     public string TargetState { get; } = targetState;
     public BoundExpression? Guard { get; } = guard;
     public IReadOnlyList<ParameterSymbol> Bindings { get; } = bindings;
     public IReadOnlyList<BoundFlowBoardUpdate> Updates { get; } = updates;
+    public FlowSourceCorrelation Source { get; } = source;
+    public FlowSourceCorrelation? GuardSource { get; } = guardSource;
 }
+
+/// <summary>
+/// Syntax-free source correlation retained with bound flow semantics. The
+/// visualization and runtime lowerings consume the same semantic records.
+/// </summary>
+public sealed record FlowSourceCorrelation(
+    string? Path,
+    int StartLine,
+    int StartColumn,
+    int EndLine,
+    int EndColumn);
 
 public sealed class BoundFlowBoardUpdate(RecordFieldSymbol field, BoundExpression value) : BoundNode
 {

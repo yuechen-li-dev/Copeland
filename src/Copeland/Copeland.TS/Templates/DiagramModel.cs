@@ -9,9 +9,20 @@ public enum DiagramDirection
     LeftRight,
 }
 
+public enum DiagramBackendKind
+{
+    Flowchart,
+    State,
+}
+
 public sealed record DiagramNode(string Id, string Label);
 
-public sealed record DiagramEdge(string From, string To, string? Label = null);
+public sealed record DiagramEdge(
+    string From,
+    string To,
+    string? Label = null,
+    string? SemanticIdentity = null,
+    int? Order = null);
 
 public sealed record DiagramProvenance(string Template, string? ReflectedType);
 
@@ -25,18 +36,27 @@ public sealed class Diagram
         IReadOnlyList<DiagramNode> nodes,
         IReadOnlyList<DiagramEdge> edges,
         DiagramDirection direction,
-        DiagramProvenance provenance)
+        DiagramProvenance provenance,
+        DiagramBackendKind backendKind,
+        string? initialNodeId,
+        IReadOnlyList<string> finalNodeIds)
     {
         Nodes = nodes;
         Edges = edges;
         Direction = direction;
         Provenance = provenance;
+        BackendKind = backendKind;
+        InitialNodeId = initialNodeId;
+        FinalNodeIds = finalNodeIds;
     }
 
     public IReadOnlyList<DiagramNode> Nodes { get; }
     public IReadOnlyList<DiagramEdge> Edges { get; }
     public DiagramDirection Direction { get; }
     public DiagramProvenance Provenance { get; }
+    public DiagramBackendKind BackendKind { get; }
+    public string? InitialNodeId { get; }
+    public IReadOnlyList<string> FinalNodeIds { get; }
 
     public static bool TryCreate(
         IEnumerable<DiagramNode> nodes,
@@ -44,15 +64,27 @@ public sealed class Diagram
         DiagramDirection direction,
         DiagramProvenance provenance,
         out Diagram? diagram,
-        out IReadOnlyList<Diagnostic> diagnostics)
+        out IReadOnlyList<Diagnostic> diagnostics,
+        DiagramBackendKind backendKind = DiagramBackendKind.Flowchart,
+        string? initialNodeId = null,
+        IEnumerable<string>? finalNodeIds = null)
     {
         DiagramNode[] normalizedNodes = nodes
             .OrderBy(node => node.Id, StringComparer.Ordinal)
             .ToArray();
-        DiagramEdge[] normalizedEdges = edges
-            .OrderBy(edge => edge.From, StringComparer.Ordinal)
-            .ThenBy(edge => edge.To, StringComparer.Ordinal)
-            .ThenBy(edge => edge.Label, StringComparer.Ordinal)
+        DiagramEdge[] normalizedEdges = backendKind == DiagramBackendKind.State
+            ? edges
+                .OrderBy(edge => edge.Order ?? int.MaxValue)
+                .ThenBy(edge => edge.SemanticIdentity, StringComparer.Ordinal)
+                .ToArray()
+            : edges
+                .OrderBy(edge => edge.From, StringComparer.Ordinal)
+                .ThenBy(edge => edge.To, StringComparer.Ordinal)
+                .ThenBy(edge => edge.Label, StringComparer.Ordinal)
+                .ToArray();
+        string[] normalizedFinalNodeIds = (finalNodeIds ?? [])
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(id => id, StringComparer.Ordinal)
             .ToArray();
         var errors = new List<Diagnostic>();
 
@@ -78,9 +110,40 @@ public sealed class Diagram
             }
         }
 
+
+        if (backendKind == DiagramBackendKind.State)
+        {
+            if (string.IsNullOrWhiteSpace(initialNodeId) || !nodeIds.Contains(initialNodeId))
+            {
+                errors.Add(new Diagnostic(
+                    "COPE-DIAGRAM-0005",
+                    $"State diagram initial node '{initialNodeId ?? "<missing>"}' must reference a known state.",
+                    0,
+                    0));
+            }
+            foreach (string finalNodeId in normalizedFinalNodeIds)
+            {
+                if (!nodeIds.Contains(finalNodeId))
+                {
+                    errors.Add(new Diagnostic(
+                        "COPE-DIAGRAM-0006",
+                        $"State diagram final node '{finalNodeId}' must reference a known state.",
+                        0,
+                        0));
+                }
+            }
+        }
+
         diagnostics = errors;
         diagram = errors.Count == 0
-            ? new Diagram(normalizedNodes, normalizedEdges, direction, provenance)
+            ? new Diagram(
+                normalizedNodes,
+                normalizedEdges,
+                direction,
+                provenance,
+                backendKind,
+                initialNodeId,
+                normalizedFinalNodeIds)
             : null;
         return diagram is not null;
     }
@@ -89,6 +152,14 @@ public sealed class Diagram
 public static class MermaidEmitter
 {
     public static string Emit(Diagram diagram)
+        => diagram.BackendKind switch
+        {
+            DiagramBackendKind.Flowchart => EmitFlowchart(diagram),
+            DiagramBackendKind.State => EmitStateDiagram(diagram),
+            _ => throw new InvalidOperationException($"Unsupported diagram backend '{diagram.BackendKind}'."),
+        };
+
+    private static string EmitFlowchart(Diagram diagram)
     {
         var builder = new StringBuilder();
         builder.Append("flowchart ");
@@ -126,6 +197,52 @@ public static class MermaidEmitter
         return builder.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
     }
 
+    private static string EmitStateDiagram(Diagram diagram)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("stateDiagram-v2");
+
+        Dictionary<string, string> backendIds = CreateBackendIds(diagram);
+        foreach (DiagramNode node in diagram.Nodes)
+        {
+            builder.Append("    state \"");
+            builder.Append(EscapeStateNodeLabel(node.Label));
+            builder.Append("\" as ");
+            builder.AppendLine(backendIds[node.Id]);
+        }
+
+        builder.Append("    [*] --> ");
+        builder.AppendLine(backendIds[diagram.InitialNodeId!]);
+
+        foreach (DiagramEdge edge in diagram.Edges)
+        {
+            builder.Append("    ");
+            builder.Append(backendIds[edge.From]);
+            builder.Append(" --> ");
+            builder.Append(backendIds[edge.To]);
+            if (!string.IsNullOrEmpty(edge.Label))
+            {
+                builder.Append(": ");
+                builder.Append(EscapeStateTransitionLabel(edge.Label));
+            }
+            builder.AppendLine();
+        }
+
+        foreach (string finalNodeId in diagram.FinalNodeIds)
+        {
+            builder.Append("    ");
+            builder.Append(backendIds[finalNodeId]);
+            builder.AppendLine(" --> [*]");
+        }
+
+        return builder.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
+    }
+
+    private static Dictionary<string, string> CreateBackendIds(Diagram diagram)
+        => diagram.Nodes
+            .Select((node, index) => (node.Id, BackendId: $"s{index}"))
+            .ToDictionary(item => item.Id, item => item.BackendId, StringComparer.Ordinal);
+
     private static string EscapeLabel(string label)
     {
         string normalized = label
@@ -150,6 +267,38 @@ public static class MermaidEmitter
         }
         return builder.ToString();
     }
+
+    private static string EscapeStateNodeLabel(string text)
+    {
+        string normalized = text
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace("\r", "\n", StringComparison.Ordinal);
+        var builder = new StringBuilder();
+        foreach (char character in normalized)
+        {
+            builder.Append(character switch
+            {
+                '&' => "&amp;",
+                '"' => "&quot;",
+                ':' => ":",
+                '[' => "[",
+                ']' => "]",
+                '{' => "{",
+                '}' => "}",
+                '<' => "&lt;",
+                '>' => "&gt;",
+                '\n' => "<br/>",
+                _ => character.ToString(),
+            });
+        }
+        return builder.ToString();
+    }
+
+    private static string EscapeStateTransitionLabel(string text)
+        => text
+            .Replace("\r\n", " / ", StringComparison.Ordinal)
+            .Replace("\r", " / ", StringComparison.Ordinal)
+            .Replace("\n", " / ", StringComparison.Ordinal);
 }
 
 public static class DiagramMaterializer

@@ -60,3 +60,8 @@ names, and payload types; only visualization policy remained authored.
 
 VIZ-M1 proved that same boundary with one `callsOf` query and one explicit
 `callGraphDiagram` adapter. `controlFlowOf` and `effectsOf` remain deferred.
+
+VIZ-M2 deliberately uses no reflection for named `flow` visualization. The
+compiler projects `BoundFlowDefinition` directly into a bounded semantic
+state-machine view. `statesOf`, `transitionsOf`, and `controlFlowOf` remain
+unimplemented; direct visualization does not justify adding them.

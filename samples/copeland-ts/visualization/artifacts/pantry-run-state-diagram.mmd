@@ -1,0 +1,7 @@
+stateDiagram-v2
+    state "Completed" as s0
+    state "Planning" as s1
+    [*] --> s1
+    s1 --> s1: Add
+    s1 --> s0: Close
+    s0 --> [*]

@@ -1,0 +1,11 @@
+stateDiagram-v2
+    state "Crash" as s0
+    state "Moving" as s1
+    state "Still" as s2
+    [*] --> s2
+    s2 --> s1: Start [speed > 0]
+    s2 --> s2: Wait [board.speed == 0]
+    s1 --> s2: Stop [speed == 0]
+    s1 --> s2: Brake [engaged == true]
+    s1 --> s0: Impact [detected == true]
+    s0 --> [*]

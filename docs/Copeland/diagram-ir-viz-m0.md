@@ -6,8 +6,11 @@ the existing typed-template evaluator:
 ```text
 Diagram
   nodes: DiagramNode { id, label }[]
-  edges: DiagramEdge { from, to, label? }[]
+  edges: DiagramEdge { from, to, label?, semanticIdentity?, order? }[]
   direction: TopDown | LeftRight
+  backendKind: Flowchart | State
+  initialNodeId?: string
+  finalNodeIds: string[]
   provenance: { template, reflectedType? }
 ```
 
@@ -27,3 +30,8 @@ Templates may construct a direct graph with `diagramNode`, `diagramEdge`, and
 the existing reflected metadata values into the same node/edge IR. These
 adapters exist because the M0 static language has no general collection-map
 primitive; they do not add a separate visualization language.
+
+VIZ-M2 adds only the backend-neutral metadata needed to express authored state
+semantics. Initial/final identities select real semantic nodes; Mermaid pseudo
+states are created only by the backend. Flowchart diagrams retain their VIZ-M0
+normalization, while state edges preserve semantic transition order.

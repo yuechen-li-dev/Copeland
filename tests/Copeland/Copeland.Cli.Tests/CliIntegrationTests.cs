@@ -100,6 +100,33 @@ public sealed class CliIntegrationTests
     }
 
     [Fact]
+    public async Task Flow_cli_materializes_named_semantic_state_machine_without_reflection()
+    {
+        using var temp = new TempDir();
+        string source = temp.WriteFile(
+            "Vehicle.ts",
+            "flow Vehicle -> number { board { speed: number = 0; } event Start(speed: number); event Stop(speed: number); state Still initial { on Start(speed) when speed > 0 -> Moving { board.speed = speed; }; } state Moving { on Stop(speed) when speed == 0 -> Done { board.speed = speed; }; } state Done { finish board.speed; } }");
+        string output = Path.Combine(temp.Path, "vehicle.mmd");
+
+        CliResult result = await RunCliAsync(
+            temp.Path,
+            "flow",
+            "visualize",
+            source,
+            "--name",
+            "Vehicle",
+            "--output",
+            output);
+
+        Assert.Equal(0, result.ExitCode);
+        string mermaid = Normalize(await File.ReadAllTextAsync(output));
+        Assert.StartsWith("stateDiagram-v2\n", mermaid, StringComparison.Ordinal);
+        Assert.Contains("Start [speed > 0]", mermaid, StringComparison.Ordinal);
+        Assert.Contains("Stop [speed == 0]", mermaid, StringComparison.Ordinal);
+        Assert.Contains("--> [*]", mermaid, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Tscl_build_emits_a_multi_module_production_node_project_and_machine_readable_manifest()
     {
         using var temp = new TempDir();

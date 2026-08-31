@@ -4629,8 +4629,9 @@ public static class Binder
             foreach (FlowStateSyntax stateSyntax in declaration.States)
             {
                 var transitions = new List<BoundFlowTransition>();
-                foreach (FlowTransitionSyntax transitionSyntax in stateSyntax.Transitions)
+                for (int transitionIndex = 0; transitionIndex < stateSyntax.Transitions.Count; transitionIndex++)
                 {
+                    FlowTransitionSyntax transitionSyntax = stateSyntax.Transitions[transitionIndex];
                     if (!eventsByName.TryGetValue(transitionSyntax.EventIdentifier.Text, out BoundFlowEvent? @event))
                     {
                         Report("COPE-FLOW-0014", $"State '{stateSyntax.Identifier.Text}' handles unknown event '{transitionSyntax.EventIdentifier.Text}'.", transitionSyntax.EventIdentifier);
@@ -4662,7 +4663,23 @@ public static class Binder
                         {
                             Report("COPE-FLOW-0018", "Flow guards may use only pure local expressions and board reads in FLOW-M1.", transitionSyntax.WhenKeyword!);
                         }
-                        transitions.Add(new BoundFlowTransition(@event.Name, transitionSyntax.TargetIdentifier.Text, guard, bindings, BindFlowUpdates(transitionSyntax.Body, boardType)));
+                        string transitionIdentity = "flow:" + flowName
+                            + ".state:" + stateSyntax.Identifier.Text
+                            + ".transition:" + transitionIndex;
+                        transitions.Add(new BoundFlowTransition(
+                            transitionIdentity,
+                            transitionIndex,
+                            @event.Name,
+                            transitionSyntax.TargetIdentifier.Text,
+                            guard,
+                            bindings,
+                            BindFlowUpdates(transitionSyntax.Body, boardType),
+                            CreateFlowSourceCorrelation(transitionSyntax.OnKeyword, transitionSyntax.SemicolonToken),
+                            transitionSyntax.Guard is null
+                                ? null
+                                : CreateFlowSourceCorrelation(
+                                    transitionSyntax.WhenKeyword!,
+                                    transitionSyntax.ArrowToken)));
                     }
                     finally
                     {
@@ -4676,7 +4693,8 @@ public static class Binder
                     "flow:" + flowName + ".state:" + stateSyntax.Identifier.Text,
                     stateSyntax.InitialKeyword is not null,
                     transitions,
-                    terminal));
+                    terminal,
+                    CreateFlowSourceCorrelation(stateSyntax.StateKeyword, stateSyntax.CloseBraceToken)));
             }
 
             foreach (BoundFlowState state in states)
@@ -4690,7 +4708,29 @@ public static class Binder
                 }
             }
             string initialState = initialStates.FirstOrDefault()?.Identifier.Text ?? declaration.States.FirstOrDefault()?.Identifier.Text ?? "<missing>";
-            _flows.Add(new BoundFlowDefinition(flowName, "flow:" + flowName, boardType, boardFields, events, states, initialState, declaredResult, declaredFailure));
+            _flows.Add(new BoundFlowDefinition(
+                flowName,
+                "flow:" + flowName,
+                boardType,
+                boardFields,
+                events,
+                states,
+                initialState,
+                declaredResult,
+                declaredFailure,
+                CreateFlowSourceCorrelation(declaration.FlowKeyword, declaration.CloseBraceToken)));
+        }
+
+        private FlowSourceCorrelation CreateFlowSourceCorrelation(SyntaxToken start, SyntaxToken end)
+        {
+            (int startLine, int startColumn) = GetLineAndColumn(start.Position);
+            (int endLine, int endColumn) = GetLineAndColumn(end.Position + Math.Max(1, end.Text.Length));
+            return new FlowSourceCorrelation(
+                _sourcePath,
+                startLine,
+                startColumn,
+                endLine,
+                endColumn);
         }
 
         private IReadOnlyList<BoundFlowBoardUpdate> BindFlowUpdates(BlockStatementSyntax? body, RecordTypeSymbol boardType)
