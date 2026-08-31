@@ -137,6 +137,139 @@ public sealed class UiTests
         Assert.Empty(reconciled.CardViewStateByPageId["page"]);
     }
 
+    [Fact]
+    public void Collapsed_markdown_is_a_summary_plan_without_internal_scroll()
+    {
+        OblivionCard card = CreateCard("markdown") with
+        {
+            Subtitle = "Why this matters",
+            Body = OblivionMarkdownBody.CreateMarkdown(
+                "# Reading surface\n\nThe first useful paragraph explains the result.\n\nMore detail follows.",
+                "body/reading.md"),
+        };
+
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            OblivionCardViewState.Collapsed);
+
+        Assert.Equal(OblivionReadingState.Collapsed, plan.ReadingState);
+        Assert.False(plan.AllowsInternalScroll);
+        Assert.Equal("Reading surface", plan.CollapsedSummary);
+        Assert.Equal("Markdown", plan.ContentTypeLabel);
+        Assert.Equal(
+            OblivionContentPresenterKind.AvaloniaReadOnlyDocument,
+            Assert.Single(plan.Items).PresenterKind);
+    }
+
+    [Fact]
+    public void Expanded_markdown_selects_mature_document_and_external_mermaid_presenters()
+    {
+        OblivionCard card = CreateCard("diagram") with
+        {
+            Body = OblivionMarkdownBody.CreateMarkdown(
+                "# Flow\n\n```mermaid\ngraph TD\n  A --> B\n```",
+                "body/flow.md"),
+        };
+
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(IsExpanded: true, BodyScrollOffset: 0));
+
+        Assert.Equal(OblivionReadingState.Expanded, plan.ReadingState);
+        Assert.True(plan.AllowsInternalScroll);
+        Assert.Collection(
+            plan.Items,
+            document => Assert.Equal(OblivionContentPresenterKind.AvaloniaReadOnlyDocument, document.PresenterKind),
+            diagram =>
+            {
+                Assert.Equal(OblivionContentPresenterKind.ExternalMermaidRenderer, diagram.PresenterKind);
+                Assert.Contains("A --> B", diagram.Source);
+            });
+    }
+
+    [Fact]
+    public void Png_dispatch_requires_resolved_existing_png_and_preserves_identity()
+    {
+        OblivionCard card = CreateCard("image") with
+        {
+            Kind = OblivionCardKind.Artifact,
+            Artifacts = [new OblivionCardArtifact("proof", "Proof", "png", "artifacts/proof.png")],
+        };
+        OblivionResolvedContentArtifact artifact = new(
+            "proof",
+            "Proof",
+            "png",
+            "artifacts/proof.png",
+            "C:\\workspace\\artifacts\\proof.png",
+            Exists: true,
+            MediaType: "image/png",
+            Generated: true,
+            SourceReference: "artifacts/proof.artifact.toml");
+
+        OblivionContentPresentationPlan collapsed = OblivionContentPresenterSelector.Select(
+            card,
+            OblivionCardViewState.Collapsed,
+            [artifact]);
+        OblivionContentPresentationPlan expanded = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0),
+            [artifact]);
+
+        Assert.Equal(collapsed.ContentIdentity, expanded.ContentIdentity);
+        Assert.Equal("image", expanded.ContentIdentity);
+        Assert.Equal(OblivionContentPresenterKind.AvaloniaImage, Assert.Single(expanded.Items).PresenterKind);
+        Assert.Equal("proof", Assert.Single(expanded.Items).Artifact!.ArtifactId);
+    }
+
+    [Fact]
+    public void Missing_png_uses_diagnostic_fallback_but_external_open_metadata_survives()
+    {
+        OblivionCard card = CreateCard("missing-image") with { Kind = OblivionCardKind.Artifact };
+        OblivionResolvedContentArtifact artifact = new(
+            "missing",
+            "Missing proof",
+            "png",
+            "artifacts/missing.png",
+            "C:\\workspace\\artifacts\\missing.png",
+            Exists: false,
+            MediaType: "image/png",
+            Generated: false,
+            SourceReference: "cards/missing.card.toml");
+
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0),
+            [artifact]);
+
+        OblivionContentPresentationItem item = Assert.Single(plan.Items);
+        Assert.Equal(OblivionContentPresenterKind.DiagnosticFallback, item.PresenterKind);
+        Assert.Equal("artifacts/missing.png", item.Artifact!.DeclaredReference);
+        Assert.Contains(plan.Diagnostics, diagnostic => diagnostic.Code == "OBLIVION-CONTENT-PNG-NOT-FOUND");
+    }
+
+    [Fact]
+    public void Code_uses_read_only_mature_presenter_with_deliberate_overflow()
+    {
+        OblivionCard card = CreateCard("code") with
+        {
+            Kind = OblivionCardKind.CodeFact,
+            Body = OblivionMarkdownBody.CreatePlain("public static void Main() { }") ,
+            Provenance = new OblivionProvenance(
+                OblivionProvenanceSourceKind.WorkspaceAsset,
+                "src/Program.cs"),
+        };
+
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0));
+
+        OblivionContentPresentationItem item = Assert.Single(plan.Items);
+        Assert.Equal(OblivionContentPresenterKind.AvaloniaReadOnlyCode, item.PresenterKind);
+        Assert.Equal("csharp", item.Language);
+        Assert.Equal(OblivionContentScrollContract.HostHorizontalAndVerticalWhenBounded, item.ScrollContract);
+        Assert.Equal(OblivionContentFocusContract.PresenterOwnsSelectionAndCopy, item.FocusContract);
+    }
+
     private static OblivionScrollRegionTarget CreateScrollRegion(
         OblivionScrollTargetKind kind,
         string? cardId,

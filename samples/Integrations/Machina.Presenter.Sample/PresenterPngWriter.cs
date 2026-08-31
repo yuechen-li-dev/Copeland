@@ -4,7 +4,7 @@ using Machina.Fonts.ReferenceRendering;
 
 namespace Machina.Presenter.Sample;
 
-internal static class PresenterPngWriter
+public static class PresenterPngWriter
 {
     private static readonly byte[] PngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
@@ -63,7 +63,7 @@ internal static class PresenterPngWriter
         }
 
         using MemoryStream output = new();
-        using (DeflateStream deflate = new(output, CompressionLevel.SmallestSize, leaveOpen: true))
+        using (ZLibStream deflate = new(output, CompressionLevel.SmallestSize, leaveOpen: true))
         {
             deflate.Write(scanlines, 0, scanlines.Length);
         }

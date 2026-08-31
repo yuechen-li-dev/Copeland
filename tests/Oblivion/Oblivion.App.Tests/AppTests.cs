@@ -495,6 +495,230 @@ public sealed class AppTests
             result.Value.Provenance.SourceReference);
     }
 
+    [Fact]
+    public void Mermaid_realization_uses_injected_renderer_and_retains_source_provenance()
+    {
+        OblivionCard card = CreateMarkdownCard() with
+        {
+            Body = OblivionMarkdownBody.CreateMarkdown(
+                "```mermaid\ngraph TD\n  Source --> Derived\n```",
+                "body/architecture.md"),
+        };
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0));
+        RecordingDiagramRenderer renderer = new();
+
+        IReadOnlyList<OblivionDiagramRenderResult> results = OblivionContentRealization.RenderMermaid(
+            plan,
+            renderer,
+            Path.GetTempPath());
+
+        Assert.True(Assert.Single(results).Succeeded);
+        Assert.Equal("body/architecture.md", Assert.Single(renderer.Requests).SourceReference);
+        Assert.Contains("Source --> Derived", Assert.Single(renderer.Requests).Source);
+    }
+
+    [Fact]
+    public void Headless_card_inspection_exposes_mermaid_source_hash_renderer_and_cache_status()
+    {
+        string manifestPath = Path.GetFullPath(
+            Path.Combine(
+                FindRepositoryRoot(),
+                "artifacts",
+                "m19c",
+                "trial-workspace",
+                "workspace.oblivion.json"));
+
+        OblivionProductSurfaceResult<OblivionProductCardSnapshot> result =
+            new OblivionProductSurface().ShowCard(manifestPath, "m19c-architecture");
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        OblivionProductDiagramSnapshot diagram = Assert.Single(result.Value!.Diagrams);
+        Assert.Contains("Agent-authored semantic content", diagram.Source);
+        Assert.Equal(64, diagram.SourceHash.Length);
+        Assert.Equal("mermaid-cli", diagram.RendererId);
+        Assert.Equal("11.16.0", diagram.RendererVersion);
+        Assert.NotEmpty(diagram.RendererStatus);
+        Assert.Equal(64, diagram.CacheKey.Length);
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Copeland.slnx")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Copeland repository root was not found.");
+    }
+
+    [Fact]
+    public void Unavailable_mermaid_renderer_is_a_bounded_diagnostic_not_a_load_failure()
+    {
+        OblivionDiagramRenderResult result = new OblivionExternalMermaidRenderer(
+            executablePath: null).Render(new OblivionDiagramRenderRequest(
+                "card.diagram",
+                "graph TD\n  A --> B",
+                "body/diagram.md",
+                Path.GetTempPath()));
+
+        Assert.False(result.Succeeded);
+        Assert.Null(result.RenderedPath);
+        Assert.Equal("mermaid-cli", result.Renderer);
+        Assert.Equal(
+            "OBLIVION-MERMAID-RENDERER-UNAVAILABLE",
+            Assert.Single(result.Diagnostics).Code);
+        Assert.NotEmpty(result.SourceHash);
+    }
+
+    [Fact]
+    public void Mermaid_source_hash_is_sha256_over_utf8_with_canonical_newlines()
+    {
+        string windowsHash = OblivionMermaidHashing.ComputeSourceHash("graph TD\r\n  A --> B\r\n");
+        string unixHash = OblivionMermaidHashing.ComputeSourceHash("graph TD\n  A --> B\n");
+        string changedHash = OblivionMermaidHashing.ComputeSourceHash("graph TD\n  A --> C\n");
+
+        Assert.Equal(unixHash, windowsHash);
+        Assert.Equal(64, unixHash.Length);
+        Assert.NotEqual(unixHash, changedHash);
+    }
+
+    [Fact]
+    public void Mermaid_cache_key_changes_only_for_contract_inputs()
+    {
+        MermaidDerivedArtifactKey baseline = new(
+            "source",
+            "mermaid-cli",
+            "11.16.0",
+            "png",
+            "strict");
+
+        Assert.Equal(baseline.Value, (baseline with { }).Value);
+        Assert.NotEqual(baseline.Value, (baseline with { SourceHash = "changed" }).Value);
+        Assert.NotEqual(baseline.Value, (baseline with { RendererVersion = "11.17.0" }).Value);
+        Assert.NotEqual(baseline.Value, (baseline with { OutputFormat = "svg" }).Value);
+        Assert.NotEqual(baseline.Value, (baseline with { RenderingOptions = "loose" }).Value);
+    }
+
+    [Fact]
+    public void Qualified_renderer_cold_renders_then_reuses_valid_cache()
+    {
+        using MermaidRendererFixture fixture = MermaidRendererFixture.Create();
+
+        OblivionDiagramRenderResult first = fixture.Renderer.Render(fixture.Request);
+        OblivionDiagramRenderResult second = fixture.Renderer.Render(fixture.Request);
+
+        Assert.True(
+            first.Succeeded,
+            string.Join(Environment.NewLine, first.Diagnostics.Select(diagnostic => diagnostic.Message)));
+        Assert.False(first.CacheHit);
+        Assert.True(second.Succeeded);
+        Assert.True(second.CacheHit);
+        Assert.Equal(first.CacheKey, second.CacheKey);
+        Assert.Equal(first.RenderedPath, second.RenderedPath);
+        Assert.Equal(1, fixture.ProcessRunner.RenderInvocations);
+        Assert.Equal(1, fixture.ProcessRunner.VersionInvocations);
+        Assert.True(File.Exists(first.RenderedPath));
+    }
+
+    [Fact]
+    public void Source_and_renderer_version_changes_invalidate_mermaid_cache()
+    {
+        using MermaidRendererFixture fixture = MermaidRendererFixture.Create();
+        OblivionDiagramRenderResult first = fixture.Renderer.Render(fixture.Request);
+        OblivionDiagramRenderResult sourceChanged = fixture.Renderer.Render(
+            fixture.Request with { Source = "graph TD\n  Durable --> Different" });
+        FakeProcessRunner upgradedRunner = new("11.17.0");
+        OblivionExternalMermaidRenderer upgradedRenderer = fixture.CreateRenderer(
+            upgradedRunner,
+            expectedVersion: "11.17.0");
+        OblivionDiagramRenderResult versionChanged = upgradedRenderer.Render(fixture.Request);
+
+        Assert.NotEqual(first.CacheKey, sourceChanged.CacheKey);
+        Assert.NotEqual(first.CacheKey, versionChanged.CacheKey);
+        Assert.Equal(2, fixture.ProcessRunner.RenderInvocations);
+        Assert.Equal(1, upgradedRunner.RenderInvocations);
+    }
+
+    [Fact]
+    public void Invalid_mermaid_cache_metadata_is_diagnosed_and_rebuilt()
+    {
+        using MermaidRendererFixture fixture = MermaidRendererFixture.Create();
+        OblivionDiagramRenderResult first = fixture.Renderer.Render(fixture.Request);
+        string metadataPath = Path.ChangeExtension(first.RenderedPath!, ".json");
+        File.WriteAllText(metadataPath, "{ invalid json");
+
+        OblivionDiagramRenderResult rebuilt = fixture.Renderer.Render(fixture.Request);
+
+        Assert.True(rebuilt.Succeeded);
+        Assert.False(rebuilt.CacheHit);
+        Assert.Contains(
+            rebuilt.Diagnostics,
+            diagnostic => diagnostic.Code == "OBLIVION-MERMAID-CACHE-INVALID");
+        Assert.Equal(2, fixture.ProcessRunner.RenderInvocations);
+    }
+
+    [Fact]
+    public void Missing_cached_mermaid_artifact_is_diagnosed_and_rebuilt()
+    {
+        using MermaidRendererFixture fixture = MermaidRendererFixture.Create();
+        OblivionDiagramRenderResult first = fixture.Renderer.Render(fixture.Request);
+        File.Delete(first.RenderedPath!);
+
+        OblivionDiagramRenderResult rebuilt = fixture.Renderer.Render(fixture.Request);
+
+        Assert.True(rebuilt.Succeeded);
+        Assert.False(rebuilt.CacheHit);
+        Assert.Contains(
+            rebuilt.Diagnostics,
+            diagnostic => diagnostic.Code == "OBLIVION-MERMAID-CACHE-INVALID");
+        Assert.Equal(2, fixture.ProcessRunner.RenderInvocations);
+    }
+
+    [Fact]
+    public void Mermaid_provenance_retains_source_renderer_owner_and_derived_status()
+    {
+        using MermaidRendererFixture fixture = MermaidRendererFixture.Create();
+
+        OblivionDiagramRenderResult result = fixture.Renderer.Render(fixture.Request);
+
+        Assert.Equal(result.SourceHash, result.Provenance!.SourceHash);
+        Assert.Equal("Mermaid", result.Provenance.SourceKind);
+        Assert.Equal("mermaid-cli", result.Provenance.RendererId);
+        Assert.Equal("11.16.0", result.Provenance.RendererVersion);
+        Assert.Equal("workspace", result.Provenance.WorkspaceId);
+        Assert.Equal("page", result.Provenance.PageId);
+        Assert.Equal("card", result.Provenance.CardId);
+        Assert.True(result.Provenance.Derived);
+    }
+
+    [Theory]
+    [InlineData(FakeProcessBehavior.WrongVersion, "OBLIVION-MERMAID-RENDERER-VERSION-MISMATCH")]
+    [InlineData(FakeProcessBehavior.Timeout, "OBLIVION-MERMAID-RENDER-TIMEOUT")]
+    [InlineData(FakeProcessBehavior.NonzeroExit, "OBLIVION-MERMAID-RENDER-FAILED")]
+    [InlineData(FakeProcessBehavior.MissingOutput, "OBLIVION-MERMAID-OUTPUT-MISSING")]
+    [InlineData(FakeProcessBehavior.MalformedOutput, "OBLIVION-MERMAID-OUTPUT-INVALID")]
+    public void Mermaid_renderer_failures_are_specific_and_retain_source(
+        FakeProcessBehavior behavior,
+        string expectedCode)
+    {
+        using MermaidRendererFixture fixture = MermaidRendererFixture.Create(behavior);
+
+        OblivionDiagramRenderResult result = fixture.Renderer.Render(fixture.Request);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(expectedCode, Assert.Single(result.Diagnostics).Code);
+        Assert.Equal(OblivionMermaidHashing.ComputeSourceHash(fixture.Request.Source), result.SourceHash);
+        Assert.NotNull(result.Provenance);
+    }
+
     private static OblivionCard CreateMarkdownCard()
     {
         return new OblivionCard(
@@ -510,6 +734,155 @@ public sealed class AppTests
             new OblivionProvenance(
                 OblivionProvenanceSourceKind.WorkspaceAsset,
                 "note.card.toml"));
+    }
+
+    private sealed class RecordingDiagramRenderer : IOblivionDiagramRenderer
+    {
+        public List<OblivionDiagramRenderRequest> Requests { get; } = [];
+
+        public OblivionDiagramRenderResult Render(OblivionDiagramRenderRequest request)
+        {
+            Requests.Add(request);
+            return new OblivionDiagramRenderResult(
+                Succeeded: true,
+                Renderer: "fake-mermaid",
+                RendererVersion: "test",
+                SourceHash: "stable-test-hash",
+                RenderedPath: Path.Combine(request.OutputDirectory, request.ContentId + ".svg"),
+                MediaType: "image/svg+xml",
+                Diagnostics: []);
+        }
+    }
+
+    public enum FakeProcessBehavior
+    {
+        Success,
+        WrongVersion,
+        Timeout,
+        NonzeroExit,
+        MissingOutput,
+        MalformedOutput,
+    }
+
+    private sealed class FakeProcessRunner : IOblivionProcessRunner
+    {
+        private static readonly byte[] MinimalPng = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+        private readonly string _version;
+        private readonly FakeProcessBehavior _behavior;
+
+        public FakeProcessRunner(
+            string version = OblivionMermaidRendererOptions.PinnedVersion,
+            FakeProcessBehavior behavior = FakeProcessBehavior.Success)
+        {
+            _version = version;
+            _behavior = behavior;
+        }
+
+        public int VersionInvocations { get; private set; }
+        public int RenderInvocations { get; private set; }
+
+        public OblivionProcessResult Run(OblivionProcessRequest request)
+        {
+            if (request.Arguments.Contains("--version"))
+            {
+                VersionInvocations++;
+                string version = _behavior == FakeProcessBehavior.WrongVersion ? "0.0.0" : _version;
+                return new OblivionProcessResult(true, false, 0, version, string.Empty);
+            }
+
+            RenderInvocations++;
+            if (_behavior == FakeProcessBehavior.Timeout)
+            {
+                return new OblivionProcessResult(true, true, null, string.Empty, string.Empty);
+            }
+
+            if (_behavior == FakeProcessBehavior.NonzeroExit)
+            {
+                return new OblivionProcessResult(true, false, 7, string.Empty, "bounded fake failure");
+            }
+
+            int outputArgumentIndex = request.Arguments.ToList().IndexOf("--output");
+            string outputPath = request.Arguments[outputArgumentIndex + 1];
+            if (_behavior == FakeProcessBehavior.MissingOutput)
+            {
+                return new OblivionProcessResult(true, false, 0, string.Empty, string.Empty);
+            }
+
+            File.WriteAllBytes(
+                outputPath,
+                _behavior == FakeProcessBehavior.MalformedOutput ? [1, 2, 3, 4] : MinimalPng);
+            return new OblivionProcessResult(true, false, 0, string.Empty, string.Empty);
+        }
+    }
+
+    private sealed class MermaidRendererFixture : IDisposable
+    {
+        private MermaidRendererFixture(
+            string rootPath,
+            FakeProcessRunner processRunner,
+            OblivionExternalMermaidRenderer renderer)
+        {
+            RootPath = rootPath;
+            ProcessRunner = processRunner;
+            Renderer = renderer;
+        }
+
+        public string RootPath { get; }
+        public FakeProcessRunner ProcessRunner { get; }
+        public OblivionExternalMermaidRenderer Renderer { get; }
+        public OblivionDiagramRenderRequest Request => new(
+            "card.diagram",
+            "graph TD\r\n  Durable --> Derived\r\n",
+            "body/architecture.md",
+            RootPath,
+            "workspace",
+            "page",
+            "card");
+
+        public static MermaidRendererFixture Create(
+            FakeProcessBehavior behavior = FakeProcessBehavior.Success)
+        {
+            string rootPath = Path.Combine(
+                Path.GetTempPath(),
+                "oblivion-m19e-mermaid-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(rootPath);
+            FakeProcessRunner processRunner = new(behavior: behavior);
+            OblivionExternalMermaidRenderer renderer = CreateRendererCore(
+                processRunner,
+                OblivionMermaidRendererOptions.PinnedVersion);
+            return new MermaidRendererFixture(rootPath, processRunner, renderer);
+        }
+
+        public OblivionExternalMermaidRenderer CreateRenderer(
+            FakeProcessRunner runner,
+            string expectedVersion)
+        {
+            return CreateRendererCore(runner, expectedVersion);
+        }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(RootPath))
+            {
+                Directory.Delete(RootPath, recursive: true);
+            }
+        }
+
+        private static OblivionExternalMermaidRenderer CreateRendererCore(
+            FakeProcessRunner runner,
+            string expectedVersion)
+        {
+            return new OblivionExternalMermaidRenderer(
+                new OblivionMermaidRendererOptions(
+                    typeof(AppTests).Assembly.Location,
+                    null,
+                    expectedVersion,
+                    TimeSpan.FromMilliseconds(100),
+                    "test fake"),
+                runner);
+        }
     }
 
     private sealed class ProductWorkspaceFixture : IDisposable

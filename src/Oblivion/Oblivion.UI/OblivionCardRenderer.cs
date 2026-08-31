@@ -131,9 +131,23 @@ public static class OblivionCardRenderer
         OblivionCompactCardView view,
         string cardId)
     {
-        if (!view.IsExpanded || view.Body is not OblivionCompactMarkdownBodyContent markdownBody)
+        if (!view.IsExpanded)
         {
             return null;
+        }
+
+        if (view.Body is not OblivionCompactMarkdownBodyContent markdownBody)
+        {
+            Rect fallbackBounds = FindRectBySuffix(resolved, cardId + BodyFrameSuffix);
+            ScrollbarGeometry fallbackScrollbar = ScrollRegion.ComputeScrollbarGeometry(
+                new Rect(fallbackBounds.Width, 0, 0, fallbackBounds.Height),
+                fallbackBounds.Height,
+                fallbackBounds.Height,
+                0);
+            return new OblivionExpandedBodyViewport(
+                fallbackBounds,
+                fallbackBounds.Height,
+                fallbackScrollbar);
         }
 
         Rect bounds = FindRectBySuffix(resolved, cardId + ExpandedBodyViewportSuffix);

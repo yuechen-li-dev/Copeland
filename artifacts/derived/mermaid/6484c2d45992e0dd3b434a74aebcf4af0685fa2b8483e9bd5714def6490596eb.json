@@ -1,0 +1,26 @@
+{
+  "Format": 1,
+  "Key": {
+    "SourceHash": "20284e56c79a114d81fa3101f3221c5b74ea9a6d54007eb4b3f544c1c86597db",
+    "RendererId": "mermaid-cli",
+    "RendererVersion": "11.16.0",
+    "OutputFormat": "png",
+    "RenderingOptions": "theme=default;background=white;securityLevel=strict",
+    "Value": "6484c2d45992e0dd3b434a74aebcf4af0685fa2b8483e9bd5714def6490596eb"
+  },
+  "Provenance": {
+    "SourceKind": "Mermaid",
+    "SourceHash": "20284e56c79a114d81fa3101f3221c5b74ea9a6d54007eb4b3f544c1c86597db",
+    "RendererId": "mermaid-cli",
+    "RendererVersion": "11.16.0",
+    "RenderOperation": "render-mermaid-png",
+    "OutputFormat": "png",
+    "Producer": "@mermaid-js/mermaid-cli@11.16.0",
+    "WorkspaceId": "m19c-agent-presentation-trial",
+    "PageId": "architecture",
+    "CardId": "m19c-architecture",
+    "ContentId": "m19c-architecture.mermaid-0",
+    "SourceReference": "body/architecture.md",
+    "Derived": true
+  }
+}

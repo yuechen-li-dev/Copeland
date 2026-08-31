@@ -1,0 +1,9 @@
+{
+  "name": "copeland-oblivion-mermaid-renderer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pinned local Mermaid renderer for Oblivion derived diagrams.",
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "11.16.0"
+  }
+}

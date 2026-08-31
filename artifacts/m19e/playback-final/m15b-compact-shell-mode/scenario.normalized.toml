@@ -1,0 +1,21 @@
+[scenario]
+id = "m15b-compact-shell-mode"
+name = "M15b compact shell mode baseline"
+viewport = { width = 960, height = 540 }
+section = "oblivion"
+tab = "docs"
+selectedCard = "doc-machina-oblivion-phase-closeout-m11g"
+
+[output]
+captureFinalPng = true
+captureTraceJson = true
+captureManifest = true
+
+[[steps]]
+type = "wait"
+ms = 0
+
+[[assertions]]
+type = "shell-mode"
+value = "compact"
+reason = "This split M15b scenario preserves the compact half of the resize regression because playback assertions are final-state only and a 960x540 surface must resolve to compact mode."

@@ -175,6 +175,14 @@ public sealed class OblivionCommandLine
         _output.WriteLine($"contentSource={card.Body.SourceReference ?? "<inline>"}");
         _output.WriteLine("content:");
         _output.WriteLine(card.Body.Text);
+        foreach (OblivionProductDiagramSnapshot diagram in card.Diagrams)
+        {
+            _output.WriteLine($"diagramSourceHash={diagram.SourceHash}");
+            _output.WriteLine($"diagramRenderer={diagram.RendererId}@{diagram.RendererVersion}");
+            _output.WriteLine($"diagramRendererStatus={diagram.RendererStatus}");
+            _output.WriteLine($"diagramCacheKey={diagram.CacheKey}");
+            _output.WriteLine($"diagramCachedArtifact={diagram.CachedArtifactPath ?? "<none>"}");
+        }
     }
 
     private void WriteActionsText(IReadOnlyList<OblivionProductActionSnapshot> actions)

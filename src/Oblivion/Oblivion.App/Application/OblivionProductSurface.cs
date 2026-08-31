@@ -58,6 +58,19 @@ public sealed record OblivionProductBodySnapshot(
     string? SourceReference,
     string Text);
 
+public sealed record OblivionProductDiagramSnapshot(
+    string ContentId,
+    string Source,
+    string? SourceReference,
+    string SourceHash,
+    string RendererId,
+    string RendererVersion,
+    string OutputFormat,
+    string CacheKey,
+    string RendererStatus,
+    string? CachedArtifactPath,
+    bool CachedArtifactExists);
+
 public sealed record OblivionProductProvenanceSnapshot(
     string SourceKind,
     string? SourceReference,
@@ -121,6 +134,7 @@ public sealed record OblivionProductCardSnapshot(
     IReadOnlyList<OblivionProductDeclaredActionSnapshot> DeclaredActions,
     IReadOnlyList<OblivionProductActionSnapshot> AvailableActions,
     IReadOnlyList<OblivionProductArtifactSnapshot> Artifacts,
+    IReadOnlyList<OblivionProductDiagramSnapshot> Diagrams,
     IReadOnlyList<OblivionProductDiagnostic> Diagnostics);
 
 public sealed record OblivionProductWorkspaceSnapshot(
@@ -327,8 +341,56 @@ public sealed class OblivionProductSurface
                 action.Enabled)).ToArray(),
             builtCard.RuntimeModel.Actions.Select(CreateActionSnapshot).ToArray(),
             resolvedArtifacts.Select(CreateArtifactSnapshot).ToArray(),
+            CreateDiagramSnapshots(resolvedCard),
             diagnostics);
         return new(snapshot, diagnostics);
+    }
+
+    private static IReadOnlyList<OblivionProductDiagramSnapshot> CreateDiagramSnapshots(
+        OblivionCard card)
+    {
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0));
+        OblivionMermaidRendererOptions options = OblivionMermaidRendererDiscovery.Discover();
+        bool rendererInstalled = !string.IsNullOrWhiteSpace(options.ExecutablePath) &&
+            File.Exists(options.ExecutablePath) &&
+            (options.CliPath is null || File.Exists(options.CliPath));
+        string cacheDirectory = Path.GetFullPath(Path.Combine("artifacts", "derived", "mermaid"));
+
+        return plan.Items
+            .Where(item => item.PresenterKind == OblivionContentPresenterKind.ExternalMermaidRenderer)
+            .Select(item =>
+            {
+                string sourceHash = OblivionMermaidHashing.ComputeSourceHash(item.Source);
+                MermaidDerivedArtifactKey key = new(
+                    sourceHash,
+                    OblivionMermaidRendererOptions.RendererId,
+                    OblivionMermaidRendererOptions.PinnedVersion,
+                    OblivionMermaidRendererOptions.OutputFormat,
+                    OblivionMermaidRendererOptions.RenderingOptions);
+                string cachedPath = Path.Combine(cacheDirectory, key.Value + ".png");
+                bool cached = File.Exists(cachedPath) &&
+                    File.Exists(Path.ChangeExtension(cachedPath, ".json"));
+                string status = cached
+                    ? "cached-qualified-artifact"
+                    : rendererInstalled
+                        ? "installed-awaiting-visual-realization"
+                        : "renderer-unavailable-source-retained";
+                return new OblivionProductDiagramSnapshot(
+                    item.ContentId,
+                    item.Source,
+                    item.SourceReference,
+                    sourceHash,
+                    OblivionMermaidRendererOptions.RendererId,
+                    OblivionMermaidRendererOptions.PinnedVersion,
+                    OblivionMermaidRendererOptions.OutputFormat,
+                    key.Value,
+                    status,
+                    cached ? cachedPath : null,
+                    cached);
+            })
+            .ToArray();
     }
 
     public OblivionProductSurfaceResult<IReadOnlyList<OblivionProductActionSnapshot>> ListActions(

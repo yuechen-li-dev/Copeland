@@ -151,6 +151,8 @@ internal sealed class Program
         private readonly AvaloniaPresenterInputBackend _inputBackend;
         private readonly PresenterHostInputCollector _inputCollector;
         private readonly PresenterNavigationRenderSession _renderSession;
+        private readonly IOblivionDiagramRenderer _diagramRenderer;
+        private readonly string _diagramOutputDirectory;
         private PresenterNavigationLayout _navigationLayout;
         private PresenterSurfaceSize _surfaceSize;
         private PresenterNavigationState? _navigationState;
@@ -158,6 +160,7 @@ internal sealed class Program
         private UiHitTestIndex _hitTestIndex;
         private MachinaComposedFrame _currentFrame;
         private PresenterNavigationShellRenderResult? _navigationShellRender;
+        private readonly List<Control> _matureContentOverlays;
 
         public PresenterWindow(PresenterProofOptions proofOptions, PresenterNavigationExportOptions navigationOptions)
         {
@@ -192,6 +195,10 @@ internal sealed class Program
             _inputBackend = new AvaloniaPresenterInputBackend();
             _inputCollector = new PresenterHostInputCollector();
             _renderSession = new PresenterNavigationRenderSession();
+            _diagramRenderer = new OblivionExternalMermaidRenderer(
+                OblivionMermaidRendererDiscovery.Discover());
+            _diagramOutputDirectory = Path.GetFullPath(
+                Path.Combine("artifacts", "derived", "mermaid"));
             _surfaceSize = navigationOptions.RuntimeSizeExplicit
                 ? PresenterSurfaceSize.Compute(navigationOptions.Width, navigationOptions.Height)
                 : PresenterSurfaceSize.DefaultRuntime;
@@ -203,6 +210,7 @@ internal sealed class Program
             _hitTestIndex = default!;
             _currentFrame = default!;
             _navigationShellRender = null;
+            _matureContentOverlays = [];
             _baseTitle = navigationOptions.IncludeNavigationShell
                 ? "Machina Presenter M15b"
                 : "Machina Presenter M1e";
@@ -250,8 +258,11 @@ internal sealed class Program
                 _image.Source = PresenterExporter.ToBitmap(_navigationShellRender.ComposedFrame);
                 _image.Width = _navigationShellRender.ComposedFrame.Width;
                 _image.Height = _navigationShellRender.ComposedFrame.Height;
+                RefreshMatureContentOverlay();
                 return;
             }
+
+            RemoveMatureContentOverlay();
 
             var ui = SettingsScreen.Build(_state, AppTheme, _proofOptions);
             _currentFrame = MachinaAurelianCpuRasterComposition.Render(
@@ -268,6 +279,142 @@ internal sealed class Program
             _image.Source = PresenterExporter.ToBitmap(_currentFrame.RasterFrame);
             _image.Width = _currentFrame.RasterFrame.Width;
             _image.Height = _currentFrame.RasterFrame.Height;
+        }
+
+        private void RefreshMatureContentOverlay()
+        {
+            RemoveMatureContentOverlay();
+
+            if (_navigationShellRender?.PageRender?.OblivionInteraction is null ||
+                _navigationState is null)
+            {
+                return;
+            }
+
+            string pageId = _navigationShellRender.SelectedTab.PageId;
+            IReadOnlyList<OblivionBuiltCard> cards = OblivionWorkbench.GetBuiltPageCardsForSelection(
+                pageId,
+                _proofOptions,
+                _navigationState.EffectState,
+                _navigationState.OblivionHostState);
+
+            OblivionScrollRegionTarget? expandedBody = _navigationShellRender.PageRender.OblivionInteraction
+                .ScrollRegions
+                .FirstOrDefault(region =>
+                    region.Target.Kind == OblivionScrollTargetKind.ExpandedMarkdownBody &&
+                    region.Target.CardId is not null);
+            OblivionBuiltCard? expandedCard = expandedBody?.Target.CardId is null
+                ? null
+                : cards.FirstOrDefault(candidate =>
+                    candidate.SourceCard.Id.Value == expandedBody.Target.CardId);
+            if (expandedBody is not null && expandedCard is not null)
+            {
+                AddExpandedBodyOverlay(pageId, expandedCard, expandedBody);
+            }
+
+            string? selectedCardId = _navigationState.GetSelectedCardId(
+                pageId,
+                cards.Select(candidate => candidate.SourceCard).ToArray());
+            OblivionScrollRegionTarget? rawSource = _navigationShellRender.PageRender.OblivionInteraction
+                .ScrollRegions
+                .FirstOrDefault(region =>
+                    region.Target.Kind == OblivionScrollTargetKind.InspectorRawMarkdownSource &&
+                    region.Target.CardId == selectedCardId);
+            OblivionBuiltCard? selectedCard = cards.FirstOrDefault(candidate =>
+                candidate.SourceCard.Id.Value == selectedCardId);
+            if (rawSource is not null && selectedCard is not null)
+            {
+                Control inspectorOverlay = AvaloniaOblivionContentHost.BuildInspectorRawSource(
+                    selectedCard.SourceCard);
+                AttachContentOverlay(inspectorOverlay, rawSource.Bounds);
+            }
+        }
+
+        private void AddExpandedBodyOverlay(
+            string pageId,
+            OblivionBuiltCard card,
+            OblivionScrollRegionTarget expandedBody)
+        {
+            if (_navigationState is null)
+            {
+                return;
+            }
+
+            IReadOnlyList<OblivionResolvedContentArtifact> artifacts = ResolveContentArtifacts(card.SourceCard);
+            OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+                card.SourceCard,
+                _navigationState.GetCardViewState(pageId, card.SourceCard.Id.Value),
+                artifacts);
+            if (plan.ReadingState != OblivionReadingState.Expanded)
+            {
+                return;
+            }
+
+            Control overlay = AvaloniaOblivionContentHost.Build(
+                card.SourceCard,
+                plan,
+                _diagramRenderer,
+                _diagramOutputDirectory,
+                pageId: pageId);
+
+            AttachContentOverlay(overlay, expandedBody.Bounds);
+        }
+
+        private void AttachContentOverlay(Control overlay, Machina.Layout.Geometry.Rect body)
+        {
+            if (_navigationShellRender is null)
+            {
+                return;
+            }
+
+            var viewport = _navigationShellRender.Layout.ViewportRect;
+            double left = viewport.X + body.X;
+            double top = viewport.Y + body.Y - _navigationShellRender.ScrollbarGeometry.ScrollOffset;
+            overlay.Width = Math.Max(1, body.Width);
+            overlay.Height = Math.Max(1, body.Height);
+            overlay.Margin = new Thickness(left, top, 0, 0);
+            overlay.HorizontalAlignment = HorizontalAlignment.Left;
+            overlay.VerticalAlignment = VerticalAlignment.Top;
+            _presenterHost.Children.Add(overlay);
+            _matureContentOverlays.Add(overlay);
+        }
+
+        private IReadOnlyList<OblivionResolvedContentArtifact> ResolveContentArtifacts(OblivionCard renderedCard)
+        {
+            OblivionWorkspaceLoadResult load = OblivionWorkbench.LoadWorkspace(_proofOptions, useCache: true);
+            if (!load.Succeeded || load.Workspace is null || load.Location is null)
+            {
+                return [];
+            }
+
+            OblivionWorkspacePage? page = load.Workspace.Pages.FirstOrDefault(candidate =>
+                candidate.Cards.Any(card => card.Id == renderedCard.Id));
+            OblivionCard? sourceCard = page?.Cards.FirstOrDefault(card => card.Id == renderedCard.Id);
+            if (page is null || sourceCard is null)
+            {
+                return [];
+            }
+
+            return OblivionContentRealization.ResolveArtifacts(
+                load.Workspace,
+                load.Location,
+                page,
+                sourceCard);
+        }
+
+        private void RemoveMatureContentOverlay()
+        {
+            if (_matureContentOverlays.Count == 0)
+            {
+                return;
+            }
+
+            foreach (Control overlay in _matureContentOverlays)
+            {
+                _presenterHost.Children.Remove(overlay);
+            }
+
+            _matureContentOverlays.Clear();
         }
 
         private void HandlePointerPressed(object? sender, PointerPressedEventArgs args)

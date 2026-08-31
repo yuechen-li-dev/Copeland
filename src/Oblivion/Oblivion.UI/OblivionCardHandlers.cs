@@ -293,10 +293,12 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
             OblivionCardLabels.StatusLabel(model.Status),
         ];
 
-        if (markdownBody)
-        {
-            badges.Add("Markdown body");
-        }
+        OblivionContentPresentationPlan presentation = OblivionContentPresenterSelector.Select(
+            model.SourceCard,
+            new OblivionCardViewState(
+                model.LocalState.IsExpanded,
+                model.LocalState.BodyScrollOffset));
+        badges.Add(presentation.ContentTypeLabel);
 
         if (model.Diagnostics.Count > 0)
         {
@@ -320,14 +322,9 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
 
     protected static string? BuildCollapsedSummaryLine(OblivionCard card)
     {
-        if (card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown)
-        {
-            return OblivionMarkdownBody.Project(card.Body).Preview
-                .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
-        }
-
-        return OblivionMarkdownBody.Project(card.Body).Preview
-            .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        return OblivionContentPresenterSelector.Select(
+            card,
+            OblivionCardViewState.Collapsed).CollapsedSummary;
     }
 
     protected IReadOnlyList<OblivionInspectorSectionView> BuildStandardInspectorSections(OblivionCardRuntimeModel model)
@@ -362,6 +359,7 @@ public abstract class OblivionCardHandlerBase : IOblivionCardHandler
                     $"Tags: {FormatTags(card.Tags)}",
                     $"Local state expanded: {model.LocalState.IsExpanded.ToString().ToLowerInvariant()}",
                     $"Body scroll offset: {model.LocalState.BodyScrollOffset:0.###}",
+                    $"Content presenter: {OblivionContentPresenterSelector.Select(card, new OblivionCardViewState(model.LocalState.IsExpanded, model.LocalState.BodyScrollOffset)).Items[0].PresenterKind}",
                     $"Rendered body surface: {(card.Body.Format == OblivionCardBodyFormat.CopelandMarkdown ? "Expanded card body" : "Inspector body section")}",
                     $"Selected artifact: {model.LocalState.SelectedArtifactId ?? "<none>"}",
                 ]),
@@ -755,7 +753,7 @@ public sealed class OblivionArtifactCardHandler : OblivionCardHandlerBase
             model.LocalState.IsExpanded,
             model.LocalState.BodyScrollOffset,
             card.Artifacts.Count > 1 ? 212 : 204,
-            card.Artifacts.Count > 1 ? 212 : 204);
+            420);
     }
 }
 
@@ -808,7 +806,7 @@ public sealed class OblivionCodeFactCardHandler : OblivionCardHandlerBase
             model.LocalState.IsExpanded,
             model.LocalState.BodyScrollOffset,
             248,
-            248);
+            420);
     }
 }
 
@@ -861,7 +859,7 @@ public sealed class OblivionCodeTheoryCardHandler : OblivionCardHandlerBase
             model.LocalState.IsExpanded,
             model.LocalState.BodyScrollOffset,
             312,
-            312);
+            420);
     }
 }
 
