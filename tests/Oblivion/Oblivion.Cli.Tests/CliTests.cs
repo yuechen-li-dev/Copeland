@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Oblivion.App;
 using Xunit;
 
 namespace Oblivion.Cli.Tests;
@@ -13,6 +14,8 @@ public sealed class CliTests
     [InlineData("card push --help", "push it onto a Page stack")]
     [InlineData("card peek --help", "top (last) Card")]
     [InlineData("card pop --help", "safely delete owned files")]
+    [InlineData("config --help", "persistent Oblivion application configuration")]
+    [InlineData("command run --help", "command-id")]
     public async Task Generated_help_is_discoverable(string commandLine, string expected)
     {
         CliResult result = await Run(commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries));
@@ -226,6 +229,56 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task Config_show_get_set_have_human_json_and_typed_failure_contracts()
+    {
+        using TemporaryConfig config = new();
+
+        CliResult defaults = await RunWithConfig(config.Path, "config", "show", "--json");
+        CliResult set = await RunWithConfig(config.Path, "config", "set", "appearance", "dark", "--json");
+        CliResult get = await RunWithConfig(config.Path, "config", "get", "appearance");
+        CliResult invalidKey = await RunWithConfig(config.Path, "config", "get", "missing", "--json");
+        CliResult invalidValue = await RunWithConfig(config.Path, "config", "set", "newline", "native");
+
+        using JsonDocument defaultsJson = JsonDocument.Parse(defaults.Output);
+        Assert.Equal("system", defaultsJson.RootElement.GetProperty("appearance").GetString());
+        Assert.Equal("preserve", defaultsJson.RootElement.GetProperty("newline").GetString());
+        Assert.Equal("default", defaultsJson.RootElement.GetProperty("style").GetString());
+        using JsonDocument setJson = JsonDocument.Parse(set.Output);
+        Assert.Equal("appearance", setJson.RootElement.GetProperty("key").GetString());
+        Assert.Equal("dark", setJson.RootElement.GetProperty("value").GetString());
+        Assert.True(setJson.RootElement.GetProperty("succeeded").GetBoolean());
+        Assert.Equal("dark" + Environment.NewLine, get.Output);
+        Assert.Equal(OblivionCliExitCode.ProductFailure, invalidKey.ExitCode);
+        Assert.Contains("OBLIVION-CONFIG-KEY-UNKNOWN", invalidKey.Output, StringComparison.Ordinal);
+        Assert.Equal(OblivionCliExitCode.ProductFailure, invalidValue.ExitCode);
+        Assert.Contains("OBLIVION-CONFIG-VALUE-INVALID", invalidValue.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Command_list_and_run_use_App_registry_with_stable_json_and_exit_codes()
+    {
+        CliResult list = await Run("command", "list", "--json");
+        CliResult reload = await Run("command", "run", "workspace.reload", "-w", FixtureRoot, "--json");
+        CliResult expand = await Run("command", "run", "cards.expand-all", "-w", FixtureRoot, "--json");
+        CliResult collapse = await Run("command", "run", "cards.collapse-all", "-w", FixtureRoot);
+        CliResult unknown = await Run("command", "run", "view.reset", "-w", FixtureRoot, "--json");
+
+        using JsonDocument listJson = JsonDocument.Parse(list.Output);
+        Assert.Equal(3, listJson.RootElement.GetArrayLength());
+        Assert.Equal("workspace.reload", listJson.RootElement[0].GetProperty("id").GetString());
+        Assert.Equal("active-page", listJson.RootElement[1].GetProperty("scope").GetString());
+        Assert.True(listJson.RootElement[2].GetProperty("available").GetBoolean());
+        using JsonDocument reloadJson = JsonDocument.Parse(reload.Output);
+        Assert.True(reloadJson.RootElement.GetProperty("executed").GetBoolean());
+        Assert.Equal("workspace.reload", reloadJson.RootElement.GetProperty("id").GetString());
+        using JsonDocument expandJson = JsonDocument.Parse(expand.Output);
+        Assert.Equal(2, expandJson.RootElement.GetProperty("affectedCards").GetInt32());
+        Assert.Contains("Executed cards.collapse-all", collapse.Output, StringComparison.Ordinal);
+        Assert.Equal(OblivionCliExitCode.ProductFailure, unknown.ExitCode);
+        Assert.Contains("OBLIVION-COMMAND-UNKNOWN", unknown.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Push_peek_and_pop_have_human_and_deterministic_json_results()
     {
         using TemporaryVault vault = TemporaryVault.CopyFixture();
@@ -381,6 +434,16 @@ public sealed class CliTests
         return new CliResult(exitCode, output.ToString(), error.ToString());
     }
 
+    private static async Task<CliResult> RunWithConfig(string configPath, params string[] args)
+    {
+        StringWriter output = new();
+        StringWriter error = new();
+        OblivionConfigStore store = new(configPath);
+        OblivionCli cli = new(output, error, configStore: store);
+        int exitCode = await cli.InvokeAsync(args);
+        return new CliResult(exitCode, output.ToString(), error.ToString());
+    }
+
     private static string FindRepositoryRoot()
     {
         DirectoryInfo? directory = new(Environment.CurrentDirectory);
@@ -398,6 +461,29 @@ public sealed class CliTests
     }
 
     private sealed record CliResult(int ExitCode, string Output, string Error);
+
+    private sealed class TemporaryConfig : IDisposable
+    {
+        public TemporaryConfig()
+        {
+            Directory = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                "oblivion-m19m-cli-config-tests",
+                Guid.NewGuid().ToString("N"));
+            Path = System.IO.Path.Combine(Directory, "config.toml");
+        }
+
+        public string Directory { get; }
+        public string Path { get; }
+
+        public void Dispose()
+        {
+            if (System.IO.Directory.Exists(Directory))
+            {
+                System.IO.Directory.Delete(Directory, recursive: true);
+            }
+        }
+    }
 
     private sealed class TemporaryVault : IDisposable
     {

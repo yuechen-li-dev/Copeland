@@ -26,21 +26,24 @@ public sealed class OblivionCli
     private readonly TextWriter _output;
     private readonly TextWriter _error;
     private readonly OblivionWorkspaceControl _control;
-    private readonly Option<string> _workspaceOption;
+    private readonly OblivionConfigStore _configStore;
+    private readonly Option<string?> _workspaceOption;
     private readonly Option<bool> _jsonOption;
 
     public OblivionCli(
         TextWriter output,
         TextWriter error,
-        OblivionWorkspaceControl? control = null)
+        OblivionWorkspaceControl? control = null,
+        OblivionConfigStore? configStore = null)
     {
         _output = output;
         _error = error;
-        _control = control ?? new OblivionWorkspaceControl();
-        _workspaceOption = new Option<string>("--workspace")
+        _configStore = configStore ?? new OblivionConfigStore();
+        _control = control ?? new OblivionWorkspaceControl(
+            new OblivionApplication(configStore: _configStore));
+        _workspaceOption = new Option<string?>("--workspace")
         {
             Description = "Explicit structured Oblivion vault root.",
-            Required = true,
             Recursive = true,
         };
         _workspaceOption.Aliases.Add("-w");
@@ -83,9 +86,20 @@ public sealed class OblivionCli
         card.Subcommands.Add(CreateCardPushCommand());
         card.Subcommands.Add(CreateCardPopCommand());
 
+        Command config = new("config", "Inspect or change persistent Oblivion application configuration.");
+        config.Subcommands.Add(CreateConfigShowCommand());
+        config.Subcommands.Add(CreateConfigGetCommand());
+        config.Subcommands.Add(CreateConfigSetCommand());
+
+        Command command = new("command", "Discover or execute process-local application commands.");
+        command.Subcommands.Add(CreateCommandListCommand());
+        command.Subcommands.Add(CreateCommandRunCommand());
+
         root.Subcommands.Add(workspace);
         root.Subcommands.Add(page);
         root.Subcommands.Add(card);
+        root.Subcommands.Add(config);
+        root.Subcommands.Add(command);
         return root;
     }
 
@@ -116,6 +130,33 @@ public sealed class OblivionCli
             foreach (System.CommandLine.Parsing.ParseError parseError in parseResult.Errors)
             {
                 _error.WriteLine($"error:OBLIVION-CLI-USAGE:{parseError.Message}");
+            }
+
+            return OblivionCliExitCode.UsageError;
+        }
+
+        if (RequiresWorkspace(args) && string.IsNullOrWhiteSpace(parseResult.GetValue(_workspaceOption)))
+        {
+            const string message = "Option '--workspace' is required for this command.";
+            if (json)
+            {
+                WriteJson(new
+                {
+                    succeeded = false,
+                    diagnostics = new[]
+                    {
+                        new
+                        {
+                            code = "OBLIVION-CLI-USAGE",
+                            severity = "error",
+                            message,
+                        },
+                    },
+                });
+            }
+            else
+            {
+                _error.WriteLine($"error:OBLIVION-CLI-USAGE:{message}");
             }
 
             return OblivionCliExitCode.UsageError;
@@ -409,6 +450,164 @@ public sealed class OblivionCli
         };
     }
 
+    private Command CreateConfigShowCommand()
+    {
+        Command command = new("show", "Show the complete typed application configuration.");
+        command.SetAction(parseResult => WriteConfigShow(_configStore.Show(), Json(parseResult)));
+        return command;
+    }
+
+    private Command CreateConfigGetCommand()
+    {
+        Argument<string> keyArgument = new("key")
+        {
+            Description = "Config key: appearance, newline, or style.",
+        };
+        Command command = new("get", "Get one typed application configuration value.");
+        command.Arguments.Add(keyArgument);
+        command.SetAction(parseResult => WriteConfigValue(
+            _configStore.Get(parseResult.GetValue(keyArgument)!),
+            Json(parseResult),
+            includeSuccess: false));
+        return command;
+    }
+
+    private Command CreateConfigSetCommand()
+    {
+        Argument<string> keyArgument = new("key")
+        {
+            Description = "Config key: appearance, newline, or style.",
+        };
+        Argument<string> valueArgument = new("value")
+        {
+            Description = "Typed value accepted by the selected config key.",
+        };
+        Command command = new("set", "Validate and atomically persist one config value.");
+        command.Arguments.Add(keyArgument);
+        command.Arguments.Add(valueArgument);
+        command.SetAction(parseResult => WriteConfigValue(
+            _configStore.Set(
+                parseResult.GetValue(keyArgument)!,
+                parseResult.GetValue(valueArgument)!),
+            Json(parseResult),
+            includeSuccess: true));
+        return command;
+    }
+
+    private Command CreateCommandListCommand()
+    {
+        Command command = new("list", "List stable application command descriptors.");
+        command.SetAction(parseResult =>
+        {
+            IReadOnlyList<OblivionCommandInfo> commands = _control.ListCommands();
+            if (Json(parseResult))
+            {
+                WriteJson(commands);
+            }
+            else
+            {
+                foreach (OblivionCommandInfo descriptor in commands)
+                {
+                    _output.WriteLine($"{descriptor.Id,-24} {descriptor.Title}");
+                }
+            }
+
+            return OblivionCliExitCode.Success;
+        });
+        return command;
+    }
+
+    private Command CreateCommandRunCommand()
+    {
+        Argument<string> commandIdArgument = new("command-id")
+        {
+            Description = "Exact stable application command id.",
+        };
+        Command command = new("run", "Run one command against a process-local App session.");
+        command.Arguments.Add(commandIdArgument);
+        command.SetAction(parseResult =>
+        {
+            OblivionControlResult<OblivionCommandRunInfo> result = _control.RunCommand(
+                Workspace(parseResult),
+                parseResult.GetValue(commandIdArgument)!);
+            return WriteResult(result, Json(parseResult), value =>
+            {
+                _output.WriteLine($"Executed {value.Id}: {value.Title}");
+                _output.WriteLine($"Scope: {value.Scope}");
+                _output.WriteLine($"Affected Cards: {value.AffectedCards}");
+            });
+        });
+        return command;
+    }
+
+    private int WriteConfigShow(OblivionConfigResult result, bool json)
+    {
+        if (result.Config is null)
+        {
+            return WriteConfigFailure(result, json);
+        }
+
+        if (json)
+        {
+            WriteJson(new
+            {
+                appearance = OblivionConfigStore.FormatValue(result.Config, OblivionConfigKey.Appearance),
+                newline = OblivionConfigStore.FormatValue(result.Config, OblivionConfigKey.Newline),
+                style = OblivionConfigStore.FormatValue(result.Config, OblivionConfigKey.Style),
+            });
+        }
+        else
+        {
+            _output.WriteLine($"Appearance: {OblivionConfigStore.FormatValue(result.Config, OblivionConfigKey.Appearance)}");
+            _output.WriteLine($"Newline: {OblivionConfigStore.FormatValue(result.Config, OblivionConfigKey.Newline)}");
+            _output.WriteLine($"Style: {OblivionConfigStore.FormatValue(result.Config, OblivionConfigKey.Style)}");
+        }
+
+        return OblivionCliExitCode.Success;
+    }
+
+    private int WriteConfigValue(OblivionConfigResult result, bool json, bool includeSuccess)
+    {
+        if (!result.Succeeded || result.Key is null || result.Value is null)
+        {
+            return WriteConfigFailure(result, json);
+        }
+
+        string key = OblivionConfigStore.FormatKey(result.Key.Value);
+        if (json)
+        {
+            WriteJson(new
+            {
+                key,
+                value = result.Value,
+                succeeded = includeSuccess ? true : (bool?)null,
+            });
+        }
+        else
+        {
+            _output.WriteLine(includeSuccess ? $"{key} = {result.Value}" : result.Value);
+        }
+
+        return OblivionCliExitCode.Success;
+    }
+
+    private int WriteConfigFailure(OblivionConfigResult result, bool json)
+    {
+        if (json)
+        {
+            WriteJson(new { succeeded = false, diagnostics = result.Diagnostics });
+        }
+        else
+        {
+            foreach (OblivionConfigDiagnostic diagnostic in result.Diagnostics)
+            {
+                _error.WriteLine($"{diagnostic.Severity}:{diagnostic.Code}:source={diagnostic.Path}:{diagnostic.Message}");
+            }
+        }
+
+        return OblivionCliExitCode.ProductFailure;
+    }
+
     private int WriteResult<T>(
         OblivionControlResult<T> result,
         bool json,
@@ -483,6 +682,28 @@ public sealed class OblivionCli
     private string Workspace(ParseResult parseResult)
     {
         return Path.GetFullPath(parseResult.GetValue(_workspaceOption)!);
+    }
+
+    private static bool RequiresWorkspace(string[] args)
+    {
+        if (args.Length == 0 || args.Any(argument => argument is "--help" or "-h"))
+        {
+            return false;
+        }
+
+        int configIndex = Array.IndexOf(args, "config");
+        if (configIndex >= 0)
+        {
+            return false;
+        }
+
+        int commandIndex = Array.IndexOf(args, "command");
+        if (commandIndex >= 0 && commandIndex + 1 < args.Length && args[commandIndex + 1] == "list")
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private bool Json(ParseResult parseResult)

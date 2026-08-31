@@ -160,6 +160,121 @@ public sealed class StructuredVaultTests
         }
     }
 
+    [Theory]
+    [InlineData("\n", true)]
+    [InlineData("\n", false)]
+    [InlineData("\r\n", true)]
+    [InlineData("\r\n", false)]
+    public void Preserve_push_then_pop_restores_exact_page_bytes(string newline, bool trailingNewline)
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string pagePath = Path.Combine(vault.Root, "pages", "notebook.toml");
+        string canonical = File.ReadAllText(pagePath)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .TrimEnd('\n');
+        string authored = canonical.Replace("\n", newline, StringComparison.Ordinal) +
+            (trailingNewline ? newline : string.Empty);
+        File.WriteAllText(pagePath, authored);
+        byte[] original = File.ReadAllBytes(pagePath);
+        string source = Path.Combine(Path.GetDirectoryName(vault.Root)!, $"newline-{Guid.NewGuid():N}.md");
+        File.WriteAllText(source, "# Newline proof\n");
+        try
+        {
+            Assert.NotNull(OblivionStackMutation.PushMarkdown(
+                vault.Root,
+                source,
+                null,
+                "newline-proof",
+                null,
+                null,
+                OblivionVaultNewlinePolicy.Preserve,
+                out _));
+            Assert.NotNull(OblivionStackMutation.Pop(
+                vault.Root,
+                null,
+                OblivionVaultNewlinePolicy.Preserve,
+                out _));
+
+            Assert.Equal(original, File.ReadAllBytes(pagePath));
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
+    [Fact]
+    public void Preserve_push_then_pop_restores_mixed_existing_line_endings_exactly()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string pagePath = Path.Combine(vault.Root, "pages", "notebook.toml");
+        string canonical = File.ReadAllText(pagePath).Replace("\r\n", "\n", StringComparison.Ordinal);
+        string mixed = canonical.Replace("\n", "\r\n", StringComparison.Ordinal)
+            .Replace("cards = ", "cards = ", StringComparison.Ordinal);
+        int cardsStart = mixed.IndexOf("cards = ", StringComparison.Ordinal);
+        mixed = mixed[..cardsStart].Replace("\r\n", "\n", StringComparison.Ordinal) + mixed[cardsStart..];
+        File.WriteAllText(pagePath, mixed);
+        byte[] original = File.ReadAllBytes(pagePath);
+        string source = Path.Combine(Path.GetDirectoryName(vault.Root)!, $"mixed-{Guid.NewGuid():N}.md");
+        File.WriteAllText(source, "# Mixed proof\n");
+        try
+        {
+            Assert.NotNull(OblivionStackMutation.PushMarkdown(
+                vault.Root,
+                source,
+                null,
+                "mixed-proof",
+                null,
+                null,
+                OblivionVaultNewlinePolicy.Preserve,
+                out _));
+            Assert.NotNull(OblivionStackMutation.Pop(
+                vault.Root,
+                null,
+                OblivionVaultNewlinePolicy.Preserve,
+                out _));
+            Assert.Equal(original, File.ReadAllBytes(pagePath));
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
+    [Theory]
+    [InlineData(OblivionVaultNewlinePolicy.Lf, "\n")]
+    [InlineData(OblivionVaultNewlinePolicy.Crlf, "\r\n")]
+    public void Explicit_newline_policy_applies_to_rewritten_page_and_new_card_metadata(
+        OblivionVaultNewlinePolicy policy,
+        string expectedNewline)
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string source = Path.Combine(Path.GetDirectoryName(vault.Root)!, $"policy-{Guid.NewGuid():N}.md");
+        const string importedBytes = "# Source\r\n\r\nKeep imported bytes.\r\n";
+        File.WriteAllText(source, importedBytes);
+        try
+        {
+            OblivionStackMutationResult mutation = Assert.IsType<OblivionStackMutationResult>(
+                OblivionStackMutation.PushMarkdown(
+                    vault.Root,
+                    source,
+                    null,
+                    "policy-proof",
+                    null,
+                    null,
+                    policy,
+                    out _));
+
+            AssertOnlyNewline(File.ReadAllText(Path.Combine(vault.Root, "pages", "notebook.toml")), expectedNewline);
+            AssertOnlyNewline(File.ReadAllText(Path.Combine(vault.Root, mutation.MetadataPath)), expectedNewline);
+            Assert.Equal(importedBytes, File.ReadAllText(Path.Combine(vault.Root, mutation.ContentPath)));
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
     [Fact]
     public void Pop_removes_metadata_but_retains_shared_content()
     {
@@ -225,6 +340,19 @@ public sealed class StructuredVaultTests
         Assert.Equal(expectedReference, card.Body.SourceReference);
         Assert.Equal(OblivionProvenanceSourceKind.WorkspaceAsset, card.Provenance.SourceKind);
         Assert.Equal($"cards/{expectedId}.toml", card.Provenance.SourceReference);
+    }
+
+    private static void AssertOnlyNewline(string text, string expectedNewline)
+    {
+        if (expectedNewline == "\r\n")
+        {
+            Assert.Contains("\r\n", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("\n", text.Replace("\r\n", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
+            return;
+        }
+
+        Assert.Contains("\n", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("\r", text, StringComparison.Ordinal);
     }
 
     public enum BrokenVaultCase

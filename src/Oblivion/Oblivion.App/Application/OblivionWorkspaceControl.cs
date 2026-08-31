@@ -97,6 +97,23 @@ public sealed record OblivionCardStackInfo(
     bool Success,
     IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
 
+public sealed record OblivionCommandInfo(
+    string Id,
+    string Title,
+    string Description,
+    string Scope,
+    bool Available);
+
+public sealed record OblivionCommandRunInfo(
+    string Id,
+    string Title,
+    string Scope,
+    bool Available,
+    bool Executed,
+    int AffectedCards,
+    OblivionReloadSessionInfo Session,
+    IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
+
 public sealed record OblivionControlResult<T>(
     T? Value,
     IReadOnlyList<OblivionControlDiagnostic> Diagnostics)
@@ -111,10 +128,14 @@ public sealed class OblivionWorkspaceControl
     private const int FormatVersion = 1;
     private const int PreviewLimit = 400;
     private readonly OblivionApplication _application;
+    private readonly OblivionCommandRegistry _commands;
 
-    public OblivionWorkspaceControl(OblivionApplication? application = null)
+    public OblivionWorkspaceControl(
+        OblivionApplication? application = null,
+        OblivionCommandRegistry? commands = null)
     {
         _application = application ?? new OblivionApplication();
+        _commands = commands ?? new OblivionCommandRegistry();
     }
 
     public OblivionControlResult<OblivionWorkspaceInfo> Show(string workspaceRoot)
@@ -461,6 +482,66 @@ public sealed class OblivionWorkspaceControl
         return CreateMutationResult(operation);
     }
 
+    public IReadOnlyList<OblivionCommandInfo> ListCommands()
+    {
+        return _commands.Descriptors.Select(descriptor => new OblivionCommandInfo(
+            descriptor.Id,
+            descriptor.Title,
+            descriptor.Description,
+            FormatScope(descriptor.Scope),
+            descriptor.Available)).ToArray();
+    }
+
+    public OblivionControlResult<OblivionCommandRunInfo> RunCommand(
+        string workspaceRoot,
+        string externalCommandId)
+    {
+        if (!_commands.TryResolve(externalCommandId, out OblivionCommandId commandId))
+        {
+            OblivionControlDiagnostic unknown = new(
+                "OBLIVION-COMMAND-UNKNOWN",
+                "error",
+                $"Command '{externalCommandId}' is not registered.",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+            return new(null, [unknown]);
+        }
+
+        OblivionWorkspaceSessionOpenResult open = _application.OpenWorkspace(workspaceRoot);
+        if (!open.Succeeded || open.Session is null)
+        {
+            return new(null, ConvertDiagnostics(open.Diagnostics, null));
+        }
+
+        OblivionCommandExecutionResult execution = _commands.Run(
+            _application,
+            open.Session,
+            commandId);
+        IReadOnlyList<OblivionControlDiagnostic> diagnostics = ConvertDiagnostics(
+            execution.Diagnostics,
+            execution.Session.Workspace);
+        if (!execution.Succeeded || execution.Command is null)
+        {
+            return new(null, diagnostics);
+        }
+
+        OblivionCommandDescriptor descriptor = execution.Command;
+        OblivionCommandRunInfo value = new(
+            descriptor.Id,
+            descriptor.Title,
+            FormatScope(descriptor.Scope),
+            descriptor.Available,
+            execution.Executed,
+            execution.AffectedCards,
+            CreateSessionInfo(execution.Session),
+            diagnostics);
+        return new(value, diagnostics);
+    }
+
     private static OblivionControlResult<OblivionCardStackInfo> CreateMutationResult(
         OblivionStackOperationResult operation)
     {
@@ -569,5 +650,15 @@ public sealed class OblivionWorkspaceControl
         return normalized.Length <= PreviewLimit
             ? normalized
             : normalized[..PreviewLimit] + "\n...";
+    }
+
+    private static string FormatScope(OblivionCommandScope scope)
+    {
+        return scope switch
+        {
+            OblivionCommandScope.Workspace => "workspace",
+            OblivionCommandScope.ActivePage => "active-page",
+            _ => throw new ArgumentOutOfRangeException(nameof(scope)),
+        };
     }
 }

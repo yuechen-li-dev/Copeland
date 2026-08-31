@@ -71,13 +71,16 @@ public sealed class OblivionApplication
 {
     private readonly OblivionCardHandlerRegistry _handlers;
     private readonly OblivionCardEffectRouter _effects;
+    private readonly OblivionConfigStore _configStore;
 
     public OblivionApplication(
         OblivionCardHandlerRegistry? handlers = null,
-        OblivionCardEffectRouter? effects = null)
+        OblivionCardEffectRouter? effects = null,
+        OblivionConfigStore? configStore = null)
     {
         _handlers = handlers ?? OblivionCardHandlerRegistry.CreateDefault();
         _effects = effects ?? new OblivionCardEffectRouter();
+        _configStore = configStore ?? new OblivionConfigStore();
     }
 
     public OblivionActionOutcome? Invoke(
@@ -199,6 +202,11 @@ public sealed class OblivionApplication
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(request);
 
+        if (!TryGetNewlinePolicy(current, out OblivionVaultNewlinePolicy newlinePolicy, out IReadOnlyList<OblivionWorkspaceDiagnostic> configDiagnostics))
+        {
+            return new OblivionStackOperationResult(current, null, configDiagnostics);
+        }
+
         OblivionStackMutationResult? mutation = OblivionStackMutation.PushMarkdown(
             current.Location.RootDirectory,
             request.SourcePath,
@@ -206,6 +214,7 @@ public sealed class OblivionApplication
             request.CardId,
             request.Title,
             request.Subtitle,
+            newlinePolicy,
             out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics);
         if (mutation is null)
         {
@@ -225,6 +234,11 @@ public sealed class OblivionApplication
     {
         ArgumentNullException.ThrowIfNull(current);
 
+        if (!TryGetNewlinePolicy(current, out OblivionVaultNewlinePolicy newlinePolicy, out IReadOnlyList<OblivionWorkspaceDiagnostic> configDiagnostics))
+        {
+            return new OblivionStackOperationResult(current, null, configDiagnostics);
+        }
+
         string targetPageId = pageId ?? current.Workspace.DefaultPageId?.Value ?? string.Empty;
         string? selectedBefore = current.Workspace.Pages
             .FirstOrDefault(page => page.Id.Value == targetPageId) is { } pageBefore
@@ -233,6 +247,7 @@ public sealed class OblivionApplication
         OblivionStackMutationResult? mutation = OblivionStackMutation.Pop(
             current.Location.RootDirectory,
             pageId,
+            newlinePolicy,
             out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics);
         if (mutation is null)
         {
@@ -259,6 +274,33 @@ public sealed class OblivionApplication
             next,
             mutation,
             diagnostics.Concat(reload.Diagnostics).ToArray());
+    }
+
+    private bool TryGetNewlinePolicy(
+        OblivionWorkspaceSession current,
+        out OblivionVaultNewlinePolicy policy,
+        out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics)
+    {
+        OblivionConfigResult config = _configStore.Load();
+        if (config.Config is null)
+        {
+            policy = default;
+            diagnostics = config.Diagnostics.Select(diagnostic => OblivionWorkspaceValidator.Error(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.Path)).ToArray();
+            return false;
+        }
+
+        policy = config.Config.NewlinePolicy switch
+        {
+            OblivionNewlinePolicy.Preserve => OblivionVaultNewlinePolicy.Preserve,
+            OblivionNewlinePolicy.Lf => OblivionVaultNewlinePolicy.Lf,
+            OblivionNewlinePolicy.Crlf => OblivionVaultNewlinePolicy.Crlf,
+            _ => throw new ArgumentOutOfRangeException(),
+        };
+        diagnostics = [];
+        return true;
     }
 
     internal static OblivionWorkspaceLoadResult LoadVault(string vaultRoot)

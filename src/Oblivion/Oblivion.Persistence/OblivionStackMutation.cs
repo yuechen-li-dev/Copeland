@@ -1,5 +1,12 @@
 namespace Oblivion.Persistence;
 
+public enum OblivionVaultNewlinePolicy
+{
+    Preserve,
+    Lf,
+    Crlf,
+}
+
 public sealed record OblivionStackMutationResult(
     string Operation,
     string WorkspaceId,
@@ -24,6 +31,27 @@ public static class OblivionStackMutation
         string? requestedCardId,
         string? requestedTitle,
         string? subtitle,
+        out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics)
+    {
+        return PushMarkdown(
+            vaultRoot,
+            sourcePath,
+            requestedPageId,
+            requestedCardId,
+            requestedTitle,
+            subtitle,
+            OblivionVaultNewlinePolicy.Preserve,
+            out diagnostics);
+    }
+
+    public static OblivionStackMutationResult? PushMarkdown(
+        string vaultRoot,
+        string sourcePath,
+        string? requestedPageId,
+        string? requestedCardId,
+        string? requestedTitle,
+        string? subtitle,
+        OblivionVaultNewlinePolicy newlinePolicy,
         out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics)
     {
         string root = Path.GetFullPath(vaultRoot);
@@ -153,10 +181,14 @@ public static class OblivionStackMutation
                     "imported-markdown",
                     fullSourcePath,
                     ImportedMarkdownProducer));
+            string cardToml = ApplyNewlinePolicy(
+                OblivionCardTomlWriter.Write(cardDocument),
+                newlinePolicy,
+                existingText: null);
             File.WriteAllText(
                 OblivionStructuredVaultPaths.CardMetadata(stageRoot, cardId),
-                OblivionCardTomlWriter.Write(cardDocument));
-            File.WriteAllText(stagedPagePath, OblivionPageTomlWriter.Write(nextPage));
+                cardToml);
+            WritePageMutation(stagedPagePath, nextPage, newlinePolicy);
 
             OblivionWorkspaceLoadResult candidate = OblivionWorkspaceLoader.OpenVault(stageRoot);
             if (!candidate.Succeeded)
@@ -190,6 +222,19 @@ public static class OblivionStackMutation
     public static OblivionStackMutationResult? Pop(
         string vaultRoot,
         string? requestedPageId,
+        out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics)
+    {
+        return Pop(
+            vaultRoot,
+            requestedPageId,
+            OblivionVaultNewlinePolicy.Preserve,
+            out diagnostics);
+    }
+
+    public static OblivionStackMutationResult? Pop(
+        string vaultRoot,
+        string? requestedPageId,
+        OblivionVaultNewlinePolicy newlinePolicy,
         out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics)
     {
         string root = Path.GetFullPath(vaultRoot);
@@ -252,7 +297,7 @@ public static class OblivionStackMutation
             {
                 CardIds = pageDocument.StructuredCardIds.Take(pageDocument.StructuredCardIds.Count - 1).ToArray(),
             };
-            File.WriteAllText(stagedPagePath, OblivionPageTomlWriter.Write(nextPage));
+            WritePageMutation(stagedPagePath, nextPage, newlinePolicy);
             File.Delete(OblivionStructuredVaultPaths.CardMetadata(stageRoot, cardId));
             if (deleteContent)
             {
@@ -487,6 +532,90 @@ public static class OblivionStackMutation
     {
         return OblivionPageTomlReader.Read(File.ReadAllText(path), path).Document ??
             throw new InvalidDataException($"Page metadata '{path}' could not be read after workspace validation.");
+    }
+
+    private static void WritePageMutation(
+        string path,
+        OblivionPageAssetDocument nextPage,
+        OblivionVaultNewlinePolicy policy)
+    {
+        string original = File.ReadAllText(path);
+        string replacement = FormatStringArray("cards", nextPage.StructuredCardIds);
+        if (!TryReplaceCardsAssignment(original, replacement, out string mutated))
+        {
+            throw new InvalidDataException($"Page metadata '{path}' has no writable cards assignment.");
+        }
+
+        mutated = ApplyNewlinePolicy(mutated, policy, original);
+        File.WriteAllText(path, mutated);
+    }
+
+    private static bool TryReplaceCardsAssignment(
+        string original,
+        string replacement,
+        out string mutated)
+    {
+        int lineStart = 0;
+        while (lineStart <= original.Length)
+        {
+            int lineEnd = lineStart;
+            while (lineEnd < original.Length && original[lineEnd] is not ('\r' or '\n'))
+            {
+                lineEnd++;
+            }
+
+            string line = original[lineStart..lineEnd];
+            string trimmed = line.TrimStart();
+            int separator = trimmed.IndexOf('=');
+            if (separator > 0 && string.Equals(trimmed[..separator].Trim(), "cards", StringComparison.Ordinal))
+            {
+                string indentation = line[..(line.Length - trimmed.Length)];
+                mutated = original[..lineStart] + indentation + replacement + original[lineEnd..];
+                return true;
+            }
+
+            if (lineEnd == original.Length)
+            {
+                break;
+            }
+
+            lineStart = original[lineEnd] == '\r' &&
+                lineEnd + 1 < original.Length &&
+                original[lineEnd + 1] == '\n'
+                    ? lineEnd + 2
+                    : lineEnd + 1;
+        }
+
+        mutated = original;
+        return false;
+    }
+
+    private static string FormatStringArray(string key, IReadOnlyList<string> values)
+    {
+        string encoded = string.Join(", ", values.Select(value => $"\"{value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal)}\""));
+        return $"{key} = [{encoded}]";
+    }
+
+    private static string ApplyNewlinePolicy(
+        string text,
+        OblivionVaultNewlinePolicy policy,
+        string? existingText)
+    {
+        string newline = policy switch
+        {
+            OblivionVaultNewlinePolicy.Lf => "\n",
+            OblivionVaultNewlinePolicy.Crlf => "\r\n",
+            OblivionVaultNewlinePolicy.Preserve when existingText?.Contains("\r\n", StringComparison.Ordinal) == true => "\r\n",
+            OblivionVaultNewlinePolicy.Preserve when existingText is not null => "\n",
+            OblivionVaultNewlinePolicy.Preserve => Environment.NewLine,
+            _ => throw new ArgumentOutOfRangeException(nameof(policy)),
+        };
+        if (policy == OblivionVaultNewlinePolicy.Preserve && existingText is not null)
+        {
+            return text;
+        }
+
+        return text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", newline, StringComparison.Ordinal);
     }
 
     private static OblivionCardAssetDocument ReadCard(string path)
