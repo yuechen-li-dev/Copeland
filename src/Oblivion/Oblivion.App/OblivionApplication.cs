@@ -40,6 +40,16 @@ public sealed record OblivionWorkspaceSessionOpenResult(
         Diagnostics.All(diagnostic => diagnostic.Severity != OblivionDiagnosticSeverity.Error);
 }
 
+public sealed record OblivionWorkspaceSessionReloadResult(
+    OblivionWorkspaceSession Session,
+    bool Reloaded,
+    IReadOnlyList<OblivionWorkspaceDiagnostic> Diagnostics)
+{
+    public bool Succeeded =>
+        Reloaded &&
+        Diagnostics.All(diagnostic => diagnostic.Severity != OblivionDiagnosticSeverity.Error);
+}
+
 public sealed class OblivionApplication
 {
     private readonly OblivionCardHandlerRegistry _handlers;
@@ -86,7 +96,7 @@ public sealed class OblivionApplication
 
     public OblivionWorkspaceSessionOpenResult OpenWorkspace(string vaultRoot)
     {
-        OblivionWorkspaceLoadResult load = OblivionWorkspaceLoader.OpenVault(vaultRoot);
+        OblivionWorkspaceLoadResult load = LoadVault(vaultRoot);
         if (!load.Succeeded || load.Workspace is null || load.Location is null)
         {
             return new OblivionWorkspaceSessionOpenResult(null, load.Diagnostics);
@@ -117,6 +127,135 @@ public sealed class OblivionApplication
             state,
             load.Location);
         return new OblivionWorkspaceSessionOpenResult(session, load.Diagnostics);
+    }
+
+    public OblivionWorkspaceSessionReloadResult ReloadWorkspace(OblivionWorkspaceSession current)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+
+        OblivionWorkspaceLoadResult candidate = LoadVault(
+            current.Location.RootDirectory);
+        if (!candidate.Succeeded || candidate.Workspace is null || candidate.Location is null)
+        {
+            return new OblivionWorkspaceSessionReloadResult(
+                current,
+                Reloaded: false,
+                candidate.Diagnostics);
+        }
+
+        OblivionWorkspace workspace = candidate.Workspace;
+        OblivionWorkspacePage? activePage = workspace.Pages.FirstOrDefault(
+            page => page.Id == current.ActivePage.Id);
+        activePage ??= workspace.DefaultPageId is null
+            ? null
+            : workspace.Pages.FirstOrDefault(page => page.Id == workspace.DefaultPageId);
+        activePage ??= workspace.Pages.FirstOrDefault();
+        if (activePage is null)
+        {
+            List<OblivionWorkspaceDiagnostic> diagnostics = candidate.Diagnostics.ToList();
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "active-page-not-found",
+                $"Workspace '{workspace.Id.Value}' has no materialized page after reload.",
+                candidate.Location.ManifestPath));
+            return new OblivionWorkspaceSessionReloadResult(
+                current,
+                Reloaded: false,
+                OblivionWorkspaceValidator.OrderDiagnostics(diagnostics));
+        }
+
+        OblivionSessionState reconciled = ReconcileSession(current.State, workspace);
+        OblivionWorkspaceSession next = new(
+            workspace,
+            activePage,
+            reconciled,
+            candidate.Location);
+        return new OblivionWorkspaceSessionReloadResult(
+            next,
+            Reloaded: true,
+            candidate.Diagnostics);
+    }
+
+    internal static OblivionWorkspaceLoadResult LoadVault(string vaultRoot)
+    {
+        try
+        {
+            return OblivionWorkspaceLoader.OpenVault(vaultRoot);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            string fullRoot = Path.GetFullPath(vaultRoot);
+            string manifestPath = OblivionStructuredVaultPaths.WorkspaceManifest(fullRoot);
+            return new OblivionWorkspaceLoadResult(
+                null,
+                new OblivionWorkspaceLocation(fullRoot, manifestPath),
+                [OblivionWorkspaceValidator.Error(
+                    "workspace-unreadable",
+                    $"Structured vault '{fullRoot}' could not be read: {exception.Message}",
+                    manifestPath)]);
+        }
+    }
+
+    private static OblivionSessionState ReconcileSession(
+        OblivionSessionState current,
+        OblivionWorkspace workspace)
+    {
+        Dictionary<string, double> mainOffsets = new(StringComparer.Ordinal);
+        Dictionary<string, double> inspectorOffsets = new(StringComparer.Ordinal);
+        Dictionary<string, string?> selections = new(StringComparer.Ordinal);
+        Dictionary<string, double> sourceOffsets = new(StringComparer.Ordinal);
+        Dictionary<string, IReadOnlyDictionary<string, OblivionCardViewState>> cardStates =
+            new(StringComparer.Ordinal);
+
+        foreach (OblivionWorkspacePage page in workspace.Pages)
+        {
+            string pageId = page.Id.Value;
+            if (current.MainScrollOffsetByPageId.TryGetValue(pageId, out double mainOffset))
+            {
+                mainOffsets[pageId] = mainOffset;
+            }
+
+            if (current.InspectorScrollOffsetByPageId.TryGetValue(pageId, out double inspectorOffset))
+            {
+                inspectorOffsets[pageId] = inspectorOffset;
+            }
+
+            HashSet<string> validCardIds = page.Cards
+                .Select(card => card.Id.Value)
+                .ToHashSet(StringComparer.Ordinal);
+            string? selectedCardId = current.SelectedCardByPageId.TryGetValue(
+                pageId,
+                out string? previousSelection) &&
+                previousSelection is not null &&
+                validCardIds.Contains(previousSelection)
+                    ? previousSelection
+                    : page.Cards.FirstOrDefault()?.Id.Value;
+            selections[pageId] = selectedCardId;
+
+            if (current.CardViewStateByPageId.TryGetValue(
+                pageId,
+                out IReadOnlyDictionary<string, OblivionCardViewState>? previousStates))
+            {
+                cardStates[pageId] = previousStates
+                    .Where(pair => validCardIds.Contains(pair.Key))
+                    .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            }
+
+            foreach (string cardId in validCardIds)
+            {
+                if (current.RawSourceScrollOffsetByCardId.TryGetValue(cardId, out double sourceOffset))
+                {
+                    sourceOffsets[cardId] = sourceOffset;
+                }
+            }
+        }
+
+        return new OblivionSessionState(
+            mainOffsets,
+            inspectorOffsets,
+            selections,
+            sourceOffsets,
+            cardStates,
+            current.InspectorPaneSelected);
     }
 }
 

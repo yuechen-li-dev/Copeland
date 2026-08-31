@@ -39,24 +39,6 @@ public sealed class PresentationAppTests
         Assert.Empty(snapshot.Diagnostics);
     }
 
-    [Fact]
-    public void CliPresentationInspectionIsStableAndDoesNotRequireWorkspacePersistence()
-    {
-        StringWriter first = new();
-        StringWriter second = new();
-
-        int firstExit = new OblivionCommandLine(first, TextWriter.Null).Run(
-            ["presentation", "inspect", "--json"]);
-        int secondExit = new OblivionCommandLine(second, TextWriter.Null).Run(
-            ["presentation", "inspect", "--json"]);
-
-        Assert.Equal(0, firstExit);
-        Assert.Equal(0, secondExit);
-        Assert.Equal(first.ToString(), second.ToString());
-        Assert.Contains("\"presentationId\": \"m19-architecture\"", first.ToString());
-        Assert.Contains("\"layoutGroupId\": \"source-and-proof\"", first.ToString());
-    }
-
     private static string FindRepositoryRoot()
     {
         DirectoryInfo? directory = new(Environment.CurrentDirectory);

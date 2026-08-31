@@ -1,5 +1,11 @@
 # Oblivion agent presentation trial — M19c
 
+> Historical milestone note: M19j removed the experimental App executable and
+> handwritten CLI. The presentation inspection/realization contracts remain
+> internal App APIs; commands below record the M19c proof and are not current
+> `oblivion` syntax. Current workspace commands are documented in
+> `oblivion-cli-baseline-m19j.md`.
+
 ## Trial task
 
 Codex authored a human-facing briefing on the M18/M19 Oblivion architecture and artifact evolution. The trial used a standalone repository-owned workspace at `artifacts/m19c/trial-workspace/workspace.oblivion.json`, validated it through `Oblivion.App`, exported it through the real Machina Presenter path, visually inspected the result, and re-inspected the generated PNG through the M19b artifact surface.

@@ -1,5 +1,11 @@
 # Oblivion code-first workflow — M19a
 
+> Historical milestone note: M19j replaced this experimental App executable and
+> handwritten command syntax with `src/Oblivion/Oblivion.Cli`. Use
+> `oblivion workspace show`, `oblivion page list`, `oblivion card list`, and
+> `oblivion card show`; see `oblivion-cli-baseline-m19j.md`. Commands below
+> document the M19a proof and are no longer runnable compatibility syntax.
+
 ## Canonical useful workflow
 
 This workflow uses the real repository-owned sample workspace and the `selected-doc-dogfood` technical card. Run it from the repository root.

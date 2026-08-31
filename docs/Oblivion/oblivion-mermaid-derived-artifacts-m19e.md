@@ -1,5 +1,10 @@
 # Oblivion Mermaid derived artifacts — M19e
 
+> Historical milestone note: M19j keeps artifact and diagram inspection as
+> internal App contracts and does not expose the former experimental `show`
+> spelling. Use `oblivion card show` for the bounded M19j card surface; see
+> `oblivion-cli-baseline-m19j.md`.
+
 ## Durable and derived truth
 
 Durable truth remains the Mermaid source stored in the card body. PNGs, renderer facts, source hashes, cache keys, diagnostics, and provenance are derived and can be deleted without changing the workspace schema.

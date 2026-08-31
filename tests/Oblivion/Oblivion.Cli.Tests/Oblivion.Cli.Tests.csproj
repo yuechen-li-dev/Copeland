@@ -6,7 +6,9 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="coverlet.collector" />
   </ItemGroup>
-  <ItemGroup><ProjectReference Include="../../../src/Oblivion/Oblivion.App/Oblivion.App.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Oblivion/Oblivion.Cli/Oblivion.Cli.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <Content Include="../../../src/Oblivion/Oblivion.Standalone/M19iNotebook.oblivion/**/*">
       <Link>Fixtures/M19iNotebook.oblivion/%(RecursiveDir)%(Filename)%(Extension)</Link>

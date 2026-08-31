@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>oblivion</AssemblyName>
+    <RootNamespace>Oblivion.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" />
+    <ProjectReference Include="../Oblivion.App/Oblivion.App.csproj" />
+  </ItemGroup>
+</Project>

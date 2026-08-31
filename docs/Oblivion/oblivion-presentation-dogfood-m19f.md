@@ -1,5 +1,10 @@
 # Oblivion semantic presentation dogfood — M19f
 
+> Historical milestone note: M19j removed the experimental App executable.
+> Presentation inspection remains an internal App contract and is intentionally
+> outside the M19j workspace command tree; the command below records the M19f
+> proof rather than current `oblivion` syntax.
+
 ## Outcome A
 
 The real M19 briefing is authored in `M19PresentationDogfood.Create` using only Summary, Markdown, Code, Mermaid Diagram, PNG Artifact, Decision, NextActions, Compare, and Focus. It materializes seven existing Cards without manual Card construction or persistence assets.

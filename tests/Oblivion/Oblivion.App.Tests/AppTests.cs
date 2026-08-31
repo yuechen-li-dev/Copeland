@@ -387,33 +387,6 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void Artifact_show_command_emits_stable_machine_readable_address_and_metadata()
-    {
-        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
-        StringWriter first = new();
-        StringWriter second = new();
-        string[] arguments =
-        [
-            "artifact",
-            "show",
-            "trial-note",
-            "trial-output",
-            "--workspace",
-            fixture.ManifestPath,
-            "--json",
-        ];
-
-        Assert.Equal(0, new OblivionCommandLine(first, TextWriter.Null).Run(arguments));
-        Assert.Equal(0, new OblivionCommandLine(second, TextWriter.Null).Run(arguments));
-        Assert.Equal(first.ToString(), second.ToString());
-        using JsonDocument json = JsonDocument.Parse(first.ToString());
-        Assert.Equal("trial-workspace", json.RootElement.GetProperty("address").GetProperty("workspaceId").GetString());
-        Assert.Equal("trial-output", json.RootElement.GetProperty("address").GetProperty("artifactId").GetString());
-        Assert.True(json.RootElement.GetProperty("exists").GetBoolean());
-        Assert.Equal("text/plain", json.RootElement.GetProperty("mediaType").GetString());
-    }
-
-    [Fact]
     public void Semantic_refresh_reloads_a_code_first_source_edit()
     {
         using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
@@ -448,31 +421,6 @@ public sealed class AppTests
         Assert.Equal("trial-note", diagnostic.CardId);
         Assert.Equal("missing-action", diagnostic.ActionId);
         Assert.Contains("Use 'actions trial-note'", diagnostic.Message);
-    }
-
-    [Fact]
-    public void Command_line_json_is_deterministic_and_machine_readable()
-    {
-        using ProductWorkspaceFixture fixture = ProductWorkspaceFixture.Create();
-        StringWriter firstOutput = new();
-        StringWriter firstError = new();
-        StringWriter secondOutput = new();
-        string[] arguments = ["inspect", "--workspace", fixture.ManifestPath, "--json"];
-
-        int firstExit = new OblivionCommandLine(firstOutput, firstError).Run(arguments);
-        int secondExit = new OblivionCommandLine(secondOutput, TextWriter.Null).Run(arguments);
-
-        Assert.Equal(0, firstExit);
-        Assert.Equal(0, secondExit);
-        Assert.Equal(firstOutput.ToString(), secondOutput.ToString());
-        Assert.Empty(firstError.ToString());
-        using JsonDocument json = JsonDocument.Parse(firstOutput.ToString());
-        Assert.Equal(
-            "oblivion.product.v1",
-            json.RootElement.GetProperty("schemaVersion").GetString());
-        Assert.Equal(
-            "trial-workspace",
-            json.RootElement.GetProperty("workspace").GetProperty("id").GetString());
     }
 
     [Fact]
