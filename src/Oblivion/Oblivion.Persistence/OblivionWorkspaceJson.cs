@@ -38,7 +38,10 @@ public static class OblivionWorkspaceJsonReader
                                         page.Asset,
                                         page.Cards?.Where(card => card is not null).Select(card => card!).ToArray() ?? []))
                                 .ToArray() ?? []))
-                    .ToArray() ?? []);
+                    .ToArray() ?? [],
+                model.Pages is null
+                    ? null
+                    : model.Pages.Where(page => page is not null).Select(page => page!).ToArray());
 
             return new OblivionWorkspaceJsonReadResult(
                 manifest,
@@ -66,7 +69,10 @@ public static class OblivionWorkspaceJsonWriter
             WorkspaceId = manifest.WorkspaceId,
             Title = manifest.Title,
             DefaultPageId = manifest.DefaultPageId,
-            Sections = manifest.Sections
+            Pages = manifest.PageIds?.ToArray(),
+            Sections = manifest.Sections.Count == 0
+                ? null
+                : manifest.Sections
                 .Select(
                     section => new OblivionWorkspaceSectionJsonModel
                     {
@@ -110,7 +116,12 @@ internal sealed class OblivionWorkspaceManifestJsonModel
     public string? DefaultPageId { get; set; }
 
     [JsonPropertyName("sections")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public OblivionWorkspaceSectionJsonModel[]? Sections { get; set; }
+
+    [JsonPropertyName("pages")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string[]? Pages { get; set; }
 }
 
 internal sealed class OblivionWorkspaceSectionJsonModel

@@ -26,6 +26,7 @@ public static class OblivionPageTomlReader
         string title = ReadRequiredString(parsedTable, "title", sourcePath, diagnostics);
         string? description = ReadOptionalString(parsedTable, "description");
         IReadOnlyList<string> tags = ReadStringArray(parsedTable, "tags", sourcePath, diagnostics);
+        IReadOnlyList<string> cards = ReadStringArray(parsedTable, "cards", sourcePath, diagnostics);
 
         if (format != OblivionWorkspaceValidator.SupportedFormat)
         {
@@ -39,7 +40,7 @@ public static class OblivionPageTomlReader
 
         OblivionPageAssetDocument? document = diagnostics.Any(diagnostic => diagnostic.Severity == OblivionDiagnosticSeverity.Error)
             ? null
-            : new OblivionPageAssetDocument(format, kind, id, title, description, tags);
+            : new OblivionPageAssetDocument(format, kind, id, title, description, tags, cards);
 
         return new OblivionPageTomlReadResult(document, OblivionWorkspaceValidator.OrderDiagnostics(diagnostics));
     }
@@ -63,6 +64,7 @@ public static class OblivionPageTomlWriter
         }
 
         AppendStringArray(builder, "tags", document.Tags);
+        AppendStringArray(builder, "cards", document.StructuredCardIds);
         return builder.ToString();
     }
 }

@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "notebook-stack"
+card_kind = "note"
+status = "passing"
+title = "From one card to a notebook stack"
+subtitle = "Standalone Markdown document"
+tags = ["oblivion", "m19i", "markdown"]
+
+[body]
+format = "copeland-markdown"
+path = "content/notebook-stack.md"

@@ -1,7 +1,7 @@
 using Machina.Core.Actions;
 using Machina.Layout.Geometry;
+using Oblivion.App;
 using Oblivion.Model;
-using Oblivion.Presentation;
 using Oblivion.Product;
 
 namespace Oblivion.Standalone;
@@ -10,19 +10,33 @@ public sealed class OblivionStandaloneSurface
 {
     private readonly OblivionCardHandlerRegistry _cardHandlers;
 
-    public OblivionStandaloneSurface()
+    public OblivionStandaloneSurface(string? vaultRoot = null)
     {
-        Presentation = M19hTwoCardStack.Materialize();
-        Cards = AssertTwoCards(Presentation);
+        OblivionApplication application = new();
+        OblivionWorkspaceSessionOpenResult open = application.OpenWorkspace(
+            vaultRoot ?? M19iStructuredVault.DefaultRoot);
+        if (!open.Succeeded || open.Session is null)
+        {
+            throw new InvalidOperationException(
+                "The standalone structured vault could not be opened:" +
+                Environment.NewLine +
+                string.Join(Environment.NewLine, open.Diagnostics));
+        }
+
+        Workspace = open.Session.Workspace;
+        Page = open.Session.ActivePage;
+        Cards = AssertTwoMarkdownCards(Page);
         _cardHandlers = OblivionCardHandlerRegistry.CreateDefault();
-        Session = OblivionSessionState.Empty.ReconcilePage(PageId, Cards);
+        Session = open.Session.State;
     }
 
-    public MaterializedPresentation Presentation { get; }
+    public OblivionWorkspace Workspace { get; }
+
+    public OblivionWorkspacePage Page { get; }
 
     public IReadOnlyList<OblivionCard> Cards { get; }
 
-    public string PageId => Presentation.Page.Id.Value;
+    public string PageId => Page.Id.Value;
 
     public OblivionSessionState Session { get; private set; }
 
@@ -50,7 +64,7 @@ public sealed class OblivionStandaloneSurface
             OblivionBuiltCard built = _cardHandlers.BuildCard(
                 card,
                 PageId,
-                Presentation.Workspace.Id.Value,
+                Workspace.Id.Value,
                 localStateOverride: localState);
             OblivionCompactCardView cardView = built.CompactView with
             {
@@ -127,15 +141,20 @@ public sealed class OblivionStandaloneSurface
             Cards.Any(card => string.Equals(card.Id.Value, cardId, StringComparison.Ordinal));
     }
 
-    private static IReadOnlyList<OblivionCard> AssertTwoCards(MaterializedPresentation presentation)
+    private static IReadOnlyList<OblivionCard> AssertTwoMarkdownCards(OblivionWorkspacePage page)
     {
-        if (presentation.Page.Cards.Count != 2)
+        if (page.Cards.Count != 2)
         {
             throw new InvalidOperationException(
-                $"The M19h standalone presentation must materialize exactly two cards, but produced {presentation.Page.Cards.Count}.");
+                $"The M19i standalone vault must materialize exactly two cards, but produced {page.Cards.Count}.");
         }
 
-        return presentation.Page.Cards;
+        if (page.Cards.Any(card => card.Body.Format != OblivionCardBodyFormat.CopelandMarkdown))
+        {
+            throw new InvalidOperationException("The M19i standalone vault must contain exactly two Markdown cards.");
+        }
+
+        return page.Cards;
     }
 }
 

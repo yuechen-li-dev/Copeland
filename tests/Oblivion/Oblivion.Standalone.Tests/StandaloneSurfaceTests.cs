@@ -12,26 +12,82 @@ public sealed class StandaloneSurfaceTests
     private static readonly OblivionStandaloneStyle Style = OblivionStandaloneStyles.M19h;
 
     [Fact]
-    public void Standalone_page_materializes_exactly_two_markdown_cards_in_stable_stream_order()
+    public void Standalone_enters_the_real_structured_workspace_session()
     {
-        MaterializedPresentation presentation = M19hTwoCardStack.Materialize();
+        OblivionStandaloneSurface surface = new();
 
-        Assert.Equal(2, presentation.Page.Cards.Count);
+        Assert.Equal(M19iStructuredVault.WorkspaceId, surface.Workspace.Id.Value);
+        Assert.Equal(M19iStructuredVault.PageId, surface.PageId);
+        Assert.Equal(surface.Cards[0].Id.Value, surface.SelectedCardId);
         Assert.Collection(
-            presentation.Page.Cards,
-            card => Assert.EndsWith(M19hTwoCardStack.FirstContentId, card.Id.Value),
-            card => Assert.EndsWith(M19hTwoCardStack.SecondContentId, card.Id.Value));
-        Assert.All(
-            presentation.Page.Cards,
-            card => Assert.Equal(OblivionCardBodyFormat.CopelandMarkdown, card.Body.Format));
+            surface.Cards,
+            card => Assert.Equal(M19iStructuredVault.FirstCardId, card.Id.Value),
+            card => Assert.Equal(M19iStructuredVault.SecondCardId, card.Id.Value));
+        Assert.All(surface.Cards, card => Assert.False(surface.IsExpanded(card)));
+    }
 
-        Assert.Equal(2, presentation.Bands.Count);
+    [Fact]
+    public void Explicit_session_reload_observes_content_and_metadata_edits()
+    {
+        string vaultRoot = Path.Combine(
+            Path.GetTempPath(),
+            "oblivion-m19i-session-tests",
+            Guid.NewGuid().ToString("N"));
+        try
+        {
+            foreach (string sourcePath in Directory.GetFiles(
+                M19iStructuredVault.DefaultRoot,
+                "*",
+                SearchOption.AllDirectories))
+            {
+                string relativePath = Path.GetRelativePath(M19iStructuredVault.DefaultRoot, sourcePath);
+                string destinationPath = Path.Combine(vaultRoot, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                File.Copy(sourcePath, destinationPath);
+            }
+
+            OblivionStandaloneSurface before = new(vaultRoot);
+            string markdownPath = Path.Combine(vaultRoot, "content", "notebook-stack.md");
+            string cardPath = Path.Combine(vaultRoot, "cards", "notebook-stack.toml");
+            File.AppendAllText(markdownPath, Environment.NewLine + "Session reload marker." + Environment.NewLine);
+            File.WriteAllText(
+                cardPath,
+                File.ReadAllText(cardPath).Replace(
+                    "From one card to a notebook stack",
+                    "Reloaded session title",
+                    StringComparison.Ordinal));
+
+            OblivionStandaloneSurface after = new(vaultRoot);
+
+            Assert.DoesNotContain("Session reload marker.", before.Cards[1].Body.RawText, StringComparison.Ordinal);
+            Assert.Contains("Session reload marker.", after.Cards[1].Body.RawText, StringComparison.Ordinal);
+            Assert.Equal("From one card to a notebook stack", before.Cards[1].Title);
+            Assert.Equal("Reloaded session title", after.Cards[1].Title);
+            Assert.Equal(after.Cards[0].Id.Value, after.SelectedCardId);
+            Assert.All(after.Cards, card => Assert.False(after.IsExpanded(card)));
+        }
+        finally
+        {
+            if (Directory.Exists(vaultRoot))
+            {
+                Directory.Delete(vaultRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void Standalone_page_loads_exactly_two_markdown_cards_in_stable_order()
+    {
+        OblivionStandaloneSurface surface = new();
+
+        Assert.Equal(2, surface.Cards.Count);
+        Assert.Collection(
+            surface.Cards,
+            card => Assert.Equal(M19iStructuredVault.FirstCardId, card.Id.Value),
+            card => Assert.Equal(M19iStructuredVault.SecondCardId, card.Id.Value));
         Assert.All(
-            presentation.Bands,
-            band => Assert.Equal(PresentationMaterializedBandKind.Stream, band.Kind));
-        Assert.Equal(
-            presentation.Page.Cards.Select(card => card.Id.Value),
-            presentation.Bands.SelectMany(band => band.CardIds).Select(cardId => cardId.Value));
+            surface.Cards,
+            card => Assert.Equal(OblivionCardBodyFormat.CopelandMarkdown, card.Body.Format));
     }
 
     [Fact]

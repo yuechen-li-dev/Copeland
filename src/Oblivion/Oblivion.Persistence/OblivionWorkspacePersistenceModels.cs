@@ -8,7 +8,11 @@ public sealed record OblivionWorkspaceManifest(
     string WorkspaceId,
     string Title,
     string? DefaultPageId,
-    IReadOnlyList<OblivionWorkspaceSectionManifest> Sections);
+    IReadOnlyList<OblivionWorkspaceSectionManifest> Sections,
+    IReadOnlyList<string>? PageIds = null)
+{
+    public IReadOnlyList<string> StructuredPageIds => PageIds ?? [];
+}
 
 public sealed record OblivionWorkspaceSectionManifest(
     string Id,
@@ -27,7 +31,11 @@ public sealed record OblivionPageAssetDocument(
     string Id,
     string Title,
     string? Description,
-    IReadOnlyList<string> Tags);
+    IReadOnlyList<string> Tags,
+    IReadOnlyList<string>? CardIds = null)
+{
+    public IReadOnlyList<string> StructuredCardIds => CardIds ?? [];
+}
 
 public sealed record OblivionCardBodyDocument(
     string Format,

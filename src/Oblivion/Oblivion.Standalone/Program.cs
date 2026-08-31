@@ -72,7 +72,7 @@ internal sealed class OblivionStandaloneWindow : Window
     public OblivionStandaloneWindow(OblivionStandaloneOptions options)
     {
         _options = options;
-        _surface = new OblivionStandaloneSurface();
+        _surface = new OblivionStandaloneSurface(options.VaultRoot);
         if (options.StartExpanded)
         {
             foreach (var card in _surface.Cards)
@@ -255,7 +255,7 @@ internal sealed class OblivionStandaloneWindow : Window
             cardSnapshot.ContentPlan,
             new UnavailableDiagramRenderer(),
             Path.Combine(Path.GetTempPath(), "oblivion-m19h-diagrams"),
-            workspaceId: _surface.Presentation.Workspace.Id.Value,
+            workspaceId: _surface.Workspace.Id.Value,
             pageId: _surface.PageId,
             maximumReadableWidth: Style.MaximumReadableWidth);
         document.Width = bodyBounds.Width;
@@ -376,13 +376,15 @@ internal sealed class OblivionStandaloneWindow : Window
 internal sealed record OblivionStandaloneOptions(
     bool StartExpanded,
     string? CapturePath,
-    double InitialPageScrollOffset)
+    double InitialPageScrollOffset,
+    string VaultRoot)
 {
     public static OblivionStandaloneOptions Parse(IReadOnlyList<string> args)
     {
         bool expanded = false;
         string? capturePath = null;
         double initialPageScrollOffset = 0;
+        string vaultRoot = M19iStructuredVault.DefaultRoot;
         for (int index = 0; index < args.Count; index++)
         {
             string argument = args[index];
@@ -413,6 +415,12 @@ internal sealed record OblivionStandaloneOptions(
                 continue;
             }
 
+            if (string.Equals(argument, "--vault", StringComparison.Ordinal) && index + 1 < args.Count)
+            {
+                vaultRoot = Path.GetFullPath(args[++index]);
+                continue;
+            }
+
             if (!argument.StartsWith("--", StringComparison.Ordinal))
             {
                 continue;
@@ -421,6 +429,6 @@ internal sealed record OblivionStandaloneOptions(
             throw new ArgumentException($"Unknown standalone option '{argument}'.");
         }
 
-        return new OblivionStandaloneOptions(expanded, capturePath, initialPageScrollOffset);
+        return new OblivionStandaloneOptions(expanded, capturePath, initialPageScrollOffset, vaultRoot);
     }
 }

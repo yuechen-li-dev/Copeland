@@ -3,7 +3,7 @@ using Oblivion.Model;
 
 namespace Oblivion.Persistence;
 
-public static class OblivionWorkspaceLoader
+public static partial class OblivionWorkspaceLoader
 {
     private static readonly ConcurrentDictionary<string, OblivionWorkspaceLoadResult> Cache = new(StringComparer.OrdinalIgnoreCase);
 

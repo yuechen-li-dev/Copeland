@@ -25,6 +25,21 @@ public sealed record OblivionActionOutcome(
     OblivionEffectResult Result,
     OblivionApplicationState State);
 
+public sealed record OblivionWorkspaceSession(
+    OblivionWorkspace Workspace,
+    OblivionWorkspacePage ActivePage,
+    OblivionSessionState State,
+    OblivionWorkspaceLocation Location);
+
+public sealed record OblivionWorkspaceSessionOpenResult(
+    OblivionWorkspaceSession? Session,
+    IReadOnlyList<OblivionWorkspaceDiagnostic> Diagnostics)
+{
+    public bool Succeeded =>
+        Session is not null &&
+        Diagnostics.All(diagnostic => diagnostic.Severity != OblivionDiagnosticSeverity.Error);
+}
+
 public sealed class OblivionApplication
 {
     private readonly OblivionCardHandlerRegistry _handlers;
@@ -67,6 +82,41 @@ public sealed class OblivionApplication
         OblivionApplicationState? state = null)
     {
         return Invoke(card, pageId, new OblivionProductActionId(actionId), state);
+    }
+
+    public OblivionWorkspaceSessionOpenResult OpenWorkspace(string vaultRoot)
+    {
+        OblivionWorkspaceLoadResult load = OblivionWorkspaceLoader.OpenVault(vaultRoot);
+        if (!load.Succeeded || load.Workspace is null || load.Location is null)
+        {
+            return new OblivionWorkspaceSessionOpenResult(null, load.Diagnostics);
+        }
+
+        OblivionWorkspace workspace = load.Workspace;
+        OblivionWorkspacePage? activePage = workspace.DefaultPageId is null
+            ? workspace.Pages.FirstOrDefault()
+            : workspace.Pages.FirstOrDefault(page => page.Id == workspace.DefaultPageId);
+        if (activePage is null)
+        {
+            List<OblivionWorkspaceDiagnostic> diagnostics = load.Diagnostics.ToList();
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "active-page-not-found",
+                $"Workspace '{workspace.Id.Value}' has no materialized default page.",
+                load.Location.ManifestPath));
+            return new OblivionWorkspaceSessionOpenResult(
+                null,
+                OblivionWorkspaceValidator.OrderDiagnostics(diagnostics));
+        }
+
+        OblivionSessionState state = OblivionSessionState.Empty.ReconcilePage(
+            activePage.Id.Value,
+            activePage.Cards);
+        OblivionWorkspaceSession session = new(
+            workspace,
+            activePage,
+            state,
+            load.Location);
+        return new OblivionWorkspaceSessionOpenResult(session, load.Diagnostics);
     }
 }
 

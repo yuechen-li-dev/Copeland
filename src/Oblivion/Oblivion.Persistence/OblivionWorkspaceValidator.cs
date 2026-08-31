@@ -78,9 +78,23 @@ public static class OblivionWorkspaceValidator
         }
 
         if (!string.IsNullOrWhiteSpace(manifest.DefaultPageId) &&
-            !pageIds.Contains(manifest.DefaultPageId))
+            !pageIds.Contains(manifest.DefaultPageId) &&
+            !manifest.StructuredPageIds.Contains(manifest.DefaultPageId, StringComparer.Ordinal))
         {
             diagnostics.Add(Error("unknown-default-page-id", $"Default page id '{manifest.DefaultPageId}' was not found in the manifest.", sourcePath));
+        }
+
+        HashSet<string> structuredPageIds = new(StringComparer.Ordinal);
+        foreach (string pageId in manifest.StructuredPageIds)
+        {
+            if (string.IsNullOrWhiteSpace(pageId))
+            {
+                diagnostics.Add(Error("missing-page-id", "Structured workspace page ids must not be empty.", sourcePath));
+            }
+            else if (!structuredPageIds.Add(pageId))
+            {
+                diagnostics.Add(Error("duplicate-page-id", $"Page id '{pageId}' appears more than once.", sourcePath));
+            }
         }
 
         return OrderDiagnostics(diagnostics);

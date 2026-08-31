@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "kind": "oblivion-workspace",
+  "workspaceId": "m19i-notebook",
+  "title": "Oblivion",
+  "defaultPageId": "notebook",
+  "pages": [
+    "notebook"
+  ]
+}

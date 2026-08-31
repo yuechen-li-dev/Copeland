@@ -1,0 +1,207 @@
+using Oblivion.Model;
+using Oblivion.Persistence;
+using Xunit;
+
+namespace Oblivion.Persistence.Tests;
+
+public sealed class StructuredVaultTests
+{
+    [Fact]
+    public void Canonical_paths_map_stable_ids_without_search()
+    {
+        string root = Path.GetFullPath(Path.Combine("vaults", "notebook.oblivion"));
+
+        Assert.Equal(
+            Path.Combine(root, "workspace.json"),
+            OblivionStructuredVaultPaths.WorkspaceManifest(root));
+        Assert.Equal(
+            Path.Combine(root, "pages", "notebook.toml"),
+            OblivionStructuredVaultPaths.PageMetadata(root, "notebook"));
+        Assert.Equal(
+            Path.Combine(root, "cards", "physical-atom.toml"),
+            OblivionStructuredVaultPaths.CardMetadata(root, "physical-atom"));
+        Assert.Equal(
+            Path.Combine(root, "content", "physical-atom.md"),
+            OblivionStructuredVaultPaths.MarkdownContent(root, "physical-atom"));
+        Assert.False(OblivionStructuredVaultPaths.IsValidId("../physical-atom"));
+    }
+
+    [Fact]
+    public void Real_fixture_loads_one_page_and_two_markdown_cards_in_declared_order()
+    {
+        OblivionWorkspaceLoadResult result = OblivionWorkspaceLoader.OpenVault(FixtureRoot);
+        OblivionWorkspaceManifest manifest = Assert.IsType<OblivionWorkspaceManifest>(
+            OblivionWorkspaceJsonReader.Read(
+                File.ReadAllText(Path.Combine(FixtureRoot, "workspace.json"))).Manifest);
+        string canonicalJson = OblivionWorkspaceJsonWriter.Write(manifest);
+
+        Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
+        Assert.Contains("\"pages\"", canonicalJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"sections\"", canonicalJson, StringComparison.Ordinal);
+        Assert.Equal("m19i-notebook", result.Workspace!.Id.Value);
+        OblivionWorkspacePage page = Assert.Single(result.Workspace.Pages);
+        Assert.Equal("notebook", page.Id.Value);
+        Assert.Collection(
+            page.Cards,
+            card => AssertStructuredMarkdownCard(card, "physical-atom", "content/physical-atom.md"),
+            card => AssertStructuredMarkdownCard(card, "notebook-stack", "content/notebook-stack.md"));
+    }
+
+    [Theory]
+    [InlineData(BrokenVaultCase.MissingManifest, "missing-workspace-manifest")]
+    [InlineData(BrokenVaultCase.MissingPage, "missing-page-metadata")]
+    [InlineData(BrokenVaultCase.MissingCard, "missing-card-metadata")]
+    [InlineData(BrokenVaultCase.MissingMarkdown, "missing-markdown-body-file")]
+    [InlineData(BrokenVaultCase.DuplicateCardId, "duplicate-card-id")]
+    [InlineData(BrokenVaultCase.UnsafeTraversal, "path-traversal-not-allowed")]
+    [InlineData(BrokenVaultCase.UnknownCardKind, "unknown-card-kind")]
+    public void Broken_vaults_report_specific_diagnostics(
+        BrokenVaultCase brokenCase,
+        string expectedCode)
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        vault.Break(brokenCase);
+
+        OblivionWorkspaceLoadResult result = OblivionWorkspaceLoader.OpenVault(vault.Root);
+
+        Assert.False(result.Succeeded);
+        OblivionWorkspaceDiagnostic diagnostic = Assert.Single(
+            result.Diagnostics,
+            candidate => candidate.Code == expectedCode);
+        Assert.False(string.IsNullOrWhiteSpace(diagnostic.SourcePath));
+    }
+
+    [Fact]
+    public void Markdown_and_card_metadata_edits_are_visible_on_explicit_reload()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string markdownPath = Path.Combine(vault.Root, "content", "notebook-stack.md");
+        string cardPath = Path.Combine(vault.Root, "cards", "notebook-stack.toml");
+
+        OblivionWorkspaceLoadResult before = OblivionWorkspaceLoader.OpenVault(vault.Root);
+        File.AppendAllText(markdownPath, Environment.NewLine + "Reloaded content marker." + Environment.NewLine);
+        File.WriteAllText(
+            cardPath,
+            File.ReadAllText(cardPath).Replace(
+                "From one card to a notebook stack",
+                "A reloaded notebook stack",
+                StringComparison.Ordinal));
+
+        OblivionWorkspaceLoadResult after = OblivionWorkspaceLoader.OpenVault(vault.Root);
+
+        Assert.True(before.Succeeded);
+        Assert.True(after.Succeeded, string.Join(Environment.NewLine, after.Diagnostics));
+        OblivionCard beforeCard = before.Workspace!.Pages[0].Cards[1];
+        OblivionCard afterCard = after.Workspace!.Pages[0].Cards[1];
+        Assert.DoesNotContain("Reloaded content marker.", beforeCard.Body.RawText, StringComparison.Ordinal);
+        Assert.Contains("Reloaded content marker.", afterCard.Body.RawText, StringComparison.Ordinal);
+        Assert.Equal("From one card to a notebook stack", beforeCard.Title);
+        Assert.Equal("A reloaded notebook stack", afterCard.Title);
+    }
+
+    private static string FixtureRoot => Path.Combine(
+        AppContext.BaseDirectory,
+        "Fixtures",
+        "M19iNotebook.oblivion");
+
+    private static void AssertStructuredMarkdownCard(
+        OblivionCard card,
+        string expectedId,
+        string expectedReference)
+    {
+        Assert.Equal(expectedId, card.Id.Value);
+        Assert.Equal(OblivionCardBodyFormat.CopelandMarkdown, card.Body.Format);
+        Assert.Equal(expectedReference, card.Body.SourceReference);
+        Assert.Equal(OblivionProvenanceSourceKind.WorkspaceAsset, card.Provenance.SourceKind);
+        Assert.Equal($"cards/{expectedId}.toml", card.Provenance.SourceReference);
+    }
+
+    public enum BrokenVaultCase
+    {
+        MissingManifest,
+        MissingPage,
+        MissingCard,
+        MissingMarkdown,
+        DuplicateCardId,
+        UnsafeTraversal,
+        UnknownCardKind,
+    }
+
+    private sealed class TemporaryVault : IDisposable
+    {
+        private TemporaryVault(string root)
+        {
+            Root = root;
+        }
+
+        public string Root { get; }
+
+        public static TemporaryVault CopyFixture()
+        {
+            string root = Path.Combine(
+                Path.GetTempPath(),
+                "oblivion-m19i-tests",
+                Guid.NewGuid().ToString("N"));
+            foreach (string sourcePath in Directory.GetFiles(FixtureRoot, "*", SearchOption.AllDirectories))
+            {
+                string relativePath = Path.GetRelativePath(FixtureRoot, sourcePath);
+                string destinationPath = Path.Combine(root, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                File.Copy(sourcePath, destinationPath);
+            }
+
+            return new TemporaryVault(root);
+        }
+
+        public void Break(BrokenVaultCase brokenCase)
+        {
+            switch (brokenCase)
+            {
+                case BrokenVaultCase.MissingManifest:
+                    File.Delete(Path.Combine(Root, "workspace.json"));
+                    break;
+                case BrokenVaultCase.MissingPage:
+                    File.Delete(Path.Combine(Root, "pages", "notebook.toml"));
+                    break;
+                case BrokenVaultCase.MissingCard:
+                    File.Delete(Path.Combine(Root, "cards", "physical-atom.toml"));
+                    break;
+                case BrokenVaultCase.MissingMarkdown:
+                    File.Delete(Path.Combine(Root, "content", "physical-atom.md"));
+                    break;
+                case BrokenVaultCase.DuplicateCardId:
+                    ReplaceInFile(
+                        Path.Combine(Root, "pages", "notebook.toml"),
+                        "[\"physical-atom\", \"notebook-stack\"]",
+                        "[\"physical-atom\", \"physical-atom\"]");
+                    break;
+                case BrokenVaultCase.UnsafeTraversal:
+                    ReplaceInFile(
+                        Path.Combine(Root, "cards", "physical-atom.toml"),
+                        "content/physical-atom.md",
+                        "../physical-atom.md");
+                    break;
+                case BrokenVaultCase.UnknownCardKind:
+                    ReplaceInFile(
+                        Path.Combine(Root, "cards", "physical-atom.toml"),
+                        "card_kind = \"note\"",
+                        "card_kind = \"mystery\"");
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(brokenCase), brokenCase, null);
+            }
+        }
+
+        public void Dispose()
+        {
+            Directory.Delete(Root, recursive: true);
+        }
+
+        private static void ReplaceInFile(string path, string oldValue, string newValue)
+        {
+            string source = File.ReadAllText(path);
+            Assert.Contains(oldValue, source, StringComparison.Ordinal);
+            File.WriteAllText(path, source.Replace(oldValue, newValue, StringComparison.Ordinal));
+        }
+    }
+}

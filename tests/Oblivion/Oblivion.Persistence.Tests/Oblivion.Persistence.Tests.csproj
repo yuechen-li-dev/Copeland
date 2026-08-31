@@ -13,4 +13,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../../src/Oblivion/Oblivion.Standalone/M19iNotebook.oblivion/**/*">
+      <Link>Fixtures/M19iNotebook.oblivion/%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

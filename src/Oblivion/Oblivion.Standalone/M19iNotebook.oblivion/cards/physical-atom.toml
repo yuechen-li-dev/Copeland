@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "physical-atom"
+card_kind = "note"
+status = "passing"
+title = "The physical atom of Oblivion"
+subtitle = "Standalone Markdown document"
+tags = ["oblivion", "m19i", "markdown"]
+
+[body]
+format = "copeland-markdown"
+path = "content/physical-atom.md"

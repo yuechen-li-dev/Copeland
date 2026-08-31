@@ -1,0 +1,7 @@
+format = 1
+kind = "page"
+id = "notebook"
+title = "Oblivion"
+description = "The bounded M19i two-card notebook page."
+tags = ["oblivion", "m19i", "notebook"]
+cards = ["physical-atom", "notebook-stack"]
