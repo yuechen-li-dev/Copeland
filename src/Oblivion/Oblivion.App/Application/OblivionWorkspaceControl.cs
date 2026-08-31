@@ -69,7 +69,12 @@ public sealed record OblivionCardDetail(
     string? DiagramRenderer = null,
     IReadOnlyList<string>? DiagramCachedAppearances = null,
     string? DiagramRequestedAppearance = null,
-    string? DiagramResolvedAppearance = null);
+    string? DiagramResolvedAppearance = null,
+    string? DiagramPreferredBackend = null,
+    IReadOnlyList<string>? DiagramAvailableCachedBackends = null,
+    string? DiagramActiveArtifactBackend = null,
+    string? DiagramLayoutPolicyIdentity = null,
+    string? DiagramRendererProvenance = null);
 
 public sealed record OblivionCardContentResult(
     string WorkspaceId,
@@ -272,9 +277,13 @@ public sealed class OblivionWorkspaceControl
         OblivionDiagramProjectionResult? diagramProjection = null;
         string? artifactStatus = null;
         IReadOnlyList<string>? cachedAppearances = null;
+        IReadOnlyList<string>? cachedBackends = null;
+        string? activeBackend = null;
+        string? layoutPolicyIdentity = null;
         if (card.Kind == OblivionCardKind.Diagram)
         {
-            diagramProjection = new OblivionDiagramCardRealizer().Project(
+            OblivionDiagramCardRealizer realizer = new();
+            diagramProjection = realizer.Project(
                 card,
                 open.Session.Location.RootDirectory);
             diagnostics.AddRange(diagramProjection.Diagnostics.Select(diagnostic => new OblivionControlDiagnostic(
@@ -290,6 +299,27 @@ public sealed class OblivionWorkspaceControl
             artifactStatus = diagramProjection.MermaidSource is null
                 ? "projection-failed"
                 : ResolveDiagramArtifactStatus(diagramProjection.MermaidSource, out cachedAppearances);
+            OblivionDiagramSemanticProjectionResult semantic = realizer.ProjectSemanticDiagram(
+                card,
+                open.Session.Location.RootDirectory);
+            if (semantic.Succeeded && semantic.Diagram is not null &&
+                diagramProjection.SemanticFingerprint is not null)
+            {
+                layoutPolicyIdentity = OblivionNativeDiagramPolicies.Select(semantic.Diagram).Identity;
+                cachedBackends = ResolveCachedBackends(
+                    diagramProjection.MermaidSource!,
+                    diagramProjection.SemanticFingerprint,
+                    layoutPolicyIdentity);
+                activeBackend = cachedBackends.Contains(
+                    OblivionNativeSvgRenderer.RendererId,
+                    StringComparer.Ordinal)
+                    ? OblivionNativeSvgRenderer.RendererId
+                    : cachedBackends.Contains(
+                        OblivionMermaidRendererOptions.RendererId,
+                        StringComparer.Ordinal)
+                        ? OblivionMermaidRendererOptions.RendererId
+                        : null;
+            }
         }
         OblivionConfigResult config = new OblivionConfigStore().Load();
         string? requestedAppearance = card.Kind == OblivionCardKind.Diagram && config.Config is not null
@@ -326,8 +356,58 @@ public sealed class OblivionWorkspaceControl
                 : null,
             cachedAppearances,
             requestedAppearance,
-            resolvedAppearance);
+            resolvedAppearance,
+            card.Kind == OblivionCardKind.Diagram
+                ? OblivionMermaidRendererOptions.RendererId
+                : null,
+            cachedBackends,
+            activeBackend,
+            layoutPolicyIdentity,
+            card.Kind == OblivionCardKind.Diagram
+                ? $"native={OblivionNativeSvgRenderer.RendererId}@{OblivionNativeSvgRenderer.RendererVersion};" +
+                  $"fallback={OblivionMermaidRendererOptions.RendererId}@{OblivionMermaidRendererOptions.PinnedVersion}"
+                : null);
         return new(detail, diagnostics);
+    }
+
+    private static IReadOnlyList<string> ResolveCachedBackends(
+        string mermaidSource,
+        string semanticFingerprint,
+        string layoutPolicyIdentity)
+    {
+        List<string> backends = [];
+        string mermaidDirectory = Path.GetFullPath(Path.Combine("artifacts", "derived", "mermaid"));
+        bool mermaidCached = Enum.GetValues<OblivionResolvedAppearance>().Any(appearance =>
+        {
+            string path = OblivionMermaidArtifactIdentity.ArtifactPath(
+                mermaidDirectory,
+                OblivionMermaidHashing.ComputeSourceHash(mermaidSource),
+                appearance);
+            return File.Exists(path) && File.Exists(Path.ChangeExtension(path, ".json"));
+        });
+        if (mermaidCached)
+        {
+            backends.Add(OblivionMermaidRendererOptions.RendererId);
+        }
+
+        string nativeDirectory = Path.GetFullPath(Path.Combine("artifacts", "derived", "native-svg"));
+        bool nativeCached = Enum.GetValues<OblivionResolvedAppearance>().Any(appearance =>
+        {
+            OblivionNativeDerivedArtifactKey key = new(
+                semanticFingerprint,
+                OblivionNativeSvgRenderer.RendererId + "@" + OblivionNativeSvgRenderer.RendererVersion,
+                layoutPolicyIdentity,
+                appearance.ToString().ToLowerInvariant(),
+                OblivionNativeSvgRenderer.OutputFormat,
+                OblivionNativeSvgRenderer.FixedOptions);
+            string path = Path.Combine(nativeDirectory, key.Value + ".svg");
+            return File.Exists(path) && File.Exists(Path.ChangeExtension(path, ".json"));
+        });
+        if (nativeCached)
+        {
+            backends.Add(OblivionNativeSvgRenderer.RendererId);
+        }
+        return backends;
     }
 
     private static string ResolveDiagramArtifactStatus(

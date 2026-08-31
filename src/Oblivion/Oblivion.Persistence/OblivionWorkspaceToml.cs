@@ -163,13 +163,32 @@ public static class OblivionCardTomlReader
 
         if (diagram is not null)
         {
-            if (!string.Equals(diagram.Kind, "copeland-flow", StringComparison.Ordinal))
+            bool flowState = string.Equals(diagram.Kind, "copeland-flow", StringComparison.Ordinal) &&
+                string.Equals(diagram.Projection, "state", StringComparison.Ordinal);
+            bool templateDiagram = string.Equals(diagram.Kind, "copeland-template", StringComparison.Ordinal) &&
+                string.Equals(diagram.Projection, "diagram", StringComparison.Ordinal);
+            if (!flowState && !templateDiagram &&
+                !string.Equals(diagram.Kind, "copeland-flow", StringComparison.Ordinal) &&
+                !string.Equals(diagram.Kind, "copeland-template", StringComparison.Ordinal))
             {
                 diagnostics.Add(OblivionWorkspaceValidator.Error("unsupported-diagram-source", $"Diagram source kind '{diagram.Kind}' is not supported.", sourcePath));
             }
-            if (!string.Equals(diagram.Projection, "state", StringComparison.Ordinal))
+            if (!flowState && !templateDiagram &&
+                !string.Equals(diagram.Projection, "state", StringComparison.Ordinal) &&
+                !string.Equals(diagram.Projection, "diagram", StringComparison.Ordinal))
             {
                 diagnostics.Add(OblivionWorkspaceValidator.Error("unsupported-diagram-projection", $"Diagram projection '{diagram.Projection}' is not supported.", sourcePath));
+            }
+            if (!flowState && !templateDiagram &&
+                (string.Equals(diagram.Kind, "copeland-flow", StringComparison.Ordinal) ||
+                 string.Equals(diagram.Kind, "copeland-template", StringComparison.Ordinal)) &&
+                (string.Equals(diagram.Projection, "state", StringComparison.Ordinal) ||
+                 string.Equals(diagram.Projection, "diagram", StringComparison.Ordinal)))
+            {
+                diagnostics.Add(OblivionWorkspaceValidator.Error(
+                    "unsupported-diagram-source-projection-pair",
+                    $"Diagram source '{diagram.Kind}' does not support projection '{diagram.Projection}'.",
+                    sourcePath));
             }
             if (Path.IsPathRooted(diagram.Reference) || LooksLikePathTraversal(diagram.Reference))
             {

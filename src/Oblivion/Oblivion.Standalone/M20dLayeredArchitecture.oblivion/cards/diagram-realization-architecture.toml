@@ -1,0 +1,23 @@
+format = 1
+kind = "card"
+id = "diagram-realization-architecture"
+card_kind = "diagram"
+status = "passing"
+title = "Diagram realization ownership and reconvergence"
+subtitle = "Existing Diagram construction projected through automatic-layered-v1"
+tags = ["m20d", "diagram", "architecture", "reconvergence"]
+
+[diagram]
+kind = "copeland-template"
+reference = "source/DiagramRealizationArchitecture.ts"
+symbol = "DiagramRealizationArchitecture"
+projection = "diagram"
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "source/DiagramRealizationArchitecture.ts"
+producer_action = "copeland-template-diagram-projection"
+
+[body]
+format = "plain"
+text = ""

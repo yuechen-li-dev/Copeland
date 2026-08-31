@@ -673,6 +673,13 @@ public sealed class OblivionCli
             _output.WriteLine($"Diagram requested appearance: {card.DiagramRequestedAppearance ?? "<not-applicable>"}");
             _output.WriteLine($"Diagram resolved appearance: {card.DiagramResolvedAppearance ?? "<requires-platform-resolution>"}");
             _output.WriteLine($"Diagram renderer: {card.DiagramRenderer}");
+            _output.WriteLine($"Diagram preferred backend: {card.DiagramPreferredBackend ?? "<none>"}");
+            _output.WriteLine(
+                $"Diagram available cached backends: " +
+                $"{(card.DiagramAvailableCachedBackends is null || card.DiagramAvailableCachedBackends.Count == 0 ? "<none>" : string.Join(", ", card.DiagramAvailableCachedBackends))}");
+            _output.WriteLine($"Diagram active artifact backend: {card.DiagramActiveArtifactBackend ?? "<none>"}");
+            _output.WriteLine($"Diagram layout policy: {card.DiagramLayoutPolicyIdentity ?? "<none>"}");
+            _output.WriteLine($"Diagram renderer provenance: {card.DiagramRendererProvenance ?? "<none>"}");
         }
         _output.WriteLine($"Actions: {(card.Actions.Count == 0 ? "<none>" : string.Join(", ", card.Actions))}");
         _output.WriteLine("Preview:");

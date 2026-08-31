@@ -129,7 +129,10 @@ public sealed record OblivionDiagramRenderResult(
     IReadOnlyList<OblivionCardDiagnostic> Diagnostics,
     string? CacheKey = null,
     bool CacheHit = false,
-    OblivionDiagramProvenance? Provenance = null);
+    OblivionDiagramProvenance? Provenance = null,
+    OblivionDiagramRendererKind RendererKind = OblivionDiagramRendererKind.Mermaid,
+    OblivionResolvedDiagram? ResolvedDiagram = null,
+    string? LayoutPolicyIdentity = null);
 
 public interface IOblivionDiagramRenderer
 {

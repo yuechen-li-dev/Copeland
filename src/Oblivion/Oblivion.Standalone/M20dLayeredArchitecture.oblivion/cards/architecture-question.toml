@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "architecture-question"
+card_kind = "note"
+status = "passing"
+title = "Architecture question"
+subtitle = "Where do the rendering branches reconverge, and what remains shared?"
+tags = ["m20d", "reading-task"]
+
+[body]
+format = "copeland-markdown"
+path = "content/architecture-question.md"

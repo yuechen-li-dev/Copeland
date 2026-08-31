@@ -1,0 +1,31 @@
+[scenario]
+id = "m15b-wide-shell-mode"
+name = "M15b wide shell mode baseline"
+viewport = { width = 1280, height = 720 }
+section = "oblivion"
+tab = "docs"
+selectedCard = "doc-machina-oblivion-phase-closeout-m11g"
+
+[output]
+captureFinalPng = true
+captureTraceJson = true
+captureManifest = true
+
+[[steps]]
+type = "wait"
+ms = 0
+
+[[assertions]]
+type = "shell-mode"
+value = "wide"
+reason = "This split M15b scenario preserves the wide half of the resize regression because playback assertions are final-state only and wide Oblivion must stay in wide shell at 1280x720."
+
+[[assertions]]
+type = "region-exists"
+target = "main-stack"
+reason = "The wide M15b shell must keep the main stack viewport available as the primary browsing surface."
+
+[[assertions]]
+type = "region-exists"
+target = "inspector-pane"
+reason = "The wide M15b shell must expose the inspector pane alongside the main stack."

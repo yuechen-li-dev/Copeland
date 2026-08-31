@@ -1,0 +1,24 @@
+MILESTONE=M20c
+OUTCOME=A
+RENDERER_VERDICT=NATIVE_QUALIFIED_OPT_IN
+NATIVE_BACKEND=native-svg-v1@1.0.3
+NATIVE_PRODUCTION_CAPABLE=true
+DIAGRAM_IR_CHANGED=false
+NEW_REFLECTION_QUERIES_ADDED=false
+GRAPH_A=DiagramCardRealizationFlow nodes=16 edges=31 guarded=24 policy=phase-lanes-v1 fit=0.8705882352941177
+GRAPH_A_FINGERPRINT=a7c7e007bdc4faedb589cd23f5b3f6269cdee589ee635af3c426b4338c68b5d1
+GRAPH_B=NativeDiagramRealizationCalls nodes=9 edges=8 policy=branching-calls-v1 nativeFit=1.361963190184049 mermaidFit=0.556390977443609
+OBSERVED_PERFORMANCE_MS=graphA-layout:0.043 graphA-svg:0.171 graphB-layout:0.042 graphB-svg:0.063 graphB-cold:29.549 graphB-hit:13.337
+NATIVE_DETERMINISTIC=true
+LIGHT_DARK_QUALIFIED=true
+CACHE_PROVENANCE_QUALIFIED=true
+SOURCE_CORRELATION_PRESERVED=true
+EDGE_LABELS_QUALIFIED=true
+ACCESSIBILITY_METADATA=true
+CANVAS_FIT_ZOOM_PAN_RESET=true
+MERMAID_RETAINED=true
+RAW_MERMAID_RETAINED=true
+NATIVE_DEFAULT=false
+FALLBACK=mermaid-cli@11.16.0
+PLAYBACK=14/14 passed, 0 failed, 0 skipped
+M20D=Qualify automatic-layered-v1 on a third multi-parent or bidirectional graph before promoting layout vocabulary.

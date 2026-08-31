@@ -262,6 +262,44 @@ public sealed class AvaloniaOblivionContentHostTests
         Assert.Contains("Durable --> Visible", fallback.Text);
     }
 
+    [Fact]
+    public void Native_resolved_geometry_uses_the_same_fit_zoom_pan_reset_canvas_without_rerender()
+    {
+        OblivionCard card = CreateCard(
+            OblivionCardKind.Note,
+            OblivionMarkdownBody.CreateMarkdown(
+                "```mermaid\nflowchart LR\n  Source --> Derived\n```",
+                "body/native.md"));
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0));
+        NativeDiagramRenderer renderer = new();
+
+        Border host = Assert.IsType<Border>(AvaloniaOblivionContentHost.Build(
+            card,
+            plan,
+            renderer,
+            Path.GetTempPath(),
+            OblivionResolvedAppearance.Dark));
+        ScrollViewer scroll = Assert.IsType<ScrollViewer>(host.Child);
+        StackPanel content = Assert.IsType<StackPanel>(scroll.Content);
+        AvaloniaOblivionDiagramCanvas canvas = Assert.IsType<AvaloniaOblivionDiagramCanvas>(
+            content.Children[1]);
+        canvas.Measure(new Size(800, 400));
+        canvas.Arrange(new Rect(0, 0, 800, 400));
+
+        canvas.SetViewState(canvas.ViewState.ZoomBy(1.25).PanBy(30, -12));
+        Assert.Equal(OblivionDiagramFitMode.Manual, canvas.ViewState.FitMode);
+        Assert.Equal(1.25, canvas.ViewState.Zoom);
+        Assert.Equal(30, canvas.ViewState.PanX);
+        canvas.SetViewState(canvas.ViewState.Reset());
+
+        Assert.Equal(OblivionDiagramViewportState.Fit, canvas.ViewState);
+        Assert.Equal(1, renderer.InvocationCount);
+        Assert.Equal(640, canvas.Camera.WorldWidth);
+        Assert.Equal(240, canvas.Camera.WorldHeight);
+    }
+
     [Theory]
     [InlineData(OblivionResolvedAppearance.Light)]
     [InlineData(OblivionResolvedAppearance.Dark)]
@@ -358,6 +396,61 @@ public sealed class AvaloniaOblivionContentHostTests
                 _path,
                 "image/png",
                 []);
+        }
+    }
+
+    private sealed class NativeDiagramRenderer : IOblivionDiagramRenderer
+    {
+        public int InvocationCount { get; private set; }
+
+        public OblivionDiagramRenderResult Render(OblivionDiagramRenderRequest request)
+        {
+            InvocationCount++;
+            OblivionResolvedDiagramNode source = new(
+                "source",
+                "Source",
+                40,
+                80,
+                160,
+                54,
+                "source");
+            OblivionResolvedDiagramNode derived = new(
+                "derived",
+                "Derived",
+                440,
+                80,
+                160,
+                54,
+                "derived");
+            OblivionResolvedDiagramEdge edge = new(
+                "edge:source:derived",
+                "source",
+                "derived",
+                "produces",
+                "produces",
+                [new(200, 107), new(440, 107)],
+                new(300, 100),
+                "edge:source:derived",
+                "forward");
+            OblivionResolvedDiagram resolved = new(
+                640,
+                240,
+                OblivionNativeDiagramPolicies.AutomaticLayeredV1,
+                [source, derived],
+                [edge]);
+            return new OblivionDiagramRenderResult(
+                true,
+                OblivionNativeSvgRenderer.RendererId,
+                OblivionNativeSvgRenderer.RendererVersion,
+                "native-hash",
+                Path.Combine(request.OutputDirectory, "native.svg"),
+                "image/svg+xml",
+                [],
+                "native-key",
+                false,
+                RendererKind: OblivionDiagramRendererKind.NativeSvg,
+                ResolvedDiagram: resolved,
+                LayoutPolicyIdentity: resolved.LayoutPolicyIdentity);
         }
     }
 }

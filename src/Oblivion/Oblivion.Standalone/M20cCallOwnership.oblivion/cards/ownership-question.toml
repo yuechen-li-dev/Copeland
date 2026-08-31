@@ -1,0 +1,12 @@
+format = 1
+kind = "card"
+id = "ownership-question"
+card_kind = "note"
+status = "passing"
+title = "Direct ownership question"
+subtitle = "Which bounded operations are directly coordinated by realization?"
+tags = ["m20c", "reading-task"]
+
+[body]
+format = "copeland-markdown"
+path = "content/ownership-question.md"

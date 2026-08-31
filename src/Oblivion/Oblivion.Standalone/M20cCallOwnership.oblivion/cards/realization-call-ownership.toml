@@ -1,0 +1,23 @@
+format = 1
+kind = "card"
+id = "realization-call-ownership"
+card_kind = "diagram"
+status = "passing"
+title = "Native Diagram realization ownership"
+subtitle = "Existing callsOf semantics projected as a bounded direct call graph"
+tags = ["m20c", "diagram", "call-graph", "ownership"]
+
+[diagram]
+kind = "copeland-template"
+reference = "source/NativeDiagramRealizationCalls.ts"
+symbol = "NativeDiagramRealizationCalls"
+projection = "diagram"
+
+[provenance]
+source_kind = "workspace-asset"
+source_reference = "source/NativeDiagramRealizationCalls.ts"
+producer_action = "copeland-template-call-graph-projection"
+
+[body]
+format = "plain"
+text = ""

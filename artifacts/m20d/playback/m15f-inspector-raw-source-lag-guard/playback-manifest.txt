@@ -1,0 +1,18 @@
+scenarioId=m15f-inspector-raw-source-lag-guard
+scenarioName=M15f raw-source lag guard keeps raw-source scrolling deterministic
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\m20d\playback\m15f-inspector-raw-source-lag-guard
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20d\playback\m15f-inspector-raw-source-lag-guard\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20d\playback\m15f-inspector-raw-source-lag-guard\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20d\playback\m15f-inspector-raw-source-lag-guard\playback-trace.json
+passed=true
+assertionCount=2
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] scroll-offset-changed passed=true reason=This guards the M15f lag root cause path by proving repeated raw-source wheel ticks still advance raw-source scroll instead of stalling. expected=!= 0 actual=144
+  [1] scroll-offset-equals passed=true reason=This guards the M15f lag follow-through by proving repeated raw-source wheel ticks do not drift the main stack while the inspector stays active. expected=0 actual=0

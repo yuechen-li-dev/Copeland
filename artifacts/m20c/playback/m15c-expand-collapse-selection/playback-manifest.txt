@@ -1,0 +1,18 @@
+scenarioId=m15c-expand-collapse-selection
+scenarioName=M15c selection stays deterministic across expand and collapse
+outputDirectory=C:\Users\yuech\source\repos\Copeland\artifacts\m20c\playback\m15c-expand-collapse-selection
+captureFinalPng=true
+captureTraceJson=true
+captureManifest=true
+finalPngPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20c\playback\m15c-expand-collapse-selection\final.png
+normalizedScenarioPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20c\playback\m15c-expand-collapse-selection\scenario.normalized.toml
+traceJsonPath=C:\Users\yuech\source\repos\Copeland\artifacts\m20c\playback\m15c-expand-collapse-selection\playback-trace.json
+passed=true
+assertionCount=2
+failedAssertionCount=0
+semanticTargetsSupported=card-header,expanded-body,expanded-body-scrollbar-thumb,inspector-pane,inspector-scrollbar-thumb,main-stack,main-stack-scrollbar-thumb,raw-source,raw-source-scrollbar-thumb
+stepsSupported=click,drag,key,wait,wheel
+assertionsSupported=card-expanded,region-exists,scroll-offset-changed,scroll-offset-equals,scroll-offset-greater-than,selected-card,shell-mode,step-scroll-delta-equals,step-scroll-delta-greater-than
+assertions:
+  [0] selected-card passed=true reason=This guards the M15c separation between selection and expansion so collapsing the reading surface does not destabilize which card the inspector follows. expected=markdown-first-roadmap actual=markdown-first-roadmap
+  [1] card-expanded passed=true reason=This guards the M15c contract that Escape collapses the expanded reading surface without clearing deterministic card selection. expected=False actual=False

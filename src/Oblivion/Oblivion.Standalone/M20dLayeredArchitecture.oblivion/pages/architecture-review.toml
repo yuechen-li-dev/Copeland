@@ -1,0 +1,7 @@
+format = 1
+kind = "page"
+id = "architecture-review"
+title = "Diagram realization architecture"
+description = "A real dual-backend dependency graph beside the architecture question it answers."
+tags = ["oblivion", "m20d", "diagram", "automatic-layout"]
+cards = ["diagram-realization-architecture", "architecture-question"]

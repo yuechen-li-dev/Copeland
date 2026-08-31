@@ -197,10 +197,14 @@ public static partial class OblivionWorkspaceLoader
         }
 
         return new OblivionDiagramSource(
-            OblivionDiagramSourceKind.CopelandFlow,
+            document.Kind == "copeland-template"
+                ? OblivionDiagramSourceKind.CopelandTemplate
+                : OblivionDiagramSourceKind.CopelandFlow,
             document.Reference,
             document.Symbol,
-            OblivionDiagramProjectionKind.State);
+            document.Projection == "diagram"
+                ? OblivionDiagramProjectionKind.Diagram
+                : OblivionDiagramProjectionKind.State);
     }
 
     private static OblivionProvenance BuildProvenance(

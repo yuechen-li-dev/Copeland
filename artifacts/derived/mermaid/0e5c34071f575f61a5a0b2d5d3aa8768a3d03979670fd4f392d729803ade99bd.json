@@ -1,0 +1,28 @@
+{
+  "Format": 2,
+  "Key": {
+    "SourceHash": "be8d7e0b036466bb53f02b03fccab88a2ae437ec2bbfa7dd2e6c98e62d5ef335",
+    "RendererId": "mermaid-cli",
+    "RendererVersion": "11.16.0",
+    "OutputFormat": "png",
+    "RenderingOptions": "theme=dark;background=#0f172a;securityLevel=strict;configuration=m19p-dark-v1",
+    "Value": "0e5c34071f575f61a5a0b2d5d3aa8768a3d03979670fd4f392d729803ade99bd"
+  },
+  "Provenance": {
+    "SourceKind": "Mermaid",
+    "SourceHash": "be8d7e0b036466bb53f02b03fccab88a2ae437ec2bbfa7dd2e6c98e62d5ef335",
+    "RendererId": "mermaid-cli",
+    "RendererVersion": "11.16.0",
+    "RenderOperation": "render-mermaid-png",
+    "OutputFormat": "png",
+    "ResolvedAppearance": "dark",
+    "RenderOptionsIdentity": "theme=dark;background=#0f172a;securityLevel=strict;configuration=m19p-dark-v1",
+    "Producer": "@mermaid-js/mermaid-cli@11.16.0",
+    "WorkspaceId": "m20c-call-ownership",
+    "PageId": "ownership-review",
+    "CardId": "realization-call-ownership",
+    "ContentId": "realization-call-ownership.diagram",
+    "SourceReference": "source/NativeDiagramRealizationCalls.ts",
+    "Derived": true
+  }
+}

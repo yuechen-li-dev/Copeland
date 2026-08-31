@@ -409,6 +409,23 @@ public static class AvaloniaOblivionContentHost
 
         try
         {
+            if (result.RendererKind == OblivionDiagramRendererKind.NativeSvg &&
+                result.ResolvedDiagram is not null)
+            {
+                OblivionResolvedDiagram resolved = result.ResolvedDiagram;
+                return new AvaloniaOblivionDiagramCanvas(
+                    BuildNativeDiagramVisual(resolved, resolvedAppearance),
+                    resolved.Width,
+                    resolved.Height,
+                    viewportState,
+                    viewportStateChanged)
+                {
+                    MinHeight = 240,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                };
+            }
+
             return new AvaloniaOblivionDiagramCanvas(
                 new Bitmap(result.RenderedPath),
                 viewportState,
@@ -425,6 +442,144 @@ public static class AvaloniaOblivionContentHost
                 $"Rendered Mermaid artifact could not be presented: {exception.Message}",
                 style);
         }
+    }
+
+    private static Control BuildNativeDiagramVisual(
+        OblivionResolvedDiagram diagram,
+        OblivionResolvedAppearance appearance)
+    {
+        bool dark = appearance == OblivionResolvedAppearance.Dark;
+        uint background = dark ? 0x0F172AFFu : 0xFFFFFFFFu;
+        uint nodeFill = dark ? 0x111827FFu : 0xF8FAFCFFu;
+        uint nodeStroke = dark ? 0x38BDF8FFu : 0x2563EBFFu;
+        uint foreground = dark ? 0xE2E8F0FFu : 0x18181BFFu;
+        uint edgeColor = dark ? 0x94A3B8FFu : 0x475569FFu;
+        global::Avalonia.Controls.Canvas canvas = new()
+        {
+            Width = diagram.Width,
+            Height = diagram.Height,
+            Background = ToBrush(background),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+
+        foreach (OblivionResolvedDiagramEdge edge in diagram.Edges)
+        {
+            for (int index = 1; index < edge.Route.Count; index++)
+            {
+                OblivionNativeDiagramPoint start = edge.Route[index - 1];
+                OblivionNativeDiagramPoint end = edge.Route[index];
+                canvas.Children.Add(new global::Avalonia.Controls.Shapes.Line
+                {
+                    StartPoint = new Point(start.X, start.Y),
+                    EndPoint = new Point(end.X, end.Y),
+                    Stroke = ToBrush(edgeColor),
+                    StrokeThickness = 2,
+                });
+            }
+
+            AddArrowhead(canvas, edge.Route, edgeColor);
+
+            if (!string.IsNullOrWhiteSpace(edge.DisplayLabel))
+            {
+                global::Avalonia.Controls.TextBlock label = new()
+                {
+                    Text = edge.DisplayLabel,
+                    FontFamily = new FontFamily("Segoe UI, sans-serif"),
+                    FontSize = 13,
+                    Foreground = ToBrush(foreground),
+                    Background = ToBrush(background),
+                    Padding = new Thickness(2, 0),
+                };
+                global::Avalonia.Controls.Canvas.SetLeft(label, edge.LabelAnchor.X);
+                global::Avalonia.Controls.Canvas.SetTop(label, edge.LabelAnchor.Y - 14);
+                canvas.Children.Add(label);
+            }
+        }
+
+        foreach (OblivionResolvedDiagramNode node in diagram.Nodes)
+        {
+            Border visual = new()
+            {
+                Width = node.Width,
+                Height = node.Height,
+                Background = ToBrush(nodeFill),
+                BorderBrush = ToBrush(nodeStroke),
+                BorderThickness = new Thickness(2),
+                CornerRadius = new CornerRadius(8),
+                Child = new global::Avalonia.Controls.TextBlock
+                {
+                    Text = node.Label,
+                    FontFamily = new FontFamily("Segoe UI, sans-serif"),
+                    FontSize = 16,
+                    Foreground = ToBrush(foreground),
+                    TextAlignment = TextAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                },
+            };
+            global::Avalonia.Controls.Canvas.SetLeft(visual, node.X);
+            global::Avalonia.Controls.Canvas.SetTop(visual, node.Y);
+            canvas.Children.Add(visual);
+        }
+
+        return canvas;
+    }
+
+    private static void AddArrowhead(
+        global::Avalonia.Controls.Canvas canvas,
+        IReadOnlyList<OblivionNativeDiagramPoint> route,
+        uint edgeColor)
+    {
+        if (route.Count < 2)
+        {
+            return;
+        }
+
+        OblivionNativeDiagramPoint end = route[^1];
+        OblivionNativeDiagramPoint? previous = null;
+        for (int index = route.Count - 2; index >= 0; index--)
+        {
+            OblivionNativeDiagramPoint candidate = route[index];
+            if (Math.Abs(candidate.X - end.X) > 0.001 || Math.Abs(candidate.Y - end.Y) > 0.001)
+            {
+                previous = candidate;
+                break;
+            }
+        }
+        if (previous is null)
+        {
+            return;
+        }
+
+        double deltaX = end.X - previous.X;
+        double deltaY = end.Y - previous.Y;
+        string glyph;
+        double left;
+        double top;
+        if (Math.Abs(deltaX) >= Math.Abs(deltaY))
+        {
+            glyph = deltaX >= 0 ? "▶" : "◀";
+            left = deltaX >= 0 ? end.X - 11 : end.X - 2;
+            top = end.Y - 10;
+        }
+        else
+        {
+            glyph = deltaY >= 0 ? "▼" : "▲";
+            left = end.X - 7;
+            top = deltaY >= 0 ? end.Y - 13 : end.Y - 2;
+        }
+
+        global::Avalonia.Controls.TextBlock arrowhead = new()
+        {
+            Text = glyph,
+            FontFamily = new FontFamily("Segoe UI Symbol, sans-serif"),
+            FontSize = 13,
+            Foreground = ToBrush(edgeColor),
+        };
+        global::Avalonia.Controls.Canvas.SetLeft(arrowhead, left);
+        global::Avalonia.Controls.Canvas.SetTop(arrowhead, top);
+        canvas.Children.Add(arrowhead);
     }
 
     private static SelectableTextBlock BuildText(

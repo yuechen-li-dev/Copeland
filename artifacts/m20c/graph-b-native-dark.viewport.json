@@ -1,0 +1,50 @@
+{
+  "window": {
+    "width": 2560,
+    "height": 1440
+  },
+  "usableViewport": {
+    "x": 88,
+    "y": 72,
+    "width": 2384,
+    "height": 1296
+  },
+  "layoutMode": "VerticalSplit",
+  "focusedSlot": "A",
+  "slots": [
+    {
+      "slotId": "A",
+      "cardId": "realization-call-ownership",
+      "focused": true,
+      "bounds": {
+        "x": 88,
+        "y": 72,
+        "width": 2384,
+        "height": 636
+      }
+    },
+    {
+      "slotId": "B",
+      "cardId": "ownership-question",
+      "focused": false,
+      "bounds": {
+        "x": 88,
+        "y": 732,
+        "width": 2384,
+        "height": 636
+      }
+    }
+  ],
+  "diagram": {
+    "fitMode": "Fit",
+    "zoom": 1,
+    "panX": 0,
+    "panY": 0,
+    "fitScale": 1.361963190184049,
+    "scale": 1.361963190184049,
+    "worldWidth": 1432,
+    "worldHeight": 326,
+    "viewportWidth": 2318,
+    "viewportHeight": 444
+  }
+}

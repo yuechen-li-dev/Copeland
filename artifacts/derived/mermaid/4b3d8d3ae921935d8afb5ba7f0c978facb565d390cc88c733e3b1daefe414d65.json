@@ -1,0 +1,28 @@
+{
+  "Format": 2,
+  "Key": {
+    "SourceHash": "5dec24cf6838d005b38b13a3c5534e5dfa77da72383e40a956c2ca501a7b449b",
+    "RendererId": "mermaid-cli",
+    "RendererVersion": "11.16.0",
+    "OutputFormat": "png",
+    "RenderingOptions": "theme=dark;background=#0f172a;securityLevel=strict;configuration=m19p-dark-v1",
+    "Value": "4b3d8d3ae921935d8afb5ba7f0c978facb565d390cc88c733e3b1daefe414d65"
+  },
+  "Provenance": {
+    "SourceKind": "Mermaid",
+    "SourceHash": "5dec24cf6838d005b38b13a3c5534e5dfa77da72383e40a956c2ca501a7b449b",
+    "RendererId": "mermaid-cli",
+    "RendererVersion": "11.16.0",
+    "RenderOperation": "render-mermaid-png",
+    "OutputFormat": "png",
+    "ResolvedAppearance": "dark",
+    "RenderOptionsIdentity": "theme=dark;background=#0f172a;securityLevel=strict;configuration=m19p-dark-v1",
+    "Producer": "@mermaid-js/mermaid-cli@11.16.0",
+    "WorkspaceId": "m20d-layered-architecture",
+    "PageId": "architecture-review",
+    "CardId": "diagram-realization-architecture",
+    "ContentId": "diagram-realization-architecture.diagram",
+    "SourceReference": "source/DiagramRealizationArchitecture.ts",
+    "Derived": true
+  }
+}

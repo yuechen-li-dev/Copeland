@@ -1,0 +1,225 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="diagram-title diagram-description" width="2430" height="510" viewBox="0 0 2430 510">
+  <title id="diagram-title">diagram-card-realization.diagram</title>
+  <desc id="diagram-description">stateDiagram; layout phase-lanes-v1.</desc>
+  <rect width="100%" height="100%" fill="#0f172a"/>
+  <g id="edges" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:WorkspaceIntake.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:WorkspaceIntake.transition:0">
+      <title>SourceReady [present == true]</title>
+      <path d="M 192 71 L 216 71 L 216 71 L 240 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:WorkspaceIntake.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:WorkspaceIntake.transition:1">
+      <title>SourceMissing [present == false]</title>
+      <path d="M 192 71 L 916 71 L 916 273 L 1640 273" stroke="#94a3b8" stroke-width="2"/>
+      <text x="46" y="142" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">SourceMissing → Diagnostics</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Parsing.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:Parsing.transition:0">
+      <title>Parsed [succeeded == true]</title>
+      <path d="M 390 71 L 415 71 L 415 71 L 440 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Parsing.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:Parsing.transition:1">
+      <title>ParseFailed [succeeded == false]</title>
+      <path d="M 390 71 L 1015 71 L 1015 273 L 1640 273" stroke="#94a3b8" stroke-width="2"/>
+      <text x="250" y="168" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">ParseFailed → Diagnostics</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Binding.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:Binding.transition:0">
+      <title>Bound [succeeded == true]</title>
+      <path d="M 590 71 L 615 71 L 615 71 L 640 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Binding.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:Binding.transition:1">
+      <title>BindFailed [succeeded == false]</title>
+      <path d="M 590 71 L 1115 71 L 1115 273 L 1640 273" stroke="#94a3b8" stroke-width="2"/>
+      <text x="450" y="194" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">BindFailed → Diagnostics</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Lowering.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:Lowering.transition:0">
+      <title>Lowered [succeeded == true]</title>
+      <path d="M 790 71 L 815 71 L 815 71 L 840 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Lowering.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:Lowering.transition:1">
+      <title>LowerFailed [succeeded == false]</title>
+      <path d="M 790 71 L 1215 71 L 1215 273 L 1640 273" stroke="#94a3b8" stroke-width="2"/>
+      <text x="650" y="220" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">LowerFailed → Diagnostics</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:BackendSelection.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:BackendSelection.transition:0">
+      <title>RendererAvailable [available == true]</title>
+      <path d="M 1000 71 L 1020 71 L 1020 71 L 1040 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:BackendSelection.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:BackendSelection.transition:1">
+      <title>RendererUnavailable [available == false]</title>
+      <path d="M 1000 71 L 1020 71 L 1020 431 L 1040 431" stroke="#94a3b8" stroke-width="2"/>
+      <text x="836" y="326" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">RendererUnavailable → RendererRecovery</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Emitting.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:Emitting.transition:0">
+      <title>Emitted [succeeded == true]</title>
+      <path d="M 1190 71 L 1215 71 L 1215 71 L 1240 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Emitting.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:Emitting.transition:1">
+      <title>EmitFailed [succeeded == false]</title>
+      <path d="M 1190 71 L 1008 71 L 1008 431 L 1040 431" stroke="#94a3b8" stroke-width="2"/>
+      <text x="1036" y="350" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">EmitFailed → RendererRecovery</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:ArtifactValidation.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:ArtifactValidation.transition:0">
+      <title>ArtifactValid [valid == true]</title>
+      <path d="M 1416 71 L 1428 71 L 1428 71 L 1440 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:ArtifactValidation.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:ArtifactValidation.transition:1">
+      <title>ArtifactCorrupt [valid == false]</title>
+      <path d="M 1416 71 L 992 71 L 992 431 L 1040 431" stroke="#94a3b8" stroke-width="2"/>
+      <text x="1236" y="326" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">ArtifactCorrupt → RendererRecovery</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:CacheQualification.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:CacheQualification.transition:0">
+      <title>CacheHit [valid == true]</title>
+      <path d="M 1616 71 L 1628 71 L 1628 71 L 1640 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:CacheQualification.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:CacheQualification.transition:1">
+      <title>CacheStale [valid == false]</title>
+      <path d="M 1616 71 L 1016 71 L 1016 71 L 1040 71" stroke="#94a3b8" stroke-width="2"/>
+      <text x="1390" y="142" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">CacheStale → Emitting</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:CardProjection.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:CardProjection.transition:0">
+      <title>Projected [valid == true]</title>
+      <path d="M 1790 71 L 1815 71 L 1815 71 L 1840 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:CardProjection.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:CardProjection.transition:1">
+      <title>ProjectionFailed [valid == false]</title>
+      <path d="M 1790 71 L 1600 71 L 1600 273 L 1640 273" stroke="#94a3b8" stroke-width="2"/>
+      <text x="1636" y="168" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">ProjectionFailed → Diagnostics</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:CardRealization.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:CardRealization.transition:0">
+      <title>Mounted [valid == true]</title>
+      <path d="M 1992 71 L 2016 71 L 2016 71 L 2040 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:CardRealization.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:CardRealization.transition:1">
+      <title>HostFailed [valid == false]</title>
+      <path d="M 1992 71 L 1584 71 L 1584 273 L 1640 273" stroke="#94a3b8" stroke-width="2"/>
+      <text x="1836" y="194" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">HostFailed → Diagnostics</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:HumanReview.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:HumanReview.transition:0">
+      <title>Approved [approved == true]</title>
+      <path d="M 2190 71 L 2215 71 L 2215 71 L 2240 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:HumanReview.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:HumanReview.transition:1">
+      <title>RevisionRequested [approved == false]</title>
+      <path d="M 2190 71 L 1208 71 L 1208 431 L 1240 431" stroke="#94a3b8" stroke-width="2"/>
+      <text x="1836" y="326" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">RevisionRequested → SourceRepair</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:HumanReview.transition:2" data-source-identity="flow:DiagramCardRealizationFlow.state:HumanReview.transition:2">
+      <title>Retry</title>
+      <path d="M 2190 71 L 1000 71 L 1000 431 L 1040 431" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Diagnostics.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:Diagnostics.transition:0">
+      <title>Repair</title>
+      <path d="M 1790 273 L 1192 273 L 1192 431 L 1240 431" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Diagnostics.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:Diagnostics.transition:1">
+      <title>Retry</title>
+      <path d="M 1790 273 L 1584 273 L 1584 71 L 1640 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:Diagnostics.transition:2" data-source-identity="flow:DiagramCardRealizationFlow.state:Diagnostics.transition:2">
+      <title>Cancel</title>
+      <path d="M 1790 273 L 1915 273 L 1915 431 L 2040 431" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:SourceRepair.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:SourceRepair.transition:0">
+      <title>Retry</title>
+      <path d="M 1390 431 L 208 431 L 208 71 L 240 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:SourceRepair.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:SourceRepair.transition:1">
+      <title>Cancel</title>
+      <path d="M 1390 431 L 1715 431 L 1715 431 L 2040 431" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:RendererRecovery.transition:0" data-source-identity="flow:DiagramCardRealizationFlow.state:RendererRecovery.transition:0">
+      <title>RendererAvailable [available == true]</title>
+      <path d="M 1200 431 L 992 431 L 992 71 L 1040 71" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:RendererRecovery.transition:1" data-source-identity="flow:DiagramCardRealizationFlow.state:RendererRecovery.transition:1">
+      <title>RendererUnavailable [available == false]</title>
+      <path d="M 1200 431 L 1420 431 L 1420 273 L 1640 273" stroke="#94a3b8" stroke-width="2"/>
+      <text x="836" y="326" font-family="Segoe UI, sans-serif" font-size="13" fill="#e2e8f0">RendererUnavailable → Diagnostics</text>
+    </g>
+    <g data-edge-id="flow:DiagramCardRealizationFlow.state:RendererRecovery.transition:2" data-source-identity="flow:DiagramCardRealizationFlow.state:RendererRecovery.transition:2">
+      <title>Cancel</title>
+      <path d="M 1200 431 L 1620 431 L 1620 431 L 2040 431" stroke="#94a3b8" stroke-width="2"/>
+    </g>
+  </g>
+  <g id="nodes">
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:Accepted" data-source-identity="flow:DiagramCardRealizationFlow.state:Accepted">
+      <title>Accepted</title>
+      <rect x="2240" y="44" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="2315" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">Accepted</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:ArtifactValidation" data-source-identity="flow:DiagramCardRealizationFlow.state:ArtifactValidation">
+      <title>ArtifactValidation</title>
+      <rect x="1240" y="44" width="176" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="1328" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">ArtifactValidation</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:BackendSelection" data-source-identity="flow:DiagramCardRealizationFlow.state:BackendSelection">
+      <title>BackendSelection</title>
+      <rect x="840" y="44" width="160" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="920" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">BackendSelection</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:Binding" data-source-identity="flow:DiagramCardRealizationFlow.state:Binding">
+      <title>Binding</title>
+      <rect x="440" y="44" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="515" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">Binding</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:CacheQualification" data-source-identity="flow:DiagramCardRealizationFlow.state:CacheQualification">
+      <title>CacheQualification</title>
+      <rect x="1440" y="44" width="176" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="1528" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">CacheQualification</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:CardProjection" data-source-identity="flow:DiagramCardRealizationFlow.state:CardProjection">
+      <title>CardProjection</title>
+      <rect x="1640" y="44" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="1715" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">CardProjection</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:CardRealization" data-source-identity="flow:DiagramCardRealizationFlow.state:CardRealization">
+      <title>CardRealization</title>
+      <rect x="1840" y="44" width="152" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="1916" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">CardRealization</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:Diagnostics" data-source-identity="flow:DiagramCardRealizationFlow.state:Diagnostics">
+      <title>Diagnostics</title>
+      <rect x="1640" y="246" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="1715" y="279" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">Diagnostics</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:Emitting" data-source-identity="flow:DiagramCardRealizationFlow.state:Emitting">
+      <title>Emitting</title>
+      <rect x="1040" y="44" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="1115" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">Emitting</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:HumanReview" data-source-identity="flow:DiagramCardRealizationFlow.state:HumanReview">
+      <title>HumanReview</title>
+      <rect x="2040" y="44" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="2115" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">HumanReview</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:Lowering" data-source-identity="flow:DiagramCardRealizationFlow.state:Lowering">
+      <title>Lowering</title>
+      <rect x="640" y="44" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="715" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">Lowering</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:Parsing" data-source-identity="flow:DiagramCardRealizationFlow.state:Parsing">
+      <title>Parsing</title>
+      <rect x="240" y="44" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="315" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">Parsing</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:Rejected" data-source-identity="flow:DiagramCardRealizationFlow.state:Rejected">
+      <title>Rejected</title>
+      <rect x="2040" y="404" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="2115" y="437" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">Rejected</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:RendererRecovery" data-source-identity="flow:DiagramCardRealizationFlow.state:RendererRecovery">
+      <title>RendererRecovery</title>
+      <rect x="1040" y="404" width="160" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="1120" y="437" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">RendererRecovery</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:SourceRepair" data-source-identity="flow:DiagramCardRealizationFlow.state:SourceRepair">
+      <title>SourceRepair</title>
+      <rect x="1240" y="404" width="150" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="1315" y="437" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">SourceRepair</text>
+    </g>
+    <g data-node-id="flow:DiagramCardRealizationFlow.state:WorkspaceIntake" data-source-identity="flow:DiagramCardRealizationFlow.state:WorkspaceIntake">
+      <title>WorkspaceIntake</title>
+      <rect x="40" y="44" width="152" height="54" rx="8" fill="#111827" stroke="#38bdf8" stroke-width="2"/>
+      <text x="116" y="77" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="16" fill="#e2e8f0">WorkspaceIntake</text>
+    </g>
+  </g>
+</svg>

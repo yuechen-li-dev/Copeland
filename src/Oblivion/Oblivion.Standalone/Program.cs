@@ -37,7 +37,10 @@ internal static class Program
                     $"{diagnostic.Code}: {diagnostic.Message}")));
         }
 
-        BuildAvaloniaApp(options, configResult.Config).StartWithClassicDesktopLifetime(args);
+        OblivionConfig config = options.AppearanceOverride is null
+            ? configResult.Config
+            : configResult.Config with { Appearance = options.AppearanceOverride.Value };
+        BuildAvaloniaApp(options, config).StartWithClassicDesktopLifetime(args);
     }
 
     private static AppBuilder BuildAvaloniaApp(
@@ -187,17 +190,24 @@ internal sealed class OblivionStandaloneWindow : Window
 
         Oblivion.Model.OblivionCard card = _surface.Cards.Single(candidate =>
             candidate.Kind == Oblivion.Model.OblivionCardKind.Diagram);
-        OblivionDiagramSemanticProjectionResult projection = new OblivionDiagramCardRealizer()
+        OblivionDiagramCardRealizer realizer = new();
+        OblivionDiagramSemanticProjectionResult semantic = realizer
             .ProjectSemanticDiagram(card, options.VaultRoot);
-        if (!projection.Succeeded || projection.Diagram is null)
+        OblivionDiagramProjectionResult projection = realizer.Project(card, options.VaultRoot);
+        if (!semantic.Succeeded || semantic.Diagram is null ||
+            !projection.Succeeded || projection.SemanticFingerprint is null)
         {
             throw new InvalidOperationException(
-                "The M20b native diagram experiment could not project the semantic Diagram IR:" +
+                "The native diagram backend could not project the semantic Diagram IR:" +
                 Environment.NewLine +
-                string.Join(Environment.NewLine, projection.Diagnostics.Select(diagnostic => diagnostic.Message)));
+                string.Join(
+                    Environment.NewLine,
+                    semantic.Diagnostics.Concat(projection.Diagnostics).Select(diagnostic => diagnostic.Message)));
         }
 
-        return new M20bNativeDiagramRenderer(projection.Diagram);
+        return new OblivionFallbackDiagramRenderer(
+            new OblivionNativeSvgRenderer(semantic.Diagram, projection.SemanticFingerprint),
+            new OblivionExternalMermaidRenderer(OblivionMermaidRendererDiscovery.Discover()));
     }
 
     private void HandleOpened(object? sender, EventArgs args)
@@ -370,7 +380,10 @@ internal sealed class OblivionStandaloneWindow : Window
             cardSnapshot.Card,
             cardSnapshot.ContentPlan,
             _diagramRenderer,
-            Path.GetFullPath(Path.Combine("artifacts", "derived", "mermaid")),
+            Path.GetFullPath(Path.Combine(
+                "artifacts",
+                "derived",
+                _options.UseNativeDiagramExperiment ? "native-svg" : "mermaid")),
             workspaceId: _surface.Workspace.Id.Value,
             pageId: _surface.PageId,
             maximumReadableWidth: _style.MaximumReadableWidth,
@@ -559,7 +572,8 @@ internal sealed record OblivionStandaloneOptions(
     double DiagramZoom,
     double DiagramPanX,
     double DiagramPanY,
-    bool UseNativeDiagramExperiment)
+    bool UseNativeDiagramExperiment,
+    OblivionAppearance? AppearanceOverride)
 {
     public static OblivionStandaloneOptions Parse(IReadOnlyList<string> args)
     {
@@ -572,6 +586,7 @@ internal sealed record OblivionStandaloneOptions(
         double diagramPanX = 0;
         double diagramPanY = 0;
         bool useNativeDiagramExperiment = false;
+        OblivionAppearance? appearanceOverride = null;
         for (int index = 0; index < args.Count; index++)
         {
             string argument = args[index];
@@ -653,9 +668,22 @@ internal sealed record OblivionStandaloneOptions(
                 useNativeDiagramExperiment = backend switch
                 {
                     "mermaid" => false,
+                    "native" => true,
                     "native-experiment" => true,
                     _ => throw new ArgumentException(
-                        $"Unknown diagram backend '{backend}'. Expected mermaid or native-experiment."),
+                        $"Unknown diagram backend '{backend}'. Expected mermaid or native."),
+                };
+                continue;
+            }
+
+            if (string.Equals(argument, "--appearance", StringComparison.Ordinal) && index + 1 < args.Count)
+            {
+                appearanceOverride = args[++index] switch
+                {
+                    "light" => OblivionAppearance.Light,
+                    "dark" => OblivionAppearance.Dark,
+                    string value => throw new ArgumentException(
+                        $"Unknown appearance '{value}'. Expected light or dark."),
                 };
                 continue;
             }
@@ -677,6 +705,7 @@ internal sealed record OblivionStandaloneOptions(
             diagramZoom,
             diagramPanX,
             diagramPanY,
-            useNativeDiagramExperiment);
+            useNativeDiagramExperiment,
+            appearanceOverride);
     }
 }

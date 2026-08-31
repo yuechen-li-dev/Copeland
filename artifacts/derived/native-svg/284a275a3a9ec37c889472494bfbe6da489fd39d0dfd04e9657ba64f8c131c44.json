@@ -1,0 +1,777 @@
+{
+  "Format": 1,
+  "Key": {
+    "SemanticHash": "1c902eca64ac85876f9057e5be99db9000bf06fcee5e1ba59f2bd3be02548692",
+    "RendererIdentity": "native-svg-v1@1.0.4",
+    "LayoutPolicyIdentity": "automatic-layered-v1",
+    "Appearance": "light",
+    "OutputFormat": "svg",
+    "FixedOptions": "canonical-svg;inert;segoe-ui-fallback;max-2mib",
+    "Value": "284a275a3a9ec37c889472494bfbe6da489fd39d0dfd04e9657ba64f8c131c44"
+  },
+  "Provenance": {
+    "SourceKind": "NativeSvg",
+    "SourceHash": "1c902eca64ac85876f9057e5be99db9000bf06fcee5e1ba59f2bd3be02548692",
+    "RendererId": "native-svg-v1",
+    "RendererVersion": "1.0.4",
+    "RenderOperation": "layout-and-emit-native-svg",
+    "OutputFormat": "svg",
+    "ResolvedAppearance": "light",
+    "RenderOptionsIdentity": "layout=automatic-layered-v1;appearance=light;canonical-svg;inert;segoe-ui-fallback;max-2mib",
+    "Producer": "Oblivion.App native diagram renderer",
+    "WorkspaceId": "m20d-layered-architecture",
+    "PageId": "architecture-review",
+    "CardId": "diagram-realization-architecture",
+    "ContentId": "diagram-realization-architecture.diagram",
+    "SourceReference": "source/DiagramRealizationArchitecture.ts",
+    "Derived": true
+  },
+  "ResolvedDiagram": {
+    "Width": 3310,
+    "Height": 276,
+    "LayoutPolicyIdentity": "automatic-layered-v1",
+    "Nodes": [
+      {
+        "Id": "card-model",
+        "Label": "OblivionCard",
+        "X": 386,
+        "Y": 120,
+        "Width": 150,
+        "Height": 54,
+        "SourceIdentity": "card-model"
+      },
+      {
+        "Id": "content-realization",
+        "Label": "OblivionContentRealization",
+        "X": 2426,
+        "Y": 120,
+        "Width": 220,
+        "Height": 54,
+        "SourceIdentity": "content-realization"
+      },
+      {
+        "Id": "derived-cache",
+        "Label": "Derived artifact cache",
+        "X": 1842,
+        "Y": 70,
+        "Width": 208,
+        "Height": 54,
+        "SourceIdentity": "derived-cache"
+      },
+      {
+        "Id": "diagram-canvas",
+        "Label": "Avalonia Diagram Canvas",
+        "X": 2746,
+        "Y": 120,
+        "Width": 216,
+        "Height": 54,
+        "SourceIdentity": "diagram-canvas"
+      },
+      {
+        "Id": "diagram-ir",
+        "Label": "Diagram IR",
+        "X": 956,
+        "Y": 120,
+        "Width": 150,
+        "Height": 54,
+        "SourceIdentity": "diagram-ir"
+      },
+      {
+        "Id": "mermaid-emitter",
+        "Label": "MermaidEmitter",
+        "X": 1206,
+        "Y": 70,
+        "Width": 150,
+        "Height": 54,
+        "SourceIdentity": "mermaid-emitter"
+      },
+      {
+        "Id": "mermaid-renderer",
+        "Label": "External Mermaid renderer",
+        "X": 1522,
+        "Y": 70,
+        "Width": 220,
+        "Height": 54,
+        "SourceIdentity": "mermaid-renderer"
+      },
+      {
+        "Id": "native-layout",
+        "Label": "Automatic native layout",
+        "X": 1206,
+        "Y": 170,
+        "Width": 216,
+        "Height": 54,
+        "SourceIdentity": "native-layout"
+      },
+      {
+        "Id": "native-svg",
+        "Label": "Native SVG emitter",
+        "X": 1522,
+        "Y": 170,
+        "Width": 176,
+        "Height": 54,
+        "SourceIdentity": "native-svg"
+      },
+      {
+        "Id": "provenance",
+        "Label": "Artifact provenance",
+        "X": 1842,
+        "Y": 170,
+        "Width": 184,
+        "Height": 54,
+        "SourceIdentity": "provenance"
+      },
+      {
+        "Id": "semantic-projector",
+        "Label": "OblivionDiagramCardRealizer",
+        "X": 636,
+        "Y": 120,
+        "Width": 220,
+        "Height": 54,
+        "SourceIdentity": "semantic-projector"
+      },
+      {
+        "Id": "source-correlation",
+        "Label": "Source correlation",
+        "X": 2150,
+        "Y": 120,
+        "Width": 176,
+        "Height": 54,
+        "SourceIdentity": "source-correlation"
+      },
+      {
+        "Id": "viewport-state",
+        "Label": "Diagram viewport state",
+        "X": 3062,
+        "Y": 120,
+        "Width": 208,
+        "Height": 54,
+        "SourceIdentity": "viewport-state"
+      },
+      {
+        "Id": "workspace-loader",
+        "Label": "OblivionWorkspaceLoader",
+        "X": 70,
+        "Y": 120,
+        "Width": 216,
+        "Height": 54,
+        "SourceIdentity": "workspace-loader"
+      }
+    ],
+    "Edges": [
+      {
+        "Id": "edge:0:card-model:semantic-projector",
+        "From": "card-model",
+        "To": "semantic-projector",
+        "Label": "configures",
+        "DisplayLabel": "configures",
+        "Route": [
+          {
+            "X": 536,
+            "Y": 147
+          },
+          {
+            "X": 586,
+            "Y": 147
+          },
+          {
+            "X": 586,
+            "Y": 147
+          },
+          {
+            "X": 636,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 590,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:0:card-model:semantic-projector",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:1:content-realization:diagram-canvas",
+        "From": "content-realization",
+        "To": "diagram-canvas",
+        "Label": "hosts",
+        "DisplayLabel": "hosts",
+        "Route": [
+          {
+            "X": 2646,
+            "Y": 147
+          },
+          {
+            "X": 2703,
+            "Y": 147
+          },
+          {
+            "X": 2703,
+            "Y": 147
+          },
+          {
+            "X": 2746,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 2707,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:1:content-realization:diagram-canvas",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:2:derived-cache:content-realization",
+        "From": "derived-cache",
+        "To": "content-realization",
+        "Label": "supplies artifact",
+        "DisplayLabel": "supplies artifact",
+        "Route": [
+          {
+            "X": 2050,
+            "Y": 97
+          },
+          {
+            "X": 2252,
+            "Y": 97
+          },
+          {
+            "X": 2252,
+            "Y": 147
+          },
+          {
+            "X": 2426,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 2256,
+          "Y": 117
+        },
+        "SourceIdentity": "edge:2:derived-cache:content-realization",
+        "RouteKind": "cross-layer"
+      },
+      {
+        "Id": "edge:3:diagram-canvas:viewport-state",
+        "From": "diagram-canvas",
+        "To": "viewport-state",
+        "Label": "updates",
+        "DisplayLabel": "updates",
+        "Route": [
+          {
+            "X": 2962,
+            "Y": 147
+          },
+          {
+            "X": 3033,
+            "Y": 147
+          },
+          {
+            "X": 3033,
+            "Y": 147
+          },
+          {
+            "X": 3062,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 3037,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:3:diagram-canvas:viewport-state",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:4:diagram-ir:mermaid-emitter",
+        "From": "diagram-ir",
+        "To": "mermaid-emitter",
+        "Label": "emits source",
+        "DisplayLabel": "emits source",
+        "Route": [
+          {
+            "X": 1106,
+            "Y": 147
+          },
+          {
+            "X": 1184,
+            "Y": 147
+          },
+          {
+            "X": 1184,
+            "Y": 97
+          },
+          {
+            "X": 1206,
+            "Y": 97
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1188,
+          "Y": 117
+        },
+        "SourceIdentity": "edge:4:diagram-ir:mermaid-emitter",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:5:diagram-ir:native-layout",
+        "From": "diagram-ir",
+        "To": "native-layout",
+        "Label": "resolves",
+        "DisplayLabel": "resolves",
+        "Route": [
+          {
+            "X": 1106,
+            "Y": 147
+          },
+          {
+            "X": 1156,
+            "Y": 147
+          },
+          {
+            "X": 1156,
+            "Y": 197
+          },
+          {
+            "X": 1206,
+            "Y": 197
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1160,
+          "Y": 167
+        },
+        "SourceIdentity": "edge:5:diagram-ir:native-layout",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:6:diagram-ir:source-correlation",
+        "From": "diagram-ir",
+        "To": "source-correlation",
+        "Label": "identifies",
+        "DisplayLabel": "identifies",
+        "Route": [
+          {
+            "X": 1106,
+            "Y": 147
+          },
+          {
+            "X": 1635,
+            "Y": 147
+          },
+          {
+            "X": 1635,
+            "Y": 147
+          },
+          {
+            "X": 2150,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1639,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:6:diagram-ir:source-correlation",
+        "RouteKind": "cross-layer"
+      },
+      {
+        "Id": "edge:7:mermaid-emitter:mermaid-renderer",
+        "From": "mermaid-emitter",
+        "To": "mermaid-renderer",
+        "Label": "renders",
+        "DisplayLabel": "renders",
+        "Route": [
+          {
+            "X": 1356,
+            "Y": 97
+          },
+          {
+            "X": 1453,
+            "Y": 97
+          },
+          {
+            "X": 1453,
+            "Y": 97
+          },
+          {
+            "X": 1522,
+            "Y": 97
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1457,
+          "Y": 92
+        },
+        "SourceIdentity": "edge:7:mermaid-emitter:mermaid-renderer",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:8:mermaid-renderer:derived-cache",
+        "From": "mermaid-renderer",
+        "To": "derived-cache",
+        "Label": "stores PNG",
+        "DisplayLabel": "stores PNG",
+        "Route": [
+          {
+            "X": 1742,
+            "Y": 97
+          },
+          {
+            "X": 1813,
+            "Y": 97
+          },
+          {
+            "X": 1813,
+            "Y": 97
+          },
+          {
+            "X": 1842,
+            "Y": 97
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1817,
+          "Y": 92
+        },
+        "SourceIdentity": "edge:8:mermaid-renderer:derived-cache",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:9:mermaid-renderer:provenance",
+        "From": "mermaid-renderer",
+        "To": "provenance",
+        "Label": "records",
+        "DisplayLabel": "records",
+        "Route": [
+          {
+            "X": 1742,
+            "Y": 97
+          },
+          {
+            "X": 1820,
+            "Y": 97
+          },
+          {
+            "X": 1820,
+            "Y": 197
+          },
+          {
+            "X": 1842,
+            "Y": 197
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1824,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:9:mermaid-renderer:provenance",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:10:native-layout:native-svg",
+        "From": "native-layout",
+        "To": "native-svg",
+        "Label": "emits",
+        "DisplayLabel": "emits",
+        "Route": [
+          {
+            "X": 1422,
+            "Y": 197
+          },
+          {
+            "X": 1472,
+            "Y": 197
+          },
+          {
+            "X": 1472,
+            "Y": 197
+          },
+          {
+            "X": 1522,
+            "Y": 197
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1476,
+          "Y": 192
+        },
+        "SourceIdentity": "edge:10:native-layout:native-svg",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:11:native-svg:derived-cache",
+        "From": "native-svg",
+        "To": "derived-cache",
+        "Label": "stores SVG",
+        "DisplayLabel": "stores SVG",
+        "Route": [
+          {
+            "X": 1698,
+            "Y": 197
+          },
+          {
+            "X": 1777,
+            "Y": 197
+          },
+          {
+            "X": 1777,
+            "Y": 97
+          },
+          {
+            "X": 1842,
+            "Y": 97
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1781,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:11:native-svg:derived-cache",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:12:native-svg:provenance",
+        "From": "native-svg",
+        "To": "provenance",
+        "Label": "records",
+        "DisplayLabel": "records",
+        "Route": [
+          {
+            "X": 1698,
+            "Y": 197
+          },
+          {
+            "X": 1784,
+            "Y": 197
+          },
+          {
+            "X": 1784,
+            "Y": 197
+          },
+          {
+            "X": 1842,
+            "Y": 197
+          }
+        ],
+        "LabelAnchor": {
+          "X": 1788,
+          "Y": 192
+        },
+        "SourceIdentity": "edge:12:native-svg:provenance",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:13:provenance:content-realization",
+        "From": "provenance",
+        "To": "content-realization",
+        "Label": "supplies owner",
+        "DisplayLabel": "supplies owner",
+        "Route": [
+          {
+            "X": 2026,
+            "Y": 197
+          },
+          {
+            "X": 2247,
+            "Y": 197
+          },
+          {
+            "X": 2247,
+            "Y": 147
+          },
+          {
+            "X": 2426,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 2251,
+          "Y": 167
+        },
+        "SourceIdentity": "edge:13:provenance:content-realization",
+        "RouteKind": "cross-layer"
+      },
+      {
+        "Id": "edge:14:provenance:source-correlation",
+        "From": "provenance",
+        "To": "source-correlation",
+        "Label": "retains",
+        "DisplayLabel": "retains",
+        "Route": [
+          {
+            "X": 2026,
+            "Y": 197
+          },
+          {
+            "X": 2116,
+            "Y": 197
+          },
+          {
+            "X": 2116,
+            "Y": 147
+          },
+          {
+            "X": 2150,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 2120,
+          "Y": 167
+        },
+        "SourceIdentity": "edge:14:provenance:source-correlation",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:15:semantic-projector:diagram-ir",
+        "From": "semantic-projector",
+        "To": "diagram-ir",
+        "Label": "projects",
+        "DisplayLabel": "projects",
+        "Route": [
+          {
+            "X": 856,
+            "Y": 147
+          },
+          {
+            "X": 906,
+            "Y": 147
+          },
+          {
+            "X": 906,
+            "Y": 147
+          },
+          {
+            "X": 956,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 910,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:15:semantic-projector:diagram-ir",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:16:source-correlation:content-realization",
+        "From": "source-correlation",
+        "To": "content-realization",
+        "Label": "supplies source",
+        "DisplayLabel": "supplies source",
+        "Route": [
+          {
+            "X": 2326,
+            "Y": 147
+          },
+          {
+            "X": 2383,
+            "Y": 147
+          },
+          {
+            "X": 2383,
+            "Y": 147
+          },
+          {
+            "X": 2426,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 2387,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:16:source-correlation:content-realization",
+        "RouteKind": "forward"
+      },
+      {
+        "Id": "edge:17:viewport-state:diagram-canvas",
+        "From": "viewport-state",
+        "To": "diagram-canvas",
+        "Label": "applies",
+        "DisplayLabel": "applies",
+        "Route": [
+          {
+            "X": 3166,
+            "Y": 120
+          },
+          {
+            "X": 3166,
+            "Y": 32
+          },
+          {
+            "X": 2854,
+            "Y": 32
+          },
+          {
+            "X": 2854,
+            "Y": 120
+          }
+        ],
+        "LabelAnchor": {
+          "X": 3014,
+          "Y": 46
+        },
+        "SourceIdentity": "edge:17:viewport-state:diagram-canvas",
+        "RouteKind": "back-edge"
+      },
+      {
+        "Id": "edge:18:workspace-loader:card-model",
+        "From": "workspace-loader",
+        "To": "card-model",
+        "Label": "loads",
+        "DisplayLabel": "loads",
+        "Route": [
+          {
+            "X": 286,
+            "Y": 147
+          },
+          {
+            "X": 357,
+            "Y": 147
+          },
+          {
+            "X": 357,
+            "Y": 147
+          },
+          {
+            "X": 386,
+            "Y": 147
+          }
+        ],
+        "LabelAnchor": {
+          "X": 361,
+          "Y": 142
+        },
+        "SourceIdentity": "edge:18:workspace-loader:card-model",
+        "RouteKind": "forward"
+      }
+    ],
+    "Metrics": {
+      "LayerCount": 11,
+      "ComponentCount": 1,
+      "BackEdgeCount": 1,
+      "CrossLayerEdgeCount": 3,
+      "CrossingEstimate": 1
+    },
+    "Diagnostics": [
+      {
+        "Code": "OBLIVION-NATIVE-CYCLE-NORMALIZED",
+        "Message": "A strongly connected region containing 2 node(s) was given a stable forward orientation for ranking.",
+        "EdgeIdentity": null
+      },
+      {
+        "Code": "OBLIVION-NATIVE-BACK-EDGES-ROUTED",
+        "Message": "1 back edge(s) or self edge(s) were routed outside the forward layers.",
+        "EdgeIdentity": null
+      },
+      {
+        "Code": "OBLIVION-NATIVE-CROSS-LAYER-EDGES-ROUTED",
+        "Message": "3 edge(s) cross more than one layer and were retained as segmented routes.",
+        "EdgeIdentity": null
+      }
+    ]
+  }
+}

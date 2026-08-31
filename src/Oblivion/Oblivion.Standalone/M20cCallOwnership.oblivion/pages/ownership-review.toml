@@ -1,0 +1,7 @@
+format = 1
+kind = "page"
+id = "ownership-review"
+title = "Diagram realization direct ownership"
+description = "A bounded direct call graph beside the ownership question it answers."
+tags = ["oblivion", "m20c", "diagram", "calls"]
+cards = ["realization-call-ownership", "ownership-question"]

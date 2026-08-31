@@ -1,0 +1,27 @@
+MILESTONE=M20d
+KIND=automatic-layered-native-layout-qualification
+OUTCOME=B
+AUTOMATIC_POLICY=automatic-layered-v1
+NATIVE_RENDERER=native-svg-v1@1.0.4
+AUTOMATIC_QUALITY=GOOD_DEFAULT
+PREFERRED_BACKEND=KEEP_NATIVE_OPT_IN
+LAYOUT_VOCABULARY=KEEP_LAYOUT_VOCAB_INTERNAL
+GRAPH_C=DiagramRealizationArchitecture nodes=14 edges=19 multiParent=5 bidirectionalPairs=1 maxIn=3 maxOut=3
+GRAPH_C_NATIVE=world=2340x252 fit=0.9905982905982906 crossings=1 zoomRequired=false
+GRAPH_C_MERMAID=world=784x76 fit=2.9566326530612246 crossingsManual=4 zoomHelpful=true
+GRAPH_A_AUTOMATIC=world=432x1580 fitApprox=0.281 zoomRequired=true specializedPreferred=true
+GRAPH_B_AUTOMATIC=world=574x852 fitApprox=0.521 zoomRequired=true specializedPreferred=true
+DIAGRAM_IR_CHANGED=false
+NEW_REFLECTION_QUERIES=false
+GRAPH_C_HINTS=false
+PUBLIC_LAYOUT_VOCABULARY=false
+DETERMINISTIC_LAYOUT=true
+DETERMINISTIC_SVG=true
+LIGHT_DARK=true
+ACCESSIBILITY=true
+SOURCE_CORRELATION=true
+MERMAID_RETAINED=true
+PERFORMANCE=layoutMs=23.209 svgEmitMs=1.294 coldMs=29.203 hitMs=11.573 svgBytes=13287
+TESTS_ADDED=5
+PLAYBACK=14/14 failed=0 skipped=0
+M20E=Keep policies backend-internal; improve bounded automatic compaction before reconsidering defaults or syntax.

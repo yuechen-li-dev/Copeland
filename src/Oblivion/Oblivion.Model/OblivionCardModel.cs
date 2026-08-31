@@ -35,11 +35,13 @@ public sealed record OblivionArtifactId(string Value);
 public enum OblivionDiagramSourceKind
 {
     CopelandFlow,
+    CopelandTemplate,
 }
 
 public enum OblivionDiagramProjectionKind
 {
     State,
+    Diagram,
 }
 
 public sealed record OblivionDiagramSource(

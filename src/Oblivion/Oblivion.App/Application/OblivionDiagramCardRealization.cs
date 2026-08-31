@@ -71,8 +71,11 @@ public sealed class OblivionDiagramCardRealizer
         }
 
         OblivionDiagramSource source = card.Diagram;
-        if (source.Kind != OblivionDiagramSourceKind.CopelandFlow ||
-            source.Projection != OblivionDiagramProjectionKind.State)
+        bool flowState = source.Kind == OblivionDiagramSourceKind.CopelandFlow &&
+            source.Projection == OblivionDiagramProjectionKind.State;
+        bool templateDiagram = source.Kind == OblivionDiagramSourceKind.CopelandTemplate &&
+            source.Projection == OblivionDiagramProjectionKind.Diagram;
+        if (!flowState && !templateDiagram)
         {
             return SemanticFailure(
                 source,
@@ -112,6 +115,33 @@ public sealed class OblivionDiagramCardRealizer
                     OblivionDiagnosticSeverity.Error,
                     diagnostic.Message,
                     diagnostic.SourcePath ?? source.Reference)).ToArray());
+        }
+
+        if (templateDiagram)
+        {
+            TemplateEvaluationResult evaluation = TemplateCompiler.Evaluate(
+                compilation.BoundCompilation,
+                source.Symbol);
+            if (!evaluation.Success || evaluation.Diagram is null)
+            {
+                return new OblivionDiagramSemanticProjectionResult(
+                    false,
+                    source,
+                    null,
+                    null,
+                    evaluation.Diagnostics.Select(diagnostic => new OblivionCardDiagnostic(
+                        diagnostic.Id,
+                        OblivionDiagnosticSeverity.Error,
+                        diagnostic.Message,
+                        diagnostic.SourcePath ?? source.Reference)).ToArray());
+            }
+
+            return new OblivionDiagramSemanticProjectionResult(
+                true,
+                source,
+                evaluation.Diagram,
+                "template:" + evaluation.TemplateName,
+                []);
         }
 
         if (!StateMachineDiagramProjection.TryProject(
