@@ -17,6 +17,47 @@ namespace Aurelian.Machina.Tests;
 public sealed class AvaloniaOblivionContentHostTests
 {
     [Fact]
+    public void Mature_document_host_consumes_one_supplied_light_palette()
+    {
+        AvaloniaOblivionContentStyle light = new(
+            Surface: 0xFFFFFFFF,
+            Foreground: 0x27272AFF,
+            Heading: 0x09090BFF,
+            Muted: 0x52525BFF,
+            CodeSurface: 0xF4F4F5FF,
+            Border: 0xD4D4D8FF,
+            QuoteBorder: 0xA1A1AAFF,
+            Link: 0x1D4ED8FF,
+            Diagnostic: 0x92400EFF);
+        OblivionCard card = CreateCard(
+            OblivionCardKind.Note,
+            OblivionMarkdownBody.CreateMarkdown("# Light heading\n\nReadable body.", "body/light.md"));
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0));
+
+        Border host = Assert.IsType<Border>(AvaloniaOblivionContentHost.Build(
+            card,
+            plan,
+            new FakeDiagramRenderer(),
+            Path.GetTempPath(),
+            style: light));
+        SolidColorBrush hostBackground = Assert.IsType<SolidColorBrush>(host.Background);
+        SolidColorBrush hostBorder = Assert.IsType<SolidColorBrush>(host.BorderBrush);
+        ScrollViewer scroll = Assert.IsType<ScrollViewer>(host.Child);
+        StackPanel content = Assert.IsType<StackPanel>(scroll.Content);
+        StackPanel document = Assert.IsType<StackPanel>(Assert.Single(content.Children));
+        SelectableTextBlock heading = Assert.IsType<SelectableTextBlock>(document.Children[0]);
+        SelectableTextBlock body = Assert.IsType<SelectableTextBlock>(document.Children[1]);
+
+        Assert.Equal(Color.FromArgb(255, 255, 255, 255), hostBackground.Color);
+        Assert.Equal(Color.FromArgb(255, 212, 212, 216), hostBorder.Color);
+        Assert.Equal(Color.FromArgb(255, 9, 9, 11), Assert.IsType<SolidColorBrush>(heading.Foreground).Color);
+        Assert.Equal(Color.FromArgb(255, 39, 39, 42), Assert.IsType<SolidColorBrush>(body.Foreground).Color);
+        Assert.Equal(ScrollBarVisibility.Auto, scroll.VerticalScrollBarVisibility);
+    }
+
+    [Fact]
     public void Expanded_markdown_host_owns_bounded_vertical_scroll_and_selectable_content()
     {
         OblivionCard card = CreateCard(

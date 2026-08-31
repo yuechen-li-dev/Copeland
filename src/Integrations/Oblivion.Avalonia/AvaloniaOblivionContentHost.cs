@@ -11,13 +11,31 @@ using Oblivion.Product;
 
 namespace Oblivion.Avalonia;
 
+public sealed record AvaloniaOblivionContentStyle(
+    uint Surface,
+    uint Foreground,
+    uint Heading,
+    uint Muted,
+    uint CodeSurface,
+    uint Border,
+    uint QuoteBorder,
+    uint Link,
+    uint Diagnostic)
+{
+    public static AvaloniaOblivionContentStyle Dark { get; } = new(
+        0x0F172AFF,
+        0xE2E8F0FF,
+        0xFFFFFFFF,
+        0xA8B8CCFF,
+        0x111827FF,
+        0x475569FF,
+        0x64748BFF,
+        0x93C5FDFF,
+        0xFBBF24FF);
+}
+
 public static class AvaloniaOblivionContentHost
 {
-    private static readonly IBrush Surface = Brush.Parse("#0F172A");
-    private static readonly IBrush Foreground = Brush.Parse("#E2E8F0");
-    private static readonly IBrush Muted = Brush.Parse("#A8B8CC");
-    private static readonly IBrush CodeSurface = Brush.Parse("#111827");
-    private static readonly IBrush BorderBrush = Brush.Parse("#475569");
     private static readonly FontFamily Monospace = new("Cascadia Mono, Consolas, monospace");
 
     public static Control Build(
@@ -27,12 +45,14 @@ public static class AvaloniaOblivionContentHost
         string diagramOutputDirectory,
         string? workspaceId = null,
         string? pageId = null,
-        double? maximumReadableWidth = null)
+        double? maximumReadableWidth = null,
+        AvaloniaOblivionContentStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(diagramRenderer);
 
+        AvaloniaOblivionContentStyle effectiveStyle = style ?? AvaloniaOblivionContentStyle.Dark;
         StackPanel content = new()
         {
             Spacing = OblivionReadingTypographyBaseline.MatureReadOnly.ParagraphSpacing,
@@ -44,17 +64,18 @@ public static class AvaloniaOblivionContentHost
         {
             Control realized = item.PresenterKind switch
             {
-                OblivionContentPresenterKind.AvaloniaReadOnlyDocument => BuildDocument(card.Body),
-                OblivionContentPresenterKind.AvaloniaReadOnlyCode => BuildCode(item.Source, item.Language),
-                OblivionContentPresenterKind.AvaloniaImage => BuildImage(item),
+                OblivionContentPresenterKind.AvaloniaReadOnlyDocument => BuildDocument(card.Body, effectiveStyle),
+                OblivionContentPresenterKind.AvaloniaReadOnlyCode => BuildCode(item.Source, item.Language, effectiveStyle),
+                OblivionContentPresenterKind.AvaloniaImage => BuildImage(item, effectiveStyle),
                 OblivionContentPresenterKind.ExternalMermaidRenderer => BuildDiagram(
                     card,
                     item,
                     diagramRenderer,
                     diagramOutputDirectory,
                     workspaceId,
-                    pageId),
-                _ => BuildText(item.Source),
+                    pageId,
+                    effectiveStyle),
+                _ => BuildText(item.Source, effectiveStyle),
             };
             content.Children.Add(realized);
         }
@@ -74,8 +95,8 @@ public static class AvaloniaOblivionContentHost
 
         return new Border
         {
-            Background = Surface,
-            BorderBrush = BorderBrush,
+            Background = ToBrush(effectiveStyle.Surface),
+            BorderBrush = ToBrush(effectiveStyle.Border),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             ClipToBounds = true,
@@ -83,33 +104,38 @@ public static class AvaloniaOblivionContentHost
         };
     }
 
-    public static Control BuildInspectorRawSource(OblivionCard card)
+    public static Control BuildInspectorRawSource(
+        OblivionCard card,
+        AvaloniaOblivionContentStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(card);
 
+        AvaloniaOblivionContentStyle effectiveStyle = style ?? AvaloniaOblivionContentStyle.Dark;
         ScrollViewer scrollViewer = new()
         {
-            Content = BuildCode(card.Body.RawText, "markdown source"),
+            Content = BuildCode(card.Body.RawText, "markdown source", effectiveStyle),
             Padding = new Thickness(OblivionReadingTypographyBaseline.MatureReadOnly.InspectorBodyPadding),
             HorizontalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
         };
         return new Border
         {
-            Background = Surface,
-            BorderBrush = BorderBrush,
+            Background = ToBrush(effectiveStyle.Surface),
+            BorderBrush = ToBrush(effectiveStyle.Border),
             BorderThickness = new Thickness(1),
             ClipToBounds = true,
             Child = scrollViewer,
         };
     }
 
-    private static Control BuildDocument(OblivionCardBody body)
+    private static Control BuildDocument(
+        OblivionCardBody body,
+        AvaloniaOblivionContentStyle style)
     {
         OblivionMarkdownProjection projection = OblivionMarkdownBody.Project(body);
         if (projection.Document is null)
         {
-            return BuildText(projection.Source);
+            return BuildText(projection.Source, style);
         }
 
         StackPanel document = new()
@@ -118,7 +144,7 @@ public static class AvaloniaOblivionContentHost
         };
         foreach (DocumentBlockMir block in projection.Document.Blocks)
         {
-            Control? control = BuildBlock(block);
+            Control? control = BuildBlock(block, style);
             if (control is not null)
             {
                 document.Children.Add(control);
@@ -128,49 +154,58 @@ public static class AvaloniaOblivionContentHost
         return document;
     }
 
-    private static Control? BuildBlock(DocumentBlockMir block)
+    private static Control? BuildBlock(
+        DocumentBlockMir block,
+        AvaloniaOblivionContentStyle style)
     {
         return block switch
         {
-            HeadingMir heading => BuildHeading(heading),
-            ParagraphMir paragraph => BuildInlineText(paragraph.Inlines),
-            QuoteMir quote => BuildQuote(quote.Inlines),
-            CalloutMir callout => BuildQuote(callout.Inlines),
-            ListMir list => BuildList(list),
+            HeadingMir heading => BuildHeading(heading, style),
+            ParagraphMir paragraph => BuildInlineText(paragraph.Inlines, style),
+            QuoteMir quote => BuildQuote(quote.Inlines, style),
+            CalloutMir callout => BuildQuote(callout.Inlines, style),
+            ListMir list => BuildList(list, style),
             CodeBlockMir code when string.Equals(code.Language, "mermaid", StringComparison.OrdinalIgnoreCase) => null,
-            CodeBlockMir code => BuildCode(code.Text, code.Language),
+            CodeBlockMir code => BuildCode(code.Text, code.Language, style),
             ThematicBreakMir => new global::Avalonia.Controls.Separator { Margin = new Thickness(0, 6) },
             BreakMir => new Border { Height = 8 },
             _ => null,
         };
     }
 
-    private static Control BuildHeading(HeadingMir heading)
+    private static Control BuildHeading(
+        HeadingMir heading,
+        AvaloniaOblivionContentStyle style)
     {
         double fontSize = OblivionReadingTypographyBaseline.MatureReadOnly.HeadingFontSizes
             .GetValueOrDefault(heading.Level, 16);
-        SelectableTextBlock text = BuildInlineText(heading.Inlines);
+        SelectableTextBlock text = BuildInlineText(heading.Inlines, style);
         text.FontSize = fontSize;
         text.LineHeight = Math.Max(
             OblivionReadingTypographyBaseline.MatureReadOnly.BodyLineHeight,
             fontSize + 8);
         text.FontWeight = FontWeight.SemiBold;
-        text.Foreground = Brushes.White;
+        text.Foreground = ToBrush(style.Heading);
         return text;
     }
 
-    private static SelectableTextBlock BuildInlineText(IReadOnlyList<DocumentInlineMir> inlines)
+    private static SelectableTextBlock BuildInlineText(
+        IReadOnlyList<DocumentInlineMir> inlines,
+        AvaloniaOblivionContentStyle style)
     {
-        SelectableTextBlock text = CreateBodyTextBlock();
+        SelectableTextBlock text = CreateBodyTextBlock(style);
         foreach (DocumentInlineMir inline in inlines)
         {
-            AppendInline(text.Inlines!, inline);
+            AppendInline(text.Inlines!, inline, style);
         }
 
         return text;
     }
 
-    private static void AppendInline(InlineCollection destination, DocumentInlineMir inline)
+    private static void AppendInline(
+        InlineCollection destination,
+        DocumentInlineMir inline,
+        AvaloniaOblivionContentStyle style)
     {
         switch (inline)
         {
@@ -181,7 +216,7 @@ public static class AvaloniaOblivionContentHost
                 destination.Add(new Run(code.Text)
                 {
                     FontFamily = Monospace,
-                    Background = CodeSurface,
+                    Background = ToBrush(style.CodeSurface),
                 });
                 break;
             case EmphasisMir emphasis:
@@ -199,17 +234,19 @@ public static class AvaloniaOblivionContentHost
             case LinkMir link:
                 destination.Add(new Run($"{FlattenInlineText(link.Label)} ({link.Target})")
                 {
-                    Foreground = Brush.Parse("#93C5FD"),
+                    Foreground = ToBrush(style.Link),
                     TextDecorations = TextDecorations.Underline,
                 });
                 break;
             case EmbeddedValueMir embedded:
-                destination.Add(new Run($"{{{embedded.SlotId}}}") { Foreground = Muted });
+                destination.Add(new Run($"{{{embedded.SlotId}}}") { Foreground = ToBrush(style.Muted) });
                 break;
         }
     }
 
-    private static Control BuildList(ListMir list)
+    private static Control BuildList(
+        ListMir list,
+        AvaloniaOblivionContentStyle style)
     {
         StackPanel panel = new() { Spacing = 6 };
         for (int index = 0; index < list.Items.Count; index++)
@@ -222,10 +259,10 @@ public static class AvaloniaOblivionContentHost
             row.Children.Add(new global::Avalonia.Controls.TextBlock
             {
                 Text = marker,
-                Foreground = Muted,
+                Foreground = ToBrush(style.Muted),
                 FontSize = OblivionReadingTypographyBaseline.MatureReadOnly.BodyFontSize,
             });
-            SelectableTextBlock item = BuildInlineText(list.Items[index].Inlines);
+            SelectableTextBlock item = BuildInlineText(list.Items[index].Inlines, style);
             Grid.SetColumn(item, 1);
             row.Children.Add(item);
             panel.Children.Add(row);
@@ -234,18 +271,23 @@ public static class AvaloniaOblivionContentHost
         return panel;
     }
 
-    private static Control BuildQuote(IReadOnlyList<DocumentInlineMir> inlines)
+    private static Control BuildQuote(
+        IReadOnlyList<DocumentInlineMir> inlines,
+        AvaloniaOblivionContentStyle style)
     {
         return new Border
         {
-            BorderBrush = Brush.Parse("#64748B"),
+            BorderBrush = ToBrush(style.QuoteBorder),
             BorderThickness = new Thickness(3, 0, 0, 0),
             Padding = new Thickness(12, 4),
-            Child = BuildInlineText(inlines),
+            Child = BuildInlineText(inlines, style),
         };
     }
 
-    private static Control BuildCode(string source, string? language)
+    private static Control BuildCode(
+        string source,
+        string? language,
+        AvaloniaOblivionContentStyle style)
     {
         StackPanel panel = new() { Spacing = 6 };
         if (!string.IsNullOrWhiteSpace(language))
@@ -253,7 +295,7 @@ public static class AvaloniaOblivionContentHost
             panel.Children.Add(new global::Avalonia.Controls.TextBlock
             {
                 Text = language,
-                Foreground = Muted,
+                Foreground = ToBrush(style.Muted),
                 FontSize = 12,
             });
         }
@@ -264,22 +306,24 @@ public static class AvaloniaOblivionContentHost
             FontFamily = Monospace,
             FontSize = OblivionReadingTypographyBaseline.MatureReadOnly.CodeFontSize,
             LineHeight = OblivionReadingTypographyBaseline.MatureReadOnly.CodeLineHeight,
-            Foreground = Foreground,
+            Foreground = ToBrush(style.Foreground),
             TextWrapping = TextWrapping.NoWrap,
         });
         return new Border
         {
-            Background = CodeSurface,
+            Background = ToBrush(style.CodeSurface),
             Padding = new Thickness(12),
             Child = panel,
         };
     }
 
-    private static Control BuildImage(OblivionContentPresentationItem item)
+    private static Control BuildImage(
+        OblivionContentPresentationItem item,
+        AvaloniaOblivionContentStyle style)
     {
         if (item.Artifact?.Exists != true || string.IsNullOrWhiteSpace(item.Artifact.ResolvedPath))
         {
-            return BuildDiagnostic("PNG preview unavailable. Use the product-owned Open artifact action.");
+            return BuildDiagnostic("PNG preview unavailable. Use the product-owned Open artifact action.", style);
         }
 
         try
@@ -295,7 +339,7 @@ public static class AvaloniaOblivionContentHost
         }
         catch (Exception exception)
         {
-            return BuildDiagnostic($"PNG preview failed: {exception.Message}");
+            return BuildDiagnostic($"PNG preview failed: {exception.Message}", style);
         }
     }
 
@@ -305,7 +349,8 @@ public static class AvaloniaOblivionContentHost
         IOblivionDiagramRenderer renderer,
         string outputDirectory,
         string? workspaceId,
-        string? pageId)
+        string? pageId,
+        AvaloniaOblivionContentStyle style)
     {
         OblivionDiagramRenderResult result = renderer.Render(new OblivionDiagramRenderRequest(
             item.ContentId,
@@ -319,7 +364,9 @@ public static class AvaloniaOblivionContentHost
         {
             string message = result.Diagnostics.FirstOrDefault()?.Message
                 ?? "Mermaid rendering was unavailable.";
-            return BuildDiagnostic(message + Environment.NewLine + Environment.NewLine + item.Source);
+            return BuildDiagnostic(
+                message + Environment.NewLine + Environment.NewLine + item.Source,
+                style);
         }
 
         try
@@ -333,32 +380,38 @@ public static class AvaloniaOblivionContentHost
         }
         catch (Exception exception)
         {
-            return BuildDiagnostic($"Rendered Mermaid artifact could not be presented: {exception.Message}");
+            return BuildDiagnostic(
+                $"Rendered Mermaid artifact could not be presented: {exception.Message}",
+                style);
         }
     }
 
-    private static SelectableTextBlock BuildText(string source)
+    private static SelectableTextBlock BuildText(
+        string source,
+        AvaloniaOblivionContentStyle style)
     {
-        SelectableTextBlock text = CreateBodyTextBlock();
+        SelectableTextBlock text = CreateBodyTextBlock(style);
         text.Text = source;
         return text;
     }
 
-    private static SelectableTextBlock BuildDiagnostic(string message)
+    private static SelectableTextBlock BuildDiagnostic(
+        string message,
+        AvaloniaOblivionContentStyle style)
     {
-        SelectableTextBlock text = CreateBodyTextBlock();
+        SelectableTextBlock text = CreateBodyTextBlock(style);
         text.Text = message;
-        text.Foreground = Brush.Parse("#FBBF24");
+        text.Foreground = ToBrush(style.Diagnostic);
         return text;
     }
 
-    private static SelectableTextBlock CreateBodyTextBlock()
+    private static SelectableTextBlock CreateBodyTextBlock(AvaloniaOblivionContentStyle style)
     {
         return new SelectableTextBlock
         {
             FontSize = OblivionReadingTypographyBaseline.MatureReadOnly.BodyFontSize,
             LineHeight = OblivionReadingTypographyBaseline.MatureReadOnly.BodyLineHeight,
-            Foreground = Foreground,
+            Foreground = ToBrush(style.Foreground),
             TextWrapping = TextWrapping.Wrap,
         };
     }
@@ -375,5 +428,14 @@ public static class AvaloniaOblivionContentHost
             EmbeddedValueMir embedded => $"{{{embedded.SlotId}}}",
             _ => string.Empty,
         }));
+    }
+
+    private static IBrush ToBrush(uint rgba)
+    {
+        byte red = (byte)(rgba >> 24);
+        byte green = (byte)(rgba >> 16);
+        byte blue = (byte)(rgba >> 8);
+        byte alpha = (byte)rgba;
+        return new SolidColorBrush(Color.FromArgb(alpha, red, green, blue));
     }
 }

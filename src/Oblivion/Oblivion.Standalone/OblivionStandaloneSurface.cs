@@ -9,9 +9,13 @@ namespace Oblivion.Standalone;
 public sealed class OblivionStandaloneSurface
 {
     private readonly OblivionCardHandlerRegistry _cardHandlers;
+    private readonly OblivionStandaloneStyle _style;
 
-    public OblivionStandaloneSurface(string? vaultRoot = null)
+    public OblivionStandaloneSurface(
+        string? vaultRoot = null,
+        OblivionStandaloneStyle? style = null)
     {
+        _style = style ?? OblivionStandaloneStyles.Dark;
         OblivionApplication application = new();
         OblivionWorkspaceSessionOpenResult open = application.OpenWorkspace(
             vaultRoot ?? M19iStructuredVault.DefaultRoot);
@@ -68,7 +72,7 @@ public sealed class OblivionStandaloneSurface
                 localStateOverride: localState);
             OblivionCompactCardView cardView = built.CompactView with
             {
-                Subtitle = OblivionStandaloneStyles.M19h.CardSubtitle,
+                Subtitle = _style.CardSubtitle,
                 SourceLabel = null,
                 SummaryLine = null,
                 MetaBadges = state.IsExpanded
@@ -92,7 +96,7 @@ public sealed class OblivionStandaloneSurface
                 isSelected));
         }
 
-        return OblivionStandaloneRenderer.Render(width, height, cardPresentations);
+        return OblivionStandaloneRenderer.Render(width, height, cardPresentations, _style);
     }
 
     public void ToggleExpansion(string cardId)

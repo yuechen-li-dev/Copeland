@@ -25,12 +25,24 @@ internal static class Program
     public static void Main(string[] args)
     {
         OblivionStandaloneOptions options = OblivionStandaloneOptions.Parse(args);
-        BuildAvaloniaApp(options).StartWithClassicDesktopLifetime(args);
+        OblivionConfigResult configResult = new OblivionConfigStore().Load();
+        if (!configResult.Succeeded || configResult.Config is null)
+        {
+            throw new InvalidOperationException(
+                "Oblivion standalone configuration could not be loaded:" +
+                Environment.NewLine +
+                string.Join(Environment.NewLine, configResult.Diagnostics.Select(diagnostic =>
+                    $"{diagnostic.Code}: {diagnostic.Message}")));
+        }
+
+        BuildAvaloniaApp(options, configResult.Config).StartWithClassicDesktopLifetime(args);
     }
 
-    private static AppBuilder BuildAvaloniaApp(OblivionStandaloneOptions options)
+    private static AppBuilder BuildAvaloniaApp(
+        OblivionStandaloneOptions options,
+        OblivionConfig config)
     {
-        return AppBuilder.Configure(() => new OblivionStandaloneApplication(options))
+        return AppBuilder.Configure(() => new OblivionStandaloneApplication(options, config))
             .UsePlatformDetect();
     }
 }
@@ -38,11 +50,20 @@ internal static class Program
 internal sealed class OblivionStandaloneApplication : Application
 {
     private readonly OblivionStandaloneOptions _options;
+    private readonly OblivionConfig _config;
 
-    public OblivionStandaloneApplication(OblivionStandaloneOptions options)
+    public OblivionStandaloneApplication(
+        OblivionStandaloneOptions options,
+        OblivionConfig config)
     {
         _options = options;
-        RequestedThemeVariant = ThemeVariant.Dark;
+        _config = config;
+        RequestedThemeVariant = config.Appearance switch
+        {
+            OblivionAppearance.Light => ThemeVariant.Light,
+            OblivionAppearance.Dark => ThemeVariant.Dark,
+            _ => ThemeVariant.Default,
+        };
         Styles.Add(new FluentTheme());
     }
 
@@ -50,7 +71,25 @@ internal sealed class OblivionStandaloneApplication : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new OblivionStandaloneWindow(_options);
+            OblivionResolvedAppearance platformAppearance = ActualThemeVariant == ThemeVariant.Light
+                ? OblivionResolvedAppearance.Light
+                : OblivionResolvedAppearance.Dark;
+            OblivionResolvedAppearance resolvedAppearance = OblivionStandaloneAppearanceResolver.Resolve(
+                _config.Appearance,
+                platformAppearance);
+            RequestedThemeVariant = resolvedAppearance == OblivionResolvedAppearance.Light
+                ? ThemeVariant.Light
+                : ThemeVariant.Dark;
+            string platformDiagnostic = _config.Appearance == OblivionAppearance.System
+                ? platformAppearance.ToString().ToLowerInvariant()
+                : "not-consulted";
+            Console.WriteLine(
+                $"Oblivion appearance configured={_config.Appearance.ToString().ToLowerInvariant()} " +
+                $"platform={platformDiagnostic} " +
+                $"resolved={resolvedAppearance.ToString().ToLowerInvariant()}.");
+            desktop.MainWindow = new OblivionStandaloneWindow(
+                _options,
+                OblivionStandaloneStyles.For(resolvedAppearance));
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -59,20 +98,25 @@ internal sealed class OblivionStandaloneApplication : Application
 
 internal sealed class OblivionStandaloneWindow : Window
 {
-    private static readonly OblivionStandaloneStyle Style = OblivionStandaloneStyles.M19h;
+    private readonly OblivionStandaloneStyle _style;
     private readonly OblivionStandaloneOptions _options;
     private readonly OblivionStandaloneSurface _surface;
     private readonly Grid _host;
     private readonly ScrollViewer _pageScroll;
     private readonly Dictionary<string, ScrollViewer> _documentScrollers = new(StringComparer.Ordinal);
     private OblivionStandaloneSurfaceSnapshot _snapshot;
-    private int _surfaceWidth = Style.DevelopmentWidth;
-    private int _surfaceHeight = Style.DevelopmentHeight;
+    private int _surfaceWidth;
+    private int _surfaceHeight;
 
-    public OblivionStandaloneWindow(OblivionStandaloneOptions options)
+    public OblivionStandaloneWindow(
+        OblivionStandaloneOptions options,
+        OblivionStandaloneStyle style)
     {
         _options = options;
-        _surface = new OblivionStandaloneSurface(options.VaultRoot);
+        _style = style;
+        _surfaceWidth = style.DevelopmentWidth;
+        _surfaceHeight = style.DevelopmentHeight;
+        _surface = new OblivionStandaloneSurface(options.VaultRoot, style);
         if (options.StartExpanded)
         {
             foreach (var card in _surface.Cards)
@@ -83,9 +127,9 @@ internal sealed class OblivionStandaloneWindow : Window
 
         _host = new Grid
         {
-            Width = Style.DevelopmentWidth,
-            Height = Style.DevelopmentHeight,
-            Background = ToBrush(Style.PageBackground),
+            Width = style.DevelopmentWidth,
+            Height = style.DevelopmentHeight,
+            Background = ToBrush(style.PageBackground),
             HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top,
         };
@@ -96,13 +140,13 @@ internal sealed class OblivionStandaloneWindow : Window
             VerticalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
         };
         _snapshot = _surface.CreateSnapshot(
-            Style.DevelopmentWidth,
-            Style.DevelopmentHeight);
+            style.DevelopmentWidth,
+            style.DevelopmentHeight);
 
         Title = "Oblivion";
         ClientSize = new Size(
-            Style.DevelopmentWidth,
-            Style.DevelopmentHeight);
+            style.DevelopmentWidth,
+            style.DevelopmentHeight);
         MinWidth = 960;
         MinHeight = 640;
         CanResize = true;
@@ -257,7 +301,8 @@ internal sealed class OblivionStandaloneWindow : Window
             Path.Combine(Path.GetTempPath(), "oblivion-m19h-diagrams"),
             workspaceId: _surface.Workspace.Id.Value,
             pageId: _surface.PageId,
-            maximumReadableWidth: Style.MaximumReadableWidth);
+            maximumReadableWidth: _style.MaximumReadableWidth,
+            style: ToContentStyle(_style));
         document.Width = bodyBounds.Width;
         document.Height = bodyBounds.Height;
         document.Margin = new Thickness(bodyBounds.X, bodyBounds.Y, 0, 0);
@@ -328,6 +373,20 @@ internal sealed class OblivionStandaloneWindow : Window
         byte blue = (byte)(rgba >> 8);
         byte alpha = (byte)rgba;
         return new SolidColorBrush(Color.FromArgb(alpha, red, green, blue));
+    }
+
+    private static AvaloniaOblivionContentStyle ToContentStyle(OblivionStandaloneStyle style)
+    {
+        return new AvaloniaOblivionContentStyle(
+            style.DocumentSurface.Rgba,
+            style.DocumentText.Rgba,
+            style.DocumentHeading.Rgba,
+            style.DocumentMutedText.Rgba,
+            style.DocumentCodeSurface.Rgba,
+            style.DocumentBorder.Rgba,
+            style.DocumentQuoteBorder.Rgba,
+            style.DocumentLinkText.Rgba,
+            style.DocumentDiagnosticText.Rgba);
     }
 
     private static WriteableBitmap ToBitmap(RasterFrame frame)

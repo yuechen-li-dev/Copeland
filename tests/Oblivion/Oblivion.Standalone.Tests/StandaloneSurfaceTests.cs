@@ -12,6 +12,61 @@ public sealed class StandaloneSurfaceTests
 {
     private static readonly OblivionStandaloneStyle Style = OblivionStandaloneStyles.M19h;
 
+    [Theory]
+    [InlineData(OblivionAppearance.Light, OblivionResolvedAppearance.Dark, OblivionResolvedAppearance.Light)]
+    [InlineData(OblivionAppearance.Dark, OblivionResolvedAppearance.Light, OblivionResolvedAppearance.Dark)]
+    [InlineData(OblivionAppearance.System, OblivionResolvedAppearance.Light, OblivionResolvedAppearance.Light)]
+    [InlineData(OblivionAppearance.System, OblivionResolvedAppearance.Dark, OblivionResolvedAppearance.Dark)]
+    public void Startup_resolves_typed_appearance_against_the_platform_only_for_system(
+        OblivionAppearance configured,
+        OblivionResolvedAppearance platform,
+        OblivionResolvedAppearance expected)
+    {
+        Assert.Equal(expected, OblivionStandaloneAppearanceResolver.Resolve(configured, platform));
+    }
+
+    [Fact]
+    public void Dark_and_light_styles_populate_the_same_complete_token_shape()
+    {
+        AssertStyleComplete(OblivionStandaloneStyles.Dark);
+        AssertStyleComplete(OblivionStandaloneStyles.Light);
+        Assert.Equal(
+            OblivionStandaloneStyles.Dark.GetType(),
+            OblivionStandaloneStyles.Light.GetType());
+    }
+
+    [Fact]
+    public void Appearance_changes_colors_without_changing_two_card_geometry_or_state()
+    {
+        OblivionStandaloneSurface darkSurface = new(style: OblivionStandaloneStyles.Dark);
+        OblivionStandaloneSurface lightSurface = new(style: OblivionStandaloneStyles.Light);
+        foreach (OblivionCard card in darkSurface.Cards)
+        {
+            darkSurface.ToggleExpansion(card.Id.Value);
+        }
+        foreach (OblivionCard card in lightSurface.Cards)
+        {
+            lightSurface.ToggleExpansion(card.Id.Value);
+        }
+
+        OblivionStandaloneSurfaceSnapshot dark = darkSurface.CreateSnapshot(2560, 1440);
+        OblivionStandaloneSurfaceSnapshot light = lightSurface.CreateSnapshot(2560, 1440);
+
+        Assert.Equal(dark.Width, light.Width);
+        Assert.Equal(dark.ViewportHeight, light.ViewportHeight);
+        Assert.Equal(dark.PageContentHeight, light.PageContentHeight);
+        Assert.Equal(dark.Cards.Select(card => card.Card.Id), light.Cards.Select(card => card.Card.Id));
+        Assert.Equal(dark.Cards.Select(card => card.CardBounds), light.Cards.Select(card => card.CardBounds));
+        Assert.Equal(
+            dark.Cards.Select(card => card.ExpansionAffordanceBounds),
+            light.Cards.Select(card => card.ExpansionAffordanceBounds));
+        Assert.Equal(dark.Cards.Select(card => card.IsSelected), light.Cards.Select(card => card.IsSelected));
+        Assert.Equal(dark.Cards.Select(card => card.CardView.IsExpanded), light.Cards.Select(card => card.CardView.IsExpanded));
+        Assert.NotEqual(
+            dark.ShellFrame.Surface.GetPixel(0, 0),
+            light.ShellFrame.Surface.GetPixel(0, 0));
+    }
+
     [Fact]
     public void Standalone_enters_the_real_structured_workspace_session()
     {
@@ -335,6 +390,42 @@ public sealed class StandaloneSurfaceTests
             Assert.True(
                 previous.CardBounds.Y + previous.CardBounds.Height < current.CardBounds.Y);
         }
+    }
+
+    private static void AssertStyleComplete(OblivionStandaloneStyle style)
+    {
+        Assert.True(style.DevelopmentWidth > 0);
+        Assert.True(style.DevelopmentHeight > 0);
+        Assert.True(style.MaximumReadableWidth > 0);
+        Assert.False(string.IsNullOrWhiteSpace(style.CardSubtitle));
+        Assert.All(
+            new[]
+            {
+                style.PageBackground,
+                style.CardBackground,
+                style.CardBorder,
+                style.SelectedCardBorder,
+                style.PrimaryText,
+                style.SecondaryText,
+                style.BadgeSurface,
+                style.BadgeText,
+                style.BadgeBorder,
+                style.AffordanceSurface,
+                style.AffordanceAccent,
+                style.DocumentSurface,
+                style.DocumentText,
+                style.DocumentHeading,
+                style.DocumentMutedText,
+                style.DocumentCodeSurface,
+                style.DocumentBorder,
+                style.DocumentQuoteBorder,
+                style.DocumentLinkText,
+                style.DocumentDiagnosticText,
+            },
+            token => Assert.Equal(0xFFu, token.Rgba & 0xFFu));
+        Assert.NotEqual(style.PageBackground, style.PrimaryText);
+        Assert.NotEqual(style.DocumentSurface, style.DocumentText);
+        Assert.NotEqual(style.CardBackground, style.SelectedCardBorder);
     }
 
     private static string CopyVaultToTemporaryDirectory()

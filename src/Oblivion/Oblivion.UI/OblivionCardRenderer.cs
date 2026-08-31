@@ -24,7 +24,11 @@ public sealed record OblivionCardRenderOptions(
     int MaxActionsToShow = 3,
     int MaxArtifactsToShow = 3,
     bool RenderBodyContent = true,
-    bool ShowSquareExpansionAffordance = false);
+    bool ShowSquareExpansionAffordance = false,
+    ColorToken? HostedBodyBackground = null,
+    ColorToken? HostedBodyBorder = null,
+    ColorToken? ExpansionAffordanceBackground = null,
+    ColorToken? ExpansionAffordanceAccent = null);
 
 public sealed record OblivionExpandedBodyViewport(
     Rect Bounds,
@@ -227,7 +231,7 @@ public static class OblivionCardRenderer
     {
         if (!options.RenderBodyContent)
         {
-            return BuildHostedBodyFrame(view, layout);
+            return BuildHostedBodyFrame(view, options, layout);
         }
 
         if (view.IsExpanded && view.Body is OblivionCompactMarkdownBodyContent expandedMarkdownBody)
@@ -245,22 +249,25 @@ public static class OblivionCardRenderer
 
     private static UiNode BuildHostedBodyFrame(
         OblivionCompactCardView view,
+        OblivionCardRenderOptions options,
         CardLayout layout)
     {
+        ColorToken bodyBackground = options.HostedBodyBackground ?? MarkdownReadingStyle.Surface;
+        ColorToken bodyBorder = options.HostedBodyBorder ?? MarkdownReadingStyle.Border;
         return UI.Rect(
             child: UI.Rect(
                 id: view.CardId + ExpandedBodyViewportSuffix,
                 style: new UiStyle(
-                    Background: MarkdownReadingStyle.Surface,
-                    BorderColor: MarkdownReadingStyle.Border,
+                    Background: bodyBackground,
+                    BorderColor: bodyBorder,
                     BorderThickness: 1,
                     ClipToBounds: true)),
             id: view.CardId + BodyFrameSuffix,
             width: layout.BodyWidth,
             height: layout.BodyHeight,
             style: new UiStyle(
-                Background: PreviewFrameBackground,
-                BorderColor: MarkdownReadingStyle.Border,
+                Background: bodyBackground,
+                BorderColor: bodyBorder,
                 BorderThickness: 1));
     }
 
@@ -287,7 +294,7 @@ public static class OblivionCardRenderer
                         top: 0,
                         height: options.TitleHeight),
                     UI.Anchor(
-                        BuildSquareExpansionAffordance(view),
+                        BuildSquareExpansionAffordance(view, options),
                         left: contentWidth - options.TitleHeight,
                         width: options.TitleHeight,
                         top: 0,
@@ -364,9 +371,12 @@ public static class OblivionCardRenderer
             children: items);
     }
 
-    private static UiNode BuildSquareExpansionAffordance(OblivionCompactCardView view)
+    private static UiNode BuildSquareExpansionAffordance(
+        OblivionCompactCardView view,
+        OblivionCardRenderOptions options)
     {
-        ColorToken accent = ColorToken.Hex(0x38BDF8FF);
+        ColorToken accent = options.ExpansionAffordanceAccent ?? ColorToken.Hex(0x38BDF8FF);
+        ColorToken background = options.ExpansionAffordanceBackground ?? ColorToken.Hex(0x111827FF);
         UiStyle markStyle = view.IsExpanded
             ? new UiStyle(
                 Background: ColorToken.Hex(0x00000000),
@@ -385,7 +395,7 @@ public static class OblivionCardRenderer
                 top: 13,
                 height: 14),
             style: new UiStyle(
-                Background: ColorToken.Hex(0x111827FF),
+                Background: background,
                 BorderColor: accent,
                 BorderThickness: 1));
     }

@@ -11,31 +11,36 @@ namespace Oblivion.Standalone;
 
 public static class OblivionStandaloneRenderer
 {
-    private static readonly OblivionStandaloneStyle Style = OblivionStandaloneStyles.M19h;
-    private static readonly StandardTheme Theme = CreateTheme();
-
     public static OblivionStandaloneSurfaceSnapshot Render(
         int width,
         int viewportHeight,
-        IReadOnlyList<OblivionStandaloneCardPresentation> cards)
+        IReadOnlyList<OblivionStandaloneCardPresentation> cards,
+        OblivionStandaloneStyle? style = null)
     {
         ArgumentNullException.ThrowIfNull(cards);
-        double cardWidth = Math.Max(640, width - (Style.OuterHorizontalMargin * 2));
+        OblivionStandaloneStyle effectiveStyle = style ?? OblivionStandaloneStyles.Dark;
+        StandardTheme theme = CreateTheme(effectiveStyle);
+        double cardWidth = Math.Max(640, width - (effectiveStyle.OuterHorizontalMargin * 2));
         double[] cardHeights = cards
-            .Select(card => card.CardView.IsExpanded ? Style.ExpandedCardHeight : Style.CollapsedCardHeight)
+            .Select(card => card.CardView.IsExpanded
+                ? effectiveStyle.ExpandedCardHeight
+                : effectiveStyle.CollapsedCardHeight)
             .ToArray();
         int pageContentHeight = (int)Math.Ceiling(Math.Max(
             viewportHeight,
-            (Style.OuterVerticalMargin * 2) + cardHeights.Sum() +
-                (Style.StackGap * Math.Max(0, cards.Count - 1))));
+            (effectiveStyle.OuterVerticalMargin * 2) + cardHeights.Sum() +
+                (effectiveStyle.StackGap * Math.Max(0, cards.Count - 1))));
 
         List<UiStackItem> stackItems = [];
         foreach ((OblivionStandaloneCardPresentation card, int index) in cards.Select((card, index) => (card, index)))
         {
-            OblivionCardRenderOptions cardOptions = CreateCardOptions(cardWidth, cardHeights[index]);
+            OblivionCardRenderOptions cardOptions = CreateCardOptions(
+                effectiveStyle,
+                cardWidth,
+                cardHeights[index]);
             StandardTheme cardTheme = card.IsSelected
-                ? CreateSelectedTheme()
-                : Theme;
+                ? CreateSelectedTheme(effectiveStyle, theme)
+                : theme;
             UiNode cardNode = OblivionCardRenderer.BuildCard(
                 card.CardView,
                 cardTheme,
@@ -44,10 +49,10 @@ public static class OblivionStandaloneRenderer
         }
 
         double stackHeight = cardHeights.Sum() +
-            (Style.StackGap * Math.Max(0, cards.Count - 1));
+            (effectiveStyle.StackGap * Math.Max(0, cards.Count - 1));
         UiNode cardStack = UI.VStack(
             id: "m19h.page.card-stack",
-            gap: Style.StackGap,
+            gap: effectiveStyle.StackGap,
             children: stackItems.ToArray());
         UiNode document = UI.Rect(
             id: "m19h.page",
@@ -56,11 +61,11 @@ public static class OblivionStandaloneRenderer
             child: UI.Anchor(
                 cardStack,
                 id: "m19h.page.card-stack-anchor",
-                left: Style.OuterHorizontalMargin,
+                left: effectiveStyle.OuterHorizontalMargin,
                 width: cardWidth,
-                top: Style.OuterVerticalMargin,
+                top: effectiveStyle.OuterVerticalMargin,
                 height: stackHeight),
-            style: new UiStyle(Background: Style.PageBackground));
+            style: new UiStyle(Background: effectiveStyle.PageBackground));
 
         MachinaPreparedPresentation prepared = new MachinaPresentationPipeline().Prepare(
             document,
@@ -70,11 +75,11 @@ public static class OblivionStandaloneRenderer
             MachinaPresentationTranslator.Translate(prepared.PresentationFrame));
 
         List<OblivionStandaloneCardSnapshot> snapshots = [];
-        double cardY = Style.OuterVerticalMargin;
+        double cardY = effectiveStyle.OuterVerticalMargin;
         foreach ((OblivionStandaloneCardPresentation card, int index) in cards.Select((card, index) => (card, index)))
         {
             Machina.Layout.Geometry.Rect cardBounds = new(
-                Style.OuterHorizontalMargin,
+                effectiveStyle.OuterHorizontalMargin,
                 cardY,
                 cardWidth,
                 cardHeights[index]);
@@ -98,7 +103,7 @@ public static class OblivionStandaloneRenderer
                 cardBounds,
                 affordanceBounds,
                 matureContentBounds));
-            cardY += cardHeights[index] + Style.StackGap;
+            cardY += cardHeights[index] + effectiveStyle.StackGap;
         }
 
         return new OblivionStandaloneSurfaceSnapshot(
@@ -109,7 +114,10 @@ public static class OblivionStandaloneRenderer
             snapshots);
     }
 
-    private static OblivionCardRenderOptions CreateCardOptions(double width, double height)
+    private static OblivionCardRenderOptions CreateCardOptions(
+        OblivionStandaloneStyle style,
+        double width,
+        double height)
     {
         return new OblivionCardRenderOptions(
             Width: width,
@@ -120,36 +128,42 @@ public static class OblivionStandaloneRenderer
             SmallGap: 8,
             SectionGap: 14,
             RenderBodyContent: false,
-            ShowSquareExpansionAffordance: true);
+            ShowSquareExpansionAffordance: true,
+            HostedBodyBackground: style.DocumentSurface,
+            HostedBodyBorder: style.DocumentBorder,
+            ExpansionAffordanceBackground: style.AffordanceSurface,
+            ExpansionAffordanceAccent: style.AffordanceAccent);
     }
 
-    private static StandardTheme CreateSelectedTheme()
+    private static StandardTheme CreateSelectedTheme(
+        OblivionStandaloneStyle style,
+        StandardTheme theme)
     {
-        return Theme with
+        return theme with
         {
-            Card = Theme.Card with
+            Card = theme.Card with
             {
-                Default = Theme.Card.Default with
+                Default = theme.Card.Default with
                 {
-                    BorderColor = Style.SelectedCardBorder,
-                    BorderThickness = Math.Max(2, Theme.Card.Default.BorderThickness),
+                    BorderColor = style.SelectedCardBorder,
+                    BorderThickness = Math.Max(2, theme.Card.Default.BorderThickness),
                 },
             },
         };
     }
 
-    private static StandardTheme CreateTheme()
+    private static StandardTheme CreateTheme(OblivionStandaloneStyle style)
     {
         StandardTheme baseline = StandardTheme.Default;
         StandardColors colors = baseline.Colors with
         {
-            Background = ColorToken.Hex(0x0B1220FF),
-            Foreground = ColorToken.Hex(0xF8FAFCFF),
-            Muted = ColorToken.Hex(0x1E293BFF),
-            MutedForeground = ColorToken.Hex(0xA8B8CCFF),
-            Border = Style.CardBorder,
-            Secondary = ColorToken.Hex(0x1E293BFF),
-            SecondaryForeground = ColorToken.Hex(0xE2E8F0FF),
+            Background = style.CardBackground,
+            Foreground = style.PrimaryText,
+            Muted = style.BadgeSurface,
+            MutedForeground = style.SecondaryText,
+            Border = style.CardBorder,
+            Secondary = style.BadgeSurface,
+            SecondaryForeground = style.BadgeText,
         };
 
         return baseline with
@@ -161,7 +175,7 @@ public static class OblivionStandaloneRenderer
                 {
                     Background = colors.Muted,
                     Foreground = colors.SecondaryForeground,
-                    BorderColor = colors.Border,
+                    BorderColor = style.BadgeBorder,
                     BorderThickness = 1,
                     TextStyle = baseline.Badge.Secondary.TextStyle with
                     {
@@ -173,9 +187,9 @@ public static class OblivionStandaloneRenderer
             {
                 Default = baseline.Card.Default with
                 {
-                    Background = Style.CardBackground,
+                    Background = style.CardBackground,
                     Foreground = colors.Foreground,
-                    BorderColor = Style.CardBorder,
+                    BorderColor = style.CardBorder,
                     ContentInset = 24,
                 },
             },
