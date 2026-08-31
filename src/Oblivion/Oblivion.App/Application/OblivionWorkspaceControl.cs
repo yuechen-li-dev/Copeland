@@ -61,6 +61,15 @@ public sealed record OblivionCardDetail(
     string ContentPreview,
     IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
 
+public sealed record OblivionCardContentResult(
+    string WorkspaceId,
+    string PageId,
+    string CardId,
+    string ContentKind,
+    string Source,
+    string Content,
+    IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
+
 public sealed record OblivionReloadSessionInfo(
     string ActivePageId,
     string? SelectedCardId,
@@ -237,6 +246,92 @@ public sealed class OblivionWorkspaceControl
             Preview(card.Body.RawText),
             diagnostics);
         return new(detail, diagnostics);
+    }
+
+    public OblivionControlResult<OblivionCardContentResult> GetCardContent(
+        string workspaceRoot,
+        string cardId,
+        string? pageId = null)
+    {
+        OblivionWorkspaceSessionOpenResult open = _application.OpenWorkspace(workspaceRoot);
+        if (!open.Succeeded || open.Session is null)
+        {
+            return new(null, ConvertDiagnostics(open.Diagnostics, null));
+        }
+
+        return ResolveCardContent(
+            open.Session.Workspace,
+            open.Session.Location.ManifestPath,
+            cardId,
+            pageId,
+            ConvertDiagnostics(open.Diagnostics, open.Session.Workspace));
+    }
+
+    internal static OblivionControlResult<OblivionCardContentResult> ResolveCardContent(
+        OblivionWorkspace workspace,
+        string manifestPath,
+        string cardId,
+        string? pageId,
+        IReadOnlyList<OblivionControlDiagnostic>? workspaceDiagnostics = null)
+    {
+        OblivionWorkspacePage? page;
+        if (pageId is null)
+        {
+            page = workspace.Pages.FirstOrDefault(
+                candidate => candidate.Cards.Any(card => card.Id.Value == cardId));
+        }
+        else
+        {
+            page = workspace.Pages.FirstOrDefault(candidate => candidate.Id.Value == pageId);
+            if (page is null)
+            {
+                return new(null, [UnknownPage(workspace, pageId)]);
+            }
+        }
+
+        OblivionCard? card = page?.Cards.FirstOrDefault(candidate => candidate.Id.Value == cardId);
+        if (page is null || card is null)
+        {
+            OblivionControlDiagnostic diagnostic = new(
+                "unknown-card",
+                "error",
+                $"Card '{cardId}' was not found in workspace '{workspace.Id.Value}'" +
+                (pageId is null ? "." : $" on Page '{pageId}'."),
+                workspace.Id.Value,
+                pageId,
+                cardId,
+                manifestPath,
+                null,
+                null);
+            return new(null, [diagnostic]);
+        }
+
+        if (card.Body.Format != OblivionCardBodyFormat.CopelandMarkdown ||
+            card.Body.Content is not (OblivionInlineMarkdownContent or OblivionMarkdownReferenceContent))
+        {
+            OblivionControlDiagnostic diagnostic = new(
+                "OBLIVION-CARD-CONTENT-NOT-TEXT",
+                "error",
+                $"Card '{cardId}' does not expose Markdown source content.",
+                workspace.Id.Value,
+                page.Id.Value,
+                card.Id.Value,
+                card.Body.SourceReference ?? card.Provenance.SourceReference,
+                null,
+                null);
+            return new(null, [diagnostic]);
+        }
+
+        IReadOnlyList<OblivionControlDiagnostic> diagnostics = workspaceDiagnostics ?? [];
+        OblivionCardContentResult result = new(
+            workspace.Id.Value,
+            page.Id.Value,
+            card.Id.Value,
+            "markdown",
+            card.Body.SourceReference ?? "<inline>",
+            card.Body.RawText,
+            diagnostics);
+        return new(result, diagnostics);
     }
 
     public OblivionControlResult<OblivionWorkspaceReload> Reload(string workspaceRoot)

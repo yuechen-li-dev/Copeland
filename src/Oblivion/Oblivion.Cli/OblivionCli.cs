@@ -78,6 +78,7 @@ public sealed class OblivionCli
         Command card = new("card", "Inspect semantic workspace cards.");
         card.Subcommands.Add(CreateCardListCommand());
         card.Subcommands.Add(CreateCardShowCommand());
+        card.Subcommands.Add(CreateCardContentCommand());
         card.Subcommands.Add(CreateCardPeekCommand());
         card.Subcommands.Add(CreateCardPushCommand());
         card.Subcommands.Add(CreateCardPopCommand());
@@ -298,6 +299,27 @@ public sealed class OblivionCli
                 _output.WriteLine("Kind: Markdown");
                 _output.WriteLine($"Source: {value.Source}");
             });
+        });
+        return command;
+    }
+
+    private Command CreateCardContentCommand()
+    {
+        Argument<string> cardIdArgument = new("card-id")
+        {
+            Description = "Exact semantic card id.",
+        };
+        Option<string?> pageOption = CreatePageOption();
+        Command command = new("content", "Write the complete Markdown source for one Card.");
+        command.Arguments.Add(cardIdArgument);
+        command.Options.Add(pageOption);
+        command.SetAction(parseResult =>
+        {
+            OblivionControlResult<OblivionCardContentResult> result = _control.GetCardContent(
+                Workspace(parseResult),
+                parseResult.GetValue(cardIdArgument)!,
+                parseResult.GetValue(pageOption));
+            return WriteResult(result, Json(parseResult), value => _output.Write(value.Content));
         });
         return command;
     }

@@ -9,6 +9,7 @@ public sealed class CliTests
     [InlineData("--help", "workspace")]
     [InlineData("workspace --help", "reload")]
     [InlineData("card show --help", "card-id")]
+    [InlineData("card content --help", "complete Markdown source")]
     [InlineData("card push --help", "push it onto a Page stack")]
     [InlineData("card peek --help", "top (last) Card")]
     [InlineData("card pop --help", "safely delete owned files")]
@@ -110,6 +111,101 @@ public sealed class CliTests
         Assert.Equal(
             "unknown-card",
             json.RootElement.GetProperty("diagnostics")[0].GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task Card_content_human_output_is_the_exact_full_markdown_payload()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string contentPath = Path.Combine(vault.Root, "content", "physical-atom.md");
+        string content = "# Exact UTF-8 source λ\r\n\r\n" + new string('x', 650) + "\r\n";
+        File.WriteAllText(contentPath, content);
+
+        CliResult result = await Run(
+            "card",
+            "content",
+            "physical-atom",
+            "-w",
+            vault.Root);
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal(content, result.Output);
+        Assert.Empty(result.Error);
+        Assert.DoesNotContain("Content:", result.Output, StringComparison.Ordinal);
+        Assert.DoesNotContain("...", result.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Card_content_json_is_deterministic_and_contains_full_semantic_identity()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string contentPath = Path.Combine(vault.Root, "content", "physical-atom.md");
+        string content = "# JSON source\n\n" + new string('y', 650) + "\n";
+        File.WriteAllText(contentPath, content);
+
+        CliResult first = await Run(
+            "card",
+            "content",
+            "physical-atom",
+            "-w",
+            vault.Root,
+            "--page",
+            "notebook",
+            "--json");
+        CliResult second = await Run(
+            "card",
+            "content",
+            "physical-atom",
+            "-w",
+            vault.Root,
+            "--page",
+            "notebook",
+            "--json");
+
+        Assert.Equal(0, first.ExitCode);
+        Assert.Equal(first.Output, second.Output);
+        using JsonDocument json = JsonDocument.Parse(first.Output);
+        Assert.Equal("m19i-notebook", json.RootElement.GetProperty("workspaceId").GetString());
+        Assert.Equal("notebook", json.RootElement.GetProperty("pageId").GetString());
+        Assert.Equal("physical-atom", json.RootElement.GetProperty("cardId").GetString());
+        Assert.Equal("markdown", json.RootElement.GetProperty("contentKind").GetString());
+        Assert.Equal("content/physical-atom.md", json.RootElement.GetProperty("source").GetString());
+        Assert.Equal(content, json.RootElement.GetProperty("content").GetString());
+        Assert.True(first.Output.IndexOf("\"workspaceId\"", StringComparison.Ordinal) <
+            first.Output.IndexOf("\"content\"", StringComparison.Ordinal));
+        Assert.Contains("\\n", first.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Card_content_failures_follow_human_and_json_contracts()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+
+        CliResult unknownHuman = await Run("card", "content", "missing", "-w", vault.Root);
+        CliResult unknownJson = await Run(
+            "card",
+            "content",
+            "missing",
+            "-w",
+            vault.Root,
+            "--json");
+        File.Delete(Path.Combine(vault.Root, "content", "physical-atom.md"));
+        CliResult missingContent = await Run(
+            "card",
+            "content",
+            "physical-atom",
+            "-w",
+            vault.Root,
+            "--json");
+
+        Assert.Equal(OblivionCliExitCode.ProductFailure, unknownHuman.ExitCode);
+        Assert.Empty(unknownHuman.Output);
+        Assert.Contains("unknown-card", unknownHuman.Error, StringComparison.Ordinal);
+        Assert.Equal(OblivionCliExitCode.ProductFailure, unknownJson.ExitCode);
+        Assert.Empty(unknownJson.Error);
+        Assert.Contains("unknown-card", unknownJson.Output, StringComparison.Ordinal);
+        Assert.Equal(OblivionCliExitCode.ProductFailure, missingContent.ExitCode);
+        Assert.Contains("missing-markdown-body-file", missingContent.Output, StringComparison.Ordinal);
     }
 
     [Fact]
