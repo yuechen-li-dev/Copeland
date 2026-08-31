@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Oblivion</AssemblyName>
+    <RootNamespace>Oblivion.Standalone</RootNamespace>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Oblivion.Model/Oblivion.Model.csproj" />
+    <ProjectReference Include="../Oblivion.Presentation/Oblivion.Presentation.csproj" />
+    <ProjectReference Include="../Oblivion.UI/Oblivion.UI.csproj" />
+    <ProjectReference Include="../Oblivion.App/Oblivion.App.csproj" />
+    <ProjectReference Include="../../Integrations/Oblivion.Avalonia/Oblivion.Avalonia.csproj" />
+    <ProjectReference Include="../../Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Core/Machina.Core.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Layout/Machina.Layout.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
+    <ProjectReference Include="../../Machina.UI/Machina.Standard/Machina.Standard.csproj" />
+    <ProjectReference Include="../../Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+  </ItemGroup>
+</Project>

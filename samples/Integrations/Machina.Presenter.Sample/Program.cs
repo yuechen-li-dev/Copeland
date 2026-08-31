@@ -12,6 +12,7 @@ using Machina.Presentation.Input;
 using Machina.Runtime.Input;
 using Machina.Presenter.Sample.Playback;
 using Machina.Standard.Theme;
+using Oblivion.Avalonia;
 using RuntimePointerPoint = Machina.Runtime.Input.PointerPoint;
 
 namespace Machina.Presenter.Sample;

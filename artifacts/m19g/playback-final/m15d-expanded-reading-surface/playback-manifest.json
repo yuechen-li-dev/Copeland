@@ -1,0 +1,60 @@
+{
+  "scenarioId": "m15d-expanded-reading-surface",
+  "scenarioName": "M15d keeps expanded Markdown in the stack and raw source in the inspector",
+  "outputDirectory": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m19g\\playback-final\\m15d-expanded-reading-surface",
+  "captureFinalPng": true,
+  "captureTraceJson": true,
+  "captureManifest": true,
+  "finalPngPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m19g\\playback-final\\m15d-expanded-reading-surface\\final.png",
+  "normalizedScenarioPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m19g\\playback-final\\m15d-expanded-reading-surface\\scenario.normalized.toml",
+  "traceJsonPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m19g\\playback-final\\m15d-expanded-reading-surface\\playback-trace.json",
+  "manifestJsonPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m19g\\playback-final\\m15d-expanded-reading-surface\\playback-manifest.json",
+  "manifestTextPath": "C:\\Users\\yuech\\source\\repos\\Copeland\\artifacts\\m19g\\playback-final\\m15d-expanded-reading-surface\\playback-manifest.txt",
+  "passed": true,
+  "assertionCount": 4,
+  "failedAssertionCount": 0,
+  "failedAssertions": [],
+  "semanticTargetsSupported": [
+    "card-header",
+    "expanded-body",
+    "expanded-body-scrollbar-thumb",
+    "inspector-pane",
+    "inspector-scrollbar-thumb",
+    "main-stack",
+    "main-stack-scrollbar-thumb",
+    "raw-source",
+    "raw-source-scrollbar-thumb"
+  ],
+  "stepsSupported": [
+    "click",
+    "drag",
+    "key",
+    "wait",
+    "wheel"
+  ],
+  "assertionsSupported": [
+    "card-expanded",
+    "region-exists",
+    "scroll-offset-changed",
+    "scroll-offset-equals",
+    "scroll-offset-greater-than",
+    "selected-card",
+    "shell-mode",
+    "step-scroll-delta-equals",
+    "step-scroll-delta-greater-than"
+  ],
+  "starterScenarios": [
+    "oblivion-expand-collapse",
+    "oblivion-expanded-body-scroll",
+    "oblivion-main-stack-scroll",
+    "oblivion-inspector-scroll",
+    "oblivion-raw-source-scroll"
+  ],
+  "playbackArtifacts": [
+    "final.png",
+    "playback-manifest.json",
+    "playback-manifest.txt",
+    "playback-trace.json",
+    "scenario.normalized.toml"
+  ]
+}

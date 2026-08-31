@@ -19,6 +19,7 @@
     <ProjectReference Include="../../../src/Machina.UI/Machina.Pipeline/Machina.Pipeline.csproj" />
     <ProjectReference Include="../../../src/Machina.UI/Machina.Presentation/Machina.Presentation.csproj" />
     <ProjectReference Include="../../../src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <ProjectReference Include="../../../src/Integrations/Oblivion.Avalonia/Oblivion.Avalonia.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Raster/Aurelian.Rendering.Raster.csproj" />
     <ProjectReference Include="../../../src/Aurelian/Aurelian.Rendering.Contracts/Aurelian.Rendering.Contracts.csproj" />
   </ItemGroup>

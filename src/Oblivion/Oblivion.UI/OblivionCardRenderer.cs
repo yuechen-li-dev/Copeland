@@ -22,7 +22,9 @@ public sealed record OblivionCardRenderOptions(
     double BodyLineGap = 4,
     int MaxTagsToShow = 4,
     int MaxActionsToShow = 3,
-    int MaxArtifactsToShow = 3);
+    int MaxArtifactsToShow = 3,
+    bool RenderBodyContent = true,
+    bool ShowSquareExpansionAffordance = false);
 
 public sealed record OblivionExpandedBodyViewport(
     Rect Bounds,
@@ -42,6 +44,8 @@ public static class OblivionCardRenderer
     private const string MetaRowFrameSuffix = ".meta-row-frame";
     private const string TagsRowFrameSuffix = ".tags-row-frame";
     private const string TitleSuffix = ".title";
+    private const string ExpansionAffordanceSuffix = ".expansion-affordance";
+    private const string ExpansionAffordanceMarkSuffix = ".expansion-affordance-mark";
     private const string SubtitleSuffix = ".subtitle";
     private const string SourceSuffix = ".source";
     private const string MetaRowSuffix = ".meta-row";
@@ -73,20 +77,26 @@ public static class OblivionCardRenderer
         CardLayout layout = ComputeLayout(view, options, cardStyle, composition.ComputeHeaderHeight(options));
         double contentWidth = layout.InnerWidth;
 
-        UiNode cardLayout = UI.VStack(
-            id: view.CardId + ".layout",
-            children:
-            [
-                UI.StackItem.Fixed(
-                    main: layout.BodyTop,
-                    child: WrapSection(
-                        BuildHeader(view, theme, options, composition, contentWidth),
-                        contentWidth,
-                        view.CardId + HeaderFrameSuffix)),
+        List<UiStackItem> cardItems =
+        [
+            UI.StackItem.Fixed(
+                main: layout.BodyTop,
+                child: WrapSection(
+                    BuildHeader(view, theme, options, composition, contentWidth),
+                    contentWidth,
+                    view.CardId + HeaderFrameSuffix)),
+        ];
+        if (view.IsExpanded || options.RenderBodyContent)
+        {
+            cardItems.Add(
                 UI.StackItem.Fill(
                     weight: 1,
-                    child: BuildBody(view, theme, options, layout, composition.Footer)),
-            ]);
+                    child: BuildBody(view, theme, options, layout, composition.Footer)));
+        }
+
+        UiNode cardLayout = UI.VStack(
+            id: view.CardId + ".layout",
+            children: cardItems);
 
         UiNode headerHit = UI.Anchor(
             UI.Rect(
@@ -124,6 +134,11 @@ public static class OblivionCardRenderer
     public static Rect DescribeHeaderHitRect(ResolvedLayoutDocument resolved, string cardId)
     {
         return FindRectBySuffix(resolved, cardId + HeaderHitSuffix);
+    }
+
+    public static Rect DescribeExpansionAffordanceRect(ResolvedLayoutDocument resolved, string cardId)
+    {
+        return FindRectBySuffix(resolved, cardId + ExpansionAffordanceSuffix);
     }
 
     public static OblivionExpandedBodyViewport? DescribeExpandedBodyViewport(
@@ -210,6 +225,11 @@ public static class OblivionCardRenderer
         CardLayout layout,
         OblivionCardFooterModel footer)
     {
+        if (!options.RenderBodyContent)
+        {
+            return BuildHostedBodyFrame(view, layout);
+        }
+
         if (view.IsExpanded && view.Body is OblivionCompactMarkdownBodyContent expandedMarkdownBody)
         {
             return BuildExpandedMarkdownBody(view, expandedMarkdownBody.Body, layout);
@@ -223,6 +243,27 @@ public static class OblivionCardRenderer
         return BuildCollapsedPlainBody(view, theme, options, layout, footer);
     }
 
+    private static UiNode BuildHostedBodyFrame(
+        OblivionCompactCardView view,
+        CardLayout layout)
+    {
+        return UI.Rect(
+            child: UI.Rect(
+                id: view.CardId + ExpandedBodyViewportSuffix,
+                style: new UiStyle(
+                    Background: MarkdownReadingStyle.Surface,
+                    BorderColor: MarkdownReadingStyle.Border,
+                    BorderThickness: 1,
+                    ClipToBounds: true)),
+            id: view.CardId + BodyFrameSuffix,
+            width: layout.BodyWidth,
+            height: layout.BodyHeight,
+            style: new UiStyle(
+                Background: PreviewFrameBackground,
+                BorderColor: MarkdownReadingStyle.Border,
+                BorderThickness: 1));
+    }
+
     private static UiNode BuildHeader(
         OblivionCompactCardView view,
         StandardTheme theme,
@@ -230,15 +271,35 @@ public static class OblivionCardRenderer
         OblivionCardCompositionModel composition,
         double contentWidth)
     {
+        UiNode title = UI.Text(
+            view.Title,
+            id: view.CardId + TitleSuffix,
+            size: options.ShowSquareExpansionAffordance ? TextSize.H1 : TextSize.Md,
+            color: theme.Colors.Foreground);
+        UiNode titleRow = options.ShowSquareExpansionAffordance
+            ? UI.Layer(
+                children:
+                [
+                    UI.Anchor(
+                        title,
+                        left: 0,
+                        right: options.TitleHeight + options.SmallGap,
+                        top: 0,
+                        height: options.TitleHeight),
+                    UI.Anchor(
+                        BuildSquareExpansionAffordance(view),
+                        left: contentWidth - options.TitleHeight,
+                        width: options.TitleHeight,
+                        top: 0,
+                        height: options.TitleHeight),
+                ])
+            : title;
+
         List<UiStackItem> items =
         [
             UI.StackItem.Fixed(
                 main: options.TitleHeight,
-                child: UI.Text(
-                    view.Title,
-                    id: view.CardId + TitleSuffix,
-                    size: TextSize.Md,
-                    color: theme.Colors.Foreground)),
+                child: titleRow),
         ];
 
         if (!string.IsNullOrWhiteSpace(view.Subtitle))
@@ -301,6 +362,32 @@ public static class OblivionCardRenderer
         return UI.VStack(
             id: view.CardId + HeaderStackSuffix,
             children: items);
+    }
+
+    private static UiNode BuildSquareExpansionAffordance(OblivionCompactCardView view)
+    {
+        ColorToken accent = ColorToken.Hex(0x38BDF8FF);
+        UiStyle markStyle = view.IsExpanded
+            ? new UiStyle(
+                Background: ColorToken.Hex(0x00000000),
+                BorderColor: accent,
+                BorderThickness: 2)
+            : new UiStyle(Background: accent);
+
+        return UI.Rect(
+            id: view.CardId + ExpansionAffordanceSuffix,
+            child: UI.Anchor(
+                UI.Rect(
+                    id: view.CardId + ExpansionAffordanceMarkSuffix,
+                    style: markStyle),
+                left: 13,
+                width: 14,
+                top: 13,
+                height: 14),
+            style: new UiStyle(
+                Background: ColorToken.Hex(0x111827FF),
+                BorderColor: accent,
+                BorderThickness: 1));
     }
 
     private static UiNode BuildCollapsedMarkdownBody(

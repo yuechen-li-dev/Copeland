@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Oblivion.Avalonia</AssemblyName>
+    <RootNamespace>Oblivion.Avalonia</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Oblivion/Oblivion.Model/Oblivion.Model.csproj" />
+    <ProjectReference Include="../../Oblivion/Oblivion.UI/Oblivion.UI.csproj" />
+    <ProjectReference Include="../../Oblivion/Oblivion.App/Oblivion.App.csproj" />
+    <ProjectReference Include="../../Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+</Project>

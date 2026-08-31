@@ -5,8 +5,11 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Copeland.Markdown;
+using Oblivion.App;
+using Oblivion.Model;
+using Oblivion.Product;
 
-namespace Machina.Presenter.Sample;
+namespace Oblivion.Avalonia;
 
 public static class AvaloniaOblivionContentHost
 {
@@ -23,7 +26,8 @@ public static class AvaloniaOblivionContentHost
         IOblivionDiagramRenderer diagramRenderer,
         string diagramOutputDirectory,
         string? workspaceId = null,
-        string? pageId = null)
+        string? pageId = null,
+        double? maximumReadableWidth = null)
     {
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(plan);
@@ -32,7 +36,8 @@ public static class AvaloniaOblivionContentHost
         StackPanel content = new()
         {
             Spacing = OblivionReadingTypographyBaseline.MatureReadOnly.ParagraphSpacing,
-            MaxWidth = OblivionReadingTypographyBaseline.MatureReadOnly.MaximumReadableWidth,
+            MaxWidth = maximumReadableWidth ?? OblivionReadingTypographyBaseline.MatureReadOnly.MaximumReadableWidth,
+            HorizontalAlignment = HorizontalAlignment.Center,
         };
 
         foreach (OblivionContentPresentationItem item in plan.Items)
@@ -60,11 +65,11 @@ public static class AvaloniaOblivionContentHost
             Padding = new Thickness(OblivionReadingTypographyBaseline.MatureReadOnly.ContentPadding),
             HorizontalScrollBarVisibility = plan.Items.Any(item =>
                 item.ScrollContract == OblivionContentScrollContract.HostHorizontalAndVerticalWhenBounded)
-                ? Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
-                : Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                ? global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+                : global::Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
             VerticalScrollBarVisibility = plan.AllowsInternalScroll
-                ? Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
-                : Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                ? global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+                : global::Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
         };
 
         return new Border
@@ -86,8 +91,8 @@ public static class AvaloniaOblivionContentHost
         {
             Content = BuildCode(card.Body.RawText, "markdown source"),
             Padding = new Thickness(OblivionReadingTypographyBaseline.MatureReadOnly.InspectorBodyPadding),
-            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
         };
         return new Border
         {
@@ -134,7 +139,7 @@ public static class AvaloniaOblivionContentHost
             ListMir list => BuildList(list),
             CodeBlockMir code when string.Equals(code.Language, "mermaid", StringComparison.OrdinalIgnoreCase) => null,
             CodeBlockMir code => BuildCode(code.Text, code.Language),
-            ThematicBreakMir => new Avalonia.Controls.Separator { Margin = new Thickness(0, 6) },
+            ThematicBreakMir => new global::Avalonia.Controls.Separator { Margin = new Thickness(0, 6) },
             BreakMir => new Border { Height = 8 },
             _ => null,
         };
@@ -146,6 +151,9 @@ public static class AvaloniaOblivionContentHost
             .GetValueOrDefault(heading.Level, 16);
         SelectableTextBlock text = BuildInlineText(heading.Inlines);
         text.FontSize = fontSize;
+        text.LineHeight = Math.Max(
+            OblivionReadingTypographyBaseline.MatureReadOnly.BodyLineHeight,
+            fontSize + 8);
         text.FontWeight = FontWeight.SemiBold;
         text.Foreground = Brushes.White;
         return text;
@@ -211,7 +219,7 @@ public static class AvaloniaOblivionContentHost
             {
                 ColumnDefinitions = new ColumnDefinitions("28,*"),
             };
-            row.Children.Add(new Avalonia.Controls.TextBlock
+            row.Children.Add(new global::Avalonia.Controls.TextBlock
             {
                 Text = marker,
                 Foreground = Muted,
@@ -242,7 +250,7 @@ public static class AvaloniaOblivionContentHost
         StackPanel panel = new() { Spacing = 6 };
         if (!string.IsNullOrWhiteSpace(language))
         {
-            panel.Children.Add(new Avalonia.Controls.TextBlock
+            panel.Children.Add(new global::Avalonia.Controls.TextBlock
             {
                 Text = language,
                 Foreground = Muted,

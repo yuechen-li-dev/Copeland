@@ -5,6 +5,7 @@
     <Project Path="src/Oblivion/Oblivion.Persistence/Oblivion.Persistence.csproj" />
     <Project Path="src/Oblivion/Oblivion.UI/Oblivion.UI.csproj" />
     <Project Path="src/Oblivion/Oblivion.App/Oblivion.App.csproj" />
+    <Project Path="src/Oblivion/Oblivion.Standalone/Oblivion.Standalone.csproj" />
     <Project Path="src/Copeland/Copeland.Cli/Copeland.Cli.csproj" />
     <Project Path="src/Copeland/Copeland.Markdown/Copeland.Markdown.csproj" />
     <Project Path="src/Copeland/Copeland.TS.Mir/Copeland.TS.Mir.csproj" />
@@ -31,6 +32,7 @@
     <Project Path="src/Aurelian/Aurelian.Shaders/Aurelian.Shaders.csproj" />
     <Project Path="src/Aurelian/Aurelian.World/Aurelian.World.csproj" />
     <Project Path="src/Integrations/Aurelian.Machina/Aurelian.Machina.csproj" />
+    <Project Path="src/Integrations/Oblivion.Avalonia/Oblivion.Avalonia.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Machina.UI/Machina.ComponentGallery.Sample/Machina.ComponentGallery.Sample.csproj" />
@@ -42,6 +44,7 @@
     <Project Path="tests/Oblivion/Oblivion.Persistence.Tests/Oblivion.Persistence.Tests.csproj" />
     <Project Path="tests/Oblivion/Oblivion.UI.Tests/Oblivion.UI.Tests.csproj" />
     <Project Path="tests/Oblivion/Oblivion.App.Tests/Oblivion.App.Tests.csproj" />
+    <Project Path="tests/Oblivion/Oblivion.Standalone.Tests/Oblivion.Standalone.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.Cli.Tests/Copeland.Cli.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.Markdown.Tests/Copeland.Markdown.Tests.csproj" />
     <Project Path="tests/Copeland/Copeland.TS.Tests/Copeland.TS.Tests.csproj" />

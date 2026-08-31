@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Machina.Presenter.Sample;
 using Machina.Fonts.ReferenceRendering;
+using Oblivion.Avalonia;
 using Oblivion.App;
 using Oblivion.Model;
 using Oblivion.Product;
@@ -36,6 +37,31 @@ public sealed class AvaloniaOblivionContentHostTests
         Assert.Equal(ScrollBarVisibility.Disabled, scroll.HorizontalScrollBarVisibility);
         Assert.True(host.ClipToBounds);
         Assert.NotNull(scroll.Content);
+    }
+
+    [Fact]
+    public void Markdown_heading_line_box_is_tall_enough_for_lowercase_descenders()
+    {
+        OblivionCard card = CreateCard(
+            OblivionCardKind.Note,
+            OblivionMarkdownBody.CreateMarkdown("# Typography\n\nReadable body.", "body/typography.md"));
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0));
+
+        Border host = Assert.IsType<Border>(AvaloniaOblivionContentHost.Build(
+            card,
+            plan,
+            new FakeDiagramRenderer(),
+            Path.GetTempPath()));
+        ScrollViewer scroll = Assert.IsType<ScrollViewer>(host.Child);
+        StackPanel content = Assert.IsType<StackPanel>(scroll.Content);
+        StackPanel document = Assert.IsType<StackPanel>(Assert.Single(content.Children));
+        SelectableTextBlock heading = Assert.IsType<SelectableTextBlock>(document.Children[0]);
+
+        Assert.Equal(28, heading.FontSize);
+        Assert.Equal(36, heading.LineHeight);
+        Assert.True(heading.LineHeight > heading.FontSize);
     }
 
     [Fact]
