@@ -69,6 +69,13 @@ public sealed record OblivionProductDiagramSnapshot(
     string CacheKey,
     string RendererStatus,
     string? CachedArtifactPath,
+    bool CachedArtifactExists,
+    IReadOnlyList<OblivionProductDiagramAppearanceSnapshot>? RenderAppearances = null);
+
+public sealed record OblivionProductDiagramAppearanceSnapshot(
+    string ResolvedAppearance,
+    string CacheKey,
+    string CachedArtifactPath,
     bool CachedArtifactExists);
 
 public sealed record OblivionProductProvenanceSnapshot(
@@ -363,17 +370,29 @@ public sealed class OblivionProductSurface
             .Select(item =>
             {
                 string sourceHash = OblivionMermaidHashing.ComputeSourceHash(item.Source);
-                MermaidDerivedArtifactKey key = new(
-                    sourceHash,
-                    OblivionMermaidRendererOptions.RendererId,
-                    OblivionMermaidRendererOptions.PinnedVersion,
-                    OblivionMermaidRendererOptions.OutputFormat,
-                    OblivionMermaidRendererOptions.RenderingOptions);
-                string cachedPath = Path.Combine(cacheDirectory, key.Value + ".png");
-                bool cached = File.Exists(cachedPath) &&
-                    File.Exists(Path.ChangeExtension(cachedPath, ".json"));
+                OblivionProductDiagramAppearanceSnapshot[] renderAppearances =
+                    Enum.GetValues<OblivionResolvedAppearance>()
+                        .Select(appearance =>
+                        {
+                            MermaidDerivedArtifactKey appearanceKey =
+                                OblivionMermaidArtifactIdentity.CreateKey(sourceHash, appearance);
+                            string appearancePath = Path.Combine(
+                                cacheDirectory,
+                                appearanceKey.Value + ".png");
+                            bool appearanceCached = File.Exists(appearancePath) &&
+                                File.Exists(Path.ChangeExtension(appearancePath, ".json"));
+                            return new OblivionProductDiagramAppearanceSnapshot(
+                                appearance.ToString().ToLowerInvariant(),
+                                appearanceKey.Value,
+                                appearancePath,
+                                appearanceCached);
+                        })
+                        .ToArray();
+                OblivionProductDiagramAppearanceSnapshot light = renderAppearances.Single(
+                    appearance => appearance.ResolvedAppearance == "light");
+                bool cached = renderAppearances.Any(appearance => appearance.CachedArtifactExists);
                 string status = cached
-                    ? "cached-qualified-artifact"
+                    ? "cached-qualified-appearance-artifact"
                     : rendererInstalled
                         ? "installed-awaiting-visual-realization"
                         : "renderer-unavailable-source-retained";
@@ -385,10 +404,11 @@ public sealed class OblivionProductSurface
                     OblivionMermaidRendererOptions.RendererId,
                     OblivionMermaidRendererOptions.PinnedVersion,
                     OblivionMermaidRendererOptions.OutputFormat,
-                    key.Value,
+                    light.CacheKey,
                     status,
-                    cached ? cachedPath : null,
-                    cached);
+                    light.CachedArtifactExists ? light.CachedArtifactPath : null,
+                    light.CachedArtifactExists,
+                    renderAppearances);
             })
             .ToArray();
     }

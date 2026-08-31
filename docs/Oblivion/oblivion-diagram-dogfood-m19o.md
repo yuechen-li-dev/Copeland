@@ -25,7 +25,7 @@ At 2560×1440, collapsed state contains no preview. Expanded state makes the dia
 
 The visual communicates faster than the adjacent prose: `Still` self-transition, `Moving` recovery routes, and terminal `Crash` are visible in one scan. Mermaid introduces excess white space and some crossing/close labels, but not enough to obscure meaning.
 
-Light appearance integrates cleanly with the renderer canvas. Dark appearance remains readable but the white PNG canvas is visually abrupt against the dark Card. This is theme pressure, not a correctness failure.
+Light appearance integrates cleanly with the renderer canvas. M19p subsequently qualified a dark Mermaid artifact, removed the abrupt white PNG canvas, and retained identical Diagram semantics and host geometry. The remaining pressure is whitespace and label layout, not theme mismatch.
 
 ## Agent usefulness
 
@@ -61,4 +61,3 @@ Direct SVG is not justified now. The evidence supports a smaller next milestone:
 ## Outcome
 
 Outcome A: Diagram Cards are a natural notebook primitive for compiler-derived visual relationships. The semantic connection is strong, the first real Card saves duplicated explanation, and current IR/backend are sufficient for the observed required diagram. The dark-canvas mismatch is a bounded follow-on, not an awkward semantic or presentation seam that blocks use.
-

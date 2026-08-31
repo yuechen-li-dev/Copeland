@@ -66,7 +66,10 @@ public sealed record OblivionCardDetail(
     string? DiagramProjection = null,
     string? DiagramSemanticFingerprint = null,
     string? DiagramDerivedArtifactStatus = null,
-    string? DiagramRenderer = null);
+    string? DiagramRenderer = null,
+    IReadOnlyList<string>? DiagramCachedAppearances = null,
+    string? DiagramRequestedAppearance = null,
+    string? DiagramResolvedAppearance = null);
 
 public sealed record OblivionCardContentResult(
     string WorkspaceId,
@@ -261,6 +264,7 @@ public sealed class OblivionWorkspaceControl
             workspace).ToList();
         OblivionDiagramProjectionResult? diagramProjection = null;
         string? artifactStatus = null;
+        IReadOnlyList<string>? cachedAppearances = null;
         if (card.Kind == OblivionCardKind.Diagram)
         {
             diagramProjection = new OblivionDiagramCardRealizer().Project(
@@ -278,8 +282,18 @@ public sealed class OblivionWorkspaceControl
                 null)));
             artifactStatus = diagramProjection.MermaidSource is null
                 ? "projection-failed"
-                : ResolveDiagramArtifactStatus(diagramProjection.MermaidSource);
+                : ResolveDiagramArtifactStatus(diagramProjection.MermaidSource, out cachedAppearances);
         }
+        OblivionConfigResult config = new OblivionConfigStore().Load();
+        string? requestedAppearance = card.Kind == OblivionCardKind.Diagram && config.Config is not null
+            ? config.Config.Appearance.ToString().ToLowerInvariant()
+            : null;
+        string? resolvedAppearance = config.Config?.Appearance switch
+        {
+            OblivionAppearance.Light => "light",
+            OblivionAppearance.Dark => "dark",
+            _ => null,
+        };
         OblivionCardDetail detail = new(
             card.Id.Value,
             page.Id.Value,
@@ -302,23 +316,36 @@ public sealed class OblivionWorkspaceControl
             artifactStatus,
             card.Kind == OblivionCardKind.Diagram
                 ? $"{OblivionMermaidRendererOptions.RendererId}@{OblivionMermaidRendererOptions.PinnedVersion}"
-                : null);
+                : null,
+            cachedAppearances,
+            requestedAppearance,
+            resolvedAppearance);
         return new(detail, diagnostics);
     }
 
-    private static string ResolveDiagramArtifactStatus(string mermaidSource)
+    private static string ResolveDiagramArtifactStatus(
+        string mermaidSource,
+        out IReadOnlyList<string> cachedAppearances)
     {
         string hash = OblivionMermaidHashing.ComputeSourceHash(mermaidSource);
-        MermaidDerivedArtifactKey key = new(
-            hash,
-            OblivionMermaidRendererOptions.RendererId,
-            OblivionMermaidRendererOptions.PinnedVersion,
-            OblivionMermaidRendererOptions.OutputFormat,
-            OblivionMermaidRendererOptions.RenderingOptions);
-        string path = Path.GetFullPath(Path.Combine("artifacts", "derived", "mermaid", key.Value + ".png"));
-        return File.Exists(path) && File.Exists(Path.ChangeExtension(path, ".json"))
-            ? "cached-qualified-artifact"
-            : "not-realized";
+        string outputDirectory = Path.GetFullPath(Path.Combine("artifacts", "derived", "mermaid"));
+        List<string> cached = [];
+        foreach (OblivionResolvedAppearance appearance in Enum.GetValues<OblivionResolvedAppearance>())
+        {
+            string path = OblivionMermaidArtifactIdentity.ArtifactPath(
+                outputDirectory,
+                hash,
+                appearance);
+            if (File.Exists(path) && File.Exists(Path.ChangeExtension(path, ".json")))
+            {
+                cached.Add(appearance.ToString().ToLowerInvariant());
+            }
+        }
+
+        cachedAppearances = cached;
+        return cached.Count == 0
+            ? "not-realized"
+            : $"cached-qualified-artifacts:{string.Join(',', cached)}";
     }
 
     public OblivionControlResult<OblivionCardContentResult> GetCardContent(

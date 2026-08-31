@@ -1,5 +1,7 @@
 # Oblivion Mermaid derived artifacts — M19e
 
+> M19p update: Mermaid PNG realization is now qualified by resolved light/dark appearance. Cache sidecars use format 2, and old appearance-unqualified format-1 entries are retained only as stale safe derived artifacts; they are not trusted for new realization. See `oblivion-mermaid-appearance-m19p.md`.
+
 > Historical milestone note: M19j keeps artifact and diagram inspection as
 > internal App contracts and does not expose the former experimental `show`
 > spelling. Use `oblivion card show` for the bounded M19j card surface; see

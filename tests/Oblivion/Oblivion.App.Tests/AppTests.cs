@@ -489,6 +489,13 @@ public sealed class AppTests
         Assert.Equal("11.16.0", diagram.RendererVersion);
         Assert.NotEmpty(diagram.RendererStatus);
         Assert.Equal(64, diagram.CacheKey.Length);
+        Assert.Collection(
+            diagram.RenderAppearances!,
+            light => Assert.Equal("light", light.ResolvedAppearance),
+            dark => Assert.Equal("dark", dark.ResolvedAppearance));
+        Assert.NotEqual(
+            diagram.RenderAppearances![0].CacheKey,
+            diagram.RenderAppearances[1].CacheKey);
     }
 
     private static string FindRepositoryRoot()
@@ -515,7 +522,8 @@ public sealed class AppTests
                 "card.diagram",
                 "graph TD\n  A --> B",
                 "body/diagram.md",
-                Path.GetTempPath()));
+                Path.GetTempPath(),
+                OblivionResolvedAppearance.Light));
 
         Assert.False(result.Succeeded);
         Assert.Null(result.RenderedPath);
@@ -574,6 +582,82 @@ public sealed class AppTests
         Assert.Equal(1, fixture.ProcessRunner.RenderInvocations);
         Assert.Equal(1, fixture.ProcessRunner.VersionInvocations);
         Assert.True(File.Exists(first.RenderedPath));
+    }
+
+    [Fact]
+    public void Light_and_dark_are_distinct_stable_render_realizations()
+    {
+        using MermaidRendererFixture fixture = MermaidRendererFixture.Create();
+        OblivionDiagramRenderRequest lightRequest = fixture.Request with
+        {
+            Appearance = OblivionResolvedAppearance.Light,
+        };
+        OblivionDiagramRenderRequest darkRequest = fixture.Request with
+        {
+            Appearance = OblivionResolvedAppearance.Dark,
+        };
+
+        OblivionDiagramRenderResult lightCold = fixture.Renderer.Render(lightRequest);
+        OblivionDiagramRenderResult lightHit = fixture.Renderer.Render(lightRequest);
+        OblivionDiagramRenderResult darkCold = fixture.Renderer.Render(darkRequest);
+        OblivionDiagramRenderResult darkHit = fixture.Renderer.Render(darkRequest);
+
+        Assert.False(lightCold.CacheHit);
+        Assert.True(lightHit.CacheHit);
+        Assert.False(darkCold.CacheHit);
+        Assert.True(darkHit.CacheHit);
+        Assert.Equal(lightCold.SourceHash, darkCold.SourceHash);
+        Assert.NotEqual(lightCold.CacheKey, darkCold.CacheKey);
+        Assert.NotEqual(lightCold.RenderedPath, darkCold.RenderedPath);
+        Assert.Equal(OblivionResolvedAppearance.Light, lightCold.Provenance!.ResolvedAppearance);
+        Assert.Equal(OblivionResolvedAppearance.Dark, darkCold.Provenance!.ResolvedAppearance);
+        Assert.Contains("m19p-light-v1", lightCold.Provenance.RenderOptionsIdentity);
+        Assert.Contains("m19p-dark-v1", darkCold.Provenance.RenderOptionsIdentity);
+        Assert.Equal(2, fixture.ProcessRunner.RenderInvocations);
+
+        OblivionProcessRequest lightProcess = fixture.ProcessRunner.RenderRequests[0];
+        OblivionProcessRequest darkProcess = fixture.ProcessRunner.RenderRequests[1];
+        AssertArgumentValue(lightProcess, "--theme", "default");
+        AssertArgumentValue(lightProcess, "--backgroundColor", "#ffffff");
+        AssertArgumentValue(darkProcess, "--theme", "dark");
+        AssertArgumentValue(darkProcess, "--backgroundColor", "#0f172a");
+    }
+
+    [Fact]
+    public void Appearance_qualified_key_does_not_trust_old_unqualified_white_cache_identity()
+    {
+        using MermaidRendererFixture fixture = MermaidRendererFixture.Create();
+        string sourceHash = OblivionMermaidHashing.ComputeSourceHash(fixture.Request.Source);
+        MermaidDerivedArtifactKey oldKey = new(
+            sourceHash,
+            OblivionMermaidRendererOptions.RendererId,
+            OblivionMermaidRendererOptions.PinnedVersion,
+            OblivionMermaidRendererOptions.OutputFormat,
+            "theme=default;background=white;securityLevel=strict");
+        File.WriteAllBytes(
+            Path.Combine(fixture.RootPath, oldKey.Value + ".png"),
+            FakeProcessRunner.MinimalPng);
+        File.WriteAllText(
+            Path.Combine(fixture.RootPath, oldKey.Value + ".json"),
+            "{}");
+
+        OblivionDiagramRenderResult result = fixture.Renderer.Render(
+            fixture.Request with { Appearance = OblivionResolvedAppearance.Dark });
+
+        Assert.True(result.Succeeded);
+        Assert.False(result.CacheHit);
+        Assert.NotEqual(oldKey.Value, result.CacheKey);
+        Assert.Equal(1, fixture.ProcessRunner.RenderInvocations);
+    }
+
+    private static void AssertArgumentValue(
+        OblivionProcessRequest request,
+        string option,
+        string expectedValue)
+    {
+        int index = request.Arguments.ToList().IndexOf(option);
+        Assert.True(index >= 0, $"Expected argument '{option}'.");
+        Assert.Equal(expectedValue, request.Arguments[index + 1]);
     }
 
     [Fact]
@@ -644,7 +728,12 @@ public sealed class AppTests
         Assert.Equal("workspace", result.Provenance.WorkspaceId);
         Assert.Equal("page", result.Provenance.PageId);
         Assert.Equal("card", result.Provenance.CardId);
+        Assert.Equal(OblivionResolvedAppearance.Light, result.Provenance.ResolvedAppearance);
+        Assert.Contains("m19p-light-v1", result.Provenance.RenderOptionsIdentity);
         Assert.True(result.Provenance.Derived);
+        string metadata = File.ReadAllText(Path.ChangeExtension(result.RenderedPath!, ".json"));
+        Assert.Contains("\"ResolvedAppearance\": \"light\"", metadata);
+        Assert.Contains("\"Derived\": true", metadata);
     }
 
     [Theory]
@@ -714,7 +803,7 @@ public sealed class AppTests
 
     private sealed class FakeProcessRunner : IOblivionProcessRunner
     {
-        private static readonly byte[] MinimalPng = Convert.FromBase64String(
+        public static readonly byte[] MinimalPng = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
         private readonly string _version;
@@ -730,6 +819,7 @@ public sealed class AppTests
 
         public int VersionInvocations { get; private set; }
         public int RenderInvocations { get; private set; }
+        public List<OblivionProcessRequest> RenderRequests { get; } = [];
 
         public OblivionProcessResult Run(OblivionProcessRequest request)
         {
@@ -741,6 +831,7 @@ public sealed class AppTests
             }
 
             RenderInvocations++;
+            RenderRequests.Add(request);
             if (_behavior == FakeProcessBehavior.Timeout)
             {
                 return new OblivionProcessResult(true, true, null, string.Empty, string.Empty);
@@ -785,6 +876,7 @@ public sealed class AppTests
             "graph TD\r\n  Durable --> Derived\r\n",
             "body/architecture.md",
             RootPath,
+            OblivionResolvedAppearance.Light,
             "workspace",
             "page",
             "card");

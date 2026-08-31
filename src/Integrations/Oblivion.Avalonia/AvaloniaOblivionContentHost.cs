@@ -43,6 +43,7 @@ public static class AvaloniaOblivionContentHost
         OblivionContentPresentationPlan plan,
         IOblivionDiagramRenderer diagramRenderer,
         string diagramOutputDirectory,
+        OblivionResolvedAppearance resolvedAppearance,
         string? workspaceId = null,
         string? pageId = null,
         double? maximumReadableWidth = null,
@@ -72,6 +73,7 @@ public static class AvaloniaOblivionContentHost
                     item,
                     diagramRenderer,
                     diagramOutputDirectory,
+                    resolvedAppearance,
                     workspaceId,
                     pageId,
                     effectiveStyle),
@@ -348,6 +350,7 @@ public static class AvaloniaOblivionContentHost
         OblivionContentPresentationItem item,
         IOblivionDiagramRenderer renderer,
         string outputDirectory,
+        OblivionResolvedAppearance resolvedAppearance,
         string? workspaceId,
         string? pageId,
         AvaloniaOblivionContentStyle style)
@@ -357,6 +360,7 @@ public static class AvaloniaOblivionContentHost
             item.Source,
             item.SourceReference,
             outputDirectory,
+            resolvedAppearance,
             workspaceId,
             pageId,
             card.Id.Value));

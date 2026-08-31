@@ -3,12 +3,6 @@ using Oblivion.App;
 
 namespace Oblivion.Standalone;
 
-public enum OblivionResolvedAppearance
-{
-    Light,
-    Dark,
-}
-
 public sealed record OblivionStandaloneStyle(
     OblivionResolvedAppearance Appearance,
     int DevelopmentWidth,

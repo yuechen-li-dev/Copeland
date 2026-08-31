@@ -22,7 +22,14 @@ public sealed class StandaloneSurfaceTests
         OblivionResolvedAppearance platform,
         OblivionResolvedAppearance expected)
     {
-        Assert.Equal(expected, OblivionStandaloneAppearanceResolver.Resolve(configured, platform));
+        OblivionResolvedAppearance resolved = OblivionStandaloneAppearanceResolver.Resolve(
+            configured,
+            platform);
+
+        Assert.Equal(expected, resolved);
+        Assert.Contains(
+            expected == OblivionResolvedAppearance.Light ? "m19p-light-v1" : "m19p-dark-v1",
+            OblivionMermaidRendererOptions.RenderingOptionsFor(resolved));
     }
 
     [Fact]

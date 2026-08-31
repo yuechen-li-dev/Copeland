@@ -41,6 +41,7 @@ public sealed class AvaloniaOblivionContentHostTests
             plan,
             new FakeDiagramRenderer(),
             Path.GetTempPath(),
+            OblivionResolvedAppearance.Light,
             style: light));
         SolidColorBrush hostBackground = Assert.IsType<SolidColorBrush>(host.Background);
         SolidColorBrush hostBorder = Assert.IsType<SolidColorBrush>(host.BorderBrush);
@@ -71,7 +72,8 @@ public sealed class AvaloniaOblivionContentHostTests
             card,
             plan,
             new FakeDiagramRenderer(),
-            Path.GetTempPath()));
+            Path.GetTempPath(),
+            OblivionResolvedAppearance.Dark));
         ScrollViewer scroll = Assert.IsType<ScrollViewer>(host.Child);
 
         Assert.Equal(ScrollBarVisibility.Auto, scroll.VerticalScrollBarVisibility);
@@ -94,7 +96,8 @@ public sealed class AvaloniaOblivionContentHostTests
             card,
             plan,
             new FakeDiagramRenderer(),
-            Path.GetTempPath()));
+            Path.GetTempPath(),
+            OblivionResolvedAppearance.Dark));
         ScrollViewer scroll = Assert.IsType<ScrollViewer>(host.Child);
         StackPanel content = Assert.IsType<StackPanel>(scroll.Content);
         StackPanel document = Assert.IsType<StackPanel>(Assert.Single(content.Children));
@@ -124,7 +127,8 @@ public sealed class AvaloniaOblivionContentHostTests
             card,
             plan,
             new FakeDiagramRenderer(),
-            Path.GetTempPath()));
+            Path.GetTempPath(),
+            OblivionResolvedAppearance.Dark));
         ScrollViewer scroll = Assert.IsType<ScrollViewer>(host.Child);
 
         Assert.Equal(ScrollBarVisibility.Auto, scroll.HorizontalScrollBarVisibility);
@@ -206,6 +210,7 @@ public sealed class AvaloniaOblivionContentHostTests
                 plan,
                 new SuccessfulDiagramRenderer(path),
                 Path.GetTempPath(),
+                OblivionResolvedAppearance.Light,
                 "workspace",
                 "architecture"));
             ScrollViewer scroll = Assert.IsType<ScrollViewer>(host.Child);
@@ -247,12 +252,39 @@ public sealed class AvaloniaOblivionContentHostTests
             card,
             plan,
             new FakeDiagramRenderer(),
-            Path.GetTempPath()));
+            Path.GetTempPath(),
+            OblivionResolvedAppearance.Dark));
         ScrollViewer scroll = Assert.IsType<ScrollViewer>(host.Child);
         StackPanel content = Assert.IsType<StackPanel>(scroll.Content);
         SelectableTextBlock fallback = Assert.IsType<SelectableTextBlock>(content.Children[1]);
 
         Assert.Contains("Durable --> Visible", fallback.Text);
+    }
+
+    [Theory]
+    [InlineData(OblivionResolvedAppearance.Light)]
+    [InlineData(OblivionResolvedAppearance.Dark)]
+    public void Diagram_host_passes_resolved_appearance_to_render_realization(
+        OblivionResolvedAppearance appearance)
+    {
+        OblivionCard card = CreateCard(
+            OblivionCardKind.Note,
+            OblivionMarkdownBody.CreateMarkdown(
+                "```mermaid\nflowchart LR\n  Durable --> Visible\n```",
+                "body/appearance.md"));
+        OblivionContentPresentationPlan plan = OblivionContentPresenterSelector.Select(
+            card,
+            new OblivionCardViewState(true, 0));
+        FakeDiagramRenderer renderer = new();
+
+        AvaloniaOblivionContentHost.Build(
+            card,
+            plan,
+            renderer,
+            Path.GetTempPath(),
+            appearance);
+
+        Assert.Equal(appearance, Assert.Single(renderer.Requests).Appearance);
     }
 
     private static byte[] ReadPngChunk(byte[] png, string requestedType)
@@ -290,8 +322,11 @@ public sealed class AvaloniaOblivionContentHostTests
 
     private sealed class FakeDiagramRenderer : IOblivionDiagramRenderer
     {
+        public List<OblivionDiagramRenderRequest> Requests { get; } = [];
+
         public OblivionDiagramRenderResult Render(OblivionDiagramRenderRequest request)
         {
+            Requests.Add(request);
             return new OblivionDiagramRenderResult(
                 Succeeded: false,
                 Renderer: "fake",

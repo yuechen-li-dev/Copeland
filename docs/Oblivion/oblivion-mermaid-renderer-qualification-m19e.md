@@ -1,5 +1,7 @@
 # Oblivion Mermaid renderer qualification — M19e
 
+> M19p update: the same pinned `@mermaid-js/mermaid-cli@11.16.0` is qualified with fixed light (`default`, `#ffffff`) and dark (`dark`, `#0f172a`) render options. Resolved appearance now participates in cache identity and provenance; security and process bounds are unchanged.
+
 ## Outcome
 
 M19e qualifies one production renderer: the official `@mermaid-js/mermaid-cli` package, pinned exactly at `11.16.0`. The repo-owned install lives at `tools/mermaid`; `package.json` and `package-lock.json` are durable inputs while `node_modules` and Puppeteer's local browser cache remain installed tooling, not source.

@@ -114,6 +114,7 @@ public sealed class DiagramCardTests
         Assert.Equal("VehicleFlow", result.Projection.Source.Symbol);
         Assert.Equal("vehicle-flow-state.diagram", renderer.Request!.ContentId);
         Assert.Equal("source/VehicleFlow.ts", renderer.Request.SourceReference);
+        Assert.Equal(OblivionResolvedAppearance.Light, renderer.Request.Appearance);
         Assert.Equal("vehicle-flow-state", result.Render.Provenance!.CardId);
     }
 
@@ -133,6 +134,8 @@ public sealed class DiagramCardTests
         Assert.NotNull(result.Value.DiagramSemanticFingerprint);
         Assert.NotNull(result.Value.DiagramDerivedArtifactStatus);
         Assert.Equal("mermaid-cli@11.16.0", result.Value.DiagramRenderer);
+        Assert.NotNull(result.Value.DiagramCachedAppearances);
+        Assert.NotNull(result.Value.DiagramRequestedAppearance);
     }
 
     [Fact]
@@ -208,6 +211,8 @@ public sealed class DiagramCardTests
                     "1.0",
                     "render",
                     "png",
+                    request.Appearance,
+                    OblivionMermaidRendererOptions.RenderingOptionsFor(request.Appearance),
                     "test",
                     request.WorkspaceId,
                     request.PageId,

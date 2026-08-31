@@ -667,6 +667,11 @@ public sealed class OblivionCli
             _output.WriteLine($"Diagram projection: {card.DiagramProjection}");
             _output.WriteLine($"Diagram fingerprint: {card.DiagramSemanticFingerprint ?? "<unavailable>"}");
             _output.WriteLine($"Diagram artifact: {card.DiagramDerivedArtifactStatus}");
+            _output.WriteLine(
+                $"Diagram cached appearances: " +
+                $"{(card.DiagramCachedAppearances is null || card.DiagramCachedAppearances.Count == 0 ? "<none>" : string.Join(", ", card.DiagramCachedAppearances))}");
+            _output.WriteLine($"Diagram requested appearance: {card.DiagramRequestedAppearance ?? "<not-applicable>"}");
+            _output.WriteLine($"Diagram resolved appearance: {card.DiagramResolvedAppearance ?? "<requires-platform-resolution>"}");
             _output.WriteLine($"Diagram renderer: {card.DiagramRenderer}");
         }
         _output.WriteLine($"Actions: {(card.Actions.Count == 0 ? "<none>" : string.Join(", ", card.Actions))}");

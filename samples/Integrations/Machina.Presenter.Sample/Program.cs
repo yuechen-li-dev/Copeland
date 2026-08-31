@@ -356,6 +356,7 @@ internal sealed class Program
                 plan,
                 _diagramRenderer,
                 _diagramOutputDirectory,
+                OblivionResolvedAppearance.Light,
                 pageId: pageId);
 
             AttachContentOverlay(overlay, expandedBody.Bounds);

@@ -113,6 +113,7 @@ public static class M19PresentationDogfood
             diagram.Source,
             diagram.SourceReference,
             Path.Combine(root, "artifacts", "derived", "mermaid"),
+            OblivionResolvedAppearance.Light,
             presentation.Workspace.Id.Value,
             presentation.Page.Id.Value,
             card.Id.Value));

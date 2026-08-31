@@ -305,7 +305,8 @@ internal sealed class OblivionStandaloneWindow : Window
             workspaceId: _surface.Workspace.Id.Value,
             pageId: _surface.PageId,
             maximumReadableWidth: _style.MaximumReadableWidth,
-            style: ToContentStyle(_style));
+            style: ToContentStyle(_style),
+            resolvedAppearance: _style.Appearance);
         document.Width = bodyBounds.Width;
         document.Height = bodyBounds.Height;
         document.Margin = new Thickness(bodyBounds.X, bodyBounds.Y, 0, 0);

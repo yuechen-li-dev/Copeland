@@ -111,7 +111,8 @@ public sealed class OblivionDiagramCardRealizer
         OblivionCard card,
         string workspaceRoot,
         IOblivionDiagramRenderer renderer,
-        string outputDirectory)
+        string outputDirectory,
+        OblivionResolvedAppearance appearance = OblivionResolvedAppearance.Light)
     {
         OblivionDiagramProjectionResult projection = Project(card, workspaceRoot);
         if (!projection.Succeeded || projection.MermaidSource is null)
@@ -124,6 +125,7 @@ public sealed class OblivionDiagramCardRealizer
             projection.MermaidSource,
             projection.Source.Reference,
             outputDirectory,
+            appearance,
             card.WorkspaceId?.Value,
             card.PageId?.Value,
             card.Id.Value));

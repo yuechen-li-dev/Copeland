@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Oblivion.Model;
 using Oblivion.Persistence;
 using Oblivion.Product;
@@ -14,9 +15,57 @@ public sealed record OblivionDiagramRenderRequest(
     string Source,
     string? SourceReference,
     string OutputDirectory,
+    OblivionResolvedAppearance Appearance,
     string? WorkspaceId = null,
     string? PageId = null,
     string? CardId = null);
+
+public enum OblivionResolvedAppearance
+{
+    Light,
+    Dark,
+}
+
+public sealed record OblivionMermaidRenderOptions(
+    string OutputFormat,
+    OblivionResolvedAppearance Appearance)
+{
+    public static OblivionMermaidRenderOptions For(OblivionResolvedAppearance appearance)
+    {
+        return new OblivionMermaidRenderOptions(
+            OblivionMermaidRendererOptions.OutputFormat,
+            appearance);
+    }
+}
+
+internal sealed record OblivionMermaidQualifiedTheme(
+    string Theme,
+    string BackgroundColor,
+    string ConfigurationIdentity)
+{
+    public string RenderingIdentity => string.Join(
+        ";",
+        $"theme={Theme}",
+        $"background={BackgroundColor}",
+        "securityLevel=strict",
+        $"configuration={ConfigurationIdentity}");
+
+    public static OblivionMermaidQualifiedTheme For(OblivionResolvedAppearance appearance)
+    {
+        return appearance switch
+        {
+            OblivionResolvedAppearance.Light => new OblivionMermaidQualifiedTheme(
+                "default",
+                "#ffffff",
+                "m19p-light-v1"),
+            OblivionResolvedAppearance.Dark => new OblivionMermaidQualifiedTheme(
+                "dark",
+                "#0f172a",
+                "m19p-dark-v1"),
+            _ => throw new ArgumentOutOfRangeException(nameof(appearance)),
+        };
+    }
+}
 
 public sealed record MermaidDerivedArtifactKey(
     string SourceHash,
@@ -29,6 +78,30 @@ public sealed record MermaidDerivedArtifactKey(
         string.Join("\n", SourceHash, RendererId, RendererVersion, OutputFormat, RenderingOptions));
 }
 
+public static class OblivionMermaidArtifactIdentity
+{
+    public static MermaidDerivedArtifactKey CreateKey(
+        string sourceHash,
+        OblivionResolvedAppearance appearance)
+    {
+        return new MermaidDerivedArtifactKey(
+            sourceHash,
+            OblivionMermaidRendererOptions.RendererId,
+            OblivionMermaidRendererOptions.PinnedVersion,
+            OblivionMermaidRendererOptions.OutputFormat,
+            OblivionMermaidRendererOptions.RenderingOptionsFor(appearance));
+    }
+
+    public static string ArtifactPath(
+        string outputDirectory,
+        string sourceHash,
+        OblivionResolvedAppearance appearance)
+    {
+        MermaidDerivedArtifactKey key = CreateKey(sourceHash, appearance);
+        return Path.Combine(Path.GetFullPath(outputDirectory), key.Value + ".png");
+    }
+}
+
 public sealed record OblivionDiagramProvenance(
     string SourceKind,
     string SourceHash,
@@ -36,6 +109,8 @@ public sealed record OblivionDiagramProvenance(
     string RendererVersion,
     string RenderOperation,
     string OutputFormat,
+    OblivionResolvedAppearance ResolvedAppearance,
+    string RenderOptionsIdentity,
     string Producer,
     string? WorkspaceId,
     string? PageId,
@@ -93,7 +168,11 @@ public sealed record OblivionMermaidRendererOptions(
     public const string RendererId = "mermaid-cli";
     public const string PinnedVersion = "11.16.0";
     public const string OutputFormat = "png";
-    public const string RenderingOptions = "theme=default;background=white;securityLevel=strict";
+
+    public static string RenderingOptionsFor(OblivionResolvedAppearance appearance)
+    {
+        return OblivionMermaidQualifiedTheme.For(appearance).RenderingIdentity;
+    }
 
     public static OblivionMermaidRendererOptions Unavailable(string discoverySource)
     {
@@ -276,6 +355,7 @@ public sealed class OblivionBoundedProcessRunner : IOblivionProcessRunner
 
 public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
 {
+    private static readonly JsonSerializerOptions MetadataJsonOptions = CreateMetadataJsonOptions();
     private readonly OblivionMermaidRendererOptions _options;
     private readonly IOblivionProcessRunner _processRunner;
     private string? _qualifiedVersion;
@@ -306,6 +386,10 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
 
         string canonicalSource = OblivionMermaidHashing.CanonicalizeSource(request.Source);
         string sourceHash = OblivionMermaidHashing.ComputeSourceHash(canonicalSource);
+        OblivionMermaidRenderOptions renderOptions = OblivionMermaidRenderOptions.For(
+            request.Appearance);
+        OblivionMermaidQualifiedTheme qualifiedTheme = OblivionMermaidQualifiedTheme.For(
+            request.Appearance);
         OblivionDiagramProvenance provenance = CreateProvenance(request, sourceHash);
         OblivionDiagramRenderResult? qualificationFailure = QualifyRenderer(
             request,
@@ -321,8 +405,8 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
             sourceHash,
             OblivionMermaidRendererOptions.RendererId,
             _qualifiedVersion!,
-            OblivionMermaidRendererOptions.OutputFormat,
-            OblivionMermaidRendererOptions.RenderingOptions);
+            renderOptions.OutputFormat,
+            qualifiedTheme.RenderingIdentity);
         string cacheKey = key.Value;
         Directory.CreateDirectory(request.OutputDirectory);
         string outputPath = Path.Combine(request.OutputDirectory, cacheKey + ".png");
@@ -362,7 +446,12 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
 
             OblivionProcessResult process = _processRunner.Run(new OblivionProcessRequest(
                 _options.ExecutablePath!,
-                BuildRenderArguments(inputPath, temporaryOutputPath, mermaidConfigPath),
+                BuildRenderArguments(
+                    inputPath,
+                    temporaryOutputPath,
+                    mermaidConfigPath,
+                    renderOptions,
+                    qualifiedTheme),
                 temporaryDirectory,
                 _options.Timeout));
             if (process.TimedOut)
@@ -431,7 +520,9 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
     private IReadOnlyList<string> BuildRenderArguments(
         string inputPath,
         string outputPath,
-        string mermaidConfigPath)
+        string mermaidConfigPath,
+        OblivionMermaidRenderOptions renderOptions,
+        OblivionMermaidQualifiedTheme qualifiedTheme)
     {
         List<string> arguments = BuildCliArguments();
         arguments.Add("--input");
@@ -439,11 +530,11 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
         arguments.Add("--output");
         arguments.Add(outputPath);
         arguments.Add("--outputFormat");
-        arguments.Add(OblivionMermaidRendererOptions.OutputFormat);
+        arguments.Add(renderOptions.OutputFormat);
         arguments.Add("--theme");
-        arguments.Add("default");
+        arguments.Add(qualifiedTheme.Theme);
         arguments.Add("--backgroundColor");
-        arguments.Add("white");
+        arguments.Add(qualifiedTheme.BackgroundColor);
         arguments.Add("--configFile");
         arguments.Add(mermaidConfigPath);
         arguments.Add("--quiet");
@@ -519,6 +610,8 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
             _qualifiedVersion ?? _options.ExpectedVersion,
             "render-mermaid-png",
             OblivionMermaidRendererOptions.OutputFormat,
+            request.Appearance,
+            OblivionMermaidRendererOptions.RenderingOptionsFor(request.Appearance),
             $"@mermaid-js/mermaid-cli@{_options.ExpectedVersion}",
             request.WorkspaceId,
             request.PageId,
@@ -549,8 +642,10 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
         try
         {
             MermaidCacheMetadata? metadata = JsonSerializer.Deserialize<MermaidCacheMetadata>(
-                File.ReadAllText(metadataPath));
-            if (metadata is null || metadata.Key != expectedKey || metadata.Provenance != expectedProvenance)
+                File.ReadAllText(metadataPath),
+                MetadataJsonOptions);
+            if (metadata is null || metadata.Format != 2 ||
+                metadata.Key != expectedKey || metadata.Provenance != expectedProvenance)
             {
                 return new CacheValidation(
                     false,
@@ -575,8 +670,8 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
     {
         string temporaryPath = metadataPath + ".tmp-" + Guid.NewGuid().ToString("N");
         string json = JsonSerializer.Serialize(
-            new MermaidCacheMetadata(1, key, provenance),
-            new JsonSerializerOptions { WriteIndented = true });
+            new MermaidCacheMetadata(2, key, provenance),
+            MetadataJsonOptions);
         File.WriteAllText(temporaryPath, json, new UTF8Encoding(false));
         File.Move(temporaryPath, metadataPath, overwrite: true);
     }
@@ -701,6 +796,16 @@ public sealed class OblivionExternalMermaidRenderer : IOblivionDiagramRenderer
 
     private sealed record CacheValidation(bool Valid, string? InvalidReason);
 
+    private static JsonSerializerOptions CreateMetadataJsonOptions()
+    {
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true,
+        };
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
+    }
+
     private sealed record MermaidCacheMetadata(
         int Format,
         MermaidDerivedArtifactKey Key,
@@ -742,6 +847,7 @@ public static class OblivionContentRealization
         OblivionContentPresentationPlan plan,
         IOblivionDiagramRenderer renderer,
         string outputDirectory,
+        OblivionResolvedAppearance appearance = OblivionResolvedAppearance.Light,
         string? workspaceId = null,
         string? pageId = null,
         string? cardId = null)
@@ -757,6 +863,7 @@ public static class OblivionContentRealization
                 item.Source,
                 item.SourceReference,
                 outputDirectory,
+                appearance,
                 workspaceId,
                 pageId,
                 cardId)))
