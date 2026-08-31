@@ -99,6 +99,117 @@ public sealed class StructuredVaultTests
         Assert.Equal("A reloaded notebook stack", afterCard.Title);
     }
 
+    [Fact]
+    public void Push_imports_exact_content_appends_then_pop_restores_and_can_repeat()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string externalRoot = Path.Combine(Path.GetTempPath(), "oblivion-m19k-source", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(externalRoot);
+        string source = Path.Combine(externalRoot, "Architecture Notes.md");
+        const string originalText = "# Architecture notes\r\n\r\nCaptured outside the vault.\r\n";
+        File.WriteAllText(source, originalText);
+        try
+        {
+            OblivionStackMutationResult pushed = Assert.IsType<OblivionStackMutationResult>(
+                OblivionStackMutation.PushMarkdown(
+                    vault.Root,
+                    source,
+                    null,
+                    null,
+                    null,
+                    null,
+                    out IReadOnlyList<OblivionWorkspaceDiagnostic> pushDiagnostics));
+
+            Assert.DoesNotContain(
+                pushDiagnostics,
+                diagnostic => diagnostic.Severity == OblivionDiagnosticSeverity.Error);
+            Assert.Equal((2, 3), (pushed.OldCount, pushed.NewCount));
+            Assert.Equal(originalText, File.ReadAllText(Path.Combine(vault.Root, pushed.ContentPath)));
+            File.WriteAllText(source, "# Changed external source\n");
+            OblivionWorkspaceLoadResult afterExternalEdit = OblivionWorkspaceLoader.OpenVault(vault.Root);
+            OblivionCard imported = afterExternalEdit.Workspace!.Pages[0].Cards[^1];
+            Assert.Equal("architecture-notes", imported.Id.Value);
+            Assert.Equal("Architecture notes", imported.Title);
+            Assert.Equal(originalText, imported.Body.RawText);
+            Assert.Equal(OblivionProvenanceSourceKind.ImportedMarkdown, imported.Provenance.SourceKind);
+            Assert.Equal("oblivion.card.push", imported.Provenance.ProducerActionId);
+
+            OblivionStackMutationResult popped = Assert.IsType<OblivionStackMutationResult>(
+                OblivionStackMutation.Pop(vault.Root, null, out _));
+            Assert.True(popped.ContentDeleted);
+            Assert.Equal((3, 2), (popped.OldCount, popped.NewCount));
+            Assert.False(File.Exists(Path.Combine(vault.Root, popped.MetadataPath)));
+            Assert.False(File.Exists(Path.Combine(vault.Root, popped.ContentPath)));
+
+            File.WriteAllText(source, originalText);
+            OblivionStackMutationResult repeated = Assert.IsType<OblivionStackMutationResult>(
+                OblivionStackMutation.PushMarkdown(
+                    vault.Root,
+                    source,
+                    null,
+                    null,
+                    null,
+                    null,
+                    out _));
+            Assert.Equal("architecture-notes", repeated.CardId);
+            Assert.Equal((2, 3), (repeated.OldCount, repeated.NewCount));
+        }
+        finally
+        {
+            Directory.Delete(externalRoot, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Pop_removes_metadata_but_retains_shared_content()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        vault.ReplaceInFile(
+            Path.Combine(vault.Root, "cards", "notebook-stack.toml"),
+            "content/notebook-stack.md",
+            "content/physical-atom.md");
+
+        OblivionStackMutationResult result = Assert.IsType<OblivionStackMutationResult>(
+            OblivionStackMutation.Pop(vault.Root, "notebook", out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics));
+
+        Assert.False(result.ContentDeleted);
+        Assert.False(File.Exists(Path.Combine(vault.Root, "cards", "notebook-stack.toml")));
+        Assert.True(File.Exists(Path.Combine(vault.Root, "content", "physical-atom.md")));
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "OBLIVION-CARD-CONTENT-RETAINED");
+        OblivionWorkspaceLoadResult loaded = OblivionWorkspaceLoader.OpenVault(vault.Root);
+        Assert.True(loaded.Succeeded, string.Join(Environment.NewLine, loaded.Diagnostics));
+        Assert.Equal("physical-atom", Assert.Single(loaded.Workspace!.Pages[0].Cards).Id.Value);
+    }
+
+    [Fact]
+    public void Duplicate_push_and_unsafe_pop_leave_the_vault_byte_for_byte_unchanged()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string source = Path.Combine(vault.Root, "duplicate.md");
+        File.WriteAllText(source, "# Duplicate\n");
+        IReadOnlyDictionary<string, byte[]> beforeDuplicate = vault.Snapshot();
+
+        Assert.Null(OblivionStackMutation.PushMarkdown(
+            vault.Root,
+            source,
+            null,
+            "physical-atom",
+            null,
+            null,
+            out IReadOnlyList<OblivionWorkspaceDiagnostic> duplicateDiagnostics));
+        Assert.Contains(duplicateDiagnostics, diagnostic => diagnostic.Code == "OBLIVION-CARD-ID-ALREADY-EXISTS");
+        vault.AssertSnapshot(beforeDuplicate);
+
+        vault.ReplaceInFile(
+            Path.Combine(vault.Root, "cards", "notebook-stack.toml"),
+            "content/notebook-stack.md",
+            "../outside.md");
+        IReadOnlyDictionary<string, byte[]> beforeUnsafePop = vault.Snapshot();
+        Assert.Null(OblivionStackMutation.Pop(vault.Root, null, out IReadOnlyList<OblivionWorkspaceDiagnostic> popDiagnostics));
+        Assert.Contains(popDiagnostics, diagnostic => diagnostic.Code == "path-traversal-not-allowed");
+        vault.AssertSnapshot(beforeUnsafePop);
+    }
+
     private static string FixtureRoot => Path.Combine(
         AppContext.BaseDirectory,
         "Fixtures",
@@ -192,12 +303,36 @@ public sealed class StructuredVaultTests
             }
         }
 
+        public void ReplaceInFile(string path, string oldValue, string newValue)
+        {
+            ReplaceInFileCore(path, oldValue, newValue);
+        }
+
+        public IReadOnlyDictionary<string, byte[]> Snapshot()
+        {
+            return Directory.GetFiles(Root, "*", SearchOption.AllDirectories)
+                .ToDictionary(
+                    path => Path.GetRelativePath(Root, path),
+                    File.ReadAllBytes,
+                    StringComparer.Ordinal);
+        }
+
+        public void AssertSnapshot(IReadOnlyDictionary<string, byte[]> expected)
+        {
+            IReadOnlyDictionary<string, byte[]> actual = Snapshot();
+            Assert.Equal(expected.Keys.OrderBy(key => key), actual.Keys.OrderBy(key => key));
+            foreach ((string path, byte[] content) in expected)
+            {
+                Assert.Equal(content, actual[path]);
+            }
+        }
+
         public void Dispose()
         {
             Directory.Delete(Root, recursive: true);
         }
 
-        private static void ReplaceInFile(string path, string oldValue, string newValue)
+        private static void ReplaceInFileCore(string path, string oldValue, string newValue)
         {
             string source = File.ReadAllText(path);
             Assert.Contains(oldValue, source, StringComparison.Ordinal);

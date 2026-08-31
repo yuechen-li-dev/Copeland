@@ -72,6 +72,22 @@ public sealed record OblivionWorkspaceReload(
     OblivionReloadSessionInfo Session,
     IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
 
+public sealed record OblivionCardStackInfo(
+    string Operation,
+    string WorkspaceId,
+    string PageId,
+    string CardId,
+    string Title,
+    string Kind,
+    string Source,
+    int OldCount,
+    int NewCount,
+    string? MetadataPath,
+    string? ContentPath,
+    bool? ContentDeleted,
+    bool Success,
+    IReadOnlyList<OblivionControlDiagnostic> Diagnostics);
+
 public sealed record OblivionControlResult<T>(
     T? Value,
     IReadOnlyList<OblivionControlDiagnostic> Diagnostics)
@@ -240,6 +256,151 @@ public sealed class OblivionWorkspaceControl
             reload.Reloaded,
             CreateWorkspaceInfo(session),
             CreateSessionInfo(session),
+            diagnostics);
+        return new(value, diagnostics);
+    }
+
+    public OblivionControlResult<OblivionCardStackInfo> PushMarkdownCard(
+        string workspaceRoot,
+        string sourcePath,
+        string? pageId,
+        string? cardId,
+        string? title,
+        string? subtitle)
+    {
+        OblivionWorkspaceSessionOpenResult open = _application.OpenWorkspace(workspaceRoot);
+        if (!open.Succeeded || open.Session is null)
+        {
+            return new(null, ConvertDiagnostics(open.Diagnostics, null));
+        }
+
+        OblivionStackOperationResult operation = _application.PushMarkdownCard(
+            open.Session,
+            new OblivionPushMarkdownCardRequest(sourcePath, pageId, cardId, title, subtitle));
+        return CreateMutationResult(operation);
+    }
+
+    public OblivionControlResult<OblivionCardStackInfo> PeekCard(
+        string workspaceRoot,
+        string? pageId)
+    {
+        OblivionWorkspaceSessionOpenResult open = _application.OpenWorkspace(workspaceRoot);
+        if (!open.Succeeded || open.Session is null)
+        {
+            return new(null, ConvertDiagnostics(open.Diagnostics, null));
+        }
+
+        OblivionWorkspace workspace = open.Session.Workspace;
+        string? targetPageId = pageId ?? workspace.DefaultPageId?.Value;
+        OblivionWorkspacePage? page = targetPageId is null
+            ? null
+            : workspace.Pages.FirstOrDefault(candidate => candidate.Id.Value == targetPageId);
+        if (targetPageId is null)
+        {
+            OblivionControlDiagnostic diagnostic = new(
+                "OBLIVION-PAGE-TARGET-REQUIRED",
+                "error",
+                $"Workspace '{workspace.Id.Value}' has no default Page; provide --page.",
+                workspace.Id.Value,
+                null,
+                null,
+                open.Session.Location.ManifestPath,
+                null,
+                null);
+            return new(null, [diagnostic]);
+        }
+
+        if (page is null)
+        {
+            return new(null, [UnknownPage(workspace, targetPageId)]);
+        }
+
+        OblivionCard? card = page.Cards.LastOrDefault();
+        if (card is null)
+        {
+            OblivionControlDiagnostic diagnostic = new(
+                "OBLIVION-STACK-EMPTY",
+                "error",
+                $"Page '{targetPageId}' has no top Card to peek.",
+                workspace.Id.Value,
+                targetPageId,
+                null,
+                OblivionStructuredVaultPaths.PageMetadata(workspaceRoot, targetPageId),
+                null,
+                null);
+            return new(null, [diagnostic]);
+        }
+
+        IReadOnlyList<OblivionControlDiagnostic> diagnostics = ConvertDiagnostics(
+            open.Diagnostics,
+            workspace);
+        OblivionCardStackInfo value = new(
+            "peek",
+            workspace.Id.Value,
+            targetPageId,
+            card.Id.Value,
+            card.Title,
+            OblivionWorkspaceValidator.GetCardKindValue(card.Kind),
+            card.Body.SourceReference ?? "<inline>",
+            page.Cards.Count,
+            page.Cards.Count,
+            null,
+            card.Body.SourceReference,
+            null,
+            true,
+            diagnostics);
+        return new(value, diagnostics);
+    }
+
+    public OblivionControlResult<OblivionCardStackInfo> PopCard(
+        string workspaceRoot,
+        string? pageId)
+    {
+        OblivionWorkspaceSessionOpenResult open = _application.OpenWorkspace(workspaceRoot);
+        if (!open.Succeeded || open.Session is null)
+        {
+            return new(null, ConvertDiagnostics(open.Diagnostics, null));
+        }
+
+        OblivionStackOperationResult operation = _application.PopCard(open.Session, pageId);
+        return CreateMutationResult(operation);
+    }
+
+    private static OblivionControlResult<OblivionCardStackInfo> CreateMutationResult(
+        OblivionStackOperationResult operation)
+    {
+        IReadOnlyList<OblivionControlDiagnostic> diagnostics = ConvertDiagnostics(
+            operation.Diagnostics,
+            operation.Session.Workspace);
+        if (operation.Mutation is null)
+        {
+            return new(null, diagnostics);
+        }
+
+        OblivionStackMutationResult mutation = operation.Mutation;
+        OblivionWorkspacePage page = operation.Session.Workspace.Pages.Single(
+            candidate => candidate.Id.Value == mutation.PageId);
+        OblivionCard? card = page.Cards.FirstOrDefault(
+            candidate => candidate.Id.Value == mutation.CardId);
+        string title = card?.Title ?? mutation.CardId;
+        string kind = card is null
+            ? "Markdown"
+            : OblivionWorkspaceValidator.GetCardKindValue(card.Kind);
+        string source = card?.Body.SourceReference ?? mutation.ContentPath;
+        OblivionCardStackInfo value = new(
+            mutation.Operation,
+            mutation.WorkspaceId,
+            mutation.PageId,
+            mutation.CardId,
+            title,
+            kind,
+            source,
+            mutation.OldCount,
+            mutation.NewCount,
+            mutation.MetadataPath,
+            mutation.ContentPath,
+            mutation.Operation == "pop" ? mutation.ContentDeleted : null,
+            true,
             diagnostics);
         return new(value, diagnostics);
     }

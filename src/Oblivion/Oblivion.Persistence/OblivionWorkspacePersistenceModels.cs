@@ -42,6 +42,11 @@ public sealed record OblivionCardBodyDocument(
     string? Text,
     string? Path);
 
+public sealed record OblivionCardProvenanceDocument(
+    string SourceKind,
+    string? SourceReference,
+    string? ProducerActionId);
+
 public sealed record OblivionCardActionDocument(
     string Id,
     string Label,
@@ -66,7 +71,8 @@ public sealed record OblivionCardAssetDocument(
     IReadOnlyList<string> Tags,
     OblivionCardBodyDocument Body,
     IReadOnlyList<OblivionCardActionDocument> Actions,
-    IReadOnlyList<OblivionCardArtifactDocument> Artifacts);
+    IReadOnlyList<OblivionCardArtifactDocument> Artifacts,
+    OblivionCardProvenanceDocument? Provenance = null);
 
 public sealed record OblivionArtifactAssetDocument(
     int Format,

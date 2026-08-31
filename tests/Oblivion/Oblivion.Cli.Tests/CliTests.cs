@@ -9,6 +9,9 @@ public sealed class CliTests
     [InlineData("--help", "workspace")]
     [InlineData("workspace --help", "reload")]
     [InlineData("card show --help", "card-id")]
+    [InlineData("card push --help", "push it onto a Page stack")]
+    [InlineData("card peek --help", "top (last) Card")]
+    [InlineData("card pop --help", "safely delete owned files")]
     public async Task Generated_help_is_discoverable(string commandLine, string expected)
     {
         CliResult result = await Run(commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries));
@@ -127,6 +130,122 @@ public sealed class CliTests
     }
 
     [Fact]
+    public async Task Push_peek_and_pop_have_human_and_deterministic_json_results()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string source = vault.CreateExternalMarkdown(
+            "Architecture Notes.md",
+            "# Architecture notes\n\nA real imported note.\n");
+
+        CliResult push = await Run("card", "push", source, "-w", vault.Root);
+        CliResult peek = await Run("card", "peek", "-w", vault.Root);
+        CliResult show = await Run("card", "show", "architecture-notes", "-w", vault.Root, "--json");
+        CliResult pop = await Run("card", "pop", "-w", vault.Root, "--json");
+
+        Assert.Equal(0, push.ExitCode);
+        Assert.Contains("Pushed architecture-notes onto notebook.", push.Output, StringComparison.Ordinal);
+        Assert.Contains("Stack size: 2 → 3.", push.Output, StringComparison.Ordinal);
+        Assert.Equal(0, peek.ExitCode);
+        Assert.Contains("Top Card: architecture-notes", peek.Output, StringComparison.Ordinal);
+        using JsonDocument showJson = JsonDocument.Parse(show.Output);
+        Assert.Equal("Architecture notes", showJson.RootElement.GetProperty("title").GetString());
+        Assert.Equal("ImportedMarkdown", showJson.RootElement.GetProperty("provenanceKind").GetString());
+        using JsonDocument popJson = JsonDocument.Parse(pop.Output);
+        Assert.Equal("pop", popJson.RootElement.GetProperty("operation").GetString());
+        Assert.Equal(3, popJson.RootElement.GetProperty("oldCount").GetInt32());
+        Assert.Equal(2, popJson.RootElement.GetProperty("newCount").GetInt32());
+        Assert.True(popJson.RootElement.GetProperty("contentDeleted").GetBoolean());
+        Assert.False(File.Exists(Path.Combine(vault.Root, "cards", "architecture-notes.toml")));
+        Assert.False(File.Exists(Path.Combine(vault.Root, "content", "architecture-notes.md")));
+    }
+
+    [Fact]
+    public async Task Explicit_page_id_title_and_card_id_are_honored()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string source = vault.CreateExternalMarkdown("note.md", "# Ignored heading\n");
+
+        CliResult result = await Run(
+            "card",
+            "push",
+            source,
+            "-w",
+            vault.Root,
+            "--page",
+            "notebook",
+            "--id",
+            "explicit-note",
+            "--title",
+            "My Card",
+            "--json");
+
+        Assert.Equal(0, result.ExitCode);
+        using JsonDocument json = JsonDocument.Parse(result.Output);
+        Assert.Equal("notebook", json.RootElement.GetProperty("pageId").GetString());
+        Assert.Equal("explicit-note", json.RootElement.GetProperty("cardId").GetString());
+        Assert.Equal("My Card", json.RootElement.GetProperty("title").GetString());
+    }
+
+    [Fact]
+    public async Task Duplicate_push_and_empty_stack_fail_with_structured_diagnostics()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string source = vault.CreateExternalMarkdown("physical-atom.md", "# Duplicate\n");
+        string pageBefore = File.ReadAllText(Path.Combine(vault.Root, "pages", "notebook.toml"));
+
+        CliResult duplicate = await Run("card", "push", source, "-w", vault.Root, "--json");
+
+        Assert.Equal(OblivionCliExitCode.ProductFailure, duplicate.ExitCode);
+        using JsonDocument duplicateJson = JsonDocument.Parse(duplicate.Output);
+        Assert.Equal(
+            "OBLIVION-CARD-ID-ALREADY-EXISTS",
+            duplicateJson.RootElement.GetProperty("diagnostics")[0].GetProperty("code").GetString());
+        Assert.Equal(pageBefore, File.ReadAllText(Path.Combine(vault.Root, "pages", "notebook.toml")));
+        Assert.False(File.Exists(Path.Combine(vault.Root, "content", "physical-atom-2.md")));
+
+        Assert.Equal(0, (await Run("card", "pop", "-w", vault.Root)).ExitCode);
+        Assert.Equal(0, (await Run("card", "pop", "-w", vault.Root)).ExitCode);
+        CliResult peek = await Run("card", "peek", "-w", vault.Root, "--json");
+        CliResult pop = await Run("card", "pop", "-w", vault.Root, "--json");
+        Assert.Equal(OblivionCliExitCode.ProductFailure, peek.ExitCode);
+        Assert.Equal(OblivionCliExitCode.ProductFailure, pop.ExitCode);
+        Assert.Contains("OBLIVION-STACK-EMPTY", peek.Output, StringComparison.Ordinal);
+        Assert.Contains("OBLIVION-STACK-EMPTY", pop.Output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Push_rejects_missing_invalid_conflicting_sources_and_unknown_pages_without_mutation()
+    {
+        using TemporaryVault vault = TemporaryVault.CopyFixture();
+        string pagePath = Path.Combine(vault.Root, "pages", "notebook.toml");
+        string pageBefore = File.ReadAllText(pagePath);
+        string missing = Path.Combine(Path.GetDirectoryName(vault.Root)!, "missing-note.md");
+        string wrongExtension = vault.CreateExternalFile("wrong.txt", "not Markdown");
+        string conflictSource = vault.CreateExternalMarkdown("conflict.md", "# Conflict\n");
+        File.WriteAllText(Path.Combine(vault.Root, "content", "conflict.md"), "orphan collision");
+
+        CliResult missingResult = await Run("card", "push", missing, "-w", vault.Root, "--json");
+        CliResult invalidResult = await Run("card", "push", wrongExtension, "-w", vault.Root, "--json");
+        CliResult conflictResult = await Run("card", "push", conflictSource, "-w", vault.Root, "--json");
+        CliResult pageResult = await Run(
+            "card",
+            "push",
+            conflictSource,
+            "-w",
+            vault.Root,
+            "--page",
+            "missing-page",
+            "--json");
+
+        Assert.Contains("OBLIVION-CARD-IMPORT-SOURCE-MISSING", missingResult.Output, StringComparison.Ordinal);
+        Assert.Contains("OBLIVION-CARD-IMPORT-SOURCE-INVALID", invalidResult.Output, StringComparison.Ordinal);
+        Assert.Contains("OBLIVION-CARD-IMPORT-DESTINATION-CONFLICT", conflictResult.Output, StringComparison.Ordinal);
+        Assert.Contains("unknown-page", pageResult.Output, StringComparison.Ordinal);
+        Assert.Equal(pageBefore, File.ReadAllText(pagePath));
+        Assert.False(File.Exists(Path.Combine(vault.Root, "cards", "conflict.toml")));
+    }
+
+    [Fact]
     public void Cli_project_has_no_forbidden_direct_dependencies_or_vault_parsing()
     {
         string repositoryRoot = FindRepositoryRoot();
@@ -186,12 +305,28 @@ public sealed class CliTests
 
     private sealed class TemporaryVault : IDisposable
     {
+        private readonly string _externalRoot;
+
         private TemporaryVault(string root)
         {
             Root = root;
+            _externalRoot = root + "-external";
+            Directory.CreateDirectory(_externalRoot);
         }
 
         public string Root { get; }
+
+        public string CreateExternalMarkdown(string fileName, string content)
+        {
+            return CreateExternalFile(fileName, content);
+        }
+
+        public string CreateExternalFile(string fileName, string content)
+        {
+            string path = Path.Combine(_externalRoot, fileName);
+            File.WriteAllText(path, content);
+            return path;
+        }
 
         public static TemporaryVault CopyFixture()
         {
@@ -213,6 +348,7 @@ public sealed class CliTests
         public void Dispose()
         {
             Directory.Delete(Root, recursive: true);
+            Directory.Delete(_externalRoot, recursive: true);
         }
     }
 }

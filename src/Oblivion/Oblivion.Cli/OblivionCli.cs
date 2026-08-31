@@ -78,6 +78,9 @@ public sealed class OblivionCli
         Command card = new("card", "Inspect semantic workspace cards.");
         card.Subcommands.Add(CreateCardListCommand());
         card.Subcommands.Add(CreateCardShowCommand());
+        card.Subcommands.Add(CreateCardPeekCommand());
+        card.Subcommands.Add(CreateCardPushCommand());
+        card.Subcommands.Add(CreateCardPopCommand());
 
         root.Subcommands.Add(workspace);
         root.Subcommands.Add(page);
@@ -274,6 +277,114 @@ public sealed class OblivionCli
             return WriteResult(result, Json(parseResult), WriteCardText);
         });
         return command;
+    }
+
+    private Command CreateCardPeekCommand()
+    {
+        Option<string?> pageOption = CreatePageOption();
+        Command command = new(
+            "peek",
+            "Inspect the top (last) Card on a Page stack without changing the vault.");
+        command.Options.Add(pageOption);
+        command.SetAction(parseResult =>
+        {
+            OblivionControlResult<OblivionCardStackInfo> result = _control.PeekCard(
+                Workspace(parseResult),
+                parseResult.GetValue(pageOption));
+            return WriteResult(result, Json(parseResult), value =>
+            {
+                _output.WriteLine($"Top Card: {value.CardId}");
+                _output.WriteLine($"Title: {value.Title}");
+                _output.WriteLine("Kind: Markdown");
+                _output.WriteLine($"Source: {value.Source}");
+            });
+        });
+        return command;
+    }
+
+    private Command CreateCardPushCommand()
+    {
+        Argument<string> markdownFileArgument = new("markdown-file")
+        {
+            Description = "External Markdown file to import into vault-owned content.",
+        };
+        Option<string?> pageOption = CreatePageOption();
+        Option<string?> idOption = new("--id")
+        {
+            Description = "Explicit lowercase Card id; otherwise derive it from the filename.",
+        };
+        Option<string?> titleOption = new("--title")
+        {
+            Description = "Card title; otherwise use the first '# ' heading, then the filename.",
+        };
+        Option<string?> subtitleOption = new("--subtitle")
+        {
+            Description = "Optional Card subtitle.",
+        };
+        Command command = new(
+            "push",
+            "Import a Markdown file as a new Card and push it onto a Page stack.");
+        command.Arguments.Add(markdownFileArgument);
+        command.Options.Add(pageOption);
+        command.Options.Add(idOption);
+        command.Options.Add(titleOption);
+        command.Options.Add(subtitleOption);
+        command.SetAction(parseResult =>
+        {
+            OblivionControlResult<OblivionCardStackInfo> result = _control.PushMarkdownCard(
+                Workspace(parseResult),
+                Path.GetFullPath(parseResult.GetValue(markdownFileArgument)!),
+                parseResult.GetValue(pageOption),
+                parseResult.GetValue(idOption),
+                parseResult.GetValue(titleOption),
+                parseResult.GetValue(subtitleOption));
+            return WriteResult(result, Json(parseResult), value =>
+            {
+                _output.WriteLine($"Pushed {value.CardId} onto {value.PageId}.");
+                _output.WriteLine($"Stack size: {value.OldCount} → {value.NewCount}.");
+                _output.WriteLine($"Metadata: {value.MetadataPath}");
+                _output.WriteLine($"Content: {value.ContentPath}");
+            });
+        });
+        return command;
+    }
+
+    private Command CreateCardPopCommand()
+    {
+        Option<string?> pageOption = CreatePageOption();
+        Command command = new(
+            "pop",
+            "Remove the top (last) Card from a Page stack and safely delete owned files.");
+        command.Options.Add(pageOption);
+        command.SetAction(parseResult =>
+        {
+            OblivionControlResult<OblivionCardStackInfo> result = _control.PopCard(
+                Workspace(parseResult),
+                parseResult.GetValue(pageOption));
+            return WriteResult(result, Json(parseResult), value =>
+            {
+                _output.WriteLine($"Popped {value.CardId} from {value.PageId}.");
+                _output.WriteLine($"Stack size: {value.OldCount} → {value.NewCount}.");
+                _output.WriteLine($"Removed metadata: {value.MetadataPath}");
+                if (value.ContentDeleted == true)
+                {
+                    _output.WriteLine($"Removed content: {value.ContentPath}");
+                }
+                else
+                {
+                    _output.WriteLine("Content retained: referenced elsewhere.");
+                }
+            });
+        });
+        return command;
+    }
+
+    private static Option<string?> CreatePageOption()
+    {
+        return new Option<string?>("--page")
+        {
+            Description = "Exact Page id; otherwise use the workspace default Page.",
+        };
     }
 
     private int WriteResult<T>(

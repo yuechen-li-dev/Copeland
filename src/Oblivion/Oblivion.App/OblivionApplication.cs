@@ -50,6 +50,23 @@ public sealed record OblivionWorkspaceSessionReloadResult(
         Diagnostics.All(diagnostic => diagnostic.Severity != OblivionDiagnosticSeverity.Error);
 }
 
+public sealed record OblivionPushMarkdownCardRequest(
+    string SourcePath,
+    string? PageId = null,
+    string? CardId = null,
+    string? Title = null,
+    string? Subtitle = null);
+
+public sealed record OblivionStackOperationResult(
+    OblivionWorkspaceSession Session,
+    OblivionStackMutationResult? Mutation,
+    IReadOnlyList<OblivionWorkspaceDiagnostic> Diagnostics)
+{
+    public bool Succeeded =>
+        Mutation is not null &&
+        Diagnostics.All(diagnostic => diagnostic.Severity != OblivionDiagnosticSeverity.Error);
+}
+
 public sealed class OblivionApplication
 {
     private readonly OblivionCardHandlerRegistry _handlers;
@@ -173,6 +190,75 @@ public sealed class OblivionApplication
             next,
             Reloaded: true,
             candidate.Diagnostics);
+    }
+
+    public OblivionStackOperationResult PushMarkdownCard(
+        OblivionWorkspaceSession current,
+        OblivionPushMarkdownCardRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        ArgumentNullException.ThrowIfNull(request);
+
+        OblivionStackMutationResult? mutation = OblivionStackMutation.PushMarkdown(
+            current.Location.RootDirectory,
+            request.SourcePath,
+            request.PageId,
+            request.CardId,
+            request.Title,
+            request.Subtitle,
+            out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics);
+        if (mutation is null)
+        {
+            return new OblivionStackOperationResult(current, null, diagnostics);
+        }
+
+        OblivionWorkspaceSessionReloadResult reload = ReloadWorkspace(current);
+        return new OblivionStackOperationResult(
+            reload.Session,
+            mutation,
+            diagnostics.Concat(reload.Diagnostics).ToArray());
+    }
+
+    public OblivionStackOperationResult PopCard(
+        OblivionWorkspaceSession current,
+        string? pageId = null)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+
+        string targetPageId = pageId ?? current.Workspace.DefaultPageId?.Value ?? string.Empty;
+        string? selectedBefore = current.Workspace.Pages
+            .FirstOrDefault(page => page.Id.Value == targetPageId) is { } pageBefore
+                ? current.State.GetSelectedCardId(targetPageId, pageBefore.Cards)
+                : null;
+        OblivionStackMutationResult? mutation = OblivionStackMutation.Pop(
+            current.Location.RootDirectory,
+            pageId,
+            out IReadOnlyList<OblivionWorkspaceDiagnostic> diagnostics);
+        if (mutation is null)
+        {
+            return new OblivionStackOperationResult(current, null, diagnostics);
+        }
+
+        OblivionWorkspaceSessionReloadResult reload = ReloadWorkspace(current);
+        OblivionWorkspaceSession next = reload.Session;
+        if (string.Equals(selectedBefore, mutation.CardId, StringComparison.Ordinal))
+        {
+            OblivionWorkspacePage? pageAfter = next.Workspace.Pages.FirstOrDefault(
+                page => page.Id.Value == mutation.PageId);
+            string? newTop = pageAfter?.Cards.LastOrDefault()?.Id.Value;
+            if (newTop is not null)
+            {
+                next = next with
+                {
+                    State = next.State.WithSelectedCard(mutation.PageId, newTop),
+                };
+            }
+        }
+
+        return new OblivionStackOperationResult(
+            next,
+            mutation,
+            diagnostics.Concat(reload.Diagnostics).ToArray());
     }
 
     internal static OblivionWorkspaceLoadResult LoadVault(string vaultRoot)

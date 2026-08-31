@@ -183,11 +183,34 @@ public static partial class OblivionWorkspaceLoader
             body,
             document.Actions.Select(action => new OblivionCardAction(action.Id, action.Label, action.Enabled)).ToArray(),
             artifacts,
-            new OblivionProvenance(
-                OblivionProvenanceSourceKind.WorkspaceAsset,
-                GetRelativePath(workspaceRoot, sourcePath)),
+            BuildProvenance(document, workspaceRoot, sourcePath),
             pageId,
             workspaceId);
+    }
+
+    private static OblivionProvenance BuildProvenance(
+        OblivionCardAssetDocument document,
+        string workspaceRoot,
+        string sourcePath)
+    {
+        if (document.Provenance is null)
+        {
+            return new OblivionProvenance(
+                OblivionProvenanceSourceKind.WorkspaceAsset,
+                GetRelativePath(workspaceRoot, sourcePath));
+        }
+
+        OblivionProvenanceSourceKind sourceKind =
+            string.Equals(
+                document.Provenance.SourceKind,
+                "imported-markdown",
+                StringComparison.Ordinal)
+                ? OblivionProvenanceSourceKind.ImportedMarkdown
+                : OblivionProvenanceSourceKind.WorkspaceAsset;
+        return new OblivionProvenance(
+            sourceKind,
+            document.Provenance.SourceReference,
+            document.Provenance.ProducerActionId);
     }
 
     private static OblivionCardBody BuildBody(

@@ -25,7 +25,7 @@ public sealed class OblivionStandaloneSurface
 
         Workspace = open.Session.Workspace;
         Page = open.Session.ActivePage;
-        Cards = AssertTwoMarkdownCards(Page);
+        Cards = ValidateMarkdownCards(Page);
         _cardHandlers = OblivionCardHandlerRegistry.CreateDefault();
         Session = open.Session.State;
     }
@@ -131,7 +131,7 @@ public sealed class OblivionStandaloneSurface
             OblivionInteraction.CollapseCard collapse when IsThisCard(collapse.PageId, collapse.CardId) =>
                 Session.CollapseCard(collapse.PageId, collapse.CardId),
             _ => throw new InvalidOperationException(
-                $"Interaction '{interaction.GetType().Name}' is outside the standalone two-card surface."),
+                $"Interaction '{interaction.GetType().Name}' is outside the standalone Page stack."),
         };
     }
 
@@ -141,17 +141,11 @@ public sealed class OblivionStandaloneSurface
             Cards.Any(card => string.Equals(card.Id.Value, cardId, StringComparison.Ordinal));
     }
 
-    private static IReadOnlyList<OblivionCard> AssertTwoMarkdownCards(OblivionWorkspacePage page)
+    private static IReadOnlyList<OblivionCard> ValidateMarkdownCards(OblivionWorkspacePage page)
     {
-        if (page.Cards.Count != 2)
-        {
-            throw new InvalidOperationException(
-                $"The M19i standalone vault must materialize exactly two cards, but produced {page.Cards.Count}.");
-        }
-
         if (page.Cards.Any(card => card.Body.Format != OblivionCardBodyFormat.CopelandMarkdown))
         {
-            throw new InvalidOperationException("The M19i standalone vault must contain exactly two Markdown cards.");
+            throw new InvalidOperationException("The standalone Page stack must contain only Markdown Cards.");
         }
 
         return page.Cards;

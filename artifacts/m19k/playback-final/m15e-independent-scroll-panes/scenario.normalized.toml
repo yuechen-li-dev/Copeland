@@ -1,0 +1,51 @@
+[scenario]
+id = "m15e-independent-scroll-panes"
+name = "M15e main stack and inspector scroll independently"
+viewport = { width = 1280, height = 360 }
+section = "oblivion"
+tab = "docs"
+selectedCard = "doc-aurelian-build-topology-m13b"
+expandedCard = "doc-aurelian-build-topology-m13b"
+
+[output]
+captureFinalPng = true
+captureTraceJson = true
+captureManifest = true
+
+[[steps]]
+type = "wheel"
+target = "main-stack"
+deltaY = 360
+
+[[steps]]
+type = "wheel"
+target = "inspector-pane"
+deltaY = 360
+
+[[assertions]]
+type = "step-scroll-delta-greater-than"
+step = 0
+target = "main-stack"
+value = 0
+reason = "This guards the M15e contract that wheel input over the main stack changes main-stack scroll."
+
+[[assertions]]
+type = "step-scroll-delta-equals"
+step = 0
+target = "inspector-pane"
+value = 0
+reason = "This guards the M15e contract that selection couples stack and inspector content, but scrolling the stack does not move inspector scroll."
+
+[[assertions]]
+type = "step-scroll-delta-greater-than"
+step = 1
+target = "inspector-pane"
+value = 0
+reason = "This guards the M15e contract that wheel input over the inspector changes inspector-local scroll."
+
+[[assertions]]
+type = "step-scroll-delta-equals"
+step = 1
+target = "main-stack"
+value = 0
+reason = "This guards the M15e contract that scrolling the inspector does not mutate the main-stack offset even when the same card stays selected."

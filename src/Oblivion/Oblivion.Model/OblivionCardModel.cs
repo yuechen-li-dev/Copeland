@@ -49,6 +49,7 @@ public enum OblivionProvenanceSourceKind
     Unknown,
     Manual,
     WorkspaceAsset,
+    ImportedMarkdown,
     Generated,
 }
 

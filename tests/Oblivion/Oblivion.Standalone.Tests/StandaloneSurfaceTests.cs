@@ -1,4 +1,5 @@
 using System.Reflection;
+using Oblivion.App;
 using Oblivion.Model;
 using Oblivion.Persistence;
 using Oblivion.Presentation;
@@ -88,6 +89,35 @@ public sealed class StandaloneSurfaceTests
         Assert.All(
             surface.Cards,
             card => Assert.Equal(OblivionCardBodyFormat.CopelandMarkdown, card.Body.Format));
+    }
+
+    [Fact]
+    public void Standalone_projects_a_real_three_card_push_without_a_cardinality_special_case()
+    {
+        string vaultRoot = CopyVaultToTemporaryDirectory();
+        string source = Path.Combine(Path.GetTempPath(), $"m19k-standalone-{Guid.NewGuid():N}.md");
+        File.WriteAllText(source, "# Third Card\n\nPushed through the product mutation path.\n");
+        try
+        {
+            OblivionApplication application = new();
+            OblivionWorkspaceSession session = application.OpenWorkspace(vaultRoot).Session!;
+            OblivionStackOperationResult push = application.PushMarkdownCard(
+                session,
+                new OblivionPushMarkdownCardRequest(source, CardId: "third-card"));
+
+            Assert.True(push.Succeeded, string.Join(Environment.NewLine, push.Diagnostics));
+            OblivionStandaloneSurface surface = new(vaultRoot);
+            OblivionStandaloneSurfaceSnapshot snapshot = surface.CreateSnapshot(2560, 1440);
+            Assert.Equal(
+                ["physical-atom", "notebook-stack", "third-card"],
+                surface.Cards.Select(card => card.Id.Value));
+            AssertStackGeometry(snapshot);
+        }
+        finally
+        {
+            File.Delete(source);
+            Directory.Delete(vaultRoot, recursive: true);
+        }
     }
 
     [Fact]
@@ -294,14 +324,37 @@ public sealed class StandaloneSurfaceTests
 
     private static void AssertStackGeometry(OblivionStandaloneSurfaceSnapshot snapshot)
     {
-        Assert.Equal(2, snapshot.Cards.Count);
-        Assert.Equal(
-            Style.StackGap,
-            snapshot.Cards[1].CardBounds.Y -
-                (snapshot.Cards[0].CardBounds.Y + snapshot.Cards[0].CardBounds.Height));
-        Assert.True(
-            snapshot.Cards[0].CardBounds.Y + snapshot.Cards[0].CardBounds.Height <
-            snapshot.Cards[1].CardBounds.Y);
+        for (int index = 1; index < snapshot.Cards.Count; index++)
+        {
+            OblivionStandaloneCardSnapshot previous = snapshot.Cards[index - 1];
+            OblivionStandaloneCardSnapshot current = snapshot.Cards[index];
+            Assert.Equal(
+                Style.StackGap,
+                current.CardBounds.Y -
+                    (previous.CardBounds.Y + previous.CardBounds.Height));
+            Assert.True(
+                previous.CardBounds.Y + previous.CardBounds.Height < current.CardBounds.Y);
+        }
+    }
+
+    private static string CopyVaultToTemporaryDirectory()
+    {
+        string vaultRoot = Path.Combine(
+            Path.GetTempPath(),
+            "oblivion-m19k-standalone-tests",
+            Guid.NewGuid().ToString("N"));
+        foreach (string sourcePath in Directory.GetFiles(
+            M19iStructuredVault.DefaultRoot,
+            "*",
+            SearchOption.AllDirectories))
+        {
+            string relativePath = Path.GetRelativePath(M19iStructuredVault.DefaultRoot, sourcePath);
+            string destinationPath = Path.Combine(vaultRoot, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+            File.Copy(sourcePath, destinationPath);
+        }
+
+        return vaultRoot;
     }
 
     private static void AssertAvaloniaFree(Assembly assembly)

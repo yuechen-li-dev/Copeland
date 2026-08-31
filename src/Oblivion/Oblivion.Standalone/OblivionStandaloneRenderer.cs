@@ -20,20 +20,14 @@ public static class OblivionStandaloneRenderer
         IReadOnlyList<OblivionStandaloneCardPresentation> cards)
     {
         ArgumentNullException.ThrowIfNull(cards);
-        if (cards.Count != 2)
-        {
-            throw new ArgumentException(
-                $"The M19h renderer requires exactly two cards, but received {cards.Count}.",
-                nameof(cards));
-        }
-
         double cardWidth = Math.Max(640, width - (Style.OuterHorizontalMargin * 2));
         double[] cardHeights = cards
             .Select(card => card.CardView.IsExpanded ? Style.ExpandedCardHeight : Style.CollapsedCardHeight)
             .ToArray();
         int pageContentHeight = (int)Math.Ceiling(Math.Max(
             viewportHeight,
-            (Style.OuterVerticalMargin * 2) + cardHeights.Sum() + (Style.StackGap * (cards.Count - 1))));
+            (Style.OuterVerticalMargin * 2) + cardHeights.Sum() +
+                (Style.StackGap * Math.Max(0, cards.Count - 1))));
 
         List<UiStackItem> stackItems = [];
         foreach ((OblivionStandaloneCardPresentation card, int index) in cards.Select((card, index) => (card, index)))
@@ -49,7 +43,8 @@ public static class OblivionStandaloneRenderer
             stackItems.Add(UI.StackItem.Fixed(cardHeights[index], cardNode));
         }
 
-        double stackHeight = cardHeights.Sum() + (Style.StackGap * (cards.Count - 1));
+        double stackHeight = cardHeights.Sum() +
+            (Style.StackGap * Math.Max(0, cards.Count - 1));
         UiNode cardStack = UI.VStack(
             id: "m19h.page.card-stack",
             gap: Style.StackGap,

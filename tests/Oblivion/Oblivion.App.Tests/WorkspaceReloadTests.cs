@@ -80,6 +80,55 @@ public sealed class WorkspaceReloadTests
             reload.Session.State.GetCardViewState(pageId, "notebook-stack"));
     }
 
+    [Fact]
+    public void Stack_mutations_preserve_push_selection_and_select_new_top_after_selected_pop()
+    {
+        using TemporaryStructuredVault vault = TemporaryStructuredVault.CopyFixture();
+        string source = Path.Combine(Path.GetTempPath(), $"m19k-session-{Guid.NewGuid():N}.md");
+        File.WriteAllText(source, "# Session mutation note\n");
+        try
+        {
+            OblivionApplication application = new();
+            OblivionWorkspaceSession current = application.OpenWorkspace(vault.Root).Session!;
+            string pageId = current.ActivePage.Id.Value;
+            current = current with
+            {
+                State = current.State.WithSelectedCard(pageId, "physical-atom"),
+            };
+
+            OblivionStackOperationResult push = application.PushMarkdownCard(
+                current,
+                new OblivionPushMarkdownCardRequest(source));
+
+            Assert.True(push.Succeeded, string.Join(Environment.NewLine, push.Diagnostics));
+            Assert.Equal("physical-atom", push.Session.State.GetSelectedCardId(
+                pageId,
+                push.Session.ActivePage.Cards));
+            Assert.Equal("m19k-session-" + Path.GetFileNameWithoutExtension(source).Split('-')[2], push.Mutation!.CardId);
+
+            string pushedCardId = push.Mutation.CardId;
+            OblivionWorkspaceSession selectedPushed = push.Session with
+            {
+                State = push.Session.State
+                    .WithSelectedCard(pageId, pushedCardId)
+                    .ToggleCardExpansion(pageId, pushedCardId),
+            };
+            OblivionStackOperationResult pop = application.PopCard(selectedPushed);
+
+            Assert.True(pop.Succeeded, string.Join(Environment.NewLine, pop.Diagnostics));
+            Assert.Equal("notebook-stack", pop.Session.State.GetSelectedCardId(
+                pageId,
+                pop.Session.ActivePage.Cards));
+            Assert.Equal(
+                OblivionCardViewState.Collapsed,
+                pop.Session.State.GetCardViewState(pageId, pushedCardId));
+        }
+        finally
+        {
+            File.Delete(source);
+        }
+    }
+
     private sealed class TemporaryStructuredVault : IDisposable
     {
         private TemporaryStructuredVault(string root)

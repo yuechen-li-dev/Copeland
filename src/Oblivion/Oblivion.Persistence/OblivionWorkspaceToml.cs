@@ -98,6 +98,10 @@ public static class OblivionCardTomlReader
 
         IReadOnlyList<OblivionCardActionDocument> actions = ReadActions(parsedTable, sourcePath, diagnostics);
         IReadOnlyList<OblivionCardArtifactDocument> artifacts = ReadArtifacts(parsedTable, sourcePath, diagnostics);
+        OblivionCardProvenanceDocument? provenance = ReadProvenance(
+            parsedTable,
+            sourcePath,
+            diagnostics);
 
         if (format != OblivionWorkspaceValidator.SupportedFormat)
         {
@@ -177,7 +181,8 @@ public static class OblivionCardTomlReader
                 tags,
                 new OblivionCardBodyDocument(bodyFormat, bodyText, bodyPath),
                 actions,
-                artifacts);
+                artifacts,
+                provenance);
 
         return new OblivionCardTomlReadResult(document, OblivionWorkspaceValidator.OrderDiagnostics(diagnostics));
     }
@@ -203,6 +208,23 @@ public static class OblivionCardTomlWriter
         }
 
         AppendStringArray(builder, "tags", document.Tags);
+
+        if (document.Provenance is not null)
+        {
+            builder.AppendLine();
+            builder.AppendLine("[provenance]");
+            builder.AppendLine($"source_kind = \"{Escape(document.Provenance.SourceKind)}\"");
+            if (!string.IsNullOrWhiteSpace(document.Provenance.SourceReference))
+            {
+                builder.AppendLine($"source_reference = \"{Escape(document.Provenance.SourceReference!)}\"");
+            }
+
+            if (!string.IsNullOrWhiteSpace(document.Provenance.ProducerActionId))
+            {
+                builder.AppendLine($"producer_action = \"{Escape(document.Provenance.ProducerActionId!)}\"");
+            }
+        }
+
         builder.AppendLine();
         builder.AppendLine("[body]");
         builder.AppendLine($"format = \"{Escape(document.Body.Format)}\"");
@@ -495,6 +517,42 @@ internal static class OblivionTomlHelpers
 
 internal static class OblivionCardTomlReaderInternal
 {
+    public static OblivionCardProvenanceDocument? ReadProvenance(
+        TomlTable table,
+        string? sourcePath,
+        List<OblivionWorkspaceDiagnostic> diagnostics)
+    {
+        if (!table.TryGetValue("provenance", out object? value) || value is null)
+        {
+            return null;
+        }
+
+        if (value is not TomlTable provenance)
+        {
+            diagnostics.Add(OblivionWorkspaceValidator.Error(
+                "invalid-field-type",
+                "Field 'provenance' must be a table.",
+                sourcePath));
+            return null;
+        }
+
+        string sourceKind = OblivionTomlHelpers.ReadRequiredString(
+            provenance,
+            "source_kind",
+            sourcePath,
+            diagnostics);
+        string? sourceReference = OblivionTomlHelpers.ReadOptionalString(
+            provenance,
+            "source_reference");
+        string? producerAction = OblivionTomlHelpers.ReadOptionalString(
+            provenance,
+            "producer_action");
+        return new OblivionCardProvenanceDocument(
+            sourceKind,
+            sourceReference,
+            producerAction);
+    }
+
     public static IReadOnlyList<OblivionCardActionDocument> ReadActions(
         TomlTable table,
         string? sourcePath,
