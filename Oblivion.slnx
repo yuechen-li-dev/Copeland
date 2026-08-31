@@ -1,12 +1,14 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Oblivion/Oblivion.Model/Oblivion.Model.csproj" />
+    <Project Path="src/Oblivion/Oblivion.Presentation/Oblivion.Presentation.csproj" />
     <Project Path="src/Oblivion/Oblivion.Persistence/Oblivion.Persistence.csproj" />
     <Project Path="src/Oblivion/Oblivion.UI/Oblivion.UI.csproj" />
     <Project Path="src/Oblivion/Oblivion.App/Oblivion.App.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Oblivion/Oblivion.Model.Tests/Oblivion.Model.Tests.csproj" />
+    <Project Path="tests/Oblivion/Oblivion.Presentation.Tests/Oblivion.Presentation.Tests.csproj" />
     <Project Path="tests/Oblivion/Oblivion.Persistence.Tests/Oblivion.Persistence.Tests.csproj" />
     <Project Path="tests/Oblivion/Oblivion.UI.Tests/Oblivion.UI.Tests.csproj" />
     <Project Path="tests/Oblivion/Oblivion.App.Tests/Oblivion.App.Tests.csproj" />

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Oblivion.Model;
 using Oblivion.Persistence;
+using Oblivion.Presentation;
 using Oblivion.Product;
 using Machina.Core.Actions;
 using Machina.Core.Authoring;
@@ -102,7 +103,14 @@ public static class OblivionWorkbench
                 top: 0,
                 width: layout.ContentWidth,
                 height: layout.ViewportHeight,
-                component: BuildWidePageShell(pageId, cards, selection, theme, layout, navigationState)),
+                component: BuildWidePageShell(
+                    pageId,
+                    cards,
+                    selection,
+                    theme,
+                    layout,
+                    navigationState,
+                    proofOptions)),
         ];
     }
 
@@ -130,6 +138,18 @@ public static class OblivionWorkbench
 
     public static OblivionWorkspaceLoadResult LoadWorkspace(OblivionHostOptions? proofOptions = null, bool useCache = true)
     {
+        if (string.Equals(proofOptions?.PresentationId, M19PresentationDogfood.Id, StringComparison.Ordinal))
+        {
+            MaterializedPresentation presentation = M19PresentationDogfood.Materialize();
+            string repositoryRoot = FindRepositoryRootForPresentation();
+            return new OblivionWorkspaceLoadResult(
+                presentation.Workspace,
+                new OblivionWorkspaceLocation(
+                    repositoryRoot,
+                    $"presentation:{presentation.Source.Id.Value}"),
+                []);
+        }
+
         string manifestPath = OblivionWorkspacePaths.ResolveWorkspaceManifestPath(proofOptions?.WorkspacePath);
         return OblivionWorkspaceApplication.Load(manifestPath, useCache: useCache);
     }
@@ -855,7 +875,12 @@ public static class OblivionWorkbench
         if (shellMode == OblivionShellMode.Wide)
         {
             Rect cardsPaneBounds = FindRectBySuffix(resolved, pageId + WideCardsPaneViewportSuffix);
-            double cardsPaneContentHeight = GetCardsColumnHeight(cards, OblivionPageLayout.CreateWide((int)Math.Ceiling(cardsPaneBounds.Width), (int)Math.Ceiling(cardsPaneBounds.Height)));
+            double cardsPaneContentHeight = GetCardsColumnHeight(
+                cards,
+                OblivionPageLayout.CreateWide(
+                    (int)Math.Ceiling(cardsPaneBounds.Width),
+                    (int)Math.Ceiling(cardsPaneBounds.Height)),
+                proofOptions);
             ScrollbarGeometry cardsPaneScrollbar = ScrollRegion.ComputeScrollbarGeometry(
                 FindScrollbarTrackRectOrDefault(resolved, $"{pageId}.wide-cards-pane.scrollbar-track", cardsPaneBounds),
                 cardsPaneContentHeight,
@@ -996,7 +1021,7 @@ public static class OblivionWorkbench
         OblivionPageLayout pageLayout = layout.ShellMode == OblivionShellMode.Compact
             ? OblivionPageLayout.CreateCompact(layout.ContentVisibleWidth, layout.ViewportHeight)
             : OblivionPageLayout.CreateWide(layout.ContentVisibleWidth, layout.ViewportHeight);
-        double contentHeight = GetCardsColumnHeight(cards, pageLayout);
+        double contentHeight = GetCardsColumnHeight(cards, pageLayout, proofOptions);
         return ScrollRegion.ClampScrollOffset(contentHeight, pageLayout.ViewportHeight, requestedOffset);
     }
 
@@ -1141,7 +1166,24 @@ public static class OblivionWorkbench
     private static bool ShouldUseFallbackCatalog(OblivionHostOptions? proofOptions)
     {
         return string.IsNullOrWhiteSpace(proofOptions?.WorkspacePath) &&
+            string.IsNullOrWhiteSpace(proofOptions?.PresentationId) &&
             !OblivionWorkspacePaths.HasDefaultWorkspace();
+    }
+
+    private static string FindRepositoryRootForPresentation()
+    {
+        DirectoryInfo? directory = new(Environment.CurrentDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Oblivion.slnx")))
+            {
+                return directory.FullName;
+            }
+
+            directory = directory.Parent;
+        }
+
+        return Environment.CurrentDirectory;
     }
 
     private static IReadOnlyList<OblivionCard> CreateWorkspaceErrorCards(
@@ -1515,11 +1557,13 @@ public static class OblivionWorkbench
         OblivionInspectorSelection selection,
         StandardTheme theme,
         OblivionPageLayout layout,
-        OblivionHostState? navigationState)
+        OblivionHostState? navigationState,
+        OblivionHostOptions? proofOptions)
     {
         double viewportHeight = layout.ViewportHeight;
         double scrollOffset = navigationState?.GetScrollOffset(pageId) ?? 0;
-        double contentHeight = GetCardsColumnHeight(cards, layout);
+        IReadOnlyList<PresentationMaterializedBand>? presentationBands = GetPresentationBands(proofOptions);
+        double contentHeight = GetCardsColumnHeight(cards, layout, proofOptions);
 
         ScrollbarGeometry initialScrollbar = ScrollRegion.ComputeScrollbarGeometry(
             new Rect(
@@ -1547,25 +1591,52 @@ public static class OblivionWorkbench
         List<UiNode> children = [];
         double currentTop = -scrollbar.ScrollOffset;
 
-        foreach (OblivionBuiltCard builtCard in cards)
+        if (presentationBands is null)
         {
-            double cardHeight = GetRenderedCardHeight(builtCard.CompactView, layout);
-            bool isSelected = string.Equals(selection.SelectedCardId, builtCard.SourceCard.Id.Value, StringComparison.Ordinal);
-            children.Add(
-                UI.Anchor(
-                    OblivionCardRenderer.BuildCard(
-                        builtCard.CompactView,
-                        theme,
-                        new OblivionCardRenderOptions(
-                            Width: contentWidth,
-                            Height: cardHeight),
-                        isSelected),
-                    id: builtCard.SourceCard.Id.Value + ".anchor",
+            foreach (OblivionBuiltCard builtCard in cards)
+            {
+                double cardHeight = GetRenderedCardHeight(builtCard.CompactView, layout);
+                AddPresentationCard(
+                    children,
+                    builtCard,
+                    selection,
+                    theme,
                     left: 0,
-                    width: contentWidth,
                     top: currentTop,
-                    height: cardHeight));
-            currentTop += cardHeight + 24;
+                    width: contentWidth,
+                    height: cardHeight);
+                currentTop += cardHeight + 24;
+            }
+        }
+        else
+        {
+            Dictionary<string, OblivionBuiltCard> cardsById = cards.ToDictionary(
+                card => card.SourceCard.Id.Value,
+                StringComparer.Ordinal);
+            foreach (PresentationMaterializedBand band in presentationBands)
+            {
+                OblivionBuiltCard[] bandCards = band.CardIds
+                    .Select(cardId => cardsById[cardId.Value])
+                    .ToArray();
+                double bandHeight = bandCards.Max(card => GetRenderedCardHeight(card.CompactView, layout));
+                double gap = bandCards.Length > 1 ? 16 : 0;
+                double cardWidth = (contentWidth - (gap * (bandCards.Length - 1))) / bandCards.Length;
+                for (int index = 0; index < bandCards.Length; index++)
+                {
+                    OblivionBuiltCard builtCard = bandCards[index];
+                    AddPresentationCard(
+                        children,
+                        builtCard,
+                        selection,
+                        theme,
+                        left: index * (cardWidth + gap),
+                        top: currentTop,
+                        width: cardWidth,
+                        height: bandHeight);
+                }
+
+                currentTop += bandHeight + 24;
+            }
         }
 
         AppendScrollbarNodes(children, $"{pageId}.wide-cards-pane", scrollbar, OblivionCardRenderer.MarkdownReadingStyle);
@@ -1586,7 +1657,8 @@ public static class OblivionWorkbench
         OblivionInspectorSelection selection,
         StandardTheme theme,
         OblivionPageLayout layout,
-        OblivionHostState? navigationState)
+        OblivionHostState? navigationState,
+        OblivionHostOptions? proofOptions)
     {
         // M17e moves the wide Oblivion page shell onto the existing UI.Grid authoring
         // surface so readers no longer have to manually simulate:
@@ -1611,7 +1683,14 @@ public static class OblivionWorkbench
                     row: 0,
                     column: 0,
                     child: UI.Anchor(
-                        BuildWideCardsPane(pageId, cards, selection, theme, layout, navigationState),
+                        BuildWideCardsPane(
+                            pageId,
+                            cards,
+                            selection,
+                            theme,
+                            layout,
+                            navigationState,
+                            proofOptions),
                         id: $"{pageId}.cards-panel",
                         left: UiLength.Px(0),
                         top: UiLength.Px(0),
@@ -1863,11 +1942,26 @@ public static class OblivionWorkbench
             : view.PreferredHeight;
     }
 
-    private static double GetCardsColumnHeight(IReadOnlyList<OblivionBuiltCard> cards, OblivionPageLayout layout)
+    private static double GetCardsColumnHeight(
+        IReadOnlyList<OblivionBuiltCard> cards,
+        OblivionPageLayout layout,
+        OblivionHostOptions? proofOptions = null)
     {
         if (cards.Count == 0)
         {
             return 0;
+        }
+
+        IReadOnlyList<PresentationMaterializedBand>? bands = GetPresentationBands(proofOptions);
+        if (bands is not null)
+        {
+            Dictionary<string, OblivionBuiltCard> cardsById = cards.ToDictionary(
+                card => card.SourceCard.Id.Value,
+                StringComparer.Ordinal);
+            return bands.Sum(band => band.CardIds
+                .Select(cardId => cardsById[cardId.Value])
+                .Max(card => GetRenderedCardHeight(card.CompactView, layout))) +
+                ((bands.Count - 1) * 24);
         }
 
         double height = 0;
@@ -1881,6 +1975,44 @@ public static class OblivionWorkbench
         }
 
         return height;
+    }
+
+    private static IReadOnlyList<PresentationMaterializedBand>? GetPresentationBands(
+        OblivionHostOptions? proofOptions)
+    {
+        return string.Equals(proofOptions?.PresentationId, M19PresentationDogfood.Id, StringComparison.Ordinal)
+            ? M19PresentationDogfood.Materialize().Bands
+            : null;
+    }
+
+    private static void AddPresentationCard(
+        List<UiNode> children,
+        OblivionBuiltCard builtCard,
+        OblivionInspectorSelection selection,
+        StandardTheme theme,
+        double left,
+        double top,
+        double width,
+        double height)
+    {
+        bool isSelected = string.Equals(
+            selection.SelectedCardId,
+            builtCard.SourceCard.Id.Value,
+            StringComparison.Ordinal);
+        children.Add(
+            UI.Anchor(
+                OblivionCardRenderer.BuildCard(
+                    builtCard.CompactView,
+                    theme,
+                    new OblivionCardRenderOptions(
+                        Width: width,
+                        Height: height),
+                    isSelected),
+                id: builtCard.SourceCard.Id.Value + ".anchor",
+                left: left,
+                width: width,
+                top: top,
+                height: height));
     }
 
     private static double GetWideInspectorContentHeight(OblivionInspectorSelection selection)

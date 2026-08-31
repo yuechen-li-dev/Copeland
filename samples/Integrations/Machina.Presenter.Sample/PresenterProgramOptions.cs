@@ -17,6 +17,7 @@ public sealed record PresenterProgramOptions(
         bool includeDirectOutlineRenderBridgeProof = false;
         bool includeNavigationShell = true;
         string? oblivionWorkspacePath = null;
+        string? oblivionPresentationId = null;
         string? selectedSectionId = null;
         string? selectedTabId = null;
         string? selectedNavigationPageId = null;
@@ -72,6 +73,12 @@ public sealed record PresenterProgramOptions(
             if (arg == "--oblivion-workspace" && index + 1 < args.Count)
             {
                 oblivionWorkspacePath = args[++index];
+                continue;
+            }
+
+            if (arg == "--oblivion-presentation" && index + 1 < args.Count)
+            {
+                oblivionPresentationId = args[++index];
                 continue;
             }
 
@@ -214,7 +221,10 @@ public sealed record PresenterProgramOptions(
             exportOnly,
             outputPath,
             outputDirectory,
-            new PresenterProofOptions(includeDirectOutlineRenderBridgeProof, oblivionWorkspacePath),
+            new PresenterProofOptions(
+                includeDirectOutlineRenderBridgeProof,
+                oblivionWorkspacePath,
+                oblivionPresentationId),
             new PresenterNavigationExportOptions(
                 includeNavigationShell,
                 selectedSectionId,

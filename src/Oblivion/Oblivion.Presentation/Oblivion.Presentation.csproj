@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Oblivion.Presentation</AssemblyName>
+    <RootNamespace>Oblivion.Presentation</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Oblivion.Model/Oblivion.Model.csproj" />
+  </ItemGroup>
+</Project>

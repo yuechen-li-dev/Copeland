@@ -3,7 +3,9 @@ using Oblivion.Model;
 
 namespace Oblivion.App;
 
-public sealed record OblivionHostOptions(string? WorkspacePath = null);
+public sealed record OblivionHostOptions(
+    string? WorkspacePath = null,
+    string? PresentationId = null);
 
 public enum OblivionShellMode
 {

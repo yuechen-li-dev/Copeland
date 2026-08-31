@@ -1,0 +1,28 @@
+milestone=M11d
+kind=oblivion-workspace-persistence
+rootFormat=json
+assetFormat=toml
+workspacePath=C:\Users\yuech\source\repos\Copeland\samples\Integrations\Machina.Presenter.Sample\bin\Debug\net10.0\OblivionSampleWorkspace\workspace.oblivion.json
+sectionsLoaded=1
+pagesLoaded=1
+cardsLoaded=10
+cardKinds=artifact,code-fact,note,status
+statuses=failing,passing
+validationErrors=
+executionEnabled=false
+roslynEnabled=false
+xunitEnabled=false
+visionaryImplemented=false
+usingFallbackCatalog=false
+deferredWork=Roslyn execution | xUnit [Fact] and [Theory] runtime | Artifact execution and generation runtime | Visionary code editor/source workspace implementation | Markdown editing
+cardsRendered:
+  oblivion-missing-page-card:status:failing:Oblivion page missing
+  oblivion-missing-page-card:status:failing:Oblivion page missing
+  oblivion-missing-page-card:status:failing:Oblivion page missing
+  presentation.m19-architecture.architecture-flow:note:passing:Authoring to human briefing
+  presentation.m19-architecture.architecture-notes:note:passing:Architecture notes
+  presentation.m19-architecture.authoring-source:code-fact:passing:The C# Codex writes
+  presentation.m19-architecture.direction:note:passing:Authoring direction
+  presentation.m19-architecture.human-proof:artifact:passing:Existing PNG proof
+  presentation.m19-architecture.next:note:passing:Next actions
+  presentation.m19-architecture.summary:status:passing:Semantic presentation MVP

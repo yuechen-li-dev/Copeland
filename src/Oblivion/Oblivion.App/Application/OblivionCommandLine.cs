@@ -37,6 +37,15 @@ public sealed class OblivionCommandLine
         return parsed.Command switch
         {
             "inspect" => WriteResult(_surface.Inspect(manifestPath), parsed.Json, WriteInspectText),
+            "presentation" => RequirePositionals(parsed, 1, values =>
+                values[0] == "inspect"
+                    ? WritePresentationInspection(parsed.Json)
+                    : values[0] == "realize-diagram"
+                        ? WritePresentationDiagramRealization(parsed.Json)
+                    : WriteCommandError(
+                        "OBLIVION-CLI-INVALID-ARGUMENTS",
+                        "Command 'presentation' supports: presentation inspect or presentation realize-diagram.",
+                        parsed.Json)),
             "pages" => WriteResult(_surface.ListPages(manifestPath), parsed.Json, WritePagesText),
             "cards" => WriteResult(
                 _surface.ListCards(manifestPath, parsed.Positionals.FirstOrDefault()),
@@ -146,6 +155,50 @@ public sealed class OblivionCommandLine
         _output.WriteLine($"cards={snapshot.Cards.Count}");
         _output.WriteLine($"selectedPage={snapshot.Session.SelectedPageId ?? "<none>"}");
         _output.WriteLine($"selectedCard={snapshot.Session.SelectedCardId ?? "<none>"}");
+    }
+
+    private int WritePresentationInspection(bool json)
+    {
+        OblivionPresentationSnapshot snapshot = OblivionPresentationInspection.Inspect(
+            M19PresentationDogfood.Materialize());
+        if (json)
+        {
+            _output.WriteLine(OblivionProductJson.Serialize(snapshot));
+            return 0;
+        }
+
+        _output.WriteLine($"presentation={snapshot.PresentationId}");
+        _output.WriteLine($"title={snapshot.Title}");
+        _output.WriteLine($"page={snapshot.PageId}");
+        _output.WriteLine($"content={snapshot.ContentCount}");
+        _output.WriteLine($"cards={snapshot.CardCount}");
+        foreach (OblivionPresentationContentSnapshot item in snapshot.Content)
+        {
+            _output.WriteLine(
+                $"{item.ContentId}\t{item.Kind}\t{item.CardId}\t{item.LayoutGroupId ?? "stream"}\t{item.Presenter}\t{item.SourceReference ?? "<inline>"}");
+        }
+
+        return 0;
+    }
+
+    private int WritePresentationDiagramRealization(bool json)
+    {
+        OblivionDiagramRenderResult result = M19PresentationDogfood.RealizeDiagram();
+        if (json)
+        {
+            _output.WriteLine(OblivionProductJson.Serialize(result));
+        }
+        else
+        {
+            _output.WriteLine($"succeeded={result.Succeeded.ToString().ToLowerInvariant()}");
+            _output.WriteLine($"renderer={result.Renderer}@{result.RendererVersion}");
+            _output.WriteLine($"sourceHash={result.SourceHash}");
+            _output.WriteLine($"cacheKey={result.CacheKey ?? "<none>"}");
+            _output.WriteLine($"cacheHit={result.CacheHit.ToString().ToLowerInvariant()}");
+            _output.WriteLine($"renderedPath={result.RenderedPath ?? "<none>"}");
+        }
+
+        return result.Succeeded ? 0 : 1;
     }
 
     private void WritePagesText(IReadOnlyList<OblivionProductPageSummary> pages)
@@ -272,6 +325,8 @@ public sealed class OblivionCommandLine
         _output.WriteLine("usage: oblivion <command> [arguments] [--workspace <manifest>] [--json]");
         _output.WriteLine("commands:");
         _output.WriteLine("  inspect                 inspect workspace and initial session state");
+        _output.WriteLine("  presentation inspect    inspect the code-authored M19 presentation");
+        _output.WriteLine("  presentation realize-diagram  realize the dogfood Mermaid derived artifact");
         _output.WriteLine("  pages                   list pages in stable workspace order");
         _output.WriteLine("  cards [page-id]         list cards, optionally filtered by page");
         _output.WriteLine("  show <card-id>          show content, provenance, actions, and artifacts");

@@ -1,0 +1,211 @@
+{
+  "milestone": "M12d",
+  "kind": "oblivion-docs-dogfood",
+  "markdownFrontend": "Copeland.Markdown",
+  "docsLoaded": 16,
+  "cardsGenerated": 17,
+  "diagnosticsTotal": 8,
+  "unsupportedSyntaxCount": 5,
+  "aurelianDocsLoaded": 8,
+  "aurelianDiagnosticsTotal": 7,
+  "docs": [
+    {
+      "cardId": "doc-machina-oblivion-phase-closeout-m11g",
+      "sourcePath": "docs/Machina.UI/history/machina-oblivion-phase-closeout-m11g.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Oblivion Phase Closeout M11g",
+      "tags": [
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-machina-oblivion-workspace-persistence-m11d",
+      "sourcePath": "docs/Machina.UI/history/machina-oblivion-workspace-persistence-m11d.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Oblivion Workspace Persistence M11d",
+      "tags": [
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-machina-presenter-card-hardening-m11e",
+      "sourcePath": "docs/Machina.UI/history/machina-presenter-card-hardening-m11e.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Presenter Card Hardening M11e",
+      "tags": [
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-machina-test-suite-topology-m11b",
+      "sourcePath": "docs/Machina.UI/history/machina-test-suite-topology-m11b.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Test Suite Topology M11b",
+      "tags": [
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-machina-presenter-scrollbar-state-machine-m11c",
+      "sourcePath": "docs/Machina.UI/history/machina-presenter-scrollbar-state-machine-m11c.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Presenter Scrollbar State Machine M11c",
+      "tags": [
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-copeland-markdown-frontend-m12a",
+      "sourcePath": "docs/Copeland/history/copeland-markdown-frontend-m12a.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Copeland Markdown Frontend M12a",
+      "tags": [
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-machina-oblivion-markdown-body-integration-m12b",
+      "sourcePath": "docs/Machina.UI/history/machina-oblivion-markdown-body-integration-m12b.md",
+      "diagnosticsCount": 1,
+      "firstHeading": "Machina Oblivion Markdown Body Integration M12b",
+      "tags": [
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-machina-oblivion-markdown-rendering-m12c",
+      "sourcePath": "docs/Machina.UI/history/machina-oblivion-markdown-rendering-m12c.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Machina Oblivion Markdown Rendering M12c",
+      "tags": [
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-aurelian-monorepo-import-audit-m13a",
+      "sourcePath": "docs/Aurelian/history/aurelian-monorepo-import-audit-m13a.md",
+      "diagnosticsCount": 4,
+      "firstHeading": "Aurelian Monorepo Import Audit M13a",
+      "tags": [
+        "aurelian",
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-aurelian-build-topology-m13b",
+      "sourcePath": "docs/Aurelian/history/aurelian-build-topology-m13b.md",
+      "diagnosticsCount": 2,
+      "firstHeading": "Aurelian Build Topology M13b",
+      "tags": [
+        "aurelian",
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-aurelian-charter",
+      "sourcePath": "docs/Aurelian/architecture/aurelian-charter.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Aurelian Architecture Charter",
+      "tags": [
+        "aurelian",
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-dependency-policy",
+      "sourcePath": "docs/Aurelian/architecture/dependency-policy.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Aurelian Dependency and Library Adoption Doctrine",
+      "tags": [
+        "aurelian",
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-compositor-policy-mechanism-split",
+      "sourcePath": "docs/Aurelian/architecture/compositor-policy-mechanism-split.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Compositor policy/mechanism split",
+      "tags": [
+        "aurelian",
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-graphics-memory-allocation",
+      "sourcePath": "docs/Aurelian/architecture/graphics-memory-allocation.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Aurelian Graphics Memory Allocation Strategy",
+      "tags": [
+        "aurelian",
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-mvp-roadmap",
+      "sourcePath": "docs/Aurelian/architecture/mvp-roadmap.md",
+      "diagnosticsCount": 0,
+      "firstHeading": "Aurelian MVP Roadmap",
+      "tags": [
+        "aurelian",
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    },
+    {
+      "cardId": "doc-world-model-doctrine",
+      "sourcePath": "docs/Aurelian/architecture/world-model-doctrine.md",
+      "diagnosticsCount": 1,
+      "firstHeading": "Aurelian World Model Doctrine",
+      "tags": [
+        "aurelian",
+        "docs",
+        "dogfood",
+        "markdown"
+      ]
+    }
+  ],
+  "editorImplemented": false,
+  "fileWatcherImplemented": false,
+  "roslynEnabled": false,
+  "xunitEnabled": false,
+  "visionaryImplemented": false,
+  "singleFileMarkdownExportImplemented": false,
+  "deferredWork": [
+    "Markdown editor",
+    "File watcher / live editing",
+    "Single-file Markdown export/import pipeline",
+    "Roslyn compilation and execution",
+    "xUnit [Fact] and [Theory] runtime",
+    "Visionary code editor/source workspace"
+  ]
+}

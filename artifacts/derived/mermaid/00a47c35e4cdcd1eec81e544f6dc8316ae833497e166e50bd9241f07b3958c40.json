@@ -1,0 +1,26 @@
+{
+  "Format": 1,
+  "Key": {
+    "SourceHash": "779590fb0d80f2773019e5368160859c54fd4278366ef3a2e862bde4ddf968a6",
+    "RendererId": "mermaid-cli",
+    "RendererVersion": "11.16.0",
+    "OutputFormat": "png",
+    "RenderingOptions": "theme=default;background=white;securityLevel=strict",
+    "Value": "00a47c35e4cdcd1eec81e544f6dc8316ae833497e166e50bd9241f07b3958c40"
+  },
+  "Provenance": {
+    "SourceKind": "Mermaid",
+    "SourceHash": "779590fb0d80f2773019e5368160859c54fd4278366ef3a2e862bde4ddf968a6",
+    "RendererId": "mermaid-cli",
+    "RendererVersion": "11.16.0",
+    "RenderOperation": "render-mermaid-png",
+    "OutputFormat": "png",
+    "Producer": "@mermaid-js/mermaid-cli@11.16.0",
+    "WorkspaceId": null,
+    "PageId": "oblivion.cards",
+    "CardId": "presentation.m19-architecture.architecture-flow",
+    "ContentId": "presentation.m19-architecture.architecture-flow.mermaid-0",
+    "SourceReference": "presentation:m19-architecture/architecture-flow.mmd",
+    "Derived": true
+  }
+}

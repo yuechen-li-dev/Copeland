@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Oblivion.Model/Oblivion.Model.csproj" />
+    <ProjectReference Include="../Oblivion.Presentation/Oblivion.Presentation.csproj" />
     <ProjectReference Include="../Oblivion.Persistence/Oblivion.Persistence.csproj" />
     <ProjectReference Include="../Oblivion.UI/Oblivion.UI.csproj" />
   </ItemGroup>
