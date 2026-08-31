@@ -11,8 +11,11 @@ static buildTable(256);        // ordinary static-safe Copeland computation
 reflect fieldsOf<Model>();     // compiler-owned semantic metadata
 ```
 
-VIZ-M0 supports exactly `reflect nameOf<T>()`, `reflect fieldsOf<T>()`, and
-`reflect enumCasesOf<T>()`. Reflection is legal in template bodies, including
+VIZ-M0 established `reflect nameOf<T>()`, `reflect fieldsOf<T>()`, and
+`reflect enumCasesOf<T>()`. VIZ-M1 additionally supports the executable semantic
+query `reflect callsOf<F>()`; its direct-call, identity, source-correlation, and
+bound contracts are specified in [bounded call reflection](call-reflection-viz-m1.md).
+Reflection is legal in template bodies, including
 values consumed by `static if`, `static for`, and `static match`. A reflected
 expression in a runtime function is rejected with `COPE-REFLECT-0001` and can
 never reach MIR.
@@ -42,10 +45,9 @@ reflection metadata and does not weaken trimming or NativeAOT assumptions.
 Generated/runtime code has no `System.Reflection`, dynamic metadata lookup, or
 compiler callback. Materialization completes in the compiler/tool process.
 
-Future executable queries such as `reflect callsOf<F>()`, `reflect
-controlFlowOf<F>()`, and `reflect effectsOf<F>()` may be investigated only as
-bounded semantic queries. VIZ-M0 does not implement them and does not expose an
-AST escape hatch.
+Future executable queries such as `reflect controlFlowOf<F>()` and `reflect
+effectsOf<F>()` may be investigated only as separate bounded semantic queries.
+Neither milestone exposes an AST escape hatch.
 
 ## Syntax and dogfood assessment
 
@@ -56,10 +58,5 @@ the prefix form is straightforward for humans and LLMs to generate. Reflection
 removed the duplicate lists of field names, field types, optionality, enum case
 names, and payload types; only visualization policy remained authored.
 
-The bounded `recordDiagram`/`enumDiagram` construction adapters are the M0
-rough edge: they compensate for the static language not having a general typed
-collection transform. VIZ-M1 should not add a graph-specific language. Its
-minimum scope should first test one bounded semantic query for executable code,
-preferably `reflect callsOf<F>()`, with stable callable identity, source
-correlation, legality, limits, and a Diagram adapter. `controlFlowOf` and
-`effectsOf` should remain deferred until that single query proves the boundary.
+VIZ-M1 proved that same boundary with one `callsOf` query and one explicit
+`callGraphDiagram` adapter. `controlFlowOf` and `effectsOf` remain deferred.

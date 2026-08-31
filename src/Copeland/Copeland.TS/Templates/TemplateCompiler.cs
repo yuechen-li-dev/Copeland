@@ -80,7 +80,7 @@ public static class TemplateCompiler
         }
 
         diagnostics.AddRange(TemplatePlanValidator.Validate(templates));
-        var evaluator = new BoundPlanEvaluator(templates, diagnostics);
+        var evaluator = new BoundPlanEvaluator(boundCompilations, templates, diagnostics);
         object? result = evaluator.EvaluateTemplate(entry, entryArguments);
         Diagram? diagram = result as Diagram;
         ProjectTree? project = result switch
@@ -561,6 +561,7 @@ public static class TemplateCompiler
     private sealed class BoundPlanEvaluator
     {
         private readonly IReadOnlyDictionary<TemplateSymbol, BoundTemplateDeclaration> _templates;
+        private readonly IReadOnlyDictionary<string, IReadOnlyList<BoundSemanticCallSite>> _callSitesByCaller;
         private readonly List<Diagnostic> _diagnostics;
         private readonly Stack<TemplateSymbol> _active = new();
         private readonly List<string> _instantiationChain = [];
@@ -572,10 +573,27 @@ public static class TemplateCompiler
         private const int MaximumInstantiations = 4_096;
         private const int MaximumMetadataIterations = 100_000;
         private const int MaximumGeneratedArtifacts = 100_000;
+        private const int MaximumReflectedCallSites = 256;
+        private const int MaximumReflectedMetadataBytes = 262_144;
 
-        public BoundPlanEvaluator(IReadOnlyList<BoundTemplateDeclaration> templates, List<Diagnostic> diagnostics)
+        public BoundPlanEvaluator(
+            IReadOnlyList<BoundCompilation> boundCompilations,
+            IReadOnlyList<BoundTemplateDeclaration> templates,
+            List<Diagnostic> diagnostics)
         {
             _templates = templates.ToDictionary(template => template.Symbol);
+            _callSitesByCaller = boundCompilations
+                .SelectMany(compilation => compilation.Program.SemanticCallSites)
+                .GroupBy(call => call.Caller.Id, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (IReadOnlyList<BoundSemanticCallSite>)group
+                        .OrderBy(call => call.Source.Path, StringComparer.Ordinal)
+                        .ThenBy(call => call.Source.StartLine)
+                        .ThenBy(call => call.Source.StartColumn)
+                        .ThenBy(call => call.Callee?.Id, StringComparer.Ordinal)
+                        .ToArray(),
+                    StringComparer.Ordinal);
             _diagnostics = diagnostics;
         }
 
@@ -768,6 +786,8 @@ public static class TemplateCompiler
                     return EvaluateValue(reflection.Value, context);
                 case BoundTemplateTypeMetadataArray metadata:
                     return EvaluateTypeMetadata(metadata, context);
+                case BoundTemplateCallMetadataArray calls:
+                    return EvaluateCallMetadata(calls);
                 case BoundTemplateArray array:
                     return array.Elements.Select(element => EvaluateValue(element, context)).ToArray();
                 case BoundTemplateStructuralObject structural:
@@ -901,6 +921,60 @@ public static class TemplateCompiler
                 .ToArray();
         }
 
+        private object?[] EvaluateCallMetadata(BoundTemplateCallMetadataArray metadata)
+        {
+            IReadOnlyList<BoundSemanticCallSite> callSites = _callSitesByCaller
+                .GetValueOrDefault(metadata.Target.StableIdentity, []);
+            if (callSites.Count > MaximumReflectedCallSites)
+            {
+                Report(
+                    "COPE-REFLECT-0008",
+                    $"reflect callsOf<F>() exceeded the direct call-site limit of {MaximumReflectedCallSites} for '{metadata.Target.Name}'.",
+                    metadata.Anchor);
+                return [];
+            }
+
+            object?[] values = callSites
+                .Select(call => (object?)new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["caller"] = CreateCallableValue(call.Caller),
+                    ["callee"] = call.Callee is null ? null : CreateCallableValue(call.Callee),
+                    ["kind"] = call.Kind.ToString().ToLowerInvariant(),
+                    ["source"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+                    {
+                        ["path"] = call.Source.Path,
+                        ["startLine"] = call.Source.StartLine,
+                        ["startColumn"] = call.Source.StartColumn,
+                        ["endLine"] = call.Source.EndLine,
+                        ["endColumn"] = call.Source.EndColumn,
+                    },
+                    ["unresolvedDisplayName"] = call.UnresolvedDisplayName,
+                })
+                .ToArray();
+            int metadataBytes = JsonSerializer.SerializeToUtf8Bytes(values).Length;
+            if (metadataBytes > MaximumReflectedMetadataBytes)
+            {
+                Report(
+                    "COPE-REFLECT-0008",
+                    $"reflect callsOf<F>() exceeded the metadata limit of {MaximumReflectedMetadataBytes} bytes for '{metadata.Target.Name}'.",
+                    metadata.Anchor);
+                return [];
+            }
+            return values;
+        }
+
+        private static IReadOnlyDictionary<string, object?> CreateCallableValue(CallableIdentity callable)
+            => new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["id"] = callable.Id,
+                ["name"] = callable.Name,
+                ["displayName"] = callable.DisplayName,
+                ["module"] = callable.Module,
+                ["containingType"] = callable.ContainingType,
+                ["parameterTypes"] = callable.ParameterTypes.Cast<object?>().ToArray(),
+                ["genericArity"] = callable.GenericArity,
+            };
+
         private object? EvaluateArtifactConstructor(BoundArtifactConstructor constructor, BoundEvaluationContext context)
         {
             object?[] arguments = constructor.Arguments.Select(argument => EvaluateValue(argument, context)).ToArray();
@@ -956,6 +1030,8 @@ public static class TemplateCompiler
                         => CreateRecordDiagram(typeName, fields, direction, constructor.Anchor),
                     BoundArtifactIntrinsic.EnumDiagram when arguments is [string typeName, object?[] cases, string direction]
                         => CreateEnumDiagram(typeName, cases, direction, constructor.Anchor),
+                    BoundArtifactIntrinsic.CallGraphDiagram when arguments is [object?[] calls]
+                        => CreateCallGraphDiagram(calls, constructor.Anchor),
                     _ => ReportInvalidIntrinsic(constructor),
                 };
             }
@@ -1188,6 +1264,52 @@ public static class TemplateCompiler
                 edges.Add(new DiagramEdge(rootId, id));
             }
             return CreateDiagram(nodes, edges, direction, typeName, anchor);
+        }
+
+        private Diagram? CreateCallGraphDiagram(
+            IReadOnlyList<object?> calls,
+            SyntaxToken anchor)
+        {
+            IReadOnlyDictionary<string, object?>[] sites = calls
+                .OfType<IReadOnlyDictionary<string, object?>>()
+                .ToArray();
+            if (sites.Length == 0
+                || sites[0].GetValueOrDefault("caller") is not IReadOnlyDictionary<string, object?> caller)
+            {
+                Report("COPE-DIAGRAM-0004", "callGraphDiagram requires at least one reflected call site.", anchor);
+                return null;
+            }
+
+            string callerId = caller.GetValueOrDefault("id") as string ?? string.Empty;
+            string callerName = caller.GetValueOrDefault("displayName") as string ?? "<unknown>";
+            string rootId = "callable:" + callerId;
+            var nodes = new List<DiagramNode> { new(rootId, callerName) };
+            var edges = new List<DiagramEdge>();
+            var resolved = sites
+                .Select(site => site.GetValueOrDefault("callee"))
+                .OfType<IReadOnlyDictionary<string, object?>>()
+                .GroupBy(callee => callee.GetValueOrDefault("id") as string ?? string.Empty, StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .ToArray();
+            HashSet<string> ambiguousNames = resolved
+                .Select(group => group.First().GetValueOrDefault("name") as string ?? "<unknown>")
+                .GroupBy(name => name, StringComparer.Ordinal)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .ToHashSet(StringComparer.Ordinal);
+            foreach (IGrouping<string, IReadOnlyDictionary<string, object?>> group in resolved)
+            {
+                IReadOnlyDictionary<string, object?> callee = group.First();
+                string name = callee.GetValueOrDefault("name") as string ?? "<unknown>";
+                string label = ambiguousNames.Contains(name)
+                    ? callee.GetValueOrDefault("displayName") as string ?? name
+                    : name;
+                string nodeId = "callable:" + group.Key;
+                nodes.Add(new DiagramNode(nodeId, label));
+                edges.Add(new DiagramEdge(rootId, nodeId, group.Count() > 1 ? "×" + group.Count() : null));
+            }
+
+            return CreateDiagram(nodes, edges, "LeftRight", callerId, anchor);
         }
 
         private Diagram? CreateDiagram(

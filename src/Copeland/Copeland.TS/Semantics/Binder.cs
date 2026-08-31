@@ -141,6 +141,7 @@ public static class Binder
         private readonly List<BoundComponentDefinition> _componentDefinitions = [];
         private readonly List<BoundComponentInstance> _componentInstances = [];
         private readonly List<HostAttachmentMir> _hostAttachments = [];
+        private readonly List<BoundSemanticCallSite> _semanticCallSites = [];
         private readonly Dictionary<string, LayoutSymbol> _layoutSymbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, LayoutTypeSymbol> _layoutTypeSymbols = new(StringComparer.Ordinal);
         private readonly Dictionary<string, LayerSetSymbol> _layerSetSymbols = new(StringComparer.Ordinal);
@@ -302,7 +303,8 @@ public static class Binder
                     _layoutBindings,
                     _componentDefinitions,
                     _componentInstances,
-                    _hostAttachments),
+                    _hostAttachments,
+                    _semanticCallSites),
                 _tree.Diagnostics.Concat(_diagnostics.Diagnostics).Concat(_textDocumentCompilation.Diagnostics).ToArray(),
                 CreateModuleScope(),
                 _textDocumentCompilation.Documents);
@@ -3676,7 +3678,7 @@ public static class Binder
             {
                 Report(
                     "COPE-REFLECT-0002",
-                    "Unsupported semantic reflection query. VIZ-M0 supports reflect nameOf<T>(), reflect fieldsOf<T>(), and reflect enumCasesOf<T>().",
+                    "Unsupported semantic reflection query. Supported queries are reflect nameOf<T>(), reflect fieldsOf<T>(), reflect enumCasesOf<T>(), and reflect callsOf<F>().",
                     reflection.ReflectKeyword);
                 return new BoundTemplateLiteral(reflection.ReflectKeyword, null, PrimitiveTypeSymbol.Error);
             }
@@ -3698,10 +3700,14 @@ public static class Binder
                     query = BoundSemanticReflectionQuery.EnumCasesOf;
                     value = BindEnumCasesOf(name.IdentifierToken, generic.TypeArguments, arguments);
                     break;
+                case "callsOf":
+                    query = BoundSemanticReflectionQuery.CallsOf;
+                    value = BindCallsOf(name.IdentifierToken, generic.TypeArguments, arguments);
+                    break;
                 default:
                     Report(
                         "COPE-REFLECT-0002",
-                        $"Unsupported semantic reflection query '{name.IdentifierToken.Text}'. VIZ-M0 supports nameOf, fieldsOf, and enumCasesOf.",
+                        $"Unsupported semantic reflection query '{name.IdentifierToken.Text}'. Supported queries are nameOf, fieldsOf, enumCasesOf, and callsOf.",
                         name.IdentifierToken);
                     return new BoundTemplateLiteral(reflection.ReflectKeyword, null, PrimitiveTypeSymbol.Error);
             }
@@ -3786,6 +3792,11 @@ public static class Binder
             {
                 ReportReflectionMigration(name.IdentifierToken);
                 return BindEnumCasesOf(name.IdentifierToken, typeArgumentSyntax, values);
+            }
+            if (name.IdentifierToken.Text == "callsOf")
+            {
+                ReportReflectionMigration(name.IdentifierToken);
+                return BindCallsOf(name.IdentifierToken, typeArgumentSyntax, values);
             }
             if (TryBindArtifactIntrinsic(name.IdentifierToken, values, out BoundTemplateValue? artifact))
             {
@@ -4093,6 +4104,73 @@ public static class Binder
                 new StructuralFieldSymbol("payloadTypes", new ArrayTypeSymbol(PrimitiveTypeSymbol.String), 2, false, true),
             ]);
 
+        private BoundTemplateValue BindCallsOf(
+            SyntaxToken anchor,
+            IReadOnlyList<TypeSyntax> typeArguments,
+            IReadOnlyList<BoundTemplateValue> arguments)
+        {
+            if (typeArguments.Count != 1 || arguments.Count != 0)
+            {
+                Report("COPE-REFLECT-0003", "reflect callsOf<F>() requires exactly one callable argument and no value arguments.", anchor);
+                return new BoundTemplateArray(anchor, [], CreateCallMetadataType());
+            }
+            if (typeArguments[0] is not IdentifierTypeSyntax identifier)
+            {
+                Report("COPE-REFLECT-0007", "reflect callsOf<F>() requires a directly named callable in VIZ-M1.", anchor);
+                return new BoundTemplateArray(anchor, [], CreateCallMetadataType());
+            }
+            if (!_scope.TryLookup(identifier.Identifier.Text, out Symbol? symbol))
+            {
+                Report("COPE-REFLECT-0007", $"Callable '{identifier.Identifier.Text}' cannot be resolved for reflect callsOf<F>().", identifier.Identifier);
+                return new BoundTemplateArray(anchor, [], CreateCallMetadataType());
+            }
+            if (symbol is not FunctionSymbol function)
+            {
+                Report("COPE-REFLECT-0007", $"Reflection target '{identifier.Identifier.Text}' is not callable.", identifier.Identifier);
+                return new BoundTemplateArray(anchor, [], CreateCallMetadataType());
+            }
+            if (string.IsNullOrWhiteSpace(function.StableIdentity))
+            {
+                Report("COPE-REFLECT-0010", $"Callable '{function.Name}' has no valid stable semantic identity.", identifier.Identifier);
+            }
+            return new BoundTemplateCallMetadataArray(
+                anchor,
+                function,
+                new ArrayTypeSymbol(CreateCallMetadataType()));
+        }
+
+        private static StructuralObjectTypeSymbol CreateCallableMetadataType()
+            => new(
+            [
+                new StructuralFieldSymbol("id", PrimitiveTypeSymbol.String, 0, false, true),
+                new StructuralFieldSymbol("name", PrimitiveTypeSymbol.String, 1, false, true),
+                new StructuralFieldSymbol("displayName", PrimitiveTypeSymbol.String, 2, false, true),
+                new StructuralFieldSymbol("module", PrimitiveTypeSymbol.String, 3, true, true),
+                new StructuralFieldSymbol("containingType", PrimitiveTypeSymbol.String, 4, true, true),
+                new StructuralFieldSymbol("parameterTypes", new ArrayTypeSymbol(PrimitiveTypeSymbol.String), 5, false, true),
+                new StructuralFieldSymbol("genericArity", PrimitiveTypeSymbol.Int, 6, false, true),
+            ]);
+
+        private static StructuralObjectTypeSymbol CreateSourceCorrelationType()
+            => new(
+            [
+                new StructuralFieldSymbol("path", PrimitiveTypeSymbol.String, 0, true, true),
+                new StructuralFieldSymbol("startLine", PrimitiveTypeSymbol.Int, 1, false, true),
+                new StructuralFieldSymbol("startColumn", PrimitiveTypeSymbol.Int, 2, false, true),
+                new StructuralFieldSymbol("endLine", PrimitiveTypeSymbol.Int, 3, false, true),
+                new StructuralFieldSymbol("endColumn", PrimitiveTypeSymbol.Int, 4, false, true),
+            ]);
+
+        private static StructuralObjectTypeSymbol CreateCallMetadataType()
+            => new(
+            [
+                new StructuralFieldSymbol("caller", CreateCallableMetadataType(), 0, false, true),
+                new StructuralFieldSymbol("callee", CreateCallableMetadataType(), 1, true, true),
+                new StructuralFieldSymbol("kind", PrimitiveTypeSymbol.String, 2, false, true),
+                new StructuralFieldSymbol("source", CreateSourceCorrelationType(), 3, false, true),
+                new StructuralFieldSymbol("unresolvedDisplayName", PrimitiveTypeSymbol.String, 4, true, true),
+            ]);
+
         private bool TryBindArtifactIntrinsic(SyntaxToken name, IReadOnlyList<BoundTemplateValue> arguments, out BoundTemplateValue? result)
         {
             BoundArtifactIntrinsic? intrinsic = name.Text switch
@@ -4118,6 +4196,7 @@ public static class Binder
                 "diagramEdge" => BoundArtifactIntrinsic.DiagramEdge,
                 "recordDiagram" => BoundArtifactIntrinsic.RecordDiagram,
                 "enumDiagram" => BoundArtifactIntrinsic.EnumDiagram,
+                "callGraphDiagram" => BoundArtifactIntrinsic.CallGraphDiagram,
                 _ => null,
             };
             if (intrinsic is null)
@@ -4140,7 +4219,7 @@ public static class Binder
                 BoundArtifactIntrinsic.CopelandProjectTypeSet => ArtifactTypeSymbol.CopelandProjectTypeSet,
                 BoundArtifactIntrinsic.DotNetProject => ArtifactTypeSymbol.DotNetProject,
                 BoundArtifactIntrinsic.DotNetSolution => ArtifactTypeSymbol.DotNetSolution,
-                BoundArtifactIntrinsic.Diagram or BoundArtifactIntrinsic.RecordDiagram or BoundArtifactIntrinsic.EnumDiagram => ArtifactTypeSymbol.Diagram,
+                BoundArtifactIntrinsic.Diagram or BoundArtifactIntrinsic.RecordDiagram or BoundArtifactIntrinsic.EnumDiagram or BoundArtifactIntrinsic.CallGraphDiagram => ArtifactTypeSymbol.Diagram,
                 BoundArtifactIntrinsic.DiagramNode => ArtifactTypeSymbol.DiagramNode,
                 BoundArtifactIntrinsic.DiagramEdge => ArtifactTypeSymbol.DiagramEdge,
                 _ => PrimitiveTypeSymbol.Error,
@@ -4165,6 +4244,7 @@ public static class Binder
                 BoundArtifactIntrinsic.DiagramEdge => arguments.Count == 3 && arguments.All(argument => argument.Type == PrimitiveTypeSymbol.String),
                 BoundArtifactIntrinsic.RecordDiagram => arguments.Count == 3 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type is ArrayTypeSymbol && arguments[2].Type == PrimitiveTypeSymbol.String,
                 BoundArtifactIntrinsic.EnumDiagram => arguments.Count == 3 && arguments[0].Type == PrimitiveTypeSymbol.String && arguments[1].Type is ArrayTypeSymbol && arguments[2].Type == PrimitiveTypeSymbol.String,
+                BoundArtifactIntrinsic.CallGraphDiagram => arguments.Count == 1 && arguments[0].Type is ArrayTypeSymbol,
                 _ => false,
             };
             if (!valid)
@@ -7268,7 +7348,7 @@ public static class Binder
             if (_localPresentationCaptureArguments.TryGetValue(fn, out IReadOnlyList<BoundExpression>? captures)
                 && c.Arguments.Count == 0)
             {
-                return new BoundCallExpression(fn, captures);
+                return CreateDirectCall(fn, captures, c.OpenParenToken);
             }
             if (c.Arguments.Count != fn.Parameters.Count) Report("COPE-TYPE-0004", $"Argument count mismatch: expected {fn.Parameters.Count}, got {c.Arguments.Count}.", c.OpenParenToken);
             var args = c.Arguments.Select((a, index) => BindExpression(a, index < fn.Parameters.Count ? fn.Parameters[index].Type : null)).ToArray();
@@ -7282,7 +7362,7 @@ public static class Binder
                         c.Arguments[i] is LiteralExpressionSyntax literal ? literal.LiteralToken : c.OpenParenToken,
                         fn.Parameters[i].AuthoredAliasName);
                 }
-            return new BoundCallExpression(fn, args);
+            return CreateDirectCall(fn, args, c.OpenParenToken);
         }
 
         private BoundExpression BindForeignComponent(CallExpressionSyntax call, SyntaxToken anchor)
@@ -7752,6 +7832,7 @@ public static class Binder
                 return new BoundErrorExpression();
             }
 
+            RecordSemanticCall(CreateClrCallableIdentity(selectedMember), ReflectedCallKind.External, anchor, null);
             return new BoundClrInvocationExpression(selectedMember, receiver, selectedGenericArguments, arguments, resultType);
         }
 
@@ -8198,9 +8279,12 @@ public static class Binder
                     ReportTypeMismatch("COPE-TYPE-0005", function.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
                 }
             }
-            return call.Arguments.Count == function.Parameters.Count
-                ? new BoundClrInvocationExpression(function.Method, null, [], arguments, function.ReturnType)
-                : new BoundErrorExpression();
+            if (call.Arguments.Count != function.Parameters.Count)
+            {
+                return new BoundErrorExpression();
+            }
+            RecordSemanticCall(CreateClrCallableIdentity(function.Method), ReflectedCallKind.External, call.OpenParenToken, null);
+            return new BoundClrInvocationExpression(function.Method, null, [], arguments, function.ReturnType);
         }
 
         private static bool IsRelativeSpecifier(string specifier)
@@ -8530,6 +8614,15 @@ public static class Binder
                 }
             }
 
+            RecordSemanticCall(
+                CreateExternalCallableIdentity(
+                    "javascript:" + host.ModuleSpecifier + "#" + host.ExportName,
+                    host.Name,
+                    host.ModuleSpecifier + "#" + host.ExportName,
+                    host.Parameters.Select(parameter => parameter.Type.Name)),
+                ReflectedCallKind.External,
+                call.OpenParenToken,
+                null);
             return new BoundJavaScriptHostCallExpression(host, arguments);
         }
 
@@ -8607,6 +8700,15 @@ public static class Binder
 
             if (npm.RemoteErrorType is null && !npm.IsPromise)
             {
+                RecordSemanticCall(
+                    CreateExternalCallableIdentity(
+                        "npm:" + npm.PackageName + "@" + npm.PackageVersion + "#" + npm.ExportName,
+                        npm.Name,
+                        npm.PackageName + "#" + npm.ExportName,
+                        npm.Parameters.Select(parameter => parameter.Type.Name)),
+                    ReflectedCallKind.External,
+                    call.OpenParenToken,
+                    null);
                 return new BoundNpmDirectCallExpression(npm, arguments);
             }
 
@@ -8632,6 +8734,15 @@ public static class Binder
                 return new BoundErrorExpression();
             }
             _usesTsonEncode = true;
+            RecordSemanticCall(
+                CreateExternalCallableIdentity(
+                    "npm:" + npm.PackageName + "@" + npm.PackageVersion + "#" + npm.ExportName,
+                    npm.Name,
+                    npm.PackageName + "#" + npm.ExportName,
+                    npm.Parameters.Select(parameter => parameter.Type.Name)),
+                ReflectedCallKind.External,
+                call.OpenParenToken,
+                null);
             return new BoundNpmCallExpression(npm, arguments, argumentTuple, requestPlan!, responsePlan!, errorPlan!, responseWrapperType.Fields[0], errorWrapperType.Fields[0]);
         }
 
@@ -8718,7 +8829,7 @@ public static class Binder
                         function.Parameters[index].AuthoredAliasName);
                 }
             }
-            return new BoundCallExpression(function, arguments);
+            return CreateDirectCall(function, arguments, call.OpenParenToken);
         }
 
         private BoundExpression BindInvoke(CallExpressionSyntax call, BoundExpression callee)
@@ -8746,6 +8857,7 @@ public static class Binder
                 }
             }
 
+            RecordSemanticCall(null, ReflectedCallKind.Dynamic, call.OpenParenToken, "callable invocation");
             return new BoundInvokeExpression(callee, arguments, callable);
         }
 
@@ -8887,7 +8999,7 @@ public static class Binder
                 }
             }
 
-            return failed ? new BoundErrorExpression() : new BoundCallExpression(specialization.Symbol, arguments);
+            return failed ? new BoundErrorExpression() : CreateDirectCall(specialization.Symbol, arguments, call.OpenParenToken);
         }
 
         private bool CollectInferenceEvidence(TypeSymbol pattern, TypeSymbol actual, IReadOnlyList<InferenceSlot> slots, SyntaxToken anchor)
@@ -9115,7 +9227,7 @@ public static class Binder
                     ReportTypeMismatch("COPE-TYPE-0005", specialization.Symbol.Parameters[index].Type, arguments[index].Type, call.OpenParenToken);
                 }
             }
-            return new BoundCallExpression(specialization.Symbol, arguments);
+            return CreateDirectCall(specialization.Symbol, arguments, call.OpenParenToken);
         }
 
         private BoundExpression BindGenericJavaScriptHostCall(
@@ -9171,6 +9283,15 @@ public static class Binder
                 }
             }
 
+            RecordSemanticCall(
+                CreateExternalCallableIdentity(
+                    "javascript:" + specialized.ModuleSpecifier + "#" + specialized.ExportName,
+                    specialized.Name,
+                    specialized.ModuleSpecifier + "#" + specialized.ExportName,
+                    specialized.Parameters.Select(parameter => parameter.Type.Name)),
+                ReflectedCallKind.External,
+                call.OpenParenToken,
+                null);
             return new BoundJavaScriptHostCallExpression(specialized, arguments);
         }
 
@@ -9530,6 +9651,100 @@ public static class Binder
 
         private string CreateFunctionStableIdentity(string name)
             => "function:" + (CreateDeclarationStableIdentity(name) ?? name);
+
+        private CallableIdentity CreateCallableIdentity(FunctionSymbol function)
+        {
+            string? module = _moduleIdentity;
+            string? containingType = function.ClassOwner?.Name;
+            string displayName = containingType is null
+                ? function.Name
+                : containingType + "." + (function.MemberName ?? function.Name);
+            return new CallableIdentity(
+                function.StableIdentity,
+                function.MemberName ?? function.Name,
+                displayName,
+                module,
+                containingType,
+                function.Parameters.Select(parameter => parameter.Type.Name).ToArray(),
+                function.TypeParameters.Count);
+        }
+
+        private BoundCallExpression CreateDirectCall(
+            FunctionSymbol callee,
+            IReadOnlyList<BoundExpression> arguments,
+            SyntaxToken anchor)
+        {
+            RecordSemanticCall(callee, anchor);
+            return new BoundCallExpression(callee, arguments);
+        }
+
+        private void RecordSemanticCall(FunctionSymbol callee, SyntaxToken anchor)
+            => RecordSemanticCall(CreateCallableIdentity(callee), ReflectedCallKind.Direct, anchor, null);
+
+        private void RecordSemanticCall(
+            CallableIdentity? callee,
+            ReflectedCallKind kind,
+            SyntaxToken anchor,
+            string? unresolvedDisplayName)
+        {
+            if (_currentFunction is null)
+            {
+                return;
+            }
+
+            (int startLine, int startColumn) = GetLineAndColumn(anchor.Position);
+            (int endLine, int endColumn) = GetLineAndColumn(anchor.Position + Math.Max(1, anchor.Text.Length));
+            _semanticCallSites.Add(new BoundSemanticCallSite(
+                CreateCallableIdentity(_currentFunction),
+                callee,
+                kind,
+                new CallSourceCorrelation(_sourcePath, startLine, startColumn, endLine, endColumn),
+                unresolvedDisplayName));
+        }
+
+        private CallableIdentity CreateExternalCallableIdentity(
+            string id,
+            string name,
+            string displayName,
+            IEnumerable<string> parameterTypes)
+            => new(
+                "external:" + id,
+                name,
+                displayName,
+                null,
+                null,
+                parameterTypes.ToArray(),
+                0);
+
+        private CallableIdentity CreateClrCallableIdentity(MethodBase member)
+        {
+            string owner = member.DeclaringType?.FullName ?? "<global>";
+            string[] parameterTypes = member.GetParameters()
+                .Select(parameter => parameter.ParameterType.FullName ?? parameter.ParameterType.Name)
+                .ToArray();
+            string signature = owner + "::" + member.Name + "(" + string.Join(",", parameterTypes) + ")";
+            return CreateExternalCallableIdentity(signature, member.Name, owner + "." + member.Name, parameterTypes);
+        }
+
+        private (int Line, int Column) GetLineAndColumn(int position)
+        {
+            int bounded = Math.Clamp(position, 0, _tree.Text.Length);
+            int line = 1;
+            int column = 1;
+            for (int index = 0; index < bounded; index++)
+            {
+                if (_tree.Text[index] == '\n')
+                {
+                    line++;
+                    column = 1;
+                }
+                else
+                {
+                    column++;
+                }
+            }
+            return (line, column);
+        }
 
         private string? CreateDeclarationStableIdentity(string name)
         {

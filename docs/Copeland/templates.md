@@ -165,6 +165,10 @@ parameters. `reflect` asks the compiler for semantic facts; `static` evaluates
 ordinary static-safe Copeland code. Plain reflection calls are rejected with
 `COPE-REFLECT-0004` migration guidance rather than retained as a second syntax.
 
+VIZ-M1 also supports `reflect callsOf<F>()` for one directly named callable.
+It returns bounded, source-correlated direct call-site metadata for explicit
+projection with `callGraphDiagram(calls)`; it never computes transitive closure.
+
 Field metadata contains `name`, `typeName`, `optional`, and `readonly`; an
 authored optional record field reports its semantic `Option<T>` type. Enum
 metadata contains `name`, `payloadCount`, and declaration-ordered

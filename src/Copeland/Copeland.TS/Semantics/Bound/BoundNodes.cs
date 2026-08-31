@@ -29,7 +29,8 @@ public sealed class BoundProgram
         IReadOnlyList<BoundLayoutBinding>? layoutBindings = null,
         IReadOnlyList<BoundComponentDefinition>? componentDefinitions = null,
         IReadOnlyList<BoundComponentInstance>? componentInstances = null,
-        IReadOnlyList<HostAttachmentMir>? hostAttachments = null)
+        IReadOnlyList<HostAttachmentMir>? hostAttachments = null,
+        IReadOnlyList<BoundSemanticCallSite>? semanticCallSites = null)
     {
         Functions = functions;
         FunctionEffects = FunctionEffectClassifier.Classify(functions);
@@ -51,6 +52,7 @@ public sealed class BoundProgram
         ComponentDefinitions = componentDefinitions ?? [];
         ComponentInstances = componentInstances ?? [];
         HostAttachments = hostAttachments ?? [];
+        SemanticCallSites = semanticCallSites ?? [];
     }
     public IReadOnlyList<BoundFunctionDeclaration> Functions { get; }
     public IReadOnlyDictionary<FunctionSymbol, FunctionEffectSummary> FunctionEffects { get; internal set; }
@@ -78,7 +80,48 @@ public sealed class BoundProgram
     /// separate from component presentations and renderer-private roots.
     /// </summary>
     public IReadOnlyList<HostAttachmentMir> HostAttachments { get; }
+    /// <summary>
+    /// Bounded compiler-owned call-site truth retained for compile-time semantic
+    /// reflection. It is not lowered to MIR and contains no syntax nodes.
+    /// </summary>
+    public IReadOnlyList<BoundSemanticCallSite> SemanticCallSites { get; }
 }
+
+public enum ReflectedCallKind
+{
+    Direct,
+    Dynamic,
+    External,
+}
+
+/// <summary>Backend-independent semantic identity for a callable.</summary>
+public sealed record CallableIdentity(
+    string Id,
+    string Name,
+    string DisplayName,
+    string? Module,
+    string? ContainingType,
+    IReadOnlyList<string> ParameterTypes,
+    int GenericArity);
+
+/// <summary>Source correlation for one semantic call site.</summary>
+public sealed record CallSourceCorrelation(
+    string? Path,
+    int StartLine,
+    int StartColumn,
+    int EndLine,
+    int EndColumn);
+
+/// <summary>
+/// One direct source-owned call site. Repeated calls remain repeated records;
+/// graph projection is responsible for edge aggregation.
+/// </summary>
+public sealed record BoundSemanticCallSite(
+    CallableIdentity Caller,
+    CallableIdentity? Callee,
+    ReflectedCallKind Kind,
+    CallSourceCorrelation Source,
+    string? UnresolvedDisplayName = null);
 
 /// <summary>
 /// A component is an ordinary callable render function plus a private
@@ -960,6 +1003,7 @@ public enum BoundSemanticReflectionQuery
     NameOf,
     FieldsOf,
     EnumCasesOf,
+    CallsOf,
 }
 
 /// <summary>
@@ -996,6 +1040,18 @@ public sealed class BoundTemplateTypeMetadataArray(
     public BoundTemplateTypeMetadataKind MetadataKind { get; } = metadataKind;
 }
 
+/// <summary>
+/// Deferred direct-call metadata for one compiler-resolved callable. The
+/// evaluator reads the bounded semantic call summary, never a syntax tree.
+/// </summary>
+public sealed class BoundTemplateCallMetadataArray(
+    SyntaxToken anchor,
+    FunctionSymbol target,
+    ArrayTypeSymbol type) : BoundTemplateValue(anchor, type)
+{
+    public FunctionSymbol Target { get; } = target;
+}
+
 public enum BoundArtifactIntrinsic
 {
     Project,
@@ -1019,6 +1075,7 @@ public enum BoundArtifactIntrinsic
     DiagramEdge,
     RecordDiagram,
     EnumDiagram,
+    CallGraphDiagram,
 }
 
 public sealed class BoundArtifactConstructor(SyntaxToken anchor, BoundArtifactIntrinsic intrinsic, IReadOnlyList<BoundTemplateValue> arguments, TypeSymbol resultType) : BoundTemplateValue(anchor, resultType)

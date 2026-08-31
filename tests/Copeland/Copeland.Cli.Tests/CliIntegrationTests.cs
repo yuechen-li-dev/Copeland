@@ -73,6 +73,33 @@ public sealed class CliIntegrationTests
     }
 
     [Fact]
+    public async Task Template_cli_materializes_reflected_call_graph_through_existing_mermaid_path()
+    {
+        using var temp = new TempDir();
+        string source = temp.WriteFile(
+            "CallGraph.ts",
+            "function Parse(): void { return; } function Bind(): void { return; } function Compile(): void { Parse(); Bind(); Bind(); } template<> Calls: Diagram { const calls = reflect callsOf<Compile>(); return callGraphDiagram(calls); }");
+        string output = Path.Combine(temp.Path, "generated");
+
+        CliResult result = await RunCliAsync(
+            temp.Path,
+            "template",
+            "materialize",
+            source,
+            "--entry",
+            "Calls",
+            "--output",
+            output);
+
+        Assert.Equal(0, result.ExitCode);
+        string mermaid = await File.ReadAllTextAsync(Path.Combine(output, "diagram.mmd"));
+        Assert.StartsWith("flowchart LR\n", Normalize(mermaid), StringComparison.Ordinal);
+        Assert.Contains("Compile", mermaid, StringComparison.Ordinal);
+        Assert.Contains("Bind", mermaid, StringComparison.Ordinal);
+        Assert.Contains("×2", mermaid, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Tscl_build_emits_a_multi_module_production_node_project_and_machine_readable_manifest()
     {
         using var temp = new TempDir();
