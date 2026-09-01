@@ -1,0 +1,71 @@
+module
+
+enum TableBoundsError
+  case InvalidIndex(index: number)
+  case OutOfBounds(index: number, rowCount: number)
+
+enum ReadingState
+  case Missing
+  case Present(value: number)
+  case Flagged(reason: string)
+
+record Point [r1]
+  field x [r1.f0]: number
+  field y [r1.f1]: number
+
+table Readings [t1] row [t1.row] count 4
+  column station [t1.c0]: string = ["north", "south", "east", "west"]
+  column sample [t1.c1]: int = [1, 2, 3, 4]
+  column point [t1.c2]: Point = [record [r1] { [r1.f0]: 1, [r1.f1]: 2 }, record [r1] { [r1.f0]: 3, [r1.f1]: 4 }, record [r1] { [r1.f0]: 5, [r1.f1]: 6 }, record [r1] { [r1.f0]: 7, [r1.f1]: 8 }]
+  column state [t1.c3]: ReadingState = [enum ReadingState.Present(10), enum ReadingState.Present(20), enum ReadingState.Missing, enum ReadingState.Flagged("sensor")]
+  column accepted [t1.c4]: number ! string = [ok 10, ok 20, err "missing", err "flagged"]
+
+func stateValue(value: ReadingState) -> number
+entry:
+  return match value : number { Missing => 0 | Present(reading: number) => reading | Flagged(reason: string) => IntToFloat(MirArrayLengthExpression { Type = MirNamedType { Identifier = int, Name = int }, Receiver = MirVariableExpression { Type = MirNamedType { Identifier = string, Name = string }, Name = reason } }) }
+
+func acceptedValue(value: number ! string) -> number
+entry:
+  return result-match value : number { ok(reading: number) => reading | err(error: string) => IntToFloat(0) }
+
+func rowScore(index: int) -> number ! TableBoundsError
+locals:
+  const pointScore: number
+  const row: Readings.Row
+entry:
+  store row, propagate table-row [t1] table-ref [t1][index] to function-return
+  store pointScore, (record-get [r1] table-row-field [t1.row] row.[t1.c2.f].[r1.f0] + record-get [r1] table-row-field [t1.row] row.[t1.c2.f].[r1.f1])
+  return ok (((IntToFloat(table-row-field [t1.row] row.[t1.c1.f]) + pointScore) + call stateValue(table-row-field [t1.row] row.[t1.c3.f])) + call acceptedValue(table-row-field [t1.row] row.[t1.c4.f]))
+
+func columnScore() -> number
+locals:
+  let index: int
+  let total: number
+entry:
+  store index, 0
+  store total, 0
+  while (index < 4)
+    total = ((total + IntToFloat(unwrap column-element table-column [t1] table-ref [t1].[t1.c1][index])) + record-get [r1] unwrap column-element table-column [t1] table-ref [t1].[t1.c2][index].[r1.f0])
+    index = (index + 1)
+  return total
+
+func boundsScore(index: int) -> number
+entry:
+  return result-match column-element table-column [t1] table-ref [t1].[t1.c1][index] : float { ok(value: int) => IntToFloat(value) | err(error: TableBoundsError) => match error : float { InvalidIndex(value: number) => IntToFloat(100) | OutOfBounds(value: number, rowCount: number) => rowCount } }
+
+func repeatedAccess() -> number
+locals:
+  const first: Readings.Row
+  const fourth: Readings.Row
+  const second: Readings.Row
+  const third: Readings.Row
+entry:
+  store first, unwrap table-row [t1] table-ref [t1][0]
+  store second, unwrap table-row [t1] table-ref [t1][1]
+  store third, unwrap table-row [t1] table-ref [t1][2]
+  store fourth, unwrap table-row [t1] table-ref [t1][3]
+  return (((((((record-get [r1] table-row-field [t1.row] first.[t1.c2.f].[r1.f0] + record-get [r1] table-row-field [t1.row] second.[t1.c2.f].[r1.f0]) + record-get [r1] table-row-field [t1.row] third.[t1.c2.f].[r1.f0]) + record-get [r1] table-row-field [t1.row] fourth.[t1.c2.f].[r1.f0]) + call stateValue(table-row-field [t1.row] first.[t1.c3.f])) + call stateValue(table-row-field [t1.row] second.[t1.c3.f])) + call stateValue(table-row-field [t1.row] third.[t1.c3.f])) + call stateValue(table-row-field [t1.row] fourth.[t1.c3.f]))
+
+func main() -> number
+entry:
+  return ((((((unwrap call rowScore(0) + unwrap call rowScore(1)) + unwrap call rowScore(2)) + unwrap call rowScore(3)) + call columnScore()) + call boundsScore(99)) + call repeatedAccess())

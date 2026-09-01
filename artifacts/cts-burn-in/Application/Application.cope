@@ -1,0 +1,184 @@
+module
+
+enum Fulfillment
+  case Pending
+  case Packed(attempts: int)
+  case Shipped(tracking: string, position: Position)
+  case Rejected(reason: string)
+
+record Position [r1]
+  field x [r1.f0]: number
+  field y [r1.f1]: number
+
+record LocalPoint [r2]
+  field x [r2.f0]: int
+  field y [r2.f1]: int
+
+record OrderLine [r3]
+  field sku [r3.f0]: string
+  field quantity [r3.f1]: int
+  field unitPrice [r3.f2]: number
+
+class-record Parcel [r6]
+  public field code [r6.f0]: string
+  private field normalizedCode [r6.f1]: string
+  public field weight [r6.f2]: number
+
+record Customer [r4]
+  field name [r4.f0]: string
+  field region [r4.f1]: string
+  field position [r4.f2]: Position
+
+record Order [r5]
+  field id [r5.f0]: int
+  field customer [r5.f1]: Customer
+  field lines [r5.f2]: OrderLine[]
+  field parcel [r5.f3]: Parcel
+  field fulfillment [r5.f4]: Fulfillment
+
+record __CopeInferredRecord_3F70E66001FF5C0A67BCB6A7DCA3AD62D864615D578DEBCCCDDB9E6FDA7D9A4C [r7]
+  field x [r7.f0]: int
+  field y [r7.f1]: int
+
+record __CopeInferredRecord_DCE91CBEAC25AF7946EFEB810FE36528E40588E880B0C4B7B6BF515A43D2FB06 [r8]
+  field name [r8.f0]: string
+  field position [r8.f1]: __CopeInferredRecord_3F70E66001FF5C0A67BCB6A7DCA3AD62D864615D578DEBCCCDDB9E6FDA7D9A4C
+
+record __CopeInferredRecord_000C7189E48464B135AD07FDD0354EA1817120E193A2A74CF4002B025A7D9F09 [r9]
+  field y [r9.f0]: int
+  field x [r9.f1]: int
+
+record __CopeInferredRecord_6755B5D944BC1C0B8066D9B48B473B6FCC6C08DAEC5896C34E384964B944A3FB [r10]
+  field first [r10.f0]: int
+  field second [r10.f1]: int
+
+func Parcel__constructor(code: string, weight: number) -> Parcel ! string
+entry:
+  if (weight < 0)
+    return err "weight must be nonnegative"
+  return ok record-new [r6] { [r6.f0]: code, [r6.f1]: call Parcel__normalize(code), [r6.f2]: weight }
+
+func Parcel__normalize(code: string) -> string
+entry:
+  return code
+
+func Parcel__adjust(parcel: Parcel, delta: number) -> Parcel
+entry:
+  return record-with [r6] parcel { [r6.f2]: (record-get [r6] parcel.[r6.f2] + delta) }
+
+func lineTotal(line: OrderLine) -> number
+entry:
+  return (IntToFloat(record-get [r3] line.[r3.f1]) * record-get [r3] line.[r3.f2])
+
+func orderTotal(order: Order) -> number
+locals:
+  let total: number
+entry:
+  store total, 0
+  for-of line in MirArrayIterableExpression { Type = MirIterableType { Identifier = iterable, Name = Iterable<OrderLine>, ElementType = MirRecordType { Identifier = r3, Name = OrderLine, RecordTypeId = r3, DisplayName = OrderLine } }, Receiver = MirRecordFieldAccessExpression { Type = MirArrayType { Identifier = array, Name = OrderLine[], ElementType = MirRecordType { Identifier = r3, Name = OrderLine, RecordTypeId = r3, DisplayName = OrderLine } }, Receiver = MirVariableExpression { Type = MirRecordType { Identifier = r5, Name = Order, RecordTypeId = r5, DisplayName = Order }, Name = order }, RecordTypeId = r5, FieldId = r5.f2 }, IterableType = MirIterableType { Identifier = iterable, Name = Iterable<OrderLine>, ElementType = MirRecordType { Identifier = r3, Name = OrderLine, RecordTypeId = r3, DisplayName = OrderLine } } }
+    total = (total + call lineTotal(line))
+  return total
+
+func validateQuantity(quantity: int) -> int ! string
+entry:
+  if (quantity < 1)
+    return err "quantity must be positive"
+  return ok quantity
+
+func reserve(line: OrderLine) -> OrderLine ! string
+locals:
+  const quantity: int
+entry:
+  store quantity, propagate call validateQuantity(record-get [r3] line.[r3.f1]) to function-return
+  return ok record-with [r3] line { [r3.f1]: quantity }
+
+func describe(status: Fulfillment) -> string
+entry:
+  return match status : string { Pending => "pending" | Packed(attempts: int) => "packed" | Shipped(tracking: string, position: Position) => tracking | Rejected(reason: string) => reason }
+
+func identity__record_copeland_inferred_record_ordered_4_name_16_primitive_string_8_position_83_record_copeland_inferred_record_ordered_1_x_13_primitive_int_1_y_13_primitive_int______24A9BE5A43158CFC(value: __CopeInferredRecord_DCE91CBEAC25AF7946EFEB810FE36528E40588E880B0C4B7B6BF515A43D2FB06) -> __CopeInferredRecord_DCE91CBEAC25AF7946EFEB810FE36528E40588E880B0C4B7B6BF515A43D2FB06
+entry:
+  return value
+
+func moveLocalItem() -> int
+locals:
+  const item: __CopeInferredRecord_DCE91CBEAC25AF7946EFEB810FE36528E40588E880B0C4B7B6BF515A43D2FB06
+  const moved: __CopeInferredRecord_DCE91CBEAC25AF7946EFEB810FE36528E40588E880B0C4B7B6BF515A43D2FB06
+  const peer: __CopeInferredRecord_DCE91CBEAC25AF7946EFEB810FE36528E40588E880B0C4B7B6BF515A43D2FB06
+entry:
+  store item, record-new [r8] { [r8.f0]: "sample", [r8.f1]: record-new [r7] { [r7.f0]: 1, [r7.f1]: 2 } }
+  store peer, call identity__record_copeland_inferred_record_ordered_4_name_16_primitive_string_8_position_83_record_copeland_inferred_record_ordered_1_x_13_primitive_int_1_y_13_primitive_int______24A9BE5A43158CFC(record-new [r8] { [r8.f0]: "peer", [r8.f1]: record-new [r7] { [r7.f0]: 3, [r7.f1]: 4 } })
+  store moved, record-with [r8] item { [r8.f1]: record-with [r7] record-get [r8] item.[r8.f1] { [r7.f0]: record-get [r7] record-get [r8] peer.[r8.f1].[r7.f0] } }
+  return (record-get [r7] record-get [r8] moved.[r8.f1].[r7.f0] + record-get [r7] record-get [r8] moved.[r8.f1].[r7.f1])
+
+func orderedShapePressure() -> int
+locals:
+  const a: __CopeInferredRecord_3F70E66001FF5C0A67BCB6A7DCA3AD62D864615D578DEBCCCDDB9E6FDA7D9A4C
+  const b: __CopeInferredRecord_3F70E66001FF5C0A67BCB6A7DCA3AD62D864615D578DEBCCCDDB9E6FDA7D9A4C
+  const c: __CopeInferredRecord_000C7189E48464B135AD07FDD0354EA1817120E193A2A74CF4002B025A7D9F09
+entry:
+  store a, record-new [r7] { [r7.f0]: 1, [r7.f1]: 2 }
+  store b, record-new [r7] { [r7.f0]: 3, [r7.f1]: 4 }
+  store c, record-new [r9] { [r9.f0]: 4, [r9.f1]: 3 }
+  return ((record-get [r7] a.[r7.f0] + record-get [r7] b.[r7.f1]) + record-get [r9] c.[r9.f1])
+
+func makeLocalResult(valid: boolean) -> LocalPoint ! string
+entry:
+  if valid
+    return ok record-new [r2] { [r2.f0]: 20, [r2.f1]: 22 }
+  return err "missing"
+
+func readLocalResult() -> int
+entry:
+  return result-match call makeLocalResult(true) : int { ok(value: LocalPoint) => (record-get [r2] value.[r2.f0] + record-get [r2] value.[r2.f1]) | err(error: string) => 0 }
+
+func evaluationTrace(buffer: MutableArray<int>, value: int) -> int
+entry:
+  MirMutableArrayElementAssignmentExpression { Type = MirNamedType { Identifier = int, Name = int }, Receiver = MirVariableExpression { Type = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<int>, ElementType = MirNamedType { Identifier = int, Name = int } }, Name = buffer }, Index = MirLiteralExpression { Type = MirNamedType { Identifier = int, Name = int }, Value = 0 }, Value = MirBinaryExpression { Type = MirNamedType { Identifier = int, Name = int }, Operator = +, Left = MirBinaryExpression { Type = MirNamedType { Identifier = int, Name = int }, Operator = *, Left = MirMutableArrayElementAccessExpression { Type = MirNamedType { Identifier = int, Name = int }, Receiver = MirVariableExpression { Type = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<int>, ElementType = MirNamedType { Identifier = int, Name = int } }, Name = buffer }, Index = MirLiteralExpression { Type = MirNamedType { Identifier = int, Name = int }, Value = 0 } }, Right = MirLiteralExpression { Type = MirNamedType { Identifier = int, Name = int }, Value = 10 } }, Right = MirVariableExpression { Type = MirNamedType { Identifier = int, Name = int }, Name = value } } }
+  return value
+
+func evaluationOrder() -> int
+locals:
+  const buffer: MutableArray<int>
+  const moved: __CopeInferredRecord_6755B5D944BC1C0B8066D9B48B473B6FCC6C08DAEC5896C34E384964B944A3FB
+  const value: __CopeInferredRecord_6755B5D944BC1C0B8066D9B48B473B6FCC6C08DAEC5896C34E384964B944A3FB
+entry:
+  store buffer, MirMutableArrayConstructionExpression { Type = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<int>, ElementType = MirNamedType { Identifier = int, Name = int } }, Length = MirLiteralExpression { Type = MirNamedType { Identifier = int, Name = int }, Value = 1 }, MutableArrayType = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<int>, ElementType = MirNamedType { Identifier = int, Name = int } } }
+  store value, record-new [r10] { [r10.f0]: call evaluationTrace(buffer, 1), [r10.f1]: call evaluationTrace(buffer, 2) }
+  store moved, record-with [r10] value { [r10.f0]: call evaluationTrace(buffer, 3), [r10.f1]: call evaluationTrace(buffer, 4) }
+  return ((MirMutableArrayElementAccessExpression { Type = MirNamedType { Identifier = int, Name = int }, Receiver = MirVariableExpression { Type = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<int>, ElementType = MirNamedType { Identifier = int, Name = int } }, Name = buffer }, Index = MirLiteralExpression { Type = MirNamedType { Identifier = int, Name = int }, Value = 0 } } + record-get [r10] moved.[r10.f0]) + record-get [r10] moved.[r10.f1])
+
+func coordinateTotal__record_Position__D9FBFA8340216B5C(value: Position) -> number
+entry:
+  return (record-get [r1] value.[r1.f0] + record-get [r1] value.[r1.f1])
+
+func Parcel__identity__primitive_number__FDC3F3A4758964FC(value: number) -> number
+entry:
+  return value
+
+func publicWeight__record_Parcel__8EF3EF46C3C17BEA(value: Parcel) -> number
+entry:
+  return record-get [r6] value.[r6.f2]
+
+func main() -> number
+locals:
+  const adjusted: Parcel
+  const customer: Customer
+  const first: OrderLine
+  const namedBoundary: number
+  const order: Order
+  const parcel: Parcel
+  const reserved: OrderLine
+  const second: OrderLine
+  const status: string
+entry:
+  store customer, record-new [r4] { [r4.f0]: "Ada", [r4.f1]: "west", [r4.f2]: record-new [r1] { [r1.f0]: 5, [r1.f1]: 8 } }
+  store first, record-new [r3] { [r3.f0]: "A", [r3.f1]: 2, [r3.f2]: 10.5 }
+  store second, record-new [r3] { [r3.f0]: "B", [r3.f1]: 1, [r3.f2]: 4 }
+  store parcel, unwrap call Parcel__constructor("PKG-7", 10)
+  store adjusted, call Parcel__adjust(parcel, 2)
+  store order, record-new [r5] { [r5.f0]: 7, [r5.f1]: customer, [r5.f2]: [first, second], [r5.f3]: adjusted, [r5.f4]: enum Fulfillment.Packed(1) }
+  store reserved, unwrap call reserve(first)
+  store status, call describe(record-get [r5] order.[r5.f4])
+  store namedBoundary, call coordinateTotal__record_Position__D9FBFA8340216B5C(record-new [r1] { [r1.f0]: 5, [r1.f1]: 8 })
+  return ((((((((call orderTotal(order) + IntToFloat(record-get [r3] reserved.[r3.f1])) + namedBoundary) + IntToFloat(call moveLocalItem())) + IntToFloat(call orderedShapePressure())) + IntToFloat(call readLocalResult())) + IntToFloat(call evaluationOrder())) + IntToFloat(MirArrayLengthExpression { Type = MirNamedType { Identifier = int, Name = int }, Receiver = MirVariableExpression { Type = MirNamedType { Identifier = string, Name = string }, Name = status } })) + call Parcel__identity__primitive_number__FDC3F3A4758964FC(call publicWeight__record_Parcel__8EF3EF46C3C17BEA(adjusted)))

@@ -1,0 +1,95 @@
+module
+
+record Sample [r1]
+  field id [r1.f0]: int
+  field value [r1.f1]: number
+
+class-record LoadedValue [r2]
+  public field raw [r2.f0]: number
+  private field scaled [r2.f1]: number
+
+record __CopeInferredRecord_E498694BBD28457A1B3D8417F2ADF8E524EFF83ACBCC7C9F0EBF4697403F5651 [r3]
+  field value [r3.f0]: number
+  field doubled [r3.f1]: number
+
+func LoadedValue__constructor(raw: number, scaled: number) -> LoadedValue
+entry:
+  return record-new [r2] { [r2.f0]: raw, [r2.f1]: scaled }
+
+func LoadedValue__total(value: LoadedValue) -> number
+entry:
+  return (record-get [r2] value.[r2.f0] + record-get [r2] value.[r2.f1])
+
+func normalize(value: number) -> number
+entry:
+  return (value * 2)
+
+func validate(value: number) -> number ! string
+entry:
+  if (value < 0)
+    return err "negative"
+  return ok value
+
+generator func seedValues() -> Iterable<number>
+entry:
+  yield 1
+  yield 2
+  yield 3
+
+generator func values() -> Iterable<number>
+entry:
+  yield 0
+  yield* call seedValues()
+  yield 4
+
+func collect() -> number[]
+locals:
+  const buffer: MutableArray<number>
+  let index: int
+entry:
+  store buffer, MirMutableArrayConstructionExpression { Type = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<number>, ElementType = MirNamedType { Identifier = number, Name = number } }, Length = MirLiteralExpression { Type = MirNamedType { Identifier = int, Name = int }, Value = 5 }, MutableArrayType = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<number>, ElementType = MirNamedType { Identifier = number, Name = number } } }
+  store index, 0
+  for-of value in call values()
+    MirMutableArrayElementAssignmentExpression { Type = MirNamedType { Identifier = number, Name = number }, Receiver = MirVariableExpression { Type = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<number>, ElementType = MirNamedType { Identifier = number, Name = number } }, Name = buffer }, Index = MirVariableExpression { Type = MirNamedType { Identifier = int, Name = int }, Name = index }, Value = MirVariableExpression { Type = MirNamedType { Identifier = number, Name = number }, Name = value } }
+    index = (index + 1)
+  return MirMutableArrayFreezeExpression { Type = MirArrayType { Identifier = array, Name = number[], ElementType = MirNamedType { Identifier = number, Name = number } }, Receiver = MirVariableExpression { Type = MirMutableArrayType { Identifier = mutable-array, Name = MutableArray<number>, ElementType = MirNamedType { Identifier = number, Name = number } }, Name = buffer }, ArrayType = MirArrayType { Identifier = array, Name = number[], ElementType = MirNamedType { Identifier = number, Name = number } } }
+
+func transform(input: number[]) -> number[]
+locals:
+  const increment: number
+entry:
+  store increment, 1
+  return batch input as value: number[] { store checked, unwrap call validate(value); call normalize((checked + increment)) }
+
+async func load(value: number) -> number ! string
+locals:
+  const checked: number
+entry:
+  store checked, propagate call validate(value) to function-return
+  return ok (checked + 1)
+
+async func compose(value: number) -> number ! string
+locals:
+  const boxed: LoadedValue
+  const loaded: number
+  const local: __CopeInferredRecord_E498694BBD28457A1B3D8417F2ADF8E524EFF83ACBCC7C9F0EBF4697403F5651
+  const pending: Async<number ! string>
+entry:
+  store pending, call load(value)
+  store loaded, propagate await pending to function-return
+  store boxed, call LoadedValue__constructor(loaded, (loaded * 2))
+  store local, record-new [r3] { [r3.f0]: loaded, [r3.f1]: (loaded * 2) }
+  return ok ((call LoadedValue__total(boxed) + record-get [r3] local.[r3.f0]) + record-get [r3] local.[r3.f1])
+
+func main() -> number
+locals:
+  const collected: number[]
+  let total: number
+  const transformed: number[]
+entry:
+  store collected, call collect()
+  store transformed, call transform(collected)
+  store total, 0
+  for-of value in MirArrayIterableExpression { Type = MirIterableType { Identifier = iterable, Name = Iterable<number>, ElementType = MirNamedType { Identifier = number, Name = number } }, Receiver = MirVariableExpression { Type = MirArrayType { Identifier = array, Name = number[], ElementType = MirNamedType { Identifier = number, Name = number } }, Name = transformed }, IterableType = MirIterableType { Identifier = iterable, Name = Iterable<number>, ElementType = MirNamedType { Identifier = number, Name = number } } }
+    total = (total + value)
+  return total

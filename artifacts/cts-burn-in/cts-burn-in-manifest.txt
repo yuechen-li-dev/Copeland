@@ -1,0 +1,11 @@
+Copeland TS parser-level language burn-in
+feature inventory authority: parser/compiler implementation
+JavaScript primary backend: true
+C# parity spot-check: true
+Oblivion changed: false
+programs:
+- Application
+- Tables
+- Flow
+- AsyncBatchGenerator
+- Metaprogramming

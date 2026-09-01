@@ -1,0 +1,23 @@
+{
+  "name": "Metaprogramming",
+  "source": "tests/Copeland/Copeland.TS.Tests/TestData/BurnIn/Metaprogramming/main.ts",
+  "sourceLoc": 90,
+  "sourceBytes": 2168,
+  "parseMs": 8.3344,
+  "bindMs": 10.7007,
+  "templateMs": 18.555,
+  "lowerMs": null,
+  "emitJsMs": null,
+  "totalCompileMs": 37.5907,
+  "generatedJsLoc": null,
+  "generatedJsBytes": null,
+  "jsToSourceSizeRatio": null,
+  "generatedCarrierCount": null,
+  "helperCount": null,
+  "nodeExecutionMs": null,
+  "artifactCount": 15,
+  "templateInstantiationCount": 7,
+  "reflectionQuerySiteCount": 5,
+  "deterministicTemplateOutput": true,
+  "compileTimeOnly": true
+}

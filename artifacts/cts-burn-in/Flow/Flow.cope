@@ -1,0 +1,32 @@
+module
+
+enum AuditKind
+  case Started
+  case Retried(count: int)
+  case Completed(total: int)
+  case Failed(reason: string)
+
+class-record DeliveryBoard [r2]
+  public field attempts [r2.f0]: int
+  public field total [r2.f1]: int
+  public field sequence [r2.f2]: int
+  public field accepted [r2.f3]: boolean
+
+record AuditEntry [r1]
+  field kind [r1.f0]: AuditKind
+  field sequence [r1.f1]: int
+
+func nextSequence(value: int) -> int
+entry:
+  return (value + 1)
+
+func auditScore(entry: AuditEntry) -> int
+entry:
+  return match record-get [r1] entry.[r1.f0] : int { Started => record-get [r1] entry.[r1.f1] | Retried(count: int) => (record-get [r1] entry.[r1.f1] + count) | Completed(total: int) => (record-get [r1] entry.[r1.f1] + total) | Failed(reason: string) => (record-get [r1] entry.[r1.f1] + MirArrayLengthExpression { Type = MirNamedType { Identifier = int, Name = int }, Receiver = MirVariableExpression { Type = MirNamedType { Identifier = string, Name = string }, Name = reason } }) }
+
+func main() -> int
+locals:
+  const entry: AuditEntry
+entry:
+  store entry, record-new [r1] { [r1.f0]: enum AuditKind.Completed(42), [r1.f1]: 3 }
+  return call auditScore(entry)

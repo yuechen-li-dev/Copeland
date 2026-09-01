@@ -7795,6 +7795,16 @@ public static class Binder
 
         private BoundExpression BindNew(NewExpressionSyntax expression)
         {
+            if (expression.Target is NameExpressionSyntax name
+                && _classTypes.ContainsKey(name.IdentifierToken.Text))
+            {
+                Report(
+                    "COPE-CLASS-0013",
+                    $"Class '{name.IdentifierToken.Text}' uses pure call construction. Write '{name.IdentifierToken.Text}(...)' instead of 'new {name.IdentifierToken.Text}(...)'.",
+                    expression.NewKeyword);
+                return new BoundErrorExpression();
+            }
+
             if (!TryResolveClrTypeReference(expression.Target, out Type? type))
             {
                 Report("COPE-CLR-0001", "CLR constructor target was not found. CLR 'using' directives resolve only CLR namespaces and types.", expression.NewKeyword);

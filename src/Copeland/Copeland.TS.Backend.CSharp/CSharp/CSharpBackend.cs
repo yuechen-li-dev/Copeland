@@ -1103,7 +1103,16 @@ public static class CSharpBackend
     {
         if (function.IsAsync)
         {
-            EmitAsyncFunction(writer, function, diagnostics);
+            var asyncPreviousState = CurrentEmissionState.Value;
+            CurrentEmissionState.Value = new CSharpEmissionState(records);
+            try
+            {
+                EmitAsyncFunction(writer, function, diagnostics);
+            }
+            finally
+            {
+                CurrentEmissionState.Value = asyncPreviousState;
+            }
             return;
         }
         if (function.IsGenerator)
@@ -1412,6 +1421,8 @@ public static class CSharpBackend
             MirBinaryExpression binary => $"({EmitAsyncExpression(binary.Left, function)} {binary.Operator} {EmitAsyncExpression(binary.Right, function)})",
             MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, function)})",
             MirCallExpression call => $"{CSharpNameMangler.Mangle(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, function)))})",
+            MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, function),
+            MirRecordFieldAccessExpression access => $"({EmitAsyncExpression(access.Receiver, function)}).{RecordFieldName(access.FieldId)}",
             MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, function),
             MirNpmCallExpression npm => EmitAsyncNpmCall(npm, function),
             MirClrInvocationExpression invocation => EmitClrInvocation(invocation, function),
@@ -1420,6 +1431,15 @@ public static class CSharpBackend
             MirErrExpression err => $"CopeResult<{MapResultComponentType(((MirResultType)err.Type).SuccessType)}, {MapType(((MirResultType)err.Type).ErrorType)}>.Err({EmitAsyncExpression(err.Payload, function)})",
             _ => throw new InvalidOperationException($"Async function '{function.Name}' uses expression '{expression.GetType().Name}' which has not been lowered into an explicit state expression."),
         };
+    }
+
+    private static string EmitAsyncRecordConstruction(MirRecordConstructionExpression construction, MirFunction function)
+    {
+        MirRecordDefinition record = GetRecordDefinition(construction.RecordTypeId);
+        IReadOnlyDictionary<MirRecordFieldId, MirExpression> valuesByField = construction.Initializers
+            .ToDictionary(initializer => initializer.FieldId, initializer => initializer.Value);
+        string arguments = string.Join(", ", record.Fields.Select(field => EmitAsyncExpression(valuesByField[field.Id], function)));
+        return $"new {RecordTypeName(record.Id)}({arguments})";
     }
 
     private static string EmitAsyncTsonTransport(MirTsonTransportExpression transport, MirFunction function)

@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "commands": [
+    { "command": "dotnet test Copeland.TS.slnx -m:1", "passed": true, "tests": 1541 },
+    { "command": "dotnet test Copeland.slnx -m:1", "passed": true, "tests": 1724 },
+    { "command": "dotnet test JointTaskForce.slnx -m:1", "passed": true },
+    { "command": "dotnet test Oblivion.slnx -m:1", "passed": true, "tests": 237 },
+    { "command": "dotnet test Machina.UI.slnx -m:1", "passed": true, "tests": 674 },
+    { "command": "dotnet test Machina.UI.Slow.slnx -m:1", "passed": true, "tests": 308 },
+    { "command": "dotnet build Machina.UI.slnx --no-restore -m:1", "passed": true, "warnings": 0, "errors": 0 },
+    { "command": "dotnet test Aurelian.slnx --no-build -m:1", "passed": true, "tests": 657 },
+    { "command": "tools/Export-MachinaPresenter.ps1 -PlaybackSuite ... -OutputDirectory ...", "passed": true, "scenarios": 14, "failed": 0, "skipped": 0 },
+    { "command": "git diff --check", "passed": true }
+  ],
+  "boundarySearches": {
+    "syntaxDeclarationsAndParsers": 518,
+    "boundNodes": 2172,
+    "templateStaticReflect": 1000,
+    "flowStreamLayoutBatchYieldAwaitTable": 1564,
+    "javascriptEmission": 1461,
+    "systemReflectionBaseline": 35,
+    "systemReflectionAdditions": 0
+  }
+}

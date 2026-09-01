@@ -2712,7 +2712,7 @@ public static class JavaScriptBackend
             writer.Indent();
             if (state.Kind == AsyncStateKind.Branch)
             {
-                writer.WriteLine($"frame.__cope_state = {EmitAsyncExpression(state.Condition!, results, names)} ? {state.ThenState} : {state.ElseState};");
+                writer.WriteLine($"frame.__cope_state = {EmitAsyncExpression(state.Condition!, catalog, results, names)} ? {state.ThenState} : {state.ElseState};");
                 writer.WriteLine("continue;");
                 writer.Unindent();
                 writer.WriteLine("}");
@@ -2730,7 +2730,7 @@ public static class JavaScriptBackend
             {
                 string pending = AsyncFrameSlotReference(state.AwaitedComputationSlot!.Value);
                 string resumed = AsyncFrameSlotReference(state.ValueSlot!.Value);
-                writer.WriteLine($"{pending} = {EmitAsyncExpression(state.Expression!, results, names)};");
+                writer.WriteLine($"{pending} = {EmitAsyncExpression(state.Expression!, catalog, results, names)};");
                 writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine($"if (!{pending}.subscribe(() => {{ {resumed} = {pending}.value; step(); }}, () => computation.cancel(), () => computation.fail(), () => computation.panic())) return;");
                 writer.WriteLine($"if ({pending}.cancelled) {{ computation.cancel(); return; }}");
@@ -2744,7 +2744,7 @@ public static class JavaScriptBackend
             }
             if (state.Kind == AsyncStateKind.Evaluate)
             {
-                writer.WriteLine($"{AsyncFrameSlotReference(state.ValueSlot!.Value)} = {EmitAsyncExpression(state.Expression!, results, names)};");
+                writer.WriteLine($"{AsyncFrameSlotReference(state.ValueSlot!.Value)} = {EmitAsyncExpression(state.Expression!, catalog, results, names)};");
                 writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine("continue;");
                 writer.Unindent();
@@ -2754,7 +2754,7 @@ public static class JavaScriptBackend
             if (state.Kind == AsyncStateKind.Propagate)
             {
                 string result = "__cope_propagate_" + state.Id;
-                writer.WriteLine($"const {result} = {EmitAsyncExpression(state.Expression!, results, names)};");
+                writer.WriteLine($"const {result} = {EmitAsyncExpression(state.Expression!, catalog, results, names)};");
                 if (state.PropagationTarget is MirPropagationTarget.LexicalExcept)
                 {
                     if (state.HandlerState < 0 || state.HandlerErrorSlot is null)
@@ -2790,13 +2790,13 @@ public static class JavaScriptBackend
             if (statement is MirVariableDeclarationStatement plainDeclaration)
             {
                 string localSlot = AsyncFrameSlotReference(new MirFrameSlotId("local_" + plainDeclaration.Local.Name));
-                writer.WriteLine($"{localSlot} = {EmitAsyncExpression(plainDeclaration.Initializer, results, names)};");
+                writer.WriteLine($"{localSlot} = {EmitAsyncExpression(plainDeclaration.Initializer, catalog, results, names)};");
                 writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine("continue;");
             }
             else if (statement is MirReturnStatement { Expression: not null } returned)
             {
-                writer.WriteLine($"computation.resolve({EmitAsyncExpression(returned.Expression, results, names)});");
+                writer.WriteLine($"computation.resolve({EmitAsyncExpression(returned.Expression, catalog, results, names)});");
                 writer.WriteLine("return;");
             }
             else if (statement is MirReturnStatement)
@@ -2806,7 +2806,7 @@ public static class JavaScriptBackend
             }
             else if (statement is MirExpressionStatement expression)
             {
-                writer.WriteLine($"{EmitAsyncExpression(expression.Expression, results, names)};");
+                writer.WriteLine($"{EmitAsyncExpression(expression.Expression, catalog, results, names)};");
                 writer.WriteLine($"frame.__cope_state = {state.NextState};");
                 writer.WriteLine("continue;");
             }
@@ -2891,7 +2891,7 @@ public static class JavaScriptBackend
             ? AsyncFrameSlotReference(new MirFrameSlotId(slot))
             : "frame." + JavaScriptIdentifierEncoder.Encode(name);
 
-    private static string EmitAsyncExpression(MirExpression expression, ResultCatalog results, GeneratedNames names)
+    private static string EmitAsyncExpression(MirExpression expression, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         return expression switch
         {
@@ -2901,77 +2901,79 @@ public static class JavaScriptBackend
             MirUnitExpression => "null",
             MirVariableExpression variable => AsyncFrameVariableReference(variable.Name, names),
             MirAsyncFrameSlotExpression slot => AsyncFrameSlotReference(slot.SlotId),
-            MirAssignmentExpression assignment => $"{AsyncFrameVariableReference(assignment.Name, names)} = {EmitAsyncExpression(assignment.Expression, results, names)}",
-            MirBinaryExpression binary => $"({EmitAsyncExpression(binary.Left, results, names)} {binary.Operator} {EmitAsyncExpression(binary.Right, results, names)})",
-            MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, results, names)})",
-            MirCallExpression call => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)))})",
-            MirInvokeExpression invoke => EmitAsyncInvoke(invoke, results, names),
-            MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, results, names),
-            MirRecordFieldAccessExpression access => EmitAsyncRecordFieldAccess(access, results, names),
-            MirEnumValueExpression value => EmitAsyncEnumValue(value, results, names),
-            MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, results, names),
-            MirNpmCallExpression npm => EmitNpmCall(npm, results, names),
-            MirNpmDirectCallExpression npm => EmitNpmDirectCallValue(npm, results, names),
-            MirOkExpression ok => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)ok.Type))}, \"ok\", [{EmitAsyncExpression(ok.Payload, results, names)}])",
-            MirErrExpression err => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)err.Type))}, \"err\", [{EmitAsyncExpression(err.Payload, results, names)}])",
+            MirAssignmentExpression assignment => $"{AsyncFrameVariableReference(assignment.Name, names)} = {EmitAsyncExpression(assignment.Expression, catalog, results, names)}",
+            MirBinaryExpression binary => $"({EmitAsyncExpression(binary.Left, catalog, results, names)} {binary.Operator} {EmitAsyncExpression(binary.Right, catalog, results, names)})",
+            MirUnaryExpression unary => $"({unary.Operator}{EmitAsyncExpression(unary.Operand, catalog, results, names)})",
+            MirCallExpression call => $"{JavaScriptIdentifierEncoder.Encode(call.FunctionName)}({string.Join(", ", call.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)))})",
+            MirInvokeExpression invoke => EmitAsyncInvoke(invoke, catalog, results, names),
+            MirRecordConstructionExpression construction => EmitAsyncRecordConstruction(construction, catalog, results, names),
+            MirRecordFieldAccessExpression access => EmitAsyncRecordFieldAccess(access, catalog, results, names),
+            MirEnumValueExpression value => EmitAsyncEnumValue(value, catalog, results, names),
+            MirTsonTransportExpression transport => EmitAsyncTsonTransport(transport, catalog, results, names),
+            MirNpmCallExpression npm => EmitNpmCall(npm, catalog, results, names),
+            MirNpmDirectCallExpression npm => EmitNpmDirectCallValue(npm, catalog, results, names),
+            MirOkExpression ok => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)ok.Type))}, \"ok\", [{EmitAsyncExpression(ok.Payload, catalog, results, names)}])",
+            MirErrExpression err => $"{names.MakeValue}({names.TypeToken(results.Get((MirResultType)err.Type))}, \"err\", [{EmitAsyncExpression(err.Payload, catalog, results, names)}])",
             _ => throw new InvalidOperationException($"Async expression '{expression.GetType().Name}' has not been lowered into an explicit state expression."),
         };
     }
 
-    private static string EmitAsyncInvoke(MirInvokeExpression invoke, ResultCatalog results, GeneratedNames names)
+    private static string EmitAsyncInvoke(MirInvokeExpression invoke, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         string signature = invoke.Callee.Type is MirCallableType callable
             ? CallableTypeIdentity(callable)
             : "invalid";
-        string callee = EmitAsyncExpression(invoke.Callee, results, names);
-        string arguments = string.Join(", ", invoke.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)));
+        string callee = EmitAsyncExpression(invoke.Callee, catalog, results, names);
+        string arguments = string.Join(", ", invoke.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)));
         return $"__cope_callable_invoke({callee}, {JavaScriptLiteralWriter.WriteString(signature)}, [{arguments}])";
     }
 
-    private static string EmitAsyncEnumValue(MirEnumValueExpression value, ResultCatalog results, GeneratedNames names)
+    private static string EmitAsyncEnumValue(MirEnumValueExpression value, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
-        string arguments = string.Join(", ", value.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)));
+        string arguments = string.Join(", ", value.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)));
         return $"{GetEnumFactoryName(value.EnumName, value.CaseName)}({arguments})";
     }
 
-    private static string EmitAsyncRecordConstruction(MirRecordConstructionExpression construction, ResultCatalog results, GeneratedNames names)
+    private static string EmitAsyncRecordConstruction(MirRecordConstructionExpression construction, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
-        string arguments = string.Join(", ", construction.Initializers.Select(initializer => EmitAsyncExpression(initializer.Value, results, names)));
-        return $"{GetRecordFactoryName(construction.RecordTypeId)}({arguments})";
+        MirRecordDefinition record = catalog.GetRecord(construction.RecordTypeId);
+        IReadOnlyDictionary<MirRecordFieldId, MirExpression> valuesByField = construction.Initializers
+            .ToDictionary(initializer => initializer.FieldId, initializer => initializer.Value);
+        string arguments = string.Join(", ", record.Fields.Select(field => EmitAsyncExpression(valuesByField[field.Id], catalog, results, names)));
+        return $"{RecordConstructionName(record, names)}({arguments})";
     }
 
-    private static string EmitAsyncRecordFieldAccess(MirRecordFieldAccessExpression access, ResultCatalog results, GeneratedNames names)
+    private static string EmitAsyncRecordFieldAccess(MirRecordFieldAccessExpression access, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
-        int fieldSeparator = access.FieldId.Value.LastIndexOf('f');
-        if (fieldSeparator < 0 || !int.TryParse(access.FieldId.Value[(fieldSeparator + 1)..], out int fieldIndex))
-        {
-            throw new InvalidOperationException($"Async record field '{access.FieldId.Value}' does not have a production field index.");
-        }
-
-        return $"{EmitAsyncExpression(access.Receiver, results, names)}.$f{fieldIndex}";
+        MirRecordDefinition record = catalog.GetRecord(access.RecordTypeId);
+        MirRecordFieldDefinition field = record.Fields.Single(candidate => candidate.Id == access.FieldId);
+        string receiver = EmitAsyncExpression(access.Receiver, catalog, results, names);
+        return IsProduction(names)
+            ? $"{receiver}.{ProductionRecordFieldName(record, field)}"
+            : $"{receiver}[{names.RecordFieldSlot(field)}]";
     }
 
-    private static string EmitAsyncTsonTransport(MirTsonTransportExpression transport, ResultCatalog results, GeneratedNames names)
+    private static string EmitAsyncTsonTransport(MirTsonTransportExpression transport, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         MirResultType result = (MirResultType)transport.AsyncType.EventualType;
         string resultToken = names.TypeToken(results.Get(result));
         string requestPlan = JavaScriptLiteralWriter.WriteString(transport.RequestPlanId.Value);
         string responsePlan = JavaScriptLiteralWriter.WriteString(transport.ResponsePlanId.Value);
         string errorPlan = JavaScriptLiteralWriter.WriteString(transport.RemoteErrorPlanId.Value);
-        return $"__cope_tson_transport.start({EmitAsyncExpression(transport.Operation, results, names)}, {names.TsonRuntime}[{requestPlan}]({EmitAsyncExpression(transport.Request, results, names)}).$payload[0], (kind, payload) => kind === \"ok\" ? {names.MakeValue}({resultToken}, \"ok\", [{names.TsonRuntime}[{responsePlan}].decode(payload)]) : {names.MakeValue}({resultToken}, \"err\", [{names.TsonRuntime}[{errorPlan}].decode(payload)]))";
+        return $"__cope_tson_transport.start({EmitAsyncExpression(transport.Operation, catalog, results, names)}, {names.TsonRuntime}[{requestPlan}]({EmitAsyncExpression(transport.Request, catalog, results, names)}).$payload[0], (kind, payload) => kind === \"ok\" ? {names.MakeValue}({resultToken}, \"ok\", [{names.TsonRuntime}[{responsePlan}].decode(payload)]) : {names.MakeValue}({resultToken}, \"err\", [{names.TsonRuntime}[{errorPlan}].decode(payload)]))";
     }
 
-    private static string EmitNpmCall(MirNpmCallExpression npm, ResultCatalog results, GeneratedNames names)
+    private static string EmitNpmCall(MirNpmCallExpression npm, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
     {
         MirResultType result = (MirResultType)npm.AsyncType.EventualType;
         string token = names.TypeToken(results.Get(result));
-        string arguments = string.Join(", ", npm.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)));
+        string arguments = string.Join(", ", npm.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)));
         string localBinding = JavaScriptIdentifierEncoder.Encode(npm.LocalBinding);
         return $"(() => {{ const pending = __cope_async_pending(); globalThis.Promise.resolve({localBinding}({arguments})).then(value => pending.resolve({names.MakeValue}({token}, \"ok\", [value])), error => pending.resolve({names.MakeValue}({token}, \"err\", [error]))); return pending; }})()";
     }
 
-    private static string EmitNpmDirectCallValue(MirNpmDirectCallExpression npm, ResultCatalog results, GeneratedNames names)
-        => $"{JavaScriptIdentifierEncoder.Encode(npm.LocalBinding)}({string.Join(", ", npm.Arguments.Select(argument => EmitAsyncExpression(argument, results, names)))})";
+    private static string EmitNpmDirectCallValue(MirNpmDirectCallExpression npm, EnumCatalog catalog, ResultCatalog results, GeneratedNames names)
+        => $"{JavaScriptIdentifierEncoder.Encode(npm.LocalBinding)}({string.Join(", ", npm.Arguments.Select(argument => EmitAsyncExpression(argument, catalog, results, names)))})";
 
     private static void EmitStatement(JavaScriptTextWriter writer, MirStatement statement, MirFunction function, EnumCatalog catalog, ResultCatalog results, GeneratedNames names, bool flowEnabled)
     {
@@ -3231,7 +3233,7 @@ public static class JavaScriptBackend
             MirTryExpression tryExpression => EmitTryExcept(tryExpression, function, catalog, results, names, flowEnabled),
             MirTsonEncodeExpression encode => EmitTsonEncode(encode, function, catalog, results, names, flowEnabled),
             MirTsonTransportExpression transport => EmitTsonTransport(transport, function, catalog, results, names, flowEnabled),
-            MirNpmCallExpression npm => new EmittedExpression([], EmitNpmCall(npm, results, names)),
+            MirNpmCallExpression npm => new EmittedExpression([], EmitNpmCall(npm, catalog, results, names)),
             MirNpmDirectCallExpression npm => EmitNpmDirectCall(npm, function, catalog, results, names, flowEnabled),
             MirNpmComponentExpression component => EmitNpmComponent(component, function, catalog, results, names, flowEnabled),
             MirReactElementExpression element => EmitReactElement(element, function, catalog, results, names, flowEnabled),

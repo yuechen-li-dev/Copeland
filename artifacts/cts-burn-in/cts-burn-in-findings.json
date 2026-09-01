@@ -1,0 +1,112 @@
+[
+  {
+    "id": "CTS-BURN-001",
+    "category": "BACKEND_CODEGEN_FRICTION",
+    "severity": "BLOCKING",
+    "program": "AsyncBatchGenerator",
+    "sourceLocation": "AsyncBatchGenerator.ts:68",
+    "summary": "JavaScript async lowering called a legacy inferred-record factory and used production field names in Diagnostic output.",
+    "evidence": "Node raised ReferenceError: __cope_record_00720032 is not defined after compose() resumed from await.",
+    "recommendedAction": "Fixed locally by resolving async record construction and access through the active record catalog and emission profile."
+  },
+  {
+    "id": "CTS-BURN-002",
+    "category": "BACKEND_CODEGEN_FRICTION",
+    "severity": "BLOCKING",
+    "program": "AsyncBatchGenerator",
+    "sourceLocation": "AsyncBatchGenerator.ts:67",
+    "summary": "The C# async emitter rejected record/class construction and field access retained in explicit suspension states.",
+    "evidence": "CSharpBackend threw for MirRecordFieldAccessExpression while emitting compose().",
+    "recommendedAction": "Fixed locally by emitting catalog-ordered record construction and field access under async function emission state."
+  },
+  {
+    "id": "CTS-BURN-003",
+    "category": "DIAGNOSTIC_FRICTION",
+    "severity": "MINOR",
+    "program": "Class diagnostic probe",
+    "sourceLocation": "LanguageBurnInTests.cs",
+    "summary": "new Person(...) was diagnosed as a missing CLR constructor instead of rejected Copeland class syntax.",
+    "evidence": "The initial probe produced COPE-CLR-0001 even though Person resolved as ClassTypeSymbol.",
+    "recommendedAction": "Fixed locally by reporting COPE-CLASS-0013 with the pure-call spelling."
+  },
+  {
+    "id": "CTS-BURN-004",
+    "category": "COMPOSITION_GAP",
+    "severity": "MATERIAL",
+    "program": "Flow",
+    "sourceLocation": "Flow.ts transition update blocks",
+    "summary": "FLOW-M1 rejects calls to an ordinary pure helper from transition updates.",
+    "evidence": "nextSequence(board.sequence) produced COPE-FLOW-0024 and had to be written as board.sequence + 1.",
+    "recommendedAction": "Qualify effect-classified pure Copeland calls in FLOW updates as a bounded follow-up; do not broaden host effects."
+  },
+  {
+    "id": "CTS-BURN-005",
+    "category": "COMPOSITION_GAP",
+    "severity": "REPEATED",
+    "program": "Metaprogramming",
+    "sourceLocation": "generic template forwarding probe",
+    "summary": "A constrained template type parameter cannot be forwarded to another template requiring the same interface.",
+    "evidence": "instantiate TypeInventory<T> from T extends Named produced COPE-REQUIREMENT-0005; direct Worker and Service instantiations succeed.",
+    "recommendedAction": "Preserve normalized interface evidence when binding template-to-template type arguments."
+  },
+  {
+    "id": "CTS-BURN-006",
+    "category": "SEMANTIC_GAP",
+    "severity": "MINOR",
+    "program": "Application",
+    "sourceLocation": "inferred Result boundary probe",
+    "summary": "An inferred record works locally and through generic inference but cannot be named by a runtime function return type.",
+    "evidence": "function make(): { x: int; } ! string with ok({ x: 1 }) produces COPE-REC-0005; a named LocalPoint boundary succeeds.",
+    "recommendedAction": "Keep the explicit named boundary for now; decide runtime structural alias identity only in a dedicated qualification milestone."
+  },
+  {
+    "id": "CTS-BURN-007",
+    "category": "COMPOSITION_GAP",
+    "severity": "MINOR",
+    "program": "Tables",
+    "sourceLocation": "array-valued table cell probe",
+    "summary": "Authored runtime record tables reject array-valued columns as not deeply immutable.",
+    "evidence": "record table Values { tags: string[] = [[\"a\"]]; } produces COPE-TABLE-0009, while TSON table assets have a separate nested-array surface.",
+    "recommendedAction": "Clarify whether the runtime-table restriction is intentional; do not conflate it with TSON asset table support."
+  },
+  {
+    "id": "CTS-BURN-008",
+    "category": "BACKEND_CODEGEN_FRICTION",
+    "severity": "REPEATED",
+    "program": "Tables",
+    "sourceLocation": "Tables.g.js",
+    "summary": "Table runtime validation and access machinery dominates small table programs.",
+    "evidence": "106 source LOC / 2,569 bytes emitted 690 JS LOC / 45,849 bytes, a 17.847 size ratio with 20 helpers.",
+    "recommendedAction": "Measure shared/runtime helper factoring before considering optimizer work; preserve columnar semantics and validators."
+  },
+  {
+    "id": "CTS-BURN-009",
+    "category": "SYNTAX_FRICTION",
+    "severity": "MINOR",
+    "program": "Application",
+    "sourceLocation": "orderedShapePressure",
+    "summary": "Ordered inferred-record identity remains a real but contained footgun.",
+    "evidence": "a and b reuse one carrier; c with reversed y,x order receives a distinct carrier, while local reads remain unsurprising.",
+    "recommendedAction": "Keep the ordered law and improve explanatory diagnostics/docs only if cross-boundary failures recur."
+  },
+  {
+    "id": "CTS-BURN-010",
+    "category": "DOC_ONLY_FRICTION",
+    "severity": "MINOR",
+    "program": "Class pressure",
+    "sourceLocation": "Application.ts and AsyncBatchGenerator.ts",
+    "summary": "The implemented class is stronger and narrower than a TypeScript-looking class declaration suggests.",
+    "evidence": "Parcel and LoadedValue compose through Results, arrays/records, interfaces, generics, async, and with; emitted JS contains frozen private carriers and associated functions, with no JS class, prototype, this, or new.",
+    "recommendedAction": "Lead class documentation with pure nominal value and explicit associated-operation semantics."
+  },
+  {
+    "id": "CTS-BURN-011",
+    "category": "DIAGNOSTIC_FRICTION",
+    "severity": "MATERIAL",
+    "program": "Parser recovery probe",
+    "sourceLocation": "LanguageBurnInTests.cs",
+    "summary": "One missing comma between record literal fields causes a parser cascade.",
+    "evidence": "{ x: 1 y: 2 } produced 11 parser diagnostics from one plausible edit.",
+    "recommendedAction": "Add a bounded object-property separator recovery point in a dedicated parser diagnostics milestone."
+  }
+]

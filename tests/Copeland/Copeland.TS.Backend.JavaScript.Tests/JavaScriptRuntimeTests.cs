@@ -257,6 +257,31 @@ public sealed class JavaScriptRuntimeTests
     }
 
     [Fact]
+    public async Task Node_constructs_and_reads_an_inferred_record_after_await()
+    {
+        JavaScriptCompilation emitted = Emit("""
+            async function load(value: number): number ! string {
+                return value + 1;
+            }
+
+            async function compose(value: number): number ! string {
+                const pending: Async<number ! string> = load(value);
+                const loaded: number = await pending?;
+                const local = { value: loaded, doubled: loaded * 2 };
+                return local.value + local.doubled;
+            }
+            """);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+        ProcessResult result = await RunNodeAsync(
+            emitted.SourceText + "const result = compose(13).value; console.log(result.$tag); console.log(result.$payload[0]);\n");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Equal("ok\n42\n", result.StdOut);
+        Assert.Equal(string.Empty, result.StdErr);
+    }
+
+    [Fact]
     public async Task Node_propagates_a_result_error_after_await_without_host_rejection()
     {
         JavaScriptCompilation emitted = Emit("""
